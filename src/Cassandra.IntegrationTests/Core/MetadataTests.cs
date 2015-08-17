@@ -689,6 +689,48 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(ColumnTypeCode.Int, list1MapInfo.ValueTypeCode);
         }
 
+        [Test]
+        public void TableMetadataCassandra22Types()
+        {
+            if (CassandraVersion < Version.Parse("2.2"))
+            {
+                Assert.Ignore("Date, Time, SmallInt and TinyInt are supported in 2.2 and above");
+            }
+            var keyspaceName = TestUtils.GetUniqueKeyspaceName();
+            const string tableName = "tbl_cass22_types";
+            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(DefaultNodeCount);
+            var cluster = testCluster.Cluster;
+            var session = testCluster.Session;
+
+            session.CreateKeyspaceIfNotExists(keyspaceName);
+            session.ChangeKeyspace(keyspaceName);
+
+            session.Execute(String.Format("CREATE TABLE {0} (" +
+                                          "id uuid primary key, " +
+                                          "map1 map<smallint, date>," +
+                                          "s smallint," +
+                                          "b tinyint," +
+                                          "d date," +
+                                          "t time)", tableName));
+            var table = cluster.Metadata
+                               .GetKeyspace(keyspaceName)
+                               .GetTableMetadata(tableName);
+
+            Assert.AreEqual(6, table.TableColumns.Length);
+            CollectionAssert.AreEqual(table.PartitionKeys, new[] { table.TableColumns.First(c => c.Name == "id") });
+            var map1 = table.TableColumns.First(c => c.Name == "map1");
+            Assert.AreEqual(ColumnTypeCode.Map, map1.TypeCode);
+            Assert.IsInstanceOf<MapColumnInfo>(map1.TypeInfo);
+            var map1Info = (MapColumnInfo)map1.TypeInfo;
+            Assert.AreEqual(ColumnTypeCode.SmallInt, map1Info.KeyTypeCode);
+            Assert.AreEqual(ColumnTypeCode.Date, map1Info.ValueTypeCode);
+
+            Assert.AreEqual(ColumnTypeCode.SmallInt, table.TableColumns.First(c => c.Name == "s").TypeCode);
+            Assert.AreEqual(ColumnTypeCode.TinyInt, table.TableColumns.First(c => c.Name == "b").TypeCode);
+            Assert.AreEqual(ColumnTypeCode.Date, table.TableColumns.First(c => c.Name == "d").TypeCode);
+            Assert.AreEqual(ColumnTypeCode.Time, table.TableColumns.First(c => c.Name == "t").TypeCode);
+        }
+
         /// <summary>
         /// Performs several schema changes and tries to query the newly created keyspaces and tables asap in a multiple node cluster, trying to create a race condition.
         /// </summary>

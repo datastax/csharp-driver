@@ -57,11 +57,14 @@
     <Compile Include="AdoUnitTests.cs" />
     <Compile Include="BuilderTests.cs" />
     <Compile Include="ClusterTests.cs" />
+    <Compile Include="CollectionTests.cs" />
     <Compile Include="ControlConnectionTests.cs" />
     <Compile Include="IOUnitTests.cs" />
     <Compile Include="CqlCommandTest.cs" />
     <Compile Include="CqlParameterCollectionTest.cs" />
     <Compile Include="CqlParameterTest.cs" />
+    <Compile Include="LocalDateTests.cs" />
+    <Compile Include="LocalTimeTests.cs" />
     <Compile Include="Mapping\AttributeBasedTypeDefinitionTests.cs" />
     <Compile Include="Mapping\BatchTests.cs" />
     <Compile Include="Mapping\DeleteTests.cs" />
@@ -91,6 +94,7 @@
     <Compile Include="Mapping\Pocos\HairColor.cs" />
     <Compile Include="Mapping\Pocos\InsertUser.cs" />
     <Compile Include="Mapping\Pocos\LinqDecoratedCaseInsensitiveEntity.cs" />
+    <Compile Include="Mapping\Pocos\LinqDecoratedWithStringCkEntity.cs" />
     <Compile Include="Mapping\Pocos\LinqDecoratedEntity.cs" />
     <Compile Include="Mapping\Pocos\LinqDecoratedEntityWithStaticField.cs" />
     <Compile Include="Mapping\Pocos\PlainUser.cs" />
@@ -112,6 +116,7 @@
     <Compile Include="StatementTests.cs" />
     <Compile Include="TestHelper.cs" />
     <Compile Include="ThreadPerTaskScheduler.cs" />
+    <Compile Include="TimeoutTests.cs" />
     <Compile Include="TimeUuidTests.cs" />
     <Compile Include="TokenTests.cs" />
     <Compile Include="TypeCodecTests.cs" />

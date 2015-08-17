@@ -144,12 +144,15 @@ namespace Cassandra
             if (buffer == null)
             {
                 WriteInt32(-1);
+                return;
             }
-            else
+            if (buffer == TypeCodec.UnsetBuffer)
             {
-                WriteInt32(buffer.Length);
-                this.Write(buffer);
+                WriteInt32(-2);
+                return;
             }
+            WriteInt32(buffer.Length);
+            Write(buffer);
         }
 
         /// <summary>
@@ -219,6 +222,19 @@ namespace Cassandra
         protected void Write(byte[] buffer)
         {
             _stream.Write(buffer, 0, buffer.Length);
+        }
+        
+        /// <summary>
+        /// Writes a protocol bytes maps
+        /// </summary>
+        public void WriteBytesMap(IDictionary<string, byte[]> map)
+        {
+            WriteInt16((short)map.Count);
+            foreach (var kv in map)
+            {
+                WriteString(kv.Key);
+                WriteBytes(kv.Value);
+            }
         }
     }
 }

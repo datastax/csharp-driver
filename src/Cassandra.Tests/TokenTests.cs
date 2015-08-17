@@ -135,6 +135,38 @@ namespace Cassandra.Tests
         }
 
         [Test]
+        public void TokenMap_SimpleStrategy_With_Hosts_Without_Tokens()
+        {
+            var hosts = new List<Host>
+            {
+                { TestHelper.CreateHost("192.168.0.0", "dc1", "rack", new HashSet<string>{"0"})},
+                { TestHelper.CreateHost("192.168.0.1", "dc1", "rack", new string[0])},
+                { TestHelper.CreateHost("192.168.0.2", "dc1", "rack", new HashSet<string>{"20"})}
+            };
+            const string strategy = ReplicationStrategies.SimpleStrategy;
+            var keyspaces = new List<KeyspaceMetadata>
+            {
+                new KeyspaceMetadata(null, "ks1", true, strategy, new Dictionary<string, int> {{"replication_factor", 10}}),
+                new KeyspaceMetadata(null, "ks2", true, strategy, new Dictionary<string, int> {{"replication_factor", 2}})
+            };
+            var tokenMap = TokenMap.Build("Murmur3Partitioner", hosts, keyspaces);
+
+            //the primary replica and the next
+            var replicas = tokenMap.GetReplicas("ks1", new M3PToken(0));
+            //The node without tokens should not be considered
+            CollectionAssert.AreEqual(new byte[] { 0, 2}, replicas.Select(TestHelper.GetLastAddressByte));
+            replicas = tokenMap.GetReplicas("ks1", new M3PToken(-100));
+            CollectionAssert.AreEqual(new byte[] { 0, 2}, replicas.Select(TestHelper.GetLastAddressByte));
+            //Greater than the greatest token
+            replicas = tokenMap.GetReplicas("ks1", new M3PToken(500000));
+            CollectionAssert.AreEqual(new byte[] { 0, 2 }, replicas.Select(TestHelper.GetLastAddressByte));
+
+            //The next replica should be the first
+            replicas = tokenMap.GetReplicas("ks1", new M3PToken(20));
+            CollectionAssert.AreEqual(new byte[] { 2, 0}, replicas.Select(TestHelper.GetLastAddressByte));
+        }
+
+        [Test]
         public void TokenMap_NetworkTopologyStrategy_With_Keyspace_Test()
         {
             var hosts = new List<Host>

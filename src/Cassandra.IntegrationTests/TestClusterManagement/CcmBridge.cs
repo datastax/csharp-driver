@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using System.Linq;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 
@@ -73,13 +74,18 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 _sshClient.Disconnect();
         }
 
-        public static CcmBridge Create(string name, string localIpPrefix, int nodeCount, string cassandraVersion, bool startTheCluster = true)
+        public static CcmBridge Create(string name, string localIpPrefix, int nodeCount, string cassandraVersion, bool startTheCluster = true, string[] jvmArgs = null)
         {
             CcmBridge ccmBridge = new CcmBridge(name, localIpPrefix);
             string clusterStartStr = "";
             if (startTheCluster)
                 clusterStartStr = "-s";
-            ccmBridge.ExecuteCcm(string.Format("Create {0} -n {1} {2} -i {3} -b -v {4}", name, nodeCount, clusterStartStr, localIpPrefix, cassandraVersion));
+            var jvmArgsParams = "";
+            if (jvmArgs != null && jvmArgs.Length > 0)
+            {
+                jvmArgsParams = String.Join(" ", jvmArgs.Select(a => "--jvm_arg=" + a));
+            }
+            ccmBridge.ExecuteCcm(string.Format("create {0} -n {1} {2} -i {3} -b -v {4} {5}", name, nodeCount, clusterStartStr, localIpPrefix, cassandraVersion, jvmArgsParams));
             return ccmBridge;
         }
 
@@ -89,7 +95,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             string clusterStartStr = "";
             if (startTheCluster)
                 clusterStartStr = "-s";
-            ccmBridge.ExecuteCcm(string.Format("Create {0} -n {1}:{2} {3} -i {4} -b -v {5}", name, nodeCountDc1, nodeCountDc2, clusterStartStr, localIpPrefix, cassandraVersion), DefaultCmdTimeout, throwOnError);
+            ccmBridge.ExecuteCcm(string.Format("create {0} -n {1}:{2} {3} -i {4} -b -v {5}", name, nodeCountDc1, nodeCountDc2, clusterStartStr, localIpPrefix, cassandraVersion), DefaultCmdTimeout, throwOnError);
             return ccmBridge;
         }
 
@@ -119,9 +125,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             ExecuteCcm("stop --not-gently");
         }
 
-        public void Start(int n)
+        public void Start(int n, string additionalArgs = null)
         {
-            ExecuteCcm(string.Format("node{0} start", n));
+            ExecuteCcm(string.Format("node{0} start --wait-for-binary-proto {1}", n, additionalArgs));
         }
 
         public void Stop(int n)

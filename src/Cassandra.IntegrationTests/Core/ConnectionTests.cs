@@ -47,6 +47,7 @@ namespace Cassandra.IntegrationTests.Core
         public ConnectionTests()
         {
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
+            Diagnostics.CassandraStackTraceIncluded = true;
         }
 
         [Test]

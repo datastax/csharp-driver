@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,8 +19,10 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Cassandra.Data.Linq;
+using Cassandra.Mapping;
 using Cassandra.Tests.Mapping.Pocos;
 using Moq;
 using NUnit.Framework;
@@ -116,6 +118,22 @@ namespace Cassandra.Tests.Mapping.Linq
                 (from ent in table where new int[] {10, 30, 40}.Contains(ent.ck2) select new {x = ent.pk, e = ent}).ToString());
         }
 
+        [Test]
+        public void StartsWith_Test()
+        {
+            var table = new Table<LinqDecoratedWithStringCkEntity>(null);
+            var query = table.Where(t => t.pk == "a" && t.ck1.StartsWith("foo") && t.pk == "bar");
+            var pocoData = MappingConfiguration.Global.MapperFactory.GetPocoData<LinqDecoratedWithStringCkEntity>();
+            var visitor = new CqlExpressionVisitor(pocoData, "x_ts", null);
+            visitor.Evaluate(query.Expression);
+            object[] parameters;
+
+            var queryCql = visitor.GetSelect(out parameters);
+
+            Assert.That(parameters, Is.EquivalentTo(new[] { "a", "foo", "foo" + Encoding.UTF8.GetString(new byte[] { 0xF4, 0x8F, 0xBF, 0xBF }), "bar" }));
+            Assert.AreEqual(@"SELECT * FROM ""x_ts"" WHERE ""x_pk"" = ? AND ""x_ck1"" >= ? AND ""x_ck1"" < ? AND ""x_pk"" = ?", queryCql);
+        }
+        
         [Test]
         public void Linq_Batch_Test()
         {

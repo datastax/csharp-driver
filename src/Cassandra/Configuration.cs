@@ -15,6 +15,7 @@
 //
 
 using System;
+using Cassandra.Tasks;
 
 namespace Cassandra
 {
@@ -119,6 +120,12 @@ namespace Cassandra
             get { return _addressTranslator; }
         }
 
+        /// <summary>
+        /// Shared reusable timer
+        /// </summary>
+        internal HashedWheelTimer Timer { get; set; }
+
+
         internal Configuration() :
             this(Policies.DefaultPolicies,
                  new ProtocolOptions(),
@@ -132,6 +139,10 @@ namespace Cassandra
         {
         }
 
+        /// <summary>
+        /// Creates a new instance. This class is also used to shareable a context across all instance that are created below one Cluster instance.
+        /// One configuration instance per Cluster instance.
+        /// </summary>
         internal Configuration(Policies policies,
                                ProtocolOptions protocolOptions,
                                PoolingOptions poolingOptions,

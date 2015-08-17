@@ -19,7 +19,7 @@ using System.Collections.Generic;
 
 namespace Cassandra
 {
-    internal abstract class OutputError : IOutput, IWaitableForDispose
+    internal abstract class OutputError : IOutput
     {
         // Cache of methods for creating instances of OutputError, indexed by the error code
         private static readonly Dictionary<int, Func<OutputError>> OutputErrorFactoryMethods = new Dictionary<int, Func<OutputError>>()
@@ -32,8 +32,11 @@ namespace Cassandra
             {0x1001, () => new OutputOverloaded()           },
             {0x1002, () => new OutputIsBootstrapping()      },
             {0x1003, () => new OutputTruncateError()        },
-            {0x1100, () => new OutputWriteTimeout()         },
-            {0x1200, () => new OutputReadTimeout()          },
+            {0x1100, () => new OutputWriteTimeout(false)    },
+            {0x1200, () => new OutputReadTimeout(false)     },
+            {0x1300, () => new OutputReadTimeout(true)      },
+            {0x1400, () => new OutputFunctionFailure()      },
+            {0x1500, () => new OutputWriteTimeout(true)     },
             {0x2000, () => new OutputSyntaxError()          },
             {0x2100, () => new OutputUnauthorized()         },
             {0x2200, () => new OutputInvalid()              },
@@ -44,16 +47,9 @@ namespace Cassandra
 
         protected string Message { get; private set; }
 
-        protected OutputError()
-        {
-            Message = "";
-        }
+        protected int Code { get; private set; }
 
         public void Dispose()
-        {
-        }
-
-        public void WaitForDispose()
         {
         }
 
@@ -65,10 +61,12 @@ namespace Cassandra
         {
             var factoryMethod = OutputErrorFactoryMethods[code];
             if (factoryMethod == null)
+            {
                 throw new DriverInternalError("unknown error" + code);
-
-            OutputError error = factoryMethod();
+            }
+            var error = factoryMethod();
             error.Message = message;
+            error.Code = code;
             error.Load(cb);
             return error;
         }

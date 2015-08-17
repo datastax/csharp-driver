@@ -22,8 +22,18 @@ namespace Cassandra
     /// </summary>
     public class SocketOptions
     {
+        /// <summary>
+        /// Default value for <see cref="ConnectTimeoutMillis"/>, 5000ms.
+        /// </summary>
         public const int DefaultConnectTimeoutMillis = 5000;
-
+        /// <summary>
+        /// Default value for <see cref="ReadTimeoutMillis"/>, 0.
+        /// </summary>
+        public const int DefaultReadTimeoutMillis = 0;
+        /// <summary>
+        /// Default value for <see cref="DefunctReadTimeoutThreshold"/>, 64.
+        /// </summary>
+        private const int DefaultDefunctReadTimeoutThreshold = 64;
         private int _connectTimeoutMillis = DefaultConnectTimeoutMillis;
         private bool _keepAlive = true;
         private int? _receiveBufferSize;
@@ -32,6 +42,8 @@ namespace Cassandra
         private int? _soLinger;
         private bool? _tcpNoDelay;
         private bool _useStreamMode;
+        private int _readTimeoutMillis = DefaultReadTimeoutMillis;
+        private int _defunctReadTimeoutThreshold = DefaultDefunctReadTimeoutThreshold;
 
         /// <summary>
         /// Gets the number of milliseconds to wait for the socket to connect
@@ -94,6 +106,27 @@ namespace Cassandra
         public bool UseStreamMode
         {
             get { return _useStreamMode; }
+        }
+
+        /// <summary>
+        /// The per-host read timeout in milliseconds.
+        /// <para>
+        /// This defines how long the driver will wait for a given Cassandra node to answer a query.
+        /// </para>
+        /// Please note that this is not the maximum time a call to <see cref="Session.Execute(string)"/> may block; this is the maximum time that call will wait for one particular Cassandra host, but other hosts will be tried if one of them timeout. In other words, a <see cref="Session.Execute(string)"/> call may theoretically wait up to ReadTimeoutMillis * {number_of_cassandra_hosts} (though the total number of hosts tried for a given query also depends on the LoadBalancingPolicy in use).
+        /// Also note that for efficiency reasons, this read timeout is approximate, it may fire up to late. It is not meant to be used for precise timeout, but rather as a protection against misbehaving Cassandra nodes.
+        /// </summary>
+        public int ReadTimeoutMillis
+        {
+            get { return _readTimeoutMillis; }
+        }
+
+        /// <summary>
+        /// Gets the amount of requests that simultaneously have to timeout before closing the connection.
+        /// </summary>
+        public int DefunctReadTimeoutThreshold
+        {
+            get { return _defunctReadTimeoutThreshold; }
         }
 
         /// <summary>
@@ -164,6 +197,28 @@ namespace Cassandra
         public SocketOptions SetStreamMode(bool useStreamMode)
         {
             _useStreamMode = useStreamMode;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the per-host read timeout in milliseconds.
+        /// <para>When setting this value, keep in mind the following:</para>
+        /// <para>- the timeout settings used on the Cassandra side (*_request_timeout_in_ms in cassandra.yaml) should be taken into account when picking a value for this read timeout. In particular, if this read timeout option is lower than Cassandra's timeout, the driver might assume that the host is not responsive and mark it down.</para>
+        /// <para>- the read timeout is only approximate and only control the timeout to one Cassandra host, not the full query (see <see cref="ReadTimeoutMillis"/> for more details).</para>
+        /// Setting a value of 0 disables client read timeouts.
+        /// </summary>
+        public SocketOptions SetReadTimeoutMillis(int milliseconds)
+        {
+            _readTimeoutMillis = milliseconds;
+            return this;
+        }
+
+        /// <summary>
+        /// Determines the amount of requests that simultaneously have to timeout before closing the connection.
+        /// </summary>
+        public SocketOptions SetDefunctReadTimeoutThreshold(int amountOfTimeouts)
+        {
+            _defunctReadTimeoutThreshold = amountOfTimeouts;
             return this;
         }
     }

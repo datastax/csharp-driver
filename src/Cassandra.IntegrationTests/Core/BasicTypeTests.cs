@@ -21,6 +21,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
+using System.Net;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
@@ -271,6 +272,30 @@ namespace Cassandra.IntegrationTests.Core
             rs = Session.Execute(new SimpleStatement("SELECT * FROM " + table).SetAutoPage(false).SetPageSize(pageSize).SetPagingState(rs.PagingState));
             //It should only contain the following page rows
             Assert.AreEqual(totalRowLength - pageSize, rs.Count());
+        }
+
+        [Test]
+        public void QueryTraceEnabledTest()
+        {
+            var rs = Session.Execute(new SimpleStatement("SELECT * from system.local").EnableTracing());
+            Assert.NotNull(rs.Info.QueryTrace);
+            Assert.AreEqual(IPAddress.Parse(TestCluster.InitialContactPoint), rs.Info.QueryTrace.Coordinator);
+            Assert.Greater(rs.Info.QueryTrace.Events.Count, 0);
+            if (Session.BinaryProtocolVersion >= 4)
+            {
+                Assert.NotNull(rs.Info.QueryTrace.ClientAddress);   
+            }
+            else
+            {
+                Assert.Null(rs.Info.QueryTrace.ClientAddress);
+            }
+        }
+
+        [Test]
+        public void QueryTraceDisabledByDefaultTest()
+        {
+            var rs = Session.Execute(new SimpleStatement("SELECT * from system.local"));
+            Assert.Null(rs.Info.QueryTrace);
         }
 
         [Test]

@@ -75,7 +75,7 @@ namespace Cassandra.IntegrationTests.Core
                 hosts.Add(rs.Info.QueriedHost);
             }
 
-            var pool = session.GetConnectionPool(TestHelper.CreateHost(nonShareableTestCluster.InitialContactPoint), HostDistance.Local);
+            var pool = session.GetOrCreateConnectionPool(TestHelper.CreateHost(nonShareableTestCluster.InitialContactPoint), HostDistance.Local);
             var connections = pool.OpenConnections.ToArray();
             var expectedCoreConnections = nonShareableTestCluster.Cluster.Configuration
                 .GetPoolingOptions(connections.First().ProtocolVersion)
@@ -344,7 +344,7 @@ namespace Cassandra.IntegrationTests.Core
                 session.Execute("SELECT * FROM system.schema_keyspaces");
             }
             var host = cluster.AllHosts().First();
-            var pool = session.GetConnectionPool(host, HostDistance.Local);
+            var pool = session.GetOrCreateConnectionPool(host, HostDistance.Local);
             Trace.TraceInformation("Killing connections");
             foreach (var c in pool.OpenConnections)
             {

@@ -30,7 +30,6 @@ namespace Cassandra
     public class PreparedStatement
     {
         internal readonly RowSetMetadata Metadata;
-        internal readonly RowSetMetadata ResultMetadata;
         private readonly int _protocolVersion;
         private volatile RoutingKey _routingKey;
         private string[] _routingNames;
@@ -49,6 +48,17 @@ namespace Cassandra
         /// The keyspace were the prepared statement was first executed
         /// </summary>
         internal string Keyspace { get; private set; }
+
+        /// <summary>
+        /// Gets the the incoming payload, that is, the payload that the server
+        /// sent back with its prepared response, or null if the server did not include any custom payload.
+        /// </summary>
+        public IDictionary<string, byte[]> IncomingPayload { get; internal set; }
+
+        /// <summary>
+        /// Gets custom payload for that will be included when executing an Statement.
+        /// </summary>
+        public IDictionary<string, byte[]> OutgoingPayload { get; private set; }
 
         /// <summary>
         ///  Gets metadata on the bounded variables of this prepared statement.
@@ -77,12 +87,11 @@ namespace Cassandra
             private set;
         }
 
-        internal PreparedStatement(RowSetMetadata metadata, byte[] id, string cql, string keyspace, RowSetMetadata resultMetadata, int protocolVersion)
+        internal PreparedStatement(RowSetMetadata metadata, byte[] id, string cql, string keyspace, int protocolVersion)
         {
             Metadata = metadata;
             Id = id;
             Cql = cql;
-            ResultMetadata = resultMetadata;
             Keyspace = keyspace;
             _protocolVersion = protocolVersion;
         }
@@ -208,6 +217,17 @@ namespace Cassandra
                 return this;
             }
             _routingNames = names;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets a custom outgoing payload for this statement.
+        /// Each time an statement generated using this prepared statement is executed, this payload will be included in the request.
+        /// Once it is set using this method, the payload should not be modified.
+        /// </summary>
+        public PreparedStatement SetOutgoingPayload(IDictionary<string, byte[]> payload)
+        {
+            OutgoingPayload = payload;
             return this;
         }
     }

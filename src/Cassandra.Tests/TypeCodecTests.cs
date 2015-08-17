@@ -289,6 +289,14 @@ namespace Cassandra.Tests
             Assert.AreEqual(ColumnTypeCode.Timeuuid, dataType.TypeCode);
             dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.AsciiType");
             Assert.AreEqual(ColumnTypeCode.Ascii, dataType.TypeCode);
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.SimpleDateType");
+            Assert.AreEqual(ColumnTypeCode.Date, dataType.TypeCode);
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.TimeType");
+            Assert.AreEqual(ColumnTypeCode.Time, dataType.TypeCode);
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.ShortType");
+            Assert.AreEqual(ColumnTypeCode.SmallInt, dataType.TypeCode);
+            dataType = TypeCodec.ParseDataType("org.apache.cassandra.db.marshal.ByteType");
+            Assert.AreEqual(ColumnTypeCode.TinyInt, dataType.TypeCode);
         }
 
         [Test]
@@ -464,6 +472,62 @@ namespace Cassandra.Tests
                     var decoded = (IEnumerable)TypeCodec.Decode(version, encoded, (ColumnTypeCode)value[1], (IColumnInfo)value[2], originalType);
                     Assert.IsInstanceOf(originalType, decoded);
                     CollectionAssert.AreEqual(valueToEncode, decoded);
+                }
+            }
+        }
+
+        [Test]
+        public void EncodeDecodeTinyInt()
+        {
+            var values = new[]
+            {
+                Tuple.Create<sbyte, byte>(-1, 0xff),
+                Tuple.Create<sbyte, byte>(-2, 0xfe),
+                Tuple.Create<sbyte, byte>(0, 0),
+                Tuple.Create<sbyte, byte>(1, 1),
+                Tuple.Create<sbyte, byte>(2, 2),
+                Tuple.Create<sbyte, byte>(127, 127)
+            };
+            foreach (var v in values)
+            {
+                var encoded = TypeCodec.EncodeSByte(4, null, v.Item1);
+                CollectionAssert.AreEqual(encoded, new[] { v.Item2 });
+                var decoded = (sbyte)TypeCodec.DecodeSByte(4, null, encoded, null);
+                Assert.AreEqual(v.Item1, decoded);
+            }
+        }
+
+        [Test]
+        public void EncodeDecodeDate()
+        {
+            var values = new[]
+            {
+                new LocalDate(2010, 4, 29),
+                new LocalDate(2005, 8, 5),
+                new LocalDate(0, 3, 12),
+                new LocalDate(-10, 2, 4),
+                new LocalDate(5881580, 7, 11),
+                new LocalDate(-5877641, 6, 23)
+            };
+            foreach (var v in values)
+            {
+                var encoded = TypeCodec.EncodeDate(4, null, v);
+                var decoded = (LocalDate)TypeCodec.DecodeDate(4, null, encoded, null);
+                Assert.AreEqual(v, decoded);
+            }
+        }
+
+        [Test]
+        public void EncodeDecodeSmallInt()
+        {
+            for (var i = Int16.MinValue; ; i++ )
+            {
+                var encoded = TypeCodec.EncodeShort(4, null, i);
+                var decoded = (short)TypeCodec.DecodeShort(4, null, encoded, null);
+                Assert.AreEqual(i, decoded);
+                if (i == Int16.MaxValue)
+                {
+                    break;
                 }
             }
         }

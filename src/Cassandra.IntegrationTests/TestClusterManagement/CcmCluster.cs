@@ -62,7 +62,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         // So far, for CCM only
         private ProcessOutput _proc { get; set; }
 
-        public void Create(bool startTheCluster = true)
+        public void Create(bool startTheCluster = true, string[] jvmArgs = null)
         {
             // if it's already being created in another thread, then wait until this step is complete
             if (!IsBeingCreated)
@@ -71,7 +71,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 if (Dc2NodeCount > 0)
                     CcmBridge = CcmBridge.Create(Name, ClusterIpPrefix, Dc1NodeCount, Dc2NodeCount, _version, startTheCluster);
                 else
-                    CcmBridge = CcmBridge.Create(Name, ClusterIpPrefix, Dc1NodeCount, _version, startTheCluster);
+                    CcmBridge = CcmBridge.Create(Name, ClusterIpPrefix, Dc1NodeCount, _version, startTheCluster, jvmArgs);
                 IsBeingCreated = false;
                 IsCreated = true;
                 if (startTheCluster)
@@ -130,6 +130,16 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             CcmBridge.DecommissionNode(nodeId);
         }
 
+        public void PauseNode(int nodeId)
+        {
+            CcmBridge.ExecuteCcm(string.Format("node{0} pause", nodeId));
+        }
+
+        public void ResumeNode(int nodeId)
+        {
+            CcmBridge.ExecuteCcm(string.Format("node{0} resume", nodeId));
+        }
+
         public void SwitchToThisCluster()
         {
             CcmBridge.SwitchToThis();
@@ -170,9 +180,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             IsStarted = true;
         }
 
-        public void Start(int nodeIdToStart)
+        public void Start(int nodeIdToStart, string additionalArgs = null)
         {
-            CcmBridge.Start(nodeIdToStart);
+            CcmBridge.Start(nodeIdToStart, additionalArgs);
         }
 
         public void BootstrapNode(int nodeIdToStart)
@@ -185,6 +195,13 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             CcmBridge.BootstrapNode(nodeIdToStart, dataCenterName);
         }
 
-
+        public void UpdateConfig(params string[] yamlChanges)
+        {
+            if (yamlChanges == null) return;
+            foreach (var setting in yamlChanges)
+            {
+                CcmBridge.ExecuteCcm("updateconf \"" + setting + "\"");
+            }
+        }
     }
 }

@@ -14,36 +14,25 @@
 //   limitations under the License.
 //
 
+// ReSharper disable once CheckNamespace
 namespace Cassandra
 {
-    internal class OutputPrepared : IOutput, IWaitableForDispose
+    internal class OutputPrepared : IOutput
     {
-        public readonly RowSetMetadata Metadata;
-        public readonly byte[] QueryId;
-        public readonly RowSetMetadata ResultMetadata;
+        public RowSetMetadata Metadata { get; private set; }
+        public byte[] QueryId { get; private set; }
+        public System.Guid? TraceId { get; internal set; }
 
-        internal OutputPrepared(BEBinaryReader reader, bool readResultsMetadata)
+        internal OutputPrepared(byte protocolVersion, BEBinaryReader reader)
         {
-            short len = reader.ReadInt16();
-            QueryId = new byte[len];
-            reader.Read(QueryId, 0, len);
-            Metadata = new RowSetMetadata(reader);
-            if (readResultsMetadata)
-                ResultMetadata = new RowSetMetadata(reader);
+            var length = reader.ReadInt16();
+            QueryId = new byte[length];
+            reader.Read(QueryId, 0, length);
+            Metadata = new RowSetMetadata(reader, protocolVersion >= 4);
         }
 
         public void Dispose()
         {
-        }
-
-        public void WaitForDispose()
-        {
-        }
-
-        public System.Guid? TraceId
-        {
-            get;
-            internal set;
         }
     }
 }

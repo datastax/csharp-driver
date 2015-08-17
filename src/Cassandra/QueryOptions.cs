@@ -37,10 +37,20 @@ namespace Cassandra
         /// </summary>
         public const int DefaultPageSize = 5000;
 
+        /// <summary>
+        /// Default value for <see cref="RetryOnTimeout"/>
+        /// </summary>
+        public const bool DefaultRetryOnTimeout = true;
+
         private volatile ConsistencyLevel _consistency = DefaultConsistencyLevel;
         private volatile int _pageSize = DefaultPageSize;
         private volatile ConsistencyLevel _serialConsistency = DefaultSerialConsistencyLevel;
+        private bool _retryOnTimeout = DefaultRetryOnTimeout;
 
+        /// <summary>
+        /// Gets a value that determines if the client should retry when it didn't hear back from a host within <see cref="SocketOptions.ReadTimeoutMillis"/>.
+        /// </summary>
+        public bool RetryOnTimeout { get { return _retryOnTimeout; }}
 
         /// <summary>
         /// Sets the default consistency level to use for queries.
@@ -107,6 +117,14 @@ namespace Cassandra
             return this;
         }
 
+        /// <summary>
+        /// Determines if the client should retry when it didn't hear back from a host within <see cref="SocketOptions.ReadTimeoutMillis"/>.
+        /// </summary>
+        public QueryOptions SetRetryOnTimeout(bool retry)
+        {
+            _retryOnTimeout = retry;
+            return this;
+        }
 
         /// <summary>
         /// The default page size used by queries.

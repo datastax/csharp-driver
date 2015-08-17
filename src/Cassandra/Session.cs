@@ -235,9 +235,9 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Gets the connection pool for a given host
+        /// Gets or creates the connection pool for a given host
         /// </summary>
-        internal HostConnectionPool GetConnectionPool(Host host, HostDistance distance)
+        internal HostConnectionPool GetOrCreateConnectionPool(Host host, HostDistance distance)
         {
             var hostPool = _connectionPool.GetOrAdd(host.Address, address => new HostConnectionPool(host, distance, Configuration));
             //It can change from the last time, when trying lower protocol versions
@@ -246,23 +246,34 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Gets the existing connection pool for this host and session or null when it does not exists
+        /// </summary>
+        internal HostConnectionPool GetExistingPool(Host host)
+        {
+            HostConnectionPool pool;
+            _connectionPool.TryGetValue(host.Address, out pool);
+            return pool;
+        }
+
+        /// <summary>
         /// Gets the Request to send to a cassandra node based on the statement type
         /// </summary>
         internal IRequest GetRequest(IStatement statement)
         {
+            ICqlRequest request = null;
             if (statement is RegularStatement)
             {
                 var s = (RegularStatement)statement;
                 s.ProtocolVersion = BinaryProtocolVersion;
                 var options = QueryProtocolOptions.CreateFromQuery(s, Configuration.QueryOptions);
                 options.ValueNames = s.QueryValueNames;
-                return new QueryRequest(BinaryProtocolVersion, s.QueryString, s.IsTracing, options);
+                request = new QueryRequest(BinaryProtocolVersion, s.QueryString, s.IsTracing, options);
             }
             if (statement is BoundStatement)
             {
                 var s = (BoundStatement)statement;
                 var options = QueryProtocolOptions.CreateFromQuery(s, Configuration.QueryOptions);
-                return new ExecuteRequest(BinaryProtocolVersion, s.PreparedStatement.Id, null, s.IsTracing, options);
+                request = new ExecuteRequest(BinaryProtocolVersion, s.PreparedStatement.Id, null, s.IsTracing, options);
             }
             if (statement is BatchStatement)
             {
@@ -273,14 +284,25 @@ namespace Cassandra
                 {
                     consistency = s.ConsistencyLevel.Value;
                 }
-                return new BatchRequest(BinaryProtocolVersion, s, consistency);
+                request = new BatchRequest(BinaryProtocolVersion, s, consistency);
             }
-            throw new NotSupportedException("Statement of type " + statement.GetType().FullName + " not supported");
+            if (request == null)
+            {
+                throw new NotSupportedException("Statement of type " + statement.GetType().FullName + " not supported");   
+            }
+            //Set the outgoing payload for the request
+            request.Payload = statement.OutgoingPayload;
+            return request;
         }
 
         public PreparedStatement Prepare(string cqlQuery)
         {
-            var task = PrepareAsync(cqlQuery);
+            return Prepare(cqlQuery, null);
+        }
+
+        public PreparedStatement Prepare(string cqlQuery, IDictionary<string, byte[]> customPayload)
+        {
+            var task = PrepareAsync(cqlQuery, customPayload);
             TaskHelper.WaitToComplete(task, Configuration.ClientOptions.QueryAbortTimeout);
             return task.Result;
         }
@@ -288,7 +310,15 @@ namespace Cassandra
         /// <inheritdoc />
         public Task<PreparedStatement> PrepareAsync(string query)
         {
-            var request = new PrepareRequest(BinaryProtocolVersion, query);
+            return PrepareAsync(query, null);
+        }
+
+        public Task<PreparedStatement> PrepareAsync(string query, IDictionary<string, byte[]> customPayload)
+        {
+            var request = new PrepareRequest(BinaryProtocolVersion, query)
+            {
+                Payload = customPayload
+            };
             return new RequestHandler<PreparedStatement>(this, request, null)
                 .Send()
                 .Continue(SetPrepareTableInfo);
@@ -303,6 +333,18 @@ namespace Cassandra
             if (column == null || column.Keyspace == null)
             {
                 //The prepared statement does not contain parameters
+                return ps;
+            }
+            if (ps.Metadata.PartitionKeys != null)
+            {
+                //The routing indexes where parsed in the prepared response
+                if (ps.Metadata.PartitionKeys.Length == 0)
+                {
+                    //zero-length partition keys means that none of the parameters are partition keys
+                    //the partition key is hard-coded.
+                    return ps;
+                }
+                ps.RoutingIndexes = ps.Metadata.PartitionKeys;
                 return ps;
             }
             TableMetadata table = null;

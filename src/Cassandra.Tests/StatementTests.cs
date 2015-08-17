@@ -14,7 +14,7 @@ namespace Cassandra.Tests
 
         private static PreparedStatement GetPrepared(string query = Query, RowSetMetadata metadata = null, int protocolVersion = 3)
         {
-            return new PreparedStatement(metadata, new byte[0], query, null, null, protocolVersion);
+            return new PreparedStatement(metadata, new byte[0], query, null, protocolVersion);
         }
 
         [Test]

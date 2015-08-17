@@ -38,6 +38,7 @@ namespace Cassandra
         private readonly Session _session;
         private readonly IStatement _statement;
         private readonly bool _autoPage = true;
+        private readonly bool _retryOnTimeout = true;
         private int _retryCount;
         private readonly TaskCompletionSource<T> _tcs;
         private readonly Dictionary<IPEndPoint, Exception> _triedHosts = new Dictionary<IPEndPoint, Exception>();
@@ -58,6 +59,10 @@ namespace Cassandra
             if (session != null && session.Policies != null && session.Policies.RetryPolicy != null)
             {
                 _retryPolicy = session.Policies.RetryPolicy;
+                if (session.Configuration != null)
+                {
+                    _retryOnTimeout = session.Configuration.QueryOptions.RetryOnTimeout;
+                }
             }
             if (statement != null)
             {
@@ -72,11 +77,33 @@ namespace Cassandra
         /// <summary>
         /// Fills the common properties of the RowSet
         /// </summary>
-        private RowSet FillRowSet(RowSet rs, IOutput output)
+        private RowSet FillRowSet(RowSet rs, ResultResponse response)
         {
-            if (output != null && output.TraceId != null)
+            if (response != null)
             {
-                rs.Info.SetQueryTrace(new QueryTrace(output.TraceId.Value, _session));
+                if (response.Output.TraceId != null)
+                {
+                    rs.Info.SetQueryTrace(new QueryTrace(response.Output.TraceId.Value, _session));   
+                }
+                if (response.Warnings != null)
+                {
+                    rs.Info.Warnings = response.Warnings;
+                    //Log the warnings
+                    for (var i = 0; i < response.Warnings.Length; i++)
+                    {
+                        var query = "BATCH";
+                        if (_request is QueryRequest)
+                        {
+                            query = ((QueryRequest) _request).Query;
+                        }
+                        else if (_statement is BoundStatement)
+                        {
+                            query = ((BoundStatement) _statement).PreparedStatement.Cql;
+                        }
+                        _logger.Warning("Received warning ({0} of {1}): \"{2}\" for \"{3}\"", i + 1, response.Warnings.Length, response.Warnings[i], query);
+                    }
+                }
+                rs.Info.IncomingPayload = response.CustomPayload;
             }
             rs.Info.SetTriedHosts(_triedHosts.Keys.ToList());
             if (_request is ICqlRequest)
@@ -122,12 +149,11 @@ namespace Cassandra
                 }
                 Host = host;
                 _triedHosts[host.Address] = null;
-                Connection connection = null;
                 try
                 {
                     var distance = _session.Policies.LoadBalancingPolicy.Distance(host);
-                    var hostPool = _session.GetConnectionPool(host, distance);
-                    connection = hostPool.BorrowConnection();
+                    var hostPool = _session.GetOrCreateConnectionPool(host, distance);
+                    var connection = hostPool.BorrowConnection();
                     if (connection == null)
                     {
                         continue;
@@ -137,7 +163,7 @@ namespace Cassandra
                 }
                 catch (SocketException ex)
                 {
-                    SetHostDown(host, connection, ex);
+                    host.SetDown();
                     _triedHosts[host.Address] = ex;
                 }
                 catch (InvalidQueryException)
@@ -203,10 +229,15 @@ namespace Cassandra
                 PrepareAndRetry(((PreparedQueryNotFoundException)ex).UnknownId);
                 return;
             }
+            if (ex is OperationTimedOutException)
+            {
+                OnTimeout(ex);
+                return;
+            }
             if (ex is SocketException)
             {
                 _logger.Verbose("Socket error " + ((SocketException)ex).SocketErrorCode);
-                SetHostDown(Host, _connection, ex);
+                Host.SetDown();
             }
             var decision = GetRetryDecision(ex);
             switch (decision.DecisionType)
@@ -234,12 +265,27 @@ namespace Cassandra
             }
         }
 
-        // ReSharper disable UnusedParameter.Local
-        private void SetHostDown(Host host, Connection connection, Exception ex)
+        /// <summary>
+        /// It handles the steps required when there is a client-level read timeout.
+        /// It is invoked by a thread from the default TaskScheduler
+        /// </summary>
+        private void OnTimeout(Exception ex)
         {
-            host.SetDown();
+            _logger.Warning(ex.Message);
+            if (_session == null || Host == null || _connection == null)
+            {
+                _logger.Error("Session, Host and Connection must not be null");
+                return;
+            }
+            var pool = _session.GetExistingPool(Host);
+            pool.CheckHealth(_connection);
+            if (_retryOnTimeout || _request is PrepareRequest)
+            {
+                TrySend();
+                return;
+            }
+            _tcs.TrySetException(ex);
         }
-        // ReSharper restore UnusedParameter.Local
 
         /// <summary>
         /// Creates the prepared statement and transitions the task to completed
@@ -257,7 +303,10 @@ namespace Cassandra
                 throw new DriverInternalError("Obtained PREPARED response for " + _request.GetType().FullName + " request");
             }
             var prepared = (OutputPrepared)output;
-            var statement = new PreparedStatement(prepared.Metadata, prepared.QueryId, ((PrepareRequest)_request).Query, _connection.Keyspace, prepared.ResultMetadata, _session.BinaryProtocolVersion);
+            var statement = new PreparedStatement(prepared.Metadata, prepared.QueryId, ((PrepareRequest) _request).Query, _connection.Keyspace, _session.BinaryProtocolVersion)
+            {
+                IncomingPayload = ((ResultResponse) response).CustomPayload
+            };
             _tcs.TrySetResult((T)(object)statement);
         }
 
@@ -267,37 +316,37 @@ namespace Cassandra
         private void HandleRowSetResult(AbstractResponse response)
         {
             ValidateResult(response);
-            var output = ((ResultResponse)response).Output; 
-            if (output is OutputSchemaChange)
+            var resultResponse = (ResultResponse)response;
+            if (resultResponse.Output is OutputSchemaChange)
             {
                 //Schema changes need to do blocking operations
-                HandleSchemaChange(output);
+                HandleSchemaChange(resultResponse);
                 return;
             }
             RowSet rs;
-            if (output is OutputRows)
+            if (resultResponse.Output is OutputRows)
             {
-                rs = ((OutputRows)output).RowSet;
+                rs = ((OutputRows)resultResponse.Output).RowSet;
             }
             else
             {
-                if (output is OutputSetKeyspace)
+                if (resultResponse.Output is OutputSetKeyspace)
                 {
-                    _session.Keyspace = ((OutputSetKeyspace)output).Value;
+                    _session.Keyspace = ((OutputSetKeyspace)resultResponse.Output).Value;
                 }
                 rs = new RowSet();
             }
-            _tcs.TrySetResult((T)(object)FillRowSet(rs, output));
+            _tcs.TrySetResult((T)(object)FillRowSet(rs, resultResponse));
         }
 
-        private void HandleSchemaChange(IOutput output)
+        private void HandleSchemaChange(ResultResponse response)
         {
             //Use one of the worker/executor threads to wait on the schema change
             Task.Factory.StartNew(() =>
             {
                 _session.Cluster.Metadata.WaitForSchemaAgreement(_connection);
                 //Set the result from the worker thread
-                _tcs.TrySetResult((T)(object)FillRowSet(new RowSet(), output));
+                _tcs.TrySetResult((T)(object)FillRowSet(new RowSet(), response));
             });
         }
 

@@ -116,8 +116,8 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             }
             catch (InvalidQueryException e)
             {
-                string expectedErrMsg = "Partition key part movie_maker must be restricted since preceding part is";
-                Assert.That(e.Message, new EqualConstraint(expectedErrMsg));
+                string expectedErrMsg = "Partition key part(s:)? movie_maker must be restricted (since preceding part is|as other parts are)";
+                StringAssert.IsMatch(expectedErrMsg, e.Message);
             }
         }
 

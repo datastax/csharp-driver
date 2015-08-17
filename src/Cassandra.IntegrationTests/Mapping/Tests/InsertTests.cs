@@ -270,7 +270,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.AreEqual(defaultInstance.PartitionKey2, instancesRetrieved[0].PartitionKey2);
 
             var err = Assert.Throws<InvalidQueryException>(() => mapper.Fetch<ClassWithTwoPartitionKeys>("SELECT * from \"" + table.Name + "\" where \"PartitionKey1\" = '" + instance.PartitionKey1 + "'"));
-            Assert.AreEqual("Partition key part PartitionKey2 must be restricted since preceding part is", err.Message);
+            string expectedErrMsg = "Partition key part(s:)? PartitionKey2 must be restricted (since preceding part is|as other parts are)";
+            StringAssert.IsMatch(expectedErrMsg, err.Message);
 
             Assert.Throws<InvalidQueryException>(() => mapper.Fetch<ClassWithTwoPartitionKeys>("SELECT * from \"" + table.Name + "\" where \"PartitionKey2\" = '" + instance.PartitionKey2 + "'"));
         }
@@ -310,8 +311,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
 
             // Validate Error Message
             var e = Assert.Throws<InvalidQueryException>(() => mapper.Insert(manyTypesPoco));
-            string expectedErrMsg = "unconfigured columnfamily " + typeof(ManyDataTypesPoco).Name.ToLower();
-            Assert.AreEqual(expectedErrMsg, e.Message);
+            string expectedErrMsg = "unconfigured (columnfamily|table) " + typeof(ManyDataTypesPoco).Name.ToLower();
+            StringAssert.IsMatch(expectedErrMsg, e.Message);
         }
 
         /// <summary>

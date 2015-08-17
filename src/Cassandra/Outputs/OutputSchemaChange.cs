@@ -18,31 +18,23 @@ using System;
 
 namespace Cassandra
 {
-    internal class OutputSchemaChange : IOutput, IWaitableForDispose
+    internal class OutputSchemaChange : IOutput
     {
-        private readonly Guid? _traceId;
         public string Change;
         public string Keyspace;
         public string Table;
 
-        public Guid? TraceId
-        {
-            get { return _traceId; }
-        }
+        public Guid? TraceId { get; private set; }
 
         internal OutputSchemaChange(BEBinaryReader reader, Guid? traceId)
         {
-            _traceId = traceId;
+            TraceId = traceId;
             Change = reader.ReadString();
             Keyspace = reader.ReadString();
             Table = reader.ReadString();
         }
 
         public void Dispose()
-        {
-        }
-
-        public void WaitForDispose()
         {
         }
     }

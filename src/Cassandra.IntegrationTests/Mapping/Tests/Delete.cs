@@ -175,7 +175,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
 
             // Error expected
             var ex = Assert.Throws<InvalidQueryException>(() => _mapper.Delete(movieToDelete));
-            Assert.AreEqual("Invalid null value for partition key part moviemaker", ex.Message);
+            string expectedErrMsg = "Invalid null value (for partition key part|in condition for column) moviemaker";
+            StringAssert.IsMatch(expectedErrMsg, ex.Message);
         }
 
         [Test]

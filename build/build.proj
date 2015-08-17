@@ -19,7 +19,7 @@
     <MSBuildCommunityTasksLib>$(ToolsFolder)\MSBuildTasks.1.4.0.65\MSBuild.Community.Tasks.dll</MSBuildCommunityTasksLib>
   
     <!-- Version information (package version is used to drive assembly info version attributes and should follow semantic versioning) -->
-    <PackageVersion>2.5.2</PackageVersion>
+    <PackageVersion>2.6.0</PackageVersion>
     <SharedAssemblyInfo>$(SourceFolder)\SharedAssemblyInfo.cs</SharedAssemblyInfo>
   </PropertyGroup>
   
@@ -41,9 +41,15 @@
     <Message Text="Cleaning projects" Importance="high" />
     <MSBuild Projects="@(AllProjects)" Targets="clean" StopOnFirstFailure="true" Properties="Configuration=Release" />
   </Target>
-
+  
+  <!-- Restores nuget packages -->
+  <Target Name="restore">
+    <Message Text="Restoring NuGet packages for solution" Importance="high" />
+    <Exec Command="$(NuGet) restore &quot;$(SourceFolder)\Cassandra.sln&quot; -NonInteractive -ConfigFile $(SourceFolder)\.nuget\NuGet.Config" />
+  </Target>
+  
   <!-- Compiles code -->
-  <Target Name="compile" DependsOnTargets="clean">
+  <Target Name="compile" DependsOnTargets="clean;restore">
     <Message Text="Compiling projects" Importance="high" />
     <MSBuild Projects="@(AllProjects)" Targets="build" StopOnFirstFailure="true" Properties="Configuration=Release" />
   </Target>

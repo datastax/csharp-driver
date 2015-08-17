@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 
 namespace Cassandra
@@ -149,6 +150,11 @@ namespace Cassandra
             }
         }
 
+        /// <summary>
+        /// Source address of the query
+        /// </summary>
+        public IPAddress ClientAddress { get; private set; }
+
         public QueryTrace(Guid traceId, ISession session)
         {
             _traceId = traceId;
@@ -181,34 +187,34 @@ namespace Cassandra
         {
             try
             {
-                var sessRows = _session.Execute(string.Format(SelectSessionsFormat, _traceId));
-                foreach (Row sessRow in sessRows.GetRows())
+                var sessionRow = _session.Execute(string.Format(SelectSessionsFormat, _traceId)).First();
+                _requestType = sessionRow.GetValue<string>("request");
+                if (!sessionRow.IsNull("duration"))
                 {
-                    _requestType = sessRow.GetValue<string>("request");
-                    if (!sessRow.IsNull("duration"))
-                        _duration = sessRow.GetValue<int>("duration");
-                    _coordinator = sessRow.GetValue<IPAddress>("coordinator");
-                    if (!sessRow.IsNull("parameters"))
-                        _parameters = sessRow.GetValue<IDictionary<string, string>>("parameters");
-                    _startedAt = sessRow.GetValue<DateTimeOffset>("started_at").ToFileTime(); //.getTime();
-
-                    break;
+                    _duration = sessionRow.GetValue<int>("duration");
                 }
-
+                _coordinator = sessionRow.GetValue<IPAddress>("coordinator");
+                if (!sessionRow.IsNull("parameters"))
+                {
+                    _parameters = sessionRow.GetValue<IDictionary<string, string>>("parameters");
+                }
+                _startedAt = sessionRow.GetValue<DateTimeOffset>("started_at").ToFileTime();
+                if (sessionRow.GetColumn("client") != null)
+                {
+                    ClientAddress = sessionRow.GetValue<IPAddress>("client");
+                }
                 _events = new List<Event>();
 
-                var evRows = _session.Execute(string.Format(SelectEventsFormat, _traceId));
+                var eventRows = _session.Execute(string.Format(SelectEventsFormat, _traceId));
+                foreach (var row in eventRows)
                 {
-                    foreach (Row evRow in evRows.GetRows())
-                    {
-                        _events.Add(new Event(evRow.GetValue<string>("activity"),
-                                              new DateTimeOffset(
-                                                  Utils.GetTimestampFromGuid(evRow.GetValue<Guid>("event_id")) +
-                                                  (new DateTimeOffset(1582, 10, 15, 0, 0, 0, TimeSpan.Zero)).Ticks, TimeSpan.Zero),
-                                              evRow.GetValue<IPAddress>("source"),
-                                              evRow.IsNull("source_elapsed") ? 0 : evRow.GetValue<int>("source_elapsed"),
-                                              evRow.GetValue<string>("thread")));
-                    }
+                    _events.Add(new Event(row.GetValue<string>("activity"),
+                                            new DateTimeOffset(
+                                                Utils.GetTimestampFromGuid(row.GetValue<Guid>("event_id")) +
+                                                (new DateTimeOffset(1582, 10, 15, 0, 0, 0, TimeSpan.Zero)).Ticks, TimeSpan.Zero),
+                                            row.GetValue<IPAddress>("source"),
+                                            row.IsNull("source_elapsed") ? 0 : row.GetValue<int>("source_elapsed"),
+                                            row.GetValue<string>("thread")));
                 }
             }
             catch (Exception ex)

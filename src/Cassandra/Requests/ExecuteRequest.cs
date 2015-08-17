@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 
 namespace Cassandra
 {
@@ -24,7 +25,7 @@ namespace Cassandra
     internal class ExecuteRequest : IQueryRequest, ICqlRequest
     {
         public const byte OpCode = 0x0A;
-        private readonly byte _flags;
+        private FrameHeader.HeaderFlag _headerFlags;
         private readonly byte[] _id;
         private readonly RowSetMetadata _metadata;
         private readonly QueryProtocolOptions _queryOptions;
@@ -51,6 +52,8 @@ namespace Cassandra
             get { return _queryOptions.SerialConsistency; }
         }
 
+        public IDictionary<string, byte[]> Payload { get; set; }
+
         public int ProtocolVersion { get; set; }
 
         public ExecuteRequest(int protocolVersion, byte[] id, RowSetMetadata metadata, bool tracingEnabled, QueryProtocolOptions queryOptions)
@@ -65,7 +68,7 @@ namespace Cassandra
             _queryOptions = queryOptions;
             if (tracingEnabled)
             {
-                _flags = 0x02;
+                _headerFlags = FrameHeader.HeaderFlag.Tracing;
             }
 
             if (Consistency.IsSerialConsistencyLevel())
@@ -85,7 +88,16 @@ namespace Cassandra
         public RequestFrame GetFrame(short streamId)
         {
             var wb = new BEBinaryWriter();
-            wb.WriteFrameHeader((byte)ProtocolVersion, _flags, streamId, OpCode);
+            if (Payload != null)
+            {
+                _headerFlags |= FrameHeader.HeaderFlag.CustomPayload;
+            }
+            wb.WriteFrameHeader((byte)ProtocolVersion, (byte)_headerFlags, streamId, OpCode);
+            if (Payload != null)
+            {
+                //A custom payload for this request
+                wb.WriteBytesMap(Payload);
+            }
             wb.WriteShortBytes(_id);
             _queryOptions.Write(wb, (byte)ProtocolVersion, true);
 

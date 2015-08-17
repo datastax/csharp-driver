@@ -16,21 +16,42 @@
 
 namespace Cassandra
 {
+    /// <summary>
+    /// Handles the parsing of the read timeout and read failure errors
+    /// </summary>
     internal class OutputReadTimeout : OutputError
     {
-        private readonly ReadTimeoutInfo _info = new ReadTimeoutInfo();
+        private int _blockFor;
+        private ConsistencyLevel _consistency;
+        private bool _dataPresent;
+        private int _received;
+        private int _failures;
+        private readonly bool _isFailure;
 
-        protected override void Load(BEBinaryReader cb)
+        internal OutputReadTimeout(bool isFailure)
         {
-            _info.ConsistencyLevel = (ConsistencyLevel) cb.ReadInt16();
-            _info.Received = cb.ReadInt32();
-            _info.BlockFor = cb.ReadInt32();
-            _info.IsDataPresent = cb.ReadByte() != 0;
+            _isFailure = isFailure;
+        }
+
+        protected override void Load(BEBinaryReader reader)
+        {
+            _consistency = (ConsistencyLevel) reader.ReadInt16();
+            _received = reader.ReadInt32();
+            _blockFor = reader.ReadInt32();
+            if (_isFailure)
+            {
+                _failures = reader.ReadInt32();
+            }
+            _dataPresent = reader.ReadByte() != 0;
         }
 
         public override DriverException CreateException()
         {
-            return new ReadTimeoutException(_info.ConsistencyLevel, _info.Received, _info.BlockFor, _info.IsDataPresent);
+            if (_isFailure)
+            {
+                return new ReadFailureException(_consistency, _received, _blockFor, _dataPresent, _failures);
+            }
+            return new ReadTimeoutException(_consistency, _received, _blockFor, _dataPresent);
         }
     }
 }

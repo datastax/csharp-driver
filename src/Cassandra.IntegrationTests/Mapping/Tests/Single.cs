@@ -198,8 +198,16 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             }
             catch (InvalidQueryException e)
             {
-                string expectedErrMsg = "No indexed columns present in by-columns clause with Equal operator";
-                Assert.That(e.Message, new EqualConstraint(expectedErrMsg));
+                string expectedErrMsg = null;
+                if (_session.BinaryProtocolVersion < 4)
+                {
+                    expectedErrMsg = "No indexed columns present in by-columns clause with Equal operator";
+                }
+                else
+                {
+                    expectedErrMsg = "No secondary indexes on the restricted columns support the provided operators: ";
+                }
+                StringAssert.IsMatch(expectedErrMsg, e.Message);
             }
         }
 

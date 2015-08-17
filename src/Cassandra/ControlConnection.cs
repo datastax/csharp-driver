@@ -31,36 +31,22 @@ namespace Cassandra
         private const string SelectLocal = "SELECT * FROM system.local WHERE key='local'";
         private const CassandraEventType CassandraEventTypes = CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange;
         private static readonly IPAddress BindAllAddress = new IPAddress(new byte[4]);
-        /// <summary>
-        /// Protocol version used by the control connection
-        /// </summary>
-        private int _controlConnectionProtocolVersion = 2;
 
         private volatile Host _host;
         private volatile Connection _connection;
+        // ReSharper disable once InconsistentNaming
         private static readonly Logger _logger = new Logger(typeof (ControlConnection));
         private readonly Configuration _config;
         private readonly IReconnectionPolicy _reconnectionPolicy = new ExponentialReconnectionPolicy(2*1000, 5*60*1000);
         private IReconnectionSchedule _reconnectionSchedule;
         private readonly Timer _reconnectionTimer;
-        private int _isShutdown = 0;
+        private int _isShutdown;
         private readonly object _refreshLock = new Object();
-        private int _protocolVersion;
 
         /// <summary>
         /// Gets the recommended binary protocol version to be used for this cluster.
         /// </summary>
-        internal int ProtocolVersion
-        {
-            get
-            {
-                if (_protocolVersion != 0)
-                {
-                    return _protocolVersion;
-                }
-                return _controlConnectionProtocolVersion;
-            }
-        }
+        internal byte ProtocolVersion { get; private set; }
 
         private Metadata Metadata { get; set; }
 
@@ -85,12 +71,13 @@ namespace Cassandra
             }
         }
 
-        internal ControlConnection(ICluster cluster, Metadata metadata)
+        internal ControlConnection(byte initialProtocolVersion, Configuration config, Metadata metadata)
         {
             Metadata = metadata;
             _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             _reconnectionTimer = new Timer(_ => Refresh(true), null, Timeout.Infinite, Timeout.Infinite);
-            _config = cluster.Configuration;
+            _config = config;
+            ProtocolVersion = initialProtocolVersion;
         }
 
         public void Dispose()
@@ -141,7 +128,7 @@ namespace Cassandra
             foreach (var host in hostIterator)
             {
                 var address = host.Address;
-                var c = new Connection((byte)_controlConnectionProtocolVersion, address, _config);
+                var c = new Connection(ProtocolVersion, address, _config);
                 try
                 {
                     c.Init();
@@ -151,10 +138,17 @@ namespace Cassandra
                 }
                 catch (UnsupportedProtocolVersionException)
                 {
-                    _logger.Info(String.Format("Unsupported protocol version {0}, trying with a lower version", _controlConnectionProtocolVersion));
-                    _controlConnectionProtocolVersion--;
+                    //Use the protocol version used to parse the response message
+                    var nextVersion = c.ProtocolVersion;
+                    if (nextVersion >= ProtocolVersion)
+                    {
+                        //Processor could reorder instructions in such way that the connection protocol version is not up to date.
+                        nextVersion = (byte)(ProtocolVersion - 1);
+                    }
+                    _logger.Info(String.Format("Unsupported protocol version {0}, trying with version {1}", ProtocolVersion, nextVersion));
+                    ProtocolVersion = nextVersion;
                     c.Dispose();
-                    if (_controlConnectionProtocolVersion < 1)
+                    if (ProtocolVersion < 1)
                     {
                         throw new DriverInternalError("Invalid protocol version");
                     }
@@ -225,7 +219,7 @@ namespace Cassandra
             _host.Down += OnHostDown;
             _connection.CassandraEventResponse += OnConnectionCassandraEvent;
             //Register to events on the connection
-            var registerTask = _connection.Send(new RegisterForEventRequest(_controlConnectionProtocolVersion, CassandraEventTypes));
+            var registerTask = _connection.Send(new RegisterForEventRequest(ProtocolVersion, CassandraEventTypes));
             TaskHelper.WaitToComplete(registerTask, 10000);
             if (!(registerTask.Result is ReadyResponse))
             {
@@ -257,54 +251,66 @@ namespace Cassandra
 
         private void OnConnectionCassandraEvent(object sender, CassandraEventArgs e)
         {
-            Task.Factory.StartNew(() =>
+            //This event is invoked from a worker thread (not a IO thread)
+            if (e is TopologyChangeEventArgs)
             {
-                if (e is TopologyChangeEventArgs)
+                var tce = (TopologyChangeEventArgs)e;
+                if (tce.What == TopologyChangeEventArgs.Reason.NewNode)
                 {
-                    var tce = (TopologyChangeEventArgs) e;
-                    if (tce.What == TopologyChangeEventArgs.Reason.NewNode)
-                    {
-                        Refresh(false);
-                        return;
-                    }
-                    if (tce.What == TopologyChangeEventArgs.Reason.RemovedNode)
-                    {
-                        Refresh(false);
-                        return;
-                    }
+                    Refresh(false);
+                    return;
                 }
-                if (e is StatusChangeEventArgs)
+                if (tce.What == TopologyChangeEventArgs.Reason.RemovedNode)
                 {
-                    var sce = (StatusChangeEventArgs) e;
-                    //The address in the Cassandra event message needs to be translated
-                    var address = TranslateAddress(sce.Address);
-                    if (sce.What == StatusChangeEventArgs.Reason.Up)
-                    {
-                        Metadata.BringUpHost(address, this);
-                        return;
-                    }
-                    if (sce.What == StatusChangeEventArgs.Reason.Down)
-                    {
-                        Metadata.SetDownHost(address, this);
-                        return;
-                    }
+                    Refresh(false);
+                    return;
                 }
-                if (e is SchemaChangeEventArgs)
+            }
+            if (e is StatusChangeEventArgs)
+            {
+                var sce = (StatusChangeEventArgs)e;
+                //The address in the Cassandra event message needs to be translated
+                var address = TranslateAddress(sce.Address);
+                if (sce.What == StatusChangeEventArgs.Reason.Up)
                 {
-                    var ssc = (SchemaChangeEventArgs) e;
-                    if (!String.IsNullOrEmpty(ssc.Table))
-                    {
-                        Metadata.RefreshTable(ssc.Keyspace, ssc.Table);
-                        return;
-                    }
-                    if (ssc.What == SchemaChangeEventArgs.Reason.Dropped)
-                    {
-                        Metadata.RemoveKeyspace(ssc.Keyspace);
-                        return;
-                    }
-                    Metadata.RefreshSingleKeyspace(ssc.What == SchemaChangeEventArgs.Reason.Created, ssc.Keyspace);
+                    Metadata.BringUpHost(address, this);
+                    return;
                 }
-            }, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+                if (sce.What == StatusChangeEventArgs.Reason.Down)
+                {
+                    Metadata.SetDownHost(address, this);
+                    return;
+                }
+            }
+            if (e is SchemaChangeEventArgs)
+            {
+                var ssc = (SchemaChangeEventArgs)e;
+                if (!String.IsNullOrEmpty(ssc.Table))
+                {
+                    Metadata.RefreshTable(ssc.Keyspace, ssc.Table);
+                    return;
+                }
+                if (ssc.FunctionName != null)
+                {
+                    Metadata.ClearFunction(ssc.Keyspace, ssc.FunctionName, ssc.Signature);
+                    return;
+                }
+                if (ssc.AggregateName != null)
+                {
+                    Metadata.ClearAggregate(ssc.Keyspace, ssc.AggregateName, ssc.Signature);
+                    return;
+                }
+                if (ssc.Type != null)
+                {
+                    return;
+                }
+                if (ssc.What == SchemaChangeEventArgs.Reason.Dropped)
+                {
+                    Metadata.RemoveKeyspace(ssc.Keyspace);
+                    return;
+                }
+                Metadata.RefreshSingleKeyspace(ssc.What == SchemaChangeEventArgs.Reason.Created, ssc.Keyspace);
+            }
         }
 
         private IPEndPoint TranslateAddress(IPEndPoint value)
@@ -323,14 +329,6 @@ namespace Cassandra
                 return;
             }
             Metadata.Partitioner = localRow.GetValue<string>("partitioner");
-            int protocolVersion;
-            if (localRow.GetColumn("native_protocol_version") != null &&
-                Int32.TryParse(localRow.GetValue<string>("native_protocol_version"), out protocolVersion))
-            {
-                //In Cassandra < 2
-                //  there is no native protocol version column, it will get the default value
-                _protocolVersion = protocolVersion;
-            }
             UpdateLocalInfo(localRow);
             UpdatePeersInfo(rsPeers);
             _logger.Info("Node list retrieved successfully");
@@ -404,7 +402,7 @@ namespace Cassandra
         /// </summary>
         public RowSet Query(string cqlQuery, bool retry = false)
         {
-            var request = new QueryRequest(_controlConnectionProtocolVersion, cqlQuery, false, QueryProtocolOptions.Default);
+            var request = new QueryRequest(ProtocolVersion, cqlQuery, false, QueryProtocolOptions.Default);
             var task = _connection.Send(request);
             try
             {

@@ -29,11 +29,21 @@ namespace Cassandra.Tests
             return GetCluster(new Configuration());
         }
 
+        private ControlConnection NewInstance(Configuration config, Metadata metadata)
+        {
+            return new ControlConnection((byte)Cluster.MaxProtocolVersion, config, metadata);
+        }
+
+        private ControlConnection NewInstance(Metadata metadata)
+        {
+            return NewInstance(new Configuration(), metadata);
+        }
+
         [Test]
         public void UpdateLocalNodeInfoModifiesHost()
         {
             var metadata = new Metadata(new Configuration());
-            var cc = new ControlConnection(GetCluster(), metadata);
+            var cc = NewInstance(metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             var row = TestHelper.CreateRow(new Dictionary<string, object>
             {
@@ -49,7 +59,7 @@ namespace Cassandra.Tests
         public void UpdatePeersInfoModifiesPool()
         {
             var metadata = new Metadata(new Configuration());
-            var cc = new ControlConnection(GetCluster(), metadata);
+            var cc = NewInstance(metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);
             var hostAddress2 = IPAddress.Parse("127.0.0.2");
@@ -77,7 +87,7 @@ namespace Cassandra.Tests
         public void UpdatePeersInfoWithNullRpcIgnores()
         {
             var metadata = new Metadata(new Configuration());
-            var cc = new ControlConnection(GetCluster(), metadata);
+            var cc = NewInstance(metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);
             var rows = TestHelper.CreateRows(new List<Dictionary<string, object>>
@@ -109,7 +119,7 @@ namespace Cassandra.Tests
                  null,
                  new QueryOptions(),
                  translatorMock.Object);
-            var cc = new ControlConnection(GetCluster(config), metadata);
+            var cc = NewInstance(config, metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);
             var hostAddress2 = IPAddress.Parse("127.0.0.2");

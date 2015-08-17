@@ -134,6 +134,93 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public void Bound_String_Empty()
+        {
+            const string columns = "id, text_sample";
+            var insertQuery = String.Format(@"
+                INSERT INTO {0} 
+                ({1}) 
+                VALUES (?, ?)", AllTypesTableName, columns);
+
+            var preparedStatement = Session.Prepare(insertQuery);
+            Assert.AreEqual(columns, String.Join(", ", preparedStatement.Metadata.Columns.Select(c => c.Name)));
+            var nullRowValues = new object[] 
+            { 
+                Guid.NewGuid(), ""
+            };
+
+            Session.Execute(preparedStatement.Bind(nullRowValues));
+
+            var rs = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1}", AllTypesTableName, nullRowValues[0]));
+            var row = rs.First();
+            Assert.IsNotNull(row);
+            Assert.AreEqual("", row.GetValue<string>("text_sample"));
+        }
+
+        [Test, TestCassandraVersion(2, 2)]
+        public void Bound_Unset_Specified_Tests()
+        {
+            const string columns = "id, text_sample, int_sample";
+            var insertQuery = String.Format(@"
+                INSERT INTO {0} 
+                ({1}) 
+                VALUES (?, ?, ?)", AllTypesTableName, columns);
+
+            var preparedStatement = Session.Prepare(insertQuery);
+            Assert.AreEqual(columns, String.Join(", ", preparedStatement.Metadata.Columns.Select(c => c.Name)));
+            var id = Guid.NewGuid();
+
+            Session.Execute(preparedStatement.Bind(id, Unset.Value, Unset.Value));
+
+            var rs = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1}", AllTypesTableName, id));
+            var row = rs.First();
+            Assert.IsNotNull(row);
+            Assert.AreEqual(id, row.GetValue<Guid>("id"));
+            Assert.Null(row.GetValue<string>("text_sample"));
+            Assert.Null(row.GetValue<int?>("int_sample"));
+        }
+
+        private void Check_Expected(PreparedStatement select, object[] expected)
+        {
+            var row = Session.Execute(select.Bind(0)).First();
+            Assert.IsNotNull(row);
+            Assert.AreEqual(expected[1], row.GetValue<int?>("v0"));
+            Assert.AreEqual(expected[2], row.GetValue<int?>("v1"));
+        }
+
+        [Test, TestCassandraVersion(2, 2)]
+        public void Bound_Unset_Values_Tests()
+        {
+            Session.Execute("CREATE TABLE IF NOT EXISTS test_unset_values (k int PRIMARY KEY, v0 int, v1 int)");
+            var insert = Session.Prepare("INSERT INTO test_unset_values (k, v0, v1) VALUES (?, ?, ?)");
+            var select = Session.Prepare("SELECT * FROM test_unset_values WHERE k=?");
+
+            // initial condition
+            Session.Execute(insert.Bind(0, 0, 0));
+            Check_Expected(select, new object[] {0, 0, 0});
+
+            // explicit unset
+            Session.Execute(insert.Bind(0, 1, Unset.Value));
+            Check_Expected(select, new object[] {0, 1, 0});
+            Session.Execute(insert.Bind(0, Unset.Value, 2));
+            Check_Expected(select, new object[] {0, 1, 2});
+            
+            Session.Execute(insert.Bind(new {k = 0, v0 = 3, v1 = Unset.Value}));
+            Check_Expected(select, new object[] {0, 3, 2});
+            Session.Execute(insert.Bind(new {k = 0, v0 = Unset.Value,  v1 = 4}));
+            Check_Expected(select, new object[] {0, 3, 4});
+
+            // nulls still work
+            Session.Execute(insert.Bind(0, null, null));
+            Check_Expected(select, new object[] {0, null, null});
+
+            // PKs cannot be UNSET
+            Assert.Throws(Is.InstanceOf<InvalidQueryException>(), () => Session.Execute(insert.Bind(Unset.Value, 0, 0)));
+
+            Session.Execute("DROP TABLE test_unset_values");
+        }
+
+        [Test]
         public void Bound_CollectionTypes()
         {
             var insertQuery = String.Format(@"
@@ -237,7 +324,11 @@ namespace Cassandra.IntegrationTests.Core
         {
             var query = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
             var preparedStatement = Session.Prepare(query);
-            Assert.Null(preparedStatement.RoutingIndexes);
+            if (CassandraVersion < new Version(2, 2))
+            {
+                //For older versions, there is no way to determine that my_id is actually id column
+                Assert.Null(preparedStatement.RoutingIndexes);   
+            }
             Assert.AreEqual(preparedStatement.Metadata.Columns.Length, 4);
             Assert.AreEqual("my_text, my_int, my_bigint, my_id", String.Join(", ", preparedStatement.Metadata.Columns.Select(c => c.Name)));
         }
@@ -540,12 +631,88 @@ namespace Cassandra.IntegrationTests.Core
             //With another query, named parameters are different
             ps = Session.Prepare("SELECT * FROM tbl_ps_multiple_pk_named WHERE b = :nice_name_b AND a = :nice_name_a AND c = :nice_name_c");
             //Parameters names are different from partition keys
-            Assert.Null(ps.RoutingIndexes);
+            if (CassandraVersion < new Version(2, 2))
+            {
+                //For older versions, there is no way to determine that nice_name_a is actually partition column
+                Assert.Null(ps.RoutingIndexes);
+            }
             ps.SetRoutingNames("nice_name_a", "nice_name_b");
             var anon2 = new { nice_name_b = "b", nice_name_a = "a", nice_name_c = "c" };
             statement = ps.Bind(anon2);
             Assert.NotNull(statement.RoutingKey);
             CollectionAssert.AreEqual(calculateKey(anon2.nice_name_a, anon2.nice_name_b), statement.RoutingKey.RawRoutingKey);
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 2)]
+        public void Bound_Date_Tests()
+        {
+            Session.Execute("CREATE TABLE tbl_date_prep (id int PRIMARY KEY, v date)");
+            var insert = Session.Prepare("INSERT INTO tbl_date_prep (id, v) VALUES (?, ?)");
+            var select = Session.Prepare("SELECT * FROM tbl_date_prep WHERE id = ?");
+            var values = new[] { new LocalDate(2010, 4, 29), new LocalDate(0, 1, 1), new LocalDate(-1, 12, 31) };
+            var index = 0;
+            foreach (var v in values)
+            {
+                Session.Execute(insert.Bind(index, v));
+                var rs = Session.Execute(select.Bind(index)).ToList();
+                Assert.AreEqual(1, rs.Count);
+                Assert.AreEqual(v, rs[0].GetValue<LocalDate>("v"));
+                index++;
+            }
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 2)]
+        public void Bound_Time_Tests()
+        {
+            Session.Execute("CREATE TABLE tbl_time_prep (id int PRIMARY KEY, v time)");
+            var insert = Session.Prepare("INSERT INTO tbl_time_prep (id, v) VALUES (?, ?)");
+            var select = Session.Prepare("SELECT * FROM tbl_time_prep WHERE id = ?");
+            var values = new[] { new LocalTime(0, 0, 0, 0), new LocalTime(12, 11, 1, 10), new LocalTime(0, 58, 31, 991809111) };
+            var index = 0;
+            foreach (var v in values)
+            {
+                Session.Execute(insert.Bind(index, v));
+                var rs = Session.Execute(select.Bind(index)).ToList();
+                Assert.AreEqual(1, rs.Count);
+                Assert.AreEqual(v, rs[0].GetValue<LocalTime>("v"));
+                index++;
+            }
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 2)]
+        public void Bound_SmallInt_Tests()
+        {
+            Session.Execute("CREATE TABLE tbl_smallint_prep (id int PRIMARY KEY, v smallint)");
+            var insert = Session.Prepare("INSERT INTO tbl_smallint_prep (id, v) VALUES (?, ?)");
+            var select = Session.Prepare("SELECT * FROM tbl_smallint_prep WHERE id = ?");
+            var values = new short[] { Int16.MinValue, -31000, -1, 0, 1, 2, 0xff, 0x0101, Int16.MaxValue };
+            foreach (var v in values)
+            {
+                Session.Execute(insert.Bind(Convert.ToInt32(v), v));
+                var rs = Session.Execute(select.Bind(Convert.ToInt32(v))).ToList();
+                Assert.AreEqual(1, rs.Count);
+                Assert.AreEqual(v, rs[0].GetValue<short>("v"));
+            }
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 2)]
+        public void Bound_TinyInt_Tests()
+        {
+            Session.Execute("CREATE TABLE tbl_tinyint_prep (id int PRIMARY KEY, v tinyint)");
+            var insert = Session.Prepare("INSERT INTO tbl_tinyint_prep (id, v) VALUES (?, ?)");
+            var select = Session.Prepare("SELECT * FROM tbl_tinyint_prep WHERE id = ?");
+            var values = new sbyte[] { sbyte.MinValue, -4, -1, 0, 1, 2, 126, sbyte.MaxValue };
+            foreach (var v in values)
+            {
+                Session.Execute(insert.Bind(Convert.ToInt32(v), v));
+                var rs = Session.Execute(select.Bind(Convert.ToInt32(v))).ToList();
+                Assert.AreEqual(1, rs.Count);
+                Assert.AreEqual(v, rs[0].GetValue<sbyte>("v"));
+            }
         }
 
         [Test]
@@ -564,7 +731,11 @@ namespace Cassandra.IntegrationTests.Core
 
             ps = Session.Prepare("SELECT * FROM tbl_ps_multiple_pk WHERE b = :nice_name1 AND a = :nice_name2 AND c = :nice_name3");
             //Parameters names are different from partition keys
-            Assert.Null(ps.RoutingIndexes);
+            if (CassandraVersion < new Version(2, 2))
+            {
+                //For older versions, there is no way to determine that nice_name_a is actually partition column
+                Assert.Null(ps.RoutingIndexes);
+            }
         }
 
         [Test]

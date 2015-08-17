@@ -57,6 +57,9 @@
     <Compile Include="..\SharedAssemblyInfo.cs">
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="AggregateMetadata.cs" />
+    <Compile Include="Collections\CopyOnWriteDictionary.cs" />
+    <Compile Include="Collections\CopyOnWriteList.cs" />
     <Compile Include="Compression\Snappy\CorruptionException.cs" />
     <Compile Include="Compression\Snappy\Memory.cs" />
     <Compile Include="Compression\Snappy\SlowMemory.cs" />
@@ -124,11 +127,18 @@
     <Compile Include="DSE\SASL.cs" />
     <Compile Include="DSE\SSPI.cs" />
     <Compile Include="DSE\WindowsAPI.cs" />
+    <Compile Include="Exceptions\FunctionFailureException.cs" />
+    <Compile Include="Exceptions\OperationTimedOutException.cs" />
+    <Compile Include="Exceptions\ReadFailureException.cs" />
     <Compile Include="Exceptions\RequestInvalidException.cs" />
+    <Compile Include="Exceptions\WriteFailureException.cs" />
+    <Compile Include="FunctionMetadata.cs" />
     <Compile Include="HostConnectionPool.cs" />
     <Compile Include="DefaultAddressTranslator.cs" />
     <Compile Include="IAddressTranslator.cs" />
     <Compile Include="ICqlRequest.cs" />
+    <Compile Include="LocalDate.cs" />
+    <Compile Include="LocalTime.cs" />
     <Compile Include="Mapping\AppliedInfo.cs" />
     <Compile Include="Mapping\IPage.cs" />
     <Compile Include="ListBackedStream.cs" />
@@ -167,7 +177,6 @@
     <Compile Include="IStatement.cs" />
     <Compile Include="IToken.cs" />
     <Compile Include="ITypeAdapter.cs" />
-    <Compile Include="IWaitableForDispose.cs" />
     <Compile Include="KeyType.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="Compression\LZ4Compressor.cs" />
@@ -273,6 +282,7 @@
     <Compile Include="Outputs\OutputAlreadyExists.cs" />
     <Compile Include="Outputs\OutputBadCredentials.cs" />
     <Compile Include="Outputs\OutputConfigError.cs" />
+    <Compile Include="Outputs\OutputFunctionFailure.cs" />
     <Compile Include="Outputs\OutputInvalid.cs" />
     <Compile Include="Outputs\OutputIsBootstrapping.cs" />
     <Compile Include="Outputs\OutputOptions.cs" />
@@ -296,11 +306,8 @@
     <Compile Include="Outputs\OverloadedException.cs" />
     <Compile Include="Outputs\PreparedQueryNotFoundInfo.cs" />
     <Compile Include="Outputs\ProtocolErrorException.cs" />
-    <Compile Include="Outputs\ReadTimeoutInfo.cs" />
     <Compile Include="Outputs\ServerErrorException.cs" />
-    <Compile Include="Outputs\UnavailableInfo.cs" />
     <Compile Include="Exceptions\UnsupportedProtocolVersionException.cs" />
-    <Compile Include="Outputs\WriteTimeoutInfo.cs" />
     <Compile Include="PlainTextAuthProvider.cs" />
     <Compile Include="Policies\ConstantReconnectionPolicy.cs" />
     <Compile Include="Policies\FixedReconnectionPolicy.cs" />
@@ -363,6 +370,7 @@
     <Compile Include="RowPopulators\RowSet.cs" />
     <Compile Include="RowPopulators\Row.cs" />
     <Compile Include="RowPopulators\RowSetMetadata.cs" />
+    <Compile Include="Tasks\HashedWheelTimer.cs" />
     <Compile Include="Tasks\LimitedParallelismTaskScheduler.cs" />
     <Compile Include="TimeUuid.cs" />
     <Compile Include="TypeCodec.cs" />
@@ -390,6 +398,7 @@
     <Compile Include="TypeAdapters.cs" />
     <Compile Include="UdtMap.cs" />
     <Compile Include="UdtMappingDefinitions.cs" />
+    <Compile Include="Unset.cs" />
     <Compile Include="Utils.cs" />
   </ItemGroup>
   <ItemGroup>

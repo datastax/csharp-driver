@@ -39,7 +39,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// <summary>
         /// Creates the cluster with the option of starting it as well
         /// </summary>
-        void Create(bool startCluster = true);
+        void Create(bool startCluster = true, string[] jvmArgs = null);
 
         /// <summary>
         /// Force Stop a specific node in the cluster
@@ -54,7 +54,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// <summary>
         /// Start a specific node in the cluster
         /// </summary>
-        void Start(int nodeIdToStart);
+        void Start(int nodeIdToStart, string additionalArgs = null);
+
+        /// <summary>
+        /// Updates the yaml config
+        /// </summary>
+        void UpdateConfig(params string[] yamlChanges);
 
         /// <summary>
         /// Initialize the Builder, Cluster and Session objects associated with the current Test Cluster
@@ -79,6 +84,16 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// </summary>
         /// <param name="nodeId">The node ID to be decommissioned</param>
         void DecommissionNode(int nodeId);
+
+        /// <summary>
+        /// Pause the node (SIGSTOP) associated with provided node ID
+        /// </summary>
+        void PauseNode(int nodeId);
+
+        /// <summary>
+        /// Resumes the node (SIGCONT) associated with provided node ID
+        /// </summary>
+        void ResumeNode(int nodeId);
 
         /// <summary>
         /// Puts focus on this cluster

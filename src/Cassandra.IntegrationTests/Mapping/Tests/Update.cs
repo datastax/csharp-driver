@@ -145,7 +145,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             // Update to different values
             var expectedMovie = new Movie(movieToUpdate.Title + "_something_different", movieToUpdate.Director, "something_different_" + Randomm.RandomAlphaNum(10), null, 1212);
             var err = Assert.Throws<InvalidQueryException>(() => _mapper.Update(expectedMovie));
-            Assert.AreEqual("Invalid null value for partition key part moviemaker", err.Message);
+            string expectedErrMsg = "Invalid null value (for partition key part|in condition for column) moviemaker";
+            StringAssert.IsMatch(expectedErrMsg, err.Message);
         }
 
         public class ExtMovie

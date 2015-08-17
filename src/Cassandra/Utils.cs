@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -251,6 +252,19 @@ namespace Cassandra
         {
             var listType = collectionType.MakeGenericType(valueType);
             return Activator.CreateInstance(listType, new object[] { value });
+        }
+
+        /// <summary>
+        /// Fill the zeros to the left
+        /// </summary>
+        public static string FillZeros(int value, int length = 2)
+        {
+            var textValue = value.ToString();
+            if (textValue.Length >= length)
+            {
+                return textValue;
+            }
+            return String.Join("", Enumerable.Repeat("0", length - textValue.Length)) + textValue;
         }
     }
 }

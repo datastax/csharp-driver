@@ -18,25 +18,16 @@ using System;
 
 namespace Cassandra
 {
-    internal class OutputVoid : IOutput, IWaitableForDispose
+    internal class OutputVoid : IOutput
     {
-        private readonly Guid? _traceId;
-
-        public Guid? TraceId
-        {
-            get { return _traceId; }
-        }
+        public Guid? TraceId { get; private set; }
 
         public OutputVoid(Guid? traceId)
         {
-            _traceId = traceId;
+            TraceId = traceId;
         }
 
         public void Dispose()
-        {
-        }
-
-        public void WaitForDispose()
         {
         }
     }

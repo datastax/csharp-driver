@@ -143,6 +143,96 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 2)]
+        public void SimpleStatementSmallIntTests()
+        {
+            Session.Execute("CREATE TABLE tbl_smallint_param (id int PRIMARY KEY, v smallint, m map<smallint, text>)");
+            var values = new short[] { Int16.MinValue, -3, -2, 0, 1, 2, 0xff, 0x0101, Int16.MaxValue };
+            foreach (var v in values)
+            {
+                var insert = new SimpleStatement("INSERT INTO tbl_smallint_param (id, v, m) VALUES (?, ?, ?)",
+                    Convert.ToInt32(v), v, new SortedDictionary<short, string> { { v, v.ToString() } });
+                var select = new SimpleStatement("SELECT * FROM tbl_smallint_param WHERE id = ?", Convert.ToInt32(v));
+                Session.Execute(insert);
+                var rs = Session.Execute(select).ToList();
+                Assert.AreEqual(1, rs.Count);
+                Assert.AreEqual(v, rs[0].GetValue<short>("v"));
+                Assert.AreEqual(v.ToString(), rs[0].GetValue<SortedDictionary<short, string>>("m")[v]);
+            }
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 2)]
+        public void SimpleStatementTinyIntTests()
+        {
+            Session.Execute("CREATE TABLE tbl_tinyint_param (id int PRIMARY KEY, v tinyint, m map<tinyint, text>)");
+            var values = new sbyte[] { sbyte.MinValue, -4, -3, 0, 1, 2, 126, sbyte.MaxValue };
+            foreach (var v in values)
+            {
+                var insert = new SimpleStatement("INSERT INTO tbl_tinyint_param (id, v, m) VALUES (?, ?, ?)", 
+                    Convert.ToInt32(v), v, new SortedDictionary<sbyte, string> { { v, v.ToString()} });
+                var select = new SimpleStatement("SELECT * FROM tbl_tinyint_param WHERE id = ?", Convert.ToInt32(v));
+                Session.Execute(insert);
+                var rs = Session.Execute(select).ToList();
+                Assert.AreEqual(1, rs.Count);
+                Assert.AreEqual(v, rs[0].GetValue<sbyte>("v"));
+                Assert.AreEqual(v.ToString(), rs[0].GetValue<SortedDictionary<sbyte, string>>("m")[v]);
+            }
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 2)]
+        public void SimpleStatementDateTests()
+        {
+            Session.Execute("CREATE TABLE tbl_date_param (id int PRIMARY KEY, v date, m map<date, text>)");
+            var values = new[] { 
+                new LocalDate(2010, 4, 29),
+                new LocalDate(0, 3, 12),
+                new LocalDate(-10, 2, 4),
+                new LocalDate(5881580, 7, 11),
+                new LocalDate(-5877641, 6, 23) 
+            };
+            for (var i = 0; i < values.Length; i++)
+            {
+                var v = values[i];
+                var insert = new SimpleStatement("INSERT INTO tbl_date_param (id, v, m) VALUES (?, ?, ?)",
+                    i, v, new SortedDictionary<LocalDate, string> { { v, v.ToString() } });
+                var select = new SimpleStatement("SELECT * FROM tbl_date_param WHERE id = ?", i);
+                Session.Execute(insert);
+                var rs = Session.Execute(select).ToList();
+                Assert.AreEqual(1, rs.Count);
+                Assert.AreEqual(v, rs[0].GetValue<LocalDate>("v"));
+                Assert.AreEqual(v.ToString(), rs[0].GetValue<SortedDictionary<LocalDate, string>>("m")[v]);
+            }
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 2)]
+        public void SimpleStatementTimeTests()
+        {
+            Session.Execute("CREATE TABLE tbl_time_param (id int PRIMARY KEY, v time, m map<time, text>)");
+            var values = new[] {
+                new LocalTime(0, 0, 0, 0),
+                new LocalTime(0, 1, 1, 789),
+                new LocalTime(6, 1, 59, 0),
+                new LocalTime(10, 31, 5, 789776),
+                new LocalTime(23, 59, 59, 999999999),
+            };
+            for (var i = 0; i < values.Length; i++)
+            {
+                var v = values[i];
+                var insert = new SimpleStatement("INSERT INTO tbl_time_param (id, v, m) VALUES (?, ?, ?)",
+                    i, v, new SortedDictionary<LocalTime, string> { { v, v.ToString() } });
+                var select = new SimpleStatement("SELECT * FROM tbl_time_param WHERE id = ?", i);
+                Session.Execute(insert);
+                var rs = Session.Execute(select).ToList();
+                Assert.AreEqual(1, rs.Count);
+                Assert.AreEqual(v, rs[0].GetValue<LocalTime>("v"));
+                Assert.AreEqual(v.ToString(), rs[0].GetValue<SortedDictionary<LocalTime, string>>("m")[v]);
+            }
+        }
+
+        [Test]
         public void Text()
         {
             ParameterizedStatement(typeof(string));
