@@ -48,6 +48,26 @@ namespace Cassandra.Collections
             }
         }
 
+        public void AddRange(T[] items)
+        {
+            if (items == null || items.Length == 0)
+            {
+                return;
+            }
+            lock (_writeLock)
+            {
+                var currentArray = _array;
+                var newArray = new T[currentArray.Length + items.Length];
+                currentArray.CopyTo(newArray, 0);
+                //Add the new items at the end
+                for (var i = 0; i < items.Length; i++)
+                {
+                    newArray[currentArray.Length + i] = items[i];
+                }
+                _array = newArray;
+            }
+        }
+
         public void Clear()
         {
             lock (_writeLock)

@@ -166,6 +166,26 @@ namespace Cassandra.Tests
             return tcs.Task;
         }
 
+        public static Task<T> DelayedTask<T>(Func<T> result, int dueTimeMs = 50)
+        {
+            var tcs = new TaskCompletionSource<T>();
+            var timer = new Timer(delegate(object self)
+            {
+                ((Timer)self).Dispose();
+                try
+                {
+                    tcs.TrySetResult(result());
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+            });
+
+            timer.Change(dueTimeMs, -1);
+            return tcs.Task;
+        }
+
         /// <summary>
         /// Uses the precision 
         /// </summary>

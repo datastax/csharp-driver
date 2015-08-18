@@ -32,7 +32,7 @@ namespace Cassandra.Tasks
             try
             {
                 TaskCompletionSource<bool> tcs = new TaskCompletionSource<bool>();
-                tcs.SetResult(true);
+                tcs.SetResult(false);
                 CompletedTask = tcs.Task;
                 PreserveStackMethod = typeof(Exception).GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic);
                 if (PreserveStackMethod == null)

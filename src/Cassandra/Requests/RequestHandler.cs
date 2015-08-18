@@ -259,7 +259,7 @@ namespace Cassandra.Requests
                     var distance = Policies.LoadBalancingPolicy.Distance(host);
                     //Use the concrete session here
                     var hostPool = ((Session)_session).GetOrCreateConnectionPool(host, distance);
-                    var connection = hostPool.BorrowConnection();
+                    var connection = TaskHelper.WaitToComplete(hostPool.BorrowConnection());
                     if (connection == null)
                     {
                         //The load balancing policy did not allow to connect to this node

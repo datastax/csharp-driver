@@ -21,6 +21,18 @@ namespace Cassandra.Tests
         }
 
         [Test]
+        public void CopyOnWriteList_Should_AddRange_And_Count()
+        {
+            var list = new CopyOnWriteList<string>();
+            list.Add("one");
+            list.Add("two");
+            Assert.AreEqual(2, list.Count);
+            list.AddRange(new[] { "three", "four" });
+            Assert.AreEqual(4, list.Count);
+            CollectionAssert.AreEqual(new[] { "one", "two", "three", "four" }, list);
+        }
+
+        [Test]
         public void CopyOnWriteList_Should_Add_And_Remove()
         {
             var list = new CopyOnWriteList<string> {"one", "two", "three", "four", "five"};
