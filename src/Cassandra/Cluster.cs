@@ -196,7 +196,7 @@ namespace Cassandra
             var session = new Session(this, Configuration, keyspace, _protocolVersion);
             session.Init();
             _connectedSessions.Add(session);
-            _logger.Info("Session connected!");
+            _logger.Info("Session connected ({0})", session.GetHashCode());
             return session;
         }
 

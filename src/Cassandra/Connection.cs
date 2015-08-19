@@ -515,10 +515,7 @@ namespace Cassandra
             _receivingOperation = null;
             if (state.Header.Opcode != EventResponse.OpCode)
             {
-                //Remove from pending
-                _pendingOperations.TryRemove(state.Header.StreamId, out state);
-                //Release the streamId
-                _freeOperations.Push(state.Header.StreamId);
+                RemoveFromPending(state.Header.StreamId);
             }
             try
             {
@@ -662,12 +659,22 @@ namespace Cassandra
                 //There was an error while serializing or begin sending
                 _logger.Error(ex);
                 //The request was not written, clear it from pending operations
-                _pendingOperations.TryRemove(streamId, out state);
-                //Leave the stream id
-                _freeOperations.Push(streamId);
+                RemoveFromPending(streamId);
                 //Callback with the Exception
                 state.InvokeCallback(ex);
             }
+        }
+
+        /// <summary>
+        /// Removes an operation from pending and frees the stream id
+        /// </summary>
+        /// <param name="streamId"></param>
+        private void RemoveFromPending(short streamId)
+        {
+            OperationState state;
+            _pendingOperations.TryRemove(streamId, out state);
+            //Set the streamId as available
+            _freeOperations.Push(streamId);
         }
 
         /// <summary>

@@ -30,6 +30,12 @@ namespace Cassandra.Requests
 
         public void Cancel()
         {
+            if (_operation == null)
+            {
+                //The request has not been sent yet
+                return;
+            }
+            //_operation can not be assigned to null, so it is safe to use the reference
             _operation.Cancel();
         }
 
@@ -51,7 +57,7 @@ namespace Cassandra.Requests
                     }
                     _connection = t.Result;
                     Send(_request, HandleResponse);
-                });
+                }, TaskContinuationOptions.ExecuteSynchronously);
                 return;
             }
             if (_connection == null)
@@ -100,10 +106,12 @@ namespace Cassandra.Requests
                 if (typeof(T) == typeof(RowSet))
                 {
                     HandleRowSetResult(response);
+                    return;
                 }
-                else if (typeof(T) == typeof(PreparedStatement))
+                if (typeof(T) == typeof(PreparedStatement))
                 {
                     HandlePreparedResult(response);
+                    return;
                 }
                 throw new DriverInternalError(String.Format("RequestExecution with type {0} is not supported", typeof(T).FullName));
             }

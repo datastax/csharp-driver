@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Tasks;
 using NUnit.Framework;
@@ -95,6 +97,20 @@ namespace Cassandra.Tests
             var ex = Assert.Throws<AggregateException>(t2.Wait);
             Assert.AreEqual(1, ex.InnerExceptions.Count);
             Assert.AreEqual("Dummy exception from continuation", ex.InnerException.Message);
+        }
+
+        [Test]
+        public void TaskHelper_Completed_Continues_On_The_Same_Thread()
+        {
+            var threadIdInit = Thread.CurrentThread.ManagedThreadId;
+            var threadIdContinue = 0;
+            TaskHelper.Completed.ContinueWith(t =>
+            {
+                threadIdContinue = Thread.CurrentThread.ManagedThreadId;
+            }, TaskContinuationOptions.ExecuteSynchronously).Wait();
+
+            Trace.TraceInformation("{0} - {1}", threadIdInit, threadIdContinue);
+            Assert.AreEqual(threadIdInit, threadIdContinue);
         }
 
         /// <summary>

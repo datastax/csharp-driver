@@ -288,7 +288,7 @@ namespace Cassandra.Requests
                         return GetNextConnection(triedHosts);
                     }
                     return c.SetKeyspace(_session.Keyspace).ContinueSync(_ => c);
-                })
+                }, TaskContinuationOptions.ExecuteSynchronously)
                 .Unwrap();
         }
 

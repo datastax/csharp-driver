@@ -32,10 +32,12 @@ namespace Cassandra
     /// </summary>
     internal class HostConnectionPool : IDisposable
     {
+        private const int ConnectionIndexOverflow = int.MaxValue - 100000;
         private readonly static Logger Logger = new Logger(typeof(HostConnectionPool));
         private readonly List<Connection> _connections = new List<Connection>();
         private volatile Task<Connection>[] _openingConnections;
         private readonly SemaphoreSlim _poolModificationSemaphore = new SemaphoreSlim(1);
+        private int _connectionIndex;
 
         private Configuration Configuration { get; set; }
 
@@ -86,20 +88,41 @@ namespace Cassandra
         /// <summary> 
         /// Gets the connection with the minimum number of InFlight requests
         /// </summary>
-        public static Connection MinInFlight(IEnumerable<Connection> connections)
+        public Connection MinInFlight(Connection[] connections)
         {
-            var lastValue = int.MaxValue;
-            Connection result = null;
-            foreach (var c in connections)
+            if (connections.Length == 1)
             {
-                if (c.InFlight >= lastValue)
+                return connections[0];
+            }
+            //It is very likely that the amount of InFlight requests per connection is the same
+            //Do round robin between connections
+            var list = new LinkedList<Connection>();
+            list.AddLast(connections[0]);
+            var lastValue = connections[0].InFlight;
+            for (var i = 1; i < connections.Length; i++)
+            {
+                var c = connections[i];
+                var inFlight = c.InFlight;
+                if (inFlight > lastValue)
                 {
                     continue;
                 }
-                result = c;
-                lastValue = c.InFlight;
+                if (inFlight == lastValue)
+                {
+                    list.AddLast(c);
+                    continue;
+                }
+                lastValue = inFlight;
+                list = new LinkedList<Connection>();
+                list.AddLast(connections[0]);
             }
-            return result;
+            var index = Interlocked.Increment(ref _connectionIndex);
+            if (index > ConnectionIndexOverflow)
+            {
+                //Overflow protection, not exactly thread-safe but we can live with it
+                Interlocked.Exchange(ref _connectionIndex, 0);
+            }
+            return list.Skip(index % list.Count).First();
         }
 
         /// <exception cref="System.Net.Sockets.SocketException">Throws a SocketException when the connection could not be established with the host</exception>
@@ -190,7 +213,8 @@ namespace Cassandra
             }
             //Semaphore entered
             //Remove closed connections from the pool
-            foreach (var c in _connections.Where(c => c.IsClosed))
+            var toRemove = _connections.Where(c => c.IsClosed).ToArray();
+            foreach (var c in toRemove)
             {
                 _connections.Remove(c);
             }
@@ -257,7 +281,7 @@ namespace Cassandra
                     return allCompleted;
                 }
                 return TaskHelper.ToTask(t.Result);
-            }).Unwrap();
+            }, TaskContinuationOptions.ExecuteSynchronously).Unwrap();
         }
 
         /// <summary>

@@ -263,34 +263,30 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void InitialKeyspaceRaceTest()
         {
-            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1);
-
-            var cluster = Cluster.Builder()
+            var testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, true, false);
+            using (var cluster = Cluster.Builder()
                 .AddContactPoint(testCluster.InitialContactPoint)
                 //using a keyspace
                 .WithDefaultKeyspace("system")
                 //lots of connections per host
                 .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 30))
-                .Build();
-
-            var actions = new List<Action>(1000);
-            var session = cluster.Connect();
-            //Try to be force a race condition
-            for (var i = 0; i < 1000; i++)
+                .Build())
             {
-                //Some table within the system keyspace
-                actions.Add(() =>
+                var session = cluster.Connect();
+                //Try to be force a race condition
+                TestHelper.ParallelInvoke(() =>
                 {
-                    var task = session.ExecuteAsync(new SimpleStatement("SELECT * FROM schema_columnfamilies"));
-                    task.Wait();
-                });
+                    var t = session.ExecuteAsync(new SimpleStatement("SELECT * FROM schema_columnfamilies"));
+                    t.Wait();
+                }, 1000);
+                var actions = new Task[1000];
+                for (var i = 0; i < actions.Length; i++)
+                {
+                    actions[i] = session.ExecuteAsync(new SimpleStatement("SELECT * FROM local"));
+                }
+                // ReSharper disable once CoVariantArrayConversion
+                Task.WaitAll(actions);
             }
-            var parallelOptions = new ParallelOptions
-            {
-                TaskScheduler = new ThreadPerTaskScheduler(),
-                MaxDegreeOfParallelism = 1000
-            };
-            Parallel.Invoke(parallelOptions, actions.ToArray());
         }
 
         [Test]
