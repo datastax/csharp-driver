@@ -17,7 +17,7 @@ namespace Cassandra.Requests
         private readonly ISession _session;
         private readonly IRequest _request;
         private readonly Dictionary<IPEndPoint, Exception> _triedHosts = new Dictionary<IPEndPoint, Exception>();
-        private Connection _connection;
+        private volatile Connection _connection;
         private int _retryCount;
         private volatile OperationState _operation;
 
@@ -42,9 +42,19 @@ namespace Cassandra.Requests
             if (!useCurrentHost)
             {
                 //Get a new connection from the next host
-                _connection = _parent.GetNextConnection(_triedHosts);   
+                _parent.GetNextConnection(_triedHosts).ContinueWith(t =>
+                {
+                    if (t.Exception != null)
+                    {
+                        HandleResponse(t.Exception.InnerException, null);
+                        return;
+                    }
+                    _connection = t.Result;
+                    Send(_request, HandleResponse);
+                });
+                return;
             }
-            else if (_connection == null)
+            if (_connection == null)
             {
                 throw new DriverInternalError("No current connection set");
             }
@@ -349,13 +359,14 @@ namespace Cassandra.Requests
                 Logger.Warning(String.Format("The statement was prepared using another keyspace, changing the keyspace temporarily to" +
                                               " {0} and back to {1}. Use keyspace and table identifiers in your queries and avoid switching keyspaces.",
                                               boundStatement.PreparedStatement.Keyspace, _session.Keyspace));
-                //Use the current task scheduler to avoid blocking on a io worker thread
-                Task.Factory.StartNew(() =>
-                {
-                    //Change the keyspace is a blocking operation
-                    _connection.Keyspace = boundStatement.PreparedStatement.Keyspace;
-                    Send(request, ReprepareResponseHandler);
-                });
+
+                _connection
+                    .SetKeyspace(boundStatement.PreparedStatement.Keyspace)
+                    .ContinueSync(_ =>
+                    {
+                        Send(request, ReprepareResponseHandler);
+                        return true;
+                    });
                 return;
             }
             Send(request, ReprepareResponseHandler);

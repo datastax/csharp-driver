@@ -154,11 +154,8 @@ namespace Cassandra.Tests
             }));
             var pool = mock.Object;
             var task = pool.MaybeCreateCorePool();
-            var ex = Assert.Throws<AggregateException>(() => task.Wait());
-            Assert.IsInstanceOf<AggregateException>(ex.InnerException);
-            //3 exceptions
-            Assert.AreEqual(3, ((AggregateException)ex.InnerException).InnerExceptions.Count);
-            Assert.True(((AggregateException)ex.InnerException).InnerExceptions.All(innerEx => innerEx == testException));
+            var ex = Assert.Throws<Exception>(() => TaskHelper.WaitToComplete(task));
+            Assert.AreEqual(testException, ex);
         }
 
         [Test]

@@ -31,13 +31,14 @@ namespace Cassandra
     /// <inheritdoc cref="Cassandra.ISession" />
     public class Session : ISession
     {
-        private static Logger _logger = new Logger(typeof(Session));
-        
+        private static readonly Logger Logger = new Logger(typeof(Session));
         private readonly ConcurrentDictionary<IPEndPoint, HostConnectionPool> _connectionPool;
         private int _disposed;
+        private volatile string _keyspace;
 
         public int BinaryProtocolVersion { get; internal set; }
 
+        /// <inheritdoc />
         public ICluster Cluster { get; private set; }
 
         /// <summary>
@@ -45,12 +46,23 @@ namespace Cassandra
         /// </summary>
         public Configuration Configuration { get; protected set; }
 
+        /// <summary>
+        /// Determines if the session is already disposed
+        /// </summary>
         public bool IsDisposed
         {
             get { return Thread.VolatileRead(ref _disposed) > 0; }
         }
 
-        public string Keyspace { get; internal set; }
+        /// <summary>
+        /// Gets or sets the keyspace
+        /// </summary>
+        public string Keyspace
+        {
+            get { return _keyspace; }
+            internal set { _keyspace = value; }
+        }
+
         /// <inheritdoc />
         public UdtMappingDefinitions UserDefinedTypes { get; private set; }
 
@@ -87,10 +99,10 @@ namespace Cassandra
         /// <inheritdoc />
         public void ChangeKeyspace(string keyspace)
         {
-            if (this.Keyspace != keyspace)
+            if (Keyspace != keyspace)
             {
-                this.Execute(new SimpleStatement(CqlQueryTools.GetUseKeyspaceCql(keyspace)));
-                this.Keyspace = keyspace;
+                Execute(new SimpleStatement(CqlQueryTools.GetUseKeyspaceCql(keyspace)));
+                Keyspace = keyspace;
             }
         }
 
@@ -98,7 +110,7 @@ namespace Cassandra
         public void CreateKeyspace(string keyspace, Dictionary<string, string> replication = null, bool durableWrites = true)
         {
             WaitForSchemaAgreement(Execute(CqlQueryTools.GetCreateKeyspaceCql(keyspace, replication, durableWrites, false)));
-            _logger.Info("Keyspace [" + keyspace + "] has been successfully CREATED.");
+            Logger.Info("Keyspace [" + keyspace + "] has been successfully CREATED.");
         }
 
         /// <inheritdoc />
@@ -110,7 +122,7 @@ namespace Cassandra
             }
             catch (AlreadyExistsException)
             {
-                _logger.Info(string.Format("Cannot CREATE keyspace:  {0}  because it already exists.", keyspaceName));
+                Logger.Info(string.Format("Cannot CREATE keyspace:  {0}  because it already exists.", keyspaceName));
             }
         }
 
@@ -129,7 +141,7 @@ namespace Cassandra
             }
             catch (InvalidQueryException)
             {
-                _logger.Info(string.Format("Cannot DELETE keyspace:  {0}  because it not exists.", keyspaceName));
+                Logger.Info(string.Format("Cannot DELETE keyspace:  {0}  because it not exists.", keyspaceName));
             }
         }
 
@@ -159,7 +171,7 @@ namespace Cassandra
         {
             var handler = new RequestHandler<RowSet>(this);
             //Borrow a connection, trying to fail fast
-            handler.GetNextConnection(new Dictionary<IPEndPoint,Exception>());
+            TaskHelper.WaitToComplete(handler.GetNextConnection(new Dictionary<IPEndPoint,Exception>()));
         }
 
         /// <inheritdoc />
@@ -308,17 +320,17 @@ namespace Cassandra
             }
             catch (Exception ex)
             {
-                _logger.Error("There was an error while trying to retrieve table metadata for {0}.{1}. {2}", column.Keyspace, column.Table, ex.ToString());
+                Logger.Error("There was an error while trying to retrieve table metadata for {0}.{1}. {2}", column.Keyspace, column.Table, ex.ToString());
             }
             if (table == null)
             {
-                _logger.Info(msgRoutingNotSet, ps.Cql);
+                Logger.Info(msgRoutingNotSet, ps.Cql);
                 return ps;
             }
             var routingSet = ps.SetPartitionKeys(table.PartitionKeys);
             if (!routingSet)
             {
-                _logger.Info(msgRoutingNotSet, ps.Cql);
+                Logger.Info(msgRoutingNotSet, ps.Cql);
             }
             return ps;
         }
@@ -349,7 +361,7 @@ namespace Cassandra
             {
                 return true;
             }
-            _logger.Info("Waiting for pending operations of " + connections.Count + " connections to complete.");
+            Logger.Info("Waiting for pending operations of " + connections.Count + " connections to complete.");
             var handles = connections.Select(c => c.WaitPending()).ToArray();
             //WaitHandle.WaitAll() not supported on STAThreads (thanks COM!)
             //Start new task and wait on the individual Task

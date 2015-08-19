@@ -62,7 +62,8 @@ namespace Cassandra
         /// </summary>
         private volatile byte[] _minimalBuffer;
         private volatile string _keyspace;
-        private readonly object _keyspaceLock = new object();
+        private readonly SemaphoreSlim _keyspaceSwitchSemaphore = new SemaphoreSlim(1);
+        private volatile Task<bool> _keyspaceSwitchTask;
         private volatile byte _frameHeaderSize;
         /// <summary> TaskScheduler used to handle write tasks</summary>
         private readonly TaskScheduler _writeScheduler = new LimitedParallelismTaskScheduler(1);
@@ -121,37 +122,13 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Gets or sets the keyspace.
-        /// When setting the keyspace, it will issue a Query Request and wait to complete.
+        /// Gets the current keyspace.
         /// </summary>
         public string Keyspace
         {
             get
             {
-                return this._keyspace;
-            }
-            set
-            {
-                if (String.IsNullOrEmpty(value))
-                {
-                    return;
-                }
-                if (this._keyspace != null && value == this._keyspace)
-                {
-                    return;
-                }
-                lock (this._keyspaceLock)
-                {
-                    if (value == this._keyspace)
-                    {
-                        return;
-                    }
-                    _logger.Info("Connection to host {0} switching to keyspace {1}", Address, value);
-                    var timeout = Configuration.SocketOptions.ConnectTimeoutMillis;
-                    var request = new QueryRequest(ProtocolVersion, String.Format("USE \"{0}\"", value), false, QueryProtocolOptions.Default);
-                    TaskHelper.WaitToComplete(this.Send(request), timeout);
-                    this._keyspace = value;
-                }
+                return _keyspace;
             }
         }
 
@@ -320,6 +297,7 @@ namespace Cassandra
             }
             _idleTimer.Dispose();
             _tcpSocket.Dispose();
+            _keyspaceSwitchSemaphore.Dispose();
         }
 
         private void EventHandler(Exception ex, AbstractResponse response)
@@ -690,6 +668,57 @@ namespace Cassandra
                 //Callback with the Exception
                 state.InvokeCallback(ex);
             }
+        }
+
+        /// <summary>
+        /// Sets the keyspace of the connection.
+        /// If the keyspace is different from the current value, it sends a Query request to change it
+        /// </summary>
+        public Task<bool> SetKeyspace(string value)
+        {
+            if (String.IsNullOrEmpty(value) || _keyspace == value)
+            {
+                //No need to switch
+                return TaskHelper.Completed;
+            }
+            Task<bool> keyspaceSwitch;
+            if (!_keyspaceSwitchSemaphore.Wait(0))
+            {
+                //Could not enter semaphore
+                //It is very likely that the connection is already switching keyspace
+                keyspaceSwitch = _keyspaceSwitchTask;
+                if (keyspaceSwitch != null)
+                {
+                    return keyspaceSwitch.Then(_ =>
+                    {
+                        //validate if the new keyspace is the expected
+                        if (_keyspace != value)
+                        {
+                            //multiple concurrent switches to different keyspace
+                            return SetKeyspace(value);
+                        }
+                        return TaskHelper.Completed;
+                    });
+                }
+                _keyspaceSwitchSemaphore.Wait();
+            }
+            //Semaphore entered
+            if (_keyspace == value)
+            {
+                //While waiting to enter the semaphore, the connection switched keyspace
+                _keyspaceSwitchSemaphore.Release();
+                return TaskHelper.Completed;
+            }
+            var request = new QueryRequest(ProtocolVersion, String.Format("USE \"{0}\"", value), false, QueryProtocolOptions.Default);
+            _logger.Info("Connection to host {0} switching to keyspace {1}", Address, value);
+            keyspaceSwitch = _keyspaceSwitchTask = Send(request).ContinueSync(r =>
+            {
+                _keyspace = value;
+                _keyspaceSwitchSemaphore.Release();
+                _keyspaceSwitchTask = null;
+                return true;
+            });
+            return keyspaceSwitch;
         }
 
         private void OnTimeout(OperationState state)

@@ -247,50 +247,49 @@ namespace Cassandra.Requests
         /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
         /// <exception cref="UnsupportedProtocolVersionException">When the protocol version is not supported in the host</exception>
         /// <exception cref="NoHostAvailableException"></exception>
-        internal Connection GetNextConnection(Dictionary<IPEndPoint, Exception> triedHosts)
+        internal Task<Connection> GetNextConnection(Dictionary<IPEndPoint, Exception> triedHosts)
         {
-            Host host;
-            while ((host = GetNextHost()) != null)
+            var host = GetNextHost();
+            if (host == null)
             {
-                _host = host;
-                triedHosts[host.Address] = null;
-                try
+                return TaskHelper.FromException<Connection>(new NoHostAvailableException(triedHosts));
+            }
+            _host = host;
+            triedHosts[host.Address] = null;
+            var distance = Policies.LoadBalancingPolicy.Distance(host);
+            //Use the concrete session here
+            var hostPool = ((Session)_session).GetOrCreateConnectionPool(host, distance);
+            return hostPool
+                .BorrowConnection()
+                .ContinueWith(t =>
                 {
-                    var distance = Policies.LoadBalancingPolicy.Distance(host);
-                    //Use the concrete session here
-                    var hostPool = ((Session)_session).GetOrCreateConnectionPool(host, distance);
-                    var connection = TaskHelper.WaitToComplete(hostPool.BorrowConnection());
-                    if (connection == null)
+                    if (t.Exception != null)
+                    {
+                        var ex = t.Exception.InnerException;
+                        if (ex is UnsupportedProtocolVersionException)
+                        {
+                            //The version of the protocol is not supported on this host
+                            //Most likely, the control connection uses a higher protocol version than the host
+                            throw ex;
+                        }
+                        if (ex is SocketException)
+                        {
+                            host.SetDown();
+                        }
+                        //Maybe use a driver internal exception if the ex is not of type SocketException/UnsupportedProtocolVersionException
+                        Logger.Error(ex);
+                        triedHosts[host.Address] = ex;
+                        return GetNextConnection(triedHosts);
+                    }
+                    var c = t.Result;
+                    if (c == null)
                     {
                         //The load balancing policy did not allow to connect to this node
-                        continue;
+                        return GetNextConnection(triedHosts);
                     }
-                    connection.Keyspace = _session.Keyspace;
-                    return connection;
-                }
-                catch (SocketException ex)
-                {
-                    host.SetDown();
-                    triedHosts[host.Address] = ex;
-                }
-                catch (InvalidQueryException)
-                {
-                    //The keyspace does not exist
-                    throw;
-                }
-                catch (UnsupportedProtocolVersionException)
-                {
-                    //The version of the protocol is not supported
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    //We didn't expect this but move to next host
-                    Logger.Error(ex);
-                    triedHosts[host.Address] = ex;
-                }
-            }
-            throw new NoHostAvailableException(triedHosts);
+                    return c.SetKeyspace(_session.Keyspace).ContinueSync(_ => c);
+                })
+                .Unwrap();
         }
 
         /// <summary>

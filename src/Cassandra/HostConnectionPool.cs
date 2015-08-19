@@ -152,6 +152,7 @@ namespace Cassandra
         /// <summary>
         /// Create the min amount of connections, if the pool is empty
         /// </summary>
+        /// <exception cref="System.Net.Sockets.SocketException" />
         internal Task<Connection[]> MaybeCreateCorePool()
         {
             var coreConnections = Configuration.GetPoolingOptions(ProtocolVersion).GetCoreConnectionsPerHost(HostDistance);
@@ -219,7 +220,7 @@ namespace Cassandra
                 _connections.AddRange(tasks.Where(t => t.Status == TaskStatus.RanToCompletion).Select(t => t.Result).ToArray());
                 if (_connections.Count == coreConnections)
                 {
-                    Logger.Info("{0} connection(s) to host {1} were created successfully", coreConnections, Host.Address);
+                    Logger.Info("{0} connection(s) to host {1} {2} created successfully", coreConnections, Host.Address, _connections.Count < 2 ? "was" : "were");
                 }
                 _openingConnections = null;
                 var connectionsArray = _connections.ToArray();
@@ -227,8 +228,9 @@ namespace Cassandra
                 if (connectionsArray.Length == 0 && tasks.All(t => t.Status != TaskStatus.RanToCompletion))
                 {
                     //Pool could not be created
-                    throw new AggregateException(string.Format("Connection pool to host {0} could not be created", Host.Address), 
-                        tasks.Where(t => t.Exception != null).Select(t => t.Exception.InnerException));
+                    //There are multiple problems, but we only care about one
+                    // ReSharper disable once PossibleNullReferenceException
+                    throw tasks.First().Exception.InnerException;
                 }
                 return connectionsArray;
             }, TaskContinuationOptions.ExecuteSynchronously);
@@ -316,10 +318,14 @@ namespace Cassandra
                 return;
             }
             Logger.Info(String.Format("Disposing connection pool to {0}, closing {1} connections.", Host.Address, _connections.Count));
+            _poolModificationSemaphore.Wait();
             foreach (var c in _connections)
             {
                 c.Dispose();
             }
+            _connections.Clear();
+            _poolModificationSemaphore.Release();
+            _poolModificationSemaphore.Dispose();
         }
     }
 }
