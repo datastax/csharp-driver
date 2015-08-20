@@ -184,7 +184,6 @@ namespace Cassandra.IntegrationTests.TestBase
             {
                 Assert.Ignore("Test Ignored: Requires CCM and tests are currently running using CTool");
             }
-
         }
 
         // If any test is designed for another C* version, mark it as ignored

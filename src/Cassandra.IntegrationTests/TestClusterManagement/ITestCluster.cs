@@ -39,7 +39,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// <summary>
         /// Creates the cluster with the option of starting it as well
         /// </summary>
-        void Create(bool startCluster = true, string[] jvmArgs = null);
+        void Create(bool startCluster = true, string[] jvmArgs = null, bool useSsl = false);
 
         /// <summary>
         /// Force Stop a specific node in the cluster
@@ -55,6 +55,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// Start a specific node in the cluster
         /// </summary>
         void Start(int nodeIdToStart, string additionalArgs = null);
+
+        /// <summary>
+        /// Starts the cluster
+        /// </summary>
+        void Start();
 
         /// <summary>
         /// Updates the yaml config

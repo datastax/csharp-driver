@@ -74,7 +74,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 _sshClient.Disconnect();
         }
 
-        public static CcmBridge Create(string name, string localIpPrefix, int nodeCount, string cassandraVersion, bool startTheCluster = true, string[] jvmArgs = null)
+        public static CcmBridge Create(string name, string localIpPrefix, int nodeCount, string cassandraVersion, bool startTheCluster = true, string[] jvmArgs = null, bool useSsl = false)
         {
             CcmBridge ccmBridge = new CcmBridge(name, localIpPrefix);
             string clusterStartStr = "";
@@ -85,7 +85,17 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 jvmArgsParams = String.Join(" ", jvmArgs.Select(a => "--jvm_arg=" + a));
             }
-            ccmBridge.ExecuteCcm(string.Format("create {0} -n {1} {2} -i {3} -b -v {4} {5}", name, nodeCount, clusterStartStr, localIpPrefix, cassandraVersion, jvmArgsParams));
+            var sslParams = "";
+            if (useSsl)
+            {
+                var sslPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "ssl");
+                if (!File.Exists(Path.Combine(sslPath, "keystore.jks")))
+                {
+                    throw new Exception(string.Format("In order to use SSL with CCM you must provide have the keystore.jks and cassandra.crt files located in your {0} folder", sslPath));
+                }
+                sslParams = "--ssl " + sslPath;
+            }
+            ccmBridge.ExecuteCcm(string.Format("create {0} -n {1} {2} -i {3} -b -v {4} {5} {6}", name, nodeCount, clusterStartStr, localIpPrefix, cassandraVersion, jvmArgsParams, sslParams));
             return ccmBridge;
         }
 

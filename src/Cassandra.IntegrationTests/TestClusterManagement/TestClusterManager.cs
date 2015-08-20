@@ -37,7 +37,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             return CreateNewClusterAndAddToList(clusterName, dc1NodeCount, 0, keyspaceName, isUsingDefaultConfig, startCluster, maxTries);
         }
 
-        public ITestCluster CreateNewClusterAndAddToList(string clusterName, int dc1NodeCount, int dc2NodeCount, string keyspaceName, bool isUsingDefaultConfig, bool startCluster, int maxTries, string[] jvmArgs = null)
+        public ITestCluster CreateNewClusterAndAddToList(string clusterName, int dc1NodeCount, int dc2NodeCount, string keyspaceName, bool isUsingDefaultConfig, bool startCluster, int maxTries, string[] jvmArgs = null, bool useSsl = false)
         {
             try
             {
@@ -53,7 +53,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     ShutDownAllCcmTestClusters();
                     // Create new cluster via ccm
                     CcmCluster testCluster = new CcmCluster(CassandraVersionStr, TestUtils.GetTestClusterNameBasedOnCurrentEpochTime(), dc1NodeCount, dc2NodeCount, GetNextLocalIpPrefix(), DefaultKeyspaceName, isUsingDefaultConfig);
-                    testCluster.Create(startCluster, jvmArgs);
+                    testCluster.Create(startCluster, jvmArgs, useSsl);
                     _testClusters.Add(testCluster);
                     return testCluster;
                 }
@@ -86,7 +86,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             return GetTestCluster(dc1NodeCount, 0, false, maxTries, startCluster, initClient);
         }
 
-        public ITestCluster GetTestCluster(int dc1NodeCount, int dc2NodeCount, bool shareable = true, int maxTries = DefaultMaxClusterCreateRetries, bool startCluster = true, bool initClient = true, int currentRetryCount = 0, string[] jvmArgs = null)
+        public ITestCluster GetTestCluster(int dc1NodeCount, int dc2NodeCount, bool shareable = true, int maxTries = DefaultMaxClusterCreateRetries, bool startCluster = true, bool initClient = true, int currentRetryCount = 0, string[] jvmArgs = null, bool useSsl = false)
         {
             ITestCluster testCluster = null;
             if (shareable)
@@ -110,7 +110,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     shareable, 
                     startCluster, 
                     2,
-                    jvmArgs);
+                    jvmArgs,
+                    useSsl);
             }
 
             // Try to initialize the cluster / session

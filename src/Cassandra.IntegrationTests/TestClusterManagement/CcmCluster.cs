@@ -62,7 +62,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         // So far, for CCM only
         private ProcessOutput _proc { get; set; }
 
-        public void Create(bool startTheCluster = true, string[] jvmArgs = null)
+        public void Create(bool startTheCluster = true, string[] jvmArgs = null, bool useSsl = false)
         {
             // if it's already being created in another thread, then wait until this step is complete
             if (!IsBeingCreated)
@@ -71,7 +71,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 if (Dc2NodeCount > 0)
                     CcmBridge = CcmBridge.Create(Name, ClusterIpPrefix, Dc1NodeCount, Dc2NodeCount, _version, startTheCluster);
                 else
-                    CcmBridge = CcmBridge.Create(Name, ClusterIpPrefix, Dc1NodeCount, _version, startTheCluster, jvmArgs);
+                    CcmBridge = CcmBridge.Create(Name, ClusterIpPrefix, Dc1NodeCount, _version, startTheCluster, jvmArgs, useSsl);
                 IsBeingCreated = false;
                 IsCreated = true;
                 if (startTheCluster)
@@ -147,7 +147,14 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void UseVNodes(string nodesToPopulate)
         {
-            CcmBridge.ExecuteCcm("remove");
+            try
+            {
+                CcmBridge.ExecuteCcm("remove");
+            }
+            catch
+            {
+                //Don't mind
+            }
             CcmBridge.ExecuteCcm(String.Format("create {0} -v {1}", CcmBridge.Name, _version));
             CcmBridge.ExecuteCcm(String.Format("populate -n {0} -i {1} --vnodes", nodesToPopulate, CcmBridge.IpPrefix), CcmBridge.DefaultCmdTimeout, true);
             CcmBridge.ExecuteCcm("start", CcmBridge.DefaultCmdTimeout, true);

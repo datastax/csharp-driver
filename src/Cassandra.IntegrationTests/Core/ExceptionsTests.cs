@@ -308,7 +308,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test, Category(TestCategories.CcmOnly)]
+        [Test]
         public void PreserveStackTraceTest()
         {
             // we need to make sure at least a single node cluster is available, running locally
@@ -325,7 +325,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test, Category(TestCategories.CcmOnly)]
+        [Test]
         public void ExceptionsOnPartialTrust()
         {
             // we need to make sure at least a single node cluster is available, running locally

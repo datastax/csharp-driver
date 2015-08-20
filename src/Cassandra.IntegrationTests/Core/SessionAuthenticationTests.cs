@@ -29,7 +29,7 @@ namespace Cassandra.IntegrationTests.Core
     /// <summary>
     /// Test Cassandra Authentication.
     /// </summary>
-    [TestFixture]
+    [TestFixture, Category("short")]
     public class SessionAuthenticationTests : TestGlobals
     {
         // Test cluster object to be shared by tests in this class only
@@ -38,9 +38,10 @@ namespace Cassandra.IntegrationTests.Core
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Info;
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
             _testClusterForAuthTesting = GetTestCcmClusterForAuthTests();
-            WaitForAuthenticatedClusterToConnect(_testClusterForAuthTesting);
+            //Wait 10 seconds as auth table needs to be created
+            Thread.Sleep(10000);
         }
 
         [TestFixtureTearDown]
@@ -49,15 +50,15 @@ namespace Cassandra.IntegrationTests.Core
             _testClusterForAuthTesting.Remove();
         }
 
-        private CcmCluster GetTestCcmClusterForAuthTests()
+        private ITestCluster GetTestCcmClusterForAuthTests()
         {
-            CcmCluster customTestCluster = (CcmCluster)TestClusterManager.GetNonShareableTestCluster(1, DefaultMaxClusterCreateRetries, false);
-            customTestCluster.CcmBridge.ExecuteCcm("updateconf \"authenticator: PasswordAuthenticator\"", 3000, true);
-            customTestCluster.CcmBridge.Start();
-            return customTestCluster;
+            var testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, false, false);
+            testCluster.UpdateConfig("authenticator: PasswordAuthenticator");
+            testCluster.Start();
+            return testCluster;
         }
 
-        [Test, TestCassandraVersion(2, 0), Category(TestCategories.CcmOnly)]
+        [Test, TestCassandraVersion(2, 0)]
         public void PlainTextAuthProvider_AuthFail()
         {
             using (var cluster = Cluster
@@ -73,20 +74,22 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestCassandraVersion(2, 0), Category(TestCategories.CcmOnly)]
+        [TestCassandraVersion(2, 0)]
         public void PlainTextAuthProvider_AuthSuccess()
         {
-            Cluster cluster = Cluster
+            using (var cluster = Cluster
                 .Builder()
                 .AddContactPoint(_testClusterForAuthTesting.InitialContactPoint)
                 .WithAuthProvider(new PlainTextAuthProvider("cassandra", "cassandra"))
-                .Build();
-            var session = cluster.Connect();
-            var rowSet = session.Execute("SELECT * FROM system.schema_keyspaces");
-            Assert.Greater(rowSet.Count(), 0);
+                .Build())
+            {
+                var session = cluster.Connect();
+                var rowSet = session.Execute("SELECT * FROM system.schema_keyspaces");
+                Assert.Greater(rowSet.Count(), 0);   
+            }
         }
 
-        [Test, Category(TestCategories.CcmOnly)]
+        [Test]
         public void StandardCreds_AuthSuccess()
         {
             Builder builder = Cluster.Builder()
@@ -99,7 +102,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.Greater(rs.Count(), 0);
         }
 
-        [Test, Category(TestCategories.CcmOnly)]
+        [Test]
         public void StandardCreds_AuthFail()
         {
             using (var cluster = Cluster
@@ -114,7 +117,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test, Category(TestCategories.CcmOnly)]
+        [Test]
         public void StandardCreds_AuthOmitted()
         {
             using (var cluster = Cluster
@@ -128,67 +131,5 @@ namespace Cassandra.IntegrationTests.Core
                 Console.WriteLine(ex.Errors.First().Value);
             }
         }
-
-        [Explicit(), Ignore("Not Implemented"), Category(TestCategories.CcmOnly)]
-        public void CassandraAny_Ssl()
-        {
-            CcmCluster testCluster = GetTestCcmClusterForAuthTests();
-
-            var sslOptions = new SSLOptions()
-                .SetRemoteCertValidationCallback((s, cert, chain, policyErrors) =>
-                {
-                    if (policyErrors == SslPolicyErrors.RemoteCertificateChainErrors &&
-                        chain.ChainStatus.Length == 1 &&
-                        chain.ChainStatus[0].Status == X509ChainStatusFlags.UntrustedRoot)
-                    {
-                        //self issued
-                        return true;
-                    }
-                    return policyErrors == SslPolicyErrors.None;
-                });
-            using (var cluster = Cluster
-                .Builder()
-                .AddContactPoint(testCluster.InitialContactPoint)
-                .WithCredentials("cassandra", "cassandra")
-                .WithSSL(sslOptions)
-                .Build())
-            {
-                var session = cluster.Connect();
-                var rs = session.Execute("SELECT * FROM system.schema_keyspaces");
-                Assert.Greater(rs.Count(), 0);
-            }
-        }
-
-        /////////////////////////////////
-        /// Test Helpers
-        ////////////////////////////////
-        
-        private static void WaitForAuthenticatedClusterToConnect(ITestCluster testCluster)
-        {
-            DateTime timeInTheFuture = DateTime.Now.AddSeconds(60);
-            ISession session = null;
-            Trace.TraceInformation("Validating that test cluster with name: " + testCluster.Name + " can be connected to ... ");
-
-            while (DateTime.Now < timeInTheFuture && session == null)
-            {
-                try
-                {
-                    Cluster cluster = Cluster
-                        .Builder()
-                        .AddContactPoint(testCluster.InitialContactPoint)
-                        .WithAuthProvider(new PlainTextAuthProvider("cassandra", "cassandra"))
-                        .Build();
-                    session = cluster.Connect();
-                }
-                catch (Exception e)
-                {
-                    Trace.TraceInformation("Failed to connect to authenticated cluster, error msg: " + e.Message);
-                    Trace.TraceInformation("Waiting 1 second then trying again ... ");
-                    Thread.Sleep(1000);
-                    session = null;
-                }
-            }
-        }
-
     }
 }

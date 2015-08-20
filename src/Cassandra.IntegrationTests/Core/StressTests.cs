@@ -105,7 +105,7 @@ namespace Cassandra.IntegrationTests.Core
         /// In parallel it inserts some records and selects them using Session.Execute sync methods.
         /// </summary>
         [Test]
-        [TestCassandraVersion(2, 0), Category(TestCategories.CcmOnly)]
+        [TestCassandraVersion(2, 0)]
         public void Parallel_Insert_And_Select_Sync_With_Nodes_Failing()
         {
             var originalTraceLevel = Diagnostics.CassandraTraceSwitch.Level;

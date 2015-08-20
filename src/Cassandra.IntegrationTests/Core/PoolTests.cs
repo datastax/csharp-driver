@@ -305,6 +305,25 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public void Connect_With_Ssl_Test()
+        {
+            //use ssl
+            var testCluster = TestClusterManager.GetTestCluster(1, 0, false, 1, true, false, 0, null, true);
+
+            using (var cluster = Cluster.Builder()
+                                        .AddContactPoint(testCluster.InitialContactPoint)
+                                        .WithSSL(new SSLOptions().SetRemoteCertValidationCallback((a, b, c, d) => true))
+                                        .Build())
+            {
+                Assert.DoesNotThrow(() =>
+                {
+                    var session = cluster.Connect();
+                    TestHelper.Invoke(() => session.Execute("select * from system.local"), 10);
+                });
+            }
+        }
+
+        [Test]
         public void ConnectShouldResolveNames()
         {
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1);

@@ -111,7 +111,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             throw new NotImplementedException();
         }
 
-        public void Create(bool startCluster = true, string[] jvmArgs = null)
+        public void Create(bool startCluster = true, string[] jvmArgs = null, bool useSsl = false)
         {
             throw new NotImplementedException();
         }
@@ -127,6 +127,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         }
 
         public void Start(int nodeIdToStart, string additionalArgs = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Start()
         {
             throw new NotImplementedException();
         }
