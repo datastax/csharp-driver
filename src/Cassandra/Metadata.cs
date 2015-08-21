@@ -100,7 +100,7 @@ namespace Cassandra
             Hosts.SetDownIfExists(address);
         }
 
-        private void OnHostDown(Host h, DateTimeOffset nextUpTime)
+        private void OnHostDown(Host h, long reconnectionDelay)
         {
             if (HostsEvent != null)
             {

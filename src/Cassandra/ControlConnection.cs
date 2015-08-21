@@ -264,11 +264,10 @@ namespace Cassandra
             }
         }
 
-        private void OnHostDown(Host h, DateTimeOffset nextUpTime)
+        private void OnHostDown(Host h, long reconnectionDelay)
         {
             h.Down -= OnHostDown;
-            _logger.Warning("Host " + h.Address + " used by the ControlConnection DOWN");
-
+            _logger.Warning("Host {0} used by the ControlConnection DOWN", h.Address);
             Task.Factory.StartNew(() => Refresh(true), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
         }
 

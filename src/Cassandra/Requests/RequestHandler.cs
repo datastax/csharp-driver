@@ -231,12 +231,12 @@ namespace Cassandra.Requests
                 while (_queryPlan.MoveNext())
                 {
                     var h = _queryPlan.Current;
-                    if (h.IsConsiderablyUp)
+                    if (h.IsUp)
                     {
                         host = h;
                         break;
                     }
-                }   
+                }
             }
             return host;
         }

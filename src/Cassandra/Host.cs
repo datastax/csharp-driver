@@ -36,7 +36,7 @@ namespace Cassandra
         /// Event that gets raised when the host is considered as DOWN (not available) by the driver.
         /// It will provide the time were reconnection will be attempted
         /// </summary>
-        internal event Action<Host, DateTimeOffset> Down;
+        internal event Action<Host, long> Down;
         /// <summary>
         /// Event that gets raised when the host is considered back UP (available for queries) by the driver.
         /// </summary>
@@ -98,12 +98,13 @@ namespace Cassandra
         {
             if (IsConsiderablyUp)
             {
-                Logger.Warning("Host " + this.Address.ToString() + " considered as DOWN");
-                _nextUpTime = DateTimeOffset.Now.AddMilliseconds(_reconnectionSchedule.NextDelayMs());
+                var delay = _reconnectionSchedule.NextDelayMs();
+                Logger.Warning("Host {0} considered as DOWN. Reconnection delay {1}ms", Address, delay);
+                _nextUpTime = DateTimeOffset.Now.AddMilliseconds(delay);
                 if (Down != null)
                 {
                     //Raise event
-                    Down(this, _nextUpTime);
+                    Down(this, delay);
                 }
             }
             if (_isUpNow)

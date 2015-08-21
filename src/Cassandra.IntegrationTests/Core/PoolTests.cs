@@ -458,6 +458,39 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         /// <summary>
+        /// Execute a couple of time.
+        /// Set the host as down manually.
+        /// Do nothing for a while, letting the reconnection policy to kick in.
+        /// Check if the node is considered as down.
+        /// </summary>
+        [Test]
+        public void Reconnection_Attempts_Are_Made_In_The_Background()
+        {
+            var testCluster = TestClusterManager.GetNonShareableTestCluster(2, 1, true, false);
+
+            var cluster = Cluster.Builder()
+                                 .AddContactPoint(testCluster.InitialContactPoint)
+                                 //TODO: Make sure that heartbeat is disabled
+                                 .WithPoolingOptions(
+                                     new PoolingOptions()
+                                         .SetCoreConnectionsPerHost(HostDistance.Local, 2))
+                                 .WithReconnectionPolicy(new ConstantReconnectionPolicy(2000))
+                                 .Build();
+            var session = (Session)cluster.Connect();
+            TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local"), 10);
+            var host = cluster.AllHosts().First(h => TestHelper.GetLastAddressByte(h) == 2);
+            //Check that the control connection is connected to another host
+            Assert.AreNotEqual(cluster.Metadata.ControlConnection.BindAddress, host.Address);
+            Assert.True(host.IsUp);
+            Trace.TraceInformation("Setting host as down");
+            host.SetDown();
+            Assert.False(host.IsUp);
+            Trace.TraceInformation("Waiting");
+            Thread.Sleep(5000);
+            Assert.True(host.IsUp);
+        }
+
+        /// <summary>
         /// Tests that when a peer is added or set as down, the address translator is invoked
         /// </summary>
         [Test]

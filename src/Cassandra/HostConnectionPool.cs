@@ -34,36 +34,36 @@ namespace Cassandra
     {
         private const int ConnectionIndexOverflow = int.MaxValue - 100000;
         private readonly static Logger Logger = new Logger(typeof(HostConnectionPool));
-        private readonly List<Connection> _connections = new List<Connection>();
+        //Safe iteration of connections
+        private readonly CopyOnWriteList<Connection> _connections = new CopyOnWriteList<Connection>();
         private volatile Task<Connection>[] _openingConnections;
         private readonly SemaphoreSlim _poolModificationSemaphore = new SemaphoreSlim(1);
+        private readonly Host _host;
+        private readonly HostDistance _distance;
+        private readonly Configuration _config;
+        private readonly HashedWheelTimer _timer;
         private int _connectionIndex;
-
-        private Configuration Configuration { get; set; }
+        private int _hostDownFlag;
+        private volatile HashedWheelTimer.ITimeout _timeout;
 
         /// <summary>
         /// Gets a list of connections already opened to the host
         /// </summary>
         public IEnumerable<Connection> OpenConnections 
         { 
-            get
-            {
-                return _connections;
-            }
+            get { return _connections; }
         }
-
-        private Host Host { get; set; }
-
-        private HostDistance HostDistance { get; set; }
 
         public byte ProtocolVersion { get; set; }
 
-        public HostConnectionPool(Host host, HostDistance hostDistance, Configuration configuration)
+        public HostConnectionPool(Host host, HostDistance distance, Configuration config)
         {
-            Host = host;
-            Host.Down += OnHostDown;
-            HostDistance = hostDistance;
-            Configuration = configuration;
+            _host = host;
+            _host.Down += OnHostDown;
+            _host.Up += OnHostUp;
+            _distance = distance;
+            _config = config;
+            _timer = config.Timer;
         }
 
         /// <summary>
@@ -130,20 +130,20 @@ namespace Cassandra
         /// <exception cref="UnsupportedProtocolVersionException"></exception>
         internal virtual Task<Connection> CreateConnection()
         {
-            Logger.Info("Creating a new connection to the host " + Host.Address);
-            var c = new Connection(ProtocolVersion, Host.Address, Configuration);
+            Logger.Info("Creating a new connection to the host " + _host.Address);
+            var c = new Connection(ProtocolVersion, _host.Address, _config);
             return c.Open().ContinueWith(t =>
             {
                 if (t.Status == TaskStatus.RanToCompletion)
                 {
-                    if (Configuration.PoolingOptions.GetHeartBeatInterval() != null)
+                    if (_config.PoolingOptions.GetHeartBeatInterval() != null)
                     {
                         //Heartbeat is enabled, subscribe for possible exceptions
                         c.OnIdleRequestException += OnIdleRequestException;
                     }
                     return c;
                 }
-                Logger.Info("The connection to {0} could not be opened", Host.Address);
+                Logger.Info("The connection to {0} could not be opened", _host.Address);
                 c.Dispose();
                 if (t.Exception != null)
                 {
@@ -159,17 +159,82 @@ namespace Cassandra
         /// </summary>
         private void OnIdleRequestException(Exception ex)
         {
-            Host.SetDown();
+            _host.SetDown();
         }
 
-        private void OnHostDown(Host h, DateTimeOffset nextTimeUp)
+        private void OnHostDown(Host h, long delay)
         {
+            if (Interlocked.CompareExchange(ref _hostDownFlag, 1, 0) != 0)
+            {
+                //A reconnection attempt is being scheduled concurrently
+                return;
+            }
+            var currentTimeout = _timeout;
+            //De-schedule the current reconnection attempt
+            if (currentTimeout != null)
+            {
+                currentTimeout.Cancel();
+            }
+            //Schedule next reconnection attempt (without using the timer thread)
+            _timeout = _timer.NewTimeout(() => Task.Factory.StartNew(AttemptReconnection), delay);
             //Dispose all current connections
-            //Connection allows multiple calls to Dispose
             foreach (var c in _connections)
             {
+                //Connection class allows multiple calls to Dispose
                 c.Dispose();
             }
+            Interlocked.Exchange(ref _hostDownFlag, 0);
+        }
+
+        /// <summary>
+        /// Handles the reconnection attempts.
+        /// If it succeeds, it marks the host as UP.
+        /// If not, it marks the host as DOWN
+        /// </summary>
+        internal void AttemptReconnection()
+        {
+            _poolModificationSemaphore.Wait();
+            var toRemove = _connections.Where(c => c.IsClosed).ToArray();
+            foreach (var c in toRemove)
+            {
+                _connections.Remove(c);
+            }
+            if (_connections.Count > 0)
+            {
+                //there is already an open connection
+                _poolModificationSemaphore.Release();
+                return;
+            }
+            Logger.Info("Attempting reconnection to host {0}", _host.Address);
+            CreateConnection().ContinueWith(t =>
+            {
+                if (t.Status == TaskStatus.RanToCompletion)
+                {
+                    _connections.Add(t.Result);
+                    //Release as soon as possible
+                    _poolModificationSemaphore.Release();
+                    Logger.Info("Reconnection attempt to host {0} succeeded", _host.Address);
+                    _host.BringUpIfDown();
+                }
+                else
+                {
+                    _poolModificationSemaphore.Release();
+                    Logger.Info("Reconnection attempt to host {0} failed", _host.Address);
+                    _host.SetDown();
+                }
+            }, TaskContinuationOptions.ExecuteSynchronously);
+        }
+
+        private void OnHostUp(Host host)
+        {
+            var timeout = _timeout;
+            if (timeout != null)
+            {
+                timeout.Cancel();
+            }
+            _timeout = null;
+            //The host is back up, we can start creating the pool (if applies)
+            MaybeCreateCorePool();
         }
 
         /// <summary>
@@ -178,7 +243,7 @@ namespace Cassandra
         /// <exception cref="System.Net.Sockets.SocketException" />
         internal Task<Connection[]> MaybeCreateCorePool()
         {
-            var coreConnections = Configuration.GetPoolingOptions(ProtocolVersion).GetCoreConnectionsPerHost(HostDistance);
+            var coreConnections = _config.GetPoolingOptions(ProtocolVersion).GetCoreConnectionsPerHost(_distance);
             if (!_connections.Any(c => c.IsClosed) && _connections.Count >= coreConnections)
             {
                 //Pool has the appropriate size
@@ -244,7 +309,7 @@ namespace Cassandra
                 _connections.AddRange(tasks.Where(t => t.Status == TaskStatus.RanToCompletion).Select(t => t.Result).ToArray());
                 if (_connections.Count == coreConnections)
                 {
-                    Logger.Info("{0} connection(s) to host {1} {2} created successfully", coreConnections, Host.Address, _connections.Count < 2 ? "was" : "were");
+                    Logger.Info("{0} connection(s) to host {1} {2} created successfully", coreConnections, _host.Address, _connections.Count < 2 ? "was" : "were");
                 }
                 _openingConnections = null;
                 var connectionsArray = _connections.ToArray();
@@ -290,8 +355,8 @@ namespace Cassandra
         /// </summary>
         internal bool MaybeSpawnNewConnection(int inFlight)
         {
-            var maxInFlight = Configuration.GetPoolingOptions(ProtocolVersion).GetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance);
-            var maxConnections = Configuration.GetPoolingOptions(ProtocolVersion).GetMaxConnectionPerHost(HostDistance);
+            var maxInFlight = _config.GetPoolingOptions(ProtocolVersion).GetMaxSimultaneousRequestsPerConnectionTreshold(_distance);
+            var maxConnections = _config.GetPoolingOptions(ProtocolVersion).GetMaxConnectionPerHost(_distance);
             if (inFlight <= maxInFlight)
             {
                 return false;
@@ -322,7 +387,7 @@ namespace Cassandra
 
         public void CheckHealth(Connection c)
         {
-            if (c.TimedOutOperations < Configuration.SocketOptions.DefunctReadTimeoutThreshold)
+            if (c.TimedOutOperations < _config.SocketOptions.DefunctReadTimeoutThreshold)
             {
                 return;
             }
@@ -336,12 +401,13 @@ namespace Cassandra
 
         public void Dispose()
         {
-            Host.Down -= OnHostDown;
+            _host.Down -= OnHostDown;
+            _host.Up -= OnHostUp;
             if (_connections.Count == 0)
             {
                 return;
             }
-            Logger.Info(String.Format("Disposing connection pool to {0}, closing {1} connections.", Host.Address, _connections.Count));
+            Logger.Info(String.Format("Disposing connection pool to {0}, closing {1} connections.", _host.Address, _connections.Count));
             _poolModificationSemaphore.Wait();
             foreach (var c in _connections)
             {

@@ -226,5 +226,33 @@ namespace Cassandra.Tests
             Thread.Sleep(500);
             Assert.AreEqual(1, pool.OpenConnections.Count());
         }
+
+        [Test]
+        public void AttemptReconnection_Should_Reconnect_In_The_Background()
+        {
+            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
+            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig()), 20));
+            var pool = mock.Object;
+            Assert.AreEqual(0, pool.OpenConnections.Count());
+            pool.AttemptReconnection();
+            Thread.Sleep(100);
+            Assert.AreEqual(1, pool.OpenConnections.Count());
+        }
+
+        [Test]
+        public void AttemptReconnection_Should_Not_Create_A_New_Connection_If_There_Is_An_Open_Connection()
+        {
+            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig(2));
+            mock.Setup(p => p.CreateConnection()).Returns(() => TaskHelper.ToTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig())));
+            var pool = mock.Object;
+            //Create 1 connection
+            TaskHelper.WaitToComplete(pool.MaybeCreateCorePool());
+            Thread.SpinWait(1);
+            Assert.AreEqual(2, pool.OpenConnections.Count());
+            pool.AttemptReconnection();
+            Thread.SpinWait(5);
+            //Pool remains the same
+            Assert.AreEqual(2, pool.OpenConnections.Count());
+        }
     }
 }

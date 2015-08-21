@@ -31,7 +31,7 @@ namespace Cassandra
         /// <summary>
         /// Event that gets triggered when a host is considered as DOWN (not available)
         /// </summary>
-        internal event Action<Host, DateTimeOffset> Down;
+        internal event Action<Host, long> Down;
         /// <summary>
         /// Event that gets triggered when a host is considered back UP (available for queries)
         /// </summary>
@@ -90,11 +90,11 @@ namespace Cassandra
             return host;
         }
 
-        private void OnHostDown(Host sender, DateTimeOffset nextUpTime)
+        private void OnHostDown(Host sender, long reconnectionDelay)
         {
             if (Down != null)
             {
-                Down(sender, nextUpTime);
+                Down(sender, reconnectionDelay);
             }
         }
 
@@ -106,14 +106,14 @@ namespace Cassandra
             }
         }
 
-        public bool SetDownIfExists(IPEndPoint ep)
+        public void SetDownIfExists(IPEndPoint ep)
         {
             Host host;
-            if (_hosts.TryGetValue(ep, out host))
+            if (!_hosts.TryGetValue(ep, out host))
             {
-                return host.SetDown();
+                return;
             }
-            return false;
+            host.SetDown();
         }
 
         public void RemoveIfExists(IPEndPoint ep)
