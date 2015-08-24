@@ -110,7 +110,7 @@ namespace Cassandra.Tests
                 .Returns<IPEndPoint>(e => e);
             const int portNumber = 9999;
             var metadata = new Metadata(new Configuration());
-            var config = new Configuration(new Policies(),
+            var config = new Configuration(Policies.DefaultPolicies,
                  new ProtocolOptions(portNumber),
                  null,
                  new SocketOptions(),

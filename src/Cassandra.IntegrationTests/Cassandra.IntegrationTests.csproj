@@ -59,6 +59,7 @@
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="Core\ClientWarningsTests.cs" />
+    <Compile Include="Core\ControlConnectionReconnectionTests.cs" />
     <Compile Include="Core\ControlConnectionTests.cs" />
     <Compile Include="Core\CustomPayloadTests.cs" />
     <Compile Include="Core\UdfTests.cs" />

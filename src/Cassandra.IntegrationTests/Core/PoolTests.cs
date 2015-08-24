@@ -490,6 +490,39 @@ namespace Cassandra.IntegrationTests.Core
             Assert.True(host.IsUp);
         }
 
+        [Test]
+        public void Reconnection_Attempted_Multiple_Times()
+        {
+            var testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, true, false);
+
+            using (var cluster = Cluster.Builder()
+                                        .AddContactPoint(testCluster.InitialContactPoint)
+                                        .WithPoolingOptions(
+                                            new PoolingOptions()
+                                                .SetCoreConnectionsPerHost(HostDistance.Local, 2))
+                                        .WithReconnectionPolicy(new ConstantReconnectionPolicy(2000))
+                                        .Build())
+            {
+                var session = (Session)cluster.Connect();
+                TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local"), 10);
+                var host = cluster.AllHosts().First();
+                Assert.True(host.IsUp);
+                Trace.TraceInformation("Stopping node");
+                testCluster.Stop(1);
+                //Make sure the node is considered down
+                Assert.Throws<NoHostAvailableException>(() => session.Execute("SELECT * FROM system.local"));
+                Assert.False(host.IsUp);
+                Trace.TraceInformation("Waiting");
+                Thread.Sleep(15000);
+                Assert.False(host.IsUp);
+                Trace.TraceInformation("Restarting node");
+                testCluster.Start(1);
+                Trace.TraceInformation("Waiting 2");
+                Thread.Sleep(5000);
+                Assert.True(host.IsUp);
+            }
+        }
+
         /// <summary>
         /// Tests that when a peer is added or set as down, the address translator is invoked
         /// </summary>

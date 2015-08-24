@@ -37,11 +37,12 @@ namespace Cassandra
         // ReSharper disable once InconsistentNaming
         private static readonly Logger _logger = new Logger(typeof (ControlConnection));
         private readonly Configuration _config;
-        private readonly IReconnectionPolicy _reconnectionPolicy = new ExponentialReconnectionPolicy(2*1000, 5*60*1000);
+        private readonly IReconnectionPolicy _reconnectionPolicy;
         private IReconnectionSchedule _reconnectionSchedule;
         private readonly Timer _reconnectionTimer;
         private int _isShutdown;
         private int _refreshCounter;
+        private Task<bool> _reconnectTask;
 
         /// <summary>
         /// Gets the recommended binary protocol version to be used for this cluster.
@@ -74,8 +75,9 @@ namespace Cassandra
         internal ControlConnection(byte initialProtocolVersion, Configuration config, Metadata metadata)
         {
             Metadata = metadata;
+            _reconnectionPolicy = config.Policies.ReconnectionPolicy;
             _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
-            _reconnectionTimer = new Timer(_ => Refresh(true), null, Timeout.Infinite, Timeout.Infinite);
+            _reconnectionTimer = new Timer(_ => Reconnect(), null, Timeout.Infinite, Timeout.Infinite);
             _config = config;
             ProtocolVersion = initialProtocolVersion;
         }
@@ -105,8 +107,8 @@ namespace Cassandra
                 //There was a problem using the connection obtained
                 //It is not usual but can happen
                 _logger.Error("An error occurred when trying to retrieve the cluster metadata, retrying.", ex);
-                //Retry one more time and throw if there is  problem
-                Refresh(true, true);
+                //Retry one more time and throw if there is problem
+                TaskHelper.WaitToComplete(Reconnect(), _config.SocketOptions.ConnectTimeoutMillis);
             }
         }
 
@@ -179,42 +181,79 @@ namespace Cassandra
                 .Unwrap();
         }
 
-        internal Task<bool> Refresh(bool reconnect = false, bool throwExceptions = false)
+        internal Task<bool> Reconnect()
         {
-            if (Interlocked.Increment(ref _refreshCounter) != 1)
+            //If there is another thread reconnecting, use the same task
+            var tcs = new TaskCompletionSource<bool>();
+            var currentTask = Interlocked.CompareExchange(ref _reconnectTask, tcs.Task, null);
+            if (currentTask != null)
             {
-                //Only one refresh at a time
-                Interlocked.Decrement(ref _refreshCounter);
+                return currentTask;
             }
-            var task = TaskHelper.Completed;
-            if (reconnect)
+            Unsubscribe();
+            Connect(false).ContinueWith(t =>
             {
-                Unsubscribe();
-                task = Connect(false);
-            }
-            return task.ContinueSync(_ =>
-            {
-                if (reconnect)
+                if (t.Exception != null)
                 {
-                    SubscribeEventHandlers();
+                    Interlocked.Exchange(ref _reconnectTask, null);
+                    tcs.TrySetException(t.Exception.InnerException);
+                    var delay = _reconnectionSchedule.NextDelayMs();
+                    _reconnectionTimer.Change(delay, Timeout.Infinite);
+                    _logger.Error("ControlConnection was not able to reconnect: " +  t.Exception.InnerException);
+                    return;
                 }
                 try
                 {
                     RefreshNodeList();
                     Metadata.RefreshKeyspaces(false);
                     _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
+                    tcs.TrySetResult(true);
+                    Interlocked.Exchange(ref _reconnectTask, null);
+                    _logger.Info("ControlConnection reconnected to host {0}", _host.Address);
                 }
                 catch (Exception ex)
                 {
+                    Interlocked.Exchange(ref _reconnectTask, null);
                     _logger.Error("There was an error when trying to refresh the ControlConnection", ex);
                     _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
-                    if (throwExceptions)
-                    {
-                        throw;
-                    }
+                    tcs.TrySetException(ex);
                 }
-                return true;
             });
+            return tcs.Task;
+        }
+
+        internal void Refresh()
+        {
+            if (Interlocked.Increment(ref _refreshCounter) != 1)
+            {
+                //Only one refresh at a time
+                Interlocked.Decrement(ref _refreshCounter);
+                return;
+            }
+            var reconnect = false;
+            try
+            {
+                RefreshNodeList();
+                Metadata.RefreshKeyspaces(false);
+                _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
+            }
+            catch (SocketException ex)
+            {
+                _logger.Error("There was a SocketException when trying to refresh the ControlConnection", ex);
+                reconnect = true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("There was an error when trying to refresh the ControlConnection", ex);
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _refreshCounter);
+            }
+            if (reconnect)
+            {
+                Reconnect();
+            }
         }
 
         public void Shutdown()
@@ -268,7 +307,7 @@ namespace Cassandra
         {
             h.Down -= OnHostDown;
             _logger.Warning("Host {0} used by the ControlConnection DOWN", h.Address);
-            Task.Factory.StartNew(() => Refresh(true), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+            Task.Factory.StartNew(() => Reconnect(), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
         }
 
         private void OnConnectionCassandraEvent(object sender, CassandraEventArgs e)
@@ -277,14 +316,9 @@ namespace Cassandra
             if (e is TopologyChangeEventArgs)
             {
                 var tce = (TopologyChangeEventArgs)e;
-                if (tce.What == TopologyChangeEventArgs.Reason.NewNode)
+                if (tce.What == TopologyChangeEventArgs.Reason.NewNode || tce.What == TopologyChangeEventArgs.Reason.RemovedNode)
                 {
-                    Refresh(false);
-                    return;
-                }
-                if (tce.What == TopologyChangeEventArgs.Reason.RemovedNode)
-                {
-                    Refresh(false);
+                    Refresh();
                     return;
                 }
             }
@@ -433,11 +467,11 @@ namespace Cassandra
             catch (SocketException ex)
             {
                 const string message = "There was an error while executing on the host {0} the query '{1}'";
-                _logger.Error(String.Format(message, cqlQuery, _connection.Address), ex);
+                _logger.Error(string.Format(message, cqlQuery, _connection.Address), ex);
                 if (retry)
                 {
                     //Try to connect to another host
-                    Refresh(reconnect:true);
+                    TaskHelper.WaitToComplete(Reconnect(), _config.SocketOptions.ConnectTimeoutMillis);
                     //Try to execute again without retry
                     return Query(cqlQuery, false);
                 }
