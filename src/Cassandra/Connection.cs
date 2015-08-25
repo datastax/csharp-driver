@@ -770,7 +770,7 @@ namespace Cassandra
             //Only 1 thread can be here at the same time.
             //Set the idle timeout to avoid idle disconnects
             var heartBeatInterval = Configuration.PoolingOptions != null ? Configuration.PoolingOptions.GetHeartBeatInterval() : null;
-            if (heartBeatInterval != null && !_isCanceled)
+            if (heartBeatInterval > 0 && !_isCanceled)
             {
                 try
                 {

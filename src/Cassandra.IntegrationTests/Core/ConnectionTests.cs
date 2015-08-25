@@ -672,6 +672,23 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public void With_Heartbeat_Disabled_Should_Not_Send_Request()
+        {
+            using (var connection = CreateConnection(null, null, new PoolingOptions().SetHeartBeatInterval(0)))
+            {
+                connection.Open().Wait();
+                //execute a dummy query
+                TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default));
+
+                Thread.Sleep(500);
+                var writeCounter = 0;
+                connection.WriteCompleted += () => writeCounter++;
+                Thread.Sleep(2200);
+                Assert.AreEqual(0, writeCounter);
+            }
+        }
+
+        [Test]
         public void With_HeartbeatEnabled_Should_Raise_When_Connection_Closed()
         {
             using (var connection = CreateConnection(null, null, new PoolingOptions().SetHeartBeatInterval(500)))

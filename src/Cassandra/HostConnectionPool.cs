@@ -136,7 +136,7 @@ namespace Cassandra
             {
                 if (t.Status == TaskStatus.RanToCompletion)
                 {
-                    if (_config.PoolingOptions.GetHeartBeatInterval() != null)
+                    if (_config.PoolingOptions.GetHeartBeatInterval() > 0)
                     {
                         //Heartbeat is enabled, subscribe for possible exceptions
                         c.OnIdleRequestException += OnIdleRequestException;
