@@ -32,11 +32,17 @@ namespace Cassandra
             get { return _withoutRowSetBuffering; }
         }
 
+        /// <summary>
+        /// Gets the query abort timeout.
+        /// </summary>
         public int QueryAbortTimeout
         {
             get { return _queryAbortTimeout; }
         }
 
+        /// <summary>
+        /// Gets the keyspace to be used after connecting to the cluster.
+        /// </summary>
         public string DefaultKeyspace
         {
             get { return _defaultKeyspace; }

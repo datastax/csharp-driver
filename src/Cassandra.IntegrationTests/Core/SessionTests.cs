@@ -362,5 +362,34 @@ namespace Cassandra.IntegrationTests.Core
             });
             Diagnostics.CassandraTraceSwitch.Level = originalLevel;
         }
+
+        [Test]
+        public void Session_Execute_Throws_TimeoutException_When_QueryAbortTimeout_Elapsed()
+        {
+            var dummyCluster = Cluster.Builder().AddContactPoint("0.0.0.0").Build();
+            Assert.AreNotEqual(dummyCluster.Configuration.ClientOptions.QueryAbortTimeout, Timeout.Infinite);
+            try
+            {
+                using (var localCluster = Cluster.Builder()
+                    .AddContactPoint(TestCluster.InitialContactPoint)
+                    //Disable socket read timeout
+                    .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(0))
+                    //Set abort timeout at a low value
+                    .WithQueryTimeout(1500)
+                    .Build())
+                {
+                    var localSession = localCluster.Connect("system");
+                    localSession.Execute("SELECT * FROM local");
+                    TestCluster.PauseNode(1);
+                    TestCluster.PauseNode(2);
+                    Assert.Throws<TimeoutException>(() => localSession.Execute("SELECT * FROM local"));
+                }
+            }
+            finally
+            {
+                TestCluster.ResumeNode(1);
+                TestCluster.ResumeNode(2);
+            }
+        }
     }
 }
