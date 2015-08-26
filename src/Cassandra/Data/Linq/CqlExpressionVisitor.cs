@@ -251,11 +251,13 @@ namespace Cassandra.Data.Linq
                         break;
                     case ExpressionType.Increment:
                         //Counter
-                        operation = " = " + columnName + " + 1";
+                        operation = " = " + columnName + " + ?";
+                        parameters.Add(projection.Item2);
                         break;
                     case ExpressionType.Decrement:
                         //Counter
-                        operation = " = " + columnName + " - 1";
+                        operation = " = " + columnName + " - ?";
+                        parameters.Add(projection.Item2);
                         break;
                     default:
                         operation = " = ?";
@@ -739,6 +741,19 @@ namespace Cassandra.Data.Linq
                 {
                     return Visit(node.Operand);
                 }
+                var column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
+                if (column != null && column.IsCounter)
+                {
+                    var value = Expression.Lambda(node).Compile().DynamicInvoke();
+                    if (!(value is long || value is int))
+                    {
+                        throw new ArgumentException("Only Int64 and Int32 values are supported as counter increment of decrement values");
+                    }
+                    _projections.Add(Tuple.Create(column.ColumnName, value, ExpressionType.Increment));
+                    _selectFields.Add(column.ColumnName);
+                    return node;
+                }
+
             }
             throw new CqlLinqNotSupportedException(node, _parsePhase.Get());
         }
@@ -858,7 +873,7 @@ namespace Cassandra.Data.Linq
                         {
                             throw new ArgumentException("Only Int64 and Int32 values are supported as counter increment of decrement values");
                         }
-                        expressionType = Convert.ToInt64(node.Value) > 0L ? ExpressionType.Increment : ExpressionType.Decrement;
+                        expressionType = ExpressionType.Increment;
                     }
                     _projections.Add(Tuple.Create(column.ColumnName, node.Value, expressionType));
                     _selectFields.Add(column.ColumnName);
@@ -945,7 +960,21 @@ namespace Cassandra.Data.Linq
                     string columnName;
                     if (node.Expression == null || node.Expression.NodeType != ExpressionType.Parameter)
                     {
-                        columnName = _pocoData.GetColumnNameByMemberName(_currentBindingName.Get());
+                        var column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
+                        if (column == null)
+                            break;
+                        columnName = column.ColumnName;
+                        if (column.IsCounter)
+                        {
+                            var value = Expression.Lambda(node).Compile().DynamicInvoke();
+                            if (!(value is long || value is int))
+                            {
+                                throw new ArgumentException("Only Int64 and Int32 values are supported as counter increment of decrement values");
+                            }
+                            _projections.Add(Tuple.Create(columnName, value, ExpressionType.Increment));
+                            _selectFields.Add(columnName);
+                            return node;
+                        }
                         AddProjection(node, columnName);
                         _selectFields.Add(columnName);
                         return node;
