@@ -1,7 +1,11 @@
 language: csharp
+sudo: false
 branches:
-  only:
-    - master
+  except:
+    - 1.0
+    - 2.0
+    - 2.1
+    - dse_3.1
 solution: src/Cassandra.sln
 install:
   - nuget restore src/Cassandra.sln
