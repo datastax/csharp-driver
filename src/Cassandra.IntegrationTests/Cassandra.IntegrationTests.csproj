@@ -143,6 +143,7 @@
     <Compile Include="Policies\Util\AlwaysIgnoreRetryPolicy.cs" />
     <Compile Include="Policies\Util\AlwaysRetryRetryPolicy.cs" />
     <Compile Include="Policies\Util\PolicyTestTools.cs" />
+    <Compile Include="Policies\Util\TryNextHostRetryPolicy.cs" />
     <Compile Include="Core\PoolTests.cs" />
     <Compile Include="Core\PreparedStatementsTests.cs" />
     <Compile Include="TestBase\QueryTools.cs" />
