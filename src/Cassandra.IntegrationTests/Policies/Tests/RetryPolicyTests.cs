@@ -116,6 +116,71 @@ namespace Cassandra.IntegrationTests.Policies.Tests
 
         }
 
+        /// Tests that retries are performed on the next host with useCurrentHost set to false
+        ///
+        /// TryNextHostRetryPolicyTest tests that the driver can use the next available node when retrying, instead of reusing
+        /// the currently attempted node. This test uses a TryNextHostRetryPolicy that is defined with useCurrentHost set to false
+        /// for each of read, write and unavailable exceptions, and a Cassandra cluster with 2 nodes. It first tests that with both 
+        /// hosts up, the load is balanced evenly and retries are not used. It then pauses one of the nodes each time and verifies
+        /// that the available node is used. Finally, it pauses both nodes and verfifies that a NoHostAvailableException is raised,
+        /// and neither host fulfills the query.
+        ///
+        /// @since 2.7.0
+        /// @jira_ticket CSHARP-273
+        /// @expected_result For each query, the rety should use the next available host.
+        ///
+        /// @test_assumptions
+        ///    - A Cassandra cluster with 2 nodes
+        ///    - A TryNextHostRetryPolicy decision defined, with useCurrentHost set to false
+        /// @test_category connection:retry_policy
+        [Test]
+        public void TryNextHostRetryPolicyTest()
+        {
+            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(2);
+            var socketOptions = new SocketOptions().SetReadTimeoutMillis(2000);
+            testCluster.Builder = Cluster.Builder()
+                                         .WithRetryPolicy(new LoggingRetryPolicy(TryNextHostRetryPolicy.Instance))
+                                         .AddContactPoint(testCluster.ClusterIpPrefix + "1")
+                                         .AddContactPoint(testCluster.ClusterIpPrefix + "2")
+                                         .WithSocketOptions(socketOptions);
+            testCluster.InitClient();
+
+            // Setup cluster
+            PolicyTestTools policyTestTools = new PolicyTestTools();
+            policyTestTools.CreateSchema(testCluster.Session, 2);
+            policyTestTools.InitPreparedStatement(testCluster, 12);
+
+            // Try with both hosts
+            policyTestTools.Query(testCluster, 10);
+            policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + 1 + ":" + DefaultCassandraPort, 5);
+            policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + 2 + ":" + DefaultCassandraPort, 5);
+
+            // Try with host 1
+            policyTestTools.ResetCoordinators();
+            testCluster.PauseNode(2);
+            policyTestTools.Query(testCluster, 10);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + 1 + ":" + DefaultCassandraPort, 10);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + 2 + ":" + DefaultCassandraPort, 0);
+            testCluster.ResumeNode(2);
+
+            // Try with host 2
+            policyTestTools.ResetCoordinators();
+            testCluster.PauseNode(1);
+            policyTestTools.Query(testCluster, 10);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + 1 + ":" + DefaultCassandraPort, 0);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + 2 + ":" + DefaultCassandraPort, 10);
+
+            // Try with 0 hosts
+            policyTestTools.ResetCoordinators();
+            testCluster.PauseNode(2);
+            Assert.Throws<NoHostAvailableException>( () => policyTestTools.Query(testCluster, 10));
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + 1 + ":" + DefaultCassandraPort, 0);
+            policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + 2 + ":" + DefaultCassandraPort, 0);
+
+            testCluster.ResumeNode(1);
+            testCluster.ResumeNode(2);
+        }
+
         private void RetryPolicyTest(ITestCluster testCluster)
         {
             PolicyTestTools policyTestTools = new PolicyTestTools();
