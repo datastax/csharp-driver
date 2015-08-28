@@ -457,12 +457,21 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(4, connectionAttempts);
         }
 
-        /// <summary>
-        /// Execute a couple of time.
-        /// Set the host as down manually.
-        /// Do nothing for a while, letting the reconnection policy to kick in.
-        /// Check if the node is considered as down.
-        /// </summary>
+        /// Tests that reconnection attempts are made automatically in the background
+        ///
+        /// Reconnection_Attempts_Are_Made_In_The_Background tests that the driver automatically reschedules host
+        /// reconnections using timers in the background. It first creates a Cassandra cluster with 2 nodes, and verifies
+        /// that the control connection is created against the first host. It then manually sets the 2nd node as down (even
+        /// though it is still up), verifying that the driver see that host 2 as down. Finally it waits 5 seconds for the 
+        /// timer-based reconnection policy to kick in, and verifies that the driver sees the 2nd host as back up.
+        ///
+        /// @since 2.7.0
+        /// @jira_ticket CSHARP-280
+        /// @expected_result Host 2 should be automatically reconnected in the background after being set as down
+        ///
+        /// @test_assumptions
+        ///    - A Cassandra cluster with 2 nodes
+        /// @test_category connection:reconnection
         [Test]
         public void Reconnection_Attempts_Are_Made_In_The_Background()
         {
@@ -470,26 +479,43 @@ namespace Cassandra.IntegrationTests.Core
 
             var cluster = Cluster.Builder()
                                  .AddContactPoint(testCluster.InitialContactPoint)
-                                 //TODO: Make sure that heartbeat is disabled
                                  .WithPoolingOptions(
                                      new PoolingOptions()
-                                         .SetCoreConnectionsPerHost(HostDistance.Local, 2))
+                                         .SetCoreConnectionsPerHost(HostDistance.Local, 2)
+                                         .SetHeartBeatInterval(0))
                                  .WithReconnectionPolicy(new ConstantReconnectionPolicy(2000))
                                  .Build();
             var session = (Session)cluster.Connect();
             TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local"), 10);
             var host = cluster.AllHosts().First(h => TestHelper.GetLastAddressByte(h) == 2);
-            //Check that the control connection is connected to another host
+            // Check that the control connection is connected to another host
             Assert.AreNotEqual(cluster.Metadata.ControlConnection.BindAddress, host.Address);
             Assert.True(host.IsUp);
-            Trace.TraceInformation("Setting host as down");
+            Trace.TraceInformation("Setting host 2 of 2 as down");
             host.SetDown();
             Assert.False(host.IsUp);
-            Trace.TraceInformation("Waiting");
+            Trace.TraceInformation("Waiting for 5 seconds");
             Thread.Sleep(5000);
             Assert.True(host.IsUp);
         }
 
+        /// Tests that reconnection attempts are made multiple times in the background
+        ///
+        /// Reconnection_Attempted_Multiple_Times tests that the driver automatically reschedules host reconnections using 
+        /// timers in the background multiple times. It first creates a Cassandra cluster with a single node, and verifies
+        /// that the driver considers it as up. It then stops the single node and verifies that the driver considers the node
+        /// as down, by both executing a query and retreiving a NoHostAvailableException, and checking the host status manually.
+        /// It then waits 15 seconds before verifying once more that the host is seen as down by the driver. Finally it restarts
+        /// the single node, waits 5 seconds for the timer-based reconnection policy to kick in, and verifies that the driver sees 
+        /// the host as back up.
+        ///
+        /// @since 2.7.0
+        /// @jira_ticket CSHARP-280
+        /// @expected_result The host should be attempted to be reconnected multiple times in the background
+        ///
+        /// @test_assumptions
+        ///    - A Cassandra cluster with a single node
+        /// @test_category connection:reconnection
         [Test]
         public void Reconnection_Attempted_Multiple_Times()
         {
@@ -507,17 +533,17 @@ namespace Cassandra.IntegrationTests.Core
                 TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local"), 10);
                 var host = cluster.AllHosts().First();
                 Assert.True(host.IsUp);
-                Trace.TraceInformation("Stopping node");
+                Trace.TraceInformation("Stopping node 1 of 1");
                 testCluster.Stop(1);
-                //Make sure the node is considered down
+                // Make sure the node is considered down
                 Assert.Throws<NoHostAvailableException>(() => session.Execute("SELECT * FROM system.local"));
                 Assert.False(host.IsUp);
-                Trace.TraceInformation("Waiting");
+                Trace.TraceInformation("Waiting for 15 seconds");
                 Thread.Sleep(15000);
                 Assert.False(host.IsUp);
-                Trace.TraceInformation("Restarting node");
+                Trace.TraceInformation("Restarting node 1 of 1");
                 testCluster.Start(1);
-                Trace.TraceInformation("Waiting 2");
+                Trace.TraceInformation("Waiting for 5 seconds");
                 Thread.Sleep(5000);
                 Assert.True(host.IsUp);
             }
