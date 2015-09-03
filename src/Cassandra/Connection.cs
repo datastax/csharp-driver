@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -23,8 +23,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
- using Cassandra.Tasks;
- using Cassandra.Compression;
+using Cassandra.Tasks;
+using Cassandra.Compression;
 
 namespace Cassandra
 {
@@ -251,7 +251,7 @@ namespace Cassandra
                 {
                     return;
                 }
-                if (ex == null)
+                if (ex == null || ex is ObjectDisposedException)
                 {
                     if (socketError != null)
                     {
