@@ -310,6 +310,7 @@ namespace Cassandra
                 if (_connections.Count == coreConnections)
                 {
                     Logger.Info("{0} connection(s) to host {1} {2} created successfully", coreConnections, _host.Address, _connections.Count < 2 ? "was" : "were");
+                    _host.BringUpIfDown();
                 }
                 _openingConnections = null;
                 var connectionsArray = _connections.ToArray();
@@ -317,6 +318,7 @@ namespace Cassandra
                 if (connectionsArray.Length == 0 && tasks.All(t => t.Status != TaskStatus.RanToCompletion))
                 {
                     //Pool could not be created
+                    Logger.Info("Connection pool to host {0} could not be created", _host.Address);
                     //There are multiple problems, but we only care about one
                     // ReSharper disable once PossibleNullReferenceException
                     throw tasks.First().Exception.InnerException;

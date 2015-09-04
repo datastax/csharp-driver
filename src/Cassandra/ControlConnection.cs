@@ -327,6 +327,7 @@ namespace Cassandra
                 var sce = (StatusChangeEventArgs)e;
                 //The address in the Cassandra event message needs to be translated
                 var address = TranslateAddress(sce.Address);
+                _logger.Info("Received Node status change event: host {0} is {1}", address, sce.What.ToString().ToUpper());
                 if (sce.What == StatusChangeEventArgs.Reason.Up)
                 {
                     Metadata.BringUpHost(address, this);

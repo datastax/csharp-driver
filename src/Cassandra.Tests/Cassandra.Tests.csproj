@@ -60,6 +60,7 @@
     <Compile Include="CollectionTests.cs" />
     <Compile Include="ControlConnectionTests.cs" />
     <Compile Include="HostConnectionPoolTests.cs" />
+    <Compile Include="HostTests.cs" />
     <Compile Include="IOUnitTests.cs" />
     <Compile Include="CqlCommandTest.cs" />
     <Compile Include="CqlParameterCollectionTest.cs" />
