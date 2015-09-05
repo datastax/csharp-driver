@@ -181,7 +181,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(ColumnTypeCode.Bigint, aggregate.StateType.TypeCode);
             Assert.IsInstanceOf<Int64>(aggregate.InitialCondition);
             Assert.AreEqual(2, Convert.ToInt32(aggregate.InitialCondition));
-            Assert.AreEqual("ks_udf.plus", aggregate.StateFunction);
+            Assert.AreEqual("plus", aggregate.StateFunction);
         }
 
         [Test, TestCassandraVersion(2, 2)]

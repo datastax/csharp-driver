@@ -115,7 +115,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             batch.Append(from m in movies select nerdMoviesTable.Insert(m));
             Task taskSaveMovies = Task.Factory.FromAsync(batch.BeginExecute, batch.EndExecute, null);
 
-            string expectedErrMsg = "Invalid null value for partition key part movie_maker";
+            string expectedErrMsg = "Invalid null value in condition for column movie_maker";
             try
             {
                 taskSaveMovies.Wait();
@@ -139,13 +139,14 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         {
             var table = new Table<Movie>(_session, new MappingConfiguration());
             Movie objectMissingPartitionKey = new Movie() {MainActor = "doesntmatter"};
-            string expectedErrMsg = "Invalid null value for partition key part unique_movie_title";
+            string expectedErrMsg = "Invalid null value in condition for column unique_movie_title";
             try
             {
                 table.Insert(objectMissingPartitionKey).Execute();
             }
             catch (InvalidQueryException e)
             {
+                Console.WriteLine(e.Message);
                 Assert.IsTrue(e.Message.Contains(expectedErrMsg));
             }
         }
@@ -155,7 +156,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         {
             var table = new Table<Movie>(_session, new MappingConfiguration());
             Movie objectMissingPartitionKey = new Movie() {MainActor = "doesntmatter"};
-            string expectedErrMsg = "Invalid null value for partition key part unique_movie_title";
+            string expectedErrMsg = "Invalid null value in condition for column unique_movie_title";
             try
             {
                 table.Insert(objectMissingPartitionKey).ExecuteAsync().Wait();
