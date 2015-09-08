@@ -4,11 +4,11 @@
 # Project related configuration options
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
-PROJECT_NAME           = “DataStax C# Driver”
+PROJECT_NAME           = "DataStax C# Driver"
 PROJECT_NUMBER         = 
 PROJECT_BRIEF          = 
 PROJECT_LOGO           = 
-OUTPUT_DIRECTORY       = /home/jenkins/workspace/csharp_docs
+OUTPUT_DIRECTORY       = 
 CREATE_SUBDIRS         = NO
 ALLOW_UNICODE_NAMES    = NO
 OUTPUT_LANGUAGE        = English
@@ -119,8 +119,8 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # Configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  = /home/jenkins/workspace/csharp_docs/src/Cassandra.IntegrationTests \
-                         /home/jenkins/workspace/csharp_docs/src/Cassandra.Tests
+INPUT                  = ./src/Cassandra.IntegrationTests \
+                         ./src/Cassandra.Tests
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = *.cs
 RECURSIVE              = YES
