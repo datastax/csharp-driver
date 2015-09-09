@@ -254,7 +254,16 @@ namespace Cassandra.Requests
             if (ex is SocketException)
             {
                 Logger.Verbose("Socket error " + ((SocketException)ex).SocketErrorCode);
-                _parent.SetHostDown(_connection);
+                var c = _connection;
+                if (c != null)
+                {
+                    _parent.SetHostDown(c);
+                }
+                else
+                {
+                    //The exception happened while trying to acquire a connection
+                    //nothing to do here
+                }
             }
             var decision = GetRetryDecision(ex, _parent.RetryPolicy, _parent.Statement, _retryCount);
             switch (decision.DecisionType)

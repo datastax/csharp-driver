@@ -413,7 +413,7 @@ namespace Cassandra.IntegrationTests.Core
         }
         
         [Test]
-        public void Use_Keyspace_Test()
+        public void SetKeyspace_Test()
         {
             using (var connection = CreateConnection())
             {
@@ -428,7 +428,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void Use_Keyspace_Wrong_Name_Test()
+        public void SetKeyspace_Wrong_Name_Test()
         {
             using (var connection = CreateConnection())
             {
@@ -443,7 +443,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void Use_Keyspace_Parallel_Calls_Serially_Executes()
+        public void SetKeyspace_Parallel_Calls_Serially_Executes()
         {
             const string queryKs1 = "create keyspace ks_to_switch_p1 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}";
             const string queryKs2 = "create keyspace ks_to_switch_p2 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}";
@@ -469,7 +469,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void Use_Keyspace_Serial_Calls_Serially_Executes()
+        public void SetKeyspace_Serial_Calls_Serially_Executes()
         {
             const string queryKs1 = "create keyspace ks_to_switch_s1 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}";
             const string queryKs2 = "create keyspace ks_to_switch_s2 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}";
@@ -491,6 +491,54 @@ namespace Cassandra.IntegrationTests.Core
                 CollectionAssert.Contains(new[] { "ks_to_switch_s1", "ks_to_switch_s2", "system" }, connection.Keyspace);
                 Assert.AreEqual(3, counter);
             }
+        }
+
+        [Test]
+        public void SetKeyspace_After_Disposing_Faults_Task()
+        {
+            using (var connection = CreateConnection())
+            {
+                connection.Open().Wait();
+                Assert.Null(connection.Keyspace);
+                connection.Dispose();
+                //differentiate the task creation from the waiting
+                var task = connection.SetKeyspace("system");
+                Assert.Throws<SocketException>(() => TaskHelper.WaitToComplete(task));
+            }
+        }
+
+        [Test]
+        public void SetKeyspace_When_Disposing_Faults_Task()
+        {
+            //Invoke multiple times, as it involves different threads and can be scheduled differently
+            const string queryKs = "create keyspace ks_to_switch_when1 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}";
+            using (var connection = CreateConnection())
+            {
+                connection.Open().Wait();
+                Assert.Null(connection.Keyspace);
+                TaskHelper.WaitToComplete(Query(connection, queryKs));
+            }
+            TestHelper.Invoke(() =>
+            {
+                using (var connection = CreateConnection())
+                {
+                    connection.Open().Wait();
+                    Assert.Null(connection.Keyspace);
+                    var tasks = new Task[10];
+                    TestHelper.ParallelInvoke(new Action[]
+                    {
+                        () => tasks[0] = connection.SetKeyspace("system"),
+                        () => connection.Dispose()
+                    });
+                    for (var i = 1; i < 10; i++)
+                    {
+                        tasks[i] = connection.SetKeyspace("ks_to_switch_when1");
+                    }
+                    var ex = Assert.Throws<AggregateException>(() => Task.WaitAll(tasks));
+                    var unexpectedException = ex.InnerExceptions.FirstOrDefault(e => !(e is SocketException));
+                    Assert.Null(unexpectedException);
+                }
+            }, 10);
         }
 
         [Test]

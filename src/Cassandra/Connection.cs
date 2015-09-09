@@ -689,39 +689,61 @@ namespace Cassandra
                 return TaskHelper.Completed;
             }
             Task<bool> keyspaceSwitch;
-            if (!_keyspaceSwitchSemaphore.Wait(0))
+            try
             {
-                //Could not enter semaphore
-                //It is very likely that the connection is already switching keyspace
-                keyspaceSwitch = _keyspaceSwitchTask;
-                if (keyspaceSwitch != null)
+                if (!_keyspaceSwitchSemaphore.Wait(0))
                 {
-                    return keyspaceSwitch.Then(_ =>
+                    //Could not enter semaphore
+                    //It is very likely that the connection is already switching keyspace
+                    keyspaceSwitch = _keyspaceSwitchTask;
+                    if (keyspaceSwitch != null)
                     {
-                        //validate if the new keyspace is the expected
-                        if (_keyspace != value)
+                        return keyspaceSwitch.Then(_ =>
                         {
-                            //multiple concurrent switches to different keyspace
-                            return SetKeyspace(value);
-                        }
-                        return TaskHelper.Completed;
-                    });
+                            //validate if the new keyspace is the expected
+                            if (_keyspace != value)
+                            {
+                                //multiple concurrent switches to different keyspace
+                                return SetKeyspace(value);
+                            }
+                            return TaskHelper.Completed;
+                        });
+                    }
+                    _keyspaceSwitchSemaphore.Wait();
                 }
-                _keyspaceSwitchSemaphore.Wait();
+            }
+            catch (ObjectDisposedException)
+            {
+                //The semaphore was disposed, this connection is closed
+                return TaskHelper.FromException<bool>(new SocketException((int) SocketError.NotConnected));
             }
             //Semaphore entered
             if (_keyspace == value)
             {
                 //While waiting to enter the semaphore, the connection switched keyspace
-                _keyspaceSwitchSemaphore.Release();
+                try
+                {
+                    _keyspaceSwitchSemaphore.Release();
+                }
+                catch (ObjectDisposedException)
+                {
+                    //this connection is now closed but the switch completed successfully
+                }
                 return TaskHelper.Completed;
             }
-            var request = new QueryRequest(ProtocolVersion, String.Format("USE \"{0}\"", value), false, QueryProtocolOptions.Default);
+            var request = new QueryRequest(ProtocolVersion, string.Format("USE \"{0}\"", value), false, QueryProtocolOptions.Default);
             _logger.Info("Connection to host {0} switching to keyspace {1}", Address, value);
             keyspaceSwitch = _keyspaceSwitchTask = Send(request).ContinueSync(r =>
             {
                 _keyspace = value;
-                _keyspaceSwitchSemaphore.Release();
+                try
+                {
+                    _keyspaceSwitchSemaphore.Release();
+                }
+                catch (ObjectDisposedException)
+                {
+                    //this connection is now closed but the switch completed successfully
+                }
                 _keyspaceSwitchTask = null;
                 return true;
             });
