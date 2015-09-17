@@ -549,6 +549,23 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+        [Test]
+        public void Cluster_Should_Ignore_IpV6_Addresses_For_Not_Valid_Hosts()
+        {
+            var testCluster = TestClusterManager.GetNonShareableTestCluster(1, 0, true, false);
+            using (var cluster = Cluster.Builder()
+                                        .AddContactPoint(IPAddress.Parse("::1"))
+                                        .AddContactPoint(testCluster.InitialContactPoint)
+                                        .Build())
+            {
+                Assert.DoesNotThrow(() =>
+                {
+                    var session = cluster.Connect();
+                    session.Execute("select * from system.local");
+                });
+            }
+        }
+
         /// <summary>
         /// Tests that when a peer is added or set as down, the address translator is invoked
         /// </summary>

@@ -79,7 +79,7 @@ namespace Cassandra
         /// </summary>
         public void Init()
         {
-            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _socket = new Socket(IPEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             _socket.SendTimeout = Options.ConnectTimeoutMillis;
             if (Options.KeepAlive != null)
             {
@@ -136,7 +136,14 @@ namespace Cassandra
                 timer.Dispose();
             };
 
-            _socket.ConnectAsync(eventArgs);
+            try
+            {
+                _socket.ConnectAsync(eventArgs);
+            }
+            catch (Exception ex)
+            {
+                return TaskHelper.FromException<bool>(ex);
+            }
 
             try
             {
