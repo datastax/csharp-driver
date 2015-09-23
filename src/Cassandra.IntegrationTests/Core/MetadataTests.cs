@@ -767,5 +767,15 @@ namespace Cassandra.IntegrationTests.Core
                 }
             }
         }
+
+        [Test]
+        public void Should_Retrieve_Host_Cassandra_Version()
+        {
+            var testCluster = TestClusterManager.GetNonShareableTestCluster(2, DefaultMaxClusterCreateRetries, true, false);
+            using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build())
+            {
+                CollectionAssert.DoesNotContain(cluster.Metadata.Hosts.Select(h => h.CassandraVersion), null);
+            }
+        }
     }
 }

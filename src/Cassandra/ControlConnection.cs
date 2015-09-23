@@ -27,7 +27,7 @@ namespace Cassandra
 {
     internal class ControlConnection : IDisposable
     {
-        private const string SelectPeers = "SELECT peer, data_center, rack, tokens, rpc_address FROM system.peers";
+        private const string SelectPeers = "SELECT peer, data_center, rack, tokens, rpc_address, release_version FROM system.peers";
         private const string SelectLocal = "SELECT * FROM system.local WHERE key='local'";
         private const CassandraEventType CassandraEventTypes = CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange;
         private static readonly IPAddress BindAllAddress = new IPAddress(new byte[4]);
@@ -401,6 +401,7 @@ namespace Cassandra
                 Metadata.ClusterName = clusterName;
             }
             localhost.SetLocationInfo(row.GetValue<string>("data_center"), row.GetValue<string>("rack"));
+            SetCassandraVersion(localhost, row);
             localhost.Tokens = row.GetValue<IEnumerable<string>>("tokens") ?? new string[0];
         }
 
@@ -422,6 +423,7 @@ namespace Cassandra
                     host = Metadata.AddHost(address);
                 }
                 host.SetLocationInfo(row.GetValue<string>("data_center"), row.GetValue<string>("rack"));
+                SetCassandraVersion(host, row);
                 host.Tokens = row.GetValue<IEnumerable<string>>("tokens") ?? new string[0];
             }
 
@@ -432,6 +434,22 @@ namespace Cassandra
                 {
                     Metadata.RemoveHost(address);
                 }
+            }
+        }
+
+        internal static void SetCassandraVersion(Host host, Row row)
+        {
+            try
+            {
+                var releaseVersion = row.GetValue<string>("release_version");
+                if (releaseVersion != null)
+                {
+                    host.CassandraVersion = Version.Parse(releaseVersion.Split('-')[0]);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("There was an error while trying to retrieve the Cassandra version", ex);
             }
         }
 

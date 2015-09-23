@@ -85,6 +85,14 @@ namespace Cassandra
         /// </summary>
         public string Rack { get; private set; }
 
+        /// <summary>
+        /// The Cassandra version the host is running.
+        /// <remarks>
+        /// The value returned can be null if the information is unavailable.
+        /// </remarks>
+        /// </summary>
+        public Version CassandraVersion { get; internal set; }
+
         public Host(IPEndPoint address, IReconnectionPolicy reconnectionPolicy)
         {
             Address = address;
