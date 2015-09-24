@@ -54,7 +54,6 @@ namespace Cassandra
         private ConcurrentDictionary<short, OperationState> _pendingOperations;
         /// <summary> It contains the requests that could not be written due to streamIds not available</summary>
         private ConcurrentQueue<OperationState> _writeQueue;
-        private int _canWriteNext = 1;
         private volatile OperationState _receivingOperation;
         /// <summary>
         /// Small buffer (less than 8 bytes) that is used when the next received message is smaller than 8 bytes, 
@@ -67,6 +66,7 @@ namespace Cassandra
         private volatile byte _frameHeaderSize;
         /// <summary> TaskScheduler used to handle write tasks</summary>
         private readonly TaskScheduler _writeScheduler = new LimitedParallelismTaskScheduler(1);
+        private int _isWriteQueueRuning;
         /// <summary>
         /// The event that represents a event RESPONSE from a Cassandra node
         /// </summary>
@@ -80,6 +80,7 @@ namespace Cassandra
         /// </summary>
         public event Action WriteCompleted;
         private const string IdleQuery = "SELECT key from system.local";
+        private const long CoalescingThreshold = 8000;
 
         public IFrameCompressor Compressor { get; set; }
 
@@ -453,7 +454,7 @@ namespace Cassandra
             }
             //Process a next item in the queue if possible.
             //Maybe there are there items in the write queue that were waiting on a fresh streamId
-            SendQueueNext();
+            RunQueue(false);
         }
 
         /// <summary>
@@ -600,75 +601,97 @@ namespace Cassandra
             {
                 Request = request
             };
-            SendQueueProcess(state, true);
+            SendQueue(state);
             return state;
         }
 
-        /// <summary>
-        /// Try to write the item provided. Thread safe.
-        /// </summary>
-        /// <param name="state">The request and callback</param>
-        /// <param name="useInlining">Determines if the current thread can be used to start sending the request</param>
-        private void SendQueueProcess(OperationState state, bool useInlining)
+        private void SendQueue(OperationState state)
         {
-            var canWrite = Interlocked.CompareExchange(ref _canWriteNext, 0, 1);
-            if (canWrite == 1)
-            {
-                if (useInlining)
-                {
-                    //Use the current thread to start the write operation
-                    SendQueueProcessItem(state);
-                    return;
-                }
-                //Start a new task using the TaskScheduler for writing
-                Task.Factory.StartNew(() => SendQueueProcessItem(state), CancellationToken.None, TaskCreationOptions.None, _writeScheduler);
-            }
-            else
-            {
-                _writeQueue.Enqueue(state);
-            }
+            //Store into queue
+            //if its running => do nothing
+            //if not running => start dequeueing
+            _writeQueue.Enqueue(state);
+            RunQueue(true);
         }
 
-        private void SendQueueProcessItem(OperationState state)
+        private void RunQueue(bool useInlining)
         {
-            short streamId;
-            //Check if Cassandra can process a new operation
-            if (!_freeOperations.TryPop(out streamId))
+            var isAlreadyRunning = Interlocked.CompareExchange(ref _isWriteQueueRuning, 1, 0) == 1;
+            if (isAlreadyRunning)
             {
-                //Queue it up for later.
-                //When receiving the next complete message, we can process it.
-                _writeQueue.Enqueue(state);
-                _logger.Info("Enqueued: {0}, if this message is recurrent consider configuring more connections per host or lower the pressure", _writeQueue.Count);
-                Interlocked.Exchange(ref _canWriteNext, 1);
+                //there is another thread writing to the wire
                 return;
             }
-            //We have a valid stream id
-            //Only 1 thread at a time can be here.
-            _logger.Verbose("Sending #" + streamId + " for " + state.Request.GetType().Name);
-            _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
-            try
+            if (useInlining)
             {
-                var frameStream = state.Request.GetFrame(streamId).Stream;
+                //Use the current thread to start the write operation
+                RunQueueAction();
+                return;
+            }
+            //Start a new task using the TaskScheduler for writing
+            Task.Factory.StartNew(RunQueueAction, CancellationToken.None, TaskCreationOptions.None, _writeScheduler);
+        }
+
+        private void RunQueueAction()
+        {
+            //Dequeue all items until threshold is passed
+            long totalLength = 0;
+            var buffers = new LinkedList<Stream>();
+            while (totalLength < CoalescingThreshold)
+            {
+                OperationState state;
+                if (!_writeQueue.TryDequeue(out state))
+                {
+                    //No more items in the write queue
+                    break;
+                }
+                short streamId;
+                if (!_freeOperations.TryPop(out streamId))
+                {
+                    //Queue it up for later.
+                    _writeQueue.Enqueue(state);
+                    //When receiving the next complete message, we can process it.
+                    _logger.Info("Enqueued: {0}, if this message is recurrent consider configuring more connections per host or lower the pressure", _writeQueue.Count);
+                    break;
+                }
+                _logger.Verbose("Sending #{0} for {1}", streamId, state.Request.GetType().Name);
+                _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
+                Stream frameStream;
+                try
+                {
+                    frameStream = state.Request.GetFrame(streamId).Stream;
+                    //Closure state variable
+                    var delegateState = state;
+                    if (Configuration.SocketOptions.ReadTimeoutMillis > 0 && Configuration.Timer != null)
+                    {
+                        state.Timeout = Configuration.Timer.NewTimeout(() => OnTimeout(delegateState), Configuration.SocketOptions.ReadTimeoutMillis);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    //There was an error while serializing or begin sending
+                    _logger.Error(ex);
+                    //The request was not written, clear it from pending operations
+                    RemoveFromPending(streamId);
+                    //Callback with the Exception
+                    state.InvokeCallback(ex);
+                    break;
+                }
                 //We will not use the request any more, stop reference it.
                 state.Request = null;
-                //Start sending it
-                _tcpSocket.Write(frameStream);
-                //Closure state variable
-                var delegateState = state;
-                if (Configuration.SocketOptions.ReadTimeoutMillis > 0 && Configuration.Timer != null)
-                {
-                    state.Timeout = Configuration.Timer.NewTimeout(() => OnTimeout(delegateState), Configuration.SocketOptions.ReadTimeoutMillis);   
-                }
+                //Add it buffers to write
+                buffers.AddLast(frameStream);
+                totalLength += frameStream.Length;
             }
-            catch (Exception ex)
+            if (totalLength == 0)
             {
-                //There was an error while serializing or begin sending
-                _logger.Error(ex);
-                //The request was not written, clear it from pending operations
-                RemoveFromPending(streamId);
-                //Callback with the Exception
-                state.InvokeCallback(ex);
+                //nothing to write
+                Interlocked.Exchange(ref _isWriteQueueRuning, 0);
+                return;
             }
+            //this can result in OOM
+            var buffer = Utils.ReadAllBytes(buffers, totalLength);
+            _tcpSocket.Write(buffer);
         }
 
         /// <summary>
@@ -772,18 +795,6 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Try to write the next item in the write queue. Thread safe.
-        /// </summary>
-        protected virtual void SendQueueNext()
-        {
-            OperationState state;
-            if (_writeQueue.TryDequeue(out state))
-            {
-                SendQueueProcess(state, false);
-            }
-        }
-
-        /// <summary>
         /// Method that gets executed when a write request has been completed.
         /// </summary>
         protected virtual void WriteCompletedHandler()
@@ -810,10 +821,10 @@ namespace Cassandra
                     //Don't mind
                 }
             }
-            Interlocked.Exchange(ref _canWriteNext, 1);
+            Interlocked.Exchange(ref _isWriteQueueRuning, 0);
             //Send the next request, if exists
             //It will use a new thread
-            SendQueueNext();
+            RunQueue(false);
         }
 
         internal WaitHandle WaitPending()

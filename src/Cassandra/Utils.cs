@@ -169,6 +169,23 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Reads all the bytes in the stream from a given position
+        /// </summary>
+        public static byte[] ReadAllBytes(IEnumerable<Stream> streamList, long totalLength)
+        {
+            var buffer = new byte[totalLength];
+            var offset = 0;
+            foreach (var stream in streamList)
+            {
+                stream.Position = 0;
+                var itemLength = (int) stream.Length;
+                stream.Read(buffer, offset, itemLength);
+                offset += itemLength;
+            }
+            return buffer;
+        }
+
+        /// <summary>
         /// Detects if the object is an instance of an anonymous type
         /// </summary>
         public static bool IsAnonymousType(object value)

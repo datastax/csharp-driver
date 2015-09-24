@@ -392,11 +392,8 @@ namespace Cassandra
         /// <summary>
         /// Sends data asynchronously
         /// </summary>
-        public virtual void Write(Stream stream)
+        public virtual void Write(byte[] buffer)
         {
-            //This can result in OOM
-            //A neat improvement would be to write this sync in small buffers when buffer.length > X
-            var buffer = Utils.ReadAllBytes(stream, 0);
             if (_isClosing)
             {
                 OnError(new SocketException((int)SocketError.Shutdown));
