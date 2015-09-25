@@ -300,5 +300,46 @@ namespace Cassandra.Tests.Mapping
             Assert.AreEqual("Come Away with Me", song.Title);
             Assert.AreEqual(DateTimeOffset.Parse("2002-01-01 +0").DateTime, song.ReleaseDate);
         }
+
+
+        [Test]
+        public void Fetch_Anonymous_Type_With_Nullable_Column()
+        {
+            var songs = FetchAnonymous(x => new { x.Title, x.ReleaseDate });
+            Assert.AreEqual("Come Away with Me", songs[0].Title);
+            Assert.AreEqual(DateTimeOffset.Parse("2002-01-01 +0").DateTime, songs[0].ReleaseDate);
+            Assert.AreEqual(false, songs[1].ReleaseDate.HasValue);
+        }
+
+        T[] FetchAnonymous<T>(Func<Song2, T> justHereToCreateAnonymousType)
+        {
+            var rs = new RowSet
+            {
+                Columns = new[]
+                {
+                    new CqlColumn {Name = "title", TypeCode = ColumnTypeCode.Text, Type = typeof (string), Index = 0},
+                    new CqlColumn {Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp, Type = typeof (DateTimeOffset), Index = 1}
+                }
+            };
+            var values = new object[] { "Come Away with Me", DateTimeOffset.Parse("2002-01-01 +0") }
+                .Select(v => TypeCodec.Encode(2, v));
+            var row = new Row(2, values.ToArray(), rs.Columns, rs.Columns.ToDictionary(c => c.Name, c => c.Index));
+            rs.AddRow(row);
+            values = new object[] { "Come Away with Me", null }
+                .Select(v => TypeCodec.Encode(2, v));
+            row = new Row(2, values.ToArray(), rs.Columns, rs.Columns.ToDictionary(c => c.Name, c => c.Index));
+            rs.AddRow(row);
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Returns(TestHelper.DelayedTask(rs, 100))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns(TaskHelper.ToTask(GetPrepared()))
+                .Verifiable();
+            var mapper = GetMappingClient(sessionMock);
+            return mapper.Fetch<T>(new Cql("SELECT title,releasedate FROM songs")).ToArray();
+        }
     }
 }
