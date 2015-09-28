@@ -266,5 +266,44 @@ namespace Cassandra
             }
             return String.Join("", Enumerable.Repeat("0", length - textValue.Length)) + textValue;
         }
+
+        public static string[] ParseJsonStringArray(string value)
+        {
+            if (value == null)
+            {
+                return new string[0];
+            }
+            var list = new List<string>();
+            string currentItem = null;
+            foreach (var c in value)
+            {
+                switch (c)
+                {
+                    case '[':
+                    case ']':
+                        continue;
+                    case '"':
+                        if (currentItem != null)
+                        {
+                            list.Add(currentItem);
+                            currentItem = null;
+                        }
+                        else
+                        {
+                            currentItem = "";
+                        }
+                        continue;
+                    case ' ':
+                    case ',':
+                        if (currentItem == null)
+                        {
+                            continue;
+                        }
+                        break;
+                }
+                currentItem += c;
+            }
+            return list.ToArray();
+        }
     }
 }

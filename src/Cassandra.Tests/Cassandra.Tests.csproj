@@ -115,6 +115,7 @@
     <Compile Include="RequestHandlerTests.cs" />
     <Compile Include="ResponseFrameTest.cs" />
     <Compile Include="RowSetUnitTests.cs" />
+    <Compile Include="SchemaParserTests.cs" />
     <Compile Include="StatementTests.cs" />
     <Compile Include="TaskTests.cs" />
     <Compile Include="TestHelper.cs" />

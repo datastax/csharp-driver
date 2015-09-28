@@ -336,6 +336,7 @@
     <Compile Include="Requests\RequestHandler.cs" />
     <Compile Include="ProtocolOptions.cs" />
     <Compile Include="Requests\RequestExecution.cs" />
+    <Compile Include="SchemaParser.cs" />
     <Compile Include="Statement.cs" />
     <Compile Include="QueryOptions.cs" />
     <Compile Include="QueryProtocolOptions.cs" />

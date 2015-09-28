@@ -21,6 +21,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Tasks;
 
 namespace Cassandra
 {
@@ -30,14 +31,13 @@ namespace Cassandra
     /// </summary>
     public class Metadata : IDisposable
     {
-        private const string SelectKeyspaces = "SELECT * FROM system.schema_keyspaces";
-        private const string SelectSingleKeyspace = "SELECT * FROM system.schema_keyspaces WHERE keyspace_name = '{0}'";
         private const string SelectSchemaVersionPeers = "SELECT schema_version FROM system.peers";
         private const string SelectSchemaVersionLocal = "SELECT schema_version FROM system.local";
         private static readonly Logger Logger = new Logger(typeof(ControlConnection));
         private volatile TokenMap _tokenMap;
-        private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string,KeyspaceMetadata>(1, 0);
+        private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string,KeyspaceMetadata>();
         private readonly Configuration _config;
+        private volatile SchemaParser _schemaParser;
         public event HostsEventHandler HostsEvent;
         public event SchemaChangedEventHandler SchemaChangedEvent;
 
@@ -62,6 +62,7 @@ namespace Cassandra
             Hosts = new Hosts(config.Policies.ReconnectionPolicy);
             Hosts.Down += OnHostDown;
             Hosts.Up += OnHostUp;
+            _schemaParser = SchemaParserV1.Instance;
         }
 
         public void Dispose()
@@ -273,8 +274,7 @@ namespace Cassandra
             if (table == null)
             {
                 //Refresh all the keyspaces and tables information
-                RefreshKeyspaces(true);
-                return true;
+                return TaskHelper.WaitToComplete(RefreshKeyspaces(true), _config.ClientOptions.QueryAbortTimeout);
             }
             var ks = GetKeyspace(keyspace);
             if (ks == null)
@@ -288,26 +288,22 @@ namespace Cassandra
         /// <summary>
         /// Retrieves the keyspaces, stores the information in the internal state and rebuilds the token map
         /// </summary>
-        internal void RefreshKeyspaces(bool retry)
+        internal Task<bool> RefreshKeyspaces(bool retry)
         {
             Logger.Info("Retrieving keyspaces metadata");
-            //Use the control connection to get the keyspace
-            var rs = ControlConnection.Query(SelectKeyspaces, retry);
-            //parse the info
-            var keyspaces = rs.Select(ParseKeyspaceRow).ToDictionary(ks => ks.Name);
-            //Assign to local state
-            _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>(keyspaces);
-            RebuildTokenMap();
-        }
-
-        private KeyspaceMetadata ParseKeyspaceRow(Row row)
-        {
-            return new KeyspaceMetadata(
-                ControlConnection, 
-                row.GetValue<string>("keyspace_name"), 
-                row.GetValue<bool>("durable_writes"), 
-                row.GetValue<string>("strategy_class"), 
-                Utils.ConvertStringToMapInt(row.GetValue<string>("strategy_options")));
+            return _schemaParser
+                .GetKeyspaces(ControlConnection, retry)
+                .ContinueSync(ksList =>
+                {
+                    var ksMap = new ConcurrentDictionary<string, KeyspaceMetadata>();
+                    foreach (var ks in ksList)
+                    {
+                        ksMap.AddOrUpdate(ks.Name, ks, (k, v) => v);
+                    }
+                    _keyspaces = ksMap;
+                    RebuildTokenMap();
+                    return true;
+                });
         }
 
         public void ShutDown(int timeoutMs = Timeout.Infinite)
@@ -321,29 +317,31 @@ namespace Cassandra
         {
             Logger.Verbose("Removing keyspace metadata: " + name);
             KeyspaceMetadata ks;
-            FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Dropped, name, null, this);
-            var removed = _keyspaces.TryRemove(name, out ks);
-            if (removed)
+            if (!_keyspaces.TryRemove(name, out ks))
             {
-                RebuildTokenMap();
-                FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Dropped, name, null, this);
+                //The keyspace didn't exist
+                return false;
             }
-            return removed;
+            RebuildTokenMap();
+            FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Dropped, name, null, this);
+            return true;
         }
 
-        internal void RefreshSingleKeyspace(bool added, string name)
+        internal Task<KeyspaceMetadata> RefreshSingleKeyspace(bool added, string name)
         {
             Logger.Verbose("Updating keyspace metadata: " + name);
-            var row = ControlConnection.Query(String.Format(SelectSingleKeyspace, name), true).FirstOrDefault();
-            if (row == null)
+            return _schemaParser.GetKeyspace(ControlConnection, name).ContinueSync(ks =>
             {
-                return;
-            }
-            var ksMetadata = ParseKeyspaceRow(row);
-            _keyspaces.AddOrUpdate(name, ksMetadata, (k, v) => ksMetadata);
-            var eventKind = added ? SchemaChangedEventArgs.Kind.Created : SchemaChangedEventArgs.Kind.Updated;
-            RebuildTokenMap();
-            FireSchemaChangedEvent(eventKind, name, null, this);
+                if (ks == null)
+                {
+                    return null;
+                }
+                _keyspaces.AddOrUpdate(name, ks, (k, v) => ks);
+                RebuildTokenMap();
+                var eventKind = added ? SchemaChangedEventArgs.Kind.Created : SchemaChangedEventArgs.Kind.Updated;
+                FireSchemaChangedEvent(eventKind, name, null, this);
+                return ks;
+            });
         }
 
         internal void RefreshTable(string keyspaceName, string tableName)

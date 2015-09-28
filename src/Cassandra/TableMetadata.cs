@@ -14,10 +14,12 @@
 //   limitations under the License.
 //
 
-using System.Collections.Generic;
 
 namespace Cassandra
 {
+    /// <summary>
+    /// Describes a Cassandra table
+    /// </summary>
     public class TableMetadata
     {
         /// <summary>
@@ -36,15 +38,21 @@ namespace Cassandra
         public TableColumn[] PartitionKeys { get; private set; }
 
         /// <summary>
+        /// Gets an array of columns that are part of the clustering key in correct order
+        /// </summary>
+        public TableColumn[] ClusteringKeys { get; private set; }
+
+        /// <summary>
         /// Gets the table options
         /// </summary>
         public TableOptions Options { get; private set; }
 
-        internal TableMetadata(string name, TableColumn[] tableColumns, TableColumn[] partitionKeys, TableOptions options)
+        internal TableMetadata(string name, TableColumn[] tableColumns, TableColumn[] partitionKeys, TableColumn[] clusteringKeys, TableOptions options)
         {
             Name = name;
             TableColumns = tableColumns;
             PartitionKeys = partitionKeys;
+            ClusteringKeys = clusteringKeys;
             Options = options;
         }
     }

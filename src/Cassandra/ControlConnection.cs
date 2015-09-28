@@ -25,7 +25,7 @@ using Cassandra.Tasks;
 
 namespace Cassandra
 {
-    internal class ControlConnection : IDisposable
+    internal class ControlConnection : IMetadataQueryProvider, IDisposable
     {
         private const string SelectPeers = "SELECT peer, data_center, rack, tokens, rpc_address, release_version FROM system.peers";
         private const string SelectLocal = "SELECT * FROM system.local WHERE key='local'";
@@ -43,11 +43,12 @@ namespace Cassandra
         private int _isShutdown;
         private int _refreshCounter;
         private Task<bool> _reconnectTask;
+        public const int MetadataAbortTimeout = 12000;
 
         /// <summary>
         /// Gets the recommended binary protocol version to be used for this cluster.
         /// </summary>
-        internal byte ProtocolVersion { get; private set; }
+        public byte ProtocolVersion { get; private set; }
 
         private Metadata Metadata { get; set; }
 
@@ -100,7 +101,7 @@ namespace Cassandra
             {
                 SubscribeEventHandlers();
                 RefreshNodeList();
-                Metadata.RefreshKeyspaces(false);
+                TaskHelper.WaitToComplete(Metadata.RefreshKeyspaces(false), MetadataAbortTimeout);
             }
             catch (SocketException ex)
             {
@@ -205,7 +206,7 @@ namespace Cassandra
                 try
                 {
                     RefreshNodeList();
-                    Metadata.RefreshKeyspaces(false);
+                    TaskHelper.WaitToComplete(Metadata.RefreshKeyspaces(false), MetadataAbortTimeout);
                     _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
                     tcs.TrySetResult(true);
                     Interlocked.Exchange(ref _reconnectTask, null);
@@ -234,7 +235,7 @@ namespace Cassandra
             try
             {
                 RefreshNodeList();
-                Metadata.RefreshKeyspaces(false);
+                TaskHelper.WaitToComplete(Metadata.RefreshKeyspaces(false), MetadataAbortTimeout);
                 _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             }
             catch (SocketException ex)
@@ -475,28 +476,33 @@ namespace Cassandra
         /// <summary>
         /// Uses the active connection to execute a query
         /// </summary>
-        public RowSet Query(string cqlQuery, bool retry = false)
+        public IEnumerable<Row> Query(string cqlQuery, bool retry = false)
+        {
+            return TaskHelper.WaitToComplete(QueryAsync(cqlQuery, retry), MetadataAbortTimeout);
+        }
+
+        public Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry = false)
         {
             var request = new QueryRequest(ProtocolVersion, cqlQuery, false, QueryProtocolOptions.Default);
-            var task = _connection.Send(request);
-            try
+            var task = _connection
+                .Send(request)
+                .ContinueSync(GetRowSet);
+            if (!retry)
             {
-                TaskHelper.WaitToComplete(task, 10000);
+                return task;
             }
-            catch (SocketException ex)
+            return task.ContinueWith(t =>
             {
-                const string message = "There was an error while executing on the host {0} the query '{1}'";
-                _logger.Error(string.Format(message, cqlQuery, _connection.Address), ex);
-                if (retry)
+                var ex = t.Exception != null ? t.Exception.InnerException : null;
+                if (ex is SocketException)
                 {
-                    //Try to connect to another host
-                    TaskHelper.WaitToComplete(Reconnect(), _config.SocketOptions.ConnectTimeoutMillis);
-                    //Try to execute again without retry
-                    return Query(cqlQuery, false);
+                    //Retry once
+                    const string message = "There was an error while executing on the host {0} the query '{1}'";
+                    _logger.Error(string.Format(message, cqlQuery, _connection.Address), ex);
+                    return QueryAsync(cqlQuery, false);
                 }
-                throw;
-            }
-            return GetRowSet(task.Result);
+                return task;
+            }).Unwrap();
         }
 
         /// <summary>
@@ -504,7 +510,7 @@ namespace Cassandra
         /// </summary>
         /// <exception cref="NullReferenceException" />
         /// <exception cref="DriverInternalError" />
-        public static RowSet GetRowSet(AbstractResponse response)
+        public static IEnumerable<Row> GetRowSet(AbstractResponse response)
         {
             if (response == null)
             {
@@ -521,5 +527,17 @@ namespace Cassandra
             }
             return ((OutputRows) result.Output).RowSet;
         }
+    }
+
+    /// <summary>
+    /// Represents an object that can execute metadata queries
+    /// </summary>
+    internal interface IMetadataQueryProvider
+    {
+        byte ProtocolVersion { get; }
+
+        Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry = false);
+
+        IEnumerable<Row> Query(string cqlQuery, bool retry = false);
     }
 }
