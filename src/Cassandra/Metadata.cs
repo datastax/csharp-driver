@@ -33,6 +33,7 @@ namespace Cassandra
     {
         private const string SelectSchemaVersionPeers = "SELECT schema_version FROM system.peers";
         private const string SelectSchemaVersionLocal = "SELECT schema_version FROM system.local";
+        private static readonly Version Version30 = new Version(3, 0);
         private static readonly Logger Logger = new Logger(typeof(ControlConnection));
         private volatile TokenMap _tokenMap;
         private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string,KeyspaceMetadata>();
@@ -418,6 +419,15 @@ namespace Cassandra
                 //Exceptions are not fatal
                 Logger.Error("There was an exception while trying to retrieve schema versions", ex);
             }
+        }
+
+        /// <summary>
+        /// Sets the Cassandra version in order to identify how to parse the metadata information
+        /// </summary>
+        /// <param name="version"></param>
+        internal void SetCassandraVersion(Version version)
+        {
+            _schemaParser = version >= Version30 ? (SchemaParser)SchemaParserV2.Instance : SchemaParserV1.Instance;
         }
     }
 }

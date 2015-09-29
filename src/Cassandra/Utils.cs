@@ -269,7 +269,7 @@ namespace Cassandra
 
         public static string[] ParseJsonStringArray(string value)
         {
-            if (value == null)
+            if (value == null || value == "[]")
             {
                 return new string[0];
             }
@@ -304,6 +304,63 @@ namespace Cassandra
                 currentItem += c;
             }
             return list.ToArray();
+        }
+
+        internal static IDictionary<string, string> ParseJsonStringMap(string jsonValue)
+        {
+            if (jsonValue == null)
+            {
+                return new Dictionary<string, string>(0);
+            }
+            var map = new Dictionary<string, string>();
+            string key = null;
+            string value = null;
+            var isKey = false;
+            foreach (var c in jsonValue)
+            {
+                switch (c)
+                {
+                    case '{':
+                    case '}':
+                        continue;
+                    case '"':
+                        if (key != null)
+                        {
+                            if (isKey)
+                            {
+                                //finish the key
+                                isKey = false;
+                                continue;
+                            }
+                            if (value == null)
+                            {
+                                //starting value
+                                value = "";
+                                continue;
+                            }
+                            //finished value
+                            map.Add(key, value);
+                            key = null;
+                            value = null;
+                        }
+                        else
+                        {
+                            //starting key
+                            key = "";
+                            isKey = true;
+                        }
+                        continue;
+                }
+                if (value != null)
+                {
+                    value += c;
+                }
+                else if (isKey)
+                {
+                    key += c;   
+                }
+            }
+            return map;
         }
     }
 }

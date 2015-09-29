@@ -14,6 +14,9 @@
 //   limitations under the License.
 //
 
+using System;
+using System.Collections.Generic;
+
 namespace Cassandra
 {
     /// <summary>
@@ -22,7 +25,11 @@ namespace Cassandra
     public class TableColumn : CqlColumn
     {
         public KeyType KeyType { get; set; }
+        [Obsolete("The driver provides a new secondary index metadata API, IndexMetadata, that is returned as part of the TableMetadata.")]
         public string SecondaryIndexName { get; set; }
+        [Obsolete("The driver provides a new secondary index metadata API, IndexMetadata, that is returned as part of the TableMetadata.")]
         public string SecondaryIndexType { get; set; }
+        [Obsolete("The driver provides a new secondary index metadata API, IndexMetadata, that is returned as part of the TableMetadata.")]
+        public IDictionary<string, string> SecondaryIndexOptions { get; set; }
     }
 }

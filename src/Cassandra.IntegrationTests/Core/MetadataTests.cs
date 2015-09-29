@@ -573,62 +573,77 @@ namespace Cassandra.IntegrationTests.Core
                                .GetKeyspace(keyspaceName)
                                .GetTableMetadata(tableName);
 
+            Assert.AreEqual(2, table.Indexes.Count);
+
+            var catIndex = table.Indexes["cat_index"];
+            Assert.AreEqual("cat_index", catIndex.Name);
+            Assert.AreEqual(IndexMetadata.IndexKind.Composites, catIndex.Kind);
+            Assert.AreEqual("values(categories)", catIndex.Target);
+            Assert.NotNull(catIndex.Options);
+            var featIndex = table.Indexes["feat_key_index"];
+            Assert.AreEqual("feat_key_index", featIndex.Name);
+            Assert.AreEqual(IndexMetadata.IndexKind.Composites, featIndex.Kind);
+            Assert.AreEqual("keys(features)", featIndex.Target);
+            Assert.NotNull(featIndex.Options);
+
             Assert.AreEqual(5, table.TableColumns.Count());
         }
 
         [Test]
         public void TableMetadataAllTypesTest()
         {
-            string keyspaceName = TestUtils.GetUniqueKeyspaceName();
-            string tableName = TestUtils.GetUniqueTableName().ToLower();
-            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(DefaultNodeCount);
-            var cluster = testCluster.Cluster;
-            var session = testCluster.Session;
+            var keyspaceName = TestUtils.GetUniqueKeyspaceName();
+            var tableName = TestUtils.GetUniqueTableName().ToLower();
+            var testCluster = TestClusterManager.GetNonShareableTestCluster(DefaultNodeCount, 1, true, false);
+            using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build())
+            {
+                var session = cluster.Connect();
 
-            session.CreateKeyspaceIfNotExists(keyspaceName);
-            session.ChangeKeyspace(keyspaceName);
+                session.CreateKeyspaceIfNotExists(keyspaceName);
+                session.ChangeKeyspace(keyspaceName);
 
-            session.Execute(String.Format(TestUtils.CreateTableAllTypes, tableName));
+                session.Execute(String.Format(TestUtils.CreateTableAllTypes, tableName));
 
-            Assert.Null(cluster.Metadata
-                               .GetKeyspace(keyspaceName)
-                               .GetTableMetadata("tbl_does_not_exists"));
+                Assert.Null(cluster.Metadata
+                                   .GetKeyspace(keyspaceName)
+                                   .GetTableMetadata("tbl_does_not_exists"));
 
-            var table = cluster.Metadata
+                var table = cluster.Metadata
+                                   .GetKeyspace(keyspaceName)
+                                   .GetTableMetadata(tableName);
+
+                Assert.NotNull(table);
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "id"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "ascii_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "text_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "int_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "bigint_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "float_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "double_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "decimal_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "blob_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "boolean_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "timestamp_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "inet_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "timeuuid_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "map_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "list_sample"));
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "set_sample"));
+
+                var tableByAll = cluster.Metadata.GetKeyspace(keyspaceName).GetTablesMetadata().First(t => t.Name == tableName);
+                Assert.NotNull(tableByAll);
+                Assert.AreEqual(table.TableColumns.Length, tableByAll.TableColumns.Length);
+
+                var columnLength = table.TableColumns.Length;
+                //Alter table and check for changes
+                session.Execute(String.Format("ALTER TABLE {0} ADD added_col int", tableName));
+                Thread.Sleep(1000);
+                table = cluster.Metadata
                                .GetKeyspace(keyspaceName)
                                .GetTableMetadata(tableName);
-
-            Assert.NotNull(table);
-            Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "id"));
-            Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "ascii_sample"));
-            Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "text_sample"));
-            Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "int_sample"));
-            Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "bigint_sample"));
-            Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "float_sample"));
-            Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "double_sample"));
-            Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "decimal_sample"));
-            Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "blob_sample"));
-            Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "boolean_sample"));
-            Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "timestamp_sample"));
-            Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "inet_sample"));
-            Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "timeuuid_sample"));
-            Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "map_sample"));
-            Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "list_sample"));
-            Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "set_sample"));
-
-            var tableByAll = cluster.Metadata.GetKeyspace(keyspaceName).GetTablesMetadata().First(t => t.Name == tableName);
-            Assert.NotNull(tableByAll);
-            Assert.AreEqual(table.TableColumns.Length, tableByAll.TableColumns.Length);
-
-            var columnLength = table.TableColumns.Length;
-            //Alter table and check for changes
-            session.Execute(String.Format("ALTER TABLE {0} ADD added_col int", tableName));
-            Thread.Sleep(1000);
-            table = cluster.Metadata
-                           .GetKeyspace(keyspaceName)
-                           .GetTableMetadata(tableName);
-            Assert.AreEqual(columnLength + 1, table.TableColumns.Length);
-            Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "added_col"));
+                Assert.AreEqual(columnLength + 1, table.TableColumns.Length);
+                Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "added_col"));
+            }
         }
 
         [Test]
@@ -731,6 +746,37 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(ColumnTypeCode.Time, table.TableColumns.First(c => c.Name == "t").TypeCode);
         }
 
+        [Test]
+        public void TableMetadata_With_Compact_Storage()
+        {
+            var testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, true, false);
+            using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build())
+            {
+                var session = cluster.Connect();
+                session.CreateKeyspaceIfNotExists("ks_meta_compac");
+                session.Execute("CREATE TABLE ks_meta_compac.tbl5 (id1 uuid, id2 timeuuid, text1 text, PRIMARY KEY (id1, id2)) WITH COMPACT STORAGE");
+                session.Execute("CREATE TABLE ks_meta_compac.tbl6 (id uuid, text1 text, text2 text, PRIMARY KEY (id)) WITH COMPACT STORAGE");
+
+                var table = cluster.Metadata
+                    .GetKeyspace("ks_meta_compac")
+                    .GetTableMetadata("tbl5");
+                Assert.NotNull(table);
+                Assert.True(table.Options.IsCompactStorage);
+                CollectionAssert.AreEquivalent(new[] { "id1", "id2", "text1" }, table.TableColumns.Select(c => c.Name));
+                CollectionAssert.AreEqual(new[] { "id1" }, table.PartitionKeys.Select(c => c.Name));
+                CollectionAssert.AreEqual(new[] { "id2" }, table.ClusteringKeys.Select(c => c.Name));
+                
+                table = cluster.Metadata
+                    .GetKeyspace("ks_meta_compac")
+                    .GetTableMetadata("tbl6");
+                Assert.NotNull(table);
+                Assert.True(table.Options.IsCompactStorage);
+                CollectionAssert.AreEquivalent(new[] { "id", "text1", "text2" }, table.TableColumns.Select(c => c.Name));
+                CollectionAssert.AreEqual(new[] { "id" }, table.PartitionKeys.Select(c => c.Name));
+                Assert.AreEqual(0, table.ClusteringKeys.Length);
+            }
+        }
+
         /// <summary>
         /// Performs several schema changes and tries to query the newly created keyspaces and tables asap in a multiple node cluster, trying to create a race condition.
         /// </summary>
@@ -765,6 +811,8 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     Assert.DoesNotThrow(() => session.Execute(q));
                 }
+                CollectionAssert.Contains(cluster.Metadata.GetTables("ks2"), "tbl4");
+                CollectionAssert.Contains(cluster.Metadata.GetTables("ks1"), "tbl1");
             }
         }
 

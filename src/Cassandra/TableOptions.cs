@@ -22,15 +22,15 @@ namespace Cassandra
 {
     public class TableOptions
     {
-        private string BF_FP_CHANCE = "bloom_filter_fp_chance";
-        private string CACHING = "caching";
-        private string COMMENT = "comment";
-        private string COMPACTION_OPTIONS = "compaction";
-        private string COMPRESSION_PARAMS = "compression";
-        private string GC_GRACE = "gc_grace_seconds";
-        private string LOCAL_READ_REPAIR = "dclocal_read_repair_chance";
-        private string READ_REPAIR = "read_repair_chance";
-        private string REPLICATE_ON_WRITE = "replicate_on_write";
+        private const string BF_FP_CHANCE = "bloom_filter_fp_chance";
+        private const string CACHING = "caching";
+        private const string COMMENT = "comment";
+        private const string COMPACTION_OPTIONS = "compaction";
+        private const string COMPRESSION_PARAMS = "compression";
+        private const string GC_GRACE = "gc_grace_seconds";
+        private const string LOCAL_READ_REPAIR = "dclocal_read_repair_chance";
+        private const string READ_REPAIR = "read_repair_chance";
+        private const string REPLICATE_ON_WRITE = "replicate_on_write";
 
         internal double bfFpChance;
         internal string caching;

@@ -97,7 +97,7 @@ namespace Cassandra
                         return null;
                     }
                     //Cache it
-                    _tables.AddOrUpdate(tableName, table, (k, o) => table);
+                    _tables.AddOrUpdate(tableName, t, (k, o) => t);
                     return t;
                 });
             return TaskHelper.WaitToComplete(task, ControlConnection.MetadataAbortTimeout);

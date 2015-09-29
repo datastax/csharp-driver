@@ -124,6 +124,7 @@
     <Compile Include="TimeUuidTests.cs" />
     <Compile Include="TokenTests.cs" />
     <Compile Include="TypeCodecTests.cs" />
+    <Compile Include="UtilsTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

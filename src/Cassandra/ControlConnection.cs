@@ -32,6 +32,7 @@ namespace Cassandra
         private const CassandraEventType CassandraEventTypes = CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange;
         private static readonly IPAddress BindAllAddress = new IPAddress(new byte[4]);
 
+        private readonly Metadata _metadata;
         private volatile Host _host;
         private volatile Connection _connection;
         // ReSharper disable once InconsistentNaming
@@ -49,8 +50,6 @@ namespace Cassandra
         /// Gets the recommended binary protocol version to be used for this cluster.
         /// </summary>
         public byte ProtocolVersion { get; private set; }
-
-        private Metadata Metadata { get; set; }
 
         internal Host Host
         {
@@ -75,7 +74,7 @@ namespace Cassandra
 
         internal ControlConnection(byte initialProtocolVersion, Configuration config, Metadata metadata)
         {
-            Metadata = metadata;
+            _metadata = metadata;
             _reconnectionPolicy = config.Policies.ReconnectionPolicy;
             _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             _reconnectionTimer = new Timer(_ => Reconnect(), null, Timeout.Infinite, Timeout.Infinite);
@@ -101,7 +100,7 @@ namespace Cassandra
             {
                 SubscribeEventHandlers();
                 RefreshNodeList();
-                TaskHelper.WaitToComplete(Metadata.RefreshKeyspaces(false), MetadataAbortTimeout);
+                TaskHelper.WaitToComplete(_metadata.RefreshKeyspaces(false), MetadataAbortTimeout);
             }
             catch (SocketException ex)
             {
@@ -120,7 +119,7 @@ namespace Cassandra
         /// <exception cref="DriverInternalError" />
         private Task<bool> Connect(bool firstTime)
         {
-            IEnumerable<Host> hosts = Metadata.Hosts;
+            IEnumerable<Host> hosts = _metadata.Hosts;
             if (!firstTime)
             {
                 _logger.Info("Trying to reconnect the ControlConnection");
@@ -206,7 +205,7 @@ namespace Cassandra
                 try
                 {
                     RefreshNodeList();
-                    TaskHelper.WaitToComplete(Metadata.RefreshKeyspaces(false), MetadataAbortTimeout);
+                    TaskHelper.WaitToComplete(_metadata.RefreshKeyspaces(false), MetadataAbortTimeout);
                     _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
                     tcs.TrySetResult(true);
                     Interlocked.Exchange(ref _reconnectTask, null);
@@ -235,7 +234,7 @@ namespace Cassandra
             try
             {
                 RefreshNodeList();
-                TaskHelper.WaitToComplete(Metadata.RefreshKeyspaces(false), MetadataAbortTimeout);
+                TaskHelper.WaitToComplete(_metadata.RefreshKeyspaces(false), MetadataAbortTimeout);
                 _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             }
             catch (SocketException ex)
@@ -331,12 +330,12 @@ namespace Cassandra
                 _logger.Info("Received Node status change event: host {0} is {1}", address, sce.What.ToString().ToUpper());
                 if (sce.What == StatusChangeEventArgs.Reason.Up)
                 {
-                    Metadata.BringUpHost(address, this);
+                    _metadata.BringUpHost(address, this);
                     return;
                 }
                 if (sce.What == StatusChangeEventArgs.Reason.Down)
                 {
-                    Metadata.SetDownHost(address, this);
+                    _metadata.SetDownHost(address, this);
                     return;
                 }
             }
@@ -345,17 +344,17 @@ namespace Cassandra
                 var ssc = (SchemaChangeEventArgs)e;
                 if (!String.IsNullOrEmpty(ssc.Table))
                 {
-                    Metadata.RefreshTable(ssc.Keyspace, ssc.Table);
+                    _metadata.RefreshTable(ssc.Keyspace, ssc.Table);
                     return;
                 }
                 if (ssc.FunctionName != null)
                 {
-                    Metadata.ClearFunction(ssc.Keyspace, ssc.FunctionName, ssc.Signature);
+                    _metadata.ClearFunction(ssc.Keyspace, ssc.FunctionName, ssc.Signature);
                     return;
                 }
                 if (ssc.AggregateName != null)
                 {
-                    Metadata.ClearAggregate(ssc.Keyspace, ssc.AggregateName, ssc.Signature);
+                    _metadata.ClearAggregate(ssc.Keyspace, ssc.AggregateName, ssc.Signature);
                     return;
                 }
                 if (ssc.Type != null)
@@ -364,10 +363,10 @@ namespace Cassandra
                 }
                 if (ssc.What == SchemaChangeEventArgs.Reason.Dropped)
                 {
-                    Metadata.RemoveKeyspace(ssc.Keyspace);
+                    _metadata.RemoveKeyspace(ssc.Keyspace);
                     return;
                 }
-                Metadata.RefreshSingleKeyspace(ssc.What == SchemaChangeEventArgs.Reason.Created, ssc.Keyspace);
+                _metadata.RefreshSingleKeyspace(ssc.What == SchemaChangeEventArgs.Reason.Created, ssc.Keyspace);
             }
         }
 
@@ -386,7 +385,7 @@ namespace Cassandra
                 _logger.Error("Local host metadata could not be retrieved");
                 return;
             }
-            Metadata.Partitioner = localRow.GetValue<string>("partitioner");
+            _metadata.Partitioner = localRow.GetValue<string>("partitioner");
             UpdateLocalInfo(localRow);
             UpdatePeersInfo(rsPeers);
             _logger.Info("Node list retrieved successfully");
@@ -399,11 +398,12 @@ namespace Cassandra
             var clusterName = row.GetValue<string>("cluster_name");
             if (clusterName != null)
             {
-                Metadata.ClusterName = clusterName;
+                _metadata.ClusterName = clusterName;
             }
             localhost.SetLocationInfo(row.GetValue<string>("data_center"), row.GetValue<string>("rack"));
             SetCassandraVersion(localhost, row);
             localhost.Tokens = row.GetValue<IEnumerable<string>>("tokens") ?? new string[0];
+            _metadata.SetCassandraVersion(localhost.CassandraVersion);
         }
 
         internal void UpdatePeersInfo(IEnumerable<Row> rs)
@@ -418,10 +418,10 @@ namespace Cassandra
                     continue;
                 }
                 foundPeers.Add(address);
-                var host = Metadata.GetHost(address);
+                var host = _metadata.GetHost(address);
                 if (host == null)
                 {
-                    host = Metadata.AddHost(address);
+                    host = _metadata.AddHost(address);
                 }
                 host.SetLocationInfo(row.GetValue<string>("data_center"), row.GetValue<string>("rack"));
                 SetCassandraVersion(host, row);
@@ -429,11 +429,11 @@ namespace Cassandra
             }
 
             // Removes all those that seems to have been removed (since we lost the control connection or not valid contact point)
-            foreach (var address in Metadata.AllReplicas())
+            foreach (var address in _metadata.AllReplicas())
             {
                 if (!address.Equals(_host.Address) && !foundPeers.Contains(address))
                 {
-                    Metadata.RemoveHost(address);
+                    _metadata.RemoveHost(address);
                 }
             }
         }

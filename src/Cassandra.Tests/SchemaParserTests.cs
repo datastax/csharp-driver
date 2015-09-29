@@ -85,9 +85,9 @@ namespace Cassandra.Tests
                 {"value_alias",null}
             });
             var columnRows = new [] {
-              new Dictionary<string, object>{{"keyspace_name","ks_tbl_meta"},{"columnfamily_name","tbl1"},{"column_name","id"   },{"component_index",null},{"index_name",null},{"index_options","null"},{"index_type",null},{"type","partition_key"},{"validator","org.apache.cassandra.db.marshal.UUIDType"}},
-              new Dictionary<string, object>{{"keyspace_name","ks_tbl_meta"},{"columnfamily_name","tbl1"},{"column_name","text1"},{"component_index",null},{"index_name",null},{"index_options","null"},{"index_type",null},{"type","regular"      },{"validator","org.apache.cassandra.db.marshal.UTF8Type"}},
-              new Dictionary<string, object>{{"keyspace_name","ks_tbl_meta"},{"columnfamily_name","tbl1"},{"column_name","text2"},{"component_index",null},{"index_name",null},{"index_options","null"},{"index_type",null},{"type","regular"      },{"validator","org.apache.cassandra.db.marshal.UTF8Type"}}
+              new Dictionary<string, object>{{"keyspace_name","ks_tbl_meta"},{"columnfamily_name","tbl1"},{"column_name","id"   },{"component_index",null},{"index_name",null},{"index_options",null},{"index_type",null},{"type","partition_key"},{"validator","org.apache.cassandra.db.marshal.UUIDType"}},
+              new Dictionary<string, object>{{"keyspace_name","ks_tbl_meta"},{"columnfamily_name","tbl1"},{"column_name","text1"},{"component_index",null},{"index_name",null},{"index_options",null},{"index_type",null},{"type","regular"      },{"validator","org.apache.cassandra.db.marshal.UTF8Type"}},
+              new Dictionary<string, object>{{"keyspace_name","ks_tbl_meta"},{"columnfamily_name","tbl1"},{"column_name","text2"},{"component_index",null},{"index_name",null},{"index_options",null},{"index_type",null},{"type","regular"      },{"validator","org.apache.cassandra.db.marshal.UTF8Type"}}
             }.Select(TestHelper.CreateRow);
 
             var ksRow = TestHelper.CreateRow(new Dictionary<string, object>
@@ -289,6 +289,210 @@ namespace Cassandra.Tests
             Assert.NotNull(ks);
             var ex = Assert.Throws<ArgumentException>(() => ks.GetTableMetadata("ks_tbl_meta"));
             StringAssert.Contains("column_name", ex.Message);
+        }
+
+        [Test]
+        public void SchemaParserV1_GetTable_Should_Propagate_Exceptions_From_Query_Provider()
+        {
+            var ksRow = TestHelper.CreateRow(new Dictionary<string, object>
+            {
+                {"keyspace_name", "ks1"}, {"durable_writes", true}, {"strategy_class", "Simple"}, {"strategy_options", "{\"replication_factor\": \"1\"}"}
+            });
+            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_keyspaces.*ks1"), It.IsAny<bool>()))
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columnfamilies.*ks1"), It.IsAny<bool>()))
+                .Returns(() => TaskHelper.FromException<IEnumerable<Row>>(new NoHostAvailableException(new Dictionary<System.Net.IPEndPoint, Exception>())));
+            //This will cause the task to be faulted
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columns.*ks1"), It.IsAny<bool>()))
+                .Returns(() => TaskHelper.FromException<IEnumerable<Row>>(new NoHostAvailableException(new Dictionary<System.Net.IPEndPoint, Exception>())));
+            var parser = SchemaParserV1.Instance;
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(queryProviderMock.Object, "ks1"));
+            Assert.NotNull(ks);
+            Assert.Throws<NoHostAvailableException>(() => ks.GetTableMetadata("tbl1"));
+        }
+
+        [Test]
+        public void SchemaParserV2_GetKeyspace_Should_Retrieve_And_Parse_Keyspace_With_SimpleStrategy()
+        {
+            const string ksName = "ks1";
+            var row = TestHelper.CreateRow(new Dictionary<string, object>
+            {
+                {"keyspace_name", ksName},
+                {"durable_writes", true},
+                {"replication", new Dictionary<string, string>{{"class", "org.apache.cassandra.locator.SimpleStrategy"}, {"replication_factor", "2"}}},
+            });
+            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.keyspaces.*" + ksName), It.IsAny<bool>()))
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { row }));
+            var parser = SchemaParserV2.Instance;
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(queryProviderMock.Object, ksName));
+            Assert.NotNull(ks);
+            Assert.AreEqual(ksName, ks.Name);
+            Assert.AreEqual(true, ks.DurableWrites);
+            Assert.AreEqual("SimpleStrategy", ks.StrategyClass);
+            CollectionAssert.AreEqual(new Dictionary<string, int> { { "replication_factor", 2 } }, ks.Replication);
+        }
+
+        [Test]
+        public void SchemaParserV2_GetTable_Should_Parse_3_0_Table_With_Partition_And_Clustering_Keys()
+        {
+            var tableRow = TestHelper.CreateRow(new Dictionary<string, object>
+            {
+                {"keyspace_name","ks_tbl_meta"},
+                {"table_name","tbl4"},
+                {"bloom_filter_fp_chance",0.01},
+                {"caching",new Dictionary<string, string>{{"keys","ALL"},{"rows_per_partition","NONE"}}},
+                {"comment",""},
+                {"compaction",new Dictionary<string, string>{{"min_threshold","4"},{"max_threshold","32"},{"class","org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy"}}},
+                {"compression",new Dictionary<string, string>{{"chunk_length_in_kb","64"},{"class","org.apache.cassandra.io.compress.LZ4Compressor"}}},
+                {"dclocal_read_repair_chance",0.1},
+                {"default_time_to_live",0},
+                {"extensions",new Dictionary<string, string>()},
+                {"flags", new []{"compound"}},
+                {"gc_grace_seconds",864000},
+                {"id","8008ae40-5862-11e5-b0ce-c7d0c38d1d8d"},
+                {"max_index_interval",2048},
+                {"memtable_flush_period_in_ms",0},{"min_index_interval",128},{"read_repair_chance",0D},{"speculative_retry","99PERCENTILE"}
+            });
+            var columnRows = new[]
+            {
+                new Dictionary<string, object>{{"keyspace_name", "ks_tbl_meta"}, {"table_name", "tbl4"}, {"column_name", "apk2" }, {"clustering_order", "none"}, {"column_name_bytes", "0x61706b32"  }, {"kind", "partition_key"}, {"position",  1 }, {"type", "org.apache.cassandra.db.marshal.UTF8Type"}},
+                new Dictionary<string, object>{{"keyspace_name", "ks_tbl_meta"}, {"table_name", "tbl4"}, {"column_name", "pk1"  }, {"clustering_order", "none"}, {"column_name_bytes", "0x706b31"    }, {"kind", "partition_key"}, {"position",  0 }, {"type", "org.apache.cassandra.db.marshal.UUIDType"}},
+                new Dictionary<string, object>{{"keyspace_name", "ks_tbl_meta"}, {"table_name", "tbl4"}, {"column_name", "val2" }, {"clustering_order", "none"}, {"column_name_bytes", "0x76616c32"  }, {"kind", "regular"      }, {"position",  -1}, {"type", "org.apache.cassandra.db.marshal.BytesType"}},
+                new Dictionary<string, object>{{"keyspace_name", "ks_tbl_meta"}, {"table_name", "tbl4"}, {"column_name", "valz1"}, {"clustering_order", "none"}, {"column_name_bytes", "0x76616c7a31"}, {"kind", "regular"      }, {"position",  -1}, {"type", "org.apache.cassandra.db.marshal.Int32Type"}},
+                new Dictionary<string, object>{{"keyspace_name", "ks_tbl_meta"}, {"table_name", "tbl4"}, {"column_name", "zck"  }, {"clustering_order", "asc" }, {"column_name_bytes", "0x7a636b"    }, {"kind", "clustering"   }, {"position",  0 }, {"type", "org.apache.cassandra.db.marshal.TimeUUIDType"}}
+            }.Select(TestHelper.CreateRow);
+
+            var ksRow = TestHelper.CreateRow(new Dictionary<string, object>
+            {
+                {"keyspace_name", "ks1"}, {"durable_writes", true}, {"replication", new Dictionary<string, string>{{"class", "org.apache.cassandra.locator.SimpleStrategy"}, {"replication_factor", "1"}}},
+            });
+            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.keyspaces.*ks1"), It.IsAny<bool>()))
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.tables.*ks1"), It.IsAny<bool>()))
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { tableRow }));
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.columns.*ks1"), It.IsAny<bool>()))
+                .Returns(() => TestHelper.DelayedTask(columnRows));
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.indexes.*ks1"), It.IsAny<bool>()))
+                .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<Row>()));
+            var parser = SchemaParserV2.Instance;
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(queryProviderMock.Object, "ks1"));
+            Assert.NotNull(ks);
+            var table = ks.GetTableMetadata("ks_tbl_meta");
+            Assert.False(table.Options.IsCompactStorage);
+            Assert.AreEqual("{\"keys\":\"ALL\",\"rows_per_partition\":\"NONE\"}", table.Options.Caching);
+            CollectionAssert.AreEquivalent(new[] { "pk1", "apk2", "val2", "valz1", "zck" }, table.TableColumns.Select(c => c.Name));
+            CollectionAssert.AreEqual(new[] { "pk1", "apk2" }, table.PartitionKeys.Select(c => c.Name));
+            CollectionAssert.AreEqual(new[] { "zck" }, table.ClusteringKeys.Select(c => c.Name));
+        }
+
+        [Test]
+        public void SchemaParserV2_GetTable_Should_Parse_3_0_Table_With_SecondaryIndexes()
+        {
+            var tableRow = TestHelper.CreateRow(new Dictionary<string, object>
+            {
+                {"keyspace_name","ks_tbl_meta"},
+                {"table_name","tbl4"},
+                {"bloom_filter_fp_chance",0.01},
+                {"caching",new Dictionary<string, string>{{"keys","ALL"},{"rows_per_partition","NONE"}}},
+                {"comment",""},
+                {"compaction",new Dictionary<string, string>{{"min_threshold","4"},{"max_threshold","32"},{"class","org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy"}}},
+                {"compression",new Dictionary<string, string>{{"chunk_length_in_kb","64"},{"class","org.apache.cassandra.io.compress.LZ4Compressor"}}},
+                {"dclocal_read_repair_chance",0.1},
+                {"default_time_to_live",0},
+                {"extensions",new Dictionary<string, string>()},
+                {"flags", new []{"compound"}},
+                {"gc_grace_seconds",864000},
+                {"id","8008ae40-5862-11e5-b0ce-c7d0c38d1d8d"},
+                {"max_index_interval",2048},
+                {"memtable_flush_period_in_ms",0},{"min_index_interval",128},{"read_repair_chance",0D},{"speculative_retry","99PERCENTILE"}
+            });
+            var columnRows = new[]
+            {
+                new Dictionary<string, object>{{"keyspace_name", "ks1"}, {"table_name", "tbl4"}, {"column_name", "pk"  }, {"clustering_order", "none"}, {"column_name_bytes", "0x706b31"    }, {"kind", "partition_key"}, {"position",  0 }, {"type", "org.apache.cassandra.db.marshal.UUIDType"}},
+                new Dictionary<string, object>{{"keyspace_name", "ks1"}, {"table_name", "tbl4"}, {"column_name", "ck"  }, {"clustering_order", "asc" }, {"column_name_bytes", "0x7a636b"    }, {"kind", "clustering"   }, {"position",  0 }, {"type", "org.apache.cassandra.db.marshal.TimeUUIDType"}},
+                new Dictionary<string, object>{{"keyspace_name", "ks1"}, {"table_name", "tbl4"}, {"column_name", "val" }, {"clustering_order", "none"}, {"column_name_bytes", "0x76616c32"  }, {"kind", "regular"      }, {"position",  -1}, {"type", "org.apache.cassandra.db.marshal.BytesType"}}
+            }.Select(TestHelper.CreateRow);
+            var indexRow = TestHelper.CreateRow(new Dictionary<string, object>
+            {
+                {"keyspace_name", "ks1"},
+                {"table_name", "tbl4"},
+                {"index_name", "ix1"},
+                {"kind", "COMPOSITES"},
+                {"options", new Dictionary<string, string>
+                {
+                    {"target", "val"}
+                }}
+            });
+            var ksRow = TestHelper.CreateRow(new Dictionary<string, object>
+            {
+                {"keyspace_name", "ks1"}, {"durable_writes", true}, {"replication", new Dictionary<string, string>{{"class", "org.apache.cassandra.locator.SimpleStrategy"}, {"replication_factor", "1"}}},
+            });
+            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.keyspaces.*ks1"), It.IsAny<bool>()))
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.tables.*ks1"), It.IsAny<bool>()))
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { tableRow }));
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.columns.*ks1"), It.IsAny<bool>()))
+                .Returns(() => TestHelper.DelayedTask(columnRows));
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.indexes.*ks1"), It.IsAny<bool>()))
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] {indexRow}));
+            var parser = SchemaParserV2.Instance;
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(queryProviderMock.Object, "ks1"));
+            Assert.NotNull(ks);
+            var table = ks.GetTableMetadata("tbl4");
+            Assert.False(table.Options.IsCompactStorage);
+            CollectionAssert.AreEquivalent(new[] { "pk", "ck", "val"}, table.TableColumns.Select(c => c.Name));
+            CollectionAssert.AreEqual(new[] { "pk"}, table.PartitionKeys.Select(c => c.Name));
+            CollectionAssert.AreEqual(new[] { "ck" }, table.ClusteringKeys.Select(c => c.Name));
+            Assert.NotNull(table.Indexes);
+            Assert.AreEqual(1, table.Indexes.Count);
+            var index = table.Indexes["ix1"];
+            Assert.AreEqual("ix1", index.Name);
+            Assert.AreEqual(IndexMetadata.IndexKind.Composites, index.Kind);
+            Assert.AreEqual("val", index.Target);
+            Assert.NotNull(index.Options);
+        }
+
+        [Test]
+        public void SchemaParserV2_GetTable_Should_Propagate_Exceptions_From_Query_Provider()
+        {
+            var ksRow = TestHelper.CreateRow(new Dictionary<string, object>
+            {
+                {"keyspace_name", "ks1"}, {"durable_writes", true}, {"replication", new Dictionary<string, string>{{"class", "org.apache.cassandra.locator.SimpleStrategy"}, {"replication_factor", "1"}}},
+            });
+            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.keyspaces.*ks1"), It.IsAny<bool>()))
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.tables.*ks1"), It.IsAny<bool>()))
+                .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<Row>()));
+            //This will cause the task to be faulted
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.columns.*ks1"), It.IsAny<bool>()))
+                .Returns(() => TaskHelper.FromException<IEnumerable<Row>>(new NoHostAvailableException(new Dictionary<System.Net.IPEndPoint,Exception>())));
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.indexes.*ks1"), It.IsAny<bool>()))
+                .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<Row>()));
+            var parser = SchemaParserV2.Instance;
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(queryProviderMock.Object, "ks1"));
+            Assert.NotNull(ks);
+            Assert.Throws<NoHostAvailableException>(() => ks.GetTableMetadata("tbl1"));
         }
     }
 }

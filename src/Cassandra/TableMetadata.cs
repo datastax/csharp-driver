@@ -15,6 +15,9 @@
 //
 
 
+using System.Collections.Generic;
+using System.Linq;
+
 namespace Cassandra
 {
     /// <summary>
@@ -25,34 +28,51 @@ namespace Cassandra
         /// <summary>
         /// Gets the table name
         /// </summary>
-        public string Name { get; private set; }
+        public string Name { get; protected set; }
 
         /// <summary>
         /// Gets the table columns
         /// </summary>
-        public TableColumn[] TableColumns { get; private set; }
+        public TableColumn[] TableColumns { get; protected set; }
+
+        /// <summary>
+        /// Gets a dictionary of columns by name
+        /// </summary>
+        public IDictionary<string, TableColumn> ColumnsByName { get; protected set; }
 
         /// <summary>
         /// Gets an array of columns that are part of the partition key in correct order
         /// </summary>
-        public TableColumn[] PartitionKeys { get; private set; }
+        public TableColumn[] PartitionKeys { get; protected set; }
 
         /// <summary>
         /// Gets an array of columns that are part of the clustering key in correct order
         /// </summary>
-        public TableColumn[] ClusteringKeys { get; private set; }
+        public TableColumn[] ClusteringKeys { get; protected set; }
 
         /// <summary>
         /// Gets the table options
         /// </summary>
-        public TableOptions Options { get; private set; }
+        public TableOptions Options { get; protected set; }
 
-        internal TableMetadata(string name, TableColumn[] tableColumns, TableColumn[] partitionKeys, TableColumn[] clusteringKeys, TableOptions options)
+        /// <summary>
+        /// Gets the table indexes by name
+        /// </summary>
+        public IDictionary<string, IndexMetadata> Indexes { get; protected set; }
+
+        protected TableMetadata()
+        {
+            //Allow mocks
+        }
+
+        internal TableMetadata(string name, IDictionary<string, TableColumn> columns, TableColumn[] partitionKeys, TableColumn[] clusteringKeys, IDictionary<string, IndexMetadata> indexes, TableOptions options)
         {
             Name = name;
-            TableColumns = tableColumns;
+            ColumnsByName = columns;
+            TableColumns = columns.Values.ToArray();
             PartitionKeys = partitionKeys;
             ClusteringKeys = clusteringKeys;
+            Indexes = indexes;
             Options = options;
         }
     }

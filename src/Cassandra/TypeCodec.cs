@@ -42,6 +42,7 @@ namespace Cassandra
         private const string FrozenTypeName = "org.apache.cassandra.db.marshal.FrozenType";
         public const string ReversedTypeName = "org.apache.cassandra.db.marshal.ReversedType";
         public const string CompositeTypeName = "org.apache.cassandra.db.marshal.CompositeType";
+        private const string EmptyTypeName = "org.apache.cassandra.db.marshal.EmptyType";
         /// <summary>
         /// An instance of a buffer that represents the value Unset
         /// </summary>
@@ -1355,6 +1356,12 @@ namespace Cassandra
                 //We can later store that it is frozen, if needed
                 startIndex += FrozenTypeName.Length + 1;
                 length -= FrozenTypeName.Length + 2;
+            }
+            if (typeName == EmptyTypeName)
+            {
+                dataType.TypeCode = ColumnTypeCode.Custom;
+                dataType.TypeInfo = null;
+                return dataType;
             }
             //Quick check if its a single type
             if (length <= SingleTypeNamesLength)

@@ -137,6 +137,7 @@
     <Compile Include="DefaultAddressTranslator.cs" />
     <Compile Include="IAddressTranslator.cs" />
     <Compile Include="ICqlRequest.cs" />
+    <Compile Include="IndexMetadata.cs" />
     <Compile Include="LocalDate.cs" />
     <Compile Include="LocalTime.cs" />
     <Compile Include="Mapping\AppliedInfo.cs" />
