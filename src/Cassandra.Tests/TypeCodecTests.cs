@@ -38,7 +38,14 @@ namespace Cassandra.Tests
                 new Tuple<object, DecodeHandler, EncodeHandler>(1234, TypeCodec.DecodeInt, TypeCodec.EncodeInt),
                 new Tuple<object, DecodeHandler, EncodeHandler>((long)3129, TypeCodec.DecodeBigint, TypeCodec.EncodeBigint),
                 new Tuple<object, DecodeHandler, EncodeHandler>(1234F, TypeCodec.DecodeFloat, TypeCodec.EncodeFloat),
+
                 new Tuple<object, DecodeHandler, EncodeHandler>(1.14D, TypeCodec.DecodeDouble, TypeCodec.EncodeDouble),
+                new Tuple<object, DecodeHandler, EncodeHandler>(double.MinValue, TypeCodec.DecodeDouble, TypeCodec.EncodeDouble),
+                new Tuple<object, DecodeHandler, EncodeHandler>(-1.14, TypeCodec.DecodeDouble, TypeCodec.EncodeDouble),
+                new Tuple<object, DecodeHandler, EncodeHandler>(0d, TypeCodec.DecodeDouble, TypeCodec.EncodeDouble),
+                new Tuple<object, DecodeHandler, EncodeHandler>(double.MaxValue, TypeCodec.DecodeDouble, TypeCodec.EncodeDouble),
+                new Tuple<object, DecodeHandler, EncodeHandler>(double.NaN, TypeCodec.DecodeDouble, TypeCodec.EncodeDouble),
+
                 new Tuple<object, DecodeHandler, EncodeHandler>(1.01M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),
                 
                 new Tuple<object, DecodeHandler, EncodeHandler>(72.727272727272727272727272727M, TypeCodec.DecodeDecimal, TypeCodec.EncodeDecimal),

@@ -1000,9 +1000,7 @@ namespace Cassandra
 
         public static object DecodeDouble(int protocolVersion, IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
-            var buffer = (byte[]) value.Clone();
-            Array.Reverse(buffer);
-            return BitConverter.ToDouble(buffer, 0);
+            return BitConverter.ToDouble(new [] { value[7], value[6], value[5], value[4], value[3], value[2], value[1], value[0] }, 0);
         }
 
         public static byte[] EncodeDouble(int protocolVersion, IColumnInfo typeInfo, object value)
