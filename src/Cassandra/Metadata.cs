@@ -209,11 +209,10 @@ namespace Cassandra
             return ksMetadata.GetTablesNames();
         }
 
-
         /// <summary>
         ///  Returns TableMetadata for specified table in specified keyspace.
         /// </summary>
-        /// <param name="keyspace">name of the keyspace within specified table is definied.</param>
+        /// <param name="keyspace">name of the keyspace within specified table is defined.</param>
         /// <param name="tableName">name of table for which metadata should be returned.</param>
         /// <returns>a TableMetadata for the specified table in the specified keyspace.</returns>
         public TableMetadata GetTable(string keyspace, string tableName)
@@ -224,6 +223,22 @@ namespace Cassandra
                 return null;
             }
             return ksMetadata.GetTableMetadata(tableName);
+        }
+
+        /// <summary>
+        ///  Returns the view metadata for the provided view name in the keyspace.
+        /// </summary>
+        /// <param name="keyspace">name of the keyspace within specified view is defined.</param>
+        /// <param name="name">name of view.</param>
+        /// <returns>a MaterializedViewMetadata for the view in the specified keyspace.</returns>
+        public MaterializedViewMetadata GetMaterializedView(string keyspace, string name)
+        {
+            KeyspaceMetadata ksMetadata;
+            if (!_keyspaces.TryGetValue(keyspace, out ksMetadata))
+            {
+                return null;
+            }
+            return ksMetadata.GetMaterializedViewMetadata(name);
         }
 
         /// <summary>
@@ -351,6 +366,15 @@ namespace Cassandra
             if (_keyspaces.TryGetValue(keyspaceName, out ksMetadata))
             {
                 ksMetadata.ClearTableMetadata(tableName);
+            }
+        }
+
+        internal void RefreshView(string keyspaceName, string name)
+        {
+            KeyspaceMetadata ksMetadata;
+            if (_keyspaces.TryGetValue(keyspaceName, out ksMetadata))
+            {
+                ksMetadata.ClearViewMetadata(name);
             }
         }
 

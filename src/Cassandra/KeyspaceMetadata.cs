@@ -26,6 +26,7 @@ namespace Cassandra
     public class KeyspaceMetadata
     {
         private readonly ConcurrentDictionary<string, TableMetadata> _tables = new ConcurrentDictionary<string, TableMetadata>();
+        private readonly ConcurrentDictionary<string, MaterializedViewMetadata> _views = new ConcurrentDictionary<string, MaterializedViewMetadata>();
         private readonly ConcurrentDictionary<Tuple<string, string>, FunctionMetadata> _functions = new ConcurrentDictionary<Tuple<string, string>, FunctionMetadata>();
         private readonly ConcurrentDictionary<Tuple<string, string>, AggregateMetadata> _aggregates = new ConcurrentDictionary<Tuple<string, string>, AggregateMetadata>();
         private readonly SchemaParser _parser;
@@ -73,7 +74,6 @@ namespace Cassandra
             Replication = replicationOptions;
         }
 
-
         /// <summary>
         ///  Returns metadata of specified table in this keyspace.
         /// </summary>
@@ -82,23 +82,58 @@ namespace Cassandra
         ///  exists, <c>null</c> otherwise.</returns>
         public TableMetadata GetTableMetadata(string tableName)
         {
-            TableMetadata table;
-            if (_tables.TryGetValue(tableName, out table))
             {
-                //The table metadata is available in local cache
-                return table;
+                //use code block to avoid reusing field 'table'
+                TableMetadata table;
+                if (_tables.TryGetValue(tableName, out table))
+                {
+                    //The table metadata is available in local cache
+                    return table;
+                }   
             }
             var task = _parser
                 .GetTable(_queryProvider, Name, tableName)
-                .ContinueSync(t =>
+                .ContinueSync(table =>
                 {
-                    if (t == null)
+                    if (table == null)
                     {
                         return null;
                     }
                     //Cache it
-                    _tables.AddOrUpdate(tableName, t, (k, o) => t);
-                    return t;
+                    _tables.AddOrUpdate(tableName, table, (k, o) => table);
+                    return table;
+                });
+            return TaskHelper.WaitToComplete(task, ControlConnection.MetadataAbortTimeout);
+        }
+
+        /// <summary>
+        ///  Returns metadata of specified view in this keyspace.
+        /// </summary>
+        /// <param name="viewName">the name of view to retrieve </param>
+        /// <returns>the metadata for view <c>viewName</c> in this keyspace if it
+        ///  exists, <c>null</c> otherwise.</returns>
+        public MaterializedViewMetadata GetMaterializedViewMetadata(string viewName)
+        {
+            {
+                //use a code block to avoid reusing 'view' field on lambdas
+                MaterializedViewMetadata view;
+                if (_views.TryGetValue(viewName, out view))
+                {
+                    //The table metadata is available in local cache
+                    return view;
+                }
+            }
+            var task = _parser
+                .GetView(_queryProvider, Name, viewName)
+                .ContinueSync(view =>
+                {
+                    if (view == null)
+                    {
+                        return null;
+                    }
+                    //Cache it
+                    _views.AddOrUpdate(viewName, view, (k, o) => view);
+                    return view;
                 });
             return TaskHelper.WaitToComplete(task, ControlConnection.MetadataAbortTimeout);
         }
@@ -110,6 +145,15 @@ namespace Cassandra
         {
             TableMetadata table;
             _tables.TryRemove(tableName, out table);
+        }
+
+        /// <summary>
+        /// Removes the view metadata forcing refresh the next time the view metadata is retrieved
+        /// </summary>
+        internal void ClearViewMetadata(string name)
+        {
+            MaterializedViewMetadata view;
+            _views.TryRemove(name, out view);
         }
 
         /// <summary>

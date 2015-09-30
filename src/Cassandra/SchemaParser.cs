@@ -29,6 +29,8 @@ namespace Cassandra
 
         public abstract Task<TableMetadata> GetTable(IMetadataQueryProvider cc, string keyspaceName, string tableName);
 
+        public abstract Task<MaterializedViewMetadata> GetView(IMetadataQueryProvider queryProvider, string keyspaceName, string viewName);
+
         public Task<ICollection<string>> GetTableNames(IMetadataQueryProvider cc, string keyspaceName)
         {
             return cc
@@ -332,14 +334,20 @@ namespace Cassandra
                                 // or not composite (comparator)
                                 options.isCompactStorage = !comparator.StartsWith(TypeCodec.CompositeTypeName);
                             }
-                            return new TableMetadata(
-                                tableName, columns,
+                            var result = new TableMetadata(tableName, GetIndexesFromColumns(columns.Values));
+                            result.SetValues(
+                                columns,
                                 partitionKeys.OrderBy(p => p.Item1).Select(p => p.Item2).ToArray(),
                                 clusteringKeys.OrderBy(p => p.Item1).Select(p => p.Item2).ToArray(),
-                                GetIndexesFromColumns(columns.Values),
                                 options);
+                            return result;
                         });
                 });
+        }
+
+        public override Task<MaterializedViewMetadata> GetView(IMetadataQueryProvider queryProvider, string keyspaceName, string viewName)
+        {
+            return TaskHelper.FromException<MaterializedViewMetadata>(new NotSupportedException("Materialized views are supported in Cassandra 3.0 or above"));
         }
 
         /// <summary>
@@ -372,6 +380,7 @@ namespace Cassandra
         private const string SelectKeyspaces = "SELECT * FROM system_schema.keyspaces";
         private const string SelectSingleKeyspace = "SELECT * FROM system_schema.keyspaces WHERE keyspace_name = '{0}'";
         private const string SelectSingleTable = "SELECT * FROM system_schema.tables WHERE table_name='{0}' AND keyspace_name='{1}'";
+        private const string SelectSingleView = "SELECT * FROM system_schema.views WHERE view_name='{0}' AND keyspace_name='{1}'";
 
         protected override string SelectAggregates
         {
@@ -455,52 +464,75 @@ namespace Cassandra
                 {
                     throw ex.InnerException;
                 }
-                var tableMetadataRow = tasks[0].Result.FirstOrDefault();
-                if (tableMetadataRow == null)
-                {
-                    return (TableMetadata)null;
-                }
-                var columns = new Dictionary<string, TableColumn>();
-                var partitionKeys = new List<Tuple<int, TableColumn>>();
-                var clusteringKeys = new List<Tuple<int, TableColumn>>();
-                //Read table options
-                var options = new TableOptions
-                {
-                    isCompactStorage = false,
-                    bfFpChance = tableMetadataRow.GetValue<double>("bloom_filter_fp_chance"),
-                    caching = "{" + string.Join(",", tableMetadataRow.GetValue<IDictionary<string, string>>("caching").Select(kv => "\"" + kv.Key + "\":\"" + kv.Value + "\"")) + "}",
-                    comment = tableMetadataRow.GetValue<string>("comment"),
-                    gcGrace = tableMetadataRow.GetValue<int>("gc_grace_seconds"),
-                    localReadRepair = tableMetadataRow.GetValue<double>("dclocal_read_repair_chance"),
-                    readRepair = tableMetadataRow.GetValue<double>("read_repair_chance"),
-                    compactionOptions = tableMetadataRow.GetValue<SortedDictionary<string, string>>("compaction"),
-                    compressionParams =
-                        tableMetadataRow.GetValue<SortedDictionary<string, string>>("compression")
-                };
-                var columnsMetadata = tasks[1].Result;
-                foreach (var row in columnsMetadata)
-                {
-                    var dataType = TypeCodec.ParseDataType(row.GetValue<string>("type"));
-                    var col = new TableColumn
-                    {
-                        Name = row.GetValue<string>("column_name"),
-                        Keyspace = row.GetValue<string>("keyspace_name"),
-                        Table = row.GetValue<string>("table_name"),
-                        TypeCode = dataType.TypeCode,
-                        TypeInfo = dataType.TypeInfo
-                    };
-                    switch (row.GetValue<string>("kind"))
-                    {
-                        case "partition_key":
-                            partitionKeys.Add(Tuple.Create(row.GetValue<int?>("position") ?? 0, col));
-                            break;
-                        case "clustering":
-                            clusteringKeys.Add(Tuple.Create(row.GetValue<int?>("position") ?? 0, col));
-                            break;
-                    }
-                    columns.Add(col.Name, col);
-                }
+                return ParseTableOrView(_ => new TableMetadata(tableName, GetIndexes(tasks[2].Result)), tasks[0], tasks[1]);
+            }, TaskContinuationOptions.ExecuteSynchronously);
+        }
 
+        public override Task<MaterializedViewMetadata> GetView(IMetadataQueryProvider cc, string keyspaceName, string viewName)
+        {
+            var getTableTask = cc.QueryAsync(string.Format(SelectSingleView, viewName, keyspaceName), true);
+            var getColumnsTask = cc.QueryAsync(string.Format(SelectColumns, viewName, keyspaceName), true);
+            return Task.Factory.ContinueWhenAll(new[] { getTableTask, getColumnsTask }, tasks =>
+            {
+                var ex = tasks.Select(t => t.Exception).FirstOrDefault(e => e != null);
+                if (ex != null)
+                {
+                    throw ex.InnerException;
+                }
+                return ParseTableOrView(viewRow => new MaterializedViewMetadata(viewName, viewRow.GetValue<string>("where_clause")), tasks[0], tasks[1]);
+            }, TaskContinuationOptions.ExecuteSynchronously);
+        }
+
+        private static T ParseTableOrView<T>(Func<Row, T> newInstance, Task<IEnumerable<Row>> getTableTask, Task<IEnumerable<Row>> getColumnsTask)
+            where T : DataCollectionMetadata
+        {
+            var tableMetadataRow = getTableTask.Result.FirstOrDefault();
+            if (tableMetadataRow == null)
+            {
+                return null;
+            }
+            var columns = new Dictionary<string, TableColumn>();
+            var partitionKeys = new List<Tuple<int, TableColumn>>();
+            var clusteringKeys = new List<Tuple<int, TableColumn>>();
+            //Read table options
+            var options = new TableOptions
+            {
+                isCompactStorage = false,
+                bfFpChance = tableMetadataRow.GetValue<double>("bloom_filter_fp_chance"),
+                caching = "{" + string.Join(",", tableMetadataRow.GetValue<IDictionary<string, string>>("caching").Select(kv => "\"" + kv.Key + "\":\"" + kv.Value + "\"")) + "}",
+                comment = tableMetadataRow.GetValue<string>("comment"),
+                gcGrace = tableMetadataRow.GetValue<int>("gc_grace_seconds"),
+                localReadRepair = tableMetadataRow.GetValue<double>("dclocal_read_repair_chance"),
+                readRepair = tableMetadataRow.GetValue<double>("read_repair_chance"),
+                compactionOptions = tableMetadataRow.GetValue<SortedDictionary<string, string>>("compaction"),
+                compressionParams =
+                    tableMetadataRow.GetValue<SortedDictionary<string, string>>("compression")
+            };
+            var columnsMetadata = getColumnsTask.Result;
+            foreach (var row in columnsMetadata)
+            {
+                var dataType = TypeCodec.ParseDataType(row.GetValue<string>("type"));
+                var col = new TableColumn
+                {
+                    Name = row.GetValue<string>("column_name"),
+                    Keyspace = row.GetValue<string>("keyspace_name"),
+                    Table = row.GetValue<string>("table_name"),
+                    TypeCode = dataType.TypeCode,
+                    TypeInfo = dataType.TypeInfo
+                };
+                switch (row.GetValue<string>("kind"))
+                {
+                    case "partition_key":
+                        partitionKeys.Add(Tuple.Create(row.GetValue<int?>("position") ?? 0, col));
+                        break;
+                    case "clustering":
+                        clusteringKeys.Add(Tuple.Create(row.GetValue<int?>("position") ?? 0, col));
+                        break;
+                }
+                columns.Add(col.Name, col);
+            }
+            if (typeof(T) == typeof(TableMetadata))
+            {
                 var flags = tableMetadataRow.GetValue<string[]>("flags");
                 var isDense = flags.Contains("dense");
                 var isSuper = flags.Contains("super");
@@ -516,13 +548,13 @@ namespace Cassandra
                 {
                     PruneDenseTableColumns(columns);
                 }
-                return new TableMetadata(
-                    tableName, columns,
-                    partitionKeys.OrderBy(p => p.Item1).Select(p => p.Item2).ToArray(),
-                    clusteringKeys.OrderBy(p => p.Item1).Select(p => p.Item2).ToArray(),
-                    GetIndexes(tasks[2].Result),
-                    options);
-            }, TaskContinuationOptions.ExecuteSynchronously);
+            }
+            var result = newInstance(tableMetadataRow);
+            result.SetValues(columns,
+                partitionKeys.OrderBy(p => p.Item1).Select(p => p.Item2).ToArray(),
+                clusteringKeys.OrderBy(p => p.Item1).Select(p => p.Item2).ToArray(),
+                options);
+            return result;
         }
 
         private static void PruneDenseTableColumns(IDictionary<string, TableColumn> columns)

@@ -825,5 +825,75 @@ namespace Cassandra.IntegrationTests.Core
                 CollectionAssert.DoesNotContain(cluster.Metadata.Hosts.Select(h => h.CassandraVersion), null);
             }
         }
+
+        [Test, TestCassandraVersion(3, 0)]
+        public void GetMaterializedView_Should_Retrieve_View_Metadata()
+        {
+            var queries = new[]
+            {
+                "CREATE KEYSPACE ks_view_meta WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}",
+                "CREATE TABLE ks_view_meta.scores (user TEXT, game TEXT, year INT, month INT, day INT, score INT, PRIMARY KEY (user, game, year, month, day))",
+                "CREATE MATERIALIZED VIEW ks_view_meta.dailyhigh AS SELECT user FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND day IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL PRIMARY KEY ((game, year, month, day), score, user) WITH CLUSTERING ORDER BY (score DESC)"
+            };
+            var testCluster = TestClusterManager.GetNonShareableTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
+            using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build())
+            {
+                var session = cluster.Connect();
+                foreach (var q in queries)
+                {
+                    session.Execute(q);
+                }
+                var ks = cluster.Metadata.GetKeyspace("ks_view_meta");
+                Assert.NotNull(ks);
+                var view = ks.GetMaterializedViewMetadata("dailyhigh");
+                Assert.NotNull(view);
+                Assert.NotNull(view.Options);
+                //Value is cached
+                var view2 = cluster.Metadata.GetMaterializedView("ks_view_meta", "dailyhigh");
+                Assert.AreSame(view, view2);
+                Assert.AreEqual(
+                    "game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND day IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL",
+                    view.WhereClause);
+                CollectionAssert.AreEquivalent(new[] { "game", "year", "month", "day", "score", "user" }, view.TableColumns.Select(c => c.Name));
+                CollectionAssert.AreEquivalent(new[] { "game", "year", "month", "day" }, view.PartitionKeys.Select(c => c.Name));
+                CollectionAssert.AreEquivalent(new[] { "score", "user" }, view.ClusteringKeys.Select(c => c.Name));
+            }
+        }
+
+        [Test, TestCassandraVersion(3, 0)]
+        public void GetMaterializedView_Should_Refresh_View_Metadata_Via_Events()
+        {
+            var queries = new[]
+            {
+                "CREATE KEYSPACE ks_view_meta2 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}",
+                "CREATE TABLE ks_view_meta2.scores (user TEXT, game TEXT, year INT, month INT, day INT, score INT, PRIMARY KEY (user, game, year, month, day))",
+                "CREATE MATERIALIZED VIEW ks_view_meta2.monthlyhigh AS SELECT user FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL AND day IS NOT NULL PRIMARY KEY ((game, year, month), score, user, day) WITH CLUSTERING ORDER BY (score DESC) AND compaction = { 'class' : 'SizeTieredCompactionStrategy' }"
+            };
+            var testCluster = TestClusterManager.GetNonShareableTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
+            using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build())
+            {
+                var session = cluster.Connect();
+                foreach (var q in queries)
+                {
+                    session.Execute(q);
+                }
+                var view = cluster.Metadata.GetMaterializedView("ks_view_meta2", "monthlyhigh");
+                Assert.NotNull(view);
+                StringAssert.Contains("SizeTieredCompactionStrategy", view.Options.CompactionOptions["class"]);
+
+                const string alterQuery = "ALTER MATERIALIZED VIEW ks_view_meta2.monthlyhigh WITH compaction = { 'class' : 'LeveledCompactionStrategy' }";
+                session.Execute(alterQuery);
+                //Wait for event
+                Thread.Sleep(5000);
+                view = cluster.Metadata.GetMaterializedView("ks_view_meta2", "monthlyhigh");
+                StringAssert.Contains("LeveledCompactionStrategy", view.Options.CompactionOptions["class"]);
+
+                const string dropQuery = "DROP MATERIALIZED VIEW ks_view_meta2.monthlyhigh";
+                session.Execute(dropQuery);
+                //Wait for event
+                Thread.Sleep(5000);
+                Assert.Null(cluster.Metadata.GetMaterializedView("ks_view_meta2", "monthlyhigh"));
+            }
+        }
     }
 }

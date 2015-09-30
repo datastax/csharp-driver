@@ -342,9 +342,11 @@ namespace Cassandra
             if (e is SchemaChangeEventArgs)
             {
                 var ssc = (SchemaChangeEventArgs)e;
-                if (!String.IsNullOrEmpty(ssc.Table))
+                if (!string.IsNullOrEmpty(ssc.Table))
                 {
+                    //Can be either a table or a view
                     _metadata.RefreshTable(ssc.Keyspace, ssc.Table);
+                    _metadata.RefreshView(ssc.Keyspace, ssc.Table);
                     return;
                 }
                 if (ssc.FunctionName != null)

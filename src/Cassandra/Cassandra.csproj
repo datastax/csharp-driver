@@ -223,6 +223,7 @@
     <Compile Include="Mapping\Utils\EnumerableExtensions.cs" />
     <Compile Include="Mapping\Utils\LookupKeyedCollection.cs" />
     <Compile Include="Mapping\Utils\MemberInfoExtensions.cs" />
+    <Compile Include="MaterializedViewMetadata.cs" />
     <Compile Include="Metadata.cs" />
     <Compile Include="CassandraEventArgs.cs" />
     <Compile Include="Configuration.cs" />
@@ -377,6 +378,7 @@
     <Compile Include="RowPopulators\RowSet.cs" />
     <Compile Include="RowPopulators\Row.cs" />
     <Compile Include="RowPopulators\RowSetMetadata.cs" />
+    <Compile Include="DataCollectionMetadata.cs" />
     <Compile Include="Tasks\HashedWheelTimer.cs" />
     <Compile Include="Tasks\LimitedParallelismTaskScheduler.cs" />
     <Compile Include="TimeUuid.cs" />

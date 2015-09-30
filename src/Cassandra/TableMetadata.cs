@@ -23,38 +23,8 @@ namespace Cassandra
     /// <summary>
     /// Describes a Cassandra table
     /// </summary>
-    public class TableMetadata
+    public class TableMetadata: DataCollectionMetadata
     {
-        /// <summary>
-        /// Gets the table name
-        /// </summary>
-        public string Name { get; protected set; }
-
-        /// <summary>
-        /// Gets the table columns
-        /// </summary>
-        public TableColumn[] TableColumns { get; protected set; }
-
-        /// <summary>
-        /// Gets a dictionary of columns by name
-        /// </summary>
-        public IDictionary<string, TableColumn> ColumnsByName { get; protected set; }
-
-        /// <summary>
-        /// Gets an array of columns that are part of the partition key in correct order
-        /// </summary>
-        public TableColumn[] PartitionKeys { get; protected set; }
-
-        /// <summary>
-        /// Gets an array of columns that are part of the clustering key in correct order
-        /// </summary>
-        public TableColumn[] ClusteringKeys { get; protected set; }
-
-        /// <summary>
-        /// Gets the table options
-        /// </summary>
-        public TableOptions Options { get; protected set; }
-
         /// <summary>
         /// Gets the table indexes by name
         /// </summary>
@@ -62,18 +32,13 @@ namespace Cassandra
 
         protected TableMetadata()
         {
-            //Allow mocks
+            
         }
 
-        internal TableMetadata(string name, IDictionary<string, TableColumn> columns, TableColumn[] partitionKeys, TableColumn[] clusteringKeys, IDictionary<string, IndexMetadata> indexes, TableOptions options)
+        internal TableMetadata(string name, IDictionary<string, IndexMetadata> indexes)
         {
             Name = name;
-            ColumnsByName = columns;
-            TableColumns = columns.Values.ToArray();
-            PartitionKeys = partitionKeys;
-            ClusteringKeys = clusteringKeys;
             Indexes = indexes;
-            Options = options;
         }
     }
 }
