@@ -62,7 +62,7 @@ namespace Cassandra.IntegrationTests.Core
             var hosts = new List<IPEndPoint>();
             for (var i = 0; i < 50; i++)
             {
-                var rs = session.Execute("SELECT * FROM system.schema_columnfamilies");
+                var rs = session.Execute("SELECT * FROM system.local");
                 if (i == 20)
                 {
                     nonShareableTestCluster.StopForce(2);
@@ -105,7 +105,7 @@ namespace Cassandra.IntegrationTests.Core
             DateTime futureDateTime = DateTime.Now.AddSeconds(120);
             while ((from singleHost in queriedHosts select singleHost).Distinct().Count() < 4 && DateTime.Now < futureDateTime)
             {
-                var rs = session.Execute("SELECT * FROM system.schema_columnfamilies");
+                var rs = session.Execute("SELECT * FROM system.local");
                 queriedHosts.Add(rs.Info.QueriedHost.ToString());
                 Thread.Sleep(50);
             }
@@ -114,7 +114,7 @@ namespace Cassandra.IntegrationTests.Core
             // Create List of actions
             Action selectAction = () =>
             {
-                var rs = session.Execute("SELECT * FROM system.schema_columnfamilies");
+                var rs = session.Execute("SELECT * FROM system.local");
                 Assert.Greater(rs.Count(), 0);
             };
             var actions = new List<Action>();
@@ -139,7 +139,7 @@ namespace Cassandra.IntegrationTests.Core
             // Execute some more SELECTs
             for (var i = 0; i < 250; i++)
             {
-                var rowSet2 = session.Execute("SELECT * FROM system.schema_columnfamilies");
+                var rowSet2 = session.Execute("SELECT * FROM system.local");
                 Assert.Greater(rowSet2.Count(), 0);
                 StringAssert.StartsWith(nonShareableTestCluster.ClusterIpPrefix + "4", rowSet2.Info.QueriedHost.ToString());
             }
@@ -168,7 +168,7 @@ namespace Cassandra.IntegrationTests.Core
             DateTime futureDateTime = DateTime.Now.AddSeconds(120);
             while ((from singleHost in queriedHosts select singleHost).Distinct().Count() < 4 && DateTime.Now < futureDateTime)
             {
-                var rs = session.Execute("SELECT * FROM system.schema_columnfamilies");
+                var rs = session.Execute("SELECT * FROM system.local");
                 queriedHosts.Add(rs.Info.QueriedHost.ToString());
                 Thread.Sleep(50);
             }
@@ -177,7 +177,7 @@ namespace Cassandra.IntegrationTests.Core
             // Create list of actions
             Action selectAction = () =>
             {
-                var rs = session.Execute("SELECT * FROM system.schema_columnfamilies");
+                var rs = session.Execute("SELECT * FROM system.local");
                 Assert.Greater(rs.Count(), 0);
             };
             var actions = new List<Action>();
@@ -229,7 +229,7 @@ namespace Cassandra.IntegrationTests.Core
             futureDateTime = DateTime.Now.AddSeconds(120);
             while ((from singleHost in queriedHosts select singleHost).Distinct().Count() < 4 && DateTime.Now < futureDateTime)
             {
-                var rs = session.Execute("SELECT * FROM system.schema_columnfamilies");
+                var rs = session.Execute("SELECT * FROM system.local");
                 queriedHosts.Add(rs.Info.QueriedHost.ToString());
                 Thread.Sleep(50);
             }
@@ -276,7 +276,7 @@ namespace Cassandra.IntegrationTests.Core
                 //Try to be force a race condition
                 TestHelper.ParallelInvoke(() =>
                 {
-                    var t = session.ExecuteAsync(new SimpleStatement("SELECT * FROM schema_columnfamilies"));
+                    var t = session.ExecuteAsync(new SimpleStatement("SELECT * FROM local"));
                     t.Wait();
                 }, 1000);
                 var actions = new Task[1000];
@@ -356,7 +356,7 @@ namespace Cassandra.IntegrationTests.Core
             var session = (Session) cluster.Connect();
             for (var i = 0; i < 6; i++)
             {
-                session.Execute("SELECT * FROM system.schema_keyspaces");
+                session.Execute("SELECT * FROM system.local");
             }
             var host = cluster.AllHosts().First();
             var pool = session.GetOrCreateConnectionPool(host, HostDistance.Local);
@@ -403,7 +403,7 @@ namespace Cassandra.IntegrationTests.Core
 
             //Now the node is ready to accept connections
             var session = cluster.Connect("system");
-            TestHelper.ParallelInvoke(() => session.Execute("SELECT * from schema_keyspaces"), 20);
+            TestHelper.ParallelInvoke(() => session.Execute("SELECT * from local"), 20);
         }
 
         /// <summary>

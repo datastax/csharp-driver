@@ -95,11 +95,9 @@ namespace Cassandra.IntegrationTests.Data
             var cmd2 = _connection.CreateCommand();
             var cmd3 = _connection.CreateCommand();
 
-            cmd1.CommandText = "SELECT keyspace_name, durable_writes FROM system.schema_keyspaces";
-            cmd2.CommandText = "SELECT durable_writes, keyspace_name FROM system.schema_keyspaces";
-            cmd3.CommandText = "SELECT * FROM system.schema_keyspaces WHERE keyspace_name = 'NOT_EXISTENT_" + Guid.NewGuid().ToString() + "'";
+            cmd1.CommandText = "SELECT key FROM system.local";
+            cmd3.CommandText = "SELECT * FROM system.local WHERE key = 'does not exist'";
             Assert.IsInstanceOf<string>(cmd1.ExecuteScalar());
-            Assert.IsInstanceOf<bool>(cmd2.ExecuteScalar());
             Assert.IsNull(cmd3.ExecuteScalar());
         }
     }

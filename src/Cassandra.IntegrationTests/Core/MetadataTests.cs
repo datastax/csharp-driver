@@ -109,7 +109,7 @@ namespace Cassandra.IntegrationTests.Core
 
             //The control connection is still connected to host 1
             Assert.AreEqual(1, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.BindAddress));
-            var t = cluster.Metadata.GetTable("system", "schema_columnfamilies");
+            var t = cluster.Metadata.GetTable("system", "local");
             Assert.NotNull(t);
 
             //The control connection should be connected to host 2

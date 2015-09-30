@@ -84,7 +84,7 @@ namespace Cassandra.IntegrationTests.Core
                 .Build())
             {
                 var session = cluster.Connect();
-                var rowSet = session.Execute("SELECT * FROM system.schema_keyspaces");
+                var rowSet = session.Execute("SELECT * FROM system.local");
                 Assert.Greater(rowSet.Count(), 0);   
             }
         }
@@ -98,7 +98,7 @@ namespace Cassandra.IntegrationTests.Core
             Cluster cluster = builder.Build();
 
             var session = cluster.Connect();
-            var rs = session.Execute("SELECT * FROM system.schema_keyspaces");
+            var rs = session.Execute("SELECT * FROM system.local");
             Assert.Greater(rs.Count(), 0);
         }
 

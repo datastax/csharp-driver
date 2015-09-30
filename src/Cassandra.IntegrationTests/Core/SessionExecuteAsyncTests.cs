@@ -31,20 +31,20 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void SessionExecuteAsyncCQLQueryToSync()
         {
-            var task = Session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.schema_keyspaces"));
+            var task = Session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local"));
             //forcing it to execute sync for testing purposes
             var rowset = task.Result;
-            Assert.True(rowset.Count() > 0, "Returned result set of keyspaces should be greater than zero.");
+            Assert.True(rowset.Any(), "Returned result should contain rows.");
         }
 
         [Test]
         public void SessionExecuteAsyncPreparedToSync()
         {
-            var statement = Session.Prepare("SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?");
-            var task = Session.ExecuteAsync(statement.Bind("system"));
+            var statement = Session.Prepare("SELECT * FROM system.local WHERE key= ?");
+            var task = Session.ExecuteAsync(statement.Bind("local"));
             //forcing it to execute sync for testing purposes
             var rowset = task.Result;
-            Assert.True(rowset.Count() > 0, "Returned result set of keyspaces should be greater than zero.");
+            Assert.True(rowset.Any(), "Returned result should contain rows.");
         }
 
         [Test]
@@ -79,14 +79,14 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void SessionExecuteAsyncCQLQueriesParallel()
         {
-            var task1 = Session.ExecuteAsync(new SimpleStatement("select keyspace_name FROM system.schema_keyspaces"));
-            var task2 = Session.ExecuteAsync(new SimpleStatement("select cluster_name from system.local"));
-            var task3 = Session.ExecuteAsync(new SimpleStatement("select column_name from system.schema_columns"));
+            var task1 = Session.ExecuteAsync(new SimpleStatement("select * FROM system.local"));
+            var task2 = Session.ExecuteAsync(new SimpleStatement("select key from system.local"));
+            var task3 = Session.ExecuteAsync(new SimpleStatement("select tokens from system.local"));
             //forcing the calling thread to wait for all the parallel task to finish
-            Task.WaitAll(new[] { task1, task2, task3 });
-            Assert.True(task1.Result.First().GetValue<string>("keyspace_name") != null, "Returned result set of keyspaces should be greater than zero.");
-            Assert.True(task2.Result.First().GetValue<string>("cluster_name") != null, "Returned result set of local cluster table should be greater than zero.");
-            Assert.True(task3.Result.First().GetValue<string>("column_name") != null, "Returned result set of columns should be greater than zero.");
+            Task.WaitAll(task1, task2, task3);
+            Assert.NotNull(task1.Result.First().GetValue<string>("key"));
+            Assert.NotNull(task2.Result.First().GetValue<string>("key"));
+            Assert.NotNull(task3.Result.First().GetValue<string[]>("tokens"));
         }
     }
 }

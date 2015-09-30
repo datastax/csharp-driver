@@ -66,11 +66,11 @@ namespace Cassandra.IntegrationTests.FoundBugs
             string keyspaceName = "excelsior";
             session.CreateKeyspaceIfNotExists(keyspaceName);
             session.ChangeKeyspace(keyspaceName);
-            const string cqlKeyspaces = "SELECT * from system.schema_keyspaces";
-            var query = new SimpleStatement(cqlKeyspaces).EnableTracing();
+            const string cqlQuery = "SELECT * from system.local";
+            var query = new SimpleStatement(cqlQuery).EnableTracing();
             {
                 var result = session.Execute(query);
-                Assert.True(result.Count() > 0, "It should return rows");
+                Assert.Greater(result.Count(), 0, "It should return rows");
             }
 
             nonShareableTestCluster.StopForce(1);

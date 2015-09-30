@@ -510,7 +510,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Bound_With_Parameters_That_Can_Not_Be_Encoded()
         {
-            var ps = Session.Prepare("SELECT * FROM system.schema_keyspaces WHERE keyspace_name = ?");
+            var ps = Session.Prepare("SELECT * FROM system.local WHERE key = ?");
             Assert.Throws<InvalidTypeException>(() => ps.Bind(new Object()));
         }
 

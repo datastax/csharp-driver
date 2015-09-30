@@ -108,20 +108,10 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public static bool TableExists(ISession session, string keyspaceName, string tableName)
         {
-            // SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name='TestKeySpace_c3052b44be8b';
-            string cql = "SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name='" + keyspaceName + "'";
-            RowSet rowSet = session.Execute(cql);
-            List<Row> rows = rowSet.GetRows().ToList();
-            if (rows != null && rows.Count > 0)
-            {
-                foreach (var row in rows)
-                {
-                    string cfName = (string)row["columnfamily_name"];
-                    if (cfName == tableName)
-                        return true;
-                }
-            }
-            return false;
+            var cql = string.Format("SELECT * FROM {0}.{1} LIMIT 1", keyspaceName, tableName);
+            //it will throw a InvalidQueryException if the table/keyspace does not exist
+            session.Execute(cql);
+            return true;
         }
 
         public static byte[] GetBytes(string str)
@@ -140,8 +130,7 @@ namespace Cassandra.IntegrationTests.TestBase
             DateTime timeInTheFuture = DateTime.Now.AddSeconds(120);
             while (testCluster.Cluster.Metadata.AllHosts().ToList().Count() < expectedTotalNodeCount && DateTime.Now < timeInTheFuture)
             {
-                var rs = testCluster.Session.Execute("SELECT * FROM system.schema_columnfamilies");
-                rs.Count();
+                var rs = testCluster.Session.Execute("SELECT key FROM system.local");
                 hostsQueried.Add(rs.Info.QueriedHost.Address.ToString());
                 Thread.Sleep(500);
             }
@@ -149,8 +138,7 @@ namespace Cassandra.IntegrationTests.TestBase
             timeInTheFuture = DateTime.Now.AddSeconds(120);
             while (!hostsQueried.Contains(newlyBootstrappedHost) && DateTime.Now < timeInTheFuture)
             {
-                var rs = testCluster.Session.Execute("SELECT * FROM system.schema_columnfamilies");
-                rs.Count();
+                var rs = testCluster.Session.Execute("SELECT key FROM system.local");
                 hostsQueried.Add(rs.Info.QueriedHost.Address.ToString());
                 Thread.Sleep(500);
             }

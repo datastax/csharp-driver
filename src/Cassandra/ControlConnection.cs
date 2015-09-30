@@ -496,10 +496,11 @@ namespace Cassandra
                 var ex = t.Exception != null ? t.Exception.InnerException : null;
                 if (ex is SocketException)
                 {
-                    //Retry once
                     const string message = "There was an error while executing on the host {0} the query '{1}'";
                     _logger.Error(string.Format(message, cqlQuery, _connection.Address), ex);
-                    return QueryAsync(cqlQuery, false);
+                    //Reconnect and query again
+                    return Reconnect()
+                        .Then(_ => QueryAsync(cqlQuery, false));
                 }
                 return task;
             }).Unwrap();

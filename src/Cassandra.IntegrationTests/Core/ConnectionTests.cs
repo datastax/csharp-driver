@@ -65,7 +65,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 connection.Open().Wait();
                 //Start a query
-                var request = new QueryRequest(connection.ProtocolVersion, "SELECT * FROM system.schema_keyspaces", false, QueryProtocolOptions.Default);
+                var request = new QueryRequest(connection.ProtocolVersion, "SELECT * FROM system.local", false, QueryProtocolOptions.Default);
                 var task = connection.Send(request);
                 task.Wait();
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
@@ -74,7 +74,7 @@ namespace Cassandra.IntegrationTests.Core
                 var rs = output.RowSet;
                 var rows = rs.ToList();
                 Assert.Greater(rows.Count, 0);
-                Assert.True(rows[0].GetValue<string>("keyspace_name") != null, "It should contain a keyspace name");
+                Assert.NotNull(rows[0].GetValue<string>("key"), "It should contain a value for key column");
             }
         }
 
@@ -84,7 +84,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Open().Wait();
-                var request = new PrepareRequest(connection.ProtocolVersion, "SELECT * FROM system.schema_keyspaces");
+                var request = new PrepareRequest(connection.ProtocolVersion, "SELECT * FROM system.local");
                 var task = connection.Send(request);
                 task.Wait();
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
@@ -116,7 +116,7 @@ namespace Cassandra.IntegrationTests.Core
                 connection.Open().Wait();
 
                 //Prepare a query
-                var prepareRequest = new PrepareRequest(connection.ProtocolVersion, "SELECT * FROM system.schema_keyspaces");
+                var prepareRequest = new PrepareRequest(connection.ProtocolVersion, "SELECT * FROM system.local");
                 var task = connection.Send(prepareRequest);
                 var prepareOutput = ValidateResult<OutputPrepared>(task.Result);
                 
@@ -127,7 +127,7 @@ namespace Cassandra.IntegrationTests.Core
                 var rs = output.RowSet;
                 var rows = rs.ToList();
                 Assert.Greater(rows.Count, 0);
-                Assert.True(rows[0].GetValue<string>("keyspace_name") != null, "It should contain a keyspace name");
+                Assert.True(rows[0].GetValue<string>("key") != null, "It should contain a key column");
             }
         }
 
@@ -138,11 +138,11 @@ namespace Cassandra.IntegrationTests.Core
             {
                 connection.Open().Wait();
 
-                var prepareRequest = new PrepareRequest(connection.ProtocolVersion, "SELECT * FROM system.schema_columnfamilies WHERE keyspace_name = ?");
+                var prepareRequest = new PrepareRequest(connection.ProtocolVersion, "SELECT * FROM system.local WHERE key = ?");
                 var task = connection.Send(prepareRequest);
                 var prepareOutput = ValidateResult<OutputPrepared>(task.Result);
 
-                var options = new QueryProtocolOptions(ConsistencyLevel.One, new[] { "system" }, false, 100, null, ConsistencyLevel.Any);
+                var options = new QueryProtocolOptions(ConsistencyLevel.One, new[] { "local" }, false, 100, null, ConsistencyLevel.Any);
 
                 var executeRequest = new ExecuteRequest(connection.ProtocolVersion, prepareOutput.QueryId, null, false, options);
                 task = connection.Send(executeRequest);
@@ -150,7 +150,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 var rows = output.RowSet.ToList();
                 Assert.Greater(rows.Count, 0);
-                Assert.True(rows[0].GetValue<string>("columnfamily_name") != null, "It should contain a column family name");
+                Assert.NotNull(rows[0].GetValue<string>("key"), "It should contain a key column value");
             }
         }
 
@@ -164,14 +164,13 @@ namespace Cassandra.IntegrationTests.Core
                 connection.Open().Wait();
 
                 //Start a query
-                var task = Query(connection, "SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default);
+                var task = Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default);
                 task.Wait(360000);
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
                 var output = ValidateResult<OutputRows>(task.Result);
                 var rs = output.RowSet;
                 var rows = rs.ToList();
                 Assert.Greater(rows.Count, 0);
-                Assert.True(rows[0].GetValue<string>("keyspace_name") != null, "It should contain a keyspace name");
             }
         }
 
@@ -184,14 +183,13 @@ namespace Cassandra.IntegrationTests.Core
                 connection.Open().Wait();
 
                 //Start a query
-                var task = Query(connection, "SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default);
+                var task = Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default);
                 task.Wait(360000);
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
                 var output = ValidateResult<OutputRows>(task.Result);
                 var rs = output.RowSet;
                 var rows = rs.ToList();
                 Assert.Greater(rows.Count, 0);
-                Assert.True(rows[0].GetValue<string>("keyspace_name") != null, "It should contain a keyspace name");
             }
         }
 
@@ -227,8 +225,7 @@ namespace Cassandra.IntegrationTests.Core
                 //Run a query multiple times
                 for (var i = 0; i < 16; i++)
                 {
-                    //schema_columns
-                    taskList.Add(Query(connection, "SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default));
+                    taskList.Add(Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default));
                 }
                 Task.WaitAll(taskList.ToArray());
                 foreach (var t in taskList)
@@ -274,7 +271,7 @@ namespace Cassandra.IntegrationTests.Core
                 //Run a query multiple times
                 for (var i = 0; i < 8; i++)
                 {
-                    var task = Query(connection, "SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default);
+                    var task = Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default);
                     task.Wait(1000);
                     Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
                     Assert.NotNull(task.Result);
@@ -339,7 +336,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Open().Wait();
-                const string query = "SELECT * FROM system.schema_columns";
+                const string query = "SELECT * FROM system.local";
                 Query(connection, query).
                     ContinueWith((t) =>
                     {
@@ -361,13 +358,13 @@ namespace Cassandra.IntegrationTests.Core
                 //Run the query multiple times
                 for (var i = 0; i < 129; i++)
                 {
-                    taskList.Add(Query(connection, "SELECT * FROM system.schema_columns", QueryProtocolOptions.Default));
+                    taskList.Add(Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default));
                 }
                 Task.WaitAll(taskList.ToArray());
                 Assert.True(taskList.All(t => t.Status == TaskStatus.RanToCompletion), "Not all task completed");
 
                 //One last time
-                var task = Query(connection, "SELECT * FROM system.schema_keyspaces");
+                var task = Query(connection, "SELECT * FROM system.local");
                 Assert.True(task.Result != null);
             }
         }
@@ -401,13 +398,13 @@ namespace Cassandra.IntegrationTests.Core
                 //Run the query multiple times
                 for (var i = 0; i < 129; i++)
                 {
-                    taskList.Add(Query(connection, "SELECT * FROM system.schema_columns", QueryProtocolOptions.Default));
+                    taskList.Add(Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default));
                 }
                 Task.WaitAll(taskList.ToArray());
                 Assert.True(taskList.All(t => t.Status == TaskStatus.RanToCompletion), "Not all task completed");
 
                 //One last time
-                var task = Query(connection, "SELECT * FROM system.schema_keyspaces");
+                var task = Query(connection, "SELECT * FROM system.local");
                 Assert.True(task.Result != null);
             }
         }
@@ -423,7 +420,7 @@ namespace Cassandra.IntegrationTests.Core
                 //If it was executed correctly, it should be set
                 Assert.AreEqual("system", connection.Keyspace);
                 //Execute a query WITHOUT the keyspace prefix
-                TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM schema_keyspaces", QueryProtocolOptions.Default));
+                TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM local", QueryProtocolOptions.Default));
             }
         }
 
@@ -438,7 +435,7 @@ namespace Cassandra.IntegrationTests.Core
                 //The keyspace should still be null
                 Assert.Null(connection.Keyspace);
                 //Execute a query WITH the keyspace prefix still works
-                TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default));
+                TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default));
             }
         }
 
@@ -576,7 +573,7 @@ namespace Cassandra.IntegrationTests.Core
             var taskList = new List<Task<AbstractResponse>>();
             for (var i = 0; i < 1024; i++)
             {
-                taskList.Add(Query(connection, "SELECT * FROM system.schema_keyspaces"));
+                taskList.Add(Query(connection, "SELECT * FROM system.local"));
             }
             for (var i = 0; i < 1000; i++)
             {
@@ -602,7 +599,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.True(!taskList.Any(t => t.Status != TaskStatus.RanToCompletion && t.Status != TaskStatus.Faulted), "Must be only completed and faulted task");
 
             //A new call to write will be called back immediately with an exception
-            var task = Query(connection, "SELECT * FROM system.schema_keyspaces");
+            var task = Query(connection, "SELECT * FROM system.local");
             //It will throw
             Assert.Throws<AggregateException>(() => task.Wait(50));
         }
@@ -628,7 +625,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 connection.Open().Wait();
                 //execute a dummy query
-                TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default));
+                TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default));
 
                 var writeCounter = 0;
                 connection.WriteCompleted += () => writeCounter++;
@@ -644,7 +641,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 connection.Open().Wait();
                 //execute a dummy query
-                TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default));
+                TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default));
 
                 Thread.Sleep(500);
                 var writeCounter = 0;
@@ -661,7 +658,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 connection.Open().Wait();
                 //execute a dummy query
-                TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.schema_keyspaces", QueryProtocolOptions.Default));
+                TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default));
                 var called = 0;
                 connection.OnIdleRequestException += (_) => called++;
                 connection.Kill();
