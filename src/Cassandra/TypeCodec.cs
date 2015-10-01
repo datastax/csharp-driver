@@ -739,6 +739,10 @@ namespace Cassandra
             foreach (DictionaryEntry item in dictionary)
             {
                 var itemKeyBuffer = Encode(protocolVersion, item.Key);
+                if (item.Value == null)
+                {
+                    throw new ArgumentNullException("key:" + item.Key, "Null values are not supported inside collections");
+                }
                 var itemValueBuffer = Encode(protocolVersion, item.Value);
                 keyBuffers.Add(itemKeyBuffer);
                 valueBuffers.Add(itemValueBuffer);
@@ -860,6 +864,10 @@ namespace Cassandra
             var byteLength = 0;
             foreach (var item in value)
             {
+                if (item == null)
+                {
+                    throw new ArgumentNullException(null, "Null values are not supported inside collections");   
+                }
                 var buf = Encode(protocolVersion, item);
                 bufferList.Add(buf);
                 byteLength += buf.Length;
