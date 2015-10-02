@@ -250,7 +250,7 @@ namespace Cassandra.Requests
         internal Task<Connection> GetNextConnection(Dictionary<IPEndPoint, Exception> triedHosts)
         {
             var host = GetNextHost();
-            if (host == null)
+            if (host == null || _session.IsDisposed)
             {
                 return TaskHelper.FromException<Connection>(new NoHostAvailableException(triedHosts));
             }

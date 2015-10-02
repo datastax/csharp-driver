@@ -58,8 +58,7 @@ namespace Cassandra.IntegrationTests.Core
                 //Wait for the worker threads to cancel the rest of the operations.
                 DateTime timeInTheFuture = DateTime.Now.AddSeconds(11);
                 while (DateTime.Now < timeInTheFuture &&
-                       (taskList.Any(t => t.Status == TaskStatus.WaitingForActivation) ||
-                        taskList.All(t => t.Status == TaskStatus.RanToCompletion || t.Status == TaskStatus.Faulted)))
+                       (taskList.Any(t => t.Status == TaskStatus.WaitingForActivation)))
                 {
                     int waitMs = 500;
                     Trace.TraceInformation(string.Format("In method: {0}, waiting {1} more MS ... ", System.Reflection.MethodBase.GetCurrentMethod().Name, waitMs));
