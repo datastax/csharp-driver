@@ -9,22 +9,23 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Linq.LinqTable
 {
     [Category("short")]
-    public class TableSelectDefault: TestGlobals
+    public class TableSelectDefault: SharedClusterTest
     {
         private ISession _session = null;
         private List<Movie> _movieList = Movie.GetDefaultMovieList();
         private string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
         private Table<Movie> _movieTable;
 
-        [SetUp]
-        public void SetupTest()
+        protected override void TestFixtureSetUp()
         {
+            base.TestFixtureSetUp();
             _session = TestClusterManager.GetTestCluster(1).Session;
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
 
             // drop table if exists, re-create
             MappingConfiguration movieMappingConfig = new MappingConfiguration();
+            //Using attributes is deprecated
             #pragma warning disable 612
             movieMappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(Movie),
                  () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(Movie)));
@@ -36,12 +37,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             //Insert some data
             foreach (var movie in _movieList)
                 _movieTable.Insert(movie).Execute();
-        }
-
-        [TearDown]
-        public void TeardownTest()
-        {
-            _session.DeleteKeyspace(_uniqueKsName);
         }
 
         [Test]

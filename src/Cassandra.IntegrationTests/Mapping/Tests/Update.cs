@@ -11,7 +11,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Mapping.Tests
 {
     [Category("short")]
-    public class Update : TestGlobals
+    public class Update : SharedClusterTest
     {
         ISession _session = null;
         private List<Movie> _movieList = Movie.GetDefaultMovieList();
@@ -19,10 +19,10 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         private Table<Movie> _movieTable;
         private Mapper _mapper;
 
-        [SetUp]
-        public void SetupTest()
+        protected override void TestFixtureSetUp()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            base.TestFixtureSetUp();
+            _session = Session;
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
 
@@ -36,12 +36,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             //Insert some data
             foreach (var movie in _movieList)
                 _movieTable.Insert(movie).Execute();
-        }
-
-        [TearDown]
-        public void TeardownTest()
-        {
-            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         /// <summary>
@@ -83,29 +77,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.IsFalse(Movie.ListContains(_movieList, expectedMovie));
             Movie.AssertListContains(actualMovieList, expectedMovie);
             Assert.IsFalse(Movie.ListContains(actualMovieList, movieToUpdate));
-        }
-
-        /// <summary>
-        /// Attempt to update a record that does not exist (according to partition key)
-        /// Validate that an "upsert" occurs
-        /// 
-        /// @test_category queries:basic
-        /// </summary>
-        [Test]
-        public void Update_NoSuchRecord()
-        {
-            // Setup
-            Movie movieToUpdate = _movieList[1];
-
-            // Update to different values
-            var expectedMovie = new Movie(movieToUpdate.Title + "_something_different", movieToUpdate.Director, "something_different_" + Randomm.RandomAlphaNum(10), movieToUpdate.MovieMaker + "_something_different", 1212);
-            _mapper.Update(expectedMovie);
-
-            List<Movie> actualMovieList = _movieTable.Execute().ToList();
-            Assert.AreEqual(_movieList.Count + 1, actualMovieList.Count());
-            Assert.IsFalse(Movie.ListContains(_movieList, expectedMovie));
-            Assert.IsTrue(Movie.ListContains(actualMovieList, expectedMovie));
-            Movie.AssertListContains(actualMovieList, movieToUpdate);
         }
 
         [Test]

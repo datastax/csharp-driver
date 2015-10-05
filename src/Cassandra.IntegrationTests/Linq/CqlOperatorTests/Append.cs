@@ -10,14 +10,14 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
 {
     [Category("short")]
-    public class Append : TestGlobals
+    public class Append : SharedClusterTest
     {
         private ISession _session;
-        
-        [SetUp]
-        public void SetupTest()
+
+        protected override void TestFixtureSetUp()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            base.TestFixtureSetUp();
+            _session = Session;
         }
 
         /// <summary>
@@ -26,7 +26,7 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void Append_ToList()
         {
-            Tuple<Table<EntityWithListType>, List<EntityWithListType>> tupleListType = EntityWithListType.SetupDefaultTable(_session);
+            Tuple<Table<EntityWithListType>, List<EntityWithListType>> tupleListType = EntityWithListType.SetupDefaultTable(Session);
             Table<EntityWithListType> table = tupleListType.Item1;
             List<EntityWithListType> expectedEntities = tupleListType.Item2;
 

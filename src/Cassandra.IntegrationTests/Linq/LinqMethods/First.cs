@@ -13,17 +13,17 @@ using NUnit.Framework.Constraints;
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
     [Category("short"), TestCassandraVersion(2,0)]
-    public class First : TestGlobals
+    public class First : SharedClusterTest
     {
         ISession _session = null;
         private List<Movie> _movieList = Movie.GetDefaultMovieList();
         private string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
         private Table<Movie> _movieTable;
-            
-        [SetUp]
-        public void SetupTest()
+
+        protected override void TestFixtureSetUp()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            base.TestFixtureSetUp();
+            _session = Session;
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
 
@@ -43,12 +43,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             while (DateTime.Now < futureDateTime && _movieTable.Count().Execute() < _movieList.Count)
                 Thread.Sleep(200);
             Assert.AreEqual(_movieList.Count(), _movieTable.Count().Execute(), "Setup failure: Expected number of records are not query-able");
-        }
-
-        [TearDown]
-        public void TeardownTest()
-        {
-            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         [Test]

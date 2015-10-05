@@ -11,24 +11,18 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Mapping.Tests
 {
     [Category("short")]
-    public class CqlClientConfig : TestGlobals
+    public class CqlClientConfig : SharedClusterTest
     {
         private ISession _session;
         string _uniqueKsName;
 
-        [SetUp]
-        public void SetupTest()
+        protected override void TestFixtureSetUp()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            base.TestFixtureSetUp();
+            _session = Session;
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
-        }
-
-        [TearDown]
-        public void TeardownTest()
-        {
-            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         /// <summary>
@@ -41,7 +35,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var config = new MappingConfiguration().Define(new ManyDataTypesPocoMappingCaseSensitive());
             var table = new Table<ManyDataTypesPoco>(_session, config);
             Assert.AreNotEqual(table.Name, table.Name.ToLower()); // make sure the case sensitivity rule is being used
-            table.Create();
+            table.CreateIfNotExists();
 
             var mapper = new Mapper(_session, config);
             var manyTypesInstance = ManyDataTypesPoco.GetRandomInstance();
@@ -61,7 +55,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         {
             var config = new MappingConfiguration().Define(new ManyDataTypesPocoMappingCaseSensitive());
             var table = new Table<ManyDataTypesPoco>(_session, config);
-            table.Create();
+            table.CreateIfNotExists();
 
             var mapper = new Mapper(_session, config);
             ManyDataTypesPoco manyTypesInstance = ManyDataTypesPoco.GetRandomInstance();
@@ -82,7 +76,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 .PartitionKey(c => c.StringType)
                 .CaseSensitive());
             var table = new Table<ManyDataTypesPoco>(_session, config);
-            table.Create();
+            table.CreateIfNotExists();
 
             var mapper = new Mapper(_session, config);
             ManyDataTypesPoco manyTypesInstance = ManyDataTypesPoco.GetRandomInstance();
@@ -101,7 +95,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         {
             var config = new MappingConfiguration().Define(new ManyDataTypesPocoMappingCaseSensitive());
             var table = new Table<ManyDataTypesPoco>(_session, config);
-            table.Create();
+            table.CreateIfNotExists();
 
             var mapper = new Mapper(_session, config);
             ManyDataTypesPoco manyTypesInstance = ManyDataTypesPoco.GetRandomInstance();
@@ -121,7 +115,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var config = new MappingConfiguration().Define(new Map<ManyDataTypesPoco>()
                 .PartitionKey(c => c.StringType));
             var table = new Table<ManyDataTypesPoco>(_session, config);
-            table.Create();
+            table.CreateIfNotExists();
 
             // validate default lower-casing
             Assert.AreNotEqual(typeof(ManyDataTypesPoco).Name.ToLower(), typeof(ManyDataTypesPoco).Name);

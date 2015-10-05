@@ -52,7 +52,7 @@ namespace Cassandra.IntegrationTests.Core
 
         private ITestCluster GetTestCcmClusterForAuthTests()
         {
-            var testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, false, false);
+            var testCluster = TestClusterManager.CreateNew(1, null, false);
             testCluster.UpdateConfig("authenticator: PasswordAuthenticator");
             testCluster.Start();
             return testCluster;
