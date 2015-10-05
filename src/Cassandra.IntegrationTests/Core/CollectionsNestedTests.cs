@@ -9,22 +9,12 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Core
 {
     [Category("short")]
-    public class CollectionsNestedTests : TestGlobals
+    public class CollectionsNestedTests : SharedClusterTest
     {
-        private string _contactPoint = DefaultInitialContactPoint;
-
-        [SetUp]
-        public void SetupFixture()
-        {
-            ITestCluster testCluster = TestClusterManager.GetTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
-            _contactPoint = testCluster.InitialContactPoint;
-            _contactPoint = DefaultInitialContactPoint;
-        }
-
         [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_Upsert()
         {
-            using (var session = Cluster.Builder().AddContactPoint(_contactPoint).Build().Connect())
+            using (var session = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build().Connect())
             {
                 string keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
                 string fqTableName = keyspaceName + "." + TestUtils.GetUniqueKeyspaceName().ToLower();
@@ -48,7 +38,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_Update()
         {
-            using (var session = Cluster.Builder().AddContactPoint(_contactPoint).Build().Connect())
+            using (var session = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build().Connect())
             {
                 string keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
                 string fqTableName = keyspaceName + "." + TestUtils.GetUniqueKeyspaceName().ToLower();
@@ -86,7 +76,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_Update_SpecificMapValByKey()
         {
-            using (var session = Cluster.Builder().AddContactPoint(_contactPoint).Build().Connect())
+            using (var session = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build().Connect())
             {
                 string keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
                 string fqTableName = keyspaceName + "." + TestUtils.GetUniqueKeyspaceName().ToLower();
@@ -122,7 +112,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_Upsert_IdFoundInSetPart()
         {
-            using (var session = Cluster.Builder().AddContactPoint(_contactPoint).Build().Connect())
+            using (var session = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build().Connect())
             {
                 string keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
                 string fqTableName = keyspaceName + "." + TestUtils.GetUniqueKeyspaceName().ToLower();
@@ -142,7 +132,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_SimpleStatements()
         {
-            using (var session = Cluster.Builder().AddContactPoint(_contactPoint).Build().Connect())
+            using (var session = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build().Connect())
             {
                 string keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
                 string fqTableName = keyspaceName + "." + TestUtils.GetUniqueKeyspaceName().ToLower();
@@ -165,7 +155,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_PreparedStatements()
         {
-            using (var session = Cluster.Builder().AddContactPoint(_contactPoint).Build().Connect())
+            using (var session = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build().Connect())
             {
                 string keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
                 string fqTableName = keyspaceName + "." + TestUtils.GetUniqueKeyspaceName().ToLower();
@@ -195,7 +185,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_PreparedStatements_ListWithNullValue()
         {
-            using (var session = Cluster.Builder().AddContactPoint(_contactPoint).Build().Connect())
+            using (var session = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build().Connect())
             {
                 string keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
                 string fqTableName = keyspaceName + "." + TestUtils.GetUniqueKeyspaceName().ToLower();
@@ -207,16 +197,15 @@ namespace Cassandra.IntegrationTests.Core
                 var list1Value = GetList1Val();
                 list1Value.Add(null);
 
-                // Validate Null Reference error is thrown
-                var err = Assert.Throws<NullReferenceException>(() => session.Execute(preparedStatement.Bind(1, map1Value, map2Value, list1Value)));
-                Assert.AreEqual("Object reference not set to an instance of an object.", err.Message);
+                var ex = Assert.Throws<ArgumentNullException>(() => session.Execute(preparedStatement.Bind(1, map1Value, map2Value, list1Value)));
+                StringAssert.Contains("not supported inside collections", ex.Message);
             }
         }
 
         [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_BatchStatements()
         {
-            using (var session = Cluster.Builder().AddContactPoint(_contactPoint).Build().Connect())
+            using (var session = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build().Connect())
             {
                 string keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
                 string fqTableName = keyspaceName + "." + TestUtils.GetUniqueKeyspaceName().ToLower();

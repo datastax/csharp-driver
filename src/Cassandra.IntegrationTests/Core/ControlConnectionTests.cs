@@ -18,9 +18,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestFixtureSetUp]
         public void SetupFixture()
         {
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
-            // Test ccm cluster without client
-            _testCluster = TestClusterManager.GetTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
+            _testCluster = TestClusterManager.CreateNew();
         }
 
         [Test]

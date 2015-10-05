@@ -63,23 +63,25 @@ namespace Cassandra.IntegrationTests.Core
         public void Encode_Map_With_NullValue_Should_Throw()
         {
             var id = Guid.NewGuid();
-            var insertQuery = Session.Prepare(string.Format("INSERT INTO {0} (id, map_sample) VALUES (?, ?)",
+            var localSession = GetNewSession(KeyspaceName);
+            var insertQuery = localSession.Prepare(string.Format("INSERT INTO {0} (id, map_sample) VALUES (?, ?)",
                 AllTypesTableName));
 
             var map = new SortedDictionary<string, string> { { "fruit", "apple" }, { "band", null } };
             var stmt = insertQuery.Bind(id, map);
-            Assert.Throws<ArgumentNullException>(() => Session.Execute(stmt));
+            Assert.Throws<ArgumentNullException>(() => localSession.Execute(stmt));
         }
 
         [Test]
         public void Encode_List_With_NullValue_Should_Throw()
         {
             var id = Guid.NewGuid();
-            var insertQuery = Session.Prepare(string.Format("INSERT INTO {0} (id, list_sample) VALUES (?, ?)",
+            var localSession = GetNewSession(KeyspaceName);
+            var insertQuery = localSession.Prepare(string.Format("INSERT INTO {0} (id, list_sample) VALUES (?, ?)",
                 AllTypesTableName));
             var map = new List<string> { "fruit", null };
             var stmt = insertQuery.Bind(id, map);
-            Assert.Throws<ArgumentNullException>(() => Session.Execute(stmt));
+            Assert.Throws<ArgumentNullException>(() => localSession.Execute(stmt));
         }
 
         public void CheckingOrderOfCollection(string CassandraCollectionType, Type TypeOfDataToBeInputed, Type TypeOfKeyForMap = null,string pendingMode = "")

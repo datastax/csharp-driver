@@ -9,17 +9,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         Builder Builder { get; set; }
         Cluster Cluster { get; set; }
         ISession Session { get; set; }
-        int Dc1NodeCount { get; set; }
-        int Dc2NodeCount { get; set; }
         string InitialContactPoint { get; set; }
         string ClusterIpPrefix { get; set; }
         string DefaultKeyspace { get; set; }
-        bool IsBeingCreated { get; set; }
-        bool IsCreated { get; set; }
-        bool IsStarted { get; set; }
-        bool IsUsingDefaultConfig { get; set; }
-        bool IsRemoved { get; set; }
-        List<string> ExpectedInitialHosts { get; set; }
 
         /// <summary>
         /// Stops all clients and Cassandra nodes.
@@ -32,14 +24,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         void Remove();
 
         /// <summary>
-        /// Waits for the cluster to be initialized and available to handle requests
+        /// Creates the cluster with the option provided
         /// </summary>
-        void SwitchToThisAndStart();
-
-        /// <summary>
-        /// Creates the cluster with the option of starting it as well
-        /// </summary>
-        void Create(bool startCluster = true, string[] jvmArgs = null, bool useSsl = false);
+        void Create(int nodeLength, TestClusterOptions options = null);
 
         /// <summary>
         /// Force Stop a specific node in the cluster
@@ -59,7 +46,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// <summary>
         /// Starts the cluster
         /// </summary>
-        void Start();
+        void Start(string[] jvmArgs = null);
 
         /// <summary>
         /// Updates the yaml config
@@ -99,13 +86,20 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// Resumes the node (SIGCONT) associated with provided node ID
         /// </summary>
         void ResumeNode(int nodeId);
+    }
 
-        /// <summary>
-        /// Puts focus on this cluster
-        /// This is relevant for CCM, all other tools should be a no-op
-        /// </summary>
-        void SwitchToThisCluster();
+    public class TestClusterOptions
+    {
+        public static readonly TestClusterOptions Default = new TestClusterOptions();
 
-        void UseVNodes(string nodesToPopulate);
+        public bool UseVNodes { get; set; }
+
+        public bool UseSsl { get; set; }
+
+        public string[] CassandraYaml { get; set; }
+
+        public int Dc2NodeLength { get; set; }
+
+        public string[] JvmArgs { get; set; }
     }
 }

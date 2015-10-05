@@ -85,9 +85,9 @@ namespace Cassandra.IntegrationTests.TestBase
         public static readonly string SELECT_ALL_FORMAT = "SELECT * FROM {0}";
         public static readonly string SELECT_WHERE_FORMAT = "SELECT * FROM {0} WHERE {1}";
 
-        public static string GetTestClusterNameBasedOnCurrentEpochTime()
+        public static string GetTestClusterNameBasedOnTime()
         {
-            return "test_cluster_" + (int) (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
+            return "test_" + (DateTimeOffset.UtcNow.Ticks / TimeSpan.TicksPerSecond);
         }
 
         public static string GetUniqueKeyspaceName()

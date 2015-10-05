@@ -95,7 +95,9 @@ namespace Cassandra
         internal void Init()
         {
             _logger.Info("Trying to connect the ControlConnection");
-            TaskHelper.WaitToComplete(Connect(true), _config.SocketOptions.ConnectTimeoutMillis);
+            //Only abort when twice the time for ConnectTimeout per host passed
+            var initialAbortTimeout = _config.SocketOptions.ConnectTimeoutMillis * 2 * Metadata.Hosts.Count;
+            TaskHelper.WaitToComplete(Connect(true), initialAbortTimeout);
             try
             {
                 SubscribeEventHandlers();
@@ -134,7 +136,7 @@ namespace Cassandra
             var available = hostsEnumerator.MoveNext();
             if (!available)
             {
-                throw new NoHostAvailableException(triedHosts);
+                return TaskHelper.FromException<bool>(new NoHostAvailableException(triedHosts));
             }
             var host = hostsEnumerator.Current;
             var c = new Connection(ProtocolVersion, host.Address, _config);

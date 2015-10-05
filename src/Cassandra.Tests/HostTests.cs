@@ -22,7 +22,7 @@ namespace Cassandra.Tests
             TestHelper.ParallelInvoke(() =>
             {
                 host.SetDown();
-            }, 20);
+            }, 5);
             //Should call the Schedule#NextDelayMs()
             Assert.AreEqual(1, policy.CallsCount);
             //SetDown should do nothing as the time has not passed
@@ -34,7 +34,7 @@ namespace Cassandra.Tests
             TestHelper.ParallelInvoke(() =>
             {
                 host.SetDown();
-            }, 20);
+            }, 5);
             Assert.AreEqual(2, policy.CallsCount);
         }
 

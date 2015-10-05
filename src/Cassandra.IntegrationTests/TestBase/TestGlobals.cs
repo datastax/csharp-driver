@@ -36,37 +36,19 @@ namespace Cassandra.IntegrationTests.TestBase
         public const string DefaultInitialContactPoint = DefaultLocalIpPrefix + "1";
         public const int ClusterInitSleepMsPerIteration = 500;
         public const int ClusterInitSleepMsMax = 60 * 1000;
-        // Make current default test cluster name unique
-        public const string DefaultKeyspaceName = "test_cluster_keyspace";
 
         private static TestClusterManager _clusterManager;
         private static bool _clusterManagerIsInitializing;
         private static bool _clusterManagerIsInitalized;
 
-        [Option('c', "cassandra-version",
-            HelpText = "CCM Cassandra Version.", DefaultValue = "2.1.0" )]
-        public string CassandraVersionStr { get; set; }
+        public string CassandraVersionStr 
+        {
+            get { return TestClusterManager.CassandraVersionText; }
+        }
 
         public Version CassandraVersion
         {
-            get
-            {
-                int mayor = 0, minor = 0, build = 0;
-                if (this.CassandraVersionStr != null)
-                {
-                    var versionParts = this.CassandraVersionStr.Split('.');
-                    if (versionParts.Length >= 2)
-                    {
-                        mayor = Convert.ToInt32(versionParts[0]);
-                        minor = Convert.ToInt32(versionParts[1]);
-                        if (versionParts.Length == 3)
-                        {
-                            int.TryParse(versionParts[2], out build);
-                        }
-                    }
-                }
-                return new Version(mayor, minor, build);
-            }
+            get { return TestClusterManager.CassandraVersion; }
         }
 
         [Option("use-ctool",
@@ -114,8 +96,6 @@ namespace Cassandra.IntegrationTests.TestBase
         {
             if (ConfigurationManager.AppSettings.Count > 0)
             {
-                //Load the values from configuration
-                CassandraVersionStr = ConfigurationManager.AppSettings["CassandraVersion"] ?? CassandraVersionStr;
                 DefaultIpPrefix = ConfigurationManager.AppSettings["DefaultIpPrefix"] ?? this.DefaultIpPrefix;
                 LogLevel = ConfigurationManager.AppSettings["LogLevel"] ?? this.LogLevel;
 
@@ -129,10 +109,6 @@ namespace Cassandra.IntegrationTests.TestBase
                     SSHPort = Convert.ToInt32(ConfigurationManager.AppSettings["SSHPort"]);
 
                 SSHUser = ConfigurationManager.AppSettings["SSHUser"] ?? this.SSHUser;
-
-                bool useCtoolParsed;
-                Boolean.TryParse(ConfigurationManager.AppSettings["UseCtool"], out useCtoolParsed);
-                UseCtool = useCtoolParsed;
             }
 
         }
