@@ -13,7 +13,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
     public class UpdateIfTests : SharedClusterTest
     {
         private ISession _session;
-        private ICluster _cluster;
         private Table<Movie> _movieTable;
 
         protected override void TestFixtureSetUp()

@@ -16,7 +16,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
     public class InsertTests : SharedClusterTest
     {
         private ISession _session;
-        private ICluster _cluster;
         string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
         private Table<Movie> _movieTable;
 
