@@ -54,7 +54,7 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.IsInstanceOf<Guid>(boxedValue);
                 Assert.AreEqual(resultTimeUuidValue, (TimeUuid)(Guid)boxedValue);
                 //The precision is lost, up to milliseconds is fine
-                Assert.AreEqual(timeUuid.GetDate().ToString(format), row.GetValue<DateTimeOffset>("dateOf(timeuuid_sample)").ToString(format));
+                Assert.AreEqual(timeUuid.GetDate().ToString(format), row.GetValue<DateTimeOffset>(2).ToString(format));
             }
         }
 
