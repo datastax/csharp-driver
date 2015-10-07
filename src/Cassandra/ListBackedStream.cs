@@ -29,7 +29,7 @@ namespace Cassandra
     /// </summary>
     internal class ListBackedStream : Stream
     {
-        private ushort _listIndexPosition;
+        private int _listIndexPosition;
         private int _listBytePosition;
         private long _position;
 
