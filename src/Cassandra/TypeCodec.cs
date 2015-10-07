@@ -23,6 +23,7 @@ using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace Cassandra
 {
@@ -1008,7 +1009,11 @@ namespace Cassandra
 
         public static object DecodeDouble(int protocolVersion, IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
-            return BitConverter.ToDouble(new [] { value[7], value[6], value[5], value[4], value[3], value[2], value[1], value[0] }, 0);
+            if (value.Length < 8)
+                throw new ArgumentException("Specified array is too small", "value");
+
+            var converter = new DoubleConverter(value[7], value[6], value[5], value[4], value[3], value[2], value[1], value[0]);
+            return converter.DoubleValue;
         }
 
         public static byte[] EncodeDouble(int protocolVersion, IColumnInfo typeInfo, object value)
@@ -1087,9 +1092,11 @@ namespace Cassandra
 
         public static object DecodeFloat(int protocolVersion, IColumnInfo typeInfo, byte[] value, Type cSharpType)
         {
-            var buffer = (byte[]) value.Clone();
-            Array.Reverse(buffer);
-            return BitConverter.ToSingle(buffer, 0);
+            if (value.Length < 4)
+                throw new ArgumentException("Specified array is too small", "value");
+
+            var converter = new FloatConverter(value[3], value[2], value[1], value[0]);
+            return converter.FloatValue;
         }
 
         public static byte[] EncodeFloat(int protocolVersion, IColumnInfo typeInfo, object value)
@@ -1606,6 +1613,66 @@ namespace Cassandra
                 return value is IDictionary;
             }
             return true;
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        private struct DoubleConverter
+        {
+            [FieldOffset(0)]
+            public byte B1;
+            [FieldOffset(1)]
+            public byte B2;
+            [FieldOffset(2)]
+            public byte B3;
+            [FieldOffset(3)]
+            public byte B4;
+            [FieldOffset(4)]
+            public byte B5;
+            [FieldOffset(5)]
+            public byte B6;
+            [FieldOffset(6)]
+            public byte B7;
+            [FieldOffset(7)]
+            public byte B8;
+
+            [FieldOffset(0)]
+            public double DoubleValue;
+
+            public DoubleConverter(byte b1, byte b2, byte b3, byte b4, byte b5, byte b6, byte b7, byte b8) : this()
+            {
+                B1 = b1;
+                B2 = b2;
+                B3 = b3;
+                B4 = b4;
+                B5 = b5;
+                B6 = b6;
+                B7 = b7;
+                B8 = b8;
+            }
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        private struct FloatConverter
+        {
+            [FieldOffset(0)]
+            public byte B1;
+            [FieldOffset(1)]
+            public byte B2;
+            [FieldOffset(2)]
+            public byte B3;
+            [FieldOffset(3)]
+            public byte B4;
+
+            [FieldOffset(0)]
+            public float FloatValue;
+
+            public FloatConverter(byte b1, byte b2, byte b3, byte b4) : this()
+            {
+                B1 = b1;
+                B2 = b2;
+                B3 = b3;
+                B4 = b4;
+            }
         }
     }
 }
