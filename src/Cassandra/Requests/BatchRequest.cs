@@ -93,8 +93,6 @@ namespace Cassandra
                 wb.WriteBytesMap(Payload);
             }
             wb.WriteByte((byte) _type);
-            //TODO: it needs range check and throwing an early exception instead of sending a corrupted frame.
-            //It would be much more better if BatchStatement would throw an exception if statement count reaches the limit
             wb.WriteInt16((short) _requests.Count);
             foreach (var br in _requests)
             {
