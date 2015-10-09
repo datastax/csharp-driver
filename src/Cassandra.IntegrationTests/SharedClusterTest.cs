@@ -24,6 +24,11 @@ namespace Cassandra.IntegrationTests
         protected int AmountOfNodes { get; private set; }
 
         /// <summary>
+        /// Determines if an ISession needs to be created to share during the lifetime of this instance
+        /// </summary>
+        protected bool CreateSession { get; set; }
+
+        /// <summary>
         /// Gets the Cassandra cluster that is used for testing
         /// </summary>
         protected ITestCluster TestCluster { get; private set; }
@@ -43,26 +48,33 @@ namespace Cassandra.IntegrationTests
         /// </summary>
         protected string KeyspaceName { get; set; }
 
-        protected SharedClusterTest(int amountOfNodes = 1)
+        protected SharedClusterTest(int amountOfNodes = 1, bool createSession = true)
         {
             AmountOfNodes = amountOfNodes;
             KeyspaceName = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
+            CreateSession = createSession;
         }
 
         [TestFixtureSetUp]
         protected virtual void TestFixtureSetUp()
         {
-            TestCluster = TestClusterManager.GetTestCluster(AmountOfNodes, DefaultMaxClusterCreateRetries, true, false);
-            Cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build();
-            Session = (Session) Cluster.Connect();
-            Session.CreateKeyspace(KeyspaceName, null, false);
-            Session.ChangeKeyspace(KeyspaceName);
+            TestCluster = TestClusterManager.CreateNew(AmountOfNodes);
+            if (CreateSession)
+            {
+                Cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build();
+                Session = (Session)Cluster.Connect();
+                Session.CreateKeyspace(KeyspaceName, null, false);
+                Session.ChangeKeyspace(KeyspaceName);   
+            }
         }
 
         [TestFixtureTearDown]
         protected virtual void TestFixtureTearDown()
         {
-            Cluster.Shutdown(1000);
+            if (Cluster != null)
+            {
+                Cluster.Shutdown(1000);   
+            }
             //Shutdown the other instances created by helper methods
             foreach (var c in _clusterInstances)
             {

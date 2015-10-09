@@ -401,6 +401,12 @@ namespace Cassandra
                                 throw new UnsupportedProtocolVersionException(ProtocolVersion, ex);
                             }
                         }
+                        if (ex is ServerErrorException && ProtocolVersion >= 3 && ex.Message.Contains("ProtocolException: Invalid or unsupported protocol version"))
+                        {
+                            //For some versions of Cassandra, the error is wrapped into a server error
+                            //See CASSANDRA-9451
+                            throw new UnsupportedProtocolVersionException(ProtocolVersion, ex);
+                        }
                         throw ex;
                     }
                     return t.Result;

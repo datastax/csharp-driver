@@ -63,7 +63,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         public void AssertEquals(EntityWithListType actualEntity)
         {
             Assert.AreEqual(Id, actualEntity.Id);
-            Assert.AreEqual(ListType, actualEntity.ListType);
+            CollectionAssert.AreEquivalent(ListType, actualEntity.ListType);
         }
     }
 }

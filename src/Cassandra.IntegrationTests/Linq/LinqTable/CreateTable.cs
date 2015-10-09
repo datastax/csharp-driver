@@ -29,26 +29,18 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Linq.LinqTable
 {
     [Category("short")]
-    public class CreateTable : TestGlobals
+    public class CreateTable : SharedClusterTest
     {
         ISession _session;
-        private ITestCluster _testCluster;
         string _uniqueKsName;
 
-        [SetUp]
-        public void SetupTest()
+        protected override void TestFixtureSetUp()
         {
-            _testCluster = TestClusterManager.GetTestCluster(1);
-            _session = _testCluster.Session;
+            base.TestFixtureSetUp();
+            _session = Session;
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
-        }
-
-        [TearDown]
-        public void TeardownTest()
-        {
-            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         /// <summary>
@@ -99,19 +91,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_CreateTable_AlreadyExists()
         {
-            // Test
-            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
-            TableAttribute tableAttribute = (TableAttribute)Attribute.GetCustomAttribute(typeof(AllDataTypesEntity), typeof(TableAttribute));
+            var config = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName("tbl_already_exists_1").PartitionKey(a => a.TimeUuidType));
+            var table = new Table<AllDataTypesEntity>(_session, config);
             table.Create();
-            try
-            {
-                table.Create();
-                Assert.Fail("Expected Exception was not thrown!");
-            }
-            catch (AlreadyExistsException e)
-            {
-                Assert.AreEqual(string.Format("Table {0}.{1} already exists", _uniqueKsName, tableAttribute.Name), e.Message);
-            }
+            Assert.Throws<AlreadyExistsException>(() => table.Create());
         }
 
         /// <summary>
@@ -122,7 +105,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         public void TableCreate_CreateTable_SameNameDifferentTypeAlreadyExists()
         {
             // First table name creation works as expected
-            string staticTableName = "staticTableName";
+            const string staticTableName = "staticTableName_1";
             var mappingConfig1 = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(staticTableName).CaseSensitive().PartitionKey(c => c.StringType));
             Table<AllDataTypesEntity> allDataTypesTable = new Table<AllDataTypesEntity>(_session, mappingConfig1);
             allDataTypesTable.Create();
@@ -130,15 +113,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             // Second creation attempt with same table name should fail
             var mappingConfig2 = new MappingConfiguration().Define(new Map<Movie>().TableName(staticTableName).CaseSensitive().PartitionKey(c => c.Title));
             Table<Movie> movieTable = new Table<Movie>(_session, mappingConfig2);
-            try
-            {
-                movieTable.Create();
-                Assert.Fail("Expected Exception was not thrown!");
-            }
-            catch (AlreadyExistsException e)
-            {
-                Assert.AreEqual(string.Format("Table {0}.{1} already exists", _uniqueKsName, staticTableName), e.Message);
-            }
+            Assert.Throws<AlreadyExistsException>(() => movieTable.Create());
         }
 
         /// <summary>
@@ -150,69 +125,14 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         public void TableCreate_CreateTable_SameNameDifferentTypeAlreadyExists_TableNameOverride()
         {
             // First table name creation works as expected
-            string staticTableName = "staticTableName";
+            const string staticTableName = "staticTableName_2";
             var mappingConfig = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(staticTableName).CaseSensitive().PartitionKey(c => c.StringType));
             Table<AllDataTypesEntity> allDataTypesTable = new Table<AllDataTypesEntity>(_session, mappingConfig);
             allDataTypesTable.Create();
 
             // Second creation attempt with same table name should fail
             Table<Movie> movieTable = new Table<Movie>(_session, new MappingConfiguration(), staticTableName);
-            try
-            {
-                movieTable.Create();
-                Assert.Fail("Expected Exception was not thrown!");
-            }
-            catch (AlreadyExistsException e)
-            {
-                Assert.AreEqual(string.Format("Table {0}.{1} already exists", _uniqueKsName, staticTableName), e.Message);
-            }
-        }
-
-        /// <summary>
-        /// Successfully create two tables of the same type in the same keyspace, but with different names
-        /// </summary>
-        [Test, TestCassandraVersion(2, 0)]
-        public void TableCreate_Create_TwoTablesWithSameMappedType_DifferentNames()
-        {
-            // Create First Table
-            string uniqueTableName1 = TestUtils.GetUniqueTableName();
-            var mappingConfig1 = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(uniqueTableName1).CaseSensitive().PartitionKey(c => c.StringType));
-            Table<AllDataTypesEntity> allDataTypesTable1 = new Table<AllDataTypesEntity>(_session, mappingConfig1);
-            allDataTypesTable1.Create();
-            Assert.IsTrue((TestUtils.TableExists(_session, _uniqueKsName, uniqueTableName1)));
-            WriteReadValidate(allDataTypesTable1);
-            Assert.AreEqual(uniqueTableName1, allDataTypesTable1.Name);
-
-            // Create Second Table
-            string uniqueTableName2 = TestUtils.GetUniqueTableName();
-            var mappingConfig2 = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(uniqueTableName2).CaseSensitive().PartitionKey(c => c.StringType));
-            Table<AllDataTypesEntity> allDataTypesTable2 = new Table<AllDataTypesEntity>(_session, mappingConfig2);
-            allDataTypesTable2.Create();
-            Assert.IsTrue((TestUtils.TableExists(_session, _uniqueKsName, uniqueTableName2)));
-            WriteReadValidate(allDataTypesTable2);
-            Assert.AreEqual(uniqueTableName2, allDataTypesTable2.Name);
-
-            Assert.AreNotEqual(allDataTypesTable1.Name, allDataTypesTable2.Name);
-        }
-
-        /// <summary>
-        /// Successfully re-create a recently deleted table using the method Create, 
-        /// all using the same Session instance
-        /// </summary>
-        [Test, TestCassandraVersion(2, 0)]
-        public void TableCreate_ReCreateTableAfterDropping()
-        {
-            // Setup
-            TableAttribute tableAttribute = (TableAttribute)Attribute.GetCustomAttribute(typeof(AllDataTypesEntity), typeof(TableAttribute));
-            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
-
-            // Create then delete then cre-create the table
-            table.Create();
-            Assert.IsTrue(TestUtils.TableExists(_session, _uniqueKsName, tableAttribute.Name));
-            _session.Execute(string.Format("DROP TABLE \"{0}\".\"{1}\"", _uniqueKsName, tableAttribute.Name));
-            Assert.IsFalse(TestUtils.TableExists(_session, _uniqueKsName, tableAttribute.Name));
-            table.Create();
-            Assert.IsTrue(TestUtils.TableExists(_session, _uniqueKsName, tableAttribute.Name));
+            Assert.Throws<AlreadyExistsException>(() => movieTable.Create());
         }
 
         /// <summary>
@@ -263,75 +183,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
 
         /// <summary>
         /// Successfully create two tables with the same name in two different keyspaces using the method Create
-        /// </summary>
-        [Test, TestCassandraVersion(2, 0)]
-        public void TableCreate_Create_TwoTablesSameName_TwoDifferentKeyspaces_ChangeKeyspaces()
-        {
-            Table<AllDataTypesEntity> table1 = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
-            table1.Create();
-            WriteReadValidate(table1);
-
-            // Create in second keyspace
-            string newUniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            _session.CreateKeyspace(newUniqueKsName);
-            _session.ChangeKeyspace(newUniqueKsName);
-
-            Table<AllDataTypesEntity> table2 = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
-            //Assert.AreNotEqual(table1.KeyspaceName, table2.KeyspaceName); // KeyspaceName is not being assigned, this may not be correct
-            Assert.AreEqual(table1.Name, table2.Name);
-            table2.Create();
-            WriteReadValidate(table2);
-        }
-
-        /// <summary>
-        /// Successfully create two tables with the same name in two different keyspaces using the method CreateIfNotExists,
-        /// referencing different keyspaces using ChangeKeyspace in the session
-        /// </summary>
-        [Test, TestCassandraVersion(2, 0)]
-        public void TableCreate_CreateIfNotExists_TwoTablesSameName_TwoDifferentKeyspaces_ChangeKeyspace()
-        {
-            Table<AllDataTypesEntity> table1 = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
-            table1.CreateIfNotExists();
-            WriteReadValidate(table1);
-
-            // Create in second keyspace
-            string newUniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            _session.CreateKeyspace(newUniqueKsName);
-            _session.ChangeKeyspace(newUniqueKsName);
-
-            Table<AllDataTypesEntity> table2 = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
-            //Assert.AreNotEqual(table1.KeyspaceName, table2.KeyspaceName); // KeyspaceName is not being assigned, this may not be correct
-            Assert.AreEqual(table1.Name, table2.Name);
-            table2.CreateIfNotExists();
-            WriteReadValidate(table2);
-        }
-
-        /// <summary>
-        /// Successfully create two tables with different names in two different keyspaces using the method CreateIfNotExists,
-        /// referencing second keyspace by passing in the override arg to table constructor
-        /// </summary>
-        [Test, TestCassandraVersion(2, 0)]
-        public void TableCreate_CreateIfNotExists_TwoTablesDifferentNames_TwoKeyspacesDifferentNames_KeyspaceOverride()
-        {
-            // Setup first table
-            string tableName = typeof(AllDataTypesEntity).Name;
-            var mappingConfig = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(tableName).CaseSensitive().PartitionKey(c => c.StringType));
-            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, mappingConfig);
-            table.CreateIfNotExists();
-            WriteReadValidate(table);
-
-            // Create second table with same name in second keyspace
-            string newUniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            string newUniqueTableName = TestUtils.GetUniqueTableName();
-            mappingConfig = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(newUniqueTableName).CaseSensitive().PartitionKey(c => c.StringType));
-            _session.CreateKeyspace(newUniqueKsName);
-            Table<AllDataTypesEntity> table2 = new Table<AllDataTypesEntity>(_session, mappingConfig, newUniqueTableName, newUniqueKsName);
-            table2.CreateIfNotExists();
-            WriteReadValidate(table2);
-        }
-
-        /// <summary>
-        /// Successfully create two tables with the same name in two different keyspaces using the method Create
         /// Do not manually change the session to use the different keyspace
         /// </summary>
         [Test, TestCassandraVersion(2, 0)]
@@ -359,112 +210,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             WriteReadValidate(table1);
             _session.ChangeKeyspace(newUniqueKsName);
             WriteReadValidate(table2);
-        }
-
-
-        /// <summary>
-        /// Successfully create two tables with the same name in two different keyspaces using the method CreateIfNotExists,
-        /// referencing second keyspace by passing in the override arg to table constructor
-        /// </summary>
-        [Test, TestCassandraVersion(2, 0)]
-        public void TableCreate_CreateIfNotExists_TwoTablesSameName_TwoKeyspacesDifferentNames_KeyspaceOverride()
-        {
-            // Setup first table
-            string sharedTableName = typeof (AllDataTypesEntity).Name;
-            var mappingConfig = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(sharedTableName).CaseSensitive().PartitionKey(c => c.StringType));
-            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, mappingConfig);
-            table.CreateIfNotExists();
-            Assert.IsTrue(TestUtils.TableExists(_session, _uniqueKsName, sharedTableName)); 
-            WriteReadValidate(table);
-
-            // Create second table with same name in new keyspace
-            string newUniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            _session.CreateKeyspace(newUniqueKsName);
-            Assert.AreNotEqual(_uniqueKsName, newUniqueKsName);
-            Table<AllDataTypesEntity> table2 = new Table<AllDataTypesEntity>(_session, mappingConfig, sharedTableName, newUniqueKsName);
-            table2.CreateIfNotExists();
-            Assert.IsTrue(TestUtils.TableExists(_session, newUniqueKsName, sharedTableName)); 
-            WriteReadValidate(table2);
-        }
-
-        /// <summary>
-        /// Successfully create a table that contains no column meta data using the method Create
-        /// Validate the state of the table in C* after it's created
-        /// </summary>
-        [Test, TestCassandraVersion(2, 0)]
-        public void TableCreate_Create_EntityTypeWithColumnNameMeta()
-        {
-            // Test
-            MappingConfiguration mappingConfig = new MappingConfiguration();
-            mappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(AllDataTypesEntity),
-                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(AllDataTypesEntity)));
-            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, mappingConfig);
-            table.Create();
-            AllDataTypesEntity expectedAllDataTypesEntityNoColumnMetaEntity = WriteReadValidate(table);
-
-            // Do regular CQL query, validate that correct columns names are available as RowSet keys
-            string cql = string.Format("Select * from \"{0}\".\"{1}\" where \"{2}\"='{3}'", _uniqueKsName, table.Name, "string_type",
-                expectedAllDataTypesEntityNoColumnMetaEntity.StringType);
-            List<Row> listOfAllDataTypesObjects = _session.Execute(cql).GetRows().ToList();
-            Assert.AreEqual(1, listOfAllDataTypesObjects.Count);
-            Row row = listOfAllDataTypesObjects[0];
-            Assert.AreEqual(expectedAllDataTypesEntityNoColumnMetaEntity.BooleanType, row["boolean_type"]);
-            Assert.AreEqual(expectedAllDataTypesEntityNoColumnMetaEntity.DateTimeOffsetType.ToString(), ((DateTimeOffset)row["date_time_offset_type"]).ToString());
-            Assert.AreEqual(expectedAllDataTypesEntityNoColumnMetaEntity.DateTimeType.ToString("US"), ((DateTimeOffset)row["date_time_type"]).ToString("US"));
-            Assert.AreEqual(expectedAllDataTypesEntityNoColumnMetaEntity.DecimalType, row["decimal_type"]);
-            Assert.AreEqual(expectedAllDataTypesEntityNoColumnMetaEntity.DictionaryStringLongType, row["map_type_string_long_type"]);
-            Assert.AreEqual(expectedAllDataTypesEntityNoColumnMetaEntity.DictionaryStringStringType, row["map_type_string_string_type"]);
-            Assert.AreEqual(expectedAllDataTypesEntityNoColumnMetaEntity.DoubleType, row["double_type"]);
-            Assert.AreEqual(expectedAllDataTypesEntityNoColumnMetaEntity.FloatType, row["float_type"]);
-            Assert.AreEqual(expectedAllDataTypesEntityNoColumnMetaEntity.GuidType, row["guid_type"]);
-            Assert.AreEqual(expectedAllDataTypesEntityNoColumnMetaEntity.Int64Type, row["int64_type"]);
-            Assert.AreEqual(expectedAllDataTypesEntityNoColumnMetaEntity.IntType, row["int_type"]);
-            Assert.AreEqual(expectedAllDataTypesEntityNoColumnMetaEntity.ListOfGuidsType, row["list_of_guids_type"]);
-            Assert.AreEqual(expectedAllDataTypesEntityNoColumnMetaEntity.ListOfStringsType, row["list_of_strings_type"]);
-            Assert.AreEqual(expectedAllDataTypesEntityNoColumnMetaEntity.NullableIntType, row["nullable_int_type"]);
-            Assert.AreEqual(expectedAllDataTypesEntityNoColumnMetaEntity.NullableTimeUuidType, row["nullable_time_uuid_type"]);
-            Assert.AreEqual(expectedAllDataTypesEntityNoColumnMetaEntity.StringType, row["string_type"]);
-            Assert.AreEqual(expectedAllDataTypesEntityNoColumnMetaEntity.TimeUuidType.ToGuid(), (Guid)row["time_uuid_type"]);
-        }
-
-        /// <summary>
-        /// Successfully create a table that contains no column meta data using the method Create
-        /// Validate the state of the table in C* after it's created
-        /// </summary>
-        [Test, TestCassandraVersion(2, 0)]
-        public void TableCreate_Create_EntityTypeWithoutColumnNameMeta()
-        {
-            // Test
-            MappingConfiguration mappingConfig = new MappingConfiguration();
-            mappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(AllDataTypesNoColumnMeta),
-                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(AllDataTypesNoColumnMeta)));
-            Table<AllDataTypesNoColumnMeta> table = new Table<AllDataTypesNoColumnMeta>(_session, mappingConfig);
-            table.Create();
-            AllDataTypesNoColumnMeta expectedAllDataTypesNoColumnMetaEntity = WriteReadValidate(table);
-
-            // Do regular CQL query, validate that correct columns names are available as RowSet keys
-            string cql = string.Format("Select * from \"{0}\".\"{1}\" where \"{2}\"='{3}'", _uniqueKsName, table.Name, "StringType",
-                expectedAllDataTypesNoColumnMetaEntity.StringType);
-            List<Row> listOfAllDataTypesObjects = _session.Execute(cql).GetRows().ToList();
-            Assert.AreEqual(1, listOfAllDataTypesObjects.Count);
-            Row row = listOfAllDataTypesObjects[0];
-            Assert.AreEqual(expectedAllDataTypesNoColumnMetaEntity.BooleanType, row["BooleanType"]);
-            Assert.AreEqual(expectedAllDataTypesNoColumnMetaEntity.DateTimeOffsetType.ToString(), ((DateTimeOffset)row["DateTimeOffsetType"]).ToString());
-            Assert.AreEqual(expectedAllDataTypesNoColumnMetaEntity.DateTimeType.ToString("US"), ((DateTimeOffset)row["DateTimeType"]).ToString("US"));
-            Assert.AreEqual(expectedAllDataTypesNoColumnMetaEntity.DecimalType, row["DecimalType"]);
-            Assert.AreEqual(expectedAllDataTypesNoColumnMetaEntity.DictionaryStringLongType, row["DictionaryStringLongType"]);
-            Assert.AreEqual(expectedAllDataTypesNoColumnMetaEntity.DictionaryStringStringType, row["DictionaryStringStringType"]);
-            Assert.AreEqual(expectedAllDataTypesNoColumnMetaEntity.DoubleType, row["DoubleType"]);
-            Assert.AreEqual(expectedAllDataTypesNoColumnMetaEntity.FloatType, row["FloatType"]);
-            Assert.AreEqual(expectedAllDataTypesNoColumnMetaEntity.GuidType, row["GuidType"]);
-            Assert.AreEqual(expectedAllDataTypesNoColumnMetaEntity.Int64Type, row["Int64Type"]);
-            Assert.AreEqual(expectedAllDataTypesNoColumnMetaEntity.IntType, row["IntType"]);
-            Assert.AreEqual(expectedAllDataTypesNoColumnMetaEntity.ListOfGuidsType, row["ListOfGuidsType"]);
-            Assert.AreEqual(expectedAllDataTypesNoColumnMetaEntity.ListOfStringsType, row["ListOfStringsType"]);
-            Assert.AreEqual(expectedAllDataTypesNoColumnMetaEntity.NullableIntType, row["NullableIntType"]);
-            Assert.AreEqual(expectedAllDataTypesNoColumnMetaEntity.NullableTimeUuidType, row["NullableTimeUuidType"]);
-            Assert.AreEqual(expectedAllDataTypesNoColumnMetaEntity.StringType, row["StringType"]);
-            Assert.AreEqual(expectedAllDataTypesNoColumnMetaEntity.TimeUuidType.ToGuid(), (Guid)row["TimeUuidType"]);
         }
 
         /// <summary>

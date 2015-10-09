@@ -9,16 +9,16 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
     [Category("short")]
-    public class Count : TestGlobals
+    public class Count : SharedClusterTest
     {
-        ISession _session = null;
+        ISession _session;
         private List<AllDataTypesEntity> _entityList = AllDataTypesEntity.GetDefaultAllDataTypesList();
-        string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
+        private readonly string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
 
         [SetUp]
         public void SetupTest()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            _session = Session;
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
 

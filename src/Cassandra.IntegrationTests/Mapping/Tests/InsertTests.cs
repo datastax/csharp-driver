@@ -27,27 +27,23 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Mapping.Tests
 {
     [Category("short")]
-    public class InsertTests : TestGlobals
+    public class InsertTests : SharedClusterTest
     {
         private ISession _session;
-        private ICluster _cluster;
         private string _uniqueKsName;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        protected override void TestFixtureSetUp()
         {
-            var testCluster = TestClusterManager.GetTestCluster(1);
-            _cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build();
-            _session = _cluster.Connect();
+            base.TestFixtureSetUp();
+            _session = Session;
+        }
+
+        [SetUp]
+        public void TestSetup()
+        {
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
-        }
-
-        [TestFixtureTearDown]
-        public void TestFixtureTearDown()
-        {
-            _cluster.Shutdown();
         }
 
         /// <summary>
@@ -197,22 +193,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 lowercaseclassnamepklowercase privateClassInstance = new lowercaseclassnamepklowercase();
                 Assert.Throws<UnavailableException>(() => mapper.Insert(privateClassInstance, new CqlQueryOptions().SetConsistencyLevel(consistencyLevel)));
             }
-        }
-
-        /// <summary>
-        /// Successfully insert a new record into a table that was created with fluent mapping,
-        /// including a consistency level that one greater than the current node count
-        /// </summary>
-        [Test]
-        public void Insert_WithConsistency_OneMoreCopyThanNodeCount()
-        {
-            // Setup
-            var mappingConfig =
-                new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().PartitionKey(c => c.somepartitionkey).CaseSensitive());
-            // Insert the data
-            lowercaseclassnamepklowercase privateClassInstance = new lowercaseclassnamepklowercase();
-            var mapper = new Mapper(_session, mappingConfig);
-            Assert.Throws<UnavailableException>(() => mapper.Insert(privateClassInstance, new CqlQueryOptions().SetConsistencyLevel(ConsistencyLevel.Two)));
         }
 
         /// <summary>
@@ -373,31 +353,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             List<Row> rows = _session.Execute(cqlLowerCasePartitionKey).GetRows().ToList();
             Assert.AreEqual(1, rows.Count);
             Assert.AreEqual(defaultPocoInstance.SomePartitionKey, rows[0].GetValue<string>("somepartitionkey"));
-        }
-
-        [Test]
-        public void Insert_TableNameLowerCase_PartitionKeyLowerCase()
-        {
-            var tableName = TestUtils.GetUniqueTableName().ToLowerInvariant();
-            var mappingConfig = new MappingConfiguration().Define(new Map<lowercaseclassnamepklowercase>().TableName(tableName).PartitionKey(c => c.somepartitionkey));
-            Table<lowercaseclassnamepklowercase> table = new Table<lowercaseclassnamepklowercase>(_session, mappingConfig);
-            table.Create();
-
-            var cqlClient = new Mapper(_session, new MappingConfiguration());
-            lowercaseclassnamepklowercase defaultPocoInstance = new lowercaseclassnamepklowercase();
-
-            cqlClient.Insert(defaultPocoInstance);
-            List<lowercaseclassnamepklowercase> instancesQueried = cqlClient.Fetch<lowercaseclassnamepklowercase>().ToList();
-            Assert.AreEqual(1, instancesQueried.Count);
-            lowercaseclassnamepklowercase defaultInstance = new lowercaseclassnamepklowercase();
-            Assert.AreEqual(defaultInstance.somepartitionkey, instancesQueried[0].somepartitionkey);
-
-            // using standard cql
-            string cqlLowerCasePartitionKey = "SELECT * from " + typeof(lowercaseclassnamepklowercase).Name + " where \"somepartitionkey\" = '" + defaultPocoInstance.somepartitionkey + "'";
-            List<Row> rows = _session.Execute(cqlLowerCasePartitionKey).GetRows().ToList();
-            Assert.AreEqual(1, rows.Count);
-            Assert.AreEqual(defaultPocoInstance.somepartitionkey, rows[0].GetValue<string>("somepartitionkey"));
-
         }
 
         /// <summary>

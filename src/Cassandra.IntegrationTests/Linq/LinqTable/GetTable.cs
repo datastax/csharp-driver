@@ -11,41 +11,32 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Linq.LinqTable
 {
     /// <summary>
-    /// NOTE: The GetTable() method is deprecated.  These tests may need to be removed.
+    /// NOTE: The GetTable() method is deprecated.
     /// </summary>
     [Category("short")]
-    public class GetTable : TestGlobals
+    public class GetTable : SharedClusterTest
     {
-        private ISession _session;
         string _uniqueKsName;
 
-        [SetUp]
-        public void SetupTest()
+        protected override void TestFixtureSetUp()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            base.TestFixtureSetUp();
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            _session.CreateKeyspace(_uniqueKsName);
-            TestUtils.WaitForSchemaAgreement(_session.Cluster);
-            _session.ChangeKeyspace(_uniqueKsName);
-        }
-
-        [TearDown]
-        public void TeardownTest()
-        {
-            _session.DeleteKeyspace(_uniqueKsName);
+            Session.CreateKeyspace(_uniqueKsName);
+            TestUtils.WaitForSchemaAgreement(Session.Cluster);
+            Session.ChangeKeyspace(_uniqueKsName);
         }
 
         /// <summary>
         /// Get table using GetTable, validate that the resultant table object functions as expected
         /// </summary>
-        [Test, NUnit.Framework.Ignore("Shouldn't be using the 'GetTable' method")]
+        [Test]
         public void LinqTable_GetTable()
         {
             // Test
-            Table<AllDataTypesEntity> table = _session.GetTable<AllDataTypesEntity>();
+            Table<AllDataTypesEntity> table = Session.GetTable<AllDataTypesEntity>();
             table.Create();
             AllDataTypesEntity.WriteReadValidate(table);
         }
-
     }
 }

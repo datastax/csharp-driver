@@ -27,64 +27,24 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 {
     public class CcmBridge : IDisposable
     {
-        public DirectoryInfo CcmDir;
-        private Renci.SshNet.SshClient _sshClient;
-        private Renci.SshNet.ShellStream _sshShellStream;
-        public const int DefaultCmdTimeout = 90 * 1000; 
-        public string Name = null;
-        public string IpPrefix = null;
+        public DirectoryInfo CcmDir { get; private set; }
+        public const int DefaultCmdTimeout = 90 * 1000;
+        public string Name { get; private set; }
+        public string IpPrefix { get; private set; }
 
-        public CcmBridge(string name, string ipPrefix, bool instantiateSshClient = false)
+        public CcmBridge(string name, string ipPrefix)
         {
             Name = name;
             IpPrefix = ipPrefix;
             CcmDir = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
-            if (instantiateSshClient)
-            {
-                string sshHost = "TBD";
-                int sshPort = -1;
-                string sshUser  = "TBD";
-                string sshPassword = "TBD";
-                _sshClient = new Renci.SshNet.SshClient(sshHost, sshPort, sshUser, sshPassword);
-                _sshClient.Connect();
-
-                _sshShellStream = _sshClient.CreateShellStream("CCM", 80, 60, 100, 100, 1000);
-                var outp = new StringBuilder();
-                while (true)
-                {
-                    outp.Append(_sshShellStream.Read());
-                    if (outp.ToString().Trim().EndsWith("$"))
-                        break;
-                }
-            }
         }
 
         public void Dispose()
         {
-            if (_sshClient != null)
-            {
-                _sshClient.Disconnect();
-                _sshClient = null;
-            }
         }
 
-        ~CcmBridge()
+        public void Create(string version, bool useSsl)
         {
-            if (_sshClient != null)
-                _sshClient.Disconnect();
-        }
-
-        public static CcmBridge Create(string name, string localIpPrefix, int nodeCount, string cassandraVersion, bool startTheCluster = true, string[] jvmArgs = null, bool useSsl = false)
-        {
-            CcmBridge ccmBridge = new CcmBridge(name, localIpPrefix);
-            string clusterStartStr = "";
-            if (startTheCluster)
-                clusterStartStr = "-s";
-            var jvmArgsParams = "";
-            if (jvmArgs != null && jvmArgs.Length > 0)
-            {
-                jvmArgsParams = String.Join(" ", jvmArgs.Select(a => "--jvm_arg=" + a));
-            }
             var sslParams = "";
             if (useSsl)
             {
@@ -95,23 +55,40 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 }
                 sslParams = "--ssl " + sslPath;
             }
-            ccmBridge.ExecuteCcm(string.Format("create {0} -n {1} {2} -i {3} -b -v {4} {5} {6}", name, nodeCount, clusterStartStr, localIpPrefix, cassandraVersion, jvmArgsParams, sslParams));
-            return ccmBridge;
+            ExecuteCcm(string.Format("create {0} -i {1} -v {2} {3}", Name, IpPrefix, version, sslParams));
         }
 
-        public static CcmBridge Create(string name, string localIpPrefix, int nodeCountDc1, int nodeCountDc2, string cassandraVersion, bool startTheCluster = true, bool throwOnError = false)
+        public void Start(string[] jvmArgs)
         {
-            CcmBridge ccmBridge = new CcmBridge(name, localIpPrefix);
-            string clusterStartStr = "";
-            if (startTheCluster)
-                clusterStartStr = "-s";
-            ccmBridge.ExecuteCcm(string.Format("create {0} -n {1}:{2} {3} -i {4} -b -v {5}", name, nodeCountDc1, nodeCountDc2, clusterStartStr, localIpPrefix, cassandraVersion), DefaultCmdTimeout, throwOnError);
-            return ccmBridge;
+            var parameters = new List<string>
+            {
+                "start",
+                "--wait-for-binary-proto"
+            };
+            if (jvmArgs != null)
+            {
+                foreach (var arg in jvmArgs)
+                {
+                    parameters.Add("--jvm_arg");
+                    parameters.Add(arg);
+                }
+            }
+            ExecuteCcm(string.Join(" ", parameters));
         }
 
-        public void Start()
+        public void Populate(int dc1NodeLength, int dc2NodeLength, bool useVNodes)
         {
-            ExecuteCcm("start", DefaultCmdTimeout, false);
+            var parameters = new List<string>
+            {
+                "populate",
+                "-n",
+                dc1NodeLength + (dc2NodeLength > 0 ? ":" + dc2NodeLength : null)
+            };
+            if (useVNodes)
+            {
+                parameters.Add("--vnodes");
+            }
+            ExecuteCcm(string.Join(" ", parameters));
         }
 
         public void SwitchToThis()
@@ -152,13 +129,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void Remove()
         {
-            Stop();
             ExecuteCcm("remove");
-        }
-
-        public void Ring(int n)
-        {
-            ExecuteCCMAndPrint(string.Format("node{0} ring", n));
         }
 
         public void BootstrapNode(int n)
@@ -180,18 +151,16 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             ExecuteCcm(string.Format("node{0} decommission", n));
         }
 
-        public ProcessOutput ExecuteCcm(string args, int timeout = DefaultCmdTimeout, bool throwOnProcessError = false)
+        public static ProcessOutput ExecuteCcm(string args, int timeout = DefaultCmdTimeout, bool throwOnProcessError = true)
         {
-            // right now having a config dir is always a requirement
-            var ccmArgs = args + " --config-dir=" + CcmDir.FullName;
-            Trace.TraceInformation("Executing cmd line: " + ccmArgs);
             var executable = "/usr/local/bin/ccm";
             if (TestUtils.IsWin)
             {
                 executable = "cmd.exe";
                 args = "/c ccm " + args;
             }
-            ProcessOutput output = ExecuteProcess(executable, args, timeout);
+            Trace.TraceInformation(executable + " " + args);
+            var output = ExecuteProcess(executable, args, timeout);
             if (throwOnProcessError)
             {
                 ValidateOutput(output);
@@ -285,153 +254,5 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
             return output;
         }
-
-
-        private void ExecuteCCMAndPrint(string args)
-        {
-            Trace.TraceInformation("CCM>"+args);
-            _sshShellStream.WriteLine("ccm " + args /*+ " --config-dir=" + _ccmDir*/);
-            var outp = new StringBuilder();
-            while (true)
-            {
-                var txt = _sshShellStream.Read();
-                outp.Append(txt);
-                if (txt.Contains("$"))
-                    break;
-            }
-            var iserror = outp.ToString().Contains("[Errno");
-            var lines = outp.ToString().Split('\n');
-
-            for (int i = 0; i < lines.Length - 1; i++)
-            {
-                if (iserror)
-                    Trace.TraceError("err>" + lines[i].Trim());
-                else
-                    Trace.TraceInformation("out>" + lines[i].Trim());
-            }
-
-            if(iserror)
-                throw new InvalidOperationException();
-
-            Thread.Sleep(2000);
-        }
-
-        private void PureExecute(string args)
-        {
-            Trace.TraceInformation("SHELL>" + args);
-            _sshShellStream.WriteLine(args);
-            var outp = new StringBuilder();
-            while (true)
-            {
-                var txt = _sshShellStream.Read();
-                outp.Append(txt);
-                if (txt.Contains("$"))
-                    break;
-            }
-        }
-
-        /// <summary>
-        /// This class will go away soon.
-        /// </summary>
-        public static class ReusableCCMCluster
-        {
-            static int NbNodesDC1;
-            static int NbNodesDC2;
-            public static CcmBridge CCMBridge;
-
-            internal static void Reset()
-            {
-                NbNodesDC1 = 0;
-                NbNodesDC2 = 0;
-            }
-
-            public static void Setup(int nbNodesDC1, int nbNodesDC2, string ipPrefix, string cassandraVersion, string clusterName = "test")
-            {
-                if (nbNodesDC2 == 0)
-                {
-                    if (nbNodesDC1 != NbNodesDC1)
-                    {
-                        Trace.TraceInformation("Cassandra:" + cassandraVersion);
-                        CCMBridge = CcmBridge.Create(clusterName, ipPrefix, nbNodesDC1, cassandraVersion);
-                        NbNodesDC1 = nbNodesDC1;
-                        NbNodesDC2 = 0;
-                    }
-                }
-                else
-                {
-                    if (nbNodesDC1 != NbNodesDC1 || nbNodesDC2 != NbNodesDC2)
-                    {
-                        CCMBridge = CcmBridge.Create(clusterName, ipPrefix, nbNodesDC1, nbNodesDC2, cassandraVersion);
-                        NbNodesDC1 = nbNodesDC1;
-                        NbNodesDC2 = nbNodesDC2;
-                    }
-                }
-            }
-
-            static Cluster Cluster;
-            static ISession Session;
-
-            public static Cluster Build(Builder builder)
-            {
-                if (Options.Default.USE_COMPRESSION)
-                {
-                    builder.WithCompression(CompressionType.Snappy);
-                    Trace.TraceInformation("Using Compression");
-                }
-                if (Options.Default.USE_NOBUFFERING)
-                {
-                    builder.WithoutRowSetBuffering();
-                    Trace.TraceInformation("No buffering");
-                }
-
-                Cluster = builder.AddContactPoints(Options.Default.IP_PREFIX + "1").Build();
-                return Cluster;
-            }
-
-            public static ISession Connect(string keyspace = null)
-            {
-                int tryNo = 0;
-            RETRY:
-                try
-                {
-                    Session = Cluster.Connect();
-                    if (keyspace != null)
-                    {
-                        Session.CreateKeyspaceIfNotExists(keyspace);
-                        Session.ChangeKeyspace(keyspace);
-                    }
-                    return Session;
-                }
-                catch (NoHostAvailableException e)
-                {
-                    if (tryNo < 10)
-                    {
-                        Trace.TraceInformation("CannotConnect to CCM node - give another try");
-                        tryNo++;
-                        Thread.Sleep(1000);
-                        goto RETRY;
-                    }
-                    foreach (var entry in e.Errors)
-                        Trace.TraceError("Error connecting to " + entry.Key + ": " + entry.Value);
-                    throw new InvalidOperationException(null, e);
-                }
-            }
-
-            public static void Drop()
-            {
-                if (Session != null && Session.Keyspace != null)
-                    Session.DeleteKeyspaceIfExists(Session.Keyspace);
-                Cluster.Shutdown();
-            }
-
-            public static void Shutdown()
-            {
-                Cluster.Shutdown();
-                Session = null;
-            }
-        }
-
-
-
     }
 }

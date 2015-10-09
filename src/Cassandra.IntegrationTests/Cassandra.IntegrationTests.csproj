@@ -162,10 +162,8 @@
     <Compile Include="Ado\AdoBasicTests.cs" />
     <Compile Include="TestClusterManagement\CcmBridge.cs" />
     <Compile Include="TestClusterManagement\CcmCluster.cs" />
-    <Compile Include="TestClusterManagement\CToolBridge.cs" />
     <Compile Include="TestBase\Options.cs" />
-    <Compile Include="TestSuiteBase.cs" />
-    <Compile Include="TestClusterManagement\CToolCluster.cs" />
+    <Compile Include="CommonFixtureSetup.cs" />
     <Compile Include="TestClusterManagement\ITestCluster.cs" />
     <Compile Include="TestClusterManagement\TestClusterManager.cs" />
     <Compile Include="TestBase\TestGlobals.cs" />

@@ -299,12 +299,6 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void LargeBatchInsert_MultipleTypes()
-        {
-            BigInsertTest(1000);
-        }
-
-        [Test]
         public void Counter()
         {
             TestCounters();
@@ -593,40 +587,6 @@ namespace Cassandra.IntegrationTests.Core
                                            null);
 
             QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName),
-                                        Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
-        }
-
-        public void BigInsertTest(int RowsNo = 5000)
-        {
-            string tableName = TestUtils.GetUniqueTableName();
-            try
-            {
-                QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"CREATE TABLE {0}(
-                     tweet_id uuid,
-                     author text,
-                     body text,
-                     isok boolean,
-		             fval float,
-		             dval double,
-                     PRIMARY KEY(tweet_id))", tableName));
-            }
-            catch (AlreadyExistsException)
-            {
-            }
-
-            var longQ = new StringBuilder();
-            longQ.AppendLine("BEGIN BATCH ");
-
-            for (int i = 0; i < RowsNo; i++)
-            {
-                longQ.AppendFormat(@"INSERT INTO {0} (
-                            tweet_id, author, isok, body, fval, dval)
-                    VALUES ({1},'test{2}',{3},'body{2}',{4},{5});",
-                    tableName, Guid.NewGuid(), i, i % 2 == 0 ? "false" : "true", Randomm.Instance.NextSingle(), Randomm.Instance.NextDouble());
-            }
-            longQ.AppendLine("APPLY BATCH;");
-            QueryTools.ExecuteSyncNonQuery(Session, longQ.ToString(), "Inserting...");
-            QueryTools.ExecuteSyncQuery(Session, string.Format(@"SELECT * from {0};", tableName),
                                         Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
         }
     }

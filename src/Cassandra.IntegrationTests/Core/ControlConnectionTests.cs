@@ -18,9 +18,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestFixtureSetUp]
         public void SetupFixture()
         {
-            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
-            // Test ccm cluster without client
-            _testCluster = TestClusterManager.GetTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
+            _testCluster = TestClusterManager.CreateNew();
         }
 
         [Test]
@@ -35,7 +33,12 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestCassandraVersion(2, 0)]
         public void Should_Use_Maximum_Protocol_Version_Provided()
         {
-            const byte version = 2;
+            byte version = 2;
+            if (CassandraVersion >= Version.Parse("3.0"))
+            {
+                //protocol 2 is not supported in Cassandra 3.0+
+                version = 3;
+            }
             var cc = NewInstance(version);
             cc.Init();
             Assert.AreEqual(version, cc.ProtocolVersion);

@@ -11,23 +11,21 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Linq.LinqTable
 {
     [TestFixture, Category("short")]
-    public class LinqUdtTests : TestGlobals
+    public class LinqUdtTests : SharedClusterTest
     {
         ISession _session = null;
         private readonly string _uniqueKeyspaceName = TestUtils.GetUniqueKeyspaceName();
         private readonly Guid _sampleId = Guid.NewGuid();
-        private ITestCluster _testCluster;
 
         private Table<Album> GetAlbumTable()
         {
             return new Table<Album>(_session, new MappingConfiguration().Define(new Map<Album>().TableName("albums")));
         }
 
-        [SetUp]
-        public void Setup()
+        protected override void TestFixtureSetUp()
         {
-            _testCluster = TestClusterManager.GetTestCluster(1);
-            _session = _testCluster.Session;
+            base.TestFixtureSetUp();
+            _session = Session;
 
             _session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, _uniqueKeyspaceName, 1));
             _session.ChangeKeyspace(_uniqueKeyspaceName);
@@ -35,22 +33,16 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             _session.Execute("CREATE TABLE albums (id uuid primary key, name text, songs list<frozen<song>>, publishingdate timestamp)");
             _session.Execute(
                 new SimpleStatement(
-                    "INSERT INTO albums (id, name, songs) VALUES (?, 'Legend', [{id: uuid(), title: 'Africa Unite', artist: 'Bob Marley'}])", 
+                    "INSERT INTO albums (id, name, songs) VALUES (?, 'Legend', [{id: uuid(), title: 'Africa Unite', artist: 'Bob Marley'}])",
                     _sampleId));
             _session.UserDefinedTypes.Define(UdtMap.For<Song>());
-        }
-
-        [TearDown]
-        public void TeardownTest()
-        {
-            TestUtils.TryToDeleteKeyspace(_session, _uniqueKeyspaceName);
         }
 
         [Test, TestCassandraVersion(2, 1, 0)]
         public void LinqUdt_Select()
         {
             var table = new Table<Album>(_session, new MappingConfiguration().Define(new Map<Album>().TableName("albums")));
-            var album = table.First(a => a.Id == _sampleId).Execute();
+            var album = table.Select(a => new Album { Id = a.Id, Name = a.Name, Songs = a.Songs }).Execute().First();
             Assert.AreEqual(_sampleId, album.Id);
             Assert.AreEqual("Legend", album.Name);
             Assert.NotNull(album.Songs);

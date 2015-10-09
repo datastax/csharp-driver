@@ -84,6 +84,7 @@
     <Compile Include="Mapping\InsertTests.cs" />
     <Compile Include="Mapping\Linq\LinqMappingUnitTests.cs" />
     <Compile Include="Mapping\Linq\LinqToCqlUpdateUnitTests.cs" />
+    <Compile Include="Mapping\MappingConfigurationTests.cs" />
     <Compile Include="Mapping\MappingTestBase.cs" />
     <Compile Include="Mapping\Pocos\Album.cs" />
     <Compile Include="Mapping\Pocos\AllTypesDecorated.cs" />

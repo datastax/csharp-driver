@@ -19,7 +19,7 @@
     <MSBuildCommunityTasksLib>$(ToolsFolder)\MSBuildTasks.1.4.0.65\MSBuild.Community.Tasks.dll</MSBuildCommunityTasksLib>
   
     <!-- Version information (package version is used to drive assembly info version attributes and should follow semantic versioning) -->
-    <PackageVersion>2.7.1</PackageVersion>
+    <PackageVersion>2.7.2</PackageVersion>
     <SharedAssemblyInfo>$(SourceFolder)\SharedAssemblyInfo.cs</SharedAssemblyInfo>
   </PropertyGroup>
   
@@ -74,14 +74,18 @@
   <!-- Runs unit and integration tests-->
   <Target Name="test" DependsOnTargets="compile">
     <Message Text="Running integration tests" Importance="high" />
-
     <Error Condition="$(NUNIT_PATH) == ''" Text="The NUNIT_PATH environment variable with the NUnit installation path is not set." ContinueOnError="false" />
-
     <MakeDir Directories="$(TestResultsFolder)" />
     <Exec Command="&quot;$(NUNIT_PATH)\nunit-console.exe&quot; &quot;$(SourceFolder)\Cassandra.Tests\bin\Release\Cassandra.Tests.dll&quot; &quot;$(SourceFolder)\Cassandra.IntegrationTests\bin\Release\Cassandra.IntegrationTests.dll&quot; /labels /nologo /framework:net-4.0 /exclude:long,duration /xml:&quot;$(TestResultsFolder)\TestResults.xml&quot; /out=&quot;$(TestResultsFolder)\TestResults.txt&quot;" />
   </Target>
 
-  <Target Name="ci" DependsOnTargets="generate-assembly-info;test"/>
+  <Target Name="ci" DependsOnTargets="compile">
+    <!-- runs specific tests for now, it should be replaced by DependsOnTargets="generate-assembly-info" in the future -->
+    <Message Text="Running integration tests" Importance="high" />
+    <Error Condition="$(NUNIT_PATH) == ''" Text="The NUNIT_PATH environment variable with the NUnit installation path is not set." ContinueOnError="false" />
+    <MakeDir Directories="$(TestResultsFolder)" />
+    <Exec Command="&quot;$(NUNIT_PATH)\nunit-console.exe&quot; &quot;$(SourceFolder)\Cassandra.Tests\bin\Release\Cassandra.Tests.dll&quot; &quot;$(SourceFolder)\Cassandra.IntegrationTests\bin\Release\Cassandra.IntegrationTests.dll&quot; /run:Cassandra.Tests,$(INCLUDE_TEST) /labels /nologo /framework:net-4.0 /xml:&quot;$(TestResultsFolder)\TestResults.xml&quot; /out=&quot;$(TestResultsFolder)\TestResults.txt&quot;" />
+  </Target>
   
   <!-- Creates a shared assembly info file so that all assemblies get some common attributes (like version number) -->
   <Target Name="generate-assembly-info">

@@ -11,7 +11,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Mapping.Tests
 {
     [Category("short")]
-    public class Delete : TestGlobals
+    public class Delete : SharedClusterTest
     {
         ISession _session = null;
         private List<Movie> _movieList;
@@ -19,10 +19,10 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         private Table<Movie> _movieTable;
         private Mapper _mapper;
 
-        [SetUp]
-        public void SetupTest()
+        protected override void TestFixtureSetUp()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            base.TestFixtureSetUp();
+            _session = Session;
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
 
@@ -35,14 +35,15 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
 
             //Insert some data
             _movieList = Movie.GetDefaultMovieList();
-            foreach (var movie in _movieList)
-                _movieTable.Insert(movie).Execute();
         }
 
-        [TearDown]
-        public void TeardownTest()
+        [SetUp]
+        public void TestSetup()
         {
-            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
+            foreach (var movie in _movieList)
+            {
+                _movieTable.Insert(movie).Execute();
+            }
         }
 
         /// <summary>
@@ -56,7 +57,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
 
             // Delete the record
             _mapper.Delete(movieToDelete);
-
             List<Movie> actualMovieList = _movieTable.Execute().ToList();
             Assert.AreEqual(_movieList.Count - 1, actualMovieList.Count());
             Assert.IsFalse(Movie.ListContains(actualMovieList, movieToDelete));
@@ -142,41 +142,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.Throws<AggregateException>(() => _mapper.DeleteAsync(movieToDelete, new CqlQueryOptions().SetConsistencyLevel(ConsistencyLevel.Two)).Wait());
 
             Assert.Throws<AggregateException>(() => _mapper.DeleteAsync(movieToDelete, new CqlQueryOptions().SetConsistencyLevel(ConsistencyLevel.Three)).Wait());
-        }
-
-
-        /// <summary>
-        /// Attempt to delete a record by passing in a mapped object that does not 
-        /// </summary>
-        [Test]
-        public void Delete_PartitionNonExistent()
-        {
-            // Setup
-            Movie movieToDelete = _movieList[1];
-            movieToDelete.MovieMaker = "somethingRandom_" + Guid.NewGuid().ToString();
-
-            // Delete the record
-            _mapper.Delete(movieToDelete); 
-
-            // Validate that nothing was deleted
-            List<Movie> actualMovieList = _movieTable.Execute().ToList();
-            Assert.AreEqual(_movieList.Count, actualMovieList.Count());
-        }
-
-        /// <summary>
-        /// Attempt to delete a record by passing in a mapped object that does not 
-        /// </summary>
-        [Test]
-        public void Delete_PartitionKeyNull()
-        {
-            // Setup
-            Movie movieToDelete = _movieList[1];
-            movieToDelete.MovieMaker = null;
-
-            // Error expected
-            var ex = Assert.Throws<InvalidQueryException>(() => _mapper.Delete(movieToDelete));
-            string expectedErrMsg = "Invalid null value (for partition key part|in condition for column) moviemaker";
-            StringAssert.IsMatch(expectedErrMsg, ex.Message);
         }
 
         [Test]

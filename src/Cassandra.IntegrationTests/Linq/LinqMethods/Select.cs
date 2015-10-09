@@ -11,29 +11,22 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
     [Category("short")]
-    public class Select : TestGlobals
+    public class Select : SharedClusterTest
     {
         ISession _session = null;
         private List<AllDataTypesEntity> _entityList;
         string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-        private Table<AllDataTypesEntity> _table; 
-        
-        [SetUp]
-        public void SetupTest()
+        private Table<AllDataTypesEntity> _table;
+
+        protected override void TestFixtureSetUp()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            base.TestFixtureSetUp();
+            _session = Session;
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
 
             _entityList = AllDataTypesEntity.SetupDefaultTable(_session);
             _table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
-
-        }
-
-        [TearDown]
-        public void TeardownTest()
-        {
-            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         [Test]

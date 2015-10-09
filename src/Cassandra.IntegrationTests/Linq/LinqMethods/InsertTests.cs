@@ -13,30 +13,21 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
     [Category("short")]
-    public class InsertTests : TestGlobals
+    public class InsertTests : SharedClusterTest
     {
         private ISession _session;
-        private ICluster _cluster;
         string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
         private Table<Movie> _movieTable;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        protected override void TestFixtureSetUp()
         {
-            var testCluster = TestClusterManager.GetTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
-            _cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build();
-            _session = _cluster.Connect();
+            base.TestFixtureSetUp();
+            _session = Session;
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
 
             _movieTable = new Table<Movie>(_session, new MappingConfiguration());
             _movieTable.Create();
-        }
-
-        [TestFixtureTearDown]
-        public void TestFixtureTearDown()
-        {
-            _cluster.Dispose();
         }
 
         [Test, TestCassandraVersion(2, 0)]

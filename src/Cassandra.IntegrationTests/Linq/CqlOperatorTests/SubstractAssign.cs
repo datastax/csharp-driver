@@ -10,14 +10,14 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
 {
     [Category("short")]
-    public class SubstractAssign : TestGlobals
+    public class SubstractAssign : SharedClusterTest
     {
         private ISession _session;
-        
-        [SetUp]
-        public void SetupTest()
+
+        protected override void TestFixtureSetUp()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            base.TestFixtureSetUp();
+            _session = Session;
         }
 
         /// <summary>

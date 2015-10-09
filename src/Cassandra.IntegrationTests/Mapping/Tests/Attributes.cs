@@ -17,25 +17,19 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Mapping.Tests
 {
     [Category("short")]
-    public class Attributes : TestGlobals
+    public class Attributes : SharedClusterTest
     {
         ISession _session;
         string _uniqueKsName;
         private const string IgnoredStringAttribute = "ignoredstringattribute";
 
-        [SetUp]
-        public void SetupTest()
+        protected override void TestFixtureSetUp()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            base.TestFixtureSetUp();
+            _session = Session;
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
-        }
-
-        [TearDown]
-        public void TeardownTest()
-        {
-            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         private Table<T> GetTable<T>()
@@ -57,7 +51,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var definition = new AttributeBasedTypeDefinition(typeof(PocoWithIgnoredAttributes));
             var table = new Table<PocoWithIgnoredAttributes>(_session, new MappingConfiguration().Define(definition)); 
             Assert.AreNotEqual(table.Name, table.Name.ToLower());
-            table.Create();
+            table.CreateIfNotExists();
 
             //var mapper = new Mapper(_session, new MappingConfiguration().Define(definition));
             var mapper = new Mapper(_session, new MappingConfiguration());
@@ -169,83 +163,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.AreEqual(pocoToInsert.SomeNonIgnoredDouble, rows[0].GetValue<double>("somenonignoreddouble"));
             Assert.AreEqual(null, rows[0].GetValue<string>(IgnoredStringAttribute));
         }
-
-        /// <summary>
-        /// Verify that when trying to insert a Poco with the partition key equal to null, it fails silently
-        /// Linq and mapping attributes used in the same class
-        /// </summary>
-        [Test]
-        public void Attributes_PartitionKey_ValueNull()
-        {
-            var table = GetTable<PocoWithIgnoredAttributes>();
-            table.Create();
-
-            var mapper = GetMapper();
-            PocoWithIgnoredAttributes pocoWithCustomAttributesLynqAndMappingIncluded = new PocoWithIgnoredAttributes
-            {
-                SomePartitionKey = null,
-                IgnoredStringAttribute = Guid.NewGuid().ToString(),
-            };
-            var err = Assert.Throws<InvalidQueryException>(() => mapper.Insert(pocoWithCustomAttributesLynqAndMappingIncluded));
-            string expectedErrMsg = "Invalid null value (for partition key part|in condition for column) somepartitionkey";
-            StringAssert.IsMatch(expectedErrMsg, err.Message);
-        }
-
-
-        /// <summary>
-        /// Verify that when trying to insert a Poco with the partition key equal to null, it fails silently
-        /// Linq and mapping attributes used in the same class
-        /// </summary>
-        [Test]
-        public void Attributes_PartitionKey_ValueNull_LinqAndMappingAttributes()
-        {
-            MappingConfiguration config = new MappingConfiguration();
-            config.MapperFactory.PocoDataFactory.AddDefinitionDefault(
-                typeof(PocoWithIgnrdAttr_LinqAndMapping),
-                () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(PocoWithIgnrdAttr_LinqAndMapping)));
-            var table = new Table<PocoWithIgnrdAttr_LinqAndMapping>(_session, config);
-            table.Create();
-
-            var cqlClient = GetMapper();
-            PocoWithIgnrdAttr_LinqAndMapping pocoWithCustomAttributesLinqAndMapping = new PocoWithIgnrdAttr_LinqAndMapping
-            {
-                SomePartitionKey = null,
-                IgnoredStringAttribute = Guid.NewGuid().ToString(),
-            };
-            var err = Assert.Throws<InvalidQueryException>(() => cqlClient.Insert(pocoWithCustomAttributesLinqAndMapping));
-            string expectedErrMsg = "Invalid null value (for partition key part|in condition for column) somepartitionkey";
-            StringAssert.IsMatch(expectedErrMsg, err.Message);
-        }
-
-        /// <summary>
-        /// Validate that an insert query which includes a Poco that has the wrong field labeled as "PartitionKey" will silently fail.
-        /// </summary>
-        [Test, TestCassandraVersion(2, 0)]
-        public void Attributes_PartitionKey_OnWrongField()
-        {
-            // Create table using Linq -- includes partition key that is not assigned by the mapping attribute
-            MappingConfiguration config = new MappingConfiguration();
-            config.MapperFactory.PocoDataFactory.AddDefinitionDefault(
-                typeof(PocoWithWrongFieldLabeledPk),
-                () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(PocoWithWrongFieldLabeledPk)));
-            var table = new Table<PocoWithWrongFieldLabeledPk>(_session, config);
-            table.Create();
-
-            string cqlSelectAll = "SELECT * from " + table.Name;
-
-            var cqlClient = GetMapper();
-            PocoWithWrongFieldLabeledPk pocoWithCustomAttributes = new PocoWithWrongFieldLabeledPk();
-            cqlClient.Insert(pocoWithCustomAttributes);
-
-            // Get records using mapped object, validate that the value from Cassandra was ignored in favor of the default val
-            List<PocoWithWrongFieldLabeledPk> records = cqlClient.Fetch<PocoWithWrongFieldLabeledPk>(cqlSelectAll).ToList();
-            Assert.AreEqual(1, records.Count); // for this case, the mapper is not picky about what field is marked as "partition key"
-
-            // Query for the column that the Linq table create created, verify no value was uploaded to it
-            List<Row> rows = _session.Execute(cqlSelectAll).GetRows().ToList();
-            Assert.AreEqual(1, rows.Count); 
-        }
-
 
         /// <summary>
         /// Verify that inserting a mapped object that totally omits the Cassandra.Mapping.Attributes.PartitionKey silently fails.
@@ -436,57 +353,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.AreEqual(pocoWithCustomAttributes.ListOfGuids, rows[0].GetValue<List<Guid>>("listofguids"));
             var ex = Assert.Throws<ArgumentException>(() => rows[0].GetValue<string>("ignoredstring"));
             Assert.AreEqual("Column ignoredstring not found", ex.Message);
-        }
-
-        /// <summary>
-        /// Attempt to insert Poco object which leaves part of the composite key null.  
-        /// Expect the CqlClient to fail silently
-        /// </summary>
-        [Test]
-        public void Attributes_CompositeKey_FirstPartOfKeyNull()
-        {
-            MappingConfiguration config = new MappingConfiguration();
-            config.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(PocoWithCompositeKey), () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(PocoWithCompositeKey)));
-            var table = new Table<PocoWithCompositeKey>(_session, config);
-            table.Create();
-            List<Guid> listOfGuids = new List<Guid>() { new Guid(), new Guid() };
-
-            var cqlClient = GetMapper();
-            PocoWithCompositeKey pocoWithCustomAttributes = new PocoWithCompositeKey
-            {
-                ListOfGuids = listOfGuids,
-                SomePartitionKey1 = Guid.NewGuid().ToString(),
-                SomePartitionKey2 = null,
-                IgnoredString = Guid.NewGuid().ToString(),
-            };
-            var err = Assert.Throws<InvalidQueryException>(() => cqlClient.Insert(pocoWithCustomAttributes));
-            string expectedErrMsg = "Invalid null value (for partition key part|in condition for column) somepartitionkey2";
-            StringAssert.IsMatch(expectedErrMsg, err.Message);
-        }
-
-        /// <summary>
-        /// Attempt to insert Poco object which leaves all values equal to null.  
-        /// Expect the CqlClient to fail silently
-        /// </summary>
-        [Test]
-        public void Attributes_CompositeKey_AllFieldsNull()
-        {
-            MappingConfiguration config = new MappingConfiguration();
-            config.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(PocoWithCompositeKey), () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(PocoWithCompositeKey)));
-            var table = new Table<PocoWithCompositeKey>(_session, config);
-            table.Create();
-            var cqlClient = GetMapper();
-            PocoWithCompositeKey pocoWithCustomAttributes = new PocoWithCompositeKey
-            {
-                ListOfGuids = null,
-                SomePartitionKey1 = null,
-                SomePartitionKey2 = null,
-                IgnoredString = null,
-            };
-
-            var err = Assert.Throws<InvalidQueryException>(() => cqlClient.Insert(pocoWithCustomAttributes));
-            string expectedErrMsg = "Invalid null value (for partition key part|in condition for column) somepartitionkey1"; 
-            StringAssert.IsMatch(expectedErrMsg, err.Message);
         }
 
         /// <summary>

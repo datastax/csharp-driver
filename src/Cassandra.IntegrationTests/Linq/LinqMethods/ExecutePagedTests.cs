@@ -14,7 +14,7 @@ using Cassandra.Mapping;
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
     [Category("short")]
-    public class ExecutePagedTests : TestGlobals
+    public class ExecutePagedTests : SharedClusterTest
     {
         private ISession _session;
         private readonly string _keyspace = TestUtils.GetUniqueKeyspaceName().ToLower();
@@ -27,10 +27,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             return new Table<Song>(_session, _mappingConfig, _tableName, _keyspace);
         }
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        protected override void TestFixtureSetUp()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            base.TestFixtureSetUp();
+            _session = Session;
             _session.CreateKeyspace(_keyspace);
             var table = GetTable();
             table.Create();

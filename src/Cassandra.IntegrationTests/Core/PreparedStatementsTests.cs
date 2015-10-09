@@ -815,9 +815,8 @@ namespace Cassandra.IntegrationTests.Core
 
         private void ReprepareTest(bool useKeyspace)
         {
-            string keyspace = DefaultKeyspaceName;
-            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1);
-            testCluster.InitClient(); // make sure client session was just created
+            string keyspace = TestClusterManager.DefaultKeyspaceName;
+            var testCluster = TestClusterManager.GetNonShareableTestCluster(1);
             var nonShareableSession = testCluster.Session;
 
             string fqKeyspaceName = "";

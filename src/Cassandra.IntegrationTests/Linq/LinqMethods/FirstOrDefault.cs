@@ -10,17 +10,17 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
     [Category("short"), TestCassandraVersion(2, 0)]
-    public class FirstOrDefault : TestGlobals
+    public class FirstOrDefault : SharedClusterTest
     {
-        private ISession _session = null;
+        private ISession _session;
         private List<Movie> _movieList = Movie.GetDefaultMovieList();
         string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
         private Table<Movie> _movieTable;
 
-        [SetUp]
-        public void SetupTest()
+        protected override void TestFixtureSetUp()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            base.TestFixtureSetUp();
+            _session = Session;
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
 
@@ -34,12 +34,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             //Insert some data
             foreach (var movie in _movieList)
                 _movieTable.Insert(movie).Execute();
-        }
-
-        [TearDown]
-        public void TeardownTest()
-        {
-            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         [Test]

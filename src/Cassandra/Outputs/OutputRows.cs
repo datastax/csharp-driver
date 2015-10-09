@@ -66,23 +66,23 @@ namespace Cassandra
 
         internal virtual Row ProcessRowItem(BEBinaryReader reader)
         {
-            var valuesList = new List<byte[]>();
-            for (var i = 0; i < _metadata.Columns.Length; i++ )
+            var valuesList = new byte[_metadata.Columns.Length][];
+            for (var i = 0; i < _metadata.Columns.Length; i++)
             {
                 int length = reader.ReadInt32();
                 if (length < 0)
                 {
-                    valuesList.Add(null);
+                    valuesList[i] = null;
                 }
                 else
                 {
                     var buffer = new byte[length];
                     reader.Read(buffer, 0, length);
-                    valuesList.Add(buffer);
+                    valuesList[i] = buffer;
                 }
             }
 
-            return new Row(_protocolVersion, valuesList.ToArray(), _metadata.Columns, _metadata.ColumnIndexes);
+            return new Row(_protocolVersion, valuesList, _metadata.Columns, _metadata.ColumnIndexes);
         }
 
         public void Dispose()

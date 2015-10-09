@@ -11,14 +11,14 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
 {
     [Category("short")]
-    public class Prepend : TestGlobals
+    public class Prepend : SharedClusterTest
     {
         private ISession _session;
-        
-        [SetUp]
-        public void SetupTest()
+
+        protected override void TestFixtureSetUp()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            base.TestFixtureSetUp();
+            _session = Session;
         }
 
         /// <summary>
@@ -145,7 +145,7 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
             Assert.AreEqual(1, rows.Count);
             Assert.AreNotEqual(expectedEntity.ArrayType, singleEntity.ArrayType);
             string[] actualArr = rows[0].GetValue<string[]>("arraytype");
-            Assert.AreEqual(expectedEntity.ArrayType, actualArr);
+            CollectionAssert.AreEquivalent(expectedEntity.ArrayType, actualArr);
         }
 
         /// <summary>

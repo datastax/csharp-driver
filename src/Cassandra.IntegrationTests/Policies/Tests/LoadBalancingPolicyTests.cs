@@ -558,11 +558,10 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         [Test]
         public void TokenAware_VNodes_Test()
         {
-            var testCluster = TestClusterManager.GetNonShareableTestCluster(3, DefaultMaxClusterCreateRetries, false, false);
+            var testCluster = TestClusterManager.CreateNew(3, new TestClusterOptions { UseVNodes = true });
+            var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build();
             try
             {
-                testCluster.UseVNodes("3");
-                var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build();
                 var session = cluster.Connect();
                 Assert.AreEqual(256, cluster.AllHosts().First().Tokens.Count());
                 session.Execute("CREATE KEYSPACE ks1 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}");
@@ -591,6 +590,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             }
             finally
             {
+                cluster.Dispose();
                 testCluster.Remove();
             }
         }

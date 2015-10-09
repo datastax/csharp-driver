@@ -97,6 +97,14 @@ namespace Cassandra
         /// </summary>
         public bool? IsIdempotent { get; private set; }
 
+        /// <summary>
+        /// Initializes a new instance of the Cassandra.PreparedStatement class
+        /// </summary>
+        public PreparedStatement()
+        {
+            //Default constructor for client test and mocking frameworks
+        }
+
         internal PreparedStatement(RowSetMetadata metadata, byte[] id, string cql, string keyspace, int protocolVersion)
         {
             Metadata = metadata;
@@ -122,7 +130,7 @@ namespace Cassandra
         ///  created BoundStatement. </param>
         /// <returns>the newly created <c>BoundStatement</c> with its variables
         ///  bound to <c>values</c>. </returns>
-        public BoundStatement Bind(params object[] values)
+        public virtual BoundStatement Bind(params object[] values)
         {
             var bs = new BoundStatement(this)
             {

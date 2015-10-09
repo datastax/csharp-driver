@@ -15,7 +15,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
     /// Use predefined classes that contain fluent mapping to manage Linq-mapped resources
     /// </summary>
     [Category("short")]
-    public class FluentMappingPredefined : TestGlobals
+    public class FluentMappingPredefined : SharedClusterTest
     {
         private ISession _session;
         string _uniqueKsName;
@@ -27,12 +27,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
-        }
-
-        [TearDown]
-        public void TeardownTest()
-        {
-            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
         }
 
         /// <summary>

@@ -13,16 +13,16 @@ using Cassandra.Mapping;
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
     [Category("short")]
-    public class DeleteIf : TestGlobals
+    public class DeleteIf : SharedClusterTest
     {
         ISession _session = null;
         private List<AllDataTypesEntity> _entityList;
-        string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
+        private readonly string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
 
         [SetUp]
         public void SetupTest()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            _session = Session;
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
 
