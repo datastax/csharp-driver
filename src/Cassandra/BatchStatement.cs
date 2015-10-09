@@ -113,6 +113,11 @@ namespace Cassandra
         /// <returns>The Batch statement</returns>
         public BatchStatement Add(Statement statement)
         {
+            if (_queries.Count >= ushort.MaxValue)
+            {
+                //see BatchMessage.codec field in BatchMessage.java in server code, and BatchRequest.GetFrame in this driver
+                throw new ArgumentOutOfRangeException(string.Format("There can be only {0} child statement in a batch statement accordung to the cassandra frame protocoll", ushort.MaxValue));
+            }
             _queries.Add(statement);
             return this;
         }
