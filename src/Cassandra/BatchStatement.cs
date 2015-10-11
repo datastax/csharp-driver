@@ -111,7 +111,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="statement">Statement to add to the batch</param>
         /// <returns>The Batch statement</returns>
-        /// <exception cref="System.ArgumentOutOfRangeException">Thrown when trying to add more than <c>short.MaxValue</c> Statements</exception>
+        /// <exception cref="System.ArgumentOutOfRangeException">Thrown when trying to add more than <c>ushort.MaxValue</c> Statements</exception>
         public BatchStatement Add(Statement statement)
         {
             if (_queries.Count >= ushort.MaxValue)
