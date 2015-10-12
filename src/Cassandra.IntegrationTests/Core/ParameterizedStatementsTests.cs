@@ -314,14 +314,16 @@ namespace Cassandra.IntegrationTests.Core
         {
             RowSet rs = null;
             var expectedValues = new List<object[]>(1);
-            var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
+            var tableNameBase = "table" + Guid.NewGuid().ToString("N").ToLower();
             var valuesToTest = new List<object[]> { new object[] { Guid.NewGuid(), new DateTimeOffset(2011, 2, 3, 16, 5, 0, new TimeSpan(0000)) },
                                                     {new object[] {Guid.NewGuid(), (long)0}}};
 
+            int x = 0;
             foreach (var bindValues in valuesToTest)
             {
                 expectedValues.Add(bindValues);
 
+                var tableName = string.Format("{0}_{1}", tableNameBase, x++);
                 CreateTable(tableName, "timestamp");
 
                 var statement = new SimpleStatement(String.Format("INSERT INTO {0} (id, val) VALUES (?, ?)", tableName), bindValues);
