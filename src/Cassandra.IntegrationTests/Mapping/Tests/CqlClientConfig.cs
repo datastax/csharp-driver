@@ -41,9 +41,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var manyTypesInstance = ManyDataTypesPoco.GetRandomInstance();
 
             mapper.Insert(manyTypesInstance);
-            var instancesQueried = mapper.Fetch<ManyDataTypesPoco>().ToList();
-            Assert.AreEqual(1, instancesQueried.Count);
-            manyTypesInstance.AssertEquals(instancesQueried[0]);
+            string cqlSelect = string.Format("SELECT * from \"{0}\" where \"{1}\"='{2}'", table.Name, "StringType", manyTypesInstance.StringType);
+            ManyDataTypesPoco.KeepTryingSelectAndAssert(mapper, cqlSelect, new List<ManyDataTypesPoco>() { manyTypesInstance });
         }
 
         /// <summary>
