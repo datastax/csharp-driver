@@ -751,7 +751,7 @@ namespace Cassandra.Data.Linq
                     {
                         throw new ArgumentException("Only Int64 and Int32 values are supported as counter increment of decrement values");
                     }
-                    _projections.Add(Tuple.Create(column.ColumnName, value, ExpressionType.Increment));
+                    _projections.Add(Tuple.Create(column, value, ExpressionType.Increment));
                     _selectFields.Add(column.ColumnName);
                     return node;
                 }
@@ -962,10 +962,10 @@ namespace Cassandra.Data.Linq
                     PocoColumn column;
                     if (node.Expression == null || node.Expression.NodeType != ExpressionType.Parameter)
                     {
-                        var column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
+                        column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
                         if (column == null)
                             break;
-                        columnName = column.ColumnName;
+                        var columnName = column.ColumnName;
                         if (column.IsCounter)
                         {
                             var value = Expression.Lambda(node).Compile().DynamicInvoke();
@@ -973,7 +973,7 @@ namespace Cassandra.Data.Linq
                             {
                                 throw new ArgumentException("Only Int64 and Int32 values are supported as counter increment of decrement values");
                             }
-                            _projections.Add(Tuple.Create(columnName, value, ExpressionType.Increment));
+							_projections.Add(Tuple.Create(column, value, ExpressionType.Increment));
                             _selectFields.Add(columnName);
                             return node;
                         }
