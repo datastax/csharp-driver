@@ -5,6 +5,7 @@ using System.Text;
 using Cassandra.Tasks;
 using Moq;
 using NUnit.Framework;
+using SortOrder = Cassandra.DataCollectionMetadata.SortOrder;
 
 namespace Cassandra.Tests
 {
@@ -161,7 +162,8 @@ namespace Cassandra.Tests
             Assert.NotNull(table.Options.Caching);
             Assert.AreEqual(5, table.TableColumns.Length);
             CollectionAssert.AreEqual(new[] { "pk1", "apk2" }, table.PartitionKeys.Select(c => c.Name));
-            CollectionAssert.AreEqual(new[] { "zck" }, table.ClusteringKeys.Select(c => c.Name));
+            CollectionAssert.AreEqual(new[] { "zck" }, table.ClusteringKeys.Select(c => c.Item1.Name));
+            CollectionAssert.AreEqual(new[] { SortOrder.Ascending }, table.ClusteringKeys.Select(c => c.Item2));
         }
 
         [Test]
@@ -393,7 +395,8 @@ namespace Cassandra.Tests
             Assert.AreEqual("{\"keys\":\"ALL\",\"rows_per_partition\":\"NONE\"}", table.Options.Caching);
             CollectionAssert.AreEquivalent(new[] { "pk1", "apk2", "val2", "valz1", "zck" }, table.TableColumns.Select(c => c.Name));
             CollectionAssert.AreEqual(new[] { "pk1", "apk2" }, table.PartitionKeys.Select(c => c.Name));
-            CollectionAssert.AreEqual(new[] { "zck" }, table.ClusteringKeys.Select(c => c.Name));
+            CollectionAssert.AreEqual(new[] { "zck" }, table.ClusteringKeys.Select(c => c.Item1.Name));
+            CollectionAssert.AreEqual(new[] { SortOrder.Ascending }, table.ClusteringKeys.Select(c => c.Item2));
         }
 
         [Test]
@@ -420,7 +423,7 @@ namespace Cassandra.Tests
             var columnRows = new[]
             {
                 new Dictionary<string, object>{{"keyspace_name", "ks1"}, {"table_name", "tbl4"}, {"column_name", "pk"  }, {"clustering_order", "none"}, {"column_name_bytes", "0x706b31"    }, {"kind", "partition_key"}, {"position",  0 }, {"type", "org.apache.cassandra.db.marshal.UUIDType"}},
-                new Dictionary<string, object>{{"keyspace_name", "ks1"}, {"table_name", "tbl4"}, {"column_name", "ck"  }, {"clustering_order", "asc" }, {"column_name_bytes", "0x7a636b"    }, {"kind", "clustering"   }, {"position",  0 }, {"type", "org.apache.cassandra.db.marshal.TimeUUIDType"}},
+                new Dictionary<string, object>{{"keyspace_name", "ks1"}, {"table_name", "tbl4"}, {"column_name", "ck"  }, {"clustering_order", "desc" }, {"column_name_bytes", "0x7a636b"    }, {"kind", "clustering"   }, {"position",  0 }, {"type", "org.apache.cassandra.db.marshal.TimeUUIDType"}},
                 new Dictionary<string, object>{{"keyspace_name", "ks1"}, {"table_name", "tbl4"}, {"column_name", "val" }, {"clustering_order", "none"}, {"column_name_bytes", "0x76616c32"  }, {"kind", "regular"      }, {"position",  -1}, {"type", "org.apache.cassandra.db.marshal.BytesType"}}
             }.Select(TestHelper.CreateRow);
             var indexRow = TestHelper.CreateRow(new Dictionary<string, object>
@@ -457,8 +460,9 @@ namespace Cassandra.Tests
             var table = ks.GetTableMetadata("tbl4");
             Assert.False(table.Options.IsCompactStorage);
             CollectionAssert.AreEquivalent(new[] { "pk", "ck", "val"}, table.TableColumns.Select(c => c.Name));
-            CollectionAssert.AreEqual(new[] { "pk"}, table.PartitionKeys.Select(c => c.Name));
-            CollectionAssert.AreEqual(new[] { "ck" }, table.ClusteringKeys.Select(c => c.Name));
+            CollectionAssert.AreEqual(new[] { "pk" }, table.PartitionKeys.Select(c => c.Name));
+            CollectionAssert.AreEqual(new[] { "ck" }, table.ClusteringKeys.Select(c => c.Item1.Name));
+            CollectionAssert.AreEqual(new[] { SortOrder.Descending }, table.ClusteringKeys.Select(c => c.Item2));
             Assert.NotNull(table.Indexes);
             Assert.AreEqual(1, table.Indexes.Count);
             var index = table.Indexes["ix1"];

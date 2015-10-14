@@ -147,6 +147,7 @@ namespace Cassandra
         public string Table { get; set; }
         public ColumnTypeCode TypeCode { get; set; }
         public IColumnInfo TypeInfo { get; set; }
+        internal bool IsReversed { get; set; }
     }
 
     /// <summary>

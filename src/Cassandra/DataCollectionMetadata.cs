@@ -11,6 +11,15 @@ namespace Cassandra
     public abstract class DataCollectionMetadata
     {
         /// <summary>
+        /// Specifies sort order of the clustering keys
+        /// </summary>
+        public enum SortOrder : sbyte
+        {
+            Ascending = 1,
+            Descending = -1
+        }
+
+        /// <summary>
         /// Gets the table name
         /// </summary>
         public string Name { get; protected set; }
@@ -31,9 +40,9 @@ namespace Cassandra
         public TableColumn[] PartitionKeys { get; protected set; }
 
         /// <summary>
-        /// Gets an array of columns that are part of the clustering key in correct order
+        /// Gets an array of pairs of columns and sort order that are part of the clustering key
         /// </summary>
-        public TableColumn[] ClusteringKeys { get; protected set; }
+        public Tuple<TableColumn, SortOrder>[] ClusteringKeys { get; protected set; }
 
         /// <summary>
         /// Gets the table options
@@ -45,7 +54,7 @@ namespace Cassandra
    
         }
 
-        internal void SetValues(IDictionary<string, TableColumn> columns, TableColumn[] partitionKeys, TableColumn[] clusteringKeys, TableOptions options)
+        internal void SetValues(IDictionary<string, TableColumn> columns, TableColumn[] partitionKeys, Tuple<TableColumn, SortOrder>[] clusteringKeys, TableOptions options)
         {
             ColumnsByName = columns;
             TableColumns = columns.Values.ToArray();

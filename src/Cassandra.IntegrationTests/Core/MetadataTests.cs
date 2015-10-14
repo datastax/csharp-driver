@@ -24,6 +24,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using SortOrder = Cassandra.DataCollectionMetadata.SortOrder;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -544,6 +545,8 @@ namespace Cassandra.IntegrationTests.Core
             Assert.NotNull(table);
             Assert.True(table.TableColumns.Count() == 7);
             Assert.AreEqual("a, b", String.Join(", ", table.PartitionKeys.Select(p => p.Name)));
+            CollectionAssert.AreEqual(new[] { "c", "d" }, table.ClusteringKeys.Select(c => c.Item1.Name));
+            CollectionAssert.AreEqual(new[] { SortOrder.Ascending, SortOrder.Descending }, table.ClusteringKeys.Select(c => c.Item2));
         }
 
         [Test, TestCassandraVersion(2, 1)]
@@ -764,7 +767,8 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.True(table.Options.IsCompactStorage);
                 CollectionAssert.AreEquivalent(new[] { "id1", "id2", "text1" }, table.TableColumns.Select(c => c.Name));
                 CollectionAssert.AreEqual(new[] { "id1" }, table.PartitionKeys.Select(c => c.Name));
-                CollectionAssert.AreEqual(new[] { "id2" }, table.ClusteringKeys.Select(c => c.Name));
+                CollectionAssert.AreEqual(new[] { "id2" }, table.ClusteringKeys.Select(c => c.Item1.Name));
+                CollectionAssert.AreEqual(new[] { SortOrder.Ascending }, table.ClusteringKeys.Select(c => c.Item2));
                 
                 table = cluster.Metadata
                     .GetKeyspace("ks_meta_compac")
@@ -856,7 +860,7 @@ namespace Cassandra.IntegrationTests.Core
                     view.WhereClause);
                 CollectionAssert.AreEquivalent(new[] { "game", "year", "month", "day", "score", "user" }, view.TableColumns.Select(c => c.Name));
                 CollectionAssert.AreEquivalent(new[] { "game", "year", "month", "day" }, view.PartitionKeys.Select(c => c.Name));
-                CollectionAssert.AreEquivalent(new[] { "score", "user" }, view.ClusteringKeys.Select(c => c.Name));
+                CollectionAssert.AreEquivalent(new[] { "score", "user" }, view.ClusteringKeys.Select(c => c.Item1.Name));
             }
         }
 

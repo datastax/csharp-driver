@@ -1352,9 +1352,10 @@ namespace Cassandra
             }
             if (length > ReversedTypeName.Length && typeName.Substring(startIndex, ReversedTypeName.Length) == ReversedTypeName)
             {
-                //We don't care if the clustering order is reversed
+                //move the start index and subtract the length plus parenthesis
                 startIndex += ReversedTypeName.Length + 1;
                 length -= ReversedTypeName.Length + 2;
+                dataType.IsReversed = true;
             }
             if (length > FrozenTypeName.Length && typeName.Substring(startIndex, FrozenTypeName.Length) == FrozenTypeName)
             {

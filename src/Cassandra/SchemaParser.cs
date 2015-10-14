@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Cassandra.Tasks;
+using SortOrder = Cassandra.DataCollectionMetadata.SortOrder;
 
 namespace Cassandra
 {
@@ -205,7 +206,7 @@ namespace Cassandra
         {
             var columns = new Dictionary<string, TableColumn>();
             var partitionKeys = new List<Tuple<int, TableColumn>>();
-            var clusteringKeys = new List<Tuple<int, TableColumn>>();
+            var clusteringKeys = new List<Tuple<int, Tuple<TableColumn, SortOrder>>>();
             return cc
                 .QueryAsync(string.Format(SelectSingleTable, tableName, keyspaceName), true)
                 .Then(rs =>
@@ -266,8 +267,11 @@ namespace Cassandra
                                             partitionKeys.Add(Tuple.Create(row.GetValue<int?>("component_index") ?? 0, col));
                                             break;
                                         case "clustering_key":
-                                            clusteringKeys.Add(Tuple.Create(row.GetValue<int?>("component_index") ?? 0, col));
+                                        {
+                                            var sortOrder = dataType.IsReversed ? SortOrder.Descending : SortOrder.Ascending;
+                                            clusteringKeys.Add(Tuple.Create(row.GetValue<int?>("component_index") ?? 0, Tuple.Create(col, sortOrder)));
                                             break;
+                                        }
                                     }
                                 }
                                 columns.Add(col.Name, col);
@@ -307,6 +311,7 @@ namespace Cassandra
                                     {
                                         var name = clusteringKeyNames[i];
                                         TableColumn c;
+                                        var dataType = types[i];
                                         if (!columns.TryGetValue(name, out c))
                                         {
                                             c = new TableColumn
@@ -314,14 +319,14 @@ namespace Cassandra
                                                 Name = name,
                                                 Keyspace = keyspaceName,
                                                 Table = tableName,
-                                                TypeCode = types[i].TypeCode,
-                                                TypeInfo = types[i].TypeInfo,
+                                                TypeCode = dataType.TypeCode,
+                                                TypeInfo = dataType.TypeInfo,
                                                 KeyType = KeyType.Clustering
                                             };
                                             //The column is not part of columns metadata table
                                             columns.Add(name, c);
                                         }
-                                        clusteringKeys.Add(Tuple.Create(i, c));
+                                        clusteringKeys.Add(Tuple.Create(i, Tuple.Create(c, dataType.IsReversed ? SortOrder.Descending : SortOrder.Ascending)));
                                     }
                                 }
                             }
@@ -493,7 +498,7 @@ namespace Cassandra
             }
             var columns = new Dictionary<string, TableColumn>();
             var partitionKeys = new List<Tuple<int, TableColumn>>();
-            var clusteringKeys = new List<Tuple<int, TableColumn>>();
+            var clusteringKeys = new List<Tuple<int, Tuple<TableColumn, SortOrder>>>();
             //Read table options
             var options = new TableOptions
             {
@@ -526,7 +531,8 @@ namespace Cassandra
                         partitionKeys.Add(Tuple.Create(row.GetValue<int?>("position") ?? 0, col));
                         break;
                     case "clustering":
-                        clusteringKeys.Add(Tuple.Create(row.GetValue<int?>("position") ?? 0, col));
+                        clusteringKeys.Add(Tuple.Create(row.GetValue<int?>("position") ?? 0, 
+                            Tuple.Create(col, row.GetValue<string>("clustering_order") == "desc" ? SortOrder.Descending : SortOrder.Ascending)));
                         break;
                 }
                 columns.Add(col.Name, col);
@@ -576,10 +582,10 @@ namespace Cassandra
         /// for compact static tables. These columns shouldn't be exposed to the user but are currently returned by C*.
         /// We also need to remove the static keyword for all other columns in the table.
         /// </summary>
-        private static void PruneStaticCompactTableColumns(ICollection<Tuple<int, TableColumn>> clusteringKeys, IDictionary<string, TableColumn> columns)
+        private static void PruneStaticCompactTableColumns(ICollection<Tuple<int, Tuple<TableColumn, SortOrder>>> clusteringKeys, IDictionary<string, TableColumn> columns)
         {
             //remove "column1 text" clustering column
-            foreach (var c in clusteringKeys.Select(t => t.Item2))
+            foreach (var c in clusteringKeys.Select(t => t.Item2.Item1))
             {
                 columns.Remove(c.Name);
             }
