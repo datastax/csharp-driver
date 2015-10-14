@@ -895,5 +895,104 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.Null(cluster.Metadata.GetMaterializedView("ks_view_meta2", "monthlyhigh"));
             }
         }
+
+        /// Tests that multiple secondary indexes are supported per column
+        /// 
+        /// MultipleSecondaryIndexTest tests that multiple secondary indexes can be created on the same column, and the driver
+        /// metadata is updated appropriately. It first creates a table with a map column to be used by the secondary index.
+        /// It then proceeds to create two secondary indexes on the same column: one for the keys of the map and another for
+        /// the values of the map. Finally, it queries the various metadata associated with each index and verifies the information
+        /// is correct.
+        /// 
+        /// @since 3.0.0
+        /// @jira_ticket CSHARP-286
+        /// @expected_result Multiple secondary indexes should be created on the same column
+        /// 
+        /// @test_category metadata
+        [Test, TestCassandraVersion(3, 0)]
+        public void MultipleSecondaryIndexTest()
+        {
+            string keyspaceName = TestUtils.GetUniqueKeyspaceName();
+            string tableName = "products";
+            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(DefaultNodeCount);
+            var cluster = testCluster.Cluster;
+            var session = testCluster.Session;
+            session.CreateKeyspace(keyspaceName);
+            session.ChangeKeyspace(keyspaceName);
+
+            var cql = "CREATE TABLE " + tableName + " (" +
+                      @"id int PRIMARY KEY,
+                      features map<text, text>)";
+            session.Execute(cql);
+            cql = "CREATE INDEX idx_map_keys ON " + tableName + "(KEYS(features))";
+            session.Execute(cql);
+            cql = "CREATE INDEX idx_map_values ON " + tableName + "(VALUES(features))";
+            session.Execute(cql);
+
+            var tableMeta = cluster.Metadata.GetKeyspace(keyspaceName).GetTableMetadata(tableName);
+            Assert.AreEqual(2, tableMeta.Indexes.Count);
+
+            var mapKeysIndex = tableMeta.Indexes["idx_map_keys"];
+            Assert.AreEqual("idx_map_keys", mapKeysIndex.Name);
+            Assert.AreEqual(IndexMetadata.IndexKind.Composites, mapKeysIndex.Kind);
+            Assert.AreEqual("keys(features)", mapKeysIndex.Target);
+            Assert.NotNull(mapKeysIndex.Options);
+
+            var mapValuesIndex = tableMeta.Indexes["idx_map_values"];
+            Assert.AreEqual("idx_map_values", mapValuesIndex.Name);
+            Assert.AreEqual(IndexMetadata.IndexKind.Composites, mapValuesIndex.Kind);
+            Assert.AreEqual("values(features)", mapValuesIndex.Target);
+            Assert.NotNull(mapValuesIndex.Options);
+        }
+
+        /// Tests that multiple secondary indexes are not supported per duplicate column
+        /// 
+        /// RaiseErrorOnInvalidMultipleSecondaryIndexTest tests that multiple secondary indexes cannot be created on the same duplicate column.
+        /// It first creates a table with a simple text column to be used by the secondary index. It then proceeds to create a secondary index 
+        /// on this text column, and verifies that the driver metadata is updated. It then attempts to re-create the same secondary index on the
+        /// exact same column, and verifies that an exception is raised. It then attempts once again to re-create the same secondary index on the
+        /// same column, but this time giving an explicit index name, verifying an exception is raised. Finally, it queries the driver metadata 
+        /// and verifies that only one index was actually created.
+        /// 
+        /// @expected_error RequestInvalidException If a secondary index is re-attempted to be created on the same column
+        /// 
+        /// @since 3.0.0
+        /// @jira_ticket CSHARP-286
+        /// @expected_result Multiple secondary indexes should not be created on the same column in each case
+        /// 
+        /// @test_category metadata
+        [Test, TestCassandraVersion(3, 0)]
+        public void RaiseErrorOnInvalidMultipleSecondaryIndexTest()
+        {
+            string keyspaceName = TestUtils.GetUniqueKeyspaceName();
+            string tableName = "products";
+            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(DefaultNodeCount);
+            var cluster = testCluster.Cluster;
+            var session = testCluster.Session;
+            session.CreateKeyspace(keyspaceName);
+            session.ChangeKeyspace(keyspaceName);
+
+            var cql = "CREATE TABLE " + tableName + " (" +
+                      @"id int PRIMARY KEY,
+                      description text)";
+            session.Execute(cql);
+            
+            cql = "CREATE INDEX ON " + tableName + "(description)";
+            session.Execute(cql);
+            var tableMeta = cluster.Metadata.GetKeyspace(keyspaceName).GetTableMetadata(tableName);
+            Assert.AreEqual(1, tableMeta.Indexes.Count);
+
+            Assert.Throws<InvalidQueryException>(() => session.Execute(cql));
+
+            var cql2 = "CREATE INDEX idx2 ON " + tableName + "(description)";
+            Assert.Throws<InvalidQueryException>(() => session.Execute(cql2));
+            
+            Assert.AreEqual(1, tableMeta.Indexes.Count);
+            var descriptionIndex = tableMeta.Indexes["products_description_idx"];
+            Assert.AreEqual("products_description_idx", descriptionIndex.Name);
+            Assert.AreEqual(IndexMetadata.IndexKind.Composites, descriptionIndex.Kind);
+            Assert.AreEqual("description", descriptionIndex.Target);
+            Assert.NotNull(descriptionIndex.Options);
+        }
     }
 }
