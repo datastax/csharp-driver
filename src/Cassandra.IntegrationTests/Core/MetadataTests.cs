@@ -830,6 +830,17 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+        /// Tests that materialized view metadata is being properly retrieved
+        /// 
+        /// GetMaterializedView_Should_Retrieve_View_Metadata tests that materialized view metadata is being properly populated by the driver.
+        /// It first creates a base table with some sample columns, and a materialized view based on those columns. It then verifies the various metadata
+        /// associated with the view. 
+        /// 
+        /// @since 3.0.0
+        /// @jira_ticket CSHARP-348
+        /// @expected_result Materialized view metadata is properly populated
+        /// 
+        /// @test_category metadata
         [Test, TestCassandraVersion(3, 0)]
         public void GetMaterializedView_Should_Retrieve_View_Metadata()
         {
@@ -847,6 +858,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     session.Execute(q);
                 }
+                
                 var ks = cluster.Metadata.GetKeyspace("ks_view_meta");
                 Assert.NotNull(ks);
                 var view = ks.GetMaterializedViewMetadata("dailyhigh");
@@ -855,23 +867,46 @@ namespace Cassandra.IntegrationTests.Core
                 //Value is cached
                 var view2 = cluster.Metadata.GetMaterializedView("ks_view_meta", "dailyhigh");
                 Assert.AreSame(view, view2);
+
+                Assert.AreEqual("dailyhigh", view.Name);
                 Assert.AreEqual(
                     "game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND day IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL",
                     view.WhereClause);
-                CollectionAssert.AreEquivalent(new[] { "game", "year", "month", "day", "score", "user" }, view.TableColumns.Select(c => c.Name));
-                CollectionAssert.AreEquivalent(new[] { "game", "year", "month", "day" }, view.PartitionKeys.Select(c => c.Name));
-                CollectionAssert.AreEquivalent(new[] { "score", "user" }, view.ClusteringKeys.Select(c => c.Item1.Name));
+                Assert.AreEqual(6, view.TableColumns.Length);
+
+                Assert.AreEqual(new[] { "ks_view_meta", "ks_view_meta", "ks_view_meta", "ks_view_meta", "ks_view_meta", "ks_view_meta" }, 
+                    view.TableColumns.Select(c => c.Keyspace));
+                Assert.AreEqual(new[] { "dailyhigh", "dailyhigh", "dailyhigh", "dailyhigh", "dailyhigh", "dailyhigh" },
+                    view.TableColumns.Select(c => c.Table));
+
+                Assert.AreEqual(new[] { "day", "game", "month", "score", "user", "year" }, view.TableColumns.Select(c => c.Name));
+                Assert.AreEqual(new[] { ColumnTypeCode.Int, ColumnTypeCode.Varchar, ColumnTypeCode.Int, ColumnTypeCode.Int, ColumnTypeCode.Varchar, 
+                    ColumnTypeCode.Int }, view.TableColumns.Select(c => c.TypeCode));
+                Assert.AreEqual(new[] { "game", "year", "month", "day" }, view.PartitionKeys.Select(c => c.Name));
+                Assert.AreEqual(new[] { "score", "user" }, view.ClusteringKeys.Select(c => c.Item1.Name));
+                Assert.AreEqual(new[] { SortOrder.Descending, SortOrder.Ascending }, view.ClusteringKeys.Select(c => c.Item2));
             }
         }
 
+        /// Tests that materialized view metadata with quoted identifiers is being retrieved
+        /// 
+        /// MaterializedView_Should_Retrieve_View_Metadata_Quoted_Identifiers tests that materialized view metadata with quoated identifiers is being 
+        /// properly populated by the driver. It first creates a base table with some sample columns, where these columns have quoted identifers as their name.
+        /// It then creates a materialized view based on those columns. It then verifies the various metadata associated with the view. 
+        /// 
+        /// @since 3.0.0
+        /// @jira_ticket CSHARP-348
+        /// @expected_result Materialized view metadata is properly populated
+        /// 
+        /// @test_category metadata
         [Test, TestCassandraVersion(3, 0)]
-        public void GetMaterializedView_Should_Refresh_View_Metadata_Via_Events()
+        public void MaterializedView_Should_Retrieve_View_Metadata_Quoted_Identifiers()
         {
             var queries = new[]
             {
                 "CREATE KEYSPACE ks_view_meta2 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}",
-                "CREATE TABLE ks_view_meta2.scores (user TEXT, game TEXT, year INT, month INT, day INT, score INT, PRIMARY KEY (user, game, year, month, day))",
-                "CREATE MATERIALIZED VIEW ks_view_meta2.monthlyhigh AS SELECT user FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL AND day IS NOT NULL PRIMARY KEY ((game, year, month), score, user, day) WITH CLUSTERING ORDER BY (score DESC) AND compaction = { 'class' : 'SizeTieredCompactionStrategy' }"
+                @"CREATE TABLE ks_view_meta2.t1 (""theKey"" INT, ""the;Clustering"" INT, ""the Value"" INT, PRIMARY KEY (""theKey"", ""the;Clustering""))",
+                @"CREATE MATERIALIZED VIEW ks_view_meta2.mv1 AS SELECT ""theKey"", ""the;Clustering"", ""the Value"" FROM t1 WHERE ""theKey"" IS NOT NULL AND ""the;Clustering"" IS NOT NULL AND ""the Value"" IS NOT NULL PRIMARY KEY (""theKey"", ""the;Clustering"")"
             };
             var testCluster = TestClusterManager.GetNonShareableTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
             using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build())
@@ -881,22 +916,179 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     session.Execute(q);
                 }
-                var view = cluster.Metadata.GetMaterializedView("ks_view_meta2", "monthlyhigh");
+
+                var ks = cluster.Metadata.GetKeyspace("ks_view_meta2");
+                Assert.NotNull(ks);
+                var view = ks.GetMaterializedViewMetadata("mv1");
+                Assert.NotNull(view);
+                Assert.NotNull(view.Options);
+
+                Assert.AreEqual("mv1", view.Name);
+                Assert.AreEqual(@"""theKey"" IS NOT NULL AND ""the;Clustering"" IS NOT NULL AND ""the Value"" IS NOT NULL", view.WhereClause);
+                Assert.AreEqual(3, view.TableColumns.Length);
+
+                Assert.AreEqual(new[] { "ks_view_meta2", "ks_view_meta2", "ks_view_meta2" }, view.TableColumns.Select(c => c.Keyspace));
+                Assert.AreEqual(new[] { "mv1", "mv1", "mv1" }, view.TableColumns.Select(c => c.Table));
+
+                Assert.AreEqual(new[] { "the Value", "the;Clustering", "theKey" }, view.TableColumns.Select(c => c.Name));
+                Assert.AreEqual(new[] { ColumnTypeCode.Int, ColumnTypeCode.Int, ColumnTypeCode.Int }, view.TableColumns.Select(c => c.TypeCode));
+                Assert.AreEqual(new[] { "theKey" }, view.PartitionKeys.Select(c => c.Name));
+                Assert.AreEqual(new[] { "the;Clustering" }, view.ClusteringKeys.Select(c => c.Item1.Name));
+                Assert.AreEqual(new[] { SortOrder.Ascending }, view.ClusteringKeys.Select(c => c.Item2));
+            }
+        }
+
+        /// Tests that materialized view metadata is being updated
+        /// 
+        /// GetMaterializedView_Should_Refresh_View_Metadata_Via_Events tests that materialized view metadata is being properly updated by the driver
+        /// after a change to the view, via schema change events. It first creates a base table with some sample columns, and a materialized view based on 
+        /// those columns. It then verifies verifies that the original compaction strategy was "STCS". It then changes the compaction strategy for the view
+        /// to "LCS" and verfies that the view metadata was updated correctly.
+        /// 
+        /// @since 3.0.0
+        /// @jira_ticket CSHARP-348
+        /// @expected_result Materialized view metadata is updated correctly
+        /// 
+        /// @test_category metadata
+        [Test, TestCassandraVersion(3, 0)]
+        public void GetMaterializedView_Should_Refresh_View_Metadata_Via_Events()
+        {
+            var queries = new[]
+            {
+                "CREATE KEYSPACE ks_view_meta3 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}",
+                "CREATE TABLE ks_view_meta3.scores (user TEXT, game TEXT, year INT, month INT, day INT, score INT, PRIMARY KEY (user, game, year, month, day))",
+                "CREATE MATERIALIZED VIEW ks_view_meta3.monthlyhigh AS SELECT user FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL AND day IS NOT NULL PRIMARY KEY ((game, year, month), score, user, day) WITH CLUSTERING ORDER BY (score DESC) AND compaction = { 'class' : 'SizeTieredCompactionStrategy' }"
+            };
+            var testCluster = TestClusterManager.GetNonShareableTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
+            using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build())
+            {
+                var session = cluster.Connect();
+                foreach (var q in queries)
+                {
+                    session.Execute(q);
+                }
+                var view = cluster.Metadata.GetMaterializedView("ks_view_meta3", "monthlyhigh");
                 Assert.NotNull(view);
                 StringAssert.Contains("SizeTieredCompactionStrategy", view.Options.CompactionOptions["class"]);
 
-                const string alterQuery = "ALTER MATERIALIZED VIEW ks_view_meta2.monthlyhigh WITH compaction = { 'class' : 'LeveledCompactionStrategy' }";
+                const string alterQuery = "ALTER MATERIALIZED VIEW ks_view_meta3.monthlyhigh WITH compaction = { 'class' : 'LeveledCompactionStrategy' }";
                 session.Execute(alterQuery);
                 //Wait for event
                 Thread.Sleep(5000);
-                view = cluster.Metadata.GetMaterializedView("ks_view_meta2", "monthlyhigh");
+                view = cluster.Metadata.GetMaterializedView("ks_view_meta3", "monthlyhigh");
                 StringAssert.Contains("LeveledCompactionStrategy", view.Options.CompactionOptions["class"]);
 
-                const string dropQuery = "DROP MATERIALIZED VIEW ks_view_meta2.monthlyhigh";
+                const string dropQuery = "DROP MATERIALIZED VIEW ks_view_meta3.monthlyhigh";
                 session.Execute(dropQuery);
                 //Wait for event
                 Thread.Sleep(5000);
-                Assert.Null(cluster.Metadata.GetMaterializedView("ks_view_meta2", "monthlyhigh"));
+                Assert.Null(cluster.Metadata.GetMaterializedView("ks_view_meta3", "monthlyhigh"));
+            }
+        }
+
+        /// Tests that materialized view metadata is updated from base table addition changes
+        /// 
+        /// MaterializedView_Base_Table_Column_Addition tests that materialized view metadata is being updated when there is a table alteration in the base
+        /// table for the view, where a new column is added. It first creates a base table with some sample columns, and two materialized views based on 
+        /// those columns: one which targets specific columns and the other which targets all columns. It then alters the base table to add a new column 
+        /// "fouls". It then verifies that the update is propagated to the table metadata and the view metadata which targets all columns. It finally 
+        /// verfies that the view which does not target all the base columns is not affected by this table change.
+        /// 
+        /// @since 3.0.0
+        /// @jira_ticket CSHARP-348
+        /// @expected_result Materialized view metadata is updated due to base table changes
+        /// 
+        /// @test_category metadata
+        [Test, TestCassandraVersion(3, 0)]
+        public void MaterializedView_Base_Table_Column_Addition()
+        {
+            var queries = new[]
+            {
+                "CREATE KEYSPACE ks_view_meta4 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}",
+                "CREATE TABLE ks_view_meta4.scores (user TEXT, game TEXT, year INT, month INT, day INT, score INT, PRIMARY KEY (user, game, year, month, day))",
+                "CREATE MATERIALIZED VIEW ks_view_meta4.dailyhigh AS SELECT user FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND day IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL PRIMARY KEY ((game, year, month, day), score, user) WITH CLUSTERING ORDER BY (score DESC)",
+                "CREATE MATERIALIZED VIEW ks_view_meta4.alltimehigh AS SELECT * FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND day IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL PRIMARY KEY (game, year, month, day, score, user) WITH CLUSTERING ORDER BY (score DESC)"
+            };
+            var testCluster = TestClusterManager.GetNonShareableTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
+            using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build())
+            {
+                var session = cluster.Connect();
+                foreach (var q in queries)
+                {
+                    session.Execute(q);
+                }
+
+                var ks = cluster.Metadata.GetKeyspace("ks_view_meta4");
+                Assert.NotNull(ks);
+                var dailyView = ks.GetMaterializedViewMetadata("dailyhigh");
+                Assert.NotNull(dailyView);
+                Assert.NotNull(dailyView.Options);
+                var alltimeView = ks.GetMaterializedViewMetadata("alltimehigh");
+                Assert.NotNull(alltimeView);
+                Assert.NotNull(alltimeView.Options);
+
+                session.Execute("ALTER TABLE ks_view_meta4.scores ADD fouls INT");
+                //Wait for event
+                Thread.Sleep(5000);
+                Assert.NotNull(cluster.Metadata.GetKeyspace("ks_view_meta4").GetTableMetadata("scores").ColumnsByName["fouls"]);
+
+                alltimeView = cluster.Metadata.GetMaterializedView("ks_view_meta4", "alltimehigh");
+                var foulMeta = alltimeView.ColumnsByName["fouls"];
+                Assert.NotNull(foulMeta);
+                Assert.AreEqual(ColumnTypeCode.Int, foulMeta.TypeCode);
+
+                dailyView = cluster.Metadata.GetMaterializedView("ks_view_meta4", "dailyhigh");
+                Assert.IsFalse(dailyView.TableColumns.Contains(foulMeta));
+            }
+        }
+
+        /// Tests that materialized view metadata is updated from base table alternation changes
+        /// 
+        /// MaterializedView_Base_Table_Column_Alteration tests that materialized view metadata is being updated when there is a table alteration in the base
+        /// table for the view, where a column datatype is changed. It first creates a base table with some sample columns, and a materialized views based on 
+        /// this table. It then alters the base table to change the column type of "score" from INT to BLOB. It then verifies that the
+        /// update is propagated to the table metadata and the view metadata.
+        /// 
+        /// @since 3.0.0
+        /// @jira_ticket CSHARP-348
+        /// @expected_result Materialized view metadata is updated due to base table changes
+        /// 
+        /// @test_category metadata
+        [Test, TestCassandraVersion(3, 0)]
+        public void MaterializedView_Base_Table_Column_Alteration()
+        {
+            var queries = new[]
+            {
+                "CREATE KEYSPACE ks_view_meta5 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}",
+                "CREATE TABLE ks_view_meta5.scores (user TEXT, game TEXT, year INT, month INT, day INT, score INT, PRIMARY KEY (user, game, year, month, day))",
+                "CREATE MATERIALIZED VIEW ks_view_meta5.dailyhigh AS SELECT user FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND day IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL PRIMARY KEY ((game, year, month, day), score, user) WITH CLUSTERING ORDER BY (score DESC)"
+            };
+            var testCluster = TestClusterManager.GetNonShareableTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
+            using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build())
+            {
+                var session = cluster.Connect();
+                foreach (var q in queries)
+                {
+                    session.Execute(q);
+                }
+
+                var ks = cluster.Metadata.GetKeyspace("ks_view_meta5");
+                Assert.NotNull(ks);
+                var dailyView = ks.GetMaterializedViewMetadata("dailyhigh");
+                Assert.NotNull(dailyView);
+                Assert.NotNull(dailyView.Options);
+                var scoreMeta = dailyView.ColumnsByName["score"];
+                Assert.NotNull(scoreMeta);
+                Assert.AreEqual(ColumnTypeCode.Int, scoreMeta.TypeCode);
+
+                session.Execute("ALTER TABLE ks_view_meta5.scores ALTER score TYPE blob");
+                //Wait for event
+                Thread.Sleep(5000);
+                Assert.AreEqual(ColumnTypeCode.Blob, cluster.Metadata.GetKeyspace("ks_view_meta5").GetTableMetadata("scores").ColumnsByName["score"].TypeCode);
+
+                dailyView = cluster.Metadata.GetMaterializedView("ks_view_meta5", "dailyhigh");
+                scoreMeta = dailyView.ColumnsByName["score"];
+                Assert.AreEqual(ColumnTypeCode.Blob, scoreMeta.TypeCode);
             }
         }
 
