@@ -998,5 +998,40 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual("description", descriptionIndex.Target);
             Assert.NotNull(descriptionIndex.Options);
         }
+        /// Tests that clustering order metadata is set properly
+        /// 
+        /// ColumnClusteringOrderReversedTest tests that clustering order metadata for a clustering key is properly recalled in the driver
+        /// metadata under the "ClusteringKeys" metadata. It first creates a simple table with a primary key, one column ascending, and another
+        /// column descending. It checks the metadata for each clustering key to make sure that the proper value is recalled in the driver metadata.
+        /// 
+        /// @since 3.0.0
+        /// @jira_ticket CSHARP-359
+        /// @expected_result Clustering order metadata is properly set
+        /// 
+        /// @test_category metadata
+        [Test, TestCassandraVersion(3, 0)]
+        public void ColumnClusteringOrderReversedTest()
+        {
+            string keyspaceName = TestUtils.GetUniqueKeyspaceName();
+            string tableName = "products";
+            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(DefaultNodeCount);
+            var cluster = testCluster.Cluster;
+            var session = testCluster.Session;
+            session.CreateKeyspace(keyspaceName);
+            session.ChangeKeyspace(keyspaceName);
+
+            var cql = "CREATE TABLE " + tableName + " (" +
+                      @"id int,
+                      description text,
+                      price double,
+                      PRIMARY KEY(id, description, price)
+                      ) WITH COMPACT STORAGE
+                      AND CLUSTERING ORDER BY (description ASC, price DESC)";
+            session.Execute(cql);
+
+            var tableMeta = cluster.Metadata.GetKeyspace(keyspaceName).GetTableMetadata(tableName);
+            Assert.AreEqual(new[] { "description", "price" }, tableMeta.ClusteringKeys.Select(c => c.Item1.Name));
+            Assert.AreEqual(new[] { SortOrder.Ascending, SortOrder.Descending }, tableMeta.ClusteringKeys.Select(c => c.Item2));
+        }
     }
 }
