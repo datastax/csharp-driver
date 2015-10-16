@@ -71,6 +71,30 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         }
 
         /// <summary>
+        /// Successfully Fetch mapped records by passing in a static query string
+        /// </summary>
+        [Test]
+        public void FetchAsync_Using_Select_Cql_And_PageSize()
+        {
+            var table = new Table<Author>(_session, new MappingConfiguration());
+            table.Create();
+
+            var mapper = new Mapper(_session, new MappingConfiguration().Define(new FluentUserMapping()));
+            var ids = new[] {Guid.NewGuid().ToString(), Guid.NewGuid().ToString()};
+
+            mapper.Insert(new Author { AuthorId = ids[0] });
+            mapper.Insert(new Author { AuthorId = ids[1] });
+
+            List<Author> authors = null;
+            mapper.FetchAsync<Author>(Cql.New("SELECT * from " + table.Name).WithOptions(o => o.SetPageSize(int.MaxValue))).ContinueWith(t =>
+            {
+                authors = t.Result.ToList();
+            }).Wait();
+            Assert.AreEqual(2, authors.Count);;
+            CollectionAssert.AreEquivalent(ids, authors.Select(a => a.AuthorId));
+        }
+
+        /// <summary>
         /// Successfully insert a new record into a table that was created with fluent mapping
         /// </summary>
         [Test]
