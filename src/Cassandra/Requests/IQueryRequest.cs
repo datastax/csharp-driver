@@ -1,4 +1,4 @@
-﻿//
+//
 //      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,17 +14,20 @@
 //   limitations under the License.
 //
 
-namespace Cassandra
+namespace Cassandra.Requests
 {
-    internal interface IRequest
+    /// <summary>
+    /// Represents a QUERY or EXECUTE request that can be included in a batch
+    /// </summary>
+    internal interface IQueryRequest : IRequest
     {
         /// <summary>
-        /// Gets the version of the protocol that the request is built for
+        /// The paging state for the request
         /// </summary>
-        int ProtocolVersion { get; }
+        byte[] PagingState { get; set; }
         /// <summary>
-        /// Constructs the frame for this request
+        /// Method used by the batch to build each individual request
         /// </summary>
-        RequestFrame GetFrame(short streamId);
+        void WriteToBatch(byte protocolVersion, FrameWriter writer);
     }
 }

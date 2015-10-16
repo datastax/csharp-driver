@@ -16,8 +16,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 
-namespace Cassandra
+namespace Cassandra.Requests
 {
     /// <summary>
     /// Represents a protocol EXECUTE request
@@ -85,9 +86,9 @@ namespace Cassandra
             }
         }
 
-        public RequestFrame GetFrame(short streamId)
+        public int WriteFrame(short streamId, MemoryStream stream)
         {
-            var wb = new BEBinaryWriter();
+            var wb = new FrameWriter(stream);
             if (Payload != null)
             {
                 _headerFlags |= FrameHeader.HeaderFlag.CustomPayload;
@@ -100,11 +101,10 @@ namespace Cassandra
             }
             wb.WriteShortBytes(_id);
             _queryOptions.Write(wb, (byte)ProtocolVersion, true);
-
-            return wb.GetFrame();
+            return wb.Close();
         }
 
-        public void WriteToBatch(byte protocolVersion, BEBinaryWriter wb)
+        public void WriteToBatch(byte protocolVersion, FrameWriter wb)
         {
             wb.WriteByte(1); //prepared query
             wb.WriteShortBytes(_id);

@@ -21,6 +21,8 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Requests;
+using Cassandra.Tasks;
 
 namespace Cassandra
 {

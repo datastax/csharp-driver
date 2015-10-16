@@ -15,9 +15,10 @@
 //
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
-namespace Cassandra
+namespace Cassandra.Requests
 {
     internal class BatchRequest : ICqlRequest
     {
@@ -77,11 +78,11 @@ namespace Cassandra
             }
         }
 
-        public RequestFrame GetFrame(short streamId)
+        public int WriteFrame(short streamId, MemoryStream stream)
         {
             //protocol v2: <type><n><query_1>...<query_n><consistency>
             //protocol v3: <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
-            var wb = new BEBinaryWriter();
+            var wb = new FrameWriter(stream);
             if (Payload != null)
             {
                 _headerFlags |= FrameHeader.HeaderFlag.CustomPayload;
@@ -112,7 +113,7 @@ namespace Cassandra
                 //Expressed in microseconds
                 wb.WriteLong(TypeCodec.ToUnixTime(_timestamp.Value).Ticks / 10);
             }
-            return wb.GetFrame();
+            return wb.Close();
         }
     }
 }

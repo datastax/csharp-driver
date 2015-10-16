@@ -25,6 +25,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Tasks;
 using Cassandra.Compression;
+using Cassandra.Requests;
 
 namespace Cassandra
 {
@@ -505,7 +506,7 @@ namespace Cassandra
                 else
                 {
                     //Its an event
-                    state = new OperationState(EventHandler);
+                    state = new OperationState(EventHandler, Configuration.BufferPool);
                 }
                 state.Header = header;
                 _receivingOperation = state;
@@ -597,7 +598,7 @@ namespace Cassandra
             {
                 callback(new SocketException((int)SocketError.NotConnected), null);
             }
-            var state = new OperationState(callback)
+            var state = new OperationState(callback, Configuration.BufferPool)
             {
                 Request = request
             };
@@ -636,7 +637,7 @@ namespace Cassandra
         {
             //Dequeue all items until threshold is passed
             long totalLength = 0;
-            var buffers = new LinkedList<Stream>();
+            var stream = Configuration.BufferPool.GetStream(GetType().Name + "/SendStream");
             while (totalLength < CoalescingThreshold)
             {
                 OperationState state;
@@ -656,10 +657,10 @@ namespace Cassandra
                 }
                 _logger.Verbose("Sending #{0} for {1}", streamId, state.Request.GetType().Name);
                 _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
-                Stream frameStream;
+                int frameLength;
                 try
                 {
-                    frameStream = state.Request.GetFrame(streamId).Stream;
+                    frameLength = state.Request.WriteFrame(streamId, stream);
                     //Closure state variable
                     var delegateState = state;
                     if (Configuration.SocketOptions.ReadTimeoutMillis > 0 && Configuration.Timer != null)
@@ -679,9 +680,7 @@ namespace Cassandra
                 }
                 //We will not use the request any more, stop reference it.
                 state.Request = null;
-                //Add it buffers to write
-                buffers.AddLast(frameStream);
-                totalLength += frameStream.Length;
+                totalLength += frameLength;
             }
             if (totalLength == 0)
             {
@@ -689,9 +688,8 @@ namespace Cassandra
                 Interlocked.Exchange(ref _isWriteQueueRuning, 0);
                 return;
             }
-            //this can result in OOM
-            var buffer = Utils.ReadAllBytes(buffers, totalLength);
-            _tcpSocket.Write(buffer);
+            //Write and close the stream when flushed
+            _tcpSocket.Write(stream.GetBuffer(), (int)stream.Length, () => stream.Close());
         }
 
         /// <summary>

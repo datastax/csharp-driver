@@ -21,7 +21,9 @@ using System.Linq;
 using System.Text;
 ﻿using System.Threading;
 ﻿using System.Threading.Tasks;
+﻿using Cassandra.Requests;
 ﻿using Cassandra.Tasks;
+﻿using Microsoft.IO;
 
 namespace Cassandra
 {
@@ -37,6 +39,7 @@ namespace Cassandra
         private static readonly Action<Exception, AbstractResponse> Noop = (_, __) => { };
 
         private volatile Action<Exception, AbstractResponse> _callback;
+        private readonly RecyclableMemoryStreamManager _bufferPool;
         private int _state = StateInit;
         /// <summary>
         /// Gets a readable stream representing the body
@@ -50,15 +53,7 @@ namespace Cassandra
         {
             get 
             {
-                if (BodyStream is MemoryStream)
-                {
-                    return true;
-                }
-                if (BodyStream is ListBackedStream)
-                {
-                    return BodyStream.Length == Header.BodyLength;
-                }
-                return false;
+                return BodyStream.Length == Header.BodyLength;
             }
         }
 
@@ -77,9 +72,10 @@ namespace Cassandra
         /// <summary>
         /// Creates a new operation state with the provided callback
         /// </summary>
-        public OperationState(Action<Exception, AbstractResponse> callback)
+        public OperationState(Action<Exception, AbstractResponse> callback, RecyclableMemoryStreamManager bufferPool)
         {
             _callback = callback;
+            _bufferPool = bufferPool;
         }
 
         /// <summary>
@@ -94,13 +90,7 @@ namespace Cassandra
             }
             if (BodyStream == null)
             {
-                if (Header.BodyLength <= count)
-                {
-                    //There is no need to copy the buffer: Use the inner buffer
-                    BodyStream = new MemoryStream(value, offset, Header.BodyLength, false, false);
-                    return Header.BodyLength;
-                }
-                BodyStream = new ListBackedStream();
+                BodyStream = _bufferPool.GetStream(GetType().Name);
             }
             if (BodyStream.Position + count > Header.BodyLength)
             {

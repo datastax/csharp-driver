@@ -223,32 +223,6 @@ namespace Cassandra
             return (short)((buffer[idx] << 8) | (buffer[idx + 1] & 0xFF));
         }
 
-        private static byte[] Int32ToBytes(int value)
-        {
-            return new[]
-            {
-                (byte) ((value & 0xFF000000) >> 24),
-                (byte) ((value & 0xFF0000) >> 16),
-                (byte) ((value & 0xFF00) >> 8),
-                (byte) (value & 0xFF)
-            };
-        }
-
-        private static byte[] Int64ToBytes(long value)
-        {
-            return new[]
-            {
-                (byte) (((ulong) value & 0xFF00000000000000) >> 56),
-                (byte) ((value & 0xFF000000000000) >> 48),
-                (byte) ((value & 0xFF0000000000) >> 40),
-                (byte) ((value & 0xFF00000000) >> 32),
-                (byte) ((value & 0xFF000000) >> 24),
-                (byte) ((value & 0xFF0000) >> 16),
-                (byte) ((value & 0xFF00) >> 8),
-                (byte) (value & 0xFF)
-            };
-        }
-
         private static long BytesToInt64(byte[] buffer, int idx)
         {
             return (long) (
@@ -263,11 +237,6 @@ namespace Cassandra
                           );
         }
 
-        private static byte[] Int16ToBytes(short value)
-        {
-            return new[] {(byte) ((value & 0xFF00) >> 8), (byte) (value & 0xFF)};
-        }
-
         private static DateTimeOffset BytesToDateTimeOffset(byte[] buffer)
         {
             return UnixStart.AddMilliseconds(BytesToInt64(buffer, 0));
@@ -275,7 +244,7 @@ namespace Cassandra
 
         private static byte[] DateTimeOffsetToBytes(DateTimeOffset dt)
         {
-            return Int64ToBytes(Convert.ToInt64(Math.Floor((dt - UnixStart).TotalMilliseconds)));
+            return BeConverter.GetBytes(Convert.ToInt64(Math.Floor((dt - UnixStart).TotalMilliseconds)));
         }
 
         public static TimeSpan ToUnixTime(DateTimeOffset value)
@@ -485,7 +454,7 @@ namespace Cassandra
         public static byte[] EncodeBigint(int protocolVersion, IColumnInfo typeInfo, object value)
         {
             CheckArgument<long>(value);
-            return Int64ToBytes((long) value);
+            return BeConverter.GetBytes((long) value);
         }
 
         public static object DecodeUuid(int protocolVersion, IColumnInfo typeInfo, byte[] value, Type cSharpType)
@@ -954,7 +923,7 @@ namespace Cassandra
             var index = 0;
             foreach (var buf in bufferList)
             {
-                var bufferItemLength = Int32ToBytes(buf != null ? buf.Length : -1);
+                var bufferItemLength = BeConverter.GetBytes(buf != null ? buf.Length : -1);
                 Buffer.BlockCopy(bufferItemLength, 0, result, index, bufferItemLength.Length);
                 index += bufferItemLength.Length;
                 if (buf == null)
@@ -974,9 +943,9 @@ namespace Cassandra
         {
             if (protocolVersion < 3)
             {
-                return Int16ToBytes((short) value);
+                return BeConverter.GetBytes((short)value);
             }
-            return Int32ToBytes(value);
+            return BeConverter.GetBytes(value);
         }
 
         public static object DecodeInet(int protocolVersion, IColumnInfo typeInfo, byte[] value, Type cSharpType)
@@ -1003,7 +972,7 @@ namespace Cassandra
         public static byte[] EncodeCounter(int protocolVersion, IColumnInfo typeInfo, object value)
         {
             CheckArgument<long>(value);
-            return Int64ToBytes((long) value);
+            return BeConverter.GetBytes((long) value);
         }
 
         public static object DecodeDouble(int protocolVersion, IColumnInfo typeInfo, byte[] value, Type cSharpType)
@@ -1051,7 +1020,7 @@ namespace Cassandra
         public static byte[] EncodeInt(int protocolVersion, IColumnInfo typeInfo, object value)
         {
             CheckArgument<int>(value);
-            return Int32ToBytes((int)value);
+            return BeConverter.GetBytes((int)value);
         }
 
         public static byte[] EncodeDate(int protocolVersion, IColumnInfo typeInfo, object value)
@@ -1070,13 +1039,13 @@ namespace Cassandra
         public static byte[] EncodeTime(int protocolVersion, IColumnInfo typeInfo, object value)
         {
             CheckArgument<LocalTime>(value);
-            return Int64ToBytes(((LocalTime)value).TotalNanoseconds);
+            return BeConverter.GetBytes(((LocalTime)value).TotalNanoseconds);
         }
 
         public static byte[] EncodeShort(int protocolVersion, IColumnInfo typeInfo, object value)
         {
             CheckArgument<short>(value);
-            return Int16ToBytes((short)value);
+            return BeConverter.GetBytes((short)value);
         }
 
         public static byte[] EncodeSByte(int protocolVersion, IColumnInfo typeInfo, object value)

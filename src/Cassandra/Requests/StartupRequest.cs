@@ -15,8 +15,9 @@
 //
 
 using System.Collections.Generic;
+using System.IO;
 
-namespace Cassandra
+namespace Cassandra.Requests
 {
     internal class StartupRequest : IRequest
     {
@@ -31,9 +32,9 @@ namespace Cassandra
             _options = options;
         }
 
-        public RequestFrame GetFrame(short streamId)
+        public int WriteFrame(short streamId, MemoryStream stream)
         {
-            var wb = new BEBinaryWriter();
+            var wb = new FrameWriter(stream);
             wb.WriteFrameHeader((byte)ProtocolVersion, 0x00, streamId, OpCode);
             wb.WriteUInt16((ushort) _options.Count);
             foreach (var kv in _options)
@@ -41,7 +42,7 @@ namespace Cassandra
                 wb.WriteString(kv.Key);
                 wb.WriteString(kv.Value);
             }
-            return wb.GetFrame();
+            return wb.Close();
         }
     }
 }

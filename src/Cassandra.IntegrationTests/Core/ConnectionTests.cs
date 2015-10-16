@@ -30,6 +30,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Tasks;
 using Cassandra.Tests;
+using Cassandra.Requests;
+using Microsoft.IO;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -690,6 +692,8 @@ namespace Cassandra.IntegrationTests.Core
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator());
+            config.BufferPool = new RecyclableMemoryStreamManager();
+            config.Timer = new HashedWheelTimer();
             return CreateConnection(GetLatestProtocolVersion(), config);
         }
 

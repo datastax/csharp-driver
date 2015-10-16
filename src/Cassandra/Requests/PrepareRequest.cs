@@ -15,8 +15,9 @@
 //
 
 using System.Collections.Generic;
+using System.IO;
 
-namespace Cassandra
+namespace Cassandra.Requests
 {
     internal class PrepareRequest : IRequest
     {
@@ -49,16 +50,16 @@ namespace Cassandra
             Query = cqlQuery;
         }
 
-        public RequestFrame GetFrame(short streamId)
+        public int WriteFrame(short streamId, MemoryStream stream)
         {
-            var wb = new BEBinaryWriter();
+            var wb = new FrameWriter(stream);
             wb.WriteFrameHeader((byte)ProtocolVersion, (byte)_headerFlags, streamId, OpCode);
             if (Payload != null)
             {
                 wb.WriteBytesMap(Payload);
             }
             wb.WriteLongString(Query);
-            return wb.GetFrame();
+            return wb.Close();
         }
     }
 }

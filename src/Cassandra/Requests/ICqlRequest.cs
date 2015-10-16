@@ -14,20 +14,25 @@
 //   limitations under the License.
 //
 
-namespace Cassandra
+﻿using System;
+﻿using System.Collections.Generic;
+
+namespace Cassandra.Requests
 {
     /// <summary>
-    /// Represents a QUERY or EXECUTE request that can be included in a batch
+    /// Represents an CQL Request (BATCH, EXECUTE or QUERY)
     /// </summary>
-    internal interface IQueryRequest : IRequest
+    internal interface ICqlRequest : IRequest
     {
         /// <summary>
-        /// The paging state for the request
+        /// Gets or sets the Consistency for the Request.
+        /// It defaults to the one provided by the Statement but it can be changed by the retry policy.
         /// </summary>
-        byte[] PagingState { get; set; }
+        ConsistencyLevel Consistency { get; set; }
+
         /// <summary>
-        /// Method used by the batch to build each individual request
+        /// Gets or sets the custom payload to be set with this request
         /// </summary>
-        void WriteToBatch(byte protocolVersion, BEBinaryWriter writer);
+        IDictionary<string, byte[]> Payload { get; set; }
     }
 }

@@ -14,7 +14,9 @@
 //   limitations under the License.
 //
 
-namespace Cassandra
+using System.IO;
+
+namespace Cassandra.Requests
 {
     internal class OptionsRequest : IRequest
     {
@@ -27,11 +29,11 @@ namespace Cassandra
             ProtocolVersion = protocolVersion;
         }
 
-        public RequestFrame GetFrame(short streamId)
+        public int WriteFrame(short streamId, MemoryStream stream)
         {
-            var wb = new BEBinaryWriter();
+            var wb = new FrameWriter(stream);
             wb.WriteFrameHeader((byte)ProtocolVersion, 0x00, streamId, OpCode);
-            return wb.GetFrame();
+            return wb.Close();
         }
     }
 }

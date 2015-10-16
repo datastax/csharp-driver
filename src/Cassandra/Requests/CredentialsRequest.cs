@@ -15,8 +15,9 @@
 //
 using System;
 using System.Collections.Generic;
+using System.IO;
 
-namespace Cassandra
+namespace Cassandra.Requests
 {
     internal class CredentialsRequest : IRequest
     {
@@ -30,14 +31,14 @@ namespace Cassandra
             _credentials = credentials;
         }
 
-        public RequestFrame GetFrame(short streamId)
+        public int WriteFrame(short streamId, MemoryStream stream)
         {
             if (ProtocolVersion > 1)
             {
                 throw new NotSupportedException("Credentials request is only supported in C* = 1.2.x");
             }
 
-            var wb = new BEBinaryWriter();
+            var wb = new FrameWriter(stream);
             wb.WriteFrameHeader((byte)ProtocolVersion, 0x00, streamId, OpCode);
             wb.WriteUInt16((ushort) _credentials.Count);
             foreach (var kv in _credentials)
@@ -45,7 +46,7 @@ namespace Cassandra
                 wb.WriteString(kv.Key);
                 wb.WriteString(kv.Value);
             }
-            return wb.GetFrame();
+            return wb.Close();
         }
     }
 }

@@ -40,7 +40,8 @@ namespace Cassandra
         private Stream _socketStream;
         private byte[] _receiveBuffer;
         private volatile bool _isClosing;
-        
+        private Action _writeFlushCallback;
+
         public IPEndPoint IPEndPoint { get; protected set; }
 
         public SocketOptions Options { get; protected set; }
@@ -336,6 +337,7 @@ namespace Cassandra
             {
                 OnError(null, e.SocketError);
             }
+            OnWriteFlushed();
             if (WriteCompleted != null)
             {
                 WriteCompleted();
@@ -362,13 +364,14 @@ namespace Cassandra
                     OnError(ex);
                 }
             }
+            OnWriteFlushed();
             if (WriteCompleted != null)
             {
                 WriteCompleted();
             }
         }
 
-        protected virtual void OnClosing()
+        protected void OnClosing()
         {
             _isClosing = true;
             if (Closing != null)
@@ -389,36 +392,47 @@ namespace Cassandra
             _receiveBuffer = null;
         }
 
+        private void OnWriteFlushed()
+        {
+            var callback = Interlocked.Exchange(ref _writeFlushCallback, null);
+            if (callback != null)
+            {
+                callback();
+            }
+        }
+
         /// <summary>
         /// Sends data asynchronously
         /// </summary>
-        public virtual void Write(byte[] buffer)
+        public void Write(byte[] buffer, int length, Action onBufferFlush)
         {
+            Interlocked.Exchange(ref _writeFlushCallback, onBufferFlush);
             if (_isClosing)
             {
                 OnError(new SocketException((int)SocketError.Shutdown));
+                OnWriteFlushed();
                 return;
             }
             if (_sendSocketEvent != null)
             {
-                _sendSocketEvent.SetBuffer(buffer, 0, buffer.Length);
-                bool willRaiseEvent = false;
+                _sendSocketEvent.SetBuffer(buffer, 0, length);
+                var isWritePending = false;
                 try
                 {
-                    willRaiseEvent = _socket.SendAsync(_sendSocketEvent);
+                    isWritePending = _socket.SendAsync(_sendSocketEvent);
                 }
                 catch (Exception ex)
                 {
                     OnError(ex);
                 }
-                if (!willRaiseEvent)
+                if (!isWritePending)
                 {
                     OnSendCompleted(this, _sendSocketEvent);
                 }
             }
             else
             {
-                _socketStream.BeginWrite(buffer, 0, buffer.Length, OnSendStreamCallback, null);
+                _socketStream.BeginWrite(buffer, 0, length, OnSendStreamCallback, null);
             }
         }
 

@@ -58,6 +58,7 @@
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="AggregateMetadata.cs" />
+    <Compile Include="BeConverter.cs" />
     <Compile Include="Collections\CopyOnWriteDictionary.cs" />
     <Compile Include="Collections\CopyOnWriteList.cs" />
     <Compile Include="Compression\Snappy\CorruptionException.cs" />
@@ -136,12 +137,11 @@
     <Compile Include="HostConnectionPool.cs" />
     <Compile Include="DefaultAddressTranslator.cs" />
     <Compile Include="IAddressTranslator.cs" />
-    <Compile Include="ICqlRequest.cs" />
+    <Compile Include="Requests\ICqlRequest.cs" />
     <Compile Include="LocalDate.cs" />
     <Compile Include="LocalTime.cs" />
     <Compile Include="Mapping\AppliedInfo.cs" />
     <Compile Include="Mapping\IPage.cs" />
-    <Compile Include="ListBackedStream.cs" />
     <Compile Include="AtomicValue.cs" />
     <Compile Include="BigIntegerTypeAdapter.cs" />
     <Compile Include="BoolSwitch.cs" />
@@ -172,7 +172,7 @@
     <Compile Include="IAuthProvider.cs" />
     <Compile Include="ICluster.cs" />
     <Compile Include="IInitializer.cs" />
-    <Compile Include="IQueryRequest.cs" />
+    <Compile Include="Requests\IQueryRequest.cs" />
     <Compile Include="ISession.cs" />
     <Compile Include="IStatement.cs" />
     <Compile Include="IToken.cs" />
@@ -333,6 +333,8 @@
     <Compile Include="Policies\TokenAwarePolicy.cs" />
     <Compile Include="PoolingOptions.cs" />
     <Compile Include="PreparedStatement.cs" />
+    <Compile Include="RecyclableMemoryStream.cs" />
+    <Compile Include="RecyclableMemoryStreamManager.cs" />
     <Compile Include="Requests\RequestHandler.cs" />
     <Compile Include="ProtocolOptions.cs" />
     <Compile Include="Requests\RequestExecution.cs" />
@@ -341,7 +343,6 @@
     <Compile Include="QueryProtocolOptions.cs" />
     <Compile Include="QueryTrace.cs" />
     <Compile Include="ReplicationStrategies.cs" />
-    <Compile Include="RequestFrame.cs" />
     <Compile Include="Requests\AuthResponseRequest.cs" />
     <Compile Include="Requests\BatchRequest.cs" />
     <Compile Include="Requests\BatchType.cs" />
@@ -351,7 +352,7 @@
     <Compile Include="Responses\AuthChallengeResponse.cs" />
     <Compile Include="Responses\AuthenticateResponse.cs" />
     <Compile Include="BEBinaryReader.cs" />
-    <Compile Include="BEBinaryWriter.cs" />
+    <Compile Include="FrameWriter.cs" />
     <Compile Include="Requests\PrepareRequest.cs" />
     <Compile Include="Responses\AuthSuccessResponse.cs" />
     <Compile Include="Responses\EventResponse.cs" />
@@ -365,7 +366,7 @@
     <Compile Include="FrameParser.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Responses\ReadyResponse.cs" />
-    <Compile Include="IRequest.cs" />
+    <Compile Include="Requests\IRequest.cs" />
     <Compile Include="AbstractResponse.cs" />
     <Compile Include="Requests\StartupRequest.cs" />
     <Compile Include="Outputs\OutputRows.cs" />
