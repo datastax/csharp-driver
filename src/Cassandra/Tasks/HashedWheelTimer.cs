@@ -177,7 +177,6 @@ namespace Cassandra.Tasks
                         return;
                     }
                     Head.Previous = null;
-                    Tail = Head.Next;
                     return;
                 }
                 item.Previous.Next = item.Next;
