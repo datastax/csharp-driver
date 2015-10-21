@@ -23,7 +23,7 @@ namespace Cassandra
             return new SyntaxError(Message);
         }
 
-        protected override void Load(BEBinaryReader reader)
+        protected override void Load(FrameReader reader)
         {
         }
     }

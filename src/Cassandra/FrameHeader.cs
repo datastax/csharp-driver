@@ -54,20 +54,12 @@ namespace Cassandra
         /// <summary>
         /// Returns the length of the frame body 
         /// </summary>
-        public int BodyLength
-        {
-            get
-            {
-                return TypeCodec.BytesToInt32(Len, 0);
-            }
-        }
+        public int BodyLength { get; private set; }
 
         /// <summary>
         /// Flags applying to this frame..
         /// </summary>
         public HeaderFlag Flags { get; set; }
-        
-        public byte[] Len = new byte[4];
         
         public byte Opcode { get; set; }
         
@@ -106,7 +98,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Parses the first 8 bytes and returns a FrameHeader
+        /// Parses the first 8 or 9 bytes and returns a FrameHeader
         /// </summary>
         public static FrameHeader ParseResponseHeader(byte version, byte[] buffer, int offset)
         {
@@ -122,12 +114,23 @@ namespace Cassandra
             }
             else
             {
-                header.StreamId = BitConverter.ToInt16(new byte[] { buffer[offset + 1], buffer[offset] }, 0);
+                header.StreamId = BeConverter.ToInt16(buffer, offset);
                 offset += 2;
             }
             header.Opcode = buffer[offset++];
-            header.Len = buffer.Skip(offset).Take(4).ToArray();
+            header.BodyLength = BeConverter.ToInt32(Utils.SliceBuffer(buffer, offset, 4));
             return header;
+        }
+
+        /// <summary>
+        /// Parses the first 8 or 9 bytes from multiple buffers and returns a FrameHeader
+        /// </summary>
+        public static FrameHeader ParseResponseHeader(byte version, byte[] buffer1, byte[] buffer2)
+        {
+            var headerBuffer = new byte[version < 3 ? 8 : 9];
+            Buffer.BlockCopy(buffer1, 0, headerBuffer, 0, buffer1.Length);
+            Buffer.BlockCopy(buffer2, 0, headerBuffer, buffer1.Length, headerBuffer.Length - buffer1.Length);
+            return ParseResponseHeader(version, headerBuffer, 0);
         }
 
         /// <summary>

@@ -329,7 +329,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.IsInstanceOf<byte[]>(row.GetValue<object>("sample_udt"));
 
             Assert.IsNotNull(row.GetValue<object>("sample_udt_list"));
-            Assert.IsInstanceOf<List<byte[]>>(row.GetValue<object>("sample_udt_list"));
+            Assert.IsInstanceOf<IEnumerable<byte[]>>(row.GetValue<object>("sample_udt_list"));
 
             row = localSession.Execute("SELECT id, sample_udt.text_sample from temp_table").First();
             Assert.AreEqual("one", row.GetValue<string>("sample_udt.text_sample"));

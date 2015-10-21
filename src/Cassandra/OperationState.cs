@@ -22,7 +22,8 @@ using System.Text;
 ﻿using System.Threading;
 ﻿using System.Threading.Tasks;
 ﻿using Cassandra.Requests;
-﻿using Cassandra.Tasks;
+ using Cassandra.Responses;
+ using Cassandra.Tasks;
 ﻿using Microsoft.IO;
 
 namespace Cassandra
@@ -36,26 +37,10 @@ namespace Cassandra
         private const int StateCancelled = 1;
         private const int StateTimedout = 2;
         private const int StateCompleted = 3;
-        private static readonly Action<Exception, AbstractResponse> Noop = (_, __) => { };
+        private static readonly Action<Exception, Response> Noop = (_, __) => { };
 
-        private volatile Action<Exception, AbstractResponse> _callback;
-        private readonly RecyclableMemoryStreamManager _bufferPool;
+        private volatile Action<Exception, Response> _callback;
         private int _state = StateInit;
-        /// <summary>
-        /// Gets a readable stream representing the body
-        /// </summary>
-        public Stream BodyStream { get; private set; }
-
-        /// <summary>
-        /// Returns true if there are enough data to parse body
-        /// </summary>
-        public bool IsBodyComplete
-        {
-            get 
-            {
-                return BodyStream.Length == Header.BodyLength;
-            }
-        }
 
         /// <summary>
         /// 8 byte header of the frame
@@ -72,38 +57,15 @@ namespace Cassandra
         /// <summary>
         /// Creates a new operation state with the provided callback
         /// </summary>
-        public OperationState(Action<Exception, AbstractResponse> callback, RecyclableMemoryStreamManager bufferPool)
+        public OperationState(Action<Exception, Response> callback)
         {
             _callback = callback;
-            _bufferPool = bufferPool;
         }
 
         /// <summary>
-        /// Appends to the body stream
+        /// Marks this operation as completed and returns the callback
         /// </summary>
-        /// <returns>The total amount of bytes added</returns>
-        public int AppendBody(byte[] value, int offset, int count)
-        {
-            if (Header == null)
-            {
-                throw new DriverInternalError("To add a response body you must specify the header");
-            }
-            if (BodyStream == null)
-            {
-                BodyStream = _bufferPool.GetStream(GetType().Name);
-            }
-            if (BodyStream.Position + count > Header.BodyLength)
-            {
-                count = Header.BodyLength - (int) BodyStream.Position;
-            }
-            BodyStream.Write(value, offset, count);
-            return count;
-        }
-
-        /// <summary>
-        /// Invokes the callback in a new thread using the default task scheduler, and marks this operation as completed.
-        /// </summary>
-        public void InvokeCallback(Exception ex, AbstractResponse response = null)
+        public Action<Exception, Response> SetCompleted()
         {
             //Change the state
             Interlocked.Exchange(ref _state, StateCompleted);
@@ -115,15 +77,18 @@ namespace Cassandra
                 //Cancel it if it hasn't expired
                 Timeout.Cancel();
             }
-            if (response is ErrorResponse)
-            {
-                //Create an exception from the response error
-                ex = ((ErrorResponse)response).Output.CreateException();
-                response = null;
-            }
+            return callback;
+        }
+
+        /// <summary>
+        /// Marks this operation as completed and invokes the callback with the exception using the default task scheduler.
+        /// </summary>
+        public void InvokeCallback(Exception ex)
+        {
+            var callback = SetCompleted();
             //Invoke the callback in a new thread in the thread pool
             //This way we don't let the user block on a thread used by the Connection
-            Task.Factory.StartNew(() => callback(ex, response), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+            Task.Factory.StartNew(() => callback(ex, null), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
         }
 
         /// <summary>

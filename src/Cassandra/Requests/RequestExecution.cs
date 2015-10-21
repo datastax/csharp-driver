@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using Cassandra.Responses;
 using Cassandra.Tasks;
 
 namespace Cassandra.Requests
@@ -84,12 +85,12 @@ namespace Cassandra.Requests
         /// <summary>
         /// Sends a new request using the active connection
         /// </summary>
-        private void Send(IRequest request, Action<Exception, AbstractResponse> callback)
+        private void Send(IRequest request, Action<Exception, Response> callback)
         {
             _operation = _connection.Send(request, callback);
         }
 
-        public void HandleResponse(Exception ex, AbstractResponse response)
+        public void HandleResponse(Exception ex, Response response)
         {
             if (_parent.HasCompleted())
             {
@@ -133,7 +134,7 @@ namespace Cassandra.Requests
             TryStartNew(useCurrentHost);
         }
 
-        private void HandleRowSetResult(AbstractResponse response)
+        private void HandleRowSetResult(Response response)
         {
             ValidateResult(response);
             var resultResponse = (ResultResponse)response;
@@ -392,7 +393,7 @@ namespace Cassandra.Requests
         /// <summary>
         /// Handles the response of a (re)prepare request and retries to execute on the same connection
         /// </summary>
-        private void ReprepareResponseHandler(Exception ex, AbstractResponse response)
+        private void ReprepareResponseHandler(Exception ex, Response response)
         {
             try
             {
@@ -418,7 +419,7 @@ namespace Cassandra.Requests
         /// <summary>
         /// Creates the prepared statement and transitions the task to completed
         /// </summary>
-        private void HandlePreparedResult(AbstractResponse response)
+        private void HandlePreparedResult(Response response)
         {
             ValidateResult(response);
             var output = ((ResultResponse)response).Output;
@@ -439,7 +440,7 @@ namespace Cassandra.Requests
             _parent.SetCompleted(null, (T)statement);
         }
 
-        private static void ValidateResult(AbstractResponse response)
+        private static void ValidateResult(Response response)
         {
             if (response == null)
             {

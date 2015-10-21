@@ -20,7 +20,7 @@ namespace Cassandra
     {
         private readonly AlreadyExistsInfo _info = new AlreadyExistsInfo();
 
-        protected override void Load(BEBinaryReader cb)
+        protected override void Load(FrameReader cb)
         {
             _info.Ks = cb.ReadString();
             _info.Table = cb.ReadString();

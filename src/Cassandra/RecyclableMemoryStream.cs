@@ -20,6 +20,8 @@
 // THE SOFTWARE.
 // ---------------------------------------------------------------------
 
+using Cassandra.Collections;
+
 namespace Microsoft.IO
 {
     using System;
@@ -826,5 +828,43 @@ namespace Microsoft.IO
             this.largeBuffer = null;
         }
         #endregion
+
+        /// <summary>
+        /// Creates a list of segments referencing the original buffers
+        /// </summary>
+        public IList<ArraySegment<byte>> GetBufferList()
+        {
+            CheckDisposed();
+
+            if (largeBuffer != null)
+            {
+                return new ArrayBackedList<ArraySegment<byte>>(
+                    new[] { new ArraySegment<byte>(largeBuffer, 0, length)}
+                );
+            }
+            if (blocks.Count == 1)
+            {
+                return new ArrayBackedList<ArraySegment<byte>>(
+                    new[] { new ArraySegment<byte>(blocks[0], 0, length) }
+                );
+            }
+            var blockLength = blocks.Count;
+            var lastBlockOffset = GetBlockAndRelativeOffset(length);
+            if (lastBlockOffset.Block == blockLength - 1 && lastBlockOffset.Offset == 0)
+            {
+                //The last block is not used
+                blockLength--;
+            }
+            var segments = new ArraySegment<byte>[blockLength];
+            var remainingLength = length;
+            for (var i = 0; i < blockLength; i++)
+            {
+                var buffer = blocks[i];
+                var count = Math.Min(remainingLength, buffer.Length);
+                segments[i] = new ArraySegment<byte>(buffer, 0, count);
+                remainingLength -= count;
+            }
+            return new ArrayBackedList<ArraySegment<byte>>(segments);
+        }
     }
 }

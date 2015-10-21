@@ -55,9 +55,9 @@ namespace Cassandra
 
         public abstract DriverException CreateException();
 
-        protected abstract void Load(BEBinaryReader reader);
+        protected abstract void Load(FrameReader reader);
 
-        internal static OutputError CreateOutputError(int code, string message, BEBinaryReader cb)
+        internal static OutputError CreateOutputError(int code, string message, FrameReader cb)
         {
             var factoryMethod = OutputErrorFactoryMethods[code];
             if (factoryMethod == null)

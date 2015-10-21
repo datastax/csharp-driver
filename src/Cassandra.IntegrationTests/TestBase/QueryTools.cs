@@ -64,7 +64,7 @@ namespace Cassandra.IntegrationTests.TestBase
                             if (!row[m].Equals(insertedRows[i][m]))
                                 insertedRows.Reverse();
                         }
-                        Assert.True(row[m].Equals(insertedRows[i][m]), "Inserted data !Equals with returned data.");
+                        Assert.AreEqual(insertedRows[i][m], row[m], "Inserted data does not match with returned data.");
                     }
                 }
                 i++;

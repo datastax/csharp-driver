@@ -253,10 +253,10 @@ namespace Cassandra
         /// <summary>
         /// Creates a new instance of the mapped object and sets the values
         /// </summary>
-        internal object ToObject(List<object> valuesList)
+        internal object ToObject(object[] values)
         {
             var obj = CreateInstance();
-            for (var i = 0; i < Definition.Fields.Count && i < valuesList.Count; i++)
+            for (var i = 0; i < Definition.Fields.Count && i < values.Length; i++)
             {
                 var field = Definition.Fields[i];
                 var prop = GetPropertyForUdtField(field.Name);
@@ -264,7 +264,7 @@ namespace Cassandra
                 {
                     continue;
                 }
-                prop.SetValue(obj, valuesList[i], null);
+                prop.SetValue(obj, values[i], null);
             }
             return obj;
         }

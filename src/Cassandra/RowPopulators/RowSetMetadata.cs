@@ -169,7 +169,7 @@ namespace Cassandra
         /// </summary>
         internal int[] PartitionKeys { get; private set; }
 
-        internal RowSetMetadata(BEBinaryReader reader, bool parsePartitionKeys = false)
+        internal RowSetMetadata(FrameReader reader, bool parsePartitionKeys = false)
         {
             if (reader == null)
             {
@@ -248,7 +248,7 @@ namespace Cassandra
             }
         }
 
-        private IColumnInfo GetColumnInfo(BEBinaryReader reader, ColumnTypeCode code)
+        private IColumnInfo GetColumnInfo(FrameReader reader, ColumnTypeCode code)
         {
             ColumnTypeCode innercode;
             switch (code)

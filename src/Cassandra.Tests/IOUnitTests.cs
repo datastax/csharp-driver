@@ -22,9 +22,9 @@ using System.IO;
 using NUnit.Framework;
 using System.Linq;
 using System.Net;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Responses;
 using Cassandra.Tasks;
 using Microsoft.IO;
 
@@ -34,46 +34,6 @@ namespace Cassandra.Tests
     public class IOUnitTests
     {
         [Test]
-        public void OperationState_Appends_Buffers()
-        {
-            var readBuffer = new byte[256];
-            var writeBuffer = new byte[256];
-            for (byte i = 1; i < 255; i++)
-            {
-                writeBuffer[i] = i;
-            }
-            var header = new FrameHeader
-            {
-                //256 bytes
-                Len = new byte[] { 0, 0, 1, 0}
-            };
-            var operationState = new OperationState((ex, r) => { }, new RecyclableMemoryStreamManager());
-            operationState.Header = header;
-            operationState.AppendBody(writeBuffer, 0, 256);
-
-            operationState.BodyStream.Position = 0;
-            operationState.BodyStream.Read(readBuffer, 0, 256);
-            Assert.AreEqual(writeBuffer, readBuffer);
-
-
-            operationState = new OperationState((ex, r) => { }, new RecyclableMemoryStreamManager());
-            operationState.Header = header;
-            operationState.AppendBody(writeBuffer, 0, 100);
-            operationState.AppendBody(writeBuffer, 100, 100);
-            operationState.AppendBody(writeBuffer, 200, 50);
-            operationState.AppendBody(writeBuffer, 250, 6);
-
-            operationState.BodyStream.Position = 0;
-            operationState.BodyStream.Read(readBuffer, 0, 256);
-            Assert.AreEqual(writeBuffer, readBuffer);
-
-            operationState.BodyStream.Position = 0;
-            operationState.BodyStream.Read(readBuffer, 0, 128);
-            operationState.BodyStream.Read(readBuffer, 128, 128);
-            Assert.AreEqual(writeBuffer, readBuffer);
-        }
-
-        [Test]
         public void OperationState_Can_Concurrently_Get_Timeout_And_Response()
         {
             var counter = 0;
@@ -81,11 +41,11 @@ namespace Cassandra.Tests
             TestHelper.Invoke(() =>
             {
                 var clientCallbackCounter = 0;
-                Action<Exception, AbstractResponse> clientCallback = (ex, r) =>
+                Action<Exception, Response> clientCallback = (ex, r) =>
                 {
                     Interlocked.Increment(ref clientCallbackCounter);
                 };
-                var state = new OperationState(clientCallback, new RecyclableMemoryStreamManager());
+                var state = new OperationState(clientCallback);
                 var actions = new Action[]
                 {
                     () => state.SetTimedOut(new OperationTimedOutException(new IPEndPoint(0, 1), 200), () => Interlocked.Increment(ref timedOutReceived)),
@@ -108,11 +68,11 @@ namespace Cassandra.Tests
         public void OperationState_Cancel_Should_Never_Callback_Client()
         {
             var clientCallbackCounter = 0;
-            Action<Exception, AbstractResponse> clientCallback = (ex, r) =>
+            Action<Exception, Response> clientCallback = (ex, r) =>
             {
                 Interlocked.Increment(ref clientCallbackCounter);
             };
-            var state = new OperationState(clientCallback, new RecyclableMemoryStreamManager());
+            var state = new OperationState(clientCallback);
             state.Cancel();
             state.InvokeCallback(null);
             //Allow callbacks to be called using the default scheduler
@@ -161,6 +121,49 @@ namespace Cassandra.Tests
                     stream.Read(buffer, 0, frameLength);
                     CollectionAssert.AreEqual(new byte[] { 2, 0, 127, 8, 0, 0, 0, 2, 9, i}, buffer);
                 }
+            }
+        }
+
+        [Test]
+        public void RecyclableMemoryStream_GetBufferList_Handles_Multiple_Blocks()
+        {
+            const int blockSize = 16;
+            var buffer = new byte[256];
+            for (var i = 0; i < buffer.Length; i++)
+            {
+                buffer[i] = (byte) i;
+            }
+            var bufferPool = new RecyclableMemoryStreamManager(blockSize, 1024, 1024 * 1024 * 10);
+            using (var stream = (RecyclableMemoryStream)bufferPool.GetStream())
+            {
+                stream.Write(buffer, 0, 12);
+                CollectionAssert.AreEqual(new[] { new ArraySegment<byte>(buffer, 0, 12) }, stream.GetBufferList());
+            }
+            using (var stream = (RecyclableMemoryStream)bufferPool.GetStream())
+            {
+                stream.Write(buffer, 0, blockSize);
+                var bufferList = stream.GetBufferList();
+                Assert.AreEqual(1, bufferList.Count);
+                CollectionAssert.AreEqual(new[] { new ArraySegment<byte>(buffer, 0, blockSize) }, bufferList);
+            }
+            using (var stream = (RecyclableMemoryStream)bufferPool.GetStream())
+            {
+                stream.Write(buffer, 0, blockSize * 2);
+                var bufferList = stream.GetBufferList();
+                Assert.AreEqual(2, bufferList.Count);
+                CollectionAssert.AreEqual(new[] { new ArraySegment<byte>(buffer, 0, blockSize), new ArraySegment<byte>(buffer, blockSize, blockSize) }, bufferList);
+            }
+            using (var stream = (RecyclableMemoryStream)bufferPool.GetStream())
+            {
+                stream.Write(buffer, 0, blockSize * 2 + 1);
+                var bufferList = stream.GetBufferList();
+                Assert.AreEqual(3, bufferList.Count);
+                CollectionAssert.AreEqual(new[]
+                {
+                    new ArraySegment<byte>(buffer, 0, blockSize),
+                    new ArraySegment<byte>(buffer, blockSize, blockSize),
+                    new ArraySegment<byte>(buffer, blockSize * 2, 1)
+                }, bufferList);
             }
         }
 

@@ -16,18 +16,19 @@
 
 using System;
 using System.Collections.Generic;
+using Cassandra.Responses;
 
 namespace Cassandra
 {
     /// <summary>
-    /// 
+    /// Parses the frame into a response
     /// </summary>
     internal class FrameParser
     {
         /// <summary>
         /// A factory to get the response handlers 
         /// </summary>
-        private static readonly Dictionary<byte, Func<ResponseFrame, AbstractResponse>> _responseHandlerFactory = new Dictionary<byte, Func<ResponseFrame, AbstractResponse>>
+        private static readonly Dictionary<byte, Func<Frame, Response>> _responseHandlerFactory = new Dictionary<byte, Func<Frame, Response>>
         {
             {AuthenticateResponse.OpCode, AuthenticateResponse.Create},
             {ErrorResponse.OpCode, ErrorResponse.Create},
@@ -42,7 +43,7 @@ namespace Cassandra
         /// <summary>
         /// Parses the response frame
         /// </summary>
-        public static AbstractResponse Parse(ResponseFrame frame)
+        public static Response Parse(Frame frame)
         {
             byte opcode = frame.Header.Opcode;
             if (!_responseHandlerFactory.ContainsKey(opcode))

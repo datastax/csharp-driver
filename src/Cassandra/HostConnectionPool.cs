@@ -79,50 +79,37 @@ namespace Cassandra
                     //The load balancing policy stated no connections for this host
                     return null;
                 }
-                var connection = MinInFlight(poolConnections);
+                var connection = MinInFlight(poolConnections, ref _connectionIndex);
                 MaybeSpawnNewConnection(connection.InFlight);
                 return connection;
             });
         }
 
-        /// <summary> 
-        /// Gets the connection with the minimum number of InFlight requests
+        /// <summary>
+        /// Gets the connection with the minimum number of InFlight requests.
+        /// Only checks for index + 1 and index, to avoid a loop of all connections.
         /// </summary>
-        public Connection MinInFlight(Connection[] connections)
+        public static Connection MinInFlight(Connection[] connections, ref int connectionIndex)
         {
             if (connections.Length == 1)
             {
                 return connections[0];
             }
             //It is very likely that the amount of InFlight requests per connection is the same
-            //Do round robin between connections
-            var list = new LinkedList<Connection>();
-            list.AddLast(connections[0]);
-            var lastValue = connections[0].InFlight;
-            for (var i = 1; i < connections.Length; i++)
-            {
-                var c = connections[i];
-                var inFlight = c.InFlight;
-                if (inFlight > lastValue)
-                {
-                    continue;
-                }
-                if (inFlight == lastValue)
-                {
-                    list.AddLast(c);
-                    continue;
-                }
-                lastValue = inFlight;
-                list = new LinkedList<Connection>();
-                list.AddLast(connections[0]);
-            }
-            var index = Interlocked.Increment(ref _connectionIndex);
+            //Do round robin between connections, skipping connections that have more in flight requests
+            var index = Interlocked.Increment(ref connectionIndex);
             if (index > ConnectionIndexOverflow)
             {
                 //Overflow protection, not exactly thread-safe but we can live with it
-                Interlocked.Exchange(ref _connectionIndex, 0);
+                Interlocked.Exchange(ref connectionIndex, 0);
             }
-            return list.Skip(index % list.Count).First();
+            var currentConnection = connections[index % connections.Length];
+            var previousConnection = connections[(index - 1)%connections.Length];
+            if (previousConnection.InFlight < currentConnection.InFlight)
+            {
+                return previousConnection;
+            }
+            return currentConnection;
         }
 
         /// <exception cref="System.Net.Sockets.SocketException">Throws a SocketException when the connection could not be established with the host</exception>

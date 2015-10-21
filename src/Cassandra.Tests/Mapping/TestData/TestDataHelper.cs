@@ -47,7 +47,7 @@ namespace Cassandra.Tests.Mapping.TestData
 
             foreach (var v in values)
             {
-                var row = new Row(ProtocolVersion, new [] {TypeCodec.Encode(ProtocolVersion, v)}, rs.Columns, columnIndexes);
+                var row = new Row(new object[] { v}, rs.Columns, columnIndexes);
                 rs.AddRow(row);
             }
             return rs;
@@ -86,9 +86,9 @@ namespace Cassandra.Tests.Mapping.TestData
             for (var i = 0; i < rowLength; i++)
             {
                 var values = genericValues
-                    .Select(v => TypeCodec.Encode(ProtocolVersion, v))
+                    .Select(v => (object)v)
                     .ToArray();
-                var row = new Row(ProtocolVersion, values, rs.Columns, columnIndexes);
+                var row = new Row(values, rs.Columns, columnIndexes);
                 rs.AddRow(row);   
             }
             return rs;
@@ -116,7 +116,7 @@ namespace Cassandra.Tests.Mapping.TestData
             var columnIndexes = rs.Columns.ToDictionary(c => c.Name, c => c.Index);
             foreach (var user in users)
             {
-                var values = new List<object>
+                var values = new object[]
                 {
                     user.UserId,
                     user.Name,
@@ -124,15 +124,15 @@ namespace Cassandra.Tests.Mapping.TestData
                     user.CreatedDate,
                     user.IsActive,
                     user.LastLoginDate,
-                    user.LoginHistory,
-                    user.LuckyNumbers,
+                    user.LoginHistory.ToArray(),
+                    user.LuckyNumbers.ToArray(),
                     user.ChildrenAges,
                     (int)user.FavoriteColor,
                     (int?)user.TypeOfUser,
                     (int)user.PreferredContactMethod,
                     (int?)user.HairColor
-                }.Select(v => TypeCodec.Encode(ProtocolVersion, v));
-                var row = new Row(ProtocolVersion, values.ToArray(), rs.Columns, columnIndexes);
+                };
+                var row = new Row(values, rs.Columns, columnIndexes);
                 rs.AddRow(row);
             }
             return rs;

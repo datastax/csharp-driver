@@ -282,9 +282,8 @@ namespace Cassandra.Tests.Mapping
                     new CqlColumn {Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp, Type = typeof (DateTimeOffset), Index = 2}
                 }
             };
-            var values = new object[] { Guid.NewGuid(), "Come Away with Me", DateTimeOffset.Parse("2002-01-01 +0")}
-                .Select(v => TypeCodec.Encode(2, v));
-            var row = new Row(2, values.ToArray(), rs.Columns, rs.Columns.ToDictionary(c => c.Name, c => c.Index));
+            var values = new object[] { Guid.NewGuid(), "Come Away with Me", DateTimeOffset.Parse("2002-01-01 +0")};
+            var row = new Row(values, rs.Columns, rs.Columns.ToDictionary(c => c.Name, c => c.Index));
             rs.AddRow(row);
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock
@@ -321,13 +320,11 @@ namespace Cassandra.Tests.Mapping
                     new CqlColumn {Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp, Type = typeof (DateTimeOffset), Index = 1}
                 }
             };
-            var values = new object[] { "Come Away with Me", DateTimeOffset.Parse("2002-01-01 +0") }
-                .Select(v => TypeCodec.Encode(2, v));
-            var row = new Row(2, values.ToArray(), rs.Columns, rs.Columns.ToDictionary(c => c.Name, c => c.Index));
+            var values = new object[] {"Come Away with Me", DateTimeOffset.Parse("2002-01-01 +0")};
+            var row = new Row(values, rs.Columns, rs.Columns.ToDictionary(c => c.Name, c => c.Index));
             rs.AddRow(row);
-            values = new object[] { "Come Away with Me", null }
-                .Select(v => TypeCodec.Encode(2, v));
-            row = new Row(2, values.ToArray(), rs.Columns, rs.Columns.ToDictionary(c => c.Name, c => c.Index));
+            values = new object[] { "Come Away with Me", null };
+            row = new Row(values, rs.Columns, rs.Columns.ToDictionary(c => c.Name, c => c.Index));
             rs.AddRow(row);
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock

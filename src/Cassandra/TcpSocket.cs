@@ -22,6 +22,7 @@ using System.Net.Sockets;
 ﻿using System.Threading;
 ﻿using System.Threading.Tasks;
 ﻿using Cassandra.Tasks;
+using Microsoft.IO;
 
 namespace Cassandra
 {
@@ -404,7 +405,7 @@ namespace Cassandra
         /// <summary>
         /// Sends data asynchronously
         /// </summary>
-        public void Write(byte[] buffer, int length, Action onBufferFlush)
+        public void Write(RecyclableMemoryStream stream, Action onBufferFlush)
         {
             Interlocked.Exchange(ref _writeFlushCallback, onBufferFlush);
             if (_isClosing)
@@ -415,7 +416,7 @@ namespace Cassandra
             }
             if (_sendSocketEvent != null)
             {
-                _sendSocketEvent.SetBuffer(buffer, 0, length);
+                _sendSocketEvent.BufferList = stream.GetBufferList();
                 var isWritePending = false;
                 try
                 {
@@ -432,7 +433,8 @@ namespace Cassandra
             }
             else
             {
-                _socketStream.BeginWrite(buffer, 0, length, OnSendStreamCallback, null);
+                var length = (int) stream.Length;
+                _socketStream.BeginWrite(stream.GetBuffer(), 0, length, OnSendStreamCallback, null);
             }
         }
 

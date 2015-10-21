@@ -23,6 +23,7 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using Cassandra.Tasks;
 using Cassandra.Requests;
+using Cassandra.Responses;
 
 namespace Cassandra
 {
@@ -489,7 +490,7 @@ namespace Cassandra
         /// </summary>
         /// <exception cref="NullReferenceException" />
         /// <exception cref="DriverInternalError" />
-        public static RowSet GetRowSet(AbstractResponse response)
+        public static RowSet GetRowSet(Response response)
         {
             if (response == null)
             {

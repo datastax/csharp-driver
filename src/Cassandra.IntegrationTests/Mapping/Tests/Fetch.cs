@@ -95,32 +95,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         }
 
         /// <summary>
-        /// Successfully insert a new record into a table that was created with fluent mapping
-        /// </summary>
-        [Test]
-        public void Fetch_NoArgDefaultsToSelectAll()
-        {
-            var config = new MappingConfiguration().Define(new ManyDataTypesPocoMappingCaseSensitive());
-            var table = new Table<ManyDataTypesPoco>(_session, config);
-            table.Create();
-
-            var mapper = new Mapper(_session, config);
-            List<ManyDataTypesPoco> manyTypesList = new List<ManyDataTypesPoco>();
-            for (int i = 0; i < 10; i++)
-            {
-                manyTypesList.Add(ManyDataTypesPoco.GetRandomInstance());
-            }
-            foreach (var manyTypesRecord in manyTypesList)
-                mapper.Insert(manyTypesRecord);
-
-            List<ManyDataTypesPoco> instancesRetrieved = mapper.Fetch<ManyDataTypesPoco>().ToList();
-            Assert.AreEqual(manyTypesList.Count, instancesRetrieved.Count);
-
-            foreach (var instanceRetrieved in instancesRetrieved)
-                ManyDataTypesPoco.AssertListContains(manyTypesList, instanceRetrieved);
-        }
-
-        /// <summary>
         /// Successfully Fetch mapped records by passing in a Cql Object
         /// </summary>
         [Test]
