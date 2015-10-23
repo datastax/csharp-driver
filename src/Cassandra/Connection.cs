@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -499,7 +499,8 @@ namespace Cassandra
                 if (header.Opcode != EventResponse.OpCode)
                 {
                     //Its a response to a previous request
-                    state = _pendingOperations[header.StreamId];
+                    if(! _pendingOperations.TryGetValue(header.StreamId, out state))
+                    	return false;
                 }
                 else
                 {
