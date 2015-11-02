@@ -187,7 +187,9 @@ namespace Cassandra
         {
             try
             {
-                var sessionRow = _session.Execute(string.Format(SelectSessionsFormat, _traceId)).First();
+                var sessionStatement = new SimpleStatement(string.Format(SelectSessionsFormat, _traceId))
+                    .SetConsistencyLevel(ConsistencyLevel.One);
+                var sessionRow = _session.Execute(sessionStatement).First();
                 _requestType = sessionRow.GetValue<string>("request");
                 if (!sessionRow.IsNull("duration"))
                 {
@@ -205,7 +207,9 @@ namespace Cassandra
                 }
                 _events = new List<Event>();
 
-                var eventRows = _session.Execute(string.Format(SelectEventsFormat, _traceId));
+                var eventStatement = new SimpleStatement(string.Format(SelectEventsFormat, _traceId))
+                    .SetConsistencyLevel(ConsistencyLevel.One);
+                var eventRows = _session.Execute(eventStatement);
                 foreach (var row in eventRows)
                 {
                     _events.Add(new Event(row.GetValue<string>("activity"),

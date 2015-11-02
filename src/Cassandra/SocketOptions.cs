@@ -27,9 +27,9 @@ namespace Cassandra
         /// </summary>
         public const int DefaultConnectTimeoutMillis = 5000;
         /// <summary>
-        /// Default value for <see cref="ReadTimeoutMillis"/>, 0.
+        /// Default value for <see cref="ReadTimeoutMillis"/>, 12000ms.
         /// </summary>
-        public const int DefaultReadTimeoutMillis = 0;
+        public const int DefaultReadTimeoutMillis = 12000;
         /// <summary>
         /// Default value for <see cref="DefunctReadTimeoutThreshold"/>, 64.
         /// </summary>
@@ -40,7 +40,7 @@ namespace Cassandra
         private bool? _reuseAddress;
         private int? _sendBufferSize;
         private int? _soLinger;
-        private bool? _tcpNoDelay;
+        private bool _tcpNoDelay = true;
         private bool _useStreamMode;
         private int _readTimeoutMillis = DefaultReadTimeoutMillis;
         private int _defunctReadTimeoutThreshold = DefaultDefunctReadTimeoutThreshold;
@@ -76,7 +76,7 @@ namespace Cassandra
 
         /// <summary>
         /// Gets a Boolean value that specifies whether the stream Socket is using the Nagle algorithm.
-        /// false if the Socket uses the Nagle algorithm; otherwise, true. The default is false.
+        /// When set to <c>false</c>, the Nagle algorithm is enabled; when set to <c>true</c> the Nagle algorithm is disabled (no delay). The default is <c>true</c>.
         /// </summary>
         public bool? TcpNoDelay
         {
@@ -164,7 +164,7 @@ namespace Cassandra
 
         /// <summary>
         /// Set a Boolean value that specifies whether the stream Socket is using the Nagle algorithm.
-        /// false if the Socket uses the Nagle algorithm; otherwise, true. The default is false.
+        /// Use <c>false</c> to enable Nagle algorithm; use <c>true</c> to disable Nagle algorithm (no delay). The default is <c>true</c>.
         /// </summary>
         public SocketOptions SetTcpNoDelay(bool tcpNoDelay)
         {

@@ -299,6 +299,13 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public void LocalQuorum_Is_Default_Consistency()
+        {
+            var rs = Session.Execute(new SimpleStatement("SELECT * from system.local"));
+            Assert.AreEqual(ConsistencyLevel.LocalQuorum, rs.Info.AchievedConsistency);
+        }
+
+        [Test]
         public void Counter()
         {
             TestCounters();

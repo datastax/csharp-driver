@@ -23,12 +23,12 @@ namespace Cassandra
     public class QueryOptions
     {
         /// <summary>
-        /// The default consistency level for queries: ConsistencyLevel.One.
+        /// The default consistency level for queries: <c>ConsistencyLevel.LocalQuorum</c>.
         /// </summary>    
-        public const ConsistencyLevel DefaultConsistencyLevel = ConsistencyLevel.One;
+        public const ConsistencyLevel DefaultConsistencyLevel = ConsistencyLevel.LocalQuorum;
 
         /// <summary>
-        /// The default serial consistency level for conditional updates: {@code ConsistencyLevel.Serial}.
+        /// The default serial consistency level for conditional updates: <c>ConsistencyLevel.Serial</c>.
         /// </summary>
         public const ConsistencyLevel DefaultSerialConsistencyLevel = ConsistencyLevel.Serial;
 
