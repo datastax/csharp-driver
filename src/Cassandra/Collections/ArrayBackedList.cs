@@ -79,7 +79,7 @@ namespace Cassandra.Collections
 
         public T this[int index]
         {
-            get { throw new NotImplementedException(); }
+            get { return _items[index]; }
             set { throw new NotSupportedException(); }
         }
     }
