@@ -180,6 +180,36 @@ namespace Cassandra.IntegrationTests.Core
             Assert.Null(row.GetValue<int?>("int_sample"));
         }
 
+        [Test]
+        public void Bound_Unset_Not_Specified_Tests()
+        {
+            const string columns = "id, text_sample, int_sample";
+            var insertQuery = String.Format(@"
+                INSERT INTO {0} 
+                ({1}) 
+                VALUES (?, ?, ?)", AllTypesTableName, columns);
+
+            var preparedStatement = Session.Prepare(insertQuery);
+            Assert.AreEqual(columns, String.Join(", ", preparedStatement.Metadata.Columns.Select(c => c.Name)));
+            var id = Guid.NewGuid();
+
+            if (CassandraVersion < Version.Parse("2.2"))
+            {
+                //For previous Cassandra versions, all parameters must be specified
+                Assert.Throws<InvalidQueryException>(() => Session.Execute(preparedStatement.Bind(id)));
+                return;
+            }
+            //Bind just 1 value, the others should be set automatically to "Unset"
+            Session.Execute(preparedStatement.Bind(id));
+
+            var rs = Session.Execute(string.Format("SELECT * FROM {0} WHERE id = {1}", AllTypesTableName, id));
+            var row = rs.First();
+            Assert.IsNotNull(row);
+            Assert.AreEqual(id, row.GetValue<Guid>("id"));
+            Assert.Null(row.GetValue<string>("text_sample"));
+            Assert.Null(row.GetValue<int?>("int_sample"));
+        }
+
         private void Check_Expected(PreparedStatement select, object[] expected)
         {
             var row = Session.Execute(select.Bind(0)).First();

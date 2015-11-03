@@ -104,22 +104,23 @@ namespace Cassandra
 
         internal override void SetValues(object[] values)
         {
-            ValidateValues(values);
+            values = ValidateValues(values);
             base.SetValues(values);
         }
 
         /// <summary>
-        /// Validate values using prepared statement metadata
+        /// Validate values using prepared statement metadata,
+        /// returning a new instance of values to be used as parameters.
         /// </summary>
-        private void ValidateValues(object[] values)
+        private object[] ValidateValues(object[] values)
         {
             if (values == null)
             {
-                return;
+                return null;
             }
             if (PreparedStatement.Metadata == null || PreparedStatement.Metadata.Columns == null || PreparedStatement.Metadata.Columns.Length == 0)
             {
-                return;
+                return values;
             }
             var paramsMetadata = PreparedStatement.Metadata.Columns;
             if (values.Length > paramsMetadata.Length)
@@ -137,6 +138,18 @@ namespace Cassandra
                         String.Format("It is not possible to encode a value of type {0} to a CQL type {1}", value.GetType(), p.TypeCode));
                 }
             }
+            if (values.Length < paramsMetadata.Length && ProtocolVersion >= 4)
+            {
+                //Set the result of the unspecified parameters to Unset
+                var completeValues = new object[paramsMetadata.Length];
+                values.CopyTo(completeValues, 0);
+                for (var i = values.Length; i < paramsMetadata.Length; i++)
+                {
+                    completeValues[i] = Unset.Value;
+                }
+                values = completeValues;
+            }
+            return values;
         }
 
         internal override IQueryRequest CreateBatchRequest(int protocolVersion)
