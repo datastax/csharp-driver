@@ -74,6 +74,12 @@ namespace Cassandra
         /// <exception cref="InvalidQueryException">When keyspace does not exist</exception>
         void ChangeKeyspace(string keyspaceName);
         /// <summary>
+        /// Switches to the specified keyspace asynchronously.
+        /// </summary>
+        /// <param name="keyspaceName">Case-sensitive name of keyspace to be used.</param>
+        /// <exception cref="InvalidQueryException">When keyspace does not exist</exception>
+        Task ChangeKeyspaceAsync(string keyspaceName);
+        /// <summary>
         ///  Creates new keyspace in current cluster.        
         /// </summary>
         /// <param name="keyspaceName">Case-sensitive name of keyspace to be created.</param>
@@ -136,6 +142,11 @@ namespace Cassandra
         /// Executes the provided query.
         /// </summary>
         RowSet Execute(string cqlQuery, int pageSize);
+        /// <summary>
+        /// Executes a query asynchronously
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        Task<RowSet> ExecuteAsync(string cqlQuery);
         /// <summary>
         /// Executes a query asynchronously
         /// </summary>
