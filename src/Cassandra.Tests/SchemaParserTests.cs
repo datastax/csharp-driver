@@ -348,10 +348,10 @@ namespace Cassandra.Tests
                 {"keyspace_name","ks_tbl_meta"},
                 {"table_name","tbl4"},
                 {"bloom_filter_fp_chance",0.01},
-                {"caching",new Dictionary<string, string>{{"keys","ALL"},{"rows_per_partition","NONE"}}},
+                {"caching",new SortedDictionary<string, string>{{"keys","ALL"},{"rows_per_partition","NONE"}}},
                 {"comment",""},
-                {"compaction",new Dictionary<string, string>{{"min_threshold","4"},{"max_threshold","32"},{"class","org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy"}}},
-                {"compression",new Dictionary<string, string>{{"chunk_length_in_kb","64"},{"class","org.apache.cassandra.io.compress.LZ4Compressor"}}},
+                {"compaction",new SortedDictionary<string, string>{{"min_threshold","4"},{"max_threshold","32"},{"class","org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy"}}},
+                {"compression",new SortedDictionary<string, string>{{"chunk_length_in_kb","64"},{"class","org.apache.cassandra.io.compress.LZ4Compressor"}}},
                 {"dclocal_read_repair_chance",0.1},
                 {"default_time_to_live",0},
                 {"extensions",new Dictionary<string, string>()},
@@ -372,7 +372,7 @@ namespace Cassandra.Tests
 
             var ksRow = TestHelper.CreateRow(new Dictionary<string, object>
             {
-                {"keyspace_name", "ks1"}, {"durable_writes", true}, {"replication", new Dictionary<string, string>{{"class", "org.apache.cassandra.locator.SimpleStrategy"}, {"replication_factor", "1"}}},
+                {"keyspace_name", "ks1"}, {"durable_writes", true}, {"replication", new SortedDictionary<string, string>{{"class", "org.apache.cassandra.locator.SimpleStrategy"}, {"replication_factor", "1"}}},
             });
             var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
             queryProviderMock
@@ -402,18 +402,18 @@ namespace Cassandra.Tests
         [Test]
         public void SchemaParserV2_GetTable_Should_Parse_3_0_Table_With_SecondaryIndexes()
         {
-            var tableRow = TestHelper.CreateRow(new Dictionary<string, object>
+            var tableRow = TestHelper.CreateRow(new SortedDictionary<string, object>
             {
                 {"keyspace_name","ks_tbl_meta"},
                 {"table_name","tbl4"},
                 {"bloom_filter_fp_chance",0.01},
-                {"caching",new Dictionary<string, string>{{"keys","ALL"},{"rows_per_partition","NONE"}}},
+                {"caching",new SortedDictionary<string, string>{{"keys","ALL"},{"rows_per_partition","NONE"}}},
                 {"comment",""},
-                {"compaction",new Dictionary<string, string>{{"min_threshold","4"},{"max_threshold","32"},{"class","org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy"}}},
-                {"compression",new Dictionary<string, string>{{"chunk_length_in_kb","64"},{"class","org.apache.cassandra.io.compress.LZ4Compressor"}}},
+                {"compaction",new SortedDictionary<string, string>{{"min_threshold","4"},{"max_threshold","32"},{"class","org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy"}}},
+                {"compression",new SortedDictionary<string, string>{{"chunk_length_in_kb","64"},{"class","org.apache.cassandra.io.compress.LZ4Compressor"}}},
                 {"dclocal_read_repair_chance",0.1},
                 {"default_time_to_live",0},
-                {"extensions",new Dictionary<string, string>()},
+                {"extensions",new SortedDictionary<string, string>()},
                 {"flags", new []{"compound"}},
                 {"gc_grace_seconds",864000},
                 {"id","8008ae40-5862-11e5-b0ce-c7d0c38d1d8d"},

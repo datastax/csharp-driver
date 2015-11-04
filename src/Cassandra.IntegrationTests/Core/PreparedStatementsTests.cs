@@ -180,6 +180,19 @@ namespace Cassandra.IntegrationTests.Core
             Assert.Null(row.GetValue<int?>("int_sample"));
         }
 
+        /// Test for implicit UNSET values
+        /// 
+        /// Bound_Unset_Not_Specified_Tests tests that implicit UNSET values are properly inserted by the driver when there are
+        /// missing parameters in a bound statement. It first creates a prepared statement with three parameters. If run on a Cassandra
+        /// version less than 2.2, it verifies that binding only a subset of the parameters with arguments raises an InvalidQueryException.
+        /// If run on a Cassandra version greater than or equal to 2.2, it verifies that binding less than the required number of parameters
+        /// causes the driver to implicitly insert UNSET values into the missing parameters.
+        /// 
+        /// @since 3.0.0
+        /// @jira_ticket CSHARP-356
+        /// @expected_result In Cassandra < 2.2 should throw an error, while in Cassandra >= 2.2 the driver should set UNSET values.
+        /// 
+        /// @test_category data_types:unset
         [Test]
         public void Bound_Unset_Not_Specified_Tests()
         {
