@@ -41,22 +41,28 @@ namespace Cassandra
         Three = 0x0003,
         /// <summary>
         /// Reading: Returns the record with the most recent timestamp after a quorum of replicas has responded regardless of data center.
+        /// <para>
         /// Writing: A write must be written to the commit log and memory table on a quorum of replica nodes.
+        /// </para>
         /// </summary>
         Quorum = 0x0004,
         /// <summary>
         /// Reading: Returns the record with the most recent timestamp after all replicas have responded. The read operation will fail if a replica does not respond.
+        /// <para>
         /// Writing: A write must be written to the commit log and memory table on all replica nodes in the cluster for that row.
+        /// </para>
         /// </summary>
         All = 0x0005,
         /// <summary>
         /// Reading: Returns the record with the most recent timestamp once a quorum of replicas in the current data center as the coordinator node has reported.
+        /// <para>
         /// Writing: A write must be written to the commit log and memory table on a quorum of replica nodes in the same data center as the coordinator node. Avoids latency of inter-data center communication.
+        /// </para>
         /// </summary>
         LocalQuorum = 0x0006,
         /// <summary>
         /// Reading: Returns the record once a quorum of replicas in each data center of the cluster has responded.
-        /// Writing: Strong consistency. A write must be written to the commit log and memtable on a quorum of replica nodes in all data centers.
+        /// <para>Writing: Strong consistency. A write must be written to the commit log and memtable on a quorum of replica nodes in all data centers.</para>
         /// </summary>
         EachQuorum = 0x0007,
         /// <summary>
