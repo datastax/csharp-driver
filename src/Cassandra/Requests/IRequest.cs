@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,25 +14,19 @@
 //   limitations under the License.
 //
 
-﻿using System;
-﻿using System.Collections.Generic;
+using System.IO;
 
-namespace Cassandra
+namespace Cassandra.Requests
 {
-    /// <summary>
-    /// Represents an CQL Request (BATCH, EXECUTE or QUERY)
-    /// </summary>
-    internal interface ICqlRequest : IRequest
+    internal interface IRequest
     {
         /// <summary>
-        /// Gets or sets the Consistency for the Request.
-        /// It defaults to the one provided by the Statement but it can be changed by the retry policy.
+        /// Gets the version of the protocol that the request is built for
         /// </summary>
-        ConsistencyLevel Consistency { get; set; }
-
+        int ProtocolVersion { get; }
         /// <summary>
-        /// Gets or sets the custom payload to be set with this request
+        /// Writes the frame for this request on the provided stream
         /// </summary>
-        IDictionary<string, byte[]> Payload { get; set; }
+        int WriteFrame(short streamId, MemoryStream stream);
     }
 }

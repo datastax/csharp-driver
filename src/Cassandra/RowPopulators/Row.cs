@@ -19,6 +19,7 @@ using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 
+// ReSharper disable once CheckNamespace
 namespace Cassandra
 {
     /// <summary>
@@ -26,6 +27,7 @@ namespace Cassandra
     /// </summary>
     public class Row : IEnumerable<object>
     {
+        private readonly object[] _rowValues;
         /// <summary>
         /// Gets or sets the index of the columns within the row
         /// </summary>
@@ -36,8 +38,10 @@ namespace Cassandra
         /// </summary>
         protected CqlColumn[] Columns { get; set; }
 
+        [Obsolete("This property is deprecated and to be removed in future versions.")]
         protected byte[][] Values { get; set; }
 
+        [Obsolete("This property is deprecated and to be removed in future versions.")]
         protected int ProtocolVersion { get; set; }
 
         /// <summary>
@@ -45,7 +49,7 @@ namespace Cassandra
         /// </summary>
         public int Length
         {
-            get { return Values.Length; }
+            get { return _rowValues.Length; }
         }
 
         /// <summary>
@@ -75,10 +79,19 @@ namespace Cassandra
         /// <summary>
         /// Initializes a new instance of the Cassandra.Row class
         /// </summary>
+        [Obsolete("This constructor is deprecated and to be removed in future versions. " +
+                  "If you need to create mock instances of Row, use the parameter-less constructor and override GetValue<T>()")]
         public Row(int protocolVersion, byte[][] values, CqlColumn[] columns, Dictionary<string, int> columnIndexes)
         {
             ProtocolVersion = protocolVersion;
             Values = values;
+            Columns = columns;
+            ColumnIndexes = columnIndexes;
+        }
+
+        internal Row(object[] values, CqlColumn[] columns, Dictionary<string, int> columnIndexes)
+        {
+            _rowValues = values;
             Columns = columns;
             ColumnIndexes = columnIndexes;
         }
@@ -88,13 +101,13 @@ namespace Cassandra
         /// </summary>
         public IEnumerator<object> GetEnumerator()
         {
-            return Columns.Select(c => this.GetValue(c.Type, c.Index)).GetEnumerator();
+            return Columns.Select(c => GetValue(c.Type, c.Index)).GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
             //.NET legacy enumerator
-            return this.GetEnumerator();
+            return GetEnumerator();
         }
 
         /// <summary>
@@ -102,7 +115,7 @@ namespace Cassandra
         /// </summary>
         public bool IsNull(string name)
         {
-            return Values[ColumnIndexes[name]] == null;
+            return IsNull(ColumnIndexes[name]);
         }
 
         /// <summary>
@@ -110,7 +123,7 @@ namespace Cassandra
         /// </summary>
         public bool IsNull(int idx)
         {
-            return Values[idx] == null;
+            return _rowValues[idx] == null;
         }
 
         /// <summary>
@@ -118,7 +131,7 @@ namespace Cassandra
         /// </summary>
         public CqlColumn GetColumn(string name)
         {
-            var index = 0;
+            int index;
             if (!ColumnIndexes.TryGetValue(name, out index))
             {
                 return null;
@@ -134,8 +147,8 @@ namespace Cassandra
         /// <returns></returns>
         public object GetValue(Type type, int index)
         {
-            var value = Values[index];
-            return value == null ? null : ConvertToObject(index, value, type);
+            var value = _rowValues[index];
+            return value == null ? null : TryConvertToType(value, Columns[index], type);
         }
 
         /// <summary>
@@ -162,7 +175,6 @@ namespace Cassandra
             var type = typeof (T);
             var value = GetValue(type, index);
             //Check that the value is null but the type is not nullable (structs)
-            //It will box but only for not nullable structs
             //A little overhead in case of misuse but improved Error message
             if (value == null && default(T) != null)
             {
@@ -187,9 +199,70 @@ namespace Cassandra
             return GetValue<T>(ColumnIndexes[name]);
         }
 
-        private object ConvertToObject(int i, byte[] buffer, Type cSharpType)
+        /// <summary>
+        /// Handle conversions for some types that, for backward compatibility,
+        /// the result type can be more than 1 depending on the type provided by the user 
+        /// </summary>
+        internal static object TryConvertToType(object value, ColumnDesc column, Type targetType)
         {
-            return TypeCodec.Decode(ProtocolVersion, buffer, Columns[i].TypeCode, Columns[i].TypeInfo, cSharpType);
+            if (value == null)
+            {
+                return null;
+            }
+            switch (column.TypeCode)
+            {
+                case ColumnTypeCode.List:
+                {
+                    //value is an array, according to TypeCodec
+                    if (targetType.IsArray || targetType == typeof(object) || Utils.IsIEnumerable(targetType))
+                    {
+                        //Return the underlying array
+                        return value;
+                    }
+                    var childTypeInfo = (ListColumnInfo) column.TypeInfo;
+                    return Utils.ToCollectionType(typeof(List<>), TypeCodec.GetDefaultTypeFromCqlType(childTypeInfo.ValueTypeCode, childTypeInfo.ValueTypeInfo), (Array)value);
+                }
+                case ColumnTypeCode.Set:
+                {
+                    //value is an array, according to TypeCodec
+                    if (targetType.IsArray || targetType == typeof(object) || Utils.IsIEnumerable(targetType))
+                    {
+                        //Return the underlying array
+                        return value;
+                    }
+                    var childTypeInfo = (SetColumnInfo)column.TypeInfo;
+                    var itemType = TypeCodec.GetDefaultTypeFromCqlType(childTypeInfo.KeyTypeCode, childTypeInfo.KeyTypeInfo);
+                    if (targetType.IsGenericType)
+                    {
+                        var genericType = targetType.GetGenericTypeDefinition();
+                        if (genericType == typeof(SortedSet<>))
+                        {
+                            return Utils.ToCollectionType(typeof(SortedSet<>), itemType, (Array)value);
+                        }
+                        if (genericType == typeof(HashSet<>))
+                        {
+                            return Utils.ToCollectionType(typeof(HashSet<>), itemType, (Array)value);
+                        }
+                    }
+                    return Utils.ToCollectionType(typeof(List<>), itemType, (Array)value);
+                }
+                case ColumnTypeCode.Timestamp:
+                    //value is a DateTimeOffset
+                    if (targetType == typeof (object) || targetType == typeof (DateTimeOffset))
+                    {
+                        return value;
+                    }
+                    return ((DateTimeOffset)value).DateTime;
+                case ColumnTypeCode.Timeuuid:
+                    //Value is a Uuid
+                    if (targetType == typeof (TimeUuid))
+                    {
+                        return (TimeUuid)(Guid)value;
+                    }
+                    return value;
+                default:
+                    return value;
+            }
         }
     }
 }

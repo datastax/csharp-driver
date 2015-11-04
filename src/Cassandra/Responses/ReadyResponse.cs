@@ -14,18 +14,18 @@
 //   limitations under the License.
 //
 
-namespace Cassandra
+namespace Cassandra.Responses
 {
-    internal class ReadyResponse : AbstractResponse
+    internal class ReadyResponse : Response
     {
         public const byte OpCode = 0x02;
 
-        internal ReadyResponse(ResponseFrame frame)
+        internal ReadyResponse(Frame frame)
             : base(frame)
         {
         }
 
-        internal static ReadyResponse Create(ResponseFrame frame)
+        internal static ReadyResponse Create(Frame frame)
         {
             return new ReadyResponse(frame);
         }

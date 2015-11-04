@@ -20,7 +20,7 @@ namespace Cassandra
     {
         private readonly PreparedQueryNotFoundInfo _info = new PreparedQueryNotFoundInfo();
 
-        protected override void Load(BEBinaryReader cb)
+        protected override void Load(FrameReader cb)
         {
             short len = cb.ReadInt16();
             _info.UnknownId = new byte[len];

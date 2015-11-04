@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using Cassandra.Tasks;
+using Microsoft.IO;
 
 namespace Cassandra
 {
@@ -140,6 +141,8 @@ namespace Cassandra
                 {
                     _protocolVersion = Configuration.ProtocolOptions.MaxProtocolVersion.Value;
                 }
+                //create the buffer pool with 16KB for small buffers and 256Kb for large buffers.
+                Configuration.BufferPool = new RecyclableMemoryStreamManager(16 * 1024, 256 * 1024, ProtocolOptions.MaximumFrameLength);
                 _controlConnection = new ControlConnection(_protocolVersion, Configuration, _metadata);
                 _metadata.ControlConnection = _controlConnection;
                 try

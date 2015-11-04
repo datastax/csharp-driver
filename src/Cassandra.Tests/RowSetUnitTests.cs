@@ -359,13 +359,7 @@ namespace Cassandra.Tests
             var rs = new RowSet();
             for (var j = 0; j < rowLength; j++)
             {
-                var rowValues = new List<byte[]>();
-                foreach (var c in columns)
-                {
-                    var value = valueModifier + "row_" + j + "_col_" + c.Index;
-                    rowValues.Add(Encoding.UTF8.GetBytes(value));
-                }
-                rs.AddRow(new Row(1, rowValues.ToArray(), columns.ToArray(), columnIndexes));
+                rs.AddRow(new Row(columns.Select(c => valueModifier + "row_" + j + "_col_" + c.Index).Cast<object>().ToArray(), columns.ToArray(), columnIndexes));
             }
             return rs;
         }
@@ -394,19 +388,74 @@ namespace Cassandra.Tests
             };
             var columnIndexes = columns.ToDictionary(c => c.Name, c => c.Index);
             var rs = new RowSet();
-            var rowValues = new[]
+            var rowValues = new object[]
             {
-                Encoding.UTF8.GetBytes("text value"),
-                TypeCodec.EncodeInt(2, null, 100)
+                "text value",
+                100
             };
-            rs.AddRow(new Row(2, rowValues, columns.ToArray(), columnIndexes));
-            rowValues = new byte[][]
-            {
-                null,
-                null
-            };
-            rs.AddRow(new Row(2, rowValues, columns.ToArray(), columnIndexes));
+            rs.AddRow(new Row(rowValues, columns.ToArray(), columnIndexes));
+            rs.AddRow(new Row(new object[] { null, null}, columns.ToArray(), columnIndexes));
             return rs;
+        }
+
+        [Test]
+        public void Row_TryConvertToType_Should_Convert_Timestamps()
+        {
+            var timestampTypeInfo = new ColumnDesc {TypeCode = ColumnTypeCode.Timestamp};
+            var values = new[]
+            {
+                //column desc, value, type and expected type
+                new object[] {DateTimeOffset.Now, timestampTypeInfo, typeof(DateTime)},
+                new object[] {DateTimeOffset.Now, timestampTypeInfo, typeof(DateTimeOffset)},
+                new object[] {DateTimeOffset.Now, timestampTypeInfo, typeof(object), typeof(DateTimeOffset)},
+                new object[] {DateTimeOffset.Now, timestampTypeInfo, typeof(IConvertible), typeof(DateTime)}
+            };
+            foreach (var item in values)
+            {
+                var value = Row.TryConvertToType(item[0], (ColumnDesc)item[1], (Type)item[2]);
+                Assert.AreEqual(item.Length > 3 ? item[3] : item[2], value.GetType());
+            }
+        }
+
+        [Test]
+        public void Row_TryConvertToType_Should_Convert_Lists()
+        {
+            var listIntTypeInfo = new ColumnDesc { TypeCode = ColumnTypeCode.List, TypeInfo = new ListColumnInfo { ValueTypeCode = ColumnTypeCode.Int } };
+            var values = new[]
+            {
+                new object[] {new [] {1, 2, 3}, listIntTypeInfo, typeof(int[])},
+                new object[] {new [] {1, 2, 3}, listIntTypeInfo, typeof(object), typeof(int[])},
+                new object[] {new [] {1, 2, 3}, listIntTypeInfo, typeof(IEnumerable<int>), typeof(int[])},
+                new object[] {new [] {1, 2, 3}, listIntTypeInfo, typeof(List<int>)},
+                new object[] {new [] {1, 2, 3}, listIntTypeInfo, typeof(IList<int>), typeof(List<int>)}
+            };
+            foreach (var item in values)
+            {
+                var value = Row.TryConvertToType(item[0], (ColumnDesc)item[1], (Type)item[2]);
+                Assert.AreEqual(item.Length > 3 ? item[3] : item[2], value.GetType());
+                CollectionAssert.AreEqual((int[])item[0], (IEnumerable<int>)value);
+            }
+        }
+
+        [Test]
+        public void Row_TryConvertToType_Should_Convert_Sets()
+        {
+            var setIntTypeInfo = new ColumnDesc { TypeCode = ColumnTypeCode.Set, TypeInfo = new SetColumnInfo { KeyTypeCode = ColumnTypeCode.Int } };
+            var values = new[]
+            {
+                new object[] {new [] {1, 2, 3}, setIntTypeInfo, typeof(int[])},
+                new object[] {new [] {1, 2, 3}, setIntTypeInfo, typeof(object), typeof(int[])},
+                new object[] {new [] {1, 2, 3}, setIntTypeInfo, typeof(IEnumerable<int>), typeof(int[])},
+                new object[] {new [] {1, 2, 3}, setIntTypeInfo, typeof(HashSet<int>)},
+                new object[] {new [] {1, 2, 3}, setIntTypeInfo, typeof(SortedSet<int>)},
+                new object[] {new [] {1, 2, 3}, setIntTypeInfo, typeof(ISet<int>), typeof(List<int>)}
+            };
+            foreach (var item in values)
+            {
+                var value = Row.TryConvertToType(item[0], (ColumnDesc)item[1], (Type)item[2]);
+                Assert.AreEqual(item.Length > 3 ? item[3] : item[2], value.GetType());
+                CollectionAssert.AreEqual((int[]) item[0], (IEnumerable<int>) value);
+            }
         }
 
         private class TestException : Exception { }

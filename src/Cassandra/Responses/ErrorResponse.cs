@@ -14,22 +14,22 @@
 //   limitations under the License.
 //
 
-namespace Cassandra
+namespace Cassandra.Responses
 {
-    internal class ErrorResponse : AbstractResponse
+    internal class ErrorResponse : Response
     {
         public const byte OpCode = 0x00;
         public OutputError Output;
 
-        internal ErrorResponse(ResponseFrame frame) 
+        internal ErrorResponse(Frame frame) 
             : base(frame)
         {
-            int errorCode = BeBinaryReader.ReadInt32();
-            string message = BeBinaryReader.ReadString();
-            Output = OutputError.CreateOutputError(errorCode, message, BeBinaryReader);
+            int errorCode = Reader.ReadInt32();
+            string message = Reader.ReadString();
+            Output = OutputError.CreateOutputError(errorCode, message, Reader);
         }
 
-        internal static ErrorResponse Create(ResponseFrame frame)
+        internal static ErrorResponse Create(Frame frame)
         {
             return new ErrorResponse(frame);
         }

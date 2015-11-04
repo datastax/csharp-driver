@@ -14,19 +14,19 @@
 //   limitations under the License.
 //
 
-namespace Cassandra
+namespace Cassandra.Responses
 {
-    internal class SupportedResponse : AbstractResponse
+    internal class SupportedResponse : Response
     {
         public const byte OpCode = 0x06;
         public OutputOptions Output;
 
-        internal SupportedResponse(ResponseFrame frame) : base(frame)
+        internal SupportedResponse(Frame frame) : base(frame)
         {
-            Output = new OutputOptions(BeBinaryReader);
+            Output = new OutputOptions(Reader);
         }
 
-        internal static SupportedResponse Create(ResponseFrame frame)
+        internal static SupportedResponse Create(Frame frame)
         {
             return new SupportedResponse(frame);
         }

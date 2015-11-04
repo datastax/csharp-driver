@@ -23,7 +23,7 @@ namespace Cassandra
         public byte[] QueryId { get; private set; }
         public System.Guid? TraceId { get; internal set; }
 
-        internal OutputPrepared(byte protocolVersion, BEBinaryReader reader)
+        internal OutputPrepared(byte protocolVersion, FrameReader reader)
         {
             var length = reader.ReadInt16();
             QueryId = new byte[length];

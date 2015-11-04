@@ -14,7 +14,9 @@
 //   limitations under the License.
 //
 
-namespace Cassandra
+using System.IO;
+
+namespace Cassandra.Requests
 {
     internal class AuthResponseRequest : IRequest
     {
@@ -29,12 +31,12 @@ namespace Cassandra
             _token = token;
         }
 
-        public RequestFrame GetFrame(short streamId)
+        public int WriteFrame(short streamId, MemoryStream stream)
         {
-            var wb = new BEBinaryWriter();
+            var wb = new FrameWriter(stream);
             wb.WriteFrameHeader((byte)ProtocolVersion, 0x00, streamId, OpCode);
             wb.WriteBytes(_token);
-            return wb.GetFrame();
+            return wb.Close();
         }
     }
 }

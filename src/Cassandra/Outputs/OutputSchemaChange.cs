@@ -26,7 +26,7 @@ namespace Cassandra
 
         public Guid? TraceId { get; private set; }
 
-        internal OutputSchemaChange(BEBinaryReader reader, Guid? traceId)
+        internal OutputSchemaChange(FrameReader reader, Guid? traceId)
         {
             TraceId = traceId;
             Change = reader.ReadString();

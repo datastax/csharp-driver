@@ -23,7 +23,7 @@ namespace Cassandra
             return new ProtocolErrorException(Message);
         }
 
-        protected override void Load(BEBinaryReader reader)
+        protected override void Load(FrameReader reader)
         {
         }
     }

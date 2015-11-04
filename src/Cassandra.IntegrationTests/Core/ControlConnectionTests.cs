@@ -63,7 +63,8 @@ namespace Cassandra.IntegrationTests.Core
             }
             if (config == null)
             {
-                config = new Configuration();   
+                config = new Configuration();
+                config.BufferPool = new Microsoft.IO.RecyclableMemoryStreamManager();
             }
             if (metadata == null)
             {

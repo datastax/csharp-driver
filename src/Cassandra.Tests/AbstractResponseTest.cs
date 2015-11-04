@@ -16,6 +16,7 @@
 
 using System;
 using System.IO;
+using Cassandra.Responses;
 using NUnit.Framework;
 
 namespace Cassandra.Tests
@@ -27,17 +28,17 @@ namespace Cassandra.Tests
         [ExpectedException(typeof(ArgumentNullException))]
         public void Ctor_Null_Throws()
         {
-            new AbstractResponse(null);
+            new Response(null);
         }
 
         [Test]
         public void Ctor_NoFlags_TraceIdIsNull()
         {
             // Arrange
-            var frame = new ResponseFrame(new FrameHeader(), new MemoryStream());
+            var frame = new Frame(new FrameHeader(), new MemoryStream());
 
             // Act
-            var uut = new AbstractResponse(frame);
+            var uut = new Response(frame);
 
             // Assert
             Assert.IsNull(uut.TraceId);
@@ -47,10 +48,10 @@ namespace Cassandra.Tests
         public void Ctor_NoFlags_BodyStreamPositionIsZero()
         {
             // Arrange
-            var frame = new ResponseFrame(new FrameHeader(), new MemoryStream(new byte[] { 1 }));
+            var frame = new Frame(new FrameHeader(), new MemoryStream(new byte[] { 1 }));
 
             // Act
-            new AbstractResponse(frame);
+            new Response(frame);
 
             // Assert
             Assert.AreEqual(0, frame.Body.Position);
@@ -66,10 +67,10 @@ namespace Cassandra.Tests
             rnd.NextBytes(buffer);
             var expected = new Guid(TypeCodec.GuidShuffle(buffer));
             var body = new MemoryStream(buffer);
-            var frame = new ResponseFrame(header, body);
+            var frame = new Frame(header, body);
 
             // Act
-            var uut = new AbstractResponse(frame);
+            var uut = new Response(frame);
 
             // Assert
             Assert.AreEqual(expected, uut.TraceId);
@@ -81,10 +82,10 @@ namespace Cassandra.Tests
             // Arrange
             var header = new FrameHeader { Flags = FrameHeader.HeaderFlag.Tracing };
             var body = new MemoryStream(new byte[20]);
-            var frame = new ResponseFrame(header, body);
+            var frame = new Frame(header, body);
 
             // Act
-            new AbstractResponse(frame);
+            new Response(frame);
 
             // Assert
             Assert.AreEqual(16, body.Position);

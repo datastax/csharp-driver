@@ -20,13 +20,18 @@ using System.Text;
 
 namespace Cassandra
 {
-    internal class BEBinaryReader
+    /// <summary>
+    /// Represents a protocol-aware forward reader 
+    /// </summary>
+    internal class FrameReader
     {
+        /// <summary>
+        /// Reusable buffer for reading 2-4 byte types
+        /// </summary>
         private readonly byte[] _buffer = new byte[4];
-        private readonly byte[] _longBuffer = new byte[16];
         private readonly Stream _stream;
 
-        public BEBinaryReader(Stream stream)
+        public FrameReader(Stream stream)
         {
             _stream = stream;
         }
@@ -37,61 +42,43 @@ namespace Cassandra
             return _buffer[0];
         }
 
+        /// <summary>
+        /// Parses a ushort from the following 2 bytes
+        /// </summary>
         public ushort ReadUInt16()
         {
             _stream.Read(_buffer, 0, 2);
-            return (ushort) ((_buffer[0] << 8) | (_buffer[1] & 0xff));
+            return BeConverter.ToUInt16(_buffer);
         }
 
+        /// <summary>
+        /// Parses a ushort from the following 2 bytes
+        /// </summary>
         public short ReadInt16()
         {
             _stream.Read(_buffer, 0, 2);
-            return (short) ((_buffer[0] << 8) | (_buffer[1] & 0xff));
+            return BeConverter.ToInt16(_buffer);
         }
-
 
         public int ReadInt32()
         {
             _stream.Read(_buffer, 0, 4);
-            return (_buffer[0] << 24) | (_buffer[1] << 16 & 0xffffff) | (_buffer[2] << 8 & 0xffff) | (_buffer[3] & 0xff);
+            return BeConverter.ToInt32(_buffer);
         }
 
         public string ReadString()
         {
-            ushort length = ReadUInt16();
-            return ReadPureString(length);
-        }
-
-        /// <summary>
-        /// Reads protocol inet: Ip (4 or 16 bytes) followed by a port (int)
-        /// </summary>
-        public IPEndPoint ReadInet()
-        {
-            byte length = ReadByte();
-            IPAddress ip;
-            if (length == 4)
-            {
-                _stream.Read(_buffer, 0, length);
-                ip = new IPAddress(_buffer);
-                return new IPEndPoint(ip, ReadInt32());
-            }
-            if (length == 16)
-            {
-                _stream.Read(_longBuffer, 0, length);
-                ip = new IPAddress(_longBuffer);
-                return new IPEndPoint(ip, ReadInt32());
-            }
-
-            throw new DriverInternalError("unknown length of Inet Address");
+            var length = ReadInt16();
+            return ReadStringByLength(length);
         }
 
         public string ReadLongString()
         {
-            int length = ReadInt32();
-            return ReadPureString(length);
+            var length = ReadInt32();
+            return ReadStringByLength(length);
         }
 
-        private string ReadPureString(int length)
+        private string ReadStringByLength(int length)
         {
             var bytes = new byte[length];
             _stream.Read(bytes, 0, length);
@@ -117,6 +104,29 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Reads protocol inet: Ip (4 or 16 bytes) followed by a port (int)
+        /// </summary>
+        public IPEndPoint ReadInet()
+        {
+            var length = ReadByte();
+            IPAddress ip;
+            if (length == 4)
+            {
+                _stream.Read(_buffer, 0, length);
+                ip = new IPAddress(_buffer);
+                return new IPEndPoint(ip, ReadInt32());
+            }
+            if (length == 16)
+            {
+                var buffer = new byte[16];
+                _stream.Read(buffer, 0, length);
+                ip = new IPAddress(buffer);
+                return new IPEndPoint(ip, ReadInt32());
+            }
+            throw new DriverInternalError("Unknown length of Inet Address");
+        }
+
+        /// <summary>
         /// Reads a protocol bytes map
         /// </summary>
         public Dictionary<string, byte[]> ReadBytesMap()
@@ -136,9 +146,12 @@ namespace Cassandra
             return map;
         }
 
+        /// <summary>
+        /// Reads the protocol bytes, retrieving the int length and reading the subsequent amount of bytes 
+        /// </summary>
         public byte[] ReadBytes()
         {
-            int length = ReadInt32();
+            var length = ReadInt32();
             if (length < 0) return null;
             var buf = new byte[length];
             Read(buf, 0, length);
@@ -148,12 +161,6 @@ namespace Cassandra
         public void Read(byte[] buffer, int offset, int count)
         {
             _stream.Read(buffer, offset, count);
-        }
-
-        public void Skip(int count)
-        {
-            var buffer = new byte[count];
-            _stream.Read(buffer, 0, count);
         }
     }
 }

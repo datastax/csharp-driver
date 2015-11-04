@@ -33,7 +33,7 @@ namespace Cassandra
             _isFailure = isFailure;
         }
 
-        protected override void Load(BEBinaryReader reader)
+        protected override void Load(FrameReader reader)
         {
             _consistency = (ConsistencyLevel) reader.ReadInt16();
             _received = reader.ReadInt32();

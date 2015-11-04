@@ -15,8 +15,9 @@
 //
 
 using System.Collections.Generic;
+using System.IO;
 
-namespace Cassandra
+namespace Cassandra.Requests
 {
     internal class RegisterForEventRequest : IRequest
     {
@@ -43,12 +44,12 @@ namespace Cassandra
             }
         }
 
-        public RequestFrame GetFrame(short streamId)
+        public int WriteFrame(short streamId, MemoryStream stream)
         {
-            var wb = new BEBinaryWriter();
+            var wb = new FrameWriter(stream);
             wb.WriteFrameHeader((byte)ProtocolVersion, 0x00, streamId, OpCode);
             wb.WriteStringList(_eventTypes);
-            return wb.GetFrame();
+            return wb.Close();
         }
     }
 }

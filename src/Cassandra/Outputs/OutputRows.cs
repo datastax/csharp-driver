@@ -17,33 +17,30 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-// ReSharper disable CheckNamespace
 
+// ReSharper disable CheckNamespace
 namespace Cassandra
 {
     internal class OutputRows : IOutput
     {
-        public readonly int RowLength;
-        private readonly Guid? _traceId;
-        private RowSetMetadata _metadata;
-        private byte _protocolVersion;
+        private readonly int _rowLength;
+        private readonly RowSetMetadata _metadata;
+        private readonly byte _protocolVersion;
+        private static readonly ThreadLocal<byte[]> ReusableBuffer = new ThreadLocal<byte[]>(() => new byte[16]);
 
         /// <summary>
         /// Gets or sets the RowSet parsed from the response
         /// </summary>
         public RowSet RowSet { get; set; }
 
-        public Guid? TraceId
-        {
-            get { return _traceId; }
-        }
+        public Guid? TraceId { get; private set; }
 
-        internal OutputRows(byte protocolVersion, BEBinaryReader reader, Guid? traceId)
+        internal OutputRows(byte protocolVersion, FrameReader reader, Guid? traceId)
         {
             _protocolVersion = protocolVersion;
             _metadata = new RowSetMetadata(reader);
-            RowLength = reader.ReadInt32();
-            _traceId = traceId;
+            _rowLength = reader.ReadInt32();
+            TraceId = traceId;
             RowSet = new RowSet();
             ProcessRows(RowSet, reader);
         }
@@ -51,38 +48,69 @@ namespace Cassandra
         /// <summary>
         /// Process rows and sets the paging event handler
         /// </summary>
-        internal void ProcessRows(RowSet rs, BEBinaryReader reader)
+        internal void ProcessRows(RowSet rs, FrameReader reader)
         {
             if (_metadata != null)
             {
                 rs.Columns = _metadata.Columns;
                 rs.PagingState = _metadata.PagingState;
             }
-            for (var i = 0; i < this.RowLength; i++)
+            for (var i = 0; i < _rowLength; i++)
             {
                 rs.AddRow(ProcessRowItem(reader));
             }
         }
 
-        internal virtual Row ProcessRowItem(BEBinaryReader reader)
+        internal virtual Row ProcessRowItem(FrameReader reader)
         {
-            var valuesList = new byte[_metadata.Columns.Length][];
+            var rowValues = new object[_metadata.Columns.Length];
             for (var i = 0; i < _metadata.Columns.Length; i++)
             {
-                int length = reader.ReadInt32();
+                var c = _metadata.Columns[i];
+                var length = reader.ReadInt32();
                 if (length < 0)
                 {
-                    valuesList[i] = null;
+                    rowValues[i] = null;
+                    continue;
                 }
-                else
-                {
-                    var buffer = new byte[length];
-                    reader.Read(buffer, 0, length);
-                    valuesList[i] = buffer;
-                }
+                var buffer = GetBuffer(length, c.TypeCode);
+                reader.Read(buffer, 0, length);
+                rowValues[i] = TypeCodec.Decode(_protocolVersion, buffer, c.TypeCode, c.TypeInfo);
             }
 
-            return new Row(_protocolVersion, valuesList, _metadata.Columns, _metadata.ColumnIndexes);
+            return new Row(rowValues, _metadata.Columns, _metadata.ColumnIndexes);
+        }
+
+        /// <summary>
+        /// Reduces allocations by reusing a 16-length buffer for types where is possible
+        /// </summary>
+        private static byte[] GetBuffer(int length, ColumnTypeCode typeCode)
+        {
+            if (length > 16)
+            {
+                return new byte[length];
+            }
+            switch (typeCode)
+            {
+                //blob and inet requires a new instance
+                case ColumnTypeCode.Blob:
+                case ColumnTypeCode.Inet:
+                //just to be safe
+                case ColumnTypeCode.Custom:
+                //The TypeCodec does not support offset and count for text
+                case ColumnTypeCode.Ascii:
+                case ColumnTypeCode.Text:
+                case ColumnTypeCode.Varchar:
+                //The TypeCodec does not support offset and count for varint
+                case ColumnTypeCode.Varint:
+                //The Decimal converter does not support count for decimal
+                case ColumnTypeCode.Decimal:
+                //The TypeCodec does not support offset and count for udts
+                case ColumnTypeCode.Udt:
+                case ColumnTypeCode.Tuple:
+                    return new byte[length];
+            }
+            return ReusableBuffer.Value;
         }
 
         public void Dispose()

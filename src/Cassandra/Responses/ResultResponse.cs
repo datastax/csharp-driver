@@ -16,10 +16,9 @@
 using System;
 using System.Collections.Generic;
 
-// ReSharper disable once CheckNamespace
-namespace Cassandra
+namespace Cassandra.Responses
 {
-    internal class ResultResponse : AbstractResponse
+    internal class ResultResponse : Response
     {
         public enum ResultResponseKind
         {
@@ -52,42 +51,42 @@ namespace Cassandra
         /// </summary>
         public IOutput Output { get; private set; }
 
-        internal ResultResponse(ResponseFrame frame) : base(frame)
+        internal ResultResponse(Frame frame) : base(frame)
         {
             //Handle result flags
             if ((frame.Header.Flags & FrameHeader.HeaderFlag.Warning) != 0)
             {
-                Warnings = BeBinaryReader.ReadStringList();
+                Warnings = Reader.ReadStringList();
             }
             if ((frame.Header.Flags &FrameHeader.HeaderFlag.CustomPayload) != 0)
             {
-                CustomPayload = BeBinaryReader.ReadBytesMap();
+                CustomPayload = Reader.ReadBytesMap();
             }
 
-            Kind = (ResultResponseKind) BeBinaryReader.ReadInt32();
+            Kind = (ResultResponseKind) Reader.ReadInt32();
             switch (Kind)
             {
                 case ResultResponseKind.Void:
                     Output = new OutputVoid(TraceId);
                     break;
                 case ResultResponseKind.Rows:
-                    Output = new OutputRows(frame.Header.Version, BeBinaryReader, TraceId);
+                    Output = new OutputRows(frame.Header.Version, Reader, TraceId);
                     break;
                 case ResultResponseKind.SetKeyspace:
-                    Output = new OutputSetKeyspace(BeBinaryReader.ReadString());
+                    Output = new OutputSetKeyspace(Reader.ReadString());
                     break;
                 case ResultResponseKind.Prepared:
-                    Output = new OutputPrepared(frame.Header.Version, BeBinaryReader);
+                    Output = new OutputPrepared(frame.Header.Version, Reader);
                     break;
                 case ResultResponseKind.SchemaChange:
-                    Output = new OutputSchemaChange(BeBinaryReader, TraceId);
+                    Output = new OutputSchemaChange(Reader, TraceId);
                     break;
                 default:
                     throw new DriverInternalError("Unknown ResultResponseKind Type");
             }
         }
 
-        internal static ResultResponse Create(ResponseFrame frame)
+        internal static ResultResponse Create(Frame frame)
         {
             return new ResultResponse(frame);
         }

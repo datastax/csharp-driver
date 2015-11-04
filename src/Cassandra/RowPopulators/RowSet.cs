@@ -27,7 +27,27 @@ namespace Cassandra
 {
     /// <summary>
     /// Represents a result of a query returned by Cassandra.
+    /// <para>
+    /// The retrieval of the rows of a RowSet is generally paged (a first page
+    /// of result is fetched and the next one is only fetched once all the results
+    /// of the first one has been consumed). The size of the pages can be configured
+    /// either globally through <see cref="QueryOptions.SetPageSize(int)"/> or per-statement
+    /// with <see cref="IStatement.SetPageSize(int)"/>. Though new pages are automatically
+    /// (and transparently) fetched when needed, it is possible to force the retrieval
+    /// of the next page early through <see cref="FetchMoreResults()"/>.
+    /// </para>
+    /// <para>
+    /// The RowSet dequeues <see cref="Row"/> items while iterated. Parallel enumerations 
+    /// is supported and thread-safe. After a full enumeration of this instance, following
+    /// enumerations will be empty, as all rows have been dequeued.
+    /// </para>
     /// </summary>
+    /// <remarks>
+    /// RowSet paging is not available with the version 1 of the native protocol. 
+    /// If the protocol version 1 is in use, a RowSet is always fetched in it's entirely and
+    /// it's up to the client to make sure that no query can yield ResultSet that won't hold
+    /// in memory.
+    /// </remarks>
     public class RowSet : IEnumerable<Row>, IDisposable
     {
         private readonly object _pageLock = new object();
@@ -83,7 +103,6 @@ namespace Cassandra
                 return false;
             }
             PageNext();
-
             return RowQueue.Count == 0;
         }
 

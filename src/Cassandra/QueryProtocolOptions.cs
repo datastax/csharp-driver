@@ -21,6 +21,7 @@ namespace Cassandra
 {
     public class QueryProtocolOptions
     {
+        //This class was leaked to the API, making it internal would be a breaking change
         [Flags]
         public enum QueryFlags
         {
@@ -131,7 +132,7 @@ namespace Cassandra
         }
 
         //TODO: Move to ExecuteRequest and QueryRequest
-        internal void Write(BEBinaryWriter wb, byte protocolVersion, bool isPrepared)
+        internal void Write(FrameWriter wb, byte protocolVersion, bool isPrepared)
         {
             //protocol v1: <query><n><value_1>....<value_n><consistency>
             //protocol v2: <query><consistency><flags>[<n><value_1>...<value_n>][<result_page_size>][<paging_state>][<serial_consistency>]

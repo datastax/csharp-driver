@@ -29,7 +29,7 @@ namespace Cassandra
             get { return _options; }
         }
 
-        internal OutputOptions(BEBinaryReader reader)
+        internal OutputOptions(FrameReader reader)
         {
             _options = new Dictionary<string, string[]>();
             int n = reader.ReadUInt16();

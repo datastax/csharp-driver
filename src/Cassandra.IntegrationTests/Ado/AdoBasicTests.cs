@@ -92,7 +92,6 @@ namespace Cassandra.IntegrationTests.Data
         {
             _connection.Open();
             var cmd1 = _connection.CreateCommand();
-            var cmd2 = _connection.CreateCommand();
             var cmd3 = _connection.CreateCommand();
 
             cmd1.CommandText = "SELECT key FROM system.local";

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
+using Moq;
 using NUnit.Framework;
 
 namespace Cassandra.Tests
@@ -52,6 +53,49 @@ namespace Cassandra.Tests
             }, 100);
             //Should fire event only once
             Assert.AreEqual(1, counter);
+        }
+
+        [Test]
+        public void HostConnectionPool_MinInFlight_Returns_The_Min_Inflight_From_Two_Connections()
+        {
+            var connections = new[]
+            {
+                GetConnectionMock(0),
+                GetConnectionMock(1),
+                GetConnectionMock(1),
+                GetConnectionMock(10),
+                GetConnectionMock(1),
+            };
+            var index = 1;
+            var c = HostConnectionPool.MinInFlight(connections, ref index);
+            Assert.AreEqual(index, 2);
+            Assert.AreSame(connections[2], c);
+            c = HostConnectionPool.MinInFlight(connections, ref index);
+            Assert.AreEqual(index, 3);
+            //previous had less in flight
+            Assert.AreSame(connections[2], c);
+            c = HostConnectionPool.MinInFlight(connections, ref index);
+            Assert.AreEqual(index, 4);
+            Assert.AreSame(connections[4], c);
+            c = HostConnectionPool.MinInFlight(connections, ref index);
+            Assert.AreEqual(index, 5);
+            Assert.AreSame(connections[0], c);
+            c = HostConnectionPool.MinInFlight(connections, ref index);
+            Assert.AreEqual(index, 6);
+            Assert.AreSame(connections[0], c);
+            index = 9;
+            c = HostConnectionPool.MinInFlight(connections, ref index);
+            Assert.AreEqual(index, 10);
+            Assert.AreSame(connections[0], c);
+        }
+
+        private static Connection GetConnectionMock(int inflight)
+        {
+            var config = new Configuration();
+            config.BufferPool = new Microsoft.IO.RecyclableMemoryStreamManager();
+            var connectionMock = new Mock<Connection>(MockBehavior.Strict, (byte) 4, Address, config);
+            connectionMock.Setup(c => c.InFlight).Returns(inflight);
+            return connectionMock.Object;
         }
 
         private class CountReconnectionPolicy : IReconnectionPolicy
