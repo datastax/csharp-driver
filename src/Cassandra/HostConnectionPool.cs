@@ -117,28 +117,31 @@ namespace Cassandra
         /// <exception cref="UnsupportedProtocolVersionException"></exception>
         internal virtual Task<Connection> CreateConnection()
         {
+            return CreateConnection(CancellationToken.None);
+        }
+
+        /// <exception cref="System.Net.Sockets.SocketException">Throws a SocketException when the connection could not be established with the host</exception>
+        /// <exception cref="AuthenticationException" />
+        /// <exception cref="UnsupportedProtocolVersionException"></exception>
+        internal virtual async Task<Connection> CreateConnection(CancellationToken cancellationToken)
+        {
             Logger.Info("Creating a new connection to the host " + _host.Address);
             var c = new Connection(ProtocolVersion, _host.Address, _config);
-            return c.Open().ContinueWith(t =>
+            try
             {
-                if (t.Status == TaskStatus.RanToCompletion)
+                await c.Open(cancellationToken);
+                if (_config.PoolingOptions.GetHeartBeatInterval() > 0)
                 {
-                    if (_config.PoolingOptions.GetHeartBeatInterval() > 0)
-                    {
-                        //Heartbeat is enabled, subscribe for possible exceptions
-                        c.OnIdleRequestException += OnIdleRequestException;
-                    }
-                    return c;
+                    //Heartbeat is enabled, subscribe for possible exceptions
+                    c.OnIdleRequestException += OnIdleRequestException;
                 }
-                Logger.Info("The connection to {0} could not be opened", _host.Address);
-                c.Dispose();
-                if (t.Exception != null)
-                {
-                    Logger.Error(t.Exception.InnerException);
-                    throw t.Exception.InnerException;
-                }
-                throw new TaskCanceledException("The connection creation task was cancelled");
-            }, TaskContinuationOptions.ExecuteSynchronously);
+                return c;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex);
+                throw;
+            }
         }
 
         /// <summary>
@@ -178,9 +181,10 @@ namespace Cassandra
         /// If it succeeds, it marks the host as UP.
         /// If not, it marks the host as DOWN
         /// </summary>
-        internal void AttemptReconnection()
+        internal async Task AttemptReconnection()
         {
             _poolModificationSemaphore.Wait();
+
             var toRemove = _connections.Where(c => c.IsClosed).ToArray();
             foreach (var c in toRemove)
             {
@@ -193,27 +197,21 @@ namespace Cassandra
                 return;
             }
             Logger.Info("Attempting reconnection to host {0}", _host.Address);
-            CreateConnection().ContinueWith(t =>
+            try
             {
-                if (t.Status == TaskStatus.RanToCompletion)
-                {
-                    _connections.Add(t.Result);
-                    //Release as soon as possible
-                    _poolModificationSemaphore.Release();
-                    Logger.Info("Reconnection attempt to host {0} succeeded", _host.Address);
-                    _host.BringUpIfDown();
-                }
-                else
-                {
-                    _poolModificationSemaphore.Release();
-                    if (t.Exception != null)
-                    {
-                        t.Exception.Handle(e => true);
-                    }
-                    Logger.Info("Reconnection attempt to host {0} failed", _host.Address);
-                    _host.SetDown();
-                }
-            }, TaskContinuationOptions.ExecuteSynchronously);
+                var connection = await CreateConnection();
+                _connections.Add(connection);
+                //Release as soon as possible
+                _poolModificationSemaphore.Release();
+                Logger.Info("Reconnection attempt to host {0} succeeded", _host.Address);
+                _host.BringUpIfDown();
+            }
+            catch (Exception)
+            {
+                _poolModificationSemaphore.Release();
+                Logger.Info("Reconnection attempt to host {0} failed", _host.Address);
+                _host.SetDown();
+            }
         }
 
         private void OnHostUp(Host host)

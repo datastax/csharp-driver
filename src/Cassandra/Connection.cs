@@ -179,7 +179,7 @@ namespace Cassandra
         /// Starts the authentication flow
         /// </summary>
         /// <exception cref="AuthenticationException" />
-        private Task<Response> Authenticate()
+        private Task<Response> Authenticate(CancellationToken cancellationToken)
         {
             //Determine which authentication flow to use.
             //Check if its using a C* 1.2 with authentication patched version (like DSE 3.1)
@@ -364,7 +364,6 @@ namespace Cassandra
             });
         }
 
-
         /// <summary>
         /// Initializes the connection.
         /// </summary>
@@ -372,6 +371,17 @@ namespace Cassandra
         /// <exception cref="AuthenticationException" />
         /// <exception cref="UnsupportedProtocolVersionException"></exception>
         public Task<Response> Open()
+        {
+            return Open(CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Initializes the connection.
+        /// </summary>
+        /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
+        /// <exception cref="AuthenticationException" />
+        /// <exception cref="UnsupportedProtocolVersionException"></exception>
+        public async Task<Response> Open(CancellationToken cancellationToken)
         {
             _freeOperations = new ConcurrentStack<short>(Enumerable.Range(0, MaxConcurrentRequests).Select(s => (short)s).Reverse());
             _pendingOperations = new ConcurrentDictionary<short, OperationState>();
@@ -397,46 +407,45 @@ namespace Cassandra
             //Read and write event handlers are going to be invoked using IO Threads
             _tcpSocket.Read += ReadHandler;
             _tcpSocket.WriteCompleted += WriteCompletedHandler;
-            return _tcpSocket
-                .Connect()
-                .Then(_ => Startup())
-                .ContinueWith(t =>
+
+            // Connect
+            await _tcpSocket.Connect(cancellationToken);
+
+            Response response;
+            try
+            {
+                response = await Startup(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                //Adapt the inner exception and rethrow
+                if (ex is ProtocolErrorException)
                 {
-                    if (t.IsFaulted && t.Exception != null)
+                    //As we are starting up, check for protocol version errors
+                    //There is no other way than checking the error message from Cassandra
+                    if (ex.Message.Contains("Invalid or unsupported protocol version"))
                     {
-                        //Adapt the inner exception and rethrow
-                        var ex = t.Exception.InnerException;
-                        if (ex is ProtocolErrorException)
-                        {
-                            //As we are starting up, check for protocol version errors
-                            //There is no other way than checking the error message from Cassandra
-                            if (ex.Message.Contains("Invalid or unsupported protocol version"))
-                            {
-                                throw new UnsupportedProtocolVersionException(ProtocolVersion, ex);
-                            }
-                        }
-                        if (ex is ServerErrorException && ProtocolVersion >= 3 && ex.Message.Contains("ProtocolException: Invalid or unsupported protocol version"))
-                        {
-                            //For some versions of Cassandra, the error is wrapped into a server error
-                            //See CASSANDRA-9451
-                            throw new UnsupportedProtocolVersionException(ProtocolVersion, ex);
-                        }
-                        throw ex;
+                        throw new UnsupportedProtocolVersionException(ProtocolVersion, ex);
                     }
-                    return t.Result;
-                }, TaskContinuationOptions.ExecuteSynchronously)
-                .Then(response =>
+                }
+                if (ex is ServerErrorException && ProtocolVersion >= 3 && ex.Message.Contains("ProtocolException: Invalid or unsupported protocol version"))
                 {
-                    if (response is AuthenticateResponse)
-                    {
-                        return Authenticate();
-                    }
-                    if (response is ReadyResponse)
-                    {
-                        return TaskHelper.ToTask(response);
-                    }
-                    throw new DriverInternalError("Expected READY or AUTHENTICATE, obtained " + response.GetType().Name);
-                });
+                    //For some versions of Cassandra, the error is wrapped into a server error
+                    //See CASSANDRA-9451
+                    throw new UnsupportedProtocolVersionException(ProtocolVersion, ex);
+                }
+                throw;
+            }
+            
+            if (response is AuthenticateResponse)
+            {
+                return await Authenticate(cancellationToken);
+            }
+            if (response is ReadyResponse)
+            {
+                return response;
+            }
+            throw new DriverInternalError("Expected READY or AUTHENTICATE, obtained " + response.GetType().Name);
         }
 
         /// <summary>
@@ -467,7 +476,7 @@ namespace Cassandra
             }
             //Process a next item in the queue if possible.
             //Maybe there are there items in the write queue that were waiting on a fresh streamId
-            RunWriteQueue();
+            RunWriteQueue(CancellationToken.None);
         }
 
         private volatile FrameHeader _receivingHeader;
@@ -640,7 +649,7 @@ namespace Cassandra
         /// <summary>
         /// Sends a protocol STARTUP message
         /// </summary>
-        private Task<Response> Startup()
+        private Task<Response> Startup(CancellationToken cancellationToken)
         {
             var startupOptions = new Dictionary<string, string>();
             startupOptions.Add("CQL_VERSION", "3.0.0");
@@ -652,7 +661,7 @@ namespace Cassandra
             {
                 startupOptions.Add("COMPRESSION", "snappy");
             }
-            return Send(new StartupRequest(ProtocolVersion, startupOptions));
+            return Send(new StartupRequest(ProtocolVersion, startupOptions), cancellationToken);
         }
 
         /// <summary>
@@ -660,8 +669,16 @@ namespace Cassandra
         /// </summary>
         public Task<Response> Send(IRequest request)
         {
+            return Send(request, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Sends a new request if possible. If it is not possible it queues it up.
+        /// </summary>
+        public Task<Response> Send(IRequest request, CancellationToken cancellationToken)
+        {
             var tcs = new TaskCompletionSource<Response>();
-            Send(request, tcs.TrySet);
+            Send(request, tcs.TrySet, cancellationToken);
             return tcs.Task;
         }
 
@@ -669,6 +686,14 @@ namespace Cassandra
         /// Sends a new request if possible and executes the callback when the response is parsed. If it is not possible it queues it up.
         /// </summary>
         public OperationState Send(IRequest request, Action<Exception, Response> callback)
+        {
+            return Send(request, callback, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Sends a new request if possible and executes the callback when the response is parsed. If it is not possible it queues it up.
+        /// </summary>
+        public OperationState Send(IRequest request, Action<Exception, Response> callback, CancellationToken cancellationToken)
         {
             if (_isCanceled)
             {
@@ -679,11 +704,11 @@ namespace Cassandra
                 Request = request
             };
             _writeQueue.Enqueue(state);
-            RunWriteQueue();
+            RunWriteQueue(cancellationToken);
             return state;
         }
 
-        private void RunWriteQueue()
+        private void RunWriteQueue(CancellationToken cancellationToken)
         {
             var isAlreadyRunning = Interlocked.CompareExchange(ref _isWriteQueueRuning, 1, 0) == 1;
             if (isAlreadyRunning)
@@ -692,7 +717,7 @@ namespace Cassandra
                 return;
             }
             //Start a new task using the TaskScheduler for writing
-            Task.Factory.StartNew(RunWriteQueueAction, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+            Task.Factory.StartNew(RunWriteQueueAction, cancellationToken, TaskCreationOptions.None, TaskScheduler.Default);
         }
 
         private void RunWriteQueueAction()
@@ -756,7 +781,7 @@ namespace Cassandra
                 {
                     //The write queue is not empty
                     //An item was added to the queue but we were running: try to launch a new queue
-                    RunWriteQueue();
+                    RunWriteQueue(CancellationToken.None);
                 }
                 if (stream != null)
                 {
@@ -901,7 +926,7 @@ namespace Cassandra
             Interlocked.Exchange(ref _isWriteQueueRuning, 0);
             //Send the next request, if exists
             //It will use a new thread
-            RunWriteQueue();
+            RunWriteQueue(CancellationToken.None);
         }
 
         internal WaitHandle WaitPending()
