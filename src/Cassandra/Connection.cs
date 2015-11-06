@@ -364,7 +364,6 @@ namespace Cassandra
             });
         }
 
-
         /// <summary>
         /// Initializes the connection.
         /// </summary>
@@ -372,6 +371,17 @@ namespace Cassandra
         /// <exception cref="AuthenticationException" />
         /// <exception cref="UnsupportedProtocolVersionException"></exception>
         public Task<Response> Open()
+        {
+            return Open(CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Initializes the connection.
+        /// </summary>
+        /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
+        /// <exception cref="AuthenticationException" />
+        /// <exception cref="UnsupportedProtocolVersionException"></exception>
+        public Task<Response> Open(CancellationToken cancellationToken)
         {
             _freeOperations = new ConcurrentStack<short>(Enumerable.Range(0, MaxConcurrentRequests).Select(s => (short)s).Reverse());
             _pendingOperations = new ConcurrentDictionary<short, OperationState>();
@@ -399,7 +409,7 @@ namespace Cassandra
             _tcpSocket.WriteCompleted += WriteCompletedHandler;
             return _tcpSocket
                 .Connect()
-                .Then(_ => Startup())
+                .Then(_ => Startup(cancellationToken))
                 .ContinueWith(t =>
                 {
                     if (t.IsFaulted && t.Exception != null)
@@ -640,7 +650,7 @@ namespace Cassandra
         /// <summary>
         /// Sends a protocol STARTUP message
         /// </summary>
-        private Task<Response> Startup()
+        private Task<Response> Startup(CancellationToken cancellationToken)
         {
             var startupOptions = new Dictionary<string, string>();
             startupOptions.Add("CQL_VERSION", "3.0.0");
@@ -652,7 +662,7 @@ namespace Cassandra
             {
                 startupOptions.Add("COMPRESSION", "snappy");
             }
-            return Send(new StartupRequest(ProtocolVersion, startupOptions));
+            return Send(new StartupRequest(ProtocolVersion, startupOptions), cancellationToken);
         }
 
         /// <summary>
