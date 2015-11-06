@@ -146,7 +146,7 @@ namespace Cassandra
 
             try
             {
-                await connection.Open();
+                await connection.Open(cancellationToken);
                 _connection = connection;
                 _host = host;
                 _logger.Info("Connection established to {0}", connection.Address);
