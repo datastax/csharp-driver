@@ -105,12 +105,11 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             catch (InvalidQueryException e)
             {
                 string expectedErrMsg = null;
-                if (_session.BinaryProtocolVersion < 4) {
+                if (_session.BinaryProtocolVersion < 3)
                     expectedErrMsg = "No indexed columns present in by-columns clause with Equal operator"; 
-                }
-                else {
+                else
                     expectedErrMsg = "No secondary indexes on the restricted columns support the provided operators: ";
-                }
+                
                 StringAssert.IsMatch(expectedErrMsg, e.Message);
             }
         }

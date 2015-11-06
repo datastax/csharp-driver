@@ -61,8 +61,11 @@ namespace Cassandra.IntegrationTests
             TestCluster = TestClusterManager.CreateNew(AmountOfNodes);
             if (CreateSession)
             {
-                Cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build();
-                Session = (Session)Cluster.Connect();
+                Cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
+                    .WithQueryTimeout(60000)
+                    .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000))
+                    .Build();
+                Session = (Session) Cluster.Connect();
                 Session.CreateKeyspace(KeyspaceName, null, false);
                 Session.ChangeKeyspace(KeyspaceName);   
             }
