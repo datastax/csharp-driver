@@ -206,7 +206,7 @@ namespace Cassandra
                 Logger.Info("Reconnection attempt to host {0} succeeded", _host.Address);
                 _host.BringUpIfDown();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 _poolModificationSemaphore.Release();
                 Logger.Info("Reconnection attempt to host {0} failed", _host.Address);
