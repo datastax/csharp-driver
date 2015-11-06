@@ -19,6 +19,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
 using Cassandra.Locking;
 using Cassandra.Tasks;
 using Microsoft.IO;
@@ -118,6 +119,11 @@ namespace Cassandra
         /// </summary>
         private void Init()
         {
+            InitAsync().Wait();
+        }
+
+        private async Task InitAsync()
+        { 
             if (_initialized)
             {
                 //It was already initialized
@@ -148,7 +154,7 @@ namespace Cassandra
                 _metadata.ControlConnection = _controlConnection;
                 try
                 {
-                    _controlConnection.Init();
+                    await _controlConnection.InitAsync();
                     _protocolVersion = _controlConnection.ProtocolVersion;
                     //Initialize policies
                     Configuration.Policies.LoadBalancingPolicy.Initialize(this);
