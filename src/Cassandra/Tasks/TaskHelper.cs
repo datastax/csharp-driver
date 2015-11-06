@@ -31,9 +31,7 @@ namespace Cassandra.Tasks
         {
             try
             {
-                TaskCompletionSource<bool> tcs = new TaskCompletionSource<bool>();
-                tcs.SetResult(false);
-                CompletedTask = tcs.Task;
+                CompletedTask = FromResult(false);
                 PreserveStackMethod = typeof(Exception).GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic);
                 if (PreserveStackMethod == null)
                 {
@@ -59,6 +57,13 @@ namespace Cassandra.Tasks
                 //Do nothing
                 //Do not throw exceptions on static constructors
             }
+        }
+
+        public static Task<T> FromResult<T>(T result)
+        {
+            var tcs = new TaskCompletionSource<T>();
+            tcs.SetResult(result);
+            return tcs.Task;
         }
 
         /// <summary>
