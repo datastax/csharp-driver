@@ -115,7 +115,7 @@ namespace Cassandra
         /// <exception cref="System.Net.Sockets.SocketException">Throws a SocketException when the connection could not be established with the host</exception>
         /// <exception cref="AuthenticationException" />
         /// <exception cref="UnsupportedProtocolVersionException"></exception>
-        internal Task<Connection> CreateConnection()
+        internal virtual Task<Connection> CreateConnection()
         {
             return CreateConnection(CancellationToken.None);
         }
