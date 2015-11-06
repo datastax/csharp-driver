@@ -19,6 +19,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
+using Cassandra.Locking;
 using Cassandra.Tasks;
 using Microsoft.IO;
 
@@ -38,7 +39,7 @@ namespace Cassandra
         private ControlConnection _controlConnection;
         private volatile bool _initialized;
         private volatile Exception _initException;
-        private readonly object _initLock = new Object();
+        private readonly AsyncLock _initLock = new AsyncLock();
         private readonly Metadata _metadata;
         /// <inheritdoc />
         public event Action<Host> HostAdded;
@@ -122,7 +123,7 @@ namespace Cassandra
                 //It was already initialized
                 return;
             }
-            lock (_initLock)
+            using (_initLock.Lock())
             {
                 if (_initialized)
                 {

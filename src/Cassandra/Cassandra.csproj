@@ -141,6 +141,8 @@
     <Compile Include="Requests\ICqlRequest.cs" />
     <Compile Include="LocalDate.cs" />
     <Compile Include="LocalTime.cs" />
+    <Compile Include="Locking\AsyncLock.cs" />
+    <Compile Include="Locking\AsyncSemaphore.cs" />
     <Compile Include="Mapping\AppliedInfo.cs" />
     <Compile Include="Mapping\IPage.cs" />
     <Compile Include="AtomicValue.cs" />
