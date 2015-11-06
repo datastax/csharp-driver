@@ -206,7 +206,7 @@ namespace Cassandra
                 Logger.Info("Reconnection attempt to host {0} succeeded", _host.Address);
                 _host.BringUpIfDown();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 _poolModificationSemaphore.Release();
                 Logger.Info("Reconnection attempt to host {0} failed", _host.Address);
@@ -332,6 +332,10 @@ namespace Cassandra
             {
                 if (t.Status != TaskStatus.RanToCompletion)
                 {
+                    if (t.Exception != null)
+                    {
+                        t.Exception.Handle(e => true);
+                    }
                     //The first connection failed
                     //Wait for all to complete
                     return allCompleted;
@@ -372,6 +376,10 @@ namespace Cassandra
                     _connections.Add(t.Result);   
                 }
                 _poolModificationSemaphore.Release();
+                if (t.Exception != null)
+                {
+                    Logger.Error("Error during new connection attempt", t.Exception);
+                }
             }, TaskContinuationOptions.ExecuteSynchronously);
             return true;
         }
