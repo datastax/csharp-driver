@@ -179,7 +179,7 @@ namespace Cassandra
         /// Starts the authentication flow
         /// </summary>
         /// <exception cref="AuthenticationException" />
-        private Task<Response> Authenticate()
+        private Task<Response> Authenticate(CancellationToken cancellationToken)
         {
             //Determine which authentication flow to use.
             //Check if its using a C* 1.2 with authentication patched version (like DSE 3.1)
@@ -381,7 +381,7 @@ namespace Cassandra
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
         /// <exception cref="AuthenticationException" />
         /// <exception cref="UnsupportedProtocolVersionException"></exception>
-        public Task<Response> Open(CancellationToken cancellationToken)
+        public async Task<Response> Open(CancellationToken cancellationToken)
         {
             _freeOperations = new ConcurrentStack<short>(Enumerable.Range(0, MaxConcurrentRequests).Select(s => (short)s).Reverse());
             _pendingOperations = new ConcurrentDictionary<short, OperationState>();
@@ -407,46 +407,45 @@ namespace Cassandra
             //Read and write event handlers are going to be invoked using IO Threads
             _tcpSocket.Read += ReadHandler;
             _tcpSocket.WriteCompleted += WriteCompletedHandler;
-            return _tcpSocket
-                .Connect()
-                .Then(_ => Startup(cancellationToken))
-                .ContinueWith(t =>
+
+            // Connect
+            await _tcpSocket.Connect(cancellationToken);
+
+            Response response;
+            try
+            {
+                response = await Startup(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                //Adapt the inner exception and rethrow
+                if (ex is ProtocolErrorException)
                 {
-                    if (t.IsFaulted && t.Exception != null)
+                    //As we are starting up, check for protocol version errors
+                    //There is no other way than checking the error message from Cassandra
+                    if (ex.Message.Contains("Invalid or unsupported protocol version"))
                     {
-                        //Adapt the inner exception and rethrow
-                        var ex = t.Exception.InnerException;
-                        if (ex is ProtocolErrorException)
-                        {
-                            //As we are starting up, check for protocol version errors
-                            //There is no other way than checking the error message from Cassandra
-                            if (ex.Message.Contains("Invalid or unsupported protocol version"))
-                            {
-                                throw new UnsupportedProtocolVersionException(ProtocolVersion, ex);
-                            }
-                        }
-                        if (ex is ServerErrorException && ProtocolVersion >= 3 && ex.Message.Contains("ProtocolException: Invalid or unsupported protocol version"))
-                        {
-                            //For some versions of Cassandra, the error is wrapped into a server error
-                            //See CASSANDRA-9451
-                            throw new UnsupportedProtocolVersionException(ProtocolVersion, ex);
-                        }
-                        throw ex;
+                        throw new UnsupportedProtocolVersionException(ProtocolVersion, ex);
                     }
-                    return t.Result;
-                }, TaskContinuationOptions.ExecuteSynchronously)
-                .Then(response =>
+                }
+                if (ex is ServerErrorException && ProtocolVersion >= 3 && ex.Message.Contains("ProtocolException: Invalid or unsupported protocol version"))
                 {
-                    if (response is AuthenticateResponse)
-                    {
-                        return Authenticate();
-                    }
-                    if (response is ReadyResponse)
-                    {
-                        return TaskHelper.ToTask(response);
-                    }
-                    throw new DriverInternalError("Expected READY or AUTHENTICATE, obtained " + response.GetType().Name);
-                });
+                    //For some versions of Cassandra, the error is wrapped into a server error
+                    //See CASSANDRA-9451
+                    throw new UnsupportedProtocolVersionException(ProtocolVersion, ex);
+                }
+                throw;
+            }
+            
+            if (response is AuthenticateResponse)
+            {
+                return await Authenticate(cancellationToken);
+            }
+            if (response is ReadyResponse)
+            {
+                return response;
+            }
+            throw new DriverInternalError("Expected READY or AUTHENTICATE, obtained " + response.GetType().Name);
         }
 
         /// <summary>
