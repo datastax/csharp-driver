@@ -20,6 +20,9 @@ namespace Cassandra.IntegrationTests.Core
         [TestFixtureSetUp]
         public void SetupFixture()
         {
+            if (CassandraVersion < Version.Parse("2.2.0"))
+                Assert.Ignore("Requires Cassandra version >= 2.2");
+
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
             //Using a mirroring handler, the server will reply providing the same payload that was sent
             var jvmArgs = new[] { "-Dcassandra.custom_query_handler_class=org.apache.cassandra.cql3.CustomPayloadMirroringQueryHandler" };

@@ -11,7 +11,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.CqlFunctions.Tests
 {
     [Category("short")]
-    public class Token : TestGlobals
+    public class Token : SharedClusterTest
     {
         private ISession _session = null;
         private List<EntityWithTimeUuid> _expectedTimeUuidObjectList;
@@ -19,16 +19,10 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
         private Table<EntityWithTimeUuid> _tableEntityWithTimeUuid;
         private Table<EntityWithNullableTimeUuid> _tableEntityWithNullableTimeUuid;
 
-        [TearDown]
-        public void TeardownTest()
+        protected override void TestFixtureSetUp()
         {
-            _session.DeleteKeyspace(_uniqueKsName);
-        }
-
-        [SetUp]
-        public void SetupTest()
-        {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            base.TestFixtureSetUp();
+            _session = Session;
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
 
