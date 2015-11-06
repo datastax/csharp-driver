@@ -99,7 +99,7 @@ namespace Cassandra
         {
             get
             {
-                Init();
+                InitAsync().Wait();
                 return _metadata;
             }
         }
@@ -117,11 +117,6 @@ namespace Cassandra
         /// <summary>
         /// Initializes once (Thread-safe) the control connection and metadata associated with the Cluster instance
         /// </summary>
-        private void Init()
-        {
-            InitAsync().Wait();
-        }
-
         private async Task InitAsync()
         { 
             if (_initialized)
@@ -129,7 +124,7 @@ namespace Cassandra
                 //It was already initialized
                 return;
             }
-            using (_initLock.Lock())
+            using (await _initLock.LockAsync())
             {
                 if (_initialized)
                 {
@@ -202,7 +197,12 @@ namespace Cassandra
         /// <param name="keyspace">Case-sensitive keyspace name to use</param>
         public ISession Connect(string keyspace)
         {
-            Init();
+            return ConnectAsync(keyspace).WaitToComplete();
+        }
+
+        public async Task<ISession> ConnectAsync(string keyspace)
+        {
+            await InitAsync();
             var session = new Session(this, Configuration, keyspace, _protocolVersion);
             session.Init();
             _connectedSessions.Add(session);

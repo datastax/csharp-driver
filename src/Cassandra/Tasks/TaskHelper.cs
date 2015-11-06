@@ -134,7 +134,7 @@ namespace Cassandra.Tasks
         /// <param name="timeout">timeout in milliseconds</param>
         /// <exception cref="TimeoutException" />
         /// <exception cref="AggregateException" />
-        public static T WaitToComplete<T>(Task<T> task, int timeout = Timeout.Infinite)
+        public static T WaitToComplete<T>(this Task<T> task, int timeout = Timeout.Infinite)
         {
             WaitToComplete((Task) task, timeout);
             return task.Result;
@@ -150,7 +150,7 @@ namespace Cassandra.Tasks
         /// <param name="timeout">timeout in milliseconds</param>
         /// <exception cref="TimeoutException" />
         /// <exception cref="AggregateException" />
-        public static void WaitToComplete(Task task, int timeout = Timeout.Infinite)
+        public static void WaitToComplete(this Task task, int timeout = Timeout.Infinite)
         {
             //It should wait and throw any exception
             try
