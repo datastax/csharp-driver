@@ -204,7 +204,7 @@ namespace Cassandra
         {
             await InitAsync();
             var session = new Session(this, Configuration, keyspace, _protocolVersion);
-            session.Init();
+            await session.Init();
             _connectedSessions.Add(session);
             _logger.Info("Session connected ({0})", session.GetHashCode());
             return session;
