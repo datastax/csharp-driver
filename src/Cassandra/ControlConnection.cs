@@ -94,12 +94,12 @@ namespace Cassandra
         /// </summary>
         /// <exception cref="NoHostAvailableException" />
         /// <exception cref="DriverInternalError" />
-        internal void Init()
+        internal async Task InitAsync()
         {
             _logger.Info("Trying to connect the ControlConnection");
             //Only abort when twice the time for ConnectTimeout per host passed
-            var initialAbortTimeout = _config.SocketOptions.ConnectTimeoutMillis * 2 * Metadata.Hosts.Count;
-            TaskHelper.WaitToComplete(Connect(true), initialAbortTimeout);
+            //FIXME: Timeout _config.SocketOptions.ConnectTimeoutMillis * 2 * Metadata.Hosts.Count;
+            await Connect(true);
             try
             {
                 SubscribeEventHandlers();
@@ -112,7 +112,8 @@ namespace Cassandra
                 //It is not usual but can happen
                 _logger.Error("An error occurred when trying to retrieve the cluster metadata, retrying.", ex);
                 //Retry one more time and throw if there is problem
-                TaskHelper.WaitToComplete(Reconnect(), _config.SocketOptions.ConnectTimeoutMillis);
+                //TODO: Timeout _config.SocketOptions.ConnectTimeoutMillis
+                await Reconnect();
             }
         }
 

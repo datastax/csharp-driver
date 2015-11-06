@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Tasks;
@@ -34,7 +35,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void Should_Schedule_Reconnections_In_The_Background()
+        public async Task Should_Schedule_Reconnections_In_The_Background()
         {
             var lbp = new RoundRobinPolicy();
             var config = new Configuration(
@@ -56,7 +57,7 @@ namespace Cassandra.IntegrationTests.Core
             lbp.Initialize(clusterMock.Object);
             using (var cc = NewInstance(testCluster, config, metadata))
             {
-                cc.Init();
+                await cc.InitAsync();
                 var host = metadata.Hosts.First();
                 testCluster.Stop(1);
                 host.SetDown();
@@ -72,7 +73,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void Should_Reconnect_Once_If_Called_Serially()
+        public async Task Should_Reconnect_Once_If_Called_Serially()
         {
             var lbp = new RoundRobinPolicy();
             var config = new Configuration(
@@ -94,7 +95,7 @@ namespace Cassandra.IntegrationTests.Core
             lbp.Initialize(clusterMock.Object);
             using (var cc = NewInstance(testCluster, config))
             {
-                cc.Init();
+                await cc.InitAsync();
                 testCluster.Stop(1);
                 var t1 = cc.Reconnect();
                 var t2 = cc.Reconnect();
@@ -111,7 +112,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void Should_Reconnect_After_Several_Failed_Attempts()
+        public async Task Should_Reconnect_After_Several_Failed_Attempts()
         {
             var lbp = new RoundRobinPolicy();
             var config = new Configuration(
@@ -133,7 +134,7 @@ namespace Cassandra.IntegrationTests.Core
             lbp.Initialize(clusterMock.Object);
             using (var cc = NewInstance(testCluster, config))
             {
-                cc.Init();
+                await cc.InitAsync();
                 testCluster.Stop(1);
                 Assert.Throws<NoHostAvailableException>(() => TaskHelper.WaitToComplete(cc.Reconnect()));
                 Assert.Throws<NoHostAvailableException>(() => TaskHelper.WaitToComplete(cc.Reconnect()));
