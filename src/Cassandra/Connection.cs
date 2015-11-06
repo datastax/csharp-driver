@@ -467,7 +467,7 @@ namespace Cassandra
             }
             //Process a next item in the queue if possible.
             //Maybe there are there items in the write queue that were waiting on a fresh streamId
-            RunWriteQueue();
+            RunWriteQueue(CancellationToken.None);
         }
 
         private volatile FrameHeader _receivingHeader;
@@ -660,8 +660,16 @@ namespace Cassandra
         /// </summary>
         public Task<Response> Send(IRequest request)
         {
+            return Send(request, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Sends a new request if possible. If it is not possible it queues it up.
+        /// </summary>
+        public Task<Response> Send(IRequest request, CancellationToken cancellationToken)
+        {
             var tcs = new TaskCompletionSource<Response>();
-            Send(request, tcs.TrySet);
+            Send(request, tcs.TrySet, cancellationToken);
             return tcs.Task;
         }
 
@@ -669,6 +677,14 @@ namespace Cassandra
         /// Sends a new request if possible and executes the callback when the response is parsed. If it is not possible it queues it up.
         /// </summary>
         public OperationState Send(IRequest request, Action<Exception, Response> callback)
+        {
+            return Send(request, callback, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Sends a new request if possible and executes the callback when the response is parsed. If it is not possible it queues it up.
+        /// </summary>
+        public OperationState Send(IRequest request, Action<Exception, Response> callback, CancellationToken cancellationToken)
         {
             if (_isCanceled)
             {
@@ -679,11 +695,11 @@ namespace Cassandra
                 Request = request
             };
             _writeQueue.Enqueue(state);
-            RunWriteQueue();
+            RunWriteQueue(cancellationToken);
             return state;
         }
 
-        private void RunWriteQueue()
+        private void RunWriteQueue(CancellationToken cancellationToken)
         {
             var isAlreadyRunning = Interlocked.CompareExchange(ref _isWriteQueueRuning, 1, 0) == 1;
             if (isAlreadyRunning)
@@ -692,7 +708,7 @@ namespace Cassandra
                 return;
             }
             //Start a new task using the TaskScheduler for writing
-            Task.Factory.StartNew(RunWriteQueueAction, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+            Task.Factory.StartNew(RunWriteQueueAction, cancellationToken, TaskCreationOptions.None, TaskScheduler.Default);
         }
 
         private void RunWriteQueueAction()
@@ -756,7 +772,7 @@ namespace Cassandra
                 {
                     //The write queue is not empty
                     //An item was added to the queue but we were running: try to launch a new queue
-                    RunWriteQueue();
+                    RunWriteQueue(CancellationToken.None);
                 }
                 if (stream != null)
                 {
@@ -901,7 +917,7 @@ namespace Cassandra
             Interlocked.Exchange(ref _isWriteQueueRuning, 0);
             //Send the next request, if exists
             //It will use a new thread
-            RunWriteQueue();
+            RunWriteQueue(CancellationToken.None);
         }
 
         internal WaitHandle WaitPending()

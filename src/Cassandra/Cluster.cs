@@ -270,7 +270,7 @@ namespace Cassandra
         /// <summary>
         /// Updates cluster metadata for a given keyspace or keyspace table
         /// </summary>
-        public bool RefreshSchema(string keyspace = null, string table = null)
+        public Task<bool> RefreshSchema(string keyspace = null, string table = null)
         {
             return Metadata.RefreshSchema(keyspace, table);
         }
