@@ -540,13 +540,12 @@ namespace Cassandra.IntegrationTests.Core
         {
             var psDecimal = Session.Prepare(String.Format("INSERT INTO {0} (id, decimal_sample) VALUES (?, ?)", AllTypesTableName));
 
-            //Decimal: There is type conversion, all numeric types are valid
+            //decimal: There is type conversion, all numeric types are valid
             AssertValid(Session, psDecimal, 1L);
             AssertValid(Session, psDecimal, 1F);
             AssertValid(Session, psDecimal, 1D);
             AssertValid(Session, psDecimal, 1);
             AssertValid(Session, psDecimal, new byte[16]);
-            AssertValid(Session, psDecimal, "some string");
         }
 
         [Test]

@@ -25,7 +25,6 @@ using System.Text;
 namespace Cassandra.IntegrationTests.Core
 {
     [Category("short")]
-    [TestCassandraVersion(2, 1)]
     public class UdtMappingsTests : SharedClusterTest
     {
         /// <summary>
@@ -35,12 +34,11 @@ namespace Cassandra.IntegrationTests.Core
 
         protected override void TestFixtureSetUp()
         {
+            if (CassandraVersion < Version.Parse("2.1.0"))
+                Assert.Ignore("Requires Cassandra version >= 2.1");
+
             base.TestFixtureSetUp();
 
-            if (CassandraVersion < new Version(2, 1))
-            {
-                return;
-            }
             const string cqlType1 = "CREATE TYPE phone (alias text, number text, country_code int)";
             const string cqlType2 = "CREATE TYPE contact (first_name text, last_name text, birth_date timestamp, phones set<frozen<phone>>, emails set<text>)";
             const string cqlTable1 = "CREATE TABLE users (id int PRIMARY KEY, main_phone frozen<phone>)";
@@ -329,7 +327,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.IsInstanceOf<byte[]>(row.GetValue<object>("sample_udt"));
 
             Assert.IsNotNull(row.GetValue<object>("sample_udt_list"));
-            Assert.IsInstanceOf<List<byte[]>>(row.GetValue<object>("sample_udt_list"));
+            Assert.IsInstanceOf<IEnumerable<byte[]>>(row.GetValue<object>("sample_udt_list"));
 
             row = localSession.Execute("SELECT id, sample_udt.text_sample from temp_table").First();
             Assert.AreEqual("one", row.GetValue<string>("sample_udt.text_sample"));

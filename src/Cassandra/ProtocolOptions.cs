@@ -25,6 +25,10 @@ namespace Cassandra
         ///  The default port for Cassandra __native__ binary protocol: 9042.
         /// </summary>
         public const int DefaultPort = 9042;
+        /// <summary>
+        /// Maximum length of a frame according to the protocol
+        /// </summary>
+        internal const int MaximumFrameLength = 256*1024*1024;
 
         private readonly int _port;
         private readonly SSLOptions _sslOptions;

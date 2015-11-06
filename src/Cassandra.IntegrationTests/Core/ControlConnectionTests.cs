@@ -33,7 +33,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestCassandraVersion(2, 0)]
         public void Should_Use_Maximum_Protocol_Version_Provided()
         {
-            const byte version = 2;
+            var version = (byte) (GetExpectedProtocolVersion() - 1);
             var cc = NewInstance(version);
             cc.Init();
             Assert.AreEqual(version, cc.ProtocolVersion);
@@ -58,7 +58,8 @@ namespace Cassandra.IntegrationTests.Core
             }
             if (config == null)
             {
-                config = new Configuration();   
+                config = new Configuration();
+                config.BufferPool = new Microsoft.IO.RecyclableMemoryStreamManager();
             }
             if (metadata == null)
             {

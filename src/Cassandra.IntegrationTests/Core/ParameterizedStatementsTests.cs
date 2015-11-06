@@ -312,9 +312,8 @@ namespace Cassandra.IntegrationTests.Core
 
         private void ParameterizedStatementTimeStamp()
         {
-            RowSet rs = null;
+            var tableName = "table" + Guid.NewGuid().ToString("N").ToLower();
             var expectedValues = new List<object[]>(1);
-            var tableNameBase = "table" + Guid.NewGuid().ToString("N").ToLower();
             var valuesToTest = new List<object[]> { new object[] { Guid.NewGuid(), new DateTimeOffset(2011, 2, 3, 16, 5, 0, new TimeSpan(0000)) },
                                                     {new object[] {Guid.NewGuid(), (long)0}}};
 
@@ -322,19 +321,15 @@ namespace Cassandra.IntegrationTests.Core
             foreach (var bindValues in valuesToTest)
             {
                 expectedValues.Add(bindValues);
-
-                var tableName = string.Format("{0}_{1}", tableNameBase, x++);
                 CreateTable(tableName, "timestamp");
-
                 var statement = new SimpleStatement(String.Format("INSERT INTO {0} (id, val) VALUES (?, ?)", tableName), bindValues);
-
                 Session.Execute(statement);
 
                 // Verify results
-                rs = Session.Execute("SELECT * FROM " + tableName);
-
+                RowSet rs = Session.Execute("SELECT * FROM " + tableName);
                 VerifyData(rs, expectedValues);
-
+                
+                Session.Execute(String.Format("DROP TABLE {0}", tableName));
                 expectedValues.Clear();
             }
         }

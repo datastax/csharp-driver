@@ -15,34 +15,40 @@
 //
 
 using System;
+using HeaderFlag = Cassandra.FrameHeader.HeaderFlag;
 
-namespace Cassandra
+namespace Cassandra.Responses
 {
-    internal class AbstractResponse
+    internal class Response
     {
         /// <summary>
         /// Big-endian binary reader of the response frame
         /// </summary>
-        protected BEBinaryReader BeBinaryReader { get; set; }
+        protected FrameReader Reader { get; set; }
 
         /// <summary>
         /// Identifier of the Cassandra trace 
         /// </summary>
         protected internal Guid? TraceId { get; set; }
 
-        internal AbstractResponse(ResponseFrame frame)
+        internal Response(Frame frame)
         {
             if (frame == null) throw new ArgumentNullException("frame");
             if (frame.Body == null) throw new InvalidOperationException("Response body of the received frame was null");
-
-            BeBinaryReader = new BEBinaryReader(frame.Body);
-
-            // If a response frame has the tracing flag set, its body contains a tracing ID.
-            // the frame body. 
-            if ((frame.Header.Flags & FrameHeader.HeaderFlag.Tracing) != 0)
+            if (!frame.Header.Flags.HasFlag(HeaderFlag.Compression) && frame.Header.BodyLength > frame.Body.Length - frame.Body.Position)
             {
+                throw new DriverInternalError(string.Format(
+                    "Response body length should be contained in stream: Expected {0} but was {1} (position {2})",
+                    frame.Header.BodyLength, frame.Body.Length - frame.Body.Position, frame.Body.Position));
+            }
+
+            Reader = new FrameReader(frame.Body);
+
+            if (frame.Header.Flags.HasFlag(HeaderFlag.Tracing))
+            {
+                //If a response frame has the tracing flag set, the first item in its body is the trace id
                 var buffer = new byte[16];
-                BeBinaryReader.Read(buffer, 0, 16);
+                Reader.Read(buffer, 0, 16);
                 TraceId = new Guid(TypeCodec.GuidShuffle(buffer));
             }
         }

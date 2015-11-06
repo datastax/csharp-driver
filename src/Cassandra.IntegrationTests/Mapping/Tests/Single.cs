@@ -79,14 +79,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void Single_Sync_SequenceContainsMoreThanOneElement()
         {
-            try
-            {
-                _mapper.Single<Movie>(_selectAllDefaultCql);
-            }
-            catch (InvalidOperationException e)
-            {
-                Assert.AreEqual("Sequence contains more than one element", e.Message);
-            }
+            Assert.Throws<InvalidOperationException>(() => _mapper.Single<Movie>(_selectAllDefaultCql));
         }
 
         /// <summary>
@@ -99,14 +92,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void Single_Async_SequenceContainsMoreThanOneElement()
         {
-            try
-            {
-                _mapper.SingleAsync<Movie>(_selectAllDefaultCql).Wait();
-            }
-            catch (AggregateException e)
-            {
-                Assert.AreEqual("Sequence contains more than one element", e.InnerException.Message);
-            }
+            Assert.Throws<AggregateException>(() => _mapper.SingleAsync<Movie>(_selectAllDefaultCql).Wait());
         }
 
         /// <summary>
@@ -119,8 +105,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void Single_NoSuchRecord()
         {
             string cqlToFindNothing = _selectAllDefaultCql + " where moviemaker ='" + Randomm.RandomAlphaNum(20) + "'";
-            var err = Assert.Throws<InvalidOperationException>(() => _mapper.Single<Movie>(cqlToFindNothing));
-            Assert.AreEqual("Sequence contains no elements", err.Message);
+            Assert.Throws<InvalidOperationException>(() => _mapper.Single<Movie>(cqlToFindNothing));
         }
 
         /// <summary>
@@ -134,14 +119,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void Single_Async_NoSuchRecord()
         {
             string cqlToFindNothing = _selectAllDefaultCql + " where moviemaker ='" + Randomm.RandomAlphaNum(20) + "'";
-            try
-            {
-                _mapper.SingleAsync<Movie>(cqlToFindNothing).Wait();
-            }
-            catch (AggregateException e)
-            {
-                Assert.AreEqual("Sequence contains no elements", e.InnerException.Message);
-            }
+            Assert.Throws<AggregateException>(() => _mapper.SingleAsync<Movie>(cqlToFindNothing).Wait());
         }
 
         ///////////////////////////////////////////////
@@ -194,13 +172,10 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             {
                 string expectedErrMsg = null;
                 if (VersionMatch(new TestCassandraVersion(2, 1, 3, Comparison.LessThan), CassandraVersion))
-                {
                     expectedErrMsg = "No indexed columns present in by-columns clause with Equal operator";
-                }
                 else
-                {
                     expectedErrMsg = "No secondary indexes on the restricted columns support the provided operators: ";
-                }
+
                 StringAssert.IsMatch(expectedErrMsg, e.Message);
             }
         }

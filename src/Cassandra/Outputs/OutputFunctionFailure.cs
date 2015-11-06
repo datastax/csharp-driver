@@ -17,7 +17,7 @@ namespace Cassandra
             return _exception;
         }
 
-        protected override void Load(BEBinaryReader reader)
+        protected override void Load(FrameReader reader)
         {
             _exception = new FunctionFailureException(Message)
             {

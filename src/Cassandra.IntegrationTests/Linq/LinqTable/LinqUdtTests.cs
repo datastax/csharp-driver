@@ -25,6 +25,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         [SetUp]
         protected void Setup()
         {
+            if (CassandraVersion < Version.Parse("2.1.0"))
+                Assert.Ignore("Requires Cassandra version >= 2.1");
+            
+            base.TestFixtureSetUp();
             _session = Session;
             _uniqueKeyspaceName = TestUtils.GetUniqueKeyspaceName();
             _sampleId = Guid.NewGuid();
@@ -32,17 +36,20 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             _session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, _uniqueKeyspaceName, 1));
             _session.ChangeKeyspace(_uniqueKeyspaceName);
             _session.Execute("CREATE TYPE song (id uuid, title text, artist text)");
-            _session.Execute("CREATE TABLE albums (id uuid primary key, name text, songs list<frozen<song>>, publishingdate timestamp)");
-            _session.Execute(
-                new SimpleStatement(
-                    "INSERT INTO albums (id, name, songs) VALUES (?, 'Legend', [{id: uuid(), title: 'Africa Unite', artist: 'Bob Marley'}])",
-                    _sampleId));
             _session.UserDefinedTypes.Define(UdtMap.For<Song>());
         }
 
         [Test, TestCassandraVersion(2, 1, 0)]
         public void LinqUdt_Select()
         {
+            // Avoid interfering with other tests
+            _session.Execute("DROP TABLE IF EXISTS albums");
+            _session.Execute("CREATE TABLE albums (id uuid primary key, name text, songs list<frozen<song>>, publishingdate timestamp)");
+            _session.Execute(
+                new SimpleStatement(
+                    "INSERT INTO albums (id, name, songs) VALUES (?, 'Legend', [{id: uuid(), title: 'Africa Unite', artist: 'Bob Marley'}])",
+                    _sampleId));
+
             var table = new Table<Album>(_session, new MappingConfiguration().Define(new Map<Album>().TableName("albums")));
             var album = table.Select(a => new Album { Id = a.Id, Name = a.Name, Songs = a.Songs }).Execute().First();
             Assert.AreEqual(_sampleId, album.Id);
@@ -57,6 +64,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         [Test, TestCassandraVersion(2,1,0)]
         public void LinqUdt_Insert()
         {
+            // Avoid interfering with other tests
+            _session.Execute("DROP TABLE IF EXISTS albums");
+            _session.Execute("CREATE TABLE albums (id uuid primary key, name text, songs list<frozen<song>>, publishingdate timestamp)");
+
             var table = GetAlbumTable();
             var id = Guid.NewGuid();
             var album = new Album

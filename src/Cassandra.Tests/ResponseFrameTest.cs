@@ -26,14 +26,14 @@ namespace Cassandra.Tests
         [ExpectedException(typeof(ArgumentNullException))]
         public void Ctor_HeaderIsNull_Throws()
         {
-            new ResponseFrame(null, new MemoryStream());
+            new Frame(null, new MemoryStream());
         }
 
         [Test]
         [ExpectedException(typeof(ArgumentNullException))]
         public void Ctor_BodyIsNull_Throws()
         {
-            new ResponseFrame(new FrameHeader(), null);
+            new Frame(new FrameHeader(), null);
         } 
     }
 }

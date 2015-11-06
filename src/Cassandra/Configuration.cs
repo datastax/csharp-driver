@@ -16,6 +16,7 @@
 
 using System;
 using Cassandra.Tasks;
+using Microsoft.IO;
 
 namespace Cassandra
 {
@@ -124,6 +125,11 @@ namespace Cassandra
         /// Shared reusable timer
         /// </summary>
         internal HashedWheelTimer Timer { get; set; }
+
+        /// <summary>
+        /// Shared buffer pool
+        /// </summary>
+        internal RecyclableMemoryStreamManager BufferPool { get; set;}
 
 
         internal Configuration() :

@@ -30,6 +30,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Tasks;
 using Cassandra.Tests;
+using Cassandra.Requests;
+using Cassandra.Responses;
+using Microsoft.IO;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -176,6 +179,34 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
+        public void Query_Compression_LZ4_With_Parallel_Queries()
+        {
+            var protocolOptions = new ProtocolOptions().SetCompression(CompressionType.LZ4);
+            using (var connection = CreateConnection(protocolOptions))
+            {
+                connection.Open().Wait();
+
+                var tasks = new Task<Response>[16];
+                for (var i = 0; i < tasks.Length; i++)
+                {
+                    //schema_columns
+                    // ReSharper disable once AccessToDisposedClosure
+                    tasks[i] = Task.Factory.StartNew(() => Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default)).Unwrap();
+                }
+                Task.WaitAll(tasks);
+                foreach (var t in tasks)
+                {
+                    var output = ValidateResult<OutputRows>(t.Result);
+                    var rs = output.RowSet;
+                    var rows = rs.ToList();
+                    Assert.Greater(rows.Count, 0);
+                    Assert.True(rows[0].GetValue<string>("key") != null, "It should contain a key");
+                }
+            }
+        }
+
+        [Test]
         public void Query_Compression_Snappy_Test()
         {
             var protocolOptions = new ProtocolOptions().SetCompression(CompressionType.Snappy);
@@ -223,7 +254,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection(null, socketOptions))
             {
                 connection.Open().Wait();
-                var taskList = new List<Task<AbstractResponse>>();
+                var taskList = new List<Task<Response>>();
                 //Run a query multiple times
                 for (var i = 0; i < 16; i++)
                 {
@@ -357,7 +388,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 connection.Open().Wait();
 
-                var taskList = new List<Task<AbstractResponse>>();
+                var taskList = new List<Task<Response>>();
                 //Run the query multiple times
                 for (var i = 0; i < 129; i++)
                 {
@@ -397,7 +428,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 connection.Open().Wait();
 
-                var taskList = new List<Task<AbstractResponse>>();
+                var taskList = new List<Task<Response>>();
                 //Run the query multiple times
                 for (var i = 0; i < 129; i++)
                 {
@@ -556,6 +587,7 @@ namespace Cassandra.IntegrationTests.Core
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator());
+            config.BufferPool = new RecyclableMemoryStreamManager();
             using (var connection = new Connection(1, new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042), config))
             {
                 var ex = Assert.Throws<SocketException>(() => TaskHelper.WaitToComplete(connection.Open()));
@@ -573,7 +605,7 @@ namespace Cassandra.IntegrationTests.Core
             var connection = CreateConnection();
             connection.Open().Wait();
             //Queue a lot of read and writes
-            var taskList = new List<Task<AbstractResponse>>();
+            var taskList = new List<Task<Response>>();
             for (var i = 0; i < 1024; i++)
             {
                 taskList.Add(Query(connection, "SELECT * FROM system.schema_keyspaces"));
@@ -611,10 +643,10 @@ namespace Cassandra.IntegrationTests.Core
         /// It checks that the connection startup method throws an exception when using a greater protocol version
         /// </summary>
         [Test]
-        [TestCassandraVersion(2, 0, Comparison.LessThan)]
+        [TestCassandraVersion(2, 2, Comparison.LessThan)]
         public void Startup_Greater_Protocol_Version_Throws()
         {
-            const byte protocolVersion = 2;
+            const byte protocolVersion = 4;
             using (var connection = CreateConnection(protocolVersion, new Configuration()))
             {
                 Assert.Throws<UnsupportedProtocolVersionException>(() => TaskHelper.WaitToComplete(connection.Open()));
@@ -690,6 +722,8 @@ namespace Cassandra.IntegrationTests.Core
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator());
+            config.BufferPool = new RecyclableMemoryStreamManager();
+            config.Timer = new HashedWheelTimer();
             return CreateConnection(GetLatestProtocolVersion(), config);
         }
 
@@ -717,7 +751,7 @@ namespace Cassandra.IntegrationTests.Core
             return new Connection(protocolVersion, new IPEndPoint(new IPAddress(new byte[] { 127, 0, 0, 1 }), 9042), config);
         }
 
-        private static Task<AbstractResponse> Query(Connection connection, string query, QueryProtocolOptions options = null)
+        private static Task<Response> Query(Connection connection, string query, QueryProtocolOptions options = null)
         {
             if (options == null)
             {
@@ -727,7 +761,7 @@ namespace Cassandra.IntegrationTests.Core
             return connection.Send(request);
         }
 
-        private static T ValidateResult<T>(AbstractResponse response)
+        private static T ValidateResult<T>(Response response)
         {
             Assert.IsInstanceOf<ResultResponse>(response);
             Assert.IsInstanceOf<T>(((ResultResponse)response).Output);

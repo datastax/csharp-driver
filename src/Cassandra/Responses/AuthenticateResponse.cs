@@ -14,20 +14,20 @@
 //   limitations under the License.
 //
 
-namespace Cassandra
+namespace Cassandra.Responses
 {
-    internal class AuthenticateResponse : AbstractResponse
+    internal class AuthenticateResponse : Response
     {
         public const byte OpCode = 0x03;
 
         public string Authenticator;
 
-        internal AuthenticateResponse(ResponseFrame frame) : base(frame)
+        internal AuthenticateResponse(Frame frame) : base(frame)
         {
-            Authenticator = BeBinaryReader.ReadString();
+            Authenticator = Reader.ReadString();
         }
 
-        internal static AuthenticateResponse Create(ResponseFrame frame)
+        internal static AuthenticateResponse Create(Frame frame)
         {
             return new AuthenticateResponse(frame);
         }

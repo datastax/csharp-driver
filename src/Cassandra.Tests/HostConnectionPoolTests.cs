@@ -36,6 +36,7 @@ namespace Cassandra.Tests
                  null,
                  new QueryOptions(),
                  new DefaultAddressTranslator());
+            config.BufferPool = new Microsoft.IO.RecyclableMemoryStreamManager();
             return config;
         }
 

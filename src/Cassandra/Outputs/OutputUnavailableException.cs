@@ -22,7 +22,7 @@ namespace Cassandra
         private int _required;
         private int _alive;
 
-        protected override void Load(BEBinaryReader cb)
+        protected override void Load(FrameReader cb)
         {
             _consistency = (ConsistencyLevel) cb.ReadInt16();
             _required = cb.ReadInt32();

@@ -18,6 +18,7 @@ using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -66,7 +67,7 @@ namespace Cassandra.IntegrationTests.Core
 
         private byte[] serializeForDynamicType(params object[] vals)
         {
-            var elt = new BEBinaryWriter();
+            var elt = new FrameWriter(new MemoryStream());
             foreach (object p in vals)
             {
                 if (p is int)

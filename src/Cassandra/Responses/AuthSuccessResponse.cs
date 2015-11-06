@@ -14,21 +14,21 @@
 //   limitations under the License.
 //
 
-namespace Cassandra
+namespace Cassandra.Responses
 {
-    internal class AuthSuccessResponse : AbstractResponse
+    internal class AuthSuccessResponse : Response
     {
         public const byte OpCode = 0x10;
 
         public byte[] Token;
 
-        internal AuthSuccessResponse(ResponseFrame frame)
+        internal AuthSuccessResponse(Frame frame)
             : base(frame)
         {
-            Token = BeBinaryReader.ReadBytes();
+            Token = Reader.ReadBytes();
         }
 
-        internal static AuthSuccessResponse Create(ResponseFrame frame)
+        internal static AuthSuccessResponse Create(Frame frame)
         {
             return new AuthSuccessResponse(frame);
         }

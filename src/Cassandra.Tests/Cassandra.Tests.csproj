@@ -58,6 +58,7 @@
     <Compile Include="BuilderTests.cs" />
     <Compile Include="ClusterTests.cs" />
     <Compile Include="CollectionTests.cs" />
+    <Compile Include="ConnectionTests.cs" />
     <Compile Include="ControlConnectionTests.cs" />
     <Compile Include="HostConnectionPoolTests.cs" />
     <Compile Include="HostTests.cs" />

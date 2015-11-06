@@ -18,6 +18,7 @@ using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -298,7 +299,7 @@ namespace Cassandra.IntegrationTests.Core
             session.Execute(String.Format("CREATE TABLE {0} (k INT, i {1}, PRIMARY KEY(k,i))", tableName, "BLOB"));
 
             // Build small ByteBuffer sample
-            var bw = new BEBinaryWriter();
+            var bw = new FrameWriter(new MemoryStream());
             for (int i = 0; i < 56; i++)
                 bw.WriteByte(0);
             bw.WriteUInt16(0xCAFE);
