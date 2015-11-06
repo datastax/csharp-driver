@@ -134,56 +134,50 @@ namespace Cassandra
             return IterateAndConnect(hosts.GetEnumerator(), new Dictionary<IPEndPoint, Exception>());
         }
 
-        private Task<bool> IterateAndConnect(IEnumerator<Host> hostsEnumerator, Dictionary<IPEndPoint, Exception> triedHosts)
+        private async Task<bool> IterateAndConnect(IEnumerator<Host> hostsEnumerator, Dictionary<IPEndPoint, Exception> triedHosts)
         {
             var available = hostsEnumerator.MoveNext();
             if (!available)
             {
-                return TaskHelper.FromException<bool>(new NoHostAvailableException(triedHosts));
+                throw new NoHostAvailableException(triedHosts);
             }
             var host = hostsEnumerator.Current;
-            var c = new Connection(ProtocolVersion, host.Address, _config);
-            return ((Task) c
-                .Open())
-                .ContinueWith(t =>
+            var connection = new Connection(ProtocolVersion, host.Address, _config);
+
+            try
+            {
+                await connection.Open();
+                _connection = connection;
+                _host = host;
+                _logger.Info("Connection established to {0}", connection.Address);
+                return true;
+            }
+            catch (UnsupportedProtocolVersionException)
+            {
+                //Use the protocol version used to parse the response message
+                var nextVersion = connection.ProtocolVersion;
+                if (nextVersion >= ProtocolVersion)
                 {
-                    if (t.Status == TaskStatus.RanToCompletion)
-                    {
-                        _connection = c;
-                        _host = host;
-                        _logger.Info("Connection established to {0}", c.Address);
-                        return TaskHelper.ToTask(true);
-                    }
-                    if (t.IsFaulted && t.Exception != null)
-                    {
-                        var ex = t.Exception.InnerException;
-                        if (ex is UnsupportedProtocolVersionException)
-                        {
-                            //Use the protocol version used to parse the response message
-                            var nextVersion = c.ProtocolVersion;
-                            if (nextVersion >= ProtocolVersion)
-                            {
-                                //Processor could reorder instructions in such way that the connection protocol version is not up to date.
-                                nextVersion = (byte)(ProtocolVersion - 1);
-                            }
-                            _logger.Info(String.Format("Unsupported protocol version {0}, trying with version {1}", ProtocolVersion, nextVersion));
-                            ProtocolVersion = nextVersion;
-                            c.Dispose();
-                            if (ProtocolVersion < 1)
-                            {
-                                throw new DriverInternalError("Invalid protocol version");
-                            }
-                            //Retry using the new protocol version
-                            return Connect(true);
-                        }
-                        //There was a socket exception or an authentication exception
-                        triedHosts.Add(host.Address, ex);
-                        c.Dispose();
-                        return IterateAndConnect(hostsEnumerator, triedHosts);
-                    }
-                    throw new TaskCanceledException("The ControlConnection could not be connected.");
-                }, TaskContinuationOptions.ExecuteSynchronously)
-                .Unwrap();
+                    //Processor could reorder instructions in such way that the connection protocol version is not up to date.
+                    nextVersion = (byte)(ProtocolVersion - 1);
+                }
+                _logger.Info(String.Format("Unsupported protocol version {0}, trying with version {1}", ProtocolVersion, nextVersion));
+                ProtocolVersion = nextVersion;
+                connection.Dispose();
+                if (ProtocolVersion < 1)
+                {
+                    throw new DriverInternalError("Invalid protocol version");
+                }
+                //Retry using the new protocol version
+                return await Connect(true);
+            }
+            catch (Exception ex)
+            {
+                //There was a socket exception or an authentication exception
+                triedHosts.Add(host.Address, ex);
+                connection.Dispose();
+                return await IterateAndConnect(hostsEnumerator, triedHosts);
+            }
         }
 
         internal Task<bool> Reconnect()
