@@ -317,6 +317,7 @@ namespace Cassandra.IntegrationTests.Core
             var valuesToTest = new List<object[]> { new object[] { Guid.NewGuid(), new DateTimeOffset(2011, 2, 3, 16, 5, 0, new TimeSpan(0000)) },
                                                     {new object[] {Guid.NewGuid(), (long)0}}};
 
+            int x = 0;
             foreach (var bindValues in valuesToTest)
             {
                 expectedValues.Add(bindValues);

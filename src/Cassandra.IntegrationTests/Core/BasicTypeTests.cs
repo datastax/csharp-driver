@@ -513,6 +513,7 @@ namespace Cassandra.IntegrationTests.Core
             Guid tweet_id = Guid.NewGuid();
 
             Parallel.For(0, 100,
+                         new ParallelOptions { MaxDegreeOfParallelism = 6 },
                          i =>
                          {
                              QueryTools.ExecuteSyncNonQuery(Session,

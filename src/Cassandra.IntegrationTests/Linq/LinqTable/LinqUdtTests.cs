@@ -14,21 +14,24 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
     public class LinqUdtTests : SharedClusterTest
     {
         ISession _session = null;
-        private readonly string _uniqueKeyspaceName = TestUtils.GetUniqueKeyspaceName();
-        private readonly Guid _sampleId = Guid.NewGuid();
+        private string _uniqueKeyspaceName;
+        private Guid _sampleId;
 
         private Table<Album> GetAlbumTable()
         {
             return new Table<Album>(_session, new MappingConfiguration().Define(new Map<Album>().TableName("albums")));
         }
 
-        protected override void TestFixtureSetUp()
+        [SetUp]
+        protected void Setup()
         {
             if (CassandraVersion < Version.Parse("2.1.0"))
                 Assert.Ignore("Requires Cassandra version >= 2.1");
             
             base.TestFixtureSetUp();
             _session = Session;
+            _uniqueKeyspaceName = TestUtils.GetUniqueKeyspaceName();
+            _sampleId = Guid.NewGuid();
 
             _session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, _uniqueKeyspaceName, 1));
             _session.ChangeKeyspace(_uniqueKeyspaceName);

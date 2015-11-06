@@ -171,8 +171,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             catch (InvalidQueryException e)
             {
                 string expectedErrMsg = null;
-                if (_session.BinaryProtocolVersion < 3)
-                    expectedErrMsg = "No indexed columns present in by-columns clause with Equal operator"; 
+                if (VersionMatch(new TestCassandraVersion(2, 1, 3, Comparison.LessThan), CassandraVersion))
+                    expectedErrMsg = "No indexed columns present in by-columns clause with Equal operator";
                 else
                     expectedErrMsg = "No secondary indexes on the restricted columns support the provided operators: ";
 
