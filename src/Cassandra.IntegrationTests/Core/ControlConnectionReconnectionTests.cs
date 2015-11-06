@@ -97,14 +97,14 @@ namespace Cassandra.IntegrationTests.Core
             {
                 await cc.InitAsync();
                 testCluster.Stop(1);
-                var t1 = cc.Reconnect();
-                var t2 = cc.Reconnect();
-                var t3 = cc.Reconnect();
-                var t4 = cc.Reconnect();
+                var t1 = cc.Reconnect(CancellationToken.None);
+                var t2 = cc.Reconnect(CancellationToken.None);
+                var t3 = cc.Reconnect(CancellationToken.None);
+                var t4 = cc.Reconnect(CancellationToken.None);
                 Assert.AreEqual(t1, t2);
                 Assert.AreEqual(t1, t3);
                 Assert.AreEqual(t1, t4);
-                var ex = Assert.Throws<NoHostAvailableException>(() => TaskHelper.WaitToComplete(t1));
+                var ex = Assert.Throws<NoHostAvailableException>(() => t1.WaitToComplete());
                 Assert.AreEqual(1, ex.Errors.Count);
                 Assert.IsInstanceOf<SocketException>(ex.Errors.Values.First());
             }
@@ -136,12 +136,12 @@ namespace Cassandra.IntegrationTests.Core
             {
                 await cc.InitAsync();
                 testCluster.Stop(1);
-                Assert.Throws<NoHostAvailableException>(() => TaskHelper.WaitToComplete(cc.Reconnect()));
-                Assert.Throws<NoHostAvailableException>(() => TaskHelper.WaitToComplete(cc.Reconnect()));
-                Assert.Throws<NoHostAvailableException>(() => TaskHelper.WaitToComplete(cc.Reconnect()));
-                Assert.Throws<NoHostAvailableException>(() => TaskHelper.WaitToComplete(cc.Reconnect()));
+                Assert.Throws<NoHostAvailableException>(() => cc.Reconnect(CancellationToken.None).WaitToComplete());
+                Assert.Throws<NoHostAvailableException>(() => cc.Reconnect(CancellationToken.None).WaitToComplete());
+                Assert.Throws<NoHostAvailableException>(() => cc.Reconnect(CancellationToken.None).WaitToComplete());
+                Assert.Throws<NoHostAvailableException>(() => cc.Reconnect(CancellationToken.None).WaitToComplete());
                 testCluster.Start(1);
-                Assert.DoesNotThrow(() => TaskHelper.WaitToComplete(cc.Reconnect()));
+                Assert.DoesNotThrow(() => cc.Reconnect(CancellationToken.None).WaitToComplete());
             }
             testCluster.ShutDown();
         }

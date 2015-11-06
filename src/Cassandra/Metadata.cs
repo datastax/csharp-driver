@@ -270,12 +270,12 @@ namespace Cassandra
         /// <summary>
         /// Updates the keyspace and token information
         /// </summary>
-        public bool RefreshSchema(string keyspace = null, string table = null)
+        public async Task<bool> RefreshSchema(string keyspace = null, string table = null)
         {
             if (table == null)
             {
                 //Refresh all the keyspaces and tables information
-                RefreshKeyspaces(true);
+                await RefreshKeyspacesAsync(true);
                 return true;
             }
             var ks = GetKeyspace(keyspace);
@@ -290,11 +290,11 @@ namespace Cassandra
         /// <summary>
         /// Retrieves the keyspaces, stores the information in the internal state and rebuilds the token map
         /// </summary>
-        internal void RefreshKeyspaces(bool retry)
+        internal async Task RefreshKeyspacesAsync(bool retry)
         {
             Logger.Info("Retrieving keyspaces metadata");
             //Use the control connection to get the keyspace
-            var rs = ControlConnection.Query(SelectKeyspaces, retry);
+            var rs = await ControlConnection.QueryAsync(SelectKeyspaces, retry);
             //parse the info
             var keyspaces = rs.Select(ParseKeyspaceRow).ToDictionary(ks => ks.Name);
             //Assign to local state

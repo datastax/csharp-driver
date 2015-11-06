@@ -27,6 +27,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using Cassandra.IntegrationTests.Core;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Tasks;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.TestBase
@@ -226,7 +227,7 @@ namespace Cassandra.IntegrationTests.TestBase
                 try
                 {
                     // Are all nodes in the cluster accounted for?
-                    bool disconnected = !cluster.RefreshSchema();
+                    var disconnected = !cluster.RefreshSchema().WaitToComplete();
                     if (disconnected)
                     {
                         string warnStr = "While waiting for host " + nodeHost + " to be " + expectedFinalNodeState + ", the cluster is now totally down, returning now ... ";
