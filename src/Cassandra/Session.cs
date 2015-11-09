@@ -125,11 +125,31 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
+        public async Task CreateKeyspaceAsync(string keyspace, Dictionary<string, string> replication = null, bool durableWrites = true)
+        {
+            await ExecuteAsync(CqlQueryTools.GetCreateKeyspaceCql(keyspace, replication, durableWrites, false));
+            Logger.Info("Keyspace [" + keyspace + "] has been successfully CREATED.");
+        }
+
+        /// <inheritdoc />
         public void CreateKeyspaceIfNotExists(string keyspaceName, Dictionary<string, string> replication = null, bool durableWrites = true)
         {
             try
             {
                 CreateKeyspace(keyspaceName, replication, durableWrites);
+            }
+            catch (AlreadyExistsException)
+            {
+                Logger.Info(string.Format("Cannot CREATE keyspace:  {0}  because it already exists.", keyspaceName));
+            }
+        }
+
+        /// <inheritdoc />
+        public async Task CreateKeyspaceIfNotExistsAsync(string keyspaceName, Dictionary<string, string> replication = null, bool durableWrites = true)
+        {
+            try
+            {
+                await CreateKeyspaceAsync(keyspaceName, replication, durableWrites);
             }
             catch (AlreadyExistsException)
             {
