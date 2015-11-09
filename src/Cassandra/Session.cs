@@ -138,6 +138,12 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
+        public Task CreateKeyspaceAsync(string keyspace, Dictionary<string, string> replication = null, bool durableWrites = true)
+        {
+            return ExecuteAsync(CqlQueryTools.GetCreateKeyspaceCql(keyspace, replication, durableWrites, false)).Continue(t => Logger.Info("Keyspace [" + keyspace + "] has been successfully CREATED."));
+        }
+
+        /// <inheritdoc />
         public void DeleteKeyspace(string keyspaceName)
         {
             Execute(CqlQueryTools.GetDropKeyspaceCql(keyspaceName, false));

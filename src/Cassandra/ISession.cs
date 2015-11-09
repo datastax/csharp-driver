@@ -105,6 +105,19 @@ namespace Cassandra
         /// <param name="durableWrites">Whether to use the commit log for updates on this keyspace. Default is set to <c>true</c>.</param>
         void CreateKeyspaceIfNotExists(string keyspaceName, Dictionary<string, string> replication = null, bool durableWrites = true);
         /// <summary>
+        ///  Creates new keyspace in current cluster asynchronously.        
+        /// </summary>
+        /// <param name="keyspaceName">Case-sensitive name of keyspace to be created.</param>
+        /// <param name="replication">
+        /// Replication property for this keyspace.
+        /// To set it, refer to the <see cref="ReplicationStrategies"/> class methods. 
+        /// It is a dictionary of replication property sub-options where key is a sub-option name and value is a value for that sub-option. 
+        /// <para>Default value is <c>SimpleStrategy</c> with <c>replication_factor = 1</c></para>
+        /// </param>
+        /// <param name="durableWrites">Whether to use the commit log for updates on this keyspace. Default is set to <c>true</c>.</param>
+        Task CreateKeyspaceAsync(string keyspaceName, Dictionary<string, string> replication = null, bool durableWrites = true);
+
+        /// <summary>
         ///  Deletes specified keyspace from current cluster.
         ///  If keyspace with specified name does not exist, then exception will be thrown.
         /// </summary>

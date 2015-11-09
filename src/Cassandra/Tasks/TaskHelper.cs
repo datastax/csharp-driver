@@ -195,6 +195,18 @@ namespace Cassandra.Tasks
         /// <summary>
         /// Smart ContinueWith
         /// </summary>
+        public static Task Continue<TIn>(this Task<TIn> task, Action<Task<TIn>> next)
+        {
+            return task.Continue(t =>
+            {
+                next(t);
+                return 0;
+            });
+        }
+
+        /// <summary>
+        /// Smart ContinueWith
+        /// </summary>
         public static Task<TOut> Continue<TIn, TOut>(this Task<TIn> task, Func<Task<TIn>, TOut> next)
         {
             if (!task.IsCompleted)
