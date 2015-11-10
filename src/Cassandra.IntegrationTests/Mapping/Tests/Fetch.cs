@@ -23,6 +23,7 @@ using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Mapping;
 using Cassandra.Tests.Mapping.FluentMappings;
+using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Mapping.Tests
@@ -352,6 +353,27 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var song = album.Songs[0];
             Assert.AreEqual("Bob Marley", song.Artist);
             Assert.AreEqual("Africa Unite", song.Title);
+        }
+
+        [Test]
+        public void Fetch_Struct_Value_Should_Default()
+        {
+            _session.Execute("CREATE TABLE tbl_with_structs (id uuid primary key, bool_sample boolean, timestamp_sample timestamp)");
+            var map = new Map<AllTypesEntity>()
+                .Column(p => p.BooleanValue, c => c.WithName("bool_sample"))
+                .Column(p => p.UuidValue, c => c.WithName("id"))
+                .PartitionKey(p => p.UuidValue)
+                .ExplicitColumns();
+            var id = Guid.NewGuid();
+            var query = string.Format("INSERT INTO tbl_with_structs (id, bool_sample, timestamp_sample) VALUES ({0}, null, null)", id);
+            _session.Execute(query);
+            var mapper = new Mapper(_session, new MappingConfiguration().Define(map));
+            // ReSharper disable once ReturnValueOfPureMethodIsNotUsed
+            var row = mapper.Fetch<AllTypesEntity>("SELECT * FROM tbl_with_structs WHERE id = ?", id).First();
+            Assert.NotNull(row);
+            Assert.AreEqual(row.UuidValue, id);
+            Assert.AreEqual(row.BooleanValue, default(bool));
+            Assert.AreEqual(row.DateTimeValue, default(DateTime));
         }
     }
 }

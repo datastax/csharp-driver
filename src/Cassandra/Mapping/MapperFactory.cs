@@ -241,9 +241,29 @@ namespace Cassandra.Mapping
 
                 // Figure out if we're going to need to do any casting/conversion when we call Row.GetValue<T>(columnIndex)
                 Expression getColumnValue = GetExpressionToGetColumnValueFromRow(row, dbColumn, pocoColumn.MemberInfoType);
-                BinaryExpression assignValue = Expression.Assign(Expression.MakeMemberAccess(poco, pocoColumn.MemberInfo), getColumnValue);
 
-                methodBodyExpressions.Add(assignValue);
+                // poco.SomeFieldOrProp = ... getColumnValue call ...
+                BinaryExpression getValueAndAssign = Expression.Assign(Expression.MakeMemberAccess(poco, pocoColumn.MemberInfo), getColumnValue);
+
+                // Start with an expression that does nothing if the row is null
+                Expression ifRowValueIsNull = Expression.Empty();
+
+                // Cassandra will return null for empty collections, so make an effort to populate collection properties on the POCO with
+                // empty collections instead of null in those cases
+                Expression createEmptyCollection;
+                if (TryGetCreateEmptyCollectionExpression(dbColumn, pocoColumn.MemberInfoType, out createEmptyCollection))
+                {
+                    // poco.SomeFieldOrProp = ... createEmptyCollection ...
+                    ifRowValueIsNull = Expression.Assign(Expression.MakeMemberAccess(poco, pocoColumn.MemberInfo), createEmptyCollection);
+                }
+
+                var columnIndex = Expression.Constant(dbColumn.Index, IntType);
+                //Expression equivalent to
+                // if (row.IsNull(columnIndex) == false) => getValueAndAssign ...
+                // else => ifRowIsNull ...
+                methodBodyExpressions.Add(Expression.IfThenElse(Expression.IsFalse(Expression.Call(row, IsNullMethod, columnIndex)),
+                    getValueAndAssign,
+                    ifRowValueIsNull));
             }
 
             // The last expression in the method body is the return value, so put our new POCO at the end

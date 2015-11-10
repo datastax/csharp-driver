@@ -108,9 +108,9 @@ namespace Cassandra
         /// <summary>
         /// Determines if the value in the column is null
         /// </summary>
-        public bool IsNull(int idx)
+        public virtual bool IsNull(int index)
         {
-            return Values[idx] == null;
+            return Values[index] == null;
         }
 
         /// <summary>
