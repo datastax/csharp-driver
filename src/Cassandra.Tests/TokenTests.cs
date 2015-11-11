@@ -182,13 +182,13 @@ namespace Cassandra.Tests
             var keyspaces = new List<KeyspaceMetadata>
             {
                 //network strategy with rf 2 per dc 
-                new KeyspaceMetadata(null, null, "ks1", true, strategy, new Dictionary<string, int> {{"dc1", 2}, {"dc2", 2}}),
+                new KeyspaceMetadata(null, "ks1", true, strategy, new Dictionary<string, int> {{"dc1", 2}, {"dc2", 2}}),
                 //Testing simple (even it is not supposed to be)
-                new KeyspaceMetadata(null, null, "ks2", true, ReplicationStrategies.SimpleStrategy, new Dictionary<string, int> {{"replication_factor", 3}}),
+                new KeyspaceMetadata(null, "ks2", true, ReplicationStrategies.SimpleStrategy, new Dictionary<string, int> {{"replication_factor", 3}}),
                 //network strategy with rf 3 dc1 and 1 dc2
-                new KeyspaceMetadata(null, null, "ks3", true, strategy, new Dictionary<string, int> {{"dc1", 3}, {"dc2", 1}, {"dc3", 5}}),
+                new KeyspaceMetadata(null, "ks3", true, strategy, new Dictionary<string, int> {{"dc1", 3}, {"dc2", 1}, {"dc3", 5}}),
                 //network strategy with rf 4 dc1
-                new KeyspaceMetadata(null, null, "ks4", true, strategy, new Dictionary<string, int> {{"dc1", 5}})
+                new KeyspaceMetadata(null, "ks4", true, strategy, new Dictionary<string, int> {{"dc1", 5}})
             };
             var tokenMap = TokenMap.Build("Murmur3Partitioner", hosts, keyspaces);
 
@@ -230,7 +230,7 @@ namespace Cassandra.Tests
                 TestHelper.CreateHost("192.168.0.2", "dc1", "rack1", new HashSet<string> {"200",      "2000", "20000"}),
                 TestHelper.CreateHost("192.168.0.3", "dc1", "rack1", new HashSet<string> {"300",      "3000", "30000"})
             };
-            var ks = new KeyspaceMetadata(null, null, "ks1", true, strategy, new Dictionary<string, int> { { "dc1", 2 } });
+            var ks = new KeyspaceMetadata(null, "ks1", true, strategy, new Dictionary<string, int> { { "dc1", 2 } });
             var map = TokenMap.Build("Murmur3Partitioner", hosts, new[] { ks });
             var replicas = map.GetReplicas("ks1", new M3PToken(0));
             Assert.AreEqual(2, replicas.Count);
@@ -259,7 +259,7 @@ namespace Cassandra.Tests
 
         private static KeyspaceMetadata CreateKeyspace(string name, string strategy, int replicationFactor)
         {
-            return new KeyspaceMetadata(null, null, name, true, strategy, new Dictionary<string, int> { { "replication_factor", replicationFactor } });
+            return new KeyspaceMetadata(null, name, true, strategy, new Dictionary<string, int> { { "replication_factor", replicationFactor } });
         }
     }
 }

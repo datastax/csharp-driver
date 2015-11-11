@@ -13,47 +13,47 @@ namespace Cassandra
         /// <summary>
         /// Name of the CQL function.
         /// </summary>
-        public string Name { get; private set; }
+        public string Name { get; internal set; }
 
         /// <summary>
         /// Name of the keyspace where the CQL function is declared.
         /// </summary>
-        public string KeyspaceName { get; private set; }
+        public string KeyspaceName { get; internal set; }
 
         /// <summary>
         /// Signature of the function.
         /// </summary>
-        public string[] Signature { get; private set; }
+        public string[] Signature { get; internal set; }
 
         /// <summary>
         /// List of the function argument names.
         /// </summary>
-        public string[] ArgumentNames { get; private set; }
+        public string[] ArgumentNames { get; internal set; }
 
         /// <summary>
         /// List of the function argument types.
         /// </summary>
-        public ColumnDesc[] ArgumentTypes { get; private set; }
+        public ColumnDesc[] ArgumentTypes { get; internal set; }
 
         /// <summary>
         /// Body of the function.
         /// </summary>
-        public string Body { get; private set; }
+        public string Body { get; internal set; }
 
         /// <summary>
         /// Determines if the function is called when the input is null.
         /// </summary>
-        public bool CalledOnNullInput { get; private set; }
+        public bool CalledOnNullInput { get; internal set; }
 
         /// <summary>
         /// Name of the programming language, for example: java, javascript, ...
         /// </summary>
-        public string Language { get; private set; }
+        public string Language { get; internal set; }
 
         /// <summary>
         /// Type of the return value.
         /// </summary>
-        public ColumnDesc ReturnType { get; private set; }
+        public ColumnDesc ReturnType { get; internal set; }
 
         /// <summary>
         /// Creates a new instance of Function metadata.
@@ -78,26 +78,6 @@ namespace Cassandra
             CalledOnNullInput = calledOnNullInput;
             Language = language;
             ReturnType = returnType;
-        }
-
-        /// <summary>
-        /// Creates a new instance of function metadata based on a schema_function row.
-        /// </summary>
-        internal static FunctionMetadata Build(Row row)
-        {
-            var emptyArray = new string[0];
-            return new FunctionMetadata
-            {
-                Name = row.GetValue<string>("function_name"),
-                KeyspaceName = row.GetValue<string>("keyspace_name"),
-                Signature = row.GetValue<string[]>("signature") ?? emptyArray,
-                ArgumentNames = row.GetValue<string[]>("argument_names") ?? emptyArray,
-                Body = row.GetValue<string>("body"),
-                CalledOnNullInput = row.GetValue<bool>("called_on_null_input"),
-                Language = row.GetValue<string>("language"),
-                ReturnType = TypeCodec.ParseDataType(row.GetValue<string>("return_type")),
-                ArgumentTypes = (row.GetValue<string[]>("argument_types") ?? emptyArray).Select(s => TypeCodec.ParseDataType(s)).ToArray()
-            };
         }
     }
 }

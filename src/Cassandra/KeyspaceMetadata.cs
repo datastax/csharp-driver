@@ -19,6 +19,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Cassandra.Tasks;
 
 namespace Cassandra
@@ -29,8 +30,7 @@ namespace Cassandra
         private readonly ConcurrentDictionary<string, MaterializedViewMetadata> _views = new ConcurrentDictionary<string, MaterializedViewMetadata>();
         private readonly ConcurrentDictionary<Tuple<string, string>, FunctionMetadata> _functions = new ConcurrentDictionary<Tuple<string, string>, FunctionMetadata>();
         private readonly ConcurrentDictionary<Tuple<string, string>, AggregateMetadata> _aggregates = new ConcurrentDictionary<Tuple<string, string>, AggregateMetadata>();
-        private readonly SchemaParser _parser;
-        private readonly IMetadataQueryProvider _queryProvider;
+        private readonly Metadata _parent;
 
         /// <summary>
         ///  Gets the name of this keyspace.
@@ -58,11 +58,11 @@ namespace Cassandra
         /// <returns>a dictionary containing the keyspace replication strategy options.</returns>
         public IDictionary<string, int> Replication { get; private set; }
 
-        internal KeyspaceMetadata(SchemaParser parser, IMetadataQueryProvider queryProvider, string name, bool durableWrites, string strategyClass,
+        internal KeyspaceMetadata(Metadata parent, string name, bool durableWrites, string strategyClass,
                                   IDictionary<string, int> replicationOptions)
         {
-            _parser = parser;
-            _queryProvider = queryProvider;
+            //Can not directly reference to schemaParser as it might change
+            _parent = parent;
             Name = name;
             DurableWrites = durableWrites;
 
@@ -91,8 +91,8 @@ namespace Cassandra
                     return table;
                 }   
             }
-            var task = _parser
-                .GetTable(_queryProvider, Name, tableName)
+            var task = _parent.SchemaParser
+                .GetTable(Name, tableName)
                 .ContinueSync(table =>
                 {
                     if (table == null)
@@ -123,8 +123,8 @@ namespace Cassandra
                     return view;
                 }
             }
-            var task = _parser
-                .GetView(_queryProvider, Name, viewName)
+            var task = _parent.SchemaParser
+                .GetView(Name, viewName)
                 .ContinueSync(view =>
                 {
                     if (view == null)
@@ -194,7 +194,7 @@ namespace Cassandra
         ///  keyspace tables names.</returns>
         public ICollection<string> GetTablesNames()
         {
-            return TaskHelper.WaitToComplete(_parser.GetTableNames(_queryProvider, Name));
+            return TaskHelper.WaitToComplete(_parent.SchemaParser.GetTableNames(Name));
         }
 
         /// <summary>
@@ -247,7 +247,15 @@ namespace Cassandra
         /// </summary>
         internal UdtColumnInfo GetUdtDefinition(string typeName)
         {
-            return TaskHelper.WaitToComplete(_parser.GetUdtDefinition(_queryProvider, Name, typeName), ControlConnection.MetadataAbortTimeout);
+            return TaskHelper.WaitToComplete(GetUdtDefinitionAsync(typeName), ControlConnection.MetadataAbortTimeout);
+        }
+
+        /// <summary>
+        /// Gets the definition of a User defined type asynchronously
+        /// </summary>
+        internal Task<UdtColumnInfo> GetUdtDefinitionAsync(string typeName)
+        {
+            return _parent.SchemaParser.GetUdtDefinition(Name, typeName);
         }
 
         /// <summary>
@@ -267,15 +275,15 @@ namespace Cassandra
                 return func;
             }
             var signatureString = "[" + string.Join(",", signature.Select(s => "'" + s + "'")) + "]";
-            var t = _parser
-                .GetFunction(_queryProvider, Name, functionName, signatureString)
+            var t = _parent.SchemaParser
+                .GetFunction(Name, functionName, signatureString)
                 .ContinueSync(f =>
                 {
                     if (f == null)
                     {
                         return null;
                     }
-                    _functions.AddOrUpdate(key, func, (k, v) => func);
+                    _functions.AddOrUpdate(key, f, (k, v) => f);
                     return f;
                 });
             return TaskHelper.WaitToComplete(t, ControlConnection.MetadataAbortTimeout);
@@ -298,8 +306,8 @@ namespace Cassandra
                 return aggregate;
             }
             var signatureString = "[" + string.Join(",", signature.Select(s => "'" + s + "'")) + "]";
-            var t = _parser
-                .GetAggregate(_queryProvider, Name, aggregateName, signatureString)
+            var t = _parent.SchemaParser
+                .GetAggregate(Name, aggregateName, signatureString)
                 .ContinueSync(a =>
                 {
                     if (a == null)

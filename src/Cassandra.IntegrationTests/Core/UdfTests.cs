@@ -179,8 +179,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(ColumnTypeCode.Bigint, aggregate.ArgumentTypes[0].TypeCode);
             Assert.AreEqual(ColumnTypeCode.Bigint, aggregate.ReturnType.TypeCode);
             Assert.AreEqual(ColumnTypeCode.Bigint, aggregate.StateType.TypeCode);
-            Assert.IsInstanceOf<Int64>(aggregate.InitialCondition);
-            Assert.AreEqual(2, Convert.ToInt32(aggregate.InitialCondition));
+            Assert.AreEqual("2", aggregate.InitialCondition);
             Assert.AreEqual("plus", aggregate.StateFunction);
         }
 
@@ -221,11 +220,11 @@ namespace Cassandra.IntegrationTests.Core
             var ks = cluster.Metadata.GetKeyspace("ks_udf");
             Assert.NotNull(ks);
             var aggregate = cluster.Metadata.GetAggregate("ks_udf", "sum2", new[] {"int"});
-            Assert.AreEqual(0, aggregate.InitialCondition);
+            Assert.AreEqual("0", aggregate.InitialCondition);
             session.Execute("CREATE OR REPLACE AGGREGATE ks_udf.sum2(int) SFUNC plus STYPE int INITCOND 200");
             Thread.Sleep(5000);
             aggregate = cluster.Metadata.GetAggregate("ks_udf", "sum2", new[] { "int" });
-            Assert.AreEqual(200, aggregate.InitialCondition);
+            Assert.AreEqual("200", aggregate.InitialCondition);
         }
     }
 }

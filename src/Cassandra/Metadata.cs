@@ -34,7 +34,6 @@ namespace Cassandra
     {
         private const string SelectSchemaVersionPeers = "SELECT schema_version FROM system.peers";
         private const string SelectSchemaVersionLocal = "SELECT schema_version FROM system.local";
-        private static readonly Version Version30 = new Version(3, 0);
         private static readonly Logger Logger = new Logger(typeof(ControlConnection));
         private volatile TokenMap _tokenMap;
         private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string,KeyspaceMetadata>();
@@ -52,7 +51,9 @@ namespace Cassandra
         /// <summary>
         /// Control connection to be used to execute the queries to retrieve the metadata
         /// </summary>
-        internal ControlConnection ControlConnection { get; set; }
+        internal IMetadataQueryProvider ControlConnection { get; set; }
+
+        internal SchemaParser SchemaParser { get { return _schemaParser; } }
 
         internal string Partitioner { get; set; }
 
@@ -64,7 +65,6 @@ namespace Cassandra
             Hosts = new Hosts(config.Policies.ReconnectionPolicy);
             Hosts.Down += OnHostDown;
             Hosts.Up += OnHostUp;
-            _schemaParser = SchemaParserV1.Instance;
         }
 
         public void Dispose()
@@ -256,6 +256,19 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Gets the definition associated with a User Defined Type from Cassandra
+        /// </summary>
+        public Task<UdtColumnInfo> GetUdtDefinitionAsync(string keyspace, string typeName)
+        {
+            KeyspaceMetadata ksMetadata;
+            if (!_keyspaces.TryGetValue(keyspace, out ksMetadata))
+            {
+                return TaskHelper.ToTask<UdtColumnInfo>(null);
+            }
+            return ksMetadata.GetUdtDefinitionAsync(typeName);
+        }
+
+        /// <summary>
         /// Gets the definition associated with a User Defined Function from Cassandra
         /// </summary>
         /// <returns>The function metadata or null if not found.</returns>
@@ -309,7 +322,7 @@ namespace Cassandra
         {
             Logger.Info("Retrieving keyspaces metadata");
             return _schemaParser
-                .GetKeyspaces(ControlConnection, retry)
+                .GetKeyspaces(retry)
                 .ContinueSync(ksList =>
                 {
                     var ksMap = new ConcurrentDictionary<string, KeyspaceMetadata>();
@@ -347,7 +360,7 @@ namespace Cassandra
         internal Task<KeyspaceMetadata> RefreshSingleKeyspace(bool added, string name)
         {
             Logger.Verbose("Updating keyspace metadata: " + name);
-            return _schemaParser.GetKeyspace(ControlConnection, name).ContinueSync(ks =>
+            return _schemaParser.GetKeyspace(name).ContinueSync(ks =>
             {
                 if (ks == null)
                 {
@@ -423,9 +436,9 @@ namespace Cassandra
                     Task.WaitAll(queries, _config.ClientOptions.QueryAbortTimeout);
                     var versions = new HashSet<Guid>
                     {
-                        ControlConnection.GetRowSet(queries[0].Result).First().GetValue<Guid>("schema_version")
+                        Cassandra.ControlConnection.GetRowSet(queries[0].Result).First().GetValue<Guid>("schema_version")
                     };
-                    var peerVersions = ControlConnection.GetRowSet(queries[1].Result).Select(r => r.GetValue<Guid>("schema_version"));
+                    var peerVersions = Cassandra.ControlConnection.GetRowSet(queries[1].Result).Select(r => r.GetValue<Guid>("schema_version"));
                     foreach (var v in peerVersions)
                     {
                         versions.Add(v);
@@ -452,7 +465,7 @@ namespace Cassandra
         /// <param name="version"></param>
         internal void SetCassandraVersion(Version version)
         {
-            _schemaParser = version >= Version30 ? (SchemaParser)SchemaParserV2.Instance : SchemaParserV1.Instance;
+            _schemaParser = SchemaParser.GetInstance(version, this, GetUdtDefinitionAsync, _schemaParser);
         }
     }
 }

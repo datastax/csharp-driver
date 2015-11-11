@@ -184,7 +184,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     actions.Add(selectAction);
                     //Check that the control connection is using first host
-                    StringAssert.StartsWith(nonShareableTestCluster.ClusterIpPrefix + "1", nonShareableTestCluster.Cluster.Metadata.ControlConnection.BindAddress.ToString());
+                    StringAssert.StartsWith(nonShareableTestCluster.ClusterIpPrefix + "1", nonShareableTestCluster.Cluster.Metadata.ControlConnection.Address.ToString());
 
                     //Kill some nodes
                     //Including the one used by the control connection
@@ -236,7 +236,7 @@ namespace Cassandra.IntegrationTests.Core
                     Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "3:" + DefaultCassandraPort, queriedHosts);
                     Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "4:" + DefaultCassandraPort, queriedHosts);
                     //Check that the control connection is still using last host
-                    StringAssert.StartsWith(nonShareableTestCluster.ClusterIpPrefix + "4", nonShareableTestCluster.Cluster.Metadata.ControlConnection.BindAddress.ToString());
+                    StringAssert.StartsWith(nonShareableTestCluster.ClusterIpPrefix + "4", nonShareableTestCluster.Cluster.Metadata.ControlConnection.Address.ToString());
                 }
             }
         }
@@ -496,7 +496,7 @@ namespace Cassandra.IntegrationTests.Core
             TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local"), 10);
             var host = cluster.AllHosts().First(h => TestHelper.GetLastAddressByte(h) == 2);
             // Check that the control connection is connected to another host
-            Assert.AreNotEqual(cluster.Metadata.ControlConnection.BindAddress, host.Address);
+            Assert.AreNotEqual(cluster.Metadata.ControlConnection.Address, host.Address);
             Assert.True(host.IsUp);
             Trace.TraceInformation("Setting host 2 of 2 as down");
             host.SetDown();

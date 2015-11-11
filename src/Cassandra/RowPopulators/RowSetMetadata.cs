@@ -135,6 +135,11 @@ namespace Cassandra
         {
             Elements = new List<ColumnDesc>();
         }
+
+        internal TupleColumnInfo(IEnumerable<ColumnDesc> elements)
+        {
+            Elements = new List<ColumnDesc>(elements);
+        }
     }
 
     /// <summary>
@@ -148,6 +153,7 @@ namespace Cassandra
         public ColumnTypeCode TypeCode { get; set; }
         public IColumnInfo TypeInfo { get; set; }
         internal bool IsReversed { get; set; }
+        internal bool IsFrozen { get; set; }
     }
 
     /// <summary>

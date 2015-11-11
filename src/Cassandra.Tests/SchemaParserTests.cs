@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Cassandra.Tasks;
 using Moq;
 using NUnit.Framework;
@@ -12,6 +13,26 @@ namespace Cassandra.Tests
     [TestFixture]
     public class SchemaParserTests
     {
+        private static SchemaParserV1 GetV1Instance(IMetadataQueryProvider cc)
+        {
+            var metadata = new Metadata(new Configuration())
+            {
+                ControlConnection = cc
+            };
+            metadata.SetCassandraVersion(new Version(2, 0));
+            return new SchemaParserV1(metadata);
+        }
+
+        private static SchemaParserV2 GetV2Instance(IMetadataQueryProvider cc, Func<string, string, Task<UdtColumnInfo>> udtResolver = null)
+        {
+            var metadata = new Metadata(new Configuration())
+            {
+                ControlConnection = cc
+            };
+            metadata.SetCassandraVersion(new Version(3, 0));
+            return new SchemaParserV2(metadata, udtResolver);
+        }
+
         [Test]
         public void SchemaParserV1_GetKeyspace_Should_Return_Null_When_Not_Found()
         {
@@ -20,8 +41,8 @@ namespace Cassandra.Tests
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_keyspaces.*" + ksName), It.IsAny<bool>()))
                 .Returns(() => TaskHelper.ToTask(Enumerable.Empty<Row>()));
-            var parser = SchemaParserV1.Instance;
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(queryProviderMock.Object, ksName));
+            var parser = GetV1Instance(queryProviderMock.Object);
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(ksName));
             Assert.Null(ks);
         }
 
@@ -40,8 +61,8 @@ namespace Cassandra.Tests
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_keyspaces.*" + ksName), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { row }));
-            var parser = SchemaParserV1.Instance;
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(queryProviderMock.Object, ksName));
+            var parser = GetV1Instance(queryProviderMock.Object);
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(ksName));
             Assert.NotNull(ks);
             Assert.AreEqual(ksName, ks.Name);
             Assert.AreEqual(true, ks.DurableWrites);
@@ -108,8 +129,8 @@ namespace Cassandra.Tests
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columns.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask(columnRows));
-            var parser = SchemaParserV1.Instance;
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(queryProviderMock.Object, "ks1"));
+            var parser = GetV1Instance(queryProviderMock.Object);
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace("ks1"));
             Assert.NotNull(ks);
             var table = ks.GetTableMetadata("ks_tbl_meta");
             Assert.True(table.Options.IsCompactStorage);
@@ -154,8 +175,8 @@ namespace Cassandra.Tests
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columns.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask(columnRows));
-            var parser = SchemaParserV1.Instance;
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(queryProviderMock.Object, "ks1"));
+            var parser = GetV1Instance(queryProviderMock.Object);
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace("ks1"));
             Assert.NotNull(ks);
             var table = ks.GetTableMetadata("ks_tbl_meta");
             Assert.False(table.Options.IsCompactStorage);
@@ -217,8 +238,8 @@ namespace Cassandra.Tests
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columns.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<Row>));
-            var parser = SchemaParserV1.Instance;
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(queryProviderMock.Object, "ks1"));
+            var parser = GetV1Instance(queryProviderMock.Object);
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace("ks1"));
             Assert.NotNull(ks);
             var ex = Assert.Throws<ArgumentException>(() => ks.GetTableMetadata("ks_tbl_meta"));
             StringAssert.Contains("bloom_filter_fp_chance", ex.Message);
@@ -286,8 +307,8 @@ namespace Cassandra.Tests
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columns.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { columnRow }));
-            var parser = SchemaParserV1.Instance;
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(queryProviderMock.Object, "ks1"));
+            var parser = GetV1Instance(queryProviderMock.Object);
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace("ks1"));
             Assert.NotNull(ks);
             var ex = Assert.Throws<ArgumentException>(() => ks.GetTableMetadata("ks_tbl_meta"));
             StringAssert.Contains("column_name", ex.Message);
@@ -311,8 +332,8 @@ namespace Cassandra.Tests
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columns.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TaskHelper.FromException<IEnumerable<Row>>(new NoHostAvailableException(new Dictionary<System.Net.IPEndPoint, Exception>())));
-            var parser = SchemaParserV1.Instance;
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(queryProviderMock.Object, "ks1"));
+            var parser = GetV1Instance(queryProviderMock.Object);
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace("ks1"));
             Assert.NotNull(ks);
             Assert.Throws<NoHostAvailableException>(() => ks.GetTableMetadata("tbl1"));
         }
@@ -331,8 +352,8 @@ namespace Cassandra.Tests
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.keyspaces.*" + ksName), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { row }));
-            var parser = SchemaParserV2.Instance;
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(queryProviderMock.Object, ksName));
+            var parser = GetV2Instance(queryProviderMock.Object);
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(ksName));
             Assert.NotNull(ks);
             Assert.AreEqual(ksName, ks.Name);
             Assert.AreEqual(true, ks.DurableWrites);
@@ -363,11 +384,11 @@ namespace Cassandra.Tests
             });
             var columnRows = new[]
             {
-                new Dictionary<string, object>{{"keyspace_name", "ks_tbl_meta"}, {"table_name", "tbl4"}, {"column_name", "apk2" }, {"clustering_order", "none"}, {"column_name_bytes", "0x61706b32"  }, {"kind", "partition_key"}, {"position",  1 }, {"type", "org.apache.cassandra.db.marshal.UTF8Type"}},
-                new Dictionary<string, object>{{"keyspace_name", "ks_tbl_meta"}, {"table_name", "tbl4"}, {"column_name", "pk1"  }, {"clustering_order", "none"}, {"column_name_bytes", "0x706b31"    }, {"kind", "partition_key"}, {"position",  0 }, {"type", "org.apache.cassandra.db.marshal.UUIDType"}},
-                new Dictionary<string, object>{{"keyspace_name", "ks_tbl_meta"}, {"table_name", "tbl4"}, {"column_name", "val2" }, {"clustering_order", "none"}, {"column_name_bytes", "0x76616c32"  }, {"kind", "regular"      }, {"position",  -1}, {"type", "org.apache.cassandra.db.marshal.BytesType"}},
-                new Dictionary<string, object>{{"keyspace_name", "ks_tbl_meta"}, {"table_name", "tbl4"}, {"column_name", "valz1"}, {"clustering_order", "none"}, {"column_name_bytes", "0x76616c7a31"}, {"kind", "regular"      }, {"position",  -1}, {"type", "org.apache.cassandra.db.marshal.Int32Type"}},
-                new Dictionary<string, object>{{"keyspace_name", "ks_tbl_meta"}, {"table_name", "tbl4"}, {"column_name", "zck"  }, {"clustering_order", "asc" }, {"column_name_bytes", "0x7a636b"    }, {"kind", "clustering"   }, {"position",  0 }, {"type", "org.apache.cassandra.db.marshal.TimeUUIDType"}}
+                new Dictionary<string, object>{{"keyspace_name", "ks_tbl_meta"}, {"table_name", "tbl4"}, {"column_name", "apk2" }, {"clustering_order", "none"}, {"column_name_bytes", "0x61706b32"  }, {"kind", "partition_key"}, {"position",  1 }, {"type", "text"}},
+                new Dictionary<string, object>{{"keyspace_name", "ks_tbl_meta"}, {"table_name", "tbl4"}, {"column_name", "pk1"  }, {"clustering_order", "none"}, {"column_name_bytes", "0x706b31"    }, {"kind", "partition_key"}, {"position",  0 }, {"type", "uuid"}},
+                new Dictionary<string, object>{{"keyspace_name", "ks_tbl_meta"}, {"table_name", "tbl4"}, {"column_name", "val2" }, {"clustering_order", "none"}, {"column_name_bytes", "0x76616c32"  }, {"kind", "regular"      }, {"position",  -1}, {"type", "blob"}},
+                new Dictionary<string, object>{{"keyspace_name", "ks_tbl_meta"}, {"table_name", "tbl4"}, {"column_name", "valz1"}, {"clustering_order", "none"}, {"column_name_bytes", "0x76616c7a31"}, {"kind", "regular"      }, {"position",  -1}, {"type", "int"}},
+                new Dictionary<string, object>{{"keyspace_name", "ks_tbl_meta"}, {"table_name", "tbl4"}, {"column_name", "zck"  }, {"clustering_order", "asc" }, {"column_name_bytes", "0x7a636b"    }, {"kind", "clustering"   }, {"position",  0 }, {"type", "timeuuid"}}
             }.Select(TestHelper.CreateRow);
 
             var ksRow = TestHelper.CreateRow(new Dictionary<string, object>
@@ -387,8 +408,8 @@ namespace Cassandra.Tests
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.indexes.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<Row>()));
-            var parser = SchemaParserV2.Instance;
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(queryProviderMock.Object, "ks1"));
+            var parser = GetV2Instance(queryProviderMock.Object);
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace("ks1"));
             Assert.NotNull(ks);
             var table = ks.GetTableMetadata("ks_tbl_meta");
             Assert.False(table.Options.IsCompactStorage);
@@ -422,9 +443,9 @@ namespace Cassandra.Tests
             });
             var columnRows = new[]
             {
-                new Dictionary<string, object>{{"keyspace_name", "ks1"}, {"table_name", "tbl4"}, {"column_name", "pk"  }, {"clustering_order", "none"}, {"column_name_bytes", "0x706b31"    }, {"kind", "partition_key"}, {"position",  0 }, {"type", "org.apache.cassandra.db.marshal.UUIDType"}},
-                new Dictionary<string, object>{{"keyspace_name", "ks1"}, {"table_name", "tbl4"}, {"column_name", "ck"  }, {"clustering_order", "desc" }, {"column_name_bytes", "0x7a636b"    }, {"kind", "clustering"   }, {"position",  0 }, {"type", "org.apache.cassandra.db.marshal.TimeUUIDType"}},
-                new Dictionary<string, object>{{"keyspace_name", "ks1"}, {"table_name", "tbl4"}, {"column_name", "val" }, {"clustering_order", "none"}, {"column_name_bytes", "0x76616c32"  }, {"kind", "regular"      }, {"position",  -1}, {"type", "org.apache.cassandra.db.marshal.BytesType"}}
+                new Dictionary<string, object>{{"keyspace_name", "ks1"}, {"table_name", "tbl4"}, {"column_name", "pk"  }, {"clustering_order", "none"}, {"column_name_bytes", "0x706b31"    }, {"kind", "partition_key"}, {"position",  0 }, {"type", "uuid"}},
+                new Dictionary<string, object>{{"keyspace_name", "ks1"}, {"table_name", "tbl4"}, {"column_name", "ck"  }, {"clustering_order", "desc" }, {"column_name_bytes", "0x7a636b"    }, {"kind", "clustering"   }, {"position",  0 }, {"type", "timeuuid"}},
+                new Dictionary<string, object>{{"keyspace_name", "ks1"}, {"table_name", "tbl4"}, {"column_name", "val" }, {"clustering_order", "none"}, {"column_name_bytes", "0x76616c32"  }, {"kind", "regular"      }, {"position",  -1}, {"type", "blob"}}
             }.Select(TestHelper.CreateRow);
             var indexRow = TestHelper.CreateRow(new Dictionary<string, object>
             {
@@ -454,8 +475,8 @@ namespace Cassandra.Tests
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.indexes.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] {indexRow}));
-            var parser = SchemaParserV2.Instance;
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(queryProviderMock.Object, "ks1"));
+            var parser = GetV2Instance(queryProviderMock.Object);
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace("ks1"));
             Assert.NotNull(ks);
             var table = ks.GetTableMetadata("tbl4");
             Assert.False(table.Options.IsCompactStorage);
@@ -493,8 +514,8 @@ namespace Cassandra.Tests
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.indexes.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<Row>()));
-            var parser = SchemaParserV2.Instance;
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(queryProviderMock.Object, "ks1"));
+            var parser = GetV2Instance(queryProviderMock.Object);
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace("ks1"));
             Assert.NotNull(ks);
             Assert.Throws<NoHostAvailableException>(() => ks.GetTableMetadata("tbl1"));
         }

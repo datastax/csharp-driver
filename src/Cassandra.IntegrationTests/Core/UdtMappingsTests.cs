@@ -53,168 +53,147 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void MappingSingleExplicitTest()
         {
-            foreach (var protocolVersion in UdtProtocolVersionSupported)
-            {
-                //Use all possible protocol versions
-                Cluster.MaxProtocolVersion = protocolVersion;
-                var localSession = GetNewSession(KeyspaceName);
-                localSession.UserDefinedTypes.Define(
-                    UdtMap.For<Phone>("phone")
-                        .Map(v => v.Alias, "alias")
-                        .Map(v => v.CountryCode, "country_code")
-                        .Map(v => v.Number, "number")
-                );
-                localSession.Execute("INSERT INTO users (id, main_phone) values (1, {alias: 'home phone', number: '123', country_code: 34})");
-                var rs = localSession.Execute("SELECT * FROM users WHERE id = 1");
-                var row = rs.First();
-                var value = row.GetValue<Phone>("main_phone");
-                Assert.NotNull(value);
-                Assert.AreEqual("home phone", value.Alias);
-                Assert.AreEqual("123", value.Number);
-                Assert.AreEqual(34, value.CountryCode);
-            }
+            var localSession = GetNewSession(KeyspaceName);
+            localSession.UserDefinedTypes.Define(
+                UdtMap.For<Phone>("phone")
+                    .Map(v => v.Alias, "alias")
+                    .Map(v => v.CountryCode, "country_code")
+                    .Map(v => v.Number, "number")
+            );
+            localSession.Execute("INSERT INTO users (id, main_phone) values (1, {alias: 'home phone', number: '123', country_code: 34})");
+            var rs = localSession.Execute("SELECT * FROM users WHERE id = 1");
+            var row = rs.First();
+            var value = row.GetValue<Phone>("main_phone");
+            Assert.NotNull(value);
+            Assert.AreEqual("home phone", value.Alias);
+            Assert.AreEqual("123", value.Number);
+            Assert.AreEqual(34, value.CountryCode);
         }
 
         [Test]
         public void MappingSingleExplicitNullsTest()
         {
-            foreach (var protocolVersion in UdtProtocolVersionSupported)
-            {
-                Cluster.MaxProtocolVersion = protocolVersion;
-                var localSession = GetNewSession(KeyspaceName);
-                localSession.UserDefinedTypes.Define(
-                    UdtMap.For<Phone>("phone")
-                          .Map(v => v.Alias, "alias")
-                          .Map(v => v.CountryCode, "country_code")
-                          .Map(v => v.Number, "number")
-                    );
-                //Some fields are null
-                localSession.Execute("INSERT INTO users (id, main_phone) values (1, {alias: 'empty phone'})");
-                var row = localSession.Execute("SELECT * FROM users WHERE id = 1").First();
-                var value = row.GetValue<Phone>("main_phone");
-                Assert.NotNull(value);
-                Assert.AreEqual("empty phone", value.Alias);
-                //Default
-                Assert.IsNull(value.Number);
-                //Default
-                Assert.AreEqual(0, value.CountryCode);
+            var localSession = GetNewSession(KeyspaceName);
+            localSession.UserDefinedTypes.Define(
+                UdtMap.For<Phone>("phone")
+                        .Map(v => v.Alias, "alias")
+                        .Map(v => v.CountryCode, "country_code")
+                        .Map(v => v.Number, "number")
+                );
+            //Some fields are null
+            localSession.Execute("INSERT INTO users (id, main_phone) values (1, {alias: 'empty phone'})");
+            var row = localSession.Execute("SELECT * FROM users WHERE id = 1").First();
+            var value = row.GetValue<Phone>("main_phone");
+            Assert.NotNull(value);
+            Assert.AreEqual("empty phone", value.Alias);
+            //Default
+            Assert.IsNull(value.Number);
+            //Default
+            Assert.AreEqual(0, value.CountryCode);
 
-                //column value is null
-                localSession.Execute("INSERT INTO users (id, main_phone) values (2, null)");
-                row = localSession.Execute("SELECT * FROM users WHERE id = 2").First();
-                Assert.IsNull(row.GetValue<Phone>("main_phone"));
+            //column value is null
+            localSession.Execute("INSERT INTO users (id, main_phone) values (2, null)");
+            row = localSession.Execute("SELECT * FROM users WHERE id = 2").First();
+            Assert.IsNull(row.GetValue<Phone>("main_phone"));
 
-                //first values are null
-                localSession.Execute("INSERT INTO users (id, main_phone) values (3, {country_code: 34})");
-                row = localSession.Execute("SELECT * FROM users WHERE id = 3").First();
-                Assert.IsNotNull(row.GetValue<Phone>("main_phone"));
-                Assert.AreEqual(34, row.GetValue<Phone>("main_phone").CountryCode);
-                Assert.IsNull(row.GetValue<Phone>("main_phone").Alias);
-                Assert.IsNull(row.GetValue<Phone>("main_phone").Number);
-            }
+            //first values are null
+            localSession.Execute("INSERT INTO users (id, main_phone) values (3, {country_code: 34})");
+            row = localSession.Execute("SELECT * FROM users WHERE id = 3").First();
+            Assert.IsNotNull(row.GetValue<Phone>("main_phone"));
+            Assert.AreEqual(34, row.GetValue<Phone>("main_phone").CountryCode);
+            Assert.IsNull(row.GetValue<Phone>("main_phone").Alias);
+            Assert.IsNull(row.GetValue<Phone>("main_phone").Number);
         }
 
         [Test]
         public void MappingSingleImplicitTest()
         {
-            foreach (var protocolVersion in UdtProtocolVersionSupported)
-            {
-                Cluster.MaxProtocolVersion = protocolVersion;
-                var localSession = GetNewSession(KeyspaceName);
-                localSession.UserDefinedTypes.Define(
-                    UdtMap.For<Phone>()
-                    );
-                localSession.Execute("INSERT INTO users (id, main_phone) values (1, {alias: 'home phone', number: '123', country_code: 34})");
-                var rs = localSession.Execute("SELECT * FROM users WHERE id = 1");
-                var row = rs.First();
-                var value = row.GetValue<Phone>("main_phone");
-                Assert.NotNull(value);
-                Assert.AreEqual("home phone", value.Alias);
-                Assert.AreEqual("123", value.Number);
-                //The property and the field names don't match
-                Assert.AreEqual(0, value.CountryCode);
-            }
+            var localSession = GetNewSession(KeyspaceName);
+            localSession.UserDefinedTypes.Define(
+                UdtMap.For<Phone>()
+                );
+            localSession.Execute("INSERT INTO users (id, main_phone) values (1, {alias: 'home phone', number: '123', country_code: 34})");
+            var rs = localSession.Execute("SELECT * FROM users WHERE id = 1");
+            var row = rs.First();
+            var value = row.GetValue<Phone>("main_phone");
+            Assert.NotNull(value);
+            Assert.AreEqual("home phone", value.Alias);
+            Assert.AreEqual("123", value.Number);
+            //The property and the field names don't match
+            Assert.AreEqual(0, value.CountryCode);
         }
 
         [Test]
         public void MappingNestedTypeTest()
         {
-            foreach (var protocolVersion in UdtProtocolVersionSupported)
-            {
-                Cluster.MaxProtocolVersion = protocolVersion;
-                var localSession = GetNewSession(KeyspaceName);
-                localSession.UserDefinedTypes.Define(
-                    UdtMap.For<Phone>(),
-                    UdtMap.For<Contact>()
-                          .Map(c => c.FirstName, "first_name")
-                          .Map(c => c.LastName, "last_name")
-                          .Map(c => c.Birth, "birth_date")
-                    );
-                const string contactsJson =
-                    "[" +
-                    "{first_name: 'Jules', last_name: 'Winnfield', birth_date: '1950-02-03 04:05+0000', phones: {{alias: 'home', number: '123456'}}}," +
-                    "{first_name: 'Mia', last_name: 'Wallace', phones: {{alias: 'mobile', number: '789'}, {alias: 'office', number: '123'}}}" +
-                    "]";
-                localSession.Execute(String.Format("INSERT INTO users_contacts (id, contacts) values (1, {0})", contactsJson));
-                var rs = localSession.Execute("SELECT * FROM users_contacts WHERE id = 1");
-                var row = rs.First();
+            var localSession = GetNewSession(KeyspaceName);
+            localSession.UserDefinedTypes.Define(
+                UdtMap.For<Phone>(),
+                UdtMap.For<Contact>()
+                        .Map(c => c.FirstName, "first_name")
+                        .Map(c => c.LastName, "last_name")
+                        .Map(c => c.Birth, "birth_date")
+                );
+            const string contactsJson =
+                "[" +
+                "{first_name: 'Jules', last_name: 'Winnfield', birth_date: '1950-02-03 04:05+0000', phones: {{alias: 'home', number: '123456'}}}," +
+                "{first_name: 'Mia', last_name: 'Wallace', phones: {{alias: 'mobile', number: '789'}, {alias: 'office', number: '123'}}}" +
+                "]";
+            localSession.Execute(String.Format("INSERT INTO users_contacts (id, contacts) values (1, {0})", contactsJson));
+            var rs = localSession.Execute("SELECT * FROM users_contacts WHERE id = 1");
+            var row = rs.First();
 
-                var contacts = row.GetValue<List<Contact>>("contacts");
-                Assert.NotNull(contacts);
-                Assert.AreEqual(2, contacts.Count);
-                var julesContact = contacts[0];
-                Assert.AreEqual("Jules", julesContact.FirstName);
-                Assert.AreEqual("Winnfield", julesContact.LastName);
-                Assert.AreEqual(new DateTimeOffset(1950, 2, 3, 4, 5, 0, 0, TimeSpan.Zero), julesContact.Birth);
-                Assert.IsNotNull(julesContact.Phones);
-                Assert.AreEqual(1, julesContact.Phones.Count());
-                var miaContact = contacts[1];
-                Assert.AreEqual("Mia", miaContact.FirstName);
-                Assert.AreEqual("Wallace", miaContact.LastName);
-                Assert.AreEqual(DateTimeOffset.MinValue, miaContact.Birth);
-                Assert.IsNotNull(miaContact.Phones);
-                Assert.AreEqual(2, miaContact.Phones.Count());
-                Assert.AreEqual("mobile", miaContact.Phones.First().Alias);
-                Assert.AreEqual("office", miaContact.Phones.Skip(1).First().Alias);
-            }
+            var contacts = row.GetValue<List<Contact>>("contacts");
+            Assert.NotNull(contacts);
+            Assert.AreEqual(2, contacts.Count);
+            var julesContact = contacts[0];
+            Assert.AreEqual("Jules", julesContact.FirstName);
+            Assert.AreEqual("Winnfield", julesContact.LastName);
+            Assert.AreEqual(new DateTimeOffset(1950, 2, 3, 4, 5, 0, 0, TimeSpan.Zero), julesContact.Birth);
+            Assert.IsNotNull(julesContact.Phones);
+            Assert.AreEqual(1, julesContact.Phones.Count());
+            var miaContact = contacts[1];
+            Assert.AreEqual("Mia", miaContact.FirstName);
+            Assert.AreEqual("Wallace", miaContact.LastName);
+            Assert.AreEqual(DateTimeOffset.MinValue, miaContact.Birth);
+            Assert.IsNotNull(miaContact.Phones);
+            Assert.AreEqual(2, miaContact.Phones.Count());
+            Assert.AreEqual("mobile", miaContact.Phones.First().Alias);
+            Assert.AreEqual("office", miaContact.Phones.Skip(1).First().Alias);
         }
 
         [Test]
         public void MappingCaseSensitiveTest()
         {
-            foreach (var protocolVersion in UdtProtocolVersionSupported)
-            {
-                Cluster.MaxProtocolVersion = protocolVersion;
-                var localSession = GetNewSession(KeyspaceName);
-                //Cassandra identifiers are lowercased by default
-                localSession.UserDefinedTypes.Define(
-                    UdtMap.For<Phone>("phone")
+            var localSession = GetNewSession(KeyspaceName);
+            //Cassandra identifiers are lowercased by default
+            localSession.UserDefinedTypes.Define(
+                UdtMap.For<Phone>("phone")
+                    .SetIgnoreCase(false)
+                    .Map(v => v.Alias, "alias")
+                    .Map(v => v.CountryCode, "country_code")
+                    .Map(v => v.Number, "number")
+            );
+            localSession.Execute("INSERT INTO users (id, main_phone) values (101, {alias: 'home phone', number: '123', country_code: 34})");
+            var rs = localSession.Execute("SELECT * FROM users WHERE id = 101");
+            var row = rs.First();
+            var value = row.GetValue<Phone>("main_phone");
+            Assert.NotNull(value);
+            Assert.AreEqual("home phone", value.Alias);
+            Assert.AreEqual("123", value.Number);
+            Assert.AreEqual(34, value.CountryCode);
+
+            Assert.Throws<InvalidTypeException>(() => localSession.UserDefinedTypes.Define(
+                //The name should be forced to be case sensitive
+                UdtMap.For<Phone>("PhoNe")
+                    .SetIgnoreCase(false)));
+
+            Assert.Throws<InvalidTypeException>(() => localSession.UserDefinedTypes.Define(
+                UdtMap.For<Phone>("phone")
                         .SetIgnoreCase(false)
-                        .Map(v => v.Alias, "alias")
-                        .Map(v => v.CountryCode, "country_code")
-                        .Map(v => v.Number, "number")
-                );
-                localSession.Execute("INSERT INTO users (id, main_phone) values (101, {alias: 'home phone', number: '123', country_code: 34})");
-                var rs = localSession.Execute("SELECT * FROM users WHERE id = 101");
-                var row = rs.First();
-                var value = row.GetValue<Phone>("main_phone");
-                Assert.NotNull(value);
-                Assert.AreEqual("home phone", value.Alias);
-                Assert.AreEqual("123", value.Number);
-                Assert.AreEqual(34, value.CountryCode);
-
-                Assert.Throws<InvalidTypeException>(() => localSession.UserDefinedTypes.Define(
-                    //The name should be forced to be case sensitive
-                    UdtMap.For<Phone>("PhoNe")
-                        .SetIgnoreCase(false)));
-
-                Assert.Throws<InvalidTypeException>(() => localSession.UserDefinedTypes.Define(
-                    UdtMap.For<Phone>("phone")
-                          .SetIgnoreCase(false)
-                          //the field is called 'alias' it should fail
-                          .Map(v => v.Alias, "Alias")
-                    ));
-            }
+                        //the field is called 'alias' it should fail
+                        .Map(v => v.Alias, "Alias")
+                ));
         }
 
         [Test]
@@ -229,81 +208,71 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         public void MappingEncodingSingleTest()
-        {
-            foreach (var protocolVersion in UdtProtocolVersionSupported)
-            {
-                //Use all possible protocol versions
-                Cluster.MaxProtocolVersion = protocolVersion;
-                var localSession = GetNewSession(KeyspaceName);
-                localSession.UserDefinedTypes.Define(
-                    UdtMap.For<Phone>("phone")
-                        .Map(v => v.Alias, "alias")
-                        .Map(v => v.CountryCode, "country_code")
-                        .Map(v => v.Number, "number")
-                );
+    {
+            var localSession = GetNewSession(KeyspaceName);
+            localSession.UserDefinedTypes.Define(
+                UdtMap.For<Phone>("phone")
+                    .Map(v => v.Alias, "alias")
+                    .Map(v => v.CountryCode, "country_code")
+                    .Map(v => v.Number, "number")
+            );
 
-                const string insertQuery = "INSERT INTO users (id, main_phone) values (?, ?)";
+            const string insertQuery = "INSERT INTO users (id, main_phone) values (?, ?)";
                 
-                //All of the fields null
-                var id = 201;
-                var phone = new Phone();
-                localSession.Execute(new SimpleStatement(insertQuery, id, phone));
-                var rs = localSession.Execute(new SimpleStatement("SELECT * FROM users WHERE id = ?", id));
-                Assert.AreEqual(phone, rs.First().GetValue<Phone>("main_phone"));
+            //All of the fields null
+            var id = 201;
+            var phone = new Phone();
+            localSession.Execute(new SimpleStatement(insertQuery, id, phone));
+            var rs = localSession.Execute(new SimpleStatement("SELECT * FROM users WHERE id = ?", id));
+            Assert.AreEqual(phone, rs.First().GetValue<Phone>("main_phone"));
 
-                //Some fields null and others with value
-                id = 202;
-                phone = new Phone() {Alias = "Home phone"};
-                localSession.Execute(new SimpleStatement(insertQuery, id, phone));
-                rs = localSession.Execute(new SimpleStatement("SELECT * FROM users WHERE id = ?", id));
-                Assert.AreEqual(phone, rs.First().GetValue<Phone>("main_phone"));
+            //Some fields null and others with value
+            id = 202;
+            phone = new Phone() {Alias = "Home phone"};
+            localSession.Execute(new SimpleStatement(insertQuery, id, phone));
+            rs = localSession.Execute(new SimpleStatement("SELECT * FROM users WHERE id = ?", id));
+            Assert.AreEqual(phone, rs.First().GetValue<Phone>("main_phone"));
 
-                //All fields filled in
-                id = 203;
-                phone = new Phone() { Alias = "Mobile phone", CountryCode = 54, Number = "1234567"};
-                localSession.Execute(new SimpleStatement(insertQuery, id, phone));
-                rs = localSession.Execute(new SimpleStatement("SELECT * FROM users WHERE id = ?", id));
-                Assert.AreEqual(phone, rs.First().GetValue<Phone>("main_phone"));
-            }
+            //All fields filled in
+            id = 203;
+            phone = new Phone() { Alias = "Mobile phone", CountryCode = 54, Number = "1234567"};
+            localSession.Execute(new SimpleStatement(insertQuery, id, phone));
+            rs = localSession.Execute(new SimpleStatement("SELECT * FROM users WHERE id = ?", id));
+            Assert.AreEqual(phone, rs.First().GetValue<Phone>("main_phone"));
         }
 
         [Test]
         public void MappingEncodingNestedTest()
         {
-            foreach (var protocolVersion in UdtProtocolVersionSupported)
+            var localSession = GetNewSession(KeyspaceName);
+            localSession.UserDefinedTypes.Define(
+                UdtMap.For<Phone>(),
+                UdtMap.For<Contact>()
+                        .Map(c => c.FirstName, "first_name")
+                        .Map(c => c.LastName, "last_name")
+                        .Map(c => c.Birth, "birth_date")
+                );
+
+
+            //All of the fields null
+            var id = 301;
+            var contacts = new List<Contact>
             {
-                //Use all possible protocol versions
-                Cluster.MaxProtocolVersion = protocolVersion;
-                var localSession = GetNewSession(KeyspaceName);
-                localSession.UserDefinedTypes.Define(
-                    UdtMap.For<Phone>(),
-                    UdtMap.For<Contact>()
-                          .Map(c => c.FirstName, "first_name")
-                          .Map(c => c.LastName, "last_name")
-                          .Map(c => c.Birth, "birth_date")
-                    );
-
-
-                //All of the fields null
-                var id = 301;
-                var contacts = new List<Contact>
+                new Contact
                 {
-                    new Contact
+                    FirstName = "Vincent", 
+                    LastName = "Vega", 
+                    Phones = new List<Phone>
                     {
-                        FirstName = "Vincent", 
-                        LastName = "Vega", 
-                        Phones = new List<Phone>
-                        {
-                            new Phone {Alias = "Wat", Number = "0000000000121220000"},
-                            new Phone {Alias = "Office", Number = "123"}
-                        }
+                        new Phone {Alias = "Wat", Number = "0000000000121220000"},
+                        new Phone {Alias = "Office", Number = "123"}
                     }
-                };
-                var insert = new SimpleStatement("INSERT INTO users_contacts (id, contacts) values (?, ?)", id, contacts);
-                localSession.Execute(insert);
-                var rs = localSession.Execute(new SimpleStatement("SELECT * FROM users_contacts WHERE id = ?", id));
-                Assert.AreEqual(contacts, rs.First().GetValue<List<Contact>>("contacts"));
-            }
+                }
+            };
+            var insert = new SimpleStatement("INSERT INTO users_contacts (id, contacts) values (?, ?)", id, contacts);
+            localSession.Execute(insert);
+            var rs = localSession.Execute(new SimpleStatement("SELECT * FROM users_contacts WHERE id = ?", id));
+            Assert.AreEqual(contacts, rs.First().GetValue<List<Contact>>("contacts"));
         }
 
         /// <summary>
@@ -337,12 +306,17 @@ namespace Cassandra.IntegrationTests.Core
             Assert.Throws<InvalidTypeException>(() => localSession.Execute(statement));
         }
 
-        [Test]
+        [Test, TestCassandraVersion(3, 0, Comparison.LessThan)]
         public void MappingOnLowerProtocolVersionTest()
         {
-            Cluster.MaxProtocolVersion = 2;
-            var localSession = GetNewSession(KeyspaceName);
-            Assert.Throws<NotSupportedException>(() => localSession.UserDefinedTypes.Define(UdtMap.For<Phone>()));
+            using (var cluster = Cluster.Builder()
+                .AddContactPoint(TestCluster.InitialContactPoint)
+                .Build())
+            {
+                cluster.Configuration.ProtocolOptions.SetMaxProtocolVersion(2);
+                var localSession = cluster.Connect();
+                Assert.Throws<NotSupportedException>(() => localSession.UserDefinedTypes.Define(UdtMap.For<Phone>()));   
+            }
         }
 
         private class Contact

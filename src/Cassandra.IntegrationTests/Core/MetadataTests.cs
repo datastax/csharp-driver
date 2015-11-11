@@ -104,17 +104,17 @@ namespace Cassandra.IntegrationTests.Core
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(2);
             var cluster = testCluster.Cluster;
             //The control connection is connected to host 1
-            Assert.AreEqual(1, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.BindAddress));
+            Assert.AreEqual(1, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.Address));
             testCluster.StopForce(1);
             Thread.Sleep(10000);
 
             //The control connection is still connected to host 1
-            Assert.AreEqual(1, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.BindAddress));
+            Assert.AreEqual(1, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.Address));
             var t = cluster.Metadata.GetTable("system", "local");
             Assert.NotNull(t);
 
             //The control connection should be connected to host 2
-            Assert.AreEqual(2, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.BindAddress));
+            Assert.AreEqual(2, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.Address));
         }
 
         [Test]
@@ -177,7 +177,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
             };
             //The host not used by the control connection
-            int hostToKill = TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.BindAddress);
+            int hostToKill = TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.Address);
             if (!useControlConnectionHost)
             {
                 hostToKill = hostToKill == 1 ? 2 : 1;
@@ -667,8 +667,8 @@ namespace Cassandra.IntegrationTests.Core
 
             session.Execute(String.Format("CREATE TABLE {0} (" +
                                           "id uuid primary key, " +
-                                          "map1 map<text, frozen<list<text>>>," +
-                                          "map2 map<int, frozen<map<text, bigint>>>," +
+                                          "map1 map<varchar, frozen<list<timeuuid>>>," +
+                                          "map2 map<int, frozen<map<uuid, bigint>>>," +
                                           "list1 list<frozen<map<uuid, int>>>)", tableName));
             var table = cluster.Metadata
                                .GetKeyspace(keyspaceName)
@@ -679,11 +679,12 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(ColumnTypeCode.Map, map1.TypeCode);
             Assert.IsInstanceOf<MapColumnInfo>(map1.TypeInfo);
             var map1Info = (MapColumnInfo)map1.TypeInfo;
-            Assert.AreEqual(ColumnTypeCode.Varchar, map1Info.KeyTypeCode);
+            Assert.True(map1Info.KeyTypeCode == ColumnTypeCode.Varchar || map1Info.KeyTypeCode == ColumnTypeCode.Text,
+                "Expected {0} but was {1}", ColumnTypeCode.Varchar, map1Info.KeyTypeCode);
             Assert.AreEqual(ColumnTypeCode.List, map1Info.ValueTypeCode);
             Assert.IsInstanceOf<ListColumnInfo>(map1Info.ValueTypeInfo);
             var map1ListInfo = (ListColumnInfo)map1Info.ValueTypeInfo;
-            Assert.AreEqual(ColumnTypeCode.Varchar, map1ListInfo.ValueTypeCode);
+            Assert.AreEqual(ColumnTypeCode.Timeuuid, map1ListInfo.ValueTypeCode);
 
             var map2 = table.TableColumns.First(c => c.Name == "map2");
             Assert.AreEqual(ColumnTypeCode.Map, map2.TypeCode);
@@ -693,7 +694,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(ColumnTypeCode.Map, map2Info.ValueTypeCode);
             Assert.IsInstanceOf<MapColumnInfo>(map2Info.ValueTypeInfo);
             var map2MapInfo = (MapColumnInfo)map2Info.ValueTypeInfo;
-            Assert.AreEqual(ColumnTypeCode.Varchar, map2MapInfo.KeyTypeCode);
+            Assert.AreEqual(ColumnTypeCode.Uuid, map2MapInfo.KeyTypeCode);
             Assert.AreEqual(ColumnTypeCode.Bigint, map2MapInfo.ValueTypeCode);
 
             var list1 = table.TableColumns.First(c => c.Name == "list1");
