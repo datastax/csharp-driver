@@ -86,7 +86,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 //Create more async operations that can be finished
                 var taskList = new List<Task>();
-                for (var i = 0; i < 512; i++)
+                for (var i = 0; i < 256; i++)
                 {
                     taskList.Add(localSession.ExecuteAsync(new SimpleStatement(String.Format("INSERT INTO tbl_wait_pending (id) VALUES ({0})", Guid.NewGuid()))));
                 }

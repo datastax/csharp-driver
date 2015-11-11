@@ -11,7 +11,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.CqlFunctions.Tests
 {
     [Category("short")]
-    public class MaxTimeUuid : TestGlobals
+    public class MaxTimeUuid : SharedClusterTest
     {
         private ISession _session = null;
         private List<EntityWithTimeUuid> _expectedTimeUuidObjectList;
@@ -24,16 +24,10 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
         private DateTimeOffset _dateAfter;
         private const int DefaultRecordCount = 6;
 
-        [TearDown]
-        public void TeardownTest()
+        protected override void TestFixtureSetUp()
         {
-            _session.DeleteKeyspace(_uniqueKsName);
-        }
-
-        [SetUp]
-        public void SetupTest()
-        {
-            _session = TestClusterManager.GetTestCluster(1).Session;
+            base.TestFixtureSetUp();
+            _session = Session;
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
 
@@ -55,7 +49,6 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
 
             _dateBefore = DateTimeOffset.Parse("2014-2-1");
             _dateAfter = DateTimeOffset.Parse("2014-4-1");
-
         }
 
         /// <summary>

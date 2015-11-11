@@ -640,10 +640,10 @@ namespace Cassandra.IntegrationTests.Core
         /// It checks that the connection startup method throws an exception when using a greater protocol version
         /// </summary>
         [Test]
-        [TestCassandraVersion(2, 0, Comparison.LessThan)]
+        [TestCassandraVersion(2, 2, Comparison.LessThan)]
         public void Startup_Greater_Protocol_Version_Throws()
         {
-            const byte protocolVersion = 2;
+            const byte protocolVersion = 4;
             using (var connection = CreateConnection(protocolVersion, new Configuration()))
             {
                 Assert.Throws<UnsupportedProtocolVersionException>(() => TaskHelper.WaitToComplete(connection.Open()));

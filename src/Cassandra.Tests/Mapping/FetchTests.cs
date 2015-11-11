@@ -160,6 +160,7 @@ namespace Cassandra.Tests.Mapping
 
         private class SomeClassWithNoDefaultConstructor
         {
+            // ReSharper disable once UnusedParameter.Local
             public SomeClassWithNoDefaultConstructor(string w) { }
         }
 
@@ -246,6 +247,24 @@ namespace Cassandra.Tests.Mapping
         }
 
         [Test]
+        public void Fetch_Nullable_Bool_Does_Not_Throw()
+        {
+            var rowMock = new Mock<Row>(MockBehavior.Strict);
+            rowMock.Setup(r => r.GetValue<bool>(It.IsIn(0))).Throws<NullReferenceException>();
+            rowMock.Setup(r => r.IsNull(It.IsIn(0))).Returns(true).Verifiable();
+            var rs = new RowSet
+            {
+                Columns = new[] { new CqlColumn { Name = "bool_sample", TypeCode = ColumnTypeCode.Boolean, Type = typeof(bool), Index = 0 } }
+            };
+            rs.AddRow(rowMock.Object);
+            var map = new Map<AllTypesEntity>().Column(p => p.BooleanValue, c => c.WithName("bool_sample"));
+            var mapper = GetMappingClient(rs, new MappingConfiguration().Define(map));
+            // ReSharper disable once ReturnValueOfPureMethodIsNotUsed
+            Assert.DoesNotThrow(() => mapper.Fetch<AllTypesEntity>().ToArray());
+            rowMock.Verify();
+        }
+
+        [Test]
         public void Fetch_Sets_Consistency()
         {
             ConsistencyLevel? consistency = null;
@@ -310,6 +329,7 @@ namespace Cassandra.Tests.Mapping
             Assert.AreEqual(false, songs[1].ReleaseDate.HasValue);
         }
 
+        // ReSharper disable once UnusedParameter.Local
         T[] FetchAnonymous<T>(Func<Song2, T> justHereToCreateAnonymousType)
         {
             var rs = new RowSet
