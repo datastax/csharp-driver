@@ -14,12 +14,12 @@ namespace Cassandra.Tests.Mapping
 {
     public abstract class MappingTestBase
     {
-        protected IMapper GetMappingClient(RowSet rowset)
+        protected IMapper GetMappingClient(RowSet rowset, MappingConfiguration config = null)
         {
-            return GetMappingClient(() => TaskHelper.ToTask(rowset));
+            return GetMappingClient(() => TaskHelper.ToTask(rowset), config);
         }
 
-        protected IMapper GetMappingClient(Func<Task<RowSet>> getRowSetFunc)
+        protected IMapper GetMappingClient(Func<Task<RowSet>> getRowSetFunc, MappingConfiguration config = null)
         {
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock
@@ -30,7 +30,7 @@ namespace Cassandra.Tests.Mapping
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
                 .Returns(TaskHelper.ToTask(GetPrepared()))
                 .Verifiable();
-            return GetMappingClient(sessionMock);
+            return GetMappingClient(sessionMock, config);
         }
 
         protected IMapper GetMappingClient(Mock<ISession> sessionMock, MappingConfiguration config = null)
