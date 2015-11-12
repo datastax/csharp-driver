@@ -65,6 +65,10 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 "start",
                 "--wait-for-binary-proto"
             };
+            if (TestUtils.IsWin)
+            {
+                parameters.Add("--quiet-windows");
+            }
             if (jvmArgs != null)
             {
                 foreach (var arg in jvmArgs)
@@ -114,7 +118,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void Start(int n, string additionalArgs = null)
         {
-            ExecuteCcm(string.Format("node{0} start --wait-for-binary-proto {1}", n, additionalArgs));
+            string quietWindows = null;
+            if (TestUtils.IsWin)
+            {
+                quietWindows = "--quiet-windows";
+            }
+            ExecuteCcm(string.Format("node{0} start --wait-for-binary-proto {1} {2}", n, additionalArgs, quietWindows));
         }
 
         public void Stop(int n)
