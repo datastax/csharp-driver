@@ -128,7 +128,6 @@ namespace Cassandra.IntegrationTests.Core
                 var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
                 Assert.AreEqual(1, ex.Errors.Count);
                 Assert.IsInstanceOf<AuthenticationException>(ex.Errors.First().Value);
-                Console.WriteLine(ex.Errors.First().Value);
             }
         }
     }

@@ -644,7 +644,11 @@ namespace Cassandra.IntegrationTests.Core
         public void Startup_Greater_Protocol_Version_Throws()
         {
             const byte protocolVersion = 4;
-            using (var connection = CreateConnection(protocolVersion, new Configuration()))
+            var config = new Configuration
+            {
+                BufferPool = new RecyclableMemoryStreamManager()
+            };
+            using (var connection = CreateConnection(protocolVersion, config))
             {
                 Assert.Throws<UnsupportedProtocolVersionException>(() => TaskHelper.WaitToComplete(connection.Open()));
             }
