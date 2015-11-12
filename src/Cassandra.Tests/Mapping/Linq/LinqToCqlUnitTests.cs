@@ -41,7 +41,7 @@ namespace Cassandra.Tests.Mapping.Linq
 
             Assert.AreEqual(
                 (from ent in table select ent).ToString(),
-                @"SELECT * FROM ""x_t"" ALLOW FILTERING");
+                @"SELECT ""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"" FROM ""x_t"" ALLOW FILTERING");
 
             Assert.AreEqual(
                 (from ent in table select ent.f1).ToString(),
@@ -81,29 +81,29 @@ namespace Cassandra.Tests.Mapping.Linq
 
             Assert.AreEqual(
                 (from ent in table where ent.ck2 > ent.ck1 select ent).ToString(),
-                @"SELECT * FROM ""x_t"" WHERE ""x_ck2"" > ""x_ck1"" ALLOW FILTERING");
+                @"SELECT ""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"" FROM ""x_t"" WHERE ""x_ck2"" > ""x_ck1"" ALLOW FILTERING");
 
             Assert.AreEqual(
                 (from ent in table select ent).FirstOrDefault().ToString(),
-                @"SELECT * FROM ""x_t"" LIMIT ? ALLOW FILTERING");
+                @"SELECT ""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"" FROM ""x_t"" LIMIT ? ALLOW FILTERING");
 
             Assert.AreEqual(
                 (from ent in table select ent).First().ToString(),
-                @"SELECT * FROM ""x_t"" LIMIT ? ALLOW FILTERING");
+                @"SELECT ""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"" FROM ""x_t"" LIMIT ? ALLOW FILTERING");
 
             Assert.AreEqual(
                 (from ent in table select ent).Where(e => e.pk.CompareTo("a") > 0).First().ToString(),
-                @"SELECT * FROM ""x_t"" WHERE ""x_pk"" > ? LIMIT ? ALLOW FILTERING");
+                @"SELECT ""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"" FROM ""x_t"" WHERE ""x_pk"" > ? LIMIT ? ALLOW FILTERING");
 
             Assert.Throws<CqlLinqNotSupportedException>(() =>
                 (from ent in table where ent.pk == "x" || ent.ck2 == 1 select ent).ToString());
 
             Assert.AreEqual(
                 (from ent in table where new[] {10, 30, 40}.Contains(ent.ck2) select ent).ToString(),
-                @"SELECT * FROM ""x_t"" WHERE ""x_ck2"" IN (?, ?, ?) ALLOW FILTERING");
+                @"SELECT ""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"" FROM ""x_t"" WHERE ""x_ck2"" IN (?, ?, ?) ALLOW FILTERING");
 
             Assert.AreEqual(
-                @"SELECT * FROM ""x_t"" WHERE ""x_ck2"" IN () ALLOW FILTERING",
+                @"SELECT ""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"" FROM ""x_t"" WHERE ""x_ck2"" IN () ALLOW FILTERING",
                 (from ent in table where new int[] {}.Contains(ent.ck2) select ent).ToString());
 
             Assert.AreEqual(
@@ -243,11 +243,11 @@ APPLY BATCH".Replace("\r", ""));
             };
             var expectedCqlQueries = new List<string>()
             {
-                "SELECT * FROM \"AllTypesEntity\" WHERE \"BooleanValue\" = ?",
-                "SELECT * FROM \"AllTypesEntity\" WHERE \"DateTimeValue\" < ?",
-                "SELECT * FROM \"AllTypesEntity\" WHERE \"DateTimeValue\" >= ?",
-                "SELECT * FROM \"AllTypesEntity\" WHERE \"IntValue\" = ?",
-                "SELECT * FROM \"AllTypesEntity\" WHERE \"StringValue\" = ?"
+                @"SELECT ""BooleanValue"", ""DateTimeValue"", ""DecimalValue"", ""DoubleValue"", ""Int64Value"", ""IntValue"", ""StringValue"", ""UuidValue"" FROM ""AllTypesEntity"" WHERE ""BooleanValue"" = ?",
+                @"SELECT ""BooleanValue"", ""DateTimeValue"", ""DecimalValue"", ""DoubleValue"", ""Int64Value"", ""IntValue"", ""StringValue"", ""UuidValue"" FROM ""AllTypesEntity"" WHERE ""DateTimeValue"" < ?",
+                @"SELECT ""BooleanValue"", ""DateTimeValue"", ""DecimalValue"", ""DoubleValue"", ""Int64Value"", ""IntValue"", ""StringValue"", ""UuidValue"" FROM ""AllTypesEntity"" WHERE ""DateTimeValue"" >= ?",
+                @"SELECT ""BooleanValue"", ""DateTimeValue"", ""DecimalValue"", ""DoubleValue"", ""Int64Value"", ""IntValue"", ""StringValue"", ""UuidValue"" FROM ""AllTypesEntity"" WHERE ""IntValue"" = ?",
+                @"SELECT ""BooleanValue"", ""DateTimeValue"", ""DecimalValue"", ""DoubleValue"", ""Int64Value"", ""IntValue"", ""StringValue"", ""UuidValue"" FROM ""AllTypesEntity"" WHERE ""StringValue"" = ?"
             };
             var actualCqlQueries = new List<string>();
             sessionMock
@@ -448,7 +448,7 @@ APPLY BATCH".Replace("\r", ""));
         {
             var table = SessionExtensions.GetTable<InheritedEntity>(null);
             var query1 = table.Where(e => e.Id == 10);
-            Assert.AreEqual("SELECT * FROM \"InheritedEntity\" WHERE \"Id\" = ?", query1.ToString());
+            Assert.AreEqual("SELECT \"Id\", \"Description\", \"Name\" FROM \"InheritedEntity\" WHERE \"Id\" = ?", query1.ToString());
             var query2 = (from e in table where e.Id == 1 && e.Name == "MyName" select new { e.Id, e.Name, e.Description });
             Assert.AreEqual("SELECT \"Id\", \"Name\", \"Description\" FROM \"InheritedEntity\" WHERE \"Id\" = ? AND \"Name\" = ?", query2.ToString());
             var sessionMock = new Mock<ISession>();
@@ -493,7 +493,7 @@ APPLY BATCH".Replace("\r", ""));
         {
             var table = SessionExtensions.GetTable<AllTypesEntity>(null);
             var query = table.OrderBy(t => t.UuidValue).OrderByDescending(t => t.DateTimeValue);
-            Assert.AreEqual(@"SELECT * FROM ""AllTypesEntity"" ORDER BY ""UuidValue"", ""DateTimeValue"" DESC", query.ToString());
+            Assert.AreEqual(@"SELECT ""BooleanValue"", ""DateTimeValue"", ""DecimalValue"", ""DoubleValue"", ""Int64Value"", ""IntValue"", ""StringValue"", ""UuidValue"" FROM ""AllTypesEntity"" ORDER BY ""UuidValue"", ""DateTimeValue"" DESC", query.ToString());
         }
 
         [Test]
@@ -502,7 +502,7 @@ APPLY BATCH".Replace("\r", ""));
             var table = SessionExtensions.GetTable<AllTypesDecorated>(null);
             var ids = new []{ 1, 2, 3};
             var query = table.Where(t => ids.Contains(t.IntValue) && t.Int64Value == 10);
-            Assert.AreEqual(@"SELECT * FROM ""atd"" WHERE ""int_VALUE"" IN (?, ?, ?) AND ""int64_VALUE"" = ?", query.ToString());
+            Assert.AreEqual(@"SELECT ""boolean_VALUE"", ""datetime_VALUE"", ""decimal_VALUE"", ""double_VALUE"", ""int64_VALUE"", ""int_VALUE"", ""string_VALUE"", ""timeuuid_VALUE"", ""uuid_VALUE"" FROM ""atd"" WHERE ""int_VALUE"" IN (?, ?, ?) AND ""int64_VALUE"" = ?", query.ToString());
         }
 
         [Test]
