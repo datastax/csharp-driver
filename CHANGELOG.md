@@ -1,5 +1,17 @@
 # ChangeLog - DataStax C# Driver
 
+## 2.7.3
+
+2015-11-13
+
+### Notable Changes
+
+- **Mapper** and **Linq**: Fixed regression introduced in v2.7.2 that failed to map columns with null values to structs.
+
+### Bug Fixes
+
+- [CSHARP-371] - Mapper: Allow default(T) for null values
+
 ## 2.7.2
 
 2015-10-06

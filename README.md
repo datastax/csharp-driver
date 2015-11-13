@@ -9,7 +9,8 @@ A modern, [feature-rich](#features) and highly tunable C# client library for Apa
 PM> Install-Package CassandraCSharpDriver
 ```
 
-[![Build Status](https://travis-ci.org/datastax/csharp-driver.svg?branch=master)](https://travis-ci.org/datastax/csharp-driver)
+[![Build status](https://travis-ci.org/datastax/csharp-driver.svg?branch=master)](https://travis-ci.org/datastax/csharp-driver)
+[![Latest stable](https://img.shields.io/nuget/v/CassandraCSharpDriver.svg)](https://www.nuget.org/packages/CassandraCSharpDriver)
 
 ## Features
 
