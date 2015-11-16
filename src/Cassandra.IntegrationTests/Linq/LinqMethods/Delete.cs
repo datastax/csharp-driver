@@ -110,8 +110,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             var selectQuery = table.Select(m => m).Where(m => m.BooleanType == true);
             var deleteQuery = selectQuery.Delete();
 
-            var ex = Assert.Throws<InvalidQueryException>(() => deleteQuery.Execute());
-            StringAssert.Contains("Non PRIMARY KEY boolean_type found in where clause", ex.Message);
+            Assert.Throws<InvalidQueryException>(() => deleteQuery.Execute());
         }
 
         [Test]
@@ -214,10 +213,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             var selectQuery = table.Select(m => m).Where(m => m.StringType == entityToDelete.StringType);
             var deleteQuery = selectQuery.Delete().IfExists();
 
-            var ex = Assert.Throws<InvalidQueryException>(() => deleteQuery.Execute());
-            StringAssert.Contains(
-                "DELETE statements must restrict all PRIMARY KEY columns with equality relations in order to use IF conditions, but column 'guid_type' is not restricted",
-                ex.Message);
+            Assert.Throws<InvalidQueryException>(() => deleteQuery.Execute());
 
             // make sure record was not deleted
             count = table.Count().Execute();

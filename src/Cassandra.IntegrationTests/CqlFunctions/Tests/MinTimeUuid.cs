@@ -81,8 +81,6 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
             EntityWithTimeUuid.SetupEntity(_tableEntityWithTimeUuid, _expectedTimeUuidObjectList);
 
             var whereQuery = _tableEntityWithTimeUuid.Where(s => s.TimeUuidType >= CqlFunction.MinTimeUuid(_dateBefore));
-            string whereQueryToStr = whereQuery.ToString();
-            Console.WriteLine(whereQueryToStr);
             List<EntityWithTimeUuid> objectsReturned1 = whereQuery.ExecuteAsync().Result.ToList();
             Assert.AreEqual(_expectedTimeUuidObjectList.Count, objectsReturned1.Count);
 
@@ -90,8 +88,6 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
                 EntityWithTimeUuid.AssertListContains(_expectedTimeUuidObjectList, actualObj);
 
             whereQuery = _tableEntityWithTimeUuid.Where(s => s.TimeUuidType >= CqlFunction.MinTimeUuid(_dateAfter));
-            whereQueryToStr = whereQuery.ToString();
-            Console.WriteLine(whereQueryToStr);
             List<EntityWithTimeUuid> objectsReturned2 = whereQuery.ExecuteAsync().Result.ToList();
             Assert.AreEqual(0, objectsReturned2.Count);
 
@@ -107,8 +103,6 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
             EntityWithTimeUuid.SetupEntity(_tableEntityWithTimeUuid, _expectedTimeUuidObjectList);
 
             var whereQuery = _tableEntityWithTimeUuid.Where(s => s.TimeUuidType < CqlFunction.MinTimeUuid(_dateAfter));
-            string whereQueryToStr = whereQuery.ToString();
-            Console.WriteLine(whereQueryToStr);
             List<EntityWithTimeUuid> objectsReturned1 = whereQuery.ExecuteAsync().Result.ToList();
             Assert.AreEqual(_expectedTimeUuidObjectList.Count, objectsReturned1.Count);
 
@@ -116,8 +110,6 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
                 EntityWithTimeUuid.AssertListContains(_expectedTimeUuidObjectList, actualObj);
 
             whereQuery = _tableEntityWithTimeUuid.Where(s => s.TimeUuidType < CqlFunction.MinTimeUuid(_dateBefore));
-            whereQueryToStr = whereQuery.ToString();
-            Console.WriteLine(whereQueryToStr);
             List<EntityWithTimeUuid> objectsReturned2 = whereQuery.ExecuteAsync().Result.ToList();
             Assert.AreEqual(0, objectsReturned2.Count);
 
@@ -133,8 +125,6 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
             EntityWithTimeUuid.SetupEntity(_tableEntityWithTimeUuid, _expectedTimeUuidObjectList);
 
             var whereQuery = _tableEntityWithTimeUuid.Where(s => s.TimeUuidType <= CqlFunction.MinTimeUuid(_dateAfter));
-            string whereQueryToStr = whereQuery.ToString();
-            Console.WriteLine(whereQueryToStr);
             List<EntityWithTimeUuid> objectsReturned1 = whereQuery.ExecuteAsync().Result.ToList();
             Assert.AreEqual(_expectedTimeUuidObjectList.Count, objectsReturned1.Count);
 
@@ -142,8 +132,6 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
                 EntityWithTimeUuid.AssertListContains(_expectedTimeUuidObjectList, actualObj);
 
             whereQuery = _tableEntityWithTimeUuid.Where(s => s.TimeUuidType <= CqlFunction.MinTimeUuid(_dateBefore));
-            whereQueryToStr = whereQuery.ToString();
-            Console.WriteLine(whereQueryToStr);
             List<EntityWithTimeUuid> objectsReturned2 = whereQuery.ExecuteAsync().Result.ToList();
             Assert.AreEqual(0, objectsReturned2.Count);
 
@@ -206,8 +194,6 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
             EntityWithNullableTimeUuid.SetupEntity(_tableEntityWithNullableTimeUuid, _expectedNullableTimeUuidObjectList);
 
             var whereQuery = _tableEntityWithNullableTimeUuid.Where(s => s.NullableTimeUuidType < CqlFunction.MinTimeUuid(_dateAfter));
-            string whereQueryToStr = whereQuery.ToString();
-            Console.WriteLine(whereQueryToStr);
             List<EntityWithNullableTimeUuid> objectsReturned1 = whereQuery.ExecuteAsync().Result.ToList();
             Assert.AreEqual(_expectedTimeUuidObjectList.Count, objectsReturned1.Count);
 
@@ -215,8 +201,6 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
                 EntityWithNullableTimeUuid.AssertListContains(_expectedNullableTimeUuidObjectList, actualObj);
 
             whereQuery = _tableEntityWithNullableTimeUuid.Where(s => s.NullableTimeUuidType < CqlFunction.MinTimeUuid(_dateBefore));
-            whereQueryToStr = whereQuery.ToString();
-            Console.WriteLine(whereQueryToStr);
             List<EntityWithNullableTimeUuid> objectsReturned2 = whereQuery.ExecuteAsync().Result.ToList();
             Assert.AreEqual(0, objectsReturned2.Count);
         }
@@ -231,8 +215,6 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
             EntityWithNullableTimeUuid.SetupEntity(_tableEntityWithNullableTimeUuid, _expectedNullableTimeUuidObjectList);
 
             var whereQuery = _tableEntityWithNullableTimeUuid.Where(s => s.NullableTimeUuidType <= CqlFunction.MinTimeUuid(_dateAfter));
-            string whereQueryToStr = whereQuery.ToString();
-            Console.WriteLine(whereQueryToStr);
             List<EntityWithNullableTimeUuid> objectsReturned1 = whereQuery.ExecuteAsync().Result.ToList();
             Assert.AreEqual(_expectedTimeUuidObjectList.Count, objectsReturned1.Count);
 
@@ -240,8 +222,6 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
                 EntityWithNullableTimeUuid.AssertListContains(_expectedNullableTimeUuidObjectList, actualObj);
 
             whereQuery = _tableEntityWithNullableTimeUuid.Where(s => s.NullableTimeUuidType <= CqlFunction.MinTimeUuid(_dateBefore));
-            whereQueryToStr = whereQuery.ToString();
-            Console.WriteLine(whereQueryToStr);
             List<EntityWithNullableTimeUuid> objectsReturned2 = whereQuery.ExecuteAsync().Result.ToList();
             Assert.AreEqual(0, objectsReturned2.Count);
         }

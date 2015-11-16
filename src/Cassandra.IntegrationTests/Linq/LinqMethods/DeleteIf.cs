@@ -117,10 +117,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             // Test
             var selectQuery = table.Select(m => m).Where(m => m.StringType == entityToDelete.StringType + Randomm.RandomAlphaNum(10));
             var deleteIfQuery = selectQuery.DeleteIf(m => m.IntType == entityToDelete.IntType);
-            var ex = Assert.Throws<InvalidQueryException>(() => deleteIfQuery.Execute());
-            StringAssert.Contains(
-                "DELETE statements must restrict all PRIMARY KEY columns with equality relations in order to use IF conditions, but column 'guid_type' is not restricted",
-                ex.Message);
+            Assert.Throws<InvalidQueryException>(() => deleteIfQuery.Execute());
         }
 
         [Test, TestCassandraVersion(2, 1, 2)]
@@ -136,10 +133,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             var selectQuery = table.Select(m => m).Where(m => m.GuidType == Guid.NewGuid());
             var deleteIfQuery = selectQuery.DeleteIf(m => m.IntType == entityToDelete.IntType);
 
-            var ex = Assert.Throws<InvalidQueryException>(() => deleteIfQuery.Execute());
-            StringAssert.Contains(
-                "DELETE statements must restrict all PRIMARY KEY columns with equality relations in order to use IF conditions, but column 'string_type' is not restricted",
-                ex.Message);
+            Assert.Throws<InvalidQueryException>(() => deleteIfQuery.Execute());
         }
 
         [Test, TestCassandraVersion(2, 0)]
@@ -154,9 +148,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             // Test
             var selectQuery = table.Select(m => m).Where(m => m.StringType == entityToDelete.StringType + Randomm.RandomAlphaNum(10) && m.GuidType == Guid.NewGuid());
             var deleteIfQuery = selectQuery.DeleteIf(m => m.IntType == entityToDelete.IntType);
-
-            string deleteIfQueryToString = deleteIfQuery.ToString();
-            Console.WriteLine(deleteIfQueryToString);
 
             var appliedInfo = deleteIfQuery.Execute();
             Assert.False(appliedInfo.Applied);

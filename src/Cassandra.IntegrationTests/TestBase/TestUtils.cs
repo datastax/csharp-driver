@@ -106,9 +106,10 @@ namespace Cassandra.IntegrationTests.TestBase
                 session.DeleteKeyspaceIfExists(keyspaceName);
         }
 
-        public static bool TableExists(ISession session, string keyspaceName, string tableName)
+        public static bool TableExists(ISession session, string keyspaceName, string tableName, bool caseSensitive=false)
         {
-            var cql = string.Format("SELECT * FROM {0}.{1} LIMIT 1", keyspaceName, tableName);
+            var cql = caseSensitive ? string.Format(@"SELECT * FROM ""{0}"".""{1}"" LIMIT 1", keyspaceName, tableName) 
+                : string.Format("SELECT * FROM {0}.{1} LIMIT 1", keyspaceName, tableName);
             //it will throw a InvalidQueryException if the table/keyspace does not exist
             session.Execute(cql);
             return true;

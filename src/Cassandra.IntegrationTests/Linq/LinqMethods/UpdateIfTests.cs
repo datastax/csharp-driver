@@ -70,8 +70,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                 .Where(m => m.Title == "Dead Poets Society" && m.MovieMaker == "Touchstone" && m.Director == "Peter Weir")
                 .Select(m => new Movie { MainActor = "WHOEVER" })
                 .UpdateIf(m => m.Year == 1500);
-            string updateIfToStr = updateIf.ToString();
-            Console.WriteLine(updateIfToStr);
 
             appliedInfo = updateIf.Execute();
             Assert.False(appliedInfo.Applied);

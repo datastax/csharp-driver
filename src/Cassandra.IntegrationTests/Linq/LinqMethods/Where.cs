@@ -163,9 +163,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             CqlQuery<TestTable> query3Actual = query1Actual.Where(i => i.TimeColumn <= time);
             query3Actual = query3Actual.OrderByDescending(i => i.TimeColumn);
 
-            string query1Expected = "SELECT * FROM \"test1\" WHERE \"user\" = ? AND \"date\" = ? ALLOW FILTERING";
-            string query2Expected = "SELECT * FROM \"test1\" WHERE \"user\" = ? AND \"date\" = ? AND \"time\" >= ? ORDER BY \"time\" ALLOW FILTERING";
-            string query3Expected = "SELECT * FROM \"test1\" WHERE \"user\" = ? AND \"date\" = ? AND \"time\" <= ? ORDER BY \"time\" DESC ALLOW FILTERING";
+            string query1Expected = "SELECT \"user\", \"date\", \"time\" FROM \"test1\" WHERE \"user\" = ? AND \"date\" = ? ALLOW FILTERING";
+            string query2Expected = "SELECT \"user\", \"date\", \"time\" FROM \"test1\" WHERE \"user\" = ? AND \"date\" = ? AND \"time\" >= ? ORDER BY \"time\" ALLOW FILTERING";
+            string query3Expected = "SELECT \"user\", \"date\", \"time\" FROM \"test1\" WHERE \"user\" = ? AND \"date\" = ? AND \"time\" <= ? ORDER BY \"time\" DESC ALLOW FILTERING";
 
             Assert.AreEqual(query1Expected, query1Actual.ToString());
             Assert.AreEqual(query2Expected, query2Actual.ToString());

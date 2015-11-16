@@ -27,11 +27,6 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short")]
     public class UdtMappingsTests : SharedClusterTest
     {
-        /// <summary>
-        /// The protocol versions in which udts are supported
-        /// </summary>
-        private static readonly int[] UdtProtocolVersionSupported = new[] {3};
-
         protected override void TestFixtureSetUp()
         {
             if (CassandraVersion < Version.Parse("2.1.0"))
@@ -314,7 +309,7 @@ namespace Cassandra.IntegrationTests.Core
                 .Build())
             {
                 cluster.Configuration.ProtocolOptions.SetMaxProtocolVersion(2);
-                var localSession = cluster.Connect();
+                var localSession = cluster.Connect(base.KeyspaceName);
                 Assert.Throws<NotSupportedException>(() => localSession.UserDefinedTypes.Define(UdtMap.For<Phone>()));   
             }
         }
