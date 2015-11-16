@@ -162,22 +162,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void Single_MissingPartitionKey()
         {
             string bunkCql = _selectAllDefaultCql + " where title ='doesntmatter'";
-
-            try
-            {
-                _mapper.Single<Movie>(bunkCql);
-                Assert.Fail("expected exception was not thrown!");
-            }
-            catch (InvalidQueryException e)
-            {
-                string expectedErrMsg = null;
-                if (_session.BinaryProtocolVersion < 3)
-                    expectedErrMsg = "No indexed columns present in by-columns clause with Equal operator"; 
-                else
-                    expectedErrMsg = "No secondary indexes on the restricted columns support the provided operators: ";
-
-                StringAssert.IsMatch(expectedErrMsg, e.Message);
-            }
+            Assert.Throws<InvalidQueryException>(() => _mapper.Single<Movie>(bunkCql));
         }
 
 

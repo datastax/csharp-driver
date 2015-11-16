@@ -63,7 +63,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_Create()
         {
-            // Test
             Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             table.Create();
             WriteReadValidate(table);
@@ -76,12 +75,11 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_Create_NameOverride()
         {
-            // Test
             string uniqueTableName = TestUtils.GetUniqueTableName();
             Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration(), uniqueTableName);
             Assert.AreEqual(uniqueTableName, table.Name);
             table.Create();
-            Assert.IsTrue(TestUtils.TableExists(_session, _uniqueKsName, uniqueTableName), string.Format("Table {0}.{1} doesn't exist!", _uniqueKsName, uniqueTableName));
+            Assert.IsTrue(TestUtils.TableExists(_session, _uniqueKsName, uniqueTableName, true));
             WriteReadValidate(table);
         }
 
@@ -144,18 +142,8 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         {
             string uniqueTableName = TestUtils.GetUniqueTableName();
             string uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            string expectedErrMsg = string.Format("Cannot add (column family|table) '{0}' to non existing keyspace '{1}'.", uniqueTableName, uniqueKsName);
             Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
-
-            try
-            {
-                table.Create();
-                Assert.Fail("Expected Exception was not thrown!");
-            }
-            catch (InvalidConfigurationInQueryException e)
-            {
-                StringAssert.IsMatch(expectedErrMsg, e.Message);
-            }
+            Assert.Throws<InvalidConfigurationInQueryException>(() => table.Create());
         }
 
         /// <summary>
@@ -167,18 +155,8 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         {
             string uniqueTableName = TestUtils.GetUniqueTableName();
             string uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            string expectedErrMsg = string.Format("Cannot add (column family|table) '{0}' to non existing keyspace '{1}'.", uniqueTableName, uniqueKsName);
             Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
-
-            try
-            {
-                table.CreateIfNotExists();
-                Assert.Fail("Expected Exception was not thrown!");
-            }
-            catch (InvalidConfigurationInQueryException e)
-            {
-                StringAssert.IsMatch(expectedErrMsg, e.Message);
-            }
+            Assert.Throws<InvalidConfigurationInQueryException>(() => table.CreateIfNotExists());
         }
 
         /// <summary>
@@ -193,7 +171,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             var mappingConfig = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(sharedTableName).CaseSensitive().PartitionKey(c => c.StringType));
             Table<AllDataTypesEntity> table1 = new Table<AllDataTypesEntity>(_session, mappingConfig);
             table1.Create();
-            Assert.IsTrue(TestUtils.TableExists(_session, _uniqueKsName, sharedTableName)); 
+            Assert.IsTrue(TestUtils.TableExists(_session, _uniqueKsName, sharedTableName, true)); 
             WriteReadValidate(table1);
 
             // Create second table with same name in new keyspace
@@ -202,7 +180,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             Assert.AreNotEqual(_uniqueKsName, newUniqueKsName);
             Table<AllDataTypesEntity> table2 = new Table<AllDataTypesEntity>(_session, mappingConfig, sharedTableName, newUniqueKsName);
             table2.Create();
-            Assert.IsTrue(TestUtils.TableExists(_session, newUniqueKsName, sharedTableName)); 
+            Assert.IsTrue(TestUtils.TableExists(_session, newUniqueKsName, sharedTableName, true)); 
             WriteReadValidate(table2);
 
             // also use ChangeKeyspace and validate client functionality

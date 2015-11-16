@@ -165,13 +165,16 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             foreach (Author expectedAuthor in expectedAuthors)
                 mapper.Insert(expectedAuthor);
 
-            Cql cql = new Cql("SELECT * from " + table.Name).WithOptions(c => c.SetConsistencyLevel(ConsistencyLevel.EachQuorum));
+            Cql cql = new Cql("SELECT * from " + table.Name).WithOptions(c => c.SetConsistencyLevel(ConsistencyLevel.Any));
             var err = Assert.Throws<InvalidQueryException>(() => mapper.Fetch<Author>(cql).ToList());
-            Assert.AreEqual("EACH_QUORUM ConsistencyLevel is only supported for writes", err.Message);
-
-            cql = new Cql("SELECT * from " + table.Name).WithOptions(c => c.SetConsistencyLevel(ConsistencyLevel.Any));
-            err = Assert.Throws<InvalidQueryException>(() => mapper.Fetch<Author>(cql).ToList());
             Assert.AreEqual("ANY ConsistencyLevel is only supported for writes", err.Message);
+
+            if (CassandraVersion < Version.Parse("3.0.0"))
+            {
+                cql = new Cql("SELECT * from " + table.Name).WithOptions(c => c.SetConsistencyLevel(ConsistencyLevel.EachQuorum));
+                err = Assert.Throws<InvalidQueryException>(() => mapper.Fetch<Author>(cql).ToList());
+                Assert.AreEqual("EACH_QUORUM ConsistencyLevel is only supported for writes", err.Message);
+            }
         }
 
         /// <summary>

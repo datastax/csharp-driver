@@ -286,9 +286,6 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
             Table<EntityWithAllCollectionTypes> table = tupleAllCollectionTypes.Item1;
             List<EntityWithAllCollectionTypes> expectedEntities = tupleAllCollectionTypes.Item2;
 
-            var originalEntityListInCass = table.Select(m => m).ExecuteAsync().Result.ToList();
-            Console.WriteLine(originalEntityListInCass.Count);
-
             EntityWithAllCollectionTypes singleEntity = expectedEntities.First();
             var toAppend = new List<int> { 5, 6 };
             table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithAllCollectionTypes { ListType = CqlOperator.Append(toAppend) }).Update().Execute();
