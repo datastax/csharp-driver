@@ -1,5 +1,48 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.0.0-beta2
+
+2015-11-19
+
+### Notable Changes
+
+- Support for Cassandra 3.0
+- _Breaking_: Changed default consistency level to LOCAL_QUORUM [#158](https://github.com/datastax/csharp-driver/pull/158)
+- _Breaking_: `AggregateMetadata.InitialCondition` member now returns the string representation of the value
+[#157](https://github.com/datastax/csharp-driver/pull/157)
+- Changed read timeout to 12 secs [#158](https://github.com/datastax/csharp-driver/pull/158)
+- Linq: Select expressions or lambdas that do not specify fields generate a query with explicit columns names.
+ie: `SELECT a, b, c, ...` [#94](https://github.com/datastax/csharp-driver/pull/94)
+
+### Features
+
+- [CSHARP-361] - Update schema type representation to CQL
+- [CSHARP-353] - Change default consistency level to LOCAL_QUORUM
+- [CSHARP-259] - Enable TCP NoDelay by Default
+- [CSHARP-356] - Updated default behavior unbound values in prepared statements
+- [CSHARP-362] - Set default read timeout to 12 secs
+
+### Bug Fixes
+
+- [CSHARP-308] - Linq: Avoid using SELECT * when the fields are not specified
+- [CSHARP-365] - Mono: SocketAsyncEventArgs BufferList must implement indexer
+- [CSHARP-371] - Mapper: Allow automatic conversion to structs for null values
+
+## 3.0.0-beta1
+
+2015-10-19
+
+### Notable Changes
+
+- Support for Cassandra 3.0-rc2
+
+### Features
+
+- [CSHARP-213] - Retrieve Cassandra Version with the Host Metadata
+- [CSHARP-286] - Process Modernized Schema Tables for 3.0
+- [CSHARP-348] - Process materialized view metadata
+- [CSHARP-359] - Updated Clustering Order Representation in Schema Metadata
+
 ## 2.8.0-alpha1
 
 2015-10-29
