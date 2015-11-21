@@ -15,7 +15,8 @@
 //
 
 ﻿using System;
-using System.Reflection;
+﻿using System.Collections.Generic;
+﻿using System.Reflection;
 ﻿using System.Threading;
 ﻿using System.Threading.Tasks;
 
@@ -31,9 +32,7 @@ namespace Cassandra.Tasks
         {
             try
             {
-                TaskCompletionSource<bool> tcs = new TaskCompletionSource<bool>();
-                tcs.SetResult(false);
-                CompletedTask = tcs.Task;
+                CompletedTask = FromResult(false);
                 PreserveStackMethod = typeof(Exception).GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic);
                 if (PreserveStackMethod == null)
                 {
@@ -59,6 +58,13 @@ namespace Cassandra.Tasks
                 //Do nothing
                 //Do not throw exceptions on static constructors
             }
+        }
+
+        public static Task<T> FromResult<T>(T result)
+        {
+            var tcs = new TaskCompletionSource<T>();
+            tcs.SetResult(result);
+            return tcs.Task;
         }
 
         /// <summary>
@@ -129,7 +135,7 @@ namespace Cassandra.Tasks
         /// <param name="timeout">timeout in milliseconds</param>
         /// <exception cref="TimeoutException" />
         /// <exception cref="AggregateException" />
-        public static T WaitToComplete<T>(Task<T> task, int timeout = Timeout.Infinite)
+        public static T WaitToComplete<T>(this Task<T> task, int timeout = Timeout.Infinite)
         {
             WaitToComplete((Task) task, timeout);
             return task.Result;
@@ -145,7 +151,7 @@ namespace Cassandra.Tasks
         /// <param name="timeout">timeout in milliseconds</param>
         /// <exception cref="TimeoutException" />
         /// <exception cref="AggregateException" />
-        public static void WaitToComplete(Task task, int timeout = Timeout.Infinite)
+        public static void WaitToComplete(this Task task, int timeout = Timeout.Infinite)
         {
             //It should wait and throw any exception
             try

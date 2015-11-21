@@ -110,7 +110,7 @@ namespace Cassandra
         /// Connects synchronously to the host and starts reading
         /// </summary>
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
-        public Task<bool> Connect()
+        public Task<bool> Connect(CancellationToken cancellationToken)
         {
             var tcs = new TaskCompletionSource<bool>();
             var socketConnectTask = tcs.Task;

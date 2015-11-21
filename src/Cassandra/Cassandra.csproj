@@ -15,6 +15,8 @@
     <RestorePackages>true</RestorePackages>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\..\build\datastax.snk</AssemblyOriginatorKeyFile>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -30,6 +32,7 @@
     </NoWarn>
     <DocumentationFile>
     </DocumentationFile>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -42,6 +45,7 @@
     <DocumentationFile>bin\Release\Cassandra.xml</DocumentationFile>
     <NoWarn>1591</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="LZ4, Version=1.0.5.93, Culture=neutral, PublicKeyToken=fd2bda0a70c5a705, processorArchitecture=MSIL">
@@ -141,6 +145,8 @@
     <Compile Include="Requests\ICqlRequest.cs" />
     <Compile Include="LocalDate.cs" />
     <Compile Include="LocalTime.cs" />
+    <Compile Include="Locking\AsyncLock.cs" />
+    <Compile Include="Locking\AsyncSemaphore.cs" />
     <Compile Include="Mapping\AppliedInfo.cs" />
     <Compile Include="Mapping\IPage.cs" />
     <Compile Include="AtomicValue.cs" />

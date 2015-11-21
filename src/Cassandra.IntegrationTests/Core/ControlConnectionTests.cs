@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 using NUnit.Framework;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
@@ -22,31 +23,31 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void Should_Use_Maximum_Protocol_Version_Supported()
+        public async Task Should_Use_Maximum_Protocol_Version_Supported()
         {
             var cc = NewInstance();
-            cc.Init();
+            await cc.InitAsync();
             Assert.AreEqual(GetExpectedProtocolVersion(), cc.ProtocolVersion);
             cc.Dispose();
         }
 
         [Test, TestCassandraVersion(2, 0)]
-        public void Should_Use_Maximum_Protocol_Version_Provided()
+        public async Task Should_Use_Maximum_Protocol_Version_Provided()
         {
             var version = (byte) (GetExpectedProtocolVersion() - 1);
             var cc = NewInstance(version);
-            cc.Init();
+            await cc.InitAsync();
             Assert.AreEqual(version, cc.ProtocolVersion);
             cc.Dispose();
         }
 
         [Test, TestCassandraVersion(2, 2, TestBase.Comparison.LessThan)]
-        public void Should_Downgrade_The_Protocol_Version()
+        public async Task Should_Downgrade_The_Protocol_Version()
         {
             //Use a higher protocol version
             var version = (byte) (GetExpectedProtocolVersion() + 1);
             var cc = NewInstance(version);
-            cc.Init();
+            await cc.InitAsync();
             Assert.AreEqual(version - 1, cc.ProtocolVersion);
         }
 

@@ -107,9 +107,27 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
+        public Task ChangeKeyspaceAsync(string keyspace)
+        {
+            if (Keyspace != keyspace)
+            {
+                var task = ExecuteAsync(new SimpleStatement(CqlQueryTools.GetUseKeyspaceCql(keyspace)));
+                return task.Continue(rs => Keyspace = keyspace);
+            }
+            return TaskHelper.Completed;
+        }
+
+        /// <inheritdoc />
         public void CreateKeyspace(string keyspace, Dictionary<string, string> replication = null, bool durableWrites = true)
         {
             WaitForSchemaAgreement(Execute(CqlQueryTools.GetCreateKeyspaceCql(keyspace, replication, durableWrites, false)));
+            Logger.Info("Keyspace [" + keyspace + "] has been successfully CREATED.");
+        }
+
+        /// <inheritdoc />
+        public async Task CreateKeyspaceAsync(string keyspace, Dictionary<string, string> replication = null, bool durableWrites = true)
+        {
+            await ExecuteAsync(CqlQueryTools.GetCreateKeyspaceCql(keyspace, replication, durableWrites, false));
             Logger.Info("Keyspace [" + keyspace + "] has been successfully CREATED.");
         }
 
@@ -119,6 +137,19 @@ namespace Cassandra
             try
             {
                 CreateKeyspace(keyspaceName, replication, durableWrites);
+            }
+            catch (AlreadyExistsException)
+            {
+                Logger.Info(string.Format("Cannot CREATE keyspace:  {0}  because it already exists.", keyspaceName));
+            }
+        }
+
+        /// <inheritdoc />
+        public async Task CreateKeyspaceIfNotExistsAsync(string keyspaceName, Dictionary<string, string> replication = null, bool durableWrites = true)
+        {
+            try
+            {
+                await CreateKeyspaceAsync(keyspaceName, replication, durableWrites);
             }
             catch (AlreadyExistsException)
             {
@@ -167,11 +198,11 @@ namespace Cassandra
         /// <summary>
         /// Initialize the session
         /// </summary>
-        internal void Init()
+        internal Task Init()
         {
             var handler = new RequestHandler<RowSet>(this);
             //Borrow a connection, trying to fail fast
-            TaskHelper.WaitToComplete(handler.GetNextConnection(new Dictionary<IPEndPoint,Exception>()));
+            return handler.GetNextConnection(new Dictionary<IPEndPoint, Exception>());
         }
 
         /// <inheritdoc />
@@ -214,6 +245,12 @@ namespace Cassandra
         public RowSet Execute(string cqlQuery, int pageSize)
         {
             return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(Configuration.QueryOptions.GetConsistencyLevel()).SetPageSize(pageSize));
+        }
+
+        /// <inheritdoc />
+        public Task<RowSet> ExecuteAsync(string cqlQuery)
+        {
+            return ExecuteAsync(new SimpleStatement(cqlQuery).SetConsistencyLevel(Configuration.QueryOptions.GetConsistencyLevel()).SetPageSize(Configuration.QueryOptions.GetPageSize()));
         }
 
         /// <inheritdoc />

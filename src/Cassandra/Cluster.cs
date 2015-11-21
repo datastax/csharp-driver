@@ -19,6 +19,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
+using Cassandra.Locking;
 using Cassandra.Tasks;
 using Microsoft.IO;
 
@@ -38,7 +40,7 @@ namespace Cassandra
         private ControlConnection _controlConnection;
         private volatile bool _initialized;
         private volatile Exception _initException;
-        private readonly object _initLock = new Object();
+        private readonly AsyncLock _initLock = new AsyncLock();
         private readonly Metadata _metadata;
         /// <inheritdoc />
         public event Action<Host> HostAdded;
@@ -97,7 +99,7 @@ namespace Cassandra
         {
             get
             {
-                Init();
+                InitAsync().Wait();
                 return _metadata;
             }
         }
@@ -115,14 +117,14 @@ namespace Cassandra
         /// <summary>
         /// Initializes once (Thread-safe) the control connection and metadata associated with the Cluster instance
         /// </summary>
-        private void Init()
-        {
+        private async Task InitAsync()
+        { 
             if (_initialized)
             {
                 //It was already initialized
                 return;
             }
-            lock (_initLock)
+            using (await _initLock.LockAsync())
             {
                 if (_initialized)
                 {
@@ -147,7 +149,7 @@ namespace Cassandra
                 _metadata.ControlConnection = _controlConnection;
                 try
                 {
-                    _controlConnection.Init();
+                    await _controlConnection.InitAsync();
                     _protocolVersion = _controlConnection.ProtocolVersion;
                     //Initialize policies
                     Configuration.Policies.LoadBalancingPolicy.Initialize(this);
@@ -195,9 +197,14 @@ namespace Cassandra
         /// <param name="keyspace">Case-sensitive keyspace name to use</param>
         public ISession Connect(string keyspace)
         {
-            Init();
+            return ConnectAsync(keyspace).WaitToComplete();
+        }
+
+        public async Task<ISession> ConnectAsync(string keyspace)
+        {
+            await InitAsync();
             var session = new Session(this, Configuration, keyspace, _protocolVersion);
-            session.Init();
+            await session.Init();
             _connectedSessions.Add(session);
             _logger.Info("Session connected ({0})", session.GetHashCode());
             return session;
@@ -263,7 +270,7 @@ namespace Cassandra
         /// <summary>
         /// Updates cluster metadata for a given keyspace or keyspace table
         /// </summary>
-        public bool RefreshSchema(string keyspace = null, string table = null)
+        public Task<bool> RefreshSchema(string keyspace = null, string table = null)
         {
             return Metadata.RefreshSchema(keyspace, table);
         }

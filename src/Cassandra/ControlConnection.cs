@@ -79,7 +79,7 @@ namespace Cassandra
             Metadata = metadata;
             _reconnectionPolicy = config.Policies.ReconnectionPolicy;
             _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
-            _reconnectionTimer = new Timer(_ => Reconnect(), null, Timeout.Infinite, Timeout.Infinite);
+            _reconnectionTimer = new Timer(_ => Reconnect(CancellationToken.None).Wait(), null, Timeout.Infinite, Timeout.Infinite);
             _config = config;
             ProtocolVersion = initialProtocolVersion;
         }
@@ -94,17 +94,17 @@ namespace Cassandra
         /// </summary>
         /// <exception cref="NoHostAvailableException" />
         /// <exception cref="DriverInternalError" />
-        internal void Init()
+        internal async Task InitAsync()
         {
             _logger.Info("Trying to connect the ControlConnection");
             //Only abort when twice the time for ConnectTimeout per host passed
-            var initialAbortTimeout = _config.SocketOptions.ConnectTimeoutMillis * 2 * Metadata.Hosts.Count;
-            TaskHelper.WaitToComplete(Connect(true), initialAbortTimeout);
+            var timeout = _config.SocketOptions.ConnectTimeoutMillis * 2 * Metadata.Hosts.Count;
+            await Connect(true, new CancellationTokenSource(timeout).Token);
             try
             {
                 SubscribeEventHandlers();
-                RefreshNodeList();
-                Metadata.RefreshKeyspaces(false);
+                await RefreshNodeListAsync();
+                await Metadata.RefreshKeyspacesAsync(false);
             }
             catch (SocketException ex)
             {
@@ -112,7 +112,8 @@ namespace Cassandra
                 //It is not usual but can happen
                 _logger.Error("An error occurred when trying to retrieve the cluster metadata, retrying.", ex);
                 //Retry one more time and throw if there is problem
-                TaskHelper.WaitToComplete(Reconnect(), _config.SocketOptions.ConnectTimeoutMillis);
+                
+                await Reconnect(new CancellationTokenSource(_config.SocketOptions.ConnectTimeoutMillis).Token);
             }
         }
 
@@ -121,7 +122,7 @@ namespace Cassandra
         /// </summary>
         /// <exception cref="NoHostAvailableException" />
         /// <exception cref="DriverInternalError" />
-        private Task<bool> Connect(bool firstTime)
+        private Task<bool> Connect(bool firstTime, CancellationToken cancellationToken)
         {
             IEnumerable<Host> hosts = Metadata.Hosts;
             if (!firstTime)
@@ -130,103 +131,99 @@ namespace Cassandra
                 //Use the load balancing policy to determine which host to use
                 hosts = _config.Policies.LoadBalancingPolicy.NewQueryPlan(null, null);
             }
-            return IterateAndConnect(hosts.GetEnumerator(), new Dictionary<IPEndPoint, Exception>());
+            return IterateAndConnect(hosts.GetEnumerator(), new Dictionary<IPEndPoint, Exception>(), cancellationToken);
         }
 
-        private Task<bool> IterateAndConnect(IEnumerator<Host> hostsEnumerator, Dictionary<IPEndPoint, Exception> triedHosts)
+        private async Task<bool> IterateAndConnect(IEnumerator<Host> hostsEnumerator, Dictionary<IPEndPoint, Exception> triedHosts, CancellationToken cancellationToken)
         {
             var available = hostsEnumerator.MoveNext();
             if (!available)
             {
-                return TaskHelper.FromException<bool>(new NoHostAvailableException(triedHosts));
+                throw new NoHostAvailableException(triedHosts);
             }
             var host = hostsEnumerator.Current;
-            var c = new Connection(ProtocolVersion, host.Address, _config);
-            return ((Task) c
-                .Open())
-                .ContinueWith(t =>
+            var connection = new Connection(ProtocolVersion, host.Address, _config);
+
+            try
+            {
+                await connection.Open(cancellationToken);
+                _connection = connection;
+                _host = host;
+                _logger.Info("Connection established to {0}", connection.Address);
+                return true;
+            }
+            catch (UnsupportedProtocolVersionException)
+            {
+                //Use the protocol version used to parse the response message
+                var nextVersion = connection.ProtocolVersion;
+                if (nextVersion >= ProtocolVersion)
                 {
-                    if (t.Status == TaskStatus.RanToCompletion)
-                    {
-                        _connection = c;
-                        _host = host;
-                        _logger.Info("Connection established to {0}", c.Address);
-                        return TaskHelper.ToTask(true);
-                    }
-                    if (t.IsFaulted && t.Exception != null)
-                    {
-                        var ex = t.Exception.InnerException;
-                        if (ex is UnsupportedProtocolVersionException)
-                        {
-                            //Use the protocol version used to parse the response message
-                            var nextVersion = c.ProtocolVersion;
-                            if (nextVersion >= ProtocolVersion)
-                            {
-                                //Processor could reorder instructions in such way that the connection protocol version is not up to date.
-                                nextVersion = (byte)(ProtocolVersion - 1);
-                            }
-                            _logger.Info(String.Format("Unsupported protocol version {0}, trying with version {1}", ProtocolVersion, nextVersion));
-                            ProtocolVersion = nextVersion;
-                            c.Dispose();
-                            if (ProtocolVersion < 1)
-                            {
-                                throw new DriverInternalError("Invalid protocol version");
-                            }
-                            //Retry using the new protocol version
-                            return Connect(true);
-                        }
-                        //There was a socket exception or an authentication exception
-                        triedHosts.Add(host.Address, ex);
-                        c.Dispose();
-                        return IterateAndConnect(hostsEnumerator, triedHosts);
-                    }
-                    throw new TaskCanceledException("The ControlConnection could not be connected.");
-                }, TaskContinuationOptions.ExecuteSynchronously)
-                .Unwrap();
+                    //Processor could reorder instructions in such way that the connection protocol version is not up to date.
+                    nextVersion = (byte)(ProtocolVersion - 1);
+                }
+                _logger.Info(String.Format("Unsupported protocol version {0}, trying with version {1}", ProtocolVersion, nextVersion));
+                ProtocolVersion = nextVersion;
+                connection.Dispose();
+                if (ProtocolVersion < 1)
+                {
+                    throw new DriverInternalError("Invalid protocol version");
+                }
+                //Retry using the new protocol version
+                return await Connect(true, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                //There was a socket exception or an authentication exception
+                triedHosts.Add(host.Address, ex);
+                connection.Dispose();
+                return await IterateAndConnect(hostsEnumerator, triedHosts, cancellationToken);
+            }
         }
 
-        internal Task<bool> Reconnect()
+        internal async Task<bool> Reconnect(CancellationToken cancellationToken)
         {
             //If there is another thread reconnecting, use the same task
             var tcs = new TaskCompletionSource<bool>();
             var currentTask = Interlocked.CompareExchange(ref _reconnectTask, tcs.Task, null);
             if (currentTask != null)
             {
-                return currentTask;
+                return await currentTask;
             }
             Unsubscribe();
-            Connect(false).ContinueWith(t =>
+
+            try
             {
-                if (t.Exception != null)
-                {
-                    Interlocked.Exchange(ref _reconnectTask, null);
-                    tcs.TrySetException(t.Exception.InnerException);
-                    var delay = _reconnectionSchedule.NextDelayMs();
-                    _reconnectionTimer.Change(delay, Timeout.Infinite);
-                    _logger.Error("ControlConnection was not able to reconnect: " +  t.Exception.InnerException);
-                    return;
-                }
-                try
-                {
-                    RefreshNodeList();
-                    Metadata.RefreshKeyspaces(false);
-                    _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
-                    tcs.TrySetResult(true);
-                    Interlocked.Exchange(ref _reconnectTask, null);
-                    _logger.Info("ControlConnection reconnected to host {0}", _host.Address);
-                }
-                catch (Exception ex)
-                {
-                    Interlocked.Exchange(ref _reconnectTask, null);
-                    _logger.Error("There was an error when trying to refresh the ControlConnection", ex);
-                    _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
-                    tcs.TrySetException(ex);
-                }
-            });
-            return tcs.Task;
+                await Connect(false, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                await Interlocked.Exchange(ref _reconnectTask, null);
+                tcs.TrySetException(ex);
+                var delay = _reconnectionSchedule.NextDelayMs();
+                _reconnectionTimer.Change(delay, Timeout.Infinite);
+                _logger.Error("ControlConnection was not able to reconnect: " + ex);
+            }
+
+            try
+            {
+                await RefreshNodeListAsync();
+                await Metadata.RefreshKeyspacesAsync(false);
+                _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
+                tcs.TrySetResult(true);
+                await Interlocked.Exchange(ref _reconnectTask, null);
+                _logger.Info("ControlConnection reconnected to host {0}", _host.Address);
+            }
+            catch (Exception ex)
+            {
+                await Interlocked.Exchange(ref _reconnectTask, null);
+                _logger.Error("There was an error when trying to refresh the ControlConnection", ex);
+                _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
+                tcs.TrySetException(ex);
+            }
+            return await tcs.Task;
         }
 
-        internal void Refresh()
+        internal async Task Refresh()
         {
             if (Interlocked.Increment(ref _refreshCounter) != 1)
             {
@@ -237,8 +234,8 @@ namespace Cassandra
             var reconnect = false;
             try
             {
-                RefreshNodeList();
-                Metadata.RefreshKeyspaces(false);
+                await RefreshNodeListAsync();
+                await Metadata.RefreshKeyspacesAsync(false);
                 _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             }
             catch (SocketException ex)
@@ -256,7 +253,7 @@ namespace Cassandra
             }
             if (reconnect)
             {
-                Reconnect();
+                await Reconnect(CancellationToken.None);
             }
         }
 
@@ -311,7 +308,7 @@ namespace Cassandra
         {
             h.Down -= OnHostDown;
             _logger.Warning("Host {0} used by the ControlConnection DOWN", h.Address);
-            Task.Factory.StartNew(() => Reconnect(), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+            Task.Factory.StartNew(() => Reconnect(CancellationToken.None), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
         }
 
         private void OnConnectionCassandraEvent(object sender, CassandraEventArgs e)
@@ -322,7 +319,7 @@ namespace Cassandra
                 var tce = (TopologyChangeEventArgs)e;
                 if (tce.What == TopologyChangeEventArgs.Reason.NewNode || tce.What == TopologyChangeEventArgs.Reason.RemovedNode)
                 {
-                    Refresh();
+                    Refresh().Wait();
                     return;
                 }
             }
@@ -379,11 +376,11 @@ namespace Cassandra
             return _config.AddressTranslator.Translate(value);
         }
 
-        private void RefreshNodeList()
+        private async Task RefreshNodeListAsync()
         {
             _logger.Info("Refreshing node list");
-            var localRow = Query(SelectLocal).FirstOrDefault();
-            var rsPeers = Query(SelectPeers);
+            var localRow = (await QueryAsync(SelectLocal)).FirstOrDefault();
+            var rsPeers = await QueryAsync(SelectPeers);
             if (localRow == null)
             {
                 _logger.Error("Local host metadata could not be retrieved");
@@ -458,16 +455,21 @@ namespace Cassandra
             return translator.Translate(new IPEndPoint(address, port));
         }
 
+        public RowSet Query(string cqlQuery, bool retry = false)
+        {
+            return QueryAsync(cqlQuery, retry).WaitToComplete();
+        }
+
         /// <summary>
         /// Uses the active connection to execute a query
         /// </summary>
-        public RowSet Query(string cqlQuery, bool retry = false)
+        public async Task<RowSet> QueryAsync(string cqlQuery, bool retry = false)
         {
             var request = new QueryRequest(ProtocolVersion, cqlQuery, false, QueryProtocolOptions.Default);
-            var task = _connection.Send(request);
+            Response response;
             try
             {
-                TaskHelper.WaitToComplete(task, 10000);
+                response = await _connection.Send(request, new CancellationTokenSource(10000).Token);
             }
             catch (SocketException ex)
             {
@@ -476,13 +478,13 @@ namespace Cassandra
                 if (retry)
                 {
                     //Try to connect to another host
-                    TaskHelper.WaitToComplete(Reconnect(), _config.SocketOptions.ConnectTimeoutMillis);
+                    await Reconnect(new CancellationTokenSource(_config.SocketOptions.ConnectTimeoutMillis).Token);
                     //Try to execute again without retry
                     return Query(cqlQuery, false);
                 }
                 throw;
             }
-            return GetRowSet(task.Result);
+            return GetRowSet(response);
         }
 
         /// <summary>
