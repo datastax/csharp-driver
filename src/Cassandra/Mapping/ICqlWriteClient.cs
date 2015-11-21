@@ -8,7 +8,12 @@
         /// <summary>
         /// Inserts the specified POCO in Cassandra.
         /// </summary>
-        void Insert<T>(T poco, CqlQueryOptions queryOptions = null);
+        void Insert<T>(T poco, CqlQueryOptions queryOptions = null, CqlInsertOptions insertOptions = null);
+
+        /// <summary>
+        /// Inserts the specified POCO in Cassandra.
+        /// </summary>
+        void Insert<T>(T poco, CqlInsertOptions insertOptions);
 
         /// <summary>
         /// Updates the POCO specified in Cassandra.

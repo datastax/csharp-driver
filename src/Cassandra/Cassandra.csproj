@@ -142,6 +142,7 @@
     <Compile Include="LocalDate.cs" />
     <Compile Include="LocalTime.cs" />
     <Compile Include="Mapping\AppliedInfo.cs" />
+    <Compile Include="Mapping\CqlInsertOptions.cs" />
     <Compile Include="Mapping\IPage.cs" />
     <Compile Include="AtomicValue.cs" />
     <Compile Include="BigIntegerTypeAdapter.cs" />

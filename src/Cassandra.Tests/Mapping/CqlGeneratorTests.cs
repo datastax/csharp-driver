@@ -145,5 +145,19 @@ namespace Cassandra.Tests.Mapping
             var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>();
             Assert.AreEqual(@"INSERT INTO ""USERS"" (""UserId"", ""Name"", ""UserAge"") VALUES (?, ?, ?)", cql);
         }
+
+        [Test]
+        public void GenerateInsertWithTtl_CaseSensitive_Test()
+        {
+            var types = new Cassandra.Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
+            types.Add(new Map<ExplicitColumnsUser>()
+                .TableName("USERS")
+                .PartitionKey(u => u.UserId)
+                .CaseSensitive());
+            var pocoFactory = new PocoDataFactory(types);
+            var cqlGenerator = new CqlGenerator(pocoFactory);
+            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>();
+            Assert.AreEqual(@"INSERT INTO ""USERS"" (""UserId"", ""Name"", ""UserAge"") VALUES (?, ?, ?)", cql);
+        }
     }
 }

@@ -79,7 +79,8 @@ namespace Cassandra.Mapping
         /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
         /// </para>
         /// </summary>
-        Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, CqlQueryOptions queryOptions = null);
+        Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, CqlQueryOptions queryOptions = null, CqlInsertOptions insertOptions = null);
+
 
         /// <summary>
         /// Inserts the specified POCO in Cassandra, if not exists.
@@ -87,7 +88,24 @@ namespace Cassandra.Mapping
         /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
         /// </para>
         /// </summary>
-        AppliedInfo<T> InsertIfNotExists<T>(T poco, CqlQueryOptions queryOptions = null);
+        Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, CqlInsertOptions insertOptions = null);
+
+        /// <summary>
+        /// Inserts the specified POCO in Cassandra, if not exists.
+        /// <para>
+        /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
+        /// </para>
+        /// </summary>
+        AppliedInfo<T> InsertIfNotExists<T>(T poco, CqlQueryOptions queryOptions = null, CqlInsertOptions insertOptions = null);
+
+
+        /// <summary>
+        /// Inserts the specified POCO in Cassandra, if not exists.
+        /// <para>
+        /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
+        /// </para>
+        /// </summary>
+        AppliedInfo<T> InsertIfNotExists<T>(T poco, CqlInsertOptions insertOptions);
 
         /// <summary>
         /// Updates the table for the poco type specified (T) using the CQL statement specified, using lightweight transactions.

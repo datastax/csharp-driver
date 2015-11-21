@@ -76,7 +76,7 @@ namespace Cassandra.Mapping.Statements
         /// <summary>
         /// Generates an "INSERT INTO tablename (columns) VALUES (?)" statement for a POCO of Type T.
         /// </summary>
-        public string GenerateInsert<T>(bool ifNotExists = false)
+        public string GenerateInsert<T>(bool ifNotExists = false, CqlInsertOptions insertOptions = null)
         {
             var pocoData = _pocoDataFactory.GetPocoData<T>();
 
@@ -85,7 +85,10 @@ namespace Cassandra.Mapping.Statements
 
             var columns = pocoData.Columns.Select(Escape(pocoData)).ToCommaDelimitedString();
             var placeholders = Enumerable.Repeat("?", pocoData.Columns.Count).ToCommaDelimitedString();
-            return string.Format("INSERT INTO {0} ({1}) VALUES ({2}){3}", Escape(pocoData.TableName, pocoData), columns, placeholders, ifNotExists ? " IF NOT EXISTS" : null);
+            return string.Format("INSERT INTO {0} ({1}) VALUES ({2}){3}{4}", 
+                Escape(pocoData.TableName, pocoData), columns, placeholders,
+                ifNotExists ? " IF NOT EXISTS" : null,
+                insertOptions != null ? insertOptions.GetCql() : null);
         }
         
         /// <summary>
