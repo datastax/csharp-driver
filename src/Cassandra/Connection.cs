@@ -69,6 +69,7 @@ namespace Cassandra
         private volatile byte _frameHeaderSize;
         private MemoryStream _readStream;
         private int _isWriteQueueRuning;
+        private int _inFlight;
         /// <summary>
         /// The event that represents a event RESPONSE from a Cassandra node
         /// </summary>
@@ -96,7 +97,7 @@ namespace Cassandra
         /// </summary>
         public virtual int InFlight
         { 
-            get { return _pendingOperations.Count; }
+            get { return Thread.VolatileRead(ref _inFlight); }
         }
 
         /// <summary>
@@ -253,7 +254,7 @@ namespace Cassandra
             lock (_cancelLock)
             {
                 _isCanceled = true;
-                _logger.Info("Canceling pending operations {0} and write queue {1}", _pendingOperations.Count, _writeQueue.Count);
+                _logger.Info("Canceling pending operations {0} and write queue {1}", Thread.VolatileRead(ref _inFlight), _writeQueue.Count);
                 if (socketError != null)
                 {
                     _logger.Verbose("The socket status received was {0}", socketError.Value);
@@ -290,6 +291,7 @@ namespace Cassandra
                     item.Value.InvokeCallback(ex);
                 }
                 _pendingOperations.Clear();
+                Interlocked.Exchange(ref _inFlight, 0);
                 if (_pendingWaitHandle != null)
                 {
                     _pendingWaitHandle.Set();
@@ -716,11 +718,12 @@ namespace Cassandra
                     //Queue it up for later.
                     _writeQueue.Enqueue(state);
                     //When receiving the next complete message, we can process it.
-                    _logger.Info("Enqueued: {0}, if this message is recurrent consider configuring more connections per host or lower the pressure", _writeQueue.Count);
+                    _logger.Info("Enqueued, no streamIds available. If this message is recurrent consider configuring more connections per host or lower the pressure");
                     break;
                 }
                 _logger.Verbose("Sending #{0} for {1} to {2}", streamId, state.Request.GetType().Name, Address);
                 _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
+                Interlocked.Increment(ref _inFlight);
                 int frameLength;
                 try
                 {
@@ -775,7 +778,10 @@ namespace Cassandra
         internal protected virtual OperationState RemoveFromPending(short streamId)
         {
             OperationState state;
-            _pendingOperations.TryRemove(streamId, out state);
+            if (_pendingOperations.TryRemove(streamId, out state))
+            {
+                Interlocked.Decrement(ref _inFlight);
+            }
             //Set the streamId as available
             _freeOperations.Push(streamId);
             return state;
