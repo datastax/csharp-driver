@@ -727,11 +727,9 @@ namespace Cassandra
                     //lazy initialize the stream
                     stream = stream ?? (RecyclableMemoryStream) Configuration.BufferPool.GetStream(GetType().Name + "/SendStream");
                     frameLength = state.Request.WriteFrame(streamId, stream);
-                    //Closure state variable
-                    var delegateState = state;
                     if (Configuration.SocketOptions.ReadTimeoutMillis > 0 && Configuration.Timer != null)
                     {
-                        state.Timeout = Configuration.Timer.NewTimeout(() => OnTimeout(delegateState), Configuration.SocketOptions.ReadTimeoutMillis);
+                        state.Timeout = Configuration.Timer.NewTimeout(OnTimeout, streamId, Configuration.SocketOptions.ReadTimeoutMillis);
                     }
                 }
                 catch (Exception ex)
@@ -856,8 +854,14 @@ namespace Cassandra
             return keyspaceSwitch;
         }
 
-        private void OnTimeout(OperationState state)
+        private void OnTimeout(object stateObj)
         {
+            var streamId = (short)stateObj;
+            OperationState state;
+            if (!_pendingOperations.TryGetValue(streamId, out state))
+            {
+                return;
+            }
             var ex = new OperationTimedOutException(Address, Configuration.SocketOptions.ReadTimeoutMillis);
             //Invoke if it hasn't been invoked yet
             //Once the response is obtained, we decrement the timed out counter

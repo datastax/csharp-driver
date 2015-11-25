@@ -116,14 +116,14 @@ namespace Cassandra.IntegrationTests.Core
             _testCluster = TestClusterManager.GetNonShareableTestCluster(3, 1, true, false);
             var session = GetSession(new ConstantSpeculativeExecutionPolicy(50L, 1));
             var timer = new HashedWheelTimer(1000, 64);
-            timer.NewTimeout(() => Task.Factory.StartNew(() => _testCluster.PauseNode(2)), 2000);
+            timer.NewTimeout(_ => Task.Factory.StartNew(() => _testCluster.PauseNode(2)), null, 2000);
             //2 secs after resume node2
-            timer.NewTimeout(() => Task.Factory.StartNew(() => _testCluster.ResumeNode(2)), 4000);
-            timer.NewTimeout(() => Task.Factory.StartNew(() => _testCluster.PauseNode(1)), 6000);
+            timer.NewTimeout(_ => Task.Factory.StartNew(() => _testCluster.ResumeNode(2)), null, 4000);
+            timer.NewTimeout(_ => Task.Factory.StartNew(() => _testCluster.PauseNode(1)), null, 6000);
             //4 secs after resume node1
-            timer.NewTimeout(() => Task.Factory.StartNew(() => _testCluster.ResumeNode(1)), 10000);
+            timer.NewTimeout(_ => Task.Factory.StartNew(() => _testCluster.ResumeNode(1)), null, 10000);
             var finished = false;
-            timer.NewTimeout(() => Task.Factory.StartNew(() => finished = true), 12000);
+            timer.NewTimeout(_ => Task.Factory.StartNew(() => finished = true), null, 12000);
             //64 constant concurrent requests
             var semaphore = new SemaphoreSlim(64);
             while (!finished)

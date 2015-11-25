@@ -163,7 +163,7 @@ namespace Cassandra
                 currentTimeout.Cancel();
             }
             //Schedule next reconnection attempt (without using the timer thread)
-            _timeout = _timer.NewTimeout(() => Task.Factory.StartNew(AttemptReconnection), delay);
+            _timeout = _timer.NewTimeout(_ => Task.Factory.StartNew(AttemptReconnection), null, delay);
             //Dispose all current connections
             foreach (var c in _connections)
             {

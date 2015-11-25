@@ -14,88 +14,94 @@ namespace Cassandra.Tests
     [TestFixture]
     public class TimeoutTests
     {
-        private static readonly Action EmptyAction = () => { };
+        private static readonly Action<object> EmptyAction = _ => { };
 
         [Test]
         public void WheelTimer_Bucket_Should_Support_Add_And_Remove()
         {
-            var bucket = new Bucket();
-            Assert.Null(bucket.Head);
-            var t1 = new TimeoutItem(EmptyAction);
-            var t2 = new TimeoutItem(EmptyAction);
-            var t3 = new TimeoutItem(EmptyAction);
-            var t4 = new TimeoutItem(EmptyAction);
-            var t5 = new TimeoutItem(EmptyAction);
-            var t6 = new TimeoutItem(EmptyAction);
-            bucket.Add(t1);
-            bucket.Add(t2);
-            bucket.Add(t3);
-            bucket.Add(t4);
-            Assert.AreEqual(bucket.Head, t1);
-            Assert.AreEqual(bucket.Tail, t4);
-            CollectionAssert.AreEqual(bucket.ToArray(), new [] { t1, t2, t3, t4});
-            bucket.Remove(t3);
-            CollectionAssert.AreEqual(bucket.ToArray(), new[] { t1, t2, t4 });
-            Assert.AreEqual(t2.Next, t4);
-            Assert.AreEqual(t4.Previous, t2);
-            bucket.Remove(t1);
-            Assert.AreEqual(bucket.Head, t2);
-            CollectionAssert.AreEqual(bucket.ToArray(), new[] { t2, t4 });
-            bucket.Add(t5);
-            Assert.AreEqual(bucket.Tail, t5);
-            CollectionAssert.AreEqual(bucket.ToArray(), new[] { t2, t4, t5 });
-            bucket.Add(t6);
-            CollectionAssert.AreEqual(bucket.ToArray(), new[] { t2, t4, t5, t6 });
-            bucket.Remove(t4);
-            CollectionAssert.AreEqual(bucket.ToArray(), new[] { t2, t5, t6 });
-            bucket.Remove(t2);
-            CollectionAssert.AreEqual(bucket.ToArray(), new[] { t5, t6 });
-            bucket.Remove(t6);
-            CollectionAssert.AreEqual(bucket.ToArray(), new[] { t5 });
-            bucket.Remove(t5);
-            CollectionAssert.AreEqual(bucket.ToArray(), new TimeoutItem[0]);
+            using (var timer = new HashedWheelTimer(500, 10))
+            {
+                var bucket = new Bucket();
+                Assert.Null(bucket.Head);
+                var t1 = new TimeoutItem(timer, EmptyAction, null);
+                var t2 = new TimeoutItem(timer, EmptyAction, null);
+                var t3 = new TimeoutItem(timer, EmptyAction, null);
+                var t4 = new TimeoutItem(timer, EmptyAction, null);
+                var t5 = new TimeoutItem(timer, EmptyAction, null);
+                var t6 = new TimeoutItem(timer, EmptyAction, null);
+                bucket.Add(t1);
+                bucket.Add(t2);
+                bucket.Add(t3);
+                bucket.Add(t4);
+                Assert.AreEqual(bucket.Head, t1);
+                Assert.AreEqual(bucket.Tail, t4);
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] { t1, t2, t3, t4 });
+                bucket.Remove(t3);
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] { t1, t2, t4 });
+                Assert.AreEqual(t2.Next, t4);
+                Assert.AreEqual(t4.Previous, t2);
+                bucket.Remove(t1);
+                Assert.AreEqual(bucket.Head, t2);
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] { t2, t4 });
+                bucket.Add(t5);
+                Assert.AreEqual(bucket.Tail, t5);
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] { t2, t4, t5 });
+                bucket.Add(t6);
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] { t2, t4, t5, t6 });
+                bucket.Remove(t4);
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] { t2, t5, t6 });
+                bucket.Remove(t2);
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] { t5, t6 });
+                bucket.Remove(t6);
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] { t5 });
+                bucket.Remove(t5);
+                CollectionAssert.AreEqual(bucket.ToArray(), new TimeoutItem[0]);
+            }
         }
 
         [Test]
         public void WheelTimer_Bucket_Should_Remove_Head_Items_Correctly()
         {
-            var bucket = new Bucket();
+            using (var timer = new HashedWheelTimer(500, 10))
+            {
+                var bucket = new Bucket();
 
-            var t1 = new TimeoutItem(EmptyAction);
-            var t2 = new TimeoutItem(EmptyAction);
-            var t3 = new TimeoutItem(EmptyAction);
-            var t4 = new TimeoutItem(EmptyAction);
+                var t1 = new TimeoutItem(timer, EmptyAction, null);
+                var t2 = new TimeoutItem(timer, EmptyAction, null);
+                var t3 = new TimeoutItem(timer, EmptyAction, null);
+                var t4 = new TimeoutItem(timer, EmptyAction, null);
 
-            bucket.Add(t1);
-            CollectionAssert.AreEqual(bucket.ToArray(), new[] { t1 });
-            Assert.AreEqual(bucket.Tail, t1);
+                bucket.Add(t1);
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] {t1});
+                Assert.AreEqual(bucket.Tail, t1);
 
-            bucket.Add(t2);
-            CollectionAssert.AreEqual(bucket.ToArray(), new[] { t1, t2 });
-            Assert.AreEqual(bucket.Tail, t2);
+                bucket.Add(t2);
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] {t1, t2});
+                Assert.AreEqual(bucket.Tail, t2);
 
-            bucket.Add(t3);
-            CollectionAssert.AreEqual(bucket.ToArray(), new[] { t1, t2, t3 });
-            Assert.AreEqual(bucket.Tail, t3);
+                bucket.Add(t3);
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] {t1, t2, t3});
+                Assert.AreEqual(bucket.Tail, t3);
 
-            bucket.Add(t4);
-            CollectionAssert.AreEqual(bucket.ToArray(), new[] { t1, t2, t3, t4 });
-            Assert.AreEqual(bucket.Tail, t4);
+                bucket.Add(t4);
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] {t1, t2, t3, t4});
+                Assert.AreEqual(bucket.Tail, t4);
 
-            bucket.Remove(t1);
-            CollectionAssert.AreEqual(bucket.ToArray(), new[] { t2, t3, t4 });
-            Assert.AreEqual(bucket.Tail, t4);
+                bucket.Remove(t1);
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] {t2, t3, t4});
+                Assert.AreEqual(bucket.Tail, t4);
 
-            bucket.Remove(t3);
-            CollectionAssert.AreEqual(bucket.ToArray(), new[] { t2, t4 });
-            Assert.AreEqual(bucket.Tail, t4);
+                bucket.Remove(t3);
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] {t2, t4});
+                Assert.AreEqual(bucket.Tail, t4);
 
-            bucket.Remove(t4);
-            CollectionAssert.AreEqual(bucket.ToArray(), new[] { t2 });
-            Assert.AreEqual(bucket.Tail, t2);
+                bucket.Remove(t4);
+                CollectionAssert.AreEqual(bucket.ToArray(), new[] {t2});
+                Assert.AreEqual(bucket.Tail, t2);
 
-            bucket.Remove(t2);
-            Assert.AreEqual(bucket.ToArray(), new TimeoutItem[0]);
+                bucket.Remove(t2);
+                Assert.AreEqual(bucket.ToArray(), new TimeoutItem[0]);
+            }
         }
 
         [Test]
@@ -112,10 +118,10 @@ namespace Cassandra.Tests
                 actions[i] = () =>
                 {
                     // ReSharper disable once AccessToDisposedClosure
-                    timer.NewTimeout(() =>
+                    timer.NewTimeout(_ =>
                     {
                         results.Add(index);
-                    }, 20 * (actions.Length - index));
+                    }, null, 20 * (actions.Length - index));
                 };
             }
             TestHelper.ParallelInvoke(actions);
@@ -138,16 +144,38 @@ namespace Cassandra.Tests
             //sleep a couple of ms
             //Cancel one of them
             //Check that it has not been executed
-            var timer = new HashedWheelTimer(200, 8);
-            var flag = 0;
-            timer.NewTimeout(() => flag += 1, 500);
-            var timeout2 = timer.NewTimeout(() => flag += 2, 500);
-            timer.NewTimeout(() => flag += 4, 500);
-            Thread.Sleep(300);
-            timeout2.Cancel();
-            Thread.Sleep(800);
-            Assert.AreEqual(5, flag);
-            timer.Dispose();
+            using (var timer = new HashedWheelTimer(200, 8))
+            {
+                var flag = 0;
+                timer.NewTimeout(_ => flag += 1, null, 500);
+                var timeout2 = timer.NewTimeout(_ => flag += 2, null, 500);
+                timer.NewTimeout(_ => flag += 4, null, 500);
+                Thread.Sleep(300);
+                timeout2.Cancel();
+                Thread.Sleep(800);
+                Assert.AreEqual(5, flag);
+                timer.Dispose();
+            }
+        }
+
+        [Test]
+        public void HashedWheelTimer_Cancelled_Should_Be_Removed_From_Bucket()
+        {
+            using (var timer = new HashedWheelTimer(200, 8))
+            {
+                var flag = 0;
+                timer.NewTimeout(_ => flag += 1, null, 500);
+                //this callback should never be executed
+                var timeout2 = (TimeoutItem)timer.NewTimeout(_ => flag += 2, null, 500);
+                timer.NewTimeout(_ => flag += 4, null, 500);
+                Thread.Sleep(300);
+                Assert.NotNull(timeout2.Bucket);
+                timeout2.Cancel();
+                Thread.Sleep(800);
+                Assert.Null(timeout2.Bucket);
+                Assert.AreEqual(5, flag);
+                timer.Dispose();
+            }
         }
     }
 }

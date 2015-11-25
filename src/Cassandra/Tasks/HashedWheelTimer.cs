@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Cassandra.Collections;
 
 namespace Cassandra.Tasks
 {
@@ -18,7 +19,7 @@ namespace Cassandra.Tasks
     /// Based on George Varghese and Tony Lauck's paper, <a href="http://cseweb.ucsd.edu/users/varghese/PAPERS/twheel.ps.Z"> 
     /// Hashed and Hierarchical Timing Wheels: data structures to efficiently implement a timer facility</a>
     /// </remarks>
-    internal class HashedWheelTimer : IDisposable
+    internal sealed class HashedWheelTimer : IDisposable
     {
         private const int InitState = 0;
         private const int ExpiredState = 1;
@@ -28,6 +29,7 @@ namespace Cassandra.Tasks
         private int _isDisposed;
         private readonly int _tickDuration;
         private readonly ConcurrentQueue<Tuple<TimeoutItem, long>> _pendingToAdd = new ConcurrentQueue<Tuple<TimeoutItem, long>>();
+        private readonly ConcurrentQueue<TimeoutItem> _cancelledTimeouts = new ConcurrentQueue<TimeoutItem>();
 
         /// <summary>
         /// Represents the index of the next tick
@@ -58,6 +60,7 @@ namespace Cassandra.Tasks
         private void TimerTick(object state)
         {
             AddPending();
+            RemoveCancelled();
             //go through the timeouts in the current bucket and subtract the round
             //or expire
             var bucket = _wheel[Index];
@@ -80,7 +83,7 @@ namespace Cassandra.Tasks
                 timeout = timeout.Next;
             }
             //Setup the next tick
-            Index = (Index + 1)%_wheel.Length;
+            Index = (Index + 1) % _wheel.Length;
             _timer.Change(_tickDuration, Timeout.Infinite);
         }
 
@@ -100,17 +103,20 @@ namespace Cassandra.Tasks
         /// <summary>
         /// Adds a new action to be executed with a delay
         /// </summary>
-        public ITimeout NewTimeout(Action action, long delay)
+        public ITimeout NewTimeout(Action<object> action, object state, long delay)
         {
             if (delay < _tickDuration)
             {
                 delay = _tickDuration;
             }
-            var item = new TimeoutItem(action);
+            var item = new TimeoutItem(this, action, state);
             _pendingToAdd.Enqueue(Tuple.Create(item, delay));
             return item;
         }
 
+        /// <summary>
+        /// Adds the timeouts to each bucket
+        /// </summary>
         private void AddPending()
         {
             Tuple<TimeoutItem, long> pending;
@@ -128,7 +134,7 @@ namespace Cassandra.Tasks
                 return;
             }
             //delay expressed in tickets
-            var ticksDelay = delay / _tickDuration + 
+            var ticksDelay = delay / _tickDuration +
                 //As index is for the current tick and it was added since the last tick
                 Index - 1;
             var bucketIndex = Convert.ToInt32(ticksDelay % _wheel.Length);
@@ -142,10 +148,22 @@ namespace Cassandra.Tasks
         }
 
         /// <summary>
+        /// Removes all cancelled timeouts from the buckets
+        /// </summary>
+        private void RemoveCancelled()
+        {
+            TimeoutItem timeout;
+            while (_cancelledTimeouts.TryDequeue(out timeout))
+            {
+                timeout.Bucket.Remove(timeout);
+            }
+        }
+
+        /// <summary>
         /// Linked list of Timeouts to allow easy removal of HashedWheelTimeouts in the middle.
         /// Methods are not thread safe.
         /// </summary>
-        internal class Bucket: IEnumerable<TimeoutItem>
+        internal sealed class Bucket : IEnumerable<TimeoutItem>
         {
             internal TimeoutItem Head { get; private set; }
 
@@ -153,6 +171,7 @@ namespace Cassandra.Tasks
 
             internal void Add(TimeoutItem item)
             {
+                item.Bucket = this;
                 if (Tail == null)
                 {
                     //is the first here
@@ -193,6 +212,8 @@ namespace Cassandra.Tasks
                 }
                 item.Next.Previous = item.Previous;
                 //there should not be any reference to the item in the bucket
+                //Break references to make GC easier
+                item.Dispose();
             }
 
             public IEnumerator<TimeoutItem> GetEnumerator()
@@ -218,7 +239,7 @@ namespace Cassandra.Tasks
         /// <summary>
         /// Represents an scheduled timeout
         /// </summary>
-        internal interface ITimeout
+        internal interface ITimeout : IDisposable
         {
             bool IsCancelled { get; }
 
@@ -229,31 +250,47 @@ namespace Cassandra.Tasks
             bool Cancel();
         }
 
-        internal class TimeoutItem : ITimeout
+        internal sealed class TimeoutItem : ITimeout
         {
+            //Use fields instead of properties as micro optimization
+            //More 100 thousand timeout items could be created and GC collected each second
+            private object _actionState;
+            private Action<object> _action;
             private int _state = InitState;
+            private HashedWheelTimer _timer;
 
-            internal Action Action { get; private set; }
+            internal long Rounds;
 
-            internal long Rounds { get; set; }
+            internal TimeoutItem Next;
 
-            internal TimeoutItem Next { get; set; }
+            internal TimeoutItem Previous;
 
-            internal TimeoutItem Previous { get; set; }
+            internal Bucket Bucket;
 
             public bool IsCancelled
             {
                 get { return _state == CancelledState; }
             }
 
-            internal TimeoutItem(Action action)
+            internal TimeoutItem(HashedWheelTimer timer, Action<object> action, object actionState)
             {
-                Action = action;
+                _actionState = actionState;
+                _action = action;
+                _timer = timer;
             }
 
             public bool Cancel()
             {
-                return Interlocked.CompareExchange(ref _state, CancelledState, InitState) == InitState;
+                if (Interlocked.CompareExchange(ref _state, CancelledState, InitState) == InitState)
+                {
+                    if (Bucket != null)
+                    {
+                        //Mark this to be removed from the bucket on the next tick
+                        _timer._cancelledTimeouts.Enqueue(this);
+                    }
+                    return true;
+                }
+                return false;
             }
 
             /// <summary>
@@ -266,7 +303,29 @@ namespace Cassandra.Tasks
                     //Its already cancelled
                     return;
                 }
-                Action();
+                _action(_actionState);
+            }
+
+            public void Dispose()
+            {
+                DoDispose();
+                GC.SuppressFinalize(this);
+            }
+
+            private void DoDispose()
+            {
+                //Break references
+                Next = null;
+                Previous = null;
+                Bucket = null;
+                _actionState = null;
+                _action = null;
+                _timer = null;
+            }
+
+            ~TimeoutItem()
+            {
+                DoDispose();
             }
         }
     }
