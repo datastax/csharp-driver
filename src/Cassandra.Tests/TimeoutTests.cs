@@ -108,10 +108,8 @@ namespace Cassandra.Tests
         public void HashedWheelTimer_Should_Schedule_In_Order()
         {
             var results = new List<int>();
-            var actions = new Action[100];
-            var timer = new HashedWheelTimer(20, 8);
-            Stopwatch watch = new Stopwatch();
-            watch.Start();
+            var actions = new Action[10];
+            var timer = new HashedWheelTimer(200, 8);
             for (var i = 0; i < actions.Length; i++)
             {
                 var index = i;
@@ -121,18 +119,18 @@ namespace Cassandra.Tests
                     timer.NewTimeout(_ =>
                     {
                         results.Add(index);
-                    }, null, 20 * (actions.Length - index));
+                    }, null, 200 * (actions.Length - index));
                 };
             }
             TestHelper.ParallelInvoke(actions);
             var counter = 0;
-            while (results.Count < actions.Length && ++counter < 10)
+            while (results.Count < actions.Length && ++counter < 20)
             {
                 Thread.Sleep(500);
                 Trace.WriteLine("Slept " + counter);
             }
             Assert.AreEqual(actions.Length, results.Count);
-            counter = 100;
+            counter = 10;
             CollectionAssert.AreEqual(Enumerable.Repeat(0, actions.Length).Select(_ => --counter), results);
             timer.Dispose();
         }
