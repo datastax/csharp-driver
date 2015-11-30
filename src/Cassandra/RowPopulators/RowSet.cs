@@ -50,21 +50,41 @@ namespace Cassandra
     /// </remarks>
     public class RowSet : IEnumerable<Row>, IDisposable
     {
+        private static readonly CqlColumn[] EmptyColumns = new CqlColumn[0];
         private readonly object _pageLock = new object();
+        private Func<byte[], RowSet> _fetchNextPage;
         // ReSharper disable once InconsistentNaming
         /// <summary>
         /// Contains the PagingState keys of the pages already retrieved.
         /// </summary>
-        protected ConcurrentDictionary<byte[], bool> _pagers = new ConcurrentDictionary<byte[], bool>();
+        protected ConcurrentDictionary<byte[], bool> _pagers;
 
         /// <summary>
         /// Determines if when dequeuing, it will automatically fetch the following result pages.
         /// </summary>
         protected internal bool AutoPage { get; set; }
+
         /// <summary>
         /// Delegate that is called to get the next page.
         /// </summary>
-        protected internal Func<byte[], RowSet> FetchNextPage { get; set; }
+        protected internal Func<byte[], RowSet> FetchNextPage
+        {
+            get { return _fetchNextPage; }
+            set
+            {
+                if (_fetchNextPage != null)
+                {
+                    throw new InvalidOperationException("Multiple sets to FetchNextPage not supported");
+                }
+                if (value != null)
+                {
+                    // ReSharper disable once InconsistentlySynchronizedField
+                    // The getter is called outside synchronization
+                    _pagers = new ConcurrentDictionary<byte[], bool>(1, 1);
+                }
+                _fetchNextPage = value;
+            }
+        }
 
         /// <summary>
         /// Gets or set the internal row list. It contains the rows of the latest query page.
@@ -98,6 +118,10 @@ namespace Cassandra
         /// </summary>
         public virtual bool IsExhausted()
         {
+            if (RowQueue == null)
+            {
+                return true;
+            }
             if (RowQueue.Count > 0)
             {
                 return false;
@@ -117,12 +141,35 @@ namespace Cassandra
             } 
         }
 
-        public RowSet()
+        /// <summary>
+        /// Creates a new instance of RowSet.
+        /// </summary>
+        public RowSet() : this(false)
         {
-            RowQueue = new ConcurrentQueue<Row>();
+
+        }
+
+        /// <summary>
+        /// Creates a new instance of RowSet.
+        /// </summary>
+        /// <param name="isVoid">Determines if the RowSet instance is created for a VOID result</param>
+        private RowSet(bool isVoid)
+        {
+            if (!isVoid)
+            {
+                RowQueue = new ConcurrentQueue<Row>();   
+            }
             Info = new ExecutionInfo();
-            Columns = new CqlColumn[] { };
+            Columns = EmptyColumns;
             AutoPage = true;
+        }
+
+        /// <summary>
+        /// Returns a new RowSet instance without any columns or rows, designed for VOID results.
+        /// </summary>
+        internal static RowSet Empty()
+        {
+            return new RowSet(true);
         }
 
         /// <summary>
@@ -130,6 +177,10 @@ namespace Cassandra
         /// </summary>
         internal virtual void AddRow(Row row)
         {
+            if (RowQueue == null)
+            {
+                throw new InvalidOperationException("Can not append a Row to a RowSet instance created for VOID results");
+            }
             RowQueue.Enqueue(row);
         }
 
@@ -154,7 +205,7 @@ namespace Cassandra
         /// </summary>
         public int GetAvailableWithoutFetching()
         {
-            return RowQueue.Count;
+            return RowQueue == null ? 0 : RowQueue.Count;
         }
 
         /// <summary>
@@ -169,6 +220,10 @@ namespace Cassandra
 
         public virtual IEnumerator<Row> GetEnumerator()
         {
+            if (RowQueue == null)
+            {
+                yield break;
+            }
             while (!IsExhausted())
             {
                 Row row;
@@ -181,7 +236,7 @@ namespace Cassandra
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return this.GetEnumerator();
+            return GetEnumerator();
         }
 
         /// <summary>

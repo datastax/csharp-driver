@@ -399,6 +399,28 @@ namespace Cassandra.Tests
         }
 
         [Test]
+        public void RowSet_Empty_Returns_Iterable_Instace()
+        {
+            var rs = RowSet.Empty();
+            Assert.AreEqual(0, rs.Columns.Length);
+            Assert.True(rs.IsExhausted());
+            Assert.True(rs.IsFullyFetched);
+            Assert.AreEqual(0, rs.Count());
+            //iterate a second time
+            Assert.AreEqual(0, rs.Count());
+            //Different instances
+            Assert.AreNotSame(RowSet.Empty(), rs);
+            Assert.DoesNotThrow(() => rs.FetchMoreResults());
+            Assert.AreEqual(0, rs.GetAvailableWithoutFetching());
+        }
+
+        public void RowSet_Empty_Call_AddRow_Throws()
+        {
+            var rs = RowSet.Empty();
+            Assert.Throws<InvalidOperationException>(() => rs.AddRow(new Row()));
+        }
+
+        [Test]
         public void Row_TryConvertToType_Should_Convert_Timestamps()
         {
             var timestampTypeInfo = new ColumnDesc {TypeCode = ColumnTypeCode.Timestamp};

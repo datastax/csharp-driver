@@ -155,7 +155,7 @@ namespace Cassandra.Requests
                 {
                     ((Session)_session).Keyspace = ((OutputSetKeyspace)resultResponse.Output).Value;
                 }
-                rs = new RowSet();
+                rs = RowSet.Empty();
             }
             _parent.SetCompleted(null, FillRowSet(rs, resultResponse));
         }
