@@ -439,6 +439,33 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.True(task.Result != null);
             }
         }
+
+        /// Tests that a ssl connection to a host with ssl disabled fails (not hangs)
+        /// 
+        /// @since 3.0.0
+        /// @jira_ticket CSHARP-336
+        /// 
+        /// @test_category conection:ssl
+        [Test]
+        public void Ssl_Connect_With_Ssl_Disabled_Host()
+        {
+            var config = new Configuration(Cassandra.Policies.DefaultPolicies, 
+                new ProtocolOptions(ProtocolOptions.DefaultPort, new SSLOptions()),
+                new PoolingOptions(),
+                 new SocketOptions().SetConnectTimeoutMillis(200),
+                 new ClientOptions(),
+                 NoneAuthProvider.Instance,
+                 null,
+                 new QueryOptions(),
+                 new DefaultAddressTranslator());
+            config.BufferPool = new RecyclableMemoryStreamManager();
+            using (var connection = CreateConnection(GetLatestProtocolVersion(), config))
+            {
+                var ex = Assert.Throws<AggregateException>(() => connection.Open().Wait(10000));
+                Assert.IsInstanceOf<TimeoutException>(ex.InnerException);
+                StringAssert.IsMatch("SSL", ex.InnerException.Message);
+            }
+        }
         
         [Test]
         public void SetKeyspace_Test()
@@ -735,7 +762,11 @@ namespace Cassandra.IntegrationTests.Core
         {
             var cassandraVersion = CassandraVersion;
             byte protocolVersion = 1;
-            if (cassandraVersion >= Version.Parse("2.1"))
+            if (cassandraVersion >= Version.Parse("3.0"))
+            {
+                protocolVersion = 4;
+            }
+            else if (cassandraVersion >= Version.Parse("2.1"))
             {
                 protocolVersion = 3;
             }

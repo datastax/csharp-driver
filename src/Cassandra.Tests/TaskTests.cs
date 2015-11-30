@@ -113,10 +113,22 @@ namespace Cassandra.Tests
             Assert.AreEqual(threadIdInit, threadIdContinue);
         }
 
+        [Test]
+        public void TaskHelper_TaskCompletionSourceWithTimeout_Sets_Exception_When_Expired()
+        {
+            var ex = new TimeoutException("Test message");
+            var tcs = TaskHelper.TaskCompletionSourceWithTimeout<int>(100, () => ex);
+            var task = tcs.Task;
+            Thread.Sleep(200);
+            Assert.AreEqual(TaskStatus.Faulted, task.Status);
+            Assert.NotNull(task.Exception);
+            Assert.AreEqual(ex, task.Exception.InnerException);
+        }
+
         /// <summary>
         /// Gets a completed task
         /// </summary>
-        public static Task<T> Completed<T>()
+        private static Task<T> Completed<T>()
         {
             var tcs = new TaskCompletionSource<T>();
             tcs.SetResult(default(T));

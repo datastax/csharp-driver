@@ -345,28 +345,43 @@ namespace Cassandra.Tasks
         }
 
         /// <summary>
-        /// Returns a Cancellation Token that cancels the Task after milliseconds passed.
+        /// It creates a <see cref="TaskCompletionSource{T}"/> that transitions to Faulted once 
         /// </summary>
-        public static CancellationToken CancelAfterToken(int milliseconds)
+        /// <typeparam name="T">The type of the result value associated with this <see cref="TaskCompletionSource{T}"/></typeparam>
+        /// <param name="milliseconds">The timer due time in milliseconds</param>
+        /// <param name="newTimeoutException">The method to call in case timeout expired</param>
+        public static TaskCompletionSource<T> TaskCompletionSourceWithTimeout<T>(int milliseconds, Func<Exception> newTimeoutException)
         {
-            var cts = new CancellationTokenSource();
+            var tcs = new TaskCompletionSource<T>();
             Timer timer = null;
-            Action<object> timerCallback = _ =>
+            TimerCallback timerCallback = _ =>
             {
-                try
-                {
-                    //Cancel the source
-                    cts.Cancel();
-                }
-                catch (ObjectDisposedException)
-                {
-                    //It was disposed, due nothing
-                }
                 // ReSharper disable once PossibleNullReferenceException, AccessToModifiedClosure
                 timer.Dispose();
+                //Transition the underlying Task outside the IO thread
+                Task.Factory.StartNew(() =>
+                {
+                    try
+                    {
+                        tcs.TrySetException(newTimeoutException());
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        //The task was already disposed: move on
+                    }
+                    catch (Exception ex)
+                    {
+                        tcs.TrySetException(ex);
+                    }
+                });
             };
-            timer = new Timer(new TimerCallback(timerCallback), cts, milliseconds, Timeout.Infinite);
-            return cts.Token;
+            timer = new Timer(timerCallback, null, milliseconds, Timeout.Infinite);
+            tcs.Task.ContinueWith(t =>
+            {
+                //Timer can be disposed multiple times
+                timer.Dispose();
+            });
+            return tcs;
         }
     }
 }

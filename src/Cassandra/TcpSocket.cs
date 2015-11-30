@@ -207,22 +207,31 @@ namespace Cassandra
             }).Then(_ =>
             {
                 _logger.Verbose("Starting SSL authentication");
-                var tcs = new TaskCompletionSource<bool>();
+                var tcs = TaskHelper.TaskCompletionSourceWithTimeout<bool>(Options.ConnectTimeoutMillis,
+                    () => new TimeoutException("The timeout period elapsed prior to completion of SSL authentication operation."));
                 var sslStream = new SslStream(new NetworkStream(_socket), false, SSLOptions.RemoteCertValidationCallback, null);
                 _socketStream = sslStream;
-                sslStream.BeginAuthenticateAsClient(targetHost, SSLOptions.CertificateCollection, SSLOptions.SslProtocol, SSLOptions.CheckCertificateRevocation, 
-                    sslAsyncResult =>
-                    {
-                        try
+                try
+                {
+                    sslStream.BeginAuthenticateAsClient(targetHost, SSLOptions.CertificateCollection, SSLOptions.SslProtocol,
+                        SSLOptions.CheckCertificateRevocation,
+                        sslAsyncResult =>
                         {
-                            sslStream.EndAuthenticateAsClient(sslAsyncResult);
-                            tcs.TrySetResult(true);
-                        }
-                        catch (Exception ex)
-                        {
-                            tcs.TrySetException(ex);
-                        }
-                    }, null);
+                            try
+                            {
+                                sslStream.EndAuthenticateAsClient(sslAsyncResult);
+                                tcs.TrySetResult(true);
+                            }
+                            catch (Exception ex)
+                            {
+                                tcs.TrySetException(ex);
+                            }
+                        }, null);
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
                 return tcs.Task;
             }).ContinueSync(_ =>
             {
