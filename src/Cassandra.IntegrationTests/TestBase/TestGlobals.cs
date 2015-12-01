@@ -51,6 +51,28 @@ namespace Cassandra.IntegrationTests.TestBase
             get { return TestClusterManager.CassandraVersion; }
         }
 
+        /// <summary>
+        /// Gets the latest protocol version depending on the Cassandra Version running the tests
+        /// </summary>
+        public byte GetProtocolVersion()
+        {
+            var cassandraVersion = CassandraVersion;
+            byte protocolVersion = 1;
+            if (cassandraVersion >= Version.Parse("3.0"))
+            {
+                protocolVersion = 4;
+            }
+            else if (cassandraVersion >= Version.Parse("2.1"))
+            {
+                protocolVersion = 3;
+            }
+            else if (cassandraVersion > Version.Parse("2.0"))
+            {
+                protocolVersion = 2;
+            }
+            return protocolVersion;
+        }
+
         [Option("use-ctool",
             HelpText = "Pass in 'true' for this value to use ctool instead of ccm (default)", DefaultValue = false, Required = true)]
         public bool UseCtool { get; set; }

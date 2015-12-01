@@ -194,13 +194,29 @@ namespace Cassandra
             Unsubscribe();
             Connect(false).ContinueWith(t =>
             {
+                if (Thread.VolatileRead(ref _isShutdown) > 0)
+                {
+                    if (t.Exception != null)
+                    {
+                        t.Exception.Handle(e => true);
+                    }
+                    return;
+                }
                 if (t.Exception != null)
                 {
+                    t.Exception.Handle(e => true);
                     Interlocked.Exchange(ref _reconnectTask, null);
                     tcs.TrySetException(t.Exception.InnerException);
                     var delay = _reconnectionSchedule.NextDelayMs();
-                    _reconnectionTimer.Change(delay, Timeout.Infinite);
-                    _logger.Error("ControlConnection was not able to reconnect: " +  t.Exception.InnerException);
+                    _logger.Error("ControlConnection was not able to reconnect: " + t.Exception.InnerException);
+                    try
+                    {
+                        _reconnectionTimer.Change(delay, Timeout.Infinite);
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        //Control connection is being disposed
+                    }
                     return;
                 }
                 try
@@ -216,8 +232,15 @@ namespace Cassandra
                 {
                     Interlocked.Exchange(ref _reconnectTask, null);
                     _logger.Error("There was an error when trying to refresh the ControlConnection", ex);
-                    _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
                     tcs.TrySetException(ex);
+                    try
+                    {
+                        _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);   
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        //Control connection is being disposed
+                    }
                 }
             });
             return tcs.Task;

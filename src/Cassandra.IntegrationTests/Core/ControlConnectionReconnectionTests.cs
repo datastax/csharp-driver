@@ -18,7 +18,7 @@ namespace Cassandra.IntegrationTests.Core
     {
         private ControlConnection NewInstance(ITestCluster testCluster, Configuration config = null, Metadata metadata = null)
         {
-            var version = (byte)Cluster.MaxProtocolVersion;
+            var version = GetProtocolVersion();
             if (config == null)
             {
                 config = new Configuration();
