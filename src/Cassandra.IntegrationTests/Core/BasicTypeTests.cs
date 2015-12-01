@@ -298,21 +298,21 @@ namespace Cassandra.IntegrationTests.Core
             Assert.Null(rs.Info.QueryTrace);
         }
 
-        /// Tests that the default consistency level for queries is LOCAL_QUORUM
+        /// Tests that the default consistency level for queries is LOCAL_ONE
         /// 
-        /// LocalQuorum_Is_Default_Consistency tests that the default consistency level for all queries is LOCAL_QUORUM. It performs
-        /// a simple select statement and verifies that the result set metadata shows that the achieved consistenc level is LOCAL_QUORUM.
+        /// LocalOne_Is_Default_Consistency tests that the default consistency level for all queries is LOCAL_ONE. It performs
+        /// a simple select statement and verifies that the result set metadata shows that the achieved consistency level is LOCAL_ONE.
         /// 
         /// @since 3.0.0
-        /// @jira_ticket CSHARP-353
-        /// @expected_result The default consistency level should be LOCAL_QUORUM
+        /// @jira_ticket CSHARP-378
+        /// @expected_result The default consistency level should be LOCAL_ONE
         /// 
         /// @test_category consistency
         [Test]
-        public void LocalQuorum_Is_Default_Consistency()
+        public void LocalOne_Is_Default_Consistency()
         {
             var rs = Session.Execute(new SimpleStatement("SELECT * from system.local"));
-            Assert.AreEqual(ConsistencyLevel.LocalQuorum, rs.Info.AchievedConsistency);
+            Assert.AreEqual(ConsistencyLevel.LocalOne, rs.Info.AchievedConsistency);
         }
 
         [Test]
