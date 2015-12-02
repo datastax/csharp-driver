@@ -22,6 +22,7 @@ using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Mapping;
+using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
 #pragma warning disable 612
 #pragma warning disable 618
@@ -38,7 +39,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         {
             base.TestFixtureSetUp();
             _session = Session;
-            _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
+            _uniqueKsName = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
         }
@@ -233,6 +234,86 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             }
         }
 
+        [Test, TestCassandraVersion(2, 1)]
+        public void CreateTable_With_Frozen_Tuple()
+        {
+            var config = new MappingConfiguration().Define(new Map<UdtAndTuplePoco>()
+                .PartitionKey(p => p.Id1)
+                .Column(p => p.Id1)
+                .Column(p => p.Tuple1, cm => cm.WithName("t").AsFrozen())
+                .TableName("tbl_frozen_tuple")
+                .ExplicitColumns());
+            var table = new Table<UdtAndTuplePoco>(Session, config);
+            table.Create();
+            var tableMeta = Cluster.Metadata.GetTable(_uniqueKsName, "tbl_frozen_tuple");
+            Assert.NotNull(tableMeta);
+            Assert.AreEqual(2, tableMeta.TableColumns.Length);
+            var column = tableMeta.ColumnsByName["t"];
+            Assert.AreEqual(ColumnTypeCode.Tuple, column.TypeCode);
+        }
+
+        [Test, TestCassandraVersion(2, 1)]
+        public void CreateTable_With_Frozen_Udt()
+        {
+            var config = new MappingConfiguration().Define(new Map<UdtAndTuplePoco>()
+                .PartitionKey(p => p.Id1)
+                .Column(p => p.Id1)
+                .Column(p => p.Udt1, cm => cm.WithName("u").AsFrozen())
+                .TableName("tbl_frozen_udt")
+                .ExplicitColumns());
+            Session.Execute("CREATE TYPE IF NOT EXISTS song (title text, releasedate timestamp, artist text)");
+            Session.UserDefinedTypes.Define(UdtMap.For<Song>());
+            var table = new Table<UdtAndTuplePoco>(Session, config);
+            table.Create();
+            var tableMeta = Cluster.Metadata.GetTable(_uniqueKsName, "tbl_frozen_udt");
+            Assert.AreEqual(2, tableMeta.TableColumns.Length);
+            var column = tableMeta.ColumnsByName["u"];
+            Assert.AreEqual(ColumnTypeCode.Udt, column.TypeCode);
+        }
+
+        [Test, TestCassandraVersion(2, 1)]
+        public void CreateTable_With_Frozen_Key()
+        {
+            var config = new MappingConfiguration().Define(new Map<UdtAndTuplePoco>()
+                .PartitionKey(p => p.Id1)
+                .Column(p => p.Id1)
+                .Column(p => p.UdtSet1, cm => cm.WithFrozenKey().WithName("s"))
+                .Column(p => p.TupleMapKey1, cm => cm.WithFrozenKey().WithName("m"))
+                .TableName("tbl_frozen_key")
+                .ExplicitColumns());
+            Session.Execute("CREATE TYPE IF NOT EXISTS song (title text, releasedate timestamp, artist text)");
+            Session.UserDefinedTypes.Define(UdtMap.For<Song>());
+            var table = new Table<UdtAndTuplePoco>(Session, config);
+            table.Create();
+            var tableMeta = Cluster.Metadata.GetTable(_uniqueKsName, "tbl_frozen_key");
+            Assert.AreEqual(3, tableMeta.TableColumns.Length);
+            var column = tableMeta.ColumnsByName["s"];
+            Assert.AreEqual(ColumnTypeCode.Set, column.TypeCode);
+            column = tableMeta.ColumnsByName["m"];
+            Assert.AreEqual(ColumnTypeCode.Map, column.TypeCode);
+        }
+
+        [Test, TestCassandraVersion(2, 1)]
+        public void CreateTable_With_Frozen_Value()
+        {
+            var config = new MappingConfiguration().Define(new Map<UdtAndTuplePoco>()
+                .PartitionKey(p => p.Id1)
+                .Column(p => p.Id1)
+                .Column(p => p.ListMapValue1, cm => cm.WithFrozenValue().WithName("m"))
+                .Column(p => p.UdtList1, cm => cm.WithFrozenValue().WithName("l"))
+                .TableName("tbl_frozen_value")
+                .ExplicitColumns());
+            Session.Execute("CREATE TYPE IF NOT EXISTS song (title text, releasedate timestamp, artist text)");
+            Session.UserDefinedTypes.Define(UdtMap.For<Song>());
+            var table = new Table<UdtAndTuplePoco>(Session, config);
+            table.Create();
+            var tableMeta = Cluster.Metadata.GetTable(_uniqueKsName, "tbl_frozen_value");
+            Assert.AreEqual(3, tableMeta.TableColumns.Length);
+            var column = tableMeta.ColumnsByName["l"];
+            Assert.AreEqual(ColumnTypeCode.List, column.TypeCode);
+            column = tableMeta.ColumnsByName["m"];
+            Assert.AreEqual(ColumnTypeCode.Map, column.TypeCode);
+        }
 
         ///////////////////////////////////////////////
         // Test Helpers

@@ -18,6 +18,9 @@ namespace Cassandra.Mapping.Attributes
         private readonly bool _secondaryIndex;
         private readonly bool _isCounter;
         private readonly bool _isStatic;
+        private readonly bool _isFrozen;
+        private readonly bool _hasFrozenKey;
+        private readonly bool _hasFrozenValue;
 
         MemberInfo IColumnDefinition.MemberInfo
         {
@@ -64,6 +67,21 @@ namespace Cassandra.Mapping.Attributes
             get { return _isStatic; }
         }
 
+        bool IColumnDefinition.IsFrozen
+        {
+            get { return _isFrozen; }
+        }
+
+        bool IColumnDefinition.HasFrozenKey
+        {
+            get { return _hasFrozenKey; }
+        }
+
+        bool IColumnDefinition.HasFrozenValue
+        {
+            get { return _hasFrozenValue; }
+        }
+
         /// <summary>
         /// Creates a new column definition for the field specified using any attributes on the field to determine mapping configuration.
         /// </summary>
@@ -90,17 +108,22 @@ namespace Cassandra.Mapping.Attributes
             if (columnAttribute != null)
             {
                 _isExplicitlyDefined = true;
-
                 if (columnAttribute.Name != null)
+                {
                     _columnName = columnAttribute.Name;
-
+                }
                 if (columnAttribute.Type != null)
+                {
                     _columnType = columnAttribute.Type;
+                }
             }
             _ignore = HasAttribute(memberInfo, typeof(IgnoreAttribute));
             _secondaryIndex = HasAttribute(memberInfo, typeof(SecondaryIndexAttribute));
             _isStatic = HasAttribute(memberInfo, typeof(StaticColumnAttribute));
             _isCounter = HasAttribute(memberInfo, typeof(CounterAttribute));
+            _isFrozen = HasAttribute(memberInfo, typeof(FrozenAttribute));
+            _hasFrozenKey = HasAttribute(memberInfo, typeof(FrozenKeyAttribute));
+            _hasFrozenValue = HasAttribute(memberInfo, typeof(FrozenValueAttribute));
         }
 
         /// <summary>

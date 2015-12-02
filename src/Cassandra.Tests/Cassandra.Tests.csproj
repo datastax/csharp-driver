@@ -105,6 +105,7 @@
     <Compile Include="Mapping\Pocos\RainbowColor.cs" />
     <Compile Include="Mapping\Pocos\Song.cs" />
     <Compile Include="Mapping\Pocos\DecoratedTimeSeries.cs" />
+    <Compile Include="Mapping\Pocos\UdtAndTuplePoco.cs" />
     <Compile Include="Mapping\Pocos\UserDifferentPropTypes.cs" />
     <Compile Include="Mapping\Pocos\UserType.cs" />
     <Compile Include="Mapping\Pocos\VarintPoco.cs" />

@@ -151,9 +151,18 @@ namespace Cassandra.Mapping.Statements
 
         private static string GetTypeString(PocoColumn column)
         {
+            if (column.IsCounter)
+            {
+                return "counter";
+            }
             IColumnInfo typeInfo;
             var typeCode = TypeCodec.GetColumnTypeCodeInfo(column.ColumnType, out typeInfo);
-            return GetTypeString(typeCode, typeInfo);
+            var typeName = GetTypeString(column, typeCode, typeInfo);
+            if (column.IsStatic)
+            {
+                return typeName + " static";
+            }
+            return typeName;
         }
 
         /// <summary>
@@ -187,13 +196,9 @@ namespace Cassandra.Mapping.Statements
                 createTable
                     .Append(columnName)
                     .Append(" ");
-                var columnType = column.IsCounter ? "counter" : GetTypeString(column);
+                var columnType = GetTypeString(column);
                 createTable    
                     .Append(columnType);
-                if (column.IsStatic)
-                {
-                    createTable.Append(" static");
-                }
                 createTable
                     .Append(", ");
                 if (column.SecondaryIndex)
@@ -248,49 +253,66 @@ namespace Cassandra.Mapping.Statements
             return commands;
         }
 
-        private static string GetTypeString(ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        private static string GetTypeString(PocoColumn column, ColumnTypeCode typeCode, IColumnInfo typeInfo)
         {
             if (typeInfo == null)
             {
                 //Is a single type
                 return typeCode.ToString().ToLower();
             }
+            string typeName = null;
+            var frozenKey = column != null && column.HasFrozenKey;
+            var frozenValue = column != null && column.HasFrozenValue;
             if (typeInfo is MapColumnInfo)
             {
-                var mapInfo = typeInfo as MapColumnInfo;
-                return "map<" +
-                       GetTypeString(mapInfo.KeyTypeCode, mapInfo.KeyTypeInfo) +
-                       ", " +
-                       GetTypeString(mapInfo.ValueTypeCode, mapInfo.ValueTypeInfo) +
-                       ">";
+                var mapInfo = (MapColumnInfo) typeInfo;
+                typeName = "map<" +
+                    WrapFrozen(frozenKey, GetTypeString(null, mapInfo.KeyTypeCode, mapInfo.KeyTypeInfo)) +
+                    ", " +
+                    WrapFrozen(frozenValue, GetTypeString(null, mapInfo.ValueTypeCode, mapInfo.ValueTypeInfo)) +
+                    ">";
             }
-            if (typeInfo is SetColumnInfo)
+            else if (typeInfo is SetColumnInfo)
             {
-                var setInfo = typeInfo as SetColumnInfo;
-                return "set<" +
-                       GetTypeString(setInfo.KeyTypeCode, setInfo.KeyTypeInfo) +
-                       ">";
+                var setInfo = (SetColumnInfo) typeInfo;
+                typeName = "set<" +
+                    WrapFrozen(frozenKey, GetTypeString(null, setInfo.KeyTypeCode, setInfo.KeyTypeInfo)) +
+                    ">";
             }
-            if (typeInfo is ListColumnInfo)
+            else if (typeInfo is ListColumnInfo)
             {
-                var setInfo = typeInfo as ListColumnInfo;
-                return "list<" +
-                       GetTypeString(setInfo.ValueTypeCode, setInfo.ValueTypeInfo) +
-                       ">";
+                var setInfo = (ListColumnInfo) typeInfo;
+                typeName = "list<" +
+                    WrapFrozen(frozenValue, GetTypeString(null, setInfo.ValueTypeCode, setInfo.ValueTypeInfo)) +
+                    ">";
             }
-            if (typeInfo is TupleColumnInfo)
+            else if (typeInfo is TupleColumnInfo)
             {
-                var tupleInfo = typeInfo as TupleColumnInfo;
-                return "tuple<" +
-                       String.Join(", ", tupleInfo.Elements.Select(e => GetTypeString(e.TypeCode, e.TypeInfo))) +
-                       ">";
+                var tupleInfo = (TupleColumnInfo) typeInfo;
+                typeName = "tuple<" +
+                    string.Join(", ", tupleInfo.Elements.Select(e => GetTypeString(null, e.TypeCode, e.TypeInfo))) +
+                    ">";
             }
-            if (typeInfo is UdtColumnInfo)
+            else if (typeInfo is UdtColumnInfo)
             {
-                var udtInfo = typeInfo as UdtColumnInfo;
-                return udtInfo.Name;
+                var udtInfo = (UdtColumnInfo) typeInfo;
+                typeName = udtInfo.Name;
             }
-            throw new NotSupportedException(String.Format("Type {0} is not suppoted", typeCode));
+
+            if (typeName == null)
+            {
+                throw new NotSupportedException(string.Format("Type {0} is not supported", typeCode));
+            }
+            return WrapFrozen(column != null && column.IsFrozen, typeName);
+        }
+
+        private static string WrapFrozen(bool condition, string typeName)
+        {
+            if (condition)
+            {
+                return "frozen<" + typeName + ">";
+            }
+            return typeName;
         }
     }
 }

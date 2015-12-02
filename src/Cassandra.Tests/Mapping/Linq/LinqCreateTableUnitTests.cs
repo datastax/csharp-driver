@@ -350,5 +350,143 @@ namespace Cassandra.Tests.Mapping.Linq
             //It contains Ignored props: Ignored1 and Ignored2
             Assert.AreEqual(@"CREATE TABLE ""ks1"".""tbl1"" (""name"" text, ""Slice"" int, ""Time"" timeuuid, ""val"" double, ""Value2"" text, PRIMARY KEY ((""name"", ""Slice""), ""Time""))", createQuery);
         }
+
+        [Test]
+        public void Create_With_Collections()
+        {
+            string createQuery = null;
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q);
+            var definition = new Map<CollectionTypesEntity>()
+                .PartitionKey(c => c.Id)
+                .Column(c => c.Tags, cm => cm.WithDbType<SortedSet<string>>())
+                .TableName("tbl1");
+            var table = GetTable<CollectionTypesEntity>(sessionMock.Object, definition);
+            table.Create();
+            Assert.AreEqual("CREATE TABLE tbl1 (Id bigint, Scores list<int>, Tags set<text>, Favs map<text, text>, PRIMARY KEY (Id))", createQuery);
+        }
+
+        [Test]
+        public void Create_With_Tuple()
+        {
+            string createQuery = null;
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q);
+            var definition = new Map<UdtAndTuplePoco>()
+                .PartitionKey(c => c.Id1)
+                .Column(c => c.Id1, cm => cm.WithName("id"))
+                .Column(c => c.Tuple1, cm => cm.WithName("position"))
+                .ExplicitColumns()
+                .TableName("tbl1");
+            var table = GetTable<UdtAndTuplePoco>(sessionMock.Object, definition);
+            table.Create();
+            Assert.AreEqual("CREATE TABLE tbl1 (id uuid, position tuple<bigint, bigint, text>, PRIMARY KEY (id))", createQuery);
+        }
+
+        [Test]
+        public void Create_With_Frozen_Udt()
+        {
+            string createQuery = null;
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q);
+            var definition = new Map<UdtAndTuplePoco>()
+                .PartitionKey(c => c.Id1)
+                .Column(c => c.Id1, cm => cm.WithName("id"))
+                .Column(c => c.Udt1, cm => cm.WithName("my_udt").WithDbType<Song>().AsFrozen())
+                .ExplicitColumns()
+                .TableName("tbl1");
+            var udtInfo = new UdtColumnInfo("song");
+            udtInfo.Fields.Add(new ColumnDesc { Name = "title", TypeCode = ColumnTypeCode.Ascii });
+            udtInfo.Fields.Add(new ColumnDesc { Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp });
+            var udtMap = UdtMap.For<Song>();
+            udtMap.Build(udtInfo);
+            TypeCodec.SetUdtMap("song", udtMap);
+            var table = GetTable<UdtAndTuplePoco>(sessionMock.Object, definition);
+            table.Create();
+            Assert.AreEqual("CREATE TABLE tbl1 (id uuid, my_udt frozen<song>, PRIMARY KEY (id))", createQuery);
+        }
+
+        [Test]
+        public void Create_With_Frozen_Tuple()
+        {
+            string createQuery = null;
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q);
+            var definition = new Map<UdtAndTuplePoco>()
+                .PartitionKey(c => c.Id1)
+                .Column(c => c.Id1, cm => cm.WithName("id"))
+                .Column(c => c.Tuple1, cm => cm.WithName("position").AsFrozen())
+                .ExplicitColumns()
+                .TableName("tbl1");
+            var table = GetTable<UdtAndTuplePoco>(sessionMock.Object, definition);
+            table.Create();
+            Assert.AreEqual("CREATE TABLE tbl1 (id uuid, position frozen<tuple<bigint, bigint, text>>, PRIMARY KEY (id))", createQuery);
+        }
+
+        [Test]
+        public void Create_With_Frozen_Collection_Key()
+        {
+            string createQuery = null;
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q);
+            var definition = new Map<UdtAndTuplePoco>()
+                .PartitionKey(c => c.Id1)
+                .Column(c => c.Id1, cm => cm.WithName("id"))
+                .Column(c => c.UdtSet1, cm => cm.WithName("my_set").WithDbType<SortedSet<Song>>().WithFrozenKey())
+                .Column(c => c.TupleMapKey1, cm => cm.WithName("my_map").WithFrozenKey())
+                .ExplicitColumns()
+                .TableName("tbl1");
+            var udtInfo = new UdtColumnInfo("song");
+            udtInfo.Fields.Add(new ColumnDesc { Name = "title", TypeCode = ColumnTypeCode.Ascii });
+            udtInfo.Fields.Add(new ColumnDesc { Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp });
+            var udtMap = UdtMap.For<Song>();
+            udtMap.Build(udtInfo);
+            TypeCodec.SetUdtMap("song", udtMap);
+            var table = GetTable<UdtAndTuplePoco>(sessionMock.Object, definition);
+            table.Create();
+            Assert.AreEqual("CREATE TABLE tbl1 (id uuid, my_set set<frozen<song>>, my_map map<frozen<tuple<double, double>>, text>, PRIMARY KEY (id))", createQuery);
+        }
+
+        [Test]
+        public void Create_With_Frozen_Collection_Value()
+        {
+            string createQuery = null;
+            var sessionMock = new Mock<ISession>();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q);
+            var definition = new Map<UdtAndTuplePoco>()
+                .PartitionKey(c => c.Id1)
+                .Column(c => c.Id1, cm => cm.WithName("id"))
+                .Column(c => c.UdtList1, cm => cm.WithName("my_list").WithFrozenValue())
+                .Column(c => c.TupleMapValue1, cm => cm.WithName("my_map").WithFrozenValue())
+                .ExplicitColumns()
+                .TableName("tbl1");
+            var udtInfo = new UdtColumnInfo("song");
+            udtInfo.Fields.Add(new ColumnDesc { Name = "title", TypeCode = ColumnTypeCode.Ascii });
+            udtInfo.Fields.Add(new ColumnDesc { Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp });
+            var udtMap = UdtMap.For<Song>();
+            udtMap.Build(udtInfo);
+            TypeCodec.SetUdtMap("song", udtMap);
+            var table = GetTable<UdtAndTuplePoco>(sessionMock.Object, definition);
+            table.Create();
+            Assert.AreEqual("CREATE TABLE tbl1 (id uuid, my_list list<frozen<song>>, my_map map<text, frozen<tuple<double, double>>>, PRIMARY KEY (id))", createQuery);
+        }
     }
 }

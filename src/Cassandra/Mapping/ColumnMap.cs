@@ -17,6 +17,9 @@ namespace Cassandra.Mapping
         private bool _secondaryIndex;
         private bool _isCounter;
         private bool _isStatic;
+        private bool _isFrozen;
+        private bool _hasFrozenKey;
+        private bool _hasFrozenValue;
 
         MemberInfo IColumnDefinition.MemberInfo
         {
@@ -61,6 +64,21 @@ namespace Cassandra.Mapping
         bool IColumnDefinition.IsStatic
         {
             get { return _isStatic; }
+        }
+
+        bool IColumnDefinition.IsFrozen
+        {
+            get { return _isFrozen; }
+        }
+
+        bool IColumnDefinition.HasFrozenKey
+        {
+            get { return _hasFrozenKey; }
+        }
+
+        bool IColumnDefinition.HasFrozenValue
+        {
+            get { return _hasFrozenValue; }
         }
 
         /// <summary>
@@ -142,6 +160,36 @@ namespace Cassandra.Mapping
         public ColumnMap AsStatic()
         {
             _isStatic = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Tells the mapper that the column type is frozen.
+        /// Only valid for collections, tuples, and user-defined types. For example: frozen&lt;address&gt;
+        /// </summary>
+        public ColumnMap AsFrozen()
+        {
+            _isFrozen = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Tells the mapper that the key of the column type is frozen.
+        /// Only valid for maps and sets, for example: map&lt;frozen&lt;tuple&lt;text, text&gt;&gt;, uuid&gt; .
+        /// </summary>
+        public ColumnMap WithFrozenKey()
+        {
+            _hasFrozenKey = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Tells the mapper that the value of the column type is frozen.
+        /// Only valid for maps and lists, for example: map&lt;uuid, frozen&lt;tuple&lt;text, text&gt;&gt;&gt; .
+        /// </summary>
+        public ColumnMap WithFrozenValue()
+        {
+            _hasFrozenValue = true;
             return this;
         }
     }

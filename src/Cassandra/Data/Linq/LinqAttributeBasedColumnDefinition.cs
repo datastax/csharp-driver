@@ -19,6 +19,9 @@ namespace Cassandra.Data.Linq
         public bool SecondaryIndex { get; private set; }
         public bool IsCounter { get; private set; }
         public bool IsStatic { get; private set; }
+        public bool IsFrozen { get; private set; }
+        public bool HasFrozenKey { get; private set; }
+        public bool HasFrozenValue { get; private set; }
 
         /// <summary>
         /// Creates a new column definition for the field specified using any attributes on the field to determine mapping configuration.

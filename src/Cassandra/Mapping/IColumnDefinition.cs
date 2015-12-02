@@ -52,5 +52,23 @@ namespace Cassandra.Mapping
         /// Determines if this column is a static column
         /// </summary>
         bool IsStatic { get; }
+
+        /// <summary>
+        /// Determines if the column is frozen.
+        /// Only valid for collections, tuples, and user-defined types. For example: frozen&lt;address&gt;
+        /// </summary>
+        bool IsFrozen { get; }
+
+        /// <summary>
+        /// Determines if the key of the column type is frozen.
+        /// Only valid for maps and sets, for example: map&lt;frozen&lt;tuple&lt;text, text&gt;&gt;, uuid&gt; .
+        /// </summary>
+        bool HasFrozenKey { get; }
+
+        /// <summary>
+        /// Determines if the value of the column type is frozen.
+        /// Only valid for maps and lists, for example: map&lt;uuid, frozen&lt;tuple&lt;text, text&gt;&gt;&gt; .
+        /// </summary>
+        bool HasFrozenValue { get; }
     }
 }

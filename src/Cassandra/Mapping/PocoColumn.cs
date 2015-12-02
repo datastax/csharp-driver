@@ -28,17 +28,33 @@ namespace Cassandra.Mapping
         /// <summary>
         /// Determines that there is a secondary index defined for this column
         /// </summary>
-        public bool SecondaryIndex { get; set; }
+        public bool SecondaryIndex { get; private set; }
 
         /// <summary>
         /// Determines that it is a counter column
         /// </summary>
-        public bool IsCounter { get; set; }
+        public bool IsCounter { get; private set; }
 
         /// <summary>
         /// Determines that it is a static column
         /// </summary>
         public bool IsStatic { get; private set; }
+
+        /// <summary>
+        /// Determines if the column is frozen.
+        /// Only valid for collections, tuples, and user-defined types. For example: frozen&lt;address&gt;
+        /// </summary>
+        public bool IsFrozen { get; private set; }
+
+        /// <summary>
+        /// Determines if the key of the column type is frozen.
+        /// </summary>
+        public bool HasFrozenKey { get; private set; }
+
+        /// <summary>
+        /// Determines if the value of the column type is frozen.
+        /// </summary>
+        public bool HasFrozenValue { get; private set; }
 
         private PocoColumn()
         {
@@ -56,7 +72,10 @@ namespace Cassandra.Mapping
                 MemberInfoType = columnDefinition.MemberInfoType,
                 SecondaryIndex = columnDefinition.SecondaryIndex,
                 IsCounter = columnDefinition.IsCounter,
-                IsStatic = columnDefinition.IsStatic
+                IsStatic = columnDefinition.IsStatic,
+                IsFrozen = columnDefinition.IsFrozen,
+                HasFrozenKey = columnDefinition.HasFrozenKey,
+                HasFrozenValue = columnDefinition.HasFrozenValue
             };
         }
     }
