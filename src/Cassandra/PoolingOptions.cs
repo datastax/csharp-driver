@@ -19,24 +19,42 @@ using System;
 namespace Cassandra
 {
     /// <summary>
-    ///  Options related to connection pooling. <p> The driver uses connections in an
-    ///  asynchronous way. Meaning that multiple requests can be submitted on the same
-    ///  connection at the same time. This means that the driver only needs to
-    ///  maintain a relatively small number of connections to each Cassandra host.
-    ///  These options allow to control how many connections are kept exactly. </p><p> For
-    ///  each host, the driver keeps a core amount of connections open at all time
-    ///  (<link>PoolingOptions#getCoreConnectionsPerHost</link>). If the utilization
-    ///  of those connections reaches a configurable threshold
-    ///  (<link>PoolingOptions#getMaxSimultaneousRequestsPerConnectionTreshold</link>),
-    ///  more connections are created up to a configurable maximum number of
-    ///  connections (<link>PoolingOptions#getMaxConnectionPerHost</link>). Once more
-    ///  than core connections have been created, connections in excess are reclaimed
-    ///  if the utilization of opened connections drops below the configured threshold
-    ///  (<link>PoolingOptions#getMinSimultaneousRequestsPerConnectionTreshold</link>).
-    ///  </p><p> Each of these parameters can be separately set for <c>Local</c> and
-    ///  <c>Remote</c> hosts (<link>HostDistance</link>). For
-    ///  <c>Ignored</c> hosts, the default for all those settings is 0 and
-    ///  cannot be changed.</p>
+    /// <para>Represents the options related to connection pooling.</para>
+    /// <para>
+    /// For each host selected by the load balancing policy, the driver keeps a core amount of 
+    /// connections open at all times 
+    /// (<see cref="PoolingOptions.GetCoreConnectionsPerHost(HostDistance)"/>).
+    /// If the use of those connections reaches a configurable threshold 
+    /// (<see cref="PoolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance)"/>), 
+    /// more connections are created up to the configurable maximum number of connections 
+    /// (<see cref="PoolingOptions.GetMaxConnectionPerHost(HostDistance)"/>).
+    /// </para>
+    /// <para>
+    /// The driver uses connections in an asynchronous manner and multiple requests can be
+    /// submitted on the same connection at the same time without waiting for a response.
+    /// This means that the driver only needs to maintain a relatively small number of connections
+    /// to each Cassandra host. The <see cref="PoolingOptions"/> allows you to to control how many
+    /// connections are kept per host.
+    /// </para>
+    /// <para>
+    /// Each of these parameters can be separately set for <see cref="HostDistance.Local"/> and
+    /// <see cref="HostDistance.Remote"/> hosts. For <see cref="HostDistance.Ignored"/> hosts,
+    /// the default for all those settings is 0 and cannot be changed.
+    /// </para>
+    /// <para>
+    /// The default amount of connections depend on the Cassandra version of the Cluster, as newer
+    /// versions of Cassandra (2.1 and above) support a higher number of in-flight requests.
+    /// </para>
+    /// <para>For Cassandra 2.1 and above, the default amount of connections per host are:</para>
+    /// <list type="bullet">
+    /// <item>Local datacenter: 1 core connection per host, with 2 connections as maximum if the simultaneous requests threshold is reached.</item>
+    /// <item>Remote datacenter: 1 core connection per host (being 1 also max).</item>
+    /// </list>
+    /// <para>For older Cassandra versions (1.2 and 2.0), the default amount of connections per host are:</para>
+    /// <list type="bullet">
+    /// <item>Local datacenter: 2 core connection per host, with 8 connections as maximum if the simultaneous requests threshold is reached.</item>
+    /// <item>Remote datacenter: 1 core connection per host (being 2 the maximum).</item>
+    /// </list>
     /// </summary>
     public class PoolingOptions
     {
@@ -47,6 +65,10 @@ namespace Cassandra
         private const int DefaultCorePoolRemote = 1;
         private const int DefaultMaxPoolLocal = 8;
         private const int DefaultMaxPoolRemote = 2;
+        /// <summary>
+        /// The default heartbeat interval in milliseconds: 30000.
+        /// </summary>
+        public const int DefaultHeartBeatInterval = 30000;
 
         private int _coreConnectionsForLocal = DefaultCorePoolLocal;
         private int _coreConnectionsForRemote = DefaultCorePoolRemote;
@@ -57,7 +79,7 @@ namespace Cassandra
         private int _maxSimultaneousRequestsForRemote = DefaultMaxRequests;
         private int _minSimultaneousRequestsForLocal = DefaultMinRequests;
         private int _minSimultaneousRequestsForRemote = DefaultMinRequests;
-        private int? _heartBeatInterval;
+        private int _heartBeatInterval = DefaultHeartBeatInterval;
 
         /// <summary>
         ///  Number of simultaneous requests on a connection below which connections in
@@ -86,7 +108,7 @@ namespace Cassandra
         ///  Sets the number of simultaneous requests on a connection below which
         ///  connections in excess are reclaimed.
         /// </summary>
-        /// <param name="distance"> the <c>HostDistance</c> for which to configure this
+        /// <param name="distance"> the <see cref="HostDistance"/> for which to configure this
         ///  threshold. </param>
         /// <param name="minSimultaneousRequests"> the value to set. </param>
         /// 
@@ -108,16 +130,18 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Number of simultaneous requests on all connections to an host after which
-        ///  more connections are created. <p> If all the connections opened to an host at
-        ///  distance <c>* distance</c> connection are handling more than this
-        ///  number of simultaneous requests and there is less than
-        ///  <link>#getMaxConnectionPerHost</link> connections open to this host, a new
-        ///  connection is open. </p><p> Note that a given connection cannot handle more than
-        ///  128 simultaneous requests (protocol limitation). </p><p> The default value for
-        ///  this option is 100 for <c>Local</c> and <c>Remote</c> hosts.</p>
+        /// <para>
+        /// Number of simultaneous requests on all connections to an host after which more
+        /// connections are created.
+        /// </para>
+        /// <para>
+        /// If all the connections opened to an host at <see cref="HostDistance"/> connection are 
+        /// handling more than this number of simultaneous requests and there is less than
+        /// <see cref="GetMaxConnectionPerHost"/> connections open to this host, a new connection
+        /// is open.
+        /// </para>
         /// </summary>
-        /// <param name="distance"> the <c>HostDistance</c> for which to return this threshold.</param>
+        /// <param name="distance"> the <see cref="HostDistance"/> for which to return this threshold.</param>
         /// <returns>the configured threshold, or the default one if none have been set.</returns>
         public int GetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance distance)
         {
@@ -133,13 +157,12 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Sets number of simultaneous requests on all connections to an host after
-        ///  which more connections are created.
+        /// Sets number of simultaneous requests on all connections to an host after
+        /// which more connections are created.
         /// </summary>
-        /// <param name="distance"> the <c>HostDistance</c> for which to configure this
+        /// <param name="distance">The <see cref="HostDistance"/> for which to configure this
         ///  threshold. </param>
         /// <param name="maxSimultaneousRequests"> the value to set. </param>
-        /// 
         /// <returns>this <c>PoolingOptions</c>. </returns>
         /// <throws name="IllegalArgumentException"> if <c>distance == HostDistance.Ignore</c>.</throws>
         public PoolingOptions SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance distance, int maxSimultaneousRequests)
@@ -159,15 +182,16 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  The core number of connections per host. <p> For the provided
-        ///  <c>distance</c>, this correspond to the number of connections initially
-        ///  created and kept open to each host of that distance.</p>
+        /// <para>
+        /// The core number of connections per host.
+        /// </para>
+        /// <para>
+        /// For the provided <see cref="HostDistance"/>, this correspond to the number of
+        /// connections initially created and kept open to each host of that distance.
+        /// </para>
         /// </summary>
-        /// <param name="distance"> the <c>HostDistance</c> for which to return this threshold.
-        ///  </param>
-        /// 
-        /// <returns>the core number of connections per host at distance
-        ///  <c>distance</c>.</returns>
+        /// <param name="distance">The <see cref="HostDistance"/> for which to return this threshold.</param>
+        /// <returns>the core number of connections per host at distance <see cref="HostDistance"/>.</returns>
         public int GetCoreConnectionsPerHost(HostDistance distance)
         {
             switch (distance)
@@ -184,10 +208,8 @@ namespace Cassandra
         /// <summary>
         ///  Sets the core number of connections per host.
         /// </summary>
-        /// <param name="distance"> the <c>HostDistance</c> for which to set this threshold.
-        ///  </param>
+        /// <param name="distance"> the <see cref="HostDistance"/> for which to set this threshold.</param>
         /// <param name="coreConnections"> the value to set </param>
-        /// 
         /// <returns>this <c>PoolingOptions</c>. </returns>
         /// <throws name="IllegalArgumentException"> if <c>distance == HostDistance.Ignored</c>.</throws>
         public PoolingOptions SetCoreConnectionsPerHost(HostDistance distance, int coreConnections)
@@ -254,7 +276,13 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Gets the amount of idle time in milliseconds that has to pass before the driver issues a request on an active connection to avoid idle time disconnections.
+        /// Gets the amount of idle time in milliseconds that has to pass
+        /// before the driver issues a request on an active connection to avoid
+        /// idle time disconnections.
+        /// <remarks>
+        /// A value of <c>0</c> or <c>null</c> means that the heartbeat
+        /// functionality at connection level is disabled.
+        /// </remarks>
         /// </summary>
         public int? GetHeartBeatInterval()
         {
@@ -262,8 +290,13 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Sets the amount of idle time in milliseconds that has to pass before the driver issues a request on an active connection to avoid idle time disconnections.
-        /// <remarks>When set to 0 the heartbeat functionality at connection level is disabled.</remarks>
+        /// Sets the amount of idle time in milliseconds that has to pass
+        /// before the driver issues a request on an active connection to avoid
+        /// idle time disconnections.
+        /// <remarks>
+        /// When set to <c>0</c> the heartbeat functionality at connection
+        /// level is disabled.
+        /// </remarks>
         /// </summary>
         public PoolingOptions SetHeartBeatInterval(int value)
         {
@@ -281,17 +314,14 @@ namespace Cassandra
                 //New instance of pooling options with default values
                 return new PoolingOptions();
             }
-            else
-            {
-                //New instance of pooling options with default values for high number of concurrent requests
-                return new PoolingOptions()
-                    .SetCoreConnectionsPerHost(HostDistance.Local, 1)
-                    .SetMaxConnectionsPerHost(HostDistance.Local, 2)
-                    .SetMaxConnectionsPerHost(HostDistance.Remote, 1)
-                    .SetMaxConnectionsPerHost(HostDistance.Remote, 1)
-                    .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 1500)
-                    .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Remote, 1500);
-            }
+            //New instance of pooling options with default values for high number of concurrent requests
+            return new PoolingOptions()
+                .SetCoreConnectionsPerHost(HostDistance.Local, 1)
+                .SetMaxConnectionsPerHost(HostDistance.Local, 2)
+                .SetMaxConnectionsPerHost(HostDistance.Remote, 1)
+                .SetMaxConnectionsPerHost(HostDistance.Remote, 1)
+                .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 1500)
+                .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Remote, 1500);
         }
     }
 }
