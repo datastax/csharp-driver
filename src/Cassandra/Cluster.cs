@@ -46,6 +46,14 @@ namespace Cassandra
         public event Action<Host> HostRemoved;
 
         /// <summary>
+        /// Gets the control connection used by the cluster
+        /// </summary>
+        internal ControlConnection GetControlConnection()
+        {
+            return _controlConnection;
+        }
+
+        /// <summary>
         ///  Build a new cluster based on the provided initializer. <p> Note that for
         ///  building a cluster programmatically, Cluster.NewBuilder provides a slightly less
         ///  verbose shortcut with <link>NewBuilder#Build</link>. </p><p> Also note that that all

@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Linq;
+using System.Net;
 
 namespace Cassandra
 {
@@ -39,7 +40,7 @@ namespace Cassandra
         private readonly int _usedHostsPerRemoteDc;
         private readonly int _maxIndex = Int32.MaxValue - 10000;
         private volatile Tuple<List<Host>, List<Host>> _hosts;
-        private Object _hostCreationLock = new Object();
+        private readonly object _hostCreationLock = new object();
         ICluster _cluster;
         int _index;
 
@@ -103,23 +104,42 @@ namespace Cassandra
             _cluster.HostRemoved += _ => ClearHosts();
             if (_localDc == null)
             {
-                //Use the first host to determine the datacenter
-                var firstHost = _cluster.AllHosts().FirstOrDefault(h => h.Datacenter != null);
-                if (firstHost == null)
+                var host = GetLocalHost();
+                if (host == null)
                 {
                     throw new DriverInternalError("Local datacenter could not be determined");
                 }
-                _localDc = firstHost.Datacenter;
+                _localDc = host.Datacenter;
+                return;
             }
-            else
+            //Check that the datacenter exists
+            if (_cluster.AllHosts().FirstOrDefault(h => h.Datacenter == _localDc) == null)
             {
-                //Check that the datacenter exists
-                if (_cluster.AllHosts().FirstOrDefault(h => h.Datacenter == _localDc) == null)
-                {
-                    var availableDcs = String.Join(", ", _cluster.AllHosts().Select(h => h.Datacenter));
-                    throw new ArgumentException(String.Format("Datacenter {0} does not match any of the nodes, available datacenters: {1}.", _localDc, availableDcs));
-                }
+                var availableDcs = string.Join(", ", _cluster.AllHosts().Select(h => h.Datacenter));
+                throw new ArgumentException(string.Format(
+                    "Datacenter {0} does not match any of the nodes, available datacenters: {1}.", _localDc, availableDcs));
             }
+        }
+
+        /// <summary>
+        /// Gets the current local host.
+        /// If can not be determined, it returns any of the nodes.
+        /// </summary>
+        private Host GetLocalHost()
+        {
+            var clusterImplementation = _cluster as Cluster;
+            if (clusterImplementation == null)
+            {
+                //fallback to use any of the hosts
+                return _cluster.AllHosts().FirstOrDefault(h => h.Datacenter != null);
+            }
+            var cc = clusterImplementation.GetControlConnection();
+            if (cc == null)
+            {
+                throw new DriverInternalError("ControlConnection was not correctly set");
+            }
+            //Use the host used by the control connection
+            return cc.Host;
         }
 
         /// <summary>
