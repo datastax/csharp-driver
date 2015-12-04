@@ -96,7 +96,33 @@ namespace Cassandra.Tests.Mapping
             batch.Insert(testUser);
             batch.Delete<InsertUser>("WHERE userid = ?", deleteId);
             batch.Update<InsertUser>("SET name = ? WHERE userid = ?", "SomeNewName", updateId);
+            var queries = batch.Statements.Select(cql => cql.Statement).ToArray();
+            Assert.AreEqual(3, queries.Length);
+            Assert.AreEqual("INSERT INTO users (userid, Name, Age, CreatedDate, IsActive, " +
+                            "LastLoginDate, LoginHistory, LuckyNumbers, ChildrenAges, " +
+                            "FavoriteColor, TypeOfUser, preferredcontactmethod, HairColor) VALUES " +
+                            "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", queries[0]);
+            Assert.AreEqual("DELETE FROM users WHERE userid = ?", queries[1]);
+            Assert.AreEqual("UPDATE users SET name = ? WHERE userid = ?", queries[2]);
             mapper.Execute(batch);
+        }
+
+        [Test]
+        public void Execute_Without_Nulls()
+        {
+            var mapper = GetMapper(() => TestHelper.DelayedTask(new RowSet()));
+            var batch = mapper.CreateBatch();
+            //It should not include null values
+            batch.Insert(new Song { Id = Guid.NewGuid(), ReleaseDate = DateTimeOffset.Now }, false);
+            //It should include null columns
+            batch.Insert(new Song { Id = Guid.NewGuid()}, true);
+            mapper.Execute(batch);
+            var queries = batch.Statements.Select(cql => cql.Statement).ToArray();
+            var parameters = batch.Statements.Select(cql => cql.Arguments).ToArray();
+            Assert.AreEqual("INSERT INTO Song (Id, ReleaseDate) VALUES (?, ?)", queries[0]);
+            Assert.AreEqual(2, parameters[0].Length);
+            Assert.AreEqual("INSERT INTO Song (Id, Title, Artist, ReleaseDate) VALUES (?, ?, ?, ?)", queries[1]);
+            Assert.AreEqual(4, parameters[1].Length);
         }
 
         [Test]

@@ -162,6 +162,34 @@ namespace Cassandra.Tests.Mapping
         }
 
         [Test]
+        public void Insert_Without_Nulls()
+        {
+            var album = new Album
+            {
+                Id = Guid.NewGuid(),
+                Name = null,
+                PublishingDate = DateTimeOffset.Now,
+                Songs = null
+            };
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Returns(TaskHelper.ToTask(new RowSet()))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
+                .Verifiable();
+            var mapper = GetMappingClient(sessionMock);
+            mapper.Insert(album, false);
+            sessionMock.Verify(s => s.ExecuteAsync(It.Is<BoundStatement>(stmt =>
+                stmt.QueryValues.Length > 0 &&
+                stmt.PreparedStatement.Cql == "INSERT INTO Album (Id, PublishingDate) VALUES (?, ?)"
+                )), Times.Exactly(1));
+            sessionMock.Verify();
+        }
+
+        [Test]
         public void Insert_Poco_Returns_WhenResponse_IsReceived()
         {
             var newUser = new InsertUser

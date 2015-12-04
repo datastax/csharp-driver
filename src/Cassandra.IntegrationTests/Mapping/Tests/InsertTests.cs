@@ -41,7 +41,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [SetUp]
         public void TestSetup()
         {
-            _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
+            _uniqueKsName = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
         }
@@ -391,6 +391,39 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.False(appliedInfo.Applied);
             Assert.NotNull(appliedInfo.Existing);
             Assert.AreEqual(song.Title, appliedInfo.Existing.Title);
+        }
+
+        [Test]
+        public void Insert_Without_Nulls_Test()
+        {
+            var config = new MappingConfiguration()
+                .Define(new Map<Song>().PartitionKey(s => s.Id).TableName("song_insert"));
+            //Use linq to create the table
+            new Table<Song>(_session, config).CreateIfNotExists();
+            var mapper = new Mapper(_session, config);
+            var song = new Song 
+            { 
+                Id = Guid.NewGuid(), 
+                Artist = "The Who", 
+                Title = "Substitute", 
+                ReleaseDate = DateTimeOffset.UtcNow
+            };
+            mapper.Insert(song);
+            var storedSong = mapper.First<Song>("WHERE id = ?", song.Id);
+            Assert.AreEqual(song.Artist, storedSong.Artist);
+            //do NOT insert nulls
+            mapper.Insert(new Song { Id = song.Id, Artist = null, Title = "Substitute 2", ReleaseDate = DateTimeOffset.UtcNow}, false);
+            //it should have the new title but the artist should still be the same (not null)
+            storedSong = mapper.First<Song>("WHERE id = ?", song.Id);
+            Assert.NotNull(storedSong.Artist);
+            Assert.AreEqual(song.Artist, storedSong.Artist);
+            Assert.AreEqual("Substitute 2", storedSong.Title);
+            //Now insert nulls
+            mapper.Insert(new Song { Id = song.Id, Artist = null, Title = "Substitute 3", ReleaseDate = DateTimeOffset.UtcNow }, true);
+            //it should have the new title and the artist should be null
+            storedSong = mapper.First<Song>("WHERE id = ?", song.Id);
+            Assert.Null(storedSong.Artist);
+            Assert.AreEqual("Substitute 3", storedSong.Title);
         }
 
 

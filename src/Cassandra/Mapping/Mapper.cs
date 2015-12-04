@@ -29,7 +29,7 @@ namespace Cassandra.Mapping
         public Mapper(ISession session, MappingConfiguration config) 
             : this(session, config.MapperFactory, config.StatementFactory, new CqlGenerator(config.MapperFactory.PocoDataFactory))
         {
-            
+
         }
 
         /// <summary>
@@ -194,22 +194,39 @@ namespace Cassandra.Mapping
 
         public Task InsertAsync<T>(T poco, CqlQueryOptions queryOptions = null)
         {
-            // Get statement and bind values from POCO
-            string cql = _cqlGenerator.GenerateInsert<T>();
-            Func<T, object[]> getBindValues = _mapperFactory.GetValueCollector<T>(cql);
-            object[] values = getBindValues(poco);
+            return InsertAsync(poco, true, queryOptions);
+        }
 
-            return ExecuteAsync(Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None));
+        public Task InsertAsync<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null)
+        {
+            var pocoData = _mapperFactory.PocoDataFactory.GetPocoData<T>();
+            var queryIdentifier = string.Format("INSERT ID {0}/{1}", pocoData.KeyspaceName, pocoData.TableName);
+            var getBindValues = _mapperFactory.GetValueCollector<T>(queryIdentifier);
+            //get values first to identify null values
+            var values = getBindValues(poco);
+            object[] queryParameters;
+            //generate INSERT query based on null values (if insertNulls set)
+            var cql = _cqlGenerator.GenerateInsert<T>(insertNulls, values, out queryParameters);
+            return ExecuteAsync(Cql.New(cql, queryParameters, queryOptions ?? CqlQueryOptions.None));
         }
 
         public Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, CqlQueryOptions queryOptions = null)
         {
-            // Get statement and bind values from POCO
-            var cql = _cqlGenerator.GenerateInsert<T>(true);
-            var getBindValues = _mapperFactory.GetValueCollector<T>(cql);
+            return InsertIfNotExistsAsync(poco, true, queryOptions);
+        }
+
+        public Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null)
+        {
+            var pocoData = _mapperFactory.PocoDataFactory.GetPocoData<T>();
+            var queryIdentifier = string.Format("INSERT ID {0}/{1}", pocoData.KeyspaceName, pocoData.TableName);
+            var getBindValues = _mapperFactory.GetValueCollector<T>(queryIdentifier);
+            //get values first to identify null values
             var values = getBindValues(poco);
+            object[] queryParameters;
+            //generate INSERT query based on null values (if insertNulls set)
+            var cql = _cqlGenerator.GenerateInsert<T>(insertNulls, values, out queryParameters, true);
             return ExecuteAsyncAndAdapt(
-                Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None), 
+                Cql.New(cql, queryParameters, queryOptions ?? CqlQueryOptions.None),
                 (stmt, rs) => AppliedInfo<T>.FromRowSet(_mapperFactory, cql, rs));
         }
 
@@ -432,13 +449,23 @@ namespace Cassandra.Mapping
 
         public void Insert<T>(T poco, CqlQueryOptions queryOptions = null)
         {
+            Insert(poco, true, queryOptions);
+        }
+
+        public void Insert<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null)
+        {
             //Wait async method to be completed or throw
-            TaskHelper.WaitToComplete(InsertAsync(poco, queryOptions), _queryAbortTimeout);
+            TaskHelper.WaitToComplete(InsertAsync(poco, insertNulls, queryOptions), _queryAbortTimeout);
         }
 
         public AppliedInfo<T> InsertIfNotExists<T>(T poco, CqlQueryOptions queryOptions = null)
         {
-            return TaskHelper.WaitToComplete(InsertIfNotExistsAsync(poco, queryOptions), _queryAbortTimeout);
+            return InsertIfNotExists(poco, true, queryOptions);
+        }
+
+        public AppliedInfo<T> InsertIfNotExists<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null)
+        {
+            return TaskHelper.WaitToComplete(InsertIfNotExistsAsync(poco, insertNulls, queryOptions), _queryAbortTimeout);
         }
 
         public void Update<T>(T poco, CqlQueryOptions queryOptions = null)

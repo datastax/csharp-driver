@@ -11,6 +11,26 @@
         void Insert<T>(T poco, CqlQueryOptions queryOptions = null);
 
         /// <summary>
+        /// Inserts the specified POCO in Cassandra.
+        /// </summary>
+        /// <param name="poco">The POCO instance</param>
+        /// <param name="insertNulls">
+        /// Determines if the query must be generated using <c>NULL</c> values for <c>null</c> POCO
+        /// members. 
+        /// <para>
+        /// Use <c>false</c> if you don't want to consider <c>null</c> values for the INSERT 
+        /// operation (recommended).
+        /// </para> 
+        /// <para>
+        /// Use <c>true</c> if you want to override all the values in the table,
+        /// generating tombstones for null values.
+        /// </para>
+        /// </param>
+        /// <param name="queryOptions">Optional query options</param>
+        /// <returns></returns>
+        void Insert<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null);
+
+        /// <summary>
         /// Updates the POCO specified in Cassandra.
         /// </summary>
         void Update<T>(T poco, CqlQueryOptions queryOptions = null);

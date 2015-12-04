@@ -74,17 +74,64 @@ namespace Cassandra.Mapping.Statements
         }
 
         /// <summary>
-        /// Generates an "INSERT INTO tablename (columns) VALUES (?)" statement for a POCO of Type T.
+        /// Generates an "INSERT INTO tablename (columns) VALUES (?...)" statement for a POCO of Type T.
         /// </summary>
-        public string GenerateInsert<T>(bool ifNotExists = false)
+        /// <param name="insertNulls">When set to <c>true</c>, it will only generate columns which POCO members are not null</param>
+        /// <param name="pocoValues">The parameters of this query, it will only be used if <c>insertNulls</c> is set to <c>true</c></param>
+        /// <param name="queryParameters">The parameters for this query. When insertNulls is <c>true</c>, the <c>pocoValues</c>
+        /// is the <c>queryParameters</c>, when set to <c>false</c> the <c>queryParameters do not include <c>null</c> values</c></param>
+        /// <param name="ifNotExists">Determines if it should add the IF NOT EXISTS at the end of the query</param>
+        /// <returns></returns>
+        public string GenerateInsert<T>(bool insertNulls, object[] pocoValues, out object[] queryParameters, bool ifNotExists = false)
         {
             var pocoData = _pocoDataFactory.GetPocoData<T>();
-
             if (pocoData.Columns.Count == 0)
+            {
                 throw new InvalidOperationException(string.Format(NoColumns, "INSERT", typeof(T).Name));
-
-            var columns = pocoData.Columns.Select(Escape(pocoData)).ToCommaDelimitedString();
-            var placeholders = Enumerable.Repeat("?", pocoData.Columns.Count).ToCommaDelimitedString();
+            }
+            string columns;
+            string placeholders;
+            if (!insertNulls)
+            {
+                if (pocoValues == null)
+                {
+                    throw new ArgumentNullException("pocoValues");
+                }
+                if (pocoValues.Length != pocoData.Columns.Count)
+                {
+                    throw new ArgumentException("Values array should contain the same amount of items as POCO columns");
+                }
+                //only include columns which value is not null
+                var columnsBuilder = new StringBuilder();
+                var placeholdersBuilder = new StringBuilder();
+                var parameterList = new List<object>();
+                for (var i = 0; i < pocoData.Columns.Count; i++)
+                {
+                    var value = pocoValues[i];
+                    if (value == null)
+                    {
+                        continue;
+                    }
+                    if (i > 0)
+                    {
+                        columnsBuilder.Append(", ");
+                        placeholdersBuilder.Append(", ");
+                    }
+                    columnsBuilder.Append(Escape(pocoData)(pocoData.Columns[i]));
+                    placeholdersBuilder.Append("?");
+                    parameterList.Add(value);
+                }
+                columns = columnsBuilder.ToString();
+                placeholders = placeholdersBuilder.ToString();
+                queryParameters = parameterList.ToArray();
+            }
+            else
+            {
+                //Include all columns defined in the Poco
+                columns = pocoData.Columns.Select(Escape(pocoData)).ToCommaDelimitedString();
+                placeholders = Enumerable.Repeat("?", pocoData.Columns.Count).ToCommaDelimitedString();
+                queryParameters = pocoValues;
+            }
             return string.Format("INSERT INTO {0} ({1}) VALUES ({2}){3}", Escape(pocoData.TableName, pocoData), columns, placeholders, ifNotExists ? " IF NOT EXISTS" : null);
         }
         

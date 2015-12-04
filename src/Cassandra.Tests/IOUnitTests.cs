@@ -58,9 +58,9 @@ namespace Cassandra.Tests
                 }
                 TestHelper.ParallelInvoke(actions);
                 //Allow callbacks to be called using the default scheduler
-                Thread.Sleep(20);
+                Thread.Sleep(200);
                 Assert.AreEqual(1, clientCallbackCounter);
-            }, 50);
+            }, 10);
             Trace.WriteLine(timedOutReceived);
         }
 

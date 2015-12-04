@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
+using Cassandra.Mapping.Utils;
 using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
 
@@ -14,7 +15,7 @@ namespace Cassandra.Tests.Mapping
         [Test]
         public void GenerateUpdate_Test()
         {
-            var types = new Cassandra.Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
+            var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
             types.Add(new Map<ExplicitColumnsUser>().TableName("users").PartitionKey(u => u.UserId).Column(u => u.UserAge, cm => cm.WithName("AGE")));
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
@@ -25,7 +26,7 @@ namespace Cassandra.Tests.Mapping
         [Test]
         public void GenerateUpdate_CaseSensitive_Test()
         {
-            var types = new Cassandra.Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
+            var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
             types.Add(new Map<ExplicitColumnsUser>()
                 .TableName("users")
                 .PartitionKey(u => u.UserId)
@@ -40,7 +41,7 @@ namespace Cassandra.Tests.Mapping
         [Test]
         public void PrependUpdate_Test()
         {
-            var types = new Cassandra.Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
+            var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
             types.Add(new Map<ExplicitColumnsUser>().TableName("users").PartitionKey(u => u.UserId));
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
@@ -52,7 +53,7 @@ namespace Cassandra.Tests.Mapping
         [Test]
         public void PrependUpdate_CaseSensitive_Test()
         {
-            var types = new Cassandra.Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
+            var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
             types.Add(new Map<ExplicitColumnsUser>()
                 .TableName("users")
                 .PartitionKey(u => u.UserId)
@@ -67,7 +68,7 @@ namespace Cassandra.Tests.Mapping
         [Test]
         public void AddSelect_Test()
         {
-            var types = new Cassandra.Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
+            var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
             types.Add(new Map<ExplicitColumnsUser>().TableName("users").PartitionKey(u => u.UserId).Column(u => u.UserAge, cm => cm.WithName("AGE")));
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
@@ -79,7 +80,7 @@ namespace Cassandra.Tests.Mapping
         [Test]
         public void AddSelect_CaseSensitive_Test()
         {
-            var types = new Cassandra.Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
+            var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
             types.Add(new Map<ExplicitColumnsUser>()
                 .TableName("users")
                 .PartitionKey(u => u.UserId)
@@ -95,7 +96,7 @@ namespace Cassandra.Tests.Mapping
         [Test]
         public void GenerateDelete_Test()
         {
-            var types = new Cassandra.Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
+            var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
             types.Add(new Map<ExplicitColumnsUser>().TableName("USERS").PartitionKey(u => u.UserId));
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
@@ -106,7 +107,7 @@ namespace Cassandra.Tests.Mapping
         [Test]
         public void GenerateDelete_CaseSensitive_Test()
         {
-            var types = new Cassandra.Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
+            var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
             types.Add(new Map<ExplicitColumnsUser>()
                 .TableName("USERS")
                 .PartitionKey("ID")
@@ -121,28 +122,81 @@ namespace Cassandra.Tests.Mapping
         [Test]
         public void GenerateInsert_Test()
         {
-            var types = new Cassandra.Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
+            var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
             types.Add(new Map<ExplicitColumnsUser>()
                 .TableName("USERS")
                 .PartitionKey("ID")
                 .Column(u => u.UserId, cm => cm.WithName("ID")));
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
-            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>();
+            object[] queryParameters;
+            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(true, null, out queryParameters);
             Assert.AreEqual(@"INSERT INTO USERS (ID, Name, UserAge) VALUES (?, ?, ?)", cql);
+        }
+
+        [Test]
+        public void GenerateInsert_Without_Nulls_Test()
+        {
+            var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
+            types.Add(new Map<ExplicitColumnsUser>()
+                .TableName("USERS")
+                .PartitionKey("ID")
+                .Column(u => u.UserId, cm => cm.WithName("ID")));
+            var pocoFactory = new PocoDataFactory(types);
+            var cqlGenerator = new CqlGenerator(pocoFactory);
+            var values = new object[] {Guid.NewGuid(), null, 100};
+            object[] queryParameters;
+            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(false, values, out queryParameters);
+            Assert.AreEqual(@"INSERT INTO USERS (ID, UserAge) VALUES (?, ?)", cql);
+            CollectionAssert.AreEqual(values.Where(v => v != null), queryParameters);
+            
+            cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(false, values, out queryParameters, true);
+            Assert.AreEqual(@"INSERT INTO USERS (ID, UserAge) VALUES (?, ?) IF NOT EXISTS", cql);
+            CollectionAssert.AreEqual(values.Where(v => v != null), queryParameters);
+        }
+
+        [Test]
+        public void GenerateInsert_Without_Nulls_Should_Throw_When_Value_Is_Null_Test()
+        {
+            var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
+            types.Add(new Map<ExplicitColumnsUser>()
+                .TableName("USERS")
+                .PartitionKey("ID")
+                .Column(u => u.UserId, cm => cm.WithName("ID")));
+            var pocoFactory = new PocoDataFactory(types);
+            var cqlGenerator = new CqlGenerator(pocoFactory);
+            object[] queryParameters;
+            Assert.Throws<ArgumentNullException>(() =>
+                cqlGenerator.GenerateInsert<ExplicitColumnsUser>(false, null, out queryParameters));
+        }
+
+        [Test]
+        public void GenerateInsert_Without_Nulls_Should_Throw_When_Value_Length_Dont_Match_Test()
+        {
+            var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
+            types.Add(new Map<ExplicitColumnsUser>()
+                .TableName("USERS")
+                .PartitionKey("ID")
+                .Column(u => u.UserId, cm => cm.WithName("ID")));
+            var pocoFactory = new PocoDataFactory(types);
+            var cqlGenerator = new CqlGenerator(pocoFactory);
+            object[] queryParameters;
+            Assert.Throws<ArgumentException>(() =>
+                cqlGenerator.GenerateInsert<ExplicitColumnsUser>(false, new object[] { Guid.NewGuid()}, out queryParameters));
         }
 
         [Test]
         public void GenerateInsert_CaseSensitive_Test()
         {
-            var types = new Cassandra.Mapping.Utils.LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
+            var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
             types.Add(new Map<ExplicitColumnsUser>()
                 .TableName("USERS")
                 .PartitionKey(u => u.UserId)
                 .CaseSensitive());
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
-            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>();
+            object[] queryParameters;
+            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(true, null, out queryParameters);
             Assert.AreEqual(@"INSERT INTO ""USERS"" (""UserId"", ""Name"", ""UserAge"") VALUES (?, ?, ?)", cql);
         }
     }

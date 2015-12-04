@@ -31,22 +31,36 @@ namespace Cassandra.Mapping
 
         public void Insert<T>(T poco, CqlQueryOptions queryOptions = null)
         {
-            Insert(false, poco, queryOptions);
+            Insert(poco, true, queryOptions);
+        }
+
+        public void Insert<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null)
+        {
+            Insert(false, insertNulls, poco, queryOptions);
         }
 
         public void InsertIfNotExists<T>(T poco, CqlQueryOptions queryOptions = null)
         {
-            Insert(true, poco, queryOptions);
+            InsertIfNotExists(poco, true, queryOptions);
         }
 
-        private void Insert<T>(bool ifNotExists, T poco, CqlQueryOptions queryOptions = null)
+        public void InsertIfNotExists<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null)
         {
-            // Get statement and bind values from POCO
-            string cql = _cqlGenerator.GenerateInsert<T>(ifNotExists);
-            Func<T, object[]> getBindValues = _mapperFactory.GetValueCollector<T>(cql);
-            object[] values = getBindValues(poco);
+            Insert(true, insertNulls, poco, queryOptions);
+        }
 
-            _statements.Add(Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None));
+        private void Insert<T>(bool ifNotExists, bool insertNulls, T poco, CqlQueryOptions queryOptions = null)
+        {
+            var pocoData = _mapperFactory.PocoDataFactory.GetPocoData<T>();
+            var queryIdentifier = string.Format("INSERT ID {0}/{1}", pocoData.KeyspaceName, pocoData.TableName);
+            var getBindValues = _mapperFactory.GetValueCollector<T>(queryIdentifier);
+            //get values first to identify null values
+            var values = getBindValues(poco);
+            //generate INSERT query based on null values (if insertNulls set)
+            object[] queryParameters;
+            var cql = _cqlGenerator.GenerateInsert<T>(insertNulls, values, out queryParameters, ifNotExists);
+
+            _statements.Add(Cql.New(cql, queryParameters, queryOptions ?? CqlQueryOptions.None));
         }
 
         public void Update<T>(T poco, CqlQueryOptions queryOptions = null)
