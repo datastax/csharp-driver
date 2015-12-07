@@ -318,39 +318,6 @@ namespace Cassandra.Data.Linq
             return name;
         }
 
-        public string GetInsert<T>(T poco, bool ifNotExists, int? ttl, DateTimeOffset? timestamp, List<object> parameters)
-        {
-            var query = new StringBuilder();
-            var columns = _pocoData.Columns.Select(c => Escape(c.ColumnName)).ToCommaDelimitedString();
-            var placeholders = Enumerable.Repeat("?", _pocoData.Columns.Count).ToCommaDelimitedString();
-            query.Append(String.Format("INSERT INTO {0} ({1}) VALUES ({2})", GetEscapedTableName(), columns, placeholders));
-
-            if (ifNotExists)
-            {
-                query.Append(" IF NOT EXISTS");
-            }
-            if (ttl != null || timestamp != null)
-            {
-                query.Append(" USING");
-                if (ttl != null)
-                {
-                    query.Append(" TTL ?");
-                    parameters.Add(ttl.Value);
-                    if (timestamp != null)
-                    {
-                        query.Append(" AND");
-                    }
-                }
-                if (timestamp != null)
-                {
-                    query.Append(" TIMESTAMP ?");
-                    parameters.Add((timestamp.Value - CqlQueryTools.UnixStart).Ticks / 10);
-                }
-            }
-
-            return query.ToString();
-        }
-
         public void Evaluate(Expression expression)
         {
             Visit(expression);

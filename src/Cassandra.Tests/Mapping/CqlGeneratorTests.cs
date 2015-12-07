@@ -130,7 +130,7 @@ namespace Cassandra.Tests.Mapping
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
             object[] queryParameters;
-            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(true, null, out queryParameters);
+            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(true, new object[0], out queryParameters);
             Assert.AreEqual(@"INSERT INTO USERS (ID, Name, UserAge) VALUES (?, ?, ?)", cql);
         }
 
@@ -196,7 +196,7 @@ namespace Cassandra.Tests.Mapping
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
             object[] queryParameters;
-            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(true, null, out queryParameters);
+            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(true, new object[0], out queryParameters);
             Assert.AreEqual(@"INSERT INTO ""USERS"" (""UserId"", ""Name"", ""UserAge"") VALUES (?, ?, ?)", cql);
         }
     }

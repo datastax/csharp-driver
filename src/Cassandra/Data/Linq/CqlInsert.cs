@@ -22,16 +22,21 @@ using Cassandra.Mapping.Statements;
 
 namespace Cassandra.Data.Linq
 {
+    /// <summary>
+    /// Represents an INSERT statement
+    /// </summary>
     public class CqlInsert<TEntity> : CqlCommand
     {
         private readonly TEntity _entity;
         private bool _ifNotExists;
         private readonly MapperFactory _mapperFactory;
+        private readonly bool _insertNulls;
 
-        internal CqlInsert(TEntity entity, ITable table, StatementFactory stmtFactory, MapperFactory mapperFactory)
+        internal CqlInsert(TEntity entity, bool insertNulls, ITable table, StatementFactory stmtFactory, MapperFactory mapperFactory)
             : base(null, table, stmtFactory, mapperFactory.GetPocoData<TEntity>())
         {
             _entity = entity;
+            _insertNulls = insertNulls;
             _mapperFactory = mapperFactory;
         }
 
@@ -43,13 +48,37 @@ namespace Cassandra.Data.Linq
 
         protected internal override string GetCql(out object[] values)
         {
-            var getBindValues = _mapperFactory.GetValueCollector<TEntity>("INSERT ALL LINQ");
-            //Use a list of parameters as additional parameters may be included (ttl / timestamp)
-            var parameters = new List<object>(getBindValues(_entity));
-            var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
-            var cql = visitor.GetInsert(_entity, _ifNotExists, _ttl, _timestamp, parameters);
-            values = parameters.ToArray();
-            return cql; 
+            var pocoData = _mapperFactory.PocoDataFactory.GetPocoData<TEntity>();
+            var queryIdentifier = string.Format("INSERT LINQ ID {0}/{1}", Table.KeyspaceName, Table.Name);
+            var getBindValues = _mapperFactory.GetValueCollector<TEntity>(queryIdentifier);
+            //get values first to identify null values
+            var pocoValues = getBindValues(_entity);
+            //generate INSERT query based on null values (if insertNulls set)
+            var cqlGenerator = new CqlGenerator(_mapperFactory.PocoDataFactory);
+            //Use the table name from Table<TEntity> instance instead of PocoData
+            var tableName = GetEscapedTableName(pocoData);
+            return cqlGenerator.GenerateInsert<TEntity>(
+                _insertNulls, pocoValues, out values, _ifNotExists, _ttl, _timestamp, tableName);
+        }
+
+        private string GetEscapedTableName(PocoData pocoData)
+        {
+            string name = null;
+            if (Table.KeyspaceName != null)
+            {
+                name = Escape(Table.KeyspaceName, pocoData) + ".";
+            }
+            name += Escape(Table.Name, pocoData);
+            return name;
+        }
+
+        private static string Escape(string identifier, PocoData pocoData)
+        {
+            if (!pocoData.CaseSensitive)
+            {
+                return identifier;
+            }
+            return "\"" + identifier + "\"";
         }
 
         internal string GetCqlAndValues(out object[] values)

@@ -182,11 +182,34 @@ namespace Cassandra.Data.Linq
         }
 
         /// <summary>
-        /// Returns a CqlInsert command to be executed against a table. To execute this command, use Execute() method.
+        /// Returns a new <see cref="CqlInsert{TEntity}"/> command. Use
+        /// <see cref="CqlCommand.Execute()"/> method to execute the query.
         /// </summary>
         public CqlInsert<TEntity> Insert(TEntity entity)
         {
-            return new CqlInsert<TEntity>(entity, this, StatementFactory, MapperFactory);
+            return Insert(entity, true);
+        }
+
+        /// <summary>
+        /// Returns a new <see cref="CqlInsert{TEntity}"/> command. Use
+        /// <see cref="CqlCommand.Execute()"/> method to execute the query.
+        /// </summary>
+        /// <param name="entity">The entity to insert</param>
+        /// <param name="insertNulls">
+        /// Determines if the query must be generated using <c>NULL</c> values for <c>null</c> 
+        /// entity members. 
+        /// <para>
+        /// Use <c>false</c> if you don't want to consider <c>null</c> values for the INSERT
+        /// operation (recommended).
+        /// </para> 
+        /// <para>
+        /// Use <c>true</c> if you want to override all the values in the table,
+        /// generating tombstones for null values.
+        /// </para>
+        /// </param>
+        public CqlInsert<TEntity> Insert(TEntity entity, bool insertNulls)
+        {
+            return new CqlInsert<TEntity>(entity, insertNulls, this, StatementFactory, MapperFactory);
         }
     }
 }

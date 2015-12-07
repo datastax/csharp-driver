@@ -79,6 +79,9 @@ namespace Cassandra.Data.Linq
 
         protected internal abstract string GetCql(out object[] values);
 
+        /// <summary>
+        /// Executes the command using the <see cref="ISession"/>.
+        /// </summary>
         public void Execute()
         {
             var config = GetTable().GetSession().GetConfiguration();
@@ -103,6 +106,10 @@ namespace Cassandra.Data.Linq
             return this;
         }
 
+        /// <summary>
+        /// Sets the time for data in a column to expire (TTL) for INSERT and UPDATE commands .
+        /// </summary>
+        /// <param name="seconds">Amount of seconds</param>
         public CqlCommand SetTTL(int seconds)
         {
             _ttl = seconds;

@@ -23,6 +23,7 @@ namespace Cassandra.Mapping.Statements
         private static readonly Regex FromRegex = new Regex(@"\A\s*FROM\s", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private readonly PocoDataFactory _pocoDataFactory;
+        private static readonly DateTimeOffset UnixEpoch = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
 
         public CqlGenerator(PocoDataFactory pocoDataFactory)
         {
@@ -63,13 +64,13 @@ namespace Cassandra.Mapping.Statements
 
         private static Func<PocoColumn, string> Escape(PocoData pocoData)
         {
-            Func<PocoColumn, string> f = (c) => Escape(c.ColumnName, pocoData);
+            Func<PocoColumn, string> f = c => Escape(c.ColumnName, pocoData);
             return f;
         }
 
         private static Func<PocoColumn, string> Escape(PocoData pocoData, string format)
         {
-            Func<PocoColumn, string> f = (c) => String.Format(format, Escape(c.ColumnName, pocoData));
+            Func<PocoColumn, string> f = c => String.Format(format, Escape(c.ColumnName, pocoData));
             return f;
         }
 
@@ -81,8 +82,12 @@ namespace Cassandra.Mapping.Statements
         /// <param name="queryParameters">The parameters for this query. When insertNulls is <c>true</c>, the <c>pocoValues</c>
         /// is the <c>queryParameters</c>, when set to <c>false</c> the <c>queryParameters do not include <c>null</c> values</c></param>
         /// <param name="ifNotExists">Determines if it should add the IF NOT EXISTS at the end of the query</param>
+        /// <param name="ttl">Amount of seconds for the data to expire (TTL)</param>
+        /// <param name="timestamp">Data timestamp</param>
+        /// <param name="tableName">Table name. If null, it will use table name based on Poco Data</param>
         /// <returns></returns>
-        public string GenerateInsert<T>(bool insertNulls, object[] pocoValues, out object[] queryParameters, bool ifNotExists = false)
+        public string GenerateInsert<T>(bool insertNulls, object[] pocoValues, out object[] queryParameters, 
+            bool ifNotExists = false, int? ttl = null, DateTimeOffset? timestamp = null, string tableName = null)
         {
             var pocoData = _pocoDataFactory.GetPocoData<T>();
             if (pocoData.Columns.Count == 0)
@@ -91,6 +96,7 @@ namespace Cassandra.Mapping.Statements
             }
             string columns;
             string placeholders;
+            var parameterList = new List<object>();
             if (!insertNulls)
             {
                 if (pocoValues == null)
@@ -104,7 +110,6 @@ namespace Cassandra.Mapping.Statements
                 //only include columns which value is not null
                 var columnsBuilder = new StringBuilder();
                 var placeholdersBuilder = new StringBuilder();
-                var parameterList = new List<object>();
                 for (var i = 0; i < pocoData.Columns.Count; i++)
                 {
                     var value = pocoValues[i];
@@ -123,16 +128,46 @@ namespace Cassandra.Mapping.Statements
                 }
                 columns = columnsBuilder.ToString();
                 placeholders = placeholdersBuilder.ToString();
-                queryParameters = parameterList.ToArray();
             }
             else
             {
                 //Include all columns defined in the Poco
                 columns = pocoData.Columns.Select(Escape(pocoData)).ToCommaDelimitedString();
                 placeholders = Enumerable.Repeat("?", pocoData.Columns.Count).ToCommaDelimitedString();
-                queryParameters = pocoValues;
+                parameterList.AddRange(pocoValues);
             }
-            return string.Format("INSERT INTO {0} ({1}) VALUES ({2}){3}", Escape(pocoData.TableName, pocoData), columns, placeholders, ifNotExists ? " IF NOT EXISTS" : null);
+            var queryBuilder = new StringBuilder();
+            queryBuilder.Append("INSERT INTO ");
+            queryBuilder.Append(tableName ?? Escape(pocoData.TableName, pocoData));
+            queryBuilder.Append(" (");
+            queryBuilder.Append(columns);
+            queryBuilder.Append(") VALUES (");
+            queryBuilder.Append(placeholders);
+            queryBuilder.Append(")");
+            if (ifNotExists)
+            {
+                queryBuilder.Append(" IF NOT EXISTS");
+            }
+            if (ttl != null || timestamp != null)
+            {
+                queryBuilder.Append(" USING");
+                if (ttl != null)
+                {
+                    queryBuilder.Append(" TTL ?");
+                    parameterList.Add(ttl.Value);
+                    if (timestamp != null)
+                    {
+                        queryBuilder.Append(" AND");
+                    }
+                }
+                if (timestamp != null)
+                {
+                    queryBuilder.Append(" TIMESTAMP ?");
+                    parameterList.Add((timestamp.Value - UnixEpoch).Ticks / 10);
+                }
+            }
+            queryParameters = parameterList.ToArray();
+            return queryBuilder.ToString();
         }
         
         /// <summary>

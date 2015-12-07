@@ -172,20 +172,30 @@ namespace Cassandra.Tests.Mapping
                 Songs = null
             };
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            string query = null;
+            object[] parameters = null;
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(TaskHelper.ToTask(new RowSet()))
+                .Callback<BoundStatement>(stmt =>
+                {
+                    query = stmt.PreparedStatement.Cql;
+                    parameters = stmt.QueryValues;
+                })
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
                 .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock);
+            //with nulls by default
+            mapper.Insert(album);
+            Assert.AreEqual("INSERT INTO Album (Id, Name, PublishingDate, Songs) VALUES (?, ?, ?, ?)", query);
+            CollectionAssert.AreEqual(new object[] { album.Id, null, album.PublishingDate, null}, parameters);
+            //Without nulls
             mapper.Insert(album, false);
-            sessionMock.Verify(s => s.ExecuteAsync(It.Is<BoundStatement>(stmt =>
-                stmt.QueryValues.Length > 0 &&
-                stmt.PreparedStatement.Cql == "INSERT INTO Album (Id, PublishingDate) VALUES (?, ?)"
-                )), Times.Exactly(1));
+            Assert.AreEqual("INSERT INTO Album (Id, PublishingDate) VALUES (?, ?)", query);
+            CollectionAssert.AreEqual(new object[] { album.Id, album.PublishingDate }, parameters);
             sessionMock.Verify();
         }
 
