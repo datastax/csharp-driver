@@ -390,5 +390,37 @@ namespace Cassandra.IntegrationTests.Core
                 TestCluster.ResumeNode(2);
             }
         }
+
+        /// Tests that void results return empty RowSets
+        ///
+        /// Empty_RowSet_Test tests that empty RowSets are returned for void results. It creates a simple table and performs
+        /// an INSERT query on the table, returning an empty RowSet. It then verifies the RowSet metadata is populated
+        /// properly.
+        ///
+        /// @since 3.0.0
+        /// @jira_ticket CSHARP-377
+        /// @expected_result RowSet metadata is properly returned
+        ///
+        /// @test_category queries:basic
+        [Test]
+        public void Empty_RowSet_Test()
+        {
+            var localCluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build();
+            var localSession = localCluster.Connect(KeyspaceName);
+            localSession.Execute("CREATE TABLE test (k int PRIMARY KEY, v int)");
+
+            try
+            {
+                var rowSet = localSession.Execute("INSERT INTO test (k, v) VALUES (0, 0)");
+                Assert.True(rowSet.IsExhausted());
+                Assert.True(rowSet.IsFullyFetched);
+                Assert.AreEqual(0, rowSet.Count());
+                Assert.AreEqual(0, rowSet.GetAvailableWithoutFetching());
+            }
+            finally
+            {
+                localCluster.Shutdown(1000);
+            }
+        }
     }
 }
