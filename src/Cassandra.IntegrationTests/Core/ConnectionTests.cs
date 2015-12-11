@@ -730,6 +730,36 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+        /// Tests that connection heartbeats are enabled by default
+        ///
+        /// Heartbeat_Should_Be_Enabled_By_Default tests that connection heartbeats are enabled by default. It creates a default
+        /// connection and verfies in the poolingoptions configuration that the hearbeat interval is set to 30 seconds. It then performs
+        /// a sample query, kills the connection, and verfieis that one OnIdleRequestException is raised due to the connection being closed
+        /// and the heartbeat is not returned.
+        ///
+        /// @since 3.0.0
+        /// @jira_ticket CSHARP-375
+        /// @expected_result Connection heartbeat should be enabled by default
+        ///
+        /// @test_category connection:heartbeat
+        [Test]
+        public void Heartbeat_Should_Be_Enabled_By_Default()
+        {
+            using (var connection = CreateConnection(null, null, new PoolingOptions()))
+            {
+                connection.Open().Wait();
+                Assert.AreEqual(30000, connection.Configuration.PoolingOptions.GetHeartBeatInterval());
+
+                //execute a dummy query
+                TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default));
+                var called = 0;
+                connection.OnIdleRequestException += (_) => called++;
+                connection.Kill();
+                Thread.Sleep(30000);
+                Assert.AreEqual(1, called);
+            }
+        }
+
         private Connection CreateConnection(ProtocolOptions protocolOptions = null, SocketOptions socketOptions = null, PoolingOptions poolingOptions = null)
         {
             if (socketOptions == null)
@@ -762,7 +792,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var cassandraVersion = CassandraVersion;
             byte protocolVersion = 1;
-            if (cassandraVersion >= Version.Parse("3.0"))
+            if (cassandraVersion >= Version.Parse("2.2"))
             {
                 protocolVersion = 4;
             }
@@ -770,7 +800,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 protocolVersion = 3;
             }
-            else if (cassandraVersion > Version.Parse("2.0"))
+            else if (cassandraVersion >= Version.Parse("2.0"))
             {
                 protocolVersion = 2;
             }
