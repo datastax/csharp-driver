@@ -462,8 +462,20 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection(GetLatestProtocolVersion(), config))
             {
                 var ex = Assert.Throws<AggregateException>(() => connection.Open().Wait(10000));
-                Assert.IsInstanceOf<TimeoutException>(ex.InnerException);
-                StringAssert.IsMatch("SSL", ex.InnerException.Message);
+                if (ex.InnerException is TimeoutException)
+                {
+                    //Under .NET, SslStream.BeginAuthenticateAsClient Method() never calls back
+                    //So we throw a TimeoutException
+                    StringAssert.IsMatch("SSL", ex.InnerException.Message);
+                }
+                else if (ex.InnerException is System.IO.IOException)
+                {
+                    //Under Mono and others, it throws a IOException
+                }
+                else
+                {
+                    throw new AssertionException(string.Format("Expected TimeoutException or IOException, obtained {0}", ex.InnerException.GetType()));
+                }
             }
         }
         

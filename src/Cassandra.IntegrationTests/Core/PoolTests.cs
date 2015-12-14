@@ -315,7 +315,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Connect_With_Ssl_Test()
         {
             //use ssl
-            var testCluster = TestClusterManager.GetTestCluster(1, 0, false, 1, true, false, 0, null, true);
+            var testCluster = TestClusterManager.CreateNew(1, new TestClusterOptions { UseSsl = true });
 
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(testCluster.InitialContactPoint)
