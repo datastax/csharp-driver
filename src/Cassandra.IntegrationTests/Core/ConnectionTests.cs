@@ -400,46 +400,6 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test]
-        [Explicit]
-        public void Ssl_Test()
-        {
-            var certs = new X509CertificateCollection();
-            RemoteCertificateValidationCallback callback = (s, cert, chain, policyErrors) =>
-            {
-                if (policyErrors == SslPolicyErrors.None)
-                {
-                    return true;
-                }
-                if ((policyErrors & SslPolicyErrors.RemoteCertificateChainErrors) == SslPolicyErrors.RemoteCertificateChainErrors &&
-                    chain.ChainStatus.Length == 1 &&
-                    chain.ChainStatus[0].Status == X509ChainStatusFlags.UntrustedRoot)
-                {
-                    //self issued
-                    return true;
-                }
-                return false;
-            };
-            var sslOptions = new SSLOptions().SetCertificateCollection(certs).SetRemoteCertValidationCallback(callback);
-            using (var connection = CreateConnection(new ProtocolOptions(ProtocolOptions.DefaultPort, sslOptions)))
-            {
-                connection.Open().Wait();
-
-                var taskList = new List<Task<Response>>();
-                //Run the query multiple times
-                for (var i = 0; i < 129; i++)
-                {
-                    taskList.Add(Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default));
-                }
-                Task.WaitAll(taskList.ToArray());
-                Assert.True(taskList.All(t => t.Status == TaskStatus.RanToCompletion), "Not all task completed");
-
-                //One last time
-                var task = Query(connection, "SELECT * FROM system.local");
-                Assert.True(task.Result != null);
-            }
-        }
-
         /// Tests that a ssl connection to a host with ssl disabled fails (not hangs)
         /// 
         /// @since 3.0.0
