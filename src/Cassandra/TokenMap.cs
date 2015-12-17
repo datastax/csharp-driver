@@ -149,12 +149,17 @@ namespace Cassandra
             return replicas;
         }
 
-        private static bool IsDoneForToken(IDictionary<string, int> replicationFactors, Dictionary<string, int> replicasByDc, Dictionary<string, int> datacenters)
+        internal static bool IsDoneForToken(IDictionary<string, int> replicationFactors, Dictionary<string, int> replicasByDc, Dictionary<string, int> datacenters)
         {
-            foreach (var dc in replicationFactors.Keys) 
+            foreach (var dc in replicationFactors.Keys)
             {
                 var rf = Math.Min(replicationFactors[dc], datacenters.ContainsKey(dc) ? datacenters[dc] : 0);
-                if (!replicasByDc.ContainsKey(dc) || replicasByDc[dc] < rf) 
+                if (rf == 0)
+                {
+                    //A DC is included in the RF but the DC does not exist
+                    continue;
+                }
+                if (!replicasByDc.ContainsKey(dc) || replicasByDc[dc] < rf)
                 {
                     return false;
                 }

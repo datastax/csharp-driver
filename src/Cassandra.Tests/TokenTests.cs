@@ -257,6 +257,52 @@ namespace Cassandra.Tests
             CollectionAssert.AreEqual(new byte[] { 1, 2 }, replicas.Select(TestHelper.GetLastAddressByte));
         }
 
+        [Test]
+        public void TokenMap_IsDoneForToken_Should_Return_True_When_No_Host_In_Dc()
+        {
+            var ksReplicationFactor = new Dictionary<string, int>
+            {
+                {"dc1", 1},
+                {"dc2", 3},
+                {"dc3", 1}
+            };
+            var replicasByDc = new Dictionary<string, int>
+            {
+                {"dc1", 1},
+                {"dc2", 3}
+            };
+            //no host in DC 3
+            var datacenters = new Dictionary<string, int>
+            {
+                {"dc1", 10},
+                {"dc2", 10}
+            };
+            Assert.True(TokenMap.IsDoneForToken(ksReplicationFactor, replicasByDc, datacenters));
+        }
+
+        [Test]
+        public void TokenMap_IsDoneForToken_Should_Return_False_When_Not_Satisfied()
+        {
+            var ksReplicationFactor = new Dictionary<string, int>
+            {
+                {"dc1", 1},
+                {"dc2", 3},
+                {"dc3", 1}
+            };
+            var replicasByDc = new Dictionary<string, int>
+            {
+                {"dc1", 1},
+                {"dc2", 1}
+            };
+            //no host in DC 3
+            var datacenters = new Dictionary<string, int>
+            {
+                {"dc1", 10},
+                {"dc2", 10}
+            };
+            Assert.False(TokenMap.IsDoneForToken(ksReplicationFactor, replicasByDc, datacenters));
+        }
+
         private static KeyspaceMetadata CreateKeyspace(string name, string strategy, int replicationFactor)
         {
             return new KeyspaceMetadata(null, name, true, strategy, new Dictionary<string, int> { { "replication_factor", replicationFactor } });
