@@ -14,6 +14,7 @@ namespace Cassandra.Tests
     [TestFixture]
     public class HostConnectionPoolTests
     {
+        private static readonly IPEndPoint Address = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1000);
         private const byte ProtocolVersion = 2;
         private static readonly Host Host1 = TestHelper.CreateHost("127.0.0.1");
 
@@ -40,13 +41,25 @@ namespace Cassandra.Tests
             return config;
         }
 
+        private static Connection GetConnectionMock(int inflight, int timedOutOperations = 0)
+        {
+            var config = new Configuration
+            {
+                BufferPool = new Microsoft.IO.RecyclableMemoryStreamManager()
+            };
+            var connectionMock = new Mock<Connection>(MockBehavior.Loose, (byte)4, Address, config);
+            connectionMock.Setup(c => c.InFlight).Returns(inflight);
+            connectionMock.Setup(c => c.TimedOutOperations).Returns(timedOutOperations);
+            return connectionMock.Object;
+        }
+
         public HostConnectionPoolTests()
         {
             Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Info;
         }
 
         [Test]
-        public void MaybeCreateCorePool_Should_Yield_The_First_Connection_Opened()
+        public void MaybeCreateFirstConnection_Should_Yield_The_First_Connection_Opened()
         {
             var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
             var lastByte = 1;
@@ -54,20 +67,15 @@ namespace Cassandra.Tests
             //different connections to same hosts should use the same address
             mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(new Connection(ProtocolVersion, GetIpEndPoint((byte)lastByte++), GetConfig()), 200 - lastByte * 50));
             var pool = mock.Object;
-            var creation = pool.MaybeCreateCorePool();
+            var creation = pool.MaybeCreateFirstConnection();
             creation.Wait();
             Assert.AreEqual(1, creation.Result.Length);
             //yield the third connection first
-            CollectionAssert.AreEqual(new[] {GetIpEndPoint(3)}, creation.Result.Select(c => c.Address));
-            //Wait for all connections
-            Thread.Sleep(200);
-            Assert.AreEqual(3, pool.OpenConnections.Count());
-            //following calls to create should yield 3 connections
-            Assert.AreEqual(3, TaskHelper.WaitToComplete(pool.MaybeCreateCorePool()).Length);
+            CollectionAssert.AreEqual(new[] {GetIpEndPoint()}, creation.Result.Select(c => c.Address));
         }
 
         [Test]
-        public void MaybeCreateCorePool_Should_Yield_A_Connection_If_Any_Fails()
+        public void MaybeCreateFirstConnection_Should_Yield_A_Connection_If_Any_Fails()
         {
             var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
             var counter = 0;
@@ -82,17 +90,13 @@ namespace Cassandra.Tests
                 return TaskHelper.ToTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig()));
             });
             var pool = mock.Object;
-            var creation = pool.MaybeCreateCorePool();
+            var creation = pool.MaybeCreateFirstConnection();
             creation.Wait();
-            Assert.Greater(creation.Result.Length, 0);
-            //Wait for all connections
-            Thread.Sleep(50);
-            //1 failed, 2 successfully opened
-            Assert.AreEqual(2, pool.OpenConnections.Count());
+            Assert.AreEqual(creation.Result.Length, 1);
         }
 
         [Test]
-        public void MaybeCreateCorePool_Serial_Calls_Should_Yield_First()
+        public void MaybeCreateFirstConnection_Serial_Calls_Should_Yield_First()
         {
             var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
             var lastByte = 1;
@@ -107,10 +111,10 @@ namespace Cassandra.Tests
             });
             var pool = mock.Object;
             var creationTasks = new Task<Connection[]>[4];
-            creationTasks[0] = pool.MaybeCreateCorePool();
-            creationTasks[1] = pool.MaybeCreateCorePool();
-            creationTasks[2] = pool.MaybeCreateCorePool();
-            creationTasks[3] = pool.MaybeCreateCorePool();
+            creationTasks[0] = pool.MaybeCreateFirstConnection();
+            creationTasks[1] = pool.MaybeCreateFirstConnection();
+            creationTasks[2] = pool.MaybeCreateFirstConnection();
+            creationTasks[3] = pool.MaybeCreateFirstConnection();
             // ReSharper disable once CoVariantArrayConversion
             Task.WaitAll(creationTasks);
             Assert.AreEqual(1, TaskHelper.WaitToComplete(creationTasks[0]).Length);
@@ -121,7 +125,7 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void MaybeCreateCorePool_Parallel_Calls_Should_Yield_First()
+        public void MaybeCreateFirstConnection_Parallel_Calls_Should_Yield_First()
         {
             var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
             var lastByte = 1;
@@ -129,10 +133,10 @@ namespace Cassandra.Tests
             var pool = mock.Object;
             var creationTasks = new Task<Connection[]>[10];
             var counter = -1;
-            var initialCreate = pool.MaybeCreateCorePool();
+            var initialCreate = pool.MaybeCreateFirstConnection();
             TestHelper.ParallelInvoke(() =>
             {
-                creationTasks[Interlocked.Increment(ref counter)] = pool.MaybeCreateCorePool();
+                creationTasks[Interlocked.Increment(ref counter)] = pool.MaybeCreateFirstConnection();
             }, 10);
             // ReSharper disable once CoVariantArrayConversion
             Task.WaitAll(creationTasks);
@@ -145,7 +149,7 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void MaybeCreateCorePool_Fail_To_Open_All_Connections_Should_Fault_Task()
+        public void MaybeCreateFirstConnection_Fail_To_Open_All_Connections_Should_Fault_Task()
         {
             var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
             var testException = new Exception("Dummy exception");
@@ -154,78 +158,169 @@ namespace Cassandra.Tests
                 throw testException;
             }));
             var pool = mock.Object;
-            var task = pool.MaybeCreateCorePool();
+            var task = pool.MaybeCreateFirstConnection();
             var ex = Assert.Throws<Exception>(() => TaskHelper.WaitToComplete(task));
             Assert.AreEqual(testException, ex);
         }
 
         [Test]
-        public void MaybeCreateCorePool_Fail_To_Open_Single_Connection_Should_Yield_Valid()
+        public void MaybeCreateFirstConnection_Recreates_After_CheckHealth_Removes_Connection()
         {
-            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
-            var testException = new Exception("Dummy exception");
-            var counter = 0;
-            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(() =>
+            var host = TestHelper.CreateHost("127.0.0.1");
+            var connections = new []
             {
-                if (counter++ == 0)
-                {
-                    throw testException;
-                }
-                return new Connection(ProtocolVersion, GetIpEndPoint((byte)counter++), GetConfig());
-            }));
+                GetConnectionMock(100, SocketOptions.DefaultDefunctReadTimeoutThreshold + 10),
+                GetConnectionMock(0)
+            };
+            var mock = new Mock<HostConnectionPool>(host, HostDistance.Local, connections[0].Configuration);
+            var counter = 0;
+            mock.Setup(p => p.CreateConnection()).Returns(() => TaskHelper.ToTask(connections[counter++]));
             var pool = mock.Object;
-            var connections = TaskHelper.WaitToComplete(pool.MaybeCreateCorePool());
-            //1 or 2 valid connections still
-            Assert.LessOrEqual(connections.Length, 2);
-            //next attempts creates all
-            Thread.Sleep(100);
-            connections = TaskHelper.WaitToComplete(pool.MaybeCreateCorePool());
-            //The one recently created
-            Assert.AreEqual(1, connections.Length);
+            pool.MaybeCreateFirstConnection().Wait();
+            Assert.AreEqual(1, pool.OpenConnections.Count());
+            var c = pool.OpenConnections.FirstOrDefault();
+            Assert.NotNull(c);
+            pool.CheckHealth(c);
+            Assert.AreEqual(0, pool.OpenConnections.Count());
+            //Recreate
+            pool.MaybeCreateFirstConnection().Wait();
+            Assert.AreEqual(1, pool.OpenConnections.Count());
+        }
+
+        [Test]
+        public void MaybeCreateFirstConnection_After_Reconnection_Attempt_Waits_Existing()
+        {
+            //MaybeCreateFirstConnection() may be called meanwhile there is a reconnection attempt (is marked UP).
+            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
+            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig()), 300));
+            var pool = mock.Object;
+            Assert.AreEqual(0, pool.OpenConnections.Count());
+            //A new connection is being created
+            pool.AttemptReconnection();
+            Assert.AreEqual(0, pool.OpenConnections.Count());
+            pool.MaybeCreateFirstConnection().Wait();
             Thread.Sleep(500);
-            connections = TaskHelper.WaitToComplete(pool.MaybeCreateCorePool());
-            //Return all the pool
-            Assert.AreEqual(3, connections.Length);
+            //One and not 2
+            Assert.AreEqual(1, pool.OpenConnections.Count());
         }
 
         [Test]
-        public void MaybeCreateCorePool_Fail_To_Grow_To_CoreConnections_Yields_Existing()
-        {
-            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
-            var testException = new Exception("Dummy exception");
-            var counter = 0;
-            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(() =>
-            {
-                var i = counter++;
-                if (i == 0 || i > 2)
-                {
-                    throw testException;
-                }
-                return new Connection(ProtocolVersion, GetIpEndPoint((byte)counter), GetConfig());
-            }, 50 * counter));
-            var pool = mock.Object;
-            Assert.DoesNotThrow(() => TaskHelper.WaitToComplete(pool.MaybeCreateCorePool()));
-            //next attempts creates to create all, still fails
-            Thread.Sleep(100);
-            var connections = TaskHelper.WaitToComplete(pool.MaybeCreateCorePool());
-            //2 valid still
-            Assert.AreEqual(2, connections.Length);
-        }
-
-        [Test]
-        public void MaybeSpawnNewConnection_Should_Not_Block_When_Creating()
+        public void MaybeIncreasePoolSize_Should_Increase_One_At_A_Time_Until_Core_Connections()
         {
             var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
             mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig()), 200));
             var pool = mock.Object;
-            var connectionSpawned1 = pool.MaybeSpawnNewConnection(129);
-            var connectionSpawned2 = pool.MaybeSpawnNewConnection(129);
+            pool.MaybeCreateFirstConnection().Wait(1000);
+            Assert.AreEqual(1, pool.OpenConnections.Count());
+            var creatingNew = pool.MaybeIncreasePoolSize(0);
+            Assert.True(creatingNew);
             //No connections added yet
-            Assert.AreEqual(0, pool.OpenConnections.Count());
-            Assert.True(connectionSpawned1);
-            Assert.False(connectionSpawned2);
+            Assert.AreEqual(1, pool.OpenConnections.Count());
+            Thread.Sleep(500);
+            Assert.AreEqual(2, pool.OpenConnections.Count());
+            creatingNew = pool.MaybeIncreasePoolSize(0);
+            Assert.True(creatingNew);
+            Thread.Sleep(500);
+            Assert.AreEqual(3, pool.OpenConnections.Count());
+            creatingNew = pool.MaybeIncreasePoolSize(0);
+            Assert.False(creatingNew);
+            Thread.Sleep(500);
+            //Still core
+            Assert.AreEqual(3, pool.OpenConnections.Count());
+        }
+
+        [Test]
+        public void MaybeIncreasePoolSize_Should_Increase_One_At_A_Time_Until_Max_Connections()
+        {
+            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig(1, 3));
+            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig(1, 3)), 200));
+            var pool = mock.Object;
+            pool.MaybeCreateFirstConnection().Wait(1000);
+            Assert.AreEqual(1, pool.OpenConnections.Count());
+            //inflight is low
+            var creatingNew = pool.MaybeIncreasePoolSize(0);
+            Assert.False(creatingNew);
+            Assert.AreEqual(1, pool.OpenConnections.Count());
             Thread.Sleep(500);
             Assert.AreEqual(1, pool.OpenConnections.Count());
+            creatingNew = pool.MaybeIncreasePoolSize(128);
+            Assert.True(creatingNew);
+            Thread.Sleep(500);
+            Assert.AreEqual(2, pool.OpenConnections.Count());
+            creatingNew = pool.MaybeIncreasePoolSize(128);
+            Assert.True(creatingNew);
+            Thread.Sleep(500);
+            Assert.AreEqual(3, pool.OpenConnections.Count());
+            creatingNew = pool.MaybeIncreasePoolSize(128);
+            Assert.False(creatingNew);
+            Thread.Sleep(500);
+            //Still max
+            Assert.AreEqual(3, pool.OpenConnections.Count());
+        }
+
+        [Test]
+        public void MaybeIncreasePoolSize_Should_Not_Increase_When_Lower_Than_One_Connection()
+        {
+            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
+            mock.Setup(p => p.CreateConnection()).Returns(() => TaskHelper.ToTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig())));
+            var pool = mock.Object;
+            Assert.AreEqual(0, pool.OpenConnections.Count());
+            Assert.False(pool.MaybeIncreasePoolSize(0));
+            Thread.SpinWait(5);
+            //Still 0 connections
+            Assert.AreEqual(0, pool.OpenConnections.Count());
+        }
+
+        [Test]
+        public void MaybeIncreasePoolSize_Should_Only_Increase_One_By_One()
+        {
+            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
+            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig()), 200));
+            var pool = mock.Object;
+            pool.MaybeCreateFirstConnection().Wait(1000);
+            Assert.AreEqual(1, pool.OpenConnections.Count());
+            var connectionSpawned1 = pool.MaybeIncreasePoolSize(0);
+            var connectionSpawned2 = pool.MaybeIncreasePoolSize(0);
+            //No connections added yet
+            Assert.AreEqual(1, pool.OpenConnections.Count());
+            Assert.True(connectionSpawned1);
+            Assert.True(connectionSpawned2);
+            Thread.Sleep(500);
+            Assert.AreEqual(2, pool.OpenConnections.Count());
+        }
+
+        [Test]
+        public void MinInFlight_Returns_The_Min_Inflight_From_Two_Connections()
+        {
+            var connections = new[]
+            {
+                GetConnectionMock(0),
+                GetConnectionMock(1),
+                GetConnectionMock(1),
+                GetConnectionMock(10),
+                GetConnectionMock(1),
+            };
+            var index = 1;
+            var c = HostConnectionPool.MinInFlight(connections, ref index);
+            Assert.AreEqual(index, 2);
+            Assert.AreSame(connections[2], c);
+            c = HostConnectionPool.MinInFlight(connections, ref index);
+            Assert.AreEqual(index, 3);
+            //previous had less in flight
+            Assert.AreSame(connections[2], c);
+            c = HostConnectionPool.MinInFlight(connections, ref index);
+            Assert.AreEqual(index, 4);
+            Assert.AreSame(connections[4], c);
+            c = HostConnectionPool.MinInFlight(connections, ref index);
+            Assert.AreEqual(index, 5);
+            Assert.AreSame(connections[0], c);
+            c = HostConnectionPool.MinInFlight(connections, ref index);
+            Assert.AreEqual(index, 6);
+            Assert.AreSame(connections[0], c);
+            index = 9;
+            c = HostConnectionPool.MinInFlight(connections, ref index);
+            Assert.AreEqual(index, 10);
+            Assert.AreSame(connections[0], c);
         }
 
         [Test]
@@ -247,13 +342,93 @@ namespace Cassandra.Tests
             mock.Setup(p => p.CreateConnection()).Returns(() => TaskHelper.ToTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig())));
             var pool = mock.Object;
             //Create 1 connection
-            TaskHelper.WaitToComplete(pool.MaybeCreateCorePool());
+            TaskHelper.WaitToComplete(pool.MaybeCreateFirstConnection());
             Thread.SpinWait(1);
-            Assert.AreEqual(2, pool.OpenConnections.Count());
+            Assert.AreEqual(1, pool.OpenConnections.Count());
             pool.AttemptReconnection();
             Thread.SpinWait(5);
             //Pool remains the same
-            Assert.AreEqual(2, pool.OpenConnections.Count());
+            Assert.AreEqual(1, pool.OpenConnections.Count());
+        }
+
+        [Test]
+        public void AttemptReconnection_After_Dispose_Should_Not_Create_New_Connections()
+        {
+            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
+            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig()), 20));
+            var pool = mock.Object;
+            Assert.AreEqual(0, pool.OpenConnections.Count());
+            pool.Dispose();
+            pool.AttemptReconnection();
+            Thread.Sleep(100);
+            Assert.AreEqual(0, pool.OpenConnections.Count());
+        }
+
+        [Test]
+        public void Dispose_Should_Cancel_Reconnection_Attempts()
+        {
+            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
+            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig()), 200));
+            var pool = mock.Object;
+            Assert.AreEqual(0, pool.OpenConnections.Count());
+            pool.AttemptReconnection();
+            pool.Dispose();
+            Thread.Sleep(500);
+            Assert.AreEqual(0, pool.OpenConnections.Count());
+        }
+
+        [Test]
+        public void OnHostCheckedAsDown_Should_Not_Schedule_Reconnection_When_Host_Is_Already_Reconnecting()
+        {
+            var host = TestHelper.CreateHost("127.0.0.1");
+            var config = GetConfig(2);
+            config.Timer = new HashedWheelTimer(100, 10);
+            var mock = new Mock<HostConnectionPool>(host, HostDistance.Local, config);
+            mock.Setup(p => p.CreateConnection()).Returns(() => TaskHelper.ToTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig())));
+            var pool = mock.Object;
+            Assert.AreEqual(0, pool.OpenConnections.Count());
+            //fake other pool getting the flag
+            host.SetAttemptingReconnection();
+            //attempt reconnection should exit
+            pool.OnHostCheckedAsDown(host, 10);
+            Thread.Sleep(400);
+            //Pool remains the same
+            Assert.AreEqual(0, pool.OpenConnections.Count());
+            config.Timer.Dispose();
+        }
+
+        [Test]
+        public void OnHostCheckedAsDown_Should_Schedule_Reconnection()
+        {
+            var host = TestHelper.CreateHost("127.0.0.1");
+            var config = GetConfig(2);
+            config.Timer = new HashedWheelTimer(100, 10);
+            var mock = new Mock<HostConnectionPool>(host, HostDistance.Local, config);
+            mock.Setup(p => p.CreateConnection()).Returns(() => TaskHelper.ToTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig())));
+            var pool = mock.Object;
+            Assert.AreEqual(0, pool.OpenConnections.Count());
+            //attempt reconnection should exit
+            pool.OnHostCheckedAsDown(host, 10);
+            Thread.Sleep(400);
+            //Pool should grow
+            Assert.AreEqual(1, pool.OpenConnections.Count());
+            config.Timer.Dispose();
+        }
+
+        [Test]
+        public void CheckHealth_Removes_Connection()
+        {
+            var host = TestHelper.CreateHost("127.0.0.1");
+            var connection1 = GetConnectionMock(100, SocketOptions.DefaultDefunctReadTimeoutThreshold + 10);
+            var mock = new Mock<HostConnectionPool>(host, HostDistance.Local, connection1.Configuration);
+            mock.Setup(p => p.CreateConnection()).Returns(() => TaskHelper.ToTask(connection1));
+            var pool = mock.Object;
+            pool.MaybeCreateFirstConnection().Wait();
+            Assert.AreEqual(1, pool.OpenConnections.Count());
+            var c = pool.OpenConnections.FirstOrDefault();
+            Assert.NotNull(c);
+            pool.CheckHealth(c);
+            Assert.AreEqual(0, pool.OpenConnections.Count());
         }
     }
 }

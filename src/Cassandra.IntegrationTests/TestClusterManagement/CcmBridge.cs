@@ -148,11 +148,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void BootstrapNode(int n, string dc)
         {
-            if (dc == null)
-                ExecuteCcm(string.Format("add node{0} -i {1}{2} -j {3} -b -s", n, IpPrefix, n, 7000 + 100 * n));
-            else
-                ExecuteCcm(string.Format("add node{0} -i {1}{2} -j {3} -b -s -d {4}", n, IpPrefix, n, 7000 + 100 * n, dc));
-            ExecuteCcm(string.Format("node{0} start", n));
+            ExecuteCcm(string.Format("add node{0} -i {1}{2} -j {3} -b -s {4}", n, IpPrefix, n, 7000 + 100 * n, dc != null ? "-d " + dc : null));
+            Start(n);
         }
 
         public void DecommissionNode(int n)

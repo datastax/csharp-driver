@@ -124,9 +124,9 @@ namespace Cassandra
                 //The host does not exists
                 return;
             }
-            host.SetDown();
             host.Down -= OnHostDown;
             host.Up -= OnHostUp;
+            host.SetAsRemoved();
             if (Removed != null)
             {
                 Removed(host);
