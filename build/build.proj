@@ -19,7 +19,7 @@
     <MSBuildCommunityTasksLib>$(ToolsFolder)\MSBuildTasks.1.4.0.65\MSBuild.Community.Tasks.dll</MSBuildCommunityTasksLib>
   
     <!-- Version information (package version is used to drive assembly info version attributes and should follow semantic versioning) -->
-    <PackageVersion>3.0.0-beta2</PackageVersion>
+    <PackageVersion>3.0.0</PackageVersion>
     <SharedAssemblyInfo>$(SourceFolder)\SharedAssemblyInfo.cs</SharedAssemblyInfo>
   </PropertyGroup>
   

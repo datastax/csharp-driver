@@ -1,5 +1,30 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.0.0
+
+2015-12-21
+
+### Notable Changes
+
+- Default consistency changed back to `LOCAL_ONE`.
+
+### Features
+
+- [CSHARP-299] - Mapper and Linq: handle NULLs efficiently at the client level
+- [CSHARP-378] - Change default consistency level to `LOCAL_ONE`
+- [CSHARP-374] - Use a private field for inFlight counting
+- [CSHARP-375] - Enable heartbeat by default
+- [CSHARP-377] - Reduce allocations inside RowSet class for void results
+
+### Bug Fixes
+
+- [CSHARP-313] - DCAwareRoundRobinPolicy incorrect detection of local datacenter, connects to wrong datacenter
+- [CSHARP-336] - Connection with SSL settings to a C* host without ssl enabled causes the driver to hang
+- [CSHARP-351] - Linq CreateTable(): support frozen keyword
+- [CSHARP-366] - ControlConnection: reconnection attempt after Cluster.Shutdown() may cause ObjectDisposedException
+- [CSHARP-376] - HashedWheelTimer should remove cancelled timeouts on each tick to allow GC
+
+
 ## 3.0.0-beta2
 
 2015-11-19
