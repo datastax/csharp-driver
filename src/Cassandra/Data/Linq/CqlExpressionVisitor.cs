@@ -584,6 +584,22 @@ namespace Cassandra.Data.Linq
 								.Append(placeHolders)
 								.Append(")");
 						}
+					}
+					else
+					{
+						Visit(what);
+						var values = (IEnumerable)Expression.Lambda(inp).Compile().DynamicInvoke();
+						var placeHolders = new StringBuilder();
+						foreach (var v in values)
+						{
+							placeHolders.Append(placeHolders.Length == 0 ? "?" : ", ?");
+							parameters.Add(v);
+						}
+
+						clause
+							.Append(" IN (")
+							.Append(placeHolders)
+							.Append(")");
 					}				
                     return true;
                 }
