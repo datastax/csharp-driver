@@ -544,64 +544,11 @@ namespace Cassandra.Data.Linq
             var parameters = _currentCondition.Get().Item2;
             switch (name)
             {
+				case "ContainsKey":
+					return SetupContainsClause(node, clause, parameters, "CONTAINS KEY");
                 case "Contains":
                 {
-                    Expression what = null;
-                    Expression inp = null;
-                    if (node.Object == null)
-                    {
-                        what = node.Arguments[1];
-                        inp = node.Arguments[0];
-                    }
-                    else
-                    {
-                        what = node.Arguments[0];
-                        inp = node.Object;
-                    }
-
-					if (inp.NodeType == ExpressionType.MemberAccess)
-					{
-						var access = inp as MemberExpression;
-						if (access.Expression.NodeType == ExpressionType.Parameter)
-						{
-							Visit(access);
-							clause.Append(" CONTAINS ");
-							Visit(what);
-						}
-						else
-						{
-							Visit(what);
-							var values = (IEnumerable)Expression.Lambda(inp).Compile().DynamicInvoke();
-							var placeHolders = new StringBuilder();
-							foreach (var v in values)
-							{
-								placeHolders.Append(placeHolders.Length == 0 ? "?" : ", ?");
-								parameters.Add(v);
-							}
-
-							clause
-								.Append(" IN (")
-								.Append(placeHolders)
-								.Append(")");
-						}
-					}
-					else
-					{
-						Visit(what);
-						var values = (IEnumerable)Expression.Lambda(inp).Compile().DynamicInvoke();
-						var placeHolders = new StringBuilder();
-						foreach (var v in values)
-						{
-							placeHolders.Append(placeHolders.Length == 0 ? "?" : ", ?");
-							parameters.Add(v);
-						}
-
-						clause
-							.Append(" IN (")
-							.Append(placeHolders)
-							.Append(")");
-					}				
-                    return true;
+					return SetupContainsClause(node, clause, parameters, "CONTAINS");
                 }
                 case "StartsWith":
                     Visit(node.Object);
@@ -664,6 +611,86 @@ namespace Cassandra.Data.Linq
             }
             return false;
         }
+
+		private bool SetupContainsClause(MethodCallExpression node, StringBuilder clause, List<object> parameters, string action)
+		{
+			Expression what = null;
+			Expression inp = null;
+			if (node.Object == null)
+			{
+				what = node.Arguments[1];
+				inp = node.Arguments[0];
+			}
+			else
+			{
+				what = node.Arguments[0];
+				inp = node.Object;
+			}
+
+			if (inp.NodeType == ExpressionType.MemberAccess)
+			{
+				var access = inp as MemberExpression;
+				var reflectedType = access.Type.ReflectedType;
+
+				if (reflectedType != null && reflectedType.IsGenericTypeDefinition && access.Type.ReflectedType == typeof(Dictionary<,>))
+				{
+					if (access.Member.Name.Equals("Values"))
+					{
+						action = "CONTAINS";
+					}
+					else if (access.Member.Name.Equals("Keys"))
+					{
+						action = "CONTAINS KEY";
+					}
+
+					Visit(access.Expression);
+					clause.Append(" ");
+					clause.Append(action);
+					clause.Append(" ");
+					Visit(what);
+				} else if (access.Expression.NodeType == ExpressionType.Parameter)
+				{
+					Visit(access);
+					clause.Append(" ");
+					clause.Append(action);
+					clause.Append(" ");
+					Visit(what);
+				}
+				else
+				{
+					Visit(what);
+					var values = (IEnumerable)Expression.Lambda(inp).Compile().DynamicInvoke();
+					var placeHolders = new StringBuilder();
+					foreach (var v in values)
+					{
+						placeHolders.Append(placeHolders.Length == 0 ? "?" : ", ?");
+						parameters.Add(v);
+					}
+
+					clause
+						.Append(" IN (")
+						.Append(placeHolders)
+						.Append(")");
+				}
+			}
+			else
+			{
+				Visit(what);
+				var values = (IEnumerable)Expression.Lambda(inp).Compile().DynamicInvoke();
+				var placeHolders = new StringBuilder();
+				foreach (var v in values)
+				{
+					placeHolders.Append(placeHolders.Length == 0 ? "?" : ", ?");
+					parameters.Add(v);
+				}
+
+				clause
+					.Append(" IN (")
+					.Append(placeHolders)
+					.Append(")");
+			}
+			return true;
+		}
 
         private bool EvaluateOperatorMethod(MethodCallExpression node)
         {
