@@ -558,19 +558,33 @@ namespace Cassandra.Data.Linq
                         what = node.Arguments[0];
                         inp = node.Object;
                     }
-                    Visit(what);
-                    var values = (IEnumerable)Expression.Lambda(inp).Compile().DynamicInvoke();
-                    var placeHolders = new StringBuilder();
-                    foreach (var v in values)
-                    {
-                        placeHolders.Append(placeHolders.Length == 0 ? "?" : ", ?");
-                        parameters.Add(v);
-                    }
 
-                    clause
-                        .Append(" IN (")
-                        .Append(placeHolders)
-                        .Append(")");
+					if (inp.NodeType == ExpressionType.MemberAccess)
+					{
+						var access = inp as MemberExpression;
+						if (access.Expression.NodeType == ExpressionType.Parameter)
+						{
+							Visit(access);
+							clause.Append(" CONTAINS ");
+							Visit(what);
+						}
+						else
+						{
+							Visit(what);
+							var values = (IEnumerable)Expression.Lambda(inp).Compile().DynamicInvoke();
+							var placeHolders = new StringBuilder();
+							foreach (var v in values)
+							{
+								placeHolders.Append(placeHolders.Length == 0 ? "?" : ", ?");
+								parameters.Add(v);
+							}
+
+							clause
+								.Append(" IN (")
+								.Append(placeHolders)
+								.Append(")");
+						}
+					}				
                     return true;
                 }
                 case "StartsWith":
