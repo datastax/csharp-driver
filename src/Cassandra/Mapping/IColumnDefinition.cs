@@ -43,6 +43,11 @@ namespace Cassandra.Mapping
         /// </summary>
         bool SecondaryIndex { get; }
 
+		/// <summary>
+		/// Determines if there is a secondary key index defined for this column
+		/// </summary>
+		bool SecondaryKeyIndex { get; }
+
         /// <summary>
         /// Determines if this column is a counter column
         /// </summary>

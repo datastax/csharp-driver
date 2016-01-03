@@ -18,11 +18,19 @@ using System;
 
 namespace Cassandra.Mapping.Attributes
 {
-    /// <summary>
-    /// Determines that there is a secondary index defined for the column
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
-    public class SecondaryIndexAttribute : Attribute
-    {
-    }
+	/// <summary>
+	/// Determines that there is a secondary index defined for the column
+	/// </summary>
+	[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
+	public class SecondaryIndexAttribute : Attribute
+	{
+		public SecondaryIndexAttribute() { }
+
+		public SecondaryIndexAttribute(bool isKeyIndex)
+		{
+			IsKeyIndex = isKeyIndex;
+		}
+
+		public bool IsKeyIndex { get; set; }
+	}
 }
