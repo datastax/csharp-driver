@@ -143,5 +143,39 @@ namespace Cassandra.Tests
             cluster = builder.Build();
             Assert.True(cluster.AllHosts().All(h => h.Address.Port == port));
         }
+
+        [Test]
+        public void WithMaxProtocolVersion_Sets_Configuration_MaxProtocolVersion()
+        {
+            var builder = Cluster.Builder()
+                .AddContactPoint("192.168.1.10")
+                .WithMaxProtocolVersion(100);
+            var cluster = builder.Build();
+            Assert.AreEqual(100, cluster.Configuration.ProtocolOptions.MaxProtocolVersion);
+            builder = Cluster.Builder()
+                .AddContactPoint("192.168.1.10")
+                .WithMaxProtocolVersion(3);
+            cluster = builder.Build();
+            Assert.AreEqual(3, cluster.Configuration.ProtocolOptions.MaxProtocolVersion);
+        }
+
+        [Test]
+        public void MaxProtocolVersion_Defaults_To_Cluster_Max()
+        {
+            var builder = Cluster.Builder()
+                .AddContactPoint("192.168.1.10");
+            var cluster = builder.Build();
+            Assert.AreEqual(Cluster.MaxProtocolVersion, cluster.Configuration.ProtocolOptions.MaxProtocolVersion);
+            //Defaults to null
+            Assert.Null(new ProtocolOptions().MaxProtocolVersion);
+        }
+
+        [Test]
+        public void WithMaxProtocolVersion_Validates_Greater_Than_Zero()
+        {
+            Assert.Throws<ArgumentException>(() => Cluster.Builder()
+                .AddContactPoint("192.168.1.10")
+                .WithMaxProtocolVersion(0));
+        }
     }
 }

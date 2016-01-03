@@ -40,7 +40,6 @@ namespace Cassandra
         private ILoadBalancingPolicy _loadBalancingPolicy;
         private int _port = ProtocolOptions.DefaultPort;
         private int _queryAbortTimeout = DefaultQueryAbortTimeout;
-
         private QueryOptions _queryOptions = new QueryOptions();
         private IReconnectionPolicy _reconnectionPolicy;
         private IRetryPolicy _retryPolicy;
@@ -48,6 +47,7 @@ namespace Cassandra
         private bool _withoutRowSetBuffering;
         private IAddressTranslator _addressTranslator = new DefaultAddressTranslator();
         private ISpeculativeExecutionPolicy _speculativeExecutionPolicy;
+        private byte _maxProtocolVersion = (byte)Cluster.MaxProtocolVersion;
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -95,7 +95,8 @@ namespace Cassandra
                 _speculativeExecutionPolicy ?? Policies.DefaultSpeculativeExecutionPolicy);
 
             return new Configuration(policies,
-                                     new ProtocolOptions(_port, _sslOptions).SetCompression(_compression).SetCustomCompressor(_customCompressor),
+                                     new ProtocolOptions(_port, _sslOptions).SetCompression(_compression)
+                                        .SetCustomCompressor(_customCompressor).SetMaxProtocolVersion(_maxProtocolVersion),
                                      _poolingOptions,
                                      _socketOptions,
                                      new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace),
@@ -487,6 +488,33 @@ namespace Cassandra
         public Builder WithAddressTranslator(IAddressTranslator addressTranslator)
         {
             _addressTranslator = addressTranslator;
+            return this;
+        }
+
+        /// <summary>
+        /// <para>Limits the maximum protocol version used to connect to the nodes, when it is not set
+        /// protocol version used between the driver and the Cassandra cluster is negotiated upon establishing 
+        /// the first connection.</para>
+        /// <para>Useful for using the driver against a cluster that contains nodes with different major/minor versions 
+        /// of Cassandra. For example, preparing for a rolling upgrade of the Cluster.</para>
+        /// </summary>
+        /// <param name="version">
+        /// <para>The native protocol version.</para>
+        /// <para>Different Cassandra versions support a range of protocol versions, for example: </para>
+        /// <para>- Cassandra 2.0 (DSE 4.0 – 4.6): Supports protocol versions 1 and 2.</para>
+        /// <para>- Cassandra 2.1 (DSE 4.7 – 4.8): Supports protocol versions 1, 2 and 3.</para>
+        /// <para>- Cassandra 2.2: Supports protocol versions 1, 2, 3 and 4.</para>
+        /// <para>- Cassandra 3.0: Supports protocol versions 3 and 4.</para>
+        /// </param>
+        /// <remarks>Some Cassandra features are only available with a specific protocol version.</remarks>
+        /// <returns>this instance</returns>
+        public Builder WithMaxProtocolVersion(byte version)
+        {
+            if (version == 0)
+            {
+                throw new ArgumentException("Protocol version 0 does not exist.");
+            }
+            _maxProtocolVersion = version;
             return this;
         }
 
