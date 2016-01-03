@@ -31,17 +31,19 @@ namespace Cassandra
     {
         private const int ConnectionIndexOverflow = int.MaxValue - 100000;
         private readonly static Logger Logger = new Logger(typeof(HostConnectionPool));
+        private readonly static Connection[] EmptyConnectionsArray = new Connection[0];
         //Safe iteration of connections
         private readonly CopyOnWriteList<Connection> _connections = new CopyOnWriteList<Connection>();
-        private volatile Task<Connection>[] _openingConnections;
-        private readonly SemaphoreSlim _poolModificationSemaphore = new SemaphoreSlim(1);
         private readonly Host _host;
         private readonly HostDistance _distance;
         private readonly Configuration _config;
         private readonly HashedWheelTimer _timer;
         private int _connectionIndex;
-        private int _hostDownFlag;
-        private volatile HashedWheelTimer.ITimeout _timeout;
+        private HashedWheelTimer.ITimeout _timeout;
+        private volatile bool _isShuttingDown;
+        private int _isIncreasingSize;
+        private TaskCompletionSource<Connection[]> _creationTcs;
+        private volatile bool _isDisposed;
 
         /// <summary>
         /// Gets a list of connections already opened to the host
@@ -56,8 +58,10 @@ namespace Cassandra
         public HostConnectionPool(Host host, HostDistance distance, Configuration config)
         {
             _host = host;
+            _host.CheckedAsDown += OnHostCheckedAsDown;
             _host.Down += OnHostDown;
             _host.Up += OnHostUp;
+            _host.Remove += OnHostRemoved;
             _distance = distance;
             _config = config;
             _timer = config.Timer;
@@ -69,7 +73,7 @@ namespace Cassandra
         /// </summary>
         public Task<Connection> BorrowConnection()
         {
-            return MaybeCreateCorePool().ContinueSync(poolConnections =>
+            return MaybeCreateFirstConnection().ContinueSync(poolConnections =>
             {
                 if (poolConnections.Length == 0)
                 {
@@ -77,7 +81,7 @@ namespace Cassandra
                     return null;
                 }
                 var connection = MinInFlight(poolConnections, ref _connectionIndex);
-                MaybeSpawnNewConnection(connection.InFlight);
+                MaybeIncreasePoolSize(connection.InFlight);
                 return connection;
             });
         }
@@ -120,7 +124,7 @@ namespace Cassandra
             {
                 if (t.Status == TaskStatus.RanToCompletion)
                 {
-                    if (_config.PoolingOptions.GetHeartBeatInterval() > 0)
+                    if (_config.GetPoolingOptions(ProtocolVersion).GetHeartBeatInterval() > 0)
                     {
                         //Heartbeat is enabled, subscribe for possible exceptions
                         c.OnIdleRequestException += OnIdleRequestException;
@@ -131,6 +135,7 @@ namespace Cassandra
                 c.Dispose();
                 if (t.Exception != null)
                 {
+                    t.Exception.Handle(_ => true);
                     Logger.Error(t.Exception.InnerException);
                     throw t.Exception.InnerException;
                 }
@@ -146,28 +151,18 @@ namespace Cassandra
             _host.SetDown();
         }
 
-        private void OnHostDown(Host h, long delay)
+        internal void OnHostCheckedAsDown(Host h, long delay)
         {
-            if (Interlocked.CompareExchange(ref _hostDownFlag, 1, 0) != 0)
+            if (!_host.SetAttemptingReconnection())
             {
-                //A reconnection attempt is being scheduled concurrently
+                //Another pool is attempting reconnection
+                //Eventually Host.Up event is going to be fired.
                 return;
             }
-            var currentTimeout = _timeout;
-            //De-schedule the current reconnection attempt
-            if (currentTimeout != null)
-            {
-                currentTimeout.Cancel();
-            }
             //Schedule next reconnection attempt (without using the timer thread)
-            _timeout = _timer.NewTimeout(_ => Task.Factory.StartNew(AttemptReconnection), null, delay);
-            //Dispose all current connections
-            foreach (var c in _connections)
-            {
-                //Connection class allows multiple calls to Dispose
-                c.Dispose();
-            }
-            Interlocked.Exchange(ref _hostDownFlag, 0);
+            //Cancel the previous one
+            var nextTimeout = _timer.NewTimeout(_ => Task.Factory.StartNew(AttemptReconnection), null, delay);
+            SetReconnectionTimeout(nextTimeout);
         }
 
         /// <summary>
@@ -177,208 +172,207 @@ namespace Cassandra
         /// </summary>
         internal void AttemptReconnection()
         {
-            _poolModificationSemaphore.Wait();
-            var toRemove = _connections.Where(c => c.IsClosed).ToArray();
-            foreach (var c in toRemove)
+            _isShuttingDown = false;
+            if (_isDisposed)
             {
-                _connections.Remove(c);
+                return;
             }
-            if (_connections.Count > 0)
+            var tcs = new TaskCompletionSource<Connection[]>();
+            //While there is a single thread here, there might be another thread
+            //Calling MaybeCreateFirstConnection()
+            //Guard for multiple creations
+            var creationTcs = Interlocked.CompareExchange(ref _creationTcs, tcs, null);
+            if (creationTcs != null || _connections.Count > 0)
             {
-                //there is already an open connection
-                _poolModificationSemaphore.Release();
+                //Already creating as host is back UP (possibly via events)
                 return;
             }
             Logger.Info("Attempting reconnection to host {0}", _host.Address);
+            //There is a single thread creating a connection
             CreateConnection().ContinueWith(t =>
             {
                 if (t.Status == TaskStatus.RanToCompletion)
                 {
+                    if (_isShuttingDown)
+                    {
+                        t.Result.Dispose();
+                        TransitionCreationTask(tcs, EmptyConnectionsArray);
+                        return;
+                    }
                     _connections.Add(t.Result);
-                    //Release as soon as possible
-                    _poolModificationSemaphore.Release();
                     Logger.Info("Reconnection attempt to host {0} succeeded", _host.Address);
                     _host.BringUpIfDown();
+                    TransitionCreationTask(tcs, new [] { t.Result });
+                    return;
                 }
-                else
+                Logger.Info("Reconnection attempt to host {0} failed", _host.Address);
+                Exception ex = null;
+                if (t.Exception != null)
                 {
-                    _poolModificationSemaphore.Release();
-                    if (t.Exception != null)
-                    {
-                        t.Exception.Handle(e => true);
-                    }
-                    Logger.Info("Reconnection attempt to host {0} failed", _host.Address);
-                    _host.SetDown();
+                    t.Exception.Handle(e => true);
+                    ex = t.Exception.InnerException;
                 }
+                TransitionCreationTask(tcs, EmptyConnectionsArray, ex);
+                _host.SetDown(failedReconnection: true);
             }, TaskContinuationOptions.ExecuteSynchronously);
         }
 
         private void OnHostUp(Host host)
         {
-            var timeout = _timeout;
+            _isShuttingDown = false;
+            SetReconnectionTimeout(null);
+            //The host is back up, we can start creating the pool (if applies)
+            MaybeCreateFirstConnection();
+        }
+
+        private void OnHostDown(Host h, long delay)
+        {
+            Shutdown();
+        }
+
+        /// <summary>
+        /// Cancels the previous and set the next reconnection timeout, as an atomic operation.
+        /// </summary>
+        private void SetReconnectionTimeout(HashedWheelTimer.ITimeout nextTimeout)
+        {
+            var timeout = Interlocked.Exchange(ref _timeout, nextTimeout);
             if (timeout != null)
             {
                 timeout.Cancel();
             }
-            _timeout = null;
-            //The host is back up, we can start creating the pool (if applies)
-            MaybeCreateCorePool();
         }
 
         /// <summary>
-        /// Create the min amount of connections, if the pool is empty
+        /// Create the min amount of connections, if the pool is empty.
+        /// It may return an empty array if its being closed.
+        /// It may return an array of connections being closed.
         /// </summary>
-        /// <exception cref="System.Net.Sockets.SocketException" />
-        internal Task<Connection[]> MaybeCreateCorePool()
+        internal Task<Connection[]> MaybeCreateFirstConnection()
         {
-            var coreConnections = _config.GetPoolingOptions(ProtocolVersion).GetCoreConnectionsPerHost(_distance);
-            if (!_connections.Any(c => c.IsClosed) && _connections.Count >= coreConnections)
+            var tcs = new TaskCompletionSource<Connection[]>();
+            var connections = _connections.GetSnapshot();
+            if (connections.Length > 0)
             {
-                //Pool has the appropriate size
-                return TaskHelper.ToTask(_connections.ToArray());
+                tcs.SetResult(connections);
+                return tcs.Task;
             }
-            if (!_poolModificationSemaphore.Wait(0))
+            var creationTcs = Interlocked.CompareExchange(ref _creationTcs, tcs, null);
+            if (creationTcs != null)
             {
-                //Couldn't enter semaphore, check if there is a connection available to yield
-                var opened = _connections.Where(c => !c.IsClosed).ToArray();
-                if (opened.Length > 0)
-                {
-                    return TaskHelper.ToTask(opened);
-                }
-                var alreadyOpening = _openingConnections;
-                if (alreadyOpening != null && alreadyOpening.Length > 0)
-                {
-                    return Task.Factory.ContinueWhenAny(alreadyOpening, t =>
-                    {
-                        if (t.Status == TaskStatus.RanToCompletion)
-                        {
-                            return new[] { t.Result };
-                        }
-                        if (t.Exception != null)
-                        {
-                            throw t.Exception.InnerException;
-                        }
-                        throw new TaskCanceledException("Could not get an opened connection because the Task was cancelled");
-                    }, TaskContinuationOptions.ExecuteSynchronously);
-                }
-                //There isn't a connection available yet, enter semaphore
-                _poolModificationSemaphore.Wait();
+                return creationTcs.Task;
             }
-            //Semaphore entered
-            //Remove closed connections from the pool
-            var toRemove = _connections.Where(c => c.IsClosed).ToArray();
-            foreach (var c in toRemove)
+            //Could have transitioned
+            connections = _connections.GetSnapshot();
+            if (connections.Length > 0)
             {
-                _connections.Remove(c);
+                TransitionCreationTask(tcs, connections);
+                return tcs.Task;
             }
-            var opening = new List<Task<Connection>>();
-            if (_openingConnections != null)
+            if (_isShuttingDown)
             {
-                opening.AddRange(_openingConnections);
+                //It transitioned to DOWN, avoid try to create new Connections
+                TransitionCreationTask(tcs, EmptyConnectionsArray);
+                return tcs.Task;
             }
-            while (_connections.Count + opening.Count < coreConnections)
-            {
-                opening.Add(CreateConnection());
-            }
-            if (opening.Count == 0)
-            {
-                if (_connections.Count == 0)
-                {
-                    return TaskHelper.FromException<Connection[]>(new DriverInternalError("Could not create a connection and no connections found in pool"));
-                }
-                _poolModificationSemaphore.Release();
-                return TaskHelper.ToTask(_connections.ToArray());
-            }
-            var openingArray = opening.ToArray();
-            _openingConnections = openingArray;
-            //Clean up when all open task finished
-            var allCompleted = Task.Factory.ContinueWhenAll(openingArray, tasks =>
-            {
-                _connections.AddRange(tasks.Where(t => t.Status == TaskStatus.RanToCompletion).Select(t => t.Result).ToArray());
-                if (_connections.Count == coreConnections)
-                {
-                    Logger.Info("{0} connection(s) to host {1} {2} created successfully", coreConnections, _host.Address, _connections.Count < 2 ? "was" : "were");
-                    _host.BringUpIfDown();
-                }
-                _openingConnections = null;
-                var connectionsArray = _connections.ToArray();
-                _poolModificationSemaphore.Release();
-                if (connectionsArray.Length == 0 && tasks.All(t => t.Status != TaskStatus.RanToCompletion))
-                {
-                    //Pool could not be created
-                    Logger.Info("Connection pool to host {0} could not be created", _host.Address);
-                    //There are multiple problems, but we only care about one
-                    // ReSharper disable once PossibleNullReferenceException
-                    throw tasks.First().Exception.InnerException;
-                }
-                return connectionsArray;
-            }, TaskContinuationOptions.ExecuteSynchronously);
-
-            //yield the first connection available
-            return Task.Factory.ContinueWhenAny(openingArray, t =>
-            {
-                if (t.Status == TaskStatus.RanToCompletion)
-                {
-                    return new[] { t.Result };
-                }
-                if (t.Exception != null)
-                {
-                    throw t.Exception.InnerException;
-                }
-                throw new TaskCanceledException("Could not get an opened connection because the Task was cancelled");
-            }, TaskContinuationOptions.ExecuteSynchronously)
-            .ContinueWith(t =>
-            {
-                if (t.Status != TaskStatus.RanToCompletion)
-                {
-                    if (t.Exception != null)
-                    {
-                        t.Exception.Handle(e => true);
-                    }
-                    //The first connection failed
-                    //Wait for all to complete
-                    return allCompleted;
-                }
-                return TaskHelper.ToTask(t.Result);
-            }, TaskContinuationOptions.ExecuteSynchronously).Unwrap();
-        }
-
-        /// <summary>
-        /// Creates a new connection, if the conditions apply.
-        /// Only creates a new connection if there isn't a thread already creating one
-        /// </summary>
-        internal bool MaybeSpawnNewConnection(int inFlight)
-        {
-            var maxInFlight = _config.GetPoolingOptions(ProtocolVersion).GetMaxSimultaneousRequestsPerConnectionTreshold(_distance);
-            var maxConnections = _config.GetPoolingOptions(ProtocolVersion).GetMaxConnectionPerHost(_distance);
-            if (inFlight <= maxInFlight)
-            {
-                return false;
-            }
-            if (_connections.Count >= maxConnections)
-            {
-                Logger.Warning("Max amount of connections and max amount of in-flight operations reached");
-                return false;
-            }
-            if (!_poolModificationSemaphore.Wait(0))
-            {
-                //Other thread is already modifying the pool
-                //Don't mind, it will be tried in the following attempts
-                return false;
-            }
-            Logger.Info("Maximum requests per connection threshold reached, creating a new connection");
-            //Semaphore entered
+            Logger.Info("Initializing pool to {0}", _host.Address);
+            //There is a single thread creating a single connection
             CreateConnection().ContinueWith(t =>
             {
                 if (t.Status == TaskStatus.RanToCompletion)
                 {
-                    _connections.Add(t.Result);   
+                    if (_isShuttingDown)
+                    {
+                        //Is shutting down
+                        t.Result.Dispose();
+                        TransitionCreationTask(tcs, EmptyConnectionsArray);
+                        return;
+                    }
+                    _connections.Add(t.Result);
+                    _host.BringUpIfDown();
+                    TransitionCreationTask(tcs, new[] { t.Result });
+                    return;
                 }
-                _poolModificationSemaphore.Release();
                 if (t.Exception != null)
                 {
-                    Logger.Error("Error during new connection attempt", t.Exception);
+                    TransitionCreationTask(tcs, null, t.Exception.InnerException);
+                    return;
                 }
+                TransitionCreationTask(tcs, EmptyConnectionsArray);
+            }, TaskContinuationOptions.ExecuteSynchronously);
+            return tcs.Task;
+        }
+
+        private void TransitionCreationTask(TaskCompletionSource<Connection[]> tcs, Connection[] result, Exception ex = null)
+        {
+            if (ex != null)
+            {
+                tcs.TrySetException(ex);
+            }
+            else if (result != null)
+            {
+                tcs.TrySetResult(result);
+            }
+            else
+            {
+                tcs.TrySetException(new DriverInternalError("Creation task must transition from a result or an exception"));
+            }
+            Interlocked.Exchange(ref _creationTcs, null);
+        }
+
+        /// <summary>
+        /// Increases the size of the pool from 1 to core and from core to max
+        /// </summary>
+        /// <returns>True if it is creating a new connection</returns>
+        internal bool MaybeIncreasePoolSize(int inFlight)
+        {
+            var coreConnections = _config.GetPoolingOptions(ProtocolVersion).GetCoreConnectionsPerHost(_distance);
+            var connections = _connections.GetSnapshot();
+            if (connections.Length == 0)
+            {
+                return false;
+            }
+            if (connections.Length >= coreConnections)
+            {
+                var maxInFlight = _config.GetPoolingOptions(ProtocolVersion).GetMaxSimultaneousRequestsPerConnectionTreshold(_distance);
+                var maxConnections = _config.GetPoolingOptions(ProtocolVersion).GetMaxConnectionPerHost(_distance);
+                if (inFlight < maxInFlight)
+                {
+                    return false;
+                }
+                if (_connections.Count >= maxConnections)
+                {
+                    return false;
+                }
+            }
+            var isAlreadyIncreasing = Interlocked.CompareExchange(ref _isIncreasingSize, 1, 0) == 1;
+            if (isAlreadyIncreasing)
+            {
+                return true;
+            }
+            if (_isShuttingDown || _connections.Count == 0)
+            {
+                Interlocked.Exchange(ref _isIncreasingSize, 0);
+                return false;
+            }
+            CreateConnection().ContinueWith(t =>
+            {
+                if (t.Status == TaskStatus.RanToCompletion)
+                {
+                    if (_isShuttingDown)
+                    {
+                        //Is shutting down
+                        t.Result.Dispose();
+                    }
+                    else
+                    {
+                        _connections.Add(t.Result);   
+                    }
+                }
+                if (t.Exception != null)
+                {
+                    Logger.Error("Error while increasing pool size", t.Exception.InnerException);
+                }
+                Interlocked.Exchange(ref _isIncreasingSize, 0);
             }, TaskContinuationOptions.ExecuteSynchronously);
             return true;
         }
@@ -391,29 +385,42 @@ namespace Cassandra
             }
             //We are in the default thread-pool (non-io thread)
             //Defunct: close it and remove it from the pool
-            _poolModificationSemaphore.Wait();
             _connections.Remove(c);
-            _poolModificationSemaphore.Release();
             c.Dispose();
         }
 
-        public void Dispose()
+        public void Shutdown()
         {
-            _host.Down -= OnHostDown;
-            _host.Up -= OnHostUp;
-            if (_connections.Count == 0)
+            _isShuttingDown = true;
+            var connections = _connections.ClearAndGet();
+            if (connections.Length == 0)
             {
                 return;
             }
-            Logger.Info(String.Format("Disposing connection pool to {0}, closing {1} connections.", _host.Address, _connections.Count));
-            _poolModificationSemaphore.Wait();
-            foreach (var c in _connections)
+            Logger.Info(string.Format("Shutting down pool to {0}, closing {1} connection(s).", _host.Address, connections.Length));
+            foreach (var c in connections)
             {
                 c.Dispose();
             }
-            _connections.Clear();
-            _poolModificationSemaphore.Release();
-            _poolModificationSemaphore.Dispose();
+        }
+
+        private void OnHostRemoved()
+        {
+            Dispose();
+        }
+
+        /// <summary>
+        /// Releases the resources associated with the pool.
+        /// </summary>
+        public void Dispose()
+        {
+            _isDisposed = true;
+            SetReconnectionTimeout(null);
+            Shutdown();
+            _host.CheckedAsDown -= OnHostCheckedAsDown;
+            _host.Up -= OnHostUp;
+            _host.Down -= OnHostDown;
+            _host.Remove -= OnHostRemoved;
         }
     }
 }

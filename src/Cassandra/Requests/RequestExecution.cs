@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading.Tasks;
 using Cassandra.Responses;
 using Cassandra.Tasks;
@@ -12,8 +11,7 @@ namespace Cassandra.Requests
 {
     internal class RequestExecution<T> where T : class
     {
-        // ReSharper disable once StaticMemberInGenericType
-        private readonly static Logger Logger = new Logger(typeof(Session));
+        private readonly static Logger Logger = new Logger(typeof(RequestExecution<T>));
         private readonly RequestHandler<T> _parent;
         private readonly ISession _session;
         private readonly IRequest _request;

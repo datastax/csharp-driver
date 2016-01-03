@@ -25,5 +25,13 @@ namespace Cassandra.Data.Linq
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
     public class SecondaryIndexAttribute : Attribute
     {
+		public SecondaryIndexAttribute() { }
+
+		public SecondaryIndexAttribute(bool isKeyIndex)
+		{
+			IsKeyIndex = isKeyIndex;
+		}
+
+		public bool IsKeyIndex { get; set; }
     }
 }

@@ -103,7 +103,7 @@ namespace Cassandra
         /// <summary>
         /// Gets the amount of operations that timed out and didn't get a response
         /// </summary>
-        public int TimedOutOperations
+        public virtual int TimedOutOperations
         {
             get { return Thread.VolatileRead(ref _timedOutOperations); }
         }
@@ -675,6 +675,7 @@ namespace Cassandra
             if (_isCanceled)
             {
                 callback(new SocketException((int)SocketError.NotConnected), null);
+                return null;
             }
             var state = new OperationState(callback)
             {

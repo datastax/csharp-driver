@@ -30,18 +30,34 @@ namespace Cassandra
         private static readonly Logger Logger = new Logger(typeof(Host));
         private readonly IReconnectionPolicy _reconnectionPolicy;
         private int _isUpNow = 1;
+        /// <summary>
+        /// Used as a flag to limit the amount of connection pools attempting reconnection to 1.
+        /// </summary>
+        private int _isAttemptingReconnection;
         private long _nextUpTime;
         private IReconnectionSchedule _reconnectionSchedule;
-        private int _reconnectionDelayFlag;
         /// <summary>
-        /// Event that gets raised when the host is considered as DOWN (not available) by the driver.
-        /// It will provide the time were reconnection will be attempted
+        /// Event that gets raised when the host is set as DOWN (not available) by the driver, after being UP.
+        /// It provides the delay for the next reconnection attempt.
         /// </summary>
         internal event Action<Host, long> Down;
+        /// <summary>
+        /// Event that gets raised when the host is considered as DOWN by the driver after checking: 
+        /// a failed reconnection attempt or set as down after being up.
+        /// It provides the delay for the next reconnection attempt.
+        /// <remarks>
+        /// It gets raised more frequently than <see cref="Down"/>, as it is raised per each failed reconnection attempt also.
+        /// </remarks>
+        /// </summary>
+        internal event Action<Host, long> CheckedAsDown;
         /// <summary>
         /// Event that gets raised when the host is considered back UP (available for queries) by the driver.
         /// </summary>
         internal event Action<Host> Up;
+        /// <summary>
+        /// Event that gets raised when the host is being decommissioned from the cluster.
+        /// </summary>
+        internal event Action Remove;
 
         /// <summary>
         /// Determines if the host is UP for the driver
@@ -56,7 +72,7 @@ namespace Cassandra
         /// </summary>
         public bool IsConsiderablyUp
         {
-            get { return Thread.VolatileRead(ref _isUpNow) == 1 || Thread.VolatileRead(ref _nextUpTime) <= DateTimeOffset.Now.Ticks; }
+            get { return Thread.VolatileRead(ref _isUpNow) == 1 || _nextUpTime <= DateTimeOffset.Now.Ticks; }
         }
 
         /// <summary>
@@ -105,33 +121,44 @@ namespace Cassandra
         /// </summary>
         public bool SetDown()
         {
-            var wasUp = Interlocked.CompareExchange(ref _isUpNow, 0, 1);
-            //it was up OR the reconnection time has passed
-            if (wasUp == 1 || Thread.VolatileRead(ref _nextUpTime) <= DateTimeOffset.Now.Ticks)
+            return SetDown(false);
+        }
+
+        internal bool SetDown(bool failedReconnection)
+        {
+            var wasUp = Interlocked.CompareExchange(ref _isUpNow, 0, 1) == 1;
+            if (!wasUp && !failedReconnection)
             {
-                if (Interlocked.CompareExchange(ref _reconnectionDelayFlag, 1, 0) != 0)
-                {
-                    //only allow 1 thread to set the next delay as it is not a thread-safe operation
-                    return false;
-                }
-                try
-                {
-                    var delay = _reconnectionSchedule.NextDelayMs();
-                    Logger.Warning("Host {0} considered as DOWN. Reconnection delay {1}ms", Address, delay);
-                    _nextUpTime = DateTimeOffset.Now.Ticks + (delay*TimeSpan.TicksPerMillisecond);
-                    if (Down != null)
-                    {
-                        //Raise event
-                        Down(this, delay);
-                    }
-                }
-                finally
-                {
-                    Interlocked.Exchange(ref _reconnectionDelayFlag, 0);
-                }
-                return true;
+                return false;
             }
-            return false;
+            //Host was UP or there was a failed reconnection attempt
+            var delay = _reconnectionSchedule.NextDelayMs();
+            Logger.Warning("Host {0} considered as DOWN. Reconnection delay {1}ms", Address, delay);
+            Thread.VolatileWrite(ref _nextUpTime, DateTimeOffset.Now.Ticks + (delay * TimeSpan.TicksPerMillisecond));
+            Interlocked.Exchange(ref _isAttemptingReconnection, 0);
+            //raise checked as down event
+            if (CheckedAsDown != null)
+            {
+                CheckedAsDown(this, delay);
+            }
+            if (!wasUp)
+            {
+                return false;
+            }
+            //raise DOWN event
+            if (Down != null)
+            {
+                Down(this, delay);
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Sets the host as being attempting reconnection and returns true if the atomic operation succeeded.
+        /// </summary>
+        internal bool SetAttemptingReconnection()
+        {
+            return Interlocked.CompareExchange(ref _isAttemptingReconnection, 1, 0) == 0;
         }
 
         /// <summary>
@@ -142,8 +169,9 @@ namespace Cassandra
             var wasUp = Interlocked.CompareExchange(ref _isUpNow, 1, 0);
             if (wasUp == 0)
             {
-                Logger.Info("Host {0} is now UP");
+                Logger.Info("Host {0} is now UP", Address);
                 Interlocked.Exchange(ref _reconnectionSchedule, _reconnectionPolicy.NewSchedule());
+                Interlocked.Exchange(ref _isAttemptingReconnection, 0);
                 if (Up != null)
                 {
                     Up(this);
@@ -151,6 +179,17 @@ namespace Cassandra
                 return true;
             }
             return false;
+        }
+
+        public void SetAsRemoved()
+        {
+            Logger.Info("Decommissioning node {0}", Address);
+            Interlocked.Exchange(ref _isUpNow, 0);
+            Interlocked.Exchange(ref _nextUpTime, long.MaxValue);
+            if (Remove != null)
+            {
+                Remove();
+            }
         }
 
         internal void SetLocationInfo(string datacenter, string rack)

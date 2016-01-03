@@ -70,9 +70,19 @@ namespace Cassandra.Collections
 
         public void Clear()
         {
+            ClearAndGet();
+        }
+
+        /// <summary>
+        /// Removes all items and returns the existing items as an atomic operation.
+        /// </summary>
+        public T[] ClearAndGet()
+        {
             lock (_writeLock)
             {
+                var items = _array;
                 _array = Empty;
+                return items;
             }
         }
 
@@ -114,6 +124,14 @@ namespace Cassandra.Collections
                 _array = newArray;
             }
             return true;
+        }
+
+        /// <summary>
+        /// Gets a reference to the inner array
+        /// </summary>
+        public T[] GetSnapshot()
+        {
+            return _array;
         }
     }
 }

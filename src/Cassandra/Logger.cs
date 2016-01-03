@@ -28,7 +28,7 @@ namespace Cassandra
 
         public Logger(Type type)
         {
-            _category = type.FullName;
+            _category = type.Name;
         }
 
         private string printStackTrace()

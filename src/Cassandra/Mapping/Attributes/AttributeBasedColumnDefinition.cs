@@ -16,6 +16,7 @@ namespace Cassandra.Mapping.Attributes
         private readonly bool _ignore;
         private readonly bool _isExplicitlyDefined;
         private readonly bool _secondaryIndex;
+		private readonly bool _secondaryKeyIndex;
         private readonly bool _isCounter;
         private readonly bool _isStatic;
         private readonly bool _isFrozen;
@@ -56,6 +57,14 @@ namespace Cassandra.Mapping.Attributes
         {
             get { return _secondaryIndex; }
         }
+
+		bool IColumnDefinition.SecondaryKeyIndex
+		{
+			get
+			{
+				return _secondaryKeyIndex;
+			}
+		}
 
         bool IColumnDefinition.IsCounter
         {
@@ -118,7 +127,18 @@ namespace Cassandra.Mapping.Attributes
                 }
             }
             _ignore = HasAttribute(memberInfo, typeof(IgnoreAttribute));
-            _secondaryIndex = HasAttribute(memberInfo, typeof(SecondaryIndexAttribute));
+			var sia = GetAttribute<SecondaryIndexAttribute>(memberInfo);
+			if (sia != null)
+			{
+				if (sia.IsKeyIndex)
+				{
+					_secondaryKeyIndex = true;
+				}
+				else
+				{
+					_secondaryIndex = true;
+				}
+			}
             _isStatic = HasAttribute(memberInfo, typeof(StaticColumnAttribute));
             _isCounter = HasAttribute(memberInfo, typeof(CounterAttribute));
             _isFrozen = HasAttribute(memberInfo, typeof(FrozenAttribute));
@@ -133,5 +153,10 @@ namespace Cassandra.Mapping.Attributes
         {
             return memberInfo.GetCustomAttributes(attributeType, true).FirstOrDefault() != null;
         }
+
+		private static T GetAttribute<T>(MemberInfo memberInfo)
+		{
+			return memberInfo.GetCustomAttributes(typeof(T), true).Cast<T>().FirstOrDefault();
+		}
     }
 }
