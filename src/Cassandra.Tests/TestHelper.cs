@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -243,6 +244,30 @@ namespace Cassandra.Tests
                 SimplifyValues(ref x, ref y);
                 return Comparer.Default.Compare(x, y);
             }
+        }
+
+        /// <summary>
+        /// Tries to open a TCP connection 
+        /// </summary>
+        /// <returns>True if its able to connect</returns>
+        public static bool TryConnect(string address, int port = ProtocolOptions.DefaultPort)
+        {
+            var result = false;
+            using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+            {
+                try
+                {
+                    socket.Connect(address, port);
+                    result = true;
+                    socket.Shutdown(SocketShutdown.Both);
+                }
+                // ReSharper disable once EmptyGeneralCatchClause
+                catch
+                {
+                    
+                }
+            }
+            return result;
         }
     }
 }

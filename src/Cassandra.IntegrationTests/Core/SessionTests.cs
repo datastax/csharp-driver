@@ -272,10 +272,11 @@ namespace Cassandra.IntegrationTests.Core
                 var hosts1 = localCluster1.AllHosts().ToList();
                 Assert.AreEqual(2, hosts1.Count);
                 //Execute multiple times a query on the newly created keyspace
-                for (var i = 0; i < 6; i++)
+                for (var i = 0; i < 12; i++)
                 {
                     localSession1.Execute("SELECT * FROM system.local");
                 }
+                Thread.Sleep(2000);
                 var pool11 = localSession1.GetOrCreateConnectionPool(hosts1[0], HostDistance.Local);
                 var pool12 = localSession1.GetOrCreateConnectionPool(hosts1[1], HostDistance.Local);
                 Assert.That(pool11.OpenConnections.Count(), Is.EqualTo(3));
@@ -293,6 +294,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     localSession2.Execute("SELECT * FROM system.local");
                 }
+                Thread.Sleep(2000);
                 var pool21 = localSession2.GetOrCreateConnectionPool(hosts2[0], HostDistance.Local);
                 var pool22 = localSession2.GetOrCreateConnectionPool(hosts2[1], HostDistance.Local);
                 Assert.That(pool21.OpenConnections.Count(), Is.EqualTo(1));

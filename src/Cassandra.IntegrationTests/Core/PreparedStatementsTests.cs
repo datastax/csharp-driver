@@ -855,45 +855,71 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        private void ReprepareTest(bool useKeyspace)
+        private static void ReprepareTest(bool useKeyspace)
         {
-            string keyspace = TestClusterManager.DefaultKeyspaceName;
-            var testCluster = TestClusterManager.GetNonShareableTestCluster(1);
-            var nonShareableSession = testCluster.Session;
-
-            string fqKeyspaceName = "";
-
-            if (useKeyspace)
-                nonShareableSession.ChangeKeyspace(keyspace);
-            else
-                fqKeyspaceName = keyspace + ".";
-
-            try
+            const string keyspace = TestClusterManager.DefaultKeyspaceName;
+            var testCluster = TestClusterManager.CreateNew();
+            using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint)
+                .WithPoolingOptions(new PoolingOptions().SetHeartBeatInterval(2000))
+                .WithReconnectionPolicy(new ConstantReconnectionPolicy(1000)).Build())
             {
-                nonShareableSession.Execute("CREATE TABLE " + fqKeyspaceName + "test(k text PRIMARY KEY, i int)");
-            }
-            catch (AlreadyExistsException)
-            {
-            }
-            nonShareableSession.Execute("INSERT INTO " + fqKeyspaceName + "test (k, i) VALUES ('123', 17)");
-            nonShareableSession.Execute("INSERT INTO " + fqKeyspaceName + "test (k, i) VALUES ('124', 18)");
+                var session = cluster.Connect();
 
-            PreparedStatement ps = nonShareableSession.Prepare("SELECT * FROM " + fqKeyspaceName + "test WHERE k = ?");
+                var fqKeyspaceName = "";
 
-            var rs = nonShareableSession.Execute(ps.Bind("123"));
-            Assert.AreEqual(rs.First().GetValue<int>("i"), 17);
+                session.CreateKeyspaceIfNotExists(keyspace);
+                if (useKeyspace)
+                {
+                    session.ChangeKeyspace(keyspace);
+                }
+                else
+                {
+                    fqKeyspaceName = keyspace + ".";
+                }
 
-            testCluster.Stop(1);
-            TestUtils.WaitForDown(testCluster.ClusterIpPrefix + "1", testCluster.Cluster, 40);
+                try
+                {
+                    session.Execute("CREATE TABLE " + fqKeyspaceName + "test(k text PRIMARY KEY, i int)");
+                }
+                catch (AlreadyExistsException)
+                {
+                }
+                session.Execute("INSERT INTO " + fqKeyspaceName + "test (k, i) VALUES ('123', 17)");
+                session.Execute("INSERT INTO " + fqKeyspaceName + "test (k, i) VALUES ('124', 18)");
 
-            testCluster.Start(1);
-            TestUtils.WaitForUp(testCluster.ClusterIpPrefix + "1", DefaultCassandraPort, 60);
+                var ps = session.Prepare("SELECT * FROM " + fqKeyspaceName + "test WHERE k = ?");
 
-            Assert.True(nonShareableSession.Cluster.AllHosts().Select(h => h.IsUp).Any(), "There should be one node up");
-            for (var i = 0; i < 10; i++)
-            {
-                var rowset = nonShareableSession.Execute(ps.Bind("124"));
-                Assert.AreEqual(rowset.First().GetValue<int>("i"), 18);
+                var rs = session.Execute(ps.Bind("123"));
+                Assert.AreEqual(rs.First().GetValue<int>("i"), 17);
+                var downCounter = 0;
+                var upCounter = 0;
+                var host = cluster.AllHosts().First();
+                host.Down += (h, delay) =>
+                {
+                    downCounter++;
+                };
+                host.Up += h =>
+                {
+                    upCounter++;
+                };
+
+                testCluster.Stop(1);
+
+                Thread.Sleep(8000);
+                Assert.AreEqual(1, downCounter);
+                Assert.AreEqual(0, upCounter);
+
+                testCluster.Start(1);
+
+                Thread.Sleep(8000);
+                Assert.AreEqual(1, downCounter);
+                Assert.AreEqual(1, upCounter);
+                Assert.True(session.Cluster.AllHosts().Select(h => h.IsUp).Any(), "There should be one node up");
+                for (var i = 0; i < 10; i++)
+                {
+                    var rowset = session.Execute(ps.Bind("124"));
+                    Assert.AreEqual(rowset.First().GetValue<int>("i"), 18);
+                }
             }
         }
 
