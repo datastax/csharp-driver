@@ -17,7 +17,7 @@ namespace Cassandra.Requests
         private readonly IRequest _request;
         private readonly Dictionary<IPEndPoint, Exception> _triedHosts = new Dictionary<IPEndPoint, Exception>();
         private volatile Connection _connection;
-        private int _retryCount;
+        private volatile int _retryCount;
         private volatile OperationState _operation;
 
         public RequestExecution(RequestHandler<T> parent, ISession session, IRequest request)
