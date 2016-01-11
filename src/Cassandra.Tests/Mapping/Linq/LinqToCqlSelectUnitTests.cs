@@ -65,6 +65,115 @@ namespace Cassandra.Tests.Mapping.Linq
             CollectionAssert.AreEqual(new [] {1M, 2M}, parameters);
         }
 
+		[Test]
+		public void Select_List_Contains_Test()
+		{
+			string query = null;
+			object[] parameters = null;
+			var session = GetSession((q, v) =>
+			{
+				query = q;
+				parameters = v;
+			});
+			var map = new Map<CollectionTypesEntity>()
+				.ExplicitColumns()
+				.Column(t => t.Scores, cm => cm.WithName("scores"))
+				.TableName("values");
+
+			var table = GetTable<CollectionTypesEntity>(session, map);
+			table.Where(t => t.Scores.Contains(1)).Execute();
+			Assert.AreEqual("SELECT scores FROM values WHERE scores CONTAINS ?", query);
+			CollectionAssert.AreEqual(new[] { 1 }, parameters);
+		}
+
+		[Test]
+		public void Select_Array_Contains_Test()
+		{
+			string query = null;
+			object[] parameters = null;
+			var session = GetSession((q, v) =>
+			{
+				query = q;
+				parameters = v;
+			});
+			var map = new Map<CollectionTypesEntity>()
+				.ExplicitColumns()
+				.Column(t => t.Tags, cm => cm.WithName("tags"))
+				.TableName("values");
+
+			var table = GetTable<CollectionTypesEntity>(session, map);
+			string example = "example";
+			table.Where(t => t.Tags.Contains(example)).Execute();
+			Assert.AreEqual("SELECT tags FROM values WHERE tags CONTAINS ?", query);
+			CollectionAssert.AreEqual(new[] { (object)example }, parameters);
+		}
+
+		[Test]
+		public void Select_Dictionary_Values_Contains_Test()
+		{
+			string query = null;
+			object[] parameters = null;
+			var session = GetSession((q, v) =>
+			{
+				query = q;
+				parameters = v;
+			});
+			var map = new Map<CollectionTypesEntity>()
+				.ExplicitColumns()
+				.Column(t => t.Favs, cm => cm.WithName("favs"))
+				.TableName("values");
+
+			var table = GetTable<CollectionTypesEntity>(session, map);
+			string example = "example";
+			table.Where(t => t.Favs.Values.Contains(example)).Execute();
+			Assert.AreEqual("SELECT favs FROM values WHERE favs CONTAINS ?", query);
+			CollectionAssert.AreEqual(new[] { (object)example }, parameters);
+		}
+
+		[Test]
+		public void Select_Dictionary_Keys_Contains_Test()
+		{
+			string query = null;
+			object[] parameters = null;
+			var session = GetSession((q, v) =>
+			{
+				query = q;
+				parameters = v;
+			});
+			var map = new Map<CollectionTypesEntity>()
+				.ExplicitColumns()
+				.Column(t => t.Favs, cm => cm.WithName("favs"))
+				.TableName("values");
+
+			var table = GetTable<CollectionTypesEntity>(session, map);
+			string example = "example";
+			table.Where(t => t.Favs.Keys.Contains(example)).Execute();
+			Assert.AreEqual("SELECT favs FROM values WHERE favs CONTAINS KEY ?", query);
+			CollectionAssert.AreEqual(new[] { (object)example }, parameters);
+		}
+
+		[Test]
+		public void Select_Dictionary_ContainsKey_Test()
+		{
+			string query = null;
+			object[] parameters = null;
+			var session = GetSession((q, v) =>
+			{
+				query = q;
+				parameters = v;
+			});
+			var map = new Map<CollectionTypesEntity>()
+				.ExplicitColumns()
+				.Column(t => t.Favs, cm => cm.WithName("favs"))
+				.TableName("values");
+
+			var table = GetTable<CollectionTypesEntity>(session, map);
+			string example = "example";
+			table.Where(t => t.Favs.ContainsKey(example)).Execute();
+			Assert.AreEqual("SELECT favs FROM values WHERE favs CONTAINS KEY ?", query);
+			CollectionAssert.AreEqual(new[] { (object)example }, parameters);
+		}
+
         [Test]
         public void Select_Project_To_New_Type_Constructor()
         {
