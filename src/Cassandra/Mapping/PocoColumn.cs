@@ -30,12 +30,12 @@ namespace Cassandra.Mapping
         /// </summary>
         public bool SecondaryIndex { get; private set; }
 
-		/// <summary>
-		/// Determines that there is a secondary key index defined for this column
-		/// </summary>
-		public bool SecondaryKeyIndex { get; set; }
-		
-		/// <summary>
+        /// <summary>
+        /// Determines that there is a secondary key index defined for this column
+        /// </summary>
+        public bool SecondaryKeyIndex { get; set; }
+        
+        /// <summary>
         /// Determines that it is a counter column
         /// </summary>
         public bool IsCounter { get; private set; }
@@ -76,7 +76,7 @@ namespace Cassandra.Mapping
                 MemberInfo = columnDefinition.MemberInfo,
                 MemberInfoType = columnDefinition.MemberInfoType,
                 SecondaryIndex = columnDefinition.SecondaryIndex,
-				SecondaryKeyIndex = columnDefinition.SecondaryKeyIndex,
+                SecondaryKeyIndex = columnDefinition.SecondaryKeyIndex,
                 IsCounter = columnDefinition.IsCounter,
                 IsStatic = columnDefinition.IsStatic,
                 IsFrozen = columnDefinition.IsFrozen,
@@ -84,5 +84,5 @@ namespace Cassandra.Mapping
                 HasFrozenValue = columnDefinition.HasFrozenValue
             };
         }
-	}
+    }
 }

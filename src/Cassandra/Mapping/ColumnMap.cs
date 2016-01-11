@@ -16,8 +16,8 @@ namespace Cassandra.Mapping
         private bool _ignore;
         private readonly bool _isExplicitlyDefined;
         private bool _secondaryIndex;
-		private bool _secondaryKeyIndex;
-		private bool _isCounter;
+        private bool _secondaryKeyIndex;
+        private bool _isCounter;
         private bool _isStatic;
         private bool _isFrozen;
         private bool _hasFrozenKey;
@@ -58,10 +58,10 @@ namespace Cassandra.Mapping
             get { return _secondaryIndex; }
         }
 
-		bool IColumnDefinition.SecondaryKeyIndex
-		{
-			get { return _secondaryKeyIndex; }
-		}
+        bool IColumnDefinition.SecondaryKeyIndex
+        {
+            get { return _secondaryKeyIndex; }
+        }
 
         bool IColumnDefinition.IsCounter
         {
@@ -138,7 +138,7 @@ namespace Cassandra.Mapping
         /// </summary>
         public ColumnMap WithDbType<T>()
         {
-            _columnType = typeof (T);
+            _columnType = typeof(T);
             return this;
         }
 
@@ -148,48 +148,60 @@ namespace Cassandra.Mapping
         /// <returns></returns>
         public ColumnMap WithSecondaryIndex(bool? isKeyIndex = null)
         {
-			if (isKeyIndex.GetValueOrDefault(false))
-			{
-				try
-				{
-					FindMapDefinition(_memberInfoType);
-				}
-				catch (InvalidOperationException)
-				{
-					throw new InvalidOperationException(string.Format("{0} is not a valid candidate for a key index", _memberInfo.Name));
-				}
-				_secondaryKeyIndex = true;
-			}
-			else
-			{
-				_secondaryIndex = true;
-			}
+            if (isKeyIndex.GetValueOrDefault(false))
+            {
+                try
+                {
+                    FindMapDefinition(_memberInfoType);
+                }
+                catch (InvalidOperationException)
+                {
+                    throw new InvalidOperationException(string.Format("{0} is not a valid candidate for a key index", _memberInfo.Name));
+                }
+                _secondaryKeyIndex = true;
+            }
+            else
+            {
+                _secondaryIndex = true;
+            }
 
             return this;
         }
 
-		private void FindMapDefinition(Type memberInfoType)
-		{
-			while (memberInfoType != null)
-			{
-					var interfaces = memberInfoType.GetInterfaces();
+        /// <summary>
+        /// Tells the mapper that this column is defined also as a secondary index
+        /// </summary>
+        /// <returns></returns>
+        public ColumnMap WithSecondaryIndex()
+        {
+            _secondaryIndex = true;
 
-					foreach(var intrface in interfaces) {
-						if (intrface.IsGenericType)
-						{
-							var candidate = intrface.GetGenericTypeDefinition();
-							if (candidate == typeof(IDictionary<,>))
-							{
-								return;
-							}
-						}
-					}
+            return this;
+        }
 
-				memberInfoType = memberInfoType.BaseType;
-			}
+        private void FindMapDefinition(Type memberInfoType)
+        {
+            while (memberInfoType != null)
+            {
+                var interfaces = memberInfoType.GetInterfaces();
 
-			throw new InvalidOperationException(string.Format("{0} does not implement IDictionary<,>", memberInfoType));
-		}
+                foreach (var intrface in interfaces)
+                {
+                    if (intrface.IsGenericType)
+                    {
+                        var candidate = intrface.GetGenericTypeDefinition();
+                        if (candidate == typeof(IDictionary<,>))
+                        {
+                            return;
+                        }
+                    }
+                }
+
+                memberInfoType = memberInfoType.BaseType;
+            }
+
+            throw new InvalidOperationException(string.Format("{0} does not implement IDictionary<,>", memberInfoType));
+        }
 
         /// <summary>
         /// Tells the mapper that this is a counter column

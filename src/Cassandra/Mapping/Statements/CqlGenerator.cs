@@ -263,7 +263,7 @@ namespace Cassandra.Mapping.Statements
             }
             var commands = new List<string>();
             var secondaryIndexes = new List<string>();
-			var secondaryKeyIndexes = new List<string>();
+            var secondaryKeyIndexes = new List<string>();
             var createTable = new StringBuilder("CREATE TABLE ");
             tableName = Escape(tableName, pocoData);
             if (keyspaceName != null)
@@ -284,14 +284,15 @@ namespace Cassandra.Mapping.Statements
                     .Append(columnType);
                 createTable
                     .Append(", ");
+
                 if (column.SecondaryIndex)
                 {
                     secondaryIndexes.Add(columnName);
                 }
-				if (column.SecondaryKeyIndex)
-				{
-					secondaryKeyIndexes.Add(columnName);
-				}
+                if (column.SecondaryKeyIndex)
+                {
+                    secondaryKeyIndexes.Add(columnName);
+                }
             }
             createTable.Append("PRIMARY KEY (");
             if (pocoData.PartitionKeys.Count == 0)
@@ -337,8 +338,8 @@ namespace Cassandra.Mapping.Statements
             commands.Add(createTable.ToString());
             //Secondary index definitions
             commands.AddRange(secondaryIndexes.Select(name => "CREATE INDEX ON " + tableName + " (" + name + ")"));
-			commands.AddRange(secondaryKeyIndexes.Select(name => "CREATE INDEX ON " + tableName + " (keys(" + name + "))"));
-			return commands;
+            commands.AddRange(secondaryKeyIndexes.Select(name => "CREATE INDEX ON " + tableName + " (keys(" + name + "))"));
+            return commands;
         }
 
         private static string GetTypeString(PocoColumn column, ColumnTypeCode typeCode, IColumnInfo typeInfo)
