@@ -1,5 +1,19 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.0.1
+
+2016-01-14
+
+### Features
+
+- [CSHARP-388] - Expose Builder.WithMaxProtocolVersion()
+
+### Bug Fixes
+
+- [CSHARP-385] - TokenMap evaluates all the ring when a replication factor contains a non-existent DC
+- [CSHARP-386] - Following reconnection attempts may be not be scheduled depending on timer precision
+- [CSHARP-391] - RequestExecution retry counter should be volatile
+
 ## 3.0.0
 
 2015-12-21
