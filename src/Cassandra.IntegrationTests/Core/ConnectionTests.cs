@@ -717,17 +717,18 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Heartbeat_Should_Be_Enabled_By_Default()
         {
+            const int defaultHeartbeatInterval = 30000;
             using (var connection = CreateConnection(null, null, new PoolingOptions()))
             {
                 connection.Open().Wait();
-                Assert.AreEqual(30000, connection.Configuration.PoolingOptions.GetHeartBeatInterval());
+                Assert.AreEqual(defaultHeartbeatInterval, connection.Configuration.PoolingOptions.GetHeartBeatInterval());
 
                 //execute a dummy query
                 TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default));
                 var called = 0;
                 connection.OnIdleRequestException += (_) => called++;
                 connection.Kill();
-                Thread.Sleep(30000);
+                Thread.Sleep(defaultHeartbeatInterval + 2000);
                 Assert.AreEqual(1, called);
             }
         }
