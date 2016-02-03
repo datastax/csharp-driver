@@ -40,6 +40,9 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\lz4net.1.0.5.93\lib\net40-client\LZ4.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\packages\Newtonsoft.Json.8.0.2\lib\net40\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -50,6 +53,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DseSession.cs" />
+    <Compile Include="Graph\GraphResult.cs" />
+    <Compile Include="Graph\GraphResultSet.cs" />
+    <Compile Include="Graph\IGraphStatement.cs" />
+    <Compile Include="Graph\SimpleGraphStatement.cs" />
     <Compile Include="IDseSession.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

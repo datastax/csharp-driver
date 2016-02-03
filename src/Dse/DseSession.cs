@@ -5,150 +5,170 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Cassandra;
+using Dse.Graph;
 
 namespace Dse
 {
-    public class DseSession : IDseSession
+    internal class DseSession : IDseSession
     {
-        private int _binaryProtocolVersion;
-        private ICluster _cluster;
-        private bool _isDisposed;
-        private string _keyspace;
-        private UdtMappingDefinitions _userDefinedTypes;
+        private readonly ISession _coreSession;
+
+        public DseSession(ISession coreSession)
+        {
+            if (coreSession == null)
+            {
+                throw new ArgumentNullException("coreSession");
+            }
+            _coreSession = coreSession;
+        }
+
+        public GraphResultSet ExecuteGraph(IGraphStatement statement)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement statement)
+        {
+            throw new NotImplementedException();
+        }
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            _coreSession.Dispose();
         }
 
         public IAsyncResult BeginExecute(IStatement statement, AsyncCallback callback, object state)
         {
-            throw new NotImplementedException();
+            return _coreSession.BeginExecute(statement, callback, state);
         }
 
         public IAsyncResult BeginExecute(string cqlQuery, ConsistencyLevel consistency, AsyncCallback callback, object state)
         {
-            throw new NotImplementedException();
+            return _coreSession.BeginExecute(cqlQuery, consistency, callback, state);
         }
 
         public IAsyncResult BeginPrepare(string cqlQuery, AsyncCallback callback, object state)
         {
-            throw new NotImplementedException();
+            return _coreSession.BeginPrepare(cqlQuery, callback, state);
         }
 
         public void ChangeKeyspace(string keyspaceName)
         {
-            throw new NotImplementedException();
+            _coreSession.ChangeKeyspace(keyspaceName);
         }
 
         public void CreateKeyspace(string keyspaceName, Dictionary<string, string> replication = null, bool durableWrites = true)
         {
-            throw new NotImplementedException();
+            _coreSession.CreateKeyspace(keyspaceName, replication, durableWrites);
         }
 
         public void CreateKeyspaceIfNotExists(string keyspaceName, Dictionary<string, string> replication = null, bool durableWrites = true)
         {
-            throw new NotImplementedException();
+            _coreSession.CreateKeyspaceIfNotExists(keyspaceName, replication, durableWrites);
         }
 
         public void DeleteKeyspace(string keyspaceName)
         {
-            throw new NotImplementedException();
+            _coreSession.DeleteKeyspace(keyspaceName);
         }
 
         public void DeleteKeyspaceIfExists(string keyspaceName)
         {
-            throw new NotImplementedException();
+            _coreSession.DeleteKeyspaceIfExists(keyspaceName);
         }
 
         public RowSet EndExecute(IAsyncResult ar)
         {
-            throw new NotImplementedException();
+            return _coreSession.EndExecute(ar);
         }
 
         public PreparedStatement EndPrepare(IAsyncResult ar)
         {
-            throw new NotImplementedException();
+            return _coreSession.EndPrepare(ar);
         }
 
         public RowSet Execute(IStatement statement)
         {
-            throw new NotImplementedException();
+            return _coreSession.Execute(statement);
         }
 
         public RowSet Execute(string cqlQuery)
         {
-            throw new NotImplementedException();
+            return _coreSession.Execute(cqlQuery);
         }
 
         public RowSet Execute(string cqlQuery, ConsistencyLevel consistency)
         {
-            throw new NotImplementedException();
+            return _coreSession.Execute(cqlQuery, consistency);
         }
 
         public RowSet Execute(string cqlQuery, int pageSize)
         {
-            throw new NotImplementedException();
+            return _coreSession.Execute(cqlQuery, pageSize);
         }
 
         public Task<RowSet> ExecuteAsync(IStatement statement)
         {
-            throw new NotImplementedException();
+            return _coreSession.ExecuteAsync(statement);
         }
 
         public PreparedStatement Prepare(string cqlQuery)
         {
-            throw new NotImplementedException();
+            return _coreSession.Prepare(cqlQuery);
         }
 
         public PreparedStatement Prepare(string cqlQuery, IDictionary<string, byte[]> customPayload)
         {
-            throw new NotImplementedException();
+            return _coreSession.Prepare(cqlQuery, customPayload);
         }
 
         public Task<PreparedStatement> PrepareAsync(string cqlQuery)
         {
-            throw new NotImplementedException();
+            return _coreSession.PrepareAsync(cqlQuery);
         }
 
         public Task<PreparedStatement> PrepareAsync(string cqlQuery, IDictionary<string, byte[]> customPayload)
         {
-            throw new NotImplementedException();
+            return _coreSession.PrepareAsync(cqlQuery, customPayload);
         }
 
         public void WaitForSchemaAgreement(RowSet rs)
         {
-            throw new NotImplementedException();
+            #pragma warning disable 618
+            _coreSession.WaitForSchemaAgreement(rs);
+            #pragma warning restore 618
         }
 
         public bool WaitForSchemaAgreement(IPEndPoint forHost)
         {
-            throw new NotImplementedException();
+            #pragma warning disable 618
+            return _coreSession.WaitForSchemaAgreement(forHost);
+            #pragma warning restore 618
         }
 
         public int BinaryProtocolVersion
         {
-            get { return _binaryProtocolVersion; }
+            get { return _coreSession.BinaryProtocolVersion; }
         }
 
         public ICluster Cluster
         {
-            get { return _cluster; }
+            get { return _coreSession.Cluster; }
         }
 
         public bool IsDisposed
         {
-            get { return _isDisposed; }
+            get { return _coreSession.IsDisposed; }
         }
 
         public string Keyspace
         {
-            get { return _keyspace; }
+            get { return _coreSession.Keyspace; }
         }
 
         public UdtMappingDefinitions UserDefinedTypes
         {
-            get { return _userDefinedTypes; }
+            get { return _coreSession.UserDefinedTypes; }
         }
     }
 }
