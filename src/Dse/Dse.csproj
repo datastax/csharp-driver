@@ -52,16 +52,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DseCluster.cs" />
+    <Compile Include="DseClusterBuilder.cs" />
+    <Compile Include="DseConfiguration.cs" />
     <Compile Include="DseSession.cs" />
     <Compile Include="Graph\Edge.cs" />
     <Compile Include="Graph\Element.cs" />
+    <Compile Include="Graph\GraphOptions.cs" />
     <Compile Include="Graph\GraphResult.cs" />
     <Compile Include="Graph\GraphResultSet.cs" />
     <Compile Include="Graph\IGraphStatement.cs" />
     <Compile Include="Graph\SimpleGraphStatement.cs" />
     <Compile Include="Graph\Vertex.cs" />
+    <Compile Include="IDseCluster.cs" />
     <Compile Include="IDseSession.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Tasks\TaskHelper.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

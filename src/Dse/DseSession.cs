@@ -6,12 +6,38 @@ using System.Text;
 using System.Threading.Tasks;
 using Cassandra;
 using Dse.Graph;
+using Dse.Tasks;
 
 namespace Dse
 {
     internal class DseSession : IDseSession
     {
         private readonly ISession _coreSession;
+
+        public int BinaryProtocolVersion
+        {
+            get { return _coreSession.BinaryProtocolVersion; }
+        }
+
+        public ICluster Cluster
+        {
+            get { return _coreSession.Cluster; }
+        }
+
+        public bool IsDisposed
+        {
+            get { return _coreSession.IsDisposed; }
+        }
+
+        public string Keyspace
+        {
+            get { return _coreSession.Keyspace; }
+        }
+
+        public UdtMappingDefinitions UserDefinedTypes
+        {
+            get { return _coreSession.UserDefinedTypes; }
+        }
 
         public DseSession(ISession coreSession)
         {
@@ -24,12 +50,13 @@ namespace Dse
 
         public GraphResultSet ExecuteGraph(IGraphStatement statement)
         {
-            throw new NotImplementedException();
+            return TaskHelper.WaitToComplete(ExecuteGraphAsync(statement));
         }
 
         public Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement statement)
         {
-            throw new NotImplementedException();
+            return _coreSession.ExecuteAsync(statement)
+                .ContinueSync(rs => new GraphResultSet(rs));
         }
 
         public void Dispose()
@@ -144,31 +171,6 @@ namespace Dse
             #pragma warning disable 618
             return _coreSession.WaitForSchemaAgreement(forHost);
             #pragma warning restore 618
-        }
-
-        public int BinaryProtocolVersion
-        {
-            get { return _coreSession.BinaryProtocolVersion; }
-        }
-
-        public ICluster Cluster
-        {
-            get { return _coreSession.Cluster; }
-        }
-
-        public bool IsDisposed
-        {
-            get { return _coreSession.IsDisposed; }
-        }
-
-        public string Keyspace
-        {
-            get { return _coreSession.Keyspace; }
-        }
-
-        public UdtMappingDefinitions UserDefinedTypes
-        {
-            get { return _coreSession.UserDefinedTypes; }
         }
     }
 }

@@ -8,11 +8,9 @@ namespace Dse.Graph
 {
     public class SimpleGraphStatement : Statement
     {
-        private RoutingKey _routingKey;
-
         public override RoutingKey RoutingKey
         {
-            get { return _routingKey; }
+            get { return RoutingKey.Empty; }
         }
     }
 }
