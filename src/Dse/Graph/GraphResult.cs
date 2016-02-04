@@ -28,8 +28,17 @@ namespace Dse.Graph
             }
             _json = json;
             dynamic parsedJson = JsonConvert.DeserializeObject(json);
-            Console.WriteLine(parsedJson.result.GetType());
             _parsedGraphItem = parsedJson.result;
+        }
+
+        private GraphResult(dynamic parsedGraphItem)
+        {
+            if (parsedGraphItem == null)
+            {
+                throw new ArgumentNullException("parsedGraphItem");
+            }
+            _parsedGraphItem = parsedGraphItem;
+            _json = _parsedGraphItem.ToString();
         }
 
         /// <summary>
@@ -44,6 +53,10 @@ namespace Dse.Graph
             if (value == null && default(T) != null)
             {
                 throw new NullReferenceException(string.Format("Cannot convert null to {0} because it is a value type, try using Nullable<{0}>", type.Name));
+            }
+            if (!(value is T))
+            {
+                value = Convert.ChangeType(value, typeof (T));
             }
             return (T)value;
         }
@@ -71,9 +84,21 @@ namespace Dse.Graph
             throw new KeyNotFoundException(string.Format("Graph result has no top-level property '{0}'", name));
         }
 
-        private ExpandoObject ToExpando(JObject jsonNode)
+        private object GetTokenValue(JToken token)
         {
-            throw new NotImplementedException();
+            if (token is JValue)
+            {
+                return ((JValue)token).Value;
+            }
+            if (token is JObject)
+            {
+                return ToExpando((JObject)token);
+            }
+            if (token is JArray)
+            {
+                return ToArray((JArray)token);
+            }
+            throw new NotSupportedException(string.Format("Token of type {0} is not supported", token.GetType()));
         }
 
         public override bool TryGetMember(GetMemberBinder binder, out object result)
@@ -111,6 +136,48 @@ namespace Dse.Graph
             return jsonValue.Value;
         }
 
+        private dynamic[] ToArray(JArray jArray)
+        {
+            var arr = new dynamic[jArray.Count];
+            for (var i = 0; i < arr.Length; i++)
+            {
+                arr[i] = GetTokenValue(jArray[i]);
+            }
+            return arr;
+        }
+
+        public dynamic[] ToArray()
+        {
+            if (!(_parsedGraphItem is JArray))
+            {
+                throw new InvalidOperationException(string.Format("Cannot convert to array from {0}", _json));
+            }
+            return ToArray(_parsedGraphItem as JArray);
+        }
+
+        /// <summary>
+        /// Returns the representation of the result as a boolean.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// It throws an InvalidOperationException when the internal value is not an scalar.
+        /// </exception>
+        /// <exception cref="InvalidCastException">When the scalar value is not convertible to target type.</exception>
+        public bool ToBoolean()
+        {
+            return Convert.ToBoolean(GetScalarValue());
+        }
+
+        private ExpandoObject ToExpando(JObject jsonNode)
+        {
+            var expando = new ExpandoObject();
+            var dictionary = (IDictionary<string, object>)expando;
+            foreach (var property in jsonNode)
+            {
+                dictionary[property.Key] = GetTokenValue(property.Value);
+            }
+            return expando;
+        }
+
         /// <summary>
         /// Returns the representation of the result as a double.
         /// </summary>
@@ -121,6 +188,30 @@ namespace Dse.Graph
         public double ToDouble()
         {
             return Convert.ToDouble(GetScalarValue());
+        }
+
+        /// <summary>
+        /// Returns an edge representation of the current instance.
+        /// </summary>
+        public Edge ToEdge()
+        {
+            if (!(_parsedGraphItem is JObject))
+            {
+                throw new InvalidOperationException(string.Format("Cannot create an Edge from {0}", _json));
+            }
+            var properties = new Dictionary<string, GraphResult>();
+            foreach (JProperty prop in _parsedGraphItem["properties"])
+            {
+                properties.Add(prop.Name, new GraphResult(prop.Value));
+            }
+            return new Edge(
+                new GraphResult(_parsedGraphItem.id),
+                GetValue("label").ToString(),
+                properties,
+                new GraphResult(_parsedGraphItem.inV),
+                GetValue("inVLabel").ToString(),
+                new GraphResult(_parsedGraphItem.outV),
+                GetValue("outVLabel").ToString());
         }
 
         /// <summary>
@@ -136,23 +227,31 @@ namespace Dse.Graph
         }
 
         /// <summary>
-        /// Returns the representation of the result as a boolean.
-        /// </summary>
-        /// <exception cref="InvalidOperationException">
-        /// It throws an InvalidOperationException when the internal value is not an scalar.
-        /// </exception>
-        /// <exception cref="InvalidCastException">When the scalar value is not convertible to target type.</exception>
-        public bool ToBoolean()
-        {
-            return Convert.ToBoolean(GetScalarValue());
-        }
-
-        /// <summary>
         /// Returns the json representation of the result.
         /// </summary>
         public override string ToString()
         {
             return _parsedGraphItem.ToString();
+        }
+
+        /// <summary>
+        /// Returns a vertex representation of the current instance.
+        /// </summary>
+        public Vertex ToVertex()
+        {
+            if (!(_parsedGraphItem is JObject))
+            {
+                throw new InvalidOperationException(string.Format("Cannot create a Vertex from {0}", _json));
+            }
+            var properties = new Dictionary<string, GraphResult>();
+            foreach (JProperty prop in _parsedGraphItem["properties"])
+            {
+                properties.Add(prop.Name, new GraphResult(prop.Value));
+            }
+            return new Vertex(
+                new GraphResult(_parsedGraphItem.id),
+                GetValue("label").ToString(),
+                properties);
         }
 
         public static bool operator ==(GraphResult result1, GraphResult result2)
@@ -161,16 +260,29 @@ namespace Dse.Graph
             {
                 return true;
             }
+            //Cast is needed to prevent a recursive call
+            // ReSharper disable RedundantCast.0
             if (((object)result1 == null) || ((object)result2 == null))
             {
                 return false;
             }
+            // ReSharper enable RedundantCast.0
             return result1.Equals(result2);
         }
 
         public static bool operator !=(GraphResult result1, GraphResult result2)
         {
             return !(result1 == result2);
+        }
+
+        public static implicit operator Vertex(GraphResult b)
+        {
+            return b.ToVertex();
+        }
+
+        public static implicit operator Edge(GraphResult b)
+        {
+            return b.ToEdge();
         }
     }
 }
