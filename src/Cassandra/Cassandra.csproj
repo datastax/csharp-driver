@@ -67,6 +67,7 @@
     <Compile Include="Compression\Snappy\SlowMemory.cs" />
     <Compile Include="Compression\Snappy\SnappyDecompressor.cs" />
     <Compile Include="Compression\Snappy\SnappyInternalUtils.cs" />
+    <Compile Include="Compression\WrappedStream.cs" />
     <Compile Include="Data\CqlBatchTransaction.cs" />
     <Compile Include="Data\CqlCommand.cs">
       <SubType>Component</SubType>

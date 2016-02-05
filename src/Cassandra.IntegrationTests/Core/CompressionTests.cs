@@ -13,7 +13,7 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short")]
     public class CompressionTests : SharedClusterTest
     {
-        [Test, Timeout(60000)]
+        [Test, Timeout(120000)]
         public void Lz4_Compression_Under_Heavy_Concurrency_Test()
         {
             using (var cluster = Cluster.Builder()
@@ -40,17 +40,19 @@ namespace Cassandra.IntegrationTests.Core
                     insertTasks[i] = session.ExecuteAsync(psInsert.Bind(Guid.NewGuid(), values[i % values.Length]));
                 }
                 Task.WaitAll(insertTasks);
-                Trace.TraceInformation("Start selecting");
+                //High concurrency level
                 TestHelper.Invoke(() =>
                 {
                     var tasks = new Task[20];
-                    //SELECT 100 rows n times
+                    //retrieve 100 rows n times
                     for (var i = 0; i < tasks.Length; i++)
                     {
                         tasks[i] = session.ExecuteAsync(psSelect.Bind().SetPageSize(100));
                     }
                     Task.WaitAll(tasks);
                 }, 10);
+                //No concurrency
+                TestHelper.Invoke(() => session.Execute(psSelect.Bind().SetPageSize(100)), 200);
             }
         }
     }

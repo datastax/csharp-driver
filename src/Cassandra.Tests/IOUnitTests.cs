@@ -24,6 +24,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Compression;
 using Cassandra.Responses;
 using Cassandra.Tasks;
 using Microsoft.IO;
@@ -165,6 +166,28 @@ namespace Cassandra.Tests
                     new ArraySegment<byte>(buffer, blockSize * 2, 1)
                 }, bufferList);
             }
+        }
+
+        [Test]
+        public void WrappedStream_Tests()
+        {
+            var memoryStream = new MemoryStream(Enumerable.Range(0, 128).Select(i => (byte)i).ToArray(), false);
+            var buffer = new byte[128];
+            memoryStream.Position = 20;
+            var wrapper = new WrappedStream(memoryStream, 100);
+            var read = wrapper.Read(buffer, 0, 3);
+            CollectionAssert.AreEqual(new byte[] { 20, 21, 22 }, buffer.Take(read));
+            //do not pass the length of the wrapper
+            memoryStream.Position = 10;
+            wrapper = new WrappedStream(memoryStream, 2);
+            read = wrapper.Read(buffer, 0, 100);
+            CollectionAssert.AreEqual(new byte[] { 10, 11 }, buffer.Take(read));
+            //do not pass the length of the internal stream
+            memoryStream.Position = 126;
+            wrapper = new WrappedStream(memoryStream, 2);
+            read = wrapper.Read(buffer, 0, 100);
+            CollectionAssert.AreEqual(new byte[] { 126, 127 }, buffer.Take(read));
+
         }
 
         class LockSynchronisationContext : SynchronizationContext

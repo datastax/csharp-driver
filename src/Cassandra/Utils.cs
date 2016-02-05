@@ -164,7 +164,7 @@ namespace Cassandra
         {
             var buffer = new byte[stream.Length - position];
             stream.Position = position;
-            stream.Read(buffer, position, buffer.Length - position);
+            stream.Read(buffer, 0, buffer.Length - position);
             return buffer;
         }
 

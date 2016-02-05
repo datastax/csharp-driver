@@ -62,7 +62,6 @@ namespace Cassandra
         /// and it is not possible to read the header.
         /// </summary>
         private volatile byte[] _minimalBuffer;
-        private readonly byte[] _decompressorBuffer = new byte[1024];
         private volatile string _keyspace;
         private readonly SemaphoreSlim _keyspaceSwitchSemaphore = new SemaphoreSlim(1);
         private volatile Task<bool> _keyspaceSwitchTask;
@@ -579,9 +578,7 @@ namespace Cassandra
         private Action<MemoryStream> CreateResponseAction(FrameHeader header, Action<Exception, Response> callback)
         {
             var compressor = Compressor;
-            var bufferPool = Configuration.BufferPool;
-            var decompressorBuffer = _decompressorBuffer;
-            return stream =>
+            return delegate(MemoryStream stream)
             {
                 Response response = null;
                 Exception ex = null;
@@ -591,10 +588,7 @@ namespace Cassandra
                     Stream plainTextStream = stream;
                     if (header.Flags.HasFlag(FrameHeader.HeaderFlag.Compression))
                     {
-                        var compressedBodyStream = bufferPool.GetStream(typeof (Connection) + "/Decompress", header.BodyLength);
-                        Utils.CopyStream(stream, compressedBodyStream, header.BodyLength, decompressorBuffer);
-                        compressedBodyStream.Position = 0;
-                        plainTextStream = compressor.Decompress(compressedBodyStream);
+                        plainTextStream = compressor.Decompress(new WrappedStream(stream, header.BodyLength));
                         plainTextStream.Position = 0;
                     }
                     response = FrameParser.Parse(new Frame(header, plainTextStream));
@@ -606,7 +600,7 @@ namespace Cassandra
                 if (response is ErrorResponse)
                 {
                     //Create an exception from the response error
-                    ex = ((ErrorResponse)response).Output.CreateException();
+                    ex = ((ErrorResponse) response).Output.CreateException();
                     response = null;
                 }
                 //We must advance the position of the stream manually in case it was not correctly parsed
