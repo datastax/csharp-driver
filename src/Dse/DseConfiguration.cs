@@ -22,8 +22,19 @@ namespace Dse
         /// </summary>
         public GraphOptions GraphOptions { get; protected set; }
 
+        /// <summary>
+        /// Creates a new instance of <see cref="DseConfiguration"/>.
+        /// </summary>
         public DseConfiguration(Configuration cassandraConfiguration, GraphOptions graphOptions)
         {
+            if (cassandraConfiguration == null)
+            {
+                throw new ArgumentNullException("cassandraConfiguration");
+            }
+            if (graphOptions == null)
+            {
+                throw new ArgumentNullException("graphOptions");
+            }
             CassandraConfiguration = cassandraConfiguration;
             GraphOptions = graphOptions;
         }

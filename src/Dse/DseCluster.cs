@@ -89,13 +89,13 @@ namespace Dse
         /// <inheritdoc/>
         public IDseSession Connect()
         {
-            return new DseSession(_coreCluster.Connect());
+            return new DseSession(_coreCluster.Connect(), _config);
         }
 
         /// <inheritdoc/>
         public IDseSession Connect(string keyspace)
         {
-            return new DseSession(_coreCluster.Connect(keyspace));
+            return new DseSession(_coreCluster.Connect(keyspace), _config);
         }
 
         /// <inheritdoc/>

@@ -61,6 +61,7 @@
     <Compile Include="Graph\GraphOptions.cs" />
     <Compile Include="Graph\GraphResult.cs" />
     <Compile Include="Graph\GraphResultSet.cs" />
+    <Compile Include="Graph\GraphStatement.cs" />
     <Compile Include="Graph\IGraphStatement.cs" />
     <Compile Include="Graph\SimpleGraphStatement.cs" />
     <Compile Include="Graph\Vertex.cs" />

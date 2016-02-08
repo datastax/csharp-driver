@@ -420,7 +420,9 @@ namespace Dse
         public new DseCluster Build()
         {
             var coreCluster = base.Build();
-            return new DseCluster(coreCluster, new DseConfiguration(coreCluster.Configuration, GraphOptions));
+            return new DseCluster(
+                coreCluster, 
+                new DseConfiguration(coreCluster.Configuration, GraphOptions ?? new GraphOptions()));
         }
     }
 }

@@ -13,6 +13,7 @@ namespace Dse
     internal class DseSession : IDseSession
     {
         private readonly ISession _coreSession;
+        private readonly DseConfiguration _config;
 
         public int BinaryProtocolVersion
         {
@@ -39,13 +40,18 @@ namespace Dse
             get { return _coreSession.UserDefinedTypes; }
         }
 
-        public DseSession(ISession coreSession)
+        public DseSession(ISession coreSession, DseConfiguration config)
         {
             if (coreSession == null)
             {
                 throw new ArgumentNullException("coreSession");
             }
+            if (config == null)
+            {
+                throw new ArgumentNullException("config");
+            }
             _coreSession = coreSession;
+            _config = config;
         }
 
         public GraphResultSet ExecuteGraph(IGraphStatement statement)
@@ -53,9 +59,11 @@ namespace Dse
             return TaskHelper.WaitToComplete(ExecuteGraphAsync(statement));
         }
 
-        public Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement statement)
+        public Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement graphStatement)
         {
-            return _coreSession.ExecuteAsync(statement)
+            var stmt = graphStatement.ToIStatement();
+            stmt.SetOutgoingPayload(_config.GraphOptions.BuildPayload(graphStatement));
+            return _coreSession.ExecuteAsync(stmt)
                 .ContinueSync(rs => new GraphResultSet(rs));
         }
 
