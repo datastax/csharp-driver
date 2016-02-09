@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Dse.Graph;
 using NUnit.Framework;
 
-namespace Dse.Test.Unit
+namespace Dse.Test.Unit.Graph
 {
     public class GraphResultTests : BaseUnitTest
     {

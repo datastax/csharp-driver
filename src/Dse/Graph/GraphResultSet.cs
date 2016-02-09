@@ -14,6 +14,17 @@ namespace Dse.Graph
     {
         private readonly RowSet _rs;
 
+        /// <summary>
+        /// Gets the execution information for the query execution.
+        /// </summary>
+        public ExecutionInfo Info
+        {
+            get { return _rs.Info; }
+        }
+
+        /// <summary>
+        /// Creates a new instance of <see cref="GraphResultSet"/>.
+        /// </summary>
         public GraphResultSet(RowSet rs)
         {
             if (rs == null)

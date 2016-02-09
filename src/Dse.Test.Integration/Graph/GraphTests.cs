@@ -34,5 +34,28 @@ namespace Dse.Test.Integration.Graph
                 Assert.NotNull(rs);
             }
         }
+
+        [Test]
+        public void Should_Get_Vertices_Of_Classic_Schema()
+        {
+            CreateClassicGraph(CcmHelper.InitialContactPoint, "classic1");
+            using (var cluster = DseCluster.Builder()
+                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .WithGraphOptions(new GraphOptions().SetName("classic1"))
+                .Build())
+            {
+                var session = cluster.Connect();
+                var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
+                var resultArray = rs.ToArray();
+                Assert.Greater(resultArray.Length, 0);
+                foreach (Vertex v in rs)
+                {
+                    Assert.NotNull(v);
+                    Assert.AreEqual("vertex", v.Label);
+                    Assert.True(v.Properties.ContainsKey("name"));
+                }
+                Assert.NotNull(rs);
+            }
+        }
     }
 }
