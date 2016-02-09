@@ -84,7 +84,14 @@ namespace Cassandra.Tasks
             }
             //Setup the next tick
             Index = (Index + 1) % _wheel.Length;
-            _timer.Change(_tickDuration, Timeout.Infinite);
+            try
+            {
+                _timer.Change(_tickDuration, Timeout.Infinite);
+            }
+            catch (ObjectDisposedException)
+            {
+                //the _timer might already have been disposed of
+            }
         }
 
         /// <summary>
