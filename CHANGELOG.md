@@ -1,5 +1,13 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.0.2
+
+2016-02-11
+
+### Bug Fixes
+
+- [CSHARP-403] - LZ4 decompression buffer pooling bug
+
 ## 3.0.1
 
 2016-01-14
