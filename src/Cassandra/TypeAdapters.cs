@@ -16,6 +16,12 @@
 
 namespace Cassandra
 {
+    /// <summary>
+    /// TypeAdapters are deprecated and will be removed in future versions. Use <see cref="Cassandra.Serialization.TypeSerializer{T}"/> instead.
+    /// <para>
+    /// Backwards compatibility only.
+    /// </para>
+    /// </summary>
     public static class TypeAdapters
     {
         public static ITypeAdapter DecimalTypeAdapter = new DecimalTypeAdapter();

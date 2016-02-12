@@ -20,6 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using Cassandra.Serialization;
 
 namespace Cassandra.Tests
 {
@@ -687,6 +688,53 @@ namespace Cassandra.Tests
                 CollectionAssert.AreEqual(val.Item2, encoded);
                 Assert.AreEqual(val.Item1, val.Item4(4, null, encoded, null));
             }
+        }
+
+        [Test]
+        public void GetClrType_Should_Get_Clr_Type_For_Primitive_Cql_Types()
+        {
+            var notPrimitive = new[] { ColumnTypeCode.List, ColumnTypeCode.Set, ColumnTypeCode.Map, ColumnTypeCode.Udt, ColumnTypeCode.Tuple, ColumnTypeCode.Custom };
+            var serializer = NewInstance();
+            foreach (ColumnTypeCode typeCode in Enum.GetValues(typeof(ColumnTypeCode)))
+            {
+                if (notPrimitive.Contains(typeCode))
+                {
+                    continue;
+                }
+                var type = serializer.GetClrType(typeCode, null);
+                Assert.NotNull(type);
+                if (type.IsValueType)
+                {
+                    Assert.NotNull(serializer.Serialize(Activator.CreateInstance(type)));
+                }
+            }
+        }
+
+        [Test]
+        public void GetClrType_Should_Get_Clr_Type_For_Non_Primitive_Cql_Types()
+        {
+            var notPrimitive = new []
+            {
+                Tuple.Create<Type, ColumnTypeCode, IColumnInfo>(typeof(IEnumerable<string>), ColumnTypeCode.List, new ListColumnInfo { ValueTypeCode = ColumnTypeCode.Text}),
+                Tuple.Create<Type, ColumnTypeCode, IColumnInfo>(typeof(IEnumerable<int>), ColumnTypeCode.Set, new SetColumnInfo { KeyTypeCode = ColumnTypeCode.Int}),
+                Tuple.Create<Type, ColumnTypeCode, IColumnInfo>(typeof(IEnumerable<IEnumerable<DateTimeOffset>>), ColumnTypeCode.List, 
+                    new ListColumnInfo { ValueTypeCode = ColumnTypeCode.Set, ValueTypeInfo = new SetColumnInfo { KeyTypeCode = ColumnTypeCode.Timestamp}}),
+                Tuple.Create<Type, ColumnTypeCode, IColumnInfo>(typeof(IDictionary<string, int>), ColumnTypeCode.Map, 
+                    new MapColumnInfo { KeyTypeCode = ColumnTypeCode.Text, ValueTypeCode = ColumnTypeCode.Int }),
+                Tuple.Create<Type, ColumnTypeCode, IColumnInfo>(typeof(Tuple<string, int, LocalDate>), ColumnTypeCode.Tuple, 
+                    new TupleColumnInfo(new [] { ColumnTypeCode.Text, ColumnTypeCode.Int, ColumnTypeCode.Date}.Select(c => new ColumnDesc {TypeCode = c})))
+            };
+            var serializer = NewInstance();
+            foreach (var item in notPrimitive)
+            {
+                var type = serializer.GetClrType(item.Item2, item.Item3);
+                Assert.AreEqual(item.Item1, type);
+            }
+        }
+
+        private static Serializer NewInstance()
+        {
+            return new Serializer(4);
         }
 
         /// <summary>

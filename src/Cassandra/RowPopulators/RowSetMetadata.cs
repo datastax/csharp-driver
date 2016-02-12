@@ -77,6 +77,31 @@ namespace Cassandra
     public class CustomColumnInfo : IColumnInfo
     {
         public string CustomTypeName { get; set; }
+
+        public CustomColumnInfo()
+        {
+            
+        }
+
+        public CustomColumnInfo(string name)
+        {
+            CustomTypeName = name;
+        }
+
+        public override int GetHashCode()
+        {
+            return (CustomTypeName ?? "").GetHashCode();
+        }
+
+        public override bool Equals(object obj)
+        {
+            var other = obj as CustomColumnInfo;
+            if (other == null)
+            {
+                return false;
+            }
+            return CustomTypeName == other.CustomTypeName;
+        }
     }
 
     public class ListColumnInfo : IColumnInfo
@@ -119,6 +144,20 @@ namespace Cassandra
             Name = name;
             Fields = new List<ColumnDesc>();
         }
+
+        public override int GetHashCode()
+        {
+            return ("UDT>" + Name).GetHashCode();
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is UdtColumnInfo))
+            {
+                return false;
+            }
+            return GetHashCode() == obj.GetHashCode();
+        }
     }
 
     /// <summary>
@@ -139,6 +178,29 @@ namespace Cassandra
         internal TupleColumnInfo(IEnumerable<ColumnDesc> elements)
         {
             Elements = new List<ColumnDesc>(elements);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hash = 19;
+                foreach (var elem in Elements)
+                {
+                    hash = hash * 31 + 
+                        (elem.TypeCode.GetHashCode() ^ (elem.TypeInfo != null ? elem.TypeInfo.GetHashCode() : 0));
+                }
+                return hash;
+            }
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is TupleColumnInfo))
+            {
+                return false;
+            }
+            return GetHashCode() == obj.GetHashCode();
         }
     }
 
