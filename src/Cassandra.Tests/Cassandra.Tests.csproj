@@ -60,6 +60,7 @@
     <Compile Include="CollectionTests.cs" />
     <Compile Include="ConnectionTests.cs" />
     <Compile Include="ControlConnectionTests.cs" />
+    <Compile Include="DataTypeParserTests.cs" />
     <Compile Include="HostConnectionPoolTests.cs" />
     <Compile Include="HostTests.cs" />
     <Compile Include="IOUnitTests.cs" />
@@ -126,7 +127,7 @@
     <Compile Include="TimeoutTests.cs" />
     <Compile Include="TimeUuidTests.cs" />
     <Compile Include="TokenTests.cs" />
-    <Compile Include="TypeCodecTests.cs" />
+    <Compile Include="SerializerTests.cs" />
     <Compile Include="UtilsTests.cs" />
   </ItemGroup>
   <ItemGroup>

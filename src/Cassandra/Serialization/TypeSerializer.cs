@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Numerics;
 using System.Text;
@@ -31,7 +32,7 @@ namespace Cassandra.Serialization
         public static readonly TypeSerializer<bool> PrimitiveBooleanSerializer = new BooleanSerializer();
         public static readonly TypeSerializer<byte[]> PrimitiveByteArraySerializer = new ByteArraySerializer();
         public static readonly TypeSerializer<DateTimeOffset> PrimitiveDateTimeOffsetSerializer = new DateTimeOffsetSerializer();
-        public static readonly TypeSerializer<DateTime> PrimitiveDateSerializer = new DateTimeSerializer();
+        public static readonly TypeSerializer<DateTime> PrimitiveDateTimeSerializer = new DateTimeSerializer();
         public static readonly TypeSerializer<decimal> PrimitiveDecimalSerializer = new DecimalSerializer();
         public static readonly TypeSerializer<double> PrimitiveDoubleSerializer = new DoubleSerializer();
         public static readonly TypeSerializer<float> PrimitiveFloatSerializer = new FloatSerializer();
@@ -51,6 +52,60 @@ namespace Cassandra.Serialization
         {
             return new[] { b[3], b[2], b[1], b[0], b[5], b[4], b[7], b[6], b[8], b[9], b[10], b[11], b[12], b[13], b[14], b[15] };
         }
+
+        /// <summary>
+        /// Decodes length for collection types depending on the protocol version
+        /// </summary>
+        internal static int DecodeCollectionLength(ushort protocolVersion, byte[] buffer, ref int index)
+        {
+            int result;
+            if (protocolVersion < 3)
+            {
+                //length is a short
+                result = BeConverter.ToInt16(buffer, index);
+                index += 2;
+            }
+            else
+            {
+                //length is expressed in int
+                result = BeConverter.ToInt32(buffer, index);
+                index += 4;
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Uses 2 or 4 bytes to represent the length in bytes
+        /// </summary>
+        internal static byte[] EncodeCollectionLength(ushort protocolVersion, int value)
+        {
+            if (protocolVersion < 3)
+            {
+                return BeConverter.GetBytes((short)value);
+            }
+            return BeConverter.GetBytes(value);
+        }
+
+        internal static byte[] EncodeBufferList(ICollection<byte[]> bufferList, int bufferLength)
+        {
+            //Add the necessary bytes length per each [bytes]
+            bufferLength += bufferList.Count * 4;
+            var result = new byte[bufferLength];
+            var index = 0;
+            foreach (var buf in bufferList)
+            {
+                var bufferItemLength = BeConverter.GetBytes(buf != null ? buf.Length : -1);
+                Buffer.BlockCopy(bufferItemLength, 0, result, index, bufferItemLength.Length);
+                index += bufferItemLength.Length;
+                if (buf == null)
+                {
+                    continue;
+                }
+                Buffer.BlockCopy(buf, 0, result, index, buf.Length);
+                index += buf.Length;
+            }
+            return result;
+        }
     }
 
     /// <summary>
@@ -60,6 +115,7 @@ namespace Cassandra.Serialization
     /// <typeparam name="T">CLR type for this serializer</typeparam>
     public abstract class TypeSerializer<T> : TypeSerializer, ITypeSerializer
     {
+        private Serializer _serializer;
         /// <summary>
         /// Gets the CLR type for this serializer.
         /// </summary>
@@ -111,5 +167,37 @@ namespace Cassandra.Serialization
         /// <param name="protocolVersion">The Cassandra native protocol version.</param>
         /// <param name="value">The object to encode.</param>
         public abstract byte[] Serialize(ushort protocolVersion, T value);
+
+        internal object DeserializeChild(byte[] buffer, ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        {
+            if (_serializer == null)
+            {
+                throw new NullReferenceException("Child serializer can not be null");
+            }
+            return _serializer.Deserialize(buffer, typeCode, typeInfo);
+        }
+
+        internal Type GetClrType(ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        {
+            if (_serializer == null)
+            {
+                throw new NullReferenceException("Child serializer can not be null");
+            }
+            return _serializer.GetClrType(typeCode, typeInfo);
+        }
+
+        internal byte[] SerializeChild(object obj)
+        {
+            if (_serializer == null)
+            {
+                throw new NullReferenceException("Child serializer can not be null");
+            }
+            return _serializer.Serialize(obj);
+        }
+
+        internal void SetChildSerializer(Serializer serializer)
+        {
+            _serializer = serializer;
+        }
     }
 }

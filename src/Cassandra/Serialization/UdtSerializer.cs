@@ -1,14 +1,32 @@
-﻿using System;
+﻿//
+//      Copyright (C) 2012-2016 DataStax Inc.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Cassandra.Serialization
 {
+    /// <summary>
+    /// Represents a <see cref="TypeSerializer{T}"/> instance that handles UDT serialization and deserialization.
+    /// </summary>
     public class UdtSerializer : TypeSerializer<object>
     {
-        private Serializer _serializer;
+        private readonly ConcurrentDictionary<string, UdtMap> _udtMapsByName = new ConcurrentDictionary<string, UdtMap>();
+        private readonly ConcurrentDictionary<Type, UdtMap> _udtMapsByClrType = new ConcurrentDictionary<Type, UdtMap>();
 
         public override ColumnTypeCode CqlType
         {
@@ -20,43 +38,31 @@ namespace Cassandra.Serialization
 
         }
 
-        internal void SetChildSerializer(Serializer serializer)
+        protected internal virtual Type GetClrType(IColumnInfo typeInfo)
         {
-            _serializer = serializer;
+            var udtInfo = (UdtColumnInfo)typeInfo;
+            var map = GetUdtMap(udtInfo.Name);
+            return map == null ? typeof(byte[]) : map.NetType;
         }
 
-        protected internal UdtMap GetUdtMap(UdtColumnInfo typeInfo)
+        protected internal virtual UdtMap GetUdtMap(string name)
         {
-            throw new NotImplementedException();
+            UdtMap map;
+            _udtMapsByName.TryGetValue(name, out map);
+            return map;
         }
 
-        protected UdtMap GetUdtMap(Type type)
+        protected virtual UdtMap GetUdtMap(Type type)
         {
-            throw new NotImplementedException();
-        }
-
-        protected byte[] SerializeChild(object obj)
-        {
-            if (_serializer == null)
-            {
-                throw new NullReferenceException("Child serializer can not be null");
-            }
-            return _serializer.Serialize(obj);
-        }
-
-        protected object DeserializeChild(byte[] buffer, ColumnTypeCode typeCode, IColumnInfo typeInfo)
-        {
-            if (_serializer == null)
-            {
-                throw new NullReferenceException("Child serializer can not be null");
-            }
-            return _serializer.Deserialize(buffer, typeCode, typeInfo);
+            UdtMap map;
+            _udtMapsByClrType.TryGetValue(type, out map);
+            return map;
         }
 
         public override object Deserialize(ushort protocolVersion, byte[] buffer, IColumnInfo typeInfo)
         {
             var udtInfo = (UdtColumnInfo)typeInfo;
-            var map = GetUdtMap(udtInfo);
+            var map = GetUdtMap(udtInfo.Name);
             if (map == null)
             {
                 return buffer;
@@ -89,26 +95,40 @@ namespace Cassandra.Serialization
             {
                 throw new ArgumentNullException("value");
             }
-            throw new NotImplementedException();
-//            var map = GetUdtMap(obj.GetType());
-//            var bufferList = new List<byte[]>();
-//            var bufferLength = 0;
-//            foreach (var field in map.Definition.Fields)
-//            {
-//                object fieldValue = null;
-//                var prop = map.GetPropertyForUdtField(field.Name);
-//                if (prop != null)
-//                {
-//                    fieldValue = prop.GetValue(obj, null);
-//                }
-//                var itemBuffer = Encode(protocolVersion, fieldValue);
-//                bufferList.Add(itemBuffer);
-//                if (fieldValue != null)
-//                {
-//                    bufferLength += itemBuffer.Length;
-//                }
-//            }
-//            return EncodeBufferList(bufferList, bufferLength);
+            var map = GetUdtMap(value.GetType());
+            if (map == null)
+            {
+                return null;
+            }
+            var bufferList = new List<byte[]>();
+            var bufferLength = 0;
+            foreach (var field in map.Definition.Fields)
+            {
+                object fieldValue = null;
+                var prop = map.GetPropertyForUdtField(field.Name);
+                if (prop != null)
+                {
+                    fieldValue = prop.GetValue(value, null);
+                }
+                var itemBuffer = SerializeChild(fieldValue);
+                bufferList.Add(itemBuffer);
+                if (fieldValue != null)
+                {
+                    bufferLength += itemBuffer.Length;
+                }
+            }
+            return EncodeBufferList(bufferList, bufferLength);
+        }
+
+        /// <summary>
+        /// Sets a Udt map for a given Udt name
+        /// </summary>
+        /// <param name="name">Fully qualified udt name case sensitive (keyspace.udtName)</param>
+        /// <param name="map"></param>
+        public virtual void SetUdtMap(string name, UdtMap map)
+        {
+            _udtMapsByName.AddOrUpdate(name, map, (k, oldValue) => map);
+            _udtMapsByClrType.AddOrUpdate(map.NetType, map, (k, oldValue) => map);
         }
     }
 }

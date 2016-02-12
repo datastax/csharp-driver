@@ -17,7 +17,9 @@ namespace Cassandra.Serialization
         {
             get { return _adapter.GetDataType(); }
         }
-        public ColumnTypeCode CqlType {
+
+        public ColumnTypeCode CqlType 
+        {
             get { return _typeCode; }
         }
 

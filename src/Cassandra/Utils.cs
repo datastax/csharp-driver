@@ -132,6 +132,21 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Combines all the buffers in a new buffer.
+        /// </summary>
+        public static byte[] JoinBuffers(IEnumerable<byte[]> buffers, int totalLength)
+        {
+            var result = new byte[totalLength];
+            var offset = 0;
+            foreach (byte[] data in buffers)
+            {
+                Buffer.BlockCopy(data, 0, result, offset, data.Length);
+                offset += data.Length;
+            }
+            return result;
+        }
+
+        /// <summary>
         /// Returns a new buffer as a slice of the provided buffer
         /// </summary>
         /// <param name="value"></param>
