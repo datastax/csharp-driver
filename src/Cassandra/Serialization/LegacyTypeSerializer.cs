@@ -12,10 +12,16 @@ namespace Cassandra.Serialization
     {
         private readonly ColumnTypeCode _typeCode;
         private readonly ITypeAdapter _adapter;
+        private readonly bool _reverse;
 
         public Type Type
         {
             get { return _adapter.GetDataType(); }
+        }
+
+        public IColumnInfo TypeInfo
+        {
+            get { return null; }
         }
 
         public ColumnTypeCode CqlType 
@@ -23,20 +29,31 @@ namespace Cassandra.Serialization
             get { return _typeCode; }
         }
 
-        internal LegacyTypeSerializer(ColumnTypeCode typeCode, ITypeAdapter adapter)
+        internal LegacyTypeSerializer(ColumnTypeCode typeCode, ITypeAdapter adapter, bool reverse)
         {
             _typeCode = typeCode;
             _adapter = adapter;
+            _reverse = reverse;
         }
 
-        public object Deserialize(ushort protocolVersion, byte[] buffer, IColumnInfo typeInfo)
+        public object Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {
+            buffer = Utils.SliceBuffer(buffer, offset, length);
+            if (_reverse)
+            {
+                Array.Reverse(buffer);   
+            }
             return _adapter.ConvertFrom(buffer);
         }
 
         public byte[] Serialize(ushort protocolVersion, object obj)
         {
-            return _adapter.ConvertTo(obj);
+            var buffer = _adapter.ConvertTo(obj);
+            if (_reverse)
+            {
+                Array.Reverse(buffer);
+            }
+            return buffer;
         }
     }
 }

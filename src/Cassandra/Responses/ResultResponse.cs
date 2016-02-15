@@ -70,7 +70,7 @@ namespace Cassandra.Responses
                     Output = new OutputVoid(TraceId);
                     break;
                 case ResultResponseKind.Rows:
-                    Output = new OutputRows(frame.Header.Version, Reader, TraceId);
+                    Output = new OutputRows(Reader, TraceId);
                     break;
                 case ResultResponseKind.SetKeyspace:
                     Output = new OutputSetKeyspace(Reader.ReadString());

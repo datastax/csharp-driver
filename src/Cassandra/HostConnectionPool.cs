@@ -20,6 +20,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Collections;
+using Cassandra.Serialization;
 using Cassandra.Tasks;
 
 namespace Cassandra
@@ -37,6 +38,7 @@ namespace Cassandra
         private readonly Host _host;
         private readonly HostDistance _distance;
         private readonly Configuration _config;
+        private readonly Serializer _serializer;
         private readonly HashedWheelTimer _timer;
         private int _connectionIndex;
         private HashedWheelTimer.ITimeout _timeout;
@@ -53,9 +55,7 @@ namespace Cassandra
             get { return _connections; }
         }
 
-        public byte ProtocolVersion { get; set; }
-
-        public HostConnectionPool(Host host, HostDistance distance, Configuration config)
+        public HostConnectionPool(Host host, HostDistance distance, Configuration config, Serializer serializer)
         {
             _host = host;
             _host.CheckedAsDown += OnHostCheckedAsDown;
@@ -64,6 +64,7 @@ namespace Cassandra
             _host.Remove += OnHostRemoved;
             _distance = distance;
             _config = config;
+            _serializer = serializer;
             _timer = config.Timer;
         }
 
@@ -119,12 +120,12 @@ namespace Cassandra
         internal virtual Task<Connection> CreateConnection()
         {
             Logger.Info("Creating a new connection to the host " + _host.Address);
-            var c = new Connection(ProtocolVersion, _host.Address, _config);
+            var c = new Connection(_serializer, _host.Address, _config);
             return c.Open().ContinueWith(t =>
             {
                 if (t.Status == TaskStatus.RanToCompletion)
                 {
-                    if (_config.GetPoolingOptions(ProtocolVersion).GetHeartBeatInterval() > 0)
+                    if (_config.GetPoolingOptions(_serializer.ProtocolVersion).GetHeartBeatInterval() > 0)
                     {
                         //Heartbeat is enabled, subscribe for possible exceptions
                         c.OnIdleRequestException += OnIdleRequestException;
@@ -325,7 +326,8 @@ namespace Cassandra
         /// <returns>True if it is creating a new connection</returns>
         internal bool MaybeIncreasePoolSize(int inFlight)
         {
-            var coreConnections = _config.GetPoolingOptions(ProtocolVersion).GetCoreConnectionsPerHost(_distance);
+            var protocolVersion = _serializer.ProtocolVersion;
+            var coreConnections = _config.GetPoolingOptions(protocolVersion).GetCoreConnectionsPerHost(_distance);
             var connections = _connections.GetSnapshot();
             if (connections.Length == 0)
             {
@@ -333,8 +335,8 @@ namespace Cassandra
             }
             if (connections.Length >= coreConnections)
             {
-                var maxInFlight = _config.GetPoolingOptions(ProtocolVersion).GetMaxSimultaneousRequestsPerConnectionTreshold(_distance);
-                var maxConnections = _config.GetPoolingOptions(ProtocolVersion).GetMaxConnectionPerHost(_distance);
+                var maxInFlight = _config.GetPoolingOptions(protocolVersion).GetMaxSimultaneousRequestsPerConnectionTreshold(_distance);
+                var maxConnections = _config.GetPoolingOptions(protocolVersion).GetMaxConnectionPerHost(_distance);
                 if (inFlight < maxInFlight)
                 {
                     return false;

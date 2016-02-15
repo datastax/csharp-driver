@@ -25,13 +25,13 @@ namespace Cassandra.Serialization.Primitive
             get { return ColumnTypeCode.Inet; }
         }
 
-        public override IPAddress Deserialize(ushort protocolVersion, byte[] buffer, IColumnInfo typeInfo)
+        public override IPAddress Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {
-            if (buffer.Length == 4 || buffer.Length == 16)
+            if (length == 4 || length == 16)
             {
-                return new IPAddress(buffer);
+                return new IPAddress(Utils.FromOffset(buffer, offset, length));
             }
-            throw new DriverInternalError("Invalid length of Inet Addr");
+            throw new DriverInternalError("Invalid length of Inet address: " + length);
         }
 
         public override byte[] Serialize(ushort protocolVersion, IPAddress value)

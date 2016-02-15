@@ -23,12 +23,12 @@ namespace Cassandra.Serialization.Primitive
             get { return ColumnTypeCode.Date; }
         }
 
-        public override LocalDate Deserialize(ushort protocolVersion, byte[] buffer, IColumnInfo typeInfo)
+        public override LocalDate Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {
-            var days = unchecked((uint)((buffer[0] << 24)
-                   | (buffer[1] << 16)
-                   | (buffer[2] << 8)
-                   | (buffer[3])));
+            var days = unchecked((uint)((buffer[offset] << 24)
+                   | (buffer[offset + 1] << 16)
+                   | (buffer[offset + 2] << 8)
+                   | (buffer[offset + 3])));
             return new LocalDate(days);
         }
 

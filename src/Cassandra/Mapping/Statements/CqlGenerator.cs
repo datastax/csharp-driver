@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using Cassandra.Mapping.Utils;
+using Cassandra.Serialization;
 
 namespace Cassandra.Mapping.Statements
 {
@@ -231,14 +232,14 @@ namespace Cassandra.Mapping.Statements
             cql.SetStatement(string.Format("DELETE FROM {0} {1}", pocoData.TableName, cql.Statement));
         }
 
-        private static string GetTypeString(PocoColumn column)
+        private static string GetTypeString(Serializer serializer, PocoColumn column)
         {
             if (column.IsCounter)
             {
                 return "counter";
             }
             IColumnInfo typeInfo;
-            var typeCode = TypeCodec.GetColumnTypeCodeInfo(column.ColumnType, out typeInfo);
+            var typeCode = serializer.GetCqlType(column.ColumnType, out typeInfo);
             var typeName = GetTypeString(column, typeCode, typeInfo);
             if (column.IsStatic)
             {
@@ -250,7 +251,7 @@ namespace Cassandra.Mapping.Statements
         /// <summary>
         /// Gets the CQL queries involved in a table creation (CREATE TABLE, CREATE INDEX)
         /// </summary>
-        public static List<string> GetCreate(PocoData pocoData, string tableName, string keyspaceName, bool ifNotExists)
+        public static List<string> GetCreate(Serializer serializer, PocoData pocoData, string tableName, string keyspaceName, bool ifNotExists)
         {
             if (pocoData == null)
             {
@@ -278,7 +279,7 @@ namespace Cassandra.Mapping.Statements
                 createTable
                     .Append(columnName)
                     .Append(" ");
-                var columnType = GetTypeString(column);
+                var columnType = GetTypeString(serializer, column);
                 createTable    
                     .Append(columnType);
                 createTable

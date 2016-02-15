@@ -28,7 +28,8 @@ namespace Cassandra.Serialization
     /// </summary>
     internal class Serializer
     {
-        private volatile ushort _protocolVersion;
+        internal static readonly Serializer Default = new Serializer(1);
+        private volatile byte _protocolVersion;
         private readonly IDictionary<ColumnTypeCode, ITypeSerializer> _primitiveDeserializers = new Dictionary<ColumnTypeCode, ITypeSerializer>
         {
             { ColumnTypeCode.Ascii, TypeSerializer.PrimitiveAsciiStringSerializer },
@@ -68,7 +69,13 @@ namespace Cassandra.Serialization
         /// </summary>
         internal static readonly byte[] UnsetBuffer = new byte[0];
 
-        internal Serializer(ushort protocolVersion)
+        internal byte ProtocolVersion
+        {
+            get { return _protocolVersion; }
+            set { _protocolVersion = value; }
+        }
+
+        internal Serializer(byte protocolVersion)
         {
             _protocolVersion = protocolVersion;
             InitPrimitiveSerializers();
@@ -80,12 +87,12 @@ namespace Cassandra.Serialization
             InitTypeAdapters();
         }
 
-        internal object Deserialize(byte[] buffer, ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        internal object Deserialize(byte[] buffer, int offset, int length, ColumnTypeCode typeCode, IColumnInfo typeInfo)
         {
             ITypeSerializer typeSerializer;
             if (_primitiveDeserializers.TryGetValue(typeCode, out typeSerializer))
             {
-                return typeSerializer.Deserialize(_protocolVersion, buffer, typeInfo);
+                return typeSerializer.Deserialize(_protocolVersion, buffer, offset, length, typeInfo);
             }
             if (typeCode == ColumnTypeCode.Custom)
             {
@@ -94,27 +101,27 @@ namespace Cassandra.Serialization
                     // Use byte[] by default
                     typeSerializer = TypeSerializer.PrimitiveByteArraySerializer;
                 }
-                return typeSerializer.Deserialize(_protocolVersion, buffer, typeInfo);
+                return typeSerializer.Deserialize(_protocolVersion, buffer, offset, length, typeInfo);
             }
             if (typeCode == ColumnTypeCode.Udt)
             {
-                return _udtSerializer.Deserialize(_protocolVersion, buffer, typeInfo);
+                return _udtSerializer.Deserialize(_protocolVersion, buffer, offset, length, typeInfo);
             }
             if (typeCode == ColumnTypeCode.List || typeCode == ColumnTypeCode.Set)
             {
-                return _collectionSerializer.Deserialize(_protocolVersion, buffer, typeInfo);
+                return _collectionSerializer.Deserialize(_protocolVersion, buffer, offset, length, typeInfo);
             }
             if (typeCode == ColumnTypeCode.Map)
             {
-                return _dictionarySerializer.Deserialize(_protocolVersion, buffer, typeInfo);
+                return _dictionarySerializer.Deserialize(_protocolVersion, buffer, offset, length, typeInfo);
             }
             if (typeCode == ColumnTypeCode.Tuple)
             {
-                return _tupleSerializer.Deserialize(_protocolVersion, buffer, typeInfo);
+                return _tupleSerializer.Deserialize(_protocolVersion, buffer, offset, length, typeInfo);
             }
             if (typeCode == ColumnTypeCode.Udt)
             {
-                return _udtSerializer.Deserialize(_protocolVersion, buffer, typeInfo);
+                return _udtSerializer.Deserialize(_protocolVersion, buffer, offset, length, typeInfo);
             }
             //Unknown type, return the byte representation
             return buffer;
@@ -151,9 +158,101 @@ namespace Cassandra.Serialization
             return map.NetType;
         }
 
-        internal ColumnTypeCode GetCqlTypeForPrimitive(Type type)
+        public ColumnTypeCode GetCqlType(Type type, out IColumnInfo typeInfo)
         {
-            return _primitiveSerializers[type].CqlType;
+            typeInfo = null;
+            ITypeSerializer typeSerializer;
+            if (_primitiveSerializers.TryGetValue(type, out typeSerializer))
+            {
+                return typeSerializer.CqlType;
+            }
+            if (_customSerializers.Count > 0 && _customSerializers.TryGetValue(type, out typeSerializer))
+            {
+                typeInfo = typeSerializer.TypeInfo;
+                return typeSerializer.CqlType;
+            }
+            if (type.IsArray)
+            {
+                IColumnInfo valueTypeInfo;
+                ColumnTypeCode valueTypeCode = GetCqlType(type.GetElementType(), out valueTypeInfo);
+                typeInfo = new ListColumnInfo
+                {
+                    ValueTypeCode = valueTypeCode,
+                    ValueTypeInfo = valueTypeInfo
+                };
+                return ColumnTypeCode.List;
+            }
+            if (type.IsGenericType)
+            {
+                if (type.GetGenericTypeDefinition() == typeof(Nullable<>))
+                {
+                    return GetCqlType(type.GetGenericArguments()[0], out typeInfo);
+                }
+                if (typeof(IEnumerable).IsAssignableFrom(type))
+                {
+                    IColumnInfo valueTypeInfo;
+                    ColumnTypeCode valueTypeCode;
+                    var interfaces = type.GetInterfaces();
+                    if (typeof(IDictionary).IsAssignableFrom(type) && 
+                        interfaces.Any(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IDictionary<,>)))
+                    {
+                        IColumnInfo keyTypeInfo;
+                        var keyTypeCode = GetCqlType(type.GetGenericArguments()[0], out keyTypeInfo);
+                        valueTypeCode = GetCqlType(type.GetGenericArguments()[1], out valueTypeInfo);
+                        typeInfo = new MapColumnInfo
+                        {
+                            KeyTypeCode = keyTypeCode,
+                            KeyTypeInfo = keyTypeInfo,
+                            ValueTypeCode = valueTypeCode,
+                            ValueTypeInfo = valueTypeInfo
+                        };
+                        return ColumnTypeCode.Map;
+                    }
+                    if (interfaces.Any(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(ISet<>)))
+                    {
+                        IColumnInfo keyTypeInfo;
+                        var keyTypeCode = GetCqlType(type.GetGenericArguments()[0], out keyTypeInfo);
+                        typeInfo = new SetColumnInfo
+                        {
+                            KeyTypeCode = keyTypeCode,
+                            KeyTypeInfo = keyTypeInfo
+                        };
+                        return ColumnTypeCode.Set;
+                    }
+                    valueTypeCode = GetCqlType(type.GetGenericArguments()[0], out valueTypeInfo);
+                    typeInfo = new ListColumnInfo
+                    {
+                        ValueTypeCode = valueTypeCode,
+                        ValueTypeInfo = valueTypeInfo
+                    };
+                    return ColumnTypeCode.List;
+                }
+                if (typeof(IStructuralComparable).IsAssignableFrom(type) && type.FullName.StartsWith("System.Tuple"))
+                {
+                    typeInfo = new TupleColumnInfo
+                    {
+                        Elements = type.GetGenericArguments().Select(t =>
+                        {
+                            IColumnInfo tupleSubTypeInfo;
+                            var dataType = new ColumnDesc
+                            {
+                                TypeCode = GetCqlType(t, out tupleSubTypeInfo),
+                                TypeInfo = tupleSubTypeInfo
+                            };
+                            return dataType;
+                        }).ToList()
+                    };
+                    return ColumnTypeCode.Tuple;
+                }
+            }
+            //Determine if its a Udt type
+            var udtMap = _udtSerializer.GetUdtMap(type);
+            if (udtMap != null)
+            {
+                typeInfo = udtMap.Definition;
+                return ColumnTypeCode.Udt;
+            }
+            throw new InvalidTypeException("Unknown Cassandra target type for CLR type " + type.FullName);
         }
 
         private void InitPrimitiveSerializers()
@@ -190,26 +289,69 @@ namespace Cassandra.Serialization
             //Its going to be removed in future versions but we have to support them for now.
             if (TypeAdapters.DecimalTypeAdapter.GetDataType() != typeof(decimal))
             {
-                InsertLegacySerializer(ColumnTypeCode.Decimal, TypeAdapters.DecimalTypeAdapter);
+                InsertLegacySerializer(ColumnTypeCode.Decimal, TypeAdapters.DecimalTypeAdapter, false);
             }
             if (TypeAdapters.VarIntTypeAdapter.GetDataType() != typeof(BigInteger))
             {
-                InsertLegacySerializer(ColumnTypeCode.Varint, TypeAdapters.VarIntTypeAdapter);
+                InsertLegacySerializer(ColumnTypeCode.Varint, TypeAdapters.VarIntTypeAdapter, true);
             }
         }
 
-        private void InsertLegacySerializer(ColumnTypeCode typeCode, ITypeAdapter typeAdapter)
+        private void InsertLegacySerializer(ColumnTypeCode typeCode, ITypeAdapter typeAdapter, bool reverse)
         {
             var type = typeAdapter.GetDataType();
-            var legacySerializer = new LegacyTypeSerializer(typeCode, typeAdapter);
+            var legacySerializer = new LegacyTypeSerializer(typeCode, typeAdapter, reverse);
             _primitiveSerializers[type] = legacySerializer;
             _primitiveDeserializers[typeCode] = legacySerializer;
             _defaultTypes[typeCode] = _ => type;
         }
 
-        internal void SetProtocolVersion(ushort protocolVersion)
+        /// <summary>
+        /// Performs a lightweight validation to determine if the source type and target type matches.
+        /// It isn't more strict to support miscellaneous uses of the driver, like direct inputs of blobs and all that. (backward compatibility)
+        /// </summary>
+        public bool IsAssignableFrom(CqlColumn column, object value)
         {
-            _protocolVersion = protocolVersion;
+            if (value == null || value is byte[])
+            {
+                return true;
+            }
+            var type = value.GetType();
+            ITypeSerializer typeSerializer;
+            if (_primitiveSerializers.TryGetValue(type, out typeSerializer))
+            {
+                var cqlType = typeSerializer.CqlType;
+                //Its a single type, if the types match -> go ahead
+                if (cqlType == column.TypeCode)
+                {
+                    return true;
+                }
+                //Only int32 and blobs are valid cql ints
+                if (column.TypeCode == ColumnTypeCode.Int)
+                {
+                    return false;
+                }
+                //Only double, longs and blobs are valid cql double
+                if (column.TypeCode == ColumnTypeCode.Double && !(value is long))
+                {
+                    return false;
+                }
+                //The rest of the single values are not evaluated
+                return true;
+            }
+            if (column.TypeCode == ColumnTypeCode.List || column.TypeCode == ColumnTypeCode.Set)
+            {
+                return value is IEnumerable;
+            }
+            if (column.TypeCode == ColumnTypeCode.Map)
+            {
+                return value is IDictionary;
+            }
+            if (column.TypeCode == ColumnTypeCode.Tuple)
+            {
+                return value is IStructuralComparable;
+            }
+            return true;
         }
 
         internal byte[] Serialize(object value)
@@ -255,6 +397,14 @@ namespace Cassandra.Serialization
                 return buffer;
             }
             throw new InvalidTypeException("Unknown Cassandra target type for CLR type " + type.FullName);
+        }
+
+        /// <summary>
+        /// Adds a UDT mapping definition
+        /// </summary>
+        internal void SetUdtMap(string name, UdtMap map)
+        {
+            _udtSerializer.SetUdtMap(name, map);
         }
     }
 }

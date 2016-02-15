@@ -16,6 +16,7 @@
 
 using System;
 using System.IO;
+using Cassandra.Serialization;
 using NUnit.Framework;
 
 namespace Cassandra.Tests
@@ -26,14 +27,14 @@ namespace Cassandra.Tests
         [ExpectedException(typeof(ArgumentNullException))]
         public void Ctor_HeaderIsNull_Throws()
         {
-            new Frame(null, new MemoryStream());
+            new Frame(null, new MemoryStream(), new Serializer(4));
         }
 
         [Test]
         [ExpectedException(typeof(ArgumentNullException))]
         public void Ctor_BodyIsNull_Throws()
         {
-            new Frame(new FrameHeader(), null);
+            new Frame(new FrameHeader(), null, new Serializer(4));
         } 
     }
 }

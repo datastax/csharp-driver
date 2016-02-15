@@ -48,9 +48,17 @@ namespace Cassandra.Serialization
         public static readonly TypeSerializer<string> PrimitiveAsciiStringSerializer = new StringSerializer(Encoding.ASCII);
         public static readonly TypeSerializer<TimeUuid> PrimitiveTimeUuidSerializer = new TimeUuidSerializer();
 
-        internal static byte[] GuidShuffle(byte[] b)
+        internal static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
+
+        internal static byte[] GuidShuffle(byte[] b, int offset = 0)
         {
-            return new[] { b[3], b[2], b[1], b[0], b[5], b[4], b[7], b[6], b[8], b[9], b[10], b[11], b[12], b[13], b[14], b[15] };
+            return new[]
+            {
+                b[offset + 3], b[offset + 2], b[offset + 1], b[offset + 0], 
+                b[offset + 5], b[offset + 4], 
+                b[offset + 7], b[offset + 6], 
+                b[offset + 8], b[offset + 9], b[offset + 10], b[offset + 11], b[offset + 12], b[offset + 13], b[offset + 14], b[offset + 15]
+            };
         }
 
         /// <summary>
@@ -106,6 +114,29 @@ namespace Cassandra.Serialization
             }
             return result;
         }
+
+        /// <summary>
+        /// Returns the time interval since unix epoch.
+        /// </summary>
+        public static TimeSpan SinceUnixEpoch(DateTimeOffset value)
+        {
+            return value - UnixStart;
+        }
+
+        /// <summary>
+        /// Checks the expected type of an object
+        /// </summary>
+        internal static void CheckArgument<T>(object value)
+        {
+            if (value == null)
+            {
+                throw new ArgumentNullException();
+            }
+            if (!(value is T))
+            {
+                throw new InvalidTypeException("value", value.GetType().FullName, new object[] { typeof(T).FullName });
+            }
+        }
     }
 
     /// <summary>
@@ -141,9 +172,9 @@ namespace Cassandra.Serialization
         /// </summary>
         public abstract ColumnTypeCode CqlType { get; }
 
-        object ITypeSerializer.Deserialize(ushort protocolVersion, byte[] buffer, IColumnInfo typeInfo)
+        object ITypeSerializer.Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {
-            return Deserialize(protocolVersion, buffer, typeInfo);
+            return Deserialize(protocolVersion, buffer, offset, length, typeInfo);
         }
 
         byte[] ITypeSerializer.Serialize(ushort protocolVersion, object obj)
@@ -157,8 +188,10 @@ namespace Cassandra.Serialization
         /// </summary>
         /// <param name="protocolVersion">The Cassandra native protocol version.</param>
         /// <param name="buffer">The byte array.</param>
+        /// <param name="offset">The zero-based byte offset in buffer at which to begin storing data from the current stream.</param>
+        /// <param name="length">The maximum amount of bytes to read from buffer.</param>
         /// <param name="typeInfo">Additional type information designed for non-primitive types.</param>
-        public abstract T Deserialize(ushort protocolVersion, byte[] buffer, IColumnInfo typeInfo);
+        public abstract T Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo);
 
         /// <summary>
         /// When overridden from a derived class, it encodes the CLR object into the byte representation
@@ -168,13 +201,13 @@ namespace Cassandra.Serialization
         /// <param name="value">The object to encode.</param>
         public abstract byte[] Serialize(ushort protocolVersion, T value);
 
-        internal object DeserializeChild(byte[] buffer, ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        internal object DeserializeChild(byte[] buffer, int offset, int length, ColumnTypeCode typeCode, IColumnInfo typeInfo)
         {
             if (_serializer == null)
             {
                 throw new NullReferenceException("Child serializer can not be null");
             }
-            return _serializer.Deserialize(buffer, typeCode, typeInfo);
+            return _serializer.Deserialize(buffer, offset, length, typeCode, typeInfo);
         }
 
         internal Type GetClrType(ColumnTypeCode typeCode, IColumnInfo typeInfo)

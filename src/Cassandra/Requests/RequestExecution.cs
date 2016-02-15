@@ -219,9 +219,9 @@ namespace Cassandra.Requests
                         Logger.Warning("Trying to page results using a Session already disposed.");
                         return new RowSet();
                     }
-                    var request = (IQueryRequest)RequestHandler<RowSet>.GetRequest(statement, session.BinaryProtocolVersion, session.Cluster.Configuration);
+                    var request = (IQueryRequest)RequestHandler<RowSet>.GetRequest(statement, _parent.Serializer, session.Cluster.Configuration);
                     request.PagingState = pagingState;
-                    var task = new RequestHandler<RowSet>(session, request, statement).Send();
+                    var task = new RequestHandler<RowSet>(session, _parent.Serializer, request, statement).Send();
                     TaskHelper.WaitToComplete(task, session.Cluster.Configuration.ClientOptions.QueryAbortTimeout);
                     return (RowSet)(object)task.Result;
                 };
@@ -369,7 +369,7 @@ namespace Cassandra.Requests
             {
                 throw new DriverInternalError("Expected Bound or batch statement");
             }
-            var request = new PrepareRequest(_request.ProtocolVersion, boundStatement.PreparedStatement.Cql);
+            var request = new PrepareRequest(boundStatement.PreparedStatement.Cql);
             if (boundStatement.PreparedStatement.Keyspace != null && _session.Keyspace != boundStatement.PreparedStatement.Keyspace)
             {
                 Logger.Warning(String.Format("The statement was prepared using another keyspace, changing the keyspace temporarily to" +
@@ -430,8 +430,12 @@ namespace Cassandra.Requests
                 throw new DriverInternalError("Obtained PREPARED response for " + _request.GetType().FullName + " request");
             }
             var prepared = (OutputPrepared)output;
-            object statement = new PreparedStatement(prepared.Metadata, prepared.QueryId, ((PrepareRequest) _request).Query, _connection.Keyspace,
-                _session.BinaryProtocolVersion)
+            object statement = new PreparedStatement
+                (prepared.Metadata, 
+                prepared.QueryId, 
+                ((PrepareRequest) _request).Query, 
+                _connection.Keyspace,
+                _parent.Serializer)
             {
                 IncomingPayload = ((ResultResponse)response).CustomPayload
             };

@@ -30,20 +30,37 @@ namespace Cassandra.Serialization
             get { throw new NotSupportedException("CollectionSerializer does not represent to a single CQL type"); }
         }
 
-        public override IEnumerable Deserialize(ushort protocolVersion, byte[] buffer, IColumnInfo typeInfo)
+        public override IEnumerable Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {
+            ColumnTypeCode? childTypeCode = null;
+            IColumnInfo childTypeInfo = null;
             var listInfo = typeInfo as ListColumnInfo;
             if (listInfo != null)
             {
-                return DeserializeCollection(protocolVersion, listInfo.ValueTypeCode, listInfo.ValueTypeInfo, buffer);
+                childTypeCode = listInfo.ValueTypeCode;
+                childTypeInfo = listInfo.ValueTypeInfo;
             }
             var setInfo = typeInfo as SetColumnInfo;
             if (setInfo != null)
             {
-                return DeserializeCollection(protocolVersion, setInfo.KeyTypeCode, setInfo.KeyTypeInfo, buffer);
+                childTypeCode = setInfo.KeyTypeCode;
+                childTypeInfo = setInfo.KeyTypeInfo;
             }
-            throw new DriverInternalError(string.Format("CollectionSerializer can not deserialize CQL values of type {0}", 
-                typeInfo == null ? "null" : typeInfo.GetType().FullName));
+            if (childTypeCode == null)
+            {
+                throw new DriverInternalError(string.Format("CollectionSerializer can not deserialize CQL values of type {0}",
+                    typeInfo == null ? "null" : typeInfo.GetType().FullName));   
+            }
+            var count = DecodeCollectionLength(protocolVersion, buffer, ref offset);
+            var childType = GetClrType(childTypeCode.Value, childTypeInfo);
+            var result = Array.CreateInstance(childType, count);
+            for (var i = 0; i < count; i++)
+            {
+                var itemLength = DecodeCollectionLength(protocolVersion, buffer, ref offset);
+                result.SetValue(DeserializeChild(buffer, offset, itemLength, childTypeCode.Value, childTypeInfo), i);
+                offset += itemLength;
+            }
+            return result;
         }
 
         internal Type GetClrTypeForList(IColumnInfo typeInfo)
@@ -85,23 +102,6 @@ namespace Cassandra.Serialization
             bufferList.AddFirst(totalLengthBuffer);
             totalLength += totalLengthBuffer.Length;
             return Utils.JoinBuffers(bufferList, totalLength);
-        }
-
-        private IEnumerable DeserializeCollection(ushort protocolVersion, ColumnTypeCode childTypeCode, IColumnInfo childTypeInfo, byte[] buffer)
-        {
-            var index = 0;
-            var count = DecodeCollectionLength(protocolVersion, buffer, ref index);
-            var childType = GetClrType(childTypeCode, childTypeInfo);
-            var result = Array.CreateInstance(childType, count);
-            for (var i = 0; i < count; i++)
-            {
-                var valueBufferLength = DecodeCollectionLength(protocolVersion, buffer, ref index);
-                var itemBuffer = new byte[valueBufferLength];
-                Buffer.BlockCopy(buffer, index, itemBuffer, 0, valueBufferLength);
-                index += valueBufferLength;
-                result.SetValue(DeserializeChild(itemBuffer, childTypeCode, childTypeInfo), i);
-            }
-            return result;
         }
     }
 }

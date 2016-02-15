@@ -5,6 +5,7 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Serialization;
 using Cassandra.Tasks;
 using Moq;
 using NUnit.Framework;
@@ -21,6 +22,28 @@ namespace Cassandra.Tests
         private static IPEndPoint GetIpEndPoint(byte lastByte = 1)
         {
             return new IPEndPoint(IPAddress.Parse("127.0.0." + lastByte), 9042);
+        }
+
+        private static Connection CreateConnection(byte lastIpByte = 1, Configuration config = null)
+        {
+            if (config == null)
+            {
+                config = GetConfig();
+            }
+            return new Connection(new Serializer(ProtocolVersion), GetIpEndPoint(lastIpByte), config);
+        }
+
+        private static Mock<HostConnectionPool> GetPoolMock(Host host = null, Configuration config = null)
+        {
+            if (host == null)
+            {
+                host = Host1;
+            }
+            if (config == null)
+            {
+                config = GetConfig();
+            }
+            return new Mock<HostConnectionPool>(host, HostDistance.Local, config, new Serializer(ProtocolVersion));
         }
 
         private static Configuration GetConfig(int coreConnections = 3, int maxConnections = 8)
@@ -47,7 +70,7 @@ namespace Cassandra.Tests
             {
                 BufferPool = new Microsoft.IO.RecyclableMemoryStreamManager()
             };
-            var connectionMock = new Mock<Connection>(MockBehavior.Loose, (byte)4, Address, config);
+            var connectionMock = new Mock<Connection>(MockBehavior.Loose, new Serializer(4), Address, config);
             connectionMock.Setup(c => c.InFlight).Returns(inflight);
             connectionMock.Setup(c => c.TimedOutOperations).Returns(timedOutOperations);
             return connectionMock.Object;
@@ -61,11 +84,11 @@ namespace Cassandra.Tests
         [Test]
         public void MaybeCreateFirstConnection_Should_Yield_The_First_Connection_Opened()
         {
-            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
+            var mock = GetPoolMock();
             var lastByte = 1;
             //use different addresses for same hosts to differentiate connections: for test only
             //different connections to same hosts should use the same address
-            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(new Connection(ProtocolVersion, GetIpEndPoint((byte)lastByte++), GetConfig()), 200 - lastByte * 50));
+            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(CreateConnection((byte)lastByte++), 200 - lastByte * 50));
             var pool = mock.Object;
             var creation = pool.MaybeCreateFirstConnection();
             creation.Wait();
@@ -77,7 +100,7 @@ namespace Cassandra.Tests
         [Test]
         public void MaybeCreateFirstConnection_Should_Yield_A_Connection_If_Any_Fails()
         {
-            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
+            var mock = GetPoolMock();
             var counter = 0;
             //use different addresses for same hosts to differentiate connections: for test only
             //different connections to same hosts should use the same address
@@ -87,7 +110,7 @@ namespace Cassandra.Tests
                 {
                     return TaskHelper.FromException<Connection>(new Exception("Dummy exception"));
                 }
-                return TaskHelper.ToTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig()));
+                return TaskHelper.ToTask(CreateConnection());
             });
             var pool = mock.Object;
             var creation = pool.MaybeCreateFirstConnection();
@@ -98,11 +121,11 @@ namespace Cassandra.Tests
         [Test]
         public void MaybeCreateFirstConnection_Serial_Calls_Should_Yield_First()
         {
-            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
+            var mock = GetPoolMock();
             var lastByte = 1;
             mock.Setup(p => p.CreateConnection()).Returns(() =>
             {
-                var c = new Connection(ProtocolVersion, GetIpEndPoint((byte) lastByte++), GetConfig());
+                var c = CreateConnection((byte) lastByte++);
                 if (lastByte == 2)
                 {
                     return TestHelper.DelayedTask(c, 500);   
@@ -127,9 +150,9 @@ namespace Cassandra.Tests
         [Test]
         public void MaybeCreateFirstConnection_Parallel_Calls_Should_Yield_First()
         {
-            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
+            var mock = GetPoolMock();
             var lastByte = 1;
-            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(new Connection(ProtocolVersion, GetIpEndPoint((byte)lastByte++), GetConfig()), 1000));
+            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(CreateConnection((byte)lastByte++), 1000));
             var pool = mock.Object;
             var creationTasks = new Task<Connection[]>[10];
             var counter = -1;
@@ -151,7 +174,7 @@ namespace Cassandra.Tests
         [Test]
         public void MaybeCreateFirstConnection_Fail_To_Open_All_Connections_Should_Fault_Task()
         {
-            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
+            var mock = GetPoolMock();
             var testException = new Exception("Dummy exception");
             mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask<Connection>(() =>
             {
@@ -172,7 +195,7 @@ namespace Cassandra.Tests
                 GetConnectionMock(100, SocketOptions.DefaultDefunctReadTimeoutThreshold + 10),
                 GetConnectionMock(0)
             };
-            var mock = new Mock<HostConnectionPool>(host, HostDistance.Local, connections[0].Configuration);
+            var mock = GetPoolMock(host, connections[0].Configuration);
             var counter = 0;
             mock.Setup(p => p.CreateConnection()).Returns(() => TaskHelper.ToTask(connections[counter++]));
             var pool = mock.Object;
@@ -191,8 +214,8 @@ namespace Cassandra.Tests
         public void MaybeCreateFirstConnection_After_Reconnection_Attempt_Waits_Existing()
         {
             //MaybeCreateFirstConnection() may be called meanwhile there is a reconnection attempt (is marked UP).
-            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
-            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig()), 300));
+            var mock = GetPoolMock();
+            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(CreateConnection(), 300));
             var pool = mock.Object;
             Assert.AreEqual(0, pool.OpenConnections.Count());
             //A new connection is being created
@@ -207,8 +230,8 @@ namespace Cassandra.Tests
         [Test]
         public void MaybeIncreasePoolSize_Should_Increase_One_At_A_Time_Until_Core_Connections()
         {
-            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
-            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig()), 200));
+            var mock = GetPoolMock();
+            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(CreateConnection(), 200));
             var pool = mock.Object;
             pool.MaybeCreateFirstConnection().Wait(1000);
             Assert.AreEqual(1, pool.OpenConnections.Count());
@@ -232,8 +255,8 @@ namespace Cassandra.Tests
         [Test]
         public void MaybeIncreasePoolSize_Should_Increase_One_At_A_Time_Until_Max_Connections()
         {
-            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig(1, 3));
-            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig(1, 3)), 200));
+            var mock = GetPoolMock(null, GetConfig(1, 3));
+            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(CreateConnection(1, GetConfig(1, 3)), 200));
             var pool = mock.Object;
             pool.MaybeCreateFirstConnection().Wait(1000);
             Assert.AreEqual(1, pool.OpenConnections.Count());
@@ -261,8 +284,8 @@ namespace Cassandra.Tests
         [Test]
         public void MaybeIncreasePoolSize_Should_Not_Increase_When_Lower_Than_One_Connection()
         {
-            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
-            mock.Setup(p => p.CreateConnection()).Returns(() => TaskHelper.ToTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig())));
+            var mock = GetPoolMock();
+            mock.Setup(p => p.CreateConnection()).Returns(() => TaskHelper.ToTask(CreateConnection()));
             var pool = mock.Object;
             Assert.AreEqual(0, pool.OpenConnections.Count());
             Assert.False(pool.MaybeIncreasePoolSize(0));
@@ -274,8 +297,8 @@ namespace Cassandra.Tests
         [Test]
         public void MaybeIncreasePoolSize_Should_Only_Increase_One_By_One()
         {
-            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
-            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig()), 200));
+            var mock = GetPoolMock();
+            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(CreateConnection(), 200));
             var pool = mock.Object;
             pool.MaybeCreateFirstConnection().Wait(1000);
             Assert.AreEqual(1, pool.OpenConnections.Count());
@@ -326,8 +349,8 @@ namespace Cassandra.Tests
         [Test]
         public void AttemptReconnection_Should_Reconnect_In_The_Background()
         {
-            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
-            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig()), 20));
+            var mock = GetPoolMock();
+            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(CreateConnection(), 20));
             var pool = mock.Object;
             Assert.AreEqual(0, pool.OpenConnections.Count());
             pool.AttemptReconnection();
@@ -338,8 +361,8 @@ namespace Cassandra.Tests
         [Test]
         public void AttemptReconnection_Should_Not_Create_A_New_Connection_If_There_Is_An_Open_Connection()
         {
-            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig(2));
-            mock.Setup(p => p.CreateConnection()).Returns(() => TaskHelper.ToTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig())));
+            var mock = GetPoolMock();
+            mock.Setup(p => p.CreateConnection()).Returns(() => TaskHelper.ToTask(CreateConnection()));
             var pool = mock.Object;
             //Create 1 connection
             TaskHelper.WaitToComplete(pool.MaybeCreateFirstConnection());
@@ -354,8 +377,8 @@ namespace Cassandra.Tests
         [Test]
         public void AttemptReconnection_After_Dispose_Should_Not_Create_New_Connections()
         {
-            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
-            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig()), 20));
+            var mock = GetPoolMock();
+            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(CreateConnection(), 20));
             var pool = mock.Object;
             Assert.AreEqual(0, pool.OpenConnections.Count());
             pool.Dispose();
@@ -367,8 +390,8 @@ namespace Cassandra.Tests
         [Test]
         public void Dispose_Should_Cancel_Reconnection_Attempts()
         {
-            var mock = new Mock<HostConnectionPool>(Host1, HostDistance.Local, GetConfig());
-            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig()), 200));
+            var mock = GetPoolMock();
+            mock.Setup(p => p.CreateConnection()).Returns(() => TestHelper.DelayedTask(CreateConnection(), 200));
             var pool = mock.Object;
             Assert.AreEqual(0, pool.OpenConnections.Count());
             pool.AttemptReconnection();
@@ -383,8 +406,8 @@ namespace Cassandra.Tests
             var host = TestHelper.CreateHost("127.0.0.1");
             var config = GetConfig(2);
             config.Timer = new HashedWheelTimer(100, 10);
-            var mock = new Mock<HostConnectionPool>(host, HostDistance.Local, config);
-            mock.Setup(p => p.CreateConnection()).Returns(() => TaskHelper.ToTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig())));
+            var mock = GetPoolMock(host, config);
+            mock.Setup(p => p.CreateConnection()).Returns(() => TaskHelper.ToTask(CreateConnection()));
             var pool = mock.Object;
             Assert.AreEqual(0, pool.OpenConnections.Count());
             //fake other pool getting the flag
@@ -403,8 +426,8 @@ namespace Cassandra.Tests
             var host = TestHelper.CreateHost("127.0.0.1");
             var config = GetConfig(2);
             config.Timer = new HashedWheelTimer(100, 10);
-            var mock = new Mock<HostConnectionPool>(host, HostDistance.Local, config);
-            mock.Setup(p => p.CreateConnection()).Returns(() => TaskHelper.ToTask(new Connection(ProtocolVersion, GetIpEndPoint(), GetConfig())));
+            var mock = GetPoolMock(host, config);
+            mock.Setup(p => p.CreateConnection()).Returns(() => TaskHelper.ToTask(CreateConnection()));
             var pool = mock.Object;
             Assert.AreEqual(0, pool.OpenConnections.Count());
             //attempt reconnection should exit
@@ -420,7 +443,7 @@ namespace Cassandra.Tests
         {
             var host = TestHelper.CreateHost("127.0.0.1");
             var connection1 = GetConnectionMock(100, SocketOptions.DefaultDefunctReadTimeoutThreshold + 10);
-            var mock = new Mock<HostConnectionPool>(host, HostDistance.Local, connection1.Configuration);
+            var mock = GetPoolMock(host, connection1.Configuration);
             mock.Setup(p => p.CreateConnection()).Returns(() => TaskHelper.ToTask(connection1));
             var pool = mock.Object;
             pool.MaybeCreateFirstConnection().Wait();

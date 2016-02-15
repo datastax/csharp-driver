@@ -17,6 +17,7 @@
 using System;
 using System.Linq;
 using Cassandra.Requests;
+using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -38,6 +39,7 @@ namespace Cassandra
     {
         private readonly PreparedStatement _preparedStatement;
         private RoutingKey _routingKey;
+        private readonly Serializer _serializer;
 
         /// <summary>
         ///  Gets the prepared statement on which this BoundStatement is based.
@@ -88,6 +90,11 @@ namespace Cassandra
                 SetIdempotence(statement.IsIdempotent.Value);
             }
         }
+
+        internal BoundStatement(PreparedStatement statement, Serializer serializer) : this(statement)
+        {
+            _serializer = serializer;
+        }
         
         /// <summary>
         ///  Set the routing key for this query. This method allows to manually
@@ -114,6 +121,10 @@ namespace Cassandra
         /// </summary>
         private object[] ValidateValues(object[] values)
         {
+            if (_serializer == null)
+            {
+                throw new DriverInternalError("Serializer can not be null");
+            }
             if (values == null)
             {
                 return null;
@@ -126,19 +137,19 @@ namespace Cassandra
             if (values.Length > paramsMetadata.Length)
             {
                 throw new ArgumentException(
-                    String.Format("Provided {0} parameters to bind, expected {1}", values.Length, paramsMetadata.Length));
+                    string.Format("Provided {0} parameters to bind, expected {1}", values.Length, paramsMetadata.Length));
             }
             for (var i = 0; i < values.Length; i++)
             {
                 var p = paramsMetadata[i];
                 var value = values[i];
-                if (!TypeCodec.IsAssignableFrom(p, value))
+                if (!_serializer.IsAssignableFrom(p, value))
                 {
                     throw new InvalidTypeException(
                         String.Format("It is not possible to encode a value of type {0} to a CQL type {1}", value.GetType(), p.TypeCode));
                 }
             }
-            if (values.Length < paramsMetadata.Length && ProtocolVersion >= 4)
+            if (values.Length < paramsMetadata.Length && _serializer.ProtocolVersion >= 4)
             {
                 //Set the result of the unspecified parameters to Unset
                 var completeValues = new object[paramsMetadata.Length];
@@ -172,7 +183,7 @@ namespace Cassandra
                 for (var i = 0; i < routingIndexes.Length; i++)
                 {
                     var index = routingIndexes[i];
-                    var key = TypeCodec.Encode(ProtocolVersion, valuesByPosition[index]);
+                    var key = _serializer.Serialize(valuesByPosition[index]);
                     if (key == null)
                     {
                         //The partition key can not be null
@@ -195,7 +206,7 @@ namespace Cassandra
                 }
                 for (var i = 0; i < routingValues.Length; i++)
                 {
-                    var key = TypeCodec.Encode(ProtocolVersion, routingValues[i]);
+                    var key = _serializer.Serialize(routingValues[i]);
                     if (key == null)
                     {
                         //The partition key can not be null

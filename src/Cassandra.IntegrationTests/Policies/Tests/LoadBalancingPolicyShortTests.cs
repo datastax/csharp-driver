@@ -6,6 +6,7 @@ using System.Threading;
 using Cassandra.IntegrationTests.Policies.Util;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Serialization;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Policies.Tests
@@ -94,7 +95,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                 var key = Guid.NewGuid();
                 var statement = new SimpleStatement(String.Format("INSERT INTO " + uniqueTableName + " (k, i) VALUES ({0}, {1})", key, i))
                     .SetRoutingKey(
-                        new RoutingKey() { RawRoutingKey = TypeCodec.GuidShuffle(key.ToByteArray()) })
+                        new RoutingKey() { RawRoutingKey = TypeSerializer.GuidShuffle(key.ToByteArray()) })
                     .EnableTracing();
                 var rs = session.Execute(statement);
                 traces.Add(rs.Info.QueryTrace);
@@ -321,7 +322,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                     var id = Guid.NewGuid();
                     var bound = ps
                         .Bind(id)
-                        .SetRoutingKey(new RoutingKey() { RawRoutingKey = TypeCodec.GuidShuffle(id.ToByteArray()) })
+                        .SetRoutingKey(new RoutingKey() { RawRoutingKey = TypeSerializer.GuidShuffle(id.ToByteArray()) })
                         .EnableTracing();
                     var rs = session.Execute(bound);
                     traces.Add(rs.Info.QueryTrace);

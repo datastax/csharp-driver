@@ -15,18 +15,15 @@
 //
 
 using System.IO;
+using Cassandra.Serialization;
 
 namespace Cassandra.Requests
 {
     internal interface IRequest
     {
         /// <summary>
-        /// Gets the version of the protocol that the request is built for
-        /// </summary>
-        int ProtocolVersion { get; }
-        /// <summary>
         /// Writes the frame for this request on the provided stream
         /// </summary>
-        int WriteFrame(short streamId, MemoryStream stream);
+        int WriteFrame(short streamId, MemoryStream stream, Serializer serializer);
     }
 }

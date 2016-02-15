@@ -52,14 +52,14 @@ namespace Cassandra.Serialization
             return map;
         }
 
-        protected virtual UdtMap GetUdtMap(Type type)
+        protected internal virtual UdtMap GetUdtMap(Type type)
         {
             UdtMap map;
             _udtMapsByClrType.TryGetValue(type, out map);
             return map;
         }
 
-        public override object Deserialize(ushort protocolVersion, byte[] buffer, IColumnInfo typeInfo)
+        public override object Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {
             var udtInfo = (UdtColumnInfo)typeInfo;
             var map = GetUdtMap(udtInfo.Name);
@@ -68,23 +68,22 @@ namespace Cassandra.Serialization
                 return buffer;
             }
             var valuesList = new object[udtInfo.Fields.Count];
-            var offset = 0;
+            var maxOffset = offset + length;
             for (var i = 0; i < udtInfo.Fields.Count; i++)
             {
                 var field = udtInfo.Fields[i];
-                if (offset >= buffer.Length)
+                if (offset >= maxOffset)
                 {
                     break;
                 }
-                var length = BeConverter.ToInt32(buffer, offset);
+                var itemLength = BeConverter.ToInt32(buffer, offset);
                 offset += 4;
-                if (length < 0)
+                if (itemLength < 0)
                 {
                     continue;
                 }
-                var itemBuffer = Utils.SliceBuffer(buffer, offset, length);
-                offset += length;
-                valuesList[i] = DeserializeChild(itemBuffer, field.TypeCode, field.TypeInfo);
+                valuesList[i] = DeserializeChild(buffer, offset, itemLength, field.TypeCode, field.TypeInfo);
+                offset += itemLength;
             }
             return map.ToObject(valuesList);
         }

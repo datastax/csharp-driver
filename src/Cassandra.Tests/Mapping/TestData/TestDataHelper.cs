@@ -2,14 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Cassandra.Serialization;
 using Cassandra.Tests.Mapping.Pocos;
 
 namespace Cassandra.Tests.Mapping.TestData
 {
     internal static class TestDataHelper
     {
-        private const int ProtocolVersion = 2;
-
         public static List<PlainUser> GetUserList(int length = 10)
         {
             // Generate some random users
@@ -36,9 +35,10 @@ namespace Cassandra.Tests.Mapping.TestData
         /// </summary>
         public static RowSet GetSingleColumnRowSet<T>(string columnName, T[] values)
         {
+            var serializer = new Serializer(4);
             var rs = new RowSet();
             IColumnInfo typeInfo;
-            var typeCode = TypeCodec.GetColumnTypeCodeInfo(typeof (T), out typeInfo);
+            var typeCode = serializer.GetCqlType(typeof (T), out typeInfo);
             rs.Columns = new[]
             {
                 new CqlColumn { Name = columnName, TypeCode = typeCode, TypeInfo = typeInfo, Type = typeof(T), Index = 0}
@@ -58,11 +58,12 @@ namespace Cassandra.Tests.Mapping.TestData
         /// </summary>
         public static RowSet GetSingleValueRowSet<T>(string columnName, T value)
         {
-            return GetSingleColumnRowSet(columnName, new T[] { value });
+            return GetSingleColumnRowSet(columnName, new [] { value });
         }
 
         public static RowSet CreateMultipleValuesRowSet<T>(string[] columnNames, T[] genericValues, int rowLength = 1)
         {
+            var serializer = new Serializer(4);
             var rs = new RowSet();
             rs.Columns = new CqlColumn[columnNames.Length];
             for (var i = 0; i < columnNames.Length; i++)
@@ -78,9 +79,15 @@ namespace Cassandra.Tests.Mapping.TestData
                     }
                     type = genericValues[i].GetType();
                 }
-                var typeCode = TypeCodec.GetColumnTypeCodeInfo(type, out typeInfo);
-                rs.Columns[i] =
-                    new CqlColumn { Name = columnNames[i], TypeCode = typeCode, TypeInfo = typeInfo, Type = typeof(T), Index = i };
+                var typeCode = serializer.GetCqlType(type, out typeInfo);
+                rs.Columns[i] = new CqlColumn
+                {
+                    Name = columnNames[i],
+                    TypeCode = typeCode,
+                    TypeInfo = typeInfo,
+                    Type = typeof(T),
+                    Index = i
+                };
             }
             var columnIndexes = rs.Columns.ToDictionary(c => c.Name, c => c.Index);
             for (var i = 0; i < rowLength; i++)

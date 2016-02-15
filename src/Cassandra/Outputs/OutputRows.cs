@@ -25,8 +25,8 @@ namespace Cassandra
     {
         private readonly int _rowLength;
         private readonly RowSetMetadata _metadata;
-        private readonly byte _protocolVersion;
-        private static readonly ThreadLocal<byte[]> ReusableBuffer = new ThreadLocal<byte[]>(() => new byte[16]);
+        private const int ReusableBufferLength = 1024;
+        private static readonly ThreadLocal<byte[]> ReusableBuffer = new ThreadLocal<byte[]>(() => new byte[ReusableBufferLength]);
 
         /// <summary>
         /// Gets or sets the RowSet parsed from the response
@@ -35,9 +35,8 @@ namespace Cassandra
 
         public Guid? TraceId { get; private set; }
 
-        internal OutputRows(byte protocolVersion, FrameReader reader, Guid? traceId)
+        internal OutputRows(FrameReader reader, Guid? traceId)
         {
-            _protocolVersion = protocolVersion;
             _metadata = new RowSetMetadata(reader);
             _rowLength = reader.ReadInt32();
             TraceId = traceId;
@@ -74,8 +73,7 @@ namespace Cassandra
                     continue;
                 }
                 var buffer = GetBuffer(length, c.TypeCode);
-                reader.Read(buffer, 0, length);
-                rowValues[i] = TypeCodec.Decode(_protocolVersion, buffer, c.TypeCode, c.TypeInfo);
+                rowValues[i] = reader.ReadFromBytes(buffer, 0, length, c.TypeCode, c.TypeInfo);
             }
 
             return new Row(rowValues, _metadata.Columns, _metadata.ColumnIndexes);
@@ -86,28 +84,17 @@ namespace Cassandra
         /// </summary>
         private static byte[] GetBuffer(int length, ColumnTypeCode typeCode)
         {
-            if (length > 16)
+            if (length > ReusableBufferLength)
             {
                 return new byte[length];
             }
             switch (typeCode)
             {
-                //blob and inet requires a new instance
+                //blob requires a new instance
                 case ColumnTypeCode.Blob:
                 case ColumnTypeCode.Inet:
-                //just to be safe
                 case ColumnTypeCode.Custom:
-                //The TypeCodec does not support offset and count for text
-                case ColumnTypeCode.Ascii:
-                case ColumnTypeCode.Text:
-                case ColumnTypeCode.Varchar:
-                //The TypeCodec does not support offset and count for varint
-                case ColumnTypeCode.Varint:
-                //The Decimal converter does not support count for decimal
                 case ColumnTypeCode.Decimal:
-                //The TypeCodec does not support offset and count for udts
-                case ColumnTypeCode.Udt:
-                case ColumnTypeCode.Tuple:
                     return new byte[length];
             }
             return ReusableBuffer.Value;

@@ -19,6 +19,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Cassandra.Serialization;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -67,7 +68,7 @@ namespace Cassandra.IntegrationTests.Core
 
         private byte[] serializeForDynamicType(params object[] vals)
         {
-            var elt = new FrameWriter(new MemoryStream());
+            var elt = new FrameWriter(new MemoryStream(), new Serializer(1));
             foreach (object p in vals)
             {
                 if (p is int)

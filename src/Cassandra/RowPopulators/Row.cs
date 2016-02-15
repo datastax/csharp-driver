@@ -203,7 +203,7 @@ namespace Cassandra
         /// Handle conversions for some types that, for backward compatibility,
         /// the result type can be more than 1 depending on the type provided by the user 
         /// </summary>
-        internal static object TryConvertToType(object value, ColumnDesc column, Type targetType)
+        internal static object TryConvertToType(object value, CqlColumn column, Type targetType)
         {
             if (value == null)
             {
@@ -219,8 +219,7 @@ namespace Cassandra
                         //Return the underlying array
                         return value;
                     }
-                    var childTypeInfo = (ListColumnInfo) column.TypeInfo;
-                    return Utils.ToCollectionType(typeof(List<>), TypeCodec.GetDefaultTypeFromCqlType(childTypeInfo.ValueTypeCode, childTypeInfo.ValueTypeInfo), (Array)value);
+                    return Utils.ToCollectionType(typeof(List<>), column.Type.GetGenericArguments()[0], (Array)value);
                 }
                 case ColumnTypeCode.Set:
                 {
@@ -230,8 +229,7 @@ namespace Cassandra
                         //Return the underlying array
                         return value;
                     }
-                    var childTypeInfo = (SetColumnInfo)column.TypeInfo;
-                    var itemType = TypeCodec.GetDefaultTypeFromCqlType(childTypeInfo.KeyTypeCode, childTypeInfo.KeyTypeInfo);
+                    var itemType = column.Type.GetGenericArguments()[0];
                     if (targetType.IsGenericType)
                     {
                         var genericType = targetType.GetGenericTypeDefinition();

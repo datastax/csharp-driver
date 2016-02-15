@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -30,7 +31,7 @@ namespace Cassandra
     public class PreparedStatement
     {
         internal readonly RowSetMetadata Metadata;
-        private readonly int _protocolVersion;
+        private readonly Serializer _serializer;
         private volatile RoutingKey _routingKey;
         private string[] _routingNames;
 
@@ -105,13 +106,13 @@ namespace Cassandra
             //Default constructor for client test and mocking frameworks
         }
 
-        internal PreparedStatement(RowSetMetadata metadata, byte[] id, string cql, string keyspace, int protocolVersion)
+        internal PreparedStatement(RowSetMetadata metadata, byte[] id, string cql, string keyspace, Serializer serializer)
         {
             Metadata = metadata;
             Id = id;
             Cql = cql;
             Keyspace = keyspace;
-            _protocolVersion = protocolVersion;
+            _serializer = serializer;
         }
 
         /// <summary>
@@ -132,10 +133,7 @@ namespace Cassandra
         ///  bound to <c>values</c>. </returns>
         public virtual BoundStatement Bind(params object[] values)
         {
-            var bs = new BoundStatement(this)
-            {
-                ProtocolVersion = _protocolVersion
-            };
+            var bs = new BoundStatement(this, _serializer);
             bs.SetRoutingKey(_routingKey);
             if (values == null)
             {

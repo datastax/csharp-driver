@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Requests;
+using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -26,6 +27,7 @@ namespace Cassandra
     /// </summary>
     public class SimpleStatement : RegularStatement
     {
+        private static readonly Logger Logger = new Logger(typeof(SimpleStatement));
         private string _query;
         private volatile RoutingKey _routingKey;
         private object[] _routingValues;
@@ -56,10 +58,17 @@ namespace Cassandra
                 {
                     return null;
                 }
+                var serializer = Serializer;
+                if (serializer == null)
+                {
+                    serializer = Serializer.Default;
+                    Logger.Warning("Calculating routing key before executing is not supporting for SimpleStatements, " +
+                                   "using default serializer.");
+                }
                 //Calculate the routing key
                 return RoutingKey.Compose(
                     _routingValues
-                    .Select(key => new RoutingKey(TypeCodec.Encode(ProtocolVersion, key)))
+                    .Select(value => new RoutingKey(serializer.Serialize(value)))
                     .ToArray());
             }
         }

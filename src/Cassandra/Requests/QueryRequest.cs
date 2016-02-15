@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Cassandra.Serialization;
 
 namespace Cassandra.Requests
 {
@@ -53,15 +54,12 @@ namespace Cassandra.Requests
 
         public IDictionary<string, byte[]> Payload { get; set; }
 
-        public int ProtocolVersion { get; set; }
-
         private readonly string _cqlQuery;
         private FrameHeader.HeaderFlag _headerFlags;
         private readonly QueryProtocolOptions _queryOptions;
 
         public QueryRequest(int protocolVersion, string cqlQuery, bool tracingEnabled, QueryProtocolOptions queryOptions)
         {
-            ProtocolVersion = protocolVersion;
             _cqlQuery = cqlQuery;
             _queryOptions = queryOptions;
             if (tracingEnabled)
@@ -90,25 +88,25 @@ namespace Cassandra.Requests
             }
         }
 
-        public int WriteFrame(short streamId, MemoryStream stream)
+        public int WriteFrame(short streamId, MemoryStream stream, Serializer serializer)
         {
-            var wb = new FrameWriter(stream);
+            var wb = new FrameWriter(stream, serializer);
             if (Payload != null)
             {
                 _headerFlags |= FrameHeader.HeaderFlag.CustomPayload;
             }
-            wb.WriteFrameHeader((byte)ProtocolVersion, (byte)_headerFlags, streamId, OpCode);
+            wb.WriteFrameHeader((byte)_headerFlags, streamId, OpCode);
             if (Payload != null)
             {
                 //A custom payload for this request
                 wb.WriteBytesMap(Payload);
             }
             wb.WriteLongString(_cqlQuery);
-            _queryOptions.Write(wb, (byte)ProtocolVersion, false);
+            _queryOptions.Write(wb, false);
             return wb.Close();
         }
 
-        public void WriteToBatch(byte protocolVersion, FrameWriter wb)
+        public void WriteToBatch(FrameWriter wb)
         {
             //not a prepared query
             wb.WriteByte(0);
@@ -121,10 +119,9 @@ namespace Cassandra.Requests
             else
             {
                 wb.WriteUInt16((ushort) _queryOptions.Values.Length);
-                for (var i = 0; i < _queryOptions.Values.Length; i++)
+                foreach (var queryParameter in _queryOptions.Values)
                 {
-                    var bytes = TypeCodec.Encode(protocolVersion, _queryOptions.Values[i]);
-                    wb.WriteBytes(bytes);
+                    wb.WriteAsBytes(queryParameter);
                 }
             }
         }

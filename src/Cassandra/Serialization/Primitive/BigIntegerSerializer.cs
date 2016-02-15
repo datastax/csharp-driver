@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Numerics;
 
 namespace Cassandra.Serialization.Primitive
@@ -28,14 +29,20 @@ namespace Cassandra.Serialization.Primitive
             get { return ColumnTypeCode.Varint; }
         }
 
-        public override BigInteger Deserialize(ushort protocolVersion, byte[] buffer, IColumnInfo typeInfo)
+        public override BigInteger Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {
+            buffer = Utils.SliceBuffer(buffer, offset, length);
+            //Cassandra uses big endian encoding
+            Array.Reverse(buffer);
             return new BigInteger(buffer);
         }
 
         public override byte[] Serialize(ushort protocolVersion, BigInteger value)
         {
-            return value.ToByteArray();
+            var buffer = value.ToByteArray();
+            //Cassandra expects big endian encoding
+            Array.Reverse(buffer);
+            return buffer;
         }
     }
 }

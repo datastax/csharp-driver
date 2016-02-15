@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Cassandra.Serialization;
 
 namespace Cassandra.Requests
 {
@@ -28,7 +29,6 @@ namespace Cassandra.Requests
         public const byte OpCode = 0x0A;
         private FrameHeader.HeaderFlag _headerFlags;
         private readonly byte[] _id;
-        private readonly RowSetMetadata _metadata;
         private readonly QueryProtocolOptions _queryOptions;
 
         public ConsistencyLevel Consistency 
@@ -55,17 +55,13 @@ namespace Cassandra.Requests
 
         public IDictionary<string, byte[]> Payload { get; set; }
 
-        public int ProtocolVersion { get; set; }
-
         public ExecuteRequest(int protocolVersion, byte[] id, RowSetMetadata metadata, bool tracingEnabled, QueryProtocolOptions queryOptions)
         {
-            ProtocolVersion = protocolVersion;
             if (metadata != null && queryOptions.Values.Length != metadata.Columns.Length)
             {
-                throw new ArgumentException("Number of values does not match with number of prepared statement markers(?).", "values");
+                throw new ArgumentException("Number of values does not match with number of prepared statement markers(?).");
             }
             _id = id;
-            _metadata = metadata;
             _queryOptions = queryOptions;
             if (tracingEnabled)
             {
@@ -82,33 +78,32 @@ namespace Cassandra.Requests
             }
         }
 
-        public int WriteFrame(short streamId, MemoryStream stream)
+        public int WriteFrame(short streamId, MemoryStream stream, Serializer serializer)
         {
-            var wb = new FrameWriter(stream);
+            var wb = new FrameWriter(stream, serializer);
             if (Payload != null)
             {
                 _headerFlags |= FrameHeader.HeaderFlag.CustomPayload;
             }
-            wb.WriteFrameHeader((byte)ProtocolVersion, (byte)_headerFlags, streamId, OpCode);
+            wb.WriteFrameHeader((byte)_headerFlags, streamId, OpCode);
             if (Payload != null)
             {
                 //A custom payload for this request
                 wb.WriteBytesMap(Payload);
             }
             wb.WriteShortBytes(_id);
-            _queryOptions.Write(wb, (byte)ProtocolVersion, true);
+            _queryOptions.Write(wb, true);
             return wb.Close();
         }
 
-        public void WriteToBatch(byte protocolVersion, FrameWriter wb)
+        public void WriteToBatch(FrameWriter wb)
         {
             wb.WriteByte(1); //prepared query
             wb.WriteShortBytes(_id);
-            wb.WriteUInt16((ushort) _queryOptions.Values.Length);
-            for (int i = 0; i < _metadata.Columns.Length; i++)
+            wb.WriteUInt16((ushort)_queryOptions.Values.Length);
+            foreach (var queryParameter in _queryOptions.Values)
             {
-                byte[] bytes = TypeCodec.Encode(protocolVersion, _queryOptions.Values[i]);
-                wb.WriteBytes(bytes);
+                wb.WriteAsBytes(queryParameter);
             }
         }
     }

@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Serialization;
 using IgnoreAttribute = Cassandra.Mapping.Attributes.IgnoreAttribute;
 
 namespace Cassandra.Tests
@@ -19,13 +20,14 @@ namespace Cassandra.Tests
         {
             var columns = new List<CqlColumn>();
             var rowValues = new List<object>();
+            var serializer = new Serializer(4);
             foreach (var kv in valueMap)
             {
                 if (kv.Value != null)
                 {
                     IColumnInfo typeInfo;
-                    var typeCode = TypeCodec.GetColumnTypeCodeInfo(kv.Value.GetType(), out typeInfo);
-                    columns.Add(new CqlColumn() { Name = kv.Key, TypeCode = typeCode, TypeInfo = typeInfo });
+                    var typeCode = serializer.GetCqlType(kv.Value.GetType(), out typeInfo);
+                    columns.Add(new CqlColumn { Name = kv.Key, TypeCode = typeCode, TypeInfo = typeInfo });
                 }
                 else
                 {
@@ -142,6 +144,7 @@ namespace Cassandra.Tests
                 }
                 SimplifyValues(ref actualValue, ref expectedValue);
                 Assert.AreEqual(expectedValue, actualValue,
+                    // ReSharper disable once PossibleNullReferenceException
                     String.Format("Property {0}.{1} does not match. Expected: {2} but was: {3}", property.DeclaringType.Name, property.Name, expectedValue, actualValue));
             }
         }
@@ -213,6 +216,7 @@ namespace Cassandra.Tests
             {
                 actualValue = ((DateTimeOffset)(DateTime)actualValue).ToMillisecondPrecision();
                 expectedValue = ((DateTimeOffset)(DateTime)expectedValue).ToMillisecondPrecision();
+                // ReSharper disable once RedundantJumpStatement
                 return;
             }
         }

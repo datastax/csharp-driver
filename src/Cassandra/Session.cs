@@ -22,6 +22,7 @@ using System.Collections.Concurrent;
 using System.Threading.Tasks;
  using Cassandra.Tasks;
 using Cassandra.Requests;
+﻿using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -31,12 +32,13 @@ namespace Cassandra
     /// <inheritdoc cref="Cassandra.ISession" />
     public class Session : ISession
     {
+        private readonly Serializer _serializer;
         private static readonly Logger Logger = new Logger(typeof(Session));
         private readonly ConcurrentDictionary<IPEndPoint, HostConnectionPool> _connectionPool;
         private int _disposed;
         private volatile string _keyspace;
 
-        public int BinaryProtocolVersion { get; internal set; }
+        public int BinaryProtocolVersion { get { return _serializer.ProtocolVersion; } }
 
         /// <inheritdoc />
         public ICluster Cluster { get; private set; }
@@ -68,13 +70,13 @@ namespace Cassandra
 
         public Policies Policies { get { return Configuration.Policies; } }
 
-        internal Session(ICluster cluster, Configuration configuration, string keyspace, int binaryProtocolVersion)
+        internal Session(ICluster cluster, Configuration configuration, string keyspace, Serializer serializer)
         {
+            _serializer = serializer;
             Cluster = cluster;
             Configuration = configuration;
             Keyspace = keyspace;
-            BinaryProtocolVersion = binaryProtocolVersion;
-            UserDefinedTypes = new UdtMappingDefinitions(this);
+            UserDefinedTypes = new UdtMappingDefinitions(this, serializer);
             _connectionPool = new ConcurrentDictionary<IPEndPoint, HostConnectionPool>();
         }
 
@@ -169,7 +171,7 @@ namespace Cassandra
         /// </summary>
         internal void Init()
         {
-            var handler = new RequestHandler<RowSet>(this);
+            var handler = new RequestHandler<RowSet>(this, _serializer);
             //Borrow a connection, trying to fail fast
             TaskHelper.WaitToComplete(handler.GetNextConnection(new Dictionary<IPEndPoint,Exception>()));
         }
@@ -219,7 +221,7 @@ namespace Cassandra
         /// <inheritdoc />
         public Task<RowSet> ExecuteAsync(IStatement statement)
         {
-            return new RequestHandler<RowSet>(this, statement).Send();
+            return new RequestHandler<RowSet>(this, _serializer, statement).Send();
         }
 
         /// <summary>
@@ -245,9 +247,8 @@ namespace Cassandra
         /// </summary>
         internal HostConnectionPool GetOrCreateConnectionPool(Host host, HostDistance distance)
         {
-            var hostPool = _connectionPool.GetOrAdd(host.Address, address => new HostConnectionPool(host, distance, Configuration));
-            //It can change from the last time, when trying lower protocol versions
-            hostPool.ProtocolVersion = (byte) BinaryProtocolVersion;
+            var hostPool = _connectionPool.GetOrAdd(host.Address, address => 
+                new HostConnectionPool(host, distance, Configuration, _serializer));
             return hostPool;
         }
 
@@ -281,11 +282,11 @@ namespace Cassandra
 
         public Task<PreparedStatement> PrepareAsync(string query, IDictionary<string, byte[]> customPayload)
         {
-            var request = new PrepareRequest(BinaryProtocolVersion, query)
+            var request = new PrepareRequest(query)
             {
                 Payload = customPayload
             };
-            return new RequestHandler<PreparedStatement>(this, request)
+            return new RequestHandler<PreparedStatement>(this, _serializer, request)
                 .Send()
                 .Continue(SetPrepareTableInfo);
         }

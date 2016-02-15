@@ -10,9 +10,11 @@ namespace Cassandra.Serialization
     {
         Type Type { get; }
 
+        IColumnInfo TypeInfo { get; }
+
         ColumnTypeCode CqlType { get; }
 
-        object Deserialize(ushort protocolVersion, byte[] buffer, IColumnInfo typeInfo);
+        object Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo);
 
         byte[] Serialize(ushort protocolVersion, object obj);
     }

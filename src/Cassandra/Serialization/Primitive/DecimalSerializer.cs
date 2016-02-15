@@ -25,8 +25,9 @@ namespace Cassandra.Serialization.Primitive
             get { return ColumnTypeCode.Decimal; }
         }
 
-        public override decimal Deserialize(ushort protocolVersion, byte[] buffer, IColumnInfo typeInfo)
+        public override decimal Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {
+            buffer = Utils.FromOffset(buffer, offset, length);
             var bigintBytes = new byte[buffer.Length - 4];
             Array.Copy(buffer, 4, bigintBytes, 0, bigintBytes.Length);
             //Scale representation is an int, but System.Decimal only supports a scale of 1 byte

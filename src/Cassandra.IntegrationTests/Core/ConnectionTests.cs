@@ -32,6 +32,7 @@ using Cassandra.Tasks;
 using Cassandra.Tests;
 using Cassandra.Requests;
 using Cassandra.Responses;
+using Cassandra.Serialization;
 using Microsoft.IO;
 
 namespace Cassandra.IntegrationTests.Core
@@ -67,9 +68,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Open().Wait();
-                //Start a query
-                var request = new QueryRequest(connection.ProtocolVersion, "SELECT * FROM system.local", false, QueryProtocolOptions.Default);
-                var task = connection.Send(request);
+                var task = Query(connection, "SELECT * FROM system.local");
                 task.Wait();
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
                 //Result from Cassandra
@@ -87,7 +86,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Open().Wait();
-                var request = new PrepareRequest(connection.ProtocolVersion, "SELECT * FROM system.local");
+                var request = new PrepareRequest("SELECT * FROM system.local");
                 var task = connection.Send(request);
                 task.Wait();
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
@@ -101,11 +100,12 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Open().Wait();
-                var request = new PrepareRequest(connection.ProtocolVersion, "SELECT WILL FAIL");
+                var request = new PrepareRequest("SELECT WILL FAIL");
                 var task = connection.Send(request);
                 task.ContinueWith(t =>
                 {
                     Assert.AreEqual(TaskStatus.Faulted, t.Status);
+                    Assert.NotNull(t.Exception);
                     Assert.IsInstanceOf<SyntaxError>(t.Exception.InnerException);
                 }, TaskContinuationOptions.ExecuteSynchronously).Wait();
             }
@@ -119,12 +119,12 @@ namespace Cassandra.IntegrationTests.Core
                 connection.Open().Wait();
 
                 //Prepare a query
-                var prepareRequest = new PrepareRequest(connection.ProtocolVersion, "SELECT * FROM system.local");
+                var prepareRequest = new PrepareRequest("SELECT * FROM system.local");
                 var task = connection.Send(prepareRequest);
                 var prepareOutput = ValidateResult<OutputPrepared>(task.Result);
                 
                 //Execute the prepared query
-                var executeRequest = new ExecuteRequest(connection.ProtocolVersion, prepareOutput.QueryId, null, false, QueryProtocolOptions.Default);
+                var executeRequest = new ExecuteRequest(GetLatestProtocolVersion(), prepareOutput.QueryId, null, false, QueryProtocolOptions.Default);
                 task = connection.Send(executeRequest);
                 var output = ValidateResult<OutputRows>(task.Result);
                 var rs = output.RowSet;
@@ -141,13 +141,13 @@ namespace Cassandra.IntegrationTests.Core
             {
                 connection.Open().Wait();
 
-                var prepareRequest = new PrepareRequest(connection.ProtocolVersion, "SELECT * FROM system.local WHERE key = ?");
+                var prepareRequest = new PrepareRequest("SELECT * FROM system.local WHERE key = ?");
                 var task = connection.Send(prepareRequest);
                 var prepareOutput = ValidateResult<OutputPrepared>(task.Result);
 
-                var options = new QueryProtocolOptions(ConsistencyLevel.One, new[] { "local" }, false, 100, null, ConsistencyLevel.Any);
+                var options = new QueryProtocolOptions(ConsistencyLevel.One, new object[] { "local" }, false, 100, null, ConsistencyLevel.Any);
 
-                var executeRequest = new ExecuteRequest(connection.ProtocolVersion, prepareOutput.QueryId, null, false, options);
+                var executeRequest = new ExecuteRequest(GetLatestProtocolVersion(), prepareOutput.QueryId, null, false, options);
                 task = connection.Send(executeRequest);
                 var output = ValidateResult<OutputRows>(task.Result);
 
@@ -193,6 +193,7 @@ namespace Cassandra.IntegrationTests.Core
                     // ReSharper disable once AccessToDisposedClosure
                     tasks[i] = Task.Factory.StartNew(() => Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default)).Unwrap();
                 }
+                // ReSharper disable once CoVariantArrayConversion
                 Task.WaitAll(tasks);
                 foreach (var t in tasks)
                 {
@@ -319,7 +320,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 connection.Open().Wait();
                 var eventTypes = CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange;
-                var task = connection.Send(new RegisterForEventRequest(connection.ProtocolVersion, eventTypes));
+                var task = connection.Send(new RegisterForEventRequest(eventTypes));
                 TaskHelper.WaitToComplete(task, 1000);
                 Assert.IsInstanceOf<ReadyResponse>(task.Result);
                 connection.CassandraEventResponse += (o, e) =>
@@ -346,18 +347,14 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual("test_events_kp", (eventArgs as SchemaChangeEventArgs).Keyspace);
                 Assert.AreEqual("test_table", (eventArgs as SchemaChangeEventArgs).Table);
 
-                if (connection.ProtocolVersion >= 3)
-                {
-                    //create a udt type
-                    Query(connection, "CREATE TYPE test_events_kp.test_type (street text, city text, zip int);").Wait(1000);
-                    eventHandle.WaitOne(2000);
-                    Assert.IsNotNull(eventArgs);
-                    Assert.IsInstanceOf<SchemaChangeEventArgs>(eventArgs);
+                Query(connection, "CREATE TYPE test_events_kp.test_type (street text, city text, zip int);").Wait(1000);
+                eventHandle.WaitOne(2000);
+                Assert.IsNotNull(eventArgs);
+                Assert.IsInstanceOf<SchemaChangeEventArgs>(eventArgs);
 
-                    Assert.AreEqual(SchemaChangeEventArgs.Reason.Created, (eventArgs as SchemaChangeEventArgs).What);
-                    Assert.AreEqual("test_events_kp", (eventArgs as SchemaChangeEventArgs).Keyspace);
-                    Assert.AreEqual("test_type", (eventArgs as SchemaChangeEventArgs).Type);
-                }
+                Assert.AreEqual(SchemaChangeEventArgs.Reason.Created, (eventArgs as SchemaChangeEventArgs).What);
+                Assert.AreEqual("test_events_kp", (eventArgs as SchemaChangeEventArgs).Keyspace);
+                Assert.AreEqual("test_type", (eventArgs as SchemaChangeEventArgs).Type);
             }
         }
 
@@ -584,12 +581,12 @@ namespace Cassandra.IntegrationTests.Core
                 new QueryOptions(),
                 new DefaultAddressTranslator());
             config.BufferPool = new RecyclableMemoryStreamManager();
-            using (var connection = new Connection(1, new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042), config))
+            using (var connection = new Connection(new Serializer(GetLatestProtocolVersion()), new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042), config))
             {
                 var ex = Assert.Throws<SocketException>(() => TaskHelper.WaitToComplete(connection.Open()));
                 Assert.AreEqual(SocketError.TimedOut, ex.SocketErrorCode);
             }
-            using (var connection = new Connection(1, new IPEndPoint(new IPAddress(new byte[] { 255, 255, 255, 255 }), 9042), config))
+            using (var connection = new Connection(new Serializer(GetLatestProtocolVersion()), new IPEndPoint(new IPAddress(new byte[] { 255, 255, 255, 255 }), 9042), config))
             {
                 Assert.Throws<SocketException>(() => TaskHelper.WaitToComplete(connection.Open()));
             }
@@ -695,7 +692,7 @@ namespace Cassandra.IntegrationTests.Core
                 //execute a dummy query
                 TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default));
                 var called = 0;
-                connection.OnIdleRequestException += (_) => called++;
+                connection.OnIdleRequestException += _ => called++;
                 connection.Kill();
                 Thread.Sleep(2000);
                 Assert.AreEqual(1, called);
@@ -726,7 +723,7 @@ namespace Cassandra.IntegrationTests.Core
                 //execute a dummy query
                 TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default));
                 var called = 0;
-                connection.OnIdleRequestException += (_) => called++;
+                connection.OnIdleRequestException += _ => called++;
                 connection.Kill();
                 Thread.Sleep(defaultHeartbeatInterval + 2000);
                 Assert.AreEqual(1, called);
@@ -783,16 +780,16 @@ namespace Cassandra.IntegrationTests.Core
         private Connection CreateConnection(byte protocolVersion, Configuration config)
         {
             Trace.TraceInformation("Creating test connection using protocol v{0}", protocolVersion);
-            return new Connection(protocolVersion, new IPEndPoint(new IPAddress(new byte[] { 127, 0, 0, 1 }), 9042), config);
+            return new Connection(new Serializer(protocolVersion), new IPEndPoint(new IPAddress(new byte[] { 127, 0, 0, 1 }), 9042), config);
         }
 
-        private static Task<Response> Query(Connection connection, string query, QueryProtocolOptions options = null)
+        private Task<Response> Query(Connection connection, string query, QueryProtocolOptions options = null)
         {
             if (options == null)
             {
                 options = QueryProtocolOptions.Default;
             }
-            var request = new QueryRequest(connection.ProtocolVersion, query, false, options);
+            var request = new QueryRequest(GetLatestProtocolVersion(), query, false, options);
             return connection.Send(request);
         }
 

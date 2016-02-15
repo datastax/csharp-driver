@@ -23,9 +23,9 @@ namespace Cassandra.Serialization.Primitive
             get { return ColumnTypeCode.TinyInt; }
         }
 
-        public override sbyte Deserialize(ushort protocolVersion, byte[] buffer, IColumnInfo typeInfo)
+        public override sbyte Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {
-            return unchecked((sbyte)buffer[0]);
+            return unchecked((sbyte)buffer[offset]);
         }
 
         public override byte[] Serialize(ushort protocolVersion, sbyte value)

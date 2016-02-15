@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -27,18 +28,18 @@ namespace Cassandra
     internal class FrameWriter
     {
         private readonly MemoryStream _stream;
+        private readonly Serializer _serializer;
         private readonly long _offset;
-        /// <summary>
-        /// protocol version
-        /// </summary>
-        private byte _version;
+        private readonly byte _version;
 
         public long Length
         {
-            get
-            { 
-                return _stream.Length; 
-            }
+            get { return _stream.Length; }
+        }
+
+        internal Serializer Serializer
+        {
+            get { return _serializer; }
         }
 
         /// <summary>
@@ -52,10 +53,12 @@ namespace Cassandra
             return buffer;
         }
 
-        public FrameWriter(MemoryStream stream)
+        public FrameWriter(MemoryStream stream, Serializer serializer)
         {
             _stream = stream;
+            _serializer = serializer;
             _offset = stream.Position;
+            _version = serializer.ProtocolVersion;
         }
 
         public void WriteByte(byte value)
@@ -137,13 +140,21 @@ namespace Cassandra
                 WriteInt32(-1);
                 return;
             }
-            if (buffer == TypeCodec.UnsetBuffer)
+            if (buffer == Serializer.UnsetBuffer)
             {
                 WriteInt32(-2);
                 return;
             }
             WriteInt32(buffer.Length);
             Write(buffer);
+        }
+
+        /// <summary>
+        /// Serializes and writes as protocol <c>bytes</c> (length + bytes)
+        /// </summary>
+        public void WriteAsBytes(object value)
+        {
+            WriteBytes(_serializer.Serialize(value));
         }
 
         /// <summary>
@@ -171,20 +182,19 @@ namespace Cassandra
         /// <summary>
         /// Writes the frame header, leaving body length to 0
         /// </summary>
-        public void WriteFrameHeader(byte version, byte flags, short streamId, byte opCode)
+        public void WriteFrameHeader(byte flags, short streamId, byte opCode)
         {
-            _version = version;
             byte[] header;
             if (_version < 3)
             {
                 //8 bytes for the header, dedicating 1 for the streamId
                 if (streamId > 127)
                 {
-                    throw new ArgumentException("StreamId must be smaller than 128 under protocol version " + version);
+                    throw new ArgumentException("StreamId must be smaller than 128 under protocol version " + _version);
                 }
                 header = new byte[]
                 {
-                    version,
+                    _version,
                     flags,
                     (byte) streamId,
                     opCode,
@@ -198,7 +208,7 @@ namespace Cassandra
             var streamIdBytes = BeConverter.GetBytes(streamId);
             header = new byte[]
             {
-                version,
+                _version,
                 flags,
                 streamIdBytes[0],
                 streamIdBytes[1],

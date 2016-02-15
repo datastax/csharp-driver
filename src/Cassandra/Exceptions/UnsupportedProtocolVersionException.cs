@@ -23,10 +23,12 @@ namespace Cassandra
 {
     internal class UnsupportedProtocolVersionException : DriverException
     {
-        public UnsupportedProtocolVersionException(int protocolVersion, Exception innerException) : 
+        public byte ProtocolVersion { get; private set; }
+
+        public UnsupportedProtocolVersionException(byte protocolVersion, Exception innerException) : 
             base(String.Format("Protocol version {0} not supported", protocolVersion), innerException)
         {
-                
+            ProtocolVersion = protocolVersion;
         }
     }
 }

@@ -16,6 +16,7 @@
 
 using System.Collections.Generic;
 using System.IO;
+using Cassandra.Serialization;
 
 namespace Cassandra.Requests
 {
@@ -24,11 +25,8 @@ namespace Cassandra.Requests
         public const byte OpCode = 0x0B;
         private readonly List<string> _eventTypes;
 
-        public int ProtocolVersion { get; set; }
-
-        public RegisterForEventRequest(int protocolVersion, CassandraEventType eventTypes)
+        public RegisterForEventRequest(CassandraEventType eventTypes)
         {
-            ProtocolVersion = protocolVersion;
             _eventTypes = new List<string>();
             if ((eventTypes & CassandraEventType.StatusChange) == CassandraEventType.StatusChange)
             {
@@ -44,10 +42,10 @@ namespace Cassandra.Requests
             }
         }
 
-        public int WriteFrame(short streamId, MemoryStream stream)
+        public int WriteFrame(short streamId, MemoryStream stream, Serializer serializer)
         {
-            var wb = new FrameWriter(stream);
-            wb.WriteFrameHeader((byte)ProtocolVersion, 0x00, streamId, OpCode);
+            var wb = new FrameWriter(stream, serializer);
+            wb.WriteFrameHeader(0x00, streamId, OpCode);
             wb.WriteStringList(_eventTypes);
             return wb.Close();
         }

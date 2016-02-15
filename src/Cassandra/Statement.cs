@@ -74,17 +74,12 @@ namespace Cassandra
         /// <inheritdoc />
         public abstract RoutingKey RoutingKey { get; }
 
-        /// <summary>
-        /// Gets or sets the protocol version used for Routing Key parts encoding
-        /// </summary>
-        internal int ProtocolVersion { get; set; }
-
         /// <inheritdoc />
         public bool? IsIdempotent { get; private set; }
 
         protected Statement()
         {
-            ProtocolVersion = 1;
+
         }
 
         /// <inheritdoc />

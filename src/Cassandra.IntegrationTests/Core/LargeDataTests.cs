@@ -22,6 +22,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using Cassandra.Serialization;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -299,7 +300,7 @@ namespace Cassandra.IntegrationTests.Core
             session.Execute(String.Format("CREATE TABLE {0} (k INT, i {1}, PRIMARY KEY(k,i))", tableName, "BLOB"));
 
             // Build small ByteBuffer sample
-            var bw = new FrameWriter(new MemoryStream());
+            var bw = new FrameWriter(new MemoryStream(), new Serializer(1));
             for (int i = 0; i < 56; i++)
                 bw.WriteByte(0);
             bw.WriteUInt16(0xCAFE);

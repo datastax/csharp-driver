@@ -15,6 +15,7 @@
 //
 
 using System.IO;
+using Cassandra.Serialization;
 
 namespace Cassandra.Requests
 {
@@ -23,18 +24,15 @@ namespace Cassandra.Requests
         public const byte OpCode = 0x0F;
         private readonly byte[] _token;
 
-        public int ProtocolVersion { get; set; }
-
-        public AuthResponseRequest(int protocolVersion, byte[] token)
+        public AuthResponseRequest(byte[] token)
         {
-            ProtocolVersion = protocolVersion;
             _token = token;
         }
 
-        public int WriteFrame(short streamId, MemoryStream stream)
+        public int WriteFrame(short streamId, MemoryStream stream, Serializer serializer)
         {
-            var wb = new FrameWriter(stream);
-            wb.WriteFrameHeader((byte)ProtocolVersion, 0x00, streamId, OpCode);
+            var wb = new FrameWriter(stream, serializer);
+            wb.WriteFrameHeader(0x00, streamId, OpCode);
             wb.WriteBytes(_token);
             return wb.Close();
         }

@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -35,6 +36,11 @@ namespace Cassandra
         ///  Gets the query string for this statement.
         /// </summary>
         public abstract string QueryString { get; }
+
+        /// <summary>
+        /// Gets or sets the serialized used
+        /// </summary>
+        internal Serializer Serializer { get; set; }
 
         protected RegularStatement()
         {

@@ -27,6 +27,7 @@ using Cassandra.Tasks;
 using Cassandra.Compression;
 using Cassandra.Requests;
 using Cassandra.Responses;
+using Cassandra.Serialization;
 using Microsoft.IO;
 
 namespace Cassandra
@@ -36,8 +37,8 @@ namespace Cassandra
     /// </summary>
     internal class Connection : IDisposable
     {
-        // ReSharper disable once InconsistentNaming
-        private static readonly Logger _logger = new Logger(typeof(Connection));
+        private static readonly Logger Logger = new Logger(typeof(Connection));
+        private readonly Serializer _serializer;
         private readonly TcpSocket _tcpSocket;
         private int _disposed;
         /// <summary>
@@ -142,7 +143,7 @@ namespace Cassandra
         {
             get
             {
-                if (ProtocolVersion < 3)
+                if (_serializer.ProtocolVersion < 3)
                 {
                     return 128;
                 }
@@ -155,12 +156,14 @@ namespace Cassandra
 
         public ProtocolOptions Options { get { return Configuration.ProtocolOptions; } }
 
-        public byte ProtocolVersion { get; set; }
-
         public Configuration Configuration { get; set; }
 
-        public Connection(byte protocolVersion, IPEndPoint endpoint, Configuration configuration)
+        public Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration)
         {
+            if (serializer == null)
+            {
+                throw new ArgumentNullException("serializer");
+            }
             if (configuration == null)
             {
                 throw new ArgumentNullException("configuration");
@@ -169,7 +172,7 @@ namespace Cassandra
             {
                 throw new ArgumentNullException(null, "BufferPool can not be null");
             }
-            ProtocolVersion = protocolVersion;
+            _serializer = serializer;
             Configuration = configuration;
             _tcpSocket = new TcpSocket(endpoint, configuration.SocketOptions, configuration.ProtocolOptions.SslOptions);
             _idleTimer = new Timer(IdleTimeoutHandler, null, Timeout.Infinite, Timeout.Infinite);
@@ -184,8 +187,9 @@ namespace Cassandra
         {
             //Determine which authentication flow to use.
             //Check if its using a C* 1.2 with authentication patched version (like DSE 3.1)
-            var isPatchedVersion = ProtocolVersion == 1 && !(Configuration.AuthProvider is NoneAuthProvider) && Configuration.AuthInfoProvider == null;
-            if (ProtocolVersion < 2 && !isPatchedVersion)
+            var protocolVersion = _serializer.ProtocolVersion;
+            var isPatchedVersion = protocolVersion == 1 && !(Configuration.AuthProvider is NoneAuthProvider) && Configuration.AuthInfoProvider == null;
+            if (protocolVersion < 2 && !isPatchedVersion)
             {
                 //Use protocol v1 authentication flow
                 if (Configuration.AuthInfoProvider == null)
@@ -196,7 +200,7 @@ namespace Cassandra
                 }
                 var credentialsProvider = Configuration.AuthInfoProvider;
                 var credentials = credentialsProvider.GetAuthInfos(Address);
-                var request = new CredentialsRequest(ProtocolVersion, credentials);
+                var request = new CredentialsRequest(credentials);
                 return Send(request)
                     .ContinueSync(response =>
                     {
@@ -225,7 +229,7 @@ namespace Cassandra
         /// <exception cref="AuthenticationException" />
         private Task<Response> Authenticate(byte[] token, IAuthenticator authenticator)
         {
-            var request = new AuthResponseRequest(ProtocolVersion, token);
+            var request = new AuthResponseRequest(token);
             return Send(request)
                 .Then(response =>
                 {
@@ -264,10 +268,10 @@ namespace Cassandra
             lock (_cancelLock)
             {
                 _isCanceled = true;
-                _logger.Info("Canceling pending operations {0} and write queue {1}", Thread.VolatileRead(ref _inFlight), _writeQueue.Count);
+                Logger.Info("Canceling pending operations {0} and write queue {1}", Thread.VolatileRead(ref _inFlight), _writeQueue.Count);
                 if (socketError != null)
                 {
-                    _logger.Verbose("The socket status received was {0}", socketError.Value);
+                    Logger.Verbose("The socket status received was {0}", socketError.Value);
                 }
                 if (_pendingOperations.IsEmpty && _writeQueue.IsEmpty)
                 {
@@ -330,7 +334,7 @@ namespace Cassandra
         {
             if (!(response is EventResponse))
             {
-                _logger.Error("Unexpected response type for event: " + response.GetType().Name);
+                Logger.Error("Unexpected response type for event: " + response.GetType().Name);
                 return;
             }
             if (CassandraEventResponse != null)
@@ -350,7 +354,7 @@ namespace Cassandra
                 if (!IsDisposed)
                 {
                     //If it was not manually disposed
-                    _logger.Warning("Can not issue an heartbeat request as connection is closed");
+                    Logger.Warning("Can not issue an heartbeat request as connection is closed");
                     if (OnIdleRequestException != null)
                     {
                         OnIdleRequestException(new SocketException((int)SocketError.NotConnected));
@@ -358,8 +362,8 @@ namespace Cassandra
                 }
                 return;
             }
-            _logger.Verbose("Connection idling, issuing a Request to prevent idle disconnects");
-            var request = new QueryRequest(ProtocolVersion, IdleQuery, false, QueryProtocolOptions.Default);
+            Logger.Verbose("Connection idling, issuing a Request to prevent idle disconnects");
+            var request = new QueryRequest(_serializer.ProtocolVersion, IdleQuery, false, QueryProtocolOptions.Default);
             Send(request, (ex, response) =>
             {
                 if (ex == null)
@@ -368,7 +372,7 @@ namespace Cassandra
                     //There is a valid response but we don't care about the response
                     return;
                 }
-                _logger.Warning("Received heartbeat request exception " + ex.ToString());
+                Logger.Warning("Received heartbeat request exception " + ex.ToString());
                 if (ex is SocketException && OnIdleRequestException != null)
                 {
                     OnIdleRequestException(ex);
@@ -418,20 +422,21 @@ namespace Cassandra
                     {
                         //Adapt the inner exception and rethrow
                         var ex = t.Exception.InnerException;
+                        var protocolVersion = _serializer.ProtocolVersion;
                         if (ex is ProtocolErrorException)
                         {
                             //As we are starting up, check for protocol version errors
                             //There is no other way than checking the error message from Cassandra
                             if (ex.Message.Contains("Invalid or unsupported protocol version"))
                             {
-                                throw new UnsupportedProtocolVersionException(ProtocolVersion, ex);
+                                throw new UnsupportedProtocolVersionException(protocolVersion, ex);
                             }
                         }
-                        if (ex is ServerErrorException && ProtocolVersion >= 3 && ex.Message.Contains("ProtocolException: Invalid or unsupported protocol version"))
+                        if (ex is ServerErrorException && protocolVersion >= 3 && ex.Message.Contains("ProtocolException: Invalid or unsupported protocol version"))
                         {
                             //For some versions of Cassandra, the error is wrapped into a server error
                             //See CASSANDRA-9451
-                            throw new UnsupportedProtocolVersionException(ProtocolVersion, ex);
+                            throw new UnsupportedProtocolVersionException(protocolVersion, ex);
                         }
                         throw ex;
                     }
@@ -495,11 +500,17 @@ namespace Cassandra
             {
                 return false;
             }
+            byte protocolVersion;
             if (_frameHeaderSize == 0)
             {
-                //Read the first byte of the message to determine the version of the response
-                ProtocolVersion = FrameHeader.GetProtocolVersion(buffer);
-                _frameHeaderSize = FrameHeader.GetSize(ProtocolVersion);
+                //The server replies the first message with the max protocol version supported
+                protocolVersion = FrameHeader.GetProtocolVersion(buffer);
+                _serializer.ProtocolVersion = protocolVersion;
+                _frameHeaderSize = FrameHeader.GetSize(protocolVersion);
+            }
+            else
+            {
+                protocolVersion = _serializer.ProtocolVersion;
             }
             //Use _readStream to buffer between messages, under low pressure, it should be null most of the times
             var stream = Interlocked.Exchange(ref _readStream, null);
@@ -528,14 +539,14 @@ namespace Cassandra
                     }
                     if (offset >= 0)
                     {
-                        header = FrameHeader.ParseResponseHeader(ProtocolVersion, buffer, offset);
+                        header = FrameHeader.ParseResponseHeader(protocolVersion, buffer, offset);
                     }
                     else
                     {
-                        header = FrameHeader.ParseResponseHeader(ProtocolVersion, _minimalBuffer, buffer);
+                        header = FrameHeader.ParseResponseHeader(protocolVersion, _minimalBuffer, buffer);
                         _minimalBuffer = null;
                     }
-                    _logger.Verbose("Received #{0} from {1}", header.StreamId, Address);
+                    Logger.Verbose("Received #{0} from {1}", header.StreamId, Address);
                     offset += _frameHeaderSize;
                     remainingBodyLength = header.BodyLength;
                 }
@@ -602,7 +613,7 @@ namespace Cassandra
                         plainTextStream = compressor.Decompress(new WrappedStream(stream, header.BodyLength));
                         plainTextStream.Position = 0;
                     }
-                    response = FrameParser.Parse(new Frame(header, plainTextStream));
+                    response = FrameParser.Parse(new Frame(header, plainTextStream, _serializer));
                 }
                 catch (Exception catchedException)
                 {
@@ -659,7 +670,7 @@ namespace Cassandra
             {
                 startupOptions.Add("COMPRESSION", "snappy");
             }
-            return Send(new StartupRequest(ProtocolVersion, startupOptions));
+            return Send(new StartupRequest(startupOptions));
         }
 
         /// <summary>
@@ -724,10 +735,10 @@ namespace Cassandra
                     //Queue it up for later.
                     _writeQueue.Enqueue(state);
                     //When receiving the next complete message, we can process it.
-                    _logger.Info("Enqueued, no streamIds available. If this message is recurrent consider configuring more connections per host or lower the pressure");
+                    Logger.Info("Enqueued, no streamIds available. If this message is recurrent consider configuring more connections per host or lower the pressure");
                     break;
                 }
-                _logger.Verbose("Sending #{0} for {1} to {2}", streamId, state.Request.GetType().Name, Address);
+                Logger.Verbose("Sending #{0} for {1} to {2}", streamId, state.Request.GetType().Name, Address);
                 _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
                 Interlocked.Increment(ref _inFlight);
                 int frameLength;
@@ -735,7 +746,7 @@ namespace Cassandra
                 {
                     //lazy initialize the stream
                     stream = stream ?? (RecyclableMemoryStream) Configuration.BufferPool.GetStream(GetType().Name + "/SendStream");
-                    frameLength = state.Request.WriteFrame(streamId, stream);
+                    frameLength = state.Request.WriteFrame(streamId, stream, _serializer);
                     if (Configuration.SocketOptions.ReadTimeoutMillis > 0 && Configuration.Timer != null)
                     {
                         state.Timeout = Configuration.Timer.NewTimeout(OnTimeout, streamId, Configuration.SocketOptions.ReadTimeoutMillis);
@@ -744,7 +755,7 @@ namespace Cassandra
                 catch (Exception ex)
                 {
                     //There was an error while serializing or begin sending
-                    _logger.Error(ex);
+                    Logger.Error(ex);
                     //The request was not written, clear it from pending operations
                     RemoveFromPending(streamId);
                     //Callback with the Exception
@@ -847,8 +858,8 @@ namespace Cassandra
                 }
                 return TaskHelper.Completed;
             }
-            var request = new QueryRequest(ProtocolVersion, string.Format("USE \"{0}\"", value), false, QueryProtocolOptions.Default);
-            _logger.Info("Connection to host {0} switching to keyspace {1}", Address, value);
+            var request = new QueryRequest(_serializer.ProtocolVersion, string.Format("USE \"{0}\"", value), false, QueryProtocolOptions.Default);
+            Logger.Info("Connection to host {0} switching to keyspace {1}", Address, value);
             keyspaceSwitch = _keyspaceSwitchTask = Send(request).ContinueSync(r =>
             {
                 _keyspace = value;

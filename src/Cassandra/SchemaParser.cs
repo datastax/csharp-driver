@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Cassandra.Serialization;
 using Cassandra.Tasks;
 using SortOrder = Cassandra.DataCollectionMetadata.SortOrder;
 
@@ -189,7 +190,7 @@ namespace Cassandra
                         {
                             foreach (var row in columnsMetadata)
                             {
-                                var dataType = TypeCodec.ParseFqTypeName(row.GetValue<string>("validator"));
+                                var dataType = DataTypeParser.ParseFqTypeName(row.GetValue<string>("validator"));
                                 var col = new TableColumn
                                 {
                                     Name = row.GetValue<string>("column_name"),
@@ -285,7 +286,7 @@ namespace Cassandra
                                 //also, compact pk, ck and val appear as is_dense false
                                 // clusteringKeys != comparator types - 1
                                 // or not composite (comparator)
-                                options.isCompactStorage = !comparator.StartsWith(TypeCodec.CompositeTypeName);
+                                options.isCompactStorage = !comparator.StartsWith(DataTypeParser.CompositeTypeName);
                             }
                             var result = new TableMetadata(tableName, GetIndexesFromColumns(columns.Values));
                             result.SetValues(
@@ -327,7 +328,7 @@ namespace Cassandra
             var types = new ColumnDesc[indexes.Count - 1];
             for (var i = 0; i < types.Length; i++)
             {
-                types[i] = TypeCodec.ParseFqTypeName(typesString, indexes[i], indexes[i + 1] - indexes[i] - 1);
+                types[i] = DataTypeParser.ParseFqTypeName(typesString, indexes[i], indexes[i + 1] - indexes[i] - 1);
             }
             return types;
         }
@@ -367,7 +368,7 @@ namespace Cassandra
                     var fieldTypes = row.GetValue<string[]>("field_types");
                     for (var i = 0; i < fieldNames.Length && i < fieldTypes.Length; i++)
                     {
-                        var field = TypeCodec.ParseFqTypeName(fieldTypes[i]);
+                        var field = DataTypeParser.ParseFqTypeName(fieldTypes[i]);
                         field.Name = fieldNames[i];
                         udt.Fields.Add(field);
                     }
@@ -397,8 +398,8 @@ namespace Cassandra
                         Body = row.GetValue<string>("body"),
                         CalledOnNullInput = row.GetValue<bool>("called_on_null_input"),
                         Language = row.GetValue<string>("language"),
-                        ReturnType = TypeCodec.ParseFqTypeName(row.GetValue<string>("return_type")),
-                        ArgumentTypes = (row.GetValue<string[]>("argument_types") ?? emptyArray).Select(s => TypeCodec.ParseFqTypeName(s)).ToArray()
+                        ReturnType = DataTypeParser.ParseFqTypeName(row.GetValue<string>("return_type")),
+                        ArgumentTypes = (row.GetValue<string[]>("argument_types") ?? emptyArray).Select(s => DataTypeParser.ParseFqTypeName(s)).ToArray()
                     };
                 });
         }
@@ -423,18 +424,27 @@ namespace Cassandra
                         KeyspaceName = row.GetValue<string>("keyspace_name"),
                         Signature = row.GetValue<string[]>("signature") ?? emptyArray,
                         StateFunction = row.GetValue<string>("state_func"),
-                        StateType = TypeCodec.ParseFqTypeName(row.GetValue<string>("state_type")),
+                        StateType = DataTypeParser.ParseFqTypeName(row.GetValue<string>("state_type")),
                         FinalFunction = row.GetValue<string>("final_func"),
-                        ReturnType = TypeCodec.ParseFqTypeName(row.GetValue<string>("return_type")),
-                        ArgumentTypes = (row.GetValue<string[]>("argument_types") ?? emptyArray).Select(s => TypeCodec.ParseFqTypeName(s)).ToArray(),
+                        ReturnType = DataTypeParser.ParseFqTypeName(row.GetValue<string>("return_type")),
+                        ArgumentTypes = (row.GetValue<string[]>("argument_types") ?? emptyArray).Select(s => DataTypeParser.ParseFqTypeName(s)).ToArray(),
                     };
-                    var initConditionRaw = TypeCodec.Decode(Cc.ProtocolVersion, row.GetValue<byte[]>("initcond"), aggregate.StateType.TypeCode, aggregate.StateType.TypeInfo);
+                    var initConditionRaw = Deserialize(Cc, row.GetValue<byte[]>("initcond"), aggregate.StateType.TypeCode, aggregate.StateType.TypeInfo);
                     if (initConditionRaw != null)
                     {
                         aggregate.InitialCondition = initConditionRaw.ToString();   
                     }
                     return aggregate;
                 });
+        }
+
+        private static object Deserialize(IMetadataQueryProvider cc, byte[] buffer, ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        {
+            if (buffer == null)
+            {
+                return null;
+            }
+            return cc.Serializer.Deserialize(buffer, 0, buffer.Length, typeCode, typeInfo);
         }
     }
 
@@ -582,7 +592,7 @@ namespace Cassandra
             Task<Tuple<TableColumn, Row>>[] columnTasks = columnsMetadata
                 .Select(row =>
                 {
-                    return TypeCodec.ParseTypeName(_udtResolver, tableMetadataRow.GetValue<string>("keyspace_name"), row.GetValue<string>("type")).
+                    return DataTypeParser.ParseTypeName(_udtResolver, tableMetadataRow.GetValue<string>("keyspace_name"), row.GetValue<string>("type")).
                         ContinueSync(type => Tuple.Create(new TableColumn
                         {
                             Name = row.GetValue<string>("column_name"),
@@ -695,7 +705,7 @@ namespace Cassandra
                     }
                     var udt = new UdtColumnInfo(row.GetValue<string>("keyspace_name") + "." + row.GetValue<string>("type_name"));
                     var fieldTypeTasks = row.GetValue<string[]>("field_types")
-                        .Select(name => TypeCodec.ParseTypeName(_udtResolver, keyspaceName, name))
+                        .Select(name => DataTypeParser.ParseTypeName(_udtResolver, keyspaceName, name))
                         .ToArray();
                     return Task.Factory.ContinueWhenAll(fieldTypeTasks, tasks =>
                     {
@@ -731,11 +741,11 @@ namespace Cassandra
                     var argumentTypes = row.GetValue<string[]>("argument_types") ?? new string[0];
                     //state_type + return_type + amount of argument types
                     var parseTasks = new Task<ColumnDesc>[2 + argumentTypes.Length];
-                    parseTasks[0] = TypeCodec.ParseTypeName(_udtResolver, row.GetValue<string>("keyspace_name"), row.GetValue<string>("state_type"));
-                    parseTasks[1] = TypeCodec.ParseTypeName(_udtResolver, row.GetValue<string>("keyspace_name"), row.GetValue<string>("return_type"));
+                    parseTasks[0] = DataTypeParser.ParseTypeName(_udtResolver, row.GetValue<string>("keyspace_name"), row.GetValue<string>("state_type"));
+                    parseTasks[1] = DataTypeParser.ParseTypeName(_udtResolver, row.GetValue<string>("keyspace_name"), row.GetValue<string>("return_type"));
                     for (var i = 0; i < argumentTypes.Length; i++)
                     {
-                        parseTasks[2 + i] = TypeCodec.ParseTypeName(_udtResolver, row.GetValue<string>("keyspace_name"), argumentTypes[i]);
+                        parseTasks[2 + i] = DataTypeParser.ParseTypeName(_udtResolver, row.GetValue<string>("keyspace_name"), argumentTypes[i]);
                     }
                     return Task.Factory.ContinueWhenAll(parseTasks, tasks =>
                     {
@@ -774,10 +784,10 @@ namespace Cassandra
                     }
                     var argumentTypes = row.GetValue<string[]>("argument_types") ?? new string[0];
                     var parseTasks = new Task<ColumnDesc>[1 + argumentTypes.Length];
-                    parseTasks[0] = TypeCodec.ParseTypeName(_udtResolver, row.GetValue<string>("keyspace_name"), row.GetValue<string>("return_type"));
+                    parseTasks[0] = DataTypeParser.ParseTypeName(_udtResolver, row.GetValue<string>("keyspace_name"), row.GetValue<string>("return_type"));
                     for (var i = 0; i < argumentTypes.Length; i++)
                     {
-                        parseTasks[1 + i] = TypeCodec.ParseTypeName(_udtResolver, row.GetValue<string>("keyspace_name"), argumentTypes[i]);
+                        parseTasks[1 + i] = DataTypeParser.ParseTypeName(_udtResolver, row.GetValue<string>("keyspace_name"), argumentTypes[i]);
                     }
                     return Task.Factory.ContinueWhenAll(parseTasks, tasks =>
                     {

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Cassandra.Serialization;
 using NUnit.Framework;
 #pragma warning disable 618
 
@@ -12,9 +13,9 @@ namespace Cassandra.Tests
     {
         private const string Query = "SELECT * ...";
 
-        private static PreparedStatement GetPrepared(string query = Query, RowSetMetadata metadata = null, int protocolVersion = 3)
+        private static PreparedStatement GetPrepared(string query = Query, RowSetMetadata metadata = null, byte protocolVersion = 3)
         {
-            return new PreparedStatement(metadata, new byte[0], query, null, protocolVersion);
+            return new PreparedStatement(metadata, new byte[0], query, null, new Serializer(protocolVersion));
         }
 
         [Test]
@@ -146,7 +147,7 @@ namespace Cassandra.Tests
             Assert.Null(ps.RoutingKey);
             var bound = ps.Bind("dummy name", 1000);
             Assert.NotNull(bound.RoutingKey);
-            CollectionAssert.AreEqual(TypeCodec.Encode(protocolVersion, 1000), bound.RoutingKey.RawRoutingKey);
+            CollectionAssert.AreEqual(new Serializer(2).Serialize(1000), bound.RoutingKey.RawRoutingKey);
         }
 
         [Test]
@@ -180,12 +181,13 @@ namespace Cassandra.Tests
             Assert.Null(ps.RoutingKey);
             var bound = ps.Bind(2001, 1001);
             Assert.NotNull(bound.RoutingKey);
+            var serializer = new Serializer(protocolVersion);
             var expectedRoutingKey = new byte[0]
                 .Concat(new byte[] {0, 4})
-                .Concat(TypeCodec.Encode(protocolVersion, 1001))
+                .Concat(serializer.Serialize(1001))
                 .Concat(new byte[] {0})
                 .Concat(new byte[] {0, 4})
-                .Concat(TypeCodec.Encode(protocolVersion, 2001))
+                .Concat(serializer.Serialize(2001))
                 .Concat(new byte[] {0});
             CollectionAssert.AreEqual(expectedRoutingKey, bound.RoutingKey.RawRoutingKey);
         }
@@ -197,8 +199,8 @@ namespace Cassandra.Tests
             var stmt = new SimpleStatement(Query, "id1");
             Assert.Null(stmt.RoutingKey);
             stmt.SetRoutingValues("id1");
-            stmt.ProtocolVersion = protocolVersion;
-            CollectionAssert.AreEqual(TypeCodec.Encode(protocolVersion, "id1"), stmt.RoutingKey.RawRoutingKey);
+            stmt.Serializer = new Serializer(protocolVersion);
+            CollectionAssert.AreEqual(stmt.Serializer.Serialize("id1"), stmt.RoutingKey.RawRoutingKey);
         }
 
         [Test]
@@ -208,13 +210,13 @@ namespace Cassandra.Tests
             var stmt = new SimpleStatement(Query, "id1", "id2", "val1");
             Assert.Null(stmt.RoutingKey);
             stmt.SetRoutingValues("id1", "id2");
-            stmt.ProtocolVersion = protocolVersion;
+            stmt.Serializer = new Serializer(protocolVersion);
             var expectedRoutingKey = new byte[0]
                 .Concat(new byte[] { 0, 3 })
-                .Concat(TypeCodec.Encode(protocolVersion, "id1"))
+                .Concat(stmt.Serializer.Serialize("id1"))
                 .Concat(new byte[] { 0 })
                 .Concat(new byte[] { 0, 3 })
-                .Concat(TypeCodec.Encode(protocolVersion, "id2"))
+                .Concat(stmt.Serializer.Serialize("id2"))
                 .Concat(new byte[] { 0 });
             CollectionAssert.AreEqual(expectedRoutingKey, stmt.RoutingKey.RawRoutingKey);
         }
@@ -226,8 +228,8 @@ namespace Cassandra.Tests
             var batch = new BatchStatement();
             Assert.Null(batch.RoutingKey);
             batch.SetRoutingValues("id1-value");
-            batch.ProtocolVersion = protocolVersion;
-            CollectionAssert.AreEqual(TypeCodec.Encode(protocolVersion, "id1-value"), batch.RoutingKey.RawRoutingKey);
+            batch.Serializer = new Serializer(protocolVersion);
+            CollectionAssert.AreEqual(batch.Serializer.Serialize("id1-value"), batch.RoutingKey.RawRoutingKey);
         }
 
         [Test]
@@ -237,13 +239,13 @@ namespace Cassandra.Tests
             var batch = new BatchStatement();
             Assert.Null(batch.RoutingKey);
             batch.SetRoutingValues("id11", "id22");
-            batch.ProtocolVersion = protocolVersion;
+            batch.Serializer = new Serializer(protocolVersion);
             var expectedRoutingKey = new byte[0]
                 .Concat(new byte[] { 0, 4 })
-                .Concat(TypeCodec.Encode(protocolVersion, "id11"))
+                .Concat(batch.Serializer.Serialize("id11"))
                 .Concat(new byte[] { 0 })
                 .Concat(new byte[] { 0, 4 })
-                .Concat(TypeCodec.Encode(protocolVersion, "id22"))
+                .Concat(batch.Serializer.Serialize("id22"))
                 .Concat(new byte[] { 0 });
             CollectionAssert.AreEqual(expectedRoutingKey, batch.RoutingKey.RawRoutingKey);
         }

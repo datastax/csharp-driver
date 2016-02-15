@@ -26,6 +26,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Compression;
 using Cassandra.Responses;
+using Cassandra.Serialization;
 using Cassandra.Tasks;
 using Microsoft.IO;
 
@@ -103,13 +104,14 @@ namespace Cassandra.Tests
         {
             const int frameLength = 10;
             const int iterations = 8;
+            const byte protocolVersion = 2;
             var bufferPool = new RecyclableMemoryStreamManager();
             using (var stream = bufferPool.GetStream("test"))
             {
                 for (var i = 0; i < iterations; i++)
                 {
-                    var writer = new FrameWriter(stream);
-                    writer.WriteFrameHeader(2, 0, 127, 8);
+                    var writer = new FrameWriter(stream, new Serializer(protocolVersion));
+                    writer.WriteFrameHeader(0, 127, 8);
                     writer.WriteInt16(Convert.ToInt16(0x0900 + i));
                     var length = writer.Close();
                     Assert.AreEqual(frameLength, length);

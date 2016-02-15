@@ -27,31 +27,26 @@ namespace Cassandra.Serialization
             get { return ColumnTypeCode.Map; }
         }
 
-        public override IDictionary Deserialize(ushort protocolVersion, byte[] buffer, IColumnInfo typeInfo)
+        public override IDictionary Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {
             var mapInfo = (MapColumnInfo) typeInfo;
             var keyType = GetClrType(mapInfo.KeyTypeCode, mapInfo.KeyTypeInfo);
             var valueType = GetClrType(mapInfo.ValueTypeCode, mapInfo.ValueTypeInfo);
-            var offset = 0;
             var count = DecodeCollectionLength(protocolVersion, buffer, ref offset);
             var openType = typeof(SortedDictionary<,>);
             var dicType = openType.MakeGenericType(keyType, valueType);
             var result = (IDictionary)Activator.CreateInstance(dicType);
             for (var i = 0; i < count; i++)
             {
-                var keyBufferLength = DecodeCollectionLength(protocolVersion, buffer, ref offset);
-                var keyBuffer = new byte[keyBufferLength];
-                Buffer.BlockCopy(buffer, offset, keyBuffer, 0, keyBufferLength);
-                offset += keyBufferLength;
+                var keyLength = DecodeCollectionLength(protocolVersion, buffer, ref offset);
+                var key = DeserializeChild(buffer, offset, keyLength, mapInfo.KeyTypeCode, mapInfo.KeyTypeInfo);
+                offset += keyLength;
 
-                var valueBufferLength = DecodeCollectionLength(protocolVersion, buffer, ref offset);
-                var valueBuffer = new byte[valueBufferLength];
-                Buffer.BlockCopy(buffer, offset, valueBuffer, 0, valueBufferLength);
-                offset += valueBufferLength;
+                var valueLength = DecodeCollectionLength(protocolVersion, buffer, ref offset);
+                var value = DeserializeChild(buffer, offset, valueLength, mapInfo.ValueTypeCode, mapInfo.ValueTypeInfo);
+                offset += valueLength;
 
-                result.Add(
-                    DeserializeChild(keyBuffer, mapInfo.KeyTypeCode, mapInfo.KeyTypeInfo),
-                    DeserializeChild(valueBuffer, mapInfo.ValueTypeCode, mapInfo.ValueTypeInfo));
+                result.Add(key, value);
             }
             return result;
         }

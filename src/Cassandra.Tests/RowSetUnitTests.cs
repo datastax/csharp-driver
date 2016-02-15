@@ -423,7 +423,7 @@ namespace Cassandra.Tests
         [Test]
         public void Row_TryConvertToType_Should_Convert_Timestamps()
         {
-            var timestampTypeInfo = new ColumnDesc {TypeCode = ColumnTypeCode.Timestamp};
+            var timestampTypeInfo = new CqlColumn {TypeCode = ColumnTypeCode.Timestamp};
             var values = new[]
             {
                 //column desc, value, type and expected type
@@ -434,7 +434,7 @@ namespace Cassandra.Tests
             };
             foreach (var item in values)
             {
-                var value = Row.TryConvertToType(item[0], (ColumnDesc)item[1], (Type)item[2]);
+                var value = Row.TryConvertToType(item[0], (CqlColumn)item[1], (Type)item[2]);
                 Assert.AreEqual(item.Length > 3 ? item[3] : item[2], value.GetType());
             }
         }
@@ -442,7 +442,12 @@ namespace Cassandra.Tests
         [Test]
         public void Row_TryConvertToType_Should_Convert_Lists()
         {
-            var listIntTypeInfo = new ColumnDesc { TypeCode = ColumnTypeCode.List, TypeInfo = new ListColumnInfo { ValueTypeCode = ColumnTypeCode.Int } };
+            var listIntTypeInfo = new CqlColumn
+            {
+                TypeCode = ColumnTypeCode.List, 
+                TypeInfo = new ListColumnInfo { ValueTypeCode = ColumnTypeCode.Int },
+                Type = typeof(IEnumerable<int>)
+            };
             var values = new[]
             {
                 new object[] {new [] {1, 2, 3}, listIntTypeInfo, typeof(int[])},
@@ -453,7 +458,7 @@ namespace Cassandra.Tests
             };
             foreach (var item in values)
             {
-                var value = Row.TryConvertToType(item[0], (ColumnDesc)item[1], (Type)item[2]);
+                var value = Row.TryConvertToType(item[0], (CqlColumn)item[1], (Type)item[2]);
                 Assert.AreEqual(item.Length > 3 ? item[3] : item[2], value.GetType());
                 CollectionAssert.AreEqual((int[])item[0], (IEnumerable<int>)value);
             }
@@ -462,7 +467,12 @@ namespace Cassandra.Tests
         [Test]
         public void Row_TryConvertToType_Should_Convert_Sets()
         {
-            var setIntTypeInfo = new ColumnDesc { TypeCode = ColumnTypeCode.Set, TypeInfo = new SetColumnInfo { KeyTypeCode = ColumnTypeCode.Int } };
+            var setIntTypeInfo = new CqlColumn
+            {
+                TypeCode = ColumnTypeCode.Set, 
+                TypeInfo = new SetColumnInfo { KeyTypeCode = ColumnTypeCode.Int },
+                Type = typeof(IEnumerable<int>)
+            };
             var values = new[]
             {
                 new object[] {new [] {1, 2, 3}, setIntTypeInfo, typeof(int[])},
@@ -474,7 +484,7 @@ namespace Cassandra.Tests
             };
             foreach (var item in values)
             {
-                var value = Row.TryConvertToType(item[0], (ColumnDesc)item[1], (Type)item[2]);
+                var value = Row.TryConvertToType(item[0], (CqlColumn)item[1], (Type)item[2]);
                 Assert.AreEqual(item.Length > 3 ? item[3] : item[2], value.GetType());
                 CollectionAssert.AreEqual((int[]) item[0], (IEnumerable<int>) value);
             }

@@ -25,9 +25,9 @@ namespace Cassandra.Serialization.Primitive
             get { return ColumnTypeCode.Timeuuid; }
         }
 
-        public override TimeUuid Deserialize(ushort protocolVersion, byte[] buffer, IColumnInfo typeInfo)
+        public override TimeUuid Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {
-            return new Guid(GuidShuffle(buffer));
+            return new Guid(GuidShuffle(buffer, offset));
         }
 
         public override byte[] Serialize(ushort protocolVersion, TimeUuid value)

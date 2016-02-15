@@ -20,6 +20,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+﻿using Cassandra.Serialization;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -78,7 +79,7 @@ namespace Cassandra.IntegrationTests.Core
             Session.Execute(insertStatement.SetTimestamp(timestamp));
             var row = Session.Execute(new SimpleStatement(String.Format("SELECT id, text_sample, writetime(text_sample) FROM {0} WHERE id = ?", AllTypesTableName), id)).First();
             Assert.NotNull(row.GetValue<string>("text_sample"));
-            Assert.AreEqual(TypeCodec.ToUnixTime(timestamp).Ticks / 10, row.GetValue<object>("writetime(text_sample)"));
+            Assert.AreEqual(TypeSerializer.SinceUnixEpoch(timestamp).Ticks / 10, row.GetValue<object>("writetime(text_sample)"));
         }
 
         [Test]

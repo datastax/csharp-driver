@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Cassandra.Serialization;
 
 namespace Cassandra.Requests
 {
@@ -35,19 +36,15 @@ namespace Cassandra.Requests
 
         public IDictionary<string, byte[]> Payload { get; set; }
 
-        public int ProtocolVersion { get; set; }
-
         public BatchRequest(int protocolVersion, BatchStatement statement, ConsistencyLevel consistency)
         {
-            ProtocolVersion = protocolVersion;
-            if (ProtocolVersion < 2)
+            if (protocolVersion < 2)
             {
                 throw new NotSupportedException("Batch request is supported in C* >= 2.0.x");
             }
-
             _type = statement.BatchType;
             _requests = statement.Queries
-                .Select(q => q.CreateBatchRequest(ProtocolVersion))
+                .Select(q => q.CreateBatchRequest(protocolVersion))
                 .ToArray();
             Consistency = consistency;
             _timestamp = statement.Timestamp;
@@ -78,16 +75,17 @@ namespace Cassandra.Requests
             }
         }
 
-        public int WriteFrame(short streamId, MemoryStream stream)
+        public int WriteFrame(short streamId, MemoryStream stream, Serializer serializer)
         {
             //protocol v2: <type><n><query_1>...<query_n><consistency>
             //protocol v3: <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
-            var wb = new FrameWriter(stream);
+            var protocolVersion = serializer.ProtocolVersion;
+            var wb = new FrameWriter(stream, serializer);
             if (Payload != null)
             {
                 _headerFlags |= FrameHeader.HeaderFlag.CustomPayload;
             }
-            wb.WriteFrameHeader((byte)ProtocolVersion, (byte)_headerFlags, streamId, OpCode);
+            wb.WriteFrameHeader((byte)_headerFlags, streamId, OpCode);
             if (Payload != null)
             {
                 //A custom payload for this request
@@ -97,10 +95,10 @@ namespace Cassandra.Requests
             wb.WriteInt16((short) _requests.Count);
             foreach (var br in _requests)
             {
-                br.WriteToBatch((byte)ProtocolVersion, wb);
+                br.WriteToBatch(wb);
             }
             wb.WriteInt16((short) Consistency);
-            if (ProtocolVersion >= 3)
+            if (protocolVersion >= 3)
             {
                 wb.WriteByte((byte)_batchFlags);
             }
@@ -111,7 +109,7 @@ namespace Cassandra.Requests
             if (_timestamp != null)
             {
                 //Expressed in microseconds
-                wb.WriteLong(TypeCodec.ToUnixTime(_timestamp.Value).Ticks / 10);
+                wb.WriteLong(TypeSerializer.SinceUnixEpoch(_timestamp.Value).Ticks / 10);
             }
             return wb.Close();
         }

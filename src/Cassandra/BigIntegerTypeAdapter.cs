@@ -16,6 +16,7 @@
 
 using System;
 using System.Numerics;
+using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -33,7 +34,7 @@ namespace Cassandra
 
         public byte[] ConvertTo(object value)
         {
-            TypeCodec.CheckArgument<BigInteger>(value);
+            TypeSerializer.CheckArgument<BigInteger>(value);
             return ((BigInteger) value).ToByteArray();
         }
     }

@@ -161,6 +161,23 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Returns a new buffer as a slice of the provided buffer, if offset is greater than zero or count does not 
+        /// match buffer length. Returns the same instance otherwise.
+        /// </summary>
+        /// <param name="value">The Buffer to slice</param>
+        /// <param name="offset">zero-based index</param>
+        /// <param name="count"></param>
+        /// <returns></returns>
+        public static byte[] FromOffset(byte[] value, int offset, int count)
+        {
+            if (offset == 0 && value.Length == count)
+            {
+                return value;
+            }
+            return SliceBuffer(value, offset, count);
+        }
+
+        /// <summary>
         /// Returns a new buffer with the bytes copied from the source buffer
         /// </summary>
         public static byte[] CopyBuffer(byte[] buffer)

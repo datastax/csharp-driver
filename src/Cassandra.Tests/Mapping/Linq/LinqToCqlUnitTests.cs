@@ -23,6 +23,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
+using Cassandra.Serialization;
 using Cassandra.Tests.Mapping.Pocos;
 using Moq;
 using NUnit.Framework;
@@ -336,7 +337,15 @@ APPLY BATCH".Replace("\r", ""));
         public void CreateTableCounterTest()
         {
             var actualCqlQueries = new List<string>();
-            var sessionMock = new Mock<ISession>();
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            var config = new Configuration();
+            var metadata = new Metadata(config);
+            var ccMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            ccMock.Setup(cc => cc.Serializer).Returns(new Serializer(4));
+            metadata.ControlConnection = ccMock.Object;
+            var clusterMock = new Mock<ICluster>();
+            clusterMock.Setup(c => c.Metadata).Returns(metadata);
+            sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -535,7 +544,15 @@ APPLY BATCH".Replace("\r", ""));
             Assert.AreEqual("SELECT \"Id\", \"Description\", \"Name\" FROM \"InheritedEntity\" WHERE \"Id\" = ?", query1.ToString());
             var query2 = (from e in table where e.Id == 1 && e.Name == "MyName" select new { e.Id, e.Name, e.Description });
             Assert.AreEqual("SELECT \"Id\", \"Name\", \"Description\" FROM \"InheritedEntity\" WHERE \"Id\" = ? AND \"Name\" = ?", query2.ToString());
-            var sessionMock = new Mock<ISession>();
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            var config = new Configuration();
+            var metadata = new Metadata(config);
+            var ccMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            ccMock.Setup(cc => cc.Serializer).Returns(new Serializer(4));
+            metadata.ControlConnection = ccMock.Object;
+            var clusterMock = new Mock<ICluster>();
+            clusterMock.Setup(c => c.Metadata).Returns(metadata);
+            sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             string createQuery = null;
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))

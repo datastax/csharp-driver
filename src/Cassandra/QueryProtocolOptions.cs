@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -132,11 +133,12 @@ namespace Cassandra
         }
 
         //TODO: Move to ExecuteRequest and QueryRequest
-        internal void Write(FrameWriter wb, byte protocolVersion, bool isPrepared)
+        internal void Write(FrameWriter wb, bool isPrepared)
         {
             //protocol v1: <query><n><value_1>....<value_n><consistency>
             //protocol v2: <query><consistency><flags>[<n><value_1>...<value_n>][<result_page_size>][<paging_state>][<serial_consistency>]
             //protocol v3: <query><consistency><flags>[<n>[name_1]<value_1>...[name_n]<value_n>][<result_page_size>][<paging_state>][<serial_consistency>][<timestamp>]
+            var protocolVersion = wb.Serializer.ProtocolVersion;
             var flags = GetFlags();
 
             if (protocolVersion > 1)
@@ -155,9 +157,7 @@ namespace Cassandra
                         var name = ValueNames[i];
                         wb.WriteString(name);
                     }
-                    var v = Values[i];
-                    var bytes = TypeCodec.Encode(protocolVersion, v);
-                    wb.WriteBytes(bytes);
+                    wb.WriteAsBytes(Values[i]);
                 }
             }
             else if (protocolVersion == 1 && isPrepared)
@@ -188,7 +188,7 @@ namespace Cassandra
             if (Timestamp != null)
             {
                 //Expressed in microseconds
-                wb.WriteLong(TypeCodec.ToUnixTime(Timestamp.Value).Ticks / 10);
+                wb.WriteLong(TypeSerializer.SinceUnixEpoch(Timestamp.Value).Ticks / 10);
             }
         }
     }

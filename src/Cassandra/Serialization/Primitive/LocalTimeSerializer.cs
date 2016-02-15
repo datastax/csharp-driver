@@ -23,9 +23,9 @@ namespace Cassandra.Serialization.Primitive
             get { return ColumnTypeCode.Time; }
         }
 
-        public override LocalTime Deserialize(ushort protocolVersion, byte[] buffer, IColumnInfo typeInfo)
+        public override LocalTime Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {
-            return new LocalTime(BeConverter.ToInt64(buffer));
+            return new LocalTime(BeConverter.ToInt64(buffer, offset));
         }
 
         public override byte[] Serialize(ushort protocolVersion, LocalTime value)

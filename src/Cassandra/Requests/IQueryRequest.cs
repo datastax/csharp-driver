@@ -28,6 +28,6 @@ namespace Cassandra.Requests
         /// <summary>
         /// Method used by the batch to build each individual request
         /// </summary>
-        void WriteToBatch(byte protocolVersion, FrameWriter writer);
+        void WriteToBatch(FrameWriter writer);
     }
 }

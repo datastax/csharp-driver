@@ -16,6 +16,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Cassandra.Serialization;
 
 namespace Cassandra.Requests
 {
@@ -23,23 +24,21 @@ namespace Cassandra.Requests
     {
         public const byte OpCode = 0x04;
         private readonly IDictionary<string, string> _credentials;
-        public int ProtocolVersion { get; set; }
 
-        public CredentialsRequest(int protocolVersion, IDictionary<string, string> credentials)
+        public CredentialsRequest(IDictionary<string, string> credentials)
         {
-            ProtocolVersion = protocolVersion;
             _credentials = credentials;
         }
 
-        public int WriteFrame(short streamId, MemoryStream stream)
+        public int WriteFrame(short streamId, MemoryStream stream, Serializer serializer)
         {
-            if (ProtocolVersion > 1)
+            if (serializer.ProtocolVersion > 1)
             {
                 throw new NotSupportedException("Credentials request is only supported in C* = 1.2.x");
             }
 
-            var wb = new FrameWriter(stream);
-            wb.WriteFrameHeader((byte)ProtocolVersion, 0x00, streamId, OpCode);
+            var wb = new FrameWriter(stream, serializer);
+            wb.WriteFrameHeader(0x00, streamId, OpCode);
             wb.WriteUInt16((ushort) _credentials.Count);
             foreach (var kv in _credentials)
             {

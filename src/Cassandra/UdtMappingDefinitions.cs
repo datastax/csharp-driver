@@ -17,6 +17,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+﻿using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -28,12 +29,14 @@ namespace Cassandra
         private readonly ConcurrentDictionary<Type, UdtMap> _udtByNetType;
         private readonly ICluster _cluster;
         private readonly ISession _session;
+        private readonly Serializer _serializer;
 
-        internal UdtMappingDefinitions(ISession session)
+        internal UdtMappingDefinitions(ISession session, Serializer serializer)
         {
             _udtByNetType = new ConcurrentDictionary<Type, UdtMap>();
             _cluster = session.Cluster;
             _session = session;
+            _serializer = serializer;
         }
 
         /// <summary>
@@ -59,8 +62,9 @@ namespace Cassandra
             foreach (var map in udtMaps)
             {
                 var udtDefition = GetDefinition(keyspace, map);
+                map.SetSerializer(_serializer);
                 map.Build(udtDefition);
-                TypeCodec.SetUdtMap(udtDefition.Name, map);
+                _serializer.SetUdtMap(udtDefition.Name, map);
                 _udtByNetType.AddOrUpdate(map.NetType, map, (k, oldValue) => map);
             }
         }

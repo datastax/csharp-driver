@@ -16,6 +16,7 @@
 
 using System.Collections.Generic;
 using System.IO;
+using Cassandra.Serialization;
 
 namespace Cassandra.Requests
 {
@@ -24,18 +25,15 @@ namespace Cassandra.Requests
         public const byte OpCode = 0x01;
         private readonly IDictionary<string, string> _options;
 
-        public int ProtocolVersion { get; set; }
-
-        public StartupRequest(int protocolVersion, IDictionary<string, string> options)
+        public StartupRequest(IDictionary<string, string> options)
         {
-            ProtocolVersion = protocolVersion;
             _options = options;
         }
 
-        public int WriteFrame(short streamId, MemoryStream stream)
+        public int WriteFrame(short streamId, MemoryStream stream, Serializer serializer)
         {
-            var wb = new FrameWriter(stream);
-            wb.WriteFrameHeader((byte)ProtocolVersion, 0x00, streamId, OpCode);
+            var wb = new FrameWriter(stream, serializer);
+            wb.WriteFrameHeader(0x00, streamId, OpCode);
             wb.WriteUInt16((ushort) _options.Count);
             foreach (var kv in _options)
             {

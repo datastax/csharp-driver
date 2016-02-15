@@ -15,6 +15,7 @@
 //
 
 using System;
+using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -57,7 +58,7 @@ namespace Cassandra
 
         public byte[] ConvertTo(object value)
         {
-            TypeCodec.CheckArgument<decimal>(value);
+            TypeSerializer.CheckArgument<decimal>(value);
             var decimalValue = (decimal)value;
             int[] bits = decimal.GetBits(decimalValue);
 

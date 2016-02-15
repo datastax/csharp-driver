@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
+using Cassandra.Serialization;
 using Cassandra.Tasks;
 using Cassandra.Tests.Mapping.FluentMappings;
 using Moq;
@@ -87,7 +88,7 @@ namespace Cassandra.Tests.Mapping
         /// </summary>
         protected PreparedStatement GetPrepared(string query = null)
         {
-            return new PreparedStatement(null, null, query, null, 2);
+            return new PreparedStatement(null, null, query, null, new Serializer(2));
         }
 
         [TearDown]

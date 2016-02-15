@@ -305,7 +305,7 @@ namespace Cassandra
                     Name = rawColumns[i].Name,
                     Keyspace = rawColumns[i].Keyspace,
                     Table = rawColumns[i].Table,
-                    Type = TypeCodec.GetDefaultTypeFromCqlType(
+                    Type = reader.Serializer.GetClrType(
                         rawColumns[i].TypeCode,
                         rawColumns[i].TypeInfo),
                     TypeCode = rawColumns[i].TypeCode,

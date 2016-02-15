@@ -23,7 +23,7 @@ namespace Cassandra.Serialization.Primitive
 
         public override ColumnTypeCode CqlType
         {
-            get { return ColumnTypeCode.Varchar; }
+            get { return ColumnTypeCode.Text; }
         }
 
         public StringSerializer(Encoding encoding)
@@ -31,9 +31,9 @@ namespace Cassandra.Serialization.Primitive
             _encoding = encoding;
         }
 
-        public override string Deserialize(ushort protocolVersion, byte[] buffer, IColumnInfo typeInfo)
+        public override string Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {
-            return _encoding.GetString(buffer);
+            return _encoding.GetString(buffer, offset, length);
         }
 
         public override byte[] Serialize(ushort protocolVersion, string value)

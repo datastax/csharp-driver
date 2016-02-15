@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Requests;
+using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -26,6 +27,7 @@ namespace Cassandra
     /// </summary>
     public class BatchStatement : Statement
     {
+        private static readonly Logger Logger = new Logger(typeof(BatchStatement));
         private readonly List<Statement> _queries = new List<Statement>();
         private BatchType _batchType = BatchType.Logged;
         private RoutingKey _routingKey;
@@ -70,13 +72,22 @@ namespace Cassandra
                 {
                     return null;
                 }
-                //Calculate the routing key
+                //Calculate the routing key based on Routing values
+                var serializer = Serializer;
+                if (serializer == null)
+                {
+                    serializer = Serializer.Default;
+                    Logger.Warning("Calculating routing key before executing is not supporting for BatchStatements, " +
+                                   "using default serializer.");
+                }
                 return RoutingKey.Compose(
                     _routingValues
-                    .Select(key => new RoutingKey(TypeCodec.Encode(ProtocolVersion, key)))
+                    .Select(value => new RoutingKey(serializer.Serialize(value)))
                     .ToArray());
             }
         }
+
+        internal Serializer Serializer { get; set; }
 
         /// <summary>
         ///  Set the routing key for this query. <p> This method allows to manually

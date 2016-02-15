@@ -24,6 +24,7 @@ using System.Threading.Tasks;
 using Cassandra.Tasks;
 using Cassandra.Requests;
 using Cassandra.Responses;
+using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -46,12 +47,16 @@ namespace Cassandra
         private int _isShutdown;
         private int _refreshCounter;
         private Task<bool> _reconnectTask;
+        private readonly Serializer _serializer;
         public const int MetadataAbortTimeout = 12000;
 
         /// <summary>
-        /// Gets the recommended binary protocol version to be used for this cluster.
+        /// Gets the binary protocol version to be used for this cluster.
         /// </summary>
-        public byte ProtocolVersion { get; private set; }
+        public byte ProtocolVersion 
+        {
+            get { return _serializer.ProtocolVersion; }
+        }
 
         internal Host Host
         {
@@ -71,6 +76,11 @@ namespace Cassandra
             }
         }
 
+        public Serializer Serializer
+        {
+            get { return _serializer; }
+        }
+
         internal ControlConnection(byte initialProtocolVersion, Configuration config, Metadata metadata)
         {
             _metadata = metadata;
@@ -78,7 +88,7 @@ namespace Cassandra
             _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             _reconnectionTimer = new Timer(_ => Reconnect(), null, Timeout.Infinite, Timeout.Infinite);
             _config = config;
-            ProtocolVersion = initialProtocolVersion;
+            _serializer = new Serializer(initialProtocolVersion);
         }
 
         public void Dispose()
@@ -138,7 +148,7 @@ namespace Cassandra
                 return TaskHelper.FromException<bool>(new NoHostAvailableException(triedHosts));
             }
             var host = hostsEnumerator.Current;
-            var c = new Connection(ProtocolVersion, host.Address, _config);
+            var c = new Connection(_serializer, host.Address, _config);
             return ((Task) c
                 .Open())
                 .ContinueWith(t =>
@@ -156,14 +166,8 @@ namespace Cassandra
                         if (ex is UnsupportedProtocolVersionException)
                         {
                             //Use the protocol version used to parse the response message
-                            var nextVersion = c.ProtocolVersion;
-                            if (nextVersion >= ProtocolVersion)
-                            {
-                                //Processor could reorder instructions in such way that the connection protocol version is not up to date.
-                                nextVersion = (byte)(ProtocolVersion - 1);
-                            }
-                            _logger.Info(String.Format("Unsupported protocol version {0}, trying with version {1}", ProtocolVersion, nextVersion));
-                            ProtocolVersion = nextVersion;
+                            var nextVersion = _serializer.ProtocolVersion;
+                            _logger.Info(string.Format("{0}, trying with version {1}", ex.Message, nextVersion));
                             c.Dispose();
                             if (ProtocolVersion < 1)
                             {
@@ -305,7 +309,7 @@ namespace Cassandra
             _host.Down += OnHostDown;
             _connection.CassandraEventResponse += OnConnectionCassandraEvent;
             //Register to events on the connection
-            var registerTask = _connection.Send(new RegisterForEventRequest(ProtocolVersion, CassandraEventTypes));
+            var registerTask = _connection.Send(new RegisterForEventRequest(CassandraEventTypes));
             TaskHelper.WaitToComplete(registerTask, 10000);
             if (!(registerTask.Result is ReadyResponse))
             {
@@ -567,6 +571,8 @@ namespace Cassandra
         /// The address of the endpoint used by the ControlConnection
         /// </summary>
         IPEndPoint Address { get; }
+
+        Serializer Serializer { get; }
 
         Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry = false);
 

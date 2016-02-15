@@ -5,6 +5,7 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using Cassandra.Responses;
+using Cassandra.Serialization;
 using Microsoft.IO;
 using Moq;
 using NUnit.Framework;
@@ -17,14 +18,22 @@ namespace Cassandra.Tests
         private static readonly IPEndPoint Address = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1000);
         private const int TestFrameLength = 12;
 
+        private static Mock<Connection> GetConnectionMock(Configuration config = null)
+        {
+            if (config == null)
+            {
+                config = new Configuration
+                {
+                    BufferPool = new RecyclableMemoryStreamManager()
+                };   
+            }
+            return new Mock<Connection>(MockBehavior.Loose, new Serializer(2), Address, config);
+        }
+
         [Test]
         public void ReadParse_Handles_Complete_Frames_In_Different_Buffers()
         {
-            var config = new Configuration
-            {
-                BufferPool = new RecyclableMemoryStreamManager()
-            };
-            var connectionMock = new Mock<Connection>(MockBehavior.Loose, (byte)2, Address, config);
+            var connectionMock = GetConnectionMock();
             var streamIds = new List<short>();
             var responses = new List<Response>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
@@ -48,11 +57,7 @@ namespace Cassandra.Tests
         [Test]
         public void ReadParse_Handles_Complete_Frames_In_A_Single_Frame()
         {
-            var config = new Configuration
-            {
-                BufferPool = new RecyclableMemoryStreamManager()
-            };
-            var connectionMock = new Mock<Connection>(MockBehavior.Loose, (byte)2, Address, config);
+            var connectionMock = GetConnectionMock();
             var streamIds = new List<short>();
             var responses = new List<Response>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
@@ -69,11 +74,7 @@ namespace Cassandra.Tests
         [Test]
         public void ReadParse_Handles_UnComplete_Header()
         {
-            var config = new Configuration
-            {
-                BufferPool = new RecyclableMemoryStreamManager()
-            };
-            var connectionMock = new Mock<Connection>(MockBehavior.Loose, (byte)2, Address, config);
+            var connectionMock = GetConnectionMock();
             var streamIds = new List<short>();
             var responses = new List<Response>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
@@ -98,11 +99,7 @@ namespace Cassandra.Tests
         [Test]
         public void ReadParse_Handles_UnComplete_Header_In_Multiple_Messages()
         {
-            var config = new Configuration
-            {
-                BufferPool = new RecyclableMemoryStreamManager()
-            };
-            var connectionMock = new Mock<Connection>(MockBehavior.Loose, (byte)2, Address, config);
+            var connectionMock = GetConnectionMock();
             var streamIds = new List<short>();
             var responses = new List<Response>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
@@ -134,11 +131,7 @@ namespace Cassandra.Tests
         [Test]
         public void ReadParse_Handles_UnComplete_Body()
         {
-            var config = new Configuration
-            {
-                BufferPool = new RecyclableMemoryStreamManager()
-            };
-            var connectionMock = new Mock<Connection>(MockBehavior.Loose, (byte)2, Address, config);
+            var connectionMock = GetConnectionMock();
             var streamIds = new List<short>();
             var responses = new List<Response>();
             var exceptions = new List<Exception>();
@@ -173,11 +166,7 @@ namespace Cassandra.Tests
         [Test]
         public void ReadParse_Handles_UnComplete_Body_In_Multiple_Messages()
         {
-            var config = new Configuration
-            {
-                BufferPool = new RecyclableMemoryStreamManager()
-            };
-            var connectionMock = new Mock<Connection>(MockBehavior.Loose, (byte)2, Address, config);
+            var connectionMock = GetConnectionMock();
             var streamIds = new List<short>();
             var responses = new List<Response>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
@@ -207,11 +196,7 @@ namespace Cassandra.Tests
         [Test]
         public void ReadParse_Handles_UnComplete_Body_Multiple_Times()
         {
-            var config = new Configuration
-            {
-                BufferPool = new RecyclableMemoryStreamManager()
-            };
-            var connectionMock = new Mock<Connection>(MockBehavior.Loose, (byte)2, Address, config);
+            var connectionMock = GetConnectionMock();
             var streamIds = new List<short>();
             var responses = new List<Response>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
@@ -251,11 +236,7 @@ namespace Cassandra.Tests
         [Test]
         public void ReadParse_Handles_UnComplete_Body_With_Following_Frames()
         {
-            var config = new Configuration
-            {
-                BufferPool = new RecyclableMemoryStreamManager()
-            };
-            var connectionMock = new Mock<Connection>(MockBehavior.Loose, (byte)2, Address, config);
+            var connectionMock = GetConnectionMock();
             var streamIds = new List<short>();
             var responses = new List<Response>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))

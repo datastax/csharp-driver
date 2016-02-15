@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+﻿using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -77,8 +78,11 @@ namespace Cassandra
     /// </summary>
     public abstract class UdtMap
     {
+        // ReSharper disable InconsistentNaming
         protected readonly Dictionary<string, PropertyInfo> _fieldNameToProperty;
         protected readonly Dictionary<PropertyInfo, string> _propertyToFieldName;
+        // ReSharper enable InconsistentNaming
+        private Serializer _serializer;
         protected const BindingFlags PropertyFlags = BindingFlags.FlattenHierarchy | BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
 
         protected internal Type NetType { get; protected set; }
@@ -101,6 +105,11 @@ namespace Cassandra
 
             _fieldNameToProperty = new Dictionary<string, PropertyInfo>();
             _propertyToFieldName = new Dictionary<PropertyInfo, string>();
+        }
+
+        internal void SetSerializer(Serializer serializer)
+        {
+            _serializer = serializer;
         }
 
         protected void AddPropertyMapping(PropertyInfo propInfo, string udtFieldName)
@@ -161,6 +170,10 @@ namespace Cassandra
 
         private void Validate()
         {
+            if (_serializer == null)
+            {
+                throw new DriverInternalError("Serializer can not be null");
+            }
             //Check that the field type and the property type matches
             foreach (var field in Definition.Fields)
             {
@@ -169,18 +182,17 @@ namespace Cassandra
                     //We deal with nested UDTs later
                     continue;
                 }
-                var prop = this.GetPropertyForUdtField(field.Name);
+                var prop = GetPropertyForUdtField(field.Name);
                 if (prop == null)
                 {
                     //No mapping defined
-                    //MAYBE: throw an exception
                     continue;
                 }
                 //Check if its assignable to and from
-                var fieldTargetType = TypeCodec.GetDefaultTypeFromCqlType(field.TypeCode, field.TypeInfo);
+                var fieldTargetType = _serializer.GetClrType(field.TypeCode, field.TypeInfo);
                 if (!prop.PropertyType.IsAssignableFrom(fieldTargetType))
                 {
-                    throw new InvalidTypeException(String.Format("{0} type {1} is not assignable to {2}", field.Name, fieldTargetType.Name, prop.PropertyType.Name));
+                    throw new InvalidTypeException(string.Format("{0} type {1} is not assignable to {2}", field.Name, fieldTargetType.Name, prop.PropertyType.Name));
                 }
             }
             //Check that there isn't a map to a non existent field

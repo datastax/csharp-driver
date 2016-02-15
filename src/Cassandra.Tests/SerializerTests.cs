@@ -115,12 +115,12 @@ namespace Cassandra.Tests
                 //Lists
                 new object[] {new List<int>(new [] {1, 2, 1000}), ColumnTypeCode.List, new ListColumnInfo() {ValueTypeCode = ColumnTypeCode.Int}},
                 new object[] {new List<double>(new [] {-1D, 2.333D, 1.2D}), ColumnTypeCode.List, new ListColumnInfo() {ValueTypeCode = ColumnTypeCode.Double}},
-                new object[] {new double[] {5D, 4.333D, 1.2D}, ColumnTypeCode.List, new ListColumnInfo() {ValueTypeCode = ColumnTypeCode.Double}},
+                new object[] {new [] {5D, 4.333D, 1.2D}, ColumnTypeCode.List, new ListColumnInfo() {ValueTypeCode = ColumnTypeCode.Double}},
                 //Sets
                 new object[] {new List<decimal>(new [] {-1M, 2.333M, 1.2M, 256M}), ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Decimal}},
                 new object[] {new SortedSet<string>(new [] {"a", "b", "c"}), ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Text}},
                 new object[] {new HashSet<string>(new [] {"ADADD", "AA", "a"}), ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Text}},
-                new object[] {new string[] {"ADADD", "AA", "a"}, ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Text}}
+                new object[] {new [] {"ADADD", "AA", "a"}, ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Text}}
             };
             foreach (var version in _protocolVersions)
             {
@@ -201,7 +201,6 @@ namespace Cassandra.Tests
         [Test]
         public void EncodeDecodeTupleAsSubtypeFactoryTest()
         {
-            const int version = 3;
             var initialValues = new object[]
             {
                 new object[]
@@ -406,14 +405,16 @@ namespace Cassandra.Tests
                 Tuple.Create<object, byte[]>(2.2D, new byte[] {0x40, 1, 0x99, 0x99, 0x99, 0x99, 0x99, 0x9a}),
                 Tuple.Create<object, byte[]>(-1D, new byte[] {0xbf, 0xf0, 0, 0, 0, 0, 0, 0}),
                 Tuple.Create<object, byte[]>(-1F, new byte[] {0xbf, 0x80, 0, 0}),
-                Tuple.Create<object, byte[]>(1.3329F, new byte[] {0x3f, 0xaa, 0x9c, 0x78})
+                Tuple.Create<object, byte[]>(1.3329F, new byte[] {0x3f, 0xaa, 0x9c, 0x78}),
+                Tuple.Create<object, byte[]>("abc", new byte[] {0x61, 0x62, 0x63})
             };
-            var serializer = NewInstance(3);
+            var serializer = NewInstance();
             foreach (var val in values)
             {
                 var encoded = serializer.Serialize(val.Item1);
                 CollectionAssert.AreEqual(val.Item2, encoded);
-                Assert.AreEqual(val.Item1, serializer.Deserialize(encoded, serializer.GetCqlTypeForPrimitive(val.Item1.GetType()), null));
+                var padEncoded = new byte[] {0xFF, 0xFA}.Concat(encoded).ToArray();
+                Assert.AreEqual(val.Item1, serializer.Deserialize(padEncoded, 2, encoded.Length, serializer.GetCqlTypeForPrimitive(val.Item1.GetType()), null));
             }
         }
 
@@ -459,7 +460,7 @@ namespace Cassandra.Tests
             }
         }
 
-        private static Serializer NewInstance(ushort protocolVersion = 4)
+        private static Serializer NewInstance(byte protocolVersion = 4)
         {
             return new Serializer(protocolVersion);
         }
@@ -500,6 +501,20 @@ namespace Cassandra.Tests
                 columnInfo.KeyTypeInfo = GetNestedSetColumnInfo(level - 1, singleType);
             }
             return columnInfo;
+        }
+    }
+
+    public static class SerializedExtensions
+    {
+        internal static object Deserialize(this Serializer serializer, byte[] buffer, ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        {
+            return serializer.Deserialize(buffer, 0, buffer.Length, typeCode, typeInfo);
+        }
+
+        internal static ColumnTypeCode GetCqlTypeForPrimitive(this Serializer serializer, Type type)
+        {
+            IColumnInfo dummyInfo;
+            return serializer.GetCqlType(type, out dummyInfo);
         }
     }
 }

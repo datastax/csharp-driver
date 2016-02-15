@@ -24,9 +24,9 @@ namespace Cassandra.Serialization.Primitive
             get { return ColumnTypeCode.Timestamp; }
         }
 
-        public override DateTime Deserialize(ushort protocolVersion, byte[] buffer, IColumnInfo typeInfo)
+        public override DateTime Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {
-            var dto = DateTimeOffsetSerializer.Deserialize(buffer);
+            var dto = DateTimeOffsetSerializer.Deserialize(buffer, offset);
             return dto.DateTime;
         }
 

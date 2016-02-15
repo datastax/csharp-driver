@@ -21,6 +21,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Collections;
+using Cassandra.Serialization;
 using Cassandra.Tasks;
 
 namespace Cassandra.Requests
@@ -48,16 +49,26 @@ namespace Cassandra.Requests
 
         public Policies Policies { get; private set; }
         public IRetryPolicy RetryPolicy { get; private set; }
+        public Serializer Serializer { get; private set; }
         public IStatement Statement { get; private set; }
 
         /// <summary>
         /// Creates a new instance using a request and the statement.
         /// </summary>
-        public RequestHandler(ISession session, IRequest request, IStatement statement)
+        public RequestHandler(ISession session, Serializer serializer, IRequest request, IStatement statement)
         {
+            if (session == null)
+            {
+                throw new ArgumentNullException("session");
+            }
+            if (serializer == null)
+            {
+                throw new ArgumentNullException("session");
+            }
             _tcs = new TaskCompletionSource<T>();
             _session = session;
             _request = request;
+            Serializer = serializer;
             Statement = statement;
             Policies = _session.Cluster.Configuration.Policies;
             RetryPolicy = session.Cluster.Configuration.Policies.RetryPolicy;
@@ -74,8 +85,8 @@ namespace Cassandra.Requests
         /// <summary>
         /// Creates a new instance using a request with no statement.
         /// </summary>
-        public RequestHandler(ISession session, IRequest request)
-            : this(session, request, null)
+        public RequestHandler(ISession session, Serializer serializer, IRequest request)
+            : this(session, serializer, request, null)
         {
 
         }
@@ -84,8 +95,8 @@ namespace Cassandra.Requests
         /// Creates a new instance using the statement to build the request.
         /// Statement can not be null.
         /// </summary>
-        public RequestHandler(ISession session, IStatement statement)
-            : this(session, GetRequest(statement, session.BinaryProtocolVersion, session.Cluster.Configuration), statement)
+        public RequestHandler(ISession session, Serializer serializer, IStatement statement)
+            : this(session, serializer, GetRequest(statement, serializer, session.Cluster.Configuration), statement)
         {
 
         }
@@ -93,8 +104,8 @@ namespace Cassandra.Requests
         /// <summary>
         /// Creates a new instance with no request, suitable for getting a connection.
         /// </summary>
-        public RequestHandler(ISession session)
-            : this(session, null, null)
+        public RequestHandler(ISession session, Serializer serializer)
+            : this(session, serializer, null, null)
         {
 
         }
@@ -102,33 +113,33 @@ namespace Cassandra.Requests
         /// <summary>
         /// Gets the Request to send to a cassandra node based on the statement type
         /// </summary>
-        internal static IRequest GetRequest(IStatement statement, int protocolVersion, Configuration config)
+        internal static IRequest GetRequest(IStatement statement, Serializer serializer, Configuration config)
         {
             ICqlRequest request = null;
             if (statement is RegularStatement)
             {
                 var s = (RegularStatement)statement;
-                s.ProtocolVersion = protocolVersion;
+                s.Serializer = serializer;
                 var options = QueryProtocolOptions.CreateFromQuery(s, config.QueryOptions);
                 options.ValueNames = s.QueryValueNames;
-                request = new QueryRequest(protocolVersion, s.QueryString, s.IsTracing, options);
+                request = new QueryRequest(serializer.ProtocolVersion, s.QueryString, s.IsTracing, options);
             }
             if (statement is BoundStatement)
             {
                 var s = (BoundStatement)statement;
                 var options = QueryProtocolOptions.CreateFromQuery(s, config.QueryOptions);
-                request = new ExecuteRequest(protocolVersion, s.PreparedStatement.Id, null, s.IsTracing, options);
+                request = new ExecuteRequest(serializer.ProtocolVersion, s.PreparedStatement.Id, null, s.IsTracing, options);
             }
             if (statement is BatchStatement)
             {
                 var s = (BatchStatement)statement;
-                s.ProtocolVersion = protocolVersion;
+                s.Serializer = serializer;
                 var consistency = config.QueryOptions.GetConsistencyLevel();
                 if (s.ConsistencyLevel != null)
                 {
                     consistency = s.ConsistencyLevel.Value;
                 }
-                request = new BatchRequest(protocolVersion, s, consistency);
+                request = new BatchRequest(serializer.ProtocolVersion, s, consistency);
             }
             if (request == null)
             {

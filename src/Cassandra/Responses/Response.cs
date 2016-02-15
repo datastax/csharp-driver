@@ -15,6 +15,7 @@
 //
 
 using System;
+using Cassandra.Serialization;
 using HeaderFlag = Cassandra.FrameHeader.HeaderFlag;
 
 namespace Cassandra.Responses
@@ -42,14 +43,14 @@ namespace Cassandra.Responses
                     frame.Header.BodyLength, frame.Body.Length - frame.Body.Position, frame.Body.Position));
             }
 
-            Reader = new FrameReader(frame.Body);
+            Reader = new FrameReader(frame.Body, frame.Serializer);
 
             if (frame.Header.Flags.HasFlag(HeaderFlag.Tracing))
             {
                 //If a response frame has the tracing flag set, the first item in its body is the trace id
                 var buffer = new byte[16];
                 Reader.Read(buffer, 0, 16);
-                TraceId = new Guid(TypeCodec.GuidShuffle(buffer));
+                TraceId = new Guid(TypeSerializer.GuidShuffle(buffer));
             }
         }
     }

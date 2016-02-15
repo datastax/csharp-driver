@@ -15,6 +15,7 @@
 //
 
 using System;
+using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -32,7 +33,7 @@ namespace Cassandra
 
         public byte[] ConvertTo(object value)
         {
-            TypeCodec.CheckArgument<byte[]>(value);
+            TypeSerializer.CheckArgument<byte[]>(value);
             return (byte[]) value;
         }
     }

@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
+using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -30,10 +31,17 @@ namespace Cassandra
         /// </summary>
         private readonly byte[] _buffer = new byte[4];
         private readonly Stream _stream;
+        private readonly Serializer _serializer;
 
-        public FrameReader(Stream stream)
+        internal Serializer Serializer
+        {
+            get { return _serializer; }
+        }
+
+        public FrameReader(Stream stream, Serializer serializer)
         {
             _stream = stream;
+            _serializer = serializer;
         }
 
         public byte ReadByte()
@@ -152,7 +160,10 @@ namespace Cassandra
         public byte[] ReadBytes()
         {
             var length = ReadInt32();
-            if (length < 0) return null;
+            if (length < 0)
+            {
+                return null;
+            }
             var buf = new byte[length];
             Read(buf, 0, length);
             return buf;
@@ -161,6 +172,16 @@ namespace Cassandra
         public void Read(byte[] buffer, int offset, int count)
         {
             _stream.Read(buffer, offset, count);
+        }
+
+        /// <summary>
+        /// Reads from the internal stream, starting from offset, the amount of bytes defined by count and deserializes
+        /// the bytes.
+        /// </summary>
+        internal object ReadFromBytes(byte[] buffer, int offset, int length, ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        {
+            _stream.Read(buffer, offset, length);
+            return _serializer.Deserialize(buffer, 0, length, typeCode, typeInfo);
         }
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
+using Cassandra.Serialization;
 using Cassandra.Tests.Mapping.Pocos;
 using Moq;
 using NUnit.Framework;
@@ -17,7 +18,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Composite_Partition_Key()
         {
             string createQuery = null;
-            var sessionMock = new Mock<ISession>();
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -38,7 +39,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Composite_Partition_Key_And_Clustering_Key()
         {
             string createQuery = null;
-            var sessionMock = new Mock<ISession>();
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -60,7 +61,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Fluent_Clustering_Key()
         {
             string createQuery = null;
-            var sessionMock = new Mock<ISession>();
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -84,7 +85,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Fluent_Clustering_Key_And_Clustering_Order()
         {
             string createQuery = null;
-            var sessionMock = new Mock<ISession>();
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -108,7 +109,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Composite_Partition_Key_And_Clustering_Key_Explicit()
         {
             string createQuery = null;
-            var sessionMock = new Mock<ISession>();
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -133,7 +134,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Counter()
         {
             string createQuery = null;
-            var sessionMock = new Mock<ISession>();
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -154,7 +155,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Static()
         {
             string createQuery = null;
-            var sessionMock = new Mock<ISession>();
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -178,7 +179,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Secondary_Index()
         {
             var createQueries = new List<string>();
-            var sessionMock = new Mock<ISession>();
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -201,7 +202,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Compact_Storage()
         {
             string createQuery = null;
-            var sessionMock = new Mock<ISession>();
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -223,7 +224,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Fully_Qualified_Table_Name_Case_Sensitive()
         {
             string createQuery = null;
-            var sessionMock = new Mock<ISession>();
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -246,7 +247,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Fully_Qualified_Table_Name_Case_Insensitive()
         {
             var createQueries = new List<string>();
-            var sessionMock = new Mock<ISession>();
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -272,7 +273,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Linq_Decorated()
         {
             var createQueries = new List<string>();
-            var sessionMock = new Mock<ISession>();
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -289,7 +290,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Static_Column_Linq_Decorated()
         {
             var createQueries = new List<string>();
-            var sessionMock = new Mock<ISession>();
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -307,7 +308,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Varint()
         {
             string createQuery = null;
-            var sessionMock = new Mock<ISession>();
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -324,7 +325,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Ignored_Prop()
         {
             string createQuery = null;
-            var sessionMock = new Mock<ISession>();
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -339,7 +340,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_MappingDecorated_TimeSeries()
         {
             string createQuery = null;
-            var sessionMock = new Mock<ISession>();
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -355,7 +356,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Collections()
         {
             string createQuery = null;
-            var sessionMock = new Mock<ISession>();
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -373,7 +374,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Tuple()
         {
             string createQuery = null;
-            var sessionMock = new Mock<ISession>();
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -393,7 +394,8 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Frozen_Udt()
         {
             string createQuery = null;
-            var sessionMock = new Mock<ISession>();
+            var serializer = new Serializer(4);
+            var sessionMock = GetSessionMock(serializer);
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -408,8 +410,9 @@ namespace Cassandra.Tests.Mapping.Linq
             udtInfo.Fields.Add(new ColumnDesc { Name = "title", TypeCode = ColumnTypeCode.Ascii });
             udtInfo.Fields.Add(new ColumnDesc { Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp });
             var udtMap = UdtMap.For<Song>();
+            udtMap.SetSerializer(serializer);
             udtMap.Build(udtInfo);
-            TypeCodec.SetUdtMap("song", udtMap);
+            serializer.SetUdtMap("song", udtMap);
             var table = GetTable<UdtAndTuplePoco>(sessionMock.Object, definition);
             table.Create();
             Assert.AreEqual("CREATE TABLE tbl1 (id uuid, my_udt frozen<song>, PRIMARY KEY (id))", createQuery);
@@ -419,7 +422,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Frozen_Tuple()
         {
             string createQuery = null;
-            var sessionMock = new Mock<ISession>();
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -439,7 +442,8 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Frozen_Collection_Key()
         {
             string createQuery = null;
-            var sessionMock = new Mock<ISession>();
+            var serializer = new Serializer(4);
+            var sessionMock = GetSessionMock(serializer);
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -455,8 +459,9 @@ namespace Cassandra.Tests.Mapping.Linq
             udtInfo.Fields.Add(new ColumnDesc { Name = "title", TypeCode = ColumnTypeCode.Ascii });
             udtInfo.Fields.Add(new ColumnDesc { Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp });
             var udtMap = UdtMap.For<Song>();
+            udtMap.SetSerializer(serializer);
             udtMap.Build(udtInfo);
-            TypeCodec.SetUdtMap("song", udtMap);
+            serializer.SetUdtMap("song", udtMap);
             var table = GetTable<UdtAndTuplePoco>(sessionMock.Object, definition);
             table.Create();
             Assert.AreEqual("CREATE TABLE tbl1 (id uuid, my_set set<frozen<song>>, my_map map<frozen<tuple<double, double>>, text>, PRIMARY KEY (id))", createQuery);
@@ -466,7 +471,8 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Frozen_Collection_Value()
         {
             string createQuery = null;
-            var sessionMock = new Mock<ISession>();
+            var serializer = new Serializer(4);
+            var sessionMock = GetSessionMock(serializer);
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -482,11 +488,30 @@ namespace Cassandra.Tests.Mapping.Linq
             udtInfo.Fields.Add(new ColumnDesc { Name = "title", TypeCode = ColumnTypeCode.Ascii });
             udtInfo.Fields.Add(new ColumnDesc { Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp });
             var udtMap = UdtMap.For<Song>();
+            udtMap.SetSerializer(serializer);
             udtMap.Build(udtInfo);
-            TypeCodec.SetUdtMap("song", udtMap);
+            serializer.SetUdtMap("song", udtMap);
             var table = GetTable<UdtAndTuplePoco>(sessionMock.Object, definition);
             table.Create();
             Assert.AreEqual("CREATE TABLE tbl1 (id uuid, my_list list<frozen<song>>, my_map map<text, frozen<tuple<double, double>>>, PRIMARY KEY (id))", createQuery);
+        }
+
+        private static Mock<ISession> GetSessionMock(Serializer serializer = null)
+        {
+            if (serializer == null)
+            {
+                serializer = new Serializer(4);
+            }
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            var config = new Configuration();
+            var metadata = new Metadata(config);
+            var ccMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            ccMock.Setup(cc => cc.Serializer).Returns(serializer);
+            metadata.ControlConnection = ccMock.Object;
+            var clusterMock = new Mock<ICluster>();
+            clusterMock.Setup(c => c.Metadata).Returns(metadata);
+            sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
+            return sessionMock;
         }
     }
 }

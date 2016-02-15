@@ -16,6 +16,7 @@
 
 using System.Collections.Generic;
 using System.IO;
+using Cassandra.Serialization;
 
 namespace Cassandra.Requests
 {
@@ -28,8 +29,6 @@ namespace Cassandra.Requests
         /// The CQL string to be prepared
         /// </summary>
         public string Query { get; set; }
-
-        public int ProtocolVersion { get; set; }
 
         public IDictionary<string, byte[]> Payload
         {
@@ -44,16 +43,15 @@ namespace Cassandra.Requests
             }
         }
 
-        public PrepareRequest(int protocolVersion, string cqlQuery)
+        public PrepareRequest(string cqlQuery)
         {
-            ProtocolVersion = protocolVersion;
             Query = cqlQuery;
         }
 
-        public int WriteFrame(short streamId, MemoryStream stream)
+        public int WriteFrame(short streamId, MemoryStream stream, Serializer serializer)
         {
-            var wb = new FrameWriter(stream);
-            wb.WriteFrameHeader((byte)ProtocolVersion, (byte)_headerFlags, streamId, OpCode);
+            var wb = new FrameWriter(stream, serializer);
+            wb.WriteFrameHeader((byte)_headerFlags, streamId, OpCode);
             if (Payload != null)
             {
                 wb.WriteBytesMap(Payload);
