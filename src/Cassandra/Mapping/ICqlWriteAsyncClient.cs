@@ -33,6 +33,28 @@ namespace Cassandra.Mapping
         Task InsertAsync<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null);
 
         /// <summary>
+        /// Inserts the specified POCO in Cassandra.
+        /// </summary>
+        /// <param name="poco">The POCO instance</param>
+        /// <param name="insertNulls">
+        /// Determines if the query must be generated using <c>NULL</c> values for <c>null</c> POCO
+        /// members. 
+        /// <para>
+        /// Use <c>false</c> if you don't want to consider <c>null</c> values for the INSERT 
+        /// operation (recommended).
+        /// </para> 
+        /// <para>
+        /// Use <c>true</c> if you want to override all the values in the table,
+        /// generating tombstones for null values.
+        /// </para>
+        /// </param>
+        /// <param name="ttl">Time to live (in seconds) for the inserted values. If set, the inserted values are automatically removed
+        /// from the database after the specified time.</param>
+        /// <param name="queryOptions">Optional query options</param>
+        /// <returns></returns>
+        Task InsertAsync<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null);
+
+        /// <summary>
         /// Updates the POCO specified in Cassandra.
         /// </summary>
         Task UpdateAsync<T>(T poco, CqlQueryOptions queryOptions = null);
