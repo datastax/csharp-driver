@@ -103,6 +103,27 @@ namespace Cassandra.Mapping
 
         /// <summary>
         /// Inserts the specified POCO in Cassandra, if not exists.
+        /// </summary>
+        /// <param name="poco">The POCO instance</param>
+        /// <param name="insertNulls">
+        /// Determines if the query must be generated using <c>NULL</c> values for <c>null</c> POCO
+        /// members. 
+        /// <para>
+        /// Use <c>false</c> if you don't want to consider <c>null</c> values for the INSERT
+        /// operation (recommended).
+        /// </para> 
+        /// <para>
+        /// Use <c>true</c> if you want to override all the values in the table,
+        /// generating tombstones for null values.
+        /// </para>
+        /// </param>
+        /// <param name="ttl">Ttl for entity</param>
+        /// <param name="queryOptions">Optional query options</param>
+        /// <returns></returns>
+        Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null);
+
+        /// <summary>
+        /// Inserts the specified POCO in Cassandra, if not exists.
         /// <para>
         /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
         /// </para>
@@ -128,6 +149,27 @@ namespace Cassandra.Mapping
         /// <param name="queryOptions">Optional query options</param>
         /// <returns></returns>
         AppliedInfo<T> InsertIfNotExists<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null);
+
+        /// <summary>
+        /// Inserts the specified POCO in Cassandra, if not exists.
+        /// </summary>
+        /// <param name="poco">The POCO instance</param>
+        /// <param name="insertNulls">
+        /// Determines if the query must be generated using <c>NULL</c> values for <c>null</c> POCO
+        /// members. 
+        /// <para>
+        /// Use <c>false</c> if you don't want to consider <c>null</c> values for the INSERT
+        /// operation (recommended).
+        /// </para> 
+        /// <para>
+        /// Use <c>true</c> if you want to override all the values in the table,
+        /// generating tombstones for null values.
+        /// </para>
+        /// </param>
+        /// <param name="ttl">Ttl for entity</param>
+        /// <param name="queryOptions">Optional query options</param>
+        /// <returns></returns>
+        AppliedInfo<T> InsertIfNotExists<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null);
 
         /// <summary>
         /// Updates the table for the poco type specified (T) using the CQL statement specified, using lightweight transactions.

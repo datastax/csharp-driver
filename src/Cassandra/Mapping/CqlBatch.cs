@@ -36,8 +36,14 @@ namespace Cassandra.Mapping
 
         public void Insert<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null)
         {
-            Insert(false, insertNulls, poco, queryOptions);
+            Insert(false, insertNulls, poco, queryOptions, null);
         }
+
+        public void Insert<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null)
+        {
+            Insert(false, insertNulls, poco, queryOptions, ttl);
+        }
+
 
         public void InsertIfNotExists<T>(T poco, CqlQueryOptions queryOptions = null)
         {
@@ -49,7 +55,12 @@ namespace Cassandra.Mapping
             Insert(true, insertNulls, poco, queryOptions);
         }
 
-        private void Insert<T>(bool ifNotExists, bool insertNulls, T poco, CqlQueryOptions queryOptions = null)
+        public void InsertIfNotExists<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null)
+        {
+            Insert(true, insertNulls, poco, queryOptions, ttl);
+        }
+
+        private void Insert<T>(bool ifNotExists, bool insertNulls, T poco, CqlQueryOptions queryOptions = null, int? ttl = null)
         {
             var pocoData = _mapperFactory.PocoDataFactory.GetPocoData<T>();
             var queryIdentifier = string.Format("INSERT ID {0}/{1}", pocoData.KeyspaceName, pocoData.TableName);
@@ -58,7 +69,7 @@ namespace Cassandra.Mapping
             var values = getBindValues(poco);
             //generate INSERT query based on null values (if insertNulls set)
             object[] queryParameters;
-            var cql = _cqlGenerator.GenerateInsert<T>(insertNulls, values, out queryParameters, ifNotExists);
+            var cql = _cqlGenerator.GenerateInsert<T>(insertNulls, values, out queryParameters, ifNotExists, ttl);
 
             _statements.Add(Cql.New(cql, queryParameters, queryOptions ?? CqlQueryOptions.None));
         }
