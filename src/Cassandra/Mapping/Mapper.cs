@@ -480,7 +480,12 @@ namespace Cassandra.Mapping
 
         public AppliedInfo<T> InsertIfNotExists<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null)
         {
-            return TaskHelper.WaitToComplete(InsertIfNotExistsAsync(poco, insertNulls, queryOptions), _queryAbortTimeout);
+            return InsertIfNotExists(poco, insertNulls, null, queryOptions);
+        }
+
+        public AppliedInfo<T> InsertIfNotExists<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null)
+        {
+            return TaskHelper.WaitToComplete(InsertIfNotExistsAsync(poco, insertNulls, ttl, queryOptions), _queryAbortTimeout);
         }
 
         public AppliedInfo<T> InsertIfNotExists<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null)
