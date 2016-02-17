@@ -15,6 +15,8 @@
 //
 
 using System;
+using System.Collections.Generic;
+using Cassandra.Serialization;
 using Cassandra.Tasks;
 using Microsoft.IO;
 
@@ -131,6 +133,10 @@ namespace Cassandra
         /// </summary>
         internal RecyclableMemoryStreamManager BufferPool { get; set;}
 
+        /// <summary>
+        /// Gets or sets the list of <see cref="TypeSerializer{T}"/> defined.
+        /// </summary>
+        internal IEnumerable<ITypeSerializer> TypeSerializers { get; set; }
 
         internal Configuration() :
             this(Policies.DefaultPolicies,

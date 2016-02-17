@@ -67,6 +67,7 @@
     <Compile Include="Core\CustomPayloadTests.cs" />
     <Compile Include="Core\ReconnectionTests.cs" />
     <Compile Include="Core\SchemaMetadataTests.cs" />
+    <Compile Include="Core\TypeSerializersTests.cs" />
     <Compile Include="Core\UdfTests.cs" />
     <Compile Include="Core\SpeculativeExecutionLongTests.cs" />
     <Compile Include="Core\SpeculativeExecutionShortTests.cs" />

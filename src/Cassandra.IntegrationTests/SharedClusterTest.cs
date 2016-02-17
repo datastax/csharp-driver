@@ -44,6 +44,15 @@ namespace Cassandra.IntegrationTests
         protected Session Session { get; private set; }
 
         /// <summary>
+        /// It executes the queries provided on test fixture setup.
+        /// Ignored when null.
+        /// </summary>
+        protected virtual string[] SetupQueries
+        {
+            get { return null; }
+        }
+
+        /// <summary>
         /// Gets or sets the name of the default keyspace used for this instance
         /// </summary>
         protected string KeyspaceName { get; set; }
@@ -67,7 +76,14 @@ namespace Cassandra.IntegrationTests
                     .Build();
                 Session = (Session) Cluster.Connect();
                 Session.CreateKeyspace(KeyspaceName, null, false);
-                Session.ChangeKeyspace(KeyspaceName);   
+                Session.ChangeKeyspace(KeyspaceName);
+                if (SetupQueries != null)
+                {
+                    foreach (var query in SetupQueries)
+                    {
+                        Session.Execute(query);
+                    }
+                }
             }
         }
 

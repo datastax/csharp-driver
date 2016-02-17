@@ -15,10 +15,12 @@
 //
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
+using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -48,6 +50,7 @@ namespace Cassandra
         private IAddressTranslator _addressTranslator = new DefaultAddressTranslator();
         private ISpeculativeExecutionPolicy _speculativeExecutionPolicy;
         private byte _maxProtocolVersion = (byte)Cluster.MaxProtocolVersion;
+        private TypeSerializerDefinitions _typeSerializerDefinitions;
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -93,18 +96,21 @@ namespace Cassandra
                 _reconnectionPolicy ?? Policies.DefaultReconnectionPolicy,
                 _retryPolicy ?? Policies.DefaultRetryPolicy,
                 _speculativeExecutionPolicy ?? Policies.DefaultSpeculativeExecutionPolicy);
-
-            return new Configuration(policies,
-                                     new ProtocolOptions(_port, _sslOptions).SetCompression(_compression)
-                                        .SetCustomCompressor(_customCompressor).SetMaxProtocolVersion(_maxProtocolVersion),
-                                     _poolingOptions,
-                                     _socketOptions,
-                                     new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace),
-                                     _authProvider,
-                                     _authInfoProvider,
-                                     _queryOptions,
-                                     _addressTranslator
-                );
+            var config = new Configuration(policies,
+                new ProtocolOptions(_port, _sslOptions).SetCompression(_compression)
+                                                       .SetCustomCompressor(_customCompressor).SetMaxProtocolVersion(_maxProtocolVersion),
+                _poolingOptions,
+                _socketOptions,
+                new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace),
+                _authProvider,
+                _authInfoProvider,
+                _queryOptions,
+                _addressTranslator);
+            if (_typeSerializerDefinitions != null)
+            {
+                config.TypeSerializers = _typeSerializerDefinitions.Definitions;
+            }
+            return config;
         }
 
         /// <summary>
@@ -515,6 +521,27 @@ namespace Cassandra
                 throw new ArgumentException("Protocol version 0 does not exist.");
             }
             _maxProtocolVersion = version;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the <see cref="TypeSerializer{T}"/> to be used, replacing the default ones.
+        /// </summary>
+        /// <param name="definitions"></param>
+        /// <returns>this instance</returns>
+        public Builder WithTypeSerializers(TypeSerializerDefinitions definitions)
+        {
+            if (definitions == null)
+            {
+                throw new ArgumentNullException("definitions");
+            }
+            if (_typeSerializerDefinitions != null)
+            {
+                const string message = "TypeSerializers definitions were already set." +
+                    "Use a single TypeSerializerDefinitions instance and call Define() multiple times";
+                throw new InvalidOperationException(message);
+            }
+            _typeSerializerDefinitions = definitions;
             return this;
         }
 

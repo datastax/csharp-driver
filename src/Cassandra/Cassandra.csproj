@@ -371,6 +371,7 @@
     <Compile Include="Serialization\Primitive\ShortSerializer.cs" />
     <Compile Include="Serialization\Primitive\StringSerializer.cs" />
     <Compile Include="Serialization\TupleSerializer.cs" />
+    <Compile Include="Serialization\TypeSerializerDefinitions.cs" />
     <Compile Include="Serialization\UdtSerializer.cs" />
     <Compile Include="Serialization\Serializer.cs" />
     <Compile Include="Serialization\TypeSerializer.cs" />

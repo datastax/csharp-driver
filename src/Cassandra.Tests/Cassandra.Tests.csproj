@@ -60,7 +60,11 @@
     <Compile Include="CollectionTests.cs" />
     <Compile Include="ConnectionTests.cs" />
     <Compile Include="ControlConnectionTests.cs" />
+    <Compile Include="CustomTypeSerializerTests.cs" />
     <Compile Include="DataTypeParserTests.cs" />
+    <Compile Include="Extensions\Serializers\BigDecimalSerializer.cs" />
+    <Compile Include="Extensions\Serializers\DummyCustomTypeSerializer.cs" />
+    <Compile Include="Extensions\Serializers\UdtSerializerWrapper.cs" />
     <Compile Include="HostConnectionPoolTests.cs" />
     <Compile Include="HostTests.cs" />
     <Compile Include="IOUnitTests.cs" />
