@@ -19,7 +19,14 @@ namespace Cassandra.Mapping
             get { return _statements; }
         }
 
+        public BatchType BatchType { get; private set; }
+
         public CqlBatch(MapperFactory mapperFactory, CqlGenerator cqlGenerator)
+            :this(mapperFactory, cqlGenerator, BatchType.Logged)
+        {
+        }
+
+        public CqlBatch(MapperFactory mapperFactory, CqlGenerator cqlGenerator, BatchType type)
         {
             if (mapperFactory == null) throw new ArgumentNullException("mapperFactory");
             if (cqlGenerator == null) throw new ArgumentNullException("cqlGenerator");
@@ -27,6 +34,7 @@ namespace Cassandra.Mapping
             _cqlGenerator = cqlGenerator;
 
             _statements = new List<Cql>();
+            BatchType = type;
         }
 
         public void Insert<T>(T poco, CqlQueryOptions queryOptions = null)

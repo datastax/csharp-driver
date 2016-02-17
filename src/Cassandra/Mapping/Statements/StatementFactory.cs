@@ -58,12 +58,12 @@ namespace Cassandra.Mapping.Statements
             return GetStatementAsync(session, cql).Result;
         }
 
-        public Task<BatchStatement> GetBatchStatementAsync(ISession session, IEnumerable<Cql> cqlToBatch)
+        public Task<BatchStatement> GetBatchStatementAsync(ISession session, IEnumerable<Cql> cqlToBatch, BatchType batchType)
         {
             // Get all the statements async in parallel, then add to batch
             return Task.Factory.ContinueWhenAll(cqlToBatch.Select(cql => GetStatementAsync(session, cql)).ToArray(), (tasks) =>
             {
-                var batch = new BatchStatement();
+                var batch = new BatchStatement().SetBatchType(batchType);
                 foreach (var t in tasks)
                 {
                     if (t.Exception != null)
@@ -76,9 +76,9 @@ namespace Cassandra.Mapping.Statements
             }, TaskContinuationOptions.ExecuteSynchronously);
         }
 
-        public BatchStatement GetBatchStatement(ISession session, IEnumerable<Cql> cqlToBatch)
+        public BatchStatement GetBatchStatement(ISession session, IEnumerable<Cql> cqlToBatch, BatchType batchType)
         {
-            var batch = new BatchStatement();
+            var batch = new BatchStatement().SetBatchType(batchType);
             foreach (var cql in cqlToBatch)
             {
                 batch.Add(GetStatement(session, cql));

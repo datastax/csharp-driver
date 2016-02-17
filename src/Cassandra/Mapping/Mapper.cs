@@ -306,6 +306,11 @@ namespace Cassandra.Mapping
             return new CqlBatch(_mapperFactory, _cqlGenerator);
         }
 
+        public ICqlBatch CreateBatch(BatchType batchType)
+        {
+            return new CqlBatch(_mapperFactory, _cqlGenerator, batchType);
+        }
+
         public void Execute(ICqlBatch batch)
         {
             //Wait async method to be completed or throw
@@ -317,7 +322,7 @@ namespace Cassandra.Mapping
             if (batch == null) throw new ArgumentNullException("batch");
 
             return _statementFactory
-                .GetBatchStatementAsync(_session, batch.Statements)
+                .GetBatchStatementAsync(_session, batch.Statements, batch.BatchType)
                 .Continue(t =>
                 {
                     var batchStatement = t.Result;
@@ -528,7 +533,7 @@ namespace Cassandra.Mapping
         {
             if (batch == null) throw new ArgumentNullException("batch");
             return _statementFactory
-                .GetBatchStatementAsync(_session, batch.Statements)
+                .GetBatchStatementAsync(_session, batch.Statements, batch.BatchType)
                 .Continue(t1 =>
                 {
                     //Use the concatenation of cql strings as hash for the mapper

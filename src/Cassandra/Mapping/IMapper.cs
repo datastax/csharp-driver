@@ -14,6 +14,11 @@ namespace Cassandra.Mapping
         ICqlBatch CreateBatch();
 
         /// <summary>
+        /// Creates a new batch.
+        /// </summary>
+        ICqlBatch CreateBatch(BatchType batchType);
+
+        /// <summary>
         /// Executes the batch specfied synchronously.
         /// </summary>
         void Execute(ICqlBatch batch);
