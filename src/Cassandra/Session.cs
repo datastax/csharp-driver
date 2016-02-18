@@ -107,6 +107,17 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
+        public Task ChangeKeyspaceAsync(string keyspace)
+        {
+            if (Keyspace != keyspace)
+            {
+                var task = ExecuteAsync(new SimpleStatement(CqlQueryTools.GetUseKeyspaceCql(keyspace)));
+                return task.Continue(rs => Keyspace = keyspace);
+            }
+            return TaskHelper.Completed;
+        }
+
+        /// <inheritdoc />
         public void CreateKeyspace(string keyspace, Dictionary<string, string> replication = null, bool durableWrites = true)
         {
             WaitForSchemaAgreement(Execute(CqlQueryTools.GetCreateKeyspaceCql(keyspace, replication, durableWrites, false)));
@@ -124,6 +135,12 @@ namespace Cassandra
             {
                 Logger.Info(string.Format("Cannot CREATE keyspace:  {0}  because it already exists.", keyspaceName));
             }
+        }
+
+        /// <inheritdoc />
+        public Task CreateKeyspaceAsync(string keyspace, Dictionary<string, string> replication = null, bool durableWrites = true)
+        {
+            return ExecuteAsync(CqlQueryTools.GetCreateKeyspaceCql(keyspace, replication, durableWrites, false)).Continue(t => Logger.Info("Keyspace [" + keyspace + "] has been successfully CREATED."));
         }
 
         /// <inheritdoc />
@@ -214,6 +231,12 @@ namespace Cassandra
         public RowSet Execute(string cqlQuery, int pageSize)
         {
             return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(Configuration.QueryOptions.GetConsistencyLevel()).SetPageSize(pageSize));
+        }
+
+        /// <inheritdoc />
+        public Task<RowSet> ExecuteAsync(string cqlQuery)
+        {
+            return ExecuteAsync(new SimpleStatement(cqlQuery).SetConsistencyLevel(Configuration.QueryOptions.GetConsistencyLevel()).SetPageSize(Configuration.QueryOptions.GetPageSize()));
         }
 
         /// <inheritdoc />
