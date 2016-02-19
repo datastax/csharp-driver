@@ -48,7 +48,8 @@
         /// </para>
         /// </param>
         /// <param name="queryOptions">Optional query options</param>
-        /// <param name="ttl">Ttl for entity</param>
+        /// <param name="ttl">Time to live (in seconds) for the inserted values. If set, the inserted values are automatically removed
+        /// from the database after the specified time.</param>
         /// <returns></returns>
         void Insert<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null);
 
