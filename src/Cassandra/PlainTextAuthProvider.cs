@@ -21,11 +21,12 @@ using System.Text;
 namespace Cassandra
 {
     /// <summary>
-    ///  A simple <c>AuthProvider</c> implementation. <p> This provider allows
-    ///  to programmatically define authentication information that will then apply to
-    ///  all hosts. The PlainTextAuthenticator instances it returns support SASL
-    ///  authentication using the PLAIN mechanism for version 2 of the CQL __native__
-    ///  protocol.</p>
+    /// A simple <see cref="IAuthProvider"/> implementation. 
+    /// <para>
+    /// This provider allows to programmatically define authentication information that will then apply to all hosts.
+    /// The PlainTextAuthenticator instances it returns support SASL authentication using the PLAIN mechanism for
+    /// version 2 or above of the CQL native protocol.
+    /// </para>
     /// </summary>
     public class PlainTextAuthProvider : IAuthProvider
     {
@@ -40,11 +41,11 @@ namespace Cassandra
         /// <param name="password"> to use for authentication requests</param>
         public PlainTextAuthProvider(string username, string password)
         {
-            if (String.IsNullOrEmpty(username))
+            if (string.IsNullOrEmpty(username))
             {
                 throw new ArgumentNullException("username");
             }
-            if (String.IsNullOrEmpty(password))
+            if (string.IsNullOrEmpty(password))
             {
                 throw new ArgumentNullException("password");
             }
@@ -53,16 +54,14 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Uses the supplied credentials and the SASL PLAIN mechanism to login to the
-        ///  server.
+        /// Uses the supplied credentials and the SASL PLAIN mechanism to login to the server.
         /// </summary>
-        /// <param name="host"> the Cassandra host with which we want to authenticate
-        ///  </param>
-        /// 
-        /// <returns>an Authenticator instance which can be used to perform
-        ///  authentication negotiations on behalf of the client </returns>
+        /// <param name="host"> the Cassandra host with which we want to authenticate</param>
+        /// <returns>
+        /// An Authenticator instance which can be used to perform authentication negotiations on behalf of the client.
+        /// </returns>
         /// <throws name="SaslException"> if an unsupported SASL mechanism is supplied or
-        ///  an error is encountered when initialising the authenticator</throws>
+        ///  an error is encountered when initializing the authenticator</throws>
         public IAuthenticator NewAuthenticator(IPEndPoint host)
         {
             return new PlainTextAuthenticator(_username, _password);
@@ -75,22 +74,22 @@ namespace Cassandra
         /// </summary>
         private class PlainTextAuthenticator : IAuthenticator
         {
-            private readonly byte[] password;
-            private readonly byte[] username;
+            private readonly byte[] _password;
+            private readonly byte[] _username;
 
             public PlainTextAuthenticator(string username, string password)
             {
-                this.username = Encoding.UTF8.GetBytes(username);
-                this.password = Encoding.UTF8.GetBytes(password);
+                _username = Encoding.UTF8.GetBytes(username);
+                _password = Encoding.UTF8.GetBytes(password);
             }
 
             public byte[] InitialResponse()
             {
-                var initialToken = new byte[username.Length + password.Length + 2];
+                var initialToken = new byte[_username.Length + _password.Length + 2];
                 initialToken[0] = 0;
-                Buffer.BlockCopy(username, 0, initialToken, 1, username.Length);
-                initialToken[username.Length + 1] = 0;
-                Buffer.BlockCopy(password, 0, initialToken, username.Length + 2, password.Length);
+                Buffer.BlockCopy(_username, 0, initialToken, 1, _username.Length);
+                initialToken[_username.Length + 1] = 0;
+                Buffer.BlockCopy(_password, 0, initialToken, _username.Length + 2, _password.Length);
                 return initialToken;
             }
 

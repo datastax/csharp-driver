@@ -178,8 +178,9 @@ namespace Cassandra
         /// <summary>
         /// Starts the authentication flow
         /// </summary>
+        /// <param name="name">Authenticator name from server.</param>
         /// <exception cref="AuthenticationException" />
-        private Task<Response> Authenticate()
+        private Task<Response> StartAuthenticationFlow(string name)
         {
             //Determine which authentication flow to use.
             //Check if its using a C* 1.2 with authentication patched version (like DSE 3.1)
@@ -209,7 +210,11 @@ namespace Cassandra
                     });
             }
             //Use protocol v2+ authentication flow
-
+            if (Configuration.AuthProvider is IAuthProviderNamed)
+            {
+                //Provide name when required
+                ((IAuthProviderNamed) Configuration.AuthProvider).SetName(name);
+            }
             //NewAuthenticator will throw AuthenticationException when NoneAuthProvider
             var authenticator = Configuration.AuthProvider.NewAuthenticator(Address);
 
@@ -227,6 +232,12 @@ namespace Cassandra
                     if (response is AuthSuccessResponse)
                     {
                         //It is now authenticated
+                        // ReSharper disable once SuspiciousTypeConversion.Global
+                        var disposableAuthenticator = authenticator as IDisposable;
+                        if (disposableAuthenticator != null)
+                        {
+                            disposableAuthenticator.Dispose();
+                        }
                         return TaskHelper.ToTask(response);
                     }
                     if (response is AuthChallengeResponse)
@@ -430,7 +441,7 @@ namespace Cassandra
                 {
                     if (response is AuthenticateResponse)
                     {
-                        return Authenticate();
+                        return StartAuthenticationFlow(((AuthenticateResponse)response).Authenticator);
                     }
                     if (response is ReadyResponse)
                     {

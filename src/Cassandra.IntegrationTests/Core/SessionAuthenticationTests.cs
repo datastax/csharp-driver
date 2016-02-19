@@ -14,12 +14,12 @@
 //   limitations under the License.
 //
 
- using System;
- using System.Diagnostics;
- using System.Linq;
-using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
-﻿using System.Threading;
+using System;
+using System.Diagnostics;
+using System.Linq;
+using System.Net;
+using System.Text;
+using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
@@ -85,7 +85,26 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var session = cluster.Connect();
                 var rowSet = session.Execute("SELECT * FROM system.local");
-                Assert.Greater(rowSet.Count(), 0);   
+                Assert.Greater(rowSet.Count(), 0);
+            }
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 0)]
+        public void PlainTextAuthProvider_With_Name_AuthSuccess()
+        {
+            var testAuthProvider = new PlainTextAuthTestProvider("cassandra", "cassandra");
+            using (var cluster = Cluster
+                .Builder()
+                .AddContactPoint(_testClusterForAuthTesting.InitialContactPoint)
+                .WithAuthProvider(testAuthProvider)
+                .Build())
+            {
+                var session = cluster.Connect();
+                Assert.True(testAuthProvider.NameBeforeNewAuthenticator);
+                Assert.AreEqual("org.apache.cassandra.auth.PasswordAuthenticator", testAuthProvider.Name);
+                var rowSet = session.Execute("SELECT * FROM system.local");
+                Assert.Greater(rowSet.Count(), 0);
             }
         }
 
@@ -128,6 +147,60 @@ namespace Cassandra.IntegrationTests.Core
                 var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
                 Assert.AreEqual(1, ex.Errors.Count);
                 Assert.IsInstanceOf<AuthenticationException>(ex.Errors.First().Value);
+            }
+        }
+
+        private class PlainTextAuthTestProvider : IAuthProviderNamed
+        {
+            private readonly string _username;
+            private readonly string _password;
+
+            public string Name { get; private set; }
+
+            public bool NameBeforeNewAuthenticator { get; private set; }
+
+            public PlainTextAuthTestProvider(string username, string password)
+            {
+                _username = username;
+                _password = password;
+            }
+
+            public void SetName(string name)
+            {
+                Name = name;
+            }
+
+            public IAuthenticator NewAuthenticator(IPEndPoint host)
+            {
+                NameBeforeNewAuthenticator = Name != null;
+                return new PlainTextAuthenticator(_username, _password);
+            }
+
+            private class PlainTextAuthenticator : IAuthenticator
+            {
+                private readonly byte[] _password;
+                private readonly byte[] _username;
+
+                public PlainTextAuthenticator(string username, string password)
+                {
+                    _username = Encoding.UTF8.GetBytes(username);
+                    _password = Encoding.UTF8.GetBytes(password);
+                }
+
+                public byte[] InitialResponse()
+                {
+                    var initialToken = new byte[_username.Length + _password.Length + 2];
+                    initialToken[0] = 0;
+                    Buffer.BlockCopy(_username, 0, initialToken, 1, _username.Length);
+                    initialToken[_username.Length + 1] = 0;
+                    Buffer.BlockCopy(_password, 0, initialToken, _username.Length + 2, _password.Length);
+                    return initialToken;
+                }
+
+                public byte[] EvaluateChallenge(byte[] challenge)
+                {
+                    return null;
+                }
             }
         }
     }

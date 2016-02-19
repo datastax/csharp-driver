@@ -19,18 +19,32 @@ using System.Net;
 namespace Cassandra
 {
     /// <summary>
-    ///  Provides <link>Authenticator</link> instances for use when connecting to
-    ///  Cassandra nodes. See <link>PlainTextAuthProvider</link> and
-    ///  <link>SimpleAuthenticator</link> for an implementation which uses SASL PLAIN
-    ///  mechanism to authenticate using username/password strings
+    /// Provides <see cref="IAuthenticator"/> instances for use when connecting to Cassandra nodes. See 
+    /// <see cref="PlainTextAuthProvider"/> for an implementation which uses SASL PLAIN mechanism to authenticate using
+    /// username/password strings.
     /// </summary>
     public interface IAuthProvider
     {
         /// <summary>
-        ///  The <c>Authenticator</c> to use when connecting to <c>host</c>
+        /// The <see cref="IAuthenticator"/> to use when connecting to host.
         /// </summary>
-        /// <param name="host"> the Cassandra host to connect to. </param>
-        /// <returns>The authentication implmentation to use.</returns>
+        /// <param name="host">The Cassandra host to connect to. </param>
+        /// <returns>The authentication instance to use.</returns>
         IAuthenticator NewAuthenticator(IPEndPoint host);
+    }
+
+    /// <summary>
+    /// Represents a <see cref="IAuthProvider"/> that is dependant on the name provided by Cassandra.
+    /// </summary>
+    /// <exclude />
+    public interface IAuthProviderNamed : IAuthProvider
+    {
+        /// <summary>
+        /// Sets the authenticator name from Cassandra.
+        /// <para>
+        /// This method is guaranteed to be called before <see cref="IAuthProvider.NewAuthenticator"/>.
+        /// </para>
+        /// </summary>
+        void SetName(string name);
     }
 }
