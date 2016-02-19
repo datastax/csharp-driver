@@ -22,12 +22,17 @@ namespace Cassandra.Tests.Mapping
         /// <summary>
         /// Gets the mapper for batch statements
         /// </summary>
-        private IMapper GetMapper(Func<Task<RowSet>> getRowSetFunc)
+        private IMapper GetMapper(Func<Task<RowSet>> getRowSetFunc, Action<BatchStatement> statementCallback = null)
         {
+            if (statementCallback == null)
+            {
+                statementCallback = _ => { };
+            }
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BatchStatement>()))
                 .Returns(getRowSetFunc)
+                .Callback(statementCallback)
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
@@ -56,13 +61,16 @@ namespace Cassandra.Tests.Mapping
                 HairColor = TestDataGenerator.GetEnumValue<HairColor>(idx)
             }).ToList();
 
+            BatchStatement statement = null;
             // Create batch to insert users and execute
-            var mapper = GetMapper(() => TestHelper.DelayedTask(new RowSet()));
-            var batch = mapper.CreateBatch();
+            var mapper = GetMapper(() => TestHelper.DelayedTask(new RowSet()), s => statement = s);
+            var batch = mapper.CreateBatch(BatchType.Unlogged);
             batch.Insert(testUsers[0]);
             batch.Insert(testUsers[1]);
             batch.Insert(testUsers[2]);
             mapper.Execute(batch);
+            Assert.NotNull(statement);
+            Assert.AreEqual(BatchType.Unlogged, statement.BatchType);
         }
 
         [Test]
@@ -110,13 +118,16 @@ namespace Cassandra.Tests.Mapping
         [Test]
         public void Execute_Without_Nulls()
         {
-            var mapper = GetMapper(() => TestHelper.DelayedTask(new RowSet()));
+            BatchStatement statement = null;
+            var mapper = GetMapper(() => TestHelper.DelayedTask(new RowSet()), s => statement = s);
             var batch = mapper.CreateBatch();
             //It should not include null values
             batch.Insert(new Song { Id = Guid.NewGuid(), ReleaseDate = DateTimeOffset.Now }, false);
             //It should include null columns
             batch.Insert(new Song { Id = Guid.NewGuid()}, true);
             mapper.Execute(batch);
+            Assert.NotNull(statement);
+            Assert.AreEqual(BatchType.Logged, statement.BatchType);
             var queries = batch.Statements.Select(cql => cql.Statement).ToArray();
             var parameters = batch.Statements.Select(cql => cql.Arguments).ToArray();
             Assert.AreEqual("INSERT INTO Song (Id, ReleaseDate) VALUES (?, ?)", queries[0]);
