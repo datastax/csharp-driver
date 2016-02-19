@@ -488,11 +488,6 @@ namespace Cassandra.Mapping
             return TaskHelper.WaitToComplete(InsertIfNotExistsAsync(poco, insertNulls, ttl, queryOptions), _queryAbortTimeout);
         }
 
-        public AppliedInfo<T> InsertIfNotExists<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null)
-        {
-            throw new NotImplementedException();
-        }
-
         public void Update<T>(T poco, CqlQueryOptions queryOptions = null)
         {
             //Wait async method to be completed or throw
