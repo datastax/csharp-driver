@@ -111,8 +111,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Consistency_SimpleStatement_LocalSerial_Insert_Fail()
         {
             SetupSessionAndCluster(_defaultNodeCountOne);
-            var ex = Assert.Throws<RequestInvalidException>(() => DoSimpleStatementInsertTest(ConsistencyLevel.LocalSerial));
-            Assert.AreEqual("Serial consistency specified as a non-serial one.", ex.Message);
+            Assert.Throws<InvalidQueryException>(() => DoSimpleStatementInsertTest(ConsistencyLevel.LocalSerial));
         }
 
         [Test]
@@ -131,8 +130,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Consistency_SimpleStatement_LocalSerial_Select_Fail()
         {
             SetupSessionAndCluster(_defaultNodeCountOne);
-            var ex = Assert.Throws<RequestInvalidException>(() => DoSimpleStatementSelectTest(ConsistencyLevel.LocalSerial));
-            Assert.AreEqual("Serial consistency specified as a non-serial one.", ex.Message);
+            Assert.DoesNotThrow(() => DoSimpleStatementSelectTest(ConsistencyLevel.LocalSerial));
         }
 
         [Test]
@@ -153,8 +151,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Consistency_SimpleStatement_Serial_Insert_Fail()
         {
             SetupSessionAndCluster(_defaultNodeCountOne);
-            var ex = Assert.Throws<RequestInvalidException>(() => DoSimpleStatementInsertTest(ConsistencyLevel.Serial));
-            Assert.AreEqual("Serial consistency specified as a non-serial one.", ex.Message);
+            Assert.Throws<InvalidQueryException>(() => DoSimpleStatementInsertTest(ConsistencyLevel.Serial));
         }
 
         [Test]
@@ -171,11 +168,10 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void Consistency_SimpleStatement_Serial_Select_Fail()
+        public void Consistency_SimpleStatement_Serial_Select_Does_Not_Throw()
         {
             SetupSessionAndCluster(_defaultNodeCountOne);
-            var ex = Assert.Throws<RequestInvalidException>(() => DoSimpleStatementSelectTest(ConsistencyLevel.Serial));
-            Assert.AreEqual("Serial consistency specified as a non-serial one.", ex.Message);
+            Assert.DoesNotThrow(() => DoSimpleStatementSelectTest(ConsistencyLevel.Serial));
         }
 
 
@@ -364,8 +360,8 @@ namespace Cassandra.IntegrationTests.Core
         public void Consistency_PreparedStatement_LocalSerial_Insert_Fail()
         {
             SetupSessionAndCluster(_defaultNodeCountOne);
-            var ex = Assert.Throws<RequestInvalidException>(() => DoPreparedInsertTest(ConsistencyLevel.LocalSerial));
-            Assert.AreEqual("Serial consistency specified as a non-serial one.", ex.Message);
+            //Serial not valid as normal consistency for writes
+            Assert.Throws<InvalidQueryException>(() => DoPreparedInsertTest(ConsistencyLevel.LocalSerial));
         }
 
         /// <summary>
@@ -385,11 +381,10 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void Consistency_PreparedStatement_LocalSerial_Select_Fail()
+        public void Consistency_PreparedStatement_LocalSerial_Select_Does_Not_Throw()
         {
             SetupSessionAndCluster(_defaultNodeCountOne);
-            var ex = Assert.Throws<RequestInvalidException>(() => DoPreparedSelectTest(ConsistencyLevel.LocalSerial));
-            Assert.AreEqual("Serial consistency specified as a non-serial one.", ex.Message);
+            Assert.DoesNotThrow(() => DoPreparedSelectTest(ConsistencyLevel.LocalSerial));
         }
 
         [Test]
@@ -413,8 +408,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Consistency_PreparedStatement_Serial_Insert_Fail()
         {
             SetupSessionAndCluster(_defaultNodeCountOne);
-            var ex = Assert.Throws<RequestInvalidException>(() => DoPreparedInsertTest(ConsistencyLevel.Serial));
-            Assert.AreEqual("Serial consistency specified as a non-serial one.", ex.Message);
+            Assert.Throws<InvalidQueryException>(() => DoPreparedInsertTest(ConsistencyLevel.Serial));
         }
 
         /// <summary>
@@ -438,8 +432,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Consistency_PreparedStatement_Serial_Select_Fail()
         {
             SetupSessionAndCluster(_defaultNodeCountOne);
-            var ex = Assert.Throws<RequestInvalidException>(() => DoPreparedSelectTest(ConsistencyLevel.Serial));
-            Assert.AreEqual("Serial consistency specified as a non-serial one.", ex.Message);
+            Assert.DoesNotThrow(() => DoPreparedSelectTest(ConsistencyLevel.Serial));
         }
 
         [Test]

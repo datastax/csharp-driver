@@ -61,7 +61,6 @@ namespace Cassandra.Requests
 
         public QueryRequest(int protocolVersion, string cqlQuery, bool tracingEnabled, QueryProtocolOptions queryOptions)
         {
-            //TODO: Replace constructor parameters with IStatement
             ProtocolVersion = protocolVersion;
             _cqlQuery = cqlQuery;
             _queryOptions = queryOptions;
@@ -72,10 +71,6 @@ namespace Cassandra.Requests
             if (queryOptions == null)
             {
                 throw new ArgumentNullException("queryOptions");
-            }
-            if (Consistency.IsSerialConsistencyLevel())
-            {
-                throw new RequestInvalidException("Serial consistency specified as a non-serial one.");
             }
             if (queryOptions.SerialConsistency != ConsistencyLevel.Any && queryOptions.SerialConsistency.IsSerialConsistencyLevel() == false)
             {

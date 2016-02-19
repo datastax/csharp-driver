@@ -72,10 +72,6 @@ namespace Cassandra.Requests
                 _headerFlags = FrameHeader.HeaderFlag.Tracing;
             }
 
-            if (Consistency.IsSerialConsistencyLevel())
-            {
-                throw new RequestInvalidException("Serial consistency specified as a non-serial one.");
-            }
             if (queryOptions.SerialConsistency != ConsistencyLevel.Any && queryOptions.SerialConsistency.IsSerialConsistencyLevel() == false)
             {
                 throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
