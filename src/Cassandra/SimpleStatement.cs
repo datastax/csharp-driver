@@ -22,8 +22,7 @@ using Cassandra.Requests;
 namespace Cassandra
 {
     /// <summary>
-    ///  A simple <c>Statement</c> implementation built directly from a query
-    ///  string.
+    ///  A simple <see cref="IStatement"/> implementation built directly from a query string.
     /// </summary>
     public class SimpleStatement : RegularStatement
     {
@@ -65,12 +64,15 @@ namespace Cassandra
             }
         }
 
+        /// <summary>
+        /// Creates a new instance of <see cref="SimpleStatement"/> without any query string or parameters.
+        /// </summary>
         public SimpleStatement()
         {
         }
 
         /// <summary>
-        ///  Creates a new instance of <c>SimpleStatement</c> with the provided CQL query.
+        ///  Creates a new instance of <see cref="SimpleStatement"/> with the provided CQL query.
         /// </summary>
         /// <param name="query">The cql query string.</param>
         public SimpleStatement(string query)
@@ -79,14 +81,67 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Creates a new instance of <c>SimpleStatement</c> with the provided CQL query and values provided.
+        ///  Creates a new instance of <see cref="SimpleStatement"/> with the provided CQL query and values provided.
         /// </summary>
-        /// <param name="query">The cql query string</param>
-        /// <param name="values">Parameter values required for the execution of <c>query</c></param>
+        /// <param name="query">The cql query string.</param>
+        /// <param name="values">Parameter values required for the execution of <c>query</c>.</param>
+        /// <example>
+        /// Using positional parameters:
+        /// <code>
+        /// const string query = "INSERT INTO users (id, name, email) VALUES (?, ?, ?)";
+        /// var statement = new SimpleStatement(query, id, name, email);
+        /// </code>
+        /// Using named parameters (using anonymous objects):
+        /// <code>
+        /// const string query = "INSERT INTO users (id, name, email) VALUES (:id, :name, :email)";
+        /// var statement = new SimpleStatement(query, new { id, name, email } );
+        /// </code>
+        /// </example>
         public SimpleStatement(string query, params object[] values) : this(query)
         {
             // ReSharper disable once DoNotCallOverridableMethodsInConstructor
             SetValues(values);
+        }
+
+        /// <summary>
+        /// Creates a new instance of <see cref="SimpleStatement"/> using a dictionary of parameters and a query with
+        /// named parameters.
+        /// </summary>
+        /// <param name="valuesDictionary">
+        /// A dictionary containing the query parameters values using the parameter name as keys.
+        /// </param>
+        /// <param name="query">The cql query string.</param>
+        /// <remarks>
+        /// This constructor is valid for dynamically-sized named parameters, consider using anonymous types for
+        /// fixed-size named parameters.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// const string query = "INSERT INTO users (id, name, email) VALUES (:id, :name, :email)";
+        /// var parameters = new Dictionary&lt;string, object&gt; 
+        /// {
+        ///   { "id", id },
+        ///   { "name", name },
+        ///   { "email", email },
+        /// };
+        /// var statement = new SimpleStatement(parameters, query);
+        /// </code>
+        /// </example>
+        /// <seealso cref="SimpleStatement(string, object[])"/>
+        public SimpleStatement(IDictionary<string, object> valuesDictionary, string query)
+        {
+            if (valuesDictionary == null)
+            {
+                throw new ArgumentNullException("valuesDictionary");
+            }
+            if (query == null)
+            {
+                throw new ArgumentNullException("query");
+            }
+            //The order of the keys and values is unspecified, but is guaranteed to be both in the same order.
+            SetParameterNames(valuesDictionary.Keys);
+            base.SetValues(valuesDictionary.Values.ToArray());
+            _query = query;
         }
 
         /// <summary>
@@ -159,11 +214,16 @@ namespace Cassandra
             if (values != null && values.Length == 1 && Utils.IsAnonymousType(values[0]))
             {
                 var keyValues = Utils.GetValues(values[0]);
-                //Force named values to lowercase as identifiers are lowercased in Cassandra
-                QueryValueNames = keyValues.Keys.Select(k => k.ToLowerInvariant()).ToList();
+                SetParameterNames(keyValues.Keys);
                 values = keyValues.Values.ToArray();
             }
             base.SetValues(values);
+        }
+
+        private void SetParameterNames(IEnumerable<string> names)
+        {
+            //Force named values to lowercase as identifiers are lowercased in Cassandra
+            QueryValueNames = names.Select(k => k.ToLowerInvariant()).ToList();
         }
     }
 }

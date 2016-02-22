@@ -233,6 +233,25 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 1)]
+        public void SimpleStatement_Dictionary_Parameters_CaseInsensitivity()
+        {
+            var insertQuery = string.Format("INSERT INTO {0} (id, \"text_sample\", int_sample) VALUES (:my_ID, :my_TEXT, :MY_INT)", AllTypesTableName);
+            var id = Guid.NewGuid();
+            var values = new Dictionary<string, object>
+            {
+                {"my_ID", id},
+                {"my_INT", 101010},
+                {"MY_text", "Right Thoughts, Right Words, Right Action"}
+            };
+            Session.Execute(new SimpleStatement(values, insertQuery));
+
+            var row = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
+            Assert.AreEqual(values["my_INT"], row.GetValue<int>("int_sample"));
+            Assert.AreEqual(values["MY_text"], row.GetValue<string>("text_sample"));
+        }
+
+        [Test]
         public void Text()
         {
             ParameterizedStatement(typeof(string));

@@ -65,6 +65,30 @@ namespace Cassandra.Tests
         }
 
         [Test]
+        public void SimpleStatement_Constructor_Dictionary_Named_Test()
+        {
+            var valuesDictionary = new Dictionary<string, object>
+            {
+                {"Name", "Futurama"}, 
+                {"Description", "In Stereo where available"}, 
+                {"Time", DateTimeOffset.Parse("1963-08-28")}
+            };
+            var stmt = new SimpleStatement(valuesDictionary, Query);
+            var actualValues = new Dictionary<string, object>();
+            Assert.AreEqual(3, stmt.QueryValueNames.Count);
+            Assert.AreEqual(3, stmt.QueryValues.Length);
+            //Order is not guaranteed
+            for (var i = 0; i < stmt.QueryValueNames.Count; i++)
+            {
+                actualValues[stmt.QueryValueNames[i]] = stmt.QueryValues[i];
+            }
+            //Lowercased
+            Assert.AreEqual(valuesDictionary["Name"], actualValues["name"]);
+            Assert.AreEqual(valuesDictionary["Description"], actualValues["description"]);
+            Assert.AreEqual(valuesDictionary["Time"], actualValues["time"]);
+        }
+
+        [Test]
         public void SimpleStatement_Bind_Named_Values()
         {
             var values = new { Name = "Futurama", Description = "In Stereo where available", Time = DateTimeOffset.Parse("1963-08-28") };
