@@ -290,5 +290,43 @@ namespace Cassandra.Tests.Mapping
             Assert.AreEqual(newUser.Id, appliedInfo.Existing.Id);
             Assert.AreEqual("existing-name", appliedInfo.Existing.Name);
         }
+
+        [Test]
+        public void Insert_With_Ttl_Test()
+        {
+            string query = null;
+            object[] parameters = null;
+            var mapper = GetMappingClient(() => TaskHelper.ToTask(RowSet.Empty()), (q, p) =>
+            {
+                query = q;
+                parameters = p;
+            });
+            var song = new Song { Id = Guid.NewGuid() };
+            const int ttl = 600;
+            mapper.Insert(song, true, ttl);
+            Assert.AreEqual("INSERT INTO Song (Id, Title, Artist, ReleaseDate) VALUES (?, ?, ?, ?) USING TTL ?", query);
+            Assert.AreEqual(song.Id, parameters[0]);
+            Assert.AreEqual(ttl, parameters.Last());
+        }
+
+        [Test]
+        public void InsertIfNotExists_With_Ttl_Test()
+        {
+            string query = null;
+            object[] parameters = null;
+            var mapper = GetMappingClient(() => TaskHelper.ToTask(RowSet.Empty()), (q, p) =>
+            {
+                query = q;
+                parameters = p;
+            });
+            var song = new Song { Id = Guid.NewGuid(), Title = "t2", ReleaseDate = DateTimeOffset.Now };
+            const int ttl = 600;
+            mapper.InsertIfNotExists(song, false, ttl);
+            Assert.AreEqual("INSERT INTO Song (Id, Title, ReleaseDate) VALUES (?, ?, ?) IF NOT EXISTS USING TTL ?", query);
+            Assert.AreEqual(song.Id, parameters[0]);
+            Assert.AreEqual(song.Title, parameters[1]);
+            Assert.AreEqual(song.ReleaseDate, parameters[2]);
+            Assert.AreEqual(ttl, parameters[3]);
+        }
     }
 }

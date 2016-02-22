@@ -124,7 +124,7 @@ namespace Cassandra.Tests.Mapping
             //It should not include null values
             batch.Insert(new Song { Id = Guid.NewGuid(), ReleaseDate = DateTimeOffset.Now }, false);
             //It should include null columns
-            batch.Insert(new Song { Id = Guid.NewGuid()}, true);
+            batch.Insert(new Song { Id = Guid.NewGuid() }, true);
             mapper.Execute(batch);
             Assert.NotNull(statement);
             Assert.AreEqual(BatchType.Logged, statement.BatchType);
@@ -134,6 +134,28 @@ namespace Cassandra.Tests.Mapping
             Assert.AreEqual(2, parameters[0].Length);
             Assert.AreEqual("INSERT INTO Song (Id, Title, Artist, ReleaseDate) VALUES (?, ?, ?, ?)", queries[1]);
             Assert.AreEqual(4, parameters[1].Length);
+        }
+
+        [Test]
+        public void Execute_With_Ttl()
+        {
+            BatchStatement statement = null;
+            var mapper = GetMapper(() => TestHelper.DelayedTask(new RowSet()), s => statement = s);
+            var batch = mapper.CreateBatch();
+            //It should not include null values
+            batch.Insert(new Song { Id = Guid.NewGuid(), ReleaseDate = DateTimeOffset.Now }, false);
+            const int ttl = 3600;
+            batch.Insert(new Song { Id = Guid.NewGuid() }, true, ttl);
+            mapper.Execute(batch);
+            Assert.NotNull(statement);
+            Assert.AreEqual(BatchType.Logged, statement.BatchType);
+            var queries = batch.Statements.Select(cql => cql.Statement).ToArray();
+            var parameters = batch.Statements.Select(cql => cql.Arguments).ToArray();
+            Assert.AreEqual("INSERT INTO Song (Id, ReleaseDate) VALUES (?, ?)", queries[0]);
+            Assert.AreEqual(2, parameters[0].Length);
+            Assert.AreEqual("INSERT INTO Song (Id, Title, Artist, ReleaseDate) VALUES (?, ?, ?, ?) USING TTL ?", queries[1]);
+            Assert.AreEqual(5, parameters[1].Length);
+            Assert.AreEqual(ttl, parameters[1].Last());
         }
 
         [Test]

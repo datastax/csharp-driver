@@ -21,14 +21,25 @@ namespace Cassandra.Tests.Mapping
 
         protected IMapper GetMappingClient(Func<Task<RowSet>> getRowSetFunc, MappingConfiguration config = null)
         {
+            return GetMappingClient(getRowSetFunc, null, config);
+        }
+
+        protected IMapper GetMappingClient(Func<Task<RowSet>> getRowSetFunc, Action<string, object[]> queryCallback, MappingConfiguration config = null)
+        {
+            if (queryCallback == null)
+            {
+                //noop
+                queryCallback = (q, p) => { };
+            }
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(getRowSetFunc)
+                .Callback<BoundStatement>(s => queryCallback(s.PreparedStatement.Cql, s.QueryValues))
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns(TaskHelper.ToTask(GetPrepared()))
+                .Returns<string>(q => TaskHelper.ToTask(GetPrepared(q)))
                 .Verifiable();
             return GetMappingClient(sessionMock, config);
         }
