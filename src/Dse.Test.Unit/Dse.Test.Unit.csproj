@@ -34,8 +34,9 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Cassandra">
-      <HintPath>..\packages\CassandraCSharpDriver.3.0.1\lib\net40\Cassandra.dll</HintPath>
+    <Reference Include="Cassandra, Version=3.0.0.0, Culture=neutral, PublicKeyToken=10b231fbfc8c4b4d, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\CassandraCSharpDriver.3.0.3\lib\net40\Cassandra.dll</HintPath>
     </Reference>
     <Reference Include="LZ4">
       <HintPath>..\packages\lz4net.1.0.5.93\lib\net40-client\LZ4.dll</HintPath>
@@ -60,6 +61,11 @@
   <ItemGroup>
     <Compile Include="BaseUnitTest.cs" />
     <Compile Include="DseClusterBuilderTests.cs" />
+    <Compile Include="EndianBitConverterTests.cs" />
+    <Compile Include="Geometry\CircleTests.cs" />
+    <Compile Include="Geometry\LineStringTests.cs" />
+    <Compile Include="Geometry\PointTests.cs" />
+    <Compile Include="Geometry\PolygonTests.cs" />
     <Compile Include="Graph\ExecuteGraphTests.cs" />
     <Compile Include="Graph\GraphOptionsTests.cs" />
     <Compile Include="Graph\GraphResultTests.cs" />
