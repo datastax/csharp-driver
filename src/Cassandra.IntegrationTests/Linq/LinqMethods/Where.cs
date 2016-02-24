@@ -86,6 +86,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         [Test]
+        [TestCassandraVersion(3, 0, Comparison.LessThan)]
         public void LinqWhere_Exception()
         {
             //No translation in CQL
@@ -101,6 +102,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         [Test]
+        [TestCassandraVersion(3, 0, Comparison.LessThan)]
         public void LinqWhere_NoPartitionKey()
         {
             Assert.Throws<InvalidQueryException>(() => _movieTable.Where(m => m.Year == 100).Execute());

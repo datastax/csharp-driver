@@ -85,6 +85,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         [Test]
+        [TestCassandraVersion(3, 0, Comparison.LessThan)]
         public void First_NoPartitionKey()
         {
             //No partition key in Query
