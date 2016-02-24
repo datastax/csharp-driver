@@ -93,9 +93,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         [Test]
-        public void First_WrongConsistencyLevel()
+        public void First_With_Serial_ConsistencyLevel()
         {
-            Assert.Throws<InvalidQueryException>(() => _movieTable.First(m => m.MovieMaker == "dum").SetConsistencyLevel(ConsistencyLevel.Serial).Execute());
+            Assert.DoesNotThrow(() => _movieTable.First().SetConsistencyLevel(ConsistencyLevel.Serial).Execute());
         }
 
         [Test]

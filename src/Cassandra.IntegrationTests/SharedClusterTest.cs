@@ -87,9 +87,14 @@ namespace Cassandra.IntegrationTests
 
         protected ISession GetNewSession(string keyspace = null)
         {
+            return GetNewCluster().Connect(keyspace);
+        }
+
+        protected Cluster GetNewCluster()
+        {
             var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build();
             _clusterInstances.Add(cluster);
-            return cluster.Connect(keyspace);
+            return cluster;
         }
     }
 }

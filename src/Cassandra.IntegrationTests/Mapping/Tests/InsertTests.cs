@@ -159,12 +159,9 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var mapper = new Mapper(_session, mappingConfig);
             lowercaseclassnamepklowercase pocoInstance = new lowercaseclassnamepklowercase();
 
-            // Assert final state of C* data
-            var err = Assert.Throws<RequestInvalidException>(
+            // No conditional INSERT, it must fail with serial consistency
+            Assert.Throws<InvalidQueryException>(
                 () => mapper.Insert(pocoInstance, new CqlQueryOptions().SetConsistencyLevel(ConsistencyLevel.Serial)));
-            Assert.AreEqual("Serial consistency specified as a non-serial one.", err.Message);
-            List<lowercaseclassnamepklowercase> instancesQueried = mapper.Fetch<lowercaseclassnamepklowercase>().ToList();
-            Assert.AreEqual(0, instancesQueried.Count);
         }
 
         /// <summary>
