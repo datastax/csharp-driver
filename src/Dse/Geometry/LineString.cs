@@ -11,7 +11,7 @@ namespace Dse.Geometry
     /// Represents a one-dimensional object representing a sequence of points and the line segments connecting them.
     /// </summary>
     [Serializable]
-    public class LineString : Geometry
+    public class LineString : GeometryBase
     {
         /// <summary>
         /// Gets the read-only list of points describing the LineString.
@@ -26,6 +26,9 @@ namespace Dse.Geometry
 
         }
 
+        /// <summary>
+        /// Creates a new instance of <see cref="LineString"/> using a serialization information.
+        /// </summary>
         protected LineString(SerializationInfo info, StreamingContext context)
         {
             var coordinates = (double[][])info.GetValue("coordinates", typeof(double[][]));
@@ -48,6 +51,9 @@ namespace Dse.Geometry
             Points = AsReadOnlyCollection(points);
         }
 
+        /// <summary>
+        /// Returns a value indicating whether this instance and a specified object represent the same value.
+        /// </summary>
         public override bool Equals(object obj)
         {
             var other = obj as LineString;
@@ -62,11 +68,16 @@ namespace Dse.Geometry
             return !(Points.Where((t, i) => !t.Equals(other.Points[i])).Any());
         }
 
+        /// <summary>
+        /// Returns the hash code based on the value of this instance.
+        /// </summary>
         public override int GetHashCode()
         {
+            // ReSharper disable once NonReadonlyMemberInGetHashCode
             return CombineHashCode(Points);
         }
 
+        /// <inheritdoc />
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             info.AddValue("type", "LineString");

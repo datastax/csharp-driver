@@ -11,7 +11,7 @@ namespace Dse.Geometry
     /// loop to form a closed chain or circuit.
     /// </summary>
     [Serializable]
-    public class Polygon : Geometry
+    public class Polygon : GeometryBase
     {
         /// <summary>
         /// A read-only list describing the rings of the polygon.
@@ -39,6 +39,14 @@ namespace Dse.Geometry
         }
 
         /// <summary>
+        /// Creates a new instance of <see cref="Polygon"/> with no rings (empty).
+        /// </summary>
+        public Polygon() : this((IList<IList<Point>>) new IList<Point>[0])
+        {
+            
+        }
+
+        /// <summary>
         /// Creates a new instance of <see cref="Polygon"/> using multiple rings.
         /// </summary>
         /// <param name="rings">The polygon rings</param>
@@ -51,6 +59,9 @@ namespace Dse.Geometry
             Rings = AsReadOnlyCollection(rings, r => AsReadOnlyCollection(r));
         }
 
+        /// <summary>
+        /// Creates a new instance of <see cref="Polygon"/> using serialization information.
+        /// </summary>
         protected Polygon(SerializationInfo info, StreamingContext context)
         {
             var coordinates = (double[][][])info.GetValue("coordinates", typeof(double[][][]));
@@ -59,6 +70,9 @@ namespace Dse.Geometry
                 .ToList());
         }
 
+        /// <summary>
+        /// Returns a value indicating whether this instance and a specified object represent the same value.
+        /// </summary>
         public override bool Equals(object obj)
         {
             var other = obj as Polygon;
@@ -82,11 +96,16 @@ namespace Dse.Geometry
             return true;
         }
 
+        /// <summary>
+        /// Returns the hash code based on the value of this instance.
+        /// </summary>
         public override int GetHashCode()
         {
+            // ReSharper disable once NonReadonlyMemberInGetHashCode
             return CombineHashCode(Rings.Select(r => CombineHashCode(r.Select(p => p.GetHashCode()))));
         }
 
+        /// <inheritdoc />
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             info.AddValue("type", "Polygon");

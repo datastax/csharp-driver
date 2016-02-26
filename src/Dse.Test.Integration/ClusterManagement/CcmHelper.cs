@@ -13,7 +13,14 @@ namespace Dse.Test.Integration.ClusterManagement
 
         public static void Start(int amountOfNodes, string dseYamlOptions = null, string[] jvmArgs = null)
         {
-            Remove();
+            try
+            {
+                Remove();
+            }
+            catch
+            {
+                //Pre-emptive remove failed, nevermind
+            }
 
             var dseDir = Environment.GetEnvironmentVariable("DSE_PATH") ??
                          ConfigurationManager.AppSettings["DseInstallPath"];

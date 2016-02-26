@@ -7,8 +7,8 @@ using NUnit.Framework;
 
 namespace Dse.Test.Unit
 {
-    [TestFixture]
-    public class BaseUnitTest
+    [TestFixture, Category("unit")]
+    public abstract class BaseUnitTest
     {
         protected static Task<T> TaskOf<T>(T value)
         {

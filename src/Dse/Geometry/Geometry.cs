@@ -11,7 +11,7 @@ namespace Dse.Geometry
     /// The driver-side representation for a DSE geospatial type.
     /// </summary>
     [Serializable]
-    public abstract class Geometry : ISerializable
+    public abstract class GeometryBase : ISerializable
     {
         /// <summary>
         /// Checks for null items and returns a read-only collection with an array as underlying list.
@@ -36,6 +36,10 @@ namespace Dse.Geometry
             return new ReadOnlyCollection<T>(elementsArray);
         }
 
+
+        /// <summary>
+        /// Combines the hash code based on the value of items.
+        /// </summary>
         protected int CombineHashCode<T>(IEnumerable<T> items)
         {
             unchecked
@@ -49,6 +53,10 @@ namespace Dse.Geometry
             }
         }
 
+
+        /// <summary>
+        /// When overridden, sets the serialization info.
+        /// </summary>
         public abstract void GetObjectData(SerializationInfo info, StreamingContext context);
     }
 }

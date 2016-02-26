@@ -22,6 +22,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <LangVersion>4</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -36,7 +37,7 @@
   <ItemGroup>
     <Reference Include="Cassandra, Version=3.0.0.0, Culture=neutral, PublicKeyToken=10b231fbfc8c4b4d, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\CassandraCSharpDriver.3.0.3\lib\net40\Cassandra.dll</HintPath>
+      <HintPath>..\packages\CassandraCSharpDriver.3.0.4\lib\net40\Cassandra.dll</HintPath>
     </Reference>
     <Reference Include="LZ4">
       <HintPath>..\packages\lz4net.1.0.5.93\lib\net40-client\LZ4.dll</HintPath>
@@ -68,6 +69,11 @@
     <Compile Include="ClusterManagement\CcmBridge.cs" />
     <Compile Include="ClusterManagement\CcmDseBridge.cs" />
     <Compile Include="ClusterManagement\CcmHelper.cs" />
+    <Compile Include="Geometry\CircleTests.cs" />
+    <Compile Include="Geometry\GeometryTests.cs" />
+    <Compile Include="Geometry\LineStringTests.cs" />
+    <Compile Include="Geometry\PointTests.cs" />
+    <Compile Include="Geometry\PolygonTests.cs" />
     <Compile Include="Graph\GraphTests.cs" />
     <Compile Include="InfrastructureTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

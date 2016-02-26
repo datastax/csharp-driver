@@ -11,7 +11,7 @@ namespace Dse.Geometry
     /// In case of Geographic Coordinate Systems, the X coordinate is the longitude and the Y is the latitude.
     /// </summary>
     [Serializable]
-    public class Point : Geometry
+    public class Point : GeometryBase
     {
         /// <summary>
         /// Returns the X coordinate of this 2D point.
@@ -34,6 +34,9 @@ namespace Dse.Geometry
             Y = y;
         }
 
+        /// <summary>
+        /// Creates a new instance of <see cref="Point"/>.
+        /// </summary>
         protected Point(SerializationInfo info, StreamingContext context)
         {
             var coordinates = (double[])info.GetValue("coordinates", typeof(double[]));
@@ -41,6 +44,9 @@ namespace Dse.Geometry
             Y = coordinates[1];
         }
 
+        /// <summary>
+        /// Returns a value indicating whether this instance and a specified object represent the same value.
+        /// </summary>
         public override bool Equals(object obj)
         {
             var other = obj as Point;
@@ -51,11 +57,15 @@ namespace Dse.Geometry
             return X.Equals(other.X) && Y.Equals(other.Y);
         }
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
+            // ReSharper disable NonReadonlyMemberInGetHashCode
             return CombineHashCode(new [] { X, Y});
+            // ReSharper enable NonReadonlyMemberInGetHashCode
         }
 
+        /// <inheritdoc />
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             info.AddValue("type", "Point");

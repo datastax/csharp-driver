@@ -4,6 +4,8 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using Cassandra;
+using Cassandra.Serialization;
+using Dse.Geometry;
 using Dse.Graph;
 
 namespace Dse
@@ -13,6 +15,7 @@ namespace Dse
     /// </summary>
     public class DseClusterBuilder : Builder
     {
+        private TypeSerializerDefinitions _typeSerializerDefinitions;
         /// <summary>
         /// Gets the DSE Graph options.
         /// </summary>
@@ -421,6 +424,18 @@ namespace Dse
         }
 
         /// <summary>
+        /// Sets the <see cref="TypeSerializer{T}"/> to be used, replacing the default ones.
+        /// </summary>
+        /// <returns>this instance</returns>
+        public new DseClusterBuilder WithTypeSerializers(TypeSerializerDefinitions definitions)
+        {
+            //Store the definitions
+            //If the definitions for GeoTypes or other have already been defined those will be considered.
+            _typeSerializerDefinitions = definitions;
+            return this;
+        }
+
+        /// <summary>
         /// Build the cluster with the configured set of initial contact points and policies.
         /// </summary>
         /// <returns>
@@ -428,6 +443,13 @@ namespace Dse
         /// </returns>
         public new DseCluster Build()
         {
+            var typeSerializerDefinitions = _typeSerializerDefinitions ?? new TypeSerializerDefinitions();
+            typeSerializerDefinitions
+                .Define(new CircleSerializer())
+                .Define(new LineStringSerializer())
+                .Define(new PointSerializer())
+                .Define(new PolygonSerializer());
+            base.WithTypeSerializers(typeSerializerDefinitions);
             var coreCluster = base.Build();
             return new DseCluster(
                 coreCluster, 

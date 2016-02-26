@@ -1,12 +1,18 @@
-﻿using Dse.Graph;
+﻿using System.Diagnostics;
+using Cassandra;
+using Dse.Graph;
 using Dse.Test.Integration.ClusterManagement;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration
 {
     [TestFixture]
-    public class BaseIntegrationTest
+    public abstract class BaseIntegrationTest
     {
+        protected BaseIntegrationTest()
+        {
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
+        }
         /// <summary>
         /// Reference graph: http://www.tinkerpop.com/docs/3.0.0.M1/
         /// </summary>

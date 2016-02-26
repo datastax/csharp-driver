@@ -10,7 +10,7 @@ namespace Dse.Geometry
     /// Represents the circle simple shape in Euclidean geometry composed by a center and a distance to the center (radius).
     /// </summary>
     [Serializable]
-    public class Circle : Geometry
+    public class Circle : GeometryBase
     {
         /// <summary>
         /// Gets the center of the circle.
@@ -36,6 +36,9 @@ namespace Dse.Geometry
             Radius = radius;
         }
 
+        /// <summary>
+        /// Creates a new instance of <see cref="Circle"/>.
+        /// </summary>
         protected Circle(SerializationInfo info, StreamingContext context)
         {
             var coordinates = (double[])info.GetValue("coordinates", typeof(double[]));
@@ -43,6 +46,9 @@ namespace Dse.Geometry
             Radius = Convert.ToDouble(info.GetValue("radius", typeof(double)));
         }
 
+        /// <summary>
+        /// Returns a value indicating whether this instance and a specified object represent the same value.
+        /// </summary>
         public override bool Equals(object obj)
         {
             var other = obj as Circle;
@@ -53,11 +59,17 @@ namespace Dse.Geometry
             return Center.Equals(other.Center) && Radius.Equals(other.Radius);
         }
 
+        /// <summary>
+        /// Returns the hash code based on the value of this instance.
+        /// </summary>
         public override int GetHashCode()
         {
+            // ReSharper disable NonReadonlyMemberInGetHashCode
             return CombineHashCode(new object[] { Center, Radius});
+            // ReSharper enable NonReadonlyMemberInGetHashCode
         }
 
+        /// <inheritdoc />
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             info.AddValue("type", "Circle");
