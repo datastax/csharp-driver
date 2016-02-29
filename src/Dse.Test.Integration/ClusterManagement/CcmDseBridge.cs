@@ -8,11 +8,12 @@ namespace Dse.Test.Integration.ClusterManagement
     {
         private readonly string _dseInstallPath;
         private readonly string _dseYamlOption;
+        private readonly string _cassYamlOption;
 
-        public CcmDseBridge(string name, string ipPrefix, string dseInstallPath, ICcmProcessExecuter executer = null, string yamlOption = null) : base(name, ipPrefix, executer)
+        public CcmDseBridge(string name, string ipPrefix, string dseInstallPath, ICcmProcessExecuter executer = null)
+            : base(name, ipPrefix, executer)
         {
             _dseInstallPath = dseInstallPath;
-            _dseYamlOption = yamlOption;
         }
 
         public override void Create(string version, bool useSsl)
@@ -32,10 +33,6 @@ namespace Dse.Test.Integration.ClusterManagement
                 string.Format("create {0} --dse -i {1} {2} --install-dir={3} {4}", Name, IpPrefix, 
                     (string.IsNullOrEmpty(version) ? string.Empty : string.Format("-v {0}", version)),
                     _dseInstallPath, sslParams));
-
-            if (!string.IsNullOrEmpty(_dseYamlOption))
-                ExecuteCcm(string.Format("updatedseconf {0}", _dseYamlOption));
         }
-
     }
 }

@@ -53,7 +53,14 @@ namespace Dse.Test.Integration.TestBase
 
             var result = _sshClient.RunCommand(string.Format(@"{0} {1}", executable, args));
             output.ExitCode = result.ExitStatus;
-            output.OutputText.Append(result.Result);
+            if (result.Error != null)
+            {
+                output.OutputText.Append(result.Error);
+            }
+            else
+            {
+                output.OutputText.Append(result.Result);
+            }
 
             if (throwOnProcessError)
             {

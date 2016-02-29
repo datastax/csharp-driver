@@ -65,6 +65,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Auth\DsePlainTextAuthProviderTests.cs" />
     <Compile Include="BaseIntegrationTest.cs" />
     <Compile Include="ClusterManagement\CcmBridge.cs" />
     <Compile Include="ClusterManagement\CcmDseBridge.cs" />
@@ -88,7 +89,6 @@
     <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup />
   <ItemGroup>
     <ProjectReference Include="..\Dse\Dse.csproj">
       <Project>{a70ca3c8-da71-4592-b593-c0fee5fb9938}</Project>

@@ -65,6 +65,22 @@ namespace Dse.Test.Integration.ClusterManagement
             ExecuteCcm(string.Join(" ", parameters));
         }
 
+        public void UpdateConfig(params string[] configs)
+        {
+            foreach (var c in configs)
+            {
+                ExecuteCcm(string.Format("updateconf \"{0}\"", c));
+            }
+        }
+
+        public void UpdateDseConfig(params string[] configs)
+        {
+            foreach (var c in configs)
+            {
+                ExecuteCcm(string.Format("updatedseconf \"{0}\"", c));
+            }
+        }
+
         public void Populate(int dc1NodeLength, int dc2NodeLength, bool useVNodes)
         {
             var parameters = new List<string>

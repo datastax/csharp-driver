@@ -11,7 +11,7 @@ namespace Dse.Test.Integration.ClusterManagement
 
         private static CcmDseBridge _ccmDseBridge;
 
-        public static void Start(int amountOfNodes, string dseYamlOptions = null, string[] jvmArgs = null)
+        public static void Start(int amountOfNodes, string[] dseYamlOptions = null, string[] cassYamlOptions = null, string[] jvmArgs = null)
         {
             try
             {
@@ -87,10 +87,21 @@ namespace Dse.Test.Integration.ClusterManagement
             }
 
 
-            _ccmDseBridge = new CcmDseBridge(TestUtils.GetTestClusterNameBasedOnTime(), dseInitialIpPrefix, dseDir, 
-                            executer, dseYamlOptions);
+            _ccmDseBridge = new CcmDseBridge(
+                TestUtils.GetTestClusterNameBasedOnTime(), 
+                dseInitialIpPrefix, 
+                dseDir,
+                executer);
             _ccmDseBridge.Create(string.Empty, false); //passing empty version
             _ccmDseBridge.Populate(amountOfNodes, 0, false);
+            if (cassYamlOptions != null)
+            {
+                _ccmDseBridge.UpdateConfig(cassYamlOptions);
+            }
+            if (dseYamlOptions != null)
+            {
+                _ccmDseBridge.UpdateDseConfig(dseYamlOptions);
+            }
             _ccmDseBridge.Start(jvmArgs);
         }
 
