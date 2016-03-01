@@ -25,7 +25,7 @@ namespace Dse.Auth
 
         protected abstract byte[] GetInitialServerChallenge();
 
-        public byte[] InitialResponse()
+        public virtual byte[] InitialResponse()
         {
             if (!IsDseAuthenticator())
             {
