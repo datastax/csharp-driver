@@ -168,6 +168,8 @@ namespace Cassandra.Tests
                 new object[] {new List<int>(new [] {1, 2, 1000}), ColumnTypeCode.List, new ListColumnInfo() {ValueTypeCode = ColumnTypeCode.Int}},
                 new object[] {new List<double>(new [] {-1D, 2.333D, 1.2D}), ColumnTypeCode.List, new ListColumnInfo() {ValueTypeCode = ColumnTypeCode.Double}},
                 new object[] {new double[] {5D, 4.333D, 1.2D}, ColumnTypeCode.List, new ListColumnInfo() {ValueTypeCode = ColumnTypeCode.Double}},
+                new object[] {new [] { new { x = 1}, new { x = 2 }}.Select(_ => _.x), ColumnTypeCode.List, new ListColumnInfo { ValueTypeCode = ColumnTypeCode.Int}}, // Produces a System.Linq.Enumerable.WhereSelectArrayIterator<AnonymousType,int>, which is an IEnumerable<int>
+
                 //Sets
                 new object[] {new List<decimal>(new [] {-1M, 2.333M, 1.2M, 256M}), ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Decimal}},
                 new object[] {new SortedSet<string>(new [] {"a", "b", "c"}), ColumnTypeCode.Set, new SetColumnInfo() {KeyTypeCode = ColumnTypeCode.Text}},

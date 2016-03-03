@@ -326,10 +326,12 @@ namespace Cassandra
                         };
                         return ColumnTypeCode.Map;
                     }
-                    if (type.GetInterface("IEnumerable`1") != null || type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                    var iEnumerable = type.GetInterface("IEnumerable`1");
+                    if (iEnumerable != null || type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
                     {
                         IColumnInfo valueTypeInfo;
-                        ColumnTypeCode valueTypeCode = GetColumnTypeCodeInfo(type.GetGenericArguments()[0], out valueTypeInfo);
+                        var genericArgument = iEnumerable == null ? type.GetGenericArguments()[0] : iEnumerable.GetGenericArguments()[0];
+                        ColumnTypeCode valueTypeCode = GetColumnTypeCodeInfo(genericArgument, out valueTypeInfo);
                         typeInfo = new ListColumnInfo {ValueTypeCode = valueTypeCode, ValueTypeInfo = valueTypeInfo};
                         return ColumnTypeCode.List;
                     }
