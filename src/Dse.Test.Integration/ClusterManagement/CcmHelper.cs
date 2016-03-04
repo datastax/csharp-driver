@@ -11,6 +11,9 @@ namespace Dse.Test.Integration.ClusterManagement
 
         private static CcmDseBridge _ccmDseBridge;
 
+        public static string DseInitialIpPrefix = 
+            Environment.GetEnvironmentVariable("DSE_INITIAL_IPPREFIX") ?? ConfigurationManager.AppSettings["DseInitialIpPrefix"];
+
         public static void Start(int amountOfNodes, string[] dseYamlOptions = null, string[] cassYamlOptions = null, string[] jvmArgs = null)
         {
             try
@@ -30,8 +33,7 @@ namespace Dse.Test.Integration.ClusterManagement
                 throw new ConfigurationErrorsException("You must specify the DSE path either via DSE_PATH environment variable or by 'DseInstallPath' app setting");
             }
 
-            var dseInitialIpPrefix = Environment.GetEnvironmentVariable("DSE_INITIAL_IPPREFIX") ??
-                         ConfigurationManager.AppSettings["DseInitialIpPrefix"];
+            var dseInitialIpPrefix = DseInitialIpPrefix;
 
             if (string.IsNullOrEmpty(dseInitialIpPrefix))
             {
@@ -116,9 +118,7 @@ namespace Dse.Test.Integration.ClusterManagement
         {
             get
             {
-                if (_ccmDseBridge == null) return null;
-
-                return _ccmDseBridge.IpPrefix + InitialContactPointSufix;
+                return DseInitialIpPrefix + InitialContactPointSufix;
             }
         }
     }

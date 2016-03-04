@@ -48,6 +48,9 @@ namespace Dse.Auth.Sspi
             this.errorCode = errorCode;
         }
 
+        /// <summary>
+        /// Creates a new instance of <see cref="SspiException"/>.
+        /// </summary>
         public SspiException(string message, int errorCode) : this(message, (SecurityStatus) errorCode)
         {
             

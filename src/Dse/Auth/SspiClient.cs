@@ -9,41 +9,47 @@ using Dse.Auth.Sspi.Credentials;
 
 namespace Dse.Auth
 {
+    /// <summary>
+    /// A Windows-only <see cref="IGssapiClient"/> implementation.
+    /// </summary>
     internal class SspiClient : IGssapiClient
     {
         private delegate byte[] TransitionHandler(byte[] challenge);
-        private const ContextAttrib ContextRequestAttributes =
-            ContextAttrib.InitIntegrity |
-            ContextAttrib.ReplayDetect |
-            ContextAttrib.SequenceDetect |
-            ContextAttrib.MutualAuth |
-            ContextAttrib.Delegate |
-            ContextAttrib.Confidentiality;
+        private const ContextAttrib ContextRequestAttributes = ContextAttrib.MutualAuth;
         private static readonly byte[] EmptyBuffer = new byte[0];
 
         private readonly TransitionHandler[] _transitions;
         private int _transitionIndex = -1;
-        private ClientCredential _credentials;
-        private ClientContext _context;
+        private volatile ClientCredential _credentials;
+        private volatile ClientContext _context;
 
         public SspiClient()
         {
             _transitions = new TransitionHandler[]
             {
                 FirstTransition,
-                SecondTransition
+                SecondTransition,
+                ThirdTransition
             };
         }
 
-        public void Init(string host)
+        public void Init(string service, string host)
         {
-            //For the principal    "dse/cassandra1.datastax.com@DATASTAX.COM"
-            //the expected uri is: "dse@cassandra1.datastax.com"
-
+            if (!String.IsNullOrEmpty(service))
+            {
+                //For the server principal: "dse/cassandra1.datastax.com@DATASTAX.COM"
+                //the expected Uri is: "dse/cassandra1.datastax.com"
+                service = service + "/" + host;
+            }
+            else
+            {
+                //Use string empty
+                service = "";
+            }
             //Acquire credentials
             _credentials = new ClientCredential(PackageNames.Kerberos);
-            _context = new ClientContext(_credentials, "", ContextRequestAttributes);
             //Initialize security context
+            _context = new ClientContext(_credentials, service, ContextRequestAttributes);
         }
 
         public byte[] EvaluateChallenge(byte[] challenge)
@@ -53,6 +59,8 @@ namespace Dse.Auth
             {
                 throw new InvalidOperationException("No additional transitions supported");
             }
+            //According to RFC 2222 7.2.1: Client can respond with no data
+            //Use empty buffer instead
             return _transitions[index](challenge) ?? EmptyBuffer;
         }
 
@@ -70,9 +78,32 @@ namespace Dse.Auth
             return resultToken;
         }
 
+        private byte[] ThirdTransition(byte[] challenge)
+        {
+            _context.Decrypt(challenge);
+
+            var plainResult = new byte[]
+            {
+                0x1, // QOP
+                0x1, // MAX BUF SIZE
+                0x0, // MAX BUF SIZE
+                0x0 // MAX BUF SIZE
+            };
+            return _context.Encrypt(plainResult);
+        }
+
         public void Dispose()
         {
-            
+            var context = _context;
+            if (context != null)
+            {
+                context.Dispose();
+            }
+            var credentials = _credentials;
+            if (credentials != null)
+            {
+                credentials.Dispose();   
+            }
         }
     }
 }

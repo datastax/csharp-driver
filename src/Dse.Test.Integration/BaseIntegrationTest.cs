@@ -6,7 +6,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration
 {
-    [TestFixture]
+    [TestFixture, Category("short")]
     public abstract class BaseIntegrationTest
     {
         protected BaseIntegrationTest()

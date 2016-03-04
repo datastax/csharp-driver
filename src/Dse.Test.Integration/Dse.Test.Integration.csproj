@@ -65,6 +65,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Auth\DseGssapiAuthProviderTests.cs" />
     <Compile Include="Auth\DsePlainTextAuthProviderTests.cs" />
     <Compile Include="BaseIntegrationTest.cs" />
     <Compile Include="ClusterManagement\CcmBridge.cs" />
@@ -78,6 +79,7 @@
     <Compile Include="Graph\GraphTests.cs" />
     <Compile Include="InfrastructureTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Auth\SspiClientTests.cs" />
     <Compile Include="TestBase\CcmProcessExecuter.cs" />
     <Compile Include="TestBase\ICcmProcessExecuter.cs" />
     <Compile Include="TestBase\LocalCcmProcessExecuter.cs" />

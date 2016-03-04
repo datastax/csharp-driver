@@ -7,8 +7,6 @@ namespace Dse.Test.Integration.ClusterManagement
     public class CcmDseBridge : CcmBridge
     {
         private readonly string _dseInstallPath;
-        private readonly string _dseYamlOption;
-        private readonly string _cassYamlOption;
 
         public CcmDseBridge(string name, string ipPrefix, string dseInstallPath, ICcmProcessExecuter executer = null)
             : base(name, ipPrefix, executer)

@@ -37,11 +37,13 @@ namespace Dse.Auth
             _password = password;
         }
 
+        /// <inheritdoc />
         public IAuthenticator NewAuthenticator(IPEndPoint host)
         {
             return new PlainTextAuthenticator(_name, _username, _password);
         }
 
+        /// <inheritdoc />
         public void SetName(string name)
         {
             _name = name;

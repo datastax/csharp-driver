@@ -7,7 +7,7 @@ namespace Dse.Auth
 {
     internal interface IGssapiClient : IDisposable
     {
-        void Init(string host);
+        void Init(string service, string host);
         byte[] EvaluateChallenge(byte[] challenge);
     }
 }

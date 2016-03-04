@@ -60,6 +60,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ApiTests.cs" />
     <Compile Include="Auth\DsePlainTextAuthProviderTests.cs" />
     <Compile Include="BaseUnitTest.cs" />
     <Compile Include="DseClusterBuilderTests.cs" />
