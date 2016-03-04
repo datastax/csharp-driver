@@ -232,6 +232,14 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+        /// <summary>
+        /// Testing the usage of dictionary for named parameters.
+        /// 
+        /// @since 2.1.0
+        /// @jira_ticket CSHARP-406
+        /// @expected_result Replace the named parameters according to keys in dictionary
+        ///
+        /// </summary>
         [Test]
         [TestCassandraVersion(2, 1)]
         public void SimpleStatement_Dictionary_Parameters_CaseInsensitivity()
@@ -242,6 +250,86 @@ namespace Cassandra.IntegrationTests.Core
             {
                 {"my_ID", id},
                 {"my_INT", 101010},
+                {"MY_text", "Right Thoughts, Right Words, Right Action"}
+            };
+            Session.Execute(new SimpleStatement(values, insertQuery));
+
+            var row = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
+            Assert.AreEqual(values["my_INT"], row.GetValue<int>("int_sample"));
+            Assert.AreEqual(values["MY_text"], row.GetValue<string>("text_sample"));
+        }
+
+        /// <summary>
+        /// Testing the usage of dictionary for named parameters, in such a case that the dictionary has more than one equal key (with different capital letters).
+        /// 
+        /// @since 2.1.0
+        /// @jira_ticket CSHARP-406
+        /// @expected_result The statement will use the first key in dictionary that match unregarding the case sensitivity
+        ///
+        /// </summary>
+        [Test(Description = "Testing dictionary parameters with same keys but different case sensitivity. Driver should use the first case INsensitivity match.")]
+        [TestCassandraVersion(2, 1)]
+        public void SimpleStatement_Dictionary_Parameters_CaseInsensitivity_NoOverload()
+        {
+            var insertQuery = string.Format("INSERT INTO {0} (id, \"text_sample\", int_sample) VALUES (:my_ID, :my_TEXT, :MY_INT)", AllTypesTableName);
+            var id = Guid.NewGuid();
+            var values = new Dictionary<string, object>
+            {
+                {"my_ID", id},
+                {"MY_INT", 303030},
+                {"my_INT", 101010},
+                {"My_int", 202020},
+                {"MY_text", "Right Thoughts, Right Words, Right Action"}
+            };
+            Session.Execute(new SimpleStatement(values, insertQuery));
+
+            var row = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
+            Assert.AreEqual(values["MY_INT"], row.GetValue<int>("int_sample"));
+            Assert.AreEqual(values["MY_text"], row.GetValue<string>("text_sample"));
+        }
+
+        /// <summary>
+        /// Testing missing parameter in dictionary for named parameters.
+        /// 
+        /// @throws InvalidQueryException
+        ///
+        /// @since 2.1.0
+        /// @jira_ticket CSHARP-406
+        /// </summary>
+        [Test(Description = "Testing missing parameter in dictionary for named parameters")]
+        [TestCassandraVersion(2, 1)]
+        [ExpectedException(typeof(InvalidQueryException))]
+        public void SimpleStatement_Dictionary_Parameters_CaseInsensitivity_MissingParam()
+        {
+            var insertQuery = string.Format("INSERT INTO {0} (id, \"text_sample\", int_sample) VALUES (:my_ID, :my_TEXT, :MY_INT)", AllTypesTableName);
+            var id = Guid.NewGuid();
+            var values = new Dictionary<string, object>
+            {
+                {"my_ID", id},
+                {"MY_text", "Right Thoughts, Right Words, Right Action"}
+            };
+            Session.Execute(new SimpleStatement(values, insertQuery));
+        }
+
+        /// <summary>
+        /// Testing the usage of dictionary for named parameters, in such a case that the dictionary has more keys than named parameters in statement.
+        /// 
+        /// @since 2.1.0
+        /// @jira_ticket CSHARP-406
+        /// @expected_result The statement will ignore the excess of parameters
+        ///
+        /// </summary>
+        [Test]
+        [TestCassandraVersion(2, 1)]
+        public void SimpleStatement_Dictionary_Parameters_CaseInsensitivity_ExcessOfParams()
+        {
+            var insertQuery = string.Format("INSERT INTO {0} (id, \"text_sample\", int_sample) VALUES (:my_ID, :my_TEXT, :MY_INT)", AllTypesTableName);
+            var id = Guid.NewGuid();
+            var values = new Dictionary<string, object>
+            {
+                {"my_ID", id},
+                {"my_INT", 101010},
+                {"AnotherParam", 101010},
                 {"MY_text", "Right Thoughts, Right Words, Right Action"}
             };
             Session.Execute(new SimpleStatement(values, insertQuery));
@@ -346,7 +434,7 @@ namespace Cassandra.IntegrationTests.Core
                 // Verify results
                 RowSet rs = Session.Execute("SELECT * FROM " + tableName);
                 VerifyData(rs, expectedValues);
-                
+
                 Session.Execute(String.Format("DROP TABLE {0}", tableName));
                 expectedValues.Clear();
             }
@@ -360,7 +448,7 @@ namespace Cassandra.IntegrationTests.Core
             var val = Randomm.RandomVal(type);
             var bindValues = new object[] { Guid.NewGuid(), val };
             expectedValues.Add(bindValues);
-            
+
             CreateTable(tableName, cassandraDataTypeName);
 
             var statement = new SimpleStatement(String.Format("INSERT INTO {0} (id, val) VALUES (?, ?)", tableName), bindValues);
@@ -444,6 +532,6 @@ namespace Cassandra.IntegrationTests.Core
                 x++;
             }
         }
-        #pragma warning restore 618
+#pragma warning restore 618
     }
 }
