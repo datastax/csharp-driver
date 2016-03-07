@@ -10,6 +10,10 @@ namespace Dse
 {
     /// <summary>
     /// Represents an <see cref="ISession"/> suitable for querying a DataStax Enterprise (DSE) Cluster.
+    /// <para>
+    /// Session instances are designed to be long-lived, thread-safe and usually a single instance is enough per 
+    /// application.
+    /// </para>
     /// </summary>
     public interface IDseSession : ISession
     {
@@ -17,12 +21,22 @@ namespace Dse
         /// Executes a graph statement.
         /// </summary>
         /// <param name="statement">The graph statement containing the query</param>
+        /// <example>
+        /// <code>
+        /// GraphResultSet rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
+        /// </code>
+        /// </example>
         GraphResultSet ExecuteGraph(IGraphStatement statement);
 
         /// <summary>
         /// Executes a graph statement.
         /// </summary>
         /// <param name="statement">The graph statement containing the query</param>
+        /// <example>
+        /// <code>
+        /// GraphResultSet rs = await session.ExecuteGraphAsync(new SimpleGraphStatement("g.V()"));
+        /// </code>
+        /// </example>
         Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement statement);
     }
 }

@@ -10,6 +10,9 @@ namespace Dse.Graph
     /// </summary>
     public abstract class Element
     {
+        /// <summary>
+        /// Creates a new instance of a Graph <see cref="Element"/>.
+        /// </summary>
         protected Element(GraphResult id, string label, IDictionary<string, GraphResult> properties)
         {
             Id = id;

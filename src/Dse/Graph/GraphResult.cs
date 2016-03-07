@@ -101,12 +101,18 @@ namespace Dse.Graph
             throw new NotSupportedException(string.Format("Token of type {0} is not supported", token.GetType()));
         }
 
+        /// <summary>
+        /// Provides the implementation for operations that get member values.
+        /// </summary>
         public override bool TryGetMember(GetMemberBinder binder, out object result)
         {
             result = GetValue(binder.Name);
             return true;
         }
 
+        /// <summary>
+        /// Returns true if the value represented by this instance is the same.
+        /// </summary>
         public bool Equals(GraphResult other)
         {
             if (ReferenceEquals(this, other))
@@ -116,11 +122,17 @@ namespace Dse.Graph
             return _json == other._json;
         }
 
+        /// <summary>
+        /// Returns true if the value represented by this instance is the same.
+        /// </summary>
         public override bool Equals(object obj)
         {
             return Equals(obj as GraphResult);
         }
 
+        /// <summary>
+        /// Gets the hash code for this instance, based on its value.
+        /// </summary>
         public override int GetHashCode()
         {
             return _json.GetHashCode();
@@ -146,6 +158,9 @@ namespace Dse.Graph
             return arr;
         }
 
+        /// <summary>
+        /// Converts the instance into an array when the internal representation is a json array.
+        /// </summary>
         public dynamic[] ToArray()
         {
             if (!(_parsedGraphItem is JArray))
@@ -254,6 +269,9 @@ namespace Dse.Graph
                 properties);
         }
 
+        /// <summary>
+        /// Returns true if the value represented by the instances are the same.
+        /// </summary>
         public static bool operator ==(GraphResult result1, GraphResult result2)
         {
             if (ReferenceEquals(result1, result2))
@@ -270,16 +288,25 @@ namespace Dse.Graph
             return result1.Equals(result2);
         }
 
+        /// <summary>
+        /// Compares the values for inequality.
+        /// </summary>
         public static bool operator !=(GraphResult result1, GraphResult result2)
         {
             return !(result1 == result2);
         }
 
+        /// <summary>
+        /// Converts this instance to a <see cref="Vertex"/>.
+        /// </summary>
         public static implicit operator Vertex(GraphResult b)
         {
             return b.ToVertex();
         }
 
+        /// <summary>
+        /// Converts this instance to an <see cref="Edge"/>.
+        /// </summary>
         public static implicit operator Edge(GraphResult b)
         {
             return b.ToEdge();

@@ -30,6 +30,9 @@ namespace Dse.Graph
         /// </summary>
         public string OutVLabel { get; private set; }
 
+        /// <summary>
+        /// Creates a new instance of <see cref="Edge"/>.
+        /// </summary>
         public Edge(GraphResult id, string label, IDictionary<string, GraphResult> properties, 
             GraphResult inV, string inVLabel, GraphResult outV, string outVLabel)
             : base(id, label, properties)

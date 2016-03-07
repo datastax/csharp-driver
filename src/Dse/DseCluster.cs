@@ -16,18 +16,28 @@ namespace Dse
     /// </para>
     /// </summary>
     /// <example>
+    /// <code>
     /// IDseCluster cluster = DseCluster.Builder().AddContactPoint("192.168.0.1").Build();
     /// IDseSession session = cluster.Connect("ks1");
     /// foreach (Row row in session.Execute(query))
     /// {
     ///     //do something...
     /// }
+    /// </code>
     /// </example>
     public class DseCluster : IDseCluster
     {
         private readonly ICluster _coreCluster;
         private readonly DseConfiguration _config;
+
+        /// <summary>
+        /// Represents an event that is triggered when a new host is added to the cluster.
+        /// </summary>
         public event Action<Host> HostAdded;
+
+        /// <summary>
+        /// Represents an event that is triggered when a new host is decommissioned from the cluster.
+        /// </summary>
         public event Action<Host> HostRemoved;
 
         /// <inheritdoc/>
@@ -48,7 +58,9 @@ namespace Dse
             get { return _config.CassandraConfiguration; }
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Creates a new <see cref="DseClusterBuilder"/> instance.
+        /// </summary>
         public static DseClusterBuilder Builder()
         {
             return new DseClusterBuilder();
@@ -62,55 +74,68 @@ namespace Dse
             _coreCluster.HostRemoved += OnCoreHostRemoved;
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Calls <see cref="Shutdown(int)"/> with an infinite timeout.
+        /// </summary>
         public void Dispose()
         {
             _coreCluster.Dispose();
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Returns all known hosts of this cluster.
+        /// </summary>
+        /// <returns></returns>
         public ICollection<Host> AllHosts()
         {
             return _coreCluster.AllHosts();
         }
 
-        /// <inheritdoc/>
         ISession ICluster.Connect()
         {
             return Connect();
         }
 
-        /// <inheritdoc/>
         ISession ICluster.Connect(string keyspace)
         {
             return Connect(keyspace);
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Creates a new <see cref="IDseSession"/> for this cluster.
+        /// </summary>
         public IDseSession Connect()
         {
             return new DseSession(_coreCluster.Connect(), _config);
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Creates a new <see cref="IDseSession"/> for this cluster to a specific keyspaces.
+        /// </summary>
         public IDseSession Connect(string keyspace)
         {
             return new DseSession(_coreCluster.Connect(keyspace), _config);
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Get a host instance for a given endpoint.
+        /// </summary>
         public Host GetHost(IPEndPoint address)
         {
             return _coreCluster.GetHost(address);
         }
 
-        /// <inheritdoc/>
-        public ICollection<Host> GetReplicas(byte[] partitionKey)
+        ICollection<Host> ICluster.GetReplicas(byte[] partitionKey)
         {
             return _coreCluster.GetReplicas(partitionKey);
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets a collection of replicas for a given partitionKey on a given keyspace.
+        /// </summary>
+        /// <param name="keyspace">The keyspace name.</param>
+        /// <param name="partitionKey">Byte array representing the partition key.</param>
+        /// <returns></returns>
         public ICollection<Host> GetReplicas(string keyspace, byte[] partitionKey)
         {
             return _coreCluster.GetReplicas(keyspace, partitionKey);
@@ -132,7 +157,11 @@ namespace Dse
             }
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Shutdown this cluster instance. This closes all connections from all the sessions of this instance and
+        /// reclaim all resources used by it. 
+        /// <para>This method has no effect if the cluster has already been shutdown.</para>
+        /// </summary>
         public void Shutdown(int timeoutMs = -1)
         {
             _coreCluster.Shutdown(timeoutMs);

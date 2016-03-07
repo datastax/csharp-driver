@@ -34,12 +34,15 @@ namespace Dse.Graph
             _rs = rs;
         }
 
+        /// <summary>
+        /// Returns an enumerator that iterates through the collection.
+        /// </summary>
         public IEnumerator<GraphResult> GetEnumerator()
         {
             return _rs.Select(ParseRow).GetEnumerator();
         }
 
-        private GraphResult ParseRow(Row row)
+        private static GraphResult ParseRow(Row row)
         {
             return new GraphResult(row.GetValue<string>("gremlin"));
         }

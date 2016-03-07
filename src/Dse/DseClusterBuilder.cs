@@ -8,6 +8,9 @@ using Dse.Graph;
 
 namespace Dse
 {
+    /// <summary>
+    /// Helper class to build <see cref="DseCluster"/> instances.
+    /// </summary>
     public class DseClusterBuilder : Builder
     {
         /// <summary>
@@ -333,6 +336,10 @@ namespace Dse
             return this;
         }
 
+        /// <summary>
+        /// Sets the pooling options for the cluster.
+        /// </summary>
+        /// <returns>this instance</returns>
         public new DseClusterBuilder WithPoolingOptions(PoolingOptions value)
         {
             base.WithPoolingOptions(value);
@@ -349,6 +356,7 @@ namespace Dse
         /// SSL in the driver. Note that SSL certificate common name(CN) on Cassandra node must match Cassandra node hostname.
         /// </remarks>
         /// <returns>this builder</returns>
+        // ReSharper disable once InconsistentNaming
         public new DseClusterBuilder WithSSL()
         {
             base.WithSSL();
@@ -366,6 +374,7 @@ namespace Dse
         /// </remarks>
         /// <param name="sslOptions">SSL options to use.</param>
         /// <returns>this builder</returns>        
+        // ReSharper disable once InconsistentNaming
         public new DseClusterBuilder WithSSL(SSLOptions sslOptions)
         {
             base.WithSSL(sslOptions);

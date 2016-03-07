@@ -69,6 +69,9 @@ namespace Dse.Graph
             get { return _source; }
         }
 
+        /// <summary>
+        /// Creates a new instance of <see cref="GraphOptions"/>.
+        /// </summary>
         public GraphOptions()
         {
             RebuildDefaultPayload();

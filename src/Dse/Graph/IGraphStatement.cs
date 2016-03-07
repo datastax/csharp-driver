@@ -6,6 +6,9 @@ using Cassandra;
 
 namespace Dse.Graph
 {
+    /// <summary>
+    /// Represents a graph statement.
+    /// </summary>
     public interface IGraphStatement
     {
         /// <summary>

@@ -10,6 +10,9 @@ namespace Dse.Graph
     /// </summary>
     public class Vertex : Element
     {
+        /// <summary>
+        /// Creates a new <see cref="Vertex"/> instance.
+        /// </summary>
         public Vertex(GraphResult id, string label, IDictionary<string, GraphResult> properties) 
             : base(id, label, properties)
         {
