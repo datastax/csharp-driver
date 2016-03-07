@@ -66,6 +66,7 @@
     <Compile Include="Core\ControlConnectionTests.cs" />
     <Compile Include="Core\CustomPayloadTests.cs" />
     <Compile Include="Core\ReconnectionTests.cs" />
+    <Compile Include="Core\SchemaMetadataTests.cs" />
     <Compile Include="Core\UdfTests.cs" />
     <Compile Include="Core\SpeculativeExecutionLongTests.cs" />
     <Compile Include="Core\SpeculativeExecutionShortTests.cs" />
@@ -105,6 +106,7 @@
     <Compile Include="Linq\Structures\IAllDataTypesEntity.cs" />
     <Compile Include="Core\CollectionsNestedTests.cs" />
     <Compile Include="Linq\Structures\ManyDataTypesEntity.cs" />
+    <Compile Include="Policies\Tests\LoadBalancingPolicyShortTests.cs" />
     <Compile Include="SharedClusterTest.cs" />
     <Compile Include="Linq\Structures\SalesOrder.cs" />
     <Compile Include="Linq\Structures\AllDataTypesNoColumnMeta.cs" />

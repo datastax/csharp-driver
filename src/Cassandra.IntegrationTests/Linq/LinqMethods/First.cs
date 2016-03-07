@@ -85,6 +85,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         [Test]
+        [TestCassandraVersion(3, 0, Comparison.LessThan)]
         public void First_NoPartitionKey()
         {
             //No partition key in Query
@@ -93,9 +94,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         [Test]
-        public void First_WrongConsistencyLevel()
+        public void First_With_Serial_ConsistencyLevel()
         {
-            Assert.Throws<InvalidQueryException>(() => _movieTable.First(m => m.MovieMaker == "dum").SetConsistencyLevel(ConsistencyLevel.Serial).Execute());
+            Assert.DoesNotThrow(() => _movieTable.First().SetConsistencyLevel(ConsistencyLevel.Serial).Execute());
         }
 
         [Test]

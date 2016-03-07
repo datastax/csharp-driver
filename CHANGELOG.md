@@ -1,5 +1,13 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.0.3
+
+2016-03-03
+
+### Bug Fixes
+
+- [CSHARP-408] - Serial not allowed as Statement consistency level
+
 ## 3.0.2
 
 2016-02-11

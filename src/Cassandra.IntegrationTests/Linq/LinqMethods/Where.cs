@@ -86,6 +86,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         [Test]
+        [TestCassandraVersion(3, 0, Comparison.LessThan)]
         public void LinqWhere_Exception()
         {
             //No translation in CQL
@@ -101,6 +102,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         [Test]
+        [TestCassandraVersion(3, 0, Comparison.LessThan)]
         public void LinqWhere_NoPartitionKey()
         {
             Assert.Throws<InvalidQueryException>(() => _movieTable.Where(m => m.Year == 100).Execute());
@@ -120,15 +122,11 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         [Test]
-        public void LinqWhere_WrongConsistencyLevel_Serial()
+        public void LinqWhere_With_LocalSerial_ConsistencyLevel_Does_Not_Throw()
         {
-            Assert.Throws<InvalidQueryException>(() => _movieTable.Where(m => m.MovieMaker == "dum").SetConsistencyLevel(ConsistencyLevel.Serial).Execute());
-        }
-
-        [Test]
-        public void LinqWhere_WrongConsistencyLevel_LocalSerial()
-        {
-            Assert.Throws<InvalidQueryException>(() => _movieTable.Where(m => m.MovieMaker == "dum").SetConsistencyLevel(ConsistencyLevel.LocalSerial).Execute());
+            Assert.DoesNotThrow(() => 
+                _movieTable.Where(m => m.MovieMaker == "dum" && m.Title == "doesnt_matter")
+                    .SetConsistencyLevel(ConsistencyLevel.LocalSerial).Execute());
         }
 
         /// <summary>
