@@ -1,0 +1,81 @@
+<Project DefaultTargets="compile" InitialTargets="restore" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <!-- Define some base paths -->
+    <BaseFolder>..</BaseFolder>
+    <SourceFolder>$(BaseFolder)\src</SourceFolder>
+    <BuildFolder>$(BaseFolder)\build</BuildFolder>
+    <TestResultsFolder>$(BuildFolder)\testresults</TestResultsFolder>
+    <PackagesFolder>$(BuildFolder)\packages</PackagesFolder>
+    <NuGet>$(SourceFolder)\.nuget\nuget.exe</NuGet>
+    <MSBuildCommunityTasksLib>$(SourceFolder)\packages\MSBuildTasks.1.4.0.128\tools\MSBuild.Community.Tasks.dll</MSBuildCommunityTasksLib>
+    <SharedAssemblyInfo>$(SourceFolder)\Dse\Properties\BuildAssemblyInfo.cs</SharedAssemblyInfo>
+    <!-- Version information (package version is used to drive assembly info version attributes and should follow semantic versioning) -->
+    <PackageVersion>1.0.0-alpha1</PackageVersion>
+    <BuildNumber Condition=" '$(BuildNumber)' == '' ">0</BuildNumber>
+  </PropertyGroup>
+  <!-- Add some tasks from MSBuild Community Tasks project -->
+  <UsingTask AssemblyFile="$(MSBuildCommunityTasksLib)" TaskName="MSBuild.Community.Tasks.Git.GitVersion" />
+  <UsingTask AssemblyFile="$(MSBuildCommunityTasksLib)" TaskName="MSBuild.Community.Tasks.AssemblyInfo" />
+  <ItemGroup>
+    <Solution Include="$(SourceFolder)\Dse.sln"></Solution>
+    <!-- NuGet spec files which will be used to create packages -->
+    <NuSpecFiles Include="$(BuildFolder)\package.nuspec" /> 
+  </ItemGroup>
+  <Target Name="restore">
+    <Message Text="Restoring NuGet packages for solution" Importance="high" />
+    <Exec Command="$(NuGet) restore &quot;%(Solution.Identity)&quot; -NonInteractive" />
+  </Target>
+  <Target Name="clean">
+    <Message Text="Cleaning build output folders" Importance="high" />
+    <RemoveDir Directories="$(TestResultsFolder)" ContinueOnError="true" />
+    <RemoveDir Directories="$(PackagesFolder)" ContinueOnError="true" />
+    <Message Text="Cleaning projects" Importance="high" />
+    <MSBuild Projects="@(Solution)" Targets="clean" StopOnFirstFailure="true" Properties="Configuration=Release" />
+  </Target>
+  <Target Name="compile" DependsOnTargets="clean">
+    <Message Text="Compiling projects" Importance="high" />
+    <MSBuild Projects="@(Solution)" Targets="build" StopOnFirstFailure="true" Properties="Configuration=Release" />
+  </Target>
+  <Target Name="unit-test" DependsOnTargets="compile">
+    <Message Text="Running unit tests" Importance="high" />
+    <Error Condition="$(NUNIT_PATH) == ''" Text="The NUNIT_PATH environment variable with the NUnit installation path is not set." ContinueOnError="false" />
+    <MakeDir Directories="$(TestResultsFolder)" />
+    <Exec Command="&quot;$(NUNIT_PATH)\nunit-console.exe&quot; &quot;$(SourceFolder)\Dse.Test.Unit\bin\Release\Dse.Test.Unit.dll&quot; /labels /nologo /framework:net-4.0 /xml:&quot;$(TestResultsFolder)\TestResults.xml&quot; /out:&quot;$(TestResultsFolder)\TestResults.txt&quot;" />
+  </Target>
+  <Target Name="package" DependsOnTargets="generate-assembly-info;unit-test">
+    <Message Text="Creating NuGet package(s)" Importance="high" />
+    <MakeDir Directories="$(PackagesFolder)" />
+    <Exec Command="$(NuGet) pack &quot;%(NuSpecFiles.FullPath)&quot; -basepath $(SourceFolder) -o $(PackagesFolder) -version $(PackageVersion)" />
+  </Target>
+  <!-- Creates a shared assembly info file so that all assemblies get some common attributes (like version number) -->
+  <Target Name="generate-assembly-info">
+    <Message Text="Running unit tests" Importance="high" />
+    <!-- Require that the BUILD_NUMBER environment variable is present (should be set automatically by Jenkins) -->
+    <Error Condition="$(BuildNumber) == ''" Text="The BUILDNUMBER environment variable is not set." ContinueOnError="false" />
+    <!-- Make sure the PackageVersion is something we can parse for the AssemblyVersion and AssemblyFileVersion attributes -->
+    <Error Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(PackageVersion), `^\d+\.\d+\.\d+`)) == false" 
+           Text="The PackageVersion specified must follow semantic versioning and contain at least 3 numeric parts (for example 2.0.6 or 2.0.0-beta1)" ContinueOnError="false" />
+    <PropertyGroup>
+      <GitHash />
+      <!-- AssemblyVersion attribute is the first two numeric parts of the package version (i.e. 2.0.0-beta1 == 2.0 or 2.0.6 == 2.0) -->
+      <AssemblyVersion>$([System.Text.RegularExpressions.Regex]::Match($(PackageVersion), `^\d+\.\d+`).Value)</AssemblyVersion>
+      <!-- AssemblyFileVersion uses all three parts of package version (i.e. 2.0.0-beta1 = 2.0.0 or 2.0.6 == 2.0.6) and then the build number is appended to that below -->
+      <AssemblyFileVersion>$([System.Text.RegularExpressions.Regex]::Match($(PackageVersion), `^\d+\.\d+\.\d+`).Value)</AssemblyFileVersion>
+    </PropertyGroup>
+    <!-- Get the Git commit hash and put it into the GitHash property -->
+    <GitVersion LocalPath="$(MSBuildProjectDirectory)">
+      <Output TaskParameter="CommitHash" PropertyName="GitHash" />
+    </GitVersion>
+    <!-- Generate the shared assembly info file -->
+    <AssemblyInfo 
+      OutputFile="$(SharedAssemblyInfo)" 
+      CodeLanguage ="CS"
+      AssemblyCompany="DataStax" 
+      AssemblyProduct="DataStax Enterprise Driver" 
+      ComVisible="false"
+      AssemblyCopyright="Copyright © $([System.DateTime]::UtcNow.Year) by DataStax"
+      AssemblyVersion="$(AssemblyVersion)" 
+      AssemblyInformationalVersion="$(PackageVersion) (git $(GitHash))"
+      AssemblyFileVersion="$(AssemblyFileVersion).$(BuildNumber)" />
+  </Target>
+</Project>
