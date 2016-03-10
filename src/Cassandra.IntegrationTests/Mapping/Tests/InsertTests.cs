@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Mapping.Structures;
 using Cassandra.IntegrationTests.TestBase;
@@ -68,7 +69,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             lowercaseclassnamepklowercase defaultInstance = new lowercaseclassnamepklowercase();
             Assert.AreEqual(defaultInstance.somepartitionkey, instancesQueried[0].somepartitionkey);
         }
-
+        
         /// <summary>
         /// Successfully insert a new record into a table that was created with fluent mapping, inserting asynchronously
         /// </summary>
@@ -426,6 +427,30 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.AreEqual("Substitute 3", storedSong.Title);
         }
 
+        [Test]
+        public void Insert_With_TTL()
+        {
+            var config = new MappingConfiguration()
+                .Define(new Map<Song>().PartitionKey(s => s.Id).TableName("song_insert"));
+            //Use linq to create the table
+            new Table<Song>(_session, config).CreateIfNotExists();
+            var mapper = new Mapper(_session, config);
+            var song = new Song
+            {
+                Id = Guid.NewGuid(),
+                Artist = "The Who",
+                Title = "Substitute",
+                ReleaseDate = DateTimeOffset.UtcNow
+            };
+            mapper.Insert(song, true, 5);
+            var notExpiredSong = mapper.First<Song>("WHERE id = ?", song.Id);
+            Assert.NotNull(notExpiredSong);
+            Assert.AreEqual(song.Id, notExpiredSong.Id);
+            Assert.AreEqual(song.Artist, notExpiredSong.Artist);
+            Assert.AreEqual(song.Title, notExpiredSong.Title);
+            Thread.Sleep(6000);
+            Assert.Throws<InvalidOperationException>(() => mapper.First<Song>("WHERE id = ?", song.Id));
+        }
 
         /////////////////////////////////////////
         /// Private test classes
