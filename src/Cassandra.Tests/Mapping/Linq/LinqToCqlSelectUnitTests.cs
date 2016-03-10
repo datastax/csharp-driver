@@ -104,9 +104,78 @@ namespace Cassandra.Tests.Mapping.Linq
                 .PartitionKey(t => t.UuidValue)
                 .TableName("tbl1");
             var table = GetTable<AllTypesEntity>(session, map);
-            (from t in table where t.IntValue == 200 select new PlainUser {Age = t.IntValue}).Execute();
+            (from t in table where t.IntValue == 200 select new PlainUser { Age = t.IntValue }).Execute();
             Assert.AreEqual("SELECT id FROM tbl1 WHERE id = ?", query);
             CollectionAssert.AreEqual(parameters, new object[] { 200 });
+        }
+
+        [Test]
+        public void Select_Project_To_Single_Type()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            }, TestDataHelper.GetSingleValueRowSet("val", 123D));
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.DoubleValue, cm => cm.WithName("val"))
+                .Column(t => t.IntValue, cm => cm.WithName("id"))
+                .PartitionKey(t => t.UuidValue)
+                .TableName("tbl1");
+            var table = GetTable<AllTypesEntity>(session, map);
+            const long parameter = 500L;
+            var result = (from t in table where t.IntValue == parameter select t.DoubleValue).First().Execute();
+            Assert.AreEqual(123D, result);
+            Assert.AreEqual("SELECT val FROM tbl1 WHERE id = ? LIMIT ?", query);
+            CollectionAssert.AreEqual(parameters, new object[] { parameter, 1});
+
+            session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            }, TestDataHelper.GetSingleValueRowSet("val", 1234D));
+            table = GetTable<AllTypesEntity>(session, map);
+            result = table.Where(x => x.IntValue == parameter).Select(x => x.DoubleValue).First().Execute();
+            Assert.AreEqual(1234D, result);
+            Assert.AreEqual("SELECT val FROM tbl1 WHERE id = ? LIMIT ?", query);
+            CollectionAssert.AreEqual(parameters, new object[] { parameter, 1 });
+        }
+
+        [Test]
+        public void Select_Project_Chained()
+        {
+            string query = null;
+            object[] parameters = null;
+            BoundStatement statement = null;
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.DoubleValue, cm => cm.WithName("val"))
+                .Column(t => t.IntValue, cm => cm.WithName("id"))
+                .PartitionKey(t => t.UuidValue)
+                .TableName("tbl1");
+            var session = GetSession(
+                TestDataHelper.CreateMultipleValuesRowSet(new [] {"val", "id"}, new object[] { -1D, 10 }),
+                s =>
+                {
+                    statement = s;
+                    query = s.PreparedStatement.Cql;
+                    parameters = s.QueryValues;
+                });
+            const long parameter = 500L;
+            var table = GetTable<AllTypesEntity>(session, map);
+            var result = table.Where(x => x.IntValue == parameter)
+                .SetConsistencyLevel(ConsistencyLevel.All)
+                .Select(x => new Tuple<double, int>(x.DoubleValue, x.IntValue))
+                .Select(p => p.Item1)
+                .Execute();
+            Assert.AreEqual(-1D, result.First());
+            Assert.AreEqual("SELECT val, id FROM tbl1 WHERE id = ?", query);
+            CollectionAssert.AreEqual(parameters, new object[] { parameter });
+            //Check that properties are being maintained
+            Assert.AreEqual(ConsistencyLevel.All, statement.ConsistencyLevel);
         }
 
         [Test]

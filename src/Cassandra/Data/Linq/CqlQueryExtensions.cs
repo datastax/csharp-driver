@@ -47,11 +47,33 @@ namespace Cassandra.Data.Linq
         /// To execute this CqlQuery use <c>Execute()</c> method.</returns>
         public static CqlQuery<TResult> Select<TSource, TResult>(this CqlQuery<TSource> source, Expression<Func<TSource, TResult>> selector)
         {
-            var ret = (CqlQuery<TResult>) source.Table.CreateQuery<TResult>(Expression.Call(
-                null, CqlMthHelps.SelectMi,
-                new[] {source.Expression, selector}));
-            source.CopyQueryPropertiesTo(ret);
-            return ret;
+            Expression expression = source.Expression;
+            CqlQuery<TResult> result;
+            if (typeof (TSource) != typeof (TResult))
+            {
+
+                //Its a client projection of an existent CqlQuery
+                if (!(source is IClientProjectionCqlQuery))
+                {
+                    //The SELECT expression changed
+                    expression = Expression.Call(null, CqlMthHelps.SelectMi, new[] { source.Expression, selector });
+                    result = new ClientProjectionCqlQuery<TSource, TResult>(expression, source, selector);
+                }
+                else
+                {
+                    //its a client projection of a client projection
+                    //we should use the original source.Expression
+                    result = new ClientProjectionCqlQuery<TSource, TResult>(expression, source, selector);
+                }
+            }
+            else
+            {
+                expression = Expression.Call(null, CqlMthHelps.SelectMi, new[] { source.Expression, selector });
+                //Its a mapper based projection
+                result = (CqlQuery<TResult>)source.Table.CreateQuery<TResult>(expression);
+            }
+            source.CopyQueryPropertiesTo(result);
+            return result;
         }
 
         /// <summary>
@@ -175,7 +197,7 @@ namespace Cassandra.Data.Linq
         {
             var delete = new CqlDelete(Expression.Call(
                 null, CqlMthHelps.DeleteIfMi,
-                 new Expression[] { source.Expression, predicate }), source.Table, source.StatementFactory, source.PocoData);
+                 new [] { source.Expression, predicate }), source.Table, source.StatementFactory, source.PocoData);
             source.CopyQueryPropertiesTo(delete);
             return new CqlConditionalCommand<TSource>(delete, source.MapperFactory);
         }

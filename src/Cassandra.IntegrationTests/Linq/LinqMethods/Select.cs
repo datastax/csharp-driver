@@ -6,6 +6,7 @@ using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
+using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
@@ -333,6 +334,12 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             }
         }
 
-
+        [Test]
+        public void LinqSelect_Project_To_New_Type()
+        {
+            var result = _table.Select(e => new Album { Name = e.StringType, Id = e.GuidType }).Execute().ToList();
+            Assert.AreEqual(_entityList.Count, result.Count);
+            Assert.AreNotEqual(Guid.Empty, result.First().Id);
+        }
     }
 }

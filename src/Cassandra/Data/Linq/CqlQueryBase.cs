@@ -90,6 +90,15 @@ namespace Cassandra.Data.Linq
         }
 
         /// <summary>
+        /// Projects a RowSet that is the result of a given cql query into a IEnumerable{TEntity}.
+        /// </summary>
+        internal virtual IEnumerable<TEntity> AdaptResult(string cql, RowSet rs)
+        {
+            var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
+            return rs.Select(mapper);
+        }
+
+        /// <summary>
         /// Evaluates the Linq query, executes asynchronously the cql statement and adapts the results.
         /// </summary>
         public Task<IEnumerable<TEntity>> ExecuteAsync()
@@ -98,13 +107,7 @@ namespace Cassandra.Data.Linq
             visitor.Evaluate(Expression);
             object[] values;
             var cql = visitor.GetSelect(out values);
-            var adaptation = InternalExecuteAsync(cql, values).Continue(t =>
-            {
-                var rs = t.Result;
-                var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
-                return rs.Select(mapper);
-            });
-            return adaptation;
+            return InternalExecuteAsync(cql, values).Continue(t => AdaptResult(cql, t.Result));
         }
 
         /// <summary>
