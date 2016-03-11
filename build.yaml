@@ -5,7 +5,7 @@ cassandra:
   - 2.1
   - 2.2
   - 3.0
-  - 3.3
+  - 3.4
 build:
   - script: |
       # Set the Java paths (for CCM)
