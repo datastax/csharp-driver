@@ -449,7 +449,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.AreEqual(song.Artist, notExpiredSong.Artist);
             Assert.AreEqual(song.Title, notExpiredSong.Title);
             Thread.Sleep(6000);
-            Assert.Throws<InvalidOperationException>(() => mapper.First<Song>("WHERE id = ?", song.Id));
+            var expiredSong = mapper.FirstOrDefault<Song>("WHERE id = ?", song.Id);
+            Assert.Null(expiredSong);
         }
 
         /////////////////////////////////////////
