@@ -12,6 +12,11 @@ namespace Dse.Graph
     public interface IGraphStatement
     {
         /// <summary>
+        /// Returns the consistency level to use for this statement.
+        /// </summary>
+        ConsistencyLevel? ConsistencyLevel { get; }
+
+        /// <summary>
         /// Gets the graph alias to use with this statement.
         /// </summary>
         string GraphAlias { get; }
@@ -27,14 +32,29 @@ namespace Dse.Graph
         string GraphName { get; }
 
         /// <summary>
-        /// Sets the graph traversal source name to use with this statement.
+        /// Gets the consistency level used for read graph queries.
+        /// </summary>
+        ConsistencyLevel? GraphReadConsistencyLevel { get; }
+
+        /// <summary>
+        /// Gets the graph traversal source name to use with this statement.
         /// </summary>
         string GraphSource { get; }
+
+        /// <summary>
+        /// Gets the consistency level used for write graph queries.
+        /// </summary>
+        ConsistencyLevel? GraphWriteConsistencyLevel { get; }
 
         /// <summary>
         /// Determines whether this statement is marked as a system query.
         /// </summary>
         bool IsSystemQuery { get; }
+
+        /// <summary>
+        /// Gets the default timestamp for this query.
+        /// </summary>
+        DateTimeOffset? Timestamp { get; }
 
         /// <summary>
         /// Returns the <see cref="IStatement"/> representation of the Graph statement.

@@ -61,5 +61,28 @@ namespace Dse.Test.Integration.Graph
                 Assert.NotNull(rs);
             }
         }
+
+        [Test]
+        public void Should_Get_Edge_By_Parameters()
+        {
+            CreateClassicGraph(CcmHelper.InitialContactPoint, "classic2");
+            using (var cluster = DseCluster.Builder()
+                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .WithGraphOptions(new GraphOptions().SetName("classic2"))
+                .Build())
+            {
+                var session = cluster.Connect();
+                var rs = session.ExecuteGraph(new SimpleGraphStatement("g.E().hasLabel(myLabel)", new { myLabel = "created" }));
+                var resultArray = rs.ToArray();
+                Assert.Greater(resultArray.Length, 0);
+                foreach (Edge edge in resultArray)
+                {
+                    Assert.NotNull(edge.Label);
+                    Assert.Greater(edge.Properties["weight"].ToDouble(), 0);
+                }
+                rs = session.ExecuteGraph(new SimpleGraphStatement(new Dictionary<string, object> { { "myLabel", "created" } }, "g.E().hasLabel(myLabel)"));
+                Assert.Greater(rs.Count(), 0);
+            }
+        }
     }
 }

@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using Cassandra;
 
 namespace Dse.Graph
 {
@@ -29,6 +31,8 @@ namespace Dse.Graph
             public const string Language = "graph-language";
             public const string Name = "graph-name";
             public const string Source = "graph-source";
+            public const string ReadConsistencyLevel = "graph-read-consistency";
+            public const string WriteConsitencyLevel = "graph-write-consistency";
         }
 
         private volatile IDictionary<string, byte[]> _defaultPayload;
@@ -36,6 +40,20 @@ namespace Dse.Graph
         private volatile string _alias;
         private volatile string _name;
         private volatile string _source = DefaultSource;
+        private long _readConsistencyLevel = long.MinValue;
+        private long _writeConsistencyLevel = long.MinValue;
+
+        /// <summary>
+        /// The consistency levels names that are different from ConsistencyLevel.ToString().ToUpper()
+        /// </summary>
+        private static readonly IDictionary<ConsistencyLevel, string> ConsistencyLevelNames =
+            new Dictionary<ConsistencyLevel, string>
+            {
+                { ConsistencyLevel.LocalQuorum, "LOCAL_QUORUM" },
+                { ConsistencyLevel.EachQuorum, "EACH_QUORUM" },
+                { ConsistencyLevel.LocalSerial, "LOCAL_SERIAL" },
+                { ConsistencyLevel.LocalOne, "LOCAL_ONE" }
+            };
 
         /// <summary>
         /// Gets the graph rebinding name to use in graph queries.
@@ -62,11 +80,45 @@ namespace Dse.Graph
         }
 
         /// <summary>
+        /// Gets the consistency level used for read queries
+        /// </summary>
+        public ConsistencyLevel? ReadConsistencyLevel
+        {
+            get
+            {
+                //4 bytes for consistency representation and 1 bit for null flag
+                long value = Thread.VolatileRead(ref _readConsistencyLevel);
+                if (value == long.MinValue)
+                {
+                    return null;
+                }
+                return (ConsistencyLevel) value;
+            }
+        }
+
+        /// <summary>
         /// Sets the graph traversal source name in graph queries.
         /// </summary>
         public string Source
         {
             get { return _source; }
+        }
+
+        /// <summary>
+        /// Gets the consistency level used for read queries
+        /// </summary>
+        public ConsistencyLevel? WriteConsistencyLevel
+        {
+            get
+            {
+                //4 bytes for consistency representation and 1 bit for null flag
+                long value = Thread.VolatileRead(ref _writeConsistencyLevel);
+                if (value == long.MinValue)
+                {
+                    return null;
+                }
+                return (ConsistencyLevel)value;
+            }
         }
 
         /// <summary>
@@ -112,12 +164,34 @@ namespace Dse.Graph
         }
 
         /// <summary>
+        /// Sets the consistency level for the read graph queries. 
+        /// </summary>
+        /// <param name="consistency">The consistency level to use in read graph queries.</param>
+        public GraphOptions SetReadConsistencyLevel(ConsistencyLevel consistency)
+        {
+            Thread.VolatileWrite(ref _readConsistencyLevel, (long)consistency);
+            RebuildDefaultPayload();
+            return this;
+        }
+
+        /// <summary>
         /// Sets the graph traversal source name to use in graph queries.
         /// If you don't call this method, it defaults to <see cref="DefaultSource"/>.
         /// </summary>
         public GraphOptions SetSource(string source)
         {
             _source = source ?? DefaultSource;
+            RebuildDefaultPayload();
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the consistency level for the write graph queries. 
+        /// </summary>
+        /// <param name="consistency">The consistency level to use in write graph queries.</param>
+        public GraphOptions SetWriteConsistencyLevel(ConsistencyLevel consistency)
+        {
+            Thread.VolatileWrite(ref _writeConsistencyLevel, (long)consistency);
             RebuildDefaultPayload();
             return this;
         }
@@ -142,12 +216,16 @@ namespace Dse.Graph
                 Add(payload, PayloadKey.Name, statement.GraphName);
             }
             Add(payload, PayloadKey.Source, statement.GraphSource);
+            Add(payload, PayloadKey.ReadConsistencyLevel,
+                statement.GraphReadConsistencyLevel == null ? null : GetConsistencyName(statement.GraphReadConsistencyLevel.Value));
+            Add(payload, PayloadKey.WriteConsitencyLevel,
+                statement.GraphWriteConsistencyLevel == null ? null : GetConsistencyName(statement.GraphWriteConsistencyLevel.Value));
             return payload;
         }
 
         private void Add(IDictionary<string, byte[]> payload, string key, string value)
         {
-            byte[] payloadValue = null;
+            byte[] payloadValue;
             if (value != null)
             {
                 payloadValue = ToUtf8Buffer(value);
@@ -178,7 +256,30 @@ namespace Dse.Graph
             {
                 payload.Add(PayloadKey.Alias, ToUtf8Buffer(_alias));
             }
+            var readConsistencyLevel = ReadConsistencyLevel;
+            if (readConsistencyLevel != null)
+            {
+                payload.Add(PayloadKey.ReadConsistencyLevel, ToUtf8Buffer(
+                    GetConsistencyName(readConsistencyLevel.Value)));
+            }
+            var writeConsistencyLevel = WriteConsistencyLevel;
+            if (writeConsistencyLevel != null)
+            {
+                payload.Add(PayloadKey.WriteConsitencyLevel, ToUtf8Buffer(
+                    GetConsistencyName(writeConsistencyLevel.Value)));
+            }
             _defaultPayload = payload;
+        }
+
+        private static string GetConsistencyName(ConsistencyLevel consistency)
+        {
+            string name;
+            if (!ConsistencyLevelNames.TryGetValue(consistency, out name))
+            {
+                //If not defined, use upper case representation
+                name = consistency.ToString().ToUpper();
+            }
+            return name;
         }
 
         private static byte[] ToUtf8Buffer(string value)
