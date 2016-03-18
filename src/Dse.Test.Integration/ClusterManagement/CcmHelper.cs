@@ -14,7 +14,7 @@ namespace Dse.Test.Integration.ClusterManagement
         public static string DseInitialIpPrefix = 
             Environment.GetEnvironmentVariable("DSE_INITIAL_IPPREFIX") ?? ConfigurationManager.AppSettings["DseInitialIpPrefix"];
 
-        public static void Start(int amountOfNodes, string[] dseYamlOptions = null, string[] cassYamlOptions = null, string[] jvmArgs = null)
+        public static void Start(int amountOfNodes, string[] dseYamlOptions = null, string[] cassYamlOptions = null, string[] jvmArgs = null, bool enableGraph = false)
         {
             try
             {
@@ -103,6 +103,13 @@ namespace Dse.Test.Integration.ClusterManagement
             if (dseYamlOptions != null)
             {
                 _ccmDseBridge.UpdateDseConfig(dseYamlOptions);
+            }
+            if (enableGraph)
+            {
+                for (var i = 1; i <= amountOfNodes; i++)
+                {
+                    _ccmDseBridge.SetWorkload(i, "graph");
+                }
             }
             _ccmDseBridge.Start(jvmArgs);
         }

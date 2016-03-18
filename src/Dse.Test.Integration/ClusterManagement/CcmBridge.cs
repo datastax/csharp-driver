@@ -50,10 +50,6 @@ namespace Dse.Test.Integration.ClusterManagement
                 "start",
                 "--wait-for-binary-proto"
             };
-            if (TestUtils.IsWin)
-            {
-                parameters.Add("--quiet-windows");
-            }
             if (jvmArgs != null)
             {
                 foreach (var arg in jvmArgs)
@@ -100,12 +96,12 @@ namespace Dse.Test.Integration.ClusterManagement
 
         public void Start(int n, string additionalArgs = null)
         {
-            string quietWindows = null;
-            if (TestUtils.IsWin)
-            {
-                quietWindows = "--quiet-windows";
-            }
-            ExecuteCcm(string.Format("node{0} start --wait-for-binary-proto {1} {2}", n, additionalArgs, quietWindows));
+            ExecuteCcm(string.Format("node{0} start --wait-for-binary-proto {1}", n, additionalArgs));
+        }
+
+        internal void SetWorkload(int nodeId, string workload)
+        {
+            ExecuteCcm(string.Format("node{0} setworkload {1}", nodeId, workload));
         }
 
         public void Remove()

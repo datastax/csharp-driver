@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Dse.Graph;
 using Dse.Test.Integration.ClusterManagement;
 using NUnit.Framework;
@@ -13,7 +15,9 @@ namespace Dse.Test.Integration.Graph
         [TestFixtureSetUp]
         public void TestFixtureSetup()
         {
-            CcmHelper.Start(1);
+            CcmHelper.Start(1, null, null, null, true);
+            Trace.TraceInformation("Waiting additional time for test Cluster to be ready");
+            Thread.Sleep(15000);
         }
 
         [TestFixtureTearDown]
