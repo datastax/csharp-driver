@@ -77,7 +77,7 @@ namespace Cassandra.Mapping
             var values = getBindValues(poco);
             //generate INSERT query based on null values (if insertNulls set)
             object[] queryParameters;
-            var cql = _cqlGenerator.GenerateInsert<T>(insertNulls, values, out queryParameters, ifNotExists, ttl);
+            var cql = _cqlGenerator.GenerateInsert<T>(insertNulls, values, out queryParameters, ifNotExists, ttl, queryOptions?.Timestamp);
 
             _statements.Add(Cql.New(cql, queryParameters, queryOptions ?? CqlQueryOptions.None));
         }

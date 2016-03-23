@@ -211,7 +211,7 @@ namespace Cassandra.Mapping
             var values = getBindValues(poco);
             object[] queryParameters;
             //generate INSERT query based on null values (if insertNulls set)
-            var cql = _cqlGenerator.GenerateInsert<T>(insertNulls, values, out queryParameters, ttl: ttl);
+            var cql = _cqlGenerator.GenerateInsert<T>(insertNulls, values, out queryParameters, ttl: ttl, timestamp: queryOptions?.Timestamp);
             return ExecuteAsync(Cql.New(cql, queryParameters, queryOptions ?? CqlQueryOptions.None));
         }
 
@@ -234,7 +234,7 @@ namespace Cassandra.Mapping
             var values = getBindValues(poco);
             object[] queryParameters;
             //generate INSERT query based on null values (if insertNulls set)
-            var cql = _cqlGenerator.GenerateInsert<T>(insertNulls, values, out queryParameters, true, ttl);
+            var cql = _cqlGenerator.GenerateInsert<T>(insertNulls, values, out queryParameters, true, ttl, queryOptions?.Timestamp);
             return ExecuteAsyncAndAdapt(
                 Cql.New(cql, queryParameters, queryOptions ?? CqlQueryOptions.None),
                 (stmt, rs) => AppliedInfo<T>.FromRowSet(_mapperFactory, cql, rs));
