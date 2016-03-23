@@ -31,3 +31,4 @@ _ReSharper*/
 [Tt]est[Rr]esult*
 src/packages/*/
 doc/api-docs/*
+build/packages/*

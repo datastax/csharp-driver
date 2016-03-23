@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+    <metadata>
+        <id>DseDriver</id>
+        <!-- It will be overridden by the nuget command if -version is specified -->
+        <version>0.0.0</version>
+        <title>C# Driver Extensions for DataStax Enterprise</title>
+        <authors>DataStax</authors>
+        <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <summary>Built on top of C# CQL driver for Apache Cassandra, it provides the extensions for DataStax Enterprise.</summary>
+        <description>
+            This driver is built on top of C# CQL driver for Apache Cassandra and provides the following extensions for DataStax Enterprise:
+            Serializers for geospatial types; 
+            DSE graph integration; 
+            IAuthenticator implementations for server-side DseAuthenticator.
+        </description>
+        <releaseNotes />
+        <copyright>Copyright (C) 2016 DataStax Inc.</copyright>
+        <tags>cassandra apache datastax enterprise driver database nosql</tags>
+        <dependencies>
+            <dependency id="lz4net" version="1.0.5.93" />
+            <dependency id="CassandraCSharpDriver" version="[3.0.4,4)" />
+        </dependencies>
+    </metadata>
+    <files>
+        <file src="Dse\bin\Release\Dse.dll" target="lib\net40\Dse.dll "/>
+        <file src="Dse\bin\Release\Dse.xml" target="lib\net40\Dse.xml "/>
+    </files>
+</package>
