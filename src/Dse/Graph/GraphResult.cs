@@ -79,6 +79,11 @@ namespace Dse.Graph
                     //is a object tree
                     return ToExpando((JObject)result);
                 }
+                if (result is JArray)
+                {
+                    //is an array
+                    return ToArray((JArray)result);
+                }
                 return ((JValue)result).Value;
             }
             throw new KeyNotFoundException(string.Format("Graph result has no top-level property '{0}'", name));
