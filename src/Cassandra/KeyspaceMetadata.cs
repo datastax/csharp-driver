@@ -228,7 +228,7 @@ namespace Cassandra
             var sb = new StringBuilder();
 
             sb.Append("CREATE KEYSPACE ").Append(CqlQueryTools.QuoteIdentifier(Name)).Append(" WITH ");
-            sb.Append("REPLICATION = { 'class' : '").Append(Replication["class"]).Append("'");
+            sb.Append("REPLICATION = { 'class' : '").Append(StrategyClass).Append("'");
             foreach (var rep in Replication)
             {
                 if (rep.Key == "class")
