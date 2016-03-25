@@ -19,6 +19,8 @@ namespace Cassandra.IntegrationTests.Core
             Assert.NotNull(cluster.Metadata.GetKeyspace("system"));
             Assert.AreEqual("system", cluster.Metadata.GetKeyspace("system").Name);
 
+            Assert.NotNull(cluster.Metadata.GetKeyspace("system").AsCqlQuery());
+
             //Not existent tables return null
             Assert.Null(cluster.Metadata.GetKeyspace("nonExistentKeyspace_" + Randomm.RandomAlphaNum(12)));
             Assert.Null(cluster.Metadata.GetTable("nonExistentKeyspace_" + Randomm.RandomAlphaNum(12), "nonExistentTable_" + Randomm.RandomAlphaNum(12)));
