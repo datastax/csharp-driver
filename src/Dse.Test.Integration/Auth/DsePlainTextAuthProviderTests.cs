@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Cassandra;
 using NUnit.Framework;
 using Dse.Auth;
@@ -27,6 +29,8 @@ namespace Dse.Test.Integration.Auth
                 new[] { "authentication_options.default_scheme: internal" },
                 new[] { "authenticator: com.datastax.bdp.cassandra.auth.DseAuthenticator" },
                 new[] { "-Dcassandra.superuser_setup_delay_ms=0" });
+            Trace.TraceInformation("Waiting additional time for test Cluster to be ready");
+            Thread.Sleep(15000);
             var authProvider = new DsePlainTextAuthProvider("cassandra", "cassandra");
             using (var cluster = Cluster.Builder()
                 .AddContactPoint(CcmHelper.InitialContactPoint)
@@ -45,6 +49,8 @@ namespace Dse.Test.Integration.Auth
                 1,
                 cassYamlOptions: new[] { "authenticator: PasswordAuthenticator" },
                 jvmArgs: new[] { "-Dcassandra.superuser_setup_delay_ms=0" });
+            Trace.TraceInformation("Waiting additional time for test Cluster to be ready");
+            Thread.Sleep(15000);
             var authProvider = new DsePlainTextAuthProvider("cassandra", "cassandra");
             using (var cluster = Cluster.Builder()
                 .AddContactPoint(CcmHelper.InitialContactPoint)
@@ -56,7 +62,7 @@ namespace Dse.Test.Integration.Auth
             }
         }
 
-        [TestFixtureTearDown]
+        [TearDown]
         public void TearDown()
         {
             try

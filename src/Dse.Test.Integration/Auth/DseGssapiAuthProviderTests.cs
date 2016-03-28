@@ -16,6 +16,7 @@ namespace Dse.Test.Integration.Auth
     public class DseGssapiAuthProviderTests : BaseIntegrationTest
     {
         [Test]
+        [Ignore("Kerberos auth not available")]
         public void Gssapi_Auth_Test()
         {
             var provider = new DseGssapiAuthProvider();
