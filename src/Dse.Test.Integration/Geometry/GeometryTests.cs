@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Cassandra;
 using NUnit.Framework;
 using Dse.Geometry;
@@ -41,6 +43,8 @@ namespace Dse.Test.Integration.Geometry
             }
             CcmHelper.Start(1);
             Cluster = DseCluster.Builder().AddContactPoint(CcmHelper.InitialContactPoint).Build();
+            Trace.TraceInformation("Waiting additional time for test Cluster to be ready");
+            Thread.Sleep(15000);
             Session = Cluster.Connect();
             Session.Execute(string.Format(CreateKeyspaceQuery, Keyspace));
             Session.Execute(string.Format("USE {0}", Keyspace));
