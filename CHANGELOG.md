@@ -1,5 +1,17 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.0.4
+
+2016-03-28
+
+### Features
+
+- [CSHARP-393] - Pass the authenticator name from the server to the auth provider [#196](https://github.com/datastax/csharp-driver/pull/196)
+- [CSHARP-395] - Mapper: Support TTL for Inserts [#192](https://github.com/datastax/csharp-driver/pull/192)
+- [CSHARP-402] - Support custom type serializers [#194](https://github.com/datastax/csharp-driver/pull/194)
+- [CSHARP-406] - Support Dictionary as named parameters in SimpleStatement [#199](https://github.com/datastax/csharp-driver/pull/199)
+- [CSHARP-410] - Mapper: Allow setting the BatchType for CreateBatch() [#195](https://github.com/datastax/csharp-driver/pull/195)
+
 ## 3.0.3
 
 2016-03-03
