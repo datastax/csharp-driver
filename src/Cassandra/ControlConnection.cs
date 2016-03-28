@@ -48,7 +48,7 @@ namespace Cassandra
         private int _refreshCounter;
         private Task<bool> _reconnectTask;
         private readonly Serializer _serializer;
-        public const int MetadataAbortTimeout = 12000;
+        public const int MetadataAbortTimeout = 5 * 60000;
 
         /// <summary>
         /// Gets the binary protocol version to be used for this cluster.
