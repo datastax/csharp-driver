@@ -13,7 +13,7 @@
 [assembly: System.Runtime.InteropServices.ComVisible(false)]
 [assembly: System.Reflection.AssemblyCopyright("Copyright © 2016 by DataStax")]
 [assembly: System.Reflection.AssemblyVersion("1.0")]
-[assembly: System.Reflection.AssemblyInformationalVersion("1.0.0-alpha1 (git ed542c6)")]
+[assembly: System.Reflection.AssemblyInformationalVersion("1.0.0-eap1 (git 3362bfd)")]
 [assembly: System.Reflection.AssemblyFileVersion("1.0.0.0")]
 
 

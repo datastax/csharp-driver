@@ -93,7 +93,8 @@ namespace Dse.Test.Unit.Graph
             session.ExecuteGraph(new SimpleGraphStatement(parameters, "g.V().has('name', myName)"));
             Assert.NotNull(coreStatement);
             Assert.AreEqual("g.V().has('name', myName)", coreStatement.QueryString);
-            CollectionAssert.AreEqual(new object[] { "is what" }, coreStatement.QueryValues);
+            //A single parameter with the key/values json stringified
+            Assert.AreEqual(new object[] { "{\"myName\":\"is what\"}" }, coreStatement.QueryValues);
             coreSessionMock.Verify();
         }
 
