@@ -16,15 +16,6 @@ namespace Dse.Test.Integration.ClusterManagement
 
         public static void Start(int amountOfNodes, string[] dseYamlOptions = null, string[] cassYamlOptions = null, string[] jvmArgs = null, bool enableGraph = false)
         {
-            try
-            {
-                Remove();
-            }
-            catch
-            {
-                //Pre-emptive remove failed, nevermind
-            }
-
             var dseDir = Environment.GetEnvironmentVariable("DSE_PATH") ??
                          ConfigurationManager.AppSettings["DseInstallPath"];
 
@@ -94,6 +85,16 @@ namespace Dse.Test.Integration.ClusterManagement
                 dseInitialIpPrefix, 
                 dseDir,
                 executer);
+            
+            try
+            {
+                Remove();
+            }
+            catch
+            {
+                //Pre-emptive remove failed, nevermind
+            }
+
             _ccmDseBridge.Create(string.Empty, false); //passing empty version
             _ccmDseBridge.Populate(amountOfNodes, 0, false);
             if (cassYamlOptions != null)
