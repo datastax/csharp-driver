@@ -11,7 +11,7 @@ namespace Cassandra.Requests
 {
     internal class RequestExecution<T> where T : class
     {
-        private readonly static Logger Logger = new Logger(typeof(RequestExecution<T>));
+        private readonly static Logger Logger = new Logger(typeof(RequestExecution<>));
         private readonly RequestHandler<T> _parent;
         private readonly ISession _session;
         private readonly IRequest _request;

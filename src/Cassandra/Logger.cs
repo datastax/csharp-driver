@@ -16,119 +16,91 @@
 
 using System;
 using System.Diagnostics;
-using System.Text;
 
 namespace Cassandra
 {
     public class Logger
     {
-        private const string DateFormat = "MM/dd/yyyy H:mm:ss.fff zzz";
-        private readonly string _category;
-        private StringBuilder _sb;
+        private readonly TraceSource _trace;
 
         public Logger(Type type)
         {
-            _category = type.Name;
-        }
+            var typeName = type.FullName;
+            if (type.IsGenericTypeDefinition || type.IsGenericType)
+            {
+                // Trim generic types (e.g.: Cassandra.Requests.RequestExecution`1)
+                typeName = type.FullName.Substring(0, type.FullName.IndexOf('`'));
+            }
 
-        private string printStackTrace()
-        {
-            var sb = new StringBuilder();
-            foreach (StackFrame frame in new StackTrace(3, true).GetFrames()) // skipping 3 frames from logger class. 
-                sb.Append(frame);
-            return sb.ToString();
-        }
+            // Look for source matching the type name (e.g.: Cassandra.Requests.RequestExecution)
+            _trace = new TraceSource(typeName);
 
-        private string GetExceptionAndAllInnerEx(Exception ex, bool recur = false)
-        {
-            if (!recur || _sb == null)
-                _sb = new StringBuilder();
-            _sb.Append(String.Format("( Exception! Source {0} \n Message: {1} \n StackTrace:\n {2} ", ex.Source, ex.Message,
-                                    (Diagnostics.CassandraStackTraceIncluded
-                                         ? (recur ? ex.StackTrace : printStackTrace())
-                                         : "To display StackTrace, change Debugging.StackTraceIncluded property value to true."), _category));
-            if (ex.InnerException != null)
-                GetExceptionAndAllInnerEx(ex.InnerException, true);
+            // If no such source is configured it will have just the DefaultTraceListener
+            var sourceName = typeName;
+            var wildcardSource = _trace;
+            while (wildcardSource.Listeners.Count == 1 && wildcardSource.Listeners[0] is DefaultTraceListener)
+            {
+                // Trim source (e.g.: Cassandra.Requests)
+                var dotIndex = sourceName.LastIndexOf('.');
+                if (dotIndex == -1)
+                {
+                    // Exhausted options
+                    wildcardSource = null;
+                    break;
+                }
 
-            _sb.Append(")");
-            return _sb.ToString();
+                // Look for a wildcard source (e.g.: Cassandra.Requests.*)
+                sourceName = sourceName.Substring(0, dotIndex);
+                wildcardSource = new TraceSource(sourceName + ".*");
+            }
+
+            if (wildcardSource != null)
+            {
+                _trace = new TraceSource(typeName, wildcardSource.Switch.Level);
+                _trace.Listeners.Clear();
+                _trace.Listeners.AddRange(wildcardSource.Listeners);
+            }
         }
 
         public void Error(Exception ex)
         {
-            if (!Diagnostics.CassandraTraceSwitch.TraceError)
-            {
-                return;
-            }
             if (ex == null)
             {
                 return;
             }
-            Trace.WriteLine(
-                String.Format("{0} #ERROR: {1}", DateTimeOffset.Now.DateTime.ToString(DateFormat), GetExceptionAndAllInnerEx(ex)), _category);
+            _trace.TraceEvent(TraceEventType.Error, 0, "{0}", ex);
         }
 
         public void Error(string msg, Exception ex = null)
         {
-            if (!Diagnostics.CassandraTraceSwitch.TraceError)
+            if (ex == null)
             {
-                return;
+                _trace.TraceEvent(TraceEventType.Error, 0, msg);
             }
-            Trace.WriteLine(
-                String.Format("{0} #ERROR: {1}", DateTimeOffset.Now.DateTime.ToString(DateFormat),
-                    msg + (ex != null ? "\nEXCEPTION:\n " + GetExceptionAndAllInnerEx(ex) : String.Empty)), _category);
+            else
+            {
+                _trace.TraceEvent(TraceEventType.Error, 0, "{0}: {1}", msg, ex);
+            }
         }
 
         public void Error(string message, params object[] args)
         {
-            if (!Diagnostics.CassandraTraceSwitch.TraceError)
-            {
-                return;
-            }
-            if (args != null && args.Length > 0)
-            {
-                message = String.Format(message, args);
-            }
-            Trace.WriteLine(String.Format("{0} #ERROR: {1}", DateTimeOffset.Now.DateTime.ToString(DateFormat), message), _category);
+            _trace.TraceEvent(TraceEventType.Error, 0, message, args);
         }
 
         public void Warning(string message, params object[] args)
         {
-            if (!Diagnostics.CassandraTraceSwitch.TraceWarning)
-            {
-                return;
-            }
-            if (args != null && args.Length > 0)
-            {
-                message = String.Format(message, args);
-            }
-            Trace.WriteLine(String.Format("{0} #WARNING: {1}", DateTimeOffset.Now.DateTime.ToString(DateFormat), message), _category);
+            _trace.TraceEvent(TraceEventType.Warning, 0, message, args);
         }
 
         public void Info(string message, params object[] args)
         {
-            if (!Diagnostics.CassandraTraceSwitch.TraceInfo)
-            {
-                return;
-            }
-            if (args != null && args.Length > 0)
-            {
-                message = String.Format(message, args);
-            }
-            Trace.WriteLine(String.Format("{0} : {1}", DateTimeOffset.Now.DateTime.ToString(DateFormat), message), _category);
+            _trace.TraceEvent(TraceEventType.Information, 0, message, args);
         }
 
         public void Verbose(string message, params object[] args)
         {
-            if (!Diagnostics.CassandraTraceSwitch.TraceVerbose)
-            {
-                return;
-            }
-            if (args != null && args.Length > 0)
-            {
-                message = String.Format(message, args);
-            }
-            Trace.WriteLine(String.Format("{0} {1}", DateTimeOffset.Now.DateTime.ToString(DateFormat), message), _category);
+            _trace.TraceEvent(TraceEventType.Verbose, 0, message, args);
         }
     }
 }
