@@ -11,12 +11,11 @@ extensions for DataStax Enterprise:
 
 The driver is distributed as a compressed zip file with the following structure:
 
-- README.md: this file;
-- DseDriver<version>.nupkg: Nuget package.
-- apidocs/*: API reference.
+- `README`: this file;
+- `DseDriver<version>.nupkg`: Nuget package.
+- `apidocs/*`: API reference.
 
-The driver is distributed as a compressed Nuget package. To make this package available to other
-projects, you can [add it to your Nuget feeds][nuget-self-hosting].
+To make the Nuget package available to other projects, you can [add it to your Nuget feeds][nuget-self-hosting].
 
 ## Getting Started
 
