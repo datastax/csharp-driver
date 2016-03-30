@@ -1,0 +1,42 @@
+version: "{branch}-{build}"
+skip_tags: true
+shallow_clone: true
+cache:
+  - C:\ProgramData\chocolatey\bin                                                                                                     
+  - C:\ProgramData\chocolatey\lib
+  - C:\Users\appveyor\.ccm\repository
+  - C:\Users\appveyor\ccm
+os: Visual Studio 2015
+platform:
+  - Any CPU
+configuration:
+  - Release
+environment:
+  NUNIT_PATH: nunit-console
+  matrix:
+    - CASSANDRA_VERSION: 3.4
+
+    - CASSANDRA_VERSION: 3.0.4
+
+    - CASSANDRA_VERSION: 2.2.5
+
+install:
+  - ps: .\appveyor_install.ps1
+
+build:
+  project: src/Cassandra.sln
+  verbosity: minimal
+
+test:
+  assemblies:
+    - src/Cassandra.Tests/bin/$(configuration)/Cassandra.Tests.dll
+    - src/Cassandra.IntegrationTests/bin/$(configuration)/Cassandra.IntegrationTests.dll
+
+  categories:
+    except:
+      - long
+      - duration
+
+on_failure:
+  - ps: >-
+      Write-Host "Build failed"
