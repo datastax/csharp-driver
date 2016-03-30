@@ -1,4 +1,4 @@
-using Cassandra;
+using System;
 
 namespace Cassandra.Mapping
 {
@@ -18,6 +18,7 @@ namespace Cassandra.Mapping
         private IRetryPolicy _retryPolicy;
         private ConsistencyLevel? _serialConsistencyLevel;
         private byte[] _pagingState;
+        private DateTimeOffset? _timestamp;
 
         private bool _noPrepare;
 
@@ -104,6 +105,15 @@ namespace Cassandra.Mapping
         }
 
         /// <summary>
+        /// Sets the timestamp for the query.
+        /// </summary>
+        public CqlQueryOptions SetTimestamp(DateTimeOffset? timestamp)
+        {
+            _timestamp = timestamp;
+            return this;
+        }
+
+        /// <summary>
         /// Copies any options set on this Cql instance to the statement provided.
         /// </summary>
         internal virtual void CopyOptionsToStatement(IStatement statement)
@@ -128,6 +138,10 @@ namespace Cassandra.Mapping
             if (_serialConsistencyLevel.HasValue)
             {
                 statement.SetSerialConsistencyLevel(_serialConsistencyLevel.Value);
+            }
+            if (_timestamp.HasValue)
+            {
+                statement.SetTimestamp(_timestamp.Value);
             }
         }
 
