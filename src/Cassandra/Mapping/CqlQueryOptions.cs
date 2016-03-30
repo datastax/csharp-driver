@@ -1,3 +1,4 @@
+using System;
 using Cassandra;
 
 namespace Cassandra.Mapping
@@ -18,8 +19,9 @@ namespace Cassandra.Mapping
         private IRetryPolicy _retryPolicy;
         private ConsistencyLevel? _serialConsistencyLevel;
         private byte[] _pagingState;
-
         private bool _noPrepare;
+
+        public DateTimeOffset? Timestamp { get; set; }
 
         /// <summary>
         /// Whether or not to use a PreparedStatement when executing the query.
