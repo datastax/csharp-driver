@@ -246,7 +246,14 @@ namespace Cassandra.Mapping
             string cql = _cqlGenerator.GenerateUpdate<T>();
             Func<T, object[]> getBindValues = _mapperFactory.GetValueCollector<T>(cql, primaryKeyValuesLast: true);
             object[] values = getBindValues(poco);
+            
+            /* DP: Left in for debug purposes.  CQL Query builder
+            StringBuilder textValues = new StringBuilder();
+            foreach (object val in values)
+                textValues.AppendFormat("{0}||-||", val.ToString());
 
+            Console.WriteLine("cql -> {0}, values -> {1}", cql, textValues);
+            */
             return ExecuteAsync(Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None));
         }
 

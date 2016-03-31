@@ -64,7 +64,9 @@ namespace Cassandra
         /// <summary>
         /// Tuple of n subtypes
         /// </summary>
-        Tuple = 0x0031
+        Tuple = 0x0031,
+        Enum = 0x0032,
+        TimeSpan = 0x0033
     }
 
     /// <summary>

@@ -126,6 +126,15 @@ namespace Cassandra.Mapping.TypeConversion
                     return dateMapper;
                 }
             }
+            if(dbType == typeof(Int64))
+            {
+                if(pocoType == typeof(TimeSpan))
+                {
+                    Func<Int64, TimeSpan> timespanMapper = ConvertToTimeSpan;
+                    return timespanMapper;
+                }
+            }
+
 
             if (dbType.IsGenericType && (pocoType.IsGenericType || pocoType.IsArray))
             {
@@ -222,6 +231,12 @@ namespace Cassandra.Mapping.TypeConversion
         {
             return new List<T>(itemsDatabase);
         }
+
+        private static TimeSpan ConvertToTimeSpan(Int64 databaseValue)
+        {
+            return new TimeSpan(databaseValue);
+        }
+
         // ReSharper restore UnusedMember.Local
         
         /// <summary>
