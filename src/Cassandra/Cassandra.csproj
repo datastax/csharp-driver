@@ -429,7 +429,6 @@
     <Compile Include="SocketOptions.cs" />
     <Compile Include="SSLOptions.cs" />
     <Compile Include="RegularStatement.cs" />
-    <Compile Include="StaticRandom.cs" />
     <Compile Include="StatusChangeEventArgs.cs" />
     <Compile Include="TableColumn.cs" />
     <Compile Include="TableMetadata.cs" />
@@ -450,7 +449,6 @@
     <None Include="Compression\Snappy\README.md" />
     <None Include="Data\README.rst" />
     <None Include="packages.config" />
-    <None Include="README.rst" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Compression\Snappy\license-header.txt" />
