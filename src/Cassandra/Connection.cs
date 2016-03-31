@@ -686,7 +686,7 @@ namespace Cassandra
         /// <summary>
         /// Sends a new request if possible and executes the callback when the response is parsed. If it is not possible it queues it up.
         /// </summary>
-        public OperationState Send(IRequest request, Action<Exception, Response> callback)
+        public OperationState Send(IRequest request, Action<Exception, Response> callback, int timeoutMillis = Timeout.Infinite)
         {
             if (_isCanceled)
             {
@@ -695,7 +695,8 @@ namespace Cassandra
             }
             var state = new OperationState(callback)
             {
-                Request = request
+                Request = request,
+                TimeoutMillis = timeoutMillis > 0 ? timeoutMillis : Configuration.SocketOptions.ReadTimeoutMillis
             };
             _writeQueue.Enqueue(state);
             RunWriteQueue();
@@ -747,9 +748,9 @@ namespace Cassandra
                     //lazy initialize the stream
                     stream = stream ?? (RecyclableMemoryStream) Configuration.BufferPool.GetStream(GetType().Name + "/SendStream");
                     frameLength = state.Request.WriteFrame(streamId, stream, _serializer);
-                    if (Configuration.SocketOptions.ReadTimeoutMillis > 0 && Configuration.Timer != null)
+                    if (state.TimeoutMillis > 0 && Configuration.Timer != null)
                     {
-                        state.Timeout = Configuration.Timer.NewTimeout(OnTimeout, streamId, Configuration.SocketOptions.ReadTimeoutMillis);
+                        state.Timeout = Configuration.Timer.NewTimeout(OnTimeout, streamId, state.TimeoutMillis);
                     }
                 }
                 catch (Exception ex)
@@ -885,7 +886,7 @@ namespace Cassandra
             {
                 return;
             }
-            var ex = new OperationTimedOutException(Address, Configuration.SocketOptions.ReadTimeoutMillis);
+            var ex = new OperationTimedOutException(Address, state.TimeoutMillis);
             //Invoke if it hasn't been invoked yet
             //Once the response is obtained, we decrement the timed out counter
             var timedout = state.SetTimedOut(ex, () => Interlocked.Decrement(ref _timedOutOperations) );

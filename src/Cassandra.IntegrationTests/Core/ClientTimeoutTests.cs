@@ -149,6 +149,48 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+        [Test]
+        public void Should_Use_Statement_ReadTimeout()
+        {
+            const int generalReadTimeout = 1500;
+            const int statementReadTimeout = 12000;
+            var testCluster = TestClusterManager.CreateNew();
+            var socketOptions = new SocketOptions().SetReadTimeoutMillis(generalReadTimeout);
+            var queryOptions = new QueryOptions().SetRetryOnTimeout(false);
+            var builder = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint)
+                .WithSocketOptions(socketOptions)
+                .WithPoolingOptions(new PoolingOptions()
+                    .SetCoreConnectionsPerHost(HostDistance.Local, 1)
+                    .SetHeartBeatInterval(0))
+                .WithQueryTimeout(Timeout.Infinite)
+                .WithQueryOptions(queryOptions);
+            using (var cluster = builder.Build())
+            {
+                var session = cluster.Connect();
+                //warmup
+                TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local"), 10);
+                testCluster.PauseNode(1);
+                var stopWatch = new Stopwatch();
+                stopWatch.Start();
+                Assert.Throws<OperationTimedOutException>(() => session.Execute("SELECT key FROM system.local"));
+                stopWatch.Stop();
+                //precision of the timer is not guaranteed
+                Assert.Greater(stopWatch.ElapsedMilliseconds, generalReadTimeout - 1000);
+                Assert.Less(stopWatch.ElapsedMilliseconds, generalReadTimeout + 1000);
+
+                //Try with an specified timeout at Statement level
+                var stmt = new SimpleStatement("SELECT key FROM system.local")
+                    .SetReadTimeoutMillis(statementReadTimeout);
+                stopWatch.Restart();
+                Assert.Throws<OperationTimedOutException>(() => session.Execute(stmt));
+                stopWatch.Stop();
+                //precision of the timer is not guaranteed
+                Assert.Greater(stopWatch.ElapsedMilliseconds, statementReadTimeout - 3000);
+                Assert.Less(stopWatch.ElapsedMilliseconds, statementReadTimeout + 3000);
+                testCluster.ResumeNode(1);
+            }
+        }
+
         /// Tests a NoHostAvailableException is raised when all hosts down with read timeout
         ///
         /// Should_Throw_NoHostAvailableException_When_All_Hosts_Down tests that the driver quickly throws a NoHostAvailableException 

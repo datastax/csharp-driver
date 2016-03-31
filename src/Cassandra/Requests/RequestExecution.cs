@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Responses;
 using Cassandra.Tasks;
@@ -85,7 +86,12 @@ namespace Cassandra.Requests
         /// </summary>
         private void Send(IRequest request, Action<Exception, Response> callback)
         {
-            _operation = _connection.Send(request, callback);
+            var timeoutMillis = Timeout.Infinite;
+            if (_parent.Statement != null)
+            {
+                timeoutMillis = _parent.Statement.ReadTimeoutMillis;
+            }
+            _operation = _connection.Send(request, callback, timeoutMillis);
         }
 
         public void HandleResponse(Exception ex, Response response)

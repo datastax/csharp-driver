@@ -54,6 +54,9 @@ namespace Cassandra
         public bool IsTracing { get; private set; }
 
         /// <inheritdoc />
+        public int ReadTimeoutMillis { get; private set; }
+
+        /// <inheritdoc />
         public IRetryPolicy RetryPolicy { get; private set; }
 
         /// <inheritdoc />
@@ -82,7 +85,7 @@ namespace Cassandra
 
         }
 
-        /// <inheritdoc />
+        // ReSharper disable once UnusedParameter.Local
         protected Statement(QueryProtocolOptions queryProtocolOptions)
         {
             //the unused parameter is maintained for backward compatibility
@@ -129,6 +132,13 @@ namespace Cassandra
             {
                 return SetAutoPage(false);
             }
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IStatement SetReadTimeoutMillis(int timeout)
+        {
+            ReadTimeoutMillis = timeout;
             return this;
         }
 

@@ -55,6 +55,11 @@ namespace Cassandra
         public HashedWheelTimer.ITimeout Timeout { get; set; }
 
         /// <summary>
+        /// Gets or sets the timeout in milliseconds for the request.
+        /// </summary>
+        public int TimeoutMillis { get; set; }
+
+        /// <summary>
         /// Creates a new operation state with the provided callback
         /// </summary>
         public OperationState(Action<Exception, Response> callback)

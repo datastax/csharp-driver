@@ -58,6 +58,13 @@ namespace Cassandra
         /// </summary>
         DateTimeOffset? Timestamp { get; }
         /// <summary>
+        /// Gets the per-host read timeout for this statement.
+        /// <para>
+        /// When the value is <c>0</c> or lower, the default value from the socket options will be used.
+        /// </para>
+        /// </summary>
+        int ReadTimeoutMillis { get; }
+        /// <summary>
         ///  Gets the retry policy sets for this query, if any.
         /// </summary>
         IRetryPolicy RetryPolicy { get; }
@@ -135,6 +142,14 @@ namespace Cassandra
         /// <param name="pagingState">The page state token</param>
         /// <returns>this <c>IStatement</c> object.</returns>
         IStatement SetPagingState(byte[] pagingState);
+        /// <summary>
+        /// Overrides the default per-host read timeout <see cref="SocketOptions.ReadTimeoutMillis"/> for this statement.
+        /// </summary>
+        /// <param name="timeout">
+        /// Timeout in milliseconds. If the value is not greater than zero, the default value 
+        /// from the socket options will be used.
+        /// </param>
+        IStatement SetReadTimeoutMillis(int timeout);
         /// <summary>
         ///  Sets the retry policy to use for this query. <p> The default retry policy, if
         ///  this method is not called, is the one returned by
