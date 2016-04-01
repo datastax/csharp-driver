@@ -253,7 +253,7 @@ namespace Cassandra
                     return ((DateTimeOffset)value).DateTime;
                 case ColumnTypeCode.Timeuuid:
                     //Value is a Uuid
-                    if (targetType == typeof (TimeUuid))
+                    if (targetType == typeof (TimeUuid) && !(value is TimeUuid))
                     {
                         return (TimeUuid)(Guid)value;
                     }

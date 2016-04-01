@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Cassandra.Tasks;
@@ -31,6 +32,18 @@ namespace Cassandra.Tests
             };
             metadata.SetCassandraVersion(new Version(3, 0));
             return new SchemaParserV2(metadata, udtResolver);
+        }
+        
+        /// <summary>
+        /// Helper method to get a QueryTrace instance..
+        /// </summary>
+        private static QueryTrace GetQueryTrace()
+        {
+            var clusterMock = new Mock<ICluster>();
+            clusterMock.Setup(c => c.Configuration).Returns(new Configuration());
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
+            return new QueryTrace(Guid.NewGuid(), sessionMock.Object);
         }
 
         [Test]
@@ -327,11 +340,11 @@ namespace Cassandra.Tests
                 .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columnfamilies.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TaskHelper.FromException<IEnumerable<Row>>(new NoHostAvailableException(new Dictionary<System.Net.IPEndPoint, Exception>())));
+                .Returns(() => TaskHelper.FromException<IEnumerable<Row>>(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>())));
             //This will cause the task to be faulted
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columns.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TaskHelper.FromException<IEnumerable<Row>>(new NoHostAvailableException(new Dictionary<System.Net.IPEndPoint, Exception>())));
+                .Returns(() => TaskHelper.FromException<IEnumerable<Row>>(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>())));
             var parser = GetV1Instance(queryProviderMock.Object);
             var ks = TaskHelper.WaitToComplete(parser.GetKeyspace("ks1"));
             Assert.NotNull(ks);
@@ -510,7 +523,7 @@ namespace Cassandra.Tests
             //This will cause the task to be faulted
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.columns.*ks1"), It.IsAny<bool>()))
-                .Returns(() => TaskHelper.FromException<IEnumerable<Row>>(new NoHostAvailableException(new Dictionary<System.Net.IPEndPoint,Exception>())));
+                .Returns(() => TaskHelper.FromException<IEnumerable<Row>>(new NoHostAvailableException(new Dictionary<IPEndPoint,Exception>())));
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.indexes.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<Row>()));
@@ -518,6 +531,153 @@ namespace Cassandra.Tests
             var ks = TaskHelper.WaitToComplete(parser.GetKeyspace("ks1"));
             Assert.NotNull(ks);
             Assert.Throws<NoHostAvailableException>(() => ks.GetTableMetadata("tbl1"));
+        }
+
+        [Test]
+        public void SchemaParser_GetQueryTrace_Should_Query_Traces_Tables()
+        {
+            var sessionRow = TestHelper.CreateRow(new Dictionary<string, object>
+            {
+                {"duration", 10},
+                {"request", "test query"},
+                {"coordinator", IPAddress.Parse("192.168.12.13")},
+                {"parameters", null},
+                {"started_at", DateTimeOffset.Now}
+            });
+            var eventRow = TestHelper.CreateRow(new Dictionary<string, object>
+            {
+                {"activity", "whatever"},
+                {"event_id", TimeUuid.NewId()},
+                {"source_elapsed", 100 },
+                {"source", IPAddress.Parse("192.168.1.100")},
+                {"thread", "thread name"}
+            });
+            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.sessions"), It.IsAny<bool>()))
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { sessionRow }));
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.events"), It.IsAny<bool>()))
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { eventRow }));
+
+            var queryTrace = GetQueryTrace();
+            var parser = GetV1Instance(queryProviderMock.Object);
+            var timer = new HashedWheelTimer();
+            var resultTrace = TaskHelper.WaitToComplete(parser.GetQueryTrace(queryTrace, timer));
+            Assert.AreSame(queryTrace, resultTrace);
+            Assert.Greater(queryTrace.DurationMicros, 0);
+            Assert.AreEqual("test query", queryTrace.RequestType);
+            Assert.AreEqual(1, queryTrace.Events.Count);
+            Assert.AreEqual("whatever", queryTrace.Events.First().Description);
+            timer.Dispose();
+        }
+
+        [Test]
+        public void SchemaParser_GetQueryTrace_When_First_QueryAsync_Fails_Exception_Should_Propagate()
+        {
+            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.sessions"), It.IsAny<bool>()))
+                .Returns(() => TaskHelper.FromException<IEnumerable<Row>>(new Exception("Test exception")));
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.events"), It.IsAny<bool>()))
+                .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<Row>()));
+
+            var queryTrace = GetQueryTrace();
+            var parser = GetV1Instance(queryProviderMock.Object);
+            var timer = new HashedWheelTimer();
+            var ex = Assert.Throws<Exception>(() => TaskHelper.WaitToComplete(parser.GetQueryTrace(queryTrace, timer)));
+            Assert.AreEqual("Test exception", ex.Message);
+            timer.Dispose();
+        }
+
+        [Test]
+        public void SchemaParser_GetQueryTrace_When_Second_QueryAsync_Fails_Exception_Should_Propagate()
+        {
+            var sessionRow = TestHelper.CreateRow(new Dictionary<string, object>
+            {
+                {"duration", 10},
+                {"request", "test query"},
+                {"coordinator", IPAddress.Parse("192.168.12.13")},
+                {"parameters", null},
+                {"started_at", DateTimeOffset.Now}
+            });
+            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.sessions"), It.IsAny<bool>()))
+                .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { sessionRow }));
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.events"), It.IsAny<bool>()))
+                .Returns(() => TaskHelper.FromException<IEnumerable<Row>>(new Exception("Test exception 2")));
+
+            var queryTrace = GetQueryTrace();
+            var parser = GetV1Instance(queryProviderMock.Object);
+            var timer = new HashedWheelTimer();
+            var ex = Assert.Throws<Exception>(() => TaskHelper.WaitToComplete(parser.GetQueryTrace(queryTrace, timer)));
+            Assert.AreEqual("Test exception 2", ex.Message);
+            timer.Dispose();
+        }
+
+        [Test]
+        public void SchemaParser_GetQueryTrace_Should_Try_Multiple_Times_To_Get_The_Trace()
+        {
+            var counter = 0;
+            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.sessions"), It.IsAny<bool>()))
+                .Returns(() =>
+                {
+                    var sessionRow = TestHelper.CreateRow(new Dictionary<string, object>
+                    {
+                        {"duration", ++counter >= 3 ? counter : (int?)null },
+                        {"request", "test query " + counter},
+                        {"coordinator", IPAddress.Parse("192.168.12.13")},
+                        {"parameters", null},
+                        {"started_at", DateTimeOffset.Now}
+                    });
+                    return TestHelper.DelayedTask<IEnumerable<Row>>(new[] {sessionRow});
+                });
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.events"), It.IsAny<bool>()))
+                .Returns(() => TaskHelper.ToTask(Enumerable.Empty<Row>()));
+            var queryTrace = GetQueryTrace();
+            var parser = GetV1Instance(queryProviderMock.Object);
+            var timer = new HashedWheelTimer();
+            TaskHelper.WaitToComplete(parser.GetQueryTrace(queryTrace, timer));
+            Assert.AreEqual(counter, 3);
+            Assert.AreEqual("test query 3", queryTrace.RequestType);
+            timer.Dispose();
+        }
+
+        [Test]
+        public void SchemaParser_GetQueryTrace_Should_Not_Try_More_Than_Max_Attempts()
+        {
+            var counter = 0;
+            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.sessions"), It.IsAny<bool>()))
+                .Returns(() =>
+                {
+                    counter++;
+                    var sessionRow = TestHelper.CreateRow(new Dictionary<string, object>
+                    {
+                        {"duration", null },
+                        {"request", "test query "},
+                        {"coordinator", IPAddress.Parse("192.168.12.13")},
+                        {"parameters", null},
+                        {"started_at", DateTimeOffset.Now}
+                    });
+                    return TestHelper.DelayedTask<IEnumerable<Row>>(new[] { sessionRow });
+                });
+            queryProviderMock
+                .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.events"), It.IsAny<bool>()))
+                .Returns(() => TaskHelper.ToTask(Enumerable.Empty<Row>()));
+            var queryTrace = GetQueryTrace();
+            var parser = GetV1Instance(queryProviderMock.Object);
+            var timer = new HashedWheelTimer();
+            Assert.Throws<TraceRetrievalException>(() => TaskHelper.WaitToComplete(parser.GetQueryTrace(queryTrace, timer)));
+            Assert.AreEqual(counter, 5);
+            timer.Dispose();
         }
     }
 }

@@ -383,5 +383,26 @@ namespace Cassandra.Tasks
             });
             return tcs;
         }
+
+        /// <summary>
+        /// Executes method after the provided delay
+        /// </summary>
+        public static Task<TOut> ScheduleExecution<TOut>(Func<TOut> method, HashedWheelTimer timer, int delay)
+        {
+            var tcs = new TaskCompletionSource<TOut>();
+            timer.NewTimeout(state =>
+            {
+                var tcsState = (TaskCompletionSource<TOut>) state;
+                try
+                {
+                    tcsState.SetResult(method());
+                }
+                catch (Exception ex)
+                {
+                    tcsState.SetException(ex);
+                }
+            }, tcs, delay);
+            return tcs.Task;
+        }
     }
 }

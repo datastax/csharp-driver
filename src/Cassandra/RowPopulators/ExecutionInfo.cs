@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Threading.Tasks;
 
 namespace Cassandra
 {
@@ -83,6 +84,14 @@ namespace Cassandra
         /// Gets the final achieved consistency
         /// </summary>
         public ConsistencyLevel AchievedConsistency { get; private set; }
+
+        /// <summary>
+        /// Gets the trace information for the query execution without blocking.
+        /// </summary>
+        public Task<QueryTrace> GetQueryTraceAsync()
+        {
+            return QueryTrace.LoadAsync();
+        }
 
         internal void SetTriedHosts(List<IPEndPoint> triedHosts)
         {

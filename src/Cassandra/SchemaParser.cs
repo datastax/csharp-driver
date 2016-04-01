@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -12,6 +13,11 @@ namespace Cassandra
 {
     internal abstract class SchemaParser
     {
+        protected const string CompositeTypeName = "org.apache.cassandra.db.marshal.CompositeType";
+        private const int TraceMaxAttempts = 5;
+        private const int TraceAttemptDelay = 400;
+        private const string SelectTraceSessions = "SELECT * FROM system_traces.sessions WHERE session_id = {0}";
+        private const string SelectTraceEvents = "SELECT * FROM system_traces.events WHERE session_id = {0}";
         private static readonly Version Version30 = new Version(3, 0);
 
         /// <summary>
@@ -34,7 +40,6 @@ namespace Cassandra
             return currentInstance;
         }
 
-        protected const string CompositeTypeName = "org.apache.cassandra.db.marshal.CompositeType";
         protected readonly IMetadataQueryProvider Cc;
         protected readonly Metadata Parent;
         protected abstract string SelectAggregates { get; }
@@ -75,6 +80,69 @@ namespace Cassandra
         public abstract Task<AggregateMetadata> GetAggregate(string keyspaceName, string aggregateName, string signatureString);
 
         public abstract Task<UdtColumnInfo> GetUdtDefinition(string keyspaceName, string typeName);
+
+        internal Task<QueryTrace> GetQueryTrace(QueryTrace trace, HashedWheelTimer timer)
+        {
+            return GetQueryTrace(trace, timer, 0);
+        }
+
+        private Task<QueryTrace> GetQueryTrace(QueryTrace trace, HashedWheelTimer timer, int attempt)
+        {
+            if (attempt >= TraceMaxAttempts)
+            {
+                return TaskHelper.FromException<QueryTrace>(
+                    new TraceRetrievalException(string.Format("Unable to retrieve complete query trace after {0} tries", TraceMaxAttempts)));
+            }
+            var sessionQuery = string.Format(SelectTraceSessions, trace.TraceId);
+            var fetchAndAdapt = Cc
+                .QueryAsync(sessionQuery)
+                .ContinueSync(rs =>
+                {
+                    var sessionRow = rs.FirstOrDefault();
+                    if (sessionRow == null || sessionRow.IsNull("duration"))
+                    {
+                        return null;
+                    }
+                    trace.RequestType = sessionRow.GetValue<string>("request");
+                    trace.DurationMicros = sessionRow.GetValue<int>("duration");
+                    trace.Coordinator = sessionRow.GetValue<IPAddress>("coordinator");
+                    trace.Parameters = sessionRow.GetValue<IDictionary<string, string>>("parameters");
+                    trace.StartedAt = sessionRow.GetValue<DateTimeOffset>("started_at").ToFileTime();
+                    if (sessionRow.GetColumn("client") != null)
+                    {
+                        //client column was not present in previous
+                        trace.ClientAddress = sessionRow.GetValue<IPAddress>("client");
+                    }
+                    return trace;
+                });
+
+            return fetchAndAdapt.Then(loadedTrace =>
+            {
+                if (loadedTrace == null)
+                {
+                    //Trace session was not loaded
+                    return TaskHelper
+                        .ScheduleExecution(() => GetQueryTrace(trace, timer, attempt + 1), timer, TraceAttemptDelay)
+                        .Unwrap();
+                }
+                var eventsQuery = string.Format(SelectTraceEvents, trace.TraceId);
+                return Cc
+                    .QueryAsync(eventsQuery)
+                    .ContinueSync(rs =>
+                    {
+                        var events = rs
+                            .Select(row => new QueryTrace.Event(
+                                row.GetValue<string>("activity"),
+                                row.GetValue<TimeUuid>("event_id").GetDate(),
+                                row.GetValue<IPAddress>("source"),
+                                row.GetValue<int?>("source_elapsed") ?? 0,
+                                row.GetValue<string>("thread")))
+                            .ToList();
+                        loadedTrace.Events = events;
+                        return loadedTrace;
+                    });
+            });
+        }
     }
 
     /// <summary>

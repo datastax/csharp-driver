@@ -27,13 +27,6 @@ namespace Cassandra
 {
     internal static class Utils
     {
-        public static long GetTimestampFromGuid(Guid guid)
-        {
-            byte[] bytes = guid.ToByteArray();
-            bytes[7] &= 0x0f;
-            return BitConverter.ToInt64(bytes, 0);
-        }
-
         public static string ConvertToCqlMap(IDictionary<string, string> source)
         {
             var sb = new StringBuilder("{");

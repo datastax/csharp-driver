@@ -297,6 +297,16 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Gets the query trace.
+        /// </summary>
+        /// <param name="trace">The query trace that contains the id, which properties are going to be populated.</param>
+        /// <returns></returns>
+        internal Task<QueryTrace> GetQueryTraceAsync(QueryTrace trace)
+        {
+            return _schemaParser.GetQueryTrace(trace, _config.Timer);
+        }
+
+        /// <summary>
         /// Updates the keyspace and token information
         /// </summary>
         public bool RefreshSchema(string keyspace = null, string table = null)
