@@ -328,5 +328,32 @@ namespace Cassandra.Tests.Mapping
             Assert.AreEqual(song.ReleaseDate, parameters[2]);
             Assert.AreEqual(ttl, parameters[3]);
         }
+
+        [Test]
+        public void Insert_SetTimestamp_Test()
+        {
+            BoundStatement statement = null;
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Returns(() => TestHelper.DelayedTask(RowSet.Empty()))
+                .Callback<BoundStatement>(stmt => statement = stmt)
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>(query => TaskHelper.ToTask(GetPrepared(query)))
+                .Verifiable();
+            var mapper = GetMappingClient(sessionMock);
+            var song = new Song { Id = Guid.NewGuid(), Title = "t2", ReleaseDate = DateTimeOffset.Now };
+            var timestamp = DateTimeOffset.Now.Subtract(TimeSpan.FromDays(1));
+            mapper.Insert(song);
+            Assert.Null(statement.Timestamp);
+            mapper.Insert(song, CqlQueryOptions.New().SetTimestamp(timestamp));
+            Assert.AreEqual(timestamp, statement.Timestamp);
+            timestamp = DateTimeOffset.Now.Subtract(TimeSpan.FromHours(10));
+            mapper.InsertIfNotExists(song, CqlQueryOptions.New().SetTimestamp(timestamp));
+            Assert.AreEqual(timestamp, statement.Timestamp);
+        }
     }
 }

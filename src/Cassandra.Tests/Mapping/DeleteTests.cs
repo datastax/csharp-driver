@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Cassandra.Mapping;
+using Cassandra.Tasks;
 using Cassandra.Tests.Mapping.Pocos;
 using Cassandra.Tests.Mapping.TestData;
 using Moq;
@@ -68,6 +69,30 @@ namespace Cassandra.Tests.Mapping
             Assert.False(appliedInfo.Applied);
             Assert.NotNull(appliedInfo.Existing);
             Assert.AreEqual("I Feel Free", appliedInfo.Existing.Title);
+        }
+
+        [Test]
+        public void Insert_SetTimestamp_Test()
+        {
+            BoundStatement statement = null;
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Returns(() => TestHelper.DelayedTask(RowSet.Empty()))
+                .Callback<BoundStatement>(stmt => statement = stmt)
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>(query => TaskHelper.ToTask(GetPrepared(query)))
+                .Verifiable();
+            var mapper = GetMappingClient(sessionMock);
+            var song = new Song { Id = Guid.NewGuid(), Title = "t2", ReleaseDate = DateTimeOffset.Now };
+            var timestamp = DateTimeOffset.Now.Subtract(TimeSpan.FromDays(1));
+            mapper.Delete(song);
+            Assert.Null(statement.Timestamp);
+            mapper.Delete(song, CqlQueryOptions.New().SetTimestamp(timestamp));
+            Assert.AreEqual(timestamp, statement.Timestamp);
         }
     }
 }
