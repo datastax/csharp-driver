@@ -37,7 +37,6 @@ namespace Cassandra
         private static readonly Logger Logger = new Logger(typeof(ControlConnection));
         private volatile TokenMap _tokenMap;
         private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string,KeyspaceMetadata>();
-        private readonly Configuration _config;
         private volatile SchemaParser _schemaParser;
         public event HostsEventHandler HostsEvent;
         public event SchemaChangedEventHandler SchemaChangedEvent;
@@ -47,6 +46,11 @@ namespace Cassandra
         /// </summary>
         /// <returns>the Cassandra name of currently connected cluster.</returns>
         public String ClusterName { get; internal set; }
+
+        /// <summary>
+        /// Gets the configuration associated with this instance.
+        /// </summary>
+        internal Configuration Configuration { get; private set; }
 
         /// <summary>
         /// Control connection to be used to execute the queries to retrieve the metadata
@@ -59,10 +63,10 @@ namespace Cassandra
 
         internal Hosts Hosts { get; private set; }
 
-        internal Metadata(Configuration config)
+        internal Metadata(Configuration configuration)
         {
-            _config = config;
-            Hosts = new Hosts(config.Policies.ReconnectionPolicy);
+            Configuration = configuration;
+            Hosts = new Hosts(configuration.Policies.ReconnectionPolicy);
             Hosts.Down += OnHostDown;
             Hosts.Up += OnHostUp;
         }
@@ -303,7 +307,7 @@ namespace Cassandra
         /// <returns></returns>
         internal Task<QueryTrace> GetQueryTraceAsync(QueryTrace trace)
         {
-            return _schemaParser.GetQueryTrace(trace, _config.Timer);
+            return _schemaParser.GetQueryTrace(trace, Configuration.Timer);
         }
 
         /// <summary>
@@ -314,7 +318,7 @@ namespace Cassandra
             if (table == null)
             {
                 //Refresh all the keyspaces and tables information
-                return TaskHelper.WaitToComplete(RefreshKeyspaces(true), _config.ClientOptions.QueryAbortTimeout);
+                return TaskHelper.WaitToComplete(RefreshKeyspaces(true), Configuration.ClientOptions.QueryAbortTimeout);
             }
             var ks = GetKeyspace(keyspace);
             if (ks == null)
@@ -432,7 +436,7 @@ namespace Cassandra
                 return;
             }
             var start = DateTime.Now;
-            var waitSeconds = _config.ProtocolOptions.MaxSchemaAgreementWaitSeconds;
+            var waitSeconds = Configuration.ProtocolOptions.MaxSchemaAgreementWaitSeconds;
             Logger.Info("Waiting for schema agreement");
             try
             {
@@ -443,7 +447,7 @@ namespace Cassandra
                     var schemaVersionPeersQuery = new QueryRequest(ControlConnection.ProtocolVersion, SelectSchemaVersionPeers, false, QueryProtocolOptions.Default);
                     var queries = new [] { connection.Send(schemaVersionLocalQuery), connection.Send(schemaVersionPeersQuery) };
                     // ReSharper disable once CoVariantArrayConversion
-                    Task.WaitAll(queries, _config.ClientOptions.QueryAbortTimeout);
+                    Task.WaitAll(queries, Configuration.ClientOptions.QueryAbortTimeout);
                     var versions = new HashSet<Guid>
                     {
                         Cassandra.ControlConnection.GetRowSet(queries[0].Result).First().GetValue<Guid>("schema_version")
