@@ -35,7 +35,7 @@ namespace Cassandra.IntegrationTests.Core
             
         }
 
-        [Test]
+        [Test, Ignore("Needs refactor")]
         public void Session_Cancels_Pending_When_Disposed()
         {
             Trace.TraceInformation("SessionCancelsPendingWhenDisposed");
@@ -82,26 +82,22 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var localSession = (Session)localCluster.Connect(KeyspaceName);
                 localSession.Execute("CREATE TABLE tbl_wait_pending (id uuid primary key)");
-                Thread.Sleep(2000);
-
                 //Create more async operations that can be finished
                 var taskList = new List<Task>();
-                for (var i = 0; i < 256; i++)
+                for (var i = 0; i < 20; i++)
                 {
                     taskList.Add(localSession.ExecuteAsync(new SimpleStatement(String.Format("INSERT INTO tbl_wait_pending (id) VALUES ({0})", Guid.NewGuid()))));
                 }
                 //Most task should be pending
                 Assert.True(taskList.Any(t => t.Status == TaskStatus.WaitingForActivation), "Most task should be pending");
                 //Wait for finish
-                Assert.True(localSession.WaitForAllPendingActions(60000), "All handles have received signal");
+                Assert.True(localSession.WaitForAllPendingActions(20000), "All handles have received signal");
                 Thread.Sleep(2000);
                 Assert.False(taskList.Any(t => t.Status == TaskStatus.WaitingForActivation), "All task should be completed (not pending)");
-
-                if (taskList.Any(t => t.Status == TaskStatus.Faulted))
-                {
-                    throw taskList.First(t => t.Status == TaskStatus.Faulted).Exception;
-                }
-                Assert.True(taskList.All(t => t.Status == TaskStatus.RanToCompletion), "All task should be completed");
+                //Either all completed or some of them can contain 
+                Assert.True(taskList.All(t => 
+                    t.Status == TaskStatus.RanToCompletion || 
+                    (t.Exception != null && t.Exception.InnerException is WriteTimeoutException)), "All task should be completed");
 
                 localSession.Dispose();
             }

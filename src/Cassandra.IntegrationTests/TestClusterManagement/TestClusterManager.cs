@@ -13,6 +13,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
     /// </summary>
     public class TestClusterManager
     {
+        public static ITestCluster LastInstance { get; private set; }
         public const string DefaultKeyspaceName = "test_cluster_keyspace";
         private static string _cassandraVersionText;
         private static Version _cassandraVersion;
@@ -87,6 +88,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 testCluster.Start(options.JvmArgs);   
             }
+            LastInstance = testCluster;
             return testCluster;
         }
 

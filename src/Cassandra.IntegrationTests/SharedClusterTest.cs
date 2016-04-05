@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using Cassandra.IntegrationTests.TestBase;
@@ -17,6 +18,8 @@ namespace Cassandra.IntegrationTests
     [TestFixture]
     public abstract class SharedClusterTest : TestGlobals
     {
+        private static ITestCluster _reusableInstance;
+        private readonly bool _reuse;
         private readonly List<Cluster> _clusterInstances = new List<Cluster>();
         /// <summary>
         /// Gets the amount of nodes in the test cluster
@@ -57,8 +60,10 @@ namespace Cassandra.IntegrationTests
         /// </summary>
         protected string KeyspaceName { get; set; }
 
-        protected SharedClusterTest(int amountOfNodes = 1, bool createSession = true)
+        protected SharedClusterTest(int amountOfNodes = 1, bool createSession = true, bool reuse = true)
         {
+            //only reuse single node clusters
+            _reuse = reuse && amountOfNodes == 1;
             AmountOfNodes = amountOfNodes;
             KeyspaceName = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
             CreateSession = createSession;
@@ -67,7 +72,23 @@ namespace Cassandra.IntegrationTests
         [TestFixtureSetUp]
         protected virtual void TestFixtureSetUp()
         {
-            TestCluster = TestClusterManager.CreateNew(AmountOfNodes);
+            if (_reuse && _reusableInstance != null && ReferenceEquals(_reusableInstance, TestClusterManager.LastInstance))
+            {
+                Trace.WriteLine("Reusing single node ccm instance");
+                TestCluster = _reusableInstance;
+            }
+            else
+            {
+                TestCluster = TestClusterManager.CreateNew(AmountOfNodes);
+                if (_reuse)
+                {
+                    _reusableInstance = TestCluster;
+                }
+                else
+                {
+                    _reusableInstance = null;
+                }
+            }
             if (CreateSession)
             {
                 Cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)

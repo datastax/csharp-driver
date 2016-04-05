@@ -40,9 +40,10 @@ namespace Cassandra.Tests
         {
             var counter = 0;
             var timedOutReceived = 0;
+            var clientCallbackCounter = 0;
+            const int times = 10;
             TestHelper.Invoke(() =>
             {
-                var clientCallbackCounter = 0;
                 Action<Exception, Response> clientCallback = (ex, r) =>
                 {
                     Interlocked.Increment(ref clientCallbackCounter);
@@ -59,11 +60,11 @@ namespace Cassandra.Tests
                     actions = actions.Reverse().ToArray();
                 }
                 TestHelper.ParallelInvoke(actions);
-                //Allow callbacks to be called using the default scheduler
-                Thread.Sleep(200);
-                Assert.AreEqual(1, clientCallbackCounter);
-            }, 10);
-            Trace.WriteLine(timedOutReceived);
+            }, times);
+            //Allow callbacks to be called using the default scheduler
+            Thread.Sleep(2000);
+            Assert.AreEqual(times, clientCallbackCounter);
+            Trace.TraceInformation("Timeouts received {0}", timedOutReceived);
         }
 
         [Test]
