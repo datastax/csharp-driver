@@ -25,6 +25,11 @@ namespace Dse.Graph
         /// </summary>
         public const string DefaultSource = "default";
 
+        /// <summary>
+        /// Default value for read timeout.
+        /// </summary>
+        public const int DefaultReadTimeout = 32000;
+
         private static class PayloadKey
         {
             public const string Language = "graph-language";
@@ -40,6 +45,7 @@ namespace Dse.Graph
         private volatile string _source = DefaultSource;
         private long _readConsistencyLevel = long.MinValue;
         private long _writeConsistencyLevel = long.MinValue;
+        private volatile int _readTimeout = DefaultReadTimeout;
 
         /// <summary>
         /// The consistency levels names that are different from ConsistencyLevel.ToString().ToUpper()
@@ -87,7 +93,19 @@ namespace Dse.Graph
         }
 
         /// <summary>
-        /// Sets the graph traversal source name in graph queries.
+        /// Gets the value that overrides the 
+        /// <see href="http://docs.datastax.com/en/drivers/csharp/3.0/html/P_Cassandra_SocketOptions_ReadTimeoutMillis.htm">
+        /// default per-host read timeout</see> in milliseconds for all graph queries.
+        /// <para>Default: <c>32000</c>.</para>
+        /// </summary>
+        /// <seealso cref="SetReadTimeoutMillis"/>
+        public int ReadTimeoutMillis
+        {
+            get { return _readTimeout; }
+        }
+
+        /// <summary>
+        /// Gets the graph traversal source name in graph queries.
         /// </summary>
         public string Source
         {
@@ -150,6 +168,20 @@ namespace Dse.Graph
         {
             Thread.VolatileWrite(ref _readConsistencyLevel, (long)consistency);
             RebuildDefaultPayload();
+            return this;
+        }
+
+        /// <summary>
+        /// Overrides the 
+        /// <see href="http://docs.datastax.com/en/drivers/csharp/3.0/html/P_Cassandra_SocketOptions_ReadTimeoutMillis.htm">
+        /// default per-host read timeout</see> in milliseconds for all graph queries.
+        /// </summary>
+        /// <remarks>
+        /// When setting a value of zero, it will use the default per-host read timeout defined by the core driver.
+        /// </remarks>
+        public GraphOptions SetReadTimeoutMillis(int timeout)
+        {
+            _readTimeout = timeout;
             return this;
         }
 

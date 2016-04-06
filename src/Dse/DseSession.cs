@@ -61,8 +61,7 @@ namespace Dse
 
         public Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement graphStatement)
         {
-            var stmt = graphStatement.ToIStatement();
-            stmt.SetOutgoingPayload(_config.GraphOptions.BuildPayload(graphStatement));
+            var stmt = graphStatement.ToIStatement(_config.GraphOptions);
             return _coreSession.ExecuteAsync(stmt)
                 .ContinueSync(rs => new GraphResultSet(rs));
         }

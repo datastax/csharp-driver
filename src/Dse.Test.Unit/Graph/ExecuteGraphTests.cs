@@ -77,6 +77,46 @@ namespace Dse.Test.Unit.Graph
         }
 
         [Test]
+        public void ExecuteGraph_Should_Call_ExecuteAsync_With_ReadTimeout_Set_To_Default()
+        {
+            SimpleStatement coreStatement = null;
+            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
+            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
+                .Returns(TaskOf(new RowSet()))
+                .Callback<SimpleStatement>(stmt => coreStatement = stmt)
+                .Verifiable();
+            const int readTimeout = 5000;
+            var session = NewInstance(coreSessionMock.Object, new GraphOptions().SetReadTimeoutMillis(readTimeout));
+            session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
+            Assert.NotNull(coreStatement);
+            Assert.AreEqual(readTimeout, coreStatement.ReadTimeoutMillis);
+            //Another one with the statement level timeout set to zero
+            session.ExecuteGraph(new SimpleGraphStatement("g.V()").SetReadTimeoutMillis(0));
+            Assert.NotNull(coreStatement);
+            Assert.AreEqual(readTimeout, coreStatement.ReadTimeoutMillis);
+            coreSessionMock.Verify();
+        }
+
+        [Test]
+        public void ExecuteGraph_Should_Call_ExecuteAsync_With_ReadTimeout_Set_From_Statement()
+        {
+            SimpleStatement coreStatement = null;
+            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
+            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
+                .Returns(TaskOf(new RowSet()))
+                .Callback<SimpleStatement>(stmt => coreStatement = stmt)
+                .Verifiable();
+            const int defaultReadTimeout = 15000;
+            const int readTimeout = 6000;
+            var session = NewInstance(coreSessionMock.Object, 
+                new GraphOptions().SetReadTimeoutMillis(defaultReadTimeout));
+            session.ExecuteGraph(new SimpleGraphStatement("g.V()").SetReadTimeoutMillis(readTimeout));
+            Assert.NotNull(coreStatement);
+            Assert.AreEqual(readTimeout, coreStatement.ReadTimeoutMillis);
+            coreSessionMock.Verify();
+        }
+
+        [Test]
         public void ExecuteGraph_Should_Call_ExecuteAsync_With_Dictionary_Parameters_Set()
         {
             SimpleStatement coreStatement = null;

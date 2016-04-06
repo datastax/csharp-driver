@@ -73,7 +73,7 @@ namespace Dse.Graph
             _valuesDictionary = values;
         }
 
-        internal override IStatement GetIStatement()
+        internal override IStatement GetIStatement(GraphOptions options)
         {
             string jsonParams = null;
             if (_valuesDictionary != null)
@@ -98,7 +98,10 @@ namespace Dse.Graph
             {
                 stmt.SetTimestamp(Timestamp.Value);
             }
-            return stmt.SetConsistencyLevel(ConsistencyLevel);
+            return stmt
+                .SetReadTimeoutMillis(ReadTimeoutMillis > 0 ? ReadTimeoutMillis : options.ReadTimeoutMillis)
+                .SetConsistencyLevel(ConsistencyLevel)
+                .SetOutgoingPayload(options.BuildPayload(this));
         }
     }
 }

@@ -32,6 +32,12 @@ namespace Dse.Graph
         ConsistencyLevel? GraphReadConsistencyLevel { get; }
 
         /// <summary>
+        /// Gets the ReadTimeout for the statement that, when is greater than 0, overrides
+        /// <see cref="GraphOptions.ReadTimeoutMillis"/>.
+        /// </summary>
+        int ReadTimeoutMillis { get; }
+
+        /// <summary>
         /// Gets the graph traversal source name to use with this statement.
         /// </summary>
         string GraphSource { get; }
@@ -55,6 +61,6 @@ namespace Dse.Graph
         /// Returns the <see cref="IStatement"/> representation of the Graph statement.
         /// </summary>
         /// <remarks>Used by the DSE driver to translate between this statement and Core driver statement instances</remarks>
-        IStatement ToIStatement();
+        IStatement ToIStatement(GraphOptions options);
     }
 }

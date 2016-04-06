@@ -37,6 +37,9 @@ namespace Dse.Graph
         /// <inheritdoc/>
         public bool IsSystemQuery { get; protected set; }
 
+        /// <inheritdoc />
+        public int ReadTimeoutMillis { get; protected set; }
+
         /// <summary>
         /// Gets the default timestamp associated with this query.
         /// </summary>
@@ -45,7 +48,7 @@ namespace Dse.Graph
         /// <summary>
         /// Gets the IStatement for this GraphStatement instance.
         /// </summary>
-        internal abstract IStatement GetIStatement();
+        internal abstract IStatement GetIStatement(GraphOptions options);
 
         /// <summary>
         /// Determines whether the object is anonymous.
@@ -145,6 +148,17 @@ namespace Dse.Graph
         }
 
         /// <summary>
+        /// Sets the per-host read timeout in milliseconds for this statement.
+        /// </summary>
+        /// <param name="timeout">Timeout in milliseconds.</param>
+        /// <returns>This instance</returns>
+        public GraphStatement SetReadTimeoutMillis(int timeout)
+        {
+            ReadTimeoutMillis = timeout;
+            return this;
+        }
+
+        /// <summary>
         /// Forces this statement to use no graph name, even if a default graph name was defined 
         /// with <see cref="GraphOptions.SetName(string)"/>.
         /// <para>
@@ -167,9 +181,9 @@ namespace Dse.Graph
             return this;
         }
 
-        IStatement IGraphStatement.ToIStatement()
+        IStatement IGraphStatement.ToIStatement(GraphOptions options)
         {
-            return GetIStatement();
+            return GetIStatement(options);
         }
     }
 }
