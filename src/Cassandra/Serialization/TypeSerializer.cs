@@ -47,6 +47,7 @@ namespace Cassandra.Serialization
         public static readonly TypeSerializer<string> PrimitiveStringSerializer = new StringSerializer(Encoding.UTF8);
         public static readonly TypeSerializer<string> PrimitiveAsciiStringSerializer = new StringSerializer(Encoding.ASCII);
         public static readonly TypeSerializer<TimeUuid> PrimitiveTimeUuidSerializer = new TimeUuidSerializer();
+        public static readonly TypeSerializer<TimeSpan> PrimitiveTimeSpanSerializer = new TimeSpanSerializer();
 
         internal static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
 

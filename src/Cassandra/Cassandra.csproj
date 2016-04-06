@@ -351,6 +351,7 @@
     <Compile Include="Serialization\CustomTypeSerializer.cs" />
     <Compile Include="Serialization\DataTypeParser.cs" />
     <Compile Include="Serialization\DictionarySerializer.cs" />
+    <Compile Include="Serialization\EnumSerializer.cs" />
     <Compile Include="Serialization\ITypeSerializer.cs" />
     <Compile Include="Serialization\LegacyTypeSerializer.cs" />
     <Compile Include="Serialization\Primitive\BigIntegerSerializer.cs" />
@@ -362,6 +363,7 @@
     <Compile Include="Serialization\Primitive\DoubleSerializer.cs" />
     <Compile Include="Serialization\Primitive\FloatSerializer.cs" />
     <Compile Include="Serialization\Primitive\LongSerializer.cs" />
+    <Compile Include="Serialization\Primitive\TimeSpanSerializer.cs" />
     <Compile Include="Serialization\Primitive\TimeUuidSerializer.cs" />
     <Compile Include="Serialization\Primitive\GuidSerializer.cs" />
     <Compile Include="Serialization\Primitive\IntSerializer.cs" />

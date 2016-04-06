@@ -48,6 +48,7 @@ namespace Cassandra.Serialization
             { ColumnTypeCode.Text, TypeSerializer.PrimitiveStringSerializer },
             { ColumnTypeCode.Time, TypeSerializer.PrimitiveLocalTimeSerializer},
             { ColumnTypeCode.Timestamp, TypeSerializer.PrimitiveDateTimeOffsetSerializer },
+            { ColumnTypeCode.TimeSpan, TypeSerializer.PrimitiveTimeSpanSerializer },
             { ColumnTypeCode.Timeuuid, TypeSerializer.PrimitiveGuidSerializer },
             { ColumnTypeCode.TinyInt, TypeSerializer.PrimitiveSbyteSerializer },
             { ColumnTypeCode.Uuid, TypeSerializer.PrimitiveGuidSerializer },
@@ -61,6 +62,8 @@ namespace Cassandra.Serialization
         private readonly CollectionSerializer _collectionSerializer = new CollectionSerializer();
         private readonly DictionarySerializer _dictionarySerializer = new DictionarySerializer();
         private readonly TupleSerializer _tupleSerializer = new TupleSerializer();
+        private readonly EnumSerializer _enumSerializer = new EnumSerializer();
+
         private readonly Dictionary<ColumnTypeCode, Func<IColumnInfo, Type>> _defaultTypes = new Dictionary<ColumnTypeCode,Func<IColumnInfo,Type>>();
         //Udt serializer can be specified
         private UdtSerializer _udtSerializer = new UdtSerializer();
@@ -85,6 +88,8 @@ namespace Cassandra.Serialization
             _dictionarySerializer.SetChildSerializer(this);
             _tupleSerializer.SetChildSerializer(this);
             _udtSerializer.SetChildSerializer(this);
+            _enumSerializer.SetChildSerializer(this);
+
             InitDefaultTypes();
             InitTypeAdapters();
             SetSpecificSerializers(typeSerializers);
@@ -117,6 +122,8 @@ namespace Cassandra.Serialization
                     return _dictionarySerializer.Deserialize(_protocolVersion, buffer, offset, length, typeInfo);
                 case ColumnTypeCode.Tuple:
                     return _tupleSerializer.Deserialize(_protocolVersion, buffer, offset, length, typeInfo);
+                case ColumnTypeCode.Enum:
+                    return _enumSerializer.Deserialize(_protocolVersion, buffer, offset, length, typeInfo);
             }
             //Unknown type, return the byte representation
             return buffer;
@@ -240,6 +247,12 @@ namespace Cassandra.Serialization
                     return ColumnTypeCode.Tuple;
                 }
             }
+
+            if (type.IsEnum)
+            {
+                return ColumnTypeCode.Enum;
+            }
+
             //Determine if its a Udt type
             var udtMap = _udtSerializer.GetUdtMap(type);
             if (udtMap != null)
@@ -382,6 +395,12 @@ namespace Cassandra.Serialization
                 }
                 return _collectionSerializer.Serialize(_protocolVersion, (IEnumerable)value);
             }
+
+            if(type.IsEnum)
+            {
+                return _enumSerializer.Serialize(_protocolVersion, value);
+            }
+
             if (typeof(IStructuralComparable).IsAssignableFrom(type) && type.FullName.StartsWith("System.Tuple"))
             {
                 return _tupleSerializer.Serialize(_protocolVersion, (IStructuralEquatable) value);
