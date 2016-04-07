@@ -41,7 +41,8 @@ namespace Cassandra.Tests
             var counter = 0;
             var timedOutReceived = 0;
             var clientCallbackCounter = 0;
-            const int times = 10;
+            const int times = 40;
+            var expectedTimedout = 0;
             TestHelper.Invoke(() =>
             {
                 Action<Exception, Response> clientCallback = (ex, r) =>
@@ -51,8 +52,16 @@ namespace Cassandra.Tests
                 var state = new OperationState(clientCallback);
                 var actions = new Action[]
                 {
-                    () => state.SetTimedOut(new OperationTimedOutException(new IPEndPoint(0, 1), 200), () => Interlocked.Increment(ref timedOutReceived)),
-                    () => { state.InvokeCallback(null); }
+                    () =>
+                    {
+                        var timedout = state.SetTimedOut(
+                            new OperationTimedOutException(new IPEndPoint(0, 1), 200), () => Interlocked.Increment(ref timedOutReceived));
+                        Interlocked.Add(ref expectedTimedout, timedout ? 1 : 0);
+                    },
+                    () =>
+                    {
+                        state.InvokeCallback(null);
+                    }
                 };
                 if ((counter++)%2 == 0)
                 {
@@ -64,7 +73,7 @@ namespace Cassandra.Tests
             //Allow callbacks to be called using the default scheduler
             Thread.Sleep(2000);
             Assert.AreEqual(times, clientCallbackCounter);
-            Trace.TraceInformation("Timeouts received {0}", timedOutReceived);
+            Assert.AreEqual(expectedTimedout, timedOutReceived);
         }
 
         [Test]

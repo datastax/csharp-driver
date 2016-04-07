@@ -37,9 +37,9 @@ namespace Cassandra
         private const int StateCancelled = 1;
         private const int StateTimedout = 2;
         private const int StateCompleted = 3;
+        private Action<Exception, Response> _callback;
         private static readonly Action<Exception, Response> Noop = (_, __) => { };
-
-        private volatile Action<Exception, Response> _callback;
+        private volatile bool _timeoutCallbackSet;
         private int _state = StateInit;
 
         /// <summary>
@@ -59,7 +59,7 @@ namespace Cassandra
         /// </summary>
         public OperationState(Action<Exception, Response> callback)
         {
-            _callback = callback;
+            Interlocked.Exchange(ref _callback, callback);
         }
 
         /// <summary>
@@ -67,16 +67,29 @@ namespace Cassandra
         /// </summary>
         public Action<Exception, Response> SetCompleted()
         {
-            //Change the state
-            Interlocked.Exchange(ref _state, StateCompleted);
-            //Set the status before getting the callback
-            Thread.MemoryBarrier();
-            var callback = _callback;
-            if (Timeout != null)
+            var previousState = Interlocked.CompareExchange(ref _state, StateCompleted, StateInit);
+            if (previousState == StateCancelled)
             {
-                //Cancel it if it hasn't expired
-                Timeout.Cancel();
+                return Noop;
             }
+            Action<Exception, Response> callback;
+            if (previousState == StateInit)
+            {
+                callback = Interlocked.Exchange(ref _callback, Noop);
+                if (Timeout != null)
+                {
+                    //Cancel it if it hasn't expired
+                    Timeout.Cancel();
+                }
+                return callback;
+            }
+            //Operation has timed out
+            while (!_timeoutCallbackSet)
+            {
+                //Wait for the timeout callback to be set
+                Thread.SpinWait(10);
+            }
+            callback = Interlocked.Exchange(ref _callback, Noop);
             return callback;
         }
 
@@ -97,26 +110,16 @@ namespace Cassandra
         /// </summary>
         public bool SetTimedOut(OperationTimedOutException ex, Action onReceive)
         {
-            var callback = _callback;
-            //When the data is received, invoke on receive callback
-            _callback = (_, __) => onReceive();
-            //Set the _callback first, as the Invoke method does not check previous state
-            Thread.MemoryBarrier();
-            var previousState = Interlocked.Exchange(ref _state, StateTimedout);
-            switch (previousState)
+            var previousState = Interlocked.CompareExchange(ref _state, StateTimedout, StateInit);
+            if (previousState != StateInit)
             {
-                case StateInit:
-                    //Call the original callback
-                    Task.Factory.StartNew(() => callback(ex, null), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
-                    return true;
-                case StateCompleted:
-                    //it arrived while changing the state
-                    //Invoke on receive
-                    _callback = Noop;
-                    //it hasn't actually timed out
-                    return false;
+                return false;
             }
-            //For cancelled, do not invoke the previous
+            //When the data is received, invoke on receive callback
+            var callback = Interlocked.Exchange(ref _callback, (_, __) => onReceive()); 
+            Thread.MemoryBarrier();
+            _timeoutCallbackSet = true;
+            Task.Factory.StartNew(() => callback(ex, null), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
             return true;
         }
 
@@ -129,8 +132,8 @@ namespace Cassandra
             {
                 return;
             }
-            //If it was init and now is cancelled, change the final callback to a noop
-            _callback = Noop;
+            //Remove the closure
+            Interlocked.Exchange(ref _callback, Noop);
             if (Timeout != null)
             {
                 //Cancel it if it hasn't expired
