@@ -149,6 +149,12 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+        /// Tests the priority of statement specific timeout over general timeout
+        /// 
+        /// @jira_ticket CSHARP-415
+        /// @expected_result A OperationTimedOutException if timeout expires.
+        ///
+        /// @test_category connection:timeout
         [Test]
         public void Should_Use_Statement_ReadTimeout()
         {
