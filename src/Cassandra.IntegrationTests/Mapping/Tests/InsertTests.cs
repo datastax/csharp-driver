@@ -22,6 +22,7 @@ using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Mapping.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
+using Cassandra.Serialization;
 using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
 
@@ -449,6 +450,51 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var expiredSong = mapper.FirstOrDefault<Song>("WHERE id = ?", song.Id);
             Assert.Null(expiredSong);
         }
+
+
+        /// Tests if timestamp is set on CqlQueryOptions.
+        ///
+        /// The TIMESTAMP input is in microseconds. If not specified, the time (in microseconds) that the write occurred to the column is used. 
+        /// when all nodes in the cluster is down, given a set ReadTimeoutMillis of 3 seconds.
+        ///
+        /// @since 2.1
+        /// @jira_ticket CSHARP-409
+        /// @expected_result The date/time that the column was written should be the same as set.
+        ///
+        /// @test_category Insert:Timestamp
+        [Test]
+        [TestCassandraVersion(2, 1)]
+        public void CqlClient_Timestamp()
+        {
+            var config = new MappingConfiguration()
+                .Define(new Map<Song>().PartitionKey(s => s.Id).TableName("song_insert"));
+            
+            //Use linq to create the table
+            var table = new Table<Song>(_session, config);
+            table.CreateIfNotExists();
+            var mapper = new Mapper(_session, config);
+            var song = new Song
+            {
+                Id = Guid.NewGuid(),
+                Artist = "The Who",
+                Title = "Substitute",
+                ReleaseDate = DateTimeOffset.UtcNow
+            };
+            //Set timestamp to 1 day ago
+            var timestamp = DateTimeOffset.Now.Subtract(TimeSpan.FromDays(1));
+            mapper.Insert(song, true, CqlQueryOptions.New().SetTimestamp(timestamp));
+
+            //query for timestamp in a column of the record
+            var cqlLowerCasePartitionKey = "SELECT WRITETIME (Artist) AS timestamp FROM " + table.Name + " WHERE Id = " + song.Id + ";";
+            var rows = _session.Execute(cqlLowerCasePartitionKey).GetRows().ToList();
+            Assert.AreEqual(1, rows.Count);
+
+            var creationTimestamp = rows[0].GetValue<long>("timestamp");
+            Assert.NotNull(creationTimestamp);
+            //Timestamp retrieved is in macroseconds. Converting it to milliseconds
+            Assert.AreEqual(TypeSerializer.SinceUnixEpoch(timestamp).Ticks / 10, rows[0].GetValue<object>("timestamp"));
+        }
+
 
         /////////////////////////////////////////
         /// Private test classes
