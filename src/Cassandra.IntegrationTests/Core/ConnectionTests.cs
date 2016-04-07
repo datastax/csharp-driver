@@ -524,7 +524,8 @@ namespace Cassandra.IntegrationTests.Core
                 };
                 Task.WaitAll(tasks);
                 CollectionAssert.Contains(new[] { "ks_to_switch_s1", "ks_to_switch_s2", "system" }, connection.Keyspace);
-                Assert.AreEqual(3, counter);
+                Thread.Sleep(400);
+                Assert.GreaterOrEqual(counter, 3);
             }
         }
 
