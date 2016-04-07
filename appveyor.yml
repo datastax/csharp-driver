@@ -16,8 +16,6 @@ environment:
   matrix:
     - CASSANDRA_VERSION: 3.4
 
-    - CASSANDRA_VERSION: 3.0.4
-
     - CASSANDRA_VERSION: 2.2.5
 
 install:
