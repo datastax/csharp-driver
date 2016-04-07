@@ -334,12 +334,153 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             }
         }
 
+        /// Tests the mapper when projecting to a new type.
+        /// 
+        /// @jira_ticket CSHARP-414
+        /// @expected_result The properties should be projected correctly
+        ///
+        /// @test_category linq:projection
         [Test]
         public void LinqSelect_Project_To_New_Type()
         {
             var result = _table.Select(e => new Album { Name = e.StringType, Id = e.GuidType }).Execute().ToList();
             Assert.AreEqual(_entityList.Count, result.Count);
-            Assert.AreNotEqual(Guid.Empty, result.First().Id);
+            
+            var first = _entityList.FirstOrDefault();
+
+            //Double checking if the properties were filled correctly
+            var fetchedAlbum = result.FirstOrDefault(row => row.Name == first.StringType) ;
+
+            Assert.AreEqual(first.StringType, fetchedAlbum.Name);
+            Assert.AreEqual(first.GuidType, fetchedAlbum.Id);
+
+
+            Assert.AreNotEqual(Guid.Empty, fetchedAlbum.Id);
         }
+
+        /// Tests the mapper when projecting to a new type.
+        /// 
+        /// Case: When the projecting type has a property with the same name as the Table, but shouldn't be projected
+        ///
+        /// @jira_ticket CSHARP-414
+        /// @expected_result The property should be empty
+        ///
+        /// @test_category linq:projection
+        [Test]
+        public void LinqSelect_Project_To_New_Type_With_Conflict_Properties()
+        {
+            var table = _session.GetTable<TestMapper>();
+            table.CreateIfNotExists();
+
+            const int pk = 1;
+            const string value1 = "lorem ipsum";
+            const string value2 = "ipsum lorem";
+
+            table.Insert(new TestMapper() { Col1 = value1, Col2 = value2, Id = pk }).Execute();
+
+            var a = (from row in table where row.Id == pk select new TestClassDefaultCtor { S1 = row.Col1, S2 = row.Col2 }).Execute().First();
+
+            Assert.AreEqual(value1, a.S1);
+            Assert.AreEqual(value2, a.S2);
+            Assert.IsNull(a.Col1);
+        }
+
+        /// Tests the mapper when projecting to a new type using constructor.
+        /// 
+        /// Case: When the projecting type has a property with the same name as the Table, but shouldn't be projected
+        ///
+        /// @jira_ticket CSHARP-414
+        /// @expected_result The property should be empty
+        ///
+        /// @test_category linq:projection
+        [Test]
+        public void LinqSelect_Project_To_New_Type_With_Conflict_Properties_Using_Constructor()
+        {
+            var table = _session.GetTable<TestMapper>();
+            table.CreateIfNotExists();
+
+            const int pk = 2;
+            const string value1 = "lorem ipsum";
+            const string value2 = "ipsum lorem";
+
+            table.Insert(new TestMapper() { Col1 = value1, Col2 = value2, Id = pk }).Execute();
+
+            var b = (from row in table where row.Id == pk select new TestClassBothCtors(row.Col1, row.Col2)).Execute().First();
+            Assert.AreEqual(value1, b.S1);
+            Assert.AreEqual(value2, b.S2);
+            Assert.IsNull(b.Col1);
+
+            var c = (from row in table where row.Id == pk select new TestClassSingleProp(row.Col1)).Execute().First(); // throws
+            Assert.NotNull(c);
+            Assert.AreEqual(value1, c.S1);
+
+        }
+
+        /// Tests the mapper when projecting to a new type using constructor.
+        /// 
+        /// Case: When the projecting type has only one property with the same name as the Table
+        ///
+        /// @jira_ticket CSHARP-414
+        /// @expected_result The property should be projected
+        ///
+        /// @test_category linq:projection
+        [Test]
+        public void LinqSelect_Project_To_New_Type_With_Only_One_Property()
+        {
+            var table = _session.GetTable<TestMapper>();
+            table.CreateIfNotExists();
+
+            const int pk = 3;
+            const string value1 = "lorem ipsum";
+            const string value2 = "ipsum lorem";
+
+            table.Insert(new TestMapper() { Col1 = value1, Col2 = value2, Id = pk }).Execute();
+
+            var c = (from row in table where row.Id == pk select new TestClassSingleProp(row.Col1)).Execute().First(); // throws
+            Assert.NotNull(c);
+            Assert.AreEqual(value1, c.S1);
+        }
+
+        [Table]
+        public class TestMapper
+        {
+            [PartitionKey(1)]
+            public int Id;
+
+            public string Col1;
+            public string Col2;
+        }
+
+        public class TestClassDefaultCtor
+        {
+            public string S1;
+            public string S2;
+
+            public string Col1; //same name as in the 'TestMapper' class
+        }
+
+        public class TestClassBothCtors
+        {
+            public string S1;
+            public string S2;
+
+            public string Col1; //same name as in the 'TestMapper' class
+
+            public TestClassBothCtors(string s1, string s2)
+            {
+                this.S1 = s1;
+                this.S2 = s2;
+            }
+        }
+
+        public class TestClassSingleProp
+        {
+            public string S1;
+            public TestClassSingleProp(string s1)
+            {
+                this.S1 = s1;
+            }
+        }
+
     }
 }
