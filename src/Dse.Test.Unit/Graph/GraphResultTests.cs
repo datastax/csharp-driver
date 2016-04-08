@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Dse.Graph;
 using NUnit.Framework;
 
@@ -11,90 +13,112 @@ namespace Dse.Test.Unit.Graph
         public void Constructor_Should_Throw_When_Json_Is_Null()
         {
             // ReSharper disable once ObjectCreationAsStatement
-            Assert.Throws<ArgumentNullException>(() => new GraphResult(null));
+            Assert.Throws<ArgumentNullException>(() => new GraphNode(null));
         }
 
         [Test]
         public void Constructor_Should_Parse_Json()
         {
-            dynamic result = new GraphResult("{\"result\": \"something\"}");
+            var result = new GraphNode("{\"result\": \"something\"}");
             Assert.AreEqual("something", result.ToString());
+            Assert.False(result.IsObjectTree);
+            Assert.True(result.IsScalar);
+            Assert.False(result.IsArray);
 
-            result = new GraphResult("{\"result\": {\"something\": 1.2 }}");
-            Assert.AreEqual(1.2D, result.something);
+            result = new GraphNode("{\"result\": {\"something\": 1.2 }}");
+            Assert.AreEqual(1.2D, result.Get<double>("something"));
+            Assert.True(result.IsObjectTree);
+            Assert.False(result.IsScalar);
+            Assert.False(result.IsArray);
+
+            result = new GraphNode("{\"result\": [] }");
+            Assert.False(result.IsObjectTree);
+            Assert.False(result.IsScalar);
+            Assert.True(result.IsArray);
         }
 
         [Test]
-        public void Should_Return_Throw_For_Non_Existent_Dynamic_Property_Name()
+        public void Should_Throw_For_Trying_To_Access_Properties_When_The_Node_Is_Not_An_Object_Tree()
         {
-            dynamic result = new GraphResult("{\"result\": 1.2}");
-            Assert.Throws<KeyNotFoundException>(() =>
-            {
-                var zeta = result.zeta;
-            });
+            var result = new GraphNode("{\"result\": {\"something\": 1.2 }}");
+            Assert.True(result.IsObjectTree);
+            Assert.True(result.HasProperty("something"));
+            Assert.False(result.HasProperty("other"));
 
-            result = new GraphResult("{\"result\": {\"something\": 1.2 }}");
-            Assert.Throws<KeyNotFoundException>(() =>
-            {
-                var gamma = result.gamma;
-            });
+            //result is a scalar value
+            result = new GraphNode("{\"result\": 1.2}");
+            Assert.True(result.IsScalar);
+            Assert.False(result.HasProperty("whatever"));
+            Assert.Throws<InvalidOperationException>(() => result.GetProperties());
         }
 
         [Test]
         public void Should_Allow_Nested_Properties_For_Object_Trees()
         {
-            dynamic result = new GraphResult("{\"result\": " +
+            dynamic result = new GraphNode("{\"result\": " +
                                              "{" +
                                                 "\"something\": {\"inTheAir\": 1}," +
                                                 "\"everything\": {\"isAwesome\": [1, 2, \"zeta\"]}, " +
                                                 "\"a\": {\"b\": {\"c\": 0.6}} " +
                                              "}}");
             Assert.AreEqual(1, result.something.inTheAir);
-            CollectionAssert.AreEqual(new object[] { 1, 2, "zeta" }, result.everything.isAwesome);
+            IEnumerable<GraphNode> values = result.everything.isAwesome;
+            CollectionAssert.AreEqual(new [] { "1", "2", "zeta" }, values.Select(x => x.ToString()));
             Assert.AreEqual(0.6D, result.a.b.c);
+        }
+
+        [Test]
+        public void ToString_Should_Return_The_Json_Representation_Of_Result_Property()
+        {
+            var result = new GraphNode("{\"result\": 1.9}");
+            Assert.AreEqual("1.9", result.ToString());
+            result = new GraphNode("{\"result\": [ 1, 2]}");
+            Assert.AreEqual("[\r\n  1,\r\n  2\r\n]", result.ToString());
+            result = new GraphNode("{\"result\": \"a\"}");
+            Assert.AreEqual("a", result.ToString());
         }
 
         [Test]
         public void ToDouble_Should_Convert_To_Double()
         {
-            var result = new GraphResult("{\"result\": 1.9}");
+            var result = new GraphNode("{\"result\": 1.9}");
             Assert.AreEqual(1.9, result.ToDouble());
         }
 
         [Test]
         public void ToDouble_Should_Throw_For_Non_Scalar_Values()
         {
-            var result = new GraphResult("{\"result\": {\"something\": 0 }}");
+            var result = new GraphNode("{\"result\": {\"something\": 0 }}");
             Assert.Throws<InvalidOperationException>(() => result.ToDouble());
         }
 
         [Test]
         public void Get_T_Should_Get_A_Typed_Value_By_Name()
         {
-            var result = new GraphResult("{\"result\": {\"some\": \"value1\" }}");
+            var result = new GraphNode("{\"result\": {\"some\": \"value1\" }}");
             Assert.AreEqual("value1", result.Get<string>("some"));
         }
 
         [Test]
         public void Get_T_Should_Allow_Dynamic_For_Object_Trees()
         {
-            var result = new GraphResult("{\"result\": {\"something\": {\"is_awesome\": true} }}");
+            var result = new GraphNode("{\"result\": {\"something\": {\"is_awesome\": true} }}");
             Assert.AreEqual(true, result.Get<dynamic>("something").is_awesome);
         }
 
         [Test]
-        public void Get_T_Should_Throw_For_Non_Existent_Dynamic_Property_Name()
+        public void Get_T_Should_Not_Throw_For_Non_Existent_Dynamic_Property_Name()
         {
-            var result = new GraphResult("{\"result\": {\"everything\": {\"is_awesome\": true} }}");
-            Assert.Throws<KeyNotFoundException>(() => result.Get<dynamic>("what"));
+            var result = new GraphNode("{\"result\": {\"everything\": {\"is_awesome\": true} }}");
+            Assert.DoesNotThrow(() => result.Get<dynamic>("what"));
         }
 
         [Test]
         public void Equals_Should_Return_True_For_The_Same_Json()
         {
-            var result1 = new GraphResult("{\"result\": {\"something\": {\"in_the_way\": true}}}");
-            var result2 = new GraphResult("{\"result\": {\"something\": {\"in_the_way\": true}}}");
-            var result3 = new GraphResult("{\"result\": {\"other\": \"value\"}}");
+            var result1 = new GraphNode("{\"result\": {\"something\": {\"in_the_way\": true}}}");
+            var result2 = new GraphNode("{\"result\": {\"something\": {\"in_the_way\": true}}}");
+            var result3 = new GraphNode("{\"result\": {\"other\": \"value\"}}");
             Assert.True(result1.Equals(result2));
             Assert.True(result2.Equals(result1));
             Assert.False(result1.Equals(result3));
@@ -108,7 +132,7 @@ namespace Dse.Test.Unit.Graph
         [Test]
         public void ToVertex_Should_Convert_To_Vertex()
         {
-            var result = new GraphResult("{" +
+            var result = new GraphNode("{" +
               "\"result\": {" +
                 "\"id\":{\"member_id\":0,\"community_id\":586910,\"~label\":\"vertex\",\"group_id\":2}," +
                 "\"label\":\"vertex\"," +
@@ -123,13 +147,13 @@ namespace Dse.Test.Unit.Graph
             Assert.AreEqual(586910, id.community_id);
             Assert.AreEqual(586910, vertex.Id.Get<long>("community_id"));
             Assert.AreEqual(2, vertex.Properties.Count);
-            var nameProp = vertex.Properties["name"].ToArray();
+            dynamic nameProp = vertex.Properties["name"].ToArray();
             Assert.NotNull(nameProp);
             Assert.NotNull(nameProp[0].id);
             //Is convertible
             Assert.NotNull((Vertex)result);
             //Any enumeration of graph result can be casted to vertex
-            IEnumerable<GraphResult> results = new[] { result, result, result };
+            IEnumerable<GraphNode> results = new[] { result, result, result };
             foreach (Vertex v in results)
             {
                 Assert.NotNull(v);
@@ -139,7 +163,7 @@ namespace Dse.Test.Unit.Graph
         [Test]
         public void ToVertex_Should_Throw_For_Scalar_Values()
         {
-            var result = new GraphResult("{" +
+            var result = new GraphNode("{" +
               "\"result\": 1 }");
             Assert.Throws<InvalidOperationException>(() => result.ToVertex());
         }
@@ -147,7 +171,7 @@ namespace Dse.Test.Unit.Graph
         [Test]
         public void ToEdge_Should_Convert_To_Vertex()
         {
-            var result = new GraphResult("{" +
+            var result = new GraphNode("{" +
               "\"result\":{" +
                 "\"id\":{" +
                     "\"out_vertex\":{\"member_id\":0,\"community_id\":680148,\"~label\":\"vertex\",\"group_id\":3}," + 
@@ -173,7 +197,7 @@ namespace Dse.Test.Unit.Graph
             //Is convertible
             Assert.NotNull((Edge)result);
             //Any enumeration of graph result can be casted to edge
-            IEnumerable<GraphResult> results = new[] { result, result, result };
+            IEnumerable<GraphNode> results = new[] { result, result, result };
             foreach (Edge v in results)
             {
                 Assert.NotNull(v);
@@ -183,7 +207,7 @@ namespace Dse.Test.Unit.Graph
         [Test]
         public void ToEdge_Should_Throw_For_Scalar_Values()
         {
-            var result = new GraphResult("{" +
+            var result = new GraphNode("{" +
               "\"result\": 1 }");
             Assert.Throws<InvalidOperationException>(() => result.ToEdge());
         }

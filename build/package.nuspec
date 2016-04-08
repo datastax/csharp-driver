@@ -20,7 +20,8 @@
         <tags>cassandra apache datastax enterprise driver database nosql</tags>
         <dependencies>
             <dependency id="lz4net" version="1.0.5.93" />
-            <dependency id="CassandraCSharpDriver" version="[3.0.4,4)" />
+            <dependency id="CassandraCSharpDriver" version="[3.0.5,4)" />
+            <dependency id="Newtonsoft.Json" version="[8.0.0,9)" />
         </dependencies>
     </metadata>
     <files>

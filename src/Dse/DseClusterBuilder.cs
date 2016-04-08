@@ -445,7 +445,6 @@ namespace Dse
         {
             var typeSerializerDefinitions = _typeSerializerDefinitions ?? new TypeSerializerDefinitions();
             typeSerializerDefinitions
-                .Define(new CircleSerializer())
                 .Define(new LineStringSerializer())
                 .Define(new PointSerializer())
                 .Define(new PolygonSerializer());

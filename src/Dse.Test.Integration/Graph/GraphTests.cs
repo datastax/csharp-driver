@@ -33,7 +33,7 @@ namespace Dse.Test.Integration.Graph
             {
                 var session = cluster.Connect();
                 //create graph1
-                session.ExecuteGraph(new SimpleGraphStatement("system.createGraph('graph1').ifNotExist().build()"));
+                session.ExecuteGraph(new SimpleGraphStatement("system.graph('graph1').ifNotExists().create()"));
                 var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()").SetGraphName("graph1"));
                 Assert.NotNull(rs);
             }

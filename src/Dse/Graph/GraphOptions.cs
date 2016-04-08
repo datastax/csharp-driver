@@ -27,7 +27,6 @@ namespace Dse.Graph
 
         private static class PayloadKey
         {
-            public const string Alias = "graph-alias";
             public const string Language = "graph-language";
             public const string Name = "graph-name";
             public const string Source = "graph-source";
@@ -37,7 +36,6 @@ namespace Dse.Graph
 
         private volatile IDictionary<string, byte[]> _defaultPayload;
         private volatile string _language = DefaultLanguage;
-        private volatile string _alias;
         private volatile string _name;
         private volatile string _source = DefaultSource;
         private long _readConsistencyLevel = long.MinValue;
@@ -54,14 +52,6 @@ namespace Dse.Graph
                 { ConsistencyLevel.LocalSerial, "LOCAL_SERIAL" },
                 { ConsistencyLevel.LocalOne, "LOCAL_ONE" }
             };
-
-        /// <summary>
-        /// Gets the graph rebinding name to use in graph queries.
-        /// </summary>
-        public string Alias
-        {
-            get { return _alias; }
-        }
 
         /// <summary>
         /// Gets the graph language to use in graph queries.
@@ -130,17 +120,6 @@ namespace Dse.Graph
         }
 
         /// <summary>
-        /// Sets the graph alias to use in graph queries.
-        /// If you don't call this method, it is left unset.
-        /// </summary>
-        public GraphOptions SetAlias(string alias)
-        {
-            _alias = alias;
-            RebuildDefaultPayload();
-            return this;
-        }
-
-        /// <summary>
         /// Sets the graph language to use in graph queries.
         /// If you don't call this method, it defaults to <see cref="DefaultLanguage"/>.
         /// </summary>
@@ -198,7 +177,7 @@ namespace Dse.Graph
 
         internal IDictionary<string, byte[]> BuildPayload(IGraphStatement statement)
         {
-            if (statement.GraphAlias == null && statement.GraphLanguage == null && statement.GraphName == null &&
+            if (statement.GraphLanguage == null && statement.GraphName == null &&
                 statement.GraphSource == null)
             {
                 if (!statement.IsSystemQuery || !_defaultPayload.ContainsKey(PayloadKey.Name))
@@ -209,7 +188,6 @@ namespace Dse.Graph
                 }
             }
             var payload = new Dictionary<string, byte[]>();
-            Add(payload, PayloadKey.Alias, statement.GraphAlias);
             Add(payload, PayloadKey.Language, statement.GraphLanguage);
             if (!statement.IsSystemQuery)
             {
@@ -251,10 +229,6 @@ namespace Dse.Graph
             if (_name != null)
             {
                 payload.Add(PayloadKey.Name, ToUtf8Buffer(_name));
-            }
-            if (_alias != null)
-            {
-                payload.Add(PayloadKey.Alias, ToUtf8Buffer(_alias));
             }
             var readConsistencyLevel = ReadConsistencyLevel;
             if (readConsistencyLevel != null)

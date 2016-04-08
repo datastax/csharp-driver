@@ -86,16 +86,6 @@ namespace Dse.Graph
         }
 
         /// <summary>
-        /// Sets the graph alias to use in graph queries.
-        /// If you don't call this method, it is left unset.
-        /// </summary>
-        public GraphStatement SetGraphAlias(string alias)
-        {
-            GraphAlias = alias;
-            return this;
-        }
-
-        /// <summary>
         /// Sets the graph language to use with this statement.
         /// <para>
         /// This property is not required; if it is not set, the default <see cref="GraphOptions.Language"/> will be

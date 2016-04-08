@@ -104,8 +104,6 @@
     <Compile Include="DseConfiguration.cs" />
     <Compile Include="DseSession.cs" />
     <Compile Include="EndianBitConverter.cs" />
-    <Compile Include="Geometry\Circle.cs" />
-    <Compile Include="Geometry\CircleSerializer.cs" />
     <Compile Include="Geometry\Geometry.cs" />
     <Compile Include="Geometry\GeometrySerializer.cs" />
     <Compile Include="Geometry\LineString.cs" />
@@ -117,7 +115,7 @@
     <Compile Include="Graph\Edge.cs" />
     <Compile Include="Graph\Element.cs" />
     <Compile Include="Graph\GraphOptions.cs" />
-    <Compile Include="Graph\GraphResult.cs" />
+    <Compile Include="Graph\GraphNode.cs" />
     <Compile Include="Graph\GraphResultSet.cs" />
     <Compile Include="Graph\GraphStatement.cs" />
     <Compile Include="Graph\IGraphStatement.cs" />

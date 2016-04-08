@@ -155,7 +155,6 @@ namespace Dse.Test.Unit.Graph
                 new GraphOptions()
                     .SetName("name1")
                     .SetSource("My source!")
-                    .SetAlias("Z")
                     .SetReadConsistencyLevel(ConsistencyLevel.LocalQuorum)
                     .SetWriteConsistencyLevel(ConsistencyLevel.EachQuorum));
             session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
@@ -163,7 +162,6 @@ namespace Dse.Test.Unit.Graph
             Assert.NotNull(coreStatement.OutgoingPayload);
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-source"]), "My source!");
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-name"]), "name1");
-            Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-alias"]), "Z");
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-read-consistency"]), "LOCAL_QUORUM");
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-write-consistency"]), "EACH_QUORUM");
             //default
@@ -182,13 +180,11 @@ namespace Dse.Test.Unit.Graph
                 new GraphOptions()
                     .SetName("name1")
                     .SetSource("My source!")
-                    .SetAlias("Z")
                     .SetReadConsistencyLevel(ConsistencyLevel.LocalQuorum)
                     .SetWriteConsistencyLevel(ConsistencyLevel.EachQuorum));
             session.ExecuteGraph(new SimpleGraphStatement("g.V()")
                 .SetGraphLanguage("my-lang")
                 .SetSystemQuery()
-                .SetGraphAlias("X")
                 .SetGraphReadConsistencyLevel(ConsistencyLevel.Two)
                 .SetGraphSource("Statement source"));
             Assert.NotNull(coreStatement);
@@ -196,7 +192,6 @@ namespace Dse.Test.Unit.Graph
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-source"]), "Statement source");
             //is a sistem query
             Assert.False(coreStatement.OutgoingPayload.ContainsKey("graph-name"));
-            Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-alias"]), "X");
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-read-consistency"]), "TWO");
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-write-consistency"]), "EACH_QUORUM");
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-language"]), "my-lang");

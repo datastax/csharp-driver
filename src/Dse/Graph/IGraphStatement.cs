@@ -17,11 +17,6 @@ namespace Dse.Graph
         ConsistencyLevel? ConsistencyLevel { get; }
 
         /// <summary>
-        /// Gets the graph alias to use with this statement.
-        /// </summary>
-        string GraphAlias { get; }
-
-        /// <summary>
         /// Gets the graph language to use with this statement.
         /// </summary>
         string GraphLanguage { get; }

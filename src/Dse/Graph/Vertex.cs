@@ -13,7 +13,7 @@ namespace Dse.Graph
         /// <summary>
         /// Creates a new <see cref="Vertex"/> instance.
         /// </summary>
-        public Vertex(GraphResult id, string label, IDictionary<string, GraphResult> properties) 
+        public Vertex(GraphNode id, string label, IDictionary<string, GraphNode> properties) 
             : base(id, label, properties)
         {
         }

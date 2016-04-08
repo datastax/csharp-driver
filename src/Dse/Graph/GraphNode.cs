@@ -9,36 +9,58 @@ using Newtonsoft.Json.Linq;
 namespace Dse.Graph
 {
     /// <summary>
-    /// Represents an item of a graph query result, it can be a vertex, an edge or an scalar value.
+    /// Represents an item of a graph query result, it can be a vertex, an edge, a path or an scalar value.
     /// </summary>
-    public class GraphResult : DynamicObject, IEquatable<GraphResult>
+    public class GraphNode : DynamicObject, IEquatable<GraphNode>
     {
-        private readonly string _json;
-        private readonly dynamic _parsedGraphItem;
+        private volatile string _json;
+        private readonly JToken _parsedGraphItem;
 
         /// <summary>
-        /// Creates a new instance of <see cref="GraphResult"/>.
+        /// Returns true if the underlying value is an array.
+        /// </summary>
+        public bool IsArray
+        {
+            get { return _parsedGraphItem is JArray; }
+        }
+
+        /// <summary>
+        /// Returns true if the underlying value is an object tree.
+        /// </summary>
+        public bool IsObjectTree
+        {
+            get { return _parsedGraphItem is JObject; }
+        }
+
+        /// <summary>
+        /// Returns true if the underlying value is a scalar value (string, double, boolean, ...).
+        /// </summary>
+        public bool IsScalar
+        {
+            get { return _parsedGraphItem is JValue; }
+        }
+
+        /// <summary>
+        /// Creates a new instance of <see cref="GraphNode"/>.
         /// </summary>
         /// <param name="json">The graph string json with the form: "{\"result\": ...}".</param>
-        public GraphResult(string json)
+        public GraphNode(string json)
         {
             if (json == null)
             {
                 throw new ArgumentNullException("json");
             }
-            _json = json;
-            dynamic parsedJson = JsonConvert.DeserializeObject(json);
-            _parsedGraphItem = parsedJson.result;
+            JObject parsedJson = (JObject)JsonConvert.DeserializeObject(json);
+            _parsedGraphItem = parsedJson["result"];
         }
 
-        private GraphResult(dynamic parsedGraphItem)
+        private GraphNode(JToken parsedGraphItem)
         {
             if (parsedGraphItem == null)
             {
                 throw new ArgumentNullException("parsedGraphItem");
             }
             _parsedGraphItem = parsedGraphItem;
-            _json = _parsedGraphItem.ToString();
         }
 
         /// <summary>
@@ -49,7 +71,7 @@ namespace Dse.Graph
         public T Get<T>(string propertyName)
         {
             var type = typeof(T);
-            var value = GetValue(propertyName);
+            var value = GetValue(propertyName, false);
             if (value == null && default(T) != null)
             {
                 throw new NullReferenceException(string.Format("Cannot convert null to {0} because it is a value type, try using Nullable<{0}>", type.Name));
@@ -61,7 +83,20 @@ namespace Dse.Graph
             return (T)value;
         }
 
-        private object GetValue(string name)
+        private string GetJson()
+        {
+            var json = _json;
+            if (json != null)
+            {
+                return json;
+            }
+            json = _parsedGraphItem.ToString();
+            //Converting a JToken to string is an operation we want to avoid
+            _json = json;
+            return json;
+        }
+
+        private object GetValue(string name, bool throwIfNotFound)
         {
             if (!(_parsedGraphItem is JObject))
             {
@@ -71,24 +106,27 @@ namespace Dse.Graph
                 }
                 throw new KeyNotFoundException("Cannot retrieve properties of scalar value");
             }
-            var result = _parsedGraphItem[name];
-            if (result != null)
+            var graphObject = (JObject)_parsedGraphItem;
+            var property = graphObject.Property(name);
+            if (property == null)
             {
-                if (result is JObject)
+                if (throwIfNotFound)
                 {
-                    //is a object tree
-                    return ToExpando((JObject)result);
+                    throw new KeyNotFoundException(string.Format("Graph result has no top-level property '{0}'", name));   
                 }
-                if (result is JArray)
-                {
-                    //is an array
-                    return ToArray((JArray)result);
-                }
-                return ((JValue)result).Value;
+                return null;
             }
-            throw new KeyNotFoundException(string.Format("Graph result has no top-level property '{0}'", name));
+            var value = property.Value;
+            if (value == null)
+            {
+                return null;
+            }
+            return GetTokenValue(value);
         }
 
+        /// <summary>
+        /// Returns either an scalar value, a GraphNode or an Array of GraphNodes.
+        /// </summary>
         private object GetTokenValue(JToken token)
         {
             if (token is JValue)
@@ -97,7 +135,7 @@ namespace Dse.Graph
             }
             if (token is JObject)
             {
-                return ToExpando((JObject)token);
+                return new GraphNode(token);
             }
             if (token is JArray)
             {
@@ -107,24 +145,37 @@ namespace Dse.Graph
         }
 
         /// <summary>
+        /// Returns true if the property is defined in this instance.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">When the underlying value is not an object tree</exception>
+        public bool HasProperty(string name)
+        {
+            if (!(_parsedGraphItem is JObject))
+            {
+                return false;
+            }
+            return ((JObject) _parsedGraphItem).Property(name) != null;
+        }
+
+        /// <summary>
         /// Provides the implementation for operations that get member values.
         /// </summary>
         public override bool TryGetMember(GetMemberBinder binder, out object result)
         {
-            result = GetValue(binder.Name);
+            result = GetValue(binder.Name, false);
             return true;
         }
 
         /// <summary>
         /// Returns true if the value represented by this instance is the same.
         /// </summary>
-        public bool Equals(GraphResult other)
+        public bool Equals(GraphNode other)
         {
             if (ReferenceEquals(this, other))
             {
                 return true;
             }
-            return _json == other._json;
+            return GetJson() == other.GetJson();
         }
 
         /// <summary>
@@ -132,7 +183,7 @@ namespace Dse.Graph
         /// </summary>
         public override bool Equals(object obj)
         {
-            return Equals(obj as GraphResult);
+            return Equals(obj as GraphNode);
         }
 
         /// <summary>
@@ -140,7 +191,26 @@ namespace Dse.Graph
         /// </summary>
         public override int GetHashCode()
         {
-            return _json.GetHashCode();
+            return GetJson().GetHashCode();
+        }
+
+        /// <summary>
+        /// Gets the a dictionary of properties of this node.
+        /// </summary>
+        public IDictionary<string, GraphNode> GetProperties()
+        {
+            return GetProperties(_parsedGraphItem);
+        }
+
+        private IDictionary<string, GraphNode> GetProperties(JToken item)
+        {
+            if (!(item is JObject))
+            {
+                throw new InvalidOperationException(string.Format("Can not get properties from '{0}'", item));
+            }
+            return ((JObject) item)
+                .Properties()
+                .ToDictionary(prop => prop.Name, prop => new GraphNode(prop.Value));
         }
 
         private object GetScalarValue()
@@ -153,12 +223,12 @@ namespace Dse.Graph
             return jsonValue.Value;
         }
 
-        private dynamic[] ToArray(JArray jArray)
+        private GraphNode[] ToArray(JArray jArray)
         {
-            var arr = new dynamic[jArray.Count];
+            var arr = new GraphNode[jArray.Count];
             for (var i = 0; i < arr.Length; i++)
             {
-                arr[i] = GetTokenValue(jArray[i]);
+                arr[i] = new GraphNode(jArray[i]);
             }
             return arr;
         }
@@ -166,11 +236,11 @@ namespace Dse.Graph
         /// <summary>
         /// Converts the instance into an array when the internal representation is a json array.
         /// </summary>
-        public dynamic[] ToArray()
+        public GraphNode[] ToArray()
         {
             if (!(_parsedGraphItem is JArray))
             {
-                throw new InvalidOperationException(string.Format("Cannot convert to array from {0}", _json));
+                throw new InvalidOperationException(string.Format("Cannot convert to array from {0}", GetJson()));
             }
             return ToArray(_parsedGraphItem as JArray);
         }
@@ -185,17 +255,6 @@ namespace Dse.Graph
         public bool ToBoolean()
         {
             return Convert.ToBoolean(GetScalarValue());
-        }
-
-        private ExpandoObject ToExpando(JObject jsonNode)
-        {
-            var expando = new ExpandoObject();
-            var dictionary = (IDictionary<string, object>)expando;
-            foreach (var property in jsonNode)
-            {
-                dictionary[property.Key] = GetTokenValue(property.Value);
-            }
-            return expando;
         }
 
         /// <summary>
@@ -217,21 +276,19 @@ namespace Dse.Graph
         {
             if (!(_parsedGraphItem is JObject))
             {
-                throw new InvalidOperationException(string.Format("Cannot create an Edge from {0}", _json));
+                throw new InvalidOperationException(string.Format("Cannot create an Edge from {0}", GetJson()));
             }
-            var properties = new Dictionary<string, GraphResult>();
-            foreach (JProperty prop in _parsedGraphItem["properties"])
-            {
-                properties.Add(prop.Name, new GraphResult(prop.Value));
-            }
+            IDictionary<string, GraphNode> properties = ((JObject)_parsedGraphItem["properties"])
+                .Properties()
+                .ToDictionary(prop => prop.Name, prop => new GraphNode(prop.Value));
             return new Edge(
-                new GraphResult(_parsedGraphItem.id),
-                GetValue("label").ToString(),
+                (GraphNode) GetValue("id", true),
+                GetValue("label", true).ToString(),
                 properties,
-                new GraphResult(_parsedGraphItem.inV),
-                GetValue("inVLabel").ToString(),
-                new GraphResult(_parsedGraphItem.outV),
-                GetValue("outVLabel").ToString());
+                (GraphNode) GetValue("inV", true),
+                GetValue("inVLabel", true).ToString(),
+                (GraphNode) GetValue("outV", true),
+                GetValue("outVLabel", true).ToString());
         }
 
         /// <summary>
@@ -261,23 +318,21 @@ namespace Dse.Graph
         {
             if (!(_parsedGraphItem is JObject))
             {
-                throw new InvalidOperationException(string.Format("Cannot create a Vertex from {0}", _json));
+                throw new InvalidOperationException(string.Format("Cannot create a Vertex from {0}", GetJson()));
             }
-            var properties = new Dictionary<string, GraphResult>();
-            foreach (JProperty prop in _parsedGraphItem["properties"])
-            {
-                properties.Add(prop.Name, new GraphResult(prop.Value));
-            }
+            var properties = ((JObject) _parsedGraphItem["properties"])
+                .Properties()
+                .ToDictionary(prop => prop.Name, prop => new GraphNode(prop.Value));
             return new Vertex(
-                new GraphResult(_parsedGraphItem.id),
-                GetValue("label").ToString(),
+                (GraphNode)GetValue("id", true),
+                GetValue("label", true).ToString(),
                 properties);
         }
 
         /// <summary>
         /// Returns true if the value represented by the instances are the same.
         /// </summary>
-        public static bool operator ==(GraphResult result1, GraphResult result2)
+        public static bool operator ==(GraphNode result1, GraphNode result2)
         {
             if (ReferenceEquals(result1, result2))
             {
@@ -296,23 +351,23 @@ namespace Dse.Graph
         /// <summary>
         /// Compares the values for inequality.
         /// </summary>
-        public static bool operator !=(GraphResult result1, GraphResult result2)
+        public static bool operator !=(GraphNode result1, GraphNode result2)
         {
             return !(result1 == result2);
         }
 
         /// <summary>
-        /// Converts this instance to a <see cref="Vertex"/>.
+        /// Converts this instance to a <see cref="Vertex"/> instance.
         /// </summary>
-        public static implicit operator Vertex(GraphResult b)
+        public static implicit operator Vertex(GraphNode b)
         {
             return b.ToVertex();
         }
 
         /// <summary>
-        /// Converts this instance to an <see cref="Edge"/>.
+        /// Converts this instance to an <see cref="Edge"/> instance.
         /// </summary>
-        public static implicit operator Edge(GraphResult b)
+        public static implicit operator Edge(GraphNode b)
         {
             return b.ToEdge();
         }

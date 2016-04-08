@@ -13,7 +13,7 @@ namespace Dse.Graph
         /// <summary>
         /// Creates a new instance of a Graph <see cref="Element"/>.
         /// </summary>
-        protected Element(GraphResult id, string label, IDictionary<string, GraphResult> properties)
+        protected Element(GraphNode id, string label, IDictionary<string, GraphNode> properties)
         {
             Id = id;
             Label = label;
@@ -23,7 +23,7 @@ namespace Dse.Graph
         /// <summary>
         /// Gets the identifier
         /// </summary>
-        public GraphResult Id { get; private set; }
+        public GraphNode Id { get; private set; }
 
         /// <summary>
         /// Gets the label of the element
@@ -33,6 +33,6 @@ namespace Dse.Graph
         /// <summary>
         /// Gets the properties
         /// </summary>
-        public IDictionary<string, GraphResult> Properties { get; private set; }
+        public IDictionary<string, GraphNode> Properties { get; private set; }
     }
 }

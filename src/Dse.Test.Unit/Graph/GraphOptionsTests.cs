@@ -24,7 +24,6 @@ namespace Dse.Test.Unit.Graph
         public void BuildPayload_Should_Override_Default_When_Defined()
         {
             var options = new GraphOptions()
-                .SetAlias("alias1")
                 .SetLanguage("lang1")
                 .SetName("graph1")
                 .SetSource("source1");
@@ -32,7 +31,6 @@ namespace Dse.Test.Unit.Graph
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("lang1"), payload1["graph-language"]);
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("source1"), payload1["graph-source"]);
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("graph1"), payload1["graph-name"]);
-            CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("alias1"), payload1["graph-alias"]);
             var payload2 = options.BuildPayload(new SimpleGraphStatement("g.V()"));
             Assert.AreSame(payload1, payload2);
         }
@@ -41,17 +39,13 @@ namespace Dse.Test.Unit.Graph
         public void BuildPayload_Should_Use_Statement_Options_When_Defined()
         {
             var options = new GraphOptions()
-                .SetSource("source1")
-                .SetAlias("alias1");
+                .SetSource("source1");
             var payload1 = options.BuildPayload(new SimpleGraphStatement("g.V()")
-                .SetGraphAlias("alias2")
                 .SetGraphName("graph2"));
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("gremlin-groovy"), payload1["graph-language"]);
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("source1"), payload1["graph-source"]);
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("graph2"), payload1["graph-name"]);
-            CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("alias2"), payload1["graph-alias"]);
             var payload2 = options.BuildPayload(new SimpleGraphStatement("g.V()")
-                .SetGraphAlias("alias2")
                 .SetGraphName("graph2"));
             Assert.AreNotSame(payload1, payload2);
         }
@@ -76,11 +70,10 @@ namespace Dse.Test.Unit.Graph
         {
             var options = new GraphOptions()
                 .SetName("graph1");
-            var payload1 = options.BuildPayload(new SimpleGraphStatement("g.V()").SetGraphAlias("alias1"));
+            var payload1 = options.BuildPayload(new SimpleGraphStatement("g.V()"));
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("gremlin-groovy"), payload1["graph-language"]);
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("default"), payload1["graph-source"]);
-            CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("alias1"), payload1["graph-alias"]);
-            var payload2 = options.BuildPayload(new SimpleGraphStatement("g.V()").SetGraphAlias("alias2"));
+            var payload2 = options.BuildPayload(new SimpleGraphStatement("g.V()").SetGraphName("abc"));
             Assert.AreNotSame(payload1, payload2);
             Assert.AreSame(payload1["graph-language"], payload2["graph-language"]);
             Assert.AreSame(payload1["graph-source"], payload2["graph-source"]);

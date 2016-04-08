@@ -10,7 +10,7 @@ namespace Dse.Graph
     /// <summary>
     /// Represents the result set containing the Graph results returned from a query.
     /// </summary>
-    public class GraphResultSet : IEnumerable<GraphResult>
+    public class GraphResultSet : IEnumerable<GraphNode>
     {
         private readonly RowSet _rs;
 
@@ -37,14 +37,14 @@ namespace Dse.Graph
         /// <summary>
         /// Returns an enumerator that iterates through the collection.
         /// </summary>
-        public IEnumerator<GraphResult> GetEnumerator()
+        public IEnumerator<GraphNode> GetEnumerator()
         {
             return _rs.Select(ParseRow).GetEnumerator();
         }
 
-        private static GraphResult ParseRow(Row row)
+        private static GraphNode ParseRow(Row row)
         {
-            return new GraphResult(row.GetValue<string>("gremlin"));
+            return new GraphNode(row.GetValue<string>("gremlin"));
         }
 
         IEnumerator IEnumerable.GetEnumerator()

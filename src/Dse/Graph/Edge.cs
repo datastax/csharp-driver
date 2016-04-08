@@ -13,7 +13,7 @@ namespace Dse.Graph
         /// <summary>
         /// Gets the incoming/head vertex.
         /// </summary>
-        public GraphResult InV { get; private set; }
+        public GraphNode InV { get; private set; }
 
         /// <summary>
         /// Gets the label of the incoming/head vertex.
@@ -23,7 +23,7 @@ namespace Dse.Graph
         /// <summary>
         /// Gets the outgoing/tail vertex.
         /// </summary>
-        public GraphResult OutV { get; private set; }
+        public GraphNode OutV { get; private set; }
 
         /// <summary>
         /// Gets the label of the outgoing/tail vertex.
@@ -33,8 +33,8 @@ namespace Dse.Graph
         /// <summary>
         /// Creates a new instance of <see cref="Edge"/>.
         /// </summary>
-        public Edge(GraphResult id, string label, IDictionary<string, GraphResult> properties, 
-            GraphResult inV, string inVLabel, GraphResult outV, string outVLabel)
+        public Edge(GraphNode id, string label, IDictionary<string, GraphNode> properties, 
+            GraphNode inV, string inVLabel, GraphNode outV, string outVLabel)
             : base(id, label, properties)
         {
             InV = inV;
