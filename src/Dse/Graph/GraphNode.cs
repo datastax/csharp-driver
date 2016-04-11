@@ -304,6 +304,26 @@ namespace Dse.Graph
         }
 
         /// <summary>
+        /// Returns a <see cref="Path"/> representation of the current instance.
+        /// </summary>
+        public Path ToPath()
+        {
+            if (!(_parsedGraphItem is JObject))
+            {
+                throw new InvalidOperationException(string.Format("Cannot create an Path from {0}", _json));
+            }
+            ICollection<ICollection<string>> labels = null;
+            var labelsProp = (GraphNode[]) GetValue("labels", true);
+            if (labelsProp != null)
+            {
+                labels = labelsProp
+                    .Select(node => node.ToArray().Select(value => value.ToString()).ToArray())
+                    .ToArray();
+            }
+            return new Path(labels, (GraphNode[]) GetValue("objects", true));
+        }
+
+        /// <summary>
         /// Returns the json representation of the result.
         /// </summary>
         public override string ToString()
@@ -370,6 +390,14 @@ namespace Dse.Graph
         public static implicit operator Edge(GraphNode b)
         {
             return b.ToEdge();
+        }
+
+        /// <summary>
+        /// Converts this instance to a <see cref="Path"/> instance.
+        /// </summary>
+        public static implicit operator Path(GraphNode b)
+        {
+            return b.ToPath();
         }
     }
 }

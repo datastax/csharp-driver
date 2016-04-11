@@ -211,5 +211,115 @@ namespace Dse.Test.Unit.Graph
               "\"result\": 1 }");
             Assert.Throws<InvalidOperationException>(() => result.ToEdge());
         }
+
+        [Test]
+        public void ToPath_Should_Convert_To_Path()
+        {
+            const string pathJson = "{\"result\":" + 
+                "{" +
+                "  \"labels\": [" +
+                "    [\"a\"]," +
+                "    []," +
+                "    [\"c\", \"d\"]," +
+                "    [\"e\", \"f\", \"g\"]," +
+                "    []" +
+                "  ]," +
+                "  \"objects\": [" +
+                "    {" +
+                "      \"id\": {" +
+                "        \"member_id\": 0,                                                        " +
+                "        \"community_id\": 214210,                                                " +
+                "        \"~label\": \"person\",                                                  " +
+                "        \"group_id\": 3                                                          " +
+                "      }," +
+                "      \"label\": \"person\",                                                     " +
+                "      \"type\": \"vertex\",                                                      " +
+                "      \"properties\": {                                                          " +
+                "        \"name\": [" +
+                "          {" +
+                "            \"id\": {                                                            " +
+                "              \"local_id\": \"00000000-0000-7fff-0000-000000000000\",            " +
+                "              \"~type\": \"name\",                                               " +
+                "              \"out_vertex\": {                                                  " +
+                "                \"member_id\": 0,                                                " +
+                "                \"community_id\": 214210,                                        " +
+                "                \"~label\": \"person\",                                          " +
+                "                \"group_id\": 3                                                  " +
+                "              }                                                                  " +
+                "            },                                                                   " +
+                "            \"value\": \"marko\"                                                 " +
+                "          }" +
+                "        ]," +
+                "        \"age\": [                                                               " +
+                "          {                                                                      " +
+                "            \"id\": {                                                            " +
+                "              \"local_id\": \"00000000-0000-8000-0000-000000000000\",            " +
+                "              \"~type\": \"age\",                                                " +
+                "              \"out_vertex\": {                                                  " +
+                "                \"member_id\": 0,                                                " +
+                "                \"community_id\": 214210,                                        " +
+                "                \"~label\": \"person\",                                          " +
+                "                \"group_id\": 3                                                  " +
+                "              }                                                                  " +
+                "            },                                                                   " +
+                "            \"value\": 29                                                        " +
+                "          }" +
+                "        ]" +
+                "      }" +
+                "    }," +
+                "    {" +
+                "      \"id\": {" +
+                "        \"out_vertex\": {" +
+                "          \"member_id\": 0,                                                      " +
+                "          \"community_id\": 214210,                                              " +
+                "          \"~label\": \"person\",                                                " +
+                "          \"group_id\": 3                                                        " +
+                "        },                                                                       " +
+                "        \"local_id\": \"77cd1b50-ffcc-11e5-aa66-231205ad38c3\",                  " +
+                "        \"in_vertex\": {" +
+                "          \"member_id\": 0,                                                      " +
+                "          \"community_id\": 214210,                                              " +
+                "          \"~label\": \"person\",                                                " +
+                "          \"group_id\": 5                                                        " +
+                "        },                                                                       " +
+                "        \"~type\": \"knows\"                                                     " +
+                "      }," +
+                "      \"label\": \"knows\",                                                      " +
+                "      \"type\": \"edge\",                                                        " +
+                "      \"inVLabel\": \"person\",                                                  " +
+                "      \"outVLabel\": \"person\",                                                 " +
+                "      \"inV\": {" +
+                "        \"member_id\": 0," +
+                "        \"community_id\": 214210," +
+                "        \"~label\": \"person\"," +
+                "        \"group_id\": 5" +
+                "      }," +
+                "      \"outV\": {" +
+                "        \"member_id\": 0," +
+                "        \"community_id\": 214210," +
+                "        \"~label\": \"person\"," +
+                "        \"group_id\": 3" +
+                "      }," +
+                "      \"properties\": {" +
+                "        \"weight\": 1.0" +
+                "      }" +
+                "    }" +
+                "  ]" +
+                "}}";
+            var result = new GraphNode(pathJson);
+            var path = result.ToPath();
+            CollectionAssert.AreEqual(
+                new string[][]
+                {
+                    new [] { "a" }, new string[0], new[] { "c", "d" }, new[] { "e", "f", "g" }, new string[0]
+                }, path.Labels);
+            Assert.AreEqual(2, path.Objects.Count);
+            Assert.AreEqual("person", path.Objects.First().ToVertex().Label);
+            Assert.AreEqual("knows", path.Objects.Skip(1).First().ToEdge().Label);
+            //Verify implicit result
+            var path2 = (Path) result;
+            CollectionAssert.AreEqual(path.Labels, path2.Labels);
+            Assert.AreEqual(path.Objects.Count, path2.Objects.Count);
+        }
     }
 }

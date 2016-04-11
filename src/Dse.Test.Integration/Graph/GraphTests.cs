@@ -417,5 +417,33 @@ namespace Dse.Test.Integration.Graph
                 }
             }
         }
+
+        [Test]
+        public void Should_Get_Path_With_Labels()
+        {
+            CreateClassicGraph(CcmHelper.InitialContactPoint, "classic3");
+            using (var cluster = DseCluster.Builder()
+                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .WithGraphOptions(new GraphOptions().SetName("classic3"))
+                .Build())
+            {
+                var session = cluster.Connect();
+                var rs = session.ExecuteGraph(new SimpleGraphStatement(
+                    "g.V().hasLabel('person').has('name', 'marko').as('a').outE('knows').as('b').inV().as('c', 'd')" +
+                    ".outE('created').as('e', 'f', 'g').inV().as('h').path()"));
+                foreach (Path path in rs)
+                {
+                    Console.WriteLine("checking");
+                    CollectionAssert.AreEqual(
+                        new string[][]
+                        {
+                            new [] { "a" }, new [] {"b"}, new[] { "c", "d" }, new[] { "e", "f", "g" }, new [] { "h" }
+                        }, path.Labels);
+                    var person = path.Objects.First().ToVertex();
+                    Assert.AreEqual("person", person.Label);
+                    Assert.True(person.Properties.ContainsKey("name"));
+                }
+            }
+        }
     }
 }
