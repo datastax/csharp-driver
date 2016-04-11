@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -11,7 +13,8 @@ namespace Dse.Graph
     /// <summary>
     /// Represents an item of a graph query result, it can be a vertex, an edge, a path or an scalar value.
     /// </summary>
-    public class GraphNode : DynamicObject, IEquatable<GraphNode>
+    [Serializable]
+    public class GraphNode : DynamicObject, IEquatable<GraphNode>, ISerializable
     {
         private volatile string _json;
         private readonly JToken _parsedGraphItem;
@@ -61,6 +64,30 @@ namespace Dse.Graph
                 throw new ArgumentNullException("parsedGraphItem");
             }
             _parsedGraphItem = parsedGraphItem;
+        }
+
+        /// <summary>
+        /// Creates a new instance of <see cref="GraphNode"/> using a serialization information.
+        /// </summary>
+        protected GraphNode(SerializationInfo info, StreamingContext context)
+        {
+            var objectTree = new JObject();
+            foreach (var field in info)
+            {
+                if (field.Value is JToken)
+                {
+                    objectTree.Add(field.Name, (JToken)field.Value);
+                    continue;
+                }
+                if (field.Value is IEnumerable<object>)
+                {
+                    var values = (IEnumerable<object>) field.Value;
+                    objectTree.Add(field.Name, new JArray(values.ToArray()));
+                    continue;
+                }
+                objectTree.Add(field.Name, new JValue(field.Value));
+            }
+            _parsedGraphItem = objectTree;
         }
 
         /// <summary>
@@ -171,6 +198,10 @@ namespace Dse.Graph
         /// </summary>
         public bool Equals(GraphNode other)
         {
+            if (other == null)
+            {
+                return false;
+            }
             if (ReferenceEquals(this, other))
             {
                 return true;
@@ -192,6 +223,19 @@ namespace Dse.Graph
         public override int GetHashCode()
         {
             return GetJson().GetHashCode();
+        }
+
+        /// <inheritdoc />
+        public void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            if (!IsObjectTree)
+            {
+                throw new NotSupportedException("Deserialization of GraphNodes that don't represent object trees is not supported");
+            }
+            foreach (var prop in ((JObject) _parsedGraphItem).Properties())
+            {
+                info.AddValue(prop.Name, prop.Value);
+            }
         }
 
         /// <summary>

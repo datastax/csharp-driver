@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Dse.Graph;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Dse.Test.Unit.Graph
@@ -320,6 +321,22 @@ namespace Dse.Test.Unit.Graph
             var path2 = (Path) result;
             CollectionAssert.AreEqual(path.Labels, path2.Labels);
             Assert.AreEqual(path.Objects.Count, path2.Objects.Count);
+        }
+
+        [Test]
+        public void Should_Be_Serializable()
+        {
+            var json = "{\"something\":true}";
+            var result = JsonConvert.DeserializeObject<GraphNode>(json);
+            Assert.True(result.Get<bool>("something"));
+            Assert.AreEqual(json, JsonConvert.SerializeObject(result));
+
+            json = "{\"something\":{\"val\":1}}";
+            result = JsonConvert.DeserializeObject<GraphNode>(json);
+            var objectTree = result.Get<GraphNode>("something");
+            Assert.NotNull(objectTree);
+            Assert.AreEqual(1D, objectTree.Get<double>("val"));
+            Assert.AreEqual(json, JsonConvert.SerializeObject(result));
         }
     }
 }

@@ -236,5 +236,22 @@ namespace Dse.Test.Unit.Graph
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-write-consistency"]), "EACH_QUORUM");
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-language"]), "my-lang");
         }
+
+        [Test]
+        public void ExecuteGraph_Should_Allow_GraphNode_As_Parameters()
+        {
+            SimpleStatement coreStatement = null;
+            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
+            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
+                .Returns(TaskOf(new RowSet()))
+                .Callback<SimpleStatement>(stmt => coreStatement = stmt);
+            var session = NewInstance(coreSessionMock.Object);
+            const string expectedJson = "{\"member_id\":123,\"community_id\":586910,\"~label\":\"vertex\",\"group_id\":2}";
+            var id = new GraphNode("{\"result\":" + expectedJson + "}");
+            session.ExecuteGraph(new SimpleGraphStatement("g.V(vertexId)", new {vertexId = id}));
+            Assert.NotNull(coreStatement);
+            Assert.AreEqual(1, coreStatement.QueryValues.Length);
+            Assert.AreEqual("{\"vertexId\":" + expectedJson + "}", coreStatement.QueryValues[0]);
+        }
     }
 }
