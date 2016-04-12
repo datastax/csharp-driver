@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using Cassandra;
 using Dse.Graph;
@@ -12,6 +13,10 @@ namespace Dse
     /// </summary>
     public class DseConfiguration
     {
+        /// <summary>
+        /// To be replaced with CassandraConfiguration.AddressTranslator after CSHARP-444.
+        /// </summary>
+        internal IAddressTranslator AddressTranslator { get; set; }
         /// <summary>
         /// Gets the configuration related to DSE Cassandra Daemon.
         /// </summary>
@@ -40,4 +45,11 @@ namespace Dse
         }
     }
 
+    internal class IdentityAddressTranslator : IAddressTranslator
+    {
+        public IPEndPoint Translate(IPEndPoint address)
+        {
+            return address;
+        }
+    }
 }

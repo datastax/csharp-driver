@@ -112,6 +112,80 @@ namespace Dse.Tasks
             tcs.TrySetException(ex.InnerException);
         }
 
+        /// <summary>
+        /// Once Task is completed with another Task, returning the second task, propagating exceptions to the second Task.
+        /// </summary>
+        public static Task<TOut> Then<TIn, TOut>(this Task<TIn> task, Func<TIn, Task<TOut>> next)
+        {
+            const TaskContinuationOptions options = TaskContinuationOptions.ExecuteSynchronously;
+            var tcs = new TaskCompletionSource<TOut>();
+            if (task.IsCompleted)
+            {
+                //RanToCompletion, Faulted, or Canceled.
+                DoNextThen(tcs, task, next, options);
+                return tcs.Task;
+            }
+            task.ContinueWith(previousTask =>
+            {
+                DoNextThen(tcs, task, next, options);
+            }, options);
+
+            return tcs.Task;
+        }
+
+        private static void DoNextThen<TIn, TOut>(TaskCompletionSource<TOut> tcs, Task<TIn> previousTask, Func<TIn, Task<TOut>> next, TaskContinuationOptions options)
+        {
+            if (previousTask.IsFaulted && previousTask.Exception != null)
+            {
+                SetInnerException(tcs, previousTask.Exception);
+                return;
+            }
+            if (previousTask.IsCanceled)
+            {
+                tcs.TrySetCanceled();
+                return;
+            }
+            try
+            {
+                next(previousTask.Result).ContinueWith(nextTask =>
+                {
+                    if (nextTask.IsFaulted && nextTask.Exception != null)
+                    {
+                        SetInnerException(tcs, nextTask.Exception);
+                        return;
+                    }
+                    if (nextTask.IsCanceled)
+                    {
+                        tcs.TrySetCanceled();
+                        return;
+                    }
+                    try
+                    {
+                        tcs.TrySetResult(nextTask.Result);
+                    }
+                    catch (Exception ex)
+                    {
+                        tcs.TrySetException(ex);
+                    }
+                }, options);
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetException(ex);
+            }
+        }
+
+
+        /// <summary>
+        /// Returns a completed task with the result.
+        /// </summary>
+        public static Task<T> ToTask<T>(T value)
+        {
+            var tcs = new TaskCompletionSource<T>();
+            tcs.SetResult(value);
+            return tcs.Task;
+        }
+
 
         /// <summary>
         /// Waits the task to transition to RanToComplete and returns the Task.Result.

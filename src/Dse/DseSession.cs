@@ -12,6 +12,7 @@ namespace Dse
 {
     internal class DseSession : IDseSession
     {
+        private static readonly Logger Logger = new Logger(typeof(IDseSession));
         private readonly ISession _coreSession;
         private readonly DseConfiguration _config;
 
@@ -62,8 +63,51 @@ namespace Dse
         public Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement graphStatement)
         {
             var stmt = graphStatement.ToIStatement(_config.GraphOptions);
-            return _coreSession.ExecuteAsync(stmt)
-                .ContinueSync(rs => new GraphResultSet(rs));
+            return GetAnalyticsMaster(stmt, graphStatement)
+                .Then(s =>
+                    _coreSession
+                        .ExecuteAsync(s)
+                        .ContinueSync(rs => new GraphResultSet(rs)));
+        }
+
+        public Task<IStatement> GetAnalyticsMaster(IStatement statement, IGraphStatement graphStatement)
+        {
+            if (!(statement is TargettedSimpleStatement) || !_config.GraphOptions.IsAnalyticsQuery(graphStatement))
+            {
+                return TaskHelper.ToTask(statement);
+            }
+            var targettedSimpleStatement = (TargettedSimpleStatement) statement;
+            return _coreSession
+                .ExecuteAsync(new SimpleStatement("CALL DseClientTool.getAnalyticsGraphServer()"))
+                .ContinueWith(t => AdaptRpcMasterResult(t, targettedSimpleStatement), TaskContinuationOptions.ExecuteSynchronously);
+        }
+
+        private IStatement AdaptRpcMasterResult(Task<RowSet> task, TargettedSimpleStatement statement)
+        {
+            if (task.IsFaulted)
+            {
+                Logger.Verbose("Error querying graph analytics server, query will not be routed optimally: {0}", task.Exception);
+                return statement;
+            }
+            var row = task.Result.FirstOrDefault();
+            if (row == null)
+            {
+                Logger.Verbose("Empty response querying graph analytics server, query will not be routed optimally");
+                return statement;
+            }
+            var resultField = row.GetValue<IDictionary<string, string>>("result");
+            if (resultField == null || !resultField.ContainsKey("location") || resultField["location"] == null)
+            {
+                Logger.Verbose("Could not extract graph analytics server location from RPC, query will not be routed optimally");
+                return statement;
+            }
+            var location = resultField["location"];
+            var hostName = location.Substring(0, location.LastIndexOf(':'));
+            var address = _config.AddressTranslator.Translate(
+                new IPEndPoint(IPAddress.Parse(hostName),_config.CassandraConfiguration.ProtocolOptions.Port));
+            var host = _coreSession.Cluster.GetHost(address);
+            statement.PreferredHost = host;
+            return statement;
         }
 
         public void Dispose()

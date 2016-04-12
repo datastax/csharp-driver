@@ -137,6 +137,11 @@ namespace Dse.Graph
             RebuildDefaultPayload();
         }
 
+        internal bool IsAnalyticsQuery(IGraphStatement statement)
+        {
+            return (statement.GraphSource ?? Source) == "a";
+        }
+
         /// <summary>
         /// Sets the graph language to use in graph queries.
         /// If you don't call this method, it defaults to <see cref="DefaultLanguage"/>.
@@ -194,6 +199,14 @@ namespace Dse.Graph
             _source = source ?? DefaultSource;
             RebuildDefaultPayload();
             return this;
+        }
+
+        /// <summary>
+        /// Sets the graph source to the server-defined analytic traversal source ('a')
+        /// </summary>
+        public GraphOptions SetSourceAnalytics()
+        {
+            return SetSource("a");
         }
 
         /// <summary>

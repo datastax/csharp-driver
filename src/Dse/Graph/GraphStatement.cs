@@ -135,6 +135,14 @@ namespace Dse.Graph
         }
 
         /// <summary>
+        /// Sets the graph source to the server-defined analytic traversal source ("a") for this statement.
+        /// </summary>
+        public GraphStatement SetGraphSourceAnalytics()
+        {
+            return SetGraphSource("a");
+        }
+
+        /// <summary>
         /// Sets the consistency level used for the graph write query.
         /// <para>
         /// This setting will override the consistency level set with 

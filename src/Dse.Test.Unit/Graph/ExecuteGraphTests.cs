@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Cassandra;
@@ -246,12 +248,70 @@ namespace Dse.Test.Unit.Graph
                 .Returns(TaskOf(new RowSet()))
                 .Callback<SimpleStatement>(stmt => coreStatement = stmt);
             var session = NewInstance(coreSessionMock.Object);
-            const string expectedJson = "{\"member_id\":123,\"community_id\":586910,\"~label\":\"vertex\",\"group_id\":2}";
+            const string expectedJson =
+                "{\"member_id\":123,\"community_id\":586910,\"~label\":\"vertex\",\"group_id\":2}";
             var id = new GraphNode("{\"result\":" + expectedJson + "}");
             session.ExecuteGraph(new SimpleGraphStatement("g.V(vertexId)", new {vertexId = id}));
             Assert.NotNull(coreStatement);
             Assert.AreEqual(1, coreStatement.QueryValues.Length);
             Assert.AreEqual("{\"vertexId\":" + expectedJson + "}", coreStatement.QueryValues[0]);
+        }
+
+        public void Should_Make_Rpc_Call_When_Using_Analytics_Source()
+        {
+            var coreStatements = new List<SimpleStatement>();
+            var coreClusterMock = new Mock<ICluster>(MockBehavior.Strict);
+            coreClusterMock.Setup(c => c.GetHost(It.IsAny<IPEndPoint>()))
+                .Returns<IPEndPoint>(address => new Host(address, ReconnectionPolicy));
+            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
+            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<SimpleStatement>()))
+                .Returns<SimpleStatement>(stmt =>
+                {
+                    if (stmt.QueryString.StartsWith("CALL "))
+                    {
+                        var rowMock = new Mock<Row>();
+                        rowMock
+                            .Setup(r => r.GetValue<IDictionary<string, string>>(It.Is<string>(c => c == "result")))
+                            .Returns(new Dictionary<string, string> { {"location", "1.2.3.4:8888"} });
+                        var rows = new []
+                        {
+                            rowMock.Object
+                        };
+                        var mock = new Mock<RowSet>();
+                        mock
+                            .Setup(r => r.GetEnumerator()).Returns(() => ((IEnumerable<Row>)rows).GetEnumerator());
+                        return TaskOf(mock.Object);
+                    }
+                    return TaskOf(new RowSet());
+                })
+                .Callback<SimpleStatement>(stmt => coreStatements.Add(stmt));
+            coreSessionMock.Setup(s => s.Cluster).Returns(coreClusterMock.Object);
+            var session = NewInstance(coreSessionMock.Object);
+            session.ExecuteGraph(new SimpleGraphStatement("g.V()").SetGraphSourceAnalytics());
+            Assert.AreEqual(2, coreStatements.Count);
+            Assert.AreEqual("CALL DseClientTool.getAnalyticsGraphServer()", coreStatements[0].QueryString);
+            Assert.AreEqual("g.V()", coreStatements[1].QueryString);
+            var targettedStatement = coreStatements[1] as TargettedSimpleStatement;
+            Assert.NotNull(targettedStatement);
+            Assert.NotNull(targettedStatement.PreferredHost);
+            Assert.AreEqual("1.2.3.4:9042", targettedStatement.PreferredHost.Address.ToString());
+        }
+
+        [Test]
+        public void Should_Not_Make_Rpc_Calls_When_Using_Other_Sources()
+        {
+            var coreStatements = new List<SimpleStatement>();
+            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
+            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<SimpleStatement>()))
+                .Returns<SimpleStatement>(stmt => TaskOf(new RowSet()))
+                .Callback<SimpleStatement>(stmt => coreStatements.Add(stmt));
+            var session = NewInstance(coreSessionMock.Object);
+            session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
+            Assert.AreEqual(1, coreStatements.Count);
+            Assert.AreEqual("g.V()", coreStatements[0].QueryString);
+            var targettedStatement = coreStatements[0] as TargettedSimpleStatement;
+            Assert.NotNull(targettedStatement);
+            Assert.Null(targettedStatement.PreferredHost);
         }
     }
 }

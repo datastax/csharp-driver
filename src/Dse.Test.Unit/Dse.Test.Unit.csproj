@@ -78,6 +78,7 @@
     <Compile Include="Graph\ExecuteGraphTests.cs" />
     <Compile Include="Graph\GraphOptionsTests.cs" />
     <Compile Include="Graph\GraphResultTests.cs" />
+    <Compile Include="Policies\DseLoadBalancingTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

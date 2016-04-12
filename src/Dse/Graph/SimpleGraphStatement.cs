@@ -87,11 +87,11 @@ namespace Dse.Graph
             IStatement stmt;
             if (jsonParams != null)
             {
-                stmt = new SimpleStatement(_query, jsonParams);
+                stmt = new TargettedSimpleStatement(_query, jsonParams);
             }
             else
             {
-                stmt = new SimpleStatement(_query);
+                stmt = new TargettedSimpleStatement(_query);
             }
             //Set Cassandra.Statement properties
             if (Timestamp != null)

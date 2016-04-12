@@ -7,6 +7,7 @@ using Cassandra;
 using Cassandra.Serialization;
 using Dse.Geometry;
 using Dse.Graph;
+using Dse.Policies;
 
 namespace Dse
 {
@@ -16,6 +17,8 @@ namespace Dse
     public class DseClusterBuilder : Builder
     {
         private TypeSerializerDefinitions _typeSerializerDefinitions;
+        private IAddressTranslator _addressTranslator = new IdentityAddressTranslator();
+        private ILoadBalancingPolicy _loadBalancingPolicy;
         /// <summary>
         /// Gets the DSE Graph options.
         /// </summary>
@@ -206,14 +209,17 @@ namespace Dse
         }
 
         /// <summary>
-        ///  Configure the load balancing policy to use for the new cluster. <p> If no
-        ///  load balancing policy is set through this method,
-        ///  <link>Policies.DefaultLoadBalancingPolicy</link> will be used instead.</p>
+        /// Configures the load balancing policy to use for the new cluster.
+        /// <para> 
+        /// If no load balancing policy is set through this method, <see cref="DseLoadBalancingPolicy"/>
+        /// will be used instead.
+        /// </para>
         /// </summary>
         /// <param name="policy"> the load balancing policy to use </param>
         /// <returns>this instance</returns>
         public new DseClusterBuilder WithLoadBalancingPolicy(ILoadBalancingPolicy policy)
         {
+            _loadBalancingPolicy = policy;
             base.WithLoadBalancingPolicy(policy);
             return this;
         }
@@ -247,7 +253,7 @@ namespace Dse
         /// <summary>
         ///  Configure the speculative execution to use for the new cluster. 
         /// <para> 
-        /// If no speculative execution policy is set through this method, <see cref="Policies.DefaultSpeculativeExecutionPolicy"/> will be used instead.
+        /// If no speculative execution policy is set through this method, <see cref="Cassandra.Policies.DefaultSpeculativeExecutionPolicy"/> will be used instead.
         /// </para>
         /// </summary>
         /// <param name="policy"> the speculative execution policy to use </param>
@@ -396,6 +402,7 @@ namespace Dse
         /// <returns>this Builder</returns>
         public new DseClusterBuilder WithAddressTranslator(IAddressTranslator addressTranslator)
         {
+            _addressTranslator = addressTranslator;
             base.WithAddressTranslator(addressTranslator);
             return this;
         }
@@ -449,10 +456,17 @@ namespace Dse
                 .Define(new PointSerializer())
                 .Define(new PolygonSerializer());
             base.WithTypeSerializers(typeSerializerDefinitions);
+            if (_loadBalancingPolicy == null)
+            {
+                base.WithLoadBalancingPolicy(DseLoadBalancingPolicy.CreateDefault());
+            }
             var coreCluster = base.Build();
+            var config = new DseConfiguration(coreCluster.Configuration, GraphOptions ?? new GraphOptions());
+            //To be replace after CSHARP-444.
+            config.AddressTranslator = _addressTranslator;
             return new DseCluster(
                 coreCluster, 
-                new DseConfiguration(coreCluster.Configuration, GraphOptions ?? new GraphOptions()));
+                config);
         }
     }
 }
