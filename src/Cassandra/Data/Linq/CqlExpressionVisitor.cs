@@ -914,6 +914,10 @@ namespace Cassandra.Data.Linq
                         return node;
                     }
                     column = _pocoData.GetColumnByMemberName(node.Member.Name);
+                    if (column == null)
+                    {
+                        throw new InvalidOperationException("No mapping defined for member: " + node.Member.Name);
+                    }
                     _projections.Add(Tuple.Create(column, (object)column.ColumnName, ExpressionType.Assign));
                     _selectFields.Add(column.ColumnName);
                     return node;

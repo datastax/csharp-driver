@@ -90,6 +90,7 @@
     <Compile Include="Data\Linq\Batch.cs" />
     <Compile Include="Data\Linq\BatchV1.cs" />
     <Compile Include="Data\Linq\BatchV2.cs" />
+    <Compile Include="Data\Linq\ClientProjectionCqlQuery.cs" />
     <Compile Include="Data\Linq\ClusteringKeyAttribute.cs" />
     <Compile Include="Data\Linq\ColumnAttribute.cs" />
     <Compile Include="Data\Linq\CompactStorageAttribute.cs" />
