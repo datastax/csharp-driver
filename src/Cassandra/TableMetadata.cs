@@ -23,7 +23,7 @@ namespace Cassandra
     /// <summary>
     /// Describes a Cassandra table
     /// </summary>
-    public class TableMetadata: DataCollectionMetadata
+    public partial class TableMetadata: DataCollectionMetadata
     {
         /// <summary>
         /// Gets the table indexes by name

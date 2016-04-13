@@ -417,6 +417,7 @@
     <Compile Include="RowPopulators\Row.cs" />
     <Compile Include="RowPopulators\RowSetMetadata.cs" />
     <Compile Include="DataCollectionMetadata.cs" />
+    <Compile Include="TableMetadata_CQL.cs" />
     <Compile Include="Tasks\HashedWheelTimer.cs" />
     <Compile Include="Tasks\LimitedParallelismTaskScheduler.cs" />
     <Compile Include="TimeUuid.cs" />
