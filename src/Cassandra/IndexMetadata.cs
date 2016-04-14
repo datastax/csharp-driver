@@ -78,6 +78,11 @@ namespace Cassandra
             {
                 target = string.Format("values({0})", c.Name);
             }
+            else
+            {
+                target = c.Name;
+            }
+
             return new IndexMetadata(c.SecondaryIndexName, target, GetKindByName(c.SecondaryIndexType), c.SecondaryIndexOptions);
             #pragma warning restore 618
         }

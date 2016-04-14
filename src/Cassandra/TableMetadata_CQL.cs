@@ -14,71 +14,52 @@ namespace Cassandra
         /// </summary>
         /// <returns>the 'CREATE TABLE' query corresponding to this name.
         /// </returns>
-        public string AsCqlQuery()
-        {
-
-            return ReadTableToCQL();
-#if false
-
-            var sb = new StringBuilder();
-
-            sb.Append("CREATE KEYSPACE ").Append(CqlQueryTools.QuoteIdentifier(Name)).Append(" WITH ");
-            sb.Append("REPLICATION = { 'class' : '").Append(StrategyClass).Append("'");
-            foreach (var rep in Replication)
-            {
-                if (rep.Key == "class")
-                {
-                    continue;
-                }
-                sb.Append(", '").Append(rep.Key).Append("': '").Append(rep.Value).Append("'");
-            }
-            sb.Append(" } AND DURABLE_WRITES = ").Append(DurableWrites);
-            sb.Append(";");
-            return sb.ToString();
-#endif
-        }
-
-        private string ReadTableToCQL()
+        public string AsTableCql()
         {
             StringBuilder cql = new StringBuilder();
 
             cql.AppendFormat("CREATE TABLE {0} ( \n", CqlQueryTools.QuoteIdentifier(Name));
 
-            AddColumns(cql);
+            foreach (TableColumn column in TableColumns)
+            {
+                cql.AppendFormat("{0} {1}, \n", column.Name, column.TypeCode);
+            }
+
             var partitionKeys = from p in PartitionKeys
                                 select p.Name;
-            cql.AppendFormat("PRIMARY KEY ({0})", string.Join(",", partitionKeys.ToList()));
+            cql.AppendFormat("PRIMARY KEY ({0})\n", string.Join(",", partitionKeys.ToList()));
 
-            cql.Append("\n)");
+            cql.Append(")");
 
             if(ClusteringKeys.Length > 0)
             {
                 var clusterStrings = from c in ClusteringKeys
                                      select string.Format("{0} {1}", c.Item1.Name, c.Item2.ToString());
-
-                cql.AppendFormat("WITH CLUSTERING ORDER BY ({0}) \n", string.Join(",", clusterStrings.ToList()));
+                cql.AppendFormat("WITH CLUSTERING ORDER BY ({0})", string.Join(",", clusterStrings.ToList()));
             }
 
-            cql.Append(Options.ToString());
+            // Options need to be formatted differently.  Leave them out for now.
+            //cql.Append(Options.ToString());
 
-            cql.Append(" \n);");
+            cql.Append(";\n");
 
             return cql.ToString();
         }
 
-        private void AddColumns(StringBuilder cql)
+        public List<string> AsSecondaryIndexCql()
         {
-            foreach(TableColumn column in TableColumns)
+            List<string> indexCQL = new List<string>();
+
+            if(Indexes.Count > 0)
             {
-                cql.AppendFormat("{0} {1}, \n", column.Name, column.TypeCode);
+                foreach(string indexName in Indexes.Keys)
+                {
+                    IndexMetadata index = Indexes[indexName];
+                    indexCQL.Add(string.Format("CREATE INDEX ON {0} ({1});", Name, index.Target));
+                }
             }
-        }
 
-        private void AddIndexes(StringBuilder cql)
-        {
-          //  Dictionary<string, IndexMetadata> indexes = Indexes;
-
-            cql.Append("This is where the Indexes go");
+            return indexCQL;
         }
     }
 }
