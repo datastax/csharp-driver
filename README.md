@@ -1,10 +1,12 @@
 # DataStax C# Driver for Apache Cassandra
 
-A modern, [feature-rich](#features) and highly tunable C# client library for Apache Cassandra (1.2+) and DataStax Enterprise (3.1+) using exclusively Cassandra's binary protocol and Cassandra Query Language v3.
+A modern, [feature-rich][features] and highly tunable C# client library for Apache Cassandra (1.2+) and DataStax
+Enterprise (3.1+) using exclusively Cassandra's binary protocol and Cassandra Query Language v3.
 
 ## Installation
 
 [Get it on Nuget][nuget]
+
 ```bash
 PM> Install-Package CassandraCSharpDriver
 ```
@@ -223,17 +225,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
   [apidocs]: http://docs.datastax.com/en/latest-csharp-driver-api/html/N_Cassandra.htm
-  [docindex]: http://www.datastax.com/documentation/developer/csharp-driver/3.0/
+  [docindex]: http://datastax.github.io/csharp-driver/features/
+  [features]: http://datastax.github.io/csharp-driver/features/
   [getting-started]: http://planetcassandra.org/getting-started-with-apache-cassandra-and-net/
   [nuget]: https://nuget.org/packages/CassandraCSharpDriver/
   [mailinglist]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
-  [jira]: https://datastax-oss.atlassian.net/browse/CSHARP
+  [jira]: https://datastax-oss.atlassian.net/projects/CSHARP/issues
   [udt]: http://docs.datastax.com/en/cql/3.1/cql/cql_reference/cqlRefUDType.html
   [poco]: http://en.wikipedia.org/wiki/Plain_Old_CLR_Object
-  [linq]: http://www.datastax.com/documentation/developer/csharp-driver/3.0/csharp-driver/reference/linqComponent.html
-  [mapper]: http://www.datastax.com/documentation/developer/csharp-driver/3.0/csharp-driver/reference/mapperComponent.html
-  [components]: http://www.datastax.com/documentation/developer/csharp-driver/3.0/csharp-driver/reference/driverComponents.html
-  [policies]: http://docs.datastax.com/en/developer/csharp-driver/3.0/common/drivers/reference/tuningPolicies_c.html
+  [linq]: http://datastax.github.io/csharp-driver/features/components/linq/
+  [mapper]: http://datastax.github.io/csharp-driver/features/components/mapper/
+  [components]: http://datastax.github.io/csharp-driver/features/components/
+  [policies]: http://datastax.github.io/csharp-driver/features/tuning-policies/
   [upgrade-to-250]: https://github.com/datastax/csharp-driver/blob/master/doc/upgrade-guide-2.5.md
   [upgrade-to-200]: https://github.com/datastax/csharp-driver/blob/master/doc/upgrade-guide-2.0.md
   [survey]: http://goo.gl/forms/3BxcP8nKs6

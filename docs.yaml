@@ -1,0 +1,30 @@
+title:    DataStax C# Driver
+summary:  DataStax C# Driver for Apache Cassandra
+theme:    datastax
+sections:
+  - title:    Features
+    prefix:   /features
+    type:     markdown
+    files:    'doc/features/**/*.md'
+  - title:    Frequently Asked Questions
+    prefix:   /faq
+    type:     markdown
+    files:    'doc/faq/**/*.md'
+links:
+  - title: Code
+    href:  https://github.com/datastax/csharp-driver/
+  - title: Docs
+    href:  http://datastax.github.io/csharp-driver/
+  - title: API docs
+    href:  http://docs.datastax.com/en/latest-csharp-driver-api/html/N_Cassandra.htm
+  - title: Issues
+    href:  https://datastax-oss.atlassian.net/projects/CSHARP/issues
+  - title: Mailing List
+    href:  https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
+  - title: IRC Channel
+    href:  irc://irc.freenode.net/datastax-drivers
+  - title: Nuget
+    href:  https://www.nuget.org/packages/CassandraCSharpDriver
+versions:
+  - name: v3.0
+    ref: HEAD
