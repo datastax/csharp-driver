@@ -252,7 +252,6 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                 var partitionKey = BitConverter.GetBytes(i).Reverse().ToArray();
                 var statement = pstmt
                     .Bind(i, i)
-                    .SetRoutingKey(new RoutingKey() { RawRoutingKey = partitionKey })
                     .EnableTracing();
                 var rs = session.Execute(statement);
                 traces.Add(rs.Info.QueryTrace);
@@ -322,7 +321,6 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                     var id = Guid.NewGuid();
                     var bound = ps
                         .Bind(id)
-                        .SetRoutingKey(new RoutingKey() { RawRoutingKey = TypeSerializer.GuidShuffle(id.ToByteArray()) })
                         .EnableTracing();
                     var rs = session.Execute(bound);
                     traces.Add(rs.Info.QueryTrace);

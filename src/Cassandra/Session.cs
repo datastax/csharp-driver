@@ -280,6 +280,7 @@ namespace Cassandra
             return PrepareAsync(query, null);
         }
 
+        /// <inheritdoc />
         public Task<PreparedStatement> PrepareAsync(string query, IDictionary<string, byte[]> customPayload)
         {
             var request = new PrepareRequest(query)
@@ -288,19 +289,17 @@ namespace Cassandra
             };
             return new RequestHandler<PreparedStatement>(this, _serializer, request)
                 .Send()
-                .Continue(SetPrepareTableInfo);
+                .Then(SetPrepareTableInfo);
         }
 
-        /// <inheritdoc />
-        private PreparedStatement SetPrepareTableInfo(Task<PreparedStatement> t)
+        private Task<PreparedStatement> SetPrepareTableInfo(PreparedStatement ps)
         {
             const string msgRoutingNotSet = "Routing information could not be set for query \"{0}\"";
-            var ps = t.Result;
             var column = ps.Metadata.Columns.FirstOrDefault();
             if (column == null || column.Keyspace == null)
             {
                 //The prepared statement does not contain parameters
-                return ps;
+                return TaskHelper.ToTask(ps);
             }
             if (ps.Metadata.PartitionKeys != null)
             {
@@ -309,31 +308,31 @@ namespace Cassandra
                 {
                     //zero-length partition keys means that none of the parameters are partition keys
                     //the partition key is hard-coded.
-                    return ps;
+                    return TaskHelper.ToTask(ps);
                 }
                 ps.RoutingIndexes = ps.Metadata.PartitionKeys;
+                return TaskHelper.ToTask(ps);
+            }
+            return Cluster.Metadata.GetTableAsync(column.Keyspace, column.Table).ContinueWith(t =>
+            {
+                if (t.Exception != null)
+                {
+                    Logger.Error("There was an error while trying to retrieve table metadata for {0}.{1}. {2}", column.Keyspace, column.Table, t.Exception.InnerException);
+                    return ps;
+                }
+                var table = t.Result;
+                if (table == null)
+                {
+                    Logger.Info(msgRoutingNotSet, ps.Cql);
+                    return ps;
+                }
+                var routingSet = ps.SetPartitionKeys(table.PartitionKeys);
+                if (!routingSet)
+                {
+                    Logger.Info(msgRoutingNotSet, ps.Cql);
+                }
                 return ps;
-            }
-            TableMetadata table = null;
-            try
-            {
-                table = Cluster.Metadata.GetTable(column.Keyspace, column.Table);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error("There was an error while trying to retrieve table metadata for {0}.{1}. {2}", column.Keyspace, column.Table, ex.ToString());
-            }
-            if (table == null)
-            {
-                Logger.Info(msgRoutingNotSet, ps.Cql);
-                return ps;
-            }
-            var routingSet = ps.SetPartitionKeys(table.PartitionKeys);
-            if (!routingSet)
-            {
-                Logger.Info(msgRoutingNotSet, ps.Cql);
-            }
-            return ps;
+            });
         }
 
         public void WaitForSchemaAgreement(RowSet rs)

@@ -230,6 +230,16 @@ namespace Cassandra
             return ksMetadata.GetTableMetadata(tableName);
         }
 
+        internal Task<TableMetadata> GetTableAsync(string keyspace, string tableName)
+        {
+            KeyspaceMetadata ksMetadata;
+            if (!_keyspaces.TryGetValue(keyspace, out ksMetadata))
+            {
+                return TaskHelper.ToTask((TableMetadata)null);
+            }
+            return ksMetadata.GetTableMetadataAsync(tableName);
+        }
+
         /// <summary>
         ///  Returns the view metadata for the provided view name in the keyspace.
         /// </summary>

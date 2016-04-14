@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Tasks;
 using NUnit.Framework;
 using SortOrder = Cassandra.DataCollectionMetadata.SortOrder;
 
@@ -285,12 +286,25 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "added_col"));
         }
 
+        [Test]
+        public void GetTableAsync_With_Keyspace_And_Table_Not_Found()
+        {
+            var cluster = GetNewCluster();
+            cluster.Connect();
+            var t = cluster.Metadata.GetTableAsync("ks_does_not_exist", "t1");
+            var table = TaskHelper.WaitToComplete(t);
+            Assert.Null(table);
+            t = cluster.Metadata.GetTableAsync("system", "table_does_not_exist");
+            table = TaskHelper.WaitToComplete(t);
+            Assert.Null(table);
+        }
+
         /// Tests that materialized view metadata is being updated
         /// 
         /// GetMaterializedView_Should_Refresh_View_Metadata_Via_Events tests that materialized view metadata is being properly updated by the driver
         /// after a change to the view, via schema change events. It first creates a base table with some sample columns, and a materialized view based on 
         /// those columns. It then verifies verifies that the original compaction strategy was "STCS". It then changes the compaction strategy for the view
-        /// to "LCS" and verfies that the view metadata was updated correctly.
+        /// to "LCS" and verifies that the view metadata was updated correctly.
         /// 
         /// @since 3.0.0
         /// @jira_ticket CSHARP-348

@@ -82,16 +82,19 @@ namespace Cassandra
         ///  exists, <c>null</c> otherwise.</returns>
         public TableMetadata GetTableMetadata(string tableName)
         {
+            return TaskHelper.WaitToComplete(
+                GetTableMetadataAsync(tableName), _parent.Configuration.ClientOptions.GetQueryAbortTimeout(2));
+        }
+
+        internal Task<TableMetadata> GetTableMetadataAsync(string tableName)
+        {
+            TableMetadata tableMetadata;
+            if (_tables.TryGetValue(tableName, out tableMetadata))
             {
-                //use code block to avoid reusing field 'table'
-                TableMetadata table;
-                if (_tables.TryGetValue(tableName, out table))
-                {
-                    //The table metadata is available in local cache
-                    return table;
-                }   
+                //The table metadata is available in local cache
+                return TaskHelper.ToTask(tableMetadata);
             }
-            var task = _parent.SchemaParser
+            return _parent.SchemaParser
                 .GetTable(Name, tableName)
                 .ContinueSync(table =>
                 {
@@ -103,7 +106,6 @@ namespace Cassandra
                     _tables.AddOrUpdate(tableName, table, (k, o) => table);
                     return table;
                 });
-            return TaskHelper.WaitToComplete(task, _parent.Configuration.ClientOptions.GetQueryAbortTimeout(2));
         }
 
         /// <summary>
