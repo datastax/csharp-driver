@@ -1,5 +1,22 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.0.5
+
+2016-04-20
+
+### Features
+
+- [CSHARP-409] - Mapper: Support timestamp at CqlQueryOptions level
+- [CSHARP-415] - Allow setting read timeout at statement level
+
+### Bug Fixes
+
+- [CSHARP-414] - Linq projections not handled correctly for select query.
+- [CSHARP-417] - Query trace: introduce delay between retries and max retries
+- [CSHARP-428] - Use QueryAbortTimeout for metadata sync queries
+- [CSHARP-439] - Race condition on read timeout
+- [CSHARP-445] - PrepareAsync() blocks the calling thread when fetching table metadata
+
 ## 3.0.4
 
 2016-03-28
