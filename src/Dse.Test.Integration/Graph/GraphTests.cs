@@ -365,5 +365,57 @@ namespace Dse.Test.Integration.Graph
                 Assert.AreEqual(0, resultArray.Length);
             }
         }
+
+        [Test]
+        public void Should_Have_The_Same_ReadTimeout_Per_Statement_And_Global()
+        {
+            CreateClassicGraph(CcmHelper.InitialContactPoint, "classic3");
+            var timeout = 5000;
+            using (var cluster = DseCluster.Builder()
+                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .WithGraphOptions(new GraphOptions().SetName("classic3").SetReadTimeoutMillis(timeout))
+                .Build())
+            {
+                var session = cluster.Connect();
+                var stopwatch = new Stopwatch();
+                try
+                {
+                    stopwatch.Start();
+                    session.ExecuteGraph(new SimpleGraphStatement("while(true) { }"));
+                }
+                catch (Exception)
+                {
+                    stopwatch.Stop();
+                    Assert.GreaterOrEqual(stopwatch.ElapsedMilliseconds, timeout);
+                }
+            }
+        }
+
+        [Test]
+        public void Should_Have_The_Different_ReadTimeout_Per_Statement()
+        {
+            CreateClassicGraph(CcmHelper.InitialContactPoint, "classic4");
+            var timeout = 5000;
+            using (var cluster = DseCluster.Builder()
+                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .WithGraphOptions(new GraphOptions().SetName("classic4").SetReadTimeoutMillis(timeout))
+                .Build())
+            {
+                var session = cluster.Connect();
+                var stopwatch = new Stopwatch();
+                var stmtTimeout = 500;
+                try
+                {
+                    stopwatch.Start();
+                    session.ExecuteGraph(new SimpleGraphStatement("while(true) { }").SetReadTimeoutMillis(stmtTimeout));
+                }
+                catch (Exception)
+                {
+                    stopwatch.Stop();
+                    Assert.GreaterOrEqual(stopwatch.ElapsedMilliseconds, stmtTimeout);
+                    Assert.Less(stopwatch.ElapsedMilliseconds, timeout);
+                }
+            }
+        }
     }
 }
