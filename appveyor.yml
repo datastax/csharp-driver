@@ -1,0 +1,30 @@
+version: "{branch}-{build}"
+skip_tags: true
+shallow_clone: true
+cache:
+  - C:\ProgramData\chocolatey\bin                                                                                                     
+  - C:\ProgramData\chocolatey\lib
+os: Visual Studio 2015
+platform:
+  - Any CPU
+configuration:
+  - Release
+environment:
+  NUNIT_PATH: nunit-console
+
+build:
+  project: src/Dse.sln
+  verbosity: minimal
+
+test:
+  assemblies:
+    - src/Dse.Test.Unit/bin/$(configuration)/Dse.Test.Unit.dll
+
+  categories:
+    except:
+      - long
+      - duration
+
+on_failure:
+  - ps: >-
+      Write-Host "Build failed"
