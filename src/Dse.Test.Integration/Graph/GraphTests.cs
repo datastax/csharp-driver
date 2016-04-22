@@ -222,9 +222,7 @@ namespace Dse.Test.Integration.Graph
 
                 Vertex markoVertex = rs.FirstOrDefault();
 
-                var id = JsonConvert.DeserializeObject(markoVertex.Id.ToString());
-
-                var rsById = session.ExecuteGraph(new SimpleGraphStatement("g.V(vertexId)", new { vertexId = id }));
+                var rsById = session.ExecuteGraph(new SimpleGraphStatement("g.V(vertexId)", new { vertexId = markoVertex.Id }));
                 Assert.NotNull(rsById);
                 var byIdResultArray = rsById.ToArray();
                 Assert.AreEqual(1, byIdResultArray.Length);
@@ -250,9 +248,7 @@ namespace Dse.Test.Integration.Graph
 
                 Edge markoKnowsVadasEdge = rs.FirstOrDefault();
 
-                var id = JsonConvert.DeserializeObject(markoKnowsVadasEdge.Id.ToString());
-
-                var rsById = session.ExecuteGraph(new SimpleGraphStatement("g.E(edgeId)", new { edgeId = id }));
+                var rsById = session.ExecuteGraph(new SimpleGraphStatement("g.E(edgeId)", new { edgeId = markoKnowsVadasEdge.Id }));
                 Assert.NotNull(rsById);
                 var byIdResultArray = rsById.ToArray();
                 Assert.AreEqual(1, byIdResultArray.Length);
