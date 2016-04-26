@@ -22,19 +22,43 @@ namespace Cassandra
 
             foreach (TableColumn column in TableColumns)
             {
-                cql.AppendFormat("{0} {1}, \n", column.Name, column.TypeCode);
+                cql.AppendFormat("{0} {1}, \n", column.Name, GetColumnType(column));
             }
 
-            var partitionKeys = from p in PartitionKeys
-                                select p.Name;
-            cql.AppendFormat("PRIMARY KEY ({0})\n", string.Join(",", partitionKeys.ToList()));
+            List<string> partitionKeys = (from p in PartitionKeys
+                                         select p.Name).ToList();
+
+            if (partitionKeys.Count() > 0)
+            {
+                cql.Append("PRIMARY KEY(");
+
+                if (partitionKeys.Count() > 1)
+                    cql.AppendFormat("({0})", string.Join(",", partitionKeys));
+                else if (partitionKeys.Count() == 1)
+                    cql.AppendFormat("{0}", partitionKeys[0]);
+
+                if(ClusteringKeys.Length > 0)
+                {
+                    cql.AppendFormat(", ");
+
+                    var clusterNames = (from c in ClusteringKeys
+                                         select string.Format("{0}", c.Item1.Name)).ToList();
+
+                    if (clusterNames.Count() > 1)
+                        cql.AppendFormat("({0})", string.Join(",", clusterNames));
+                    else if (clusterNames.Count() == 1)
+                        cql.AppendFormat("{0}", clusterNames[0]);
+                }
+
+                cql.Append(")\n");
+            }
 
             cql.Append(")");
 
             if(ClusteringKeys.Length > 0)
             {
                 var clusterStrings = from c in ClusteringKeys
-                                     select string.Format("{0} {1}", c.Item1.Name, c.Item2.ToString());
+                                     select string.Format("{0} {1}", c.Item1.Name, c.Item2 == SortOrder.Ascending ? "ASC":"DESC");
                 cql.AppendFormat("WITH CLUSTERING ORDER BY ({0})", string.Join(",", clusterStrings.ToList()));
             }
 
@@ -44,6 +68,31 @@ namespace Cassandra
             cql.Append(";\n");
 
             return cql.ToString();
+        }
+
+        private string GetColumnType(TableColumn column)
+        {
+            if (column.TypeInfo != null)
+            {
+                Type aggregateType = column.TypeInfo.GetType();
+                if(aggregateType.Name == "ListColumnInfo")
+                {
+                   ColumnTypeCode listInnerType = ((ListColumnInfo)column.TypeInfo).ValueTypeCode;
+                   return string.Format("list<{0}>", listInnerType.ToString().ToLower());
+                }
+                else if(aggregateType.Name == "SetColumnInfo")
+                {
+                    ColumnTypeCode listInnerType = ((ListColumnInfo)column.TypeInfo).ValueTypeCode;
+                    return string.Format("set<{0}>", listInnerType.ToString().ToLower());
+                }
+                else if(aggregateType.Name == "MapColumnInfo")
+                {
+                    throw new NotImplementedException();
+                }
+            }
+
+            // Default if not an aggregate type
+            return column.TypeCode.ToString().ToLower();
         }
 
         public List<string> AsSecondaryIndexCql()

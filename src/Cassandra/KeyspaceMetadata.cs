@@ -57,6 +57,19 @@ namespace Cassandra
         /// 
         /// <returns>a dictionary containing the keyspace replication strategy options.</returns>
         public IDictionary<string, int> Replication { get; private set; }
+        
+        /// <summary>
+        /// Returns the replication options in a format suitable for calling CreateKeyspace
+        /// </summary> 
+        public Dictionary<string, string> ReplicationOptionsAsString
+        {
+            get
+            {
+                Dictionary<string, string> replication = Replication.ToDictionary(k => k.Key, k => k.Value.ToString());
+                replication.Add("class", StrategyClass);
+                return replication;
+            }
+        }
 
         internal KeyspaceMetadata(Metadata parent, string name, bool durableWrites, string strategyClass,
                                   IDictionary<string, int> replicationOptions)
