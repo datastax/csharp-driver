@@ -109,7 +109,7 @@ namespace Dse.Test.Integration.ClusterManagement
             {
                 for (var i = 1; i <= amountOfNodes; i++)
                 {
-                    _ccmDseBridge.SetWorkload(i, "graph");
+                    _ccmDseBridge.SetWorkload(i, "graph,spark");
                 }
             }
             _ccmDseBridge.Start(jvmArgs);

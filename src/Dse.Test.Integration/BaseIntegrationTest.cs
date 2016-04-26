@@ -14,7 +14,7 @@ namespace Dse.Test.Integration
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
         }
 
-        private const string ClassicSchemaGremlinQuery = 
+        protected const string ClassicSchemaGremlinQuery = 
             "schema.propertyKey('name').Text().ifNotExists().create();\n" +
             "schema.propertyKey('age').Int().ifNotExists().create();\n" +
             "schema.propertyKey('lang').Text().ifNotExists().create();\n" +
@@ -34,7 +34,7 @@ namespace Dse.Test.Integration
         /// <summary>
         /// Reference graph: http://www.tinkerpop.com/docs/3.0.0.M1/
         /// </summary>
-        private const string ClassicLoadGremlinQuery = 
+        protected const string ClassicLoadGremlinQuery = 
             "Vertex marko = graph.addVertex(label, 'person', 'name', 'marko', 'age', 29);\n" +
             "Vertex vadas = graph.addVertex(label, 'person', 'name', 'vadas', 'age', 27);\n" +
             "Vertex lop = graph.addVertex(label, 'software', 'name', 'lop', 'lang', 'java');\n" +

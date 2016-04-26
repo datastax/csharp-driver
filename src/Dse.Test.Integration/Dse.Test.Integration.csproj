@@ -82,6 +82,7 @@
     <Compile Include="Geometry\LineStringTests.cs" />
     <Compile Include="Geometry\PointTests.cs" />
     <Compile Include="Geometry\PolygonTests.cs" />
+    <Compile Include="Graph\GraphMultiNodeTests.cs" />
     <Compile Include="Graph\GraphTests.cs" />
     <Compile Include="InfrastructureTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
