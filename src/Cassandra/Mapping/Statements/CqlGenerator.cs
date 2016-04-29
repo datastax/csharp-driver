@@ -111,6 +111,7 @@ namespace Cassandra.Mapping.Statements
                 //only include columns which value is not null
                 var columnsBuilder = new StringBuilder();
                 var placeholdersBuilder = new StringBuilder();
+                var encounteredNonNull = false;
                 for (var i = 0; i < pocoData.Columns.Count; i++)
                 {
                     var value = pocoValues[i];
@@ -118,11 +119,12 @@ namespace Cassandra.Mapping.Statements
                     {
                         continue;
                     }
-                    if (i > 0)
+                    if (encounteredNonNull)
                     {
                         columnsBuilder.Append(", ");
                         placeholdersBuilder.Append(", ");
                     }
+                    encounteredNonNull = true;
                     columnsBuilder.Append(Escape(pocoData)(pocoData.Columns[i]));
                     placeholdersBuilder.Append("?");
                     parameterList.Add(value);
