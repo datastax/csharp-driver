@@ -156,6 +156,27 @@ namespace Cassandra.Tests.Mapping
         }
 
         [Test]
+        public void GenerateInsert_Without_Nulls_First_Value_Null_Test()
+        {
+            var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
+            types.Add(new Map<ExplicitColumnsUser>()
+                .TableName("USERS")
+                .PartitionKey("ID")
+                .Column(u => u.UserId, cm => cm.WithName("ID")));
+            var pocoFactory = new PocoDataFactory(types);
+            var cqlGenerator = new CqlGenerator(pocoFactory);
+            var values = new object[] { null, "name", 100 };
+            object[] queryParameters;
+            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(false, values, out queryParameters);
+            Assert.AreEqual(@"INSERT INTO USERS (Name, UserAge) VALUES (?, ?)", cql);
+            CollectionAssert.AreEqual(values.Where(v => v != null), queryParameters);
+
+            cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(false, values, out queryParameters, true);
+            Assert.AreEqual(@"INSERT INTO USERS (Name, UserAge) VALUES (?, ?) IF NOT EXISTS", cql);
+            CollectionAssert.AreEqual(values.Where(v => v != null), queryParameters);
+        }
+
+        [Test]
         public void GenerateInsert_Without_Nulls_Should_Throw_When_Value_Is_Null_Test()
         {
             var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
