@@ -60,8 +60,8 @@ See the API docs of each implementation for more details.
 
 ## Geospatial types
 
-DSE 5 comes with a set of additional types to represent geospatial data: `PointType`, `LineStringType`, `PolygonType`
-and `CircleType`:
+DSE 5 comes with a set of additional types to represent geospatial data: `PointType`, `LineStringType` and
+`PolygonType`:
 
 ```
 cqlsh> CREATE TABLE points_of_interest(name text PRIMARY KEY, coords 'PointType');
@@ -142,7 +142,7 @@ foreach (GraphResult r in rs)
 ```
 
 `GraphResult` wraps the JSON responses returned by the server. You can cast the result to a specific type as it
-implements implicit conversion operators to `Vertex` and `Edge`:
+implements implicit conversion operators to `Vertex`, `Edge` and `Path`:
 
 ```csharp
 GraphResultSet rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
