@@ -42,6 +42,12 @@
     <MakeDir Directories="$(TestResultsFolder)" />
     <Exec Command="&quot;$(NUNIT_PATH)\nunit-console.exe&quot; &quot;$(SourceFolder)\Dse.Test.Unit\bin\Release\Dse.Test.Unit.dll&quot; /labels /nologo /framework:net-4.0 /xml:&quot;$(TestResultsFolder)\TestResults.xml&quot; /out:&quot;$(TestResultsFolder)\TestResults.txt&quot;" />
   </Target>
+  <Target Name="integration-test" DependsOnTargets="compile">
+    <Message Text="Running integration tests" Importance="high" />
+    <Error Condition="$(NUNIT_PATH) == ''" Text="The NUNIT_PATH environment variable with the NUnit installation path is not set." ContinueOnError="false" />
+    <MakeDir Directories="$(TestResultsFolder)" />
+    <Exec Command="&quot;$(NUNIT_PATH)\nunit-console.exe&quot; &quot;$(SourceFolder)\Dse.Test.Integration\bin\Release\Dse.Test.Integration.dll&quot; /labels /nologo /framework:net-4.0 /xml:&quot;$(TestResultsFolder)\TestResults.xml&quot; /out:&quot;$(TestResultsFolder)\TestResults.txt&quot;" />
+  </Target>
   <Target Name="package" DependsOnTargets="generate-assembly-info;unit-test">
     <Message Text="Creating NuGet package(s)" Importance="high" />
     <MakeDir Directories="$(PackagesFolder)" />

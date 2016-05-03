@@ -56,13 +56,7 @@ namespace Dse.Test.Integration.ClusterManagement
                 }
 
                 var remoteDseServerPassword = Environment.GetEnvironmentVariable("DSE_SERVER_PWD") ??
-                                              ConfigurationManager.AppSettings["DseServerPwd"];
-
-                if (string.IsNullOrEmpty(remoteDseServerPassword))
-                {
-                    throw new ConfigurationErrorsException(
-                        "You must specify the DSE server user's password to connect through ssh either via DSE_SERVER_PWD environment variable or by 'DseServerPwd' app setting");
-                }
+                                              ConfigurationManager.AppSettings.Get("DseServerPwd");
 
                 var remoteDseServerPort = int.Parse(Environment.GetEnvironmentVariable("DSE_SERVER_PORT") ??
                                                       ConfigurationManager.AppSettings["DseServerPort"]);
@@ -71,8 +65,12 @@ namespace Dse.Test.Integration.ClusterManagement
                 {
                     remoteDseServerPort = 22;
                 }
+
+                var remoteDseServerUserPrivateKey = Environment.GetEnvironmentVariable("DSE_SERVER_PRIVATE_KEY") ??
+                                              ConfigurationManager.AppSettings.Get("DseServerPrivateKey"); 
+
                 executer = new RemoteCcmProcessExecuter(remoteDseServer, remoteDseServerUser, remoteDseServerPassword,
-                    remoteDseServerPort);
+                    remoteDseServerPort, remoteDseServerUserPrivateKey);
             }
             else
             {

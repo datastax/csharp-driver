@@ -11,14 +11,16 @@ namespace Dse.Test.Integration.TestBase
         private readonly string _ip;
         private readonly int _port;
         private readonly string _password;
+        private readonly string _privateKeyFilePath;
         private SshClient _sshClient;
 
-        public RemoteCcmProcessExecuter(string ip, string user, string password, int port = 22)
+        public RemoteCcmProcessExecuter(string ip, string user, string password, int port = 22, string privateKeyFilePath = null)
         {
             _user = user;
             _ip = ip;
             _password = password;
             _port = port;
+            _privateKeyFilePath = privateKeyFilePath;
         }
 
 
@@ -46,6 +48,16 @@ namespace Dse.Test.Integration.TestBase
                         }
                     }
                 };
+
+                if (!string.IsNullOrEmpty(_privateKeyFilePath))
+                {
+                    var privateKeyAuth = new PrivateKeyAuthenticationMethod(_user, new PrivateKeyFile[]
+                    {
+                        new PrivateKeyFile(_privateKeyFilePath)
+                    });
+                    connectionInfo = new ConnectionInfo(_ip, _port, _user, privateKeyAuth);
+                }
+
                 _sshClient = new SshClient(connectionInfo);
             }
             if (!_sshClient.IsConnected)
