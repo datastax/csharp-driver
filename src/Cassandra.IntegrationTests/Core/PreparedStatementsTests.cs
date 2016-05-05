@@ -341,7 +341,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Prepared_NoParams()
         {
-            var preparedStatement = Session.Prepare("SELECT * FROM " + AllTypesTableName);
+            var preparedStatement = Session.Prepare("SELECT id FROM " + AllTypesTableName);
             //No parameters => no routing indexes
             Assert.Null(preparedStatement.RoutingIndexes);
             //Just check that it works

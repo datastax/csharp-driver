@@ -27,28 +27,48 @@ namespace Cassandra.Serialization.Primitive
 
         public override decimal Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)
         {
-            buffer = Utils.FromOffset(buffer, offset, length);
-            var bigintBytes = new byte[buffer.Length - 4];
-            Array.Copy(buffer, 4, bigintBytes, 0, bigintBytes.Length);
-            //Scale representation is an int, but System.Decimal only supports a scale of 1 byte
-            var scale = buffer[3];
-            Array.Reverse(bigintBytes);
-            var bigInteger = new BigInteger(bigintBytes);
-            var isNegative = bigInteger < 0;
+            var scale = BeConverter.ToInt32(buffer, offset);
+            var unscaledBytes = Utils.SliceBuffer(buffer, offset + 4, length - 4);
+            if (BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(unscaledBytes);
+            }
+            return ToDecimal(new BigInteger(unscaledBytes), scale);
+        }
 
-            bigInteger = BigInteger.Abs(bigInteger);
-            bigintBytes = bigInteger.ToByteArray();
+        internal static decimal ToDecimal(BigInteger unscaledValue, int scale)
+        {
+            if (scale < -28 || scale > 28)
+            {
+                //Scale representation is an int, but System.Decimal only supports a scale from -28 to 28
+                throw new ArgumentOutOfRangeException(
+                    "scale", scale, "CLR Decimal structure can not represent numbers with a scale greater than 28");
+            }
+            if (scale < 0)
+            {
+                try
+                {
+                    return (decimal) (unscaledValue*BigInteger.Pow(new BigInteger(10), Math.Abs(scale)));
+                }
+                catch (OverflowException)
+                {
+                    throw new ArgumentOutOfRangeException(
+                        "unscaledValue",
+                        unscaledValue*BigInteger.Pow(new BigInteger(10), Math.Abs(scale)),
+                        "Value can not be represented as a CLR Decimal");
+                }
+            }
+            var isNegative = unscaledValue < 0;
+            unscaledValue = BigInteger.Abs(unscaledValue);
+            var bigintBytes = unscaledValue.ToByteArray();
             if (bigintBytes.Length > 13 || (bigintBytes.Length == 13 && bigintBytes[12] != 0))
             {
                 throw new ArgumentOutOfRangeException(
-                    "buffer",
-                    "this java.math.BigDecimal is too big to fit into System.Decimal. Think about using other TypeAdapter for java.math.BigDecimal (e.g. J#, IKVM,...)");
+                    "unscaledValue", unscaledValue, "Value can not be represented as a CLR Decimal");
             }
-
             var intArray = new int[3];
             Buffer.BlockCopy(bigintBytes, 0, intArray, 0, Math.Min(12, bigintBytes.Length));
-
-            return new decimal(intArray[0], intArray[1], intArray[2], isNegative, scale);
+            return new decimal(intArray[0], intArray[1], intArray[2], isNegative, (byte)scale);
         }
 
         public override byte[] Serialize(ushort protocolVersion, decimal value)

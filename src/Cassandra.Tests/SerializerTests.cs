@@ -20,7 +20,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Numerics;
 using Cassandra.Serialization;
+using Cassandra.Serialization.Primitive;
 
 namespace Cassandra.Tests
 {
@@ -457,6 +459,42 @@ namespace Cassandra.Tests
             {
                 var type = serializer.GetClrType(item.Item2, item.Item3);
                 Assert.AreEqual(item.Item1, type);
+            }
+        }
+
+        [Test]
+        public void DecimalSerializer_ToDecimal_Converts_Test()
+        {
+            var values = new[]
+            {
+                Tuple.Create(BigInteger.Parse("1000"), 1, 100M),
+                Tuple.Create(BigInteger.Parse("1000"), 0, 1000M),
+                Tuple.Create(BigInteger.Parse("9223372036854776"), -1, 92233720368547760M),
+                Tuple.Create(BigInteger.Parse("12345678901234567890"), 2, 123456789012345678.9M),
+                Tuple.Create(BigInteger.Parse("79228162514264337593543950335"), 0, 79228162514264337593543950335M),
+                Tuple.Create(BigInteger.Parse("79228162514264337593543950335"), 27, 79.228162514264337593543950335M),
+                Tuple.Create(BigInteger.Parse("1"), -28, 10000000000000000000000000000m)
+            };
+            foreach (var v in values)
+            {
+                var decimalValue = DecimalSerializer.ToDecimal(v.Item1, v.Item2);
+                Assert.AreEqual(v.Item3, decimalValue);
+            }
+        }
+
+        [Test]
+        public void DecimalSerializer_ToDecimal_Throws_OverflowException_When_Value_Can_Not_Be_Represented_Test()
+        {
+            var values = new[]
+            {
+                Tuple.Create(BigInteger.Parse("123"), -28),
+                Tuple.Create(BigInteger.Parse("123"), -27),
+                Tuple.Create(BigInteger.Parse("1"), 29),
+                Tuple.Create(BigInteger.Parse("123456789012345678901234567890"), 0)
+            };
+            foreach (var v in values)
+            {
+                Assert.Throws<ArgumentOutOfRangeException>(() => DecimalSerializer.ToDecimal(v.Item1, v.Item2), "For value: " + v.Item1);
             }
         }
 
