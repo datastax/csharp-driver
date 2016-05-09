@@ -28,6 +28,10 @@ namespace Cassandra.IntegrationTests.Core
 
             var insertQuery = String.Format("INSERT INTO {0} (id, timeuuid_sample) VALUES (?, ?)", AllTypesTableName);
             var selectQuery = String.Format("SELECT id, timeuuid_sample, dateOf(timeuuid_sample) FROM {0} WHERE id = ?", AllTypesTableName);
+            if (CassandraVersion >= new Version(2, 2))
+            {
+                selectQuery = String.Format("SELECT id, timeuuid_sample, toTimestamp(timeuuid_sample) as timeuuid_date_value FROM {0} WHERE id = ?", AllTypesTableName);
+            }
             _insertPrepared = Session.Prepare(insertQuery);
             _selectPrepared = Session.Prepare(selectQuery);
         }
@@ -49,6 +53,14 @@ namespace Cassandra.IntegrationTests.Core
                 var resultTimeUuidValue = row.GetValue<TimeUuid>("timeuuid_sample");
                 Assert.AreEqual(timeUuid, resultTimeUuidValue);
                 Assert.AreEqual(timeUuid.GetDate(), resultTimeUuidValue.GetDate());
+                if (row.GetColumn("timeuuid_date_value") != null)
+                {
+                    // the timestamp retrieved by the cql function has lower precision than timeuuid
+                    const long precision = 10000L;
+                    Assert.AreEqual(
+                        timeUuid.GetDate().Ticks / precision, 
+                        row.GetValue<DateTimeOffset>("timeuuid_date_value").Ticks / precision);
+                }
                 //Still defaults to Guid
                 var boxedValue = row.GetValue<object>("timeuuid_sample");
                 Assert.IsInstanceOf<Guid>(boxedValue);

@@ -30,6 +30,10 @@ namespace Cassandra
                 throw new ArgumentException("clock Id should contain 2 bytes", "clockId");
             }
             var timeBytes = BitConverter.GetBytes((time - GregorianCalendarTime).Ticks);
+            if (!BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(timeBytes);
+            }
             var buffer = new byte[16];
             //Positions 0-7 Timestamp
             Buffer.BlockCopy(timeBytes, 0, buffer, 0, 8);
@@ -82,9 +86,12 @@ namespace Cassandra
             bytes[7] &= 0x0f; //00001111
             //Remove variant
             bytes[8] &= 0x3f; //00111111
-
-            long timestamp = BitConverter.ToInt64(bytes, 0);
-            long ticks = timestamp + GregorianCalendarTime.Ticks;
+            if (!BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(bytes);
+            }
+            var timestamp = BitConverter.ToInt64(bytes, 0);
+            var ticks = timestamp + GregorianCalendarTime.Ticks;
 
             return new DateTimeOffset(ticks, TimeSpan.Zero);
         }
@@ -114,11 +121,11 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Compares the current TimeUuid with another TimeUuid.
+        /// Compares the current TimeUuid with another TimeUuid based on the time representation of this instance.
         /// </summary>
         public int CompareTo(TimeUuid other)
         {
-            return _value.CompareTo(other._value);
+            return GetDate().CompareTo(other.GetDate());
         }
 
         /// <summary>

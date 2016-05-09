@@ -56,7 +56,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(id4, id4TimeId);
             Assert.AreEqual(id4.ToByteArray(), id4Id.ToByteArray());
         }
-
+        
         [Test]
         public void CheckCollisionsTest()
         {
@@ -105,18 +105,33 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void CheckComparison()
+        public void Compare_Test1()
         {
             var date = DateTimeOffset.UtcNow;
             var previousId = TimeUuid.NewId(date);
-
-            for (var i = 1; i < 50 * 1000; ++i)
+            for (var i = 1; i < 50 * 1000; i += 100)
             {
                 var id = TimeUuid.NewId(date.AddTicks(i));
-                Assert.That(id, Is.GreaterThan(previousId));
+                Assert.AreEqual(1, id.CompareTo(previousId), id.GetDate().Ticks + " greater than " + previousId.GetDate().Ticks + "?");
 
                 previousId = id;
             }
+        }
+
+        [Test]
+        public void Compare_Test2()
+        {
+            var dt0 = new DateTimeOffset(1582, 10, 15, 0, 0, 0, TimeSpan.Zero);
+            var arr = new []
+            {
+                TimeUuid.NewId(dt0.AddTicks(0x00000000007fffL)),
+                TimeUuid.NewId(dt0.AddTicks(0x00ff0000000000L)),
+                TimeUuid.NewId(dt0.AddTicks(0x07ff0000000000L)),
+                TimeUuid.NewId(dt0.AddTicks(0x07ff0000ff0000L))
+            };
+            var actual = (TimeUuid[])arr.Clone();
+            Array.Sort(actual);
+            CollectionAssert.AreEqual(arr, actual);
         }
     }
 }
