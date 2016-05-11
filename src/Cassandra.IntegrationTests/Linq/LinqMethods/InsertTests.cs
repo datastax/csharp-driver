@@ -90,6 +90,29 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             Assert.AreEqual(updatedMovie.MainActor, mainActor);
         }
 
+        /// <summary>
+        /// Testing the CQLGenerator insert query without null values.
+        /// Testing if the query has a correct number of placeholders in case of the first column value is null.
+        /// 
+        /// @jira CSHARP-451 https://datastax-oss.atlassian.net/browse/CSHARP-451
+        ///  
+        /// </summary>
+        [Test, TestCassandraVersion(2, 0)]
+        public void LinqInsert_WithNullInFirstColumnValue_Test()
+        {
+            Table<Movie> nerdMoviesTable = new Table<Movie>(_session, new MappingConfiguration());
+            Movie movie1 = Movie.GetRandomMovie();
+            movie1.MainActor = null; //Setting first column
+            nerdMoviesTable.Insert(movie1, false).Execute();
+
+            Movie updatedMovie = nerdMoviesTable
+                .Where(m => m.Title == movie1.Title && m.MovieMaker == movie1.MovieMaker)
+                .Execute()
+                .First();
+
+            Assert.IsNull(updatedMovie.MainActor);
+        }
+
         [Test, TestCassandraVersion(2, 0)]
         public void LinqInsert_Batch_MissingPartitionKeyPart_Test()
         {
