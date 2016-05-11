@@ -423,6 +423,42 @@ namespace Cassandra.IntegrationTests.Core
             ExceedingCassandraType(typeof(Single), typeof(Double), false);
         }
 
+        /// <summary>
+        /// Test the convertion of a decimal value ( with a negative scale) stored in a column.
+        /// 
+        /// @jira CSHARP-453 https://datastax-oss.atlassian.net/browse/CSHARP-453
+        /// 
+        /// </summary>
+        [Test]
+        public void DecimalWithNegativeScaleTest()
+        {
+            const string query = "CREATE TABLE decimal_neg_scale(id uuid PRIMARY KEY, value decimal);";
+            QueryTools.ExecuteSyncNonQuery(Session, query);
+
+            const string insertQuery = @"INSERT INTO decimal_neg_scale (id, value) VALUES (?, ?)";
+            var preparedStatement = Session.Prepare(insertQuery);
+
+            const int scale = -1;
+            var scaleBytes = BitConverter.GetBytes(scale);
+            if (BitConverter.IsLittleEndian)
+                Array.Reverse(scaleBytes);
+            var bytes = new byte[scaleBytes.Length + 1];
+            Array.Copy(scaleBytes, bytes, scaleBytes.Length);
+
+            bytes[scaleBytes.Length] = 5;
+
+            var firstRowValues = new object[] { Guid.NewGuid(), bytes };
+            Session.Execute(preparedStatement.Bind(firstRowValues));
+
+            var row = Session.Execute("SELECT * FROM decimal_neg_scale").First();
+            var decValue = row.GetValue<decimal>("value");
+            
+            Assert.AreEqual(50, decValue);
+
+            const string  dropQuery = "DROP TABLE decimal_neg_scale;";
+            QueryTools.ExecuteSyncNonQuery(Session, dropQuery);
+        }
+
         ////////////////////////////////////
         /// Test Helpers
         ////////////////////////////////////
