@@ -87,6 +87,43 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public void ComparisonTest()
+        {
+            var rowIdBefore = Guid.NewGuid();
+            var rowIdAfter = Guid.NewGuid();
+
+            var dt1 = new DateTime(2016, 1, 1, 4, 55, 00);
+            var dt2 = new DateTime(2016, 1, 1, 5, 55, 00);
+            var ctimes = dt1.CompareTo(dt2);
+            
+            //base check
+            Assert.That(ctimes < 0);
+
+            var timeuuidBefore = TimeUuid.NewId(dt1);
+            var timeuuidAfter = TimeUuid.NewId(dt2);
+
+            Session.Execute(_insertPrepared.Bind(rowIdBefore, timeuuidBefore));
+            Session.Execute(_insertPrepared.Bind(rowIdAfter, timeuuidAfter));
+
+            var cuuids = timeuuidBefore.CompareTo(timeuuidAfter);
+            Assert.That(cuuids < 0); //Double checking Timeuuid comparison
+
+            var row1 = Session.Execute(_selectPrepared.Bind(rowIdBefore)).FirstOrDefault();
+            Assert.NotNull(row1);
+            var row2 = Session.Execute(_selectPrepared.Bind(rowIdAfter)).FirstOrDefault();
+            Assert.NotNull(row2);
+
+            if (row1.GetColumn("timeuuid_date_value") != null
+                && row2.GetColumn("timeuuid_date_value") != null)
+            {
+                //checking the comparison of (de)serialized timeuuid timestamps
+                var ticks1 = row1.GetValue<DateTimeOffset>("timeuuid_date_value").Ticks;
+                var ticks2 = row2.GetValue<DateTimeOffset>("timeuuid_date_value").Ticks;
+                Assert.Greater(ticks2, ticks1);
+            }
+        }
+
+        [Test]
         public void SerializationTests()
         {
             //TimeUuid and Guid are valid values for a timeuuid column value
