@@ -4,7 +4,7 @@
 
 2016-05-12
 
-### Features
+### Bug Fixes
 
 - [CSHARP-447] - TimeUuid instances: Cannot order by underlying date
 - [CSHARP-448] - Support big-endian systems in TimeUuid struct
