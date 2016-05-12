@@ -1,5 +1,16 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.0.6
+
+2016-05-12
+
+### Features
+
+- [CSHARP-447] - TimeUuid instances: Cannot order by underlying date
+- [CSHARP-448] - Support big-endian systems in TimeUuid struct
+- [CSHARP-451] - Mapper: Invalid CQL if first pocoValue is null and a later value is not
+- [CSHARP-453] - Decimal serializer: support negative scale
+
 ## 3.0.5
 
 2016-04-20
