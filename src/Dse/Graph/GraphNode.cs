@@ -5,6 +5,7 @@ using System.Dynamic;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
+using Cassandra;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -97,17 +98,23 @@ namespace Dse.Graph
         /// <param name="propertyName">Name of the property.</param>
         public T Get<T>(string propertyName)
         {
-            var type = typeof(T);
-            var value = GetValue(propertyName, false);
-            if (value == null && default(T) != null)
+            return Get<T>(propertyName, false);
+        }
+
+        private T Get<T>(string propertyName, bool throwIfNotFound)
+        {
+            var value = GetPropertyValue(propertyName, throwIfNotFound);
+            if (value == null)
             {
-                throw new NullReferenceException(string.Format("Cannot convert null to {0} because it is a value type, try using Nullable<{0}>", type.Name));
+                if (default(T) != null)
+                {
+                    throw new NullReferenceException(string.Format(
+                        "Cannot convert null to {0} because it is a value type, try using Nullable<{0}>",
+                        typeof(T).Name));
+                }
+                return (T)(object)null;
             }
-            if (!(value is T))
-            {
-                value = Convert.ChangeType(value, typeof (T));
-            }
-            return (T)value;
+            return GetTokenValue<T>(value);
         }
 
         private string GetJson()
@@ -123,7 +130,7 @@ namespace Dse.Graph
             return json;
         }
 
-        private object GetValue(string name, bool throwIfNotFound)
+        private JToken GetPropertyValue(string name, bool throwIfNotFound)
         {
             if (!(_parsedGraphItem is JObject))
             {
@@ -143,16 +150,52 @@ namespace Dse.Graph
                 }
                 return null;
             }
-            var value = property.Value;
-            if (value == null)
-            {
-                return null;
-            }
-            return GetTokenValue(value);
+            return property.Value;
         }
 
         /// <summary>
-        /// Returns either an scalar value, a GraphNode or an Array of GraphNodes.
+        /// Returns either a scalar value or an array representing the token value, performing conversions when required.
+        /// </summary>
+        private T GetTokenValue<T>(JToken token)
+        {
+            var type = typeof (T);
+            if (token is JValue)
+            {
+                if (typeof (T) == typeof (TimeUuid))
+                {
+                    // TimeUuid is not Serializable but convertible from Uuid
+                    return (T)(object)(TimeUuid)token.ToObject<Guid>();
+                }
+                return token.ToObject<T>();
+            }
+            if (token is JObject)
+            {
+                // Only graph node and dynamic supported
+                if (type != typeof(GraphNode) && type != typeof(object))
+                {
+                    throw new InvalidCastException(string.Format("Can not convert from an object tree to {0}: {1}", 
+                        type.Name, token));
+                }
+                return (T) (object) new GraphNode(token);
+            }
+            if (token is JArray)
+            {
+                Type elementType = null;
+                if (type.IsArray)
+                {
+                    elementType = type.GetElementType();
+                }
+                else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof (IEnumerable<>))
+                {
+                    elementType = type.GetGenericArguments()[0];
+                }
+                return (T) (object) ToArray((JArray)token, elementType);
+            }
+            throw new NotSupportedException(string.Format("Token of type {0} is not supported", token.GetType()));
+        }
+
+        /// <summary>
+        /// Returns either a JSON supported scalar value, a GraphNode or an Array of GraphNodes.
         /// </summary>
         private object GetTokenValue(JToken token)
         {
@@ -189,7 +232,7 @@ namespace Dse.Graph
         /// </summary>
         public override bool TryGetMember(GetMemberBinder binder, out object result)
         {
-            result = GetValue(binder.Name, false);
+            result = GetTokenValue(GetPropertyValue(binder.Name, false));
             return true;
         }
 
@@ -267,12 +310,27 @@ namespace Dse.Graph
             return jsonValue.Value;
         }
 
-        private GraphNode[] ToArray(JArray jArray)
+        /// <summary>
+        /// Returns the representation of the <see cref="GraphNode"/> as an instance of type T.
+        /// </summary>
+        /// <typeparam name="T">The type to which the current instance is going to be converted to.</typeparam>
+        public T To<T>()
         {
-            var arr = new GraphNode[jArray.Count];
+            return GetTokenValue<T>(_parsedGraphItem);
+        }
+
+        private Array ToArray(JArray jArray, Type elementType = null)
+        {
+            if (elementType == null)
+            {
+                elementType = typeof (GraphNode);
+            }
+            var arr = Array.CreateInstance(elementType, jArray.Count);
+            var isGraphNode = elementType == typeof (GraphNode);
             for (var i = 0; i < arr.Length; i++)
             {
-                arr[i] = new GraphNode(jArray[i]);
+                var value = isGraphNode ? new GraphNode(jArray[i]) : jArray[i].ToObject(elementType);
+                arr.SetValue(value, i);
             }
             return arr;
         }
@@ -286,7 +344,7 @@ namespace Dse.Graph
             {
                 throw new InvalidOperationException(string.Format("Cannot convert to array from {0}", GetJson()));
             }
-            return ToArray(_parsedGraphItem as JArray);
+            return (GraphNode[])ToArray((JArray) _parsedGraphItem);
         }
 
         /// <summary>
@@ -326,13 +384,13 @@ namespace Dse.Graph
                 .Properties()
                 .ToDictionary(prop => prop.Name, prop => new GraphNode(prop.Value));
             return new Edge(
-                (GraphNode) GetValue("id", true),
-                GetValue("label", true).ToString(),
+                Get<GraphNode>("id", true),
+                Get<string>("label", true),
                 properties,
-                (GraphNode) GetValue("inV", true),
-                GetValue("inVLabel", true).ToString(),
-                (GraphNode) GetValue("outV", true),
-                GetValue("outVLabel", true).ToString());
+                Get<GraphNode>("inV", true),
+                Get<string>("inVLabel", true),
+                Get<GraphNode>("outV", true),
+                Get<string>("outVLabel", true));
         }
 
         /// <summary>
@@ -357,14 +415,14 @@ namespace Dse.Graph
                 throw new InvalidOperationException(string.Format("Cannot create an Path from {0}", _json));
             }
             ICollection<ICollection<string>> labels = null;
-            var labelsProp = (GraphNode[]) GetValue("labels", true);
+            var labelsProp = Get<GraphNode[]>("labels", true);
             if (labelsProp != null)
             {
                 labels = labelsProp
                     .Select(node => node.ToArray().Select(value => value.ToString()).ToArray())
                     .ToArray();
             }
-            return new Path(labels, (GraphNode[]) GetValue("objects", true));
+            return new Path(labels, Get<GraphNode[]>("objects", true));
         }
 
         /// <summary>
@@ -388,8 +446,8 @@ namespace Dse.Graph
                 .Properties()
                 .ToDictionary(prop => prop.Name, prop => new GraphNode(prop.Value));
             return new Vertex(
-                (GraphNode)GetValue("id", true),
-                GetValue("label", true).ToString(),
+                Get<GraphNode>("id", true),
+                Get<string>("label", true),
                 properties);
         }
 

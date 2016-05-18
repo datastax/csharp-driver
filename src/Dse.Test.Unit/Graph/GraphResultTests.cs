@@ -2,6 +2,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
+using Cassandra;
 using Dse.Graph;
 using Newtonsoft.Json;
 using NUnit.Framework;
@@ -51,6 +53,55 @@ namespace Dse.Test.Unit.Graph
             Assert.True(result.IsScalar);
             Assert.False(result.HasProperty("whatever"));
             Assert.Throws<InvalidOperationException>(() => result.GetProperties());
+        }
+
+        [Test]
+        public void Get_T_Should_Allow_Serializable_Types()
+        {
+            TestGet("{\"result\": {\"something\": 1.2 }}", "something", 1.2M);
+            TestGet("{\"result\": {\"something\": 12 }}", "something", 12);
+            TestGet("{\"result\": {\"something\": 12 }}", "something", 12L);
+            TestGet("{\"result\": {\"something\": 1.2 }}", "something", 1.2D);
+            TestGet("{\"result\": {\"something\": 1.2 }}", "something", 1.2F);
+            TestGet("{\"result\": {\"something\": 1.2 }}", "something", "1.2");
+            TestGet("{\"result\": {\"something\": \"123e4567-e89b-12d3-a456-426655440000\" }}", "something",
+                Guid.Parse("123e4567-e89b-12d3-a456-426655440000"));
+            TestGet("{\"result\": {\"something\": 12 }}", "something", BigInteger.Parse("12"));
+            TestGet("{\"result\": {\"something\": \"92d4a960-1cf3-11e6-9417-bd9ef43c1c95\" }}", "something",
+                (TimeUuid)Guid.Parse("92d4a960-1cf3-11e6-9417-bd9ef43c1c95"));
+            TestGet("{\"result\": {\"something\": [1, 2, 3] }}", "something", new[] { 1, 2, 3 });
+            TestGet<IEnumerable<int>>("{\"result\": {\"something\": [1, 2, 3] }}", "something", new[] { 1, 2, 3 });
+        }
+
+        [Test]
+        public void To_T_Should_Allow_Serializable_Types()
+        {
+            TestTo("{\"result\": 2.2}", 2.2M);
+            TestTo("{\"result\": 2.2}", 2.2D);
+            TestTo("{\"result\": 2.2}", 2.2F);
+            TestTo("{\"result\": 22}", 22);
+            TestTo("{\"result\": 22}", 22L);
+            TestTo("{\"result\": 22}", BigInteger.Parse("22"));
+            TestTo("{\"result\": 22}", "22");
+            TestTo("{\"result\": \"92d4a960-1cf3-11e6-9417-bd9ef43c1c95\"}", Guid.Parse("92d4a960-1cf3-11e6-9417-bd9ef43c1c95"));
+            TestTo("{\"result\": \"92d4a960-1cf3-11e6-9417-bd9ef43c1c95\"}", (TimeUuid)Guid.Parse("92d4a960-1cf3-11e6-9417-bd9ef43c1c95"));
+        }
+
+        private static void TestGet<T>(string json, string property, T expectedValue)
+        {
+            var result = new GraphNode(json);
+            if (expectedValue is IEnumerable)
+            {
+                CollectionAssert.AreEqual((IEnumerable)expectedValue, (IEnumerable)result.Get<T>(property));
+                return;
+            }
+            Assert.AreEqual(expectedValue, result.Get<T>(property));
+        }
+
+        private static void TestTo<T>(string json, T expectedValue)
+        {
+            var result = new GraphNode(json);
+            Assert.AreEqual(expectedValue, result.To<T>());
         }
 
         [Test]
