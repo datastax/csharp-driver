@@ -87,7 +87,10 @@ namespace Cassandra
                 }
                 else if(aggregateType.Name == "MapColumnInfo")
                 {
-                    throw new NotImplementedException();
+                    ColumnTypeCode keyType = ((MapColumnInfo)column.TypeInfo).KeyTypeCode;
+                    ColumnTypeCode valueType = ((MapColumnInfo)column.TypeInfo).ValueTypeCode;
+
+                    return string.Format("map<{0},{1}>", keyType.ToString().ToLower(), valueType.ToString().ToLower());
                 }
             }
 
