@@ -15,7 +15,7 @@ namespace Cassandra.IntegrationTests.Core
     {
         private ITestCluster _testCluster;
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void SetupFixture()
         {
             _testCluster = TestClusterManager.CreateNew();

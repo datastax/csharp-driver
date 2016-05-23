@@ -40,7 +40,7 @@ namespace Cassandra
         private static readonly Logger Logger = new Logger(typeof(Connection));
         private readonly Serializer _serializer;
         private readonly TcpSocket _tcpSocket;
-        private int _disposed;
+        private long _disposed;
         /// <summary>
         /// Determines that the connection canceled pending operations.
         /// It could be because its being closed or there was a socket error.
@@ -49,7 +49,7 @@ namespace Cassandra
         private readonly object _cancelLock = new object();
         private readonly Timer _idleTimer;
         private AutoResetEvent _pendingWaitHandle;
-        private int _timedOutOperations;
+        private long _timedOutOperations;
         /// <summary>
         /// Stores the available stream ids.
         /// </summary>
@@ -69,7 +69,7 @@ namespace Cassandra
         private volatile byte _frameHeaderSize;
         private MemoryStream _readStream;
         private int _isWriteQueueRuning;
-        private int _inFlight;
+        private long _inFlight;
         /// <summary>
         /// The event that represents a event RESPONSE from a Cassandra node
         /// </summary>
@@ -97,7 +97,7 @@ namespace Cassandra
         /// </summary>
         public virtual int InFlight
         { 
-            get { return Thread.VolatileRead(ref _inFlight); }
+            get { return (int)Interlocked.Read(ref _inFlight); }
         }
 
         /// <summary>
@@ -105,7 +105,7 @@ namespace Cassandra
         /// </summary>
         public virtual int TimedOutOperations
         {
-            get { return Thread.VolatileRead(ref _timedOutOperations); }
+            get { return (int)Interlocked.Read(ref _timedOutOperations); }
         }
 
         /// <summary>
@@ -122,7 +122,7 @@ namespace Cassandra
         /// </summary>
         public bool IsDisposed
         {
-            get { return Thread.VolatileRead(ref _disposed) > 0; }
+            get { return Interlocked.Read(ref _disposed) > 0L; }
         }
 
         /// <summary>
@@ -268,7 +268,7 @@ namespace Cassandra
             lock (_cancelLock)
             {
                 _isCanceled = true;
-                Logger.Info("Canceling pending operations {0} and write queue {1}", Thread.VolatileRead(ref _inFlight), _writeQueue.Count);
+                Logger.Info("Canceling pending operations {0} and write queue {1}", Interlocked.Read(ref _inFlight), _writeQueue.Count);
                 if (socketError != null)
                 {
                     Logger.Verbose("The socket status received was {0}", socketError.Value);
@@ -326,7 +326,7 @@ namespace Cassandra
             var readStream = Interlocked.Exchange(ref _readStream, null);
             if (readStream != null)
             {
-                readStream.Close();
+                readStream.Dispose();
             }
         }
 
@@ -399,7 +399,11 @@ namespace Cassandra
             }
             else if (Options.Compression == CompressionType.LZ4)
             {
+#if !NETCORE
                 Compressor = new LZ4Compressor();
+#else
+                return TaskHelper.FromException<Response>(new NotSupportedException("Lz4 compression not supported under .NETCore"));
+#endif
             }
             else if (Options.Compression == CompressionType.Snappy)
             {

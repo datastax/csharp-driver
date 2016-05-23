@@ -36,6 +36,7 @@ namespace Cassandra.Tests
             Assert.IsNotNull(target.SyncRoot);
             Assert.AreEqual(target.SyncRoot, target.SyncRoot);
 
+#if !NETCORE
             // test IsFixedSize
             Assert.IsFalse(target.IsFixedSize);
 
@@ -44,7 +45,7 @@ namespace Cassandra.Tests
 
             // test IsSynchronized
             Assert.IsFalse(target.IsSynchronized);
-
+#endif
             // test Add()
             var p2Index = target.Add(new CqlParameter("p2"));
             Assert.AreEqual(2, target.Count);

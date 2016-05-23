@@ -15,7 +15,7 @@
 //
 
 //based on http://www.pinvoke.net/default.aspx/secur32.initializesecuritycontext
-
+#if !NETCORE
 using System;
 using System.Net;
 
@@ -219,3 +219,4 @@ namespace SSPI
         }
     }
 }
+#endif

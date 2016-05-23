@@ -21,6 +21,8 @@ Thumbs.db
 *.cache
 *.ilk
 *.log
+*.lock.json
+.vs/
 [Bb]in
 [Dd]ebug*/
 *.lib

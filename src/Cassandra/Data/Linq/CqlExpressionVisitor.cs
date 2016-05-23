@@ -521,9 +521,9 @@ namespace Cassandra.Data.Linq
         private Expression EvaluateConditionFunction(MethodCallExpression node)
         {
             var methodName = node.Method.Name;
-            if (node.Method.ReflectedType != null)
+            if (node.Method.DeclaringType != null)
             {
-                if (node.Method.ReflectedType == typeof(CqlToken))
+                if (node.Method.DeclaringType == typeof(CqlToken))
                 {
                     methodName = "CqlToken";
                 }
@@ -666,7 +666,7 @@ namespace Cassandra.Data.Linq
 
         private static Expression DropNullableConversion(Expression node)
         {
-            if (node is UnaryExpression && node.NodeType == ExpressionType.Convert && node.Type.IsGenericType &&
+            if (node is UnaryExpression && node.NodeType == ExpressionType.Convert && node.Type.GetTypeInfo().IsGenericType &&
                 String.Compare(node.Type.Name, "Nullable`1", StringComparison.Ordinal) == 0)
             {
                 return (node as UnaryExpression).Operand;

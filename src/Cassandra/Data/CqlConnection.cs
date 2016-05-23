@@ -13,7 +13,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+
+using System;
 ﻿using System.Collections.Concurrent;
 ﻿using System.Data;
 using System.Data.Common;
@@ -24,7 +25,10 @@ namespace Cassandra.Data
     /// Represents a CQL connection.
     /// </summary>
     /// <inheritdoc />
-    public class CqlConnection : DbConnection, ICloneable
+    public class CqlConnection : DbConnection
+#if !NETCORE
+        , ICloneable 
+#endif
     {
         private CassandraConnectionStringBuilder _connectionStringBuilder;
         private readonly static ConcurrentDictionary<string, Cluster> _clusters = new ConcurrentDictionary<string, Cluster>();
@@ -128,7 +132,9 @@ namespace Cassandra.Data
             get { return ManagedConnection == null ? null : ManagedConnection.Keyspace; }
         }
 
+#if !NETCORE
         protected override DbProviderFactory DbProviderFactory { get { return CqlProviderFactory.Instance; } }
+#endif
 
         /// <inheritdoc />
         public override void Open()
@@ -223,7 +229,7 @@ namespace Cassandra.Data
         public object Clone()
         {
             var conn = new CqlConnection(_connectionStringBuilder.ConnectionString);
-            if (State != System.Data.ConnectionState.Closed && State != System.Data.ConnectionState.Broken)
+            if (State != ConnectionState.Closed && State != ConnectionState.Broken)
                 conn.Open();
             return conn;
         }

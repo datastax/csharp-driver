@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace Cassandra.Tests.Mapping.TestData
 {
@@ -77,7 +78,7 @@ namespace Cassandra.Tests.Mapping.TestData
 
         public static bool IsNullableType(Type t)
         {
-            return t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>);
+            return t.GetTypeInfo().IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>);
         }
     }
 }

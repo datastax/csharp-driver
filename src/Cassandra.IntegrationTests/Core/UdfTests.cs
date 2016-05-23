@@ -23,7 +23,7 @@ namespace Cassandra.IntegrationTests.Core
             return cluster;
         }
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void TestFixtureSetup()
         {
             if (CassandraVersion < Version.Parse("2.2"))

@@ -13,7 +13,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short"), Timeout(60000)]
+    [TestFixture, Category("short"), TestTimeout(60000)]
     public class SpeculativeExecutionShortTests : SharedClusterTest
     {
         private const string QueryLocal = "SELECT key FROM system.local";
@@ -60,19 +60,19 @@ namespace Cassandra.IntegrationTests.Core
             TestCluster.ResumeNode(2);
         }
 
-        protected override void TestFixtureSetUp()
+        public override void OneTimeSetUp()
         {
-            base.TestFixtureSetUp();
+            base.OneTimeSetUp();
             _addressNode2 = IPAddress.Parse(TestCluster.ClusterIpPrefix + "2");
         }
 
-        protected override void TestFixtureTearDown()
+        public override void OneTimeTearDown()
         {
             foreach (var c in _clusters)
             {
                 c.Dispose();
             }
-            base.TestFixtureTearDown();
+            base.OneTimeTearDown();
         }
 
         [Test]
@@ -176,7 +176,7 @@ namespace Cassandra.IntegrationTests.Core
 
             public int HostYielded
             {
-                get { return Thread.VolatileRead(ref _hostYielded); }
+                get { return Volatile.Read(ref _hostYielded); }
             }
 
             public OrderedLoadBalancingPolicy(params int[] lastOctets)
