@@ -33,8 +33,8 @@ namespace Cassandra.IntegrationTests.Core
         Builder _builder;
         private const int NodeCount = 2;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             var rp = new RetryLoadBalancingPolicy(new RoundRobinPolicy(), new ConstantReconnectionPolicy(100));
             rp.ReconnectionEvent += (s, ev) => Thread.Sleep((int)ev.DelayMs);

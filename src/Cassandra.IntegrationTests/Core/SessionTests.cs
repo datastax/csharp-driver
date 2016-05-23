@@ -330,7 +330,7 @@ namespace Cassandra.IntegrationTests.Core
             cluster.Dispose();
         }
 
-        [Test, RequiresSTA]
+        [Test, Apartment(ApartmentState.STA)]
         public void Session_Connect_And_ShutDown_SupportsSTA()
         {
             Assert.DoesNotThrow(() =>

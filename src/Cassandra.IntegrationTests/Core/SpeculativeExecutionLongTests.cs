@@ -57,7 +57,7 @@ namespace Cassandra.IntegrationTests.Core
             _testCluster = null;
         }
 
-        [TestFixtureTearDown]
+        [OneTimeTearDown]
         public void TestFixtureTearDown()
         {
             foreach (var c in _clusters)

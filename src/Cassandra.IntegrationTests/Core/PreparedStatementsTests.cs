@@ -40,9 +40,9 @@ namespace Cassandra.IntegrationTests.Core
             //A 3 node cluster
         }
 
-        protected override void TestFixtureSetUp()
+        protected override void OneTimeSetUp()
         {
-            base.TestFixtureSetUp();
+            base.OneTimeSetUp();
             Session.WaitForSchemaAgreement(Session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)));
         }
 

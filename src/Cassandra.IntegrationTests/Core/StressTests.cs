@@ -32,8 +32,8 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture, Category("long")]
     public class StressTests : TestGlobals
     {
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
             //For different threads

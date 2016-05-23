@@ -34,9 +34,9 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         ISession _session;
         private string _uniqueKsName;
 
-        protected override void TestFixtureSetUp()
+        protected override void OneTimeSetUp()
         {
-            base.TestFixtureSetUp();
+            base.OneTimeSetUp();
             _session = Session;
         }
 

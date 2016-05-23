@@ -27,9 +27,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             return new Table<Song>(_session, _mappingConfig, _tableName, _keyspace);
         }
 
-        protected override void TestFixtureSetUp()
+        protected override void OneTimeSetUp()
         {
-            base.TestFixtureSetUp();
+            base.OneTimeSetUp();
             _session = Session;
             _session.CreateKeyspace(_keyspace);
             var table = GetTable();

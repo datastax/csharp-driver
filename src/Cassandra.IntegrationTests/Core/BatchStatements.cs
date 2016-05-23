@@ -33,9 +33,9 @@ namespace Cassandra.IntegrationTests.Core
             
         }
 
-        protected override void TestFixtureSetUp()
+        protected override void OneTimeSetUp()
         {
-            base.TestFixtureSetUp();
+            base.OneTimeSetUp();
             CreateTable(_tableName);
             Thread.Sleep(2000);
         }

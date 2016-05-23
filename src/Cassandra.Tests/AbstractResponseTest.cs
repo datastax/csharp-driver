@@ -26,10 +26,10 @@ namespace Cassandra.Tests
     public class AbstractResponseTest
     {
         [Test]
-        [ExpectedException(typeof(ArgumentNullException))]
         public void Ctor_Null_Throws()
         {
-            new Response(null);
+            // ReSharper disable once ObjectCreationAsStatement
+            Assert.Throws<ArgumentNullException>(() => new Response(null));
         }
 
         [Test]

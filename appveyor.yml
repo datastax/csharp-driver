@@ -13,7 +13,7 @@ platform:
 configuration:
   - Release
 environment:
-  NUNIT_PATH: nunit-console
+  NUNIT_PATH: nunit3-console
   matrix:
     - CASSANDRA_VERSION: 3.7
 

@@ -23,9 +23,9 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         string _uniqueKsName;
         private const string IgnoredStringAttribute = "ignoredstringattribute";
 
-        protected override void TestFixtureSetUp()
+        protected override void OneTimeSetUp()
         {
-            base.TestFixtureSetUp();
+            base.OneTimeSetUp();
             _session = Session;
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(_uniqueKsName);

@@ -40,7 +40,7 @@ namespace Cassandra.IntegrationTests.Core
     [Timeout(600000), Category("short")]
     public class ConnectionTests : TestGlobals
     {
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void SetupFixture()
         {
             // we just need to make sure that there is a query-able cluster
@@ -344,7 +344,7 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.IsInstanceOf<SchemaChangeEventArgs>(eventArgs);
                 Assert.AreEqual(SchemaChangeEventArgs.Reason.Created, (eventArgs as SchemaChangeEventArgs).What);
                 Assert.AreEqual("test_events_kp", (eventArgs as SchemaChangeEventArgs).Keyspace);
-                Assert.IsNullOrEmpty((eventArgs as SchemaChangeEventArgs).Table);
+                Assert.That((eventArgs as SchemaChangeEventArgs).Table, Is.Null.Or.Empty);
 
                 //create a table and check if gets received as an event
                 Query(connection, String.Format(TestUtils.CreateTableAllTypes, "test_events_kp.test_table", 1)).Wait(1000);

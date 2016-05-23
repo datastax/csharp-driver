@@ -27,12 +27,12 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short")]
     public class UdtMappingsTests : SharedClusterTest
     {
-        protected override void TestFixtureSetUp()
+        protected override void OneTimeSetUp()
         {
             if (CassandraVersion < Version.Parse("2.1.0"))
                 Assert.Ignore("Requires Cassandra version >= 2.1");
 
-            base.TestFixtureSetUp();
+            base.OneTimeSetUp();
 
             const string cqlType1 = "CREATE TYPE phone (alias text, number text, country_code int)";
             const string cqlType2 = "CREATE TYPE contact (first_name text, last_name text, birth_date timestamp, phones set<frozen<phone>>, emails set<text>)";

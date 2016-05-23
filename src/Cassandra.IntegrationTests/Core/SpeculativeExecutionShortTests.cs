@@ -60,9 +60,9 @@ namespace Cassandra.IntegrationTests.Core
             TestCluster.ResumeNode(2);
         }
 
-        protected override void TestFixtureSetUp()
+        protected override void OneTimeSetUp()
         {
-            base.TestFixtureSetUp();
+            base.OneTimeSetUp();
             _addressNode2 = IPAddress.Parse(TestCluster.ClusterIpPrefix + "2");
         }
 

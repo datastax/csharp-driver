@@ -27,9 +27,9 @@ namespace Cassandra.IntegrationTests.Data
     {
         private CqlConnection _connection;
 
-        protected override void TestFixtureSetUp()
+        protected override void OneTimeSetUp()
         {
-            base.TestFixtureSetUp();
+            base.OneTimeSetUp();
             var cb = new CassandraConnectionStringBuilder
             {
                 ContactPoints = new[] { TestCluster.InitialContactPoint }, 

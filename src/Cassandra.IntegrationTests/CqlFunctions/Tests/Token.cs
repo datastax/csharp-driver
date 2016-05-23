@@ -19,9 +19,9 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
         private Table<EntityWithTimeUuid> _tableEntityWithTimeUuid;
         private Table<EntityWithNullableTimeUuid> _tableEntityWithNullableTimeUuid;
 
-        protected override void TestFixtureSetUp()
+        protected override void OneTimeSetUp()
         {
-            base.TestFixtureSetUp();
+            base.OneTimeSetUp();
             _session = Session;
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);

@@ -22,8 +22,6 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using Cassandra.IntegrationTests.TestClusterManagement;
-using CommandLine;
-using CommandLine.Text;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.TestBase
@@ -72,46 +70,25 @@ namespace Cassandra.IntegrationTests.TestBase
             }
             return protocolVersion;
         }
-
-        [Option("use-ctool",
-            HelpText = "Pass in 'true' for this value to use ctool instead of ccm (default)", DefaultValue = false, Required = true)]
+        
         public bool UseCtool { get; set; }
-
-        [Option('i', "ip-prefix",
-            HelpText = "CCM Ip prefix", DefaultValue = DefaultLocalIpPrefix)]
+        
         public string DefaultIpPrefix { get; set; }
-
-        [Option("logger",
-            HelpText = "Use Logger", DefaultValue = false)]
+        
         public bool UseLogger { get; set; }
-
-        [Option("log-level",
-            HelpText = "Log Level", DefaultValue = "Trace")]
+        
         public string LogLevel { get; set; }
-
-        [Option('h', "ssh-host",
-            HelpText = "CCM SSH host", DefaultValue = DefaultInitialContactPoint)]
+        
         public string SSHHost { get; set; }
-
-        [Option('t', "ssh-port",
-            HelpText = "CCM SSH port", DefaultValue = 22)]
+        
         public int SSHPort { get; set; }
-
-        [Option('u', "ssh-user", Required = true,
-            HelpText = "CCM SSH user")]
+        
         public string SSHUser { get; set; }
-
-        [Option('p', "ssh-password", Required = true,
-            HelpText = "CCM SSH password")]
+        
         public string SSHPassword { get; set; }
-
-        //test configuration
-        [Option("compression",
-            HelpText = "Use Compression", DefaultValue = false)]
+        
         public bool UseCompression { get; set; }
-
-        [Option("nobuffering",
-            HelpText = "No Buffering", DefaultValue = false)]
+        
         public bool NoUseBuffering { get; set; }
 
         public TestGlobals()
@@ -133,13 +110,6 @@ namespace Cassandra.IntegrationTests.TestBase
                 SSHUser = ConfigurationManager.AppSettings["SSHUser"] ?? this.SSHUser;
             }
 
-        }
-
-        [HelpOption]
-        public string GetUsage()
-        {
-            return HelpText.AutoBuild(this,
-                                      (HelpText current) => HelpText.DefaultParsingErrorsHandler(this, current));
         }
 
         public TestClusterManager TestClusterManager

@@ -36,14 +36,14 @@ namespace Cassandra.IntegrationTests.Core
     {
         protected TraceLevel OriginalTraceLevel;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             OriginalTraceLevel = Diagnostics.CassandraTraceSwitch.Level;
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
         }
 
-        [TestFixtureTearDown]
+        [OneTimeTearDown]
         public void TestFixtureTearDown()
         {
             Diagnostics.CassandraTraceSwitch.Level = OriginalTraceLevel;

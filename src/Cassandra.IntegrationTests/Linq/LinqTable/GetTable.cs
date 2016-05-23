@@ -18,9 +18,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
     {
         string _uniqueKsName;
 
-        protected override void TestFixtureSetUp()
+        protected override void OneTimeSetUp()
         {
-            base.TestFixtureSetUp();
+            base.OneTimeSetUp();
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             Session.CreateKeyspace(_uniqueKsName);
             TestUtils.WaitForSchemaAgreement(Session.Cluster);

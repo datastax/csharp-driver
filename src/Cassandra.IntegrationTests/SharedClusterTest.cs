@@ -69,8 +69,8 @@ namespace Cassandra.IntegrationTests
             CreateSession = createSession;
         }
 
-        [TestFixtureSetUp]
-        protected virtual void TestFixtureSetUp()
+        [OneTimeSetUp]
+        protected virtual void OneTimeSetUp()
         {
             if (_reuse && _reusableInstance != null && ReferenceEquals(_reusableInstance, TestClusterManager.LastInstance))
             {
@@ -108,7 +108,7 @@ namespace Cassandra.IntegrationTests
             }
         }
 
-        [TestFixtureTearDown]
+        [OneTimeTearDown]
         protected virtual void TestFixtureTearDown()
         {
             if (Cluster != null)

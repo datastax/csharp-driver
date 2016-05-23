@@ -22,12 +22,12 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             return new Table<Album>(_session, new MappingConfiguration().Define(new Map<Album>().TableName("albums")));
         }
 
-        protected override void TestFixtureSetUp()
+        protected override void OneTimeSetUp()
         {
             if (CassandraVersion < Version.Parse("2.1.0"))
                 Assert.Ignore("Requires Cassandra version >= 2.1");
             
-            base.TestFixtureSetUp();
+            base.OneTimeSetUp();
             _session = Session;
 
             _session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, _uniqueKeyspaceName, 1));

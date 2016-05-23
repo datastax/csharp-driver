@@ -19,9 +19,9 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         private Table<Movie> _movieTable;
         private Mapper _mapper;
 
-        protected override void TestFixtureSetUp()
+        protected override void OneTimeSetUp()
         {
-            base.TestFixtureSetUp();
+            base.OneTimeSetUp();
             _session = Session;
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
