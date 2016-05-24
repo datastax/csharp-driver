@@ -120,6 +120,7 @@
     <Compile Include="Mapping\UpdateTests.cs" />
     <Compile Include="ObsoletedMemberTests.cs" />
     <Compile Include="PoliciesUnitTests.cs" />
+    <Compile Include="PoolingOptionsTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RequestHandlerTests.cs" />
     <Compile Include="ResponseFrameTest.cs" />

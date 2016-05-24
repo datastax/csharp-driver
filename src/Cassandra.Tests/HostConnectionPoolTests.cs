@@ -48,7 +48,7 @@ namespace Cassandra.Tests
 
         private static Configuration GetConfig(int coreConnections = 3, int maxConnections = 8)
         {
-            var pooling = new PoolingOptions()
+            var pooling = PoolingOptions.DefaultOptions(Version.Parse("2.0"))
                 .SetCoreConnectionsPerHost(HostDistance.Local, coreConnections)
                 .SetMaxConnectionsPerHost(HostDistance.Local, maxConnections);
             var config = new Configuration(Policies.DefaultPolicies,

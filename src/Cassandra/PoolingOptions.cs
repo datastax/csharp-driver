@@ -81,6 +81,17 @@ namespace Cassandra
         private int _minSimultaneousRequestsForRemote = DefaultMinRequests;
         private int _heartBeatInterval = DefaultHeartBeatInterval;
 
+        private static readonly Func<PoolingOptions> _preV3ProtocolSettings = () => new PoolingOptions();
+
+        private static readonly Func<PoolingOptions> _protocolV3AndHigherSettings = () => new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 1)
+                                                                                                              .SetMaxConnectionsPerHost(HostDistance.Local, 2)
+                                                                                                              .SetMaxConnectionsPerHost(HostDistance.Remote, 1)
+                                                                                                              .SetMaxConnectionsPerHost(HostDistance.Remote, 1)
+                                                                                                              .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 1500)
+                                                                                                              .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Remote, 1500);
+
+        private PoolingOptions() { }
+
         /// <summary>
         ///  Number of simultaneous requests on a connection below which connections in
         ///  excess are reclaimed. <p> If an opened connection to an host at distance
@@ -305,6 +316,21 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Gets the default PoolingOptions depending on Cassandra version.
+        /// Not specifying a version will return the settings corresponding to
+        /// the most recent version of Cassandra.
+        /// </summary>
+        /// <param name="cassandraVersion">Cassandra version of the server we will connect to.</param>
+        /// <returns>Pooling settings corresponding to the given Cassandra version.</returns>
+        public static PoolingOptions DefaultOptions(Version cassandraVersion = null)
+        {
+            if (cassandraVersion == null || cassandraVersion >= Version.Parse("2.1"))
+                return _protocolV3AndHigherSettings();
+
+            return _preV3ProtocolSettings();
+        }
+
+        /// <summary>
         /// Gets the default protocol options by protocol version
         /// </summary>
         internal static PoolingOptions GetDefault(byte protocolVersion)
@@ -312,16 +338,10 @@ namespace Cassandra
             if (protocolVersion < 3)
             {
                 //New instance of pooling options with default values
-                return new PoolingOptions();
+                return _preV3ProtocolSettings();
             }
             //New instance of pooling options with default values for high number of concurrent requests
-            return new PoolingOptions()
-                .SetCoreConnectionsPerHost(HostDistance.Local, 1)
-                .SetMaxConnectionsPerHost(HostDistance.Local, 2)
-                .SetMaxConnectionsPerHost(HostDistance.Remote, 1)
-                .SetMaxConnectionsPerHost(HostDistance.Remote, 1)
-                .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 1500)
-                .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Remote, 1500);
+            return _protocolV3AndHigherSettings();
         }
     }
 }
