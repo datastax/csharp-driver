@@ -212,6 +212,13 @@ namespace Cassandra
                 {
                     t.Exception.Handle(e => true);
                     ex = t.Exception.InnerException;
+                    //This makes sure that the exception is observed, but still sets _creationTcs' exception
+                    //for MaybeCreateFirstConnection
+                    tcs.Task.ContinueWith(x =>
+                    {
+                        if (x.Exception != null)
+                            x.Exception.Handle(_ => true);
+                    });
                 }
                 TransitionCreationTask(tcs, EmptyConnectionsArray, ex);
                 _host.SetDown(failedReconnection: true);
