@@ -242,7 +242,11 @@ namespace Cassandra
                 var remoteHosts = new List<Host>();
 
                 //Do not reorder instructions, the host list must be up to date now, not earlier
+#if !NETCORE
                 Thread.MemoryBarrier();
+#else
+                Interlocked.MemoryBarrier();
+#endif
                 //shallow copy the nodes
                 var allNodes = _cluster.AllHosts().ToArray();
 

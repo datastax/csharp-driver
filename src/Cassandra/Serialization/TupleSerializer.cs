@@ -76,12 +76,12 @@ namespace Cassandra.Serialization
         public override byte[] Serialize(ushort protocolVersion, IStructuralEquatable value)
         {
             var tupleType = value.GetType();
-            var subtypes = tupleType.GetGenericArguments();
+            var subtypes = tupleType.GetGenericArgumentsLocal();
             var bufferList = new List<byte[]>();
             var bufferLength = 0;
             for (var i = 1; i <= subtypes.Length; i++)
             {
-                var prop = tupleType.GetProperty("Item" + i);
+                var prop = tupleType.GetPropertyLocal("Item" + i);
                 if (prop != null)
                 {
                     var buffer = SerializeChild(prop.GetValue(value, null));

@@ -283,7 +283,7 @@ namespace Cassandra.Requests
                 case RetryDecision.RetryDecisionType.Ignore:
                     //The error was ignored by the RetryPolicy
                     //Try to give a decent response
-                    if (typeof(T).IsAssignableFrom(typeof(RowSet)))
+                    if (typeof(T).IsAssignableFromLocal(typeof(RowSet)))
                     {
                         var rs = new RowSet();
                         _parent.SetCompleted(null, FillRowSet(rs, null));

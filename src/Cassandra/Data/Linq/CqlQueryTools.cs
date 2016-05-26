@@ -112,64 +112,6 @@ namespace Cassandra.Data.Linq
             return stringBuilder.ToString();
         }
 
-
-        public static string Encode(this object obj)
-        {
-            if (obj is string) return Encode(obj as string);
-            else if (obj is Boolean) return Encode((Boolean) obj);
-            else if (obj is byte[]) return Encode((byte[]) obj);
-            else if (obj is Double) return Encode((Double) obj);
-            else if (obj is Single) return Encode((Single) obj);
-            else if (obj is Decimal) return Encode((Decimal) obj);
-            else if (obj is DateTimeOffset) return Encode((DateTimeOffset) obj);
-                // need to treat "Unspecified" as UTC (+0) not the default behavior of DateTimeOffset which treats as Local Timezone
-                // because we are about to do math against EPOCH which must align with UTC. 
-                // If we don't, then the value saved will be shifted by the local timezone when retrieved back out as DateTime.
-            else if (obj is DateTime)
-                return Encode(((DateTime) obj).Kind == DateTimeKind.Unspecified
-                                  ? new DateTimeOffset((DateTime) obj, TimeSpan.Zero)
-                                  : new DateTimeOffset((DateTime) obj));
-            else if (obj.GetType().IsGenericType)
-            {
-                if (obj.GetType().GetInterface("ISet`1") != null)
-                {
-                    var sb = new StringBuilder();
-                    foreach (object el in (IEnumerable) obj)
-                    {
-                        if (sb.ToString() != "")
-                            sb.Append(", ");
-                        sb.Append(el.Encode());
-                    }
-                    return "{" + sb.ToString() + "}";
-                }
-                else if (obj.GetType().GetInterface("IDictionary`2") != null)
-                {
-                    var sb = new StringBuilder();
-                    IDictionaryEnumerator enn = ((IDictionary) obj).GetEnumerator();
-                    while (enn.MoveNext())
-                    {
-                        if (sb.ToString() != "")
-                            sb.Append(", ");
-                        sb.Append(enn.Key.Encode() + ":" + enn.Value.Encode());
-                    }
-                    return "{" + sb.ToString() + "}";
-                }
-                else if (obj.GetType().GetInterface("IEnumerable`1") != null)
-                {
-                    var sb = new StringBuilder();
-                    foreach (object el in (IEnumerable) obj)
-                    {
-                        if (sb.ToString() != "")
-                            sb.Append(", ");
-                        sb.Append(el.Encode());
-                    }
-                    return "[" + sb.ToString() + "]";
-                }
-            }
-            return obj.ToString();
-        }
-
-
         public static string Encode(string str)
         {
             return '\'' + str.Replace("\'", "\'\'") + '\'';
@@ -214,24 +156,24 @@ namespace Cassandra.Data.Linq
                 return CQLTypeNames[tpy];
             else
             {
-                if (tpy.IsGenericType)
+                if (tpy.IsGenericTypeLocal())
                 {
                     if (tpy.Name.Equals("Nullable`1"))
                     {
-                        return GetCqlTypeFromType(tpy.GetGenericArguments()[0]);
+                        return GetCqlTypeFromType(tpy.GetTypeInfo().GetGenericArguments()[0]);
                     }
-                    else if (tpy.GetInterface("ISet`1") != null)
+                    else if (tpy.GetInterfaceLocal("ISet`1") != null)
                     {
-                        return "set<" + GetCqlTypeFromType(tpy.GetGenericArguments()[0]) + ">";
+                        return "set<" + GetCqlTypeFromType(tpy.GetTypeInfo().GetGenericArguments()[0]) + ">";
                     }
-                    else if (tpy.GetInterface("IDictionary`2") != null)
+                    else if (tpy.GetInterfaceLocal("IDictionary`2") != null)
                     {
-                        return "map<" + GetCqlTypeFromType(tpy.GetGenericArguments()[0]) + ", " + GetCqlTypeFromType(tpy.GetGenericArguments()[1]) +
+                        return "map<" + GetCqlTypeFromType(tpy.GetTypeInfo().GetGenericArguments()[0]) + ", " + GetCqlTypeFromType(tpy.GetTypeInfo().GetGenericArguments()[1]) +
                                ">";
                     }
-                    else if (tpy.GetInterface("IEnumerable`1") != null)
+                    else if (tpy.GetInterfaceLocal("IEnumerable`1") != null)
                     {
-                        return "list<" + GetCqlTypeFromType(tpy.GetGenericArguments()[0]) + ">";
+                        return "list<" + GetCqlTypeFromType(tpy.GetTypeInfo().GetGenericArguments()[0]) + ">";
                     }
                 }
                 else if (tpy.Name == "BigDecimal")

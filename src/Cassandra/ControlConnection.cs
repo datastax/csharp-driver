@@ -44,7 +44,7 @@ namespace Cassandra
         private readonly IReconnectionPolicy _reconnectionPolicy;
         private IReconnectionSchedule _reconnectionSchedule;
         private readonly Timer _reconnectionTimer;
-        private int _isShutdown;
+        private long _isShutdown;
         private int _refreshCounter;
         private Task<bool> _reconnectTask;
         private readonly Serializer _serializer;
@@ -199,7 +199,7 @@ namespace Cassandra
             Unsubscribe();
             Connect(false).ContinueWith(t =>
             {
-                if (Thread.VolatileRead(ref _isShutdown) > 0)
+                if (Interlocked.Read(ref _isShutdown) > 0L)
                 {
                     if (t.Exception != null)
                     {
@@ -216,7 +216,7 @@ namespace Cassandra
                     _logger.Error("ControlConnection was not able to reconnect: " + t.Exception.InnerException);
                     try
                     {
-                        _reconnectionTimer.Change(delay, Timeout.Infinite);
+                        _reconnectionTimer.Change((int)delay, Timeout.Infinite);
                     }
                     catch (ObjectDisposedException)
                     {
@@ -240,7 +240,7 @@ namespace Cassandra
                     tcs.TrySetException(ex);
                     try
                     {
-                        _reconnectionTimer.Change(_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);   
+                        _reconnectionTimer.Change((int)_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);   
                     }
                     catch (ObjectDisposedException)
                     {

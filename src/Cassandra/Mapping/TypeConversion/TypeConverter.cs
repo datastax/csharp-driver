@@ -17,17 +17,17 @@ namespace Cassandra.Mapping.TypeConversion
         private const BindingFlags PrivateStatic = BindingFlags.NonPublic | BindingFlags.Static;
         private const BindingFlags PrivateInstance = BindingFlags.NonPublic | BindingFlags.Instance;
 
-        private static readonly MethodInfo FindFromDbConverterMethod = typeof (TypeConverter).GetMethod("FindFromDbConverter", PrivateInstance);
+        private static readonly MethodInfo FindFromDbConverterMethod = typeof (TypeConverter).GetTypeInfo().GetMethod("FindFromDbConverter", PrivateInstance);
 
-        private static readonly MethodInfo FindToDbConverterMethod = typeof (TypeConverter).GetMethod("FindToDbConverter", PrivateInstance);
+        private static readonly MethodInfo FindToDbConverterMethod = typeof (TypeConverter).GetTypeInfo().GetMethod("FindToDbConverter", PrivateInstance);
 
-        private static readonly MethodInfo ConvertToDictionaryMethod = typeof (TypeConverter).GetMethod("ConvertToDictionary", PrivateStatic);
+        private static readonly MethodInfo ConvertToDictionaryMethod = typeof (TypeConverter).GetTypeInfo().GetMethod("ConvertToDictionary", PrivateStatic);
 
-        private static readonly MethodInfo ConvertToHashSetMethod = typeof(TypeConverter).GetMethod("ConvertToHashSet", PrivateStatic);
+        private static readonly MethodInfo ConvertToHashSetMethod = typeof(TypeConverter).GetTypeInfo().GetMethod("ConvertToHashSet", PrivateStatic);
 
-        private static readonly MethodInfo ConvertToSortedSetMethod = typeof(TypeConverter).GetMethod("ConvertToSortedSet", PrivateStatic);
+        private static readonly MethodInfo ConvertToSortedSetMethod = typeof(TypeConverter).GetTypeInfo().GetMethod("ConvertToSortedSet", PrivateStatic);
 
-        private static readonly MethodInfo ConvertToListMethod = typeof(TypeConverter).GetMethod("ConvertToList", PrivateStatic);
+        private static readonly MethodInfo ConvertToListMethod = typeof(TypeConverter).GetTypeInfo().GetMethod("ConvertToList", PrivateStatic);
 
         private readonly ConcurrentDictionary<Tuple<Type, Type>, Delegate> _fromDbConverterCache;
         private readonly ConcurrentDictionary<Tuple<Type, Type>, Delegate> _toDbConverterCache; 
@@ -100,14 +100,14 @@ namespace Cassandra.Mapping.TypeConversion
             // Allow strings from the database to be converted to an enum/nullable enum property on a POCO
             if (dbType == typeof(string))
             {
-                if (pocoType.IsEnum)
+                if (pocoType.IsEnumLocal())
                 {
                     Func<string, TPoco> enumMapper = EnumStringMapper<TPoco>.MapStringToEnum;
                     return enumMapper;
                 }
 
                 var underlyingPocoType = Nullable.GetUnderlyingType(pocoType);
-                if (underlyingPocoType != null && underlyingPocoType.IsEnum)
+                if (underlyingPocoType != null && underlyingPocoType.IsEnumLocal())
                 {
                     Func<string, TPoco> enumMapper = NullableEnumStringMapper<TPoco>.MapStringToEnum;
                     return enumMapper;
@@ -127,15 +127,15 @@ namespace Cassandra.Mapping.TypeConversion
                 }
             }
 
-            if (dbType.IsGenericType && (pocoType.IsGenericType || pocoType.IsArray))
+            if (dbType.IsGenericTypeLocal() && (pocoType.IsGenericTypeLocal() || pocoType.IsArray))
             {
-                Type sourceGenericDefinition = dbType.GetGenericTypeDefinition();
-                Type[] sourceGenericArgs = dbType.GetGenericArguments();
+                Type sourceGenericDefinition = dbType.GetTypeInfo().GetGenericTypeDefinition();
+                Type[] sourceGenericArgs = dbType.GetTypeInfo().GetGenericArguments();
 
                 // Allow conversion from IDictionary<,> -> Dictionary<,> since C* driver uses SortedDictionary which can't be cast to Dictionary
                 if (sourceGenericDefinition == typeof(IDictionary<,>) && pocoType == typeof(Dictionary<,>).MakeGenericType(sourceGenericArgs))
                 {
-                    return ConvertToDictionaryMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegate();
+                    return ConvertToDictionaryMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegateLocal();
                 }
 
                 // IEnumerable<> could be a Set or a List from Cassandra
@@ -144,19 +144,19 @@ namespace Cassandra.Mapping.TypeConversion
                     // For some reason, the driver uses List<> to represent Sets so allow conversion to HashSet<>, SortedSet<>, and ISet<>
                     if (pocoType == typeof (HashSet<>).MakeGenericType(sourceGenericArgs))
                     {
-                        return ConvertToHashSetMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegate();
+                        return ConvertToHashSetMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegateLocal();
                     }
 
                     if (pocoType == typeof (SortedSet<>).MakeGenericType(sourceGenericArgs) ||
                         pocoType == typeof (ISet<>).MakeGenericType(sourceGenericArgs))
                     {
-                        return ConvertToSortedSetMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegate();
+                        return ConvertToSortedSetMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegateLocal();
                     }
 
                     if (pocoType == typeof(List<>).MakeGenericType(sourceGenericArgs) ||
                         pocoType == typeof(IList<>).MakeGenericType(sourceGenericArgs))
                     {
-                        return ConvertToListMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegate();
+                        return ConvertToListMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegateLocal();
                     }
                 }
             }
@@ -183,7 +183,7 @@ namespace Cassandra.Mapping.TypeConversion
             // Support enum/nullable enum => string conversion
             if (dbType == typeof (string))
             {
-                if (pocoType.IsEnum)
+                if (pocoType.IsEnumLocal())
                 {
                     // Just call ToStirng() on the enum value from the POCO
                     Func<TPoco, string> enumConverter = prop => prop.ToString();
@@ -191,7 +191,7 @@ namespace Cassandra.Mapping.TypeConversion
                 }
 
                 Type underlyingPocoType = Nullable.GetUnderlyingType(pocoType);
-                if (underlyingPocoType != null && underlyingPocoType.IsEnum)
+                if (underlyingPocoType != null && underlyingPocoType.IsEnumLocal())
                 {
                     Func<TPoco, string> enumConverter = NullableEnumStringMapper<TPoco>.MapEnumToString;
                     return enumConverter;
@@ -246,19 +246,22 @@ namespace Cassandra.Mapping.TypeConversion
 
     internal static class ReflectionUtils
     {
-        public static Delegate CreateDelegate(this MethodInfo method)
+        public static Delegate CreateDelegateLocal(this MethodInfo method)
         {
             if (method == null)
             {
                 throw new ArgumentNullException("method");
             }
-
             if (!method.IsStatic)
             {
                 throw new ArgumentException("The provided method must be static.", "method");
             }
             var delegateType = Expression.GetFuncType(method.GetParameters().Select(p => p.ParameterType).ToArray());
+#if !NETCORE
             return Delegate.CreateDelegate(delegateType, null, method);
+#else
+            return method.CreateDelegate(delegateType);
+#endif
         }
     }
 }

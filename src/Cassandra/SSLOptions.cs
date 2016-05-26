@@ -151,7 +151,7 @@ namespace Cassandra
 
         private static string GetHostName(IPAddress address)
         {
-            return Dns.GetHostEntry(address).HostName;
+            return Utils.GetPrimaryHostNameInfo(address.ToString());
         }
     }
 }

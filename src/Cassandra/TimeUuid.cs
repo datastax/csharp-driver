@@ -137,12 +137,22 @@ namespace Cassandra
             return _value.ToString();
         }
 
+#if !NETCORE
         /// <summary>
         /// Returns a string representation
         /// </summary>
         public string ToString(string format, IFormatProvider provider)
         {
             return _value.ToString(format, provider);
+        }
+#endif
+
+        /// <summary>
+        /// Returns a string representation
+        /// </summary>
+        public string ToString(string format)
+        {
+            return _value.ToString(format);
         }
 
         /// <summary>

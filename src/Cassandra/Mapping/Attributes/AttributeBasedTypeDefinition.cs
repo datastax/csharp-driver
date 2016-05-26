@@ -33,7 +33,7 @@ namespace Cassandra.Mapping.Attributes
             PocoType = type;
             //Get the table name from the attribute or the type name
             TableName = type.Name;
-            var tableAttribute = (TableAttribute)type.GetCustomAttributes(typeof(TableAttribute), true).FirstOrDefault();
+            var tableAttribute = (TableAttribute)type.GetCustomAttributeLocal(typeof(TableAttribute), true);
             if (tableAttribute != null)
             {
                 TableName = tableAttribute.Name;
@@ -46,10 +46,11 @@ namespace Cassandra.Mapping.Attributes
 
             //Fields and properties that can be mapped
             var mappable = type
+                .GetTypeInfo()
                 .GetFields(PublicInstanceBindingFlags)
                 .Where(field => field.IsInitOnly == false)
                 .Select(field => (MemberInfo)field)
-                .Concat(type.GetProperties(PublicInstanceBindingFlags).Where(p => p.CanWrite));
+                .Concat(type.GetTypeInfo().GetProperties(PublicInstanceBindingFlags).Where(p => p.CanWrite));
             var partitionKeys = new List<Tuple<string, int>>();
             var clusteringKeys = new List<Tuple<string, SortOrder, int>>();
             foreach (var member in mappable)

@@ -80,10 +80,39 @@ namespace Cassandra
             IPAddress addr;
             if (IPAddress.TryParse(address, out addr))
             {
-                return new List<IPAddress> {addr};
+                return new [] {addr};
             }
-            IPHostEntry hst = Dns.GetHostEntry(address);
-            return hst.AddressList;
+            return GetHostNameInfo(address);
+        }
+
+        /// <summary>
+        /// Performs a getnameinfo() call
+        /// </summary>
+        public static IEnumerable<IPAddress> GetHostNameInfo(string address)
+        {
+#if !NETCORE
+            var hostEntry = Dns.GetHostEntry(address);
+#else
+            var hostEntryTask = Dns.GetHostEntryAsync(address);
+            hostEntryTask.Wait();
+            var hostEntry = hostEntryTask.Result;
+#endif
+            return hostEntry.AddressList;
+        }
+        
+        /// <summary>
+         /// Performs a getnameinfo() call and returns the primary host name
+         /// </summary>
+        public static string GetPrimaryHostNameInfo(string address)
+        {
+#if !NETCORE
+            var hostEntry = Dns.GetHostEntry(address);
+#else
+            var hostEntryTask = Dns.GetHostEntryAsync(address);
+            hostEntryTask.Wait();
+            var hostEntry = hostEntryTask.Result;
+#endif
+            return hostEntry.HostName;
         }
 
         public static bool CompareIDictionary<TKey, TValue>(IDictionary<TKey, TValue> dict1, IDictionary<TKey, TValue> dict2)
@@ -240,10 +269,10 @@ namespace Cassandra
         /// </summary>
         public static bool IsAnonymousType(Type type)
         {
-            return type.IsGenericType
-                   && (type.Attributes & TypeAttributes.NotPublic) == TypeAttributes.NotPublic
+            return type.IsGenericTypeLocal()
+                   && (type.GetAttributesLocal() & TypeAttributes.NotPublic) == TypeAttributes.NotPublic
                    && (type.Name.Contains("AnonymousType") || type.Name.Contains("AnonType"))
-                   && Attribute.IsDefined(type, typeof(CompilerGeneratedAttribute), false);
+                   && type.IsAttributeDefinedLocal(typeof(CompilerGeneratedAttribute), false);
         }
 
         /// <summary>
@@ -260,7 +289,7 @@ namespace Cassandra
             const BindingFlags propFlags = BindingFlags.FlattenHierarchy | BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
             foreach (var name in propNames)
             {
-                var prop = type.GetProperty(name, propFlags);
+                var prop = type.GetTypeInfo().GetProperty(name, propFlags);
                 if (prop == null)
                 {
                     valueList.Add(null);
@@ -282,7 +311,7 @@ namespace Cassandra
             }
             var type = value.GetType();
             const BindingFlags propFlags = BindingFlags.FlattenHierarchy | BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
-            var properties = type.GetProperties(propFlags);
+            var properties = type.GetTypeInfo().GetProperties(propFlags);
             var valueMap = new SortedList<string, object>(properties.Length);
             foreach (var prop in properties)
             {
@@ -314,7 +343,7 @@ namespace Cassandra
         /// </summary>
         public static bool IsIEnumerable(Type t)
         {
-            return t.IsGenericType && t.IsInterface && t.GetGenericTypeDefinition() == typeof(IEnumerable<>);
+            return t.IsGenericTypeLocal() && t.IsInterfaceLocal() && t.GetGenericTypeDefinition() == typeof(IEnumerable<>);
         }
 
         /// <summary>

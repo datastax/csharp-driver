@@ -29,7 +29,7 @@ namespace Cassandra
     {
         private static readonly Logger Logger = new Logger(typeof(Host));
         private readonly IReconnectionPolicy _reconnectionPolicy;
-        private int _isUpNow = 1;
+        private long _isUpNow = 1;
         /// <summary>
         /// Used as a flag to limit the amount of connection pools attempting reconnection to 1.
         /// </summary>
@@ -64,7 +64,7 @@ namespace Cassandra
         /// </summary>
         public bool IsUp
         {
-            get { return Thread.VolatileRead(ref _isUpNow) == 1; }
+            get { return Interlocked.Read(ref _isUpNow) == 1L; }
         }
 
         /// <summary>
@@ -72,7 +72,7 @@ namespace Cassandra
         /// </summary>
         public bool IsConsiderablyUp
         {
-            get { return Thread.VolatileRead(ref _isUpNow) == 1 || _nextUpTime <= DateTimeOffset.Now.Ticks; }
+            get { return Interlocked.Read(ref _isUpNow) == 1L || _nextUpTime <= DateTimeOffset.Now.Ticks; }
         }
 
         /// <summary>
@@ -134,7 +134,7 @@ namespace Cassandra
             //Host was UP or there was a failed reconnection attempt
             var delay = _reconnectionSchedule.NextDelayMs();
             Logger.Warning("Host {0} considered as DOWN. Reconnection delay {1}ms", Address, delay);
-            Thread.VolatileWrite(ref _nextUpTime, DateTimeOffset.Now.Ticks + (delay * TimeSpan.TicksPerMillisecond));
+            Interlocked.Exchange(ref _nextUpTime, DateTimeOffset.Now.Ticks + (delay * TimeSpan.TicksPerMillisecond));
             Interlocked.Exchange(ref _isAttemptingReconnection, 0);
             //raise checked as down event
             if (CheckedAsDown != null)

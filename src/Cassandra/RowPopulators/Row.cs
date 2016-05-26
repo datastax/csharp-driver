@@ -219,7 +219,7 @@ namespace Cassandra
                         //Return the underlying array
                         return value;
                     }
-                    return Utils.ToCollectionType(typeof(List<>), column.Type.GetGenericArguments()[0], (Array)value);
+                    return Utils.ToCollectionType(typeof(List<>), column.Type.GetGenericArgumentsLocal()[0], (Array)value);
                 }
                 case ColumnTypeCode.Set:
                 {
@@ -229,8 +229,8 @@ namespace Cassandra
                         //Return the underlying array
                         return value;
                     }
-                    var itemType = column.Type.GetGenericArguments()[0];
-                    if (targetType.IsGenericType)
+                    var itemType = column.Type.GetGenericArgumentsLocal()[0];
+                    if (targetType.IsGenericTypeLocal())
                     {
                         var genericType = targetType.GetGenericTypeDefinition();
                         if (genericType == typeof(SortedSet<>))

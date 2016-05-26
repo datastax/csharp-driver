@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+#if !NETCORE
 using System;
 using System.Data;
 using System.Data.Common;
@@ -48,3 +49,4 @@ namespace Cassandra.Data
         }
     }
 }
+#endif

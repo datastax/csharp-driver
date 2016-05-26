@@ -145,7 +145,7 @@ namespace Cassandra
             //Use auto mapping
             foreach (var field in Definition.Fields)
             {
-                var prop = NetType.GetProperty(field.Name, PropertyFlags);
+                var prop = NetType.GetTypeInfo().GetProperty(field.Name, PropertyFlags);
                 if (prop != null)
                 {
                     AddPropertyMapping(prop, field.Name);
@@ -190,7 +190,7 @@ namespace Cassandra
                 }
                 //Check if its assignable to and from
                 var fieldTargetType = _serializer.GetClrType(field.TypeCode, field.TypeInfo);
-                if (!prop.PropertyType.IsAssignableFrom(fieldTargetType))
+                if (!prop.PropertyType.GetTypeInfo().IsAssignableFrom(fieldTargetType))
                 {
                     throw new InvalidTypeException(string.Format("{0} type {1} is not assignable to {2}", field.Name, fieldTargetType.Name, prop.PropertyType.Name));
                 }
@@ -244,7 +244,7 @@ namespace Cassandra
             string propertyName = udtFieldName;
 
             // Try to find a property with the UDT field name on type T
-            prop = NetType.GetProperty(propertyName, PropertyFlags);
+            prop = NetType.GetTypeInfo().GetProperty(propertyName, PropertyFlags);
             if (prop == null)
             {
                 return null;

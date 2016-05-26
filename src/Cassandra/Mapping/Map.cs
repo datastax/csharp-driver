@@ -313,7 +313,7 @@ namespace Cassandra.Mapping
             if (memberExpression == null || IsPropertyOrField(memberExpression.Member) == false)
                 throw new ArgumentOutOfRangeException("expression", string.Format("Expression {0} is not a property or field.", expression));
 
-            if (memberExpression.Member.ReflectedType != _pocoType && _pocoType.IsSubclassOf(memberExpression.Member.ReflectedType) == false)
+            if (memberExpression.Member.DeclaringType != _pocoType && _pocoType.IsSubclassOfLocal(memberExpression.Member.DeclaringType) == false)
             {
                 throw new ArgumentOutOfRangeException("expression",
                                                       string.Format("Expression {0} refers to a property or field that is not from type {1}",

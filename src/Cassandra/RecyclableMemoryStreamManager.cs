@@ -25,7 +25,6 @@ namespace Microsoft.IO
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Linq;
     using System.Threading;
@@ -556,7 +555,6 @@ namespace Microsoft.IO
         /// <param name="offset">The offset from the start of the buffer to copy from.</param>
         /// <param name="count">The number of bytes to copy from the buffer.</param>
         /// <returns>A MemoryStream.</returns>
-        [SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope")]
         public MemoryStream GetStream(string tag, byte[] buffer, int offset, int count)
         {
             var stream = new RecyclableMemoryStream(this, tag, count);

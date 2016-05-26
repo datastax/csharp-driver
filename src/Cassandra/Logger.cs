@@ -16,6 +16,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 
 namespace Cassandra
@@ -31,11 +32,14 @@ namespace Cassandra
             _category = type.Name;
         }
 
-        private string printStackTrace()
+        private static string PrintStackTrace(Exception ex)
         {
             var sb = new StringBuilder();
-            foreach (StackFrame frame in new StackTrace(3, true).GetFrames()) // skipping 3 frames from logger class. 
+            // ReSharper disable once AssignNullToNotNullAttribute
+            foreach (StackFrame frame in new StackTrace(ex, true).GetFrames().Skip(3))
+            {
                 sb.Append(frame);
+            }
             return sb.ToString();
         }
 
@@ -45,8 +49,8 @@ namespace Cassandra
                 _sb = new StringBuilder();
             _sb.Append(String.Format("( Exception! Source {0} \n Message: {1} \n StackTrace:\n {2} ", ex.Source, ex.Message,
                                     (Diagnostics.CassandraStackTraceIncluded
-                                         ? (recur ? ex.StackTrace : printStackTrace())
-                                         : "To display StackTrace, change Debugging.StackTraceIncluded property value to true."), _category));
+                                         ? (recur ? ex.StackTrace : PrintStackTrace(ex))
+                                         : "To display StackTrace, change Debugging.StackTraceIncluded property value to true.")));
             if (ex.InnerException != null)
                 GetExceptionAndAllInnerEx(ex.InnerException, true);
 

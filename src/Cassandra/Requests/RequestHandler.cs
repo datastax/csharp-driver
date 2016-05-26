@@ -32,14 +32,14 @@ namespace Cassandra.Requests
     internal class RequestHandler<T> where T : class
     {
         // ReSharper disable once StaticMemberInGenericType
-        private readonly static Logger Logger = new Logger(typeof(Session));
-        public const int StateInit = 0;
-        public const int StateCompleted = 1;
+        private static readonly Logger Logger = new Logger(typeof(Session));
+        public const long StateInit = 0;
+        public const long StateCompleted = 1;
 
         private readonly IRequest _request;
         private readonly ISession _session;
         private readonly TaskCompletionSource<T> _tcs;
-        private int _state;
+        private long _state;
         private readonly IEnumerator<Host> _queryPlan;
         private readonly object _queryPlanLock = new object();
         private readonly ICollection<RequestExecution<T>> _running = new CopyOnWriteList<RequestExecution<T>>();
@@ -234,7 +234,7 @@ namespace Cassandra.Requests
 
         public bool HasCompleted()
         {
-            return Thread.VolatileRead(ref _state) == StateCompleted;
+            return Interlocked.Read(ref _state) == StateCompleted;
         }
 
         private Host GetNextHost()

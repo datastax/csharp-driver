@@ -23,6 +23,7 @@ using System.Data.Common;
 ﻿using System.Text.RegularExpressions;
 using System.Threading;
 
+#if !NETCORE
 namespace Cassandra.Data
 {
     /// <summary>
@@ -287,3 +288,4 @@ namespace Cassandra.Data
         }
     }
 }
+#endif

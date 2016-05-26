@@ -13,7 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-
+#if !NETCORE
 using System;
 using System.Data.Common;
 using System.Security;
@@ -80,3 +80,4 @@ namespace Cassandra.Data
         }
     }
 }
+#endif
