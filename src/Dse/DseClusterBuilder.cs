@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Text;
 using Cassandra;
 using Cassandra.Serialization;
@@ -16,6 +18,7 @@ namespace Dse
     /// </summary>
     public class DseClusterBuilder : Builder
     {
+        private static readonly Logger Logger = new Logger(typeof(DseClusterBuilder));
         private TypeSerializerDefinitions _typeSerializerDefinitions;
         private IAddressTranslator _addressTranslator = new IdentityAddressTranslator();
         private ILoadBalancingPolicy _loadBalancingPolicy;
@@ -443,13 +446,18 @@ namespace Dse
         }
 
         /// <summary>
-        /// Build the cluster with the configured set of initial contact points and policies.
+        /// Builds the cluster with the configured set of initial contact points and policies.
         /// </summary>
         /// <returns>
         /// A new <see cref="DseCluster"/> instance.
         /// </returns>
         public new DseCluster Build()
         {
+            var dseAssembly = Assembly.GetExecutingAssembly();
+            var cassandraAssembly = typeof(ISession).Assembly;
+            Logger.Info("Using DataStax C# DSE driver v{0} (core driver v{1})", 
+                FileVersionInfo.GetVersionInfo(dseAssembly.Location).FileVersion,
+                FileVersionInfo.GetVersionInfo(cassandraAssembly.Location).FileVersion);
             var typeSerializerDefinitions = _typeSerializerDefinitions ?? new TypeSerializerDefinitions();
             typeSerializerDefinitions
                 .Define(new LineStringSerializer())
