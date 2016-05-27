@@ -22,6 +22,7 @@ namespace Dse
         private TypeSerializerDefinitions _typeSerializerDefinitions;
         private IAddressTranslator _addressTranslator = new IdentityAddressTranslator();
         private ILoadBalancingPolicy _loadBalancingPolicy;
+
         /// <summary>
         /// Gets the DSE Graph options.
         /// </summary>
@@ -470,7 +471,7 @@ namespace Dse
             }
             var coreCluster = base.Build();
             var config = new DseConfiguration(coreCluster.Configuration, GraphOptions ?? new GraphOptions());
-            //To be replace after CSHARP-444.
+            // To be replaced after CSHARP-444.
             config.AddressTranslator = _addressTranslator;
             return new DseCluster(
                 coreCluster, 

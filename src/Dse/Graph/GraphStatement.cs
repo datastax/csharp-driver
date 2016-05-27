@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using Cassandra;
 
 namespace Dse.Graph
@@ -157,6 +158,8 @@ namespace Dse.Graph
 
         /// <summary>
         /// Sets the per-host read timeout in milliseconds for this statement.
+        /// <para>Use <see cref="Timeout.Infinite"/> to disable timeouts for this Statement.</para>
+        /// <para>Use zero to use the default value specified in the <see cref="GraphOptions.ReadTimeoutMillis"/>.</para>
         /// </summary>
         /// <param name="timeout">Timeout in milliseconds.</param>
         /// <returns>This instance</returns>

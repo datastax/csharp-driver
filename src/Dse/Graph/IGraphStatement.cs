@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Cassandra;
 
 namespace Dse.Graph
@@ -32,8 +33,9 @@ namespace Dse.Graph
         ConsistencyLevel? GraphReadConsistencyLevel { get; }
 
         /// <summary>
-        /// Gets the ReadTimeout for the statement that, when is greater than 0, overrides
+        /// Gets the ReadTimeout for the statement that, when is different than 0, overrides
         /// <see cref="GraphOptions.ReadTimeoutMillis"/>.
+        /// <para>Use <see cref="Timeout.Infinite"/> to disable timeouts for this Statement.</para>
         /// </summary>
         int ReadTimeoutMillis { get; }
 
