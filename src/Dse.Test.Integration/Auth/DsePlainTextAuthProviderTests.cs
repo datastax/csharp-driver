@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using Cassandra;
+using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 using Dse.Auth;
 using Dse.Test.Integration.ClusterManagement;
@@ -21,7 +22,7 @@ namespace Dse.Test.Integration.Auth
             }
         }
 
-        [Test]
+        [Test, TestDseVersion(5,0)]
         public void Should_Authenticate_Against_Dse_5_DseAuthenticator()
         {
             CcmHelper.Start(

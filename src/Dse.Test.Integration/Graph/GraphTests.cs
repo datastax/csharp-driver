@@ -2,6 +2,8 @@
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using Cassandra;
+using Cassandra.IntegrationTests.TestBase;
 using Dse.Graph;
 using Dse.Test.Integration.ClusterManagement;
 using NUnit.Framework;
@@ -9,7 +11,7 @@ using Newtonsoft.Json;
 
 namespace Dse.Test.Integration.Graph
 {
-    [TestFixture]
+    [TestFixture, TestDseVersion(5, 0)]
     public class GraphTests : BaseIntegrationTest
     {
 
@@ -18,9 +20,9 @@ namespace Dse.Test.Integration.Graph
         [TestFixtureSetUp]
         public void TestFixtureSetup()
         {
-            CcmHelper.Start(1, null, null, null, true);
+            CcmHelper.Start(1, null, null, null, "graph");
             Trace.TraceInformation("Waiting additional time for test Cluster to be ready");
-            Thread.Sleep(15000);
+            Thread.Sleep(20000);
             CreateClassicGraph(CcmHelper.InitialContactPoint, GraphName);
         }
 
@@ -129,12 +131,17 @@ namespace Dse.Test.Integration.Graph
                 .Build())
             {
                 var session = cluster.Connect();
+                var schemaCharacterQuery = "" +
+                                   "schema.propertyKey(\"characterName\").Text().create();\n" +
+                                   "schema.vertexLabel(\"character\").properties(\"characterName\").create();";
+
+                session.ExecuteGraph(new SimpleGraphStatement(schemaCharacterQuery));
                 var createChars = session.ExecuteGraph(new SimpleGraphStatement("characters.each { character -> " +
-                                                                                    "    graph.addVertex(label, 'character', 'name', character);" +
+                                                                                    "    graph.addVertex(label, 'character', 'characterName', character);" +
                                                                                 "};", new { characters = names }));
                 Assert.AreEqual(names.Length, createChars.ToArray().Length);
 
-                var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V().hasLabel('character').values('name')"));
+                var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V().hasLabel('character').values('characterName')"));
                 var resultArray = rs.ToArray();
                 Assert.AreEqual(names.Length, resultArray.Length);
 
@@ -160,23 +167,32 @@ namespace Dse.Test.Integration.Graph
             {
                 var session = cluster.Connect();
 
+                var schemaScientistQuery = "" +
+                      "schema.propertyKey(\"year_born\").Int().create()\n" +
+                      "schema.propertyKey(\"field\").Text().create()\n" +
+                      "schema.propertyKey(\"scientist_name\").Text().create()\n" +
+                      "schema.propertyKey(\"country_name\").Text().create()\n" +
+                      "schema.vertexLabel(\"scientist\").properties(\"scientist_name\", \"year_born\", \"field\").create()\n" +
+                      "schema.vertexLabel(\"country\").properties(\"country_name\").create()\n" +
+                      "schema.edgeLabel(\"had_citizenship\").connection(\"scientist\", \"country\").create()";
+                session.ExecuteGraph(new SimpleGraphStatement(schemaScientistQuery));
 
-                session.ExecuteGraph(new SimpleGraphStatement("Vertex scientist = graph.addVertex(label, 'scientist', 'name', m.name, 'year_born', m.year_born, 'field', m.field);" +
+                session.ExecuteGraph(new SimpleGraphStatement("Vertex scientist = graph.addVertex(label, 'scientist', 'scientist_name', m.name, 'year_born', m.year_born, 'field', m.field);" +
                                                                                     " m.citizenship.each { c -> " +
-                                                                                    "    Vertex country = graph.addVertex(label, 'country', 'name', c);" +
+                                                                                    "    Vertex country = graph.addVertex(label, 'country', 'country_name', c);" +
                                                                                     "    scientist.addEdge('had_citizenship', country);" +
                                                                                     "};", new { m = new { name = name, year_born = year, citizenship = citizenship, field = field } }));
 
 
-                var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V().hasLabel('scientist').has('name', name)", new { name = name }));
+                var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V().hasLabel('scientist').has('scientist_name', name)", new { name = name }));
                 Vertex einstein = rs.FirstOrDefault();
                 Assert.NotNull(einstein);
                 Assert.AreEqual("scientist", einstein.Label);
-                Assert.AreEqual(name, einstein.Properties["name"].ToArray()[0].Get<string>("value"));
+                Assert.AreEqual(name, einstein.Properties["scientist_name"].ToArray()[0].Get<string>("value"));
                 Assert.AreEqual(year, einstein.Properties["year_born"].ToArray()[0].Get<int>("value"));
                 Assert.AreEqual(field, einstein.Properties["field"].ToArray()[0].Get<string>("value"));
 
-                var citizenships = session.ExecuteGraph(new SimpleGraphStatement("g.V().hasLabel('scientist').has('name', name).outE('had_citizenship').inV().values('name');", new { name = name }));
+                var citizenships = session.ExecuteGraph(new SimpleGraphStatement("g.V().hasLabel('scientist').has('scientist_name', name).outE('had_citizenship').inV().values('country_name');", new { name = name }));
                 var citizenshipArray = citizenships.ToArray();
                 Assert.AreEqual(citizenship.Length, citizenshipArray.Length);
 
@@ -298,48 +314,44 @@ namespace Dse.Test.Integration.Graph
                     Assert.AreEqual(1, labels[4].ToArray().Length);
                     Assert.AreEqual("h", labels[4].ToArray()[0].ToString());
 
-                    var objects = graphResult.Get<dynamic[]>("objects");
-                    Assert.AreEqual(5, objects.Length);
+                    var path = graphResult.ToPath();
+                    var objects = path.Objects.ToList();
+                    Assert.AreEqual(5, objects.Count);
 
-                    var marko = objects[0];
-                    var knows = objects[1];
-                    var josh = objects[2];
-                    var created = objects[3];
-                    var software = objects[4];
+                    var marko = objects[0].ToVertex();
+                    var knows = objects[1].ToEdge();
+                    var josh = objects[2].ToVertex();
+                    var created = objects[3].ToEdge();
+                    var software = objects[4].ToVertex();
 
-                    Assert.AreEqual("person", marko.label);
-                    Assert.AreEqual("vertex", marko.type);
-                    Assert.AreEqual("marko", marko.properties.name[0].value);
-                    Assert.AreEqual(29, marko.properties.age[0].value);
+                    Assert.AreEqual("person", marko.Label);
+                    Assert.AreEqual("marko", marko.Properties["name"].ToArray()[0].Get<string>("value"));
+                    Assert.AreEqual(29, marko.Properties["age"].ToArray()[0].Get<int>("value"));
 
-                    Assert.AreEqual("person", josh.label);
-                    Assert.AreEqual("vertex", josh.type);
-                    Assert.AreEqual("josh", josh.properties.name[0].value);
-                    Assert.AreEqual(32, josh.properties.age[0].value);
+                    Assert.AreEqual("person", josh.Label);
+                    Assert.AreEqual("josh", josh.Properties["name"].ToArray()[0].Get<string>("value"));
+                    Assert.AreEqual(32, josh.Properties["age"].ToArray()[0].Get<int>("value"));
 
-                    Assert.AreEqual("software", software.label);
-                    Assert.AreEqual("vertex", software.type);
-                    Assert.AreEqual("java", software.properties.lang[0].value);
+                    Assert.AreEqual("software", software.Label);
+                    Assert.AreEqual("java", software.Properties["lang"].ToArray()[0].Get<string>("value"));
 
-                    if (software.properties.name[0].value == "lop")
+                    if (software.Properties["name"].ToArray()[0].Get<string>("value") == "lop")
                     {
-                        Assert.AreEqual(0.4, created.properties.weight);
+                        Assert.AreEqual(0.4, created.Properties["weight"].ToDouble());
                     }
                     else {
-                        Assert.AreEqual(1.0, created.properties.weight);
-                        Assert.AreEqual(software.properties.name[0].value, "ripple");
+                        Assert.AreEqual(1.0, created.Properties["weight"].ToDouble());
+                        Assert.AreEqual("ripple", software.Properties["name"].ToArray()[0].Get<string>("value"));
                     }
 
-                    Assert.AreEqual("created", created.label);
-                    Assert.AreEqual("edge", created.type);
-                    Assert.AreEqual("person", created.outVLabel);
-                    Assert.AreEqual("software", created.inVLabel);
+                    Assert.AreEqual("created", created.Label);
+                    Assert.AreEqual("person", created.OutVLabel);
+                    Assert.AreEqual("software", created.InVLabel);
 
-                    Assert.AreEqual("knows", knows.label);
-                    Assert.AreEqual("edge", knows.type);
-                    Assert.AreEqual(1, knows.properties.weight);
-                    Assert.AreEqual("person", knows.outVLabel);
-                    Assert.AreEqual("person", knows.inVLabel);
+                    Assert.AreEqual("knows", knows.Label);
+                    Assert.AreEqual(1, knows.Properties["weight"].ToDouble());
+                    Assert.AreEqual("person", knows.OutVLabel);
+                    Assert.AreEqual("person", knows.InVLabel);
                 }
             }
         }

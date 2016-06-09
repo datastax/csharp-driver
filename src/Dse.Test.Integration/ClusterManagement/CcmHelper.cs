@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Configuration;
+using System.Net;
 using Dse.Test.Integration.TestBase;
 
 namespace Dse.Test.Integration.ClusterManagement
@@ -14,7 +15,27 @@ namespace Dse.Test.Integration.ClusterManagement
         public static string DseInitialIpPrefix = 
             Environment.GetEnvironmentVariable("DSE_INITIAL_IPPREFIX") ?? ConfigurationManager.AppSettings["DseInitialIpPrefix"];
 
-        public static void Start(int amountOfNodes, string[] dseYamlOptions = null, string[] cassYamlOptions = null, string[] jvmArgs = null, bool enableGraph = false)
+        private static Version _dseVersion;
+
+        public static Version DseVersion
+        {
+            get
+            {
+                if (_dseVersion == null)
+                {
+                    var dseVersion = Environment.GetEnvironmentVariable("DSE_VERSION") ??
+                                 ConfigurationManager.AppSettings["DseVersion"];
+                    if (dseVersion.Contains("dse-"))
+                    {
+                        dseVersion = dseVersion.Substring(dseVersion.IndexOf("-", StringComparison.Ordinal) + 1);
+                    }
+                    _dseVersion = Version.Parse(dseVersion);
+                }
+                return _dseVersion;
+            }
+        }
+
+        public static void Start(int amountOfNodes, string[] dseYamlOptions = null, string[] cassYamlOptions = null, string[] jvmArgs = null, string nodeWorkload = null)
         {
             var dseDir = Environment.GetEnvironmentVariable("DSE_PATH") ??
                          ConfigurationManager.AppSettings["DseInstallPath"];
@@ -103,11 +124,11 @@ namespace Dse.Test.Integration.ClusterManagement
             {
                 _ccmDseBridge.UpdateDseConfig(dseYamlOptions);
             }
-            if (enableGraph)
+            if (!string.IsNullOrEmpty(nodeWorkload))
             {
                 for (var i = 1; i <= amountOfNodes; i++)
                 {
-                    _ccmDseBridge.SetWorkload(i, "graph,spark");
+                    _ccmDseBridge.SetWorkload(i, nodeWorkload);
                 }
             }
             _ccmDseBridge.Start(jvmArgs);
@@ -117,7 +138,15 @@ namespace Dse.Test.Integration.ClusterManagement
         {
             if (_ccmDseBridge == null) return;
 
-            _ccmDseBridge.Remove();
+            try
+            {
+                _ccmDseBridge.Remove();
+            }
+            catch
+            {
+                //ignore
+            }
+            
         }
 
         public static string InitialContactPoint

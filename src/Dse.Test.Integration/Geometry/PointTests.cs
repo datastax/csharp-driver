@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Serialization;
 using Dse.Geometry;
 

@@ -6,12 +6,14 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using Cassandra;
+using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 using Dse.Geometry;
 using Dse.Test.Integration.ClusterManagement;
 
 namespace Dse.Test.Integration.Geometry
 {
+    [TestDseVersion(5, 0)]
     public abstract class GeometryTests<T> : BaseIntegrationTest
     {
         protected abstract T[] Values { get; }

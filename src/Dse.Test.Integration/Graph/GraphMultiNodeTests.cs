@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using Cassandra;
+using Cassandra.IntegrationTests.TestBase;
 using Dse.Graph;
 using Dse.Policies;
 using Dse.Test.Integration.ClusterManagement;
@@ -13,12 +14,13 @@ using NUnit.Framework;
 namespace Dse.Test.Integration.Graph
 {
     [TestFixture]
+    [TestDseVersion(5, 0)]
     class GraphMultiNodeTests : BaseIntegrationTest
     {
         [TestFixtureSetUp]
         public void TestFixtureSetup()
         {
-            CcmHelper.Start(3, new[] { "initial_spark_worker_resources:0.1" }, null, null, true);
+            CcmHelper.Start(3, new[] { "initial_spark_worker_resources:0.1" }, null, null, "graph,spark");
             Trace.TraceInformation("Waiting additional time for test Cluster to be ready");
             Thread.Sleep(15000);
         }
@@ -29,7 +31,7 @@ namespace Dse.Test.Integration.Graph
             CcmHelper.Remove();
         }
 
-        [Test]
+        [Test, TestDseVersion(5, 0)]
         public void Should_Contact_Spark_Master_Directly()
         {
             var graphName = "name1";

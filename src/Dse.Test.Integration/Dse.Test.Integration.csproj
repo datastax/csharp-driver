@@ -92,6 +92,7 @@
     <Compile Include="TestBase\ICcmProcessExecuter.cs" />
     <Compile Include="TestBase\LocalCcmProcessExecuter.cs" />
     <Compile Include="TestBase\RemoteCcmProcessExecuter.cs" />
+    <Compile Include="TestBase\TestDseVersion.cs" />
     <Compile Include="TestBase\TestInfrastructureException.cs" />
     <Compile Include="TestBase\TestUtils.cs" />
   </ItemGroup>
