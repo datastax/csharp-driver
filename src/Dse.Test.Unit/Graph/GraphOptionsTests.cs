@@ -15,7 +15,7 @@ namespace Dse.Test.Unit.Graph
             var options = new GraphOptions();
             var payload1 = options.BuildPayload(new SimpleGraphStatement("g.V()"));
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("gremlin-groovy"), payload1["graph-language"]);
-            CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("default"), payload1["graph-source"]);
+            CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("g"), payload1["graph-source"]);
             var payload2 = options.BuildPayload(new SimpleGraphStatement("g.V()"));
             Assert.AreSame(payload1, payload2);
         }
@@ -57,7 +57,7 @@ namespace Dse.Test.Unit.Graph
                 .SetName("graph1");
             var payload1 = options.BuildPayload(new SimpleGraphStatement("g.V()").SetSystemQuery());
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("gremlin-groovy"), payload1["graph-language"]);
-            CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("default"), payload1["graph-source"]);
+            CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("g"), payload1["graph-source"]);
             Assert.False(payload1.ContainsKey("graph-name"));
             var payload2 = options.BuildPayload(new SimpleGraphStatement("g.V()").SetSystemQuery());
             var payload3 = options.BuildPayload(new SimpleGraphStatement("g.V()"));
@@ -72,7 +72,7 @@ namespace Dse.Test.Unit.Graph
                 .SetName("graph1");
             var payload1 = options.BuildPayload(new SimpleGraphStatement("g.V()"));
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("gremlin-groovy"), payload1["graph-language"]);
-            CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("default"), payload1["graph-source"]);
+            CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("g"), payload1["graph-source"]);
             var payload2 = options.BuildPayload(new SimpleGraphStatement("g.V()").SetGraphName("abc"));
             Assert.AreNotSame(payload1, payload2);
             Assert.AreSame(payload1["graph-language"], payload2["graph-language"]);

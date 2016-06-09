@@ -23,7 +23,7 @@ namespace Dse.Graph
         /// <summary>
         /// Default value for graph source.
         /// </summary>
-        public const string DefaultSource = "default";
+        public const string DefaultSource = "g";
 
         /// <summary>
         /// Default value for read timeout.
