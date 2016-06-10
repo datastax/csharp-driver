@@ -62,7 +62,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         {
             Assert.AreEqual(expectedEntity.StringType, actualEntity.StringType);
             Assert.AreEqual(expectedEntity.GuidType, actualEntity.GuidType);
-            Assert.AreEqual(expectedEntity.DateTimeType.ToString(), actualEntity.DateTimeType.ToString()); // We need 'ToString()' to round to the nearest second
+            Assert.That(actualEntity.DateTimeType, Is.EqualTo(expectedEntity.DateTimeType).Within(TimeSpan.FromMilliseconds(1)));
             Assert.AreEqual(expectedEntity.DateTimeOffsetType.ToString(), actualEntity.DateTimeOffsetType.ToString());
             Assert.AreEqual(expectedEntity.BooleanType, actualEntity.BooleanType);
             Assert.AreEqual(expectedEntity.DecimalType, actualEntity.DecimalType);

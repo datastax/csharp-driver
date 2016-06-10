@@ -117,12 +117,12 @@ namespace Cassandra.Mapping.TypeConversion
             {
                 if (pocoType == typeof(DateTime))
                 {
-                    Func<DateTimeOffset, DateTime> dateMapper = d => d.DateTime;
+                    Func<DateTimeOffset, DateTime> dateMapper = d => d.UtcDateTime;
                     return dateMapper;
                 }
                 if (pocoType == typeof(DateTime?))
                 {
-                    Func<DateTimeOffset, DateTime?> dateMapper = d => d.DateTime;
+                    Func<DateTimeOffset, DateTime?> dateMapper = d => d.UtcDateTime;
                     return dateMapper;
                 }
             }
