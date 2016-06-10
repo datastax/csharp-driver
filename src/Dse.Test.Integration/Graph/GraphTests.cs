@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
+using System.Numerics;
 using System.Threading;
 using Cassandra;
 using Cassandra.IntegrationTests.TestBase;
@@ -451,5 +453,90 @@ namespace Dse.Test.Integration.Graph
                 }
             }
         }
+
+        [TestCase("Boolean", true, "True")]
+        [TestCase("Boolean", false, "False")]
+        [TestCase("Int", int.MaxValue, "2147483647")]
+        [TestCase("Int", int.MinValue, "-2147483648")]
+        [TestCase("Int", 0, "0")]
+        [TestCase("Smallint", short.MaxValue, "32767")]
+        [TestCase("Smallint", -short.MinValue, "-32768")]
+        [TestCase("Smallint", 0, "0")]
+        [TestCase("Bigint", long.MaxValue,  "9223372036854775807")]
+        [TestCase("Bigint", long.MinValue, "-9223372036854775808")]
+        [TestCase("Bigint", 0L, "0")]
+        [TestCase("Float", 3.1415927f, "3.1415927")]
+        [TestCase("Double", 3.1415d, "3.1415")]
+        [TestCase("Duration", "5 s", "PT5S")]
+        [TestCase("Duration", "5 seconds", "PT5S")]
+        [TestCase("Duration", "1 minute", "PT1M")]
+        [TestCase("Duration", "1 hour", "PT1H")]
+        [TestCase("Text", "The quick brown fox jumps over the lazy dog", "The quick brown fox jumps over the lazy dog")]
+        public void Should_Support_Types(string type, object value, string expectedString)
+        {
+            using (var cluster = DseCluster.Builder()
+                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .WithGraphOptions(new GraphOptions().SetName(GraphName))
+                .Build())
+            {
+                var session = cluster.Connect();
+                var id = DateTime.Now.Millisecond;
+                var vertexLabel = "vertex" + id;
+                var propertyName = "prop" + id;
+
+                var schemaQuery = string.Format("schema.propertyKey(propertyName).{0}().ifNotExists().create();\n", type) +
+                                  "schema.vertexLabel(vertexLabel).properties(propertyName).ifNotExists().create();";
+
+                session.ExecuteGraph(new SimpleGraphStatement(schemaQuery, new {vertexLabel = vertexLabel, propertyName = propertyName}));
+
+                var parameters = new { vertexLabel = vertexLabel, propertyName = propertyName, val = value};
+
+                var rs = session.ExecuteGraph(new SimpleGraphStatement("g.addV(label, vertexLabel, propertyName, val)", parameters));
+
+                ValidateVertexResult(rs, vertexLabel, propertyName, expectedString);
+
+                rs =
+                    session.ExecuteGraph(
+                        new SimpleGraphStatement("g.V().hasLabel(vertexLabel).has(propertyName, val).next()", parameters));
+
+                ValidateVertexResult(rs, vertexLabel, propertyName, expectedString);
+            }
+        }
+
+        [Test]
+        public void Should_Support_Guid()
+        {
+            var guid = Guid.NewGuid();
+            Should_Support_Types("Uuid", guid, guid.ToString());
+        }
+
+        [Test]
+        public void Should_Support_Decimal()
+        {
+            Should_Support_Types("Decimal", 10.10M, "10.1");
+        }
+
+        [Test]
+        public void Should_Support_BigInteger()
+        {
+            Should_Support_Types("Varint", BigInteger.Parse("8675309"), "8675309");
+        }
+
+        [Test]
+        public void Should_Support_Timestamp()
+        {
+            Should_Support_Types("Timestamp", DateTimeOffset.Parse("2016-02-04T02:26:31.657Z"), "02/04/2016 02:26:31");
+        }
+
+        private void ValidateVertexResult(GraphResultSet rs, string vertexLabel, string propertyName, string expectedValueString)
+        {
+            var first = rs.FirstOrDefault();
+            Assert.NotNull(first);
+            var vertex = first.ToVertex();
+            Assert.AreEqual(vertex.Label, vertexLabel);
+            var valueString = vertex.Properties[propertyName].ToArray()[0].Get<string>("value");
+            Assert.AreEqual(valueString, expectedValueString);
+        }
+
     }
 }
