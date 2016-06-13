@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Cassandra;
 using Dse.Graph;
@@ -96,6 +97,8 @@ namespace Dse.Test.Unit.Graph
             session.ExecuteGraph(new SimpleGraphStatement("g.V()").SetReadTimeoutMillis(0));
             Assert.NotNull(coreStatement);
             Assert.AreEqual(readTimeout, coreStatement.ReadTimeoutMillis);
+            Assert.True(coreStatement.OutgoingPayload.ContainsKey("request-timeout"));
+            Assert.That(coreStatement.OutgoingPayload["request-timeout"], Is.EqualTo(ToBuffer(readTimeout)));
             coreSessionMock.Verify();
         }
 
@@ -115,6 +118,8 @@ namespace Dse.Test.Unit.Graph
             session.ExecuteGraph(new SimpleGraphStatement("g.V()").SetReadTimeoutMillis(readTimeout));
             Assert.NotNull(coreStatement);
             Assert.AreEqual(readTimeout, coreStatement.ReadTimeoutMillis);
+            Assert.True(coreStatement.OutgoingPayload.ContainsKey("request-timeout"));
+            Assert.That(coreStatement.OutgoingPayload["request-timeout"], Is.EqualTo(ToBuffer(readTimeout)));
             coreSessionMock.Verify();
         }
 
@@ -197,17 +202,19 @@ namespace Dse.Test.Unit.Graph
                 new GraphOptions()
                     .SetName("name1")
                     .SetSource("My source!")
+                    .SetReadTimeoutMillis(22222)
                     .SetReadConsistencyLevel(ConsistencyLevel.LocalQuorum)
                     .SetWriteConsistencyLevel(ConsistencyLevel.EachQuorum));
             session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
             Assert.NotNull(coreStatement);
             Assert.NotNull(coreStatement.OutgoingPayload);
-            Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-source"]), "My source!");
+            Assert.That(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-source"]), Is.EqualTo("My source!"));
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-name"]), "name1");
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-read-consistency"]), "LOCAL_QUORUM");
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-write-consistency"]), "EACH_QUORUM");
             //default
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-language"]), "gremlin-groovy");
+            Assert.That(coreStatement.OutgoingPayload["request-timeout"], Is.EqualTo(ToBuffer(22222)));
         }
 
         [Test]
@@ -226,17 +233,19 @@ namespace Dse.Test.Unit.Graph
                     .SetWriteConsistencyLevel(ConsistencyLevel.EachQuorum));
             session.ExecuteGraph(new SimpleGraphStatement("g.V()")
                 .SetGraphLanguage("my-lang")
+                .SetReadTimeoutMillis(5555)
                 .SetSystemQuery()
                 .SetGraphReadConsistencyLevel(ConsistencyLevel.Two)
                 .SetGraphSource("Statement source"));
             Assert.NotNull(coreStatement);
             Assert.NotNull(coreStatement.OutgoingPayload);
-            Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-source"]), "Statement source");
+            Assert.That(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-source"]), Is.EqualTo("Statement source"));
             //is a sistem query
             Assert.False(coreStatement.OutgoingPayload.ContainsKey("graph-name"));
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-read-consistency"]), "TWO");
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-write-consistency"]), "EACH_QUORUM");
             Assert.AreEqual(Encoding.UTF8.GetString(coreStatement.OutgoingPayload["graph-language"]), "my-lang");
+            Assert.That(coreStatement.OutgoingPayload["request-timeout"], Is.EqualTo(ToBuffer(5555)));
         }
 
         [Test]
@@ -312,6 +321,29 @@ namespace Dse.Test.Unit.Graph
             var targettedStatement = coreStatements[0] as TargettedSimpleStatement;
             Assert.NotNull(targettedStatement);
             Assert.Null(targettedStatement.PreferredHost);
+        }
+        
+        [Test]
+        public void Should_Identity_Timeout_Infinite_ReadTimeout()
+        {
+            SimpleStatement coreStatement = null;
+            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
+            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
+                .Returns(TaskOf(new RowSet()))
+                .Callback<SimpleStatement>(stmt => coreStatement = stmt);
+            var session = NewInstance(coreSessionMock.Object,
+                new GraphOptions().SetReadTimeoutMillis(32000));
+            session.ExecuteGraph(new SimpleGraphStatement("g.V()")
+                .SetReadTimeoutMillis(Timeout.Infinite));
+            Assert.NotNull(coreStatement);
+            Assert.NotNull(coreStatement.OutgoingPayload);
+            Assert.False(coreStatement.OutgoingPayload.ContainsKey("request-timeout"));
+            Assert.That(coreStatement.ReadTimeoutMillis, Is.EqualTo(int.MaxValue));
+        }
+
+        private static byte[] ToBuffer(long value)
+        {
+            return Cassandra.Serialization.TypeSerializer.PrimitiveLongSerializer.Serialize(4, value);
         }
     }
 }

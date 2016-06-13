@@ -28,7 +28,7 @@ namespace Dse.Graph
         /// <summary>
         /// Default value for read timeout.
         /// </summary>
-        public const int DefaultReadTimeout = 32000;
+        public const int DefaultReadTimeout = Timeout.Infinite;
 
         private static class PayloadKey
         {
@@ -37,6 +37,7 @@ namespace Dse.Graph
             public const string Source = "graph-source";
             public const string ReadConsistencyLevel = "graph-read-consistency";
             public const string WriteConsitencyLevel = "graph-write-consistency";
+            public const string RequestTimeout = "request-timeout";
         }
 
         private volatile IDictionary<string, byte[]> _defaultPayload;
@@ -83,7 +84,7 @@ namespace Dse.Graph
             get
             {
                 //4 bytes for consistency representation and 1 bit for null flag
-                long value = Thread.VolatileRead(ref _readConsistencyLevel);
+                long value = Interlocked.Read(ref _readConsistencyLevel);
                 if (value == long.MinValue)
                 {
                     return null;
@@ -96,7 +97,7 @@ namespace Dse.Graph
         /// Gets the value that overrides the 
         /// <see href="http://docs.datastax.com/en/drivers/csharp/3.0/html/P_Cassandra_SocketOptions_ReadTimeoutMillis.htm">
         /// default per-host read timeout</see> in milliseconds for all graph queries.
-        /// <para>Default: <c>32000</c>.</para>
+        /// <para>Default: <c>Timeout.Infinite</c> (-1).</para>
         /// </summary>
         /// <seealso cref="SetReadTimeoutMillis"/>
         public int ReadTimeoutMillis
@@ -120,7 +121,7 @@ namespace Dse.Graph
             get
             {
                 //4 bytes for consistency representation and 1 bit for null flag
-                long value = Thread.VolatileRead(ref _writeConsistencyLevel);
+                long value = Interlocked.Read(ref _writeConsistencyLevel);
                 if (value == long.MinValue)
                 {
                     return null;
@@ -171,22 +172,22 @@ namespace Dse.Graph
         /// <param name="consistency">The consistency level to use in read graph queries.</param>
         public GraphOptions SetReadConsistencyLevel(ConsistencyLevel consistency)
         {
-            Thread.VolatileWrite(ref _readConsistencyLevel, (long)consistency);
+            Interlocked.Exchange(ref _readConsistencyLevel, (long)consistency);
             RebuildDefaultPayload();
             return this;
         }
 
         /// <summary>
-        /// Overrides the 
-        /// <see href="http://docs.datastax.com/en/drivers/csharp/3.0/html/P_Cassandra_SocketOptions_ReadTimeoutMillis.htm">
-        /// default per-host read timeout</see> in milliseconds for all graph queries.
+        /// Sets the default per-host read timeout in milliseconds for all graph queries.
+        /// <para>
+        /// When setting a value of less than or equals to zero (<see cref="Timeout.Infinite"/>),
+        /// it will use an infinite timeout.
+        /// </para>
         /// </summary>
-        /// <remarks>
-        /// When setting a value of zero, it will use the default per-host read timeout defined by the core driver.
-        /// </remarks>
         public GraphOptions SetReadTimeoutMillis(int timeout)
         {
             _readTimeout = timeout;
+            RebuildDefaultPayload();
             return this;
         }
 
@@ -215,7 +216,7 @@ namespace Dse.Graph
         /// <param name="consistency">The consistency level to use in write graph queries.</param>
         public GraphOptions SetWriteConsistencyLevel(ConsistencyLevel consistency)
         {
-            Thread.VolatileWrite(ref _writeConsistencyLevel, (long)consistency);
+            Interlocked.Exchange(ref _writeConsistencyLevel, (long)consistency);
             RebuildDefaultPayload();
             return this;
         }
@@ -223,7 +224,7 @@ namespace Dse.Graph
         internal IDictionary<string, byte[]> BuildPayload(IGraphStatement statement)
         {
             if (statement.GraphLanguage == null && statement.GraphName == null &&
-                statement.GraphSource == null)
+                statement.GraphSource == null && statement.ReadTimeoutMillis == 0)
             {
                 if (!statement.IsSystemQuery || !_defaultPayload.ContainsKey(PayloadKey.Name))
                 {
@@ -233,25 +234,35 @@ namespace Dse.Graph
                 }
             }
             var payload = new Dictionary<string, byte[]>();
-            Add(payload, PayloadKey.Language, statement.GraphLanguage);
+            Add(payload, PayloadKey.Language, statement.GraphLanguage, null);
             if (!statement.IsSystemQuery)
             {
-                Add(payload, PayloadKey.Name, statement.GraphName);
+                Add(payload, PayloadKey.Name, statement.GraphName, null);
             }
-            Add(payload, PayloadKey.Source, statement.GraphSource);
+            Add(payload, PayloadKey.Source, statement.GraphSource, null);
             Add(payload, PayloadKey.ReadConsistencyLevel,
-                statement.GraphReadConsistencyLevel == null ? null : GetConsistencyName(statement.GraphReadConsistencyLevel.Value));
+                statement.GraphReadConsistencyLevel == null ? null : GetConsistencyName(statement.GraphReadConsistencyLevel.Value), null);
             Add(payload, PayloadKey.WriteConsitencyLevel,
-                statement.GraphWriteConsistencyLevel == null ? null : GetConsistencyName(statement.GraphWriteConsistencyLevel.Value));
+                statement.GraphWriteConsistencyLevel == null ? null : GetConsistencyName(statement.GraphWriteConsistencyLevel.Value), null);
+            var readTimeout = statement.ReadTimeoutMillis != 0 ? statement.ReadTimeoutMillis : ReadTimeoutMillis;
+            if (readTimeout > 0)
+            {
+                // only non-infinite timeouts needs to be included in the payload
+                Add<long>(payload, PayloadKey.RequestTimeout, statement.ReadTimeoutMillis, 0, ToBuffer);
+            }
             return payload;
         }
 
-        private void Add(IDictionary<string, byte[]> payload, string key, string value)
+        private void Add<T>(IDictionary<string, byte[]> payload, string key, T value, T empty, Func<T, byte[]> converter = null)
         {
-            byte[] payloadValue;
-            if (value != null)
+            if (converter == null)
             {
-                payloadValue = ToUtf8Buffer(value);
+                converter = v => ToUtf8Buffer((string)(object)v);
+            }
+            byte[] payloadValue;
+            if (value != null && !value.Equals(empty))
+            {
+                payloadValue = converter(value);
             }
             else
             {
@@ -287,6 +298,10 @@ namespace Dse.Graph
                 payload.Add(PayloadKey.WriteConsitencyLevel, ToUtf8Buffer(
                     GetConsistencyName(writeConsistencyLevel.Value)));
             }
+            if (ReadTimeoutMillis > 0)
+            {
+                payload.Add(PayloadKey.RequestTimeout, ToBuffer(ReadTimeoutMillis));
+            }
             _defaultPayload = payload;
         }
 
@@ -304,6 +319,12 @@ namespace Dse.Graph
         private static byte[] ToUtf8Buffer(string value)
         {
             return Encoding.UTF8.GetBytes(value);
+        }
+
+        private static byte[] ToBuffer(long value)
+        {
+            var serializer = Cassandra.Serialization.TypeSerializer.PrimitiveLongSerializer;
+            return serializer.Serialize((ushort) Cluster.MaxProtocolVersion, value);
         }
     }
 }

@@ -98,9 +98,16 @@ namespace Dse.Graph
             {
                 stmt.SetTimestamp(Timestamp.Value);
             }
+            var readTimeout = ReadTimeoutMillis != 0 ? ReadTimeoutMillis : options.ReadTimeoutMillis;
+            if (readTimeout <= 0)
+            {
+                // Infinite (-1) is not supported in the core driver, set an arbitrarily large int
+                readTimeout = int.MaxValue;
+            }
             return stmt
-                .SetReadTimeoutMillis(ReadTimeoutMillis > 0 ? ReadTimeoutMillis : options.ReadTimeoutMillis)
+                .SetIdempotence(false)
                 .SetConsistencyLevel(ConsistencyLevel)
+                .SetReadTimeoutMillis(readTimeout)
                 .SetOutgoingPayload(options.BuildPayload(this));
         }
     }

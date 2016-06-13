@@ -377,11 +377,10 @@ namespace Dse.Test.Integration.Graph
         [Test]
         public void Should_Have_The_Same_ReadTimeout_Per_Statement_And_Global()
         {
-            CreateClassicGraph(CcmHelper.InitialContactPoint, "classic3");
-            var timeout = 5000;
+            var timeout = 2000;
             using (var cluster = DseCluster.Builder()
                 .AddContactPoint(CcmHelper.InitialContactPoint)
-                .WithGraphOptions(new GraphOptions().SetName("classic3").SetReadTimeoutMillis(timeout))
+                .WithGraphOptions(new GraphOptions().SetName(GraphName).SetReadTimeoutMillis(timeout))
                 .Build())
             {
                 var session = cluster.Connect();
@@ -389,9 +388,9 @@ namespace Dse.Test.Integration.Graph
                 try
                 {
                     stopwatch.Start();
-                    session.ExecuteGraph(new SimpleGraphStatement("while(true) { }"));
+                    session.ExecuteGraph(new SimpleGraphStatement("java.util.concurrent.TimeUnit.MILLISECONDS.sleep(3000L);"));
                 }
-                catch (Exception)
+                catch
                 {
                     stopwatch.Stop();
                     Assert.GreaterOrEqual(stopwatch.ElapsedMilliseconds, timeout);
@@ -402,11 +401,10 @@ namespace Dse.Test.Integration.Graph
         [Test]
         public void Should_Have_The_Different_ReadTimeout_Per_Statement()
         {
-            CreateClassicGraph(CcmHelper.InitialContactPoint, "classic4");
-            var timeout = 5000;
+            var timeout = 2000;
             using (var cluster = DseCluster.Builder()
                 .AddContactPoint(CcmHelper.InitialContactPoint)
-                .WithGraphOptions(new GraphOptions().SetName("classic4").SetReadTimeoutMillis(timeout))
+                .WithGraphOptions(new GraphOptions().SetName(GraphName).SetReadTimeoutMillis(timeout))
                 .Build())
             {
                 var session = cluster.Connect();
@@ -415,9 +413,10 @@ namespace Dse.Test.Integration.Graph
                 try
                 {
                     stopwatch.Start();
-                    session.ExecuteGraph(new SimpleGraphStatement("while(true) { }").SetReadTimeoutMillis(stmtTimeout));
+                    session.ExecuteGraph(new SimpleGraphStatement("java.util.concurrent.TimeUnit.MILLISECONDS.sleep(1000L);")
+                                            .SetReadTimeoutMillis(stmtTimeout));
                 }
-                catch (Exception)
+                catch
                 {
                     stopwatch.Stop();
                     Assert.GreaterOrEqual(stopwatch.ElapsedMilliseconds, stmtTimeout);
@@ -426,13 +425,41 @@ namespace Dse.Test.Integration.Graph
             }
         }
 
+
+        [Test]
+        public void Should_Have_Infinite_ReadTimeout_Per_Statement()
+        {
+            //setting a really small global timeout to make sure that the query exceeds this time
+            var timeout = 2000;
+            var stmtSleep = 10000L;
+            using (var cluster = DseCluster.Builder()
+                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .WithGraphOptions(new GraphOptions().SetName(GraphName).SetReadTimeoutMillis(timeout))
+                .Build())
+            {
+                var session = cluster.Connect();
+                var stopwatch = new Stopwatch();
+                try
+                {
+                    stopwatch.Start();
+                    session.ExecuteGraph(new SimpleGraphStatement("java.util.concurrent.TimeUnit.MILLISECONDS.sleep(" + stmtSleep + ");")
+                                                                        .SetReadTimeoutMillis(Timeout.Infinite));
+                }
+                finally
+                {
+                    stopwatch.Stop();
+                    Assert.GreaterOrEqual(stopwatch.ElapsedMilliseconds, timeout);
+                    Assert.GreaterOrEqual(stopwatch.ElapsedMilliseconds, stmtSleep);
+                }
+            }
+        }
+
         [Test]
         public void Should_Get_Path_With_Labels()
         {
-            CreateClassicGraph(CcmHelper.InitialContactPoint, "classic3");
             using (var cluster = DseCluster.Builder()
                 .AddContactPoint(CcmHelper.InitialContactPoint)
-                .WithGraphOptions(new GraphOptions().SetName("classic3"))
+                .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
             {
                 var session = cluster.Connect();
