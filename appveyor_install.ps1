@@ -1,18 +1,26 @@
 $env:JAVA_HOME="C:\Program Files\Java\jdk1.8.0"
 $env:PYTHON="C:\Python27-x64"
 $env:PATH="$($env:PYTHON);$($env:PYTHON)\Scripts;$($env:JAVA_HOME)\bin;$($env:PATH)"
-$env:CCM_PATH="C:\Users\appveyor\ccm"
+$dep_dir="C:\Users\appveyor\deps"
 
 Write-Host "Install..."
 
-# Install Ant and Maven
-Start-Process cinst -ArgumentList @("-y","ant") -Wait -NoNewWindow
-# Workaround for ccm, link ant.exe -> ant.bat
-If (!(Test-Path C:\ProgramData\chocolatey\bin\ant.bat)) {
-  cmd /c mklink C:\ProgramData\chocolatey\bin\ant.bat C:\ProgramData\chocolatey\bin\ant.exe
+If (!(Test-Path $dep_dir)) {
+  Write-Host "Creating $($dep_dir)"
+  New-Item -Path $dep_dir -ItemType Directory -Force
 }
 
-Write-Host "Created ant symbolic link"
+# Install Ant
+$ant_base = "$($dep_dir)\ant"
+$ant_path = "$($ant_base)\apache-ant-1.9.7"
+If (!(Test-Path $ant_path)) {
+  Write-Host "Installing Ant"
+  $ant_url = "https://www.dropbox.com/s/lgx95x1jr6s787l/apache-ant-1.9.7-bin.zip?dl=1"
+  $ant_zip = "C:\Users\appveyor\apache-ant-1.9.7-bin.zip"
+  (new-object System.Net.WebClient).DownloadFile($ant_url, $ant_zip)
+  [System.IO.Compression.ZipFile]::ExtractToDirectory($ant_zip, $ant_base)
+}
+$env:PATH="$($ant_path)\bin;$($env:PATH)"
 
 Write-Host "Installing java Cryptographic Extensions, needed for SSL..."
 # Install Java Cryptographic Extensions, needed for SSL.
@@ -42,24 +50,18 @@ If (!(Test-Path $jce_indicator)) {
   Remove-Item $jcePolicyDir
 }
 
-# Install Python Dependencies for CCM.
-Write-Host "Installing Python Dependencies for CCM..."
-Start-Process python -ArgumentList "-m pip install psutil pyYaml six" -Wait -NoNewWindow
-Write-Host "Installed Python Dependencies for CCM."
+$env:CCM_PATH="$($dep_dir)\ccm"
 
 # Clone ccm from git and use master.
 If (!(Test-Path $env:CCM_PATH)) {
-  Write-Host "Cloning git ccm..."
+  Write-Host "Cloning git ccm... $($env:CCM_PATH)"
   Start-Process git -ArgumentList "clone https://github.com/pcmanus/ccm.git $($env:CCM_PATH)" -Wait -NoNewWindow
   Write-Host "git ccm cloned"
 }
 
-# Copy ccm -> ccm.py so windows knows to run it.
-If (!(Test-Path $env:CCM_PATH\ccm.py)) {
-  Copy-Item "$env:CCM_PATH\ccm" "$env:CCM_PATH\ccm.py"
-}
-
-$env:PATH="$($env:CCM_PATH);$($env:PATH)"
+# Install Python Dependencies for CCM.
+Write-Host "Installing CCM and its dependencies"
+Start-Process python -ArgumentList "-m pip install psutil pyYaml six ccm" -Wait -NoNewWindow
 
 Write-Host "Set execution Policy"
 Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process
@@ -70,4 +72,6 @@ If (!(Test-Path C:\Users\appveyor\.ccm\repository\$env:cassandra_version)) {
   Write-Host "[Install] Install cassandra version $($env:cassandra_version)"
   Start-Process python -ArgumentList "$($env:CCM_PATH)\ccm.py create -v $($env:cassandra_version) -n 1 predownload" -Wait -NoNewWindow
   Start-Process python -ArgumentList "$($env:CCM_PATH)\ccm.py remove predownload" -Wait -NoNewWindow
+} else {
+  Write-Host "Cassandra $env:cassandra_version was already preloaded"
 }

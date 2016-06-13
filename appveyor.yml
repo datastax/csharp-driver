@@ -5,6 +5,7 @@ cache:
   - C:\ProgramData\chocolatey\bin                                                                                                     
   - C:\ProgramData\chocolatey\lib
   - C:\Users\appveyor\.ccm\repository
+  - C:\Users\appveyor\deps -> appveyor.ps1
   - C:\Users\appveyor\ccm
 os: Visual Studio 2015
 platform:
