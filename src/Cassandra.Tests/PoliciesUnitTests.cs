@@ -624,6 +624,54 @@ namespace Cassandra.Tests
             clusterMock.Verify();
         }
 
+        [Test]
+        public void IdempotenceAwareRetryPolicy_Should_Use_ChildPolicy_OnReadTimeout()
+        {
+            var testPolicy = new TestRetryPolicy();
+            var policy = new IdempotenceAwareRetryPolicy(testPolicy);
+            var decision = policy.OnReadTimeout(new SimpleStatement("Q"), ConsistencyLevel.All, 0, 0, true, 1);
+            Assert.AreEqual(decision.DecisionType, RetryDecision.RetryDecisionType.Ignore);
+            Assert.AreEqual(1, testPolicy.ReadTimeoutCounter);
+            Assert.AreEqual(0, testPolicy.WriteTimeoutCounter);
+            Assert.AreEqual(0, testPolicy.UnavailableCounter);
+        }
+
+        [Test]
+        public void IdempotenceAwareRetryPolicy_Should_Use_ChildPolicy_OnUnavailable()
+        {
+            var testPolicy = new TestRetryPolicy();
+            var policy = new IdempotenceAwareRetryPolicy(testPolicy);
+            var decision = policy.OnUnavailable(new SimpleStatement("Q"), ConsistencyLevel.All, 0, 0, 1);
+            Assert.AreEqual(decision.DecisionType, RetryDecision.RetryDecisionType.Ignore);
+            Assert.AreEqual(0, testPolicy.ReadTimeoutCounter);
+            Assert.AreEqual(0, testPolicy.WriteTimeoutCounter);
+            Assert.AreEqual(1, testPolicy.UnavailableCounter);
+        }
+
+        [Test]
+        public void IdempotenceAwareRetryPolicy_Should_Use_ChildPolicy_OnWriteTimeout_With_Idempotent_Statements()
+        {
+            var testPolicy = new TestRetryPolicy();
+            var policy = new IdempotenceAwareRetryPolicy(testPolicy);
+            var decision = policy.OnWriteTimeout(new SimpleStatement("Q").SetIdempotence(true), ConsistencyLevel.All, "BATCH", 0, 0, 1);
+            Assert.AreEqual(decision.DecisionType, RetryDecision.RetryDecisionType.Ignore);
+            Assert.AreEqual(0, testPolicy.ReadTimeoutCounter);
+            Assert.AreEqual(1, testPolicy.WriteTimeoutCounter);
+            Assert.AreEqual(0, testPolicy.UnavailableCounter);
+        }
+
+        [Test]
+        public void IdempotenceAwareRetryPolicy_Should_Rethrow_OnWriteTimeout_With_Non_Idempotent_Statements()
+        {
+            var testPolicy = new TestRetryPolicy();
+            var policy = new IdempotenceAwareRetryPolicy(testPolicy);
+            var decision = policy.OnWriteTimeout(new SimpleStatement("Q").SetIdempotence(false), ConsistencyLevel.All, "BATCH", 0, 0, 1);
+            Assert.AreEqual(decision.DecisionType, RetryDecision.RetryDecisionType.Rethrow);
+            Assert.AreEqual(0, testPolicy.ReadTimeoutCounter);
+            Assert.AreEqual(0, testPolicy.WriteTimeoutCounter);
+            Assert.AreEqual(0, testPolicy.UnavailableCounter);
+        }
+
         /// <summary>
         /// Creates a list of host with ips starting at 0.0.0.0 to 0.0.0.(length-1) and the provided datacenter name
         /// </summary>
@@ -636,6 +684,33 @@ namespace Cassandra.Tests
                 list.Add(host);
             }
             return list;
+        }
+
+        private class TestRetryPolicy : IRetryPolicy
+        {
+            public int ReadTimeoutCounter { get; set; }
+
+            public int WriteTimeoutCounter { get; set; }
+
+            public int UnavailableCounter { get; set; }
+
+            public RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
+            {
+                ReadTimeoutCounter++;
+                return RetryDecision.Ignore();
+            }
+
+            public RetryDecision OnWriteTimeout(IStatement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
+            {
+                WriteTimeoutCounter++;
+                return RetryDecision.Ignore();
+            }
+
+            public RetryDecision OnUnavailable(IStatement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
+            {
+                UnavailableCounter++;
+                return RetryDecision.Ignore();
+            }
         }
     }
 }

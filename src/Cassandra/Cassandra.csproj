@@ -144,6 +144,7 @@
     <Compile Include="Mapping\Attributes\FrozenAttribute.cs" />
     <Compile Include="Mapping\Attributes\FrozenKeyAttribute.cs" />
     <Compile Include="Mapping\Attributes\FrozenValueAttribute.cs" />
+    <Compile Include="Policies\IdempotenceAwareRetryPolicy.cs" />
     <Compile Include="Requests\ICqlRequest.cs" />
     <Compile Include="IndexMetadata.cs" />
     <Compile Include="LocalDate.cs" />

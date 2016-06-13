@@ -116,6 +116,10 @@ namespace Cassandra.Requests
         internal static IRequest GetRequest(IStatement statement, Serializer serializer, Configuration config)
         {
             ICqlRequest request = null;
+            if (statement.IsIdempotent == null)
+            {
+                statement.SetIdempotence(config.QueryOptions.GetDefaultIdempotence());
+            }
             if (statement is RegularStatement)
             {
                 var s = (RegularStatement)statement;
@@ -362,7 +366,7 @@ namespace Cassandra.Requests
         /// </summary>
         private void ScheduleNext()
         {
-            if (Statement == null || !(Statement.IsIdempotent ?? _session.Cluster.Configuration.QueryOptions.GetDefaultIdempotence()))
+            if (Statement == null || Statement.IsIdempotent == false)
             {
                 //its not idempotent, we should not schedule an speculative execution
                 return;

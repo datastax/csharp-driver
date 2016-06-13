@@ -38,12 +38,12 @@ namespace Cassandra
         ///  had responded to the read request but data was not retrieved amongst those.
         ///  Indeed, that case usually means that enough replica are alive to satisfy the
         ///  consistency but the coordinator picked a dead one for data retrieval, not
-        ///  having detecte that replica as dead yet. The reasoning for retrying then is
+        ///  having detected that replica as dead yet. The reasoning for retrying then is
         ///  that by the time we get the timeout the dead replica will likely have been
         ///  detected as dead and the retry has a high change of success.</p>
         /// </summary>
-        /// <param name="query"> the original query that timeouted. </param>
-        /// <param name="cl"> the original consistency level of the read that timeouted.
+        /// <param name="query"> the original query that timed out. </param>
+        /// <param name="cl"> the original consistency level of the read that timed out.
         ///  </param>
         /// <param name="requiredResponses"> the number of responses that were required
         ///  to achieve the requested consistency level. </param>
@@ -54,9 +54,9 @@ namespace Cassandra
         /// <param name="nbRetry"> the number of retry already performed for this
         ///  operation. </param>
         /// 
-        /// <returns><c>RetryDecision.retry(cl)</c> if no retry attempt has yet
+        /// <returns><c>RetryDecision.Retry(cl)</c> if no retry attempt has yet
         ///  been tried and <c>receivedResponses >= requiredResponses &amp;&amp;
-        ///  !dataRetrieved</c>, <c>RetryDecision.rethrow()</c>
+        ///  !dataRetrieved</c>, <c>RetryDecision.Rethrow()</c>
         ///  otherwise.</returns>
         public RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses,
                                            bool dataRetrieved, int nbRetry)

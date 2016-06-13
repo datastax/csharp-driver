@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Cassandra.Requests;
 
 namespace Cassandra
@@ -28,6 +29,7 @@ namespace Cassandra
         private ConsistencyLevel _serialConsistency = QueryProtocolOptions.Default.SerialConsistency;
         private object[] _values;
         private bool _autoPage = true;
+        private volatile int _isIdempotent = int.MinValue;
 
         public virtual object[] QueryValues
         {
@@ -78,7 +80,18 @@ namespace Cassandra
         public abstract RoutingKey RoutingKey { get; }
 
         /// <inheritdoc />
-        public bool? IsIdempotent { get; private set; }
+        public bool? IsIdempotent
+        {
+            get
+            {
+                var idempotence = _isIdempotent;
+                if (idempotence == int.MinValue)
+                {
+                    return null;
+                }
+                return idempotence == 1;
+            }
+        }
 
         protected Statement()
         {
@@ -196,7 +209,7 @@ namespace Cassandra
         /// <inheritdoc />
         public IStatement SetIdempotence(bool value)
         {
-            IsIdempotent = value;
+            _isIdempotent = value ? 1 : 0;
             return this;
         }
 
