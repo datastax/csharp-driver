@@ -118,7 +118,7 @@ namespace Cassandra
         ///  The address translator used to translate Cassandra node address.
         /// </summary> 
         /// <returns>the address translator in use.</returns>
-        internal IAddressTranslator AddressTranslator
+        public IAddressTranslator AddressTranslator
         {
             get { return _addressTranslator; }
         }
