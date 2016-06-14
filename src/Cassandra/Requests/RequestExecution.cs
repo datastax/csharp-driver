@@ -245,21 +245,25 @@ namespace Cassandra.Requests
                 PrepareAndRetry(((PreparedQueryNotFoundException)ex).UnknownId);
                 return;
             }
-            if (ex is OperationTimedOutException)
-            {
-                OnTimeout(ex);
-                return;
-            }
             if (ex is NoHostAvailableException)
             {
                 //A NoHostAvailableException when trying to retrieve
                 _parent.SetNoMoreHosts((NoHostAvailableException)ex, this);
                 return;
             }
+            var c = _connection;
+            if (c != null)
+            {
+                _triedHosts[c.Address] = ex;
+            }
+            if (ex is OperationTimedOutException)
+            {
+                OnTimeout(ex);
+                return;
+            }
             if (ex is SocketException)
             {
                 Logger.Verbose("Socket error " + ((SocketException)ex).SocketErrorCode);
-                var c = _connection;
                 if (c != null)
                 {
                     _parent.SetHostDown(c);
