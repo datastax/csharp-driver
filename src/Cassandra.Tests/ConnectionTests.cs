@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -35,7 +36,7 @@ namespace Cassandra.Tests
         {
             var connectionMock = GetConnectionMock();
             var streamIds = new List<short>();
-            var responses = new List<Response>();
+            var responses = new ConcurrentBag<Response>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
                 .Callback<short>(id => streamIds.Add(id))
                 .Returns(() => new OperationState((ex, r) => responses.Add(r)));
@@ -59,7 +60,7 @@ namespace Cassandra.Tests
         {
             var connectionMock = GetConnectionMock();
             var streamIds = new List<short>();
-            var responses = new List<Response>();
+            var responses = new ConcurrentBag<Response>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
                 .Callback<short>(id => streamIds.Add(id))
                 .Returns(() => new OperationState((ex, r) => responses.Add(r)));
@@ -76,7 +77,7 @@ namespace Cassandra.Tests
         {
             var connectionMock = GetConnectionMock();
             var streamIds = new List<short>();
-            var responses = new List<Response>();
+            var responses = new ConcurrentBag<Response>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
                 .Callback<short>(id => streamIds.Add(id))
                 .Returns(() => new OperationState((ex, r) => responses.Add(r)));
@@ -101,7 +102,7 @@ namespace Cassandra.Tests
         {
             var connectionMock = GetConnectionMock();
             var streamIds = new List<short>();
-            var responses = new List<Response>();
+            var responses = new ConcurrentBag<Response>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
                 .Callback<short>(id => streamIds.Add(id))
                 .Returns(() => new OperationState((ex, r) => responses.Add(r)));
@@ -133,8 +134,8 @@ namespace Cassandra.Tests
         {
             var connectionMock = GetConnectionMock();
             var streamIds = new List<short>();
-            var responses = new List<Response>();
-            var exceptions = new List<Exception>();
+            var responses = new ConcurrentBag<Response>();
+            var exceptions = new ConcurrentBag<Exception>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
                 .Callback<short>(id => streamIds.Add(id))
                 .Returns(() => new OperationState((ex, r) =>
@@ -168,7 +169,7 @@ namespace Cassandra.Tests
         {
             var connectionMock = GetConnectionMock();
             var streamIds = new List<short>();
-            var responses = new List<Response>();
+            var responses = new ConcurrentBag<Response>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
                 .Callback<short>(id => streamIds.Add(id))
                 .Returns(() => new OperationState((ex, r) => responses.Add(r)));
@@ -198,7 +199,7 @@ namespace Cassandra.Tests
         {
             var connectionMock = GetConnectionMock();
             var streamIds = new List<short>();
-            var responses = new List<Response>();
+            var responses = new ConcurrentBag<Response>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
                 .Callback<short>(id => streamIds.Add(id))
                 .Returns(() => new OperationState((ex, r) => responses.Add(r)));
@@ -238,7 +239,7 @@ namespace Cassandra.Tests
         {
             var connectionMock = GetConnectionMock();
             var streamIds = new List<short>();
-            var responses = new List<Response>();
+            var responses = new ConcurrentBag<Response>();
             connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
                 .Callback<short>(id => streamIds.Add(id))
                 .Returns(() => new OperationState((ex, r) => responses.Add(r)));
