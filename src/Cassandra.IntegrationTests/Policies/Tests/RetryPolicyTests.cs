@@ -23,13 +23,13 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Policies.Tests
 {
-    [TestFixture, Category("long")]
+    [TestFixture]
     public class RetryPolicyTests : TestGlobals
     {
         /// <summary>
         ///  Tests DowngradingConsistencyRetryPolicy
         /// </summary>
-        [Test]
+        [Test, Category("long")]
         public void RetryPolicy_DowngradingConsistency()
         {
             Builder builder = Cluster.Builder().WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance);
@@ -41,7 +41,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         /// 
         /// @test_category connection:retry_policy
         /// </summary>
-        [Test]
+        [Test, Category("long")]
         public void LoggingRetryPolicy_DowngradingConsistency()
         {
             Builder builder = Cluster.Builder().WithRetryPolicy(new LoggingRetryPolicy(DowngradingConsistencyRetryPolicy.Instance));
@@ -85,7 +85,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         /// 
         /// @test_category connection:retry_policy,outage
         /// </summary>
-        [Test]
+        [Test, Category("long")]
         public void AlwaysIgnoreRetryPolicyTest()
         {
 
@@ -103,7 +103,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         /// 
         /// @test_category connection:retry_policy,outage
         /// </summary>
-        [Test]
+        [Test, Category("long")]
         public void AlwaysRetryRetryPolicyTest()
         {
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(2);
@@ -133,7 +133,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         ///    - A Cassandra cluster with 2 nodes
         ///    - A TryNextHostRetryPolicy decision defined, with useCurrentHost set to false
         /// @test_category connection:retry_policy
-        [Test]
+        [Test, Category("long")]
         public void TryNextHostRetryPolicyTest()
         {
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(2);
@@ -226,7 +226,113 @@ namespace Cassandra.IntegrationTests.Policies.Tests
 
         }
 
+        /// <summary>
+        /// Test IdempotenceAwareRetryPolicy. 
+        /// 
+        /// If write query write is idempotent it will retry according to child retry policy specified.
+        /// 
+        /// @jira_ticket CSHARP-461
+        /// 
+        /// @test_category connection:retry_policy
+        /// </summary>
+        [Test, Category("short")]
+        public void IdempotenceAwareRetryPolicy_ShouldUseChildRetryPolicy_OnWriteTimeout()
+        {
+            const string keyspace = "idempotenceAwarepolicytestks";
+            var options = new TestClusterOptions { CassandraYaml = new[] { "phi_convict_threshold: 16" } };
+            var testCluster = TestClusterManager.CreateNew(2, options, false);
+            testCluster.Builder = Cluster.Builder()
+                                         .AddContactPoint(testCluster.ClusterIpPrefix + "1");
+            testCluster.InitClient();
+
+            var tableName = TestUtils.GetUniqueTableName();
+            testCluster.Session.DeleteKeyspaceIfExists(keyspace);
+            testCluster.Session.Execute(string.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspace, 2), ConsistencyLevel.All);
+            testCluster.Session.ChangeKeyspace(keyspace);
+            testCluster.Session.Execute(new SimpleStatement(string.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", tableName)).SetConsistencyLevel(ConsistencyLevel.All));
+
+            //testCluster.PauseNode(2);
+
+            var testPolicy = new TestRetryPolicy();
+            var policy = new IdempotenceAwareRetryPolicy(testPolicy);
+
+            try
+            {
+                testCluster.Session.Execute(new SimpleStatement(string.Format("INSERT INTO {0}(k, i) VALUES (0, 0)", tableName))
+                    .SetIdempotence(true)
+                    .SetConsistencyLevel(ConsistencyLevel.All)
+                    .SetRetryPolicy(policy));
+            }
+            catch (Exception exception)
+            {
+                if (exception is WriteTimeoutException)
+                {
+                    //throws a WriteTimeoutException, as its set as an idempotent query, it will call the childPolicy
+                    Assert.AreEqual(0, testPolicy.ReadTimeoutCounter);
+                    Assert.AreEqual(1, testPolicy.WriteTimeoutCounter);
+                    Assert.AreEqual(0, testPolicy.UnavailableCounter);
+                }
+                else
+                {
+                    //ignore, sometimes node1 will be aware the the node2 was paused and it will throw an UnavailableException
+                }
+                
+            }
+
+            testPolicy.UnavailableCounter = 0;
+            
+            try
+            {
+                testCluster.Session.Execute(new SimpleStatement(string.Format("INSERT INTO {0}(k, i) VALUES (0, 0)", tableName))
+                    .SetIdempotence(false)
+                    .SetConsistencyLevel(ConsistencyLevel.All)
+                    .SetRetryPolicy(policy));
+            }
+            catch (Exception exception)
+            {
+                if (exception is WriteTimeoutException)
+                {
+                    //throws a WriteTimeoutException, as its set as an idempotent query, it will call the childPolicy
+                    Assert.AreEqual(0, testPolicy.ReadTimeoutCounter);
+                    Assert.AreEqual(0, testPolicy.WriteTimeoutCounter);
+                    Assert.AreEqual(0, testPolicy.UnavailableCounter);
+                }
+                else
+                {
+                    //ignore, sometimes node1 will be aware the the node2 was paused and it will throw an UnavailableException
+                }
+
+            }
+
+            testCluster.Cluster.Shutdown();
+        }
 
 
+        private class TestRetryPolicy : IRetryPolicy
+        {
+            public int ReadTimeoutCounter { get; set; }
+
+            public int WriteTimeoutCounter { get; set; }
+
+            public int UnavailableCounter { get; set; }
+
+            public RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
+            {
+                ReadTimeoutCounter++;
+                return RetryDecision.Rethrow();
+            }
+
+            public RetryDecision OnWriteTimeout(IStatement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
+            {
+                WriteTimeoutCounter++;
+                return RetryDecision.Rethrow();
+            }
+
+            public RetryDecision OnUnavailable(IStatement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
+            {
+                UnavailableCounter++;
+                return RetryDecision.Rethrow();
+            }
+        }
     }
 }
