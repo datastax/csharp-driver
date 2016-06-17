@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Dse.Auth.Sspi;
-using SSPI;
+﻿//
+//  Copyright (C) 2016 DataStax, Inc.
+//
+//  Please see the license for details:
+//  http://www.datastax.com/terms/datastax-dse-driver-license-terms
+//
 
 namespace Dse.Auth
 {

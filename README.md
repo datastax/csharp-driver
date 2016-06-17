@@ -1,21 +1,23 @@
-# C# Driver Extensions for DataStax Enterprise
+# C# DataStax Enterprise Driver
 
 This driver is built on top of [C# CQL driver for Apache Cassandra][cassandra-driver] and provides the following
-extensions for DataStax Enterprise:
+additions for DataStax Enterprise:
 
 * Serializers for geospatial types which integrate seamlessly with the driver.
 * DSE graph integration.
 * `IAuthenticator` implementations that use the authentication scheme negotiation in the server-side `DseAuthenticator`.
 
+The C# DataStax Enterprise Driver can be used solely with DataStax Enterprise. Please consult
+[the license](#license).
+
+
 ## Installation
 
-The driver is distributed as a compressed zip file with the following structure:
+[Get it on Nuget][nuget]
 
-- `README`: this file;
-- `DseDriver<version>.nupkg`: Nuget package.
-- `apidocs/*`: API reference.
-
-To make the Nuget package available to other projects, you can [add it to your Nuget feeds][nuget-self-hosting].
+```
+PM> Install-Package Dse
+```
 
 ## Getting Started
 
@@ -189,8 +191,14 @@ Parameters can have the following types:
 
 Prepared graph statements are not supported by DSE yet (they will be added in the near future).
 
+## License
+
+Copyright 2016 DataStax
+
+http://www.datastax.com/terms/datastax-dse-driver-license-terms
+
 [cassandra-driver]: https://github.com/datastax/csharp-driver
 [core-manual]: http://docs.datastax.com/en//developer/csharp-driver/3.0/csharp-driver/whatsNew2.html
 [modern]: http://tinkerpop.apache.org/docs/3.1.1-incubating/reference/#_the_graph_structure
-[nuget-self-hosting]: http://docs.nuget.org/create/hosting-your-own-nuget-feeds
+[nuget]: https://nuget.org/packages/Dse/
 [dynamic]: https://msdn.microsoft.com/en-us/library/dd264736.aspx
