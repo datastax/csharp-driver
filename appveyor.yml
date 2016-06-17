@@ -15,7 +15,7 @@ configuration:
 environment:
   NUNIT_PATH: nunit-console
   matrix:
-    - CASSANDRA_VERSION: 3.4
+    - CASSANDRA_VERSION: 3.7
 
     - CASSANDRA_VERSION: 2.2.5
 
