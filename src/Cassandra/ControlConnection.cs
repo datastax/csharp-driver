@@ -162,6 +162,7 @@ namespace Cassandra
                     }
                     if (t.IsFaulted && t.Exception != null)
                     {
+                        t.Exception.Handle(e => true);
                         var ex = t.Exception.InnerException;
                         if (ex is UnsupportedProtocolVersionException)
                         {
