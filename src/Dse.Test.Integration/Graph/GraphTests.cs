@@ -24,6 +24,7 @@ namespace Dse.Test.Integration.Graph
     {
 
         private const string GraphName = "graph1";
+        private int _idGenerator;
 
         [TestFixtureSetUp]
         public void TestFixtureSetup()
@@ -513,7 +514,7 @@ namespace Dse.Test.Integration.Graph
                 .Build())
             {
                 var session = cluster.Connect();
-                var id = DateTime.Now.Millisecond;
+                var id = _idGenerator++;
                 var vertexLabel = "vertex" + id;
                 var propertyName = "prop" + id;
 

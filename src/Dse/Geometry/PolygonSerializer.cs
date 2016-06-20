@@ -73,7 +73,7 @@ namespace Dse.Geometry
         {
             var totalRingsLength = value.Rings.Sum(r => 4 + r.Count*16);
             var buffer = new byte[9 + totalRingsLength];
-            var isLittleEndian = IsCpuLittleEndian();
+            var isLittleEndian = UseLittleEndianSerialization();
             buffer[0] = isLittleEndian ? (byte)1 : (byte)0;
             var offset = 1;
             EndianBitConverter.SetBytes(isLittleEndian, buffer, offset, (int)GeometryType.Polygon );

@@ -36,9 +36,11 @@ namespace Dse.Geometry
         /// <summary>
         /// Returns true is the CPU is little-endian.
         /// </summary>
-        protected virtual   bool IsCpuLittleEndian()
+        protected virtual bool UseLittleEndianSerialization()
         {
-            return BitConverter.IsLittleEndian;
+            // instead of using CPU endianness, we hardcode it to LE.
+            // see DSP-10092
+            return true;
         }
     }
 }

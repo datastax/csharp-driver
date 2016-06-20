@@ -54,7 +54,7 @@ namespace Dse.Geometry
         public override byte[] Serialize(ushort protocolVersion, Point value)
         {
             var buffer = new byte[21];
-            var isLittleEndian = IsCpuLittleEndian();
+            var isLittleEndian = UseLittleEndianSerialization();
             buffer[0] = isLittleEndian ? (byte)1 : (byte)0;
             EndianBitConverter.SetBytes(isLittleEndian, buffer, 1, (int)GeometryType.Point2D);
             EndianBitConverter.SetBytes(isLittleEndian, buffer, 5, value.X);
