@@ -221,7 +221,12 @@ namespace Cassandra.IntegrationTests.Core
                 TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local"), 10);
                 testCluster.PauseNode(1);
                 testCluster.PauseNode(2);
-                Assert.Throws<NoHostAvailableException>(() => session.Execute("SELECT key FROM system.local"));
+                var ex = Assert.Throws<NoHostAvailableException>(() => session.Execute("SELECT key FROM system.local"));
+                Assert.AreEqual(2, ex.Errors.Count);
+                foreach (var innerException in ex.Errors.Values)
+                {
+                    Assert.IsInstanceOf<OperationTimedOutException>(innerException);
+                }
                 testCluster.ResumeNode(1);
                 testCluster.ResumeNode(2);
             }

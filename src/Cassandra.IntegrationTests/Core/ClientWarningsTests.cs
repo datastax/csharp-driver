@@ -25,7 +25,7 @@ namespace Cassandra.IntegrationTests.Core
 
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
             //Using a mirroring handler, the server will reply providing the same payload that was sent
-            var jvmArgs = new[] { "-Dcassandra.custom_query_handler_class=org.apache.cassandra.cql3.CustomPayloadMirroringQueryHandler" };
+            var jvmArgs = new[] {"-Dcassandra.custom_query_handler_class=org.apache.cassandra.cql3.CustomPayloadMirroringQueryHandler"};
             var testCluster = TestClusterManager.GetTestCluster(1, 0, false, DefaultMaxClusterCreateRetries, true, true, 0, jvmArgs);
             Session = testCluster.Session;
             Session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, Keyspace, 1));
@@ -44,61 +44,81 @@ namespace Cassandra.IntegrationTests.Core
         public void Warnings_Batch_Exceeding_Length_Test()
         {
             const string query = "BEGIN UNLOGGED BATCH INSERT INTO {0} (k, t) VALUES ('{1}', '{2}') APPLY BATCH";
-            var rs = Session.Execute(String.Format(query, Table, "warn1", String.Join("", Enumerable.Repeat("a", 5 * 1025))));
-            
-            Assert.NotNull(rs.Info.Warnings);
-            Assert.AreEqual(1, rs.Info.Warnings.Length);
-            StringAssert.Contains("batch", rs.Info.Warnings[0].ToLowerInvariant());
-            StringAssert.Contains("exceeding", rs.Info.Warnings[0].ToLowerInvariant());
+            var rs = Session.Execute(String.Format(query, Table, "warn1", String.Join("", Enumerable.Repeat("a", 5*1025))));
+
+            //at cassandra 3.6 warnings changed according to CASSANDRA-10876
+            var warningsChangingVersion = new Version(3, 6);
+            if (CassandraVersion.CompareTo(warningsChangingVersion) < 0)
+            {
+                Assert.NotNull(rs.Info.Warnings);
+                Assert.AreEqual(1, rs.Info.Warnings.Length);
+                StringAssert.Contains("batch", rs.Info.Warnings[0].ToLowerInvariant());
+                StringAssert.Contains("exceeding", rs.Info.Warnings[0].ToLowerInvariant());
+            }
         }
 
         [Test, TestCassandraVersion(2, 2)]
         public void Warnings_With_Tracing_Test()
         {
             const string query = "BEGIN UNLOGGED BATCH INSERT INTO {0} (k, t) VALUES ('{1}', '{2}') APPLY BATCH";
-            SimpleStatement insert = new SimpleStatement(String.Format(query, Table, "warn1", String.Join("", Enumerable.Repeat("a", 5 * 1025))));
+            SimpleStatement insert = new SimpleStatement(String.Format(query, Table, "warn1", String.Join("", Enumerable.Repeat("a", 5*1025))));
             var rs = Session.Execute(insert.EnableTracing());
-            
-            Assert.NotNull(rs.Info.Warnings);
+
             Assert.NotNull(rs.Info.QueryTrace);
-            Assert.AreEqual(1, rs.Info.Warnings.Length);
-            StringAssert.Contains("batch", rs.Info.Warnings[0].ToLowerInvariant());
-            StringAssert.Contains("exceeding", rs.Info.Warnings[0].ToLowerInvariant());
+            //at cassandra 3.6 warnings changed according to CASSANDRA-10876
+            var warningsChangingVersion = new Version(3, 6);
+            if (CassandraVersion.CompareTo(warningsChangingVersion) < 0)
+            {
+                Assert.NotNull(rs.Info.Warnings);
+                Assert.AreEqual(1, rs.Info.Warnings.Length);
+                StringAssert.Contains("batch", rs.Info.Warnings[0].ToLowerInvariant());
+                StringAssert.Contains("exceeding", rs.Info.Warnings[0].ToLowerInvariant());
+            }
         }
 
         [Test, TestCassandraVersion(2, 2)]
         public void Warnings_With_Custom_Payload_Test()
         {
             const string query = "BEGIN UNLOGGED BATCH INSERT INTO {0} (k, t) VALUES ('{1}', '{2}') APPLY BATCH";
-            SimpleStatement insert = new SimpleStatement(String.Format(query, Table, "warn1", String.Join("", Enumerable.Repeat("a", 5 * 1025))));
-            var outgoing = new Dictionary<string, byte[]> { { "k1", Encoding.UTF8.GetBytes("value1") }, { "k2", Encoding.UTF8.GetBytes("value2") } };
+            SimpleStatement insert = new SimpleStatement(String.Format(query, Table, "warn1", String.Join("", Enumerable.Repeat("a", 5*1025))));
+            var outgoing = new Dictionary<string, byte[]> {{"k1", Encoding.UTF8.GetBytes("value1")}, {"k2", Encoding.UTF8.GetBytes("value2")}};
             insert.SetOutgoingPayload(outgoing);
             var rs = Session.Execute(insert);
-            
-            Assert.NotNull(rs.Info.Warnings);
-            Assert.AreEqual(1, rs.Info.Warnings.Length);
-            StringAssert.Contains("batch", rs.Info.Warnings[0].ToLowerInvariant());
-            StringAssert.Contains("exceeding", rs.Info.Warnings[0].ToLowerInvariant());
-            CollectionAssert.AreEqual(outgoing["k1"], rs.Info.IncomingPayload["k1"]);
-            CollectionAssert.AreEqual(outgoing["k2"], rs.Info.IncomingPayload["k2"]);
+
+            //at cassandra 3.6 warnings changed according to CASSANDRA-10876
+            var warningsChangingVersion = new Version(3, 6);
+            if (CassandraVersion.CompareTo(warningsChangingVersion) < 0)
+            {
+                Assert.NotNull(rs.Info.Warnings);
+                Assert.AreEqual(1, rs.Info.Warnings.Length);
+                StringAssert.Contains("batch", rs.Info.Warnings[0].ToLowerInvariant());
+                StringAssert.Contains("exceeding", rs.Info.Warnings[0].ToLowerInvariant());
+                CollectionAssert.AreEqual(outgoing["k1"], rs.Info.IncomingPayload["k1"]);
+                CollectionAssert.AreEqual(outgoing["k2"], rs.Info.IncomingPayload["k2"]);
+            }
         }
 
         [Test, TestCassandraVersion(2, 2)]
         public void Warnings_With_Tracing_And_Custom_Payload_Test()
         {
             const string query = "BEGIN UNLOGGED BATCH INSERT INTO {0} (k, t) VALUES ('{1}', '{2}') APPLY BATCH";
-            SimpleStatement insert = new SimpleStatement(String.Format(query, Table, "warn1", String.Join("", Enumerable.Repeat("a", 5 * 1025))));
-            var outgoing = new Dictionary<string, byte[]> { { "k1", Encoding.UTF8.GetBytes("value1") }, { "k2", Encoding.UTF8.GetBytes("value2") } };
+            SimpleStatement insert = new SimpleStatement(String.Format(query, Table, "warn1", String.Join("", Enumerable.Repeat("a", 5*1025))));
+            var outgoing = new Dictionary<string, byte[]> {{"k1", Encoding.UTF8.GetBytes("value1")}, {"k2", Encoding.UTF8.GetBytes("value2")}};
             insert.SetOutgoingPayload(outgoing);
             var rs = Session.Execute(insert.EnableTracing());
 
-            Assert.NotNull(rs.Info.Warnings);
             Assert.NotNull(rs.Info.QueryTrace);
-            Assert.AreEqual(1, rs.Info.Warnings.Length);
-            StringAssert.Contains("batch", rs.Info.Warnings[0].ToLowerInvariant());
-            StringAssert.Contains("exceeding", rs.Info.Warnings[0].ToLowerInvariant());
             CollectionAssert.AreEqual(outgoing["k1"], rs.Info.IncomingPayload["k1"]);
             CollectionAssert.AreEqual(outgoing["k2"], rs.Info.IncomingPayload["k2"]);
+            //at cassandra 3.6 warnings changed according to CASSANDRA-10876
+            var warningsChangingVersion = new Version(3, 6);
+            if (CassandraVersion.CompareTo(warningsChangingVersion) < 0)
+            {
+                Assert.NotNull(rs.Info.Warnings);
+                Assert.AreEqual(1, rs.Info.Warnings.Length);
+                StringAssert.Contains("batch", rs.Info.Warnings[0].ToLowerInvariant());
+                StringAssert.Contains("exceeding", rs.Info.Warnings[0].ToLowerInvariant());
+            }
         }
     }
 }

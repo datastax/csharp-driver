@@ -658,7 +658,8 @@ namespace Cassandra.IntegrationTests.Core
             };
             using (var connection = CreateConnection(protocolVersion, config))
             {
-                Assert.Throws<UnsupportedProtocolVersionException>(() => TaskHelper.WaitToComplete(connection.Open()));
+                var ex = Assert.Throws<UnsupportedProtocolVersionException>(() => TaskHelper.WaitToComplete(connection.Open()));
+                StringAssert.Contains(string.Format("Protocol version {0} not supported", protocolVersion), ex.Message);
             }
         }
 

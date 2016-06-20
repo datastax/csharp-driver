@@ -413,6 +413,7 @@ namespace Cassandra
             //Read and write event handlers are going to be invoked using IO Threads
             _tcpSocket.Read += ReadHandler;
             _tcpSocket.WriteCompleted += WriteCompletedHandler;
+            var protocolVersion = _serializer.ProtocolVersion;
             return _tcpSocket
                 .Connect()
                 .Then(_ => Startup())
@@ -422,7 +423,6 @@ namespace Cassandra
                     {
                         //Adapt the inner exception and rethrow
                         var ex = t.Exception.InnerException;
-                        var protocolVersion = _serializer.ProtocolVersion;
                         if (ex is ProtocolErrorException)
                         {
                             //As we are starting up, check for protocol version errors
