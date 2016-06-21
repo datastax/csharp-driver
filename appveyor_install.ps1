@@ -66,6 +66,33 @@ Start-Process python -ArgumentList "-m pip install psutil pyYaml six ccm" -Wait 
 Write-Host "Set execution Policy"
 Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process
 
+
+#removing any existing ccm cluster
+Write-Host "Removing any existing ccm clusters"
+
+$params = "/c ccm list"
+& "cmd.exe" $params | Tee-Object -Variable scriptOutput | Out-Null
+
+$list = $scriptOutput.Split(" ")
+
+Write-Host "[ccm] list $($list)"
+
+Foreach ($cluster in $list)
+{
+  If (-Not $cluster.equals(""))
+  {
+    $name = $cluster.Replace("*", "")
+    & "cmd.exe" "/c ccm switch $($name)" | Tee-Object -Variable result | Out-Null
+    Write-Host "[ccm] switching to $($name) $($result)"
+    & "cmd.exe" "/c ccm remove" | Tee-Object -Variable result | Out-Null
+    Write-Host "[ccm] remove $($name) $($result)"
+  }
+}
+
+& "cmd.exe" $params | Tee-Object -Variable scriptOutputEnd | Out-Null
+
+Write-Host "[ccm] list $($scriptOutputEnd)"
+
 Write-Host "[Install] Check installed cassandra version $($env:cassandra_version)"
 # Predownload cassandra version for CCM if it isn't already downloaded.
 If (!(Test-Path C:\Users\appveyor\.ccm\repository\$env:cassandra_version)) {
