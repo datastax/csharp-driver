@@ -235,7 +235,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         /// 
         /// @test_category connection:retry_policy
         /// </summary>
-        [Test, Category("short")]
+        [Test, Category("long")]
         public void IdempotenceAwareRetryPolicy_ShouldUseChildRetryPolicy_OnWriteTimeout()
         {
             const string keyspace = "idempotenceAwarepolicytestks";
