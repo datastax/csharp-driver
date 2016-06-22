@@ -35,6 +35,13 @@ namespace Dse.Test.Unit
         /// </summary>
         protected class TestLoadBalancingPolicy : ILoadBalancingPolicy
         {
+            private readonly HostDistance _distance;
+
+            public TestLoadBalancingPolicy(HostDistance distance = HostDistance.Local)
+            {
+                _distance = distance;
+            }
+
             public void Initialize(ICluster cluster)
             {
 
@@ -42,7 +49,7 @@ namespace Dse.Test.Unit
 
             public HostDistance Distance(Host host)
             {
-                return HostDistance.Local;
+                return _distance;
             }
 
             public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)

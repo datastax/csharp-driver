@@ -39,5 +39,17 @@ namespace Dse.Test.Unit.Policies
                 new[] { "101.0.0.0:9042", "102.0.0.0:9042" },
                 hosts.Select(h => h.Address.ToString()));
         }
+
+        [Test]
+        public void Should_Set_Distance_For_Preferred_Host_To_Local()
+        {
+            var lbp = new DseLoadBalancingPolicy(new TestLoadBalancingPolicy(HostDistance.Ignored));
+            Assert.AreEqual(HostDistance.Ignored, lbp.Distance(new Host(new IPEndPoint(200L, 9042), ReconnectionPolicy)));
+            var statement = new TargettedSimpleStatement("Q");
+            // Use 201 as preferred
+            statement.PreferredHost = new Host(new IPEndPoint(201L, 9042), ReconnectionPolicy);
+            lbp.NewQueryPlan(null, statement);
+            Assert.AreEqual(HostDistance.Local, lbp.Distance(statement.PreferredHost));
+        }
     }
 }

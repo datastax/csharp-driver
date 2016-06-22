@@ -23,9 +23,10 @@ namespace Dse.Policies
     public class DseLoadBalancingPolicy : ILoadBalancingPolicy
     {
         private readonly ILoadBalancingPolicy _childPolicy;
+        private volatile Host _lastPreferredHost;
 
         /// <summary>
-        /// Creates a new instance of <see cref="DseLoadBalancingPolicy"/>.
+        /// Creates a new instance of <see cref="DseLoadBalancingPolicy"/> wrapping the provided child policy.
         /// </summary>
         public DseLoadBalancingPolicy(ILoadBalancingPolicy childPolicy)
         {
@@ -34,6 +35,20 @@ namespace Dse.Policies
                 throw new ArgumentNullException("childPolicy");
             }
             _childPolicy = childPolicy;
+        }
+
+        /// <summary>
+        /// Creates a new instance of <see cref="DseLoadBalancingPolicy"/> given the name of the local datacenter and
+        /// the amount of host per remote datacenter to use for failover for the local hosts.
+        /// </summary>
+        /// <param name="localDc">The name of the local datacenter (case-sensitive)</param>
+        /// <param name="usedHostsPerRemoteDc">
+        /// The amount of host per remote datacenter that the policy should yield in a new query plan after the local
+        /// nodes.
+        /// </param>
+        public DseLoadBalancingPolicy(string localDc, int usedHostsPerRemoteDc = 0)
+        {
+            _childPolicy = new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc, usedHostsPerRemoteDc));
         }
 
         /// <summary>
@@ -50,6 +65,13 @@ namespace Dse.Policies
         /// </summary>
         public HostDistance Distance(Host host)
         {
+            var lastPreferredHost = _lastPreferredHost;
+            if (lastPreferredHost != null && host == lastPreferredHost)
+            {
+                // Set the last preferred host as local.
+                // It's somewhat "hacky" but ensures that the pool for the graph analytics host has the appropriate size
+                return HostDistance.Local;
+            }
             return _childPolicy.Distance(host);
         }
 
@@ -69,6 +91,7 @@ namespace Dse.Policies
             var targettedStatement = statement as TargettedSimpleStatement;
             if (targettedStatement != null && targettedStatement.PreferredHost != null)
             {
+                _lastPreferredHost = targettedStatement.PreferredHost;
                 return YieldPreferred(keyspace, targettedStatement);
             }
             return _childPolicy.NewQueryPlan(keyspace, statement);

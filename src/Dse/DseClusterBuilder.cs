@@ -27,12 +27,19 @@ namespace Dse
         private static readonly Logger Logger = new Logger(typeof(DseClusterBuilder));
         private TypeSerializerDefinitions _typeSerializerDefinitions;
         private IAddressTranslator _addressTranslator = new IdentityAddressTranslator();
-        private ILoadBalancingPolicy _loadBalancingPolicy;
 
         /// <summary>
         /// Gets the DSE Graph options.
         /// </summary>
         public GraphOptions GraphOptions { get; private set; }
+
+        /// <summary>
+        /// Creates a new instance of <see cref="DseClusterBuilder"/>.
+        /// </summary>
+        public DseClusterBuilder()
+        {
+            base.WithLoadBalancingPolicy(DseLoadBalancingPolicy.CreateDefault());
+        }
 
         /// <summary>
         /// Sets the DSE Graph options.
@@ -229,7 +236,6 @@ namespace Dse
         /// <returns>this instance</returns>
         public new DseClusterBuilder WithLoadBalancingPolicy(ILoadBalancingPolicy policy)
         {
-            _loadBalancingPolicy = policy;
             base.WithLoadBalancingPolicy(policy);
             return this;
         }
@@ -471,10 +477,6 @@ namespace Dse
                 .Define(new PointSerializer())
                 .Define(new PolygonSerializer());
             base.WithTypeSerializers(typeSerializerDefinitions);
-            if (_loadBalancingPolicy == null)
-            {
-                base.WithLoadBalancingPolicy(DseLoadBalancingPolicy.CreateDefault());
-            }
             var coreCluster = base.Build();
             var config = new DseConfiguration(coreCluster.Configuration, GraphOptions ?? new GraphOptions());
             // To be replaced after CSHARP-444.
