@@ -108,6 +108,7 @@
     <Compile Include="Linq\Structures\IAllDataTypesEntity.cs" />
     <Compile Include="Core\CollectionsNestedTests.cs" />
     <Compile Include="Linq\Structures\ManyDataTypesEntity.cs" />
+    <Compile Include="Policies\Tests\IdempotenceAwareRetryPolicyTests.cs" />
     <Compile Include="Policies\Tests\LoadBalancingPolicyShortTests.cs" />
     <Compile Include="SharedClusterTest.cs" />
     <Compile Include="Linq\Structures\SalesOrder.cs" />
