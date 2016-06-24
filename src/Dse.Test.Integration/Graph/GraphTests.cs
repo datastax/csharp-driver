@@ -53,10 +53,10 @@ namespace Dse.Test.Integration.Graph
                 var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
                 var resultArray = rs.ToArray();
                 Assert.Greater(resultArray.Length, 0);
-                foreach (Vertex v in rs)
+                foreach (Vertex v in resultArray)
                 {
                     Assert.NotNull(v);
-                    Assert.AreEqual("vertex", v.Label);
+                    Assert.IsTrue(v.Label == "person" || v.Label == "software");
                     Assert.True(v.Properties.ContainsKey("name"));
                 }
                 Assert.NotNull(rs);
@@ -75,10 +75,10 @@ namespace Dse.Test.Integration.Graph
                 var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V().has('name', 'marko').out('knows')"));
                 var resultArray = rs.ToArray();
                 Assert.AreEqual(2, resultArray.Length);
-                foreach (Vertex v in rs)
+                foreach (Vertex v in resultArray)
                 {
                     Assert.NotNull(v);
-                    Assert.AreEqual("vertex", v.Label);
+                    Assert.AreEqual("person", v.Label);
                     Assert.True(v.Properties.ContainsKey("name"));
                 }
                 Assert.NotNull(rs);
@@ -118,15 +118,13 @@ namespace Dse.Test.Integration.Graph
                 var session = cluster.Connect();
                 var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V().has('name', namedParam)", new { namedParam = "marko" }));
 
+                Assert.NotNull(rs);
                 var resultArray = rs.ToArray();
                 Assert.AreEqual(1, resultArray.Length);
-                foreach (Vertex vertex in rs)
-                {
-                    Assert.NotNull(vertex);
-                    Assert.AreEqual("vertex", vertex.Label);
-                    Assert.AreEqual("marko", vertex.Properties["name"]);
-                }
-                Assert.NotNull(rs);
+                var vertex = resultArray[0].ToVertex();
+                Assert.NotNull(vertex);
+                Assert.AreEqual("person", vertex.Label);
+                Assert.AreEqual("marko", vertex.Properties["name"].ToArray()[0].Get<string>("value"));
             }
         }
 
@@ -524,15 +522,12 @@ namespace Dse.Test.Integration.Graph
                 session.ExecuteGraph(new SimpleGraphStatement(schemaQuery, new {vertexLabel = vertexLabel, propertyName = propertyName}));
 
                 var parameters = new { vertexLabel = vertexLabel, propertyName = propertyName, val = value};
-
                 var rs = session.ExecuteGraph(new SimpleGraphStatement("g.addV(label, vertexLabel, propertyName, val)", parameters));
-
                 ValidateVertexResult(rs, vertexLabel, propertyName, expectedString);
 
                 rs =
                     session.ExecuteGraph(
                         new SimpleGraphStatement("g.V().hasLabel(vertexLabel).has(propertyName, val).next()", parameters));
-
                 ValidateVertexResult(rs, vertexLabel, propertyName, expectedString);
             }
         }
