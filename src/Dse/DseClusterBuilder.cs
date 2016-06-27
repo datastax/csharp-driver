@@ -39,6 +39,7 @@ namespace Dse
         public DseClusterBuilder()
         {
             base.WithLoadBalancingPolicy(DseLoadBalancingPolicy.CreateDefault());
+            base.WithRetryPolicy(new IdempotenceAwareRetryPolicy(new DefaultRetryPolicy()));
         }
 
         /// <summary>
@@ -254,9 +255,11 @@ namespace Dse
         }
 
         /// <summary>
-        ///  Configure the retry policy to use for the new cluster. <p> If no retry policy
-        ///  is set through this method, <link>Policies.DefaultRetryPolicy</link> will
-        ///  be used instead.</p>
+        /// Configure the retry policy to use for the new cluster.
+        /// <para>
+        /// If no retry policy is set through this method, <see cref="IdempotenceAwareRetryPolicy"/> will be
+        /// used instead.
+        /// </para>
         /// </summary>
         /// <param name="policy"> the retry policy to use </param>
         /// <returns>this Builder</returns>
