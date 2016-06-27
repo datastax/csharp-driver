@@ -1,5 +1,20 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.0.7
+
+2016-06-27
+
+### Features
+
+- [CSHARP-444] - Expose AddressTranslator instance in Configuration
+- [CSHARP-461] - Include Idempotence-aware retry policy
+
+### Bug Fixes
+
+- [CSHARP-331] - TokenMap#ComputeTokenToReplicaNetwork does not account for multiple racks in a DC
+- [CSHARP-372] - ProtocolErrorException are incorrectly reported
+- [CSHARP-465] - OperationTimedOut exceptions are not included in NoHostAvailableException
+
 ## 3.0.6
 
 2016-05-12
