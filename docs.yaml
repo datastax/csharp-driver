@@ -1,0 +1,30 @@
+title:    C# DataStax Enterprise Driver
+summary:  C# driver for DataStax Enterprise
+theme:    datastax
+sections:
+  - title:    Features
+    prefix:   /features
+    type:     markdown
+    files:    'doc/features/**/*.md'
+  - title:    Frequently Asked Questions
+    prefix:   /faq
+    type:     markdown
+    files:    'doc/faq/**/*.md'  
+  - title:    Getting started
+    prefix:   /getting-started
+    type:     markdown
+    files:    'doc/getting-started/**/*.md'
+links:
+  - title: Code
+    href:  https://github.com/datastax/csharp-driver-dse/
+  - title: Issues
+    href:  https://datastax-oss.atlassian.net/projects/CSHARP/issues
+  - title: Mailing List
+    href:  https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
+  - title: IRC Channel
+    href:  irc://irc.freenode.net/datastax-drivers
+  - title: Nuget
+    href:  https://www.nuget.org/packages/Dse
+versions:
+  - name: v1.0
+    ref: HEAD

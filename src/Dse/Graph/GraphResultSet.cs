@@ -14,7 +14,7 @@ using Cassandra;
 namespace Dse.Graph
 {
     /// <summary>
-    /// Represents the result set containing the Graph results returned from a query.
+    /// Represents the result set containing the Graph nodes returned from a query.
     /// </summary>
     public class GraphResultSet : IEnumerable<GraphNode>
     {
