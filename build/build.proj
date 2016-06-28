@@ -10,7 +10,7 @@
     <MSBuildCommunityTasksLib>$(SourceFolder)\packages\MSBuildTasks.1.4.0.128\tools\MSBuild.Community.Tasks.dll</MSBuildCommunityTasksLib>
     <SharedAssemblyInfo>$(SourceFolder)\Dse\Properties\BuildAssemblyInfo.cs</SharedAssemblyInfo>
     <!-- Version information (package version is used to drive assembly info version attributes and should follow semantic versioning) -->
-    <PackageVersion>1.0.0-eap2</PackageVersion>
+    <PackageVersion>1.0.0</PackageVersion>
     <BuildNumber Condition=" '$(BuildNumber)' == '' ">0</BuildNumber>
   </PropertyGroup>
   <!-- Add some tasks from MSBuild Community Tasks project -->
