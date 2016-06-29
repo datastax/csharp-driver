@@ -185,10 +185,16 @@ namespace Cassandra.IntegrationTests.Core
                                .GetKeyspace(keyspaceName)
                                .GetTableMetadata(tableName);
             Assert.NotNull(table);
-            Assert.True(table.TableColumns.Count() == 7);
-            Assert.AreEqual("a, b", String.Join(", ", table.PartitionKeys.Select(p => p.Name)));
+            Assert.AreEqual(7, table.TableColumns.Length);
+            CollectionAssert.AreEqual(new[] { "a", "b" }, table.PartitionKeys.Select(p => p.Name));
+            CollectionAssert.AreEqual(new [] { "a", "b"}, table.TableColumns
+                .Where(c => c.KeyType == KeyType.Partition)
+                .Select(c => c.Name));
             CollectionAssert.AreEqual(new[] { "c", "d" }, table.ClusteringKeys.Select(c => c.Item1.Name));
             CollectionAssert.AreEqual(new[] { SortOrder.Ascending, SortOrder.Descending }, table.ClusteringKeys.Select(c => c.Item2));
+            CollectionAssert.AreEqual(new[] { "c", "d" }, table.TableColumns
+                 .Where(c => c.KeyType == KeyType.Clustering)
+                 .Select(c => c.Name));
         }
 
         [Test, TestCassandraVersion(2, 1)]

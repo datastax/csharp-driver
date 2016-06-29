@@ -274,7 +274,7 @@ namespace Cassandra
                                     KeyType =
                                         row.GetValue<string>("index_name") != null
                                             ? KeyType.SecondaryIndex
-                                            : KeyType.None,
+                                            : KeyType.None
                                 };
                                 if (row.GetColumn("type") != null)
                                 {
@@ -282,12 +282,14 @@ namespace Cassandra
                                     {
                                         case "partition_key":
                                             partitionKeys.Add(Tuple.Create(row.GetValue<int?>("component_index") ?? 0, col));
+                                            col.KeyType = KeyType.Partition;
                                             break;
                                         case "clustering_key":
                                         {
                                             var sortOrder = dataType.IsReversed ? SortOrder.Descending : SortOrder.Ascending;
                                             clusteringKeys.Add(Tuple.Create(row.GetValue<int?>("component_index") ?? 0, Tuple.Create(col, sortOrder)));
-                                            break;
+                                            col.KeyType = KeyType.Clustering;
+                                                break;
                                         }
                                     }
                                 }
@@ -685,10 +687,12 @@ namespace Cassandra
                     {
                         case "partition_key":
                             partitionKeys.Add(Tuple.Create(row.GetValue<int?>("position") ?? 0, col));
+                            col.KeyType = KeyType.Partition;
                             break;
                         case "clustering":
                             clusteringKeys.Add(Tuple.Create(row.GetValue<int?>("position") ?? 0,
                                 Tuple.Create(col, row.GetValue<string>("clustering_order") == "desc" ? SortOrder.Descending : SortOrder.Ascending)));
+                            col.KeyType = KeyType.Clustering;
                             break;
                     }
                     columns.Add(col.Name, col);
