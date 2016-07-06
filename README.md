@@ -20,6 +20,16 @@ The DataStax Enterprise C# Driver can be used solely with DataStax Enterprise. P
 PM> Install-Package Dse
 ```
 
+## Documentation
+
+- [Documentation index][doc-index]
+- [API docs][api-docs]
+- [FAQ][faq]
+
+## Getting Help
+
+You can use the [project mailing list][mailing-list] or create a ticket on the [Jira issue tracker][jira].
+
 ## Getting Started
 
 `IDseCluster` and `IDseSession` extend their CQL driver counterparts, so you can use `Dse` instances to execute CQL
@@ -201,3 +211,8 @@ http://www.datastax.com/terms/datastax-dse-driver-license-terms
 [modern]: http://tinkerpop.apache.org/docs/3.1.1-incubating/reference/#_the_graph_structure
 [nuget]: https://nuget.org/packages/Dse/
 [dynamic]: https://msdn.microsoft.com/en-us/library/dd264736.aspx
+[jira]: https://datastax-oss.atlassian.net/projects/CSHARP/issues
+[mailing-list]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
+[doc-index]: http://docs.datastax.com/en/latest-dse-csharp-driver/
+[api-docs]: http://docs.datastax.com/en/latest-dse-csharp-driver-api
+[faq]: http://docs.datastax.com/en/developer/csharp-driver-dse/1.0/supplemental/faq/
