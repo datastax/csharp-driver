@@ -24,6 +24,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using System.Reflection;
 using NUnit.Framework;
 #pragma warning disable 618
 
@@ -511,8 +512,8 @@ namespace Cassandra.IntegrationTests.Core
             var query = String.Format("CREATE TABLE {0}(tweet_id uuid PRIMARY KEY, label text, number {1});", tableName, cassandraDataTypeName);
             QueryTools.ExecuteSyncNonQuery(Session, query);
 
-            object Minimum = toExceedWith.GetField("MinValue").GetValue(this);
-            object Maximum = toExceedWith.GetField("MaxValue").GetValue(this);
+            object Minimum = toExceedWith.GetTypeInfo().GetField("MinValue").GetValue(this);
+            object Maximum = toExceedWith.GetTypeInfo().GetField("MaxValue").GetValue(this);
 
             var row1 = new object[3] { Guid.NewGuid(), "Minimum", Minimum };
             var row2 = new object[3] { Guid.NewGuid(), "Maximum", Maximum };
@@ -520,8 +521,8 @@ namespace Cassandra.IntegrationTests.Core
 
             if (toExceedWith == typeof(Double) || toExceedWith == typeof(Single))
             {
-                Minimum = Minimum.GetType().GetMethod("ToString", new[] { typeof(string) }).Invoke(Minimum, new object[1] { "r" });
-                Maximum = Maximum.GetType().GetMethod("ToString", new[] { typeof(string) }).Invoke(Maximum, new object[1] { "r" });
+                Minimum = Minimum.GetType().GetTypeInfo().GetMethod("ToString", new[] { typeof(string) }).Invoke(Minimum, new object[1] { "r" });
+                Maximum = Maximum.GetType().GetTypeInfo().GetMethod("ToString", new[] { typeof(string) }).Invoke(Maximum, new object[1] { "r" });
 
                 if (!sameOutput) //for ExceedingCassandra_FLOAT() test case
                 {

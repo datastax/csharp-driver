@@ -22,6 +22,7 @@ using System.Text;
 using System.Linq;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement
 {
@@ -48,7 +49,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             var sslParams = "";
             if (useSsl)
             {
-                var sslPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "ssl");
+                var sslPath = Path.Combine(TestHelper.GetHomePath(), "ssl");
                 if (!File.Exists(Path.Combine(sslPath, "keystore.jks")))
                 {
                     throw new Exception(string.Format("In order to use SSL with CCM you must provide have the keystore.jks and cassandra.crt files located in your {0} folder", sslPath));
@@ -196,8 +197,10 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 process.StartInfo.RedirectStandardError = true;
                 //Hide the python window if possible
                 process.StartInfo.UseShellExecute = false;
-                process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
                 process.StartInfo.CreateNoWindow = true;
+#if !NETCORE
+                process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+#endif
 
                 using (var outputWaitHandle = new AutoResetEvent(false))
                 using (var errorWaitHandle = new AutoResetEvent(false))

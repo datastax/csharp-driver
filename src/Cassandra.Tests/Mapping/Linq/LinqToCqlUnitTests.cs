@@ -25,7 +25,9 @@ using Cassandra.Data.Linq;
 using Cassandra.Mapping;
 using Cassandra.Serialization;
 using Cassandra.Tests.Mapping.Pocos;
+#if !NO_MOCKS
 using Moq;
+#endif
 using NUnit.Framework;
 using Cassandra.Tasks;
 #pragma warning disable 618
@@ -222,6 +224,7 @@ APPLY BATCH".Replace("\r", ""));
                 (from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new { f1 = 1223, ck1 = (int?)null }).UpdateIf((a) => a.f1 == 123).ToString());
         }
 
+#if !NETCORE
         /// <summary>
         /// Tests the Linq to CQL generated where clause 
         /// </summary>
@@ -276,6 +279,7 @@ APPLY BATCH".Replace("\r", ""));
                     "Expected Cql query and generated CQL query by Linq do not match.");
             }
         }
+#endif
 
         [Table]
         private class AllowFilteringTestTable
@@ -333,6 +337,7 @@ APPLY BATCH".Replace("\r", ""));
             public long Value { get; set; }
         }
 
+#if !NO_MOCKS
         [Test]
         public void CreateTableCounterTest()
         {
@@ -364,6 +369,35 @@ APPLY BATCH".Replace("\r", ""));
             Assert.AreEqual("CREATE TABLE \"CounterTestTable1\" (\"RowKey1\" int, \"RowKey2\" int, \"Value\" counter, PRIMARY KEY (\"RowKey1\", \"RowKey2\"))", actualCqlQueries[0]);
             Assert.AreEqual("CREATE TABLE \"CounterTestTable2\" (\"RowKey1\" int, \"RowKey2\" int, \"CKey1\" int, \"Value\" counter, PRIMARY KEY ((\"RowKey1\", \"RowKey2\"), \"CKey1\"))", actualCqlQueries[1]);
         }
+
+        [Test]
+        public void VirtualPropertiesTest()
+        {
+            var table = SessionExtensions.GetTable<InheritedEntity>(null);
+            var query1 = table.Where(e => e.Id == 10);
+            Assert.AreEqual("SELECT \"Id\", \"Description\", \"Name\" FROM \"InheritedEntity\" WHERE \"Id\" = ?", query1.ToString());
+            var query2 = (from e in table where e.Id == 1 && e.Name == "MyName" select new { e.Id, e.Name, e.Description });
+            Assert.AreEqual("SELECT \"Id\", \"Name\", \"Description\" FROM \"InheritedEntity\" WHERE \"Id\" = ? AND \"Name\" = ?", query2.ToString());
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            var config = new Configuration();
+            var metadata = new Metadata(config);
+            var ccMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            ccMock.Setup(cc => cc.Serializer).Returns(new Serializer(4));
+            metadata.ControlConnection = ccMock.Object;
+            var clusterMock = new Mock<ICluster>();
+            clusterMock.Setup(c => c.Metadata).Returns(metadata);
+            sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
+            string createQuery = null;
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q)
+                .Verifiable();
+            var table2 = SessionExtensions.GetTable<InheritedEntity>(sessionMock.Object);
+            table2.CreateIfNotExists();
+            Assert.AreEqual("CREATE TABLE \"InheritedEntity\" (\"Id\" int, \"Description\" text, \"Name\" text, PRIMARY KEY (\"Id\"))", createQuery);
+        }
+#endif
 
         [Test]
         public void LinqGeneratedUpdateStatementForCounterTest()
@@ -540,34 +574,6 @@ APPLY BATCH".Replace("\r", ""));
             }
 
             public string Description { get; set; }
-        }
-
-        [Test]
-        public void VirtualPropertiesTest()
-        {
-            var table = SessionExtensions.GetTable<InheritedEntity>(null);
-            var query1 = table.Where(e => e.Id == 10);
-            Assert.AreEqual("SELECT \"Id\", \"Description\", \"Name\" FROM \"InheritedEntity\" WHERE \"Id\" = ?", query1.ToString());
-            var query2 = (from e in table where e.Id == 1 && e.Name == "MyName" select new { e.Id, e.Name, e.Description });
-            Assert.AreEqual("SELECT \"Id\", \"Name\", \"Description\" FROM \"InheritedEntity\" WHERE \"Id\" = ? AND \"Name\" = ?", query2.ToString());
-            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
-            var config = new Configuration();
-            var metadata = new Metadata(config);
-            var ccMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
-            ccMock.Setup(cc => cc.Serializer).Returns(new Serializer(4));
-            metadata.ControlConnection = ccMock.Object;
-            var clusterMock = new Mock<ICluster>();
-            clusterMock.Setup(c => c.Metadata).Returns(metadata);
-            sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
-            string createQuery = null;
-            sessionMock
-                .Setup(s => s.Execute(It.IsAny<string>()))
-                .Returns(() => new RowSet())
-                .Callback<string>(q => createQuery = q)
-                .Verifiable();
-            var table2 = SessionExtensions.GetTable<InheritedEntity>(sessionMock.Object);
-            table2.CreateIfNotExists();
-            Assert.AreEqual("CREATE TABLE \"InheritedEntity\" (\"Id\" int, \"Description\" text, \"Name\" text, PRIMARY KEY (\"Id\"))", createQuery);
         }
 
         [Test]

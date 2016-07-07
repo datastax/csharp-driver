@@ -62,7 +62,7 @@ namespace Cassandra.IntegrationTests.Core
                        taskList.Any(t => t.Status == TaskStatus.WaitingForActivation))
                 {
                     int waitMs = 500;
-                    Trace.TraceInformation(string.Format("In method: {0}, waiting {1} more MS ... ", System.Reflection.MethodBase.GetCurrentMethod().Name, waitMs));
+                    Trace.TraceInformation(string.Format("Waiting {0} more MS ... ", waitMs));
                     Thread.Sleep(waitMs);
                 }
                 Assert.False(taskList.Any(t => t.Status == TaskStatus.WaitingForActivation), "No more task should be pending");
@@ -330,6 +330,7 @@ namespace Cassandra.IntegrationTests.Core
             cluster.Dispose();
         }
 
+#if !NETCORE
         [Test, Apartment(ApartmentState.STA)]
         public void Session_Connect_And_ShutDown_SupportsSTA()
         {
@@ -343,6 +344,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
             });
         }
+#endif
 
         [Test]
         public void Session_Execute_Logging_With_Verbose_Level_Test()

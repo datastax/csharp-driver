@@ -13,11 +13,9 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-#if !NETCORE
+
 using System;
 using System.Data.Common;
-using System.Security;
-using System.Security.Permissions;
 
 namespace Cassandra.Data
 {
@@ -29,11 +27,6 @@ namespace Cassandra.Data
     {
         public static readonly CqlProviderFactory Instance = new CqlProviderFactory();
 
-        public override bool CanCreateDataSourceEnumerator
-        {
-            get { return false; }
-        }
-
         public virtual CqlProviderFactory GetInstance()
         {
             return Instance;
@@ -42,11 +35,6 @@ namespace Cassandra.Data
         public override DbCommand CreateCommand()
         {
             return new CqlCommand();
-        }
-
-        public override DbCommandBuilder CreateCommandBuilder()
-        {
-            return new CqlCommandBuilder();
         }
 
         public override DbConnection CreateConnection()
@@ -59,6 +47,22 @@ namespace Cassandra.Data
             return new CassandraConnectionStringBuilder();
         }
 
+        public override DbParameter CreateParameter()
+        {
+            throw new NotSupportedException();
+        }
+
+#if !NETCORE
+        public override bool CanCreateDataSourceEnumerator
+        {
+            get { return false; }
+        }
+
+        public override DbCommandBuilder CreateCommandBuilder()
+        {
+            return new CqlCommandBuilder();
+        }
+
         public override DbDataAdapter CreateDataAdapter()
         {
             return new CqlDataAdapter();
@@ -69,15 +73,10 @@ namespace Cassandra.Data
             throw new NotSupportedException();
         }
 
-        public override DbParameter CreateParameter()
+        public override System.Security.CodeAccessPermission CreatePermission(System.Security.Permissions.PermissionState state)
         {
             throw new NotSupportedException();
         }
-
-        public override CodeAccessPermission CreatePermission(PermissionState state)
-        {
-            throw new NotSupportedException();
-        }
+#endif
     }
 }
-#endif

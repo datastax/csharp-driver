@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+#if !NO_MOCKS
 ﻿using System;
 ﻿using System.Collections.Concurrent;
 ﻿using System.Collections.Generic;
@@ -714,3 +715,4 @@ namespace Cassandra.Tests
         }
     }
 }
+#endif

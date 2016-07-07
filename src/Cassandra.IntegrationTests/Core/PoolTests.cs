@@ -20,14 +20,12 @@ using Cassandra.Tests;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Moq;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -391,7 +389,7 @@ namespace Cassandra.IntegrationTests.Core
         /// Tests that the reconnection attempt (on a dead node) is attempted only once per try (when allowed by the reconnection policy).
         /// </summary>
         [Test]
-        [Timeout(120000)]
+        [TestTimeout(120000)]
         public void ReconnectionAttemptedOnlyOnce()
         {
             const int reconnectionDelay = 5000;
@@ -455,6 +453,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+#if !NO_MOCKS
         /// <summary>
         /// Tests that when a peer is added or set as down, the address translator is invoked
         /// </summary>
@@ -462,9 +461,9 @@ namespace Cassandra.IntegrationTests.Core
         public void AddressTranslatorIsCalledPerEachPeer()
         {
             var invokedEndPoints = new List<IPEndPoint>();
-            var translatorMock = new Mock<IAddressTranslator>(MockBehavior.Strict);
+            var translatorMock = new Moq.Mock<IAddressTranslator>(Moq.MockBehavior.Strict);
             translatorMock
-                .Setup(t => t.Translate(It.IsAny<IPEndPoint>()))
+                .Setup(t => t.Translate(Moq.It.IsAny<IPEndPoint>()))
                 .Callback<IPEndPoint>(invokedEndPoints.Add)
                 .Returns<IPEndPoint>(e => e);
             var testCluster = TestClusterManager.GetNonShareableTestCluster(3);
@@ -489,6 +488,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(3, TestHelper.GetLastAddressByte(invokedEndPoints.Last()));
             cluster.Dispose();
         }
+#endif
 
         /// <summary>
         /// Tests that a node is down and the schema is not the same, it waits until the max wait time is reached

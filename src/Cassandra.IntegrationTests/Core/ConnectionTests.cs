@@ -15,7 +15,6 @@
 //
 
 using Cassandra.IntegrationTests.TestBase;
-using Moq;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -37,7 +36,7 @@ using Microsoft.IO;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Timeout(600000), Category("short")]
+    [TestTimeout(600000), Category("short")]
     public class ConnectionTests : TestGlobals
     {
         [OneTimeSetUp]
@@ -369,7 +368,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test, Timeout(5000)]
+        [Test, TestTimeout(5000)]
         public void Send_And_Wait()
         {
             using (var connection = CreateConnection())

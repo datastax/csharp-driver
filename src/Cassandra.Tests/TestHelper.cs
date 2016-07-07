@@ -168,37 +168,17 @@ namespace Cassandra.Tests
             return dateTime.Value.ToMillisecondPrecision();
         }
 
-        public static Task<T> DelayedTask<T>(T result, int dueTimeMs = 50)
+        public static async Task<T> DelayedTask<T>(T result, int dueTimeMs = 50)
         {
-            var tcs = new TaskCompletionSource<T>();
-            var timer = new Timer(delegate(object self)
-            {
-                ((Timer)self).Dispose();
-                tcs.TrySetResult(result);
-            });
+            await Task.Delay(dueTimeMs).ConfigureAwait(false);
 
-            timer.Change(dueTimeMs, -1);
-            return tcs.Task;
+            return result;
         }
 
-        public static Task<T> DelayedTask<T>(Func<T> result, int dueTimeMs = 50)
+        public static async Task<T> DelayedTask<T>(Func<T> result, int dueTimeMs = 50)
         {
-            var tcs = new TaskCompletionSource<T>();
-            var timer = new Timer(delegate(object self)
-            {
-                ((Timer)self).Dispose();
-                try
-                {
-                    tcs.TrySetResult(result());
-                }
-                catch (Exception ex)
-                {
-                    tcs.TrySetException(ex);
-                }
-            });
-
-            timer.Change(dueTimeMs, -1);
-            return tcs.Task;
+            await Task.Delay(dueTimeMs).ConfigureAwait(false);
+            return result();
         }
 
         /// <summary>
@@ -228,7 +208,7 @@ namespace Cassandra.Tests
         {
             return someObject.GetType()
                              .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                             .Where(p => p.GetCustomAttributes(typeof(IgnoreAttribute), true).Length == 0)
+                             .Where(p => p.GetCustomAttributes(typeof(IgnoreAttribute), true).Any())
                              .ToDictionary(prop => prop.Name, prop => prop.GetValue(someObject, null));
         }
 
@@ -246,7 +226,7 @@ namespace Cassandra.Tests
             public int Compare(object x, object y)
             {
                 SimplifyValues(ref x, ref y);
-                return Comparer.Default.Compare(x, y);
+                return Comparer<object>.Default.Compare(x, y);
             }
         }
 
@@ -272,6 +252,24 @@ namespace Cassandra.Tests
                 }
             }
             return result;
+        }
+
+        /// <summary>
+        /// Gets the path string to home (via HOME or USERPROFILE env variables)
+        /// </summary>
+        public static string GetHomePath()
+        {
+            var home = Environment.GetEnvironmentVariable("USERPROFILE");
+            if (!string.IsNullOrEmpty(home))
+            {
+                return home;
+            }
+            home = Environment.GetEnvironmentVariable("HOME");
+            if (string.IsNullOrEmpty(home))
+            {
+                throw new NotSupportedException("HOME or USERPROFILE are not defined");
+            }
+            return home;
         }
     }
 }

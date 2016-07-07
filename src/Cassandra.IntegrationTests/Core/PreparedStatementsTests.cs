@@ -624,7 +624,7 @@ namespace Cassandra.IntegrationTests.Core
                 () => session.Execute(ps.Bind(Guid.NewGuid(), null, null, "yeah, this is extra")));
         }
 
-        [Test, Timeout(180000)]
+        [Test, TestTimeout(180000)]
         public void Bound_With_ChangingKeyspace()
         {
             using (var localCluster = Cluster.Builder()

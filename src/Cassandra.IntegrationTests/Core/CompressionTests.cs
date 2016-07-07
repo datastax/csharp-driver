@@ -13,7 +13,7 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short")]
     public class CompressionTests : SharedClusterTest
     {
-        [Test, Timeout(120000)]
+        [Test, TestTimeout(120000)]
         public void Lz4_Compression_Under_Heavy_Concurrency_Test()
         {
             using (var cluster = Cluster.Builder()

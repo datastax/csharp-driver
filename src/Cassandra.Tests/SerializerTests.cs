@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Numerics;
+using System.Reflection;
 using Cassandra.Serialization;
 using Cassandra.Serialization.Primitive;
 
@@ -433,7 +434,7 @@ namespace Cassandra.Tests
                 }
                 var type = serializer.GetClrType(typeCode, null);
                 Assert.NotNull(type);
-                if (type.IsValueType)
+                if (type.GetTypeInfo().IsValueType)
                 {
                     Assert.NotNull(serializer.Serialize(Activator.CreateInstance(type)));
                 }

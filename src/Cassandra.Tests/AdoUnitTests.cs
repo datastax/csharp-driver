@@ -13,7 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-
+#if !NETCORE
 using Cassandra.Data;
 using Moq;
 using NUnit.Framework;
@@ -46,3 +46,4 @@ namespace Cassandra.Tests
         }
     }
 }
+#endif

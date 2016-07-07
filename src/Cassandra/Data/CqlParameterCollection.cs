@@ -13,7 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-#if !NETCORE
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -52,6 +52,7 @@ namespace Cassandra.Data
             get { return _syncLock; }
         }
 
+#if !NETCORE
         /// <summary>
         /// Specifies whether the collection is a fixed size.
         /// </summary>
@@ -78,6 +79,7 @@ namespace Cassandra.Data
         {
             get { return false; }
         }
+#endif
 
         /// <summary>
         /// Adds the specified <see cref="T:System.Data.Common.DbParameter" /> object
@@ -343,9 +345,9 @@ namespace Cassandra.Data
             }
         }
 
-        #endregion
+#endregion
 
-        #region Private Methods
+#region Private Methods
 
         private void SetParameter(string parameterName, CqlParameter value)
         {
@@ -373,7 +375,6 @@ namespace Cassandra.Data
             return _parameters[index];
         }
 
-        #endregion
+#endregion
     }
 }
-#endif

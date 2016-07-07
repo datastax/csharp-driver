@@ -13,7 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-#if !NETCORE
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -78,10 +78,17 @@ namespace Cassandra.Data
             enumerRows = enumRows.GetEnumerator();
         }
 
+#if !NETCORE
         public override void Close()
         {
 
         }
+
+        public override DataTable GetSchemaTable()
+        {
+            throw new NotSupportedException();
+        }
+#endif
 
         /// <inheritdoc />
         public override bool GetBoolean(int ordinal)
@@ -139,7 +146,7 @@ namespace Cassandra.Data
 
         public override IEnumerator GetEnumerator()
         {
-            return new DbEnumerator(this);
+            return new DbEnumerator(this, false);
         }
 
         /// <inheritdoc />
@@ -190,11 +197,6 @@ namespace Cassandra.Data
             return colidx[name];
         }
 
-        public override DataTable GetSchemaTable()
-        {
-            throw new NotSupportedException();
-        }
-
         public override string GetString(int ordinal)
         {
             return (string) GetValue(ordinal);
@@ -233,4 +235,3 @@ namespace Cassandra.Data
         }
     }
 }
-#endif

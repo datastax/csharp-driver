@@ -107,7 +107,7 @@ namespace Cassandra.IntegrationTests.Core
                                 INSERT INTO {0} (tweet_id, author, isok, body) 
                                 VALUES ({1},'test{2}',{3},'body{2}');", 
                                 tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true"), ConsistencyLevel.One, null, null);
-                            Thread.MemoryBarrier();
+                            Interlocked.MemoryBarrier();
                         }
                         catch
                         {
@@ -146,7 +146,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     for (int i = 0; i < RowsNo; i++)
                     {
-                        Thread.MemoryBarrier();
+                        Interlocked.MemoryBarrier();
                         if (!done.Contains(i) && ar[i] != null)
                         {
                             if (ar[i].AsyncWaitHandle.WaitOne(10))
@@ -258,7 +258,7 @@ namespace Cassandra.IntegrationTests.Core
                         , ConsistencyLevel.One, _ =>
                         {
                             ar[tmpi] = true;
-                            Thread.MemoryBarrier();
+                            Interlocked.MemoryBarrier();
                         }, null);
                 }
             });
@@ -270,7 +270,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 for (int i = 0; i < RowsNo; i++)
                 {
-                    Thread.MemoryBarrier();
+                    Interlocked.MemoryBarrier();
                     if (!done.Contains(i) && ar[i])
                     {
                         done.Add(i);
@@ -336,7 +336,7 @@ namespace Cassandra.IntegrationTests.Core
                         finally
                         {
                             ar[tmpi] = true;
-                            Thread.MemoryBarrier();
+                            Interlocked.MemoryBarrier();
                         }
                     }, null);
                 }

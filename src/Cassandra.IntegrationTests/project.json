@@ -1,0 +1,49 @@
+﻿{
+  "version": "1.0.0",
+  "buildOptions": {
+    "warningsAsErrors": true,
+    "keyFile": "../../build/datastax.snk",
+    "publicSign": true
+  },
+  "testRunner": "nunit",
+  "dependencies": {
+    "Cassandra": {
+      "target": "project",
+      "version": "*"
+    },
+    "Cassandra.Tests": {
+      "target": "project",
+      "version": "*"
+    },
+    "NUnit": "3.4.0",
+    "dotnet-test-nunit": "3.4.0-beta-1"
+  },
+  "frameworks": {
+    "net452": {
+      "imports": [
+        "portable-net45+win8"
+      ],
+      "frameworkAssemblies": {
+        "System.Data": "",
+        "System.Numerics": ""
+      },
+      "dependencies": {
+        "Moq": "4.5.10"
+      }
+    },
+    "netcoreapp1.0": {
+      "imports": [
+        "portable-net45+win8"
+      ],
+      "buildOptions": {
+        "define": [ "NETCORE", "NO_MOCKS" ]
+      },
+      "dependencies": {
+        "Microsoft.NETCore.App": {
+          "version": "1.0.0",
+          "type": "platform"
+        }
+      }
+    }
+  }
+}

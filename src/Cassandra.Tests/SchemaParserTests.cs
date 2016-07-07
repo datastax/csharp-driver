@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !NETCORE
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -681,3 +682,4 @@ namespace Cassandra.Tests
         }
     }
 }
+#endif

@@ -16,7 +16,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -27,6 +26,9 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using Cassandra.IntegrationTests.Core;
 using Cassandra.IntegrationTests.TestClusterManagement;
+#if NETCORE
+using Microsoft.DotNet.InternalAbstractions;
+#endif
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.TestBase
@@ -152,7 +154,7 @@ namespace Cassandra.IntegrationTests.TestBase
         /// </summary>
         public static bool UseRemoteCcm
         {
-            get { return ConfigurationManager.AppSettings["UseRemote"] == "true"; }
+            get { return false; }
         }
 
         public static void WaitForUp(string nodeHost, int nodePort, int maxSecondsToKeepTrying)
@@ -161,48 +163,16 @@ namespace Cassandra.IntegrationTests.TestBase
             DateTime futureDateTime = DateTime.Now.AddSeconds(maxSecondsToKeepTrying);
             while (DateTime.Now < futureDateTime)
             {
-                TcpClient tcpClient = new TcpClient();
-                try
+                if (IsNodeReachable(IPAddress.Parse(nodeHost), nodePort))
                 {
-                    tcpClient.Connect(nodeHost, nodePort);
-                    tcpClient.Close();
-                    Trace.TraceInformation("Verified that node " + nodeHost + ":" + nodePort + " is UP (success) via manual socket connection check, exiting now ...");
                     return;
                 }
-                catch (Exception e)
-                {
-                    Trace.TraceInformation(string.Format("Caught expected exception, with message: {0}. Still waiting for node host: {1} to be available for connection, " +
-                        " waiting another {2} MS ... ", e.Message, nodeHost + ":" + nodePort, msSleepPerIteration));
-                    tcpClient.Close();
-                    Thread.Sleep(msSleepPerIteration);
-                }
+                Trace.TraceInformation(
+                    string.Format("Still waiting for node host: {0} to be available for connection, " +
+                        " waiting another {1} MS ... ", nodeHost + ":" + nodePort, msSleepPerIteration));
+                Thread.Sleep(msSleepPerIteration);
             }
             throw new Exception("Could not connect to node: " + nodeHost + ":" + nodePort + " after " + maxSecondsToKeepTrying + " seconds!");
-        }
-
-        public static void WaitForDown(string nodeHost, int nodePort, int maxSecondsToKeepTrying)
-        {
-            int msSleepPerIteration = 500;
-            DateTime futureDateTime = DateTime.Now.AddSeconds(maxSecondsToKeepTrying);
-            while (DateTime.Now < futureDateTime)
-            {
-                TcpClient tcpClient = new TcpClient();
-                try
-                {
-                    tcpClient.Connect(nodeHost, nodePort);
-                    tcpClient.Close();
-                    Trace.TraceInformation(string.Format("Still waiting for node host: {0} to be UNavailable for connection to default Cassandra port, waiting another {1} MS ... ", 
-                        nodeHost + ":" + nodePort, msSleepPerIteration));
-                    Thread.Sleep(msSleepPerIteration);
-                }
-                catch (Exception)
-                {
-                    Trace.TraceInformation("Verified that node " + nodeHost + ":" + nodePort + " is DOWN (success) via manual socket connection check, exiting now ...");
-                    tcpClient.Close();
-                    return;
-                }
-            }
-            throw new Exception("Node: " + nodeHost + ":" + nodePort + " was still available for connection after " + maxSecondsToKeepTrying + " seconds, but should have been UNavailable by now!");
         }
 
         private static void WaitForMeta(string nodeHost, Cluster cluster, int maxTry, bool waitForUp)
@@ -315,8 +285,10 @@ namespace Cassandra.IntegrationTests.TestBase
                 process.StartInfo.RedirectStandardError = true;
                 //Hide the python window if possible
                 process.StartInfo.UseShellExecute = false;
-                process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
                 process.StartInfo.CreateNoWindow = true;
+#if !NETCORE
+                process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+#endif
 
                 using (var outputWaitHandle = new AutoResetEvent(false))
                 using (var errorWaitHandle = new AutoResetEvent(false))
@@ -403,15 +375,7 @@ namespace Cassandra.IntegrationTests.TestBase
         {
             get
             {
-                switch (Environment.OSVersion.Platform) 
-                {
-                case PlatformID.Win32NT:
-                case PlatformID.Win32S:
-                case PlatformID.Win32Windows:
-                case PlatformID.WinCE:
-                    return true;
-                }
-                return false;
+                return RuntimeEnvironment.OperatingSystemPlatform == Platform.Windows;
             }
         }
 
@@ -601,12 +565,7 @@ namespace Cassandra.IntegrationTests.TestBase
         /// <returns></returns>
         public static string CreateTempDirectory()
         {
-            var basePath = Path.GetTempPath();
-            if (ConfigurationManager.AppSettings["TempDir"] != null)
-            {
-                basePath = ConfigurationManager.AppSettings["TempDir"];
-            }
-            var tempDirectory = Path.Combine(basePath, "ccm-" + Path.GetRandomFileName());
+            var tempDirectory = Path.Combine(Path.GetTempPath(), "ccm-" + Path.GetRandomFileName());
             Directory.CreateDirectory(tempDirectory);
             return tempDirectory;
         }
@@ -636,21 +595,13 @@ namespace Cassandra.IntegrationTests.TestBase
         /// <summary>
         /// Determines if a connection can be made to a node at port 9042
         /// </summary>
-        public static bool IsNodeReachable(IPAddress ip)
+        public static bool IsNodeReachable(IPAddress ip, int port = 9042)
         {
             using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
             {
-                var connectResult = socket.BeginConnect(new IPEndPoint(ip, 9042), null, null);
-                var connectSignaled = connectResult.AsyncWaitHandle.WaitOne(1000);
-
-                if (!connectSignaled)
-                {
-                    //It timed out: Close the socket
-                    return false;
-                }
                 try
                 {
-                    socket.EndConnect(connectResult);
+                    socket.Connect(new IPEndPoint(ip, port));
                     return true;
                 }
                 catch
