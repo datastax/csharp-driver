@@ -375,7 +375,19 @@ namespace Cassandra.IntegrationTests.TestBase
         {
             get
             {
+#if !NETCORE
+                switch (Environment.OSVersion.Platform)
+                {
+                    case PlatformID.Win32NT:
+                    case PlatformID.Win32S:
+                    case PlatformID.Win32Windows:
+                    case PlatformID.WinCE:
+                        return true;
+                }
+                return false;
+#else
                 return RuntimeEnvironment.OperatingSystemPlatform == Platform.Windows;
+#endif
             }
         }
 
