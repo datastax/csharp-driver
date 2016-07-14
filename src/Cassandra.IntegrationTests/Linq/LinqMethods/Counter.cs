@@ -158,6 +158,82 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             StringAssert.IsMatch(expectedErrMsg, e.Message);
         }
 
+
+        [TestCase(-21), Category("short")]
+        [TestCase(-13), Category("short")]
+        [TestCase(-8), Category("short")]
+        [TestCase(-5), Category("short")]
+        [TestCase(-3), Category("short")]
+        [TestCase(-2), Category("short")]
+        [TestCase(-1), Category("short")]
+        [TestCase(1), Category("short")]
+        [TestCase(2), Category("short")]
+        [TestCase(3), Category("short")]
+        [TestCase(5), Category("short")]
+        [TestCase(8), Category("short")]
+        [TestCase(13), Category("short")]
+        [TestCase(21), Category("short")]
+        public void LinqAttributes_Counter_Increments(int increment)
+        {
+            // Create config that uses linq based attributes
+            var mappingConfig = new MappingConfiguration();
+            var counterTable = new Table<CounterEntityWithLinqAttributes>(_session, mappingConfig);
+            counterTable.CreateIfNotExists();
+
+            var counter = new CounterEntityWithLinqAttributes { KeyPart1 = Guid.NewGuid(), KeyPart2 = 1};
+
+            counterTable
+                .Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2)
+                .Select(t => new CounterEntityWithLinqAttributes { Counter = increment })
+                .Update().Execute();
+
+            var updatedCounter = counterTable.Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2).Execute().FirstOrDefault();
+            Assert.AreEqual(increment, updatedCounter.Counter);
+
+            counterTable
+                .Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2)
+                .Select(t => new CounterEntityWithLinqAttributes { Counter = increment })
+                .Update().Execute();
+
+            updatedCounter = counterTable.Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2).Execute().FirstOrDefault();
+            Assert.AreEqual(increment*2, updatedCounter.Counter);
+
+            counterTable
+                .Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2)
+                .Select(t => new CounterEntityWithLinqAttributes { Counter = increment })
+                .Update().Execute();
+
+            updatedCounter = counterTable.Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2).Execute().FirstOrDefault();
+            Assert.AreEqual(increment*3, updatedCounter.Counter);
+
+            //testing negative values
+            int negativeIncrement = -1*increment;
+            counterTable
+                .Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2)
+                .Select(t => new CounterEntityWithLinqAttributes { Counter = negativeIncrement })
+                .Update().Execute();
+
+            updatedCounter = counterTable.Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2).Execute().FirstOrDefault();
+            Assert.AreEqual(increment * 2, updatedCounter.Counter);
+
+            counterTable
+                .Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2)
+                .Select(t => new CounterEntityWithLinqAttributes { Counter = negativeIncrement })
+                .Update().Execute();
+
+            updatedCounter = counterTable.Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2).Execute().FirstOrDefault();
+            Assert.AreEqual(increment, updatedCounter.Counter);
+
+            counterTable
+                .Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2)
+                .Select(t => new CounterEntityWithLinqAttributes { Counter = negativeIncrement })
+                .Update().Execute();
+
+            updatedCounter = counterTable.Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2).Execute().FirstOrDefault();
+            Assert.AreEqual(0, updatedCounter.Counter);
+        }
+
+
         [Cassandra.Data.Linq.Table]
         class CounterEntityWithLinqAttributes
         {
