@@ -18,6 +18,7 @@ using System;
 using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 
 // ReSharper disable once CheckNamespace
 namespace Cassandra
@@ -219,7 +220,7 @@ namespace Cassandra
                         //Return the underlying array
                         return value;
                     }
-                    return Utils.ToCollectionType(typeof(List<>), column.Type.GetGenericArgumentsLocal()[0], (Array)value);
+                    return Utils.ToCollectionType(typeof(List<>), column.Type.GetTypeInfo().GetGenericArguments()[0], (Array)value);
                 }
                 case ColumnTypeCode.Set:
                 {
@@ -229,8 +230,8 @@ namespace Cassandra
                         //Return the underlying array
                         return value;
                     }
-                    var itemType = column.Type.GetGenericArgumentsLocal()[0];
-                    if (targetType.IsGenericTypeLocal())
+                    var itemType = column.Type.GetTypeInfo().GetGenericArguments()[0];
+                    if (targetType.GetTypeInfo().IsGenericType)
                     {
                         var genericType = targetType.GetGenericTypeDefinition();
                         if (genericType == typeof(SortedSet<>))

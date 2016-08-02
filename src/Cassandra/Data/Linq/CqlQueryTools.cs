@@ -156,22 +156,22 @@ namespace Cassandra.Data.Linq
                 return CQLTypeNames[tpy];
             else
             {
-                if (tpy.IsGenericTypeLocal())
+                if (tpy.GetTypeInfo().IsGenericType)
                 {
                     if (tpy.Name.Equals("Nullable`1"))
                     {
                         return GetCqlTypeFromType(tpy.GetTypeInfo().GetGenericArguments()[0]);
                     }
-                    else if (tpy.GetInterfaceLocal("ISet`1") != null)
+                    else if (tpy.GetTypeInfo().GetInterface("ISet`1") != null)
                     {
                         return "set<" + GetCqlTypeFromType(tpy.GetTypeInfo().GetGenericArguments()[0]) + ">";
                     }
-                    else if (tpy.GetInterfaceLocal("IDictionary`2") != null)
+                    else if (tpy.GetTypeInfo().GetInterface("IDictionary`2") != null)
                     {
                         return "map<" + GetCqlTypeFromType(tpy.GetTypeInfo().GetGenericArguments()[0]) + ", " + GetCqlTypeFromType(tpy.GetTypeInfo().GetGenericArguments()[1]) +
                                ">";
                     }
-                    else if (tpy.GetInterfaceLocal("IEnumerable`1") != null)
+                    else if (tpy.GetTypeInfo().GetInterface("IEnumerable`1") != null)
                     {
                         return "list<" + GetCqlTypeFromType(tpy.GetTypeInfo().GetGenericArguments()[0]) + ">";
                     }

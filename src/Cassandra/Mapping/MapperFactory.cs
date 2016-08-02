@@ -382,7 +382,7 @@ namespace Cassandra.Mapping
                 return false;
 
             // See if the POCO's type if something we can create an empty collection for
-            if (!pocoDestType.IsInterfaceLocal())
+            if (!pocoDestType.GetTypeInfo().IsInterface)
             {
                 // If an array, we know we have a constructor available
                 if (pocoDestType.IsArray)
@@ -411,7 +411,7 @@ namespace Cassandra.Mapping
             else
             {
                 // See if destination type interface on the POCO is one we can create an empty object for
-                if (!pocoDestType.IsGenericTypeLocal())
+                if (!pocoDestType.GetTypeInfo().IsGenericType)
                 {
                     return false;
                 }
@@ -469,7 +469,7 @@ namespace Cassandra.Mapping
         /// </summary>
         private static bool ImplementsCollectionInterface(Type t)
         {
-            return t.GetTypeInfo().GetInterfaces().FirstOrDefault(i => i.IsGenericTypeLocal() && i.GetGenericTypeDefinition() == typeof (ICollection<>)) != null;
+            return t.GetTypeInfo().GetInterfaces().FirstOrDefault(i => i.GetTypeInfo().IsGenericType && i.GetGenericTypeDefinition() == typeof (ICollection<>)) != null;
         }
 
         private static MethodInfo GetMethod(Delegate deleg)

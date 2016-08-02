@@ -81,18 +81,18 @@ namespace Cassandra.Data.Linq
             if (TableName == null)
             {
                 TableName = type.Name;
-                var tableAttribute = (TableAttribute)type.GetCustomAttributeLocal(typeof(TableAttribute), true);
+                var tableAttribute = (TableAttribute)type.GetTypeInfo().GetCustomAttribute(typeof(TableAttribute), true);
                 if (tableAttribute != null)
                 {
                     TableName = tableAttribute.Name;
                     CaseSensitive = tableAttribute.CaseSensitive;
                 }
             }
-            if (type.GetCustomAttributesLocal(typeof(CompactStorageAttribute), true).FirstOrDefault() != null)
+            if (type.GetTypeInfo().GetCustomAttribute(typeof(CompactStorageAttribute), true) != null)
             {
                 CompactStorage = true;
             }
-            if (type.GetCustomAttributesLocal(typeof(AllowFilteringAttribute), true).FirstOrDefault() != null)
+            if (type.GetTypeInfo().GetCustomAttribute(typeof(AllowFilteringAttribute), true) != null)
             {
                 AllowFiltering = true;
             }
@@ -100,7 +100,7 @@ namespace Cassandra.Data.Linq
 
         internal static ITypeDefinition DetermineAttributes(Type type)
         {
-            if (type.GetCustomAttributesLocal(typeof(Cassandra.Data.Linq.TableAttribute), true).Length > 0)
+            if (type.GetTypeInfo().GetCustomAttributes(typeof(TableAttribute), true).Any())
             {
                 return new LinqAttributeBasedTypeDefinition(type, null, null);
             }

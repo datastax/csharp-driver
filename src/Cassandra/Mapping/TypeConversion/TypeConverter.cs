@@ -100,14 +100,14 @@ namespace Cassandra.Mapping.TypeConversion
             // Allow strings from the database to be converted to an enum/nullable enum property on a POCO
             if (dbType == typeof(string))
             {
-                if (pocoType.IsEnumLocal())
+                if (pocoType.GetTypeInfo().IsEnum)
                 {
                     Func<string, TPoco> enumMapper = EnumStringMapper<TPoco>.MapStringToEnum;
                     return enumMapper;
                 }
 
                 var underlyingPocoType = Nullable.GetUnderlyingType(pocoType);
-                if (underlyingPocoType != null && underlyingPocoType.IsEnumLocal())
+                if (underlyingPocoType != null && underlyingPocoType.GetTypeInfo().IsEnum)
                 {
                     Func<string, TPoco> enumMapper = NullableEnumStringMapper<TPoco>.MapStringToEnum;
                     return enumMapper;
@@ -127,7 +127,7 @@ namespace Cassandra.Mapping.TypeConversion
                 }
             }
 
-            if (dbType.IsGenericTypeLocal() && (pocoType.IsGenericTypeLocal() || pocoType.IsArray))
+            if (dbType.GetTypeInfo().IsGenericType && (pocoType.GetTypeInfo().IsGenericType || pocoType.IsArray))
             {
                 Type sourceGenericDefinition = dbType.GetTypeInfo().GetGenericTypeDefinition();
                 Type[] sourceGenericArgs = dbType.GetTypeInfo().GetGenericArguments();
@@ -183,7 +183,7 @@ namespace Cassandra.Mapping.TypeConversion
             // Support enum/nullable enum => string conversion
             if (dbType == typeof (string))
             {
-                if (pocoType.IsEnumLocal())
+                if (pocoType.GetTypeInfo().IsEnum)
                 {
                     // Just call ToStirng() on the enum value from the POCO
                     Func<TPoco, string> enumConverter = prop => prop.ToString();
@@ -191,7 +191,7 @@ namespace Cassandra.Mapping.TypeConversion
                 }
 
                 Type underlyingPocoType = Nullable.GetUnderlyingType(pocoType);
-                if (underlyingPocoType != null && underlyingPocoType.IsEnumLocal())
+                if (underlyingPocoType != null && underlyingPocoType.GetTypeInfo().IsEnum)
                 {
                     Func<TPoco, string> enumConverter = NullableEnumStringMapper<TPoco>.MapEnumToString;
                     return enumConverter;

@@ -269,10 +269,10 @@ namespace Cassandra
         /// </summary>
         public static bool IsAnonymousType(Type type)
         {
-            return type.IsGenericTypeLocal()
-                   && (type.GetAttributesLocal() & TypeAttributes.NotPublic) == TypeAttributes.NotPublic
+            return type.GetTypeInfo().IsGenericType
+                   && (type.GetTypeInfo().Attributes & TypeAttributes.NotPublic) == TypeAttributes.NotPublic
                    && (type.Name.Contains("AnonymousType") || type.Name.Contains("AnonType"))
-                   && type.IsAttributeDefinedLocal(typeof(CompilerGeneratedAttribute), false);
+                   && type.GetTypeInfo().IsDefined(typeof(CompilerGeneratedAttribute), false);
         }
 
         /// <summary>
@@ -343,7 +343,7 @@ namespace Cassandra
         /// </summary>
         public static bool IsIEnumerable(Type t)
         {
-            return t.IsGenericTypeLocal() && t.IsInterfaceLocal() && t.GetGenericTypeDefinition() == typeof(IEnumerable<>);
+            return t.GetTypeInfo().IsGenericType && t.GetTypeInfo().IsInterface && t.GetGenericTypeDefinition() == typeof(IEnumerable<>);
         }
 
         /// <summary>
