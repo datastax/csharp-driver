@@ -208,7 +208,7 @@ namespace Cassandra.Tests
         {
             return someObject.GetType()
                              .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                             .Where(p => p.GetCustomAttributes(typeof(IgnoreAttribute), true).Length == 0)
+                             .Where(p => !p.GetCustomAttributes(typeof(IgnoreAttribute), true).Any())
                              .ToDictionary(prop => prop.Name, prop => prop.GetValue(someObject, null));
         }
 
