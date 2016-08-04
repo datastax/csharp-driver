@@ -1,5 +1,15 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.0.8
+
+2016-08-04
+
+### Bug Fixes
+
+- [CSHARP-467] - Linq query generation only supports single increments and decrements
+- [CSHARP-475] - cluster.Metadata.GetTable(KS,TB).TableColumns KeyType returns None instead of Partition.
+- [CSHARP-476] - KeyNotFoundException from Cassandra Error Response
+
 ## 3.0.7
 
 2016-06-27
