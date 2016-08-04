@@ -15,7 +15,7 @@
       "target": "project",
       "version": "*"
     },
-    "NUnit": "3.4.0",
+    "NUnit": "3.4.1",
     "dotnet-test-nunit": "3.4.0-beta-1"
   },
   "frameworks": {
@@ -28,7 +28,8 @@
         "System.Numerics": ""
       },
       "dependencies": {
-        "Moq": "4.5.10"
+        "Moq": "4.5.10",
+        "Microsoft.NETCore.Platforms": "1.0.1"
       }
     },
     "netcoreapp1.0": {
@@ -42,7 +43,11 @@
         "Microsoft.NETCore.App": {
           "version": "1.0.0",
           "type": "platform"
-        }
+        },
+        "System.Reflection": "4.1.0",
+        "System.Reflection.Extensions": "4.0.1",
+        "System.Reflection.Primitives": "4.0.1",
+        "Microsoft.DotNet.InternalAbstractions": "1.0.0"
       }
     }
   }

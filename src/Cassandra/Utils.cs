@@ -22,6 +22,7 @@ using System.Net;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Cassandra.Tasks;
 
 namespace Cassandra
 {
@@ -94,8 +95,7 @@ namespace Cassandra
             var hostEntry = Dns.GetHostEntry(address);
 #else
             var hostEntryTask = Dns.GetHostEntryAsync(address);
-            hostEntryTask.Wait();
-            var hostEntry = hostEntryTask.Result;
+            var hostEntry = TaskHelper.WaitToComplete(hostEntryTask);
 #endif
             return hostEntry.AddressList;
         }
