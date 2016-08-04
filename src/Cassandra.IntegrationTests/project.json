@@ -28,7 +28,7 @@
         "System.Numerics": ""
       },
       "dependencies": {
-        "Moq": "4.5.10",
+        "Moq": "4.2.1402.2112",
         "Microsoft.NETCore.Platforms": "1.0.1"
       }
     },
