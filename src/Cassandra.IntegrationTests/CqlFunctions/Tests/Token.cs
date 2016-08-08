@@ -19,7 +19,7 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
         private Table<EntityWithTimeUuid> _tableEntityWithTimeUuid;
         private Table<EntityWithNullableTimeUuid> _tableEntityWithNullableTimeUuid;
 
-        protected override void OneTimeSetUp()
+        public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             _session = Session;

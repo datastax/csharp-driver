@@ -20,7 +20,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         private Mapper _mapper;
         private string _selectAllDefaultCql = "SELECT * from movie";
 
-        protected override void OneTimeSetUp()
+        public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             _session = Session;

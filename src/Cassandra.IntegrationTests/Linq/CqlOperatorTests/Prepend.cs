@@ -15,7 +15,7 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
     {
         private ISession _session;
 
-        protected override void OneTimeSetUp()
+        public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             _session = Session;

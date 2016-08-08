@@ -20,7 +20,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
         private Table<AllDataTypesEntity> _table;
 
-        protected override void OneTimeSetUp()
+        public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             _session = Session;

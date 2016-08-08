@@ -27,7 +27,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             return new Table<Song>(_session, _mappingConfig, _tableName, _keyspace);
         }
 
-        protected override void OneTimeSetUp()
+        public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             _session = Session;

@@ -30,7 +30,7 @@ namespace Cassandra.IntegrationTests.Core
     {
         private const string AllTypesTableName = "all_types_table_queryparams";
 
-        protected override void OneTimeSetUp()
+        public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             Session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName));

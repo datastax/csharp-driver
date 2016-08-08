@@ -16,7 +16,7 @@ namespace Cassandra.IntegrationTests.Core
         private PreparedStatement _insertPrepared;
         private PreparedStatement _selectPrepared;
 
-        protected override void OneTimeSetUp()
+        public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             Session.CreateKeyspaceIfNotExists(Keyspace);

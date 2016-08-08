@@ -27,7 +27,7 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short")]
     public class UdtMappingsTests : SharedClusterTest
     {
-        protected override void OneTimeSetUp()
+        public override void OneTimeSetUp()
         {
             if (CassandraVersion < Version.Parse("2.1.0"))
                 Assert.Ignore("Requires Cassandra version >= 2.1");

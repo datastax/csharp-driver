@@ -22,7 +22,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             return new Table<Album>(_session, new MappingConfiguration().Define(new Map<Album>().TableName("albums")));
         }
 
-        protected override void OneTimeSetUp()
+        public override void OneTimeSetUp()
         {
             if (CassandraVersion < Version.Parse("2.1.0"))
                 Assert.Ignore("Requires Cassandra version >= 2.1");

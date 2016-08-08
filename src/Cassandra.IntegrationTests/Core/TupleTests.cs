@@ -29,7 +29,7 @@ namespace Cassandra.IntegrationTests.Core
     {
         private const string TableName = "users_tuples";
 
-        protected override void OneTimeSetUp()
+        public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             if (CassandraVersion < new Version(2, 1))

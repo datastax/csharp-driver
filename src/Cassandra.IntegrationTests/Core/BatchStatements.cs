@@ -33,7 +33,7 @@ namespace Cassandra.IntegrationTests.Core
             
         }
 
-        protected override void OneTimeSetUp()
+        public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             CreateTable(_tableName);

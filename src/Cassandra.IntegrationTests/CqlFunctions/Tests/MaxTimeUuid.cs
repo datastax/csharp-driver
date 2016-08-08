@@ -24,7 +24,7 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
         private DateTimeOffset _dateAfter;
         private const int DefaultRecordCount = 6;
 
-        protected override void OneTimeSetUp()
+        public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             _session = Session;

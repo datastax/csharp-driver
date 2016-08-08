@@ -23,7 +23,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         string _uniqueKsName;
         private const string IgnoredStringAttribute = "ignoredstringattribute";
 
-        protected override void OneTimeSetUp()
+        public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             _session = Session;

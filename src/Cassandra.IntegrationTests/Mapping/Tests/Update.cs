@@ -19,7 +19,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         private Table<Movie> _movieTable;
         private Mapper _mapper;
 
-        protected override void OneTimeSetUp()
+        public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             _session = Session;

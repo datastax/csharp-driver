@@ -27,7 +27,7 @@ namespace Cassandra.IntegrationTests.Data
     {
         private CqlConnection _connection;
 
-        protected override void OneTimeSetUp()
+        public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             var cb = new CassandraConnectionStringBuilder

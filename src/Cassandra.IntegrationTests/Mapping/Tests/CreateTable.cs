@@ -17,7 +17,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         ISession _session = null;
         string _uniqueKsName;
 
-        protected override void OneTimeSetUp()
+        public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             _session = Session;

@@ -23,7 +23,7 @@ namespace Cassandra.IntegrationTests.CqlFunctions.Tests
         private DateTimeOffset _dateBefore;
         private DateTimeOffset _dateAfter;
 
-        protected override void OneTimeSetUp()
+        public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             _session = Session;

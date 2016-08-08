@@ -14,7 +14,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         private List<Movie> _movieList = Movie.GetDefaultMovieList();
         private string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
 
-        protected override void OneTimeSetUp()
+        public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             _session = Session;

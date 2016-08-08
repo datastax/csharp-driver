@@ -18,7 +18,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
     {
         string _uniqueKsName;
 
-        protected override void OneTimeSetUp()
+        public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();

@@ -70,7 +70,7 @@ namespace Cassandra.IntegrationTests
         }
 
         [OneTimeSetUp]
-        protected virtual void OneTimeSetUp()
+        public virtual void OneTimeSetUp()
         {
             if (_reuse && _reusableInstance != null && ReferenceEquals(_reusableInstance, TestClusterManager.LastInstance))
             {
@@ -109,7 +109,7 @@ namespace Cassandra.IntegrationTests
         }
 
         [OneTimeTearDown]
-        protected virtual void TestFixtureTearDown()
+        public virtual void OneTimeTearDown()
         {
             if (Cluster != null)
             {

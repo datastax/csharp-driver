@@ -60,19 +60,19 @@ namespace Cassandra.IntegrationTests.Core
             TestCluster.ResumeNode(2);
         }
 
-        protected override void OneTimeSetUp()
+        public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             _addressNode2 = IPAddress.Parse(TestCluster.ClusterIpPrefix + "2");
         }
 
-        protected override void TestFixtureTearDown()
+        public override void OneTimeTearDown()
         {
             foreach (var c in _clusters)
             {
                 c.Dispose();
             }
-            base.TestFixtureTearDown();
+            base.OneTimeTearDown();
         }
 
         [Test]
