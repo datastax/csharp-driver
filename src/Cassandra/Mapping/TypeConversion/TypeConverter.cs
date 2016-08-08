@@ -68,7 +68,7 @@ namespace Cassandra.Mapping.TypeConversion
         {
             return _fromDbConverterCache.GetOrAdd(Tuple.Create(dbType, pocoType),
                                                   // Invoke the generic method below with our two type parameters
-                                                  _ => (Delegate) FindFromDbConverterMethod.MakeGenericMethod(dbType, pocoType).Invoke(this, null));
+                _ => (Delegate) FindFromDbConverterMethod.MakeGenericMethod(dbType, pocoType).Invoke(this, null));
         }
 
         /// <summary>
@@ -257,11 +257,7 @@ namespace Cassandra.Mapping.TypeConversion
                 throw new ArgumentException("The provided method must be static.", "method");
             }
             var delegateType = Expression.GetFuncType(method.GetParameters().Select(p => p.ParameterType).ToArray());
-#if !NETCORE
-            return Delegate.CreateDelegate(delegateType, null, method);
-#else
-            return method.CreateDelegate(delegateType);
-#endif
+            return method.CreateDelegate(delegateType, null);
         }
     }
 }
