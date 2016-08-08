@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿
+#if !NETCORE
+using System;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Tests;
 using NUnit.Framework;
 
@@ -57,3 +55,4 @@ namespace Cassandra.IntegrationTests.Core
         }
     }
 }
+#endif

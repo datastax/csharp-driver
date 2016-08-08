@@ -156,6 +156,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+#if !NETCORE
         [Test]
         [TestCassandraVersion(2, 0)]
         public void Query_Compression_LZ4_Test()
@@ -204,6 +205,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
             }
         }
+#endif
 
         [Test]
         public void Query_Compression_Snappy_Test()
