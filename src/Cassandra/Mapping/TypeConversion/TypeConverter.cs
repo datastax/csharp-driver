@@ -61,6 +61,42 @@ namespace Cassandra.Mapping.TypeConversion
             return converter(value);
         }
 
+        internal object ConvertObjectValue(Type valueType, Type dbType, object value)
+        {
+            var converter = GetToDbConverter(valueType, dbType);
+            if (converter == null)
+            {
+                try
+                {
+                    return Convert.ChangeType(value, dbType);
+                }
+                catch (Exception)
+                {
+                    return value;
+                }
+            }
+
+            return converter.DynamicInvoke(value);
+        }
+
+        internal object ConvertDbValue(Type dbType, Type valueType, object value)
+        {
+            var converter = GetFromDbConverter(dbType, valueType);
+            if (converter == null)
+            {
+                try
+                {
+                    return Convert.ChangeType(value, valueType);
+                }
+                catch (Exception)
+                {
+                    return value;
+                }
+            }
+
+            return converter.DynamicInvoke(value);
+        }
+
         /// <summary>
         /// Gets a Function that can convert a source type value from the database to a destination type value on a POCO.
         /// </summary>
@@ -113,6 +149,7 @@ namespace Cassandra.Mapping.TypeConversion
                     return enumMapper;
                 }
             }
+
             if (dbType == typeof(DateTimeOffset))
             {
                 if (pocoType == typeof(DateTime))
@@ -223,7 +260,7 @@ namespace Cassandra.Mapping.TypeConversion
             return new List<T>(itemsDatabase);
         }
         // ReSharper restore UnusedMember.Local
-        
+
         /// <summary>
         /// Gets any user defined conversion functions that can convert a value of type <typeparamref name="TDatabase"/> (coming from Cassandra) to a
         /// type of <typeparamref name="TPoco"/> (a field or property on a POCO).  Return null if no conversion Func is available.
@@ -257,7 +294,7 @@ namespace Cassandra.Mapping.TypeConversion
             {
                 throw new ArgumentException("The provided method must be static.", "method");
             }
-            var delegateType = Expression.GetFuncType(method.GetParameters().Select(p => p.ParameterType).ToArray());
+            var delegateType = Expression.GetFuncType(method.GetParameters().Select(p => p.ParameterType).Concat(new [] { method.ReturnType }).ToArray());
             return Delegate.CreateDelegate(delegateType, null, method);
         }
     }

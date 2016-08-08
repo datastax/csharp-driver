@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using Cassandra.Mapping.Utils;
@@ -250,6 +251,14 @@ namespace Cassandra.Mapping.Statements
             return typeName;
         }
 
+        private static string GetTypeString(Serializer serializer, Type netType)
+        {
+            IColumnInfo typeInfo;
+            var typeCode = serializer.GetCqlType(netType, out typeInfo);
+            var typeName = GetTypeString(null, typeCode, typeInfo);
+            return typeName;
+        }
+
         /// <summary>
         /// Gets the CQL queries involved in a table creation (CREATE TABLE, CREATE INDEX)
         /// </summary>
@@ -338,6 +347,36 @@ namespace Cassandra.Mapping.Statements
             return commands;
         }
 
+        /// <summary>
+        /// Gets the CQL query involved in an UDT creation (CREATE TYPE)
+        /// </summary>
+        public static string GetCreateUserDefinedType(Serializer serializer, Type netType, BindingFlags propertyFlags, string typeName, bool ifNotExists)
+        {
+            if (netType == null)
+            {
+                throw new ArgumentNullException("netType");
+            }
+
+            var createType = new StringBuilder("CREATE TYPE " + (ifNotExists ? "IF NOT EXISTS " : ""));
+
+            createType.Append(typeName);
+            createType.Append(" (");
+            foreach (var propertyInfo in netType.GetProperties(propertyFlags))
+            {
+                var propertyName = propertyInfo.Name;
+                createType
+                    .Append(propertyName)
+                    .Append(" ");
+                var propertyType = GetTypeString(serializer, propertyInfo.PropertyType);
+                createType
+                    .Append(propertyType);
+                createType
+                    .Append(", ");
+            }
+            createType.Append(")");
+            return createType.ToString();
+        }
+
         private static string GetTypeString(PocoColumn column, ColumnTypeCode typeCode, IColumnInfo typeInfo)
         {
             if (typeInfo == null)
@@ -388,7 +427,7 @@ namespace Cassandra.Mapping.Statements
             {
                 throw new NotSupportedException(string.Format("Type {0} is not supported", typeCode));
             }
-            return WrapFrozen(column != null && column.IsFrozen, typeName);
+            return WrapFrozen((column != null && column.IsFrozen) || (column == null && typeInfo is UdtColumnInfo), typeName);
         }
 
         private static string WrapFrozen(bool condition, string typeName)

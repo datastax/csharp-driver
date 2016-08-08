@@ -240,6 +240,13 @@ namespace Cassandra.Serialization
                     return ColumnTypeCode.Tuple;
                 }
             }
+            //Store enum as text by default (used for the CQL query to create UDT)
+            //Don't know if it belongs here, needs to be refactored ?
+            if (type.IsEnum)
+            {
+                return ColumnTypeCode.Text;
+            }
+
             //Determine if its a Udt type
             var udtMap = _udtSerializer.GetUdtMap(type);
             if (udtMap != null)
@@ -261,6 +268,8 @@ namespace Cassandra.Serialization
             _primitiveSerializers.Add(typeof(TimeUuid), TypeSerializer.PrimitiveTimeUuidSerializer);
             //Allow DateTime as timestamp
             _primitiveSerializers.Add(typeof(DateTime), TypeSerializer.PrimitiveDateTimeSerializer);
+            //Allow uint as long
+            _primitiveSerializers.Add(typeof(uint), TypeSerializer.PrimitiveLongSerializer);
         }
 
         private void InitDefaultTypes()

@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+﻿using Cassandra.Mapping.TypeConversion;
 ﻿using Cassandra.Serialization;
 
 namespace Cassandra
@@ -83,7 +84,9 @@ namespace Cassandra
         protected readonly Dictionary<PropertyInfo, string> _propertyToFieldName;
         // ReSharper enable InconsistentNaming
         private Serializer _serializer;
-        protected const BindingFlags PropertyFlags = BindingFlags.FlattenHierarchy | BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
+        public const BindingFlags PropertyFlags = BindingFlags.FlattenHierarchy | BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
+
+        public TypeConverter TypeConverter { get; private set; }
 
         protected internal Type NetType { get; protected set; }
 
@@ -105,6 +108,7 @@ namespace Cassandra
 
             _fieldNameToProperty = new Dictionary<string, PropertyInfo>();
             _propertyToFieldName = new Dictionary<PropertyInfo, string>();
+            TypeConverter = new DefaultTypeConverter();
         }
 
         internal void SetSerializer(Serializer serializer)
@@ -188,12 +192,6 @@ namespace Cassandra
                     //No mapping defined
                     continue;
                 }
-                //Check if its assignable to and from
-                var fieldTargetType = _serializer.GetClrType(field.TypeCode, field.TypeInfo);
-                if (!prop.PropertyType.IsAssignableFrom(fieldTargetType))
-                {
-                    throw new InvalidTypeException(string.Format("{0} type {1} is not assignable to {2}", field.Name, fieldTargetType.Name, prop.PropertyType.Name));
-                }
             }
             //Check that there isn't a map to a non existent field
             foreach (var fieldName in _fieldNameToProperty.Keys)
@@ -276,7 +274,7 @@ namespace Cassandra
                 {
                     continue;
                 }
-                prop.SetValue(obj, values[i], null);
+                prop.SetValue(obj, TypeConverter.ConvertDbValue(_serializer.GetClrType(field.TypeCode, field.TypeInfo), prop.PropertyType, values[i]), null);
             }
             return obj;
         }

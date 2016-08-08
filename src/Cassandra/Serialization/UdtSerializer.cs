@@ -107,7 +107,7 @@ namespace Cassandra.Serialization
                 var prop = map.GetPropertyForUdtField(field.Name);
                 if (prop != null)
                 {
-                    fieldValue = prop.GetValue(value, null);
+                    fieldValue = map.TypeConverter.ConvertObjectValue(prop.PropertyType, GetClrType(field.TypeCode, field.TypeInfo), prop.GetValue(value, null));
                 }
                 var itemBuffer = SerializeChild(fieldValue);
                 bufferList.Add(itemBuffer);
