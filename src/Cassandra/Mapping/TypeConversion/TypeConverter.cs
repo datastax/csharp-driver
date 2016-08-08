@@ -86,6 +86,34 @@ namespace Cassandra.Mapping.TypeConversion
         }
 
         /// <summary>
+        /// Converts a UDT field value (POCO) to to a destination type value for storage in C*.
+        /// </summary>
+        internal object ConvertToDbFromUdtFieldValue(Type valueType, Type dbType, object value)
+        {
+            var converter = GetToDbConverter(valueType, dbType);
+            if (converter == null)
+            {
+                throw new InvalidTypeException(string.Format("No converter is available from Type {0} is not convertible to type {1}", valueType, dbType));
+            }
+
+            return converter.DynamicInvoke(value);
+        }
+
+        /// <summary>
+        /// Converts a source type value from the database to a destination type value on a POCO.
+        /// </summary>
+        internal object ConvertToUdtFieldFromDbValue(Type dbType, Type valueType, object value)
+        {
+            var converter = GetFromDbConverter(dbType, valueType);
+            if (converter == null)
+            {
+                throw new InvalidTypeException(string.Format("No converter is available from Type {0} is not convertible to type {1}", dbType, valueType));
+            }
+
+            return converter.DynamicInvoke(value);
+        }
+
+        /// <summary>
         /// Gets a Function that can convert a source type value from the database to a destination type value on a POCO.
         /// </summary>
         internal Delegate GetFromDbConverter(Type dbType, Type pocoType)
@@ -164,6 +192,7 @@ namespace Cassandra.Mapping.TypeConversion
                     return enumMapper;
                 }
             }
+
             if (dbType == typeof(DateTimeOffset))
             {
                 if (pocoType == typeof(DateTime))
