@@ -56,9 +56,10 @@ namespace Cassandra.Data.Linq
             return this;
         }
 
-        public new Task<TEntity> ExecuteAsync()
+        public new async Task<TEntity> ExecuteAsync()
         {
-            return base.ExecuteAsync().Continue(t => t.Result.FirstOrDefault());
+            var rs = await base.ExecuteAsync().ConfigureAwait(false);
+            return rs.FirstOrDefault();
         }
 
         public new IAsyncResult BeginExecute(AsyncCallback callback, object state)

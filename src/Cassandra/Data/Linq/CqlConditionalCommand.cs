@@ -35,22 +35,15 @@ namespace Cassandra.Data.Linq
         /// <summary>
         /// Asynchronously executes a conditional query and returns information whether it was applied.
         /// </summary>
-        public new Task<AppliedInfo<TEntity>> ExecuteAsync()
+        public new async Task<AppliedInfo<TEntity>> ExecuteAsync()
         {
             object[] values;
             var cql = GetCql(out values);
             var session = GetTable().GetSession();
-            return StatementFactory
-                .GetStatementAsync(session, Cql.New(cql, values))
-                .Continue(t1 =>
-                {
-                    var stmt = t1.Result;
-                    this.CopyQueryPropertiesTo(stmt);
-                    return session
-                        .ExecuteAsync(stmt)
-                        .Continue(t => AppliedInfo<TEntity>.FromRowSet(_mapperFactory, cql, t.Result));
-                })
-                .Unwrap();
+            var stmt = await StatementFactory.GetStatementAsync(session, Cql.New(cql, values)).ConfigureAwait(false);
+            this.CopyQueryPropertiesTo(stmt);
+            var rs = await session.ExecuteAsync(stmt).ConfigureAwait(false);
+            return AppliedInfo<TEntity>.FromRowSet(_mapperFactory, cql, rs);
         }
 
         /// <summary>

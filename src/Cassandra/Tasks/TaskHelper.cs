@@ -193,20 +193,6 @@ namespace Cassandra.Tasks
         }
 
         /// <summary>
-        /// Smart ContinueWith
-        /// </summary>
-        public static Task<TOut> Continue<TIn, TOut>(this Task<TIn> task, Func<Task<TIn>, TOut> next)
-        {
-            if (!task.IsCompleted)
-            {
-                //Do an actual continuation
-                return task.ContinueWith(innerTask => DoNext(innerTask, next), TaskContinuationOptions.ExecuteSynchronously).Unwrap();
-            }
-            //Use the task result to build the task
-            return DoNext(task, next);
-        }
-
-        /// <summary>
         /// Smart ContinueWith that executes the sync delegate once the initial task is completed and returns 
         /// a Task of the result of sync delegate while propagating exceptions
         /// </summary>

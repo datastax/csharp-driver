@@ -89,10 +89,10 @@ namespace Cassandra.IntegrationTests.Core
                     semaphore.Wait();
                     tasks.Add(session
                         .ExecuteAsync(new SimpleStatement(QueryLocal).SetIdempotence(true))
-                        .Continue(t =>
+                        .ContinueSync(rs =>
                         {
                             semaphore.Release();
-                            return t.Result.Info.QueriedHost.Address;
+                            return rs.Info.QueriedHost.Address;
                         }));
                 }
                 Task.WaitAll(tasks.Select(t => (Task)t).ToArray());
