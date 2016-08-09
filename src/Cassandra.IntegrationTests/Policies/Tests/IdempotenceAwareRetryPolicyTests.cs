@@ -57,15 +57,15 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                 catch (WriteTimeoutException)
                 {
                     //throws a WriteTimeoutException, as its set as an idempotent query, it will call the childPolicy
-                    Assert.AreEqual(0, Thread.VolatileRead(ref testPolicy.ReadTimeoutCounter));
-                    Assert.AreEqual(1, Thread.VolatileRead(ref testPolicy.WriteTimeoutCounter));
-                    Assert.AreEqual(0, Thread.VolatileRead(ref testPolicy.UnavailableCounter));
+                    Assert.AreEqual(0L, Interlocked.Read(ref testPolicy.ReadTimeoutCounter));
+                    Assert.AreEqual(1L, Interlocked.Read(ref testPolicy.WriteTimeoutCounter));
+                    Assert.AreEqual(0L, Interlocked.Read(ref testPolicy.UnavailableCounter));
                 }
                 catch (UnavailableException)
                 {
-                    Assert.AreEqual(0, Thread.VolatileRead(ref testPolicy.ReadTimeoutCounter));
-                    Assert.AreEqual(0, Thread.VolatileRead(ref testPolicy.WriteTimeoutCounter));
-                    Assert.AreEqual(1, Thread.VolatileRead(ref testPolicy.UnavailableCounter));
+                    Assert.AreEqual(0L, Interlocked.Read(ref testPolicy.ReadTimeoutCounter));
+                    Assert.AreEqual(0L, Interlocked.Read(ref testPolicy.WriteTimeoutCounter));
+                    Assert.AreEqual(1L, Interlocked.Read(ref testPolicy.UnavailableCounter));
                 }
                 catch (Exception e)
                 {
@@ -87,15 +87,15 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                 catch (WriteTimeoutException)
                 {
                     //throws a WriteTimeoutException, as its set as NOT an idempotent query, it will not call the childPolicy
-                    Assert.AreEqual(0, Thread.VolatileRead(ref testPolicy.ReadTimeoutCounter));
-                    Assert.AreEqual(0, Thread.VolatileRead(ref testPolicy.WriteTimeoutCounter));
-                    Assert.AreEqual(0, Thread.VolatileRead(ref testPolicy.UnavailableCounter));
+                    Assert.AreEqual(0L, Interlocked.Read(ref testPolicy.ReadTimeoutCounter));
+                    Assert.AreEqual(0L, Interlocked.Read(ref testPolicy.WriteTimeoutCounter));
+                    Assert.AreEqual(0L, Interlocked.Read(ref testPolicy.UnavailableCounter));
                 }
                 catch (UnavailableException)
                 {
-                    Assert.AreEqual(0, Thread.VolatileRead(ref testPolicy.ReadTimeoutCounter));
-                    Assert.AreEqual(0, Thread.VolatileRead(ref testPolicy.WriteTimeoutCounter));
-                    Assert.AreEqual(1, Thread.VolatileRead(ref testPolicy.UnavailableCounter));
+                    Assert.AreEqual(0L, Interlocked.Read(ref testPolicy.ReadTimeoutCounter));
+                    Assert.AreEqual(0L, Interlocked.Read(ref testPolicy.WriteTimeoutCounter));
+                    Assert.AreEqual(1L, Interlocked.Read(ref testPolicy.UnavailableCounter));
                 }
                 catch (Exception e)
                 {
@@ -108,9 +108,9 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         
         private class TestRetryPolicy : IRetryPolicy
         {
-            public int ReadTimeoutCounter;
-            public int WriteTimeoutCounter;
-            public int UnavailableCounter;
+            public long ReadTimeoutCounter;
+            public long WriteTimeoutCounter;
+            public long UnavailableCounter;
 
             public RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
             {

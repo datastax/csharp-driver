@@ -324,7 +324,7 @@ namespace Cassandra.Tests
             }
         }
 
-        [Test, Timeout(2000)]
+        [Test, TestTimeout(2000)]
         public void TokenMap_Build_NetworkTopology_Quickly_Leave_When_Dc_Not_Found()
         {
             const string strategy = ReplicationStrategies.NetworkTopologyStrategy;

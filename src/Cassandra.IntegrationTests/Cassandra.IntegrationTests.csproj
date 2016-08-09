@@ -181,7 +181,6 @@
     <Compile Include="Linq\Structures\Tweet.cs" />
     <Compile Include="Core\ParameterizedStatementsTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TestTimeoutAttribute.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config">

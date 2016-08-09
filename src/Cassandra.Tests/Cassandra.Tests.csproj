@@ -132,6 +132,7 @@
     <Compile Include="StatementTests.cs" />
     <Compile Include="TaskTests.cs" />
     <Compile Include="TestHelper.cs" />
+    <Compile Include="TestTimeoutAttribute.cs" />
     <Compile Include="ThreadPerTaskScheduler.cs" />
     <Compile Include="TimeoutTests.cs" />
     <Compile Include="TimeUuidTests.cs" />
