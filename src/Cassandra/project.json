@@ -6,7 +6,7 @@
     "publicSign": true
   },
   "frameworks": {
-    "net452": {
+    "net45": {
       "frameworkAssemblies": {
         "System.Data": "",
         "System.Numerics": "",
