@@ -91,9 +91,9 @@ namespace Cassandra.Tests
         public void AddContactPointsThrowsWhenNameCouldNotBeResolved()
         {
             const string hostName = "not_existent_host_100003030";
-            var ex = Assert.Throws<SocketException>(() => Cluster.Builder()
-                                                  .AddContactPoint(hostName)
-                                                  .Build());
+            var ex = (SocketException) Assert.Throws(
+                Is.InstanceOf<SocketException>(), 
+                () => Cluster.Builder().AddContactPoint(hostName).Build());
             Assert.AreEqual(ex.SocketErrorCode, SocketError.HostNotFound);
         }
         
