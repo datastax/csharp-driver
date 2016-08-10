@@ -231,30 +231,6 @@ namespace Cassandra.Tests
         }
 
         /// <summary>
-        /// Tries to open a TCP connection 
-        /// </summary>
-        /// <returns>True if its able to connect</returns>
-        public static bool TryConnect(string address, int port = ProtocolOptions.DefaultPort)
-        {
-            var result = false;
-            using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
-            {
-                try
-                {
-                    socket.Connect(address, port);
-                    result = true;
-                    socket.Shutdown(SocketShutdown.Both);
-                }
-                // ReSharper disable once EmptyGeneralCatchClause
-                catch
-                {
-                    
-                }
-            }
-            return result;
-        }
-
-        /// <summary>
         /// Gets the path string to home (via HOME or USERPROFILE env variables)
         /// </summary>
         public static string GetHomePath()

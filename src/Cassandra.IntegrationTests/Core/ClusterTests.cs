@@ -115,7 +115,7 @@ namespace Cassandra.IntegrationTests.Core
                 Trace.TraceInformation("Node bootstrapped");
                 Thread.Sleep(10000);
                 var newNodeAddress = _testCluster.ClusterIpPrefix + 2;
-                Assert.True(TestHelper.TryConnect(newNodeAddress), "New node does not accept connections");
+                Assert.True(TestUtils.IsNodeReachable(IPAddress.Parse(newNodeAddress)));
                 //New node should be part of the metadata
                 Assert.AreEqual(2, cluster.AllHosts().Count);
                 for (var i = 0; i < 10; i++)
@@ -143,7 +143,7 @@ namespace Cassandra.IntegrationTests.Core
                 Trace.TraceInformation("Node decommissioned");
                 Thread.Sleep(10000);
                 var decommisionedNode = _testCluster.ClusterIpPrefix + 2;
-                Assert.False(TestHelper.TryConnect(decommisionedNode), "Removed node should not accept connections");
+                Assert.False(TestUtils.IsNodeReachable(IPAddress.Parse(decommisionedNode)));
                 //New node should be part of the metadata
                 Assert.AreEqual(1, cluster.AllHosts().Count);
                 var queried = false;

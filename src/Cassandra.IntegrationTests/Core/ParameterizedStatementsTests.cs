@@ -511,7 +511,7 @@ namespace Cassandra.IntegrationTests.Core
                         {
                             if ((long)objArr[y] == 0)
                             {
-                                Assert.True(current.ToString() == "1/1/1970 12:00:00 AM +00:00");
+                                Assert.AreEqual(((DateTimeOffset)current).Ticks, DateTimeOffset.Parse("1/1/1970 12:00:00 AM +00:00").Ticks);
                             }
                             else
                             {
