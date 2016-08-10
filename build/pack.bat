@@ -22,7 +22,7 @@ dotnet pack src\Cassandra -c Release
 
 
 :: Replace it back to "Cassandra"
-SET "Replacement=  "name": "CassandraCSharpDriver","
+SET "Replacement=  "name": "Cassandra","
 (FOR /f "tokens=1*delims=:" %%a IN ('findstr /n "^" "%file%"') DO (
     SET "Line=%%b"
     IF %%a equ %Line#ToSearch% SET "Line=%Replacement%"
