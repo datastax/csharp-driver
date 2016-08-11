@@ -3,6 +3,14 @@ $env:PYTHON="C:\Python27-x64"
 $env:PATH="$($env:PYTHON);$($env:PYTHON)\Scripts;$($env:JAVA_HOME)\bin;$($env:PATH)"
 $dep_dir="C:\Users\appveyor\deps"
 
+$computerSystem = Get-CimInstance CIM_ComputerSystem
+$computerOS = Get-CimInstance CIM_OperatingSystem
+$computerCPU = Get-CimInstance CIM_Processor
+
+Write-Host "System Information for: " $computerSystem.Name
+"CPU: " + $computerCPU.Name
+"RAM: " + "{0:N2}" -f ($computerSystem.TotalPhysicalMemory/1GB) + "GB"
+
 Write-Host "Install..."
 
 If (!(Test-Path $dep_dir)) {
