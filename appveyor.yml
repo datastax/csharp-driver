@@ -7,11 +7,7 @@ cache:
   - C:\Users\appveyor\.ccm\repository -> appveyor_install.ps1
   - C:\Users\appveyor\deps -> appveyor_install.ps1
   - C:\Users\appveyor\ccm -> appveyor_install.ps1
-os: Visual Studio 2015
-init:
-- ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-on_finish:
-- ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+os: Previous Visual Studio 2015
 platform:
   - Any CPU
 configuration:
@@ -19,7 +15,7 @@ configuration:
 environment:
   NUNIT_PATH: nunit-console
   matrix:
-    - CASSANDRA_VERSION: 3.6
+    - CASSANDRA_VERSION: 3.7
 
     - CASSANDRA_VERSION: 2.2.5
 
