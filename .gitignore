@@ -33,3 +33,4 @@ _ReSharper*/
 src/samples/packages
 src/other/**/packages
 src/packages/*/
+/docs
