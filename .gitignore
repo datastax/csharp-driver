@@ -32,3 +32,4 @@ _ReSharper*/
 src/packages/*/
 doc/api-docs/*
 build/packages/*
+/docs
