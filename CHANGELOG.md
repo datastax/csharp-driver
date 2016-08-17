@@ -1,5 +1,18 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.1.0-beta1
+
+2016-08-17
+
+### Notable Changes
+
+- Added .NET Core support and dropped support for .NET Framework 4.0 [#240](https://github.com/datastax/csharp-driver/pull/240)
+
+### Features
+
+- [CSHARP-384] - .NET Core Support
+- [CSHARP-426] - Drop support for .NET Framework 4.0
+
 ## 3.0.8
 
 2016-08-04
