@@ -25,6 +25,7 @@ links:
     href:  irc://irc.freenode.net/datastax-drivers
   - title: Nuget
     href:  https://www.nuget.org/packages/Dse
+api_docs: http://docs.datastax.com/en/latest-dse-csharp-driver-api
 versions:
   - name: v1.0
     ref: HEAD
