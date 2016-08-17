@@ -1,5 +1,5 @@
-title:    C# DataStax Enterprise Driver
-summary:  C# driver for DataStax Enterprise
+title:    "DataStax Enterprise C# Driver"
+summary:  "A C# driver built for DataStax Enterprise"
 theme:    datastax
 sections:
   - title:    Features
