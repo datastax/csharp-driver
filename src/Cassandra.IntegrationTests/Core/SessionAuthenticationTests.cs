@@ -35,8 +35,8 @@ namespace Cassandra.IntegrationTests.Core
         // Test cluster object to be shared by tests in this class only
         private ITestCluster _testClusterForAuthTesting;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
             _testClusterForAuthTesting = GetTestCcmClusterForAuthTests();
@@ -44,7 +44,7 @@ namespace Cassandra.IntegrationTests.Core
             Thread.Sleep(10000);
         }
 
-        [TestFixtureTearDown]
+        [OneTimeTearDown]
         public void TestFixtureTearDown()
         {
             _testClusterForAuthTesting.Remove();

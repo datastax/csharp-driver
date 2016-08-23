@@ -57,7 +57,7 @@ namespace Cassandra.IntegrationTests.Core
             _testCluster = null;
         }
 
-        [TestFixtureTearDown]
+        [OneTimeTearDown]
         public void TestFixtureTearDown()
         {
             foreach (var c in _clusters)
@@ -66,7 +66,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test, Timeout(120000)]
+        [Test, TestTimeout(120000)]
         public void SpeculativeExecution_Pause_Using_All_Stream_Ids()
         {
             var maxProtocolVersion = Cluster.MaxProtocolVersion;
@@ -89,10 +89,10 @@ namespace Cassandra.IntegrationTests.Core
                     semaphore.Wait();
                     tasks.Add(session
                         .ExecuteAsync(new SimpleStatement(QueryLocal).SetIdempotence(true))
-                        .Continue(t =>
+                        .ContinueSync(rs =>
                         {
                             semaphore.Release();
-                            return t.Result.Info.QueriedHost.Address;
+                            return rs.Info.QueriedHost.Address;
                         }));
                 }
                 Task.WaitAll(tasks.Select(t => (Task)t).ToArray());
@@ -110,7 +110,7 @@ namespace Cassandra.IntegrationTests.Core
         /// <summary>
         /// Tries to simulate GC pauses between 2 to 4 seconds
         /// </summary>
-        [Test, Timeout(180000)]
+        [Test, TestTimeout(180000)]
         public void SpeculativeExecution_With_Multiple_Nodes_Pausing()
         {
             _testCluster = TestClusterManager.GetNonShareableTestCluster(3, 1, true, false);

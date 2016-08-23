@@ -16,14 +16,11 @@
 
 using System;
 using System.Collections;
-using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
 using Cassandra.IntegrationTests.TestClusterManagement;
-using CommandLine;
-using CommandLine.Text;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.TestBase
@@ -72,75 +69,26 @@ namespace Cassandra.IntegrationTests.TestBase
             }
             return protocolVersion;
         }
-
-        [Option("use-ctool",
-            HelpText = "Pass in 'true' for this value to use ctool instead of ccm (default)", DefaultValue = false, Required = true)]
+        
         public bool UseCtool { get; set; }
-
-        [Option('i', "ip-prefix",
-            HelpText = "CCM Ip prefix", DefaultValue = DefaultLocalIpPrefix)]
+        
         public string DefaultIpPrefix { get; set; }
-
-        [Option("logger",
-            HelpText = "Use Logger", DefaultValue = false)]
+        
         public bool UseLogger { get; set; }
-
-        [Option("log-level",
-            HelpText = "Log Level", DefaultValue = "Trace")]
+        
         public string LogLevel { get; set; }
-
-        [Option('h', "ssh-host",
-            HelpText = "CCM SSH host", DefaultValue = DefaultInitialContactPoint)]
+        
         public string SSHHost { get; set; }
-
-        [Option('t', "ssh-port",
-            HelpText = "CCM SSH port", DefaultValue = 22)]
+        
         public int SSHPort { get; set; }
-
-        [Option('u', "ssh-user", Required = true,
-            HelpText = "CCM SSH user")]
+        
         public string SSHUser { get; set; }
-
-        [Option('p', "ssh-password", Required = true,
-            HelpText = "CCM SSH password")]
+        
         public string SSHPassword { get; set; }
-
-        //test configuration
-        [Option("compression",
-            HelpText = "Use Compression", DefaultValue = false)]
+        
         public bool UseCompression { get; set; }
-
-        [Option("nobuffering",
-            HelpText = "No Buffering", DefaultValue = false)]
+        
         public bool NoUseBuffering { get; set; }
-
-        public TestGlobals()
-        {
-            if (ConfigurationManager.AppSettings.Count > 0)
-            {
-                DefaultIpPrefix = ConfigurationManager.AppSettings["DefaultIpPrefix"] ?? this.DefaultIpPrefix;
-                LogLevel = ConfigurationManager.AppSettings["LogLevel"] ?? this.LogLevel;
-
-                if (ConfigurationManager.AppSettings["NoUseBuffering"] != null)
-                    this.NoUseBuffering = Convert.ToBoolean(ConfigurationManager.AppSettings["NoUseBuffering"]);
-
-                SSHHost = ConfigurationManager.AppSettings["SSHHost"] ?? this.SSHHost;
-                SSHPassword = ConfigurationManager.AppSettings["SSHPassword"] ?? this.SSHPassword;
-
-                if (ConfigurationManager.AppSettings["SSHPort"] != null)
-                    SSHPort = Convert.ToInt32(ConfigurationManager.AppSettings["SSHPort"]);
-
-                SSHUser = ConfigurationManager.AppSettings["SSHUser"] ?? this.SSHUser;
-            }
-
-        }
-
-        [HelpOption]
-        public string GetUsage()
-        {
-            return HelpText.AutoBuild(this,
-                                      (HelpText current) => HelpText.DefaultParsingErrorsHandler(this, current));
-        }
 
         public TestClusterManager TestClusterManager
         {
@@ -178,10 +126,11 @@ namespace Cassandra.IntegrationTests.TestBase
         // If any test is designed for another test group, mark as ignored
         private void VerifyLocalCcmOnly()
         {
-            if (((ArrayList) TestContext.CurrentContext.Test.Properties["_CATEGORIES"]).Contains(TestCategories.CcmOnly) && UseCtool)
-            {
-                Assert.Ignore("Test Ignored: Requires CCM and tests are currently running using CTool");
-            }
+            //Only Ccm for now
+//            if (((ArrayList) TestContext.CurrentContext.Test.Properties["_CATEGORIES"]).Contains(TestCategories.CcmOnly) && UseCtool)
+//            {
+//                Assert.Ignore("Test Ignored: Requires CCM and tests are currently running using CTool");
+//            }
         }
 
         // If any test is designed for another C* version, mark it as ignored
@@ -189,8 +138,9 @@ namespace Cassandra.IntegrationTests.TestBase
         {
             var test = TestContext.CurrentContext.Test;
             var methodFullName = TestContext.CurrentContext.Test.FullName;
-            var typeName = methodFullName.Substring(0, methodFullName.Length - test.Name.Length - 1);
-            var type = Assembly.GetExecutingAssembly().GetType(typeName);
+            //var typeName = methodFullName.Substring(0, methodFullName.Length - test.Name.Length - 1);
+            var typeName = TestContext.CurrentContext.Test.ClassName;
+            var type = Type.GetType(typeName);
             if (type == null)
             {
                 return;
@@ -203,10 +153,8 @@ namespace Cassandra.IntegrationTests.TestBase
                 testName = testName.Substring(0, testName.IndexOf('('));
             }
             var methodAttr = type.GetMethod(testName)
-                .GetCustomAttributes(true)
-                .Select(a => (Attribute)a)
-                .FirstOrDefault((a) => a is TestCassandraVersion);
-            var attr = Attribute.GetCustomAttributes(type).FirstOrDefault((a) => a is TestCassandraVersion);
+                .GetCustomAttribute<TestCassandraVersion>(true);
+            var attr = type.GetTypeInfo().GetCustomAttribute<TestCassandraVersion>();
             if (attr == null && methodAttr == null)
             {
                 //It does not contain the attribute, move on.
@@ -216,7 +164,7 @@ namespace Cassandra.IntegrationTests.TestBase
             {
                 attr = methodAttr;
             }
-            var versionAttr = (TestCassandraVersion)attr;
+            var versionAttr = attr;
             var executingVersion = CassandraVersion;
             if (!VersionMatch(versionAttr, executingVersion))
                 Assert.Ignore(String.Format("Test Ignored: Test suitable to be run against Cassandra {0}.{1}.{2} {3}", versionAttr.Major, versionAttr.Minor, versionAttr.Build, versionAttr.Comparison >= 0 ? "or above" : "or below"));

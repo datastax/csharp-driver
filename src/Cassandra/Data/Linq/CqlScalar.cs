@@ -63,23 +63,18 @@ namespace Cassandra.Data.Linq
             return GetCql(out _);
         }
 
-        public new Task<TEntity> ExecuteAsync()
+        public new async Task<TEntity> ExecuteAsync()
         {
             object[] values;
             string cql = GetCql(out values);
-
-            var adaptation = InternalExecuteAsync(cql, values).Continue(t =>
+            var rs = await InternalExecuteAsync(cql, values).ConfigureAwait(false);
+            var result = default(TEntity);
+            var row = rs.FirstOrDefault();
+            if (row != null)
             {
-                var rs = t.Result;
-                var result = default(TEntity);
-                var row = rs.FirstOrDefault();
-                if (row != null)
-                {
-                    result = (TEntity)row[0];
-                }
-                return result;
-            });
-            return adaptation;
+                result = (TEntity)row[0];
+            }
+            return result;
         }
 
         public new IAsyncResult BeginExecute(AsyncCallback callback, object state)

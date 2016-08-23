@@ -91,7 +91,7 @@ namespace Cassandra.Mapping
         /// </summary>
         internal static IEnumerable<FieldInfo> GetMappableFields(Type t)
         {
-            return t.GetFields(PublicInstanceBindingFlags).Where(field => field.IsInitOnly == false);
+            return t.GetTypeInfo().GetFields(PublicInstanceBindingFlags).Where(field => field.IsInitOnly == false);
         }
 
         /// <summary>
@@ -99,7 +99,7 @@ namespace Cassandra.Mapping
         /// </summary>
         private static IEnumerable<PropertyInfo> GetMappableProperties(Type t)
         {
-            return t.GetProperties(PublicInstanceBindingFlags).Where(p => p.CanWrite);
+            return t.GetTypeInfo().GetProperties(PublicInstanceBindingFlags).Where(p => p.CanWrite);
         }
     }
 }

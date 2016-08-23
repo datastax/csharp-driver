@@ -17,7 +17,7 @@ namespace Cassandra.IntegrationTests.Core
         private const string Keyspace = "ks_client_warnings";
         private const string Table = Keyspace + ".tbl1";
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void SetupFixture()
         {
             if (CassandraVersion < Version.Parse("2.2.0"))

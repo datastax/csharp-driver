@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 using System;
 using System.Data;
 using System.Data.Common;
@@ -122,6 +123,7 @@ namespace Cassandra.Data
         /// </returns>
         public override string SourceColumn { get; set; }
 
+#if !NETCORE
         /// <summary>
         /// Gets or sets the <see cref="T:System.Data.DataRowVersion" />
         /// to use when loading <see cref="P:System.Data.IDataParameter.Value" />.
@@ -131,6 +133,7 @@ namespace Cassandra.Data
         /// The default is Current.
         /// </returns>
         public override DataRowVersion SourceVersion { get; set; }
+#endif
 
         /// <summary>
         /// Gets or sets the value of the parameter. 

@@ -16,6 +16,7 @@
 
 using System;
 using System.Numerics;
+using System.Reflection;
 
 namespace Cassandra.IntegrationTests.TestBase
 {
@@ -35,7 +36,7 @@ namespace Cassandra.IntegrationTests.TestBase
         internal static object RandomVal(Type tp)
         {
             if (tp != null)
-                return Instance.GetType().GetMethod("Next" + tp.Name).Invoke(Instance, new object[] {});
+                return Instance.GetType().GetTypeInfo().GetMethod("Next" + tp.Name).Invoke(Instance, new object[] {});
             return "";
         }
 

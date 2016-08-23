@@ -32,9 +32,9 @@ namespace Cassandra.IntegrationTests.Core
     {
         private const string AllTypesTableName = "all_types_table_collections";
 
-        protected override void TestFixtureSetUp()
+        public override void OneTimeSetUp()
         {
-            base.TestFixtureSetUp();
+            base.OneTimeSetUp();
             Session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName));
         }
 

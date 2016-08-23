@@ -29,9 +29,9 @@ namespace Cassandra.IntegrationTests.Core
     {
         private const string TableName = "users_tuples";
 
-        protected override void TestFixtureSetUp()
+        public override void OneTimeSetUp()
         {
-            base.TestFixtureSetUp();
+            base.OneTimeSetUp();
             if (CassandraVersion < new Version(2, 1))
             {
                 return;

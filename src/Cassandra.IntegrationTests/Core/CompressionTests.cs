@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿
+#if !NETCORE
+using System;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Tests;
 using NUnit.Framework;
 
@@ -13,7 +11,7 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short")]
     public class CompressionTests : SharedClusterTest
     {
-        [Test, Timeout(120000)]
+        [Test, TestTimeout(120000)]
         public void Lz4_Compression_Under_Heavy_Concurrency_Test()
         {
             using (var cluster = Cluster.Builder()
@@ -57,3 +55,4 @@ namespace Cassandra.IntegrationTests.Core
         }
     }
 }
+#endif

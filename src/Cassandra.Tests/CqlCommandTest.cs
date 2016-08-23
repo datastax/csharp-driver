@@ -78,12 +78,11 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        [ExpectedException(typeof(InvalidOperationException))]
         public void TestCqlCommand_Prepare_Without_Connection()
         {
             var target = new CqlCommand();
             target.Parameters.Add("p1", "1");
-            target.Prepare();
+            Assert.Throws<InvalidOperationException>(() => target.Prepare());
         }
     }
 

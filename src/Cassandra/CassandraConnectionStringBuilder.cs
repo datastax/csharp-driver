@@ -57,11 +57,11 @@ namespace Cassandra
             set { base["Password"] = value; }
         }
 
-        public CassandraConnectionStringBuilder() : base(false)
+        public CassandraConnectionStringBuilder()
         {
         }
 
-        public CassandraConnectionStringBuilder(string connectionString) : base(false)
+        public CassandraConnectionStringBuilder(string connectionString)
         {
             ConnectionString = connectionString;
         }

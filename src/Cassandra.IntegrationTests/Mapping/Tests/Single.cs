@@ -20,9 +20,9 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         private Mapper _mapper;
         private string _selectAllDefaultCql = "SELECT * from movie";
 
-        protected override void TestFixtureSetUp()
+        public override void OneTimeSetUp()
         {
-            base.TestFixtureSetUp();
+            base.OneTimeSetUp();
             _session = Session;
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);

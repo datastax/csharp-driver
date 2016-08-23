@@ -81,9 +81,8 @@ namespace Cassandra.Data.Linq
             var session = GetTable().GetSession();
             return StatementFactory
                 .GetStatementAsync(session, Cql.New(cqlQuery, values))
-                .Continue(t1 =>
+                .ContinueSync(stmt =>
                 {
-                    var stmt = t1.Result;
                     this.CopyQueryPropertiesTo(stmt);
                     return session.ExecuteAsync(stmt);
                 }).Unwrap();
@@ -101,13 +100,14 @@ namespace Cassandra.Data.Linq
         /// <summary>
         /// Evaluates the Linq query, executes asynchronously the cql statement and adapts the results.
         /// </summary>
-        public Task<IEnumerable<TEntity>> ExecuteAsync()
+        public async Task<IEnumerable<TEntity>> ExecuteAsync()
         {
             var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
             visitor.Evaluate(Expression);
             object[] values;
             var cql = visitor.GetSelect(out values);
-            return InternalExecuteAsync(cql, values).Continue(t => AdaptResult(cql, t.Result));
+            var rs = await InternalExecuteAsync(cql, values).ConfigureAwait(false);
+            return AdaptResult(cql, rs);
         }
 
         /// <summary>

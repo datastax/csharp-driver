@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -47,13 +46,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// </summary>
         public static string IpPrefix
         {
-            get { return ConfigurationManager.AppSettings["DefaultIpPrefix"] ?? "127.0.0."; }
+            get { return "127.0.0."; }
         }
 
         /// <summary>
         /// Loads the cassandra version from environment variables and configuration
         /// </summary>
-        /// <exception cref="ConfigurationErrorsException"></exception>
         private static void LoadCassandraVersion()
         {
             if (_cassandraVersionText != null)
@@ -63,11 +61,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             var versionText = Environment.GetEnvironmentVariable("CASSANDRA_VERSION");
             if (versionText == null)
             {
-                versionText = ConfigurationManager.AppSettings["CassandraVersion"];
-            }
-            if (String.IsNullOrEmpty(versionText))
-            {
-                throw new ConfigurationErrorsException("You must specify the cassandra version either via CASSANDRA_VERSION environment variable or by 'CassandraVersion' app setting");
+                versionText = "3.0.7";
             }
             _cassandraVersionText = versionText;
             //in case there is a version label like rc1 / beta1

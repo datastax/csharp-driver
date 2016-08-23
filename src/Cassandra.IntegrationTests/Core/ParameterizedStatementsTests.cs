@@ -30,9 +30,9 @@ namespace Cassandra.IntegrationTests.Core
     {
         private const string AllTypesTableName = "all_types_table_queryparams";
 
-        protected override void TestFixtureSetUp()
+        public override void OneTimeSetUp()
         {
-            base.TestFixtureSetUp();
+            base.OneTimeSetUp();
             Session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName));
         }
 
@@ -299,7 +299,6 @@ namespace Cassandra.IntegrationTests.Core
         /// </summary>
         [Test(Description = "Testing missing parameter in dictionary for named parameters")]
         [TestCassandraVersion(2, 1)]
-        [ExpectedException(typeof(InvalidQueryException))]
         public void SimpleStatement_Dictionary_Parameters_CaseInsensitivity_MissingParam()
         {
             var insertQuery = string.Format("INSERT INTO {0} (id, \"text_sample\", int_sample) VALUES (:my_ID, :my_TEXT, :MY_INT)", AllTypesTableName);
@@ -309,7 +308,8 @@ namespace Cassandra.IntegrationTests.Core
                 {"my_ID", id},
                 {"MY_text", "Right Thoughts, Right Words, Right Action"}
             };
-            Session.Execute(new SimpleStatement(values, insertQuery));
+            Assert.Throws<InvalidQueryException>(() =>
+                Session.Execute(new SimpleStatement(values, insertQuery)));
         }
 
         /// <summary>

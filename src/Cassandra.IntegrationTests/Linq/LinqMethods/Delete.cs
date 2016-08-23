@@ -8,7 +8,6 @@ using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
 using NUnit.Framework;
-using Renci.SshNet.Messages.Authentication;
 
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {

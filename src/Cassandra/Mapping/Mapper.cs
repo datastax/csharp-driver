@@ -60,16 +60,11 @@ namespace Cassandra.Mapping
         /// <summary>
         /// Executes asynchronously and uses the delegate to adapt the RowSet into the return value.
         /// </summary>
-        private Task<TResult> ExecuteAsyncAndAdapt<TResult>(Cql cql, Func<Statement, RowSet, TResult> adaptation)
+        private async Task<TResult> ExecuteAsyncAndAdapt<TResult>(Cql cql, Func<Statement, RowSet, TResult> adaptation)
         {
-            return _statementFactory
-                .GetStatementAsync(_session, cql)
-                .Continue(t1 =>
-                    _session
-                    .ExecuteAsync(t1.Result)
-                    .Continue(t2 => adaptation(t1.Result, t2.Result)))
-                //From Task<Task<TResult>> to Task<TResult>
-                .Unwrap();
+            var stmt = await _statementFactory.GetStatementAsync(_session, cql).ConfigureAwait(false);
+            var rs = await _session.ExecuteAsync(stmt).ConfigureAwait(false);
+            return adaptation(stmt, rs);
         }
 
         public Task<IEnumerable<T>> FetchAsync<T>(CqlQueryOptions options = null)
@@ -298,17 +293,11 @@ namespace Cassandra.Mapping
             return ExecuteAsync(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
-        public Task ExecuteAsync(Cql cql)
+        public async Task ExecuteAsync(Cql cql)
         {
             // Execute the statement
-            return _statementFactory
-                .GetStatementAsync(_session, cql)
-                .Continue(t =>
-                {
-                    var statement = t.Result;
-                    return _session.ExecuteAsync(statement);
-                })
-                .Unwrap();
+            var statement = await _statementFactory.GetStatementAsync(_session, cql).ConfigureAwait(false);
+            await _session.ExecuteAsync(statement).ConfigureAwait(false);
         }
 
         public ICqlBatch CreateBatch()
@@ -327,18 +316,15 @@ namespace Cassandra.Mapping
             TaskHelper.WaitToComplete(ExecuteAsync(batch), _queryAbortTimeout);
         }
 
-        public Task ExecuteAsync(ICqlBatch batch)
+        public async Task ExecuteAsync(ICqlBatch batch)
         {
-            if (batch == null) throw new ArgumentNullException("batch");
-
-            return _statementFactory
-                .GetBatchStatementAsync(_session, batch.Statements, batch.BatchType)
-                .Continue(t =>
-                {
-                    var batchStatement = t.Result;
-                    return _session.ExecuteAsync(batchStatement);
-                })
-                .Unwrap();
+            if (batch == null)
+            {
+                throw new ArgumentNullException("batch");
+            }
+            var batchStatement = await _statementFactory
+                .GetBatchStatementAsync(_session, batch.Statements, batch.BatchType).ConfigureAwait(false);
+            await _session.ExecuteAsync(batchStatement).ConfigureAwait(false);
         }
 
         public TDatabase ConvertCqlArgument<TValue, TDatabase>(TValue value)
@@ -549,20 +535,17 @@ namespace Cassandra.Mapping
             TaskHelper.WaitToComplete(ExecuteAsync(cql), _queryAbortTimeout);
         }
 
-        public Task<AppliedInfo<T>> ExecuteConditionalAsync<T>(ICqlBatch batch)
+        public async Task<AppliedInfo<T>> ExecuteConditionalAsync<T>(ICqlBatch batch)
         {
             if (batch == null) throw new ArgumentNullException("batch");
-            return _statementFactory
+            var batchStatement =  await _statementFactory
                 .GetBatchStatementAsync(_session, batch.Statements, batch.BatchType)
-                .Continue(t1 =>
-                {
-                    //Use the concatenation of cql strings as hash for the mapper
-                    var cqlString = String.Join(";", batch.Statements.Select(s => s.Statement));
-                    var batchStatement = t1.Result;
-                    return _session.ExecuteAsync(batchStatement)
-                        .Continue(t2 => AppliedInfo<T>.FromRowSet(_mapperFactory, cqlString, t2.Result));
-                })
-                .Unwrap();
+                .ConfigureAwait(false);
+
+            //Use the concatenation of cql strings as hash for the mapper
+            var cqlString = string.Join(";", batch.Statements.Select(s => s.Statement));
+            var rs = await _session.ExecuteAsync(batchStatement).ConfigureAwait(false);
+            return AppliedInfo<T>.FromRowSet(_mapperFactory, cqlString, rs);
         }
 
         public AppliedInfo<T> ExecuteConditional<T>(ICqlBatch batch)

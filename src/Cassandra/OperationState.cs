@@ -89,10 +89,11 @@ namespace Cassandra
                 return callback;
             }
             //Operation has timed out
+            var spin = new SpinWait();
             while (!_timeoutCallbackSet)
             {
                 //Wait for the timeout callback to be set
-                Thread.SpinWait(10);
+                spin.SpinOnce();
             }
             callback = Interlocked.Exchange(ref _callback, Noop);
             return callback;
@@ -121,8 +122,12 @@ namespace Cassandra
                 return false;
             }
             //When the data is received, invoke on receive callback
-            var callback = Interlocked.Exchange(ref _callback, (_, __) => onReceive()); 
+            var callback = Interlocked.Exchange(ref _callback, (_, __) => onReceive());
+#if !NETCORE
             Thread.MemoryBarrier();
+#else
+            Interlocked.MemoryBarrier();
+#endif
             _timeoutCallbackSet = true;
             Task.Factory.StartNew(() => callback(ex, null), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
             return true;

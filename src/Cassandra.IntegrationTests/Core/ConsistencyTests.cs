@@ -15,7 +15,6 @@
 //
 
 using System.Diagnostics;
-using System.Runtime.ConstrainedExecution;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;

@@ -8,16 +8,16 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests
 {
     [SetUpFixture]
-    public class CommonFixtureSetup : TestGlobals
+    public class CommonFixtureSetup
     {
-        [SetUp]
+        [OneTimeSetUp]
         public void SetupTestSuite()
         {
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
             Trace.TraceInformation("TestBase Setup Complete. Starting Test Run ...");
         }
 
-        [TearDown]
+        [OneTimeTearDown]
         public void TearDownTestSuite()
         {
             // this method is executed once after all the fixtures have completed execution

@@ -35,7 +35,7 @@ namespace Cassandra
         private readonly Serializer _serializer;
         private static readonly Logger Logger = new Logger(typeof(Session));
         private readonly ConcurrentDictionary<IPEndPoint, HostConnectionPool> _connectionPool;
-        private int _disposed;
+        private long _disposed;
         private volatile string _keyspace;
 
         public int BinaryProtocolVersion { get { return _serializer.ProtocolVersion; } }
@@ -53,7 +53,7 @@ namespace Cassandra
         /// </summary>
         public bool IsDisposed
         {
-            get { return Thread.VolatileRead(ref _disposed) > 0; }
+            get { return Interlocked.Read(ref _disposed) > 0; }
         }
 
         /// <summary>
