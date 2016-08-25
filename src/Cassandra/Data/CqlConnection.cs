@@ -285,7 +285,7 @@ namespace Cassandra.Data
                     return RestrictionsDataTable.Copy();
 
                 default:
-                    throw new ArgumentException($"Unknown collectionName: {collectionName}", "collectionName");
+                    throw new ArgumentException(string.Format("Unknown collectionName: {0}", collectionName), "collectionName");
 
             }
         }
