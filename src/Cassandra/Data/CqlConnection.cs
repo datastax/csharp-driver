@@ -269,9 +269,17 @@ namespace Cassandra.Data
             switch (collectionName)
             {
                 case "Tables":
-                    return GetTableSchema(restrictionValues?[0]);
+                    {
+                        var keyspace = restrictionValues != null && restrictionValues.Length >= 1 ? restrictionValues[0] : null;
+                        return GetTableSchema(keyspace);
+                    }
+
                 case "Columns":
-                    return GetColumnSchema(restrictionValues?[0], restrictionValues?[1]);
+                    {
+                        var keyspace = restrictionValues != null && restrictionValues.Length >= 1 ? restrictionValues[0] : null;
+                        var table = restrictionValues != null && restrictionValues.Length >= 2 ? restrictionValues[1] : null;
+                        return GetColumnSchema(keyspace, table);
+                    }
 
                 case "Restrictions":
                     return RestrictionsDataTable.Copy();
