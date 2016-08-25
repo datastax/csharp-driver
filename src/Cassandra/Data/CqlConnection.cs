@@ -27,8 +27,8 @@ namespace Cassandra.Data
     /// <inheritdoc />
     public class CqlConnection : DbConnection, ICloneable
     {
-		private readonly static DataTable SchemaDataTable = new DataTable("MetaDataCollections");
-		private readonly static DataTable RestrictionsDataTable = new DataTable("Restrictions");
+        private readonly static DataTable SchemaDataTable = new DataTable("MetaDataCollections");
+        private readonly static DataTable RestrictionsDataTable = new DataTable("Restrictions");
 
         private CassandraConnectionStringBuilder _connectionStringBuilder;
         private readonly static ConcurrentDictionary<string, Cluster> _clusters = new ConcurrentDictionary<string, Cluster>();
@@ -37,26 +37,25 @@ namespace Cassandra.Data
         private CqlBatchTransaction _currentTransaction;
         internal protected ISession ManagedConnection;
 
-		static CqlConnection()
-		{
-			SchemaDataTable.Columns.Add(new DataColumn { ColumnName = "CollectionName", DataType = typeof(string), AllowDBNull = false });
-			SchemaDataTable.Columns.Add(new DataColumn { ColumnName = "NumberOfRestrictions", DataType = typeof(int), AllowDBNull = false });
-			SchemaDataTable.LoadDataRow(new object[] { "Tables", 1 }, false);
-			SchemaDataTable.LoadDataRow(new object[] { "Columns", 2 }, false);
-			SchemaDataTable.LoadDataRow(new object[] { "Restrictions", 0 }, false);
-			SchemaDataTable.AcceptChanges();
+        static CqlConnection()
+        {
+            RestrictionsDataTable.Columns.Add(new DataColumn { ColumnName = "CollectionName", DataType = typeof(string), AllowDBNull = false });
+            RestrictionsDataTable.Columns.Add(new DataColumn { ColumnName = "RestrictionName", DataType = typeof(string), AllowDBNull = false });
+            RestrictionsDataTable.Columns.Add(new DataColumn { ColumnName = "RestrictionDefault", DataType = typeof(string), AllowDBNull = false });
+            RestrictionsDataTable.Columns.Add(new DataColumn { ColumnName = "RestrictionNumber", DataType = typeof(int), AllowDBNull = false });
+            RestrictionsDataTable.LoadDataRow(new object[] { "Tables", "TABLE_KEYSPACE", "", 1 }, false);
+            RestrictionsDataTable.LoadDataRow(new object[] { "Columns", "TABLE_KEYSPACE", "", 1 }, false);
+            RestrictionsDataTable.LoadDataRow(new object[] { "Columns", "TABLE_NAME", "", 2 }, false);
+            RestrictionsDataTable.AcceptChanges();
 
+            SchemaDataTable.Columns.Add(new DataColumn { ColumnName = "CollectionName", DataType = typeof(string), AllowDBNull = false });
+            SchemaDataTable.Columns.Add(new DataColumn { ColumnName = "NumberOfRestrictions", DataType = typeof(int), AllowDBNull = false });
+            SchemaDataTable.LoadDataRow(new object[] { "Tables", RestrictionsDataTable.Select("CollectionName='Tables'").Length }, false);
+            SchemaDataTable.LoadDataRow(new object[] { "Columns", RestrictionsDataTable.Select("CollectionName='Columns'").Length }, false);
+            SchemaDataTable.LoadDataRow(new object[] { "Restrictions", RestrictionsDataTable.Select("CollectionName='Restrictions'").Length }, false);
+            SchemaDataTable.AcceptChanges();
 
-			RestrictionsDataTable.Columns.Add(new DataColumn { ColumnName = "CollectionName", DataType = typeof(string), AllowDBNull = false });
-			RestrictionsDataTable.Columns.Add(new DataColumn { ColumnName = "RestrictionName", DataType = typeof(string), AllowDBNull = false });
-			RestrictionsDataTable.Columns.Add(new DataColumn { ColumnName = "RestrictionDefault", DataType = typeof(string), AllowDBNull = false });
-			RestrictionsDataTable.Columns.Add(new DataColumn { ColumnName = "RestrictionNumber", DataType = typeof(int), AllowDBNull = false });
-			RestrictionsDataTable.LoadDataRow(new object[] { "Tables", "KEYSPACE_NAME", "", 1 }, false);
-			RestrictionsDataTable.LoadDataRow(new object[] { "Columns", "KEYSPACE_NAME", "", 1 }, false);
-			RestrictionsDataTable.LoadDataRow(new object[] { "Columns", "TABLE_NAME", "", 2 }, false);
-			RestrictionsDataTable.AcceptChanges();
-
-		}
+        }
 
         /// <summary>
         /// Initializes a <see cref="CqlConnection"/>.
@@ -253,97 +252,97 @@ namespace Cassandra.Data
             return conn;
         }
 
-		/// <inheritdoc />
-		public override DataTable GetSchema()
-		{
-			return SchemaDataTable.Clone();
-		}
+        /// <inheritdoc />
+        public override DataTable GetSchema()
+        {
+            return SchemaDataTable.Copy();
+        }
 
-		/// <inheritdoc />
-		public override DataTable GetSchema(string collectionName)
-		{
-			return GetSchema(collectionName, null);
-		}
+        /// <inheritdoc />
+        public override DataTable GetSchema(string collectionName)
+        {
+            return GetSchema(collectionName, null);
+        }
 
-		public override DataTable GetSchema(string collectionName, string[] restrictionValues)
-		{
-			switch (collectionName)
-			{
-				case "Tables":
-					return GetTableSchema(restrictionValues?[0]);
-				case "Columns":
-					return GetColumnSchema(restrictionValues?[0], restrictionValues?[1]);
+        public override DataTable GetSchema(string collectionName, string[] restrictionValues)
+        {
+            switch (collectionName)
+            {
+                case "Tables":
+                    return GetTableSchema(restrictionValues?[0]);
+                case "Columns":
+                    return GetColumnSchema(restrictionValues?[0], restrictionValues?[1]);
 
-				case "Restrictions":
-					return RestrictionsDataTable.Clone();
+                case "Restrictions":
+                    return RestrictionsDataTable.Copy();
 
-				default:
-					throw new ArgumentException($"Unknown collectionName: {collectionName}", "collectionName");
+                default:
+                    throw new ArgumentException($"Unknown collectionName: {collectionName}", "collectionName");
 
-			}
-		}
+            }
+        }
 
-		private DataTable GetColumnSchema(string keyspace, string table)
-		{
-			if (_managedCluster == null)
-				throw new InvalidOperationException();
+        private DataTable GetColumnSchema(string keyspace, string table)
+        {
+            if (_managedCluster == null)
+                throw new InvalidOperationException();
 
-			if (_managedCluster.RefreshSchema())
-			{
-				var Schema = new DataTable("Columns");
-				Schema.Columns.Add(new DataColumn { ColumnName = "TABLE_KEYSPACE", DataType = typeof(string) });
-				Schema.Columns.Add(new DataColumn { ColumnName = "TABLE_NAME", DataType = typeof(string) });
-				Schema.Columns.Add(new DataColumn { ColumnName = "COLUMN_NAME", DataType = typeof(string) });
-				Schema.Columns.Add(new DataColumn { ColumnName = "COLUMN_TYPE", DataType = typeof(int) });
-				Schema.Columns.Add(new DataColumn { ColumnName = "ORDINAL_POSITION", DataType = typeof(string) });
+            if (_managedCluster.RefreshSchema())
+            {
+                var Schema = new DataTable("Columns");
+                Schema.Columns.Add(new DataColumn { ColumnName = "TABLE_KEYSPACE", DataType = typeof(string) });
+                Schema.Columns.Add(new DataColumn { ColumnName = "TABLE_NAME", DataType = typeof(string) });
+                Schema.Columns.Add(new DataColumn { ColumnName = "COLUMN_NAME", DataType = typeof(string) });
+                Schema.Columns.Add(new DataColumn { ColumnName = "COLUMN_TYPE", DataType = typeof(int) });
+                Schema.Columns.Add(new DataColumn { ColumnName = "ORDINAL_POSITION", DataType = typeof(string) });
 
-				IEnumerable<string> keyspaces = keyspace == null ? _managedCluster.Metadata.GetKeyspaces() :new[] { keyspace };
-				foreach (var ks in keyspaces)
-				{
-					IEnumerable<string> tables = table == null ? _managedCluster.Metadata.GetTables(ks) : new[] { table };
-					foreach (var tb in tables)
-					{
-						var tableMetadata = _managedCluster.Metadata.GetTable(ks, tb);
-						
-						foreach(var column in tableMetadata.TableColumns)
-						{
-							Schema.LoadDataRow(new object[] { ks, tb, column.Name, (int)column.TypeCode, column.Index }, false);
-						}
-					}
-				}
+                IEnumerable<string> keyspaces = keyspace == null ? _managedCluster.Metadata.GetKeyspaces() : new[] { keyspace };
+                foreach (var ks in keyspaces)
+                {
+                    IEnumerable<string> tables = table == null ? _managedCluster.Metadata.GetTables(ks) : new[] { table };
+                    foreach (var tb in tables)
+                    {
+                        var tableMetadata = _managedCluster.Metadata.GetTable(ks, tb);
 
-				Schema.AcceptChanges();
-				return Schema;
-			}
+                        foreach (var column in tableMetadata.TableColumns)
+                        {
+                            Schema.LoadDataRow(new object[] { ks, tb, column.Name, (int)column.TypeCode, column.Index }, false);
+                        }
+                    }
+                }
 
-			throw new Exception("Could not refresh metadata");
-		}
+                Schema.AcceptChanges();
+                return Schema;
+            }
 
-		private DataTable GetTableSchema(string keyspace)
-		{
-			if (_managedCluster == null)
-				throw new InvalidOperationException();
+            throw new Exception("Could not refresh metadata");
+        }
 
-			if (_managedCluster.RefreshSchema())
-			{
-				var Schema = new DataTable("Tables");
-				Schema.Columns.Add(new DataColumn { ColumnName = "TABLE_KEYSPACE", DataType = typeof(string) });
-				Schema.Columns.Add(new DataColumn { ColumnName = "TABLE_NAME", DataType = typeof(string) });
-				
-				IEnumerable<string> keyspaces = keyspace == null ? _managedCluster.Metadata.GetKeyspaces() : new[] { keyspace };
-				foreach (var ks in keyspaces)
-				{
-					foreach(var table in _managedCluster.Metadata.GetTables(ks))
-					{
-						Schema.LoadDataRow(new object[] { ks, table }, false);
-					}
-				}
+        private DataTable GetTableSchema(string keyspace)
+        {
+            if (_managedCluster == null)
+                throw new InvalidOperationException();
 
-				Schema.AcceptChanges();
-				return Schema;
-			}
+            if (_managedCluster.RefreshSchema())
+            {
+                var Schema = new DataTable("Tables");
+                Schema.Columns.Add(new DataColumn { ColumnName = "TABLE_KEYSPACE", DataType = typeof(string) });
+                Schema.Columns.Add(new DataColumn { ColumnName = "TABLE_NAME", DataType = typeof(string) });
 
-			throw new Exception("Could not refresh metadata");
-		}
-	}
+                IEnumerable<string> keyspaces = keyspace == null ? _managedCluster.Metadata.GetKeyspaces() : new[] { keyspace };
+                foreach (var ks in keyspaces)
+                {
+                    foreach (var table in _managedCluster.Metadata.GetTables(ks))
+                    {
+                        Schema.LoadDataRow(new object[] { ks, table }, false);
+                    }
+                }
+
+                Schema.AcceptChanges();
+                return Schema;
+            }
+
+            throw new Exception("Could not refresh metadata");
+        }
+    }
 }
