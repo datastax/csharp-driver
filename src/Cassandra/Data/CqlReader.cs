@@ -32,6 +32,7 @@ namespace Cassandra.Data
         private readonly IEnumerator<Row> enumerRows;
         private readonly RowSet popul;
         private IEnumerable<Row> enumRows;
+        private DataTable schemaTable;
 
         public override int Depth
         {
@@ -190,9 +191,27 @@ namespace Cassandra.Data
             return colidx[name];
         }
 
+        /// <inheritdoc />
         public override DataTable GetSchemaTable()
         {
-            throw new NotSupportedException();
+            if (schemaTable == null)
+            {
+                schemaTable = new DataTable("SchemaTable");
+                schemaTable.Columns.Add(new DataColumn("ColumnName", typeof(string)));
+                schemaTable.Columns.Add(new DataColumn("ColumnOrdinal", typeof(int)));
+                schemaTable.Columns.Add(new DataColumn("DataType", typeof(Type)));
+                schemaTable.Columns.Add(new DataColumn("ProviderType", typeof(ColumnTypeCode)));
+                schemaTable.Columns.Add(new DataColumn("AllowDbNull", typeof(bool)));
+                schemaTable.Columns.Add(new DataColumn("KeySpace", typeof(string)));
+                schemaTable.Columns.Add(new DataColumn("Table", typeof(string)));
+                schemaTable.Columns.Add(new DataColumn("IsReversed", typeof(bool)));
+                schemaTable.Columns.Add(new DataColumn("IsFrozen", typeof(bool)));
+                foreach (var col in popul.Columns)
+                {
+                    schemaTable.Rows.Add(col.Name, col.Index, col.Type, col.TypeCode, true, col.Keyspace, col.Table, col.IsReversed, col.IsFrozen);
+                }
+            }
+            return schemaTable;
         }
 
         public override string GetString(int ordinal)
