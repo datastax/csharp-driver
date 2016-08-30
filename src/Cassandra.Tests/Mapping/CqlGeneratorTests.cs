@@ -39,6 +39,21 @@ namespace Cassandra.Tests.Mapping
         }
 
         [Test]
+        public void GenerateUpdate_Keyspace_Test()
+        {
+            var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
+            types.Add(new Map<ExplicitColumnsUser>()
+                .TableName("users")
+                .KeyspaceName("keyspace1")
+                .PartitionKey(u => u.UserId)
+                .Column(u => u.UserAge, cm => cm.WithName("AGE")));
+            var pocoFactory = new PocoDataFactory(types);
+            var cqlGenerator = new CqlGenerator(pocoFactory);
+            var cql = cqlGenerator.GenerateUpdate<ExplicitColumnsUser>();
+            Assert.AreEqual("UPDATE keyspace1.users SET Name = ?, AGE = ? WHERE UserId = ?", cql);
+        }
+
+        [Test]
         public void PrependUpdate_Test()
         {
             var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
@@ -48,6 +63,21 @@ namespace Cassandra.Tests.Mapping
             var cql = Cql.New("SET Name = ? WHERE UserId = ?", "New name", Guid.Empty);
             cqlGenerator.PrependUpdate<ExplicitColumnsUser>(cql);
             Assert.AreEqual("UPDATE users SET Name = ? WHERE UserId = ?", cql.Statement);
+        }
+
+        [Test]
+        public void PrependUpdate_Keyspace_Test()
+        {
+            var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
+            types.Add(new Map<ExplicitColumnsUser>()
+                .TableName("users")
+                .KeyspaceName("keyspace1")
+                .PartitionKey(u => u.UserId));
+            var pocoFactory = new PocoDataFactory(types);
+            var cqlGenerator = new CqlGenerator(pocoFactory);
+            var cql = Cql.New("SET Name = ? WHERE UserId = ?", "New name", Guid.Empty);
+            cqlGenerator.PrependUpdate<ExplicitColumnsUser>(cql);
+            Assert.AreEqual("UPDATE keyspace1.users SET Name = ? WHERE UserId = ?", cql.Statement);
         }
 
         [Test]
@@ -78,6 +108,21 @@ namespace Cassandra.Tests.Mapping
         }
 
         [Test]
+        public void AddSelect_KeyspaceTest()
+        {
+            var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
+            types.Add(new Map<ExplicitColumnsUser>()
+                .TableName("users")
+                .KeyspaceName("keyspace1")
+                .PartitionKey(u => u.UserId).Column(u => u.UserAge, cm => cm.WithName("AGE")));
+            var pocoFactory = new PocoDataFactory(types);
+            var cqlGenerator = new CqlGenerator(pocoFactory);
+            var cql = Cql.New("WHERE UserId = ?", Guid.Empty);
+            cqlGenerator.AddSelect<ExplicitColumnsUser>(cql);
+            Assert.AreEqual("SELECT UserId, Name, AGE FROM keyspace1.users WHERE UserId = ?", cql.Statement);
+        }
+
+        [Test]
         public void AddSelect_CaseSensitive_Test()
         {
             var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
@@ -102,6 +147,20 @@ namespace Cassandra.Tests.Mapping
             var cqlGenerator = new CqlGenerator(pocoFactory);
             var cql = cqlGenerator.GenerateDelete<ExplicitColumnsUser>();
             Assert.AreEqual("DELETE FROM USERS WHERE UserId = ?", cql);
+        }
+
+        [Test]
+        public void GenerateDelete_Keyspace_Test()
+        {
+            var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
+            types.Add(new Map<ExplicitColumnsUser>()
+                .TableName("USERS")
+                .KeyspaceName("keyspace1")
+                .PartitionKey(u => u.UserId));
+            var pocoFactory = new PocoDataFactory(types);
+            var cqlGenerator = new CqlGenerator(pocoFactory);
+            var cql = cqlGenerator.GenerateDelete<ExplicitColumnsUser>();
+            Assert.AreEqual("DELETE FROM keyspace1.USERS WHERE UserId = ?", cql);
         }
 
         [Test]
@@ -132,6 +191,22 @@ namespace Cassandra.Tests.Mapping
             object[] queryParameters;
             var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(true, new object[0], out queryParameters);
             Assert.AreEqual(@"INSERT INTO USERS (ID, Name, UserAge) VALUES (?, ?, ?)", cql);
+        }
+
+        [Test]
+        public void GenerateInsert_Keyspace_Test()
+        {
+            var types = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
+            types.Add(new Map<ExplicitColumnsUser>()
+                .TableName("USERS")
+                .KeyspaceName("keyspace1")
+                .PartitionKey("ID")
+                .Column(u => u.UserId, cm => cm.WithName("ID")));
+            var pocoFactory = new PocoDataFactory(types);
+            var cqlGenerator = new CqlGenerator(pocoFactory);
+            object[] queryParameters;
+            var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(true, new object[0], out queryParameters);
+            Assert.AreEqual(@"INSERT INTO keyspace1.USERS (ID, Name, UserAge) VALUES (?, ?, ?)", cql);
         }
 
         [Test]
