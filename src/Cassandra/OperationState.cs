@@ -38,7 +38,7 @@ namespace Cassandra
         private const int StateTimedout = 2;
         private const int StateCompleted = 3;
         private Action<Exception, Response> _callback;
-        private static readonly Action<Exception, Response> Noop = (_, __) => { };
+        public static readonly Action<Exception, Response> Noop = (_, __) => { };
         private volatile bool _timeoutCallbackSet;
         private int _state = StateInit;
 
@@ -68,12 +68,14 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Marks this operation as completed and returns the callback
+        /// Marks this operation as completed and returns the callback.
+        /// Note that the returned callback might be a reference to <see cref="Noop"/>, as the original callback
+        /// might be already called.
         /// </summary>
         public Action<Exception, Response> SetCompleted()
         {
             var previousState = Interlocked.CompareExchange(ref _state, StateCompleted, StateInit);
-            if (previousState == StateCancelled)
+            if (previousState == StateCancelled || previousState == StateCompleted)
             {
                 return Noop;
             }
@@ -100,10 +102,15 @@ namespace Cassandra
 
         /// <summary>
         /// Marks this operation as completed and invokes the callback with the exception using the default task scheduler.
+        /// Its safe to call this method multiple times as the underlying callback will be invoked just once.
         /// </summary>
         public void InvokeCallback(Exception ex)
         {
             var callback = SetCompleted();
+            if (callback == Noop)
+            {
+                return;
+            }
             //Invoke the callback in a new thread in the thread pool
             //This way we don't let the user block on a thread used by the Connection
             Task.Factory.StartNew(() => callback(ex, null), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);

@@ -249,7 +249,6 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             var pstmt = session.Prepare("INSERT INTO " + policyTestTools.TableName + " (k, i) VALUES (?, ?)");
             for (var i = (int)short.MinValue; i < short.MinValue + 40; i++)
             {
-                var partitionKey = BitConverter.GetBytes(i).Reverse().ToArray();
                 var statement = pstmt
                     .Bind(i, i)
                     .EnableTracing();
