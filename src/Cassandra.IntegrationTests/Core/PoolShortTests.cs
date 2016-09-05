@@ -25,12 +25,11 @@ namespace Cassandra.IntegrationTests.Core
             TestClusterManager.TryRemove();
         }
 
-        [Test, Timeout(1000 * 60 * 4), TestCassandraVersion(2, 1)]
-        public void StopForce_With_Inflight_Requests()
+        [Test, Timeout(1000 * 60 * 4), TestCassandraVersion(2, 1), TestCase(false), TestCase(true)]
+        public void StopForce_With_Inflight_Requests(bool useStreamMode)
         {
             var testCluster = TestClusterManager.CreateNew(2);
             const int connectionLength = 4;
-
             var builder = Cluster.Builder()
                 .AddContactPoint(testCluster.InitialContactPoint)
                 .WithPoolingOptions(new PoolingOptions()
@@ -38,7 +37,7 @@ namespace Cassandra.IntegrationTests.Core
                     .SetMaxConnectionsPerHost(HostDistance.Local, connectionLength)
                     .SetHeartBeatInterval(0))
                 .WithRetryPolicy(AlwaysIgnoreRetryPolicy.Instance)
-                .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(0))
+                .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(0).SetStreamMode(useStreamMode))
                 .WithLoadBalancingPolicy(new RoundRobinPolicy());
             using (var cluster = builder.Build())
             {

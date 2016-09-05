@@ -277,8 +277,30 @@ namespace Cassandra
             }
             else
             {
-                //Stream mode
-                _socketStream.BeginRead(_receiveBuffer, 0, _receiveBuffer.Length, OnReceiveStreamCallback, null);
+                // Stream mode
+                try
+                {
+                    _socketStream.BeginRead(_receiveBuffer, 0, _receiveBuffer.Length, OnReceiveStreamCallback, null);
+                }
+                catch (IOException ex)
+                {
+                    if (ex.InnerException is SocketException)
+                    {
+                        OnError((SocketException) ex.InnerException);
+                        return;
+                    }
+                    // Wrapped ObjectDisposedException and others: we can consider is not connected
+                    OnError(null, SocketError.NotConnected);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Wrapped ObjectDisposedException and others: we can consider is not connected
+                    OnError(null, SocketError.NotConnected);
+                }
+                catch (Exception ex)
+                {
+                    OnError(ex);
+                }
             }
         }
 
@@ -321,36 +343,38 @@ namespace Cassandra
         /// </summary>
         protected void OnReceiveStreamCallback(IAsyncResult ar)
         {
+            int bytesRead;
             try
             {
-                var bytesRead = _socketStream.EndRead(ar);
-                if (bytesRead == 0)
+                bytesRead = _socketStream.EndRead(ar);
+            }
+            catch (IOException ex)
+            {
+                if (ex.InnerException is SocketException)
                 {
-                    OnClosing();
+                    OnError((SocketException)ex.InnerException);
                     return;
                 }
-                //Emit event
-                if (Read != null)
-                {
-                    Read(_receiveBuffer, bytesRead);
-                }
-                ReceiveAsync();
+                // Wrapped ObjectDisposedException and others: we can consider is not connected
+                OnError(null, SocketError.NotConnected);
+                return;
             }
             catch (Exception ex)
             {
-                if (ex is IOException)
-                {
-                    if (ex.InnerException is SocketException)
-                    {
-                        OnError((SocketException)ex.InnerException);
-                        return;
-                    }
-                    // ObjectDisposedException and others: we can consider is not connected
-                    OnError(null, SocketError.NotConnected);
-                    return;
-                }
                 OnError(ex);
+                return;
             }
+            if (bytesRead == 0)
+            {
+                OnClosing();
+                return;
+            }
+            //Emit event
+            if (Read != null)
+            {
+                Read(_receiveBuffer, bytesRead);
+            }
+            ReceiveAsync();
         }
 
         /// <summary>
@@ -477,7 +501,29 @@ namespace Cassandra
             else
             {
                 var length = (int) stream.Length;
-                _socketStream.BeginWrite(stream.GetBuffer(), 0, length, OnSendStreamCallback, null);
+                try
+                {
+                    _socketStream.BeginWrite(stream.GetBuffer(), 0, length, OnSendStreamCallback, null);
+                }
+                catch (IOException ex)
+                {
+                    if (ex.InnerException is SocketException)
+                    {
+                        OnError((SocketException)ex.InnerException);
+                        return;
+                    }
+                    // Wrapped ObjectDisposedException and others: we can consider is not connected
+                    OnError(null, SocketError.NotConnected);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Wrapped ObjectDisposedException and others: we can consider is not connected
+                    OnError(null, SocketError.NotConnected);
+                }
+                catch (Exception ex)
+                {
+                    OnError(ex);
+                }
             }
         }
 
