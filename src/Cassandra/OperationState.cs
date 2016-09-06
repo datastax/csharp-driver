@@ -164,10 +164,6 @@ namespace Cassandra
                 foreach (var state in ops)
                 {
                     var callback = state.SetCompleted();
-                    if (callback == Noop)
-                    {
-                        return;
-                    }
                     callback(ex, null);
                 }
             }, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
