@@ -54,7 +54,7 @@ namespace Cassandra.Tests
                 {
                     () =>
                     {
-                        var timedout = state.SetTimedOut(
+                        var timedout = state.MarkAsTimedOut(
                             new OperationTimedOutException(new IPEndPoint(0, 1), 200), () => Interlocked.Increment(ref timedOutReceived));
                         Interlocked.Add(ref expectedTimedout, timedout ? 1 : 0);
                     },

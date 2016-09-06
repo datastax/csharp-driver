@@ -41,6 +41,7 @@ namespace Cassandra
         public static readonly Action<Exception, Response> Noop = (_, __) => { };
         private volatile bool _timeoutCallbackSet;
         private int _state = StateInit;
+        private volatile HashedWheelTimer.ITimeout _timeout;
 
         /// <summary>
         /// 8 byte header of the frame
@@ -48,11 +49,6 @@ namespace Cassandra
         public FrameHeader Header { get; set; }
 
         public IRequest Request { get; set; }
-
-        /// <summary>
-        /// Read timeout associated with the request
-        /// </summary>
-        public HashedWheelTimer.ITimeout Timeout { get; set; }
 
         /// <summary>
         /// Gets or sets the timeout in milliseconds for the request.
@@ -65,6 +61,14 @@ namespace Cassandra
         public OperationState(Action<Exception, Response> callback)
         {
             Interlocked.Exchange(ref _callback, callback);
+        }
+
+        /// <summary>
+        /// Sets the read timeout associated with the request
+        /// </summary>
+        public void SetTimeout(HashedWheelTimer.ITimeout value)
+        {
+            _timeout = value;
         }
 
         /// <summary>
@@ -83,10 +87,11 @@ namespace Cassandra
             if (previousState == StateInit)
             {
                 callback = Interlocked.Exchange(ref _callback, Noop);
-                if (Timeout != null)
+                var timeout = _timeout;
+                if (timeout != null)
                 {
                     //Cancel it if it hasn't expired
-                    Timeout.Cancel();
+                    timeout.Cancel();
                 }
                 return callback;
             }
@@ -120,7 +125,7 @@ namespace Cassandra
         /// Marks this operation as timed-out, callbacks with the exception 
         /// and sets a handler when the response is received
         /// </summary>
-        public bool SetTimedOut(OperationTimedOutException ex, Action onReceive)
+        public bool MarkAsTimedOut(OperationTimedOutException ex, Action onReceive)
         {
             var previousState = Interlocked.CompareExchange(ref _state, StateTimedout, StateInit);
             if (previousState != StateInit)
@@ -146,11 +151,12 @@ namespace Cassandra
             }
             //Remove the closure
             Interlocked.Exchange(ref _callback, Noop);
-            if (Timeout != null)
+            var timeout = _timeout;
+            if (timeout != null)
             {
                 //Cancel it if it hasn't expired
                 //We should not worry about yielding OperationTimedOutExceptions when this is cancelled.
-                Timeout.Cancel();
+                timeout.Cancel();
             }
         }
 
