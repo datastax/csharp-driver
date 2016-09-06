@@ -153,5 +153,24 @@ namespace Cassandra
                 Timeout.Cancel();
             }
         }
+
+        /// <summary>
+        /// Asynchronously marks the provided operations as completed and invoke the callbacks with the exception.
+        /// </summary>
+        internal static void CallbackMultiple(IEnumerable<OperationState> ops, Exception ex)
+        {
+            Task.Factory.StartNew(() =>
+            {
+                foreach (var state in ops)
+                {
+                    var callback = state.SetCompleted();
+                    if (callback == Noop)
+                    {
+                        return;
+                    }
+                    callback(ex, null);
+                }
+            }, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+        }
     }
 }

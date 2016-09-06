@@ -50,7 +50,6 @@ namespace Cassandra
         /// It could be because its being closed or there was a socket error.
         /// </summary>
         private volatile bool _isCanceled;
-        private readonly object _cancelLock = new object();
         private readonly Timer _idleTimer;
         private AutoResetEvent _pendingWaitHandle;
         private int _timedOutOperations;
@@ -265,51 +264,55 @@ namespace Cassandra
 
         /// <summary>
         /// It callbacks all operations already sent / or to be written, that do not have a response.
+        /// Invoked from an IO Thread or a pool thread
         /// </summary>
         internal void CancelPending(Exception ex, SocketError? socketError = null)
         {
             _isCanceled = true;
-            Interlocked.Exchange(ref _writeState, WriteStateClosed);
-            // Multiple IO worker threads may been notifying that the socket is closing/in error
-            lock (_cancelLock)
+            var wasClosed = Interlocked.Exchange(ref _writeState, WriteStateClosed) == WriteStateClosed;
+            if (!wasClosed)
             {
-                Logger.Info("Canceling pending operations {0} and write queue {1}", Thread.VolatileRead(ref _inFlight), _writeQueue.Count);
+                Logger.Info("Canceling in Connection {0}, {1} pending operations and write queue {2}", Address, Thread.VolatileRead(ref _inFlight), _writeQueue.Count);
                 if (socketError != null)
                 {
                     Logger.Verbose("The socket status received was {0}", socketError.Value);
                 }
-                if (ex == null || ex is ObjectDisposedException)
+            }
+            if (ex == null || ex is ObjectDisposedException)
+            {
+                if (socketError != null)
                 {
-                    if (socketError != null)
-                    {
-                        ex = new SocketException((int)socketError.Value);
-                    }
-                    else
-                    {
-                        //It is closing
-                        ex = new SocketException((int)SocketError.NotConnected);
-                    }
+                    ex = new SocketException((int)socketError.Value);
                 }
-                // Callback all the items in the write queue
-                OperationState state;
-                while (_writeQueue.TryDequeue(out state))
+                else
                 {
-                    state.InvokeCallback(ex);
+                    //It is closing
+                    ex = new SocketException((int)SocketError.NotConnected);
                 }
-                // Callback for every pending operation
-                while (!_pendingOperations.IsEmpty)
+            }
+            // Dequeue all the items in the write queue
+            var ops = new LinkedList<OperationState>();
+            OperationState state;
+            while (_writeQueue.TryDequeue(out state))
+            {
+                ops.AddLast(state);
+            }
+            // Remove every pending operation
+            while (!_pendingOperations.IsEmpty)
+            {
+                Thread.MemoryBarrier();
+                // Remove using a snapshot of the keys
+                var keys = _pendingOperations.Keys.ToArray();
+                foreach (var key in keys)
                 {
-                    // Remove using a snapshot of the keys
-                    var keys = _pendingOperations.Keys.ToArray();
-                    foreach (var key in keys)
+                    if (_pendingOperations.TryRemove(key, out state))
                     {
-                        if (_pendingOperations.TryRemove(key, out state))
-                        {
-                            state.InvokeCallback(ex);
-                        }
+                        ops.AddLast(state);
                     }
                 }
             }
+            Thread.MemoryBarrier();
+            OperationState.CallbackMultiple(ops, ex);
             Interlocked.Exchange(ref _inFlight, 0);
             if (_pendingWaitHandle != null)
             {
@@ -696,7 +699,9 @@ namespace Cassandra
         {
             if (_isCanceled)
             {
-                callback(new SocketException((int)SocketError.NotConnected), null);
+                // Avoid calling back before returning
+                Task.Factory.StartNew(() => callback(new SocketException((int)SocketError.NotConnected), null),
+                    CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
                 return null;
             }
             var state = new OperationState(callback)
@@ -719,11 +724,12 @@ namespace Cassandra
             }
             if (previousState == WriteStateClosed)
             {
-                // Probably there is an item in the write queue
-                CancelPending(null);
+                // Probably there is an item in the write queue, we should cancel pending
+                // Avoid canceling in the user thread
+                Task.Factory.StartNew(() => CancelPending(null), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
                 return;   
             }
-            //Start a new task using the TaskScheduler for writing
+            // Start a new task using the TaskScheduler for writing to avoid using the User thread
             Task.Factory.StartNew(RunWriteQueueAction, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
         }
 

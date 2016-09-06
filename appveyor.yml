@@ -17,7 +17,7 @@ environment:
   matrix:
     - CASSANDRA_VERSION: 3.7
 
-    - CASSANDRA_VERSION: 2.2.5
+    - CASSANDRA_VERSION: 2.2.7
 
 install:
   - ps: .\appveyor_install.ps1
