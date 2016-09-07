@@ -738,7 +738,6 @@ namespace Cassandra
             //Dequeue all items until threshold is passed
             long totalLength = 0;
             RecyclableMemoryStream stream = null;
-            var streamIdsAvailable = true;
             while (totalLength < CoalescingThreshold)
             {
                 OperationState state;
@@ -750,7 +749,6 @@ namespace Cassandra
                 short streamId;
                 if (!_freeOperations.TryPop(out streamId))
                 {
-                    streamIdsAvailable = false;
                     //Queue it up for later.
                     _writeQueue.Enqueue(state);
                     //When receiving the next complete message, we can process it.
@@ -792,9 +790,12 @@ namespace Cassandra
             }
             if (totalLength == 0L)
             {
-                // Nothing to write
+                // Nothing to write, set the queue as not running
                 Interlocked.CompareExchange(ref _writeState, WriteStateInit, WriteStateRunning);
-                if (streamIdsAvailable && !_writeQueue.IsEmpty)
+                // Until now, we were preventing other threads to running the queue.
+                // Check if we can now write: 
+                // a read could have finished (freeing streamIds) or new request could have been added to the queue
+                if (!_freeOperations.IsEmpty && !_writeQueue.IsEmpty)
                 {
                     //The write queue is not empty
                     //An item was added to the queue but we were running: try to launch a new queue
