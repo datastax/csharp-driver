@@ -374,6 +374,7 @@ namespace Cassandra.Serialization
                 dataType.TypeCode = typeCode;
                 return TaskHelper.ToTask(dataType);
             }
+            typeName = typeName.Replace("\"", "");
             return udtResolver(keyspace, typeName).ContinueSync(typeInfo =>
             {
                 if (typeInfo == null)

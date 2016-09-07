@@ -750,7 +750,8 @@ namespace Cassandra
                     frameLength = state.Request.WriteFrame(streamId, stream, _serializer);
                     if (state.TimeoutMillis > 0 && Configuration.Timer != null)
                     {
-                        state.Timeout = Configuration.Timer.NewTimeout(OnTimeout, streamId, state.TimeoutMillis);
+                        var requestTimeout = Configuration.Timer.NewTimeout(OnTimeout, streamId, state.TimeoutMillis);
+                        state.SetTimeout(requestTimeout);
                     }
                 }
                 catch (Exception ex)
@@ -889,7 +890,7 @@ namespace Cassandra
             var ex = new OperationTimedOutException(Address, state.TimeoutMillis);
             //Invoke if it hasn't been invoked yet
             //Once the response is obtained, we decrement the timed out counter
-            var timedout = state.SetTimedOut(ex, () => Interlocked.Decrement(ref _timedOutOperations) );
+            var timedout = state.MarkAsTimedOut(ex, () => Interlocked.Decrement(ref _timedOutOperations) );
             if (!timedout)
             {
                 //The response was obtained since the timer elapsed, move on
