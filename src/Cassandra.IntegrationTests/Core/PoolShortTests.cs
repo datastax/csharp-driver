@@ -25,7 +25,7 @@ namespace Cassandra.IntegrationTests.Core
             TestClusterManager.TryRemove();
         }
 
-        [Test, Timeout(1000 * 60 * 4), TestCassandraVersion(2, 1), TestCase(false), TestCase(true)]
+        [Test, Timeout(1000 * 60 * 4), TestCase(false), TestCase(true)]
         public void StopForce_With_Inflight_Requests(bool useStreamMode)
         {
             var testCluster = TestClusterManager.CreateNew(2);
