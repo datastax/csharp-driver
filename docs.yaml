@@ -26,7 +26,7 @@ links:
   - title: Nuget
     href:  https://www.nuget.org/packages/Dse
 api_docs:
-  v1.0: http://docs.datastax.com/en/drivers/csharp-dse/1.0
+  1.0: http://docs.datastax.com/en/drivers/csharp-dse/1.0
 versions:
-  - name: v1.0
+  - name: 1.0
     ref: HEAD
