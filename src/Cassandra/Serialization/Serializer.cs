@@ -48,7 +48,7 @@ namespace Cassandra.Serialization
             { ColumnTypeCode.Text, TypeSerializer.PrimitiveStringSerializer },
             { ColumnTypeCode.Time, TypeSerializer.PrimitiveLocalTimeSerializer},
             { ColumnTypeCode.Timestamp, TypeSerializer.PrimitiveDateTimeOffsetSerializer },
-            { ColumnTypeCode.Timeuuid, TypeSerializer.PrimitiveGuidSerializer },
+            { ColumnTypeCode.Timeuuid, TypeSerializer.PrimitiveTimeUuidSerializer },
             { ColumnTypeCode.TinyInt, TypeSerializer.PrimitiveSbyteSerializer },
             { ColumnTypeCode.Uuid, TypeSerializer.PrimitiveGuidSerializer },
             { ColumnTypeCode.Varchar, TypeSerializer.PrimitiveStringSerializer },
@@ -257,8 +257,6 @@ namespace Cassandra.Serialization
             {
                 _primitiveSerializers[serializer.Type] = serializer;
             }
-            //Allow TimeUuid as timeuuid
-            _primitiveSerializers.Add(typeof(TimeUuid), TypeSerializer.PrimitiveTimeUuidSerializer);
             //Allow DateTime as timestamp
             _primitiveSerializers.Add(typeof(DateTime), TypeSerializer.PrimitiveDateTimeSerializer);
         }
