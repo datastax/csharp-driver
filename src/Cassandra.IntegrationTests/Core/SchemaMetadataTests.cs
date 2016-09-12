@@ -76,6 +76,30 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test, TestCassandraVersion(2, 1)]
+        public void Udt_Case_Sensitive_Metadata_Test()
+        {
+            var cluster = GetNewCluster();
+            var session = cluster.Connect();
+            var keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
+            session.CreateKeyspace(keyspaceName);
+            session.ChangeKeyspace(keyspaceName);
+
+            const string cqlType = "CREATE TYPE \"MyUdt\" (key1 text, key2 text)";
+            const string cqlTable = "CREATE TABLE \"MyTable\" (id int PRIMARY KEY, value frozen<\"MyUdt\">)";
+
+            session.Execute(cqlType);
+            session.Execute(cqlTable);
+            var table = cluster.Metadata.GetTable(keyspaceName, "MyTable");
+            Assert.AreEqual(2, table.TableColumns.Length);
+            var udtColumn = table.TableColumns.First(c => c.Name == "value");
+            Assert.AreEqual(ColumnTypeCode.Udt, udtColumn.TypeCode);
+            Assert.IsInstanceOf<UdtColumnInfo>(udtColumn.TypeInfo);
+            var udtInfo = (UdtColumnInfo)udtColumn.TypeInfo;
+            Assert.AreEqual(2, udtInfo.Fields.Count);
+            Assert.AreEqual(keyspaceName + ".MyUdt", udtInfo.Name);
+        }
+
+        [Test, TestCassandraVersion(2, 1)]
         public void TupleMetadataTest()
         {
             var keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
