@@ -392,7 +392,8 @@ namespace Cassandra.Mapping.Statements
             else if (typeInfo is UdtColumnInfo)
             {
                 var udtInfo = (UdtColumnInfo) typeInfo;
-                typeName = udtInfo.Name;
+                // Escape keyspace and name from the UDT
+                typeName = string.Join(".", udtInfo.Name.Split('.').Select(k => "\"" + k + "\""));
             }
 
             if (typeName == null)

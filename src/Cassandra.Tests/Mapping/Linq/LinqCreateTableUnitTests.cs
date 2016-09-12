@@ -407,16 +407,16 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Column(c => c.Udt1, cm => cm.WithName("my_udt").WithDbType<Song>().AsFrozen())
                 .ExplicitColumns()
                 .TableName("tbl1");
-            var udtInfo = new UdtColumnInfo("song");
+            var udtInfo = new UdtColumnInfo("ks1.song");
             udtInfo.Fields.Add(new ColumnDesc { Name = "title", TypeCode = ColumnTypeCode.Ascii });
             udtInfo.Fields.Add(new ColumnDesc { Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp });
-            var udtMap = UdtMap.For<Song>();
+            var udtMap = UdtMap.For<Song>().SetIgnoreCase(false);
             udtMap.SetSerializer(serializer);
             udtMap.Build(udtInfo);
             serializer.SetUdtMap("song", udtMap);
             var table = GetTable<UdtAndTuplePoco>(sessionMock.Object, definition);
             table.Create();
-            Assert.AreEqual("CREATE TABLE tbl1 (id uuid, my_udt frozen<song>, PRIMARY KEY (id))", createQuery);
+            Assert.AreEqual("CREATE TABLE tbl1 (id uuid, my_udt frozen<\"ks1\".\"song\">, PRIMARY KEY (id))", createQuery);
         }
 
         [Test]
@@ -465,7 +465,7 @@ namespace Cassandra.Tests.Mapping.Linq
             serializer.SetUdtMap("song", udtMap);
             var table = GetTable<UdtAndTuplePoco>(sessionMock.Object, definition);
             table.Create();
-            Assert.AreEqual("CREATE TABLE tbl1 (id uuid, my_set set<frozen<song>>, my_map map<frozen<tuple<double, double>>, text>, PRIMARY KEY (id))", createQuery);
+            Assert.AreEqual("CREATE TABLE tbl1 (id uuid, my_set set<frozen<\"song\">>, my_map map<frozen<tuple<double, double>>, text>, PRIMARY KEY (id))", createQuery);
         }
 
         [Test]
@@ -494,7 +494,7 @@ namespace Cassandra.Tests.Mapping.Linq
             serializer.SetUdtMap("song", udtMap);
             var table = GetTable<UdtAndTuplePoco>(sessionMock.Object, definition);
             table.Create();
-            Assert.AreEqual("CREATE TABLE tbl1 (id uuid, my_list list<frozen<song>>, my_map map<text, frozen<tuple<double, double>>>, PRIMARY KEY (id))", createQuery);
+            Assert.AreEqual("CREATE TABLE tbl1 (id uuid, my_list list<frozen<\"song\">>, my_map map<text, frozen<tuple<double, double>>>, PRIMARY KEY (id))", createQuery);
         }
 
         private static Mock<ISession> GetSessionMock(Serializer serializer = null)
