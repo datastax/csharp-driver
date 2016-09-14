@@ -255,6 +255,17 @@ namespace Cassandra
                 {
                     willRaiseEvent = _socket.ReceiveAsync(_receiveSocketEvent);
                 }
+                catch (ObjectDisposedException)
+                {
+                    OnError(null, SocketError.NotConnected);
+                }
+                catch (NullReferenceException)
+                {
+                    // Mono can throw a NRE when being disposed concurrently
+                    // https://github.com/mono/mono/blob/b190f213a364a2793cc573e1bd9fae8be72296e4/mcs/class/System/System.Net.Sockets/SocketAsyncEventArgs.cs#L184-L185
+                    // https://github.com/mono/mono/blob/b190f213a364a2793cc573e1bd9fae8be72296e4/mcs/class/System/System.Net.Sockets/Socket.cs#L1873-L1874
+                    OnError(null, SocketError.NotConnected);
+                }
                 catch (Exception ex)
                 {
                     OnError(ex);
@@ -266,8 +277,30 @@ namespace Cassandra
             }
             else
             {
-                //Stream mode
-                _socketStream.BeginRead(_receiveBuffer, 0, _receiveBuffer.Length, OnReceiveStreamCallback, null);
+                // Stream mode
+                try
+                {
+                    _socketStream.BeginRead(_receiveBuffer, 0, _receiveBuffer.Length, OnReceiveStreamCallback, null);
+                }
+                catch (IOException ex)
+                {
+                    if (ex.InnerException is SocketException)
+                    {
+                        OnError((SocketException) ex.InnerException);
+                        return;
+                    }
+                    // Wrapped ObjectDisposedException and others: we can consider is not connected
+                    OnError(null, SocketError.NotConnected);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Wrapped ObjectDisposedException and others: we can consider is not connected
+                    OnError(null, SocketError.NotConnected);
+                }
+                catch (Exception ex)
+                {
+                    OnError(ex);
+                }
             }
         }
 
@@ -310,32 +343,38 @@ namespace Cassandra
         /// </summary>
         protected void OnReceiveStreamCallback(IAsyncResult ar)
         {
+            int bytesRead;
             try
             {
-                var bytesRead = _socketStream.EndRead(ar);
-                if (bytesRead == 0)
+                bytesRead = _socketStream.EndRead(ar);
+            }
+            catch (IOException ex)
+            {
+                if (ex.InnerException is SocketException)
                 {
-                    OnClosing();
+                    OnError((SocketException)ex.InnerException);
                     return;
                 }
-                //Emit event
-                if (Read != null)
-                {
-                    Read(_receiveBuffer, bytesRead);
-                }
-                ReceiveAsync();
+                // Wrapped ObjectDisposedException and others: we can consider is not connected
+                OnError(null, SocketError.NotConnected);
+                return;
             }
             catch (Exception ex)
             {
-                if (ex is IOException && ex.InnerException is SocketException)
-                {
-                    OnError((SocketException)ex.InnerException);
-                }
-                else
-                {
-                    OnError(ex);
-                }
+                OnError(ex);
+                return;
             }
+            if (bytesRead == 0)
+            {
+                OnClosing();
+                return;
+            }
+            //Emit event
+            if (Read != null)
+            {
+                Read(_receiveBuffer, bytesRead);
+            }
+            ReceiveAsync();
         }
 
         /// <summary>
@@ -365,9 +404,17 @@ namespace Cassandra
             }
             catch (Exception ex)
             {
-                if (ex is IOException && ex.InnerException is SocketException)
+                if (ex is IOException)
                 {
-                    OnError((SocketException)ex.InnerException);
+                    if (ex.InnerException is SocketException)
+                    {
+                        OnError((SocketException) ex.InnerException);
+                    }
+                    else
+                    {
+                        // ObjectDisposedException and others: we can consider is not connected
+                        OnError(null, SocketError.NotConnected);
+                    }
                 }
                 else
                 {
@@ -431,6 +478,17 @@ namespace Cassandra
                 {
                     isWritePending = _socket.SendAsync(_sendSocketEvent);
                 }
+                catch (ObjectDisposedException)
+                {
+                    OnError(null, SocketError.NotConnected);
+                }
+                catch (NullReferenceException)
+                {
+                    // Mono can throw a NRE when being disposed concurrently
+                    // https://github.com/mono/mono/blob/b190f213a364a2793cc573e1bd9fae8be72296e4/mcs/class/System/System.Net.Sockets/SocketAsyncEventArgs.cs#L184-L185
+                    // https://github.com/mono/mono/blob/b190f213a364a2793cc573e1bd9fae8be72296e4/mcs/class/System/System.Net.Sockets/Socket.cs#L2477-L2478
+                    OnError(null, SocketError.NotConnected);
+                }
                 catch (Exception ex)
                 {
                     OnError(ex);
@@ -443,7 +501,29 @@ namespace Cassandra
             else
             {
                 var length = (int) stream.Length;
-                _socketStream.BeginWrite(stream.GetBuffer(), 0, length, OnSendStreamCallback, null);
+                try
+                {
+                    _socketStream.BeginWrite(stream.GetBuffer(), 0, length, OnSendStreamCallback, null);
+                }
+                catch (IOException ex)
+                {
+                    if (ex.InnerException is SocketException)
+                    {
+                        OnError((SocketException)ex.InnerException);
+                        return;
+                    }
+                    // Wrapped ObjectDisposedException and others: we can consider is not connected
+                    OnError(null, SocketError.NotConnected);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Wrapped ObjectDisposedException and others: we can consider is not connected
+                    OnError(null, SocketError.NotConnected);
+                }
+                catch (Exception ex)
+                {
+                    OnError(ex);
+                }
             }
         }
 

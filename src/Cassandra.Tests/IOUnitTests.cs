@@ -71,9 +71,40 @@ namespace Cassandra.Tests
                 TestHelper.ParallelInvoke(actions);
             }, times);
             //Allow callbacks to be called using the default scheduler
-            Thread.Sleep(2000);
+            Thread.Sleep(1000);
             Assert.AreEqual(times, clientCallbackCounter);
             Assert.AreEqual(expectedTimedout, timedOutReceived);
+        }
+
+        [Test]
+        public void OperationState_Can_Concurrently_Get_Calls_To_SetCompleted()
+        {
+            var counter = 0;
+            var clientCallbackCounter = 0L;
+            const int times = 40;
+            TestHelper.Invoke(() =>
+            {
+                Action<Exception, Response> clientCallback = (ex, r) =>
+                {
+                    // ReSharper disable once AccessToModifiedClosure
+                    Interlocked.Increment(ref clientCallbackCounter);
+                };
+                var state = new OperationState(clientCallback);
+                var actions = Enumerable.Repeat<Action>(() =>
+                {
+                    var cb = state.SetCompleted();
+                    cb(null, null);
+                }, 2);
+                if ((counter++) % 2 == 0)
+                {
+                    //invert order
+                    actions = actions.Reverse();
+                }
+                TestHelper.ParallelInvoke(actions.ToArray());
+            }, times);
+            //Allow callbacks to be called using the default scheduler
+            Thread.Sleep(1000);
+            Assert.AreEqual(times, Interlocked.Read(ref clientCallbackCounter));
         }
 
         [Test]

@@ -66,6 +66,7 @@
     <Compile Include="Core\ControlConnectionReconnectionTests.cs" />
     <Compile Include="Core\ControlConnectionTests.cs" />
     <Compile Include="Core\CustomPayloadTests.cs" />
+    <Compile Include="Core\PoolShortTests.cs" />
     <Compile Include="Core\ReconnectionTests.cs" />
     <Compile Include="Core\SchemaMetadataTests.cs" />
     <Compile Include="Core\TypeSerializersTests.cs" />

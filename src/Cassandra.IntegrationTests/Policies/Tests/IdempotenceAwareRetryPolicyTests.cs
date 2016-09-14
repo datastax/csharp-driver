@@ -10,7 +10,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Policies.Tests
 {
-    [TestFixture]
+    [TestFixture, Category("short")]
     public class IdempotenceAwareRetryPolicyTests : TestGlobals
     {
 
