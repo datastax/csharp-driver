@@ -432,7 +432,7 @@ namespace Cassandra.Mapping.Statements
 
         private static string WrapFrozen(bool condition, string typeName)
         {
-            if (condition)
+            if (condition && !typeName.StartsWith("frozen"))
             {
                 return "frozen<" + typeName + ">";
             }
