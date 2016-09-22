@@ -24,7 +24,7 @@
         <dependencies>
             <dependency id="lz4net" version="1.0.5.93" />
             <dependency id="CassandraCSharpDriver" version="[3.0.7,4)" />
-            <dependency id="Newtonsoft.Json" version="[8.0.0,9)" />
+            <dependency id="Newtonsoft.Json" version="[8.0.0,10)" />
         </dependencies>
     </metadata>
     <files>

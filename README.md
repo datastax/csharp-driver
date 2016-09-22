@@ -41,8 +41,8 @@ using Dse;
 
 ```csharp
 IDseCluster cluster = DseCluster.Builder()
-                               .AddContactPoint("127.0.0.1")
-                               .Build();
+                                .AddContactPoint("127.0.0.1")
+                                .Build();
 IDseSession session = cluster.Connect();
 Row row = session.Execute("select * from system.local").First();
 Console.WriteLine(row.GetValue<string>("cluster_name"));
