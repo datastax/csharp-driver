@@ -5,6 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
@@ -208,6 +209,29 @@ namespace Dse.Test.Integration.Graph
                     Assert.True(citizenship.Contains(countryName.ToString()));
                 }
 
+            }
+        }
+
+        [Test]
+        public void Should_Support_Dictionary_As_Parameter()
+        {
+            using (var cluster = DseCluster.Builder()
+                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .WithGraphOptions(new GraphOptions().SetName(GraphName))
+                .Build())
+            {
+                var session = cluster.Connect();
+                var parameter = new Dictionary<string, object>();
+                parameter.Add("namedParam", "marko");
+                var rs = session.ExecuteGraph(new SimpleGraphStatement(parameter, "g.V().has('name', namedParam)"));
+
+                Assert.NotNull(rs);
+                var resultArray = rs.ToArray();
+                Assert.AreEqual(1, resultArray.Length);
+                var vertex = resultArray[0].ToVertex();
+                Assert.NotNull(vertex);
+                Assert.AreEqual("person", vertex.Label);
+                Assert.AreEqual("marko", vertex.Properties["name"].ToArray()[0].Get<string>("value"));
             }
         }
 
