@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -85,7 +85,9 @@ namespace Cassandra
         // ReSharper enable InconsistentNaming
         private Serializer _serializer;
         internal static TypeConverter TypeConverter = new DefaultTypeConverter();
-        public const BindingFlags PropertyFlags = BindingFlags.FlattenHierarchy | BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
+
+        public const BindingFlags PropertyFlags =
+            BindingFlags.FlattenHierarchy | BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
 
         protected internal Type NetType { get; protected set; }
 
@@ -275,8 +277,7 @@ namespace Cassandra
                 }
                 if (!prop.PropertyType.IsAssignableFrom(fieldTargetType))
                 {
-                    values[i] = TypeConverter.ConvertToUdtFieldFromDbValue(
-                        fieldTargetType, prop.PropertyType, values[i]);
+                    values[i] = TypeConverter.ConvertToUdtFieldFromDbValue(fieldTargetType, prop.PropertyType, values[i]);
                 }
                 prop.SetValue(obj, values[i], null);
             }

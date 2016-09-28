@@ -109,7 +109,7 @@ namespace Cassandra.Serialization
                 if (prop != null)
                 {
                     fieldValue = prop.GetValue(value, null);
-                    if (!prop.PropertyType.IsAssignableFrom(fieldTargetType))
+                    if (!fieldTargetType.IsAssignableFrom(prop.PropertyType))
                     {
                         fieldValue = UdtMap.TypeConverter.ConvertToDbFromUdtFieldValue(prop.PropertyType,
                                                fieldTargetType,

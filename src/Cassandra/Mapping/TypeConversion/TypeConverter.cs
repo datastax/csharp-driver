@@ -66,10 +66,10 @@ namespace Cassandra.Mapping.TypeConversion
         /// </summary>
         internal object ConvertToDbFromUdtFieldValue(Type valueType, Type dbType, object value)
         {
-            var converter = GetToDbConverter(dbType, valueType);
+            var converter = GetToDbConverter(valueType, dbType);
             if (converter == null)
             {
-                throw new InvalidTypeException(string.Format("Type {0} is not convertible to type {1}", valueType, dbType));
+                throw new InvalidTypeException(string.Format("No converter is available from Type {0} is not convertible to type {1}", valueType, dbType));
             }
 
             return converter.DynamicInvoke(value);
@@ -83,7 +83,7 @@ namespace Cassandra.Mapping.TypeConversion
             var converter = GetFromDbConverter(dbType, valueType);
             if (converter == null)
             {
-                throw new InvalidTypeException(string.Format("Type {0} is not convertible to type {1}", dbType, valueType));
+                throw new InvalidTypeException(string.Format("No converter is available from Type {0} is not convertible to type {1}", dbType, valueType));
             }
 
             return converter.DynamicInvoke(value);
