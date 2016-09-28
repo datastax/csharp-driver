@@ -105,9 +105,16 @@ namespace Cassandra.Serialization
             {
                 object fieldValue = null;
                 var prop = map.GetPropertyForUdtField(field.Name);
+                var fieldTargetType = GetClrType(field.TypeCode, field.TypeInfo);
                 if (prop != null)
                 {
                     fieldValue = prop.GetValue(value, null);
+                    if (!fieldTargetType.IsAssignableFrom(prop.PropertyType))
+                    {
+                        fieldValue = UdtMap.TypeConverter.ConvertToDbFromUdtFieldValue(prop.PropertyType,
+                                               fieldTargetType,
+                                               fieldValue);
+                    }
                 }
                 var itemBuffer = SerializeChild(fieldValue);
                 bufferList.Add(itemBuffer);

@@ -240,6 +240,7 @@ namespace Cassandra.Serialization
                     return ColumnTypeCode.Tuple;
                 }
             }
+
             //Determine if its a Udt type
             var udtMap = _udtSerializer.GetUdtMap(type);
             if (udtMap != null)
