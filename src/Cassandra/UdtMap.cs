@@ -19,8 +19,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-﻿using Cassandra.Mapping.TypeConversion;
-﻿using Cassandra.Serialization;
+using Cassandra.Mapping.TypeConversion;
+using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -84,9 +84,8 @@ namespace Cassandra
         protected readonly Dictionary<PropertyInfo, string> _propertyToFieldName;
         // ReSharper enable InconsistentNaming
         private Serializer _serializer;
+        internal static TypeConverter TypeConverter = new DefaultTypeConverter();
         public const BindingFlags PropertyFlags = BindingFlags.FlattenHierarchy | BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
-
-        public TypeConverter TypeConverter { get; private set; }
 
         protected internal Type NetType { get; protected set; }
 
@@ -108,7 +107,6 @@ namespace Cassandra
 
             _fieldNameToProperty = new Dictionary<string, PropertyInfo>();
             _propertyToFieldName = new Dictionary<PropertyInfo, string>();
-            TypeConverter = new DefaultTypeConverter();
         }
 
         internal void SetSerializer(Serializer serializer)
@@ -270,11 +268,17 @@ namespace Cassandra
             {
                 var field = Definition.Fields[i];
                 var prop = GetPropertyForUdtField(field.Name);
+                var fieldTargetType = _serializer.GetClrType(field.TypeCode, field.TypeInfo);
                 if (prop == null)
                 {
                     continue;
                 }
-                prop.SetValue(obj, TypeConverter.ConvertDbValue(_serializer.GetClrType(field.TypeCode, field.TypeInfo), prop.PropertyType, values[i]), null);
+                if (!prop.PropertyType.IsAssignableFrom(fieldTargetType))
+                {
+                    values[i] = TypeConverter.ConvertToUdtFieldFromDbValue(
+                        fieldTargetType, prop.PropertyType, values[i]);
+                }
+                prop.SetValue(obj, values[i], null);
             }
             return obj;
         }

@@ -16,7 +16,6 @@
 
 ﻿using System;
 using System.Collections.Concurrent;
-﻿using Cassandra.Mapping.Statements;
 ﻿using Cassandra.Serialization;
 
 namespace Cassandra
@@ -67,32 +66,6 @@ namespace Cassandra
                 _serializer.SetUdtMap(udtDefition.Name, map);
                 _udtByNetType.AddOrUpdate(map.NetType, map, (k, oldValue) => map);
             }
-        }
-
-        public void CreateAndDefine(params UdtMap[] udtMaps)
-        {
-            foreach (var map in udtMaps)
-            {
-                Create(map, false);
-                Define(map);
-            }
-        }
-
-        public void CreateIfNotExistsAndDefine(params UdtMap[] udtMaps)
-        {
-            foreach (var map in udtMaps)
-            {
-                Create(map, true);
-                Define(map);
-            }
-        }
-
-        private void Create(UdtMap map, bool ifNotExists)
-        {
-            _session.Execute(
-                CqlGenerator.GetCreateUserDefinedType(_serializer, map.NetType,
-                    UdtMap.PropertyFlags,
-                    map.UdtName, ifNotExists));
         }
 
         /// <summary>

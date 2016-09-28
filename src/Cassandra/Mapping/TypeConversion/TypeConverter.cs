@@ -61,37 +61,29 @@ namespace Cassandra.Mapping.TypeConversion
             return converter(value);
         }
 
-        internal object ConvertObjectValue(Type valueType, Type dbType, object value)
+        /// <summary>
+        /// Converts a UDT field value (POCO) to to a destination type value for storage in C*.
+        /// </summary>
+        internal object ConvertToDbFromUdtFieldValue(Type valueType, Type dbType, object value)
         {
-            var converter = GetToDbConverter(valueType, dbType);
+            var converter = GetToDbConverter(dbType, valueType);
             if (converter == null)
             {
-                try
-                {
-                    return Convert.ChangeType(value, dbType);
-                }
-                catch (Exception)
-                {
-                    return value;
-                }
+                throw new InvalidTypeException(string.Format("Type {0} is not convertible to type {1}", valueType, dbType));
             }
 
             return converter.DynamicInvoke(value);
         }
 
-        internal object ConvertDbValue(Type dbType, Type valueType, object value)
+        /// <summary>
+        /// Converts a source type value from the database to a destination type value on a POCO.
+        /// </summary>
+        internal object ConvertToUdtFieldFromDbValue(Type dbType, Type valueType, object value)
         {
             var converter = GetFromDbConverter(dbType, valueType);
             if (converter == null)
             {
-                try
-                {
-                    return Convert.ChangeType(value, valueType);
-                }
-                catch (Exception)
-                {
-                    return value;
-                }
+                throw new InvalidTypeException(string.Format("Type {0} is not convertible to type {1}", dbType, valueType));
             }
 
             return converter.DynamicInvoke(value);

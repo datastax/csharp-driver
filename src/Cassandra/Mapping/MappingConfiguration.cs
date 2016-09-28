@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using Cassandra.Mapping.Statements;
 using Cassandra.Mapping.TypeConversion;
 using Cassandra.Mapping.Utils;

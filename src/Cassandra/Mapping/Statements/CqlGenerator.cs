@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using Cassandra.Mapping.Utils;
@@ -49,7 +48,18 @@ namespace Cassandra.Mapping.Statements
             // If it's got the from clause, leave FROM intact, otherwise add it
             cql.SetStatement(FromRegex.IsMatch(cql.Statement)
                                  ? string.Format("SELECT {0} {1}", allColumns, cql.Statement)
-                                 : string.Format("SELECT {0} FROM {1} {2}", allColumns, Escape(pocoData.TableName, pocoData), cql.Statement));
+                                 : string.Format("SELECT {0} FROM {1} {2}", allColumns, GetEscapedTableName(pocoData), cql.Statement));
+        }
+
+        private static string GetEscapedTableName(PocoData pocoData)
+        {
+            string name = null;
+            if (!string.IsNullOrEmpty(pocoData.KeyspaceName))
+            {
+                name = Escape(pocoData.KeyspaceName, pocoData) + ".";
+            }
+            name += Escape(pocoData.TableName, pocoData);
+            return name;
         }
 
         /// <summary>
@@ -142,7 +152,7 @@ namespace Cassandra.Mapping.Statements
             }
             var queryBuilder = new StringBuilder();
             queryBuilder.Append("INSERT INTO ");
-            queryBuilder.Append(tableName ?? Escape(pocoData.TableName, pocoData));
+            queryBuilder.Append(tableName ?? GetEscapedTableName(pocoData));
             queryBuilder.Append(" (");
             queryBuilder.Append(columns);
             queryBuilder.Append(") VALUES (");
@@ -192,7 +202,7 @@ namespace Cassandra.Mapping.Statements
 
             var nonPkColumns = pocoData.GetNonPrimaryKeyColumns().Select(Escape(pocoData, "{0} = ?")).ToCommaDelimitedString();
             var pkColumns = string.Join(" AND ", pocoData.GetPrimaryKeyColumns().Select(Escape(pocoData, "{0} = ?")));
-            return string.Format("UPDATE {0} SET {1} WHERE {2}", Escape(pocoData.TableName, pocoData), nonPkColumns, pkColumns);
+            return string.Format("UPDATE {0} SET {1} WHERE {2}", GetEscapedTableName(pocoData), nonPkColumns, pkColumns);
         }
 
         /// <summary>
@@ -201,7 +211,7 @@ namespace Cassandra.Mapping.Statements
         public void PrependUpdate<T>(Cql cql)
         {
             var pocoData = _pocoDataFactory.GetPocoData<T>();
-            cql.SetStatement(string.Format("UPDATE {0} {1}", Escape(pocoData.TableName, pocoData), cql.Statement));
+            cql.SetStatement(string.Format("UPDATE {0} {1}", GetEscapedTableName(pocoData), cql.Statement));
         }
 
         /// <summary>
@@ -223,7 +233,7 @@ namespace Cassandra.Mapping.Statements
             }
 
             var pkColumns = String.Join(" AND ", pocoData.GetPrimaryKeyColumns().Select(Escape(pocoData, "{0} = ?")));
-            return string.Format("DELETE FROM {0} WHERE {1}", Escape(pocoData.TableName, pocoData), pkColumns);
+            return string.Format("DELETE FROM {0} WHERE {1}", GetEscapedTableName(pocoData), pkColumns);
         }
 
         /// <summary>
@@ -248,14 +258,6 @@ namespace Cassandra.Mapping.Statements
             {
                 return typeName + " static";
             }
-            return typeName;
-        }
-
-        private static string GetTypeString(Serializer serializer, Type netType)
-        {
-            IColumnInfo typeInfo;
-            var typeCode = serializer.GetCqlType(netType, out typeInfo);
-            var typeName = GetTypeString(null, typeCode, typeInfo);
             return typeName;
         }
 
@@ -347,36 +349,6 @@ namespace Cassandra.Mapping.Statements
             return commands;
         }
 
-        /// <summary>
-        /// Gets the CQL query involved in an UDT creation (CREATE TYPE)
-        /// </summary>
-        public static string GetCreateUserDefinedType(Serializer serializer, Type netType, BindingFlags propertyFlags, string typeName, bool ifNotExists)
-        {
-            if (netType == null)
-            {
-                throw new ArgumentNullException("netType");
-            }
-
-            var createType = new StringBuilder("CREATE TYPE " + (ifNotExists ? "IF NOT EXISTS " : ""));
-
-            createType.Append(typeName);
-            createType.Append(" (");
-            foreach (var propertyInfo in netType.GetProperties(propertyFlags))
-            {
-                var propertyName = propertyInfo.Name;
-                createType
-                    .Append(propertyName)
-                    .Append(" ");
-                var propertyType = GetTypeString(serializer, propertyInfo.PropertyType);
-                createType
-                    .Append(propertyType);
-                createType
-                    .Append(", ");
-            }
-            createType.Append(")");
-            return createType.ToString();
-        }
-
         private static string GetTypeString(PocoColumn column, ColumnTypeCode typeCode, IColumnInfo typeInfo)
         {
             if (typeInfo == null)
@@ -427,12 +399,12 @@ namespace Cassandra.Mapping.Statements
             {
                 throw new NotSupportedException(string.Format("Type {0} is not supported", typeCode));
             }
-            return WrapFrozen((column != null && column.IsFrozen) || (column == null && typeInfo is UdtColumnInfo), typeName);
+            return WrapFrozen(column != null && column.IsFrozen, typeName);
         }
 
         private static string WrapFrozen(bool condition, string typeName)
         {
-            if (condition && !typeName.StartsWith("frozen"))
+            if (condition)
             {
                 return "frozen<" + typeName + ">";
             }
