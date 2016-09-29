@@ -1,5 +1,16 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.0.9
+
+2016-09-29
+
+### Bug Fixes
+
+- [CSHARP-483] - Request timeout but driver log and net-trace shows the server responds promptly
+- [CSHARP-492] - Mapper: Include keyspace name when defined in mappings
+- [CSHARP-493] - Connection: Reading while cancelling all in-flight requests can result in NullReferenceException
+- [CSHARP-500] - Concurrent calls to OperationState.SetCompleted() can result in deadlock
+
 ## 3.0.8
 
 2016-08-04
