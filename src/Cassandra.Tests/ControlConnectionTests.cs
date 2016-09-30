@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+#if !NETCORE
 using Moq;
+#endif
 using NUnit.Framework;
 
 namespace Cassandra.Tests
@@ -13,20 +15,6 @@ namespace Cassandra.Tests
         public ControlConnectionTests()
         {
             Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Info;
-        }
-
-        private ICluster GetCluster(Configuration config)
-        {
-            var clusterMock = new Mock<ICluster>(MockBehavior.Strict);
-            clusterMock
-                .SetupGet(c => c.Configuration)
-                .Returns(config);
-            return clusterMock.Object;
-        }
-
-        private ICluster GetCluster()
-        {
-            return GetCluster(new Configuration());
         }
 
         private ControlConnection NewInstance(Configuration config, Metadata metadata)
@@ -101,6 +89,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(1, metadata.AllHosts().Count);
         }
 
+#if !NETCORE
         [Test]
         public void UpdatePeersInfoUsesAddressTranslator()
         {
@@ -139,5 +128,6 @@ namespace Cassandra.Tests
             Assert.AreEqual(hostAddress3, invokedEndPoints[1].Address);
             Assert.AreEqual(portNumber, invokedEndPoints[1].Port);
         }
+#endif
     }
 }

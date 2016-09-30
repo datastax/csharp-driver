@@ -13,10 +13,21 @@ platform:
 configuration:
   - Release
 environment:
-  NUNIT_PATH: nunit-console
+  NUNIT_PATH: nunit3-console
   matrix:
-    - CASSANDRA_VERSION: 3.0.9
-    - CASSANDRA_VERSION: 2.2.7
+    - TARGET: net452
+      CI_TYPE: UNIT
+    - TARGET: netcoreapp1.0
+      CI_TYPE: UNIT
+    - TARGET: net452
+      CASSANDRA_VERSION: 3.0.9
+      CI_TYPE: INTEGRATION
+    - TARGET: netcoreapp1.0
+      CASSANDRA_VERSION: 3.0.9
+      CI_TYPE: INTEGRATION
+    - TARGET: net452
+      CASSANDRA_VERSION: 2.2.7
+      CI_TYPE: INTEGRATION
 
 install:
   - ps: .\appveyor_install.ps1
@@ -34,6 +45,19 @@ test:
     except:
       - long
       - duration
+
+test_script:
+  - dotnet restore
+  - IF "%CI_TYPE%" == "UNIT" dotnet test src\Cassandra.Tests -c Release -f %TARGET% --result=TestResult.xml
+  - IF "%CI_TYPE%" == "INTEGRATION" dotnet test src\Cassandra.IntegrationTests -c Release -f %TARGET% --where "cat=short" --result=TestResult.xml
+
+after_test:
+  - ps: >-
+      if($true)
+      {
+        $wc = New-Object 'System.Net.WebClient'
+        $wc.UploadFile("https://ci.appveyor.com/api/testresults/nunit3/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\TestResult.xml))
+      }
 
 on_failure:
   - ps: >-

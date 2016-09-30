@@ -135,19 +135,14 @@ namespace Cassandra.Data.Linq
             return (Table as ITable);
         }
 
-        public Task<RowSet> ExecuteAsync()
+        public async Task<RowSet> ExecuteAsync()
         {
             object[] values;
             var cqlQuery = GetCql(out values);
             var session = GetTable().GetSession();
-            return _statementFactory
-                .GetStatementAsync(session, Cql.New(cqlQuery, values))
-                .Continue(t1 =>
-                {
-                    var stmt = t1.Result;
-                    this.CopyQueryPropertiesTo(stmt);
-                    return session.ExecuteAsync(stmt);
-                }).Unwrap();
+            var stmt = await _statementFactory.GetStatementAsync(session, Cql.New(cqlQuery, values)).ConfigureAwait(false);
+            this.CopyQueryPropertiesTo(stmt);
+            return await session.ExecuteAsync(stmt).ConfigureAwait(false);
         }
 
         /// <summary>

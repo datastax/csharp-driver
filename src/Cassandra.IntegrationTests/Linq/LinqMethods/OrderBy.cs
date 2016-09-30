@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
@@ -18,9 +19,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
         private Table<Movie> _movieTable;
 
-        protected override void TestFixtureSetUp()
+        public override void OneTimeSetUp()
         {
-            base.TestFixtureSetUp();
+            base.OneTimeSetUp();
             _session = Session;
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
@@ -82,23 +83,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         [Test]
         public void LinqOrderBy_Unrestricted_Async()
         {
-            try
-            {
-                _movieTable.OrderBy(m => m.MainActor).ExecuteAsync().Wait();
-                Assert.Fail("Expected Exception was not thrown!");
-            }
-            catch (Exception e) // Exception is gathered from the async task
-            {
-                string expectedException = "ORDER BY is only supported when the partition key is restricted by an EQ or an IN.";
-                int maxLayers = 50;
-                int layersChecked = 0;
-                while (layersChecked < maxLayers && !e.InnerException.Message.Contains(expectedException))
-                {
-                    layersChecked++;
-                    e = e.InnerException;
-                }
-                Assert.AreEqual(expectedException, e.InnerException.Message);
-            }
+            var ex = Assert.ThrowsAsync<InvalidQueryException>(
+                async () => await _movieTable.OrderBy(m => m.MainActor).ExecuteAsync());
+            const string expectedException = "ORDER BY is only supported when the partition key is restricted by an EQ or an IN.";
+            Assert.AreEqual(expectedException, ex.Message);
         }
 
 

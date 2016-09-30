@@ -44,7 +44,7 @@ namespace Cassandra
         private static readonly Logger Logger = new Logger(typeof(Connection));
         private readonly Serializer _serializer;
         private readonly TcpSocket _tcpSocket;
-        private int _disposed;
+        private long _disposed;
         /// <summary>
         /// Determines that the connection canceled pending operations.
         /// It could be because its being closed or there was a socket error.
@@ -52,7 +52,7 @@ namespace Cassandra
         private volatile bool _isCanceled;
         private readonly Timer _idleTimer;
         private AutoResetEvent _pendingWaitHandle;
-        private int _timedOutOperations;
+        private long _timedOutOperations;
         /// <summary>
         /// Stores the available stream ids.
         /// </summary>
@@ -72,7 +72,7 @@ namespace Cassandra
         private volatile byte _frameHeaderSize;
         private MemoryStream _readStream;
         private int _writeState = WriteStateInit;
-        private int _inFlight;
+        private long _inFlight;
         /// <summary>
         /// The event that represents a event RESPONSE from a Cassandra node
         /// </summary>
@@ -100,7 +100,7 @@ namespace Cassandra
         /// </summary>
         public virtual int InFlight
         { 
-            get { return Thread.VolatileRead(ref _inFlight); }
+            get { return (int)Interlocked.Read(ref _inFlight); }
         }
 
         /// <summary>
@@ -108,7 +108,7 @@ namespace Cassandra
         /// </summary>
         public virtual int TimedOutOperations
         {
-            get { return Thread.VolatileRead(ref _timedOutOperations); }
+            get { return (int)Interlocked.Read(ref _timedOutOperations); }
         }
 
         /// <summary>
@@ -125,7 +125,7 @@ namespace Cassandra
         /// </summary>
         public bool IsDisposed
         {
-            get { return Thread.VolatileRead(ref _disposed) > 0; }
+            get { return Interlocked.Read(ref _disposed) > 0L; }
         }
 
         /// <summary>
@@ -272,7 +272,7 @@ namespace Cassandra
             var wasClosed = Interlocked.Exchange(ref _writeState, WriteStateClosed) == WriteStateClosed;
             if (!wasClosed)
             {
-                Logger.Info("Canceling in Connection {0}, {1} pending operations and write queue {2}", Address, Thread.VolatileRead(ref _inFlight), _writeQueue.Count);
+                Logger.Info("Canceling in Connection {0}, {1} pending operations and write queue {2}", Address, Interlocked.Read(ref _inFlight), _writeQueue.Count);
                 if (socketError != null)
                 {
                     Logger.Verbose("The socket status received was {0}", socketError.Value);
@@ -300,7 +300,7 @@ namespace Cassandra
             // Remove every pending operation
             while (!_pendingOperations.IsEmpty)
             {
-                Thread.MemoryBarrier();
+                Interlocked.MemoryBarrier();
                 // Remove using a snapshot of the keys
                 var keys = _pendingOperations.Keys.ToArray();
                 foreach (var key in keys)
@@ -311,7 +311,7 @@ namespace Cassandra
                     }
                 }
             }
-            Thread.MemoryBarrier();
+            Interlocked.MemoryBarrier();
             OperationState.CallbackMultiple(ops, ex);
             Interlocked.Exchange(ref _inFlight, 0);
             if (_pendingWaitHandle != null)
@@ -333,7 +333,7 @@ namespace Cassandra
             var readStream = Interlocked.Exchange(ref _readStream, null);
             if (readStream != null)
             {
-                readStream.Close();
+                readStream.Dispose();
             }
         }
 
@@ -406,7 +406,11 @@ namespace Cassandra
             }
             else if (Options.Compression == CompressionType.LZ4)
             {
+#if !NETCORE
                 Compressor = new LZ4Compressor();
+#else
+                return TaskHelper.FromException<Response>(new NotSupportedException("Lz4 compression not supported under .NETCore"));
+#endif
             }
             else if (Options.Compression == CompressionType.Snappy)
             {
@@ -971,3 +975,4 @@ namespace Cassandra
         }
     }
 }
+

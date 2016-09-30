@@ -19,6 +19,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Reflection;
 
 namespace Cassandra.Serialization
 {
@@ -177,23 +178,23 @@ namespace Cassandra.Serialization
                 };
                 return ColumnTypeCode.List;
             }
-            if (type.IsGenericType)
+            if (type.GetTypeInfo().IsGenericType)
             {
                 if (type.GetGenericTypeDefinition() == typeof(Nullable<>))
                 {
-                    return GetCqlType(type.GetGenericArguments()[0], out typeInfo);
+                    return GetCqlType(type.GetTypeInfo().GetGenericArguments()[0], out typeInfo);
                 }
-                if (typeof(IEnumerable).IsAssignableFrom(type))
+                if (typeof(IEnumerable).GetTypeInfo().IsAssignableFrom(type))
                 {
                     IColumnInfo valueTypeInfo;
                     ColumnTypeCode valueTypeCode;
-                    var interfaces = type.GetInterfaces();
-                    if (typeof(IDictionary).IsAssignableFrom(type) && 
-                        interfaces.Any(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IDictionary<,>)))
+                    var interfaces = type.GetTypeInfo().GetInterfaces();
+                    if (typeof(IDictionary).GetTypeInfo().IsAssignableFrom(type) && 
+                        interfaces.Any(t => t.GetTypeInfo().IsGenericType && t.GetGenericTypeDefinition() == typeof(IDictionary<,>)))
                     {
                         IColumnInfo keyTypeInfo;
-                        var keyTypeCode = GetCqlType(type.GetGenericArguments()[0], out keyTypeInfo);
-                        valueTypeCode = GetCqlType(type.GetGenericArguments()[1], out valueTypeInfo);
+                        var keyTypeCode = GetCqlType(type.GetTypeInfo().GetGenericArguments()[0], out keyTypeInfo);
+                        valueTypeCode = GetCqlType(type.GetTypeInfo().GetGenericArguments()[1], out valueTypeInfo);
                         typeInfo = new MapColumnInfo
                         {
                             KeyTypeCode = keyTypeCode,
@@ -203,10 +204,10 @@ namespace Cassandra.Serialization
                         };
                         return ColumnTypeCode.Map;
                     }
-                    if (interfaces.Any(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(ISet<>)))
+                    if (interfaces.Any(t => t.GetTypeInfo().IsGenericType && t.GetGenericTypeDefinition() == typeof(ISet<>)))
                     {
                         IColumnInfo keyTypeInfo;
-                        var keyTypeCode = GetCqlType(type.GetGenericArguments()[0], out keyTypeInfo);
+                        var keyTypeCode = GetCqlType(type.GetTypeInfo().GetGenericArguments()[0], out keyTypeInfo);
                         typeInfo = new SetColumnInfo
                         {
                             KeyTypeCode = keyTypeCode,
@@ -214,7 +215,7 @@ namespace Cassandra.Serialization
                         };
                         return ColumnTypeCode.Set;
                     }
-                    valueTypeCode = GetCqlType(type.GetGenericArguments()[0], out valueTypeInfo);
+                    valueTypeCode = GetCqlType(type.GetTypeInfo().GetGenericArguments()[0], out valueTypeInfo);
                     typeInfo = new ListColumnInfo
                     {
                         ValueTypeCode = valueTypeCode,
@@ -222,11 +223,11 @@ namespace Cassandra.Serialization
                     };
                     return ColumnTypeCode.List;
                 }
-                if (typeof(IStructuralComparable).IsAssignableFrom(type) && type.FullName.StartsWith("System.Tuple"))
+                if (typeof(IStructuralComparable).GetTypeInfo().IsAssignableFrom(type) && type.FullName.StartsWith("System.Tuple"))
                 {
                     typeInfo = new TupleColumnInfo
                     {
-                        Elements = type.GetGenericArguments().Select(t =>
+                        Elements = type.GetTypeInfo().GetGenericArguments().Select(t =>
                         {
                             IColumnInfo tupleSubTypeInfo;
                             var dataType = new ColumnDesc
@@ -374,15 +375,15 @@ namespace Cassandra.Serialization
             {
                 return typeSerializer.Serialize(_protocolVersion, value);
             }
-            if (typeof(IEnumerable).IsAssignableFrom(type))
+            if (typeof(IEnumerable).GetTypeInfo().IsAssignableFrom(type))
             {
-                if (typeof(IDictionary).IsAssignableFrom(type))
+                if (typeof(IDictionary).GetTypeInfo().IsAssignableFrom(type))
                 {
                     return _dictionarySerializer.Serialize(_protocolVersion, (IDictionary)value);
                 }
                 return _collectionSerializer.Serialize(_protocolVersion, (IEnumerable)value);
             }
-            if (typeof(IStructuralComparable).IsAssignableFrom(type) && type.FullName.StartsWith("System.Tuple"))
+            if (typeof(IStructuralComparable).GetTypeInfo().IsAssignableFrom(type) && type.FullName.StartsWith("System.Tuple"))
             {
                 return _tupleSerializer.Serialize(_protocolVersion, (IStructuralEquatable) value);
             }

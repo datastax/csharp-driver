@@ -23,27 +23,26 @@ namespace Cassandra.Mapping.Statements
             _statementCache = new ConcurrentDictionary<string, Task<PreparedStatement>>();
         }
 
-        public Task<Statement> GetStatementAsync(ISession session, Cql cql)
+        public async Task<Statement> GetStatementAsync(ISession session, Cql cql)
         {
             if (cql.QueryOptions.NoPrepare)
             {
                 // Use a SimpleStatement if we're not supposed to prepare
-                Statement statement = new SimpleStatement(cql.Statement, cql.Arguments);
+                var statement = new SimpleStatement(cql.Statement, cql.Arguments);
                 SetStatementProperties(statement, cql);
-                return TaskHelper.ToTask(statement);
+                return statement;
             }
-            return _statementCache
-                .GetOrAdd(cql.Statement, session.PrepareAsync)
-                .Continue(t =>
-                {
-                    if (_statementCache.Count > MaxPreparedStatementsThreshold)
-                    {
-                        Logger.Warning(String.Format("The prepared statement cache contains {0} queries. Use parameter markers for queries. You can configure this warning threshold using MappingConfiguration.SetMaxStatementPreparedThreshold() method.", _statementCache.Count));
-                    }
-                    Statement boundStatement = t.Result.Bind(cql.Arguments);
-                    SetStatementProperties(boundStatement, cql);
-                    return boundStatement;
-                });
+            var ps = await _statementCache.GetOrAdd(cql.Statement, session.PrepareAsync).ConfigureAwait(false);
+            if (_statementCache.Count > MaxPreparedStatementsThreshold)
+            {
+                Logger.Warning(string.Format("The prepared statement cache contains {0} queries. Use parameter" +
+                                             "markers for queries. You can configure this warning threshold using" +
+                                             " MappingConfiguration.SetMaxStatementPreparedThreshold() method.", 
+                                             _statementCache.Count));
+            }
+            var boundStatement = ps.Bind(cql.Arguments);
+            SetStatementProperties(boundStatement, cql);
+            return boundStatement;
         }
 
         private void SetStatementProperties(IStatement stmt, Cql cql)

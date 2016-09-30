@@ -15,9 +15,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         private ISession _session;
         private Table<Movie> _movieTable;
 
-        protected override void TestFixtureSetUp()
+        public override void OneTimeSetUp()
         {
-            base.TestFixtureSetUp();
+            base.OneTimeSetUp();
             _session = Session;
             var uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(uniqueKsName);

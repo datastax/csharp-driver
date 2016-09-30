@@ -124,23 +124,6 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void TaskHelper_Continue_Does_Not_Call_Synchonization_Post()
-        {
-            var ctxt = new LockSynchronisationContext();
-            SynchronizationContext.SetSynchronizationContext(ctxt);
-            var task = TestHelper.DelayedTask(new RowSet(), 1000);
-            var cTask = task
-                .Continue((rs) => TestHelper.DelayedTask(2, 500).Result)
-                .Continue(s => "last one");
-
-            ctxt.Post(state =>
-            {
-                cTask.Wait(3000);
-                Assert.AreEqual(cTask.Status, TaskStatus.RanToCompletion);
-            }, null);
-        }
-
-        [Test]
         public void BeBinaryWriter_Close_Sets_Frame_Body_Length()
         {
             const int frameLength = 10;

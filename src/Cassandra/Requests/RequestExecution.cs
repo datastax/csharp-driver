@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Responses;
 using Cassandra.Tasks;
+using System.Reflection;
 
 namespace Cassandra.Requests
 {
@@ -283,7 +284,7 @@ namespace Cassandra.Requests
                 case RetryDecision.RetryDecisionType.Ignore:
                     //The error was ignored by the RetryPolicy
                     //Try to give a decent response
-                    if (typeof(T).IsAssignableFrom(typeof(RowSet)))
+                    if (typeof(T).GetTypeInfo().IsAssignableFrom(typeof(RowSet)))
                     {
                         var rs = new RowSet();
                         _parent.SetCompleted(null, FillRowSet(rs, null));

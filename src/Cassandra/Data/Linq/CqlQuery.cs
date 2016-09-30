@@ -108,20 +108,16 @@ namespace Cassandra.Data.Linq
         /// <summary>
         /// Asynchronously executes the query and returns a task of a page of results
         /// </summary>
-        public Task<IPage<TEntity>> ExecutePagedAsync()
+        public async Task<IPage<TEntity>> ExecutePagedAsync()
         {
             SetAutoPage(false);
             var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
             visitor.Evaluate(Expression);
             object[] values;
             var cql = visitor.GetSelect(out values);
-            var adaptation = InternalExecuteAsync(cql, values).Continue(t =>
-            {
-                var rs = t.Result;
-                var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
-                return (IPage<TEntity>) new Page<TEntity>(rs.Select(mapper), PagingState, rs.PagingState);
-            });
-            return adaptation;
+            var rs = await InternalExecuteAsync(cql, values).ConfigureAwait(false);
+            var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
+            return new Page<TEntity>(rs.Select(mapper), PagingState, rs.PagingState);
         }
 
         /// <summary>

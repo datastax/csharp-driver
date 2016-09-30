@@ -78,10 +78,17 @@ namespace Cassandra.Data
             enumerRows = enumRows.GetEnumerator();
         }
 
+#if !NETCORE
         public override void Close()
         {
 
         }
+
+        public override DataTable GetSchemaTable()
+        {
+            throw new NotSupportedException();
+        }
+#endif
 
         /// <inheritdoc />
         public override bool GetBoolean(int ordinal)
@@ -139,7 +146,7 @@ namespace Cassandra.Data
 
         public override IEnumerator GetEnumerator()
         {
-            return new DbEnumerator(this);
+            return new DbEnumerator(this, false);
         }
 
         /// <inheritdoc />
@@ -188,11 +195,6 @@ namespace Cassandra.Data
         public override int GetOrdinal(string name)
         {
             return colidx[name];
-        }
-
-        public override DataTable GetSchemaTable()
-        {
-            throw new NotSupportedException();
         }
 
         public override string GetString(int ordinal)

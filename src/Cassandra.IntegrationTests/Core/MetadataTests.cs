@@ -33,7 +33,7 @@ namespace Cassandra.IntegrationTests.Core
     {
         private const int DefaultNodeCount = 1;
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void FixureSetup()
         {
             Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Info;

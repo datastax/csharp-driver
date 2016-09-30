@@ -16,7 +16,6 @@
 
 using System.Diagnostics;
 using System.Security;
-using System.Security.Permissions;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
@@ -25,6 +24,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
+#if !NETCORE
+using System.Security.Permissions;
+#endif
 using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core
@@ -32,8 +34,6 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture, Category("long")]
     public class ExceptionsTests : TestGlobals
     {
-        private static string _lastKnownInitialContactPoint;
-
         /// <summary>
         ///  Tests the AlreadyExistsException. Create a keyspace twice and a table twice.
         ///  Catch and test all the exception methods.
@@ -325,14 +325,36 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+#if !NETCORE
+        public static AppDomain CreatePartialTrustDomain()
+        {
+            AppDomainSetup setup = new AppDomainSetup() { ApplicationBase = AppDomain.CurrentDomain.BaseDirectory };
+            PermissionSet permissions = new PermissionSet(null);
+            permissions.AddPermission(new SecurityPermission(SecurityPermissionFlag.Execution));
+            permissions.AddPermission(new ReflectionPermission(ReflectionPermissionFlag.RestrictedMemberAccess));
+            permissions.AddPermission(new SocketPermission(PermissionState.Unrestricted));
+            return AppDomain.CreateDomain("Partial Trust AppDomain", null, setup, permissions);
+        }
+        
         [Test]
         public void ExceptionsOnPartialTrust()
         {
-            // we need to make sure at least a single node cluster is available, running locally
-            _lastKnownInitialContactPoint = TestClusterManager.GetNonShareableTestCluster(1).InitialContactPoint;
+            var testCluster = TestClusterManager.CreateNew();
             var appDomain = CreatePartialTrustDomain();
-            appDomain.DoCallBack(PreserveStackTraceOnConnectAndAssert);
+            appDomain.DoCallBack(() => PreserveStackTraceOnConnectAndAssert(testCluster.InitialContactPoint));
         }
+        
+        public static void PreserveStackTraceOnConnectAndAssert(string contactPoint)
+        {
+            var ex = Assert.Throws<SecurityException>(() => Cluster.Builder().AddContactPoint(contactPoint).Build());
+            string stackTrace = ex.StackTrace;
+
+            //Must maintain the original call stack trace
+            StringAssert.Contains("PreserveStackTraceOnConnectAndAssert", stackTrace);
+            StringAssert.Contains("ExceptionsTests", stackTrace);
+            StringAssert.Contains("Cassandra.Utils.ResolveHostByName", stackTrace); // something actually from the Cassandra library
+        }
+#endif
 
         [Test]
         public void RowSetIteratedTwice()
@@ -472,27 +494,6 @@ namespace Cassandra.IntegrationTests.Core
         ///////////////////////
         /// Helper Methods
         ///////////////////////
-
-        public static void PreserveStackTraceOnConnectAndAssert()
-        {
-            var ex = Assert.Throws<SecurityException>(() => Cluster.Builder().AddContactPoint(_lastKnownInitialContactPoint).Build());
-            string stackTrace = ex.StackTrace;
-
-            //Must maintain the original call stack trace
-            StringAssert.Contains("PreserveStackTraceOnConnectAndAssert", stackTrace);
-            StringAssert.Contains("ExceptionsTests", stackTrace);
-            StringAssert.Contains("Cassandra.Utils.ResolveHostByName", stackTrace); // something actually from the Cassandra library
-        }
-
-        public static AppDomain CreatePartialTrustDomain()
-        {
-            AppDomainSetup setup = new AppDomainSetup() { ApplicationBase = AppDomain.CurrentDomain.BaseDirectory };
-            PermissionSet permissions = new PermissionSet(null);
-            permissions.AddPermission(new SecurityPermission(SecurityPermissionFlag.Execution));
-            permissions.AddPermission(new ReflectionPermission(ReflectionPermissionFlag.RestrictedMemberAccess));
-            permissions.AddPermission(new SocketPermission(PermissionState.Unrestricted));
-            return AppDomain.CreateDomain("Partial Trust AppDomain", null, setup, permissions);
-        }
 
         private class WhiteListLoadBalancingPolicy: ILoadBalancingPolicy
         {

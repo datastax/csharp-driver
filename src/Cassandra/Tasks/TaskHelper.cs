@@ -34,7 +34,7 @@ namespace Cassandra.Tasks
                 TaskCompletionSource<bool> tcs = new TaskCompletionSource<bool>();
                 tcs.SetResult(false);
                 CompletedTask = tcs.Task;
-                PreserveStackMethod = typeof(Exception).GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic);
+                PreserveStackMethod = typeof(Exception).GetTypeInfo().GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic);
                 if (PreserveStackMethod == null)
                 {
                     return;
@@ -190,20 +190,6 @@ namespace Cassandra.Tasks
         {
             PreserveStackHandler(ex);
             return ex;
-        }
-
-        /// <summary>
-        /// Smart ContinueWith
-        /// </summary>
-        public static Task<TOut> Continue<TIn, TOut>(this Task<TIn> task, Func<Task<TIn>, TOut> next)
-        {
-            if (!task.IsCompleted)
-            {
-                //Do an actual continuation
-                return task.ContinueWith(innerTask => DoNext(innerTask, next), TaskContinuationOptions.ExecuteSynchronously).Unwrap();
-            }
-            //Use the task result to build the task
-            return DoNext(task, next);
         }
 
         /// <summary>

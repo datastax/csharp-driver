@@ -24,17 +24,17 @@ namespace Cassandra.Tests
     public class ResponseFrameTest
     {
         [Test]
-        [ExpectedException(typeof(ArgumentNullException))]
         public void Ctor_HeaderIsNull_Throws()
         {
-            new Frame(null, new MemoryStream(), new Serializer(4));
+            // ReSharper disable once ObjectCreationAsStatement
+            Assert.Throws<ArgumentNullException>(() => new Frame(null, new MemoryStream(), new Serializer(4)));
         }
 
         [Test]
-        [ExpectedException(typeof(ArgumentNullException))]
         public void Ctor_BodyIsNull_Throws()
         {
-            new Frame(new FrameHeader(), null, new Serializer(4));
+            // ReSharper disable once ObjectCreationAsStatement
+            Assert.Throws<ArgumentNullException>(() => new Frame(new FrameHeader(), null, new Serializer(4)));
         } 
     }
 }

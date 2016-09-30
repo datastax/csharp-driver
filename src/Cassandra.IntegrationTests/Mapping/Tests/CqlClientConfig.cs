@@ -16,9 +16,9 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         private ISession _session;
         string _uniqueKsName;
 
-        protected override void TestFixtureSetUp()
+        public override void OneTimeSetUp()
         {
-            base.TestFixtureSetUp();
+            base.OneTimeSetUp();
             _session = Session;
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(_uniqueKsName);

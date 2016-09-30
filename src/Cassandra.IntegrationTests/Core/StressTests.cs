@@ -32,8 +32,8 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture, Category("long")]
     public class StressTests : TestGlobals
     {
-        [TestFixtureSetUp]
-        public void TestFixtureSetUp()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
             //For different threads
@@ -185,14 +185,19 @@ namespace Cassandra.IntegrationTests.Core
             //Collect all generations
             GC.Collect();
             //Wait 5 seconds for all the connections resources to be freed
-            var timer = new Timer(s =>
+            Timer timer = null;
+            timer = new Timer(s =>
             {
                 GC.Collect();
                 handle.Set();
                 diff = GC.GetTotalMemory(false) - start;
                 Trace.TraceInformation("--End, diff memory: {0}", diff / 1024);
-            });
-            timer.Change(5000, Timeout.Infinite);
+                var t = timer;
+                if (t != null)
+                {
+                    t.Dispose();
+                }
+            }, null, 5000, Timeout.Infinite);
             handle.WaitOne();
             //the end memory usage can not be greater than double the start memory
             //If there is a memory leak, it should be an order of magnitude greater...

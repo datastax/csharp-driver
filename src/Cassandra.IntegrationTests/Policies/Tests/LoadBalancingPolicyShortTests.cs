@@ -21,7 +21,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         public void TwoSessionsConnectedToSameDcUseSeparatePolicyInstances()
         {
             var builder = Cluster.Builder();
-            var testCluster = TestClusterManager.CreateNew(1);
+            var testCluster = TestClusterManager.CreateNew();
 
             using (var cluster1 = builder.WithConnectionString(String.Format("Contact Points={0}1", testCluster.ClusterIpPrefix)).Build())
             using (var cluster2 = builder.WithConnectionString(String.Format("Contact Points={0}2", testCluster.ClusterIpPrefix)).Build())

@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) 2012-2016 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,14 +17,11 @@
 ﻿using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-﻿using Cassandra;
 
 // See the SharedAssemblyInfo.cs file for information shared by all assemblies
-[assembly: AssemblyTitle("Cassandra")]
-[assembly: AssemblyDescription("DataStax .NET Driver for Apache Cassandra")]
-
-// The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("08e7f507-4f8f-4136-92d0-b316b5266afa")]
+[assembly: AssemblyCompany("DataStax")]
+[assembly: AssemblyProduct("DataStax C# Driver for Apache Cassandra")]
+[assembly: ComVisible(false)]
 
 // Make internals visible to the Tests project(s)
 [assembly: InternalsVisibleTo("Cassandra.IntegrationTests, PublicKey=00240000048000009400000006020000002400005253413100040000010001002367a0d2a0b22d308ce0139f644baa0e17ea09bd0d951b5c85f9e6440302d3e0e45f59676a4f31c970ff534c65ff7746184a95d538933d10115bfaf2eaa89332f0ab72bb9d5d1828501c580a3ade6c91d258159701b7317ee5d57f914e8cd28df32f83ad190169c4427c62da85d173aa7ab5d1870e19140bb1275d7620bebab4")]
