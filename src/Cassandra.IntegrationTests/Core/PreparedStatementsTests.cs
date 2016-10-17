@@ -894,7 +894,7 @@ namespace Cassandra.IntegrationTests.Core
                 var downCounter = 0;
                 var upCounter = 0;
                 var host = cluster.AllHosts().First();
-                host.Down += (h, delay) =>
+                host.Down += _ =>
                 {
                     downCounter++;
                 };

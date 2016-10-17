@@ -36,75 +36,31 @@ namespace Cassandra.IntegrationTests.Core
             
         }
 
-        [Test, Ignore("Needs refactor")]
+        [Test]
         public void Session_Cancels_Pending_When_Disposed()
         {
             Trace.TraceInformation("SessionCancelsPendingWhenDisposed");
-            var localCluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build();
-            try
+            using (var localCluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
             {
                 var localSession = localCluster.Connect(KeyspaceName);
                 localSession.Execute("CREATE TABLE tbl_cancel_pending (id uuid primary key)");
-                Thread.Sleep(2000);
-                var taskList = new List<Task>();
-                for (var i = 0; i < 500; i++)
+                var taskList = new Task[500];
+                for (var i = 0; i < taskList.Length; i++)
                 {
-                    taskList.Add(localSession.ExecuteAsync(new SimpleStatement("INSERT INTO tbl_cancel_pending (id) VALUES (uuid())")));
+                    taskList[i] = localSession.ExecuteAsync(new SimpleStatement(
+                        "INSERT INTO tbl_cancel_pending (id) VALUES (uuid())"));
                 }
-                //Most task should be pending
-                Assert.True(taskList.Any(t => t.Status == TaskStatus.WaitingForActivation), "Most task should be pending");
-                //Force it to close connections
-                Trace.TraceInformation("Start Disposing localSession");
                 localSession.Dispose();
-                //Wait for the worker threads to cancel the rest of the operations.
-                DateTime timeInTheFuture = DateTime.Now.AddSeconds(11);
-                while (DateTime.Now < timeInTheFuture &&
-                       taskList.Any(t => t.Status == TaskStatus.WaitingForActivation))
+                try
                 {
-                    int waitMs = 500;
-                    Trace.TraceInformation(string.Format("Waiting {0} more MS ... ", waitMs));
-                    Thread.Sleep(waitMs);
+                    Task.WaitAll(taskList);
+                }
+                catch
+                {
+                    // Its OK to have a failed task
                 }
                 Assert.False(taskList.Any(t => t.Status == TaskStatus.WaitingForActivation), "No more task should be pending");
                 Assert.True(taskList.All(t => t.Status == TaskStatus.RanToCompletion || t.Status == TaskStatus.Faulted), "All task should be completed or faulted");
-            }
-            finally
-            {
-                localCluster.Shutdown(1000);
-            }
-        }
-
-        [Test]
-        public void Session_Gracefully_Waits_Pending_Operations()
-        {
-            Trace.TraceInformation("Starting SessionGracefullyWaitsPendingOperations");
-            var localCluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build();
-            try
-            {
-                var localSession = (Session)localCluster.Connect(KeyspaceName);
-                localSession.Execute("CREATE TABLE tbl_wait_pending (id uuid primary key)");
-                //Create more async operations that can be finished
-                var taskList = new List<Task>();
-                for (var i = 0; i < 20; i++)
-                {
-                    taskList.Add(localSession.ExecuteAsync(new SimpleStatement(String.Format("INSERT INTO tbl_wait_pending (id) VALUES ({0})", Guid.NewGuid()))));
-                }
-                //Most task should be pending
-                Assert.True(taskList.Any(t => t.Status == TaskStatus.WaitingForActivation), "Most task should be pending");
-                //Wait for finish
-                Assert.True(localSession.WaitForAllPendingActions(20000), "All handles have received signal");
-                Thread.Sleep(2000);
-                Assert.False(taskList.Any(t => t.Status == TaskStatus.WaitingForActivation), "All task should be completed (not pending)");
-                //Either all completed or some of them can contain 
-                Assert.True(taskList.All(t => 
-                    t.Status == TaskStatus.RanToCompletion || 
-                    (t.Exception != null && t.Exception.InnerException is WriteTimeoutException)), "All task should be completed");
-
-                localSession.Dispose();
-            }
-            finally
-            {
-                localCluster.Shutdown(1000);
             }
         }
 
@@ -276,8 +232,8 @@ namespace Cassandra.IntegrationTests.Core
                 Thread.Sleep(2000);
                 var pool11 = localSession1.GetOrCreateConnectionPool(hosts1[0], HostDistance.Local);
                 var pool12 = localSession1.GetOrCreateConnectionPool(hosts1[1], HostDistance.Local);
-                Assert.That(pool11.OpenConnections.Count(), Is.EqualTo(3));
-                Assert.That(pool12.OpenConnections.Count(), Is.EqualTo(3));
+                Assert.That(pool11.OpenConnections, Is.EqualTo(3));
+                Assert.That(pool12.OpenConnections, Is.EqualTo(3));
                 
                 localCluster2 = Cluster.Builder()
                     .AddContactPoint(TestCluster.InitialContactPoint)
@@ -294,8 +250,8 @@ namespace Cassandra.IntegrationTests.Core
                 Thread.Sleep(2000);
                 var pool21 = localSession2.GetOrCreateConnectionPool(hosts2[0], HostDistance.Local);
                 var pool22 = localSession2.GetOrCreateConnectionPool(hosts2[1], HostDistance.Local);
-                Assert.That(pool21.OpenConnections.Count(), Is.EqualTo(1));
-                Assert.That(pool22.OpenConnections.Count(), Is.EqualTo(1));
+                Assert.That(pool21.OpenConnections, Is.EqualTo(1));
+                Assert.That(pool22.OpenConnections, Is.EqualTo(1));
             }
             finally
             {
@@ -307,27 +263,107 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+        [Test, TestTimeout(5 * 60 * 1000), Repeat(10)]
+        public async Task Session_With_Host_Changing_Distance()
+        {
+            var lbp = new DistanceChangingLbp();
+            var builder = Cluster.Builder()
+                .AddContactPoint(TestCluster.InitialContactPoint)
+                .WithLoadBalancingPolicy(lbp)
+                .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 3));
+            var counter = 0;
+            using (var localCluster = builder.Build())
+            {
+                var localSession = (Session)localCluster.Connect();
+                var remoteHost = localCluster.AllHosts().First(h => TestHelper.GetLastAddressByte(h) == 2);
+                var stopWatch = new Stopwatch();
+                Func<Task<RowSet>> execute = () =>
+                {
+                    var count = Interlocked.Increment(ref counter);
+                    if (count == 80)
+                    {
+                        // ReSharper disable once AccessToDisposedClosure
+                        lbp.SetRemoteHost(remoteHost);
+                        stopWatch.Start();
+                    }
+                    else if (count >= 240 && stopWatch.ElapsedMilliseconds > 1400)
+                    {
+                        lbp.SetRemoteHost(null);
+                    }
+                    return localSession.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local"));
+                };
+                await TestHelper.TimesLimit(execute, 12000, 32);
+                var hosts = localCluster.AllHosts().ToArray();
+                var pool1 = localSession.GetOrCreateConnectionPool(hosts[0], HostDistance.Local);
+                var pool2 = localSession.GetOrCreateConnectionPool(hosts[1], HostDistance.Local);
+                Assert.That(pool1.OpenConnections, Is.EqualTo(3));
+                Assert.That(pool2.OpenConnections, Is.EqualTo(3));
+            }
+        }
+
+        private class DistanceChangingLbp : ILoadBalancingPolicy
+        {
+            private readonly RoundRobinPolicy _childPolicy;
+            private volatile Host _ignoredHost;
+
+            public DistanceChangingLbp()
+            {
+                _childPolicy = new RoundRobinPolicy();
+            }
+
+            public void SetRemoteHost(Host h)
+            {
+                _ignoredHost = h;
+            }
+
+            public void Initialize(ICluster cluster)
+            {
+                _childPolicy.Initialize(cluster);
+            }
+
+            public HostDistance Distance(Host host)
+            {
+                if (host == _ignoredHost)
+                {
+                    return HostDistance.Ignored;
+                }
+                return HostDistance.Local;
+            }
+
+            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            {
+                return _childPolicy.NewQueryPlan(keyspace, query);
+            }
+        }
+
+
         /// <summary>
         /// Checks that having a disposed Session created by the cluster does not affects other sessions
         /// </summary>
         [Test]
-        public void Session_Disposed_On_Cluster()
+        public async Task Session_Disposed_On_Cluster()
         {
             var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build();
             var session1 = cluster.Connect();
             var session2 = cluster.Connect();
-            TestHelper.ParallelInvoke(() => session1.Execute("SELECT * from system.local"), 5);
-            TestHelper.ParallelInvoke(() => session2.Execute("SELECT * from system.local"), 5);
-            //Dispose the first session
-            Trace.TraceInformation("Dispose the first session");
+            var isDown = 0;
+            foreach (var host in cluster.AllHosts())
+            {
+                host.Down += _ => Interlocked.Increment(ref isDown);
+            }
+            const string query = "SELECT * from system.local";
+            await TestHelper.TimesLimit(() => session1.ExecuteAsync(new SimpleStatement(query)), 100, 32);
+            await TestHelper.TimesLimit(() => session2.ExecuteAsync(new SimpleStatement(query)), 100, 32);
+            // Dispose the first session
             session1.Dispose();
 
-            //All nodes should be up
+            // All nodes should be up
             Assert.AreEqual(cluster.AllHosts().Count, cluster.AllHosts().Count(h => h.IsUp));
-            //And session2 should be queryable
-            TestHelper.ParallelInvoke(() => session2.Execute("SELECT * from system.local"), 5);
-            Trace.TraceInformation("Disposing cluster");
+            // And session2 should be queryable
+            await TestHelper.TimesLimit(() => session2.ExecuteAsync(new SimpleStatement(query)), 100, 32);
+            Assert.AreEqual(cluster.AllHosts().Count, cluster.AllHosts().Count(h => h.IsUp));
             cluster.Dispose();
+            Assert.AreEqual(0, Volatile.Read(ref isDown));
         }
 
 #if !NETCORE

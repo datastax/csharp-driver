@@ -239,21 +239,15 @@ namespace Cassandra.Requests
 
         private Host GetNextHost()
         {
-            Host host = null;
-            //Lock to handle multiple threads from multiple executions to get a new host
+            // Lock to handle multiple threads from multiple executions to get a new host
             lock (_queryPlanLock)
             {
-                while (_queryPlan.MoveNext())
+                if (_queryPlan.MoveNext())
                 {
-                    var h = _queryPlan.Current;
-                    if (h.IsUp)
-                    {
-                        host = h;
-                        break;
-                    }
+                    return _queryPlan.Current;
                 }
             }
-            return host;
+            return null;
         }
 
         /// <summary>
@@ -262,63 +256,66 @@ namespace Cassandra.Requests
         /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
         /// <exception cref="UnsupportedProtocolVersionException">When the protocol version is not supported in the host</exception>
         /// <exception cref="NoHostAvailableException"></exception>
-        internal Task<Connection> GetNextConnection(Dictionary<IPEndPoint, Exception> triedHosts)
-        {
-            var host = GetNextHost();
-            if (host == null || _session.IsDisposed)
-            {
-                return TaskHelper.FromException<Connection>(new NoHostAvailableException(triedHosts));
-            }
-            _host = host;
-            triedHosts[host.Address] = null;
-            var distance = Policies.LoadBalancingPolicy.Distance(host);
-            //Use the concrete session here
-            var hostPool = ((Session)_session).GetOrCreateConnectionPool(host, distance);
-            return hostPool
-                .BorrowConnection()
-                .ContinueWith(t =>
-                {
-                    if (t.Exception != null)
-                    {
-                        var ex = t.Exception.InnerException;
-                        if (ex is UnsupportedProtocolVersionException)
-                        {
-                            //The version of the protocol is not supported on this host
-                            //Most likely, the control connection uses a higher protocol version than the host
-                            throw ex;
-                        }
-                        if (ex is SocketException)
-                        {
-                            host.SetDown();
-                        }
-                        //Maybe use a driver internal exception if the ex is not of type SocketException/UnsupportedProtocolVersionException
-                        Logger.Error(ex);
-                        triedHosts[host.Address] = ex;
-                        return GetNextConnection(triedHosts);
-                    }
-                    var c = t.Result;
-                    if (c == null)
-                    {
-                        //The load balancing policy did not allow to connect to this node
-                        return GetNextConnection(triedHosts);
-                    }
-                    return c.SetKeyspace(_session.Keyspace).ContinueSync(_ => c);
-                }, TaskContinuationOptions.ExecuteSynchronously)
-                .Unwrap();
-        }
-
-        /// <summary>
-        /// Sets a host down by the provided connection
-        /// </summary>
-        public void SetHostDown(Connection connection)
+        internal async Task<Connection> GetNextConnection(Dictionary<IPEndPoint, Exception> triedHosts)
         {
             Host host;
-            //Trying to avoid referencing the parent host in the connection or having a host reference in the RequestExecution{T} class
-            if (!_session.Cluster.Metadata.Hosts.TryGet(connection.Address, out host))
+            // Use the concrete implementation in this method
+            var session = (Session) _session;
+            Connection c = null;
+            // While there is an available host
+            while ((host = GetNextHost()) != null && !session.IsDisposed)
             {
-                return;
+                _host = host;
+                triedHosts[host.Address] = null;
+                // Retrieve the distance from the load balancing and setting it
+                // at host level
+                var distance = Cluster.RetrieveDistance(host, Policies.LoadBalancingPolicy);
+                if (distance == HostDistance.Ignored)
+                {
+                    // We should not use an ignored host
+                    continue;
+                }
+                if (!_host.IsUp)
+                {
+                    // The host is not considered UP by the driver.
+                    // We could have filtered earlier by hosts that are considered UP, but we must check the host
+                    // distance first.
+                    continue;
+                }
+                var hostPool = session.GetOrCreateConnectionPool(host, distance);
+                try
+                {
+                    c = await hostPool.BorrowConnection().ConfigureAwait(false);
+                }
+                catch (UnsupportedProtocolVersionException ex)
+                {
+                    // The version of the protocol is not supported on this host
+                    // Most likely, we are using a higher protocol version than the host supports
+                    Logger.Error("Host {0} does not support protocol version {1}. You should use a fixed protocol " +
+                                 "version during rolling upgrades of the cluster. Setting the host as DOWN to " +
+                                 "avoid hitting this node as part of the query plan for a while", host.Address, ex.ProtocolVersion);
+                    triedHosts[host.Address] = ex;
+                    session.MarkAsDownAndScheduleReconnection(host, hostPool);
+                }
+                catch (Exception ex)
+                {
+                    // Probably a SocketException/AuthenticationException, move along
+                    Logger.Error(ex);
+                    triedHosts[host.Address] = ex;
+                }
+                if (c == null)
+                {
+                    continue;
+                }
+                await c.SetKeyspace(_session.Keyspace).ConfigureAwait(false);
+                break;
             }
-            host.SetDown();
+
+            if (c == null)
+            {
+                throw new NoHostAvailableException(triedHosts);
+            }
+            return c;
         }
 
         public Task<T> Send()
@@ -383,12 +380,16 @@ namespace Cassandra.Requests
             //There is one live timer at a time.
             _nextExecutionTimeout = _session.Cluster.Configuration.Timer.NewTimeout(_ =>
             {
-                if (HasCompleted())
+                // Start the speculative execution outside the IO thread
+                Task.Run(() =>
                 {
-                    return;
-                }
-                Logger.Info("Starting new speculative execution after {0}, last used host {1}", delay, _host.Address);
-                StartNewExecution();
+                    if (HasCompleted())
+                    {
+                        return;
+                    }
+                    Logger.Info("Starting new speculative execution after {0}, last used host {1}", delay, _host.Address);
+                    StartNewExecution();
+                });
             }, null, delay);
         }
     }

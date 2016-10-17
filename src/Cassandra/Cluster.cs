@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) 2012-2016 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,8 +17,11 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
+using Cassandra.Collections;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
 using Microsoft.IO;
@@ -34,7 +37,7 @@ namespace Cassandra
         private static int _maxProtocolVersion = 4;
         // ReSharper disable once InconsistentNaming
         private static readonly Logger _logger = new Logger(typeof(Cluster));
-        private readonly ConcurrentBag<Session> _connectedSessions = new ConcurrentBag<Session>();
+        private readonly CopyOnWriteList<Session> _connectedSessions = new CopyOnWriteList<Session>();
         private ControlConnection _controlConnection;
         private volatile bool _initialized;
         private volatile Exception _initException;
@@ -231,6 +234,11 @@ namespace Cassandra
             return session;
         }
 
+        internal bool AnyOpenConnections(Host host)
+        {
+            return _connectedSessions.Any(session => session.HasConnections(host));
+        }
+
         public void Dispose()
         {
             Shutdown();
@@ -285,17 +293,41 @@ namespace Cassandra
             {
                 return;
             }
-            Session session;
-            while (_connectedSessions.TryTake(out session))
+            var sessions = _connectedSessions.ClearAndGet();
+            try
             {
-                session.WaitForAllPendingActions(timeoutMs);
-                session.Dispose();
+                Task.Run(() =>
+                {
+                    foreach (var s in sessions)
+                    {
+                        s.Dispose();
+                    }
+                }).Wait(timeoutMs);
+            }
+            catch (AggregateException ex)
+            {
+                if (ex.InnerExceptions.Count == 1)
+                {
+                    throw ex.InnerExceptions[0];
+                }
+                throw;
             }
             _metadata.ShutDown(timeoutMs);
             _controlConnection.Dispose();
             Configuration.Timer.Dispose();
             Configuration.Policies.SpeculativeExecutionPolicy.Dispose();
             _logger.Info("Cluster [" + _metadata.ClusterName + "] has been shut down.");
+        }
+
+        /// <summary>
+        /// Helper method to retrieve the distance from LoadBalancingPolicy and set it at Host level.
+        /// Once ProfileManager is implemented, this logic will be part of it.
+        /// </summary>
+        internal static HostDistance RetrieveDistance(Host host, ILoadBalancingPolicy lbp)
+        {
+            var distance = lbp.Distance(host);
+            host.SetDistance(distance);
+            return distance;
         }
     }
 }

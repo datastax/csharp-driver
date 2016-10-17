@@ -295,6 +295,7 @@ namespace Cassandra
             var c = _connection;
             if (c != null)
             {
+                _logger.Info("Shutting down control connection to {0}", c.Address);
                 c.Dispose();
             }
             _reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
@@ -332,7 +333,7 @@ namespace Cassandra
             }
         }
 
-        private void OnHostDown(Host h, long reconnectionDelay)
+        private void OnHostDown(Host h)
         {
             h.Down -= OnHostDown;
             _logger.Warning("Host {0} used by the ControlConnection DOWN", h.Address);
@@ -353,20 +354,8 @@ namespace Cassandra
             }
             if (e is StatusChangeEventArgs)
             {
-                var sce = (StatusChangeEventArgs)e;
-                //The address in the Cassandra event message needs to be translated
-                var address = TranslateAddress(sce.Address);
-                _logger.Info("Received Node status change event: host {0} is {1}", address, sce.What.ToString().ToUpper());
-                if (sce.What == StatusChangeEventArgs.Reason.Up)
-                {
-                    _metadata.BringUpHost(address, this);
-                    return;
-                }
-                if (sce.What == StatusChangeEventArgs.Reason.Down)
-                {
-                    _metadata.SetDownHost(address, this);
-                    return;
-                }
+                HandleStatusChangeEvent((StatusChangeEventArgs) e);
+                return;
             }
             if (e is SchemaChangeEventArgs)
             {
@@ -399,6 +388,32 @@ namespace Cassandra
                 }
                 _metadata.RefreshSingleKeyspace(ssc.What == SchemaChangeEventArgs.Reason.Created, ssc.Keyspace);
             }
+        }
+
+        private void HandleStatusChangeEvent(StatusChangeEventArgs e)
+        {
+            //The address in the Cassandra event message needs to be translated
+            var address = TranslateAddress(e.Address);
+            _logger.Info("Received Node status change event: host {0} is {1}", address, e.What.ToString().ToUpper());
+            Host host;
+            if (!_metadata.Hosts.TryGet(address, out host))
+            {
+                _logger.Info("Received status change event for host {0} but it was not found", address);
+                return;
+            }
+            var distance = Cluster.RetrieveDistance(host, _config.Policies.LoadBalancingPolicy);
+            if (distance != HostDistance.Ignored)
+            {
+                // We should not consider events for status changes
+                // We should trust the pools.
+                return;
+            }
+            if (e.What == StatusChangeEventArgs.Reason.Up)
+            {
+                host.BringUpIfDown();
+                return;
+            }
+            host.SetDown();
         }
 
         private IPEndPoint TranslateAddress(IPEndPoint value)

@@ -35,16 +35,28 @@ namespace Cassandra.Collections
             return GetEnumerator();
         }
 
+        /// <summary>
+        /// Adds a new item to the list
+        /// </summary>
         public void Add(T item)
+        {
+            AddNew(item);
+        }
+
+        /// <summary>
+        /// Adds a new item to the list and returns the new length
+        /// </summary>
+        public int AddNew(T item)
         {
             lock (_writeLock)
             {
                 var currentArray = _array;
                 var newArray = new T[currentArray.Length + 1];
                 currentArray.CopyTo(newArray, 0);
-                //Add the new item at the end
+                // Add the item at the end
                 newArray[currentArray.Length] = item;
                 _array = newArray;
+                return newArray.Length;
             }
         }
 
@@ -98,18 +110,27 @@ namespace Cassandra.Collections
 
         public bool Remove(T item)
         {
+            return RemoveAndCount(item).Item1;
+        }
+
+        /// <summary>
+        /// Removes the item and returns the a boolean that determines if the item has been removed and an integer with the
+        /// new count, as an atomic operation.
+        /// </summary>
+        public Tuple<bool, int> RemoveAndCount(T item)
+        {
             lock (_writeLock)
             {
                 var index = Array.IndexOf(_array, item);
                 if (index < 0)
                 {
-                    return false;
+                    return Tuple.Create(false, _array.Length);
                 }
                 if (_array.Length == 1 && index == 0)
                 {
                     //Do not allocate an extra array
                     _array = Empty;
-                    return true;
+                    return Tuple.Create(true, 0);
                 }
                 var currentArray = _array;
                 var newArray = new T[currentArray.Length - 1];
@@ -122,8 +143,8 @@ namespace Cassandra.Collections
                     Array.Copy(currentArray, index + 1, newArray, index, currentArray.Length - index - 1);
                 }
                 _array = newArray;
+                return Tuple.Create(true, newArray.Length);
             }
-            return true;
         }
 
         /// <summary>

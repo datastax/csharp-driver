@@ -27,11 +27,10 @@ namespace Cassandra
     internal class Hosts : IEnumerable<Host>
     {
         private readonly CopyOnWriteDictionary<IPEndPoint, Host> _hosts = new CopyOnWriteDictionary<IPEndPoint, Host>();
-        private readonly IReconnectionPolicy _rp;
         /// <summary>
         /// Event that gets triggered when a host is considered as DOWN (not available)
         /// </summary>
-        internal event Action<Host, long> Down;
+        internal event Action<Host> Down;
         /// <summary>
         /// Event that gets triggered when a host is considered back UP (available for queries)
         /// </summary>
@@ -53,11 +52,6 @@ namespace Cassandra
             get { return _hosts.Count; }
         }
 
-        public Hosts(IReconnectionPolicy rp)
-        {
-            _rp = rp;
-        }
-
         public bool TryGet(IPEndPoint endpoint, out Host host)
         {
             return _hosts.TryGetValue(endpoint, out host);
@@ -73,7 +67,7 @@ namespace Cassandra
         /// </summary>
         public Host Add(IPEndPoint key)
         {
-            var newHost = new Host(key, _rp);
+            var newHost = new Host(key);
             var host = _hosts.GetOrAdd(key, newHost);
             if (!ReferenceEquals(newHost, host))
             {
@@ -90,11 +84,11 @@ namespace Cassandra
             return host;
         }
 
-        private void OnHostDown(Host sender, long reconnectionDelay)
+        private void OnHostDown(Host sender)
         {
             if (Down != null)
             {
-                Down(sender, reconnectionDelay);
+                Down(sender);
             }
         }
 
@@ -104,16 +98,6 @@ namespace Cassandra
             {
                 Up(sender);
             }
-        }
-
-        public void SetDownIfExists(IPEndPoint ep)
-        {
-            Host host;
-            if (!_hosts.TryGetValue(ep, out host))
-            {
-                return;
-            }
-            host.SetDown();
         }
 
         public void RemoveIfExists(IPEndPoint ep)

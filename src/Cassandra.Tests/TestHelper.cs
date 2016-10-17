@@ -168,10 +168,13 @@ namespace Cassandra.Tests
             return dateTime.Value.ToMillisecondPrecision();
         }
 
-        public static async Task<T> DelayedTask<T>(T result, int dueTimeMs = 50)
+        public static async Task<T> DelayedTask<T>(T result, int dueTimeMs = 50, Action afterDelay = null)
         {
             await Task.Delay(dueTimeMs).ConfigureAwait(false);
-
+            if (afterDelay != null)
+            {
+                afterDelay();
+            }
             return result;
         }
 
@@ -246,6 +249,68 @@ namespace Cassandra.Tests
                 throw new NotSupportedException("HOME or USERPROFILE are not defined");
             }
             return home;
+        }
+
+        /// <summary>
+        /// Executes the <see cref="Func{T}"/> provided n times, awaiting for the task to be completed, limiting the
+        /// concurrency.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="action"></param>
+        /// <param name="times"></param>
+        /// <param name="limit"></param>
+        /// <returns>A Task that can be awaited.</returns>
+        public static Task TimesLimit<T>(Func<Task<T>> action, int times, int limit)
+        {
+            var tcs = new TaskCompletionSource<bool>();
+            var counter = new SendReceiveCounter();
+            for (var i = 0; i < limit; i++)
+            {
+                SendNew(action, tcs, counter, times);
+            }
+            return tcs.Task;
+        }
+
+        private static void SendNew<T>(Func<Task<T>> action, TaskCompletionSource<bool> tcs, SendReceiveCounter counter, int maxLength)
+        {
+            var sendCount = counter.IncrementSent();
+            if (sendCount > maxLength)
+            {
+                return;
+            }
+            var t1 = action();
+            t1.ContinueWith(t =>
+            {
+                if (t.Exception != null)
+                {
+                    // ReSharper disable once AssignNullToNotNullAttribute
+                    tcs.TrySetException(t.Exception.InnerException);
+                    return;
+                }
+                var received = counter.IncrementReceived();
+                if (received == maxLength)
+                {
+                    tcs.TrySetResult(true);
+                    return;
+                }
+                SendNew(action, tcs, counter, maxLength);
+            }, TaskContinuationOptions.ExecuteSynchronously);
+        }
+
+        private class SendReceiveCounter
+        {
+            private int _receiveCounter;
+            private int _sendCounter;
+
+            public int IncrementSent()
+            {
+                return Interlocked.Increment(ref _sendCounter);
+            }
+
+            public int IncrementReceived()
+            {
+                return Interlocked.Increment(ref _receiveCounter);
+            }
         }
     }
 }
