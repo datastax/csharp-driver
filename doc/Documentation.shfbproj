@@ -15,13 +15,14 @@
     <RootNamespace>Documentation</RootNamespace>
     <Name>Documentation</Name>
     <!-- SHFB properties -->
-    <FrameworkVersion>.NET Framework 4.0</FrameworkVersion>
+    <FrameworkVersion>.NET Framework 4.5</FrameworkVersion>
     <OutputPath>api-docs\</OutputPath>
     <HtmlHelpName>Documentation</HtmlHelpName>
     <Language>en-US</Language>
     <DocumentationSources>
-      <DocumentationSource sourceFile="..\src\Cassandra\bin\Release\Cassandra.dll" />
-<DocumentationSource sourceFile="..\src\Cassandra\bin\Release\Cassandra.xml" /></DocumentationSources>
+      <DocumentationSource sourceFile="..\src\Cassandra\bin\Release\net45\Cassandra.dll" />
+      <DocumentationSource sourceFile="..\src\Cassandra\bin\Release\net45\Cassandra.xml" />
+    </DocumentationSources>
     <BuildAssemblerVerbosity>OnlyWarningsAndErrors</BuildAssemblerVerbosity>
     <HelpFileFormat>Website</HelpFileFormat>
     <IndentHtml>False</IndentHtml>
@@ -43,24 +44,18 @@
     <HelpTitle>DataStax C# Driver for Apache Cassandra</HelpTitle>
     <ContentPlacement>BelowNamespaces</ContentPlacement>
     <NamespaceSummaries>
-      <NamespaceSummaryItem name="(global)" isDocumented="True">A C# client driver for Apache Cassandra. This driver works exclusively with
-the Cassandra Query Language version 3 (CQL3) and Cassandra's binary protocol.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Cassandra" isDocumented="True">The core module of the Datastax C# Driver for Apache Cassandra (C*). This
-module offers a simple (as in, not abstracted) but complete API to work with
-CQL3. The main goal of this module is to handle all the functionality related
-to managing connections to a Cassandra cluster (but leaving higher level
-abstraction like object mapping to separate modules).</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Cassandra.Data" isDocumented="True">The core module of the Datastax C# Ado.Net Driver for Apache Cassandra (C*). This
-module offers a Ado.Net to work with CQL3.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Cassandra.Data.Linq" isDocumented="True">The core module of the Datastax C# Linq Driver for Apache Cassandra (C*). This
-module offers a Linq driver and simple ORM mapper to work with
-CQL3.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Cassandra.Mapping" isDocumented="True" />
-<NamespaceSummaryItem name="Cassandra.Mapping.Attributes" isDocumented="True" />
-<NamespaceSummaryItem name="Cassandra.Mapping.TypeConversion" isDocumented="True" />
-<NamespaceSummaryItem name="Cassandra.Mapping.Utils" isDocumented="True" /></NamespaceSummaries>
-    <ProjectSummary>A C# client driver for Apache Cassandra. This driver works exclusively with
-the Cassandra Query Language version 3 %28CQL3%29 and Cassandra&amp;#39%3bs binary protocol.</ProjectSummary>
+      <NamespaceSummaryItem name="(global)" isDocumented="True">A modern, feature-rich and highly tunable C# client library for Apache Cassandra (1.2+) and DataStax Enterprise (3.1+) using exclusively Cassandra&apos;s binary protocol and Cassandra Query Language v3.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Cassandra" isDocumented="True">The Cassandra namespace contains classes and interfaces to represent data types in the driver.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Cassandra.Data" isDocumented="True">The Cassandra.Data namespace contains classes to support ADO.NET in the driver.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Cassandra.Data.Linq" isDocumented="True">The Cassandra.Data.Linq namespace contains classes to handle Linq queries in the driver.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Cassandra.Mapping" isDocumented="True">The Cassandra.Mapping namespace contains classes to handle CQL data to C# classes mapping in the driver.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Cassandra.Mapping.Attributes" isDocumented="true">The Cassandra.Mapping.Attributes namespace contains attributes to describe CQL types to C# classes mapping.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Cassandra.Mapping.TypeConversion" isDocumented="true">The Cassandra.Mapping.TypeConversion namespace handles type conversion for the Mapper.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Cassandra.Mapping.Utils" isDocumented="False" />
+      <NamespaceSummaryItem name="Cassandra.Serialization" isDocumented="True">The Cassandra.Serialization namespace contains classes to handle serialization in the driver.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Cassandra.Serialization.Primitive" isDocumented="False" />
+    </NamespaceSummaries>
+    <ProjectSummary>A modern, feature-rich and highly tunable C# client library for Apache Cassandra (1.2+) and DataStax Enterprise (3.1+) using exclusively Cassandra&apos;s binary protocol and Cassandra Query Language v3.</ProjectSummary>
     <ApiFilter>
       <Filter entryType="Namespace" fullName="Cassandra" isExposed="True">
         <Filter entryType="Class" fullName="Cassandra.BigIntegerTypeAdapter" filterName="BigIntegerTypeAdapter" isExposed="False" />
@@ -109,7 +104,7 @@ the Cassandra Query Language version 3 %28CQL3%29 and Cassandra&amp;#39%3bs bina
     </FeedbackEMailLinkText>
     <FeedbackEMailAddress>
     </FeedbackEMailAddress>
-    <CopyrightText>&amp;#169%3b 2015 DataStax, All rights reserved.</CopyrightText>
+    <CopyrightText>&amp;#169%3b 2016 DataStax, All rights reserved.</CopyrightText>
     <WebsiteSdkLinkType>None</WebsiteSdkLinkType>
     <HtmlSdkLinkType>None</HtmlSdkLinkType>
     <IncludeFavorites>False</IncludeFavorites>

@@ -27,6 +27,9 @@ links:
     href:  https://www.nuget.org/packages/CassandraCSharpDriver
 api_docs:
   3.0: http://docs.datastax.com/en/drivers/csharp/3.0
+  3.1: http://docs.datastax.com/en/drivers/csharp/3.1
 versions:
-  - name: 3.0
-    ref: HEAD
+  - name: '3.1'
+    ref: 'master'
+  - name: '3.0'
+    ref: '3.1'
