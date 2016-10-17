@@ -210,7 +210,7 @@ You can use Visual Studio or msbuild to build the solution.
 [Check the documentation for building the driver from source and running the tests](https://github.com/datastax/csharp-driver/wiki/Building-and-running-tests).
 
 ## License
-Copyright 2012-2015, DataStax.
+Copyright 2012-2016, DataStax.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -224,7 +224,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-  [apidocs]: http://docs.datastax.com/en/latest-csharp-driver-api/html/N_Cassandra.htm
+  [apidocs]: http://docs.datastax.com/en/drivers/csharp/3.1/
   [docindex]: http://datastax.github.io/csharp-driver/features/
   [features]: http://datastax.github.io/csharp-driver/features/
   [getting-started]: http://planetcassandra.org/getting-started-with-apache-cassandra-and-net/
