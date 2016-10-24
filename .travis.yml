@@ -1,6 +1,8 @@
 language: csharp
 sudo: required
 dist: trusty
+dotnet: 1.0.0-preview2-003121
+mono: latest
 addons:
   apt:
     packages:
@@ -16,13 +18,11 @@ branches:
     - 2.0
     - 2.1
     - dse_3.1
+
 solution: src/Cassandra.sln
 install:
   - nuget restore src/Cassandra.sln
   - nuget install NUnit.Runners -Version 3.4.1 -OutputDirectory testrunner
-  - export DOTNET_INSTALL_DIR="$PWD/.dotnetcli"
-  - curl -sSL https://raw.githubusercontent.com/dotnet/cli/rel/1.0.1/scripts/obtain/dotnet-install.sh | bash /dev/stdin --version latest --install-dir "$DOTNET_INSTALL_DIR"
-  - export PATH="$DOTNET_INSTALL_DIR:$PATH"  
 script:
   - xbuild /p:Configuration=Release /v:m /p:restorepackages=false src/Cassandra.sln
   - mono ./testrunner/NUnit.ConsoleRunner.3.4.1/tools/nunit3-console.exe ./src/Cassandra.Tests/bin/Release/Cassandra.Tests.dll
