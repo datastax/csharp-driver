@@ -21,7 +21,7 @@ install:
   - nuget restore src/Cassandra.sln
   - nuget install NUnit.Runners -Version 3.4.1 -OutputDirectory testrunner
   - export DOTNET_INSTALL_DIR="$PWD/.dotnetcli"
-  - curl -sSL https://raw.githubusercontent.com/dotnet/cli/rel/1.0.0/scripts/obtain/dotnet-install.sh | bash /dev/stdin --version latest --install-dir "$DOTNET_INSTALL_DIR"
+  - curl -sSL https://raw.githubusercontent.com/dotnet/cli/rel/1.0.1/scripts/obtain/dotnet-install.sh | bash /dev/stdin --version latest --install-dir "$DOTNET_INSTALL_DIR"
   - export PATH="$DOTNET_INSTALL_DIR:$PATH"  
 script:
   - xbuild /p:Configuration=Release /v:m /p:restorepackages=false src/Cassandra.sln
