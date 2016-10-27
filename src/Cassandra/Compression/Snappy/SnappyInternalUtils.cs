@@ -129,7 +129,7 @@ namespace Snappy
                 throw new ArgumentException("negative size: " + size);
             }
             // index > size
-            return string.Format("{0} ({1}) must not be greater than size (%s)", desc, index, size);
+            return string.Format("{0} ({1}) must not be greater than size ({2})", desc, index, size);
         }
     }
 }
