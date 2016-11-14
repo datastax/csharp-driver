@@ -496,6 +496,35 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         }
 
 
+
+        [Test]
+        public void Insert_Fetch_With_Enum()
+        {
+            var config = new MappingConfiguration().Define(new Map<PlainUser>()
+                .ExplicitColumns()
+                .PartitionKey(s => s.UserId)
+                .Column(s => s.FavoriteColor, c => c.WithDbType<int>())
+                .Column(s => s.Name)
+                .Column(s => s.UserId, c => c.WithName("id"))
+                .TableName("enum_insert_test"));
+            //Use linq to create the table
+            new Table<PlainUser>(_session, config).CreateIfNotExists();
+            var mapper = new Mapper(_session, config);
+            var user = new PlainUser
+            {
+                UserId = Guid.NewGuid(),
+                Name = "My user",
+                FavoriteColor = RainbowColor.Orange
+            };
+            mapper.Insert(user, true, 5);
+            var retrievedUser = mapper.First<PlainUser>("WHERE id = ?", user.UserId);
+            Assert.NotNull(retrievedUser);
+            Assert.AreEqual(user.UserId, retrievedUser.UserId);
+            Assert.AreEqual(user.Name, retrievedUser.Name);
+            Assert.AreEqual(user.FavoriteColor, retrievedUser.FavoriteColor);
+        }
+
+
         /////////////////////////////////////////
         /// Private test classes
         /////////////////////////////////////////
