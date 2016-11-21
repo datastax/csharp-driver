@@ -18,15 +18,21 @@
     "xmlDoc": true,
     "nowarn": [ "1591" ]
   },
+  "dependencies": {
+    "Microsoft.Extensions.Logging": "1.0.0"
+  },
   "frameworks": {
     "net45": {
       "frameworkAssemblies": {
         "System.Data": "",
         "System.Numerics": "",
+        "System.Runtime": "",
         "System.Xml": ""
       },
       "dependencies": {
-        "lz4net": "1.0.10.93"
+        "lz4net": "1.0.10.93",
+        "Microsoft.Extensions.Logging": "1.0.0",
+        "Microsoft.Extensions.Logging.Abstractions": "1.0.0"
       }
     },
     "netstandard1.5": {
@@ -63,7 +69,9 @@
         "System.Threading": "4.0.11",
         "System.Threading.Tasks": "4.0.11",
         "System.Threading.Thread": "4.0.0",
-        "System.Threading.Timer": "4.0.1"
+        "System.Threading.Timer": "4.0.1",
+        "Microsoft.Extensions.Logging": "1.0.0",
+        "Microsoft.Extensions.Logging.Abstractions": "1.0.0"
       }
     }
   }
