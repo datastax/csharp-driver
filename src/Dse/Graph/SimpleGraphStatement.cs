@@ -18,9 +18,20 @@ namespace Dse.Graph
     /// </summary>
     public class SimpleGraphStatement : GraphStatement
     {
-        private readonly string _query;
-        private readonly object _values;
-        private readonly IDictionary<string, object> _valuesDictionary;
+        /// <summary>
+        /// The underlying query string
+        /// </summary>
+        public string Query { get; private set; }
+
+        /// <summary>
+        /// Values object used for parameter substitution in the query string
+        /// </summary>
+        public object Values { get; private set; }
+
+        /// <summary>
+        /// Values dictionary used for parameter substitution in the query string
+        /// </summary>
+        public IDictionary<string, object> ValuesDictionary { get; private set; }
 
         /// <summary>
         /// Creates a new instance of <see cref="SimpleGraphStatement"/> using a query with no parameters.
@@ -45,12 +56,12 @@ namespace Dse.Graph
             {
                 throw new ArgumentNullException("query");
             }
-            _query = query;
+            Query = query;
             if (values != null && !IsAnonymous(values))
             {
                 throw new ArgumentException("Expected anonymous object containing the parameters as properties", "values");
             }
-            _values = values;
+            Values = values;
         }
 
         /// <summary>
@@ -75,29 +86,29 @@ namespace Dse.Graph
             {
                 throw new ArgumentNullException("query");
             }
-            _query = query;
-            _valuesDictionary = values;
+            Query = query;
+            ValuesDictionary = values;
         }
 
         internal override IStatement GetIStatement(GraphOptions options)
         {
             string jsonParams = null;
-            if (_valuesDictionary != null)
+            if (ValuesDictionary != null)
             {
-                jsonParams = JsonConvert.SerializeObject(_valuesDictionary);
+                jsonParams = JsonConvert.SerializeObject(ValuesDictionary);
             }
-            else if (_values != null)
+            else if (Values != null)
             {
-                jsonParams = JsonConvert.SerializeObject(_values);
+                jsonParams = JsonConvert.SerializeObject(Values);
             }
             IStatement stmt;
             if (jsonParams != null)
             {
-                stmt = new TargettedSimpleStatement(_query, jsonParams);
+                stmt = new TargettedSimpleStatement(Query, jsonParams);
             }
             else
             {
-                stmt = new TargettedSimpleStatement(_query);
+                stmt = new TargettedSimpleStatement(Query);
             }
             //Set Cassandra.Statement properties
             if (Timestamp != null)
