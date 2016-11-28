@@ -376,5 +376,68 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.AreEqual(row.BooleanValue, default(bool));
             Assert.AreEqual(row.DateTimeValue, default(DateTime));
         }
+
+        [Test]
+        public void Fetch_TimeUuid_Set()
+        {
+            _session.Execute("CREATE TABLE tbl_timeuuid_sortedset (id int primary key, my_set set<timeuuid>)");
+            var map = new Map<PocoWithCollections>()
+                .Column(p => p.Id)
+                .Column(p => p.SortedSetTimeUuid, c => c.WithName("my_set"))
+                .PartitionKey(p => p.Id)
+                .TableName("tbl_timeuuid_sortedset")
+                .ExplicitColumns();
+            var mapper = new Mapper(_session, new MappingConfiguration().Define(map));
+            var inserted = new PocoWithCollections
+            {
+                Id = 1,
+                SortedSetTimeUuid = new SortedSet<TimeUuid> { TimeUuid.NewId(), TimeUuid.NewId() }
+            };
+            mapper.Insert(inserted);
+            var retrieved = mapper.Fetch<PocoWithCollections>("WHERE id = ?", inserted.Id).First();
+            CollectionAssert.AreEqual(inserted.SortedSetTimeUuid, retrieved.SortedSetTimeUuid);
+        }
+
+        [Test]
+        public void Fetch_TimeUuid_Map_Key_Sorted()
+        {
+            _session.Execute("CREATE TABLE tbl_timeuuid_map (id int primary key, my_map map<timeuuid, text>)");
+            var map = new Map<PocoWithCollections>()
+                .Column(p => p.Id)
+                .Column(p => p.SortedDictionaryTimeUuidString, c => c.WithName("my_map"))
+                .PartitionKey(p => p.Id)
+                .TableName("tbl_timeuuid_map")
+                .ExplicitColumns();
+            var mapper = new Mapper(_session, new MappingConfiguration().Define(map));
+            var inserted = new PocoWithCollections
+            {
+                Id = 1,
+                SortedDictionaryTimeUuidString = new SortedDictionary<TimeUuid, string> { { TimeUuid.NewId(), "one" } }
+            };
+            mapper.Insert(inserted);
+            var retrieved = mapper.Fetch<PocoWithCollections>("WHERE id = ?", inserted.Id).First();
+            CollectionAssert.AreEqual(inserted.SortedDictionaryTimeUuidString, retrieved.SortedDictionaryTimeUuidString);
+        }
+
+        [Test]
+        public void Fetch_TimeUuid_Map_Key()
+        {
+            _session.Execute("CREATE TABLE tbl_timeuuid_map2 (id int primary key, my_map map<timeuuid, text>)");
+            var map = new Map<PocoWithCollections>()
+                .Column(p => p.Id)
+                .Column(p => p.DictionaryTimeUuidString, c => c.WithName("my_map"))
+                .PartitionKey(p => p.Id)
+                .TableName("tbl_timeuuid_map2")
+                .ExplicitColumns();
+            var mapper = new Mapper(_session, new MappingConfiguration().Define(map));
+            var inserted = new PocoWithCollections
+            {
+                Id = 1,
+                DictionaryTimeUuidString = new Dictionary<TimeUuid, string> { { TimeUuid.NewId(), "one" } }
+            };
+            mapper.Insert(inserted);
+            var retrieved = mapper.Fetch<PocoWithCollections>("WHERE id = ?", inserted.Id).First();
+            CollectionAssert.AreEqual(inserted.DictionaryTimeUuidString, retrieved.DictionaryTimeUuidString);
+        }
     }
 }
