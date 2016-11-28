@@ -6,20 +6,20 @@ using System.Threading.Tasks;
 
 namespace Cassandra.Tests.Mapping.Pocos
 {
-    public class PocoWithCollections
+    public class PocoWithCollections<T>
     {
         public int Id { get; set; }
 
-        public IEnumerable<TimeUuid> IEnumerableTimeUuid { get; set; }
+        public IEnumerable<T> IEnumerable { get; set; }
 
-        public SortedSet<TimeUuid> SortedSetTimeUuid { get; set; }
+        public SortedSet<T> SortedSet { get; set; }
 
-        public TimeUuid[] ArrayTimeUuid { get; set; }
+        public T[] Array { get; set; }
 
-        public List<TimeUuid> ListTimeUuid { get; set; }
+        public List<T> List { get; set; }
 
-        public SortedDictionary<TimeUuid, string> SortedDictionaryTimeUuidString { get; set; }
+        public SortedDictionary<T, string> SortedDictionaryTKeyString { get; set; }
 
-        public Dictionary<TimeUuid, string> DictionaryTimeUuidString { get; set; }
+        public Dictionary<T, string> DictionaryTKeyString { get; set; }
     }
 }
