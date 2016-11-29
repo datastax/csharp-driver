@@ -213,6 +213,6 @@ http://www.datastax.com/terms/datastax-dse-driver-license-terms
 [dynamic]: https://msdn.microsoft.com/en-us/library/dd264736.aspx
 [jira]: https://datastax-oss.atlassian.net/projects/CSHARP/issues
 [mailing-list]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
-[doc-index]: http://docs.datastax.com/en/latest-dse-csharp-driver/
-[api-docs]: http://docs.datastax.com/en/latest-dse-csharp-driver-api
-[faq]: http://docs.datastax.com/en/developer/csharp-driver-dse/1.0/supplemental/faq/
+[doc-index]: http://docs.datastax.com/en/developer/csharp-driver-dse/latest/
+[api-docs]: http://docs.datastax.com/en/drivers/csharp-dse/latest/
+[faq]: http://docs.datastax.com/en/developer/csharp-driver-dse/latest/faq/
