@@ -8,11 +8,14 @@
         "System": "",
         "System.Data": "",
         "System.Numerics": "",
+        "System.Runtime": "",
         "System.Xml": ""
       }
     }
   },
   "dependencies": {
-    "lz4net": "1.0.10.93"
+    "lz4net": "1.0.10.93",
+    "Microsoft.Extensions.Logging": "1.0.0",
+    "Microsoft.Extensions.Logging.Abstractions": "1.0.0"
   }
 }
