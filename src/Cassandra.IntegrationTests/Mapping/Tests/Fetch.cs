@@ -439,5 +439,72 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var retrieved = mapper.Fetch<PocoWithCollections<TimeUuid>>("WHERE id = ?", inserted.Id).First();
             CollectionAssert.AreEqual(inserted.DictionaryTKeyString, retrieved.DictionaryTKeyString);
         }
+
+        [Test]
+        public void Fetch_TimeUuid_HashSet_Key()
+        {
+            _session.Execute("CREATE TABLE tbl_timeuuid_hashset (id int primary key, my_set set<timeuuid>)");
+            var map = new Map<PocoWithCollections<TimeUuid>>()
+                .Column(p => p.Id)
+                .Column(p => p.HashSet, c => c.WithName("my_set"))
+                .PartitionKey(p => p.Id)
+                .TableName("tbl_timeuuid_hashset")
+                .ExplicitColumns();
+            var mapper = new Mapper(_session, new MappingConfiguration().Define(map));
+            var inserted = new PocoWithCollections<TimeUuid>
+            {
+                Id = 1,
+                HashSet = new HashSet<TimeUuid> { TimeUuid.NewId(), TimeUuid.NewId() }
+            };
+            mapper.Insert(inserted);
+            var retrieved = mapper.Fetch<PocoWithCollections<TimeUuid>>("WHERE id = ?", inserted.Id).First();
+            CollectionAssert.AreEqual(inserted.HashSet, retrieved.HashSet);
+        }
+
+        [Test]
+        public void Fetch_TimeUuid_List()
+        {
+            _session.Execute("CREATE TABLE tbl_timeuuid_list (id int primary key, my_list list<timeuuid>)");
+            var map = new Map<PocoWithCollections<TimeUuid>>()
+                .Column(p => p.Id)
+                .Column(p => p.List, c => c.WithName("my_list"))
+                .PartitionKey(p => p.Id)
+                .TableName("tbl_timeuuid_list")
+                .ExplicitColumns();
+            var mapper = new Mapper(_session, new MappingConfiguration().Define(map));
+            var inserted = new PocoWithCollections<TimeUuid>
+            {
+                Id = 1,
+                List = new List<TimeUuid> { TimeUuid.NewId(), TimeUuid.NewId() }
+            };
+            mapper.Insert(inserted);
+            var retrieved = mapper.Fetch<PocoWithCollections<TimeUuid>>("WHERE id = ?", inserted.Id).First();
+            var listRetrieved = retrieved.List.OrderBy(x => x);
+            var listInserted = inserted.List.OrderBy(x => x);
+            CollectionAssert.AreEqual(listInserted, listRetrieved);
+        }
+
+        [Test]
+        public void Fetch_Guid_HashSet_Key()
+        {
+            _session.Execute("CREATE TABLE tbl_uuid_hashset (id int primary key, my_set set<uuid>)");
+            var map = new Map<PocoWithCollections<Guid>>()
+                .Column(p => p.Id)
+                .Column(p => p.HashSet, c => c.WithName("my_set"))
+                .PartitionKey(p => p.Id)
+                .TableName("tbl_uuid_hashset")
+                .ExplicitColumns();
+            var mapper = new Mapper(_session, new MappingConfiguration().Define(map));
+            var inserted = new PocoWithCollections<Guid>
+            {
+                Id = 1,
+                HashSet = new HashSet<Guid> { Guid.NewGuid(), Guid.NewGuid() }
+            };
+            mapper.Insert(inserted);
+            var retrieved = mapper.Fetch<PocoWithCollections<Guid>>("WHERE id = ?", inserted.Id).First();
+            var hashes = inserted.HashSet.OrderBy(x => x);
+            var hashesRetrieved = retrieved.HashSet.OrderBy(x => x);
+            CollectionAssert.AreEqual(hashes, hashesRetrieved);
+        }
     }
 }

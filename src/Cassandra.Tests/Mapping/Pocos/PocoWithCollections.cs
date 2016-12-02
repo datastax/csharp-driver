@@ -19,6 +19,7 @@ namespace Cassandra.Tests.Mapping.Pocos
         public List<T> List { get; set; }
 
         public SortedDictionary<T, string> SortedDictionaryTKeyString { get; set; }
+        public HashSet<T> HashSet { get; set; }
 
         public Dictionary<T, string> DictionaryTKeyString { get; set; }
     }
