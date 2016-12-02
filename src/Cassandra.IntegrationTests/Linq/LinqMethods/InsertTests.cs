@@ -7,6 +7,7 @@ using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
+using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
 #pragma warning disable 612
 
@@ -88,6 +89,33 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                 .First();
 
             Assert.AreEqual(updatedMovie.MainActor, mainActor);
+        }
+
+        [Test]
+        public void Insert_Mapping_Attributes_Test()
+        {
+            const string createQuery = @"
+                CREATE TABLE attr_mapping_class_table (
+                    partition_key int,
+                    clustering_key_0 bigint,
+                    clustering_key_1 text, 
+                    clustering_key_2 uuid, 
+                    bool_value_col boolean, 
+                    float_value_col float,
+                    decimal_value_col decimal,
+                    PRIMARY KEY ((partition_key), clustering_key_0, clustering_key_1, clustering_key_2)
+                )";
+            _session.Execute(createQuery);
+            var table = new Table<AttributeMappingClass>(_session, new MappingConfiguration());
+            table.Insert(new AttributeMappingClass
+            {
+                PartitionKey = 1,
+                ClusteringKey0 = 2L,
+                ClusteringKey1 = "3",
+                ClusteringKey2 = Guid.NewGuid()
+            }).Execute();
+            var result = table.Where(c => c.PartitionKey == 1).Execute();
+            Assert.That(result.Count(), Is.EqualTo(1));
         }
 
         /// <summary>

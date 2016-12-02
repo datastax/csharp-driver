@@ -70,6 +70,21 @@ namespace Cassandra.Mapping.Attributes
                 var clusteringKeyAttribute = (ClusteringKeyAttribute)member.GetCustomAttributes(typeof(ClusteringKeyAttribute), true).FirstOrDefault();
                 if (clusteringKeyAttribute != null)
                 {
+                    if (clusteringKeyAttribute.Name != null)
+                    {
+                        columnName = clusteringKeyAttribute.Name;
+                        if (columnAttribute != null && columnAttribute.Name != null &&
+                            columnAttribute.Name != clusteringKeyAttribute.Name)
+                        {
+                            // It uses both [Column] and [ClusteringKey] attributes with different column names
+                            throw new InvalidOperationException(string.Format(
+                                "The member {0} has [Column] and [ClusteringKey] attributes defined with different" +
+                                "column names: '{1}' vs '{2}",
+                                member.Name,
+                                columnAttribute.Name,
+                                clusteringKeyAttribute.Name));
+                        }
+                    }
                     clusteringKeys.Add(Tuple.Create(columnName, clusteringKeyAttribute.ClusteringSortOrder, clusteringKeyAttribute.Index));
                 }
             }

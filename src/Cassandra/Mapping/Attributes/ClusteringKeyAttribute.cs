@@ -33,6 +33,7 @@ namespace Cassandra.Mapping.Attributes
         /// Index of the clustering key, relative to the other clustering keys
         /// </summary>
         public int Index { get; set; }
+
         /// <summary>
         /// Name of the column
         /// </summary>

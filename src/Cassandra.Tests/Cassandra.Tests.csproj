@@ -97,6 +97,7 @@
     <Compile Include="Mapping\Pocos\Album.cs" />
     <Compile Include="Mapping\Pocos\AllTypesDecorated.cs" />
     <Compile Include="Mapping\Pocos\AllTypesEntity.cs" />
+    <Compile Include="Mapping\Pocos\AttributeMappingClass.cs" />
     <Compile Include="Mapping\Pocos\CollectionTypesEntity.cs" />
     <Compile Include="Mapping\Pocos\ContactMethod.cs" />
     <Compile Include="Mapping\Pocos\DecoratedUser.cs" />

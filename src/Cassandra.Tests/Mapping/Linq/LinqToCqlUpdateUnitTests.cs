@@ -287,6 +287,19 @@ namespace Cassandra.Tests.Mapping.Linq
                 query);
             CollectionAssert.AreEqual(new object[] { "The Rolling Stones".ToUpperInvariant(), new DateTimeOffset(new DateTime(1999, 12, 31)), Guid.Empty }, parameters);
         }
+
+        [Test]
+        public void Update_With_Attribute_Based_Mapping()
+        {
+            string query = null;
+            var session = GetSession((q, v) => query = q);
+            var table = new Table<AttributeMappingClass>(session, new MappingConfiguration());
+            table.Where(x => x.PartitionKey == 1 && x.ClusteringKey0 == 10L).Select(x => new AttributeMappingClass
+            {
+                DecimalValue = 10M        
+            }).Update().Execute();
+            Assert.AreEqual("UPDATE attr_mapping_class_table SET decimal_value_col = ? WHERE partition_key = ? AND clustering_key_0 = ?", query);
+        }
     }
 }
 #endif
