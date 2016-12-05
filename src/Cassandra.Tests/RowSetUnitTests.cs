@@ -16,12 +16,14 @@
 
 using NUnit.Framework;
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Reflection;
 #if !NO_MOCKS
 using Moq;
 #endif
@@ -484,13 +486,164 @@ namespace Cassandra.Tests
                 new object[] {new [] {1, 2, 3}, setIntTypeInfo, typeof(IEnumerable<int>), typeof(int[])},
                 new object[] {new [] {1, 2, 3}, setIntTypeInfo, typeof(HashSet<int>)},
                 new object[] {new [] {1, 2, 3}, setIntTypeInfo, typeof(SortedSet<int>)},
-                new object[] {new [] {1, 2, 3}, setIntTypeInfo, typeof(ISet<int>), typeof(List<int>)}
+                new object[] {new [] {1, 2, 3}, setIntTypeInfo, typeof(ISet<int>), typeof(SortedSet<int>)}
             };
             foreach (var item in values)
             {
                 var value = Row.TryConvertToType(item[0], (CqlColumn)item[1], (Type)item[2]);
                 Assert.AreEqual(item.Length > 3 ? item[3] : item[2], value.GetType());
                 CollectionAssert.AreEqual((int[]) item[0], (IEnumerable<int>) value);
+            }
+        }
+
+        [Test]
+        public void Row_TryConvertToType_Should_Convert_Uuid_Collections()
+        {
+            var setTypeInfo = new CqlColumn
+            {
+                TypeCode = ColumnTypeCode.Set,
+                TypeInfo = new SetColumnInfo { KeyTypeCode = ColumnTypeCode.Timeuuid }
+            };
+            var listTypeInfo = new CqlColumn
+            {
+                TypeCode = ColumnTypeCode.List,
+                TypeInfo = new ListColumnInfo { ValueTypeCode = ColumnTypeCode.Timeuuid }
+            };
+            var values = new[]
+            {
+                Tuple.Create(new Guid[] { TimeUuid.NewId() }, setTypeInfo, typeof(TimeUuid[])),
+                Tuple.Create(new Guid[] { TimeUuid.NewId() }, setTypeInfo, typeof(SortedSet<TimeUuid>)),
+                Tuple.Create(new Guid[] { TimeUuid.NewId() }, listTypeInfo, typeof(List<TimeUuid>)),
+                Tuple.Create(new Guid[] { TimeUuid.NewId() }, setTypeInfo, typeof(HashSet<TimeUuid>)),
+                Tuple.Create(new Guid[] { TimeUuid.NewId() }, setTypeInfo, typeof(ISet<TimeUuid>)),
+                Tuple.Create(new Guid[] { Guid.NewGuid() }, setTypeInfo, typeof(HashSet<Guid>)),
+                Tuple.Create(new Guid[] { Guid.NewGuid() }, setTypeInfo, typeof(SortedSet<Guid>)),
+                Tuple.Create(new Guid[] { Guid.NewGuid() }, listTypeInfo, typeof(List<Guid>)),
+                Tuple.Create(new Guid[] { Guid.NewGuid() }, listTypeInfo, typeof(Guid[])),
+                Tuple.Create(new Guid[] { Guid.NewGuid() }, listTypeInfo, typeof(IList<Guid>))
+            };
+            foreach (var item in values)
+            {
+                var value = Row.TryConvertToType(item.Item1, item.Item2, item.Item3);
+                Assert.True(item.Item3.GetTypeInfo().IsInstanceOfType(value), "{0} is not assignable from {1}",
+                    item.Item3, value.GetType());
+                Assert.AreEqual(item.Item1.First().ToString(),
+                    (from object v in (IEnumerable)value select v.ToString()).FirstOrDefault());
+            }
+        }
+
+        [Test]
+        public void Row_TryConvertToType_Should_Convert_Nested_Collections()
+        {
+            var setTypeInfo = new CqlColumn
+            {
+                TypeCode = ColumnTypeCode.Set,
+                TypeInfo = new SetColumnInfo
+                {
+                    KeyTypeCode = ColumnTypeCode.Set,
+                    KeyTypeInfo = new SetColumnInfo {  KeyTypeCode = ColumnTypeCode.Int }
+                }
+            };
+            var listTypeInfo = new CqlColumn
+            {
+                TypeCode = ColumnTypeCode.List,
+                TypeInfo = new ListColumnInfo
+                {
+                    ValueTypeCode = ColumnTypeCode.Set,
+                    ValueTypeInfo = new SetColumnInfo { KeyTypeCode = ColumnTypeCode.Timeuuid }
+                }
+            };
+            var values = new[]
+            {
+                Tuple.Create((IEnumerable)new [] { new Guid[] { TimeUuid.NewId() } }, listTypeInfo, typeof(TimeUuid[][])),
+                Tuple.Create((IEnumerable)new [] { new [] { Guid.NewGuid() } }, listTypeInfo, typeof(Guid[][])),
+                Tuple.Create((IEnumerable)new [] { new Guid[] { TimeUuid.NewId() } }, listTypeInfo, typeof(SortedSet<TimeUuid>[])),
+                Tuple.Create((IEnumerable)new [] { new [] { Guid.NewGuid() } }, listTypeInfo, typeof(HashSet<Guid>[])),
+                Tuple.Create((IEnumerable)new [] { new [] { 314 } }, setTypeInfo, typeof(HashSet<int>[])),
+                Tuple.Create((IEnumerable)new [] { new [] { 213 } }, setTypeInfo, typeof(int[][])),
+                Tuple.Create((IEnumerable)new [] { new [] { 111 } }, setTypeInfo, typeof(SortedSet<SortedSet<int>>))
+            };
+            foreach (var item in values)
+            {
+                var value = Row.TryConvertToType(item.Item1, item.Item2, item.Item3);
+                Assert.True(item.Item3.GetTypeInfo().IsInstanceOfType(value), "{0} is not assignable from {1}",
+                    item.Item3, value.GetType());
+                Assert.AreEqual(TestHelper.FirstString(item.Item1), TestHelper.FirstString((IEnumerable) value));
+            }
+        }
+
+        [Test]
+        public void Row_TryConvertToType_Should_Convert_Dictionaries()
+        {
+            var mapTypeInfo1 = new CqlColumn
+            {
+                TypeCode = ColumnTypeCode.Map,
+                TypeInfo = new MapColumnInfo
+                {
+                    KeyTypeCode = ColumnTypeCode.Timeuuid,
+                    ValueTypeCode = ColumnTypeCode.Set,
+                    ValueTypeInfo = new SetColumnInfo { KeyTypeCode = ColumnTypeCode.Int }
+                }
+            };
+            var values = new[]
+            {
+                Tuple.Create(
+                    (IDictionary) new SortedDictionary<Guid, IEnumerable<int>>
+                    {
+                        { Guid.NewGuid(), new[] { 1, 2, 3}}
+                    },
+                    mapTypeInfo1, typeof(SortedDictionary<Guid, IEnumerable<int>>)),
+                Tuple.Create(
+                    (IDictionary) new SortedDictionary<Guid, IEnumerable<int>>
+                    {
+                        { TimeUuid.NewId(), new[] { 1, 2, 3}}
+                    },
+                    mapTypeInfo1, typeof(IDictionary<TimeUuid, int[]>))
+            };
+            foreach (var item in values)
+            {
+                var value = Row.TryConvertToType(item.Item1, item.Item2, item.Item3);
+                Assert.True(item.Item3.GetTypeInfo().IsInstanceOfType(value), "{0} is not assignable from {1}",
+                    item.Item3, value.GetType());
+                Assert.AreEqual(TestHelper.FirstString(item.Item1), TestHelper.FirstString((IEnumerable)value));
+            }
+        }
+
+        // From DB!
+        //System.Collections.Generic.SortedDictionary`2[System.String,System.Collections.Generic.IEnumerable`1[System.String]]
+
+        [Test]
+        public void Row_TryConvertToType_Should_Convert_Timestamp_Collections()
+        {
+            var setTypeInfo = new CqlColumn
+            {
+                TypeCode = ColumnTypeCode.Set,
+                TypeInfo = new SetColumnInfo { KeyTypeCode = ColumnTypeCode.Timestamp },
+                Type = typeof(IEnumerable<DateTimeOffset>)
+            };
+            var listTypeInfo = new CqlColumn
+            {
+                TypeCode = ColumnTypeCode.List,
+                TypeInfo = new ListColumnInfo { ValueTypeCode = ColumnTypeCode.Timestamp }
+            };
+            var values = new[]
+            {
+                Tuple.Create(new [] { DateTimeOffset.UtcNow }, setTypeInfo, typeof(DateTime[])),
+                Tuple.Create(new [] { DateTimeOffset.UtcNow }, setTypeInfo, typeof(SortedSet<DateTime>)),
+                Tuple.Create(new [] { DateTimeOffset.UtcNow }, listTypeInfo, typeof(List<DateTime>)),
+                Tuple.Create(new [] { DateTimeOffset.UtcNow }, setTypeInfo, typeof(HashSet<DateTime>)),
+                Tuple.Create(new [] { DateTimeOffset.UtcNow }, setTypeInfo, typeof(HashSet<DateTimeOffset>)),
+                Tuple.Create(new [] { DateTimeOffset.UtcNow }, setTypeInfo, typeof(SortedSet<DateTimeOffset>)),
+                Tuple.Create(new [] { DateTimeOffset.UtcNow }, listTypeInfo, typeof(List<DateTimeOffset>)),
+                Tuple.Create(new [] { DateTimeOffset.UtcNow }, listTypeInfo, typeof(DateTimeOffset[]))
+            };
+            foreach (var item in values)
+            {
+                var value = Row.TryConvertToType(item.Item1, item.Item2, item.Item3);
+                Assert.True(item.Item3.GetTypeInfo().IsInstanceOfType(value), "{0} is not assignable from {1}",
+                    item.Item3, value.GetType());
+                Assert.AreEqual(item.Item1.First().Ticks,
+                    (from object v in (IEnumerable)value select (v is DateTime ? ((DateTime)v).Ticks : ((DateTimeOffset)v).Ticks)).FirstOrDefault());
             }
         }
 

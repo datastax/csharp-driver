@@ -339,11 +339,62 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Returns true if the type is exactly IEnumerable{T} (not assignable to, strict equals to).
+        /// Returns true if the type is IEnumerable{T} or implements IEnumerable{T}
         /// </summary>
-        public static bool IsIEnumerable(Type t)
+        public static bool IsIEnumerable(Type t, out Type childType)
         {
-            return t.GetTypeInfo().IsGenericType && t.GetTypeInfo().IsInterface && t.GetGenericTypeDefinition() == typeof(IEnumerable<>);
+            var typeInfo = t.GetTypeInfo();
+            var isEnumerable = typeInfo.IsGenericType && typeInfo.GetGenericTypeDefinition() == typeof(IEnumerable<>);
+            if (isEnumerable)
+            {
+                childType = typeInfo.GetGenericArguments()[0];
+                return true;
+            }
+            var implementedEnumerable = typeInfo
+                .GetInterfaces()
+                .FirstOrDefault(
+                    i => i.GetTypeInfo().IsGenericType &&
+                    i.GetTypeInfo().GetGenericTypeDefinition() == typeof(IEnumerable<>));
+            if (implementedEnumerable == null)
+            {
+                childType = null;
+                return false;
+            }
+            childType = implementedEnumerable.GetTypeInfo().GetGenericArguments()[0];
+            return true;
+        }
+
+        /// <summary>
+        /// Returns true if the type is IDictionary{T} or implements IDictionary{T}
+        /// </summary>
+        public static bool IsIDictionary(Type t, out Type keyType, out Type valueType)
+        {
+            var typeInfo = t.GetTypeInfo();
+            var isIDictionary = typeInfo.IsGenericType && 
+                typeInfo.GetGenericTypeDefinition() == typeof(IDictionary<,>);
+            Type[] subTypes;
+            if (isIDictionary)
+            {
+                subTypes = typeInfo.GetGenericArguments();
+                keyType = subTypes[0];
+                valueType = subTypes[1];
+                return true;
+            }
+            var implementedIDictionary = typeInfo
+                .GetInterfaces()
+                .FirstOrDefault(
+                    i => i.GetTypeInfo().IsGenericType &&
+                    i.GetTypeInfo().GetGenericTypeDefinition() == typeof(IDictionary<,>));
+            if (implementedIDictionary == null)
+            {
+                keyType = null;
+                valueType = null;
+                return false;
+            }
+            subTypes = implementedIDictionary.GetTypeInfo().GetGenericArguments();
+            keyType = subTypes[0];
+            valueType = subTypes[1];
+            return true;
         }
 
         /// <summary>

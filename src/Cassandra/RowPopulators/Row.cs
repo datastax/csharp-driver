@@ -204,47 +204,19 @@ namespace Cassandra
         /// Handle conversions for some types that, for backward compatibility,
         /// the result type can be more than 1 depending on the type provided by the user 
         /// </summary>
-        internal static object TryConvertToType(object value, CqlColumn column, Type targetType)
+        internal static object TryConvertToType(object value, ColumnDesc column, Type targetType)
         {
-            if (value == null)
+            if (value == null || targetType == typeof(object))
             {
-                return null;
+                return value;
             }
             switch (column.TypeCode)
             {
                 case ColumnTypeCode.List:
-                {
-                    //value is an array, according to TypeCodec
-                    if (targetType.IsArray || targetType == typeof(object) || Utils.IsIEnumerable(targetType))
-                    {
-                        //Return the underlying array
-                        return value;
-                    }
-                    return Utils.ToCollectionType(typeof(List<>), column.Type.GetTypeInfo().GetGenericArguments()[0], (Array)value);
-                }
                 case ColumnTypeCode.Set:
-                {
-                    //value is an array, according to TypeCodec
-                    if (targetType.IsArray || targetType == typeof(object) || Utils.IsIEnumerable(targetType))
-                    {
-                        //Return the underlying array
-                        return value;
-                    }
-                    var itemType = column.Type.GetTypeInfo().GetGenericArguments()[0];
-                    if (targetType.GetTypeInfo().IsGenericType)
-                    {
-                        var genericType = targetType.GetGenericTypeDefinition();
-                        if (genericType == typeof(SortedSet<>))
-                        {
-                            return Utils.ToCollectionType(typeof(SortedSet<>), itemType, (Array)value);
-                        }
-                        if (genericType == typeof(HashSet<>))
-                        {
-                            return Utils.ToCollectionType(typeof(HashSet<>), itemType, (Array)value);
-                        }
-                    }
-                    return Utils.ToCollectionType(typeof(List<>), itemType, (Array)value);
-                }
+                    return TryConvertToCollection(value, column, targetType);
+                case ColumnTypeCode.Map:
+                    return TryConvertDictionary((IDictionary)value, column, targetType);
                 case ColumnTypeCode.Timestamp:
                     //value is a DateTimeOffset
                     if (targetType == typeof (object) || targetType == typeof (DateTimeOffset))
@@ -262,6 +234,128 @@ namespace Cassandra
                 default:
                     return value;
             }
+        }
+
+        private static object TryConvertToCollection(object value, ColumnDesc column, Type targetType)
+        {
+            var targetTypeInfo = targetType.GetTypeInfo();
+            // value is an array, according to TypeCodec
+            var childType = value.GetType().GetTypeInfo().GetElementType();
+            Type childTargetType;
+            if (targetTypeInfo.IsArray)
+            {
+                childTargetType = targetTypeInfo.GetElementType();
+                if (childTargetType.GetTypeInfo().IsAssignableFrom(childType))
+                {
+                    return value;
+                }
+                return GetArray((Array)value, childTargetType, column.TypeInfo);
+            }
+            if (Utils.IsIEnumerable(targetType, out childTargetType))
+            {
+                var genericTargetType = targetType.GetGenericTypeDefinition();
+                // Is IEnumerable
+                if (!childTargetType.GetTypeInfo().IsAssignableFrom(childType))
+                {
+                    // Conversion is needed
+                    value = GetArray((Array)value, childTargetType, column.TypeInfo);
+                }
+                if (genericTargetType == typeof(IEnumerable<>))
+                {
+                    // The target type is an interface
+                    return value;
+                }
+                if (column.TypeCode == ColumnTypeCode.List || genericTargetType == typeof(List<>) ||
+                    genericTargetType == typeof(IList<>))
+                {
+                    // Use List<T> by default when a list is expected and the target type 
+                    // is not an object or an array
+                    return Utils.ToCollectionType(typeof(List<>), childTargetType, (Array)value);
+                }
+                if (genericTargetType == typeof(SortedSet<>) || genericTargetType == typeof(ISet<>))
+                {
+                    return Utils.ToCollectionType(typeof(SortedSet<>), childTargetType, (Array)value);
+                }
+                if (genericTargetType == typeof(HashSet<>))
+                {
+                    return Utils.ToCollectionType(typeof(HashSet<>), childTargetType, (Array)value);
+                }
+            }
+            throw new InvalidCastException(string.Format("Unable to cast object of type '{0}' to type '{1}'",
+                value.GetType(), targetType));
+        }
+
+        private static Array GetArray(Array source, Type childTargetType, IColumnInfo columnInfo)
+        {
+            // Handle struct type cases manually to prevent unboxing and boxing again
+            if (childTargetType == typeof(TimeUuid))
+            {
+                var arrSource = (Guid[])source;
+                var result = new TimeUuid[source.Length];
+                for (var i = 0; i < arrSource.Length; i++)
+                {
+                    result[i] = arrSource[i];
+                }
+                return result;
+            }
+            if (childTargetType == typeof(DateTime))
+            {
+                var arrSource = (DateTimeOffset[])source;
+                var result = new DateTime[source.Length];
+                for (var i = 0; i < arrSource.Length; i++)
+                {
+                    result[i] = arrSource[i].DateTime;
+                }
+                return result;
+            }
+            // Other collections
+            var childColumnInfo = ((ICollectionColumnInfo) columnInfo).GetChildType();
+            var arr = Array.CreateInstance(childTargetType, source.Length);
+            for (var i = 0; i < source.Length; i++)
+            {
+                arr.SetValue(TryConvertToType(source.GetValue(i), childColumnInfo, childTargetType), i);
+            }
+            return arr;
+        }
+
+        private static IDictionary TryConvertDictionary(IDictionary value, ColumnDesc column, Type targetType)
+        {
+            if (targetType.GetTypeInfo().IsInstanceOfType(value))
+            {
+                return value;
+            }
+            var mapColumnInfo = (MapColumnInfo)column.TypeInfo;
+            Type childTargetKeyType;
+            Type childTargetValueType;
+            if (!Utils.IsIDictionary(targetType, out childTargetKeyType, out childTargetValueType))
+            {
+                throw new InvalidCastException(string.Format("Unable to cast object of type '{0}' to type '{1}'",
+                    value.GetType(), targetType));
+            }
+            var childTypes = value.GetType().GetTypeInfo().GetGenericArguments();
+            if (!childTargetKeyType.GetTypeInfo().IsAssignableFrom(childTypes[0]) ||
+                !childTargetValueType.GetTypeInfo().IsAssignableFrom(childTypes[1]))
+            {
+                // Convert to target type
+                var type = typeof(SortedDictionary<,>).MakeGenericType(childTargetKeyType, childTargetValueType);
+                var result = (IDictionary)Activator.CreateInstance(type);
+                foreach (DictionaryEntry entry in value)
+                {
+                    result.Add(
+                        TryConvertToType(entry.Key, new ColumnDesc
+                        {
+                            TypeCode = mapColumnInfo.KeyTypeCode,
+                            TypeInfo = mapColumnInfo.KeyTypeInfo
+                        }, childTargetKeyType),
+                        TryConvertToType(entry.Value, new ColumnDesc
+                        {
+                            TypeCode = mapColumnInfo.ValueTypeCode,
+                            TypeInfo = mapColumnInfo.ValueTypeInfo
+                        }, childTargetValueType));
+                }
+                return result;
+            }
+            return value;
         }
     }
 }

@@ -104,16 +104,34 @@ namespace Cassandra
         }
     }
 
-    public class ListColumnInfo : IColumnInfo
+    public class ListColumnInfo : IColumnInfo, ICollectionColumnInfo
     {
         public ColumnTypeCode ValueTypeCode { get; set; }
         public IColumnInfo ValueTypeInfo { get; set; }
+
+        ColumnDesc ICollectionColumnInfo.GetChildType()
+        {
+            return new ColumnDesc
+            {
+                TypeCode = ValueTypeCode,
+                TypeInfo = ValueTypeInfo
+            };
+        }
     }
 
-    public class SetColumnInfo : IColumnInfo
+    public class SetColumnInfo : IColumnInfo, ICollectionColumnInfo
     {
         public ColumnTypeCode KeyTypeCode { get; set; }
         public IColumnInfo KeyTypeInfo { get; set; }
+
+        ColumnDesc ICollectionColumnInfo.GetChildType()
+        {
+            return new ColumnDesc
+            {
+                TypeCode = KeyTypeCode,
+                TypeInfo = KeyTypeInfo
+            };
+        }
     }
 
     public class MapColumnInfo : IColumnInfo
@@ -122,6 +140,11 @@ namespace Cassandra
         public IColumnInfo KeyTypeInfo { get; set; }
         public ColumnTypeCode ValueTypeCode { get; set; }
         public IColumnInfo ValueTypeInfo { get; set; }
+    }
+
+    internal interface ICollectionColumnInfo
+    {
+        ColumnDesc GetChildType();
     }
 
     /// <summary>
