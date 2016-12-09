@@ -119,14 +119,16 @@ namespace Cassandra.Tests
         }
 
         /// <summary>
-        /// Waits on the current thread until the condition is met
+        /// Waits on the current thread until the condition is met and returns the number of attempts made
         /// </summary>
-        public static void WaitUntil(Func<bool> condition, int intervals = 500, int attempts = 10)
+        public static int WaitUntil(Func<bool> condition, int intervals = 500, int attempts = 10)
         {
-            for (var i = 0; i < attempts && !condition(); i++)
+            var i = 0;
+            for (; i < attempts && !condition(); i++)
             {
                 Thread.Sleep(intervals);
             }
+            return i;
         }
 
         public static void AssertPropertiesEqual(object actual, object expected)

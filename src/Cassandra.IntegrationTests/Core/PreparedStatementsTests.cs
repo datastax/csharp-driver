@@ -906,15 +906,15 @@ namespace Cassandra.IntegrationTests.Core
                 testCluster.Stop(1);
 
                 Thread.Sleep(8000);
-                Assert.AreEqual(1, downCounter);
-                Assert.AreEqual(0, upCounter);
+                Assert.AreEqual(1, Volatile.Read(ref downCounter), "Should have raised Host.Down once");
+                Assert.AreEqual(0, Volatile.Read(ref upCounter), "Should not have raised Host.Up");
 
                 testCluster.Start(1);
 
                 Thread.Sleep(8000);
                 TestHelper.WaitUntil(() => Volatile.Read(ref upCounter) == 1, 1000, 20);
-                Assert.AreEqual(1, Volatile.Read(ref downCounter));
-                Assert.AreEqual(1, Volatile.Read(ref upCounter));
+                Assert.AreEqual(1, Volatile.Read(ref downCounter), "Should have raised Host.Down once");
+                Assert.AreEqual(1, Volatile.Read(ref upCounter), "Should have raised Host.Up once");
                 Assert.True(session.Cluster.AllHosts().Select(h => h.IsUp).Any(), "There should be one node up");
                 for (var i = 0; i < 10; i++)
                 {

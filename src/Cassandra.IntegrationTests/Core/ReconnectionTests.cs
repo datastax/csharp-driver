@@ -77,8 +77,9 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.False(host.IsUp);
                 Trace.TraceInformation("Restarting node");
                 testCluster.Start(1);
-                Trace.TraceInformation("Waiting for 5 seconds");
-                Thread.Sleep(5000);
+                Trace.TraceInformation("Waiting up to 20s");
+                var attempts = TestHelper.WaitUntil(() => host.IsUp, 1000, 20);
+                Trace.TraceInformation("Waited {0}s", attempts);
                 Assert.True(host.IsUp);
                 Assert.AreEqual(1, Volatile.Read(ref downCounter));
                 Assert.AreEqual(1, Volatile.Read(ref upCounter));
