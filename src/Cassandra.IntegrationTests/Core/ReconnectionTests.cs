@@ -160,9 +160,9 @@ namespace Cassandra.IntegrationTests.Core
                 Trace.TraceInformation("Restarting node #2");
                 testCluster.Start(2);
                 Trace.TraceInformation("Waiting for few more seconds");
-                Thread.Sleep(6000);
-                Assert.True(host1.IsUp);
-                Assert.True(host2.IsUp);
+                TestHelper.WaitUntil(() => host1.IsUp && host2.IsUp, 1000, 20);
+                Assert.True(host1.IsUp, "Host 1 should be UP after restarting");
+                Assert.True(host2.IsUp, "Host 2 should be UP after restarting");
                 Assert.AreEqual(1, downCounter.GetOrAdd(1, 0));
                 Assert.AreEqual(1, upCounter.GetOrAdd(1, 0));
                 Assert.AreEqual(1, downCounter.GetOrAdd(2, 0));
