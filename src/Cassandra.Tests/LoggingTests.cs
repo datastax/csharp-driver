@@ -23,10 +23,11 @@ namespace Cassandra.Tests
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
             var listener = new TestTraceListener();
             Trace.Listeners.Add(listener);
-            UseAllMethods(new Logger.TraceBasedLoggerHandler(typeof(int)));
+            var loggerHandler = new Logger.TraceBasedLoggerHandler(typeof(int));
+            UseAllMethods(loggerHandler);
             Trace.Listeners.Remove(listener);
-            Assert.AreEqual(6, listener.Messages.Count);
             Diagnostics.CassandraTraceSwitch.Level = originalLevel;
+            Assert.AreEqual(6, listener.Messages.Count);
             var expectedMessages = new[]
             {
                 "Test exception 1",
@@ -40,6 +41,34 @@ namespace Cassandra.Tests
             for (var i = 0; i < expectedMessages.Length; i++)
             {
                 StringAssert.Contains(expectedMessages[i], messages[i]);
+            }
+        }
+
+        [Test]
+        public void FactoryBasedLoggerHandler_LogError_Handles_Concurrent_Calls()
+        {
+            var originalLevel = Diagnostics.CassandraTraceSwitch.Level;
+            try
+            {
+                Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
+                var listener = new TestTraceListener();
+                Trace.Listeners.Add(listener);
+                var loggerHandler = new Logger.TraceBasedLoggerHandler(typeof(int));
+                UseAllMethods(loggerHandler);
+                Trace.Listeners.Remove(listener);
+                Assert.AreEqual(6, listener.Messages.Count);
+                var actions = Enumerable
+                    .Repeat(true, 1000)
+                    .Select<bool, Action>((_, index) => () =>
+                    {
+                        loggerHandler.Error(new ArgumentException("Test exception " + index,
+                            new Exception("Test inner exception")));
+                    });
+                TestHelper.ParallelInvoke(actions);
+            }
+            finally
+            {
+                Diagnostics.CassandraTraceSwitch.Level = originalLevel;
             }
         }
 
