@@ -22,6 +22,7 @@ using System.Text;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
@@ -54,7 +55,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var testCluster = TestClusterManager.CreateNew(1, null, false);
             testCluster.UpdateConfig("authenticator: PasswordAuthenticator");
-            testCluster.Start();
+            testCluster.Start(new[] { "-Dcassandra.superuser_setup_delay_ms=0" });
             return testCluster;
         }
 
