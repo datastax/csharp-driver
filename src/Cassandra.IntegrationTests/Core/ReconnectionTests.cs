@@ -38,7 +38,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(testCluster.InitialContactPoint)
                                         .WithPoolingOptions(
-                                            new PoolingOptions()
+                                            PoolingOptions.DefaultOptions(Version.Parse("2.0"))
                                                 .SetCoreConnectionsPerHost(HostDistance.Local, 2)
                                                 .SetHeartBeatInterval(0))
                                         .WithReconnectionPolicy(new ConstantReconnectionPolicy(2000))
@@ -84,7 +84,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(testCluster.InitialContactPoint)
                                         .WithPoolingOptions(
-                                            new PoolingOptions()
+                                            PoolingOptions.DefaultOptions(Version.Parse("2.0"))
                                                 .SetCoreConnectionsPerHost(HostDistance.Local, 2)
                                                 .SetHeartBeatInterval(0))
                                         .WithReconnectionPolicy(new ConstantReconnectionPolicy(2000))
@@ -151,7 +151,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(testCluster.InitialContactPoint)
                                         .WithPoolingOptions(
-                                            new PoolingOptions()
+                                            PoolingOptions.DefaultOptions(Version.Parse("2.0"))
                                                 .SetCoreConnectionsPerHost(HostDistance.Local, 2)
                                                 .SetHeartBeatInterval(0))
                                         .WithReconnectionPolicy(new ConstantReconnectionPolicy(1000))
@@ -220,7 +220,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(testCluster.InitialContactPoint)
                                         .WithPoolingOptions(
-                                            new PoolingOptions()
+                                            PoolingOptions.DefaultOptions(Version.Parse("2.0"))
                                                 .SetCoreConnectionsPerHost(HostDistance.Local, 2)
                                                 .SetMaxConnectionsPerHost(HostDistance.Local, 2)
                                                 .SetHeartBeatInterval(0))

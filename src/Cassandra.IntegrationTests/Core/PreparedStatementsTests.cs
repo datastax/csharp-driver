@@ -860,7 +860,7 @@ namespace Cassandra.IntegrationTests.Core
             const string keyspace = TestClusterManager.DefaultKeyspaceName;
             var testCluster = TestClusterManager.CreateNew();
             using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint)
-                .WithPoolingOptions(new PoolingOptions().SetHeartBeatInterval(2000))
+                .WithPoolingOptions(PoolingOptions.DefaultOptions(Version.Parse("2.0")).SetHeartBeatInterval(2000))
                 .WithReconnectionPolicy(new ConstantReconnectionPolicy(1000)).Build())
             {
                 var session = cluster.Connect();

@@ -260,7 +260,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var localCluster1 = Cluster.Builder()
                 .AddContactPoint(TestCluster.InitialContactPoint)
-                .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 3))
+                .WithPoolingOptions(PoolingOptions.DefaultOptions(Version.Parse("2.0")).SetCoreConnectionsPerHost(HostDistance.Local, 3))
                 .Build();
             Cluster localCluster2 = null;
             try
@@ -281,7 +281,7 @@ namespace Cassandra.IntegrationTests.Core
                 
                 localCluster2 = Cluster.Builder()
                     .AddContactPoint(TestCluster.InitialContactPoint)
-                    .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 1))
+                    .WithPoolingOptions(PoolingOptions.DefaultOptions(Version.Parse("2.0")).SetCoreConnectionsPerHost(HostDistance.Local, 1))
                     .Build();
                 var localSession2 = (Session)localCluster2.Connect();
                 var hosts2 = localCluster2.AllHosts().ToList();

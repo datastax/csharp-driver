@@ -420,7 +420,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var config = new Configuration(Cassandra.Policies.DefaultPolicies, 
                 new ProtocolOptions(ProtocolOptions.DefaultPort, new SSLOptions()),
-                new PoolingOptions(),
+                PoolingOptions.DefaultOptions(Version.Parse("2.0")),
                  new SocketOptions().SetConnectTimeoutMillis(200),
                  new ClientOptions(),
                  NoneAuthProvider.Instance,
@@ -585,8 +585,8 @@ namespace Cassandra.IntegrationTests.Core
             socketOptions.SetConnectTimeoutMillis(1000);
             var config = new Configuration(
                 new Cassandra.Policies(), 
-                new ProtocolOptions(), 
-                new PoolingOptions(), 
+                new ProtocolOptions(),
+                PoolingOptions.DefaultOptions(Version.Parse("2.0")), 
                 socketOptions, 
                 new ClientOptions(), 
                 NoneAuthProvider.Instance,
@@ -667,7 +667,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void With_Heartbeat_Enabled_Should_Send_Request()
         {
-            using (var connection = CreateConnection(null, null, new PoolingOptions().SetHeartBeatInterval(500)))
+            using (var connection = CreateConnection(null, null, PoolingOptions.DefaultOptions(Version.Parse("2.0")).SetHeartBeatInterval(500)))
             {
                 connection.Open().Wait();
                 //execute a dummy query
@@ -683,7 +683,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void With_Heartbeat_Disabled_Should_Not_Send_Request()
         {
-            using (var connection = CreateConnection(null, null, new PoolingOptions().SetHeartBeatInterval(0)))
+            using (var connection = CreateConnection(null, null, PoolingOptions.DefaultOptions(Version.Parse("2.0")).SetHeartBeatInterval(0)))
             {
                 connection.Open().Wait();
                 //execute a dummy query
@@ -700,7 +700,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void With_HeartbeatEnabled_Should_Raise_When_Connection_Closed()
         {
-            using (var connection = CreateConnection(null, null, new PoolingOptions().SetHeartBeatInterval(500)))
+            using (var connection = CreateConnection(null, null, PoolingOptions.DefaultOptions(Version.Parse("2.0")).SetHeartBeatInterval(500)))
             {
                 connection.Open().Wait();
                 //execute a dummy query
@@ -729,7 +729,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Heartbeat_Should_Be_Enabled_By_Default()
         {
             const int defaultHeartbeatInterval = 30000;
-            using (var connection = CreateConnection(null, null, new PoolingOptions()))
+            using (var connection = CreateConnection(null, null, PoolingOptions.DefaultOptions(Version.Parse("2.0"))))
             {
                 connection.Open().Wait();
                 Assert.AreEqual(defaultHeartbeatInterval, connection.Configuration.PoolingOptions.GetHeartBeatInterval());

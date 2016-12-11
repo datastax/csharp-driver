@@ -248,7 +248,7 @@ namespace Cassandra.IntegrationTests.Core
                 //using a keyspace
                 .WithDefaultKeyspace("system")
                 //lots of connections per host
-                .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 30))
+                .WithPoolingOptions(PoolingOptions.DefaultOptions(Version.Parse("2.0")).SetCoreConnectionsPerHost(HostDistance.Local, 30))
                 .Build())
             {
                 var session = cluster.Connect();
@@ -327,7 +327,7 @@ namespace Cassandra.IntegrationTests.Core
             var cluster = Cluster.Builder()
                                  .AddContactPoint(testCluster.InitialContactPoint)
                                  .WithPoolingOptions(
-                                     new PoolingOptions()
+                                     PoolingOptions.DefaultOptions(Version.Parse("2.0"))
                                          .SetCoreConnectionsPerHost(HostDistance.Local, 2)
                                          .SetHeartBeatInterval(500))
                                  .WithReconnectionPolicy(new ConstantReconnectionPolicy(Int32.MaxValue))
