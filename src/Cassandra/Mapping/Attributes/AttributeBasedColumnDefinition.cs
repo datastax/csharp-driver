@@ -117,6 +117,14 @@ namespace Cassandra.Mapping.Attributes
                     _columnType = columnAttribute.Type;
                 }
             }
+            // Column names can be also defined at ClusteringKeyAttribute level
+            var clusteringKeyAttribute = (ClusteringKeyAttribute)memberInfo.GetCustomAttributes(typeof(ClusteringKeyAttribute), true).FirstOrDefault();
+            if (clusteringKeyAttribute != null && clusteringKeyAttribute.Name != null)
+            {
+                // Validation of columnAttribute.Name vs clusteringKeyAttribute.Name is already
+                // considered at AttributeBasedTypeDefinition level
+                _columnName = clusteringKeyAttribute.Name;
+            }
             _ignore = HasAttribute(memberInfo, typeof(IgnoreAttribute));
             _secondaryIndex = HasAttribute(memberInfo, typeof(SecondaryIndexAttribute));
             _isStatic = HasAttribute(memberInfo, typeof(StaticColumnAttribute));

@@ -497,6 +497,21 @@ namespace Cassandra.Tests.Mapping.Linq
             Assert.AreEqual("CREATE TABLE tbl1 (id uuid, my_list list<frozen<\"song\">>, my_map map<text, frozen<tuple<double, double>>>, PRIMARY KEY (id))", createQuery);
         }
 
+        [Test]
+        public void Create_With_Attribute_Defined_Mappings()
+        {
+            string createQuery = null;
+            var serializer = new Serializer(4);
+            var sessionMock = GetSessionMock(serializer);
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q);
+            var table = new Table<AttributeMappingClass>(sessionMock.Object, new MappingConfiguration());
+            table.Create();
+            Assert.AreEqual("CREATE TABLE attr_mapping_class_table (partition_key int, clustering_key_0 bigint, clustering_key_1 text, clustering_key_2 uuid, bool_value_col boolean, float_value_col float, decimal_value_col decimal, PRIMARY KEY (partition_key, clustering_key_0, clustering_key_1, clustering_key_2)) WITH CLUSTERING ORDER BY (clustering_key_0 ASC, clustering_key_1 ASC, clustering_key_2 DESC)", createQuery);
+        }
+
         private static Mock<ISession> GetSessionMock(Serializer serializer = null)
         {
             if (serializer == null)

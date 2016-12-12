@@ -227,6 +227,16 @@ namespace Cassandra.Tests.Mapping.Linq
         }
 
         [Test]
+        public void Select_With_Attribute_Based_Mapping()
+        {
+            string query = null;
+            var session = GetSession((q, v) => query = q);
+            var table = new Table<AttributeMappingClass>(session, new MappingConfiguration());
+            table.Where(x => x.PartitionKey == 1 && x.ClusteringKey0 == 2L).Execute();
+            Assert.AreEqual("SELECT partition_key, clustering_key_0, clustering_key_1, clustering_key_2, bool_value_col, float_value_col, decimal_value_col FROM attr_mapping_class_table WHERE partition_key = ? AND clustering_key_0 = ?", query);
+        }
+
+        [Test]
         public void Select_With_Keyspace_Defined()
         {
             string query = null;
