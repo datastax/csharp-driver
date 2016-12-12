@@ -71,6 +71,7 @@ namespace Cassandra
         private readonly Serializer _serializer;
         private readonly CopyOnWriteList<Connection> _connections = new CopyOnWriteList<Connection>();
         private readonly HashedWheelTimer _timer;
+        private readonly object _allConnectionClosedEventLock = new object();
         private volatile IReconnectionSchedule _reconnectionSchedule;
         private volatile int _expectedConnectionLength;
         private volatile int _maxInflightThreshold;
@@ -321,18 +322,26 @@ namespace Cassandra
                 // No need to reconnect
                 return;
             }
-            if (currentLength == 0)
+            // We are using an IO thread
+            Task.Run(() =>
             {
-                // All connections have been closed
-                // If the node is UP, we should stop attempting to reconnect
-                if (_host.IsUp && AllConnectionClosed != null)
+                // Use a lock for avoiding concurrent calls to SetNewConnectionTimeout()
+                lock (_allConnectionClosedEventLock)
                 {
-                    // Raise the event and wait for a caller to decide
-                    AllConnectionClosed(_host, this);
-                    return;
+                    if (currentLength == 0)
+                    {
+                        // All connections have been closed
+                        // If the node is UP, we should stop attempting to reconnect
+                        if (_host.IsUp && AllConnectionClosed != null)
+                        {
+                            // Raise the event and wait for a caller to decide
+                            AllConnectionClosed(_host, this);
+                            return;
+                        }
+                    }
+                    SetNewConnectionTimeout(_reconnectionSchedule);
                 }
-            }
-            SetNewConnectionTimeout(_reconnectionSchedule);
+            });
         }
 
         private void OnDistanceChanged(HostDistance previousDistance, HostDistance distance)
@@ -494,7 +503,7 @@ namespace Cassandra
             {
                 // Schedule the creation
                 var delay = schedule.NextDelayMs();
-                Logger.Info("Scheduling reconnection to {0} in {1}ms", _host.Address, delay);
+                Logger.Info("Scheduling reconnection from #{0} to {1} in {2}ms", GetHashCode(), _host.Address, delay);
                 timeout = _timer.NewTimeout(_ => Task.Run(() => StartCreatingConnection(schedule)), null, delay);
             }
             CancelNewConnectionTimeout(timeout);

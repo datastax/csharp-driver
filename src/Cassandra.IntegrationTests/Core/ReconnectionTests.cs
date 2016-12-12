@@ -101,8 +101,8 @@ namespace Cassandra.IntegrationTests.Core
         /// @expected_result The hosts should be attempted to be reconnected multiple times in the background
         ///
         /// @test_category connection:reconnection
-        [Test, Repeat(3)]
-        public void Reconnection_Attempted_Multiple_Times_On_Multiple_Nodes()
+        [Test]
+        public void Reconnection_Attempted_Multiple_Times_On_Multiple_Nodes([Range(11, 30)] int repeating)
         {
             var testCluster = TestClusterManager.CreateNew(2);
 
