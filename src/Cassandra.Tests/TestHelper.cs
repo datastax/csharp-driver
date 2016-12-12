@@ -236,6 +236,22 @@ namespace Cassandra.Tests
         }
 
         /// <summary>
+        /// Returns the first value (recursive) converted to string
+        /// </summary>
+        internal static string FirstString(IEnumerable collection)
+        {
+            foreach (var p in collection)
+            {
+                if (p is IEnumerable)
+                {
+                    return FirstString((IEnumerable)p);
+                }
+                return Convert.ToString(p);
+            }
+            return null;
+        }
+
+        /// <summary>
         /// Gets the path string to home (via HOME or USERPROFILE env variables)
         /// </summary>
         public static string GetHomePath()

@@ -60,6 +60,26 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(2, 0)]
+        public void TimeUuid_Collection_Insert_Get_Test()
+        {
+            var session = GetNewSession(KeyspaceName);
+            session.Execute("CREATE TABLE tbl_timeuuid_collections (id int PRIMARY KEY, set_value set<timeuuid>, list_value list<timeuuid>)");
+            const string selectQuery = "SELECT * FROM tbl_timeuuid_collections WHERE id = ?";
+            const string insertQuery = "INSERT INTO tbl_timeuuid_collections (id, set_value, list_value) VALUES (?, ?, ?)";
+            var psInsert = session.Prepare(insertQuery);
+            var set1 = new SortedSet<TimeUuid> { TimeUuid.NewId() };
+            var list1 = new List<TimeUuid> { TimeUuid.NewId() };
+            session.Execute(psInsert.Bind(1, set1, list1));
+            var row1 = session.Execute(new SimpleStatement(selectQuery, 1)).First();
+            CollectionAssert.AreEqual(set1, row1.GetValue<SortedSet<TimeUuid>>("set_value"));
+            CollectionAssert.AreEqual(set1, row1.GetValue<ISet<TimeUuid>>("set_value"));
+            CollectionAssert.AreEqual(set1, row1.GetValue<TimeUuid[]>("set_value"));
+            CollectionAssert.AreEqual(list1, row1.GetValue<List<TimeUuid>>("list_value"));
+            CollectionAssert.AreEqual(list1, row1.GetValue<TimeUuid[]>("list_value"));
+        }
+
+        [Test]
         public void Encode_Map_With_NullValue_Should_Throw()
         {
             var id = Guid.NewGuid();
