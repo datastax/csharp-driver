@@ -54,11 +54,11 @@ namespace Cassandra.IntegrationTests.Core
                 TestHelper.WaitUntil(() =>
                     hosts.Sum(h => session
                         .GetOrCreateConnectionPool(h, HostDistance.Local)
-                        .OpenConnections.Count()
+                        .OpenConnections
                     ) == hosts.Length * connectionLength);
                 Assert.AreEqual(
                     hosts.Length * connectionLength, 
-                    hosts.Sum(h => session.GetOrCreateConnectionPool(h, HostDistance.Local).OpenConnections.Count()));
+                    hosts.Sum(h => session.GetOrCreateConnectionPool(h, HostDistance.Local).OpenConnections));
                 ExecuteMultiple(testCluster, session, ps, true, 8000, 200000).Wait();
             }
         }

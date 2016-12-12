@@ -16,49 +16,6 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short")]
     public class ReconnectionTests : TestGlobals
     {
-        /// Tests that reconnection attempts are made automatically in the background
-        ///
-        /// Reconnection_Attempts_Are_Made_In_The_Background tests that the driver automatically reschedules host
-        /// reconnections using timers in the background. It first creates a Cassandra cluster with 2 nodes, and verifies
-        /// that the control connection is created against the first host. It then manually sets the 2nd node as down (even
-        /// though it is still up), verifying that the driver see that host 2 as down. Finally it waits 5 seconds for the 
-        /// timer-based reconnection policy to kick in, and verifies that the driver sees the 2nd host as back up.
-        ///
-        /// @since 2.7.0
-        /// @jira_ticket CSHARP-280
-        /// @expected_result Host 2 should be automatically reconnected in the background after being set as down
-        ///
-        /// @test_assumptions
-        ///    - A Cassandra cluster with 2 nodes
-        /// @test_category connection:reconnection
-        [Test]
-        public void Reconnection_Attempts_Are_Made_In_The_Background()
-        {
-            var testCluster = TestClusterManager.CreateNew(2);
-            using (var cluster = Cluster.Builder()
-                                        .AddContactPoint(testCluster.InitialContactPoint)
-                                        .WithPoolingOptions(
-                                            new PoolingOptions()
-                                                .SetCoreConnectionsPerHost(HostDistance.Local, 2)
-                                                .SetHeartBeatInterval(0))
-                                        .WithReconnectionPolicy(new ConstantReconnectionPolicy(2000))
-                                        .Build())
-            {
-                var session = (Session)cluster.Connect();
-                TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local"), 10);
-                var host = cluster.AllHosts().First(h => TestHelper.GetLastAddressByte(h) == 2);
-                // Check that the control connection is connected to another host
-                Assert.AreNotEqual(cluster.Metadata.ControlConnection.Address, host.Address);
-                Assert.True(host.IsUp);
-                Trace.TraceInformation("Setting host #2 as down");
-                host.SetDown();
-                Assert.False(host.IsUp);
-                Trace.TraceInformation("Waiting for 5 seconds");
-                Thread.Sleep(5000);
-                Assert.True(host.IsUp);
-            }
-        }
-
         /// Tests that reconnection attempts are made multiple times in the background
         ///
         /// Reconnection_Attempted_Multiple_Times tests that the driver automatically reschedules host reconnections using 
@@ -102,10 +59,10 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     if (e.What == HostsEventArgs.Kind.Up)
                     {
-                        upCounter++;
+                        Interlocked.Increment(ref upCounter);
                         return;
                     }
-                    downCounter++;
+                    Interlocked.Increment(ref downCounter);
                 };
                 Assert.True(host.IsUp);
                 Trace.TraceInformation("Stopping node");
@@ -113,18 +70,19 @@ namespace Cassandra.IntegrationTests.Core
                 // Make sure the node is considered down
                 Assert.Throws<NoHostAvailableException>(() => session.Execute("SELECT * FROM system.local"));
                 Assert.False(host.IsUp);
-                Assert.AreEqual(1, downCounter);
-                Assert.AreEqual(0, upCounter);
+                Assert.AreEqual(1, Volatile.Read(ref downCounter));
+                Assert.AreEqual(0, Volatile.Read(ref upCounter));
                 Trace.TraceInformation("Waiting for 15 seconds");
                 Thread.Sleep(15000);
                 Assert.False(host.IsUp);
                 Trace.TraceInformation("Restarting node");
                 testCluster.Start(1);
-                Trace.TraceInformation("Waiting for 5 seconds");
-                Thread.Sleep(5000);
+                Trace.TraceInformation("Waiting up to 20s");
+                var attempts = TestHelper.WaitUntil(() => host.IsUp, 1000, 20);
+                Trace.TraceInformation("Waited {0}s", attempts);
                 Assert.True(host.IsUp);
-                Assert.AreEqual(1, downCounter);
-                Assert.AreEqual(1, upCounter);
+                Assert.AreEqual(1, Volatile.Read(ref downCounter));
+                Assert.AreEqual(1, Volatile.Read(ref upCounter));
             }
         }
 
@@ -143,8 +101,8 @@ namespace Cassandra.IntegrationTests.Core
         /// @expected_result The hosts should be attempted to be reconnected multiple times in the background
         ///
         /// @test_category connection:reconnection
-        [Test, Repeat(3)]
-        public void Reconnection_Attempted_Multiple_Times_On_Multiple_Nodes()
+        [Test]
+        public void Reconnection_Attempted_Multiple_Times_On_Multiple_Nodes([Range(1, 3)] int repeating)
         {
             var testCluster = TestClusterManager.CreateNew(2);
 
@@ -202,9 +160,9 @@ namespace Cassandra.IntegrationTests.Core
                 Trace.TraceInformation("Restarting node #2");
                 testCluster.Start(2);
                 Trace.TraceInformation("Waiting for few more seconds");
-                Thread.Sleep(6000);
-                Assert.True(host1.IsUp);
-                Assert.True(host2.IsUp);
+                TestHelper.WaitUntil(() => host1.IsUp && host2.IsUp, 1000, 20);
+                Assert.True(host1.IsUp, "Host 1 should be UP after restarting");
+                Assert.True(host2.IsUp, "Host 2 should be UP after restarting");
                 Assert.AreEqual(1, downCounter.GetOrAdd(1, 0));
                 Assert.AreEqual(1, upCounter.GetOrAdd(1, 0));
                 Assert.AreEqual(1, downCounter.GetOrAdd(2, 0));
@@ -273,9 +231,9 @@ namespace Cassandra.IntegrationTests.Core
                 Trace.TraceInformation("Waiting for few more seconds");
                 Thread.Sleep(6000);
                 var pool1 = session1.GetOrCreateConnectionPool(host1, HostDistance.Local);
-                Assert.AreEqual(2, pool1.OpenConnections.Count());
+                Assert.AreEqual(2, pool1.OpenConnections);
                 var pool2 = session1.GetOrCreateConnectionPool(host2, HostDistance.Local);
-                Assert.AreEqual(2, pool2.OpenConnections.Count());
+                Assert.AreEqual(2, pool2.OpenConnections);
             }
         }
     }

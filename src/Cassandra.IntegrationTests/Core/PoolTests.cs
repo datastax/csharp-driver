@@ -47,41 +47,6 @@ namespace Cassandra.IntegrationTests.Core
             Diagnostics.CassandraTraceSwitch.Level = OriginalTraceLevel;
         }
 
-        [Test]
-        public void ReconnectionRecyclesPool()
-        {
-            var policy = new ConstantReconnectionPolicy(5000);
-
-            var nonShareableTestCluster = TestClusterManager.GetNonShareableTestCluster(2, 1, true, false);
-            nonShareableTestCluster.Builder = new Builder().WithReconnectionPolicy(policy);
-            nonShareableTestCluster.InitClient(); // this will replace the existing session using the newly assigned Builder instance
-            var session = (Session)nonShareableTestCluster.Session;
-
-            var hosts = new List<IPEndPoint>();
-            for (var i = 0; i < 50; i++)
-            {
-                var rs = session.Execute("SELECT * FROM system.local");
-                if (i == 20)
-                {
-                    nonShareableTestCluster.StopForce(2);
-                }
-                else if (i == 30)
-                {
-                    nonShareableTestCluster.Start(2);
-                    Thread.Sleep(5000);
-                }
-                hosts.Add(rs.Info.QueriedHost);
-            }
-
-            var pool = session.GetOrCreateConnectionPool(TestHelper.CreateHost(nonShareableTestCluster.InitialContactPoint), HostDistance.Local);
-            var connections = pool.OpenConnections.ToArray();
-            var expectedCoreConnections = nonShareableTestCluster.Cluster.Configuration
-                .GetPoolingOptions((byte)session.BinaryProtocolVersion)
-                .GetCoreConnectionsPerHost(HostDistance.Local);
-            Assert.AreEqual(expectedCoreConnections, connections.Length);
-            Assert.True(connections.All(c => !c.IsClosed));
-        }
-
         /// <summary>
         /// Executes statements in parallel while killing nodes, validates that there are no issues failing over to remaining, available nodes
         /// </summary>
@@ -315,43 +280,6 @@ namespace Cassandra.IntegrationTests.Core
             StringAssert.StartsWith(testCluster.InitialContactPoint, cluster.AllHosts().First().Address.ToString());
         }
 
-        [Test]
-        public void HeartbeatShouldDetectNodeDown()
-        {
-            //Execute a couple of time
-            //Kill connections the node silently
-            //Do nothing for a while
-            //Check if the node is considered as down
-            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1);
-
-            var cluster = Cluster.Builder()
-                                 .AddContactPoint(testCluster.InitialContactPoint)
-                                 .WithPoolingOptions(
-                                     new PoolingOptions()
-                                         .SetCoreConnectionsPerHost(HostDistance.Local, 2)
-                                         .SetHeartBeatInterval(500))
-                                 .WithReconnectionPolicy(new ConstantReconnectionPolicy(Int32.MaxValue))
-                                 .Build();
-            var session = (Session) cluster.Connect();
-            for (var i = 0; i < 6; i++)
-            {
-                session.Execute("SELECT * FROM system.local");
-            }
-            var host = cluster.AllHosts().First();
-            var pool = session.GetOrCreateConnectionPool(host, HostDistance.Local);
-            Trace.TraceInformation("Killing connections");
-            foreach (var c in pool.OpenConnections)
-            {
-                c.Kill();
-            }
-            Trace.TraceInformation("Waiting");
-            for (var i = 0; i < 10; i++)
-            {
-                Thread.Sleep(1000);
-            }
-            Assert.False(cluster.AllHosts().ToList()[0].IsUp);
-        }
-
         /// <summary>
         /// Tests that if no host is available at Cluster.Init(), it will initialize next time it is invoked
         /// </summary>
@@ -400,7 +328,7 @@ namespace Cassandra.IntegrationTests.Core
                 .WithReconnectionPolicy(new ConstantReconnectionPolicy(reconnectionDelay))
                 .Build();
             var connectionAttempts = 0;
-            cluster.Metadata.Hosts.Down += (h, s) =>
+            cluster.Metadata.Hosts.Down += h =>
             {
                 //Every time there is a connection attempt, it is marked as down
                 connectionAttempts++;

@@ -13,7 +13,7 @@ namespace Cassandra.Requests
 {
     internal class RequestExecution<T> where T : class
     {
-        private readonly static Logger Logger = new Logger(typeof(RequestExecution<T>));
+        private static readonly Logger Logger = new Logger(typeof(RequestExecution<T>));
         private readonly RequestHandler<T> _parent;
         private readonly ISession _session;
         private readonly IRequest _request;
@@ -265,15 +265,6 @@ namespace Cassandra.Requests
             if (ex is SocketException)
             {
                 Logger.Verbose("Socket error " + ((SocketException)ex).SocketErrorCode);
-                if (c != null)
-                {
-                    _parent.SetHostDown(c);
-                }
-                else
-                {
-                    //The exception happened while trying to acquire a connection
-                    //nothing to do here
-                }
             }
             var decision = GetRetryDecision(ex, _parent.RetryPolicy, _parent.Statement, _retryCount);
             switch (decision.DecisionType)
@@ -313,8 +304,7 @@ namespace Cassandra.Requests
                 Logger.Error("Session, Host and Connection must not be null");
                 return;
             }
-            var pool = ((Session)_session).GetExistingPool(_connection);
-            pool.CheckHealth(_connection);
+            ((Session)_session).CheckHealth(_connection);
             if (_session.Cluster.Configuration.QueryOptions.RetryOnTimeout || _request is PrepareRequest)
             {
                 if (_parent.HasCompleted())

@@ -31,25 +31,17 @@ namespace Cassandra.IntegrationTests.Core
             var originalTraceLevel = Diagnostics.CassandraTraceSwitch.Level;
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
             var sw = Stopwatch.StartNew();
-            var thrown = false;
-            try
+            Assert.Throws<NoHostAvailableException>(() =>
             {
                 var builder = new Builder().WithDefaultKeyspace("system")
                                            .AddContactPoints("1.1.1.1") // IP address that drops (not rejects !) the inbound connection
                                            .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(700));
                 var cluster = builder.Build();
                 cluster.Connect();
-            }
-            catch (NoHostAvailableException)
-            {
-                thrown = true;
-            }
-
+            });
             sw.Stop();
-
-            Assert.True(thrown, "Expected exception");
-            Assert.Greater(sw.Elapsed.TotalMilliseconds, 700, "The connection timeout was not respected");
-
+            // Consider timer precision ~16ms
+            Assert.Greater(sw.Elapsed.TotalMilliseconds, 684, "The connection timeout was not respected");
             Diagnostics.CassandraTraceSwitch.Level = originalTraceLevel;
         }
     }

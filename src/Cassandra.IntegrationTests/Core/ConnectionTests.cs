@@ -479,28 +479,52 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void SetKeyspace_Parallel_Calls_Serially_Executes()
+        public async Task SetKeyspace_Parallel_Calls_Serially_Executes()
         {
-            const string queryKs1 = "create keyspace ks_to_switch_p1 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}";
-            const string queryKs2 = "create keyspace ks_to_switch_p2 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}";
+            const string queryKs1 = "create keyspace if not exists ks_to_switch_p1 WITH replication = " +
+                                    "{'class': 'SimpleStrategy', 'replication_factor' : 1}";
+            const string queryKs2 = "create keyspace if not exists ks_to_switch_p2 WITH replication = " +
+                                    "{'class': 'SimpleStrategy', 'replication_factor' : 1}";
+            // ReSharper disable AccessToDisposedClosure, AccessToModifiedClosure
             using (var connection = CreateConnection())
             {
-                connection.Open().Wait();
+                await connection.Open();
                 Assert.Null(connection.Keyspace);
-                TaskHelper.WaitToComplete(Query(connection, queryKs1));
-                TaskHelper.WaitToComplete(Query(connection, queryKs2));
+                await Query(connection, queryKs1);
+                await Query(connection, queryKs2);
+                await Task.Delay(100);
                 var counter = 0;
                 connection.WriteCompleted += () => Interlocked.Increment(ref counter);
                 TestHelper.ParallelInvoke(new Action[]
                 {
-                    // ReSharper disable AccessToDisposedClosure
                     () => connection.SetKeyspace("ks_to_switch_p1").Wait(),
                     () => connection.SetKeyspace("ks_to_switch_p2").Wait(),
                     () => connection.SetKeyspace("system").Wait()
-                    // ReSharper enable AccessToDisposedClosure
                 });
                 CollectionAssert.Contains(new[] { "ks_to_switch_p1", "ks_to_switch_p2", "system" }, connection.Keyspace);
-                Assert.AreEqual(3, counter);
+                await Task.Delay(200);
+                Assert.AreEqual(3, Volatile.Read(ref counter));
+            }
+            // ReSharper enable AccessToDisposedClosure, AccessToModifiedClosure
+        }
+
+        [Test]
+        public async Task SetKeyspace_Parallel_Calls_With_Same_Name_Executes_Once()
+        {
+            using (var connection = CreateConnection(null, null, new PoolingOptions().SetHeartBeatInterval(0)))
+            {
+                await connection.Open();
+                Assert.Null(connection.Keyspace);
+                var actions = new Action[100]
+                    .Select<Action, Action>(_ => () => connection.SetKeyspace("system").Wait())
+                    .ToArray();
+                await Task.Delay(100);
+                var counter = 0;
+                connection.WriteCompleted += () => Interlocked.Increment(ref counter);
+                TestHelper.ParallelInvoke(actions);
+                Assert.AreEqual("system", connection.Keyspace);
+                await Task.Delay(200);
+                Assert.AreEqual(1, Volatile.Read(ref counter));
             }
         }
 
@@ -606,10 +630,10 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void Connection_Close_Faults_AllPending_Tasks()
+        public async Task Connection_Close_Faults_AllPending_Tasks()
         {
             var connection = CreateConnection();
-            connection.Open().Wait();
+            await connection.Open();
             //Queue a lot of read and writes
             var taskList = new List<Task<Response>>();
             for (var i = 0; i < 1024; i++)
@@ -624,25 +648,25 @@ namespace Cassandra.IntegrationTests.Core
                     break;
                 }
                 //Wait until there is an operation in flight
-                Thread.Sleep(50);
+                await Task.Delay(30);
             }
             //Close the socket, this would trigger all pending ops to be called back
             connection.Dispose();
             try
             {
-                Task.WaitAll(taskList.ToArray());
+                await Task.WhenAll(taskList.ToArray());
             }
-            catch (AggregateException)
+            catch (SocketException)
             {
                 //Its alright, it will fail
             }
 
             Assert.True(!taskList.Any(t => t.Status != TaskStatus.RanToCompletion && t.Status != TaskStatus.Faulted), "Must be only completed and faulted task");
 
+            await Task.Delay(1000);
+
             //A new call to write will be called back immediately with an exception
-            var task = Query(connection, "SELECT * FROM system.local");
-            //It will throw
-            Assert.Throws<AggregateException>(() => task.Wait(50));
+            Assert.ThrowsAsync<SocketException>(async () => await Query(connection, "SELECT * FROM system.local"));
         }
 
         /// <summary>
@@ -672,11 +696,11 @@ namespace Cassandra.IntegrationTests.Core
                 connection.Open().Wait();
                 //execute a dummy query
                 TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default));
-
+                Interlocked.MemoryBarrier();
                 var writeCounter = 0;
-                connection.WriteCompleted += () => writeCounter++;
+                connection.WriteCompleted += () => Interlocked.Increment(ref writeCounter);
                 Thread.Sleep(2200);
-                Assert.AreEqual(4, writeCounter);
+                Assert.GreaterOrEqual(Volatile.Read(ref writeCounter), 4);
             }
         }
 

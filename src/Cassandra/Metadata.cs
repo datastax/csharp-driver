@@ -66,7 +66,7 @@ namespace Cassandra
         internal Metadata(Configuration configuration)
         {
             Configuration = configuration;
-            Hosts = new Hosts(configuration.Policies.ReconnectionPolicy);
+            Hosts = new Hosts();
             Hosts.Down += OnHostDown;
             Hosts.Up += OnHostUp;
         }
@@ -102,12 +102,7 @@ namespace Cassandra
             }
         }
 
-        internal void SetDownHost(IPEndPoint address, object sender = null)
-        {
-            Hosts.SetDownIfExists(address);
-        }
-
-        private void OnHostDown(Host h, long reconnectionDelay)
+        private void OnHostDown(Host h)
         {
             if (HostsEvent != null)
             {
@@ -121,13 +116,6 @@ namespace Cassandra
             {
                 HostsEvent(h, new HostsEventArgs { Address = h.Address, What = HostsEventArgs.Kind.Up });
             }
-        }
-        internal void BringUpHost(IPEndPoint address, object sender = null)
-        {
-            //Add the host if not already present
-            var host = Hosts.Add(address);
-            //Bring it UP
-            host.BringUpIfDown();
         }
 
         /// <summary>

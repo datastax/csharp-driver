@@ -110,6 +110,11 @@ namespace Cassandra.Tasks
         /// <summary>
         /// Adds a new action to be executed with a delay
         /// </summary>
+        /// <param name="action">
+        /// Action to be executed. Consider that the action is going to be invoked in an IO thread.
+        /// </param>
+        /// <param name="state">Action state or null</param>
+        /// <param name="delay">Delay in milliseconds</param>
         public ITimeout NewTimeout(Action<object> action, object state, long delay)
         {
             if (delay < _tickDuration)
