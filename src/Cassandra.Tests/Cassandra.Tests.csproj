@@ -110,6 +110,7 @@
     <Compile Include="Mapping\Pocos\LinqDecoratedEntity.cs" />
     <Compile Include="Mapping\Pocos\LinqDecoratedEntityWithStaticField.cs" />
     <Compile Include="Mapping\Pocos\PlainUser.cs" />
+    <Compile Include="Mapping\Pocos\PocoWithCollections.cs" />
     <Compile Include="Mapping\Pocos\RainbowColor.cs" />
     <Compile Include="Mapping\Pocos\Song.cs" />
     <Compile Include="Mapping\Pocos\DecoratedTimeSeries.cs" />
@@ -119,6 +120,7 @@
     <Compile Include="Mapping\Pocos\VarintPoco.cs" />
     <Compile Include="Mapping\TestData\TestDataGenerator.cs" />
     <Compile Include="Mapping\TestData\TestDataHelper.cs" />
+    <Compile Include="Mapping\TypeConverterTests.cs" />
     <Compile Include="Mapping\UpdateTests.cs" />
     <Compile Include="ObsoletedMemberTests.cs" />
     <Compile Include="OutputErrorTests.cs" />

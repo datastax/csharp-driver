@@ -33,8 +33,7 @@ namespace Cassandra.Serialization
             var keyType = GetClrType(mapInfo.KeyTypeCode, mapInfo.KeyTypeInfo);
             var valueType = GetClrType(mapInfo.ValueTypeCode, mapInfo.ValueTypeInfo);
             var count = DecodeCollectionLength(protocolVersion, buffer, ref offset);
-            var openType = typeof(SortedDictionary<,>);
-            var dicType = openType.MakeGenericType(keyType, valueType);
+            var dicType = typeof(SortedDictionary<,>).MakeGenericType(keyType, valueType);
             var result = (IDictionary)Activator.CreateInstance(dicType);
             for (var i = 0; i < count; i++)
             {
