@@ -64,11 +64,10 @@ namespace Dse.Graph
                 throw new ArgumentNullException("obj");
             }
             var type = obj.GetType();
-            return type.IsGenericType
-                   && (type.Attributes & TypeAttributes.NotPublic) == TypeAttributes.NotPublic
-                   && (type.Name.StartsWith("<>", StringComparison.OrdinalIgnoreCase) || type.Name.StartsWith("VB$", StringComparison.OrdinalIgnoreCase))
+            return type.GetTypeInfo().IsGenericType
+                   && (type.GetTypeInfo().Attributes & TypeAttributes.NotPublic) == TypeAttributes.NotPublic
                    && (type.Name.Contains("AnonymousType") || type.Name.Contains("AnonType"))
-                   && Attribute.IsDefined(type, typeof(CompilerGeneratedAttribute), false);
+                   && type.GetTypeInfo().IsDefined(typeof(CompilerGeneratedAttribute), false);
         }
 
         /// <inheritdoc />

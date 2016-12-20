@@ -4,13 +4,10 @@
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+
 using Cassandra.Serialization;
 
-namespace Dse.Geometry
+namespace Dse.Serialization.Geometry
 {
     internal abstract class GeometrySerializer<T> : TypeSerializer<T>
     {

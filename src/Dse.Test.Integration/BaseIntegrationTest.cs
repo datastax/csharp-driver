@@ -67,7 +67,7 @@ namespace Dse.Test.Integration
             get { return CcmHelper.DseVersion; }
         }
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void TestFixtureGlobalSetup()
         {
             VerifyAppropriateDseVersion();
@@ -84,34 +84,27 @@ namespace Dse.Test.Integration
         {
             var test = TestContext.CurrentContext.Test;
             var methodFullName = TestContext.CurrentContext.Test.FullName;
-            var typeName = methodFullName.Substring(0, methodFullName.Length - test.Name.Length - 1);
-            var type = Assembly.GetExecutingAssembly().GetType(typeName);
+            //var typeName = methodFullName.Substring(0, methodFullName.Length - test.Name.Length - 1);
+            var typeName = TestContext.CurrentContext.Test.ClassName;
+            var type = Type.GetType(typeName);
             if (type == null)
             {
-                //in case of test inheritence
-                type = Assembly.GetExecutingAssembly().GetType(methodFullName);
-                if (type == null)
-                    return;
+                return;
             }
-
             var testName = test.Name;
-            if (testName.IndexOf('.') > 0)
-            {
-                //In case of test inheritence the test method name is only after the dot.
-                testName = testName.Substring(testName.IndexOf('.') + 1);
-            }
             if (testName.IndexOf('(') > 0)
             {
                 //The test name could be a TestCase: NameOfTheTest(ParameterValue);
                 //Remove the parenthesis
                 testName = testName.Substring(0, testName.IndexOf('('));
             }
-            //in case of inheritence, sometimes the type doesn't have the method with that name, because its in the subtype
-            var methodAttr = (type.GetMethod(testName) != null) ? type.GetMethod(testName)
-                .GetCustomAttributes(true)
-                .Select(a => (Attribute)a)
-                .FirstOrDefault((a) => a is TestDseVersion) : null;
-            var attr = Attribute.GetCustomAttributes(type).FirstOrDefault((a) => a is TestDseVersion);
+            MethodInfo method = type.GetMethod(testName);
+            TestDseVersion methodAttr = null;
+            if (method != null)
+            {
+                methodAttr = method.GetCustomAttribute<TestDseVersion>(true);
+            }
+            var attr = type.GetTypeInfo().GetCustomAttribute<TestDseVersion>();
             if (attr == null && methodAttr == null)
             {
                 //It does not contain the attribute, move on.
@@ -121,10 +114,10 @@ namespace Dse.Test.Integration
             {
                 attr = methodAttr;
             }
-            var versionAttr = (TestDseVersion)attr;
+            var versionAttr = attr;
             var executingVersion = DseVersion;
             if (!VersionMatch(versionAttr, executingVersion))
-                Assert.Ignore(String.Format("Test Ignored: Test suitable to be run against DSE {0}.{1}.{2} {3}", versionAttr.Major, versionAttr.Minor, versionAttr.Build, versionAttr.Comparison >= 0 ? "or above" : "or below"));
+                Assert.Ignore(string.Format("Test Ignored: Test suitable to be run against DSE {0}.{1}.{2} {3}", versionAttr.Major, versionAttr.Minor, versionAttr.Build, versionAttr.Comparison >= 0 ? "or above" : "or below"));
         }
 
         public static bool VersionMatch(TestDseVersion versionAttr, Version executingVersion)

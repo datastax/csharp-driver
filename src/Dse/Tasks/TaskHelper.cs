@@ -20,7 +20,8 @@ namespace Dse.Tasks
         {
             try
             {
-                PreserveStackMethod = typeof(Exception).GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic);
+                PreserveStackMethod = typeof(Exception).GetTypeInfo()
+                    .GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic);
                 if (PreserveStackMethod == null)
                 {
                     return;

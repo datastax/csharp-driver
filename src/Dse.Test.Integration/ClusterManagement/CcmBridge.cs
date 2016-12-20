@@ -39,14 +39,29 @@ namespace Dse.Test.Integration.ClusterManagement
             var sslParams = "";
             if (useSsl)
             {
-                var sslPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "ssl");
+                var sslPath = Path.Combine(GetHomePath(), "ssl");
                 if (!File.Exists(Path.Combine(sslPath, "keystore.jks")))
                 {
                     throw new Exception(string.Format("In order to use SSL with CCM you must provide have the keystore.jks and cassandra.crt files located in your {0} folder", sslPath));
                 }
                 sslParams = "--ssl " + sslPath;
             }
-            ExecuteCcm(string.Format("create {0} -v {1} {2}", Name, version, sslParams));
+            ExecuteCcm(string.Format("create {0} -i {1} -v {2} {3}", Name, IpPrefix, version, sslParams));
+        }
+
+        protected string GetHomePath()
+        {
+            var home = Environment.GetEnvironmentVariable("USERPROFILE");
+            if (!string.IsNullOrEmpty(home))
+            {
+                return home;
+            }
+            home = Environment.GetEnvironmentVariable("HOME");
+            if (string.IsNullOrEmpty(home))
+            {
+                throw new NotSupportedException("HOME or USERPROFILE are not defined");
+            }
+            return home;
         }
 
         public void Start(string[] jvmArgs = null)

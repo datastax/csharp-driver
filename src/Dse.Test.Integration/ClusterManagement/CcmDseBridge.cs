@@ -25,11 +25,10 @@ namespace Dse.Test.Integration.ClusterManagement
             var sslParams = "";
             if (useSsl)
             {
-                var sslPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "ssl");
+                var sslPath = Path.Combine(GetHomePath(), "ssl");
                 if (!File.Exists(Path.Combine(sslPath, "keystore.jks")))
                 {
-                    throw new Exception(
-                        string.Format("In order to use SSL with CCM you must provide have the keystore.jks and cassandra.crt files located in your {0} folder", sslPath));
+                    throw new Exception(string.Format("In order to use SSL with CCM you must provide have the keystore.jks and cassandra.crt files located in your {0} folder", sslPath));
                 }
                 sslParams = "--ssl " + sslPath;
             }

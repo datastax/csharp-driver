@@ -48,7 +48,9 @@ namespace Dse.Test.Integration.TestBase
                 process.StartInfo.RedirectStandardError = true;
                 //Hide the python window if possible
                 process.StartInfo.UseShellExecute = false;
+#if !NETCORE
                 process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+#endif
                 process.StartInfo.CreateNoWindow = true;
 
                 using (var outputWaitHandle = new AutoResetEvent(false))

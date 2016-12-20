@@ -5,8 +5,6 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 using System;
-using System.Configuration;
-using System.Net;
 using Dse.Test.Integration.TestBase;
 
 namespace Dse.Test.Integration.ClusterManagement
@@ -19,7 +17,7 @@ namespace Dse.Test.Integration.ClusterManagement
         private static CcmDseBridge _ccmDseBridge;
 
         public static string DseInitialIpPrefix = 
-            Environment.GetEnvironmentVariable("DSE_INITIAL_IPPREFIX") ?? ConfigurationManager.AppSettings["DseInitialIpPrefix"];
+            Environment.GetEnvironmentVariable("DSE_INITIAL_IPPREFIX") ?? InitialIpPrefix;
 
         private static Version _dseVersion;
 
@@ -29,8 +27,7 @@ namespace Dse.Test.Integration.ClusterManagement
             {
                 if (_dseVersion == null)
                 {
-                    var dseVersion = Environment.GetEnvironmentVariable("DSE_VERSION") ??
-                                 ConfigurationManager.AppSettings["DseVersion"];
+                    var dseVersion = Environment.GetEnvironmentVariable("DSE_VERSION") ?? "dse-5.0.0";
                     if (dseVersion.Contains("dse-"))
                     {
                         dseVersion = dseVersion.Substring(dseVersion.IndexOf("-", StringComparison.Ordinal) + 1);
@@ -43,59 +40,25 @@ namespace Dse.Test.Integration.ClusterManagement
 
         public static void Start(int amountOfNodes, string[] dseYamlOptions = null, string[] cassYamlOptions = null, string[] jvmArgs = null, string nodeWorkload = null)
         {
-            var dseDir = Environment.GetEnvironmentVariable("DSE_PATH") ??
-                         ConfigurationManager.AppSettings["DseInstallPath"];
-
-            if (string.IsNullOrEmpty(dseDir))
-            {
-                throw new ConfigurationErrorsException("You must specify the DSE path either via DSE_PATH environment variable or by 'DseInstallPath' app setting");
-            }
-
+            var dseDir = Environment.GetEnvironmentVariable("DSE_PATH") ?? "/home/vagrant/dse-5.0.0";
             var dseInitialIpPrefix = DseInitialIpPrefix;
-
-            if (string.IsNullOrEmpty(dseInitialIpPrefix))
-            {
-                dseInitialIpPrefix = InitialIpPrefix;
-            }
 
             ICcmProcessExecuter executer;
 
-            var dseRemote = bool.Parse(Environment.GetEnvironmentVariable("DSE_IN_REMOTE_SERVER") ??
-                         ConfigurationManager.AppSettings["DseInRemoteServer"]);
+            var dseRemote = bool.Parse(Environment.GetEnvironmentVariable("DSE_IN_REMOTE_SERVER") ?? "true");
             if (dseRemote)
             {
-                var remoteDseServer = Environment.GetEnvironmentVariable("DSE_SERVER_IP") ??
-                                      ConfigurationManager.AppSettings["DseServerIp"];
-
-                if (string.IsNullOrEmpty(remoteDseServer))
-                {
-                    throw new ConfigurationErrorsException(
-                        "You must specify the DSE server ip either via DSE_SERVER_IP environment variable or by 'DseServerIp' app setting");
-                }
-
-                var remoteDseServerUser = Environment.GetEnvironmentVariable("DSE_SERVER_USER") ??
-                                          ConfigurationManager.AppSettings["DseServerUser"];
-
-                if (string.IsNullOrEmpty(remoteDseServerUser))
-                {
-                    throw new ConfigurationErrorsException(
-                        "You must specify the DSE server user to connect through ssh either via DSE_SERVER_USER environment variable or by 'DseServerUser' app setting");
-                }
-
-                var remoteDseServerPassword = Environment.GetEnvironmentVariable("DSE_SERVER_PWD") ??
-                                              ConfigurationManager.AppSettings.Get("DseServerPwd");
-
-                var remoteDseServerPort = int.Parse(Environment.GetEnvironmentVariable("DSE_SERVER_PORT") ??
-                                                      ConfigurationManager.AppSettings["DseServerPort"]);
+                var remoteDseServer = Environment.GetEnvironmentVariable("DSE_SERVER_IP") ?? "127.0.0.1";
+                var remoteDseServerUser = Environment.GetEnvironmentVariable("DSE_SERVER_USER") ?? "vagrant";
+                var remoteDseServerPassword = Environment.GetEnvironmentVariable("DSE_SERVER_PWD") ?? "vagrant";
+                var remoteDseServerPort = int.Parse(Environment.GetEnvironmentVariable("DSE_SERVER_PORT") ?? "2222");
 
                 if (remoteDseServerPort == 0)
                 {
                     remoteDseServerPort = 22;
                 }
 
-                var remoteDseServerUserPrivateKey = Environment.GetEnvironmentVariable("DSE_SERVER_PRIVATE_KEY") ??
-                                              ConfigurationManager.AppSettings.Get("DseServerPrivateKey"); 
-
+                var remoteDseServerUserPrivateKey = Environment.GetEnvironmentVariable("DSE_SERVER_PRIVATE_KEY");
                 executer = new RemoteCcmProcessExecuter(remoteDseServer, remoteDseServerUser, remoteDseServerPassword,
                     remoteDseServerPort, remoteDseServerUserPrivateKey);
             }

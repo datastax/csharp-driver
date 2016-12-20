@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Cassandra;
+using Dse.Serialization;
 using Newtonsoft.Json;
 
 namespace Dse.Graph
@@ -92,18 +93,11 @@ namespace Dse.Graph
 
         internal override IStatement GetIStatement(GraphOptions options)
         {
-            string jsonParams = null;
-            if (ValuesDictionary != null)
-            {
-                jsonParams = JsonConvert.SerializeObject(ValuesDictionary);
-            }
-            else if (Values != null)
-            {
-                jsonParams = JsonConvert.SerializeObject(Values);
-            }
+            var parameters = ValuesDictionary ?? Values;
             IStatement stmt;
-            if (jsonParams != null)
+            if (parameters != null)
             {
+                var jsonParams = JsonConvert.SerializeObject(parameters, DseJsonContractResolver.JsonSerializerSettings);
                 stmt = new TargettedSimpleStatement(Query, jsonParams);
             }
             else

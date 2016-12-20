@@ -13,6 +13,7 @@ using System.Numerics;
 using System.Threading;
 using Cassandra;
 using Cassandra.IntegrationTests.TestBase;
+using Dse.Geometry;
 using Dse.Graph;
 using Dse.Test.Integration.ClusterManagement;
 using NUnit.Framework;
@@ -23,12 +24,11 @@ namespace Dse.Test.Integration.Graph
     [TestFixture, TestDseVersion(5, 0)]
     public class GraphTests : BaseIntegrationTest
     {
-
         private const string GraphName = "graph1";
         private int _idGenerator;
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetup()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             CcmHelper.Start(1, null, null, null, "graph");
             Trace.TraceInformation("Waiting additional time for test Cluster to be ready");
@@ -36,8 +36,8 @@ namespace Dse.Test.Integration.Graph
             CreateClassicGraph(CcmHelper.InitialContactPoint, GraphName);
         }
 
-        [TestFixtureTearDown]
-        public void TestFixtureTearDown()
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
         {
             CcmHelper.Remove();
         }
@@ -497,7 +497,6 @@ namespace Dse.Test.Integration.Graph
                     ".outE('created').as('e', 'f', 'g').inV().as('h').path()"));
                 foreach (Path path in rs)
                 {
-                    Console.WriteLine("checking");
                     CollectionAssert.AreEqual(
                         new string[][]
                         {
@@ -528,6 +527,7 @@ namespace Dse.Test.Integration.Graph
         [TestCase("Duration", "1 minute", "PT1M")]
         [TestCase("Duration", "1 hour", "PT1H")]
         [TestCase("Text", "The quick brown fox jumps over the lazy dog", "The quick brown fox jumps over the lazy dog")]
+        [TestCase("Point", "POINT (44.1 45)", "POINT (44.1 45)")]
         public void Should_Support_Types(string type, object value, string expectedString)
         {
             using (var cluster = DseCluster.Builder()

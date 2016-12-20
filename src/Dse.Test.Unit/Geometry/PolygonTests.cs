@@ -9,6 +9,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Dse.Geometry;
+using Dse.Serialization;
+using Dse.Serialization.Geometry;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
@@ -24,19 +26,25 @@ namespace Dse.Test.Unit.Geometry
                 new[] {new Point(2.1, 2.1), new Point(2.1, 1.1), new Point(1.1, 1.1), new Point(2.1, 2.1)})
         };
 
-        [Test]
-        public void Should_Be_Serialized_As_GeoJson()
+        [Test, TestCase(true)]
+#if !NETCORE
+        [TestCase(false)]
+#endif
+        public void Should_Be_Serialized_As_GeoJson(bool useConverter)
         {
+            var settings = new JsonSerializerSettings();
+            if (useConverter)
+            {
+                settings = DseJsonContractResolver.JsonSerializerSettings;
+            }
             foreach (var polygon in Values)
             {
-                var json = JsonConvert.SerializeObject(polygon);
+                var json = JsonConvert.SerializeObject(polygon, settings);
                 var expected = string.Format("{{\"type\":\"Polygon\",\"coordinates\":[{0}]}}",
                     string.Join(",", polygon.Rings.Select(r => 
                         "[" + string.Join(",", r.Select(p => "[" + p.X + "," + p.Y + "]")) + "]")));
                 Assert.AreEqual(expected, json);
-                var deserialized = JsonConvert.DeserializeObject<Polygon>(json);
-                Assert.AreEqual(polygon, deserialized);
-                Assert.AreEqual(polygon.ToString(), deserialized.ToString());
+                Assert.AreEqual(expected, polygon.ToGeoJson());
             }
         }
 

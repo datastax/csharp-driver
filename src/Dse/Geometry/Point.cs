@@ -5,6 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
@@ -16,7 +17,9 @@ namespace Dse.Geometry
     /// Represents a zero-dimensional object that represents a specific (X,Y) location in a two-dimensional XY-Plane.
     /// In case of Geographic Coordinate Systems, the X coordinate is the longitude and the Y is the latitude.
     /// </summary>
+#if !NETCORE
     [Serializable]
+#endif
     public class Point : GeometryBase
     {
         /// <summary>
@@ -29,6 +32,12 @@ namespace Dse.Geometry
         /// </summary>
         public double Y { get; private set; }
 
+        /// <inheritdoc />
+        protected override IEnumerable GeoCoordinates
+        {
+            get { return new[] {X, Y}; }
+        }
+
         /// <summary>
         /// Creates a new instance of <see cref="Point"/>.
         /// </summary>
@@ -40,6 +49,7 @@ namespace Dse.Geometry
             Y = y;
         }
 
+#if !NETCORE
         /// <summary>
         /// Creates a new instance of <see cref="Point"/>.
         /// </summary>
@@ -49,6 +59,7 @@ namespace Dse.Geometry
             X = coordinates[0];
             Y = coordinates[1];
         }
+#endif
 
         /// <summary>
         /// Returns a value indicating whether this instance and a specified object represent the same value.
@@ -69,13 +80,6 @@ namespace Dse.Geometry
             // ReSharper disable NonReadonlyMemberInGetHashCode
             return CombineHashCode(new [] { X, Y});
             // ReSharper enable NonReadonlyMemberInGetHashCode
-        }
-
-        /// <inheritdoc />
-        public override void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            info.AddValue("type", "Point");
-            info.AddValue("coordinates", new [] { X, Y });
         }
 
         /// <summary>

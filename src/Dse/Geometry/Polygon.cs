@@ -5,6 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
@@ -16,13 +17,21 @@ namespace Dse.Geometry
     /// Represents is a plane geometry figure that is bounded by a finite chain of straight line segments closing in a
     /// loop to form a closed chain or circuit.
     /// </summary>
+#if !NETCORE
     [Serializable]
+#endif
     public class Polygon : GeometryBase
     {
         /// <summary>
         /// A read-only list describing the rings of the polygon.
         /// </summary>
         public IList<IList<Point>> Rings { get; private set; }
+
+        /// <inheritdoc />
+        protected override IEnumerable GeoCoordinates
+        {
+            get { return Rings.Select(r => r.Select(p => new[] { p.X, p.Y })); }
+        }
 
         /// <summary>
         /// Creates a new instance of <see cref="Polygon"/> with a single ring.
@@ -65,6 +74,7 @@ namespace Dse.Geometry
             Rings = AsReadOnlyCollection(rings, r => AsReadOnlyCollection(r));
         }
 
+#if !NETCORE
         /// <summary>
         /// Creates a new instance of <see cref="Polygon"/> using serialization information.
         /// </summary>
@@ -75,6 +85,7 @@ namespace Dse.Geometry
                 .Select(r => (IList<Point>)r.Select(p => new Point(p[0], p[1])).ToList())
                 .ToList());
         }
+#endif
 
         /// <summary>
         /// Returns a value indicating whether this instance and a specified object represent the same value.
@@ -109,13 +120,6 @@ namespace Dse.Geometry
         {
             // ReSharper disable once NonReadonlyMemberInGetHashCode
             return CombineHashCode(Rings.Select(r => CombineHashCode(r.Select(p => p.GetHashCode()))));
-        }
-
-        /// <inheritdoc />
-        public override void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            info.AddValue("type", "Polygon");
-            info.AddValue("coordinates", Rings.Select(r => r.Select(p => new [] { p.X, p.Y})));
         }
 
         /// <summary>

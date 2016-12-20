@@ -42,8 +42,8 @@ namespace Dse.Test.Integration.Geometry
             Keyspace = "ks_" + GetType().Name.ToLowerInvariant();
         }
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetup()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             if (Values == null || Values.Length == 0)
             {
@@ -74,8 +74,8 @@ namespace Dse.Test.Integration.Geometry
             }
         }
 
-        [TestFixtureTearDown]
-        public void TestFixtureTearDown()
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
         {
             if (Cluster != null)
             {

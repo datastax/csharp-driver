@@ -4,6 +4,7 @@
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
+#if !NETCORE
 
 namespace Dse.Auth
 {
@@ -15,3 +16,4 @@ namespace Dse.Auth
         }
     }
 }
+#endif

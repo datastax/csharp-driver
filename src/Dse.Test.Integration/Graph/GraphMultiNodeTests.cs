@@ -23,16 +23,16 @@ namespace Dse.Test.Integration.Graph
     [TestDseVersion(5, 0)]
     class GraphMultiNodeTests : BaseIntegrationTest
     {
-        [TestFixtureSetUp]
-        public void TestFixtureSetup()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             CcmHelper.Start(3, new[] { "initial_spark_worker_resources:0.1" }, null, null, "graph,spark");
             Trace.TraceInformation("Waiting additional time for test Cluster to be ready");
             Thread.Sleep(15000);
         }
 
-        [TestFixtureTearDown]
-        public void TestFixtureTearDown()
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
         {
             CcmHelper.Remove();
         }

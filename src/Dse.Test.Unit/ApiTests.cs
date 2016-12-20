@@ -10,7 +10,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using Dse.Auth;
-using Dse.Auth.Sspi;
 using NUnit.Framework;
 
 namespace Dse.Test.Unit
@@ -22,7 +21,13 @@ namespace Dse.Test.Unit
         {
             var types = GetTypesInNamespace("Dse.Auth", true);
             CollectionAssert.AreEquivalent(
-                new[] { typeof(SspiException), typeof(DseGssapiAuthProvider), typeof(DsePlainTextAuthProvider) },
+                new[]
+                {
+#if !NETCORE
+                    typeof(Dse.Auth.Sspi.SspiException), typeof(DseGssapiAuthProvider),
+#endif
+                    typeof(DsePlainTextAuthProvider)
+                },
                 types);
         }
 
@@ -33,8 +38,8 @@ namespace Dse.Test.Unit
             {
                 isMatch = n => n == nameSpace;
             }
-            var assembly = typeof (IDseSession).Assembly;
-            return assembly.GetTypes().Where(t => isMatch(t.Namespace) && t.IsPublic);
+            var assembly = typeof (IDseSession).GetTypeInfo().Assembly;
+            return assembly.GetTypes().Where(t => isMatch(t.Namespace) && t.GetTypeInfo().IsPublic);
         }
     }
 }

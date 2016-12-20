@@ -4,11 +4,14 @@
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
+
+#if !NO_MOCKS
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Numerics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -266,10 +269,26 @@ namespace Dse.Test.Unit.Graph
             const string expectedJson =
                 "{\"member_id\":123,\"community_id\":586910,\"~label\":\"vertex\",\"group_id\":2}";
             var id = new GraphNode("{\"result\":" + expectedJson + "}");
-            session.ExecuteGraph(new SimpleGraphStatement("g.V(vertexId)", new {vertexId = id}));
+            session.ExecuteGraph(new SimpleGraphStatement("g.V(vertexId)", new { vertexId = id }));
             Assert.NotNull(coreStatement);
             Assert.AreEqual(1, coreStatement.QueryValues.Length);
             Assert.AreEqual("{\"vertexId\":" + expectedJson + "}", coreStatement.QueryValues[0]);
+        }
+
+        [Test]
+        public void ExecuteGraph_Should_Allow_BigInteger_As_Parameters()
+        {
+            SimpleStatement coreStatement = null;
+            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
+            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
+                .Returns(TaskOf(new RowSet()))
+                .Callback<SimpleStatement>(stmt => coreStatement = stmt);
+            var session = NewInstance(coreSessionMock.Object);
+            var value = BigInteger.Parse("1234567890123456789123456789");
+            session.ExecuteGraph(new SimpleGraphStatement("g.V(vertexId)", new { value }));
+            Assert.NotNull(coreStatement);
+            Assert.AreEqual(1, coreStatement.QueryValues.Length);
+            Assert.AreEqual("{\"value\":" + value + "}", coreStatement.QueryValues[0]);
         }
 
         public void Should_Make_Rpc_Call_When_Using_Analytics_Source()
@@ -353,3 +372,4 @@ namespace Dse.Test.Unit.Graph
         }
     }
 }
+#endif

@@ -19,16 +19,16 @@ namespace Dse.Test.Integration
     public class InfrastructureTest : BaseIntegrationTest
     {
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetup()
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
         {
             CcmHelper.Start(1);
             Trace.TraceInformation("Waiting additional time for test Cluster to be ready");
             Thread.Sleep(15000);
         }
 
-        [TestFixtureTearDown]
-        public void TestFixtureTearDown()
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
         {
             CcmHelper.Remove();
         }

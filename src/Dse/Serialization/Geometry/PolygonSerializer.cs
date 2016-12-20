@@ -4,14 +4,14 @@
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Cassandra;
-using Cassandra.Serialization;
+using Dse.Geometry;
 
-namespace Dse.Geometry
+namespace Dse.Serialization.Geometry
 {
     internal class PolygonSerializer : GeometrySerializer<Polygon>
     {

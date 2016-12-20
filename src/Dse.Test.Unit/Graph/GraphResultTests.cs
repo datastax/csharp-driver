@@ -11,6 +11,7 @@ using System.Linq;
 using System.Numerics;
 using Cassandra;
 using Dse.Graph;
+using Dse.Serialization;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
@@ -131,7 +132,7 @@ namespace Dse.Test.Unit.Graph
             var result = new GraphNode("{\"result\": 1.9}");
             Assert.AreEqual("1.9", result.ToString());
             result = new GraphNode("{\"result\": [ 1, 2]}");
-            Assert.AreEqual("[\r\n  1,\r\n  2\r\n]", result.ToString());
+            Assert.AreEqual(string.Format("[{0}  1,{0}  2{0}]", Environment.NewLine), result.ToString());
             result = new GraphNode("{\"result\": \"a\"}");
             Assert.AreEqual("a", result.ToString());
         }
@@ -216,6 +217,27 @@ namespace Dse.Test.Unit.Graph
             {
                 Assert.NotNull(v);
             }
+        }
+
+        [Test, TestCase(true)]
+#if !NETCORE
+        [TestCase(false)]
+#endif
+        public void GraphNode_Should_Be_Serializable(bool useConverter)
+        {
+            var settings = new JsonSerializerSettings();
+            if (useConverter)
+            {
+                settings = DseJsonContractResolver.JsonSerializerSettings;
+            }
+            const string json = "{" +
+                "\"~type\":\"knows\"," +
+                "\"out_vertex\":{\"~label\":\"person\",\"community_id\":1368843392,\"member_id\":2}," +
+                "\"in_vertex\":{\"~label\":\"person\",\"community_id\":1368843392,\"member_id\":3}," +
+                "\"local_id\":\"ed37c460-b2f7-11e6-b394-2d62a0c6b98b\"}";
+            var node = new GraphNode("{\"result\":" + json + "}");
+            var serialized = JsonConvert.SerializeObject(node, settings);
+            Assert.AreEqual(json, serialized);
         }
 
         [Test]
@@ -380,6 +402,7 @@ namespace Dse.Test.Unit.Graph
             Assert.AreEqual(path.Objects.Count, path2.Objects.Count);
         }
 
+#if !NETCORE
         [Test]
         public void Should_Be_Serializable()
         {
@@ -395,5 +418,6 @@ namespace Dse.Test.Unit.Graph
             Assert.AreEqual(1D, objectTree.Get<double>("val"));
             Assert.AreEqual(json, JsonConvert.SerializeObject(result));
         }
+#endif
     }
 }

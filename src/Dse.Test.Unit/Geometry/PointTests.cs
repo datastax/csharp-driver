@@ -9,8 +9,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Reflection;
 using Dse.Geometry;
+using Dse.Serialization;
+using Dse.Serialization.Geometry;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 namespace Dse.Test.Unit.Geometry
@@ -24,18 +28,34 @@ namespace Dse.Test.Unit.Geometry
             new Point(-1.789, -900.77888)
         };
 
-        [Test]
-        public void Should_Be_Serialized_As_GeoJson()
+        [Test, TestCase(true)]
+#if !NETCORE
+        [TestCase(false)]
+#endif
+        public void Should_Be_Serialized_As_GeoJson(bool useConverter)
         {
+            var settings = new JsonSerializerSettings();
+            if (useConverter)
+            {
+                settings = DseJsonContractResolver.JsonSerializerSettings;
+            }
             foreach (var point in Values)
             {
-                var json = JsonConvert.SerializeObject(point);
+                var json = JsonConvert.SerializeObject(point, settings);
                 var expected = string.Format("{{\"type\":\"Point\",\"coordinates\":[{0},{1}]}}", point.X, point.Y);
                 Assert.AreEqual(expected, json);
-                var deserialized = JsonConvert.DeserializeObject<Point>(json);
-                Assert.AreEqual(point.X, deserialized.X);
-                Assert.AreEqual(point.Y, deserialized.Y);
-                Assert.AreEqual(point, deserialized);   
+                Assert.AreEqual(expected, point.ToGeoJson());
+            }
+        }
+
+        /// <summary>
+        /// Represents a exception that occurs while serializing.
+        /// </summary>
+        public class SerializationException : Exception
+        {
+            public SerializationException(string message) : base(message)
+            {
+                
             }
         }
 

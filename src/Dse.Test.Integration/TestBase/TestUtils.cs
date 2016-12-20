@@ -6,6 +6,9 @@
 //
 using System;
 using System.Text;
+#if NETCORE
+using Microsoft.DotNet.InternalAbstractions;
+#endif
 
 namespace Dse.Test.Integration.TestBase
 {
@@ -24,15 +27,19 @@ namespace Dse.Test.Integration.TestBase
         {
             get
             {
-                switch (Environment.OSVersion.Platform) 
+#if !NETCORE
+                switch (Environment.OSVersion.Platform)
                 {
-                case PlatformID.Win32NT:
-                case PlatformID.Win32S:
-                case PlatformID.Win32Windows:
-                case PlatformID.WinCE:
-                    return true;
+                    case PlatformID.Win32NT:
+                    case PlatformID.Win32S:
+                    case PlatformID.Win32Windows:
+                    case PlatformID.WinCE:
+                        return true;
                 }
                 return false;
+#else
+                return RuntimeEnvironment.OperatingSystemPlatform == Platform.Windows;
+#endif
             }
         }
         

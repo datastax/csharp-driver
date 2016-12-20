@@ -9,6 +9,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Dse.Geometry;
+using Dse.Serialization;
+using Dse.Serialization.Geometry;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
@@ -23,17 +25,24 @@ namespace Dse.Test.Unit.Geometry
             new LineString(new Point(-1.101, -20.2121121221211), new Point(2.01, 4.02), new Point(10.010, 14.03))
         };
 
-        [Test]
-        public void Should_Be_Serialized_As_GeoJson()
+        [Test, TestCase(true)]
+#if !NETCORE
+        [TestCase(false)]
+#endif
+        public void Should_Be_Serialized_As_GeoJson(bool useConverter)
         {
+            var settings = new JsonSerializerSettings();
+            if (useConverter)
+            {
+                settings = DseJsonContractResolver.JsonSerializerSettings;
+            }
             foreach (var line in Values)
             {
-                var json = JsonConvert.SerializeObject(line);
+                var json = JsonConvert.SerializeObject(line, settings);
                 var expected = string.Format("{{\"type\":\"LineString\",\"coordinates\":[{0}]}}",
                     string.Join(",", line.Points.Select(p => "[" + p.X + "," + p.Y + "]")));
                 Assert.AreEqual(expected, json);
-                var deserialized = JsonConvert.DeserializeObject<LineString>(json);
-                Assert.AreEqual(line, deserialized);
+                Assert.AreEqual(expected, line.ToGeoJson());
             }
         }
 

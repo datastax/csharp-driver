@@ -20,6 +20,10 @@ The DataStax Enterprise C# Driver can be used solely with DataStax Enterprise. P
 PM> Install-Package Dse
 ```
 
+[![Build status](https://travis-ci.org/datastax/csharp-driver-dse.svg?branch=master)](https://travis-ci.org/datastax/csharp-driver-dse)
+[![Windows Build status](https://ci.appveyor.com/api/projects/status/yuk0p8i8r2l9f6xk/branch/master?svg=true)](https://ci.appveyor.com/project/DataStax/csharp-driver-dse/branch/master)
+[![Latest stable on Nuget.org](https://img.shields.io/nuget/v/Dse.svg)](https://www.nuget.org/packages/Dse)
+
 ## Documentation
 
 - [Documentation index][doc-index]

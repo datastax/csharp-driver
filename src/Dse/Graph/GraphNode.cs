@@ -12,6 +12,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using Cassandra;
+using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -20,8 +21,13 @@ namespace Dse.Graph
     /// <summary>
     /// Represents an item of a graph query result, it can be a vertex, an edge, a path or an scalar value.
     /// </summary>
+#if !NETCORE
     [Serializable]
-    public class GraphNode : DynamicObject, IEquatable<GraphNode>, ISerializable
+#endif
+    public class GraphNode : DynamicObject, IEquatable<GraphNode>
+#if !NETCORE
+        , ISerializable
+#endif
     {
         private volatile string _json;
         private readonly JToken _parsedGraphItem;
@@ -73,6 +79,7 @@ namespace Dse.Graph
             _parsedGraphItem = parsedGraphItem;
         }
 
+#if !NETCORE
         /// <summary>
         /// Creates a new instance of <see cref="GraphNode"/> using a serialization information.
         /// </summary>
@@ -96,6 +103,7 @@ namespace Dse.Graph
             }
             _parsedGraphItem = objectTree;
         }
+#endif
 
         /// <summary>
         /// Gets the typed value of a property of the result.
@@ -191,9 +199,9 @@ namespace Dse.Graph
                 {
                     elementType = type.GetElementType();
                 }
-                else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof (IEnumerable<>))
+                else if (type.GetTypeInfo().IsGenericType && type.GetGenericTypeDefinition() == typeof (IEnumerable<>))
                 {
-                    elementType = type.GetGenericArguments()[0];
+                    elementType = type.GetTypeInfo().GetGenericArguments()[0];
                 }
                 return (T) (object) ToArray((JArray)token, elementType);
             }
@@ -274,6 +282,7 @@ namespace Dse.Graph
             return GetJson().GetHashCode();
         }
 
+#if !NETCORE
         /// <inheritdoc />
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
@@ -286,6 +295,7 @@ namespace Dse.Graph
                 info.AddValue(prop.Name, prop.Value);
             }
         }
+#endif
 
         /// <summary>
         /// Gets the a dictionary of properties of this node.
@@ -455,6 +465,15 @@ namespace Dse.Graph
                 Get<GraphNode>("id", true),
                 Get<string>("label", true),
                 properties);
+        }
+
+        internal void WriteJson(JsonWriter writer, JsonSerializer serializer)
+        {
+            if (!IsObjectTree)
+            {
+                throw new NotSupportedException("Deserialization of GraphNodes that don't represent object trees is not supported");
+            }
+            serializer.Serialize(writer, _parsedGraphItem);
         }
 
         /// <summary>

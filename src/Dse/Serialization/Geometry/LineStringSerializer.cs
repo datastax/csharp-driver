@@ -4,14 +4,12 @@
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Cassandra;
-using Cassandra.Serialization;
 
-namespace Dse.Geometry
+using System;
+using Cassandra;
+using Dse.Geometry;
+
+namespace Dse.Serialization.Geometry
 {
     /// <summary>
     /// A <see cref="LineString"/> type serializer.
