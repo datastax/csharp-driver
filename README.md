@@ -211,12 +211,12 @@ http://www.datastax.com/terms/datastax-dse-driver-license-terms
 [dse]: http://www.datastax.com/products/datastax-enterprise
 [dse-graph]: http://www.datastax.com/products/datastax-enterprise-graph
 [cassandra-driver]: https://github.com/datastax/csharp-driver
-[core-driver-docs]: http://datastax.github.io/csharp-driver/
+[core-driver-docs]: http://docs.datastax.com/en/developer/csharp-driver-dse/latest/
 [modern]: http://tinkerpop.apache.org/docs/3.1.1-incubating/reference/#_the_graph_structure
 [nuget]: https://nuget.org/packages/Dse/
 [dynamic]: https://msdn.microsoft.com/en-us/library/dd264736.aspx
 [jira]: https://datastax-oss.atlassian.net/projects/CSHARP/issues
 [mailing-list]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
 [doc-index]: http://docs.datastax.com/en/developer/csharp-driver-dse/latest/
-[api-docs]: http://docs.datastax.com/en/drivers/csharp-dse/latest/
+[api-docs]: http://docs.datastax.com/en/drivers/csharp-dse/1.1/
 [faq]: http://docs.datastax.com/en/developer/csharp-driver-dse/latest/faq/

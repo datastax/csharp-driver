@@ -15,14 +15,16 @@
     <RootNamespace>Documentation</RootNamespace>
     <Name>Documentation</Name>
     <!-- SHFB properties -->
-    <FrameworkVersion>.NET Framework 4.0</FrameworkVersion>
+    <FrameworkVersion>.NET Framework 4.5.2</FrameworkVersion>
     <OutputPath>api-docs\</OutputPath>
     <HtmlHelpName>Documentation</HtmlHelpName>
     <Language>en-US</Language>
     <DocumentationSources>
       <DocumentationSource sourceFile="..\src\Dse\bin\Release\Cassandra.dll" />
-<DocumentationSource sourceFile="..\src\Dse\bin\Release\Cassandra.xml" />
-<DocumentationSource sourceFile="..\src\Dse\Dse.csproj" /></DocumentationSources>
+      <DocumentationSource sourceFile="..\src\Dse\bin\Release\Cassandra.xml" />
+      <DocumentationSource sourceFile="..\src\Dse\bin\Release\Dse.dll" />
+      <DocumentationSource sourceFile="..\src\Dse\bin\Release\Dse.xml" />
+    </DocumentationSources>
     <BuildAssemblerVerbosity>OnlyWarningsAndErrors</BuildAssemblerVerbosity>
     <HelpFileFormat>Website</HelpFileFormat>
     <IndentHtml>False</IndentHtml>
