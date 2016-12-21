@@ -1,5 +1,5 @@
 ﻿{
-  "version": "3.1.0.1",
+  "version": "3.2.0",
   "name": "Cassandra",
   "authors": [ "DataStax" ],
   "title": "DataStax C# Driver for Apache Cassandra",
@@ -19,20 +19,19 @@
     "nowarn": [ "1591" ]
   },
   "dependencies": {
-    "Microsoft.Extensions.Logging": "1.0.0"
+    "Microsoft.Extensions.Logging": "1.0.0",
+    "Microsoft.Extensions.Logging.Abstractions": "1.0.0"
   },
   "frameworks": {
     "net45": {
       "frameworkAssemblies": {
         "System.Data": "",
         "System.Numerics": "",
-        "System.Runtime": "",
+        "System.Runtime": { "type": "build" },
         "System.Xml": ""
       },
       "dependencies": {
-        "lz4net": "1.0.10.93",
-        "Microsoft.Extensions.Logging": "1.0.0",
-        "Microsoft.Extensions.Logging.Abstractions": "1.0.0"
+        "lz4net": "1.0.10.93"
       }
     },
     "netstandard1.5": {
@@ -69,9 +68,7 @@
         "System.Threading": "4.0.11",
         "System.Threading.Tasks": "4.0.11",
         "System.Threading.Thread": "4.0.0",
-        "System.Threading.Timer": "4.0.1",
-        "Microsoft.Extensions.Logging": "1.0.0",
-        "Microsoft.Extensions.Logging.Abstractions": "1.0.0"
+        "System.Threading.Timer": "4.0.1"
       }
     }
   }

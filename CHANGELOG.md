@@ -1,5 +1,21 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.2.0
+
+2016-12-20
+
+### Features
+
+- [CSHARP-274] - Don't mark host down while one connection is active
+- [CSHARP-171] - Alternate ILoggerProvider-based logging API
+
+### Bug Fixes
+
+- [CSHARP-504] - Table metadata fetching for case-sensitive UDT name fails
+- [CSHARP-507] - Mapping attributes: ClusteringKeyAttribute.Name is not used
+- [CSHARP-511] - Timeuuid collections are not converted from Guid[]
+- [CSHARP-513] - Use constant number for AssemblyVersion attribute
+
 ## 3.1.0
 
 2016-10-17

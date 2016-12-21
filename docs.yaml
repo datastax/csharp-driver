@@ -13,8 +13,6 @@ sections:
 links:
   - title: Code
     href:  https://github.com/datastax/csharp-driver/
-  - title: Docs
-    href:  http://datastax.github.io/csharp-driver/
   - title: API docs
     href:  http://docs.datastax.com/en/latest-csharp-driver-api/html/N_Cassandra.htm
   - title: Issues
@@ -28,8 +26,11 @@ links:
 api_docs:
   3.0: http://docs.datastax.com/en/drivers/csharp/3.0
   3.1: http://docs.datastax.com/en/drivers/csharp/3.1
+  3.2: http://docs.datastax.com/en/drivers/csharp/3.2
 versions:
-  - name: '3.1'
+  - name: '3.2'
     ref: 'master'
-  - name: '3.0'
+  - name: '3.1'
     ref: '3.1'
+  - name: '3.0'
+    ref: '3.0'

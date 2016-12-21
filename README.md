@@ -224,19 +224,19 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-  [apidocs]: http://docs.datastax.com/en/drivers/csharp/3.1/
-  [docindex]: http://datastax.github.io/csharp-driver/features/
-  [features]: http://datastax.github.io/csharp-driver/features/
-  [getting-started]: http://planetcassandra.org/getting-started-with-apache-cassandra-and-net/
+  [apidocs]: http://docs.datastax.com/en/drivers/csharp/3.2/
+  [docindex]: http://docs.datastax.com/en/developer/csharp-driver/latest/
+  [features]: http://docs.datastax.com/en/developer/csharp-driver/latest/features/
+  [getting-started]: https://academy.datastax.com/resources/getting-started-apache-cassandra-and-c-net
   [nuget]: https://nuget.org/packages/CassandraCSharpDriver/
   [mailinglist]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
   [jira]: https://datastax-oss.atlassian.net/projects/CSHARP/issues
   [udt]: http://docs.datastax.com/en/cql/3.1/cql/cql_reference/cqlRefUDType.html
   [poco]: http://en.wikipedia.org/wiki/Plain_Old_CLR_Object
-  [linq]: http://datastax.github.io/csharp-driver/features/components/linq/
-  [mapper]: http://datastax.github.io/csharp-driver/features/components/mapper/
-  [components]: http://datastax.github.io/csharp-driver/features/components/
-  [policies]: http://datastax.github.io/csharp-driver/features/tuning-policies/
+  [linq]: http://docs.datastax.com/en/developer/csharp-driver/latest/features/components/linq/
+  [mapper]: http://docs.datastax.com/en/developer/csharp-driver/latest/features/components/mapper/
+  [components]: http://docs.datastax.com/en/developer/csharp-driver/latest/features/components/
+  [policies]: http://docs.datastax.com/en/developer/csharp-driver/latest/features/tuning-policies/
   [upgrade-to-250]: https://github.com/datastax/csharp-driver/blob/master/doc/upgrade-guide-2.5.md
   [upgrade-to-200]: https://github.com/datastax/csharp-driver/blob/master/doc/upgrade-guide-2.0.md
   [survey]: http://goo.gl/forms/3BxcP8nKs6
