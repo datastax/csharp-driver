@@ -191,7 +191,7 @@ namespace Dse.Test.Integration.Geometry
             Assert.NotNull(row, "Row for value {0} not found", value);
             if (value is IEnumerable)
             {
-                CollectionAssert.AreEqual((IEnumerable) value, row.GetValue<IEnumerable>("value"));
+                CollectionAssert.AreEqual((IEnumerable)value, (IEnumerable)row.GetValue<object>("value"));
             }
             else
             {

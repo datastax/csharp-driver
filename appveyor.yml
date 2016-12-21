@@ -10,20 +10,27 @@ platform:
 configuration:
   - Release
 environment:
-  NUNIT_PATH: nunit-console
+  matrix:
+    - TARGET: net452
+    - TARGET: netcoreapp1.0
+    - TARGET: msbuild-net45
 
 build:
-  project: src/Dse.sln
+  project: src\Dse.sln
   verbosity: minimal
+  
+test_script:
 
-test:
-  assemblies:
-    - src/Dse.Test.Unit/bin/$(configuration)/Dse.Test.Unit.dll
+  - IF "%TARGET%" NEQ "msbuild-net45" dotnet restore && dotnet test src\Dse.Test.Unit -c Release -f %TARGET% --result=TestResult.xml
+  - IF "%TARGET%" == "msbuild-net45" nunit3-console src\Dse.Test.Unit\bin\Release\Dse.Test.Unit.dll --result=TestResult.xml
 
-  categories:
-    except:
-      - long
-      - duration
+after_test:
+  - ps: >-
+      if($true)
+      {
+        $wc = New-Object 'System.Net.WebClient'
+        $wc.UploadFile("https://ci.appveyor.com/api/testresults/nunit3/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\TestResult.xml))
+      }
 
 on_failure:
   - ps: >-

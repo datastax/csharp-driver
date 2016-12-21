@@ -2,8 +2,7 @@
   "version": "1.0.0",
   "buildOptions": {
     "warningsAsErrors": true,
-    "keyFile": "../../build/datastax.snk",
-    "publicSign": true
+    "keyFile": "../../build/datastax.snk"
   },
   "testRunner": "nunit",
   "dependencies": {

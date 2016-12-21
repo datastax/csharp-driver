@@ -14,12 +14,11 @@
   "buildOptions": {
     "warningsAsErrors": true,
     "keyFile": "../../build/datastax.snk",
-    "publicSign": true,
     "xmlDoc": true,
     "languageVersion": "csharp5"
   },
   "dependencies": {
-    "CassandraCSharpDriver": "3.1.0.1",
+    "CassandraCSharpDriver": "3.2.0",
     "Newtonsoft.Json": "9.0.1"
   },
   "frameworks": {
