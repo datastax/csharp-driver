@@ -1,6 +1,6 @@
 # Features
 
-The DataStax C# Driver for Apache Cassandra is feature-rich and highly tunable Node.js client library for Apache
+The DataStax C# Driver for Apache Cassandra is feature-rich and highly tunable C# client library for Apache
 Cassandra (1.2+) using exclusively Cassandra's binary protocol and Cassandra Query Language v3.
 
 ## Usage
