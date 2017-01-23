@@ -60,7 +60,8 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Determines if the host can be considered as UP
+        /// This property is going to be removed in future versions, use <see cref="IsUp"/> instead.
+        /// Used to determines if the host can be considered as UP
         /// </summary>
         public bool IsConsiderablyUp
         {
