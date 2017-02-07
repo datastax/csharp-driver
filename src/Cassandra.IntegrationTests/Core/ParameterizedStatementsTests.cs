@@ -29,11 +29,19 @@ namespace Cassandra.IntegrationTests.Core
     public class ParameterizedStatementsTests : SharedClusterTest
     {
         private const string AllTypesTableName = "all_types_table_queryparams";
+        private const string TableTimeUuidCollections = "tbl_params_timeuuid_collections";
 
-        public override void OneTimeSetUp()
+        protected override string[] SetupQueries
         {
-            base.OneTimeSetUp();
-            Session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName));
+            get
+            {
+                return new []
+                {
+                    string.Format(TestUtils.CreateTableAllTypes, AllTypesTableName),
+                    string.Format("CREATE TABLE {0} (id uuid PRIMARY KEY, list1 list<timeuuid>, set1 set<timeuuid>, " +
+                                  "map1 map<text, timeuuid>)", TableTimeUuidCollections)
+                };
+            }
         }
 
         [Test]
@@ -67,6 +75,83 @@ namespace Cassandra.IntegrationTests.Core
             CollectionAssert.AreEquivalent(map, row.GetValue<IDictionary<string, string>>("map_sample"));
             CollectionAssert.AreEquivalent(list, row.GetValue<List<string>>("list_sample"));
             CollectionAssert.AreEquivalent(set, row.GetValue<List<string>>("set_sample"));
+        }
+
+        [Test]
+        public void TimeUuid_Insert_Select_Test()
+        {
+            InsertSelectTest(TimeUuid.NewId(), "timeuuid_sample");
+            InsertSelectTest<TimeUuid?>(TimeUuid.NewId(), "timeuuid_sample");
+            InsertSelectTest<TimeUuid?>(null, "timeuuid_sample");
+        }
+
+        [Test]
+        public void Uuid_Insert_Select_Test()
+        {
+            InsertSelectTest(TimeUuid.NewId().ToGuid(), "timeuuid_sample");
+            InsertSelectTest<Guid?>(TimeUuid.NewId().ToGuid(), "timeuuid_sample");
+            InsertSelectTest<Guid?>(null, "timeuuid_sample");
+        }
+
+        [Test]
+        public void TimeUuid_List_Insert_Select_Test()
+        {
+            const string columnName = "list1";
+            InsertSelectTest<IEnumerable<TimeUuid>>(new[] { TimeUuid.NewId() }, columnName, TableTimeUuidCollections);
+            InsertSelectTest(new[] { TimeUuid.NewId() }, columnName, TableTimeUuidCollections);
+            InsertSelectTest(new List<TimeUuid> { TimeUuid.NewId(), TimeUuid.NewId() }, columnName,
+                TableTimeUuidCollections);
+        }
+
+        [Test]
+        public void Uuid_List_Insert_Select_Test()
+        {
+            const string columnName = "list1";
+            InsertSelectTest<IEnumerable<Guid>>(new[] { TimeUuid.NewId().ToGuid() }, columnName,
+                TableTimeUuidCollections);
+            InsertSelectTest(new[] { TimeUuid.NewId().ToGuid() }, columnName, TableTimeUuidCollections);
+            InsertSelectTest(new List<Guid> { TimeUuid.NewId().ToGuid() }, columnName, TableTimeUuidCollections);
+        }
+
+        [Test]
+        public void TimeUuid_Set_Insert_Select_Test()
+        {
+            const string columnName = "set1";
+            InsertSelectTest<IEnumerable<TimeUuid>>(new[] { TimeUuid.NewId() }, columnName, TableTimeUuidCollections);
+            InsertSelectTest(new[] { TimeUuid.NewId() }, columnName, TableTimeUuidCollections);
+            InsertSelectTest(new SortedSet<TimeUuid> { TimeUuid.NewId(), TimeUuid.NewId() }, columnName,
+                TableTimeUuidCollections);
+        }
+
+        [Test]
+        public void TimeUuid_Map_Insert_Select_Test()
+        {
+            const string columnName = "map1";
+            InsertSelectTest<IDictionary<string, TimeUuid>>(new SortedDictionary<string, TimeUuid>
+            {
+                { "one1", TimeUuid.NewId() },
+                { "two", TimeUuid.NewId() }
+            }, columnName, TableTimeUuidCollections);
+            InsertSelectTest(new SortedDictionary<string, TimeUuid>
+            {
+                { "hey", TimeUuid.NewId() },
+                { "what", TimeUuid.NewId() }
+            }, columnName, TableTimeUuidCollections);
+        }
+
+        private void InsertSelectTest<T>(T value, string columnName, string tableName = AllTypesTableName)
+        {
+            var id = Guid.NewGuid();
+            var insertStatement = new SimpleStatement(
+                string.Format("INSERT INTO {0} (id, {1}) VALUES (?, ?)", tableName, columnName),
+                id,
+                value);
+            Session.Execute(insertStatement);
+            var selectStatement = new SimpleStatement(
+                string.Format("SELECT * FROM {0} WHERE id = ?", tableName),
+                id);
+            var row = Session.Execute(selectStatement).First();
+            Assert.AreEqual(value, row.GetValue<T>(columnName));
         }
 
         [Test]

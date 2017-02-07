@@ -225,8 +225,8 @@ namespace Cassandra
                     }
                     return ((DateTimeOffset)value).DateTime;
                 case ColumnTypeCode.Timeuuid:
-                    //Value is a Uuid
-                    if (targetType == typeof (TimeUuid) && !(value is TimeUuid))
+                    // The type of the value is a Uuid
+                    if (targetType.GetTypeInfo().IsAssignableFrom(typeof(TimeUuid)) && !(value is TimeUuid))
                     {
                         return (TimeUuid)(Guid)value;
                     }
@@ -288,7 +288,7 @@ namespace Cassandra
         private static Array GetArray(Array source, Type childTargetType, IColumnInfo columnInfo)
         {
             // Handle struct type cases manually to prevent unboxing and boxing again
-            if (childTargetType == typeof(TimeUuid))
+            if (childTargetType.GetTypeInfo().IsAssignableFrom(typeof(TimeUuid)))
             {
                 var arrSource = (Guid[])source;
                 var result = new TimeUuid[source.Length];
