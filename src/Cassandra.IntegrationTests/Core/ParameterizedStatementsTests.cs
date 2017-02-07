@@ -29,17 +29,20 @@ namespace Cassandra.IntegrationTests.Core
     public class ParameterizedStatementsTests : SharedClusterTest
     {
         private const string AllTypesTableName = "all_types_table_queryparams";
+        private const string TableTimestampCollections = "tbl_params_timestamp_collections";
         private const string TableTimeUuidCollections = "tbl_params_timeuuid_collections";
 
         protected override string[] SetupQueries
         {
             get
             {
-                return new []
+                return new[]
                 {
                     string.Format(TestUtils.CreateTableAllTypes, AllTypesTableName),
                     string.Format("CREATE TABLE {0} (id uuid PRIMARY KEY, list1 list<timeuuid>, set1 set<timeuuid>, " +
-                                  "map1 map<text, timeuuid>)", TableTimeUuidCollections)
+                                  "map1 map<text, timeuuid>)", TableTimeUuidCollections),
+                    string.Format("CREATE TABLE {0} (id uuid PRIMARY KEY, list1 list<timestamp>, set1 set<timestamp>, " +
+                                  "map1 map<text, timestamp>)", TableTimestampCollections)
                 };
             }
         }
@@ -137,6 +140,75 @@ namespace Cassandra.IntegrationTests.Core
                 { "hey", TimeUuid.NewId() },
                 { "what", TimeUuid.NewId() }
             }, columnName, TableTimeUuidCollections);
+        }
+        [Test]
+        public void DateTimeOffset_Insert_Select_Test()
+        {
+            InsertSelectTest(new DateTimeOffset(2010, 4, 29, 19, 01, 02, 300, TimeSpan.Zero), "timestamp_sample");
+            InsertSelectTest<DateTimeOffset?>(new DateTimeOffset(2005, 8, 5, 21, 01, 02, 300, TimeSpan.Zero),
+                "timestamp_sample");
+            InsertSelectTest<DateTimeOffset?>(null, "timestamp_sample");
+        }
+
+        [Test]
+        public void DateTime_Insert_Select_Test()
+        {
+            InsertSelectTest(new DateTime(2010, 4, 29, 19, 01, 02, 300, DateTimeKind.Utc), "timestamp_sample");
+            InsertSelectTest<DateTime?>(new DateTime(2005, 8, 5, 21, 01, 02, 300, DateTimeKind.Utc), 
+                "timestamp_sample");
+            InsertSelectTest<DateTime?>(null, "timestamp_sample");
+        }
+        [Test]
+        public void DateTimeOffset_List_Insert_Select_Test()
+        {
+            var d1 = new DateTimeOffset(2005, 8, 5, 21, 01, 02, 300, TimeSpan.Zero);
+            var d2 = new DateTimeOffset(2010, 4, 29, 19, 01, 02, 300, TimeSpan.Zero);
+            const string columnName = "list1";
+            InsertSelectTest<IEnumerable<DateTimeOffset>>(new[] { d1 }, columnName, TableTimestampCollections);
+            InsertSelectTest(new[] { d2 }, columnName, TableTimestampCollections);
+            InsertSelectTest(new List<DateTimeOffset> { d1, d2 }, columnName, TableTimestampCollections);
+        }
+
+        [Test]
+        public void DateTimeOffset_Set_Insert_Select_Test()
+        {
+            var d1 = new DateTimeOffset(2005, 8, 5, 21, 01, 02, 300, TimeSpan.Zero);
+            var d2 = new DateTimeOffset(2010, 4, 29, 19, 01, 02, 300, TimeSpan.Zero);
+            const string columnName = "set1";
+            InsertSelectTest<IEnumerable<DateTimeOffset>>(new[] { d1 }, columnName,
+                TableTimestampCollections);
+            InsertSelectTest(new[] { d2 }, columnName, TableTimestampCollections);
+            InsertSelectTest(new SortedSet<DateTimeOffset> { d1, d2 }, columnName, TableTimestampCollections);
+        }
+
+        [Test]
+        public void DateTime_List_Insert_Select_Test()
+        {
+            var d1 = new DateTime(2005, 8, 5, 21, 01, 02, 300, DateTimeKind.Utc);
+            var d2 = new DateTime(2010, 4, 29, 19, 01, 02, 300, DateTimeKind.Utc);
+            const string columnName = "set1";
+            InsertSelectTest<IEnumerable<DateTime>>(new[] { d1 }, columnName,
+                TableTimestampCollections);
+            InsertSelectTest(new[] { d2 }, columnName, TableTimestampCollections);
+            InsertSelectTest(new SortedSet<DateTime> { d1, d2 }, columnName, TableTimestampCollections);
+        }
+
+        [Test]
+        public void DateTimeOffset_Map_Insert_Select_Test()
+        {
+            var d1 = new DateTimeOffset(2005, 8, 5, 21, 01, 02, 300, TimeSpan.Zero);
+            var d2 = new DateTimeOffset(2010, 4, 29, 19, 01, 02, 300, TimeSpan.Zero);
+            const string columnName = "map1";
+            InsertSelectTest<IDictionary<string, DateTimeOffset>>(new SortedDictionary<string, DateTimeOffset>
+            {
+                { "one1", d1 },
+                { "two", d2 }
+            }, columnName, TableTimestampCollections);
+            InsertSelectTest(new SortedDictionary<string, DateTimeOffset>
+            {
+                { "hey", d1 },
+                { "what", d2 }
+            }, columnName, TableTimestampCollections);
         }
 
         private void InsertSelectTest<T>(T value, string columnName, string tableName = AllTypesTableName)

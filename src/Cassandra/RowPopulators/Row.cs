@@ -218,8 +218,8 @@ namespace Cassandra
                 case ColumnTypeCode.Map:
                     return TryConvertDictionary((IDictionary)value, column, targetType);
                 case ColumnTypeCode.Timestamp:
-                    //value is a DateTimeOffset
-                    if (targetType == typeof (object) || targetType == typeof (DateTimeOffset))
+                    // The type of the value is DateTimeOffset
+                    if (targetType == typeof (object) || targetType.GetTypeInfo().IsAssignableFrom(typeof(DateTimeOffset)))
                     {
                         return value;
                     }
@@ -298,7 +298,7 @@ namespace Cassandra
                 }
                 return result;
             }
-            if (childTargetType == typeof(DateTime))
+            if (childTargetType.GetTypeInfo().IsAssignableFrom(typeof(DateTime)))
             {
                 var arrSource = (DateTimeOffset[])source;
                 var result = new DateTime[source.Length];
