@@ -64,11 +64,6 @@ Start-Process python -ArgumentList "-m pip install psutil pyYaml six" -Wait -NoN
 
 $env:CCM_PATH="$($dep_dir)\ccm"
 
-# Clone ccm from git and use master.
-If (Test-Path $env:CCM_PATH) {
-  Remove-Item $env:CCM_PATH -force
-}
-
 If (!(Test-Path $env:CCM_PATH)) {
   Write-Host "Cloning git ccm... $($env:CCM_PATH)"
   Start-Process git -ArgumentList "clone https://github.com/pcmanus/ccm.git $($env:CCM_PATH)" -Wait -NoNewWindow
