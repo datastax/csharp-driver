@@ -58,22 +58,23 @@ If (!(Test-Path $jce_indicator)) {
   Remove-Item $jcePolicyDir
 }
 
+# Install Python Dependencies for CCM.
+Write-Host "Installing CCM and its dependencies"
+Start-Process python -ArgumentList "-m pip install psutil pyYaml six" -Wait -NoNewWindow
+
 $env:CCM_PATH="$($dep_dir)\ccm"
 
-# Clone ccm from git and use master.
 If (!(Test-Path $env:CCM_PATH)) {
   Write-Host "Cloning git ccm... $($env:CCM_PATH)"
   Start-Process git -ArgumentList "clone https://github.com/pcmanus/ccm.git $($env:CCM_PATH)" -Wait -NoNewWindow
   Write-Host "git ccm cloned"
+  pushd $env:CCM_PATH
+  Start-Process python -ArgumentList "setup.py install" -Wait -NoNewWindow
+  popd
 }
-
-# Install Python Dependencies for CCM.
-Write-Host "Installing CCM and its dependencies"
-Start-Process python -ArgumentList "-m pip install psutil pyYaml six ccm" -Wait -NoNewWindow
 
 Write-Host "Set execution Policy"
 Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process
-
 
 #removing any existing ccm cluster
 Write-Host "Removing any existing ccm clusters"
