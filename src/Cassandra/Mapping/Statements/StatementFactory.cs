@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Tasks;
 
@@ -14,6 +15,7 @@ namespace Cassandra.Mapping.Statements
     {
         private readonly ConcurrentDictionary<string, Task<PreparedStatement>> _statementCache;
         private static readonly Logger Logger = new Logger(typeof(StatementFactory));
+        private int _statementCacheCount;
 
         public int MaxPreparedStatementsThreshold { get; set; }
 
@@ -32,17 +34,25 @@ namespace Cassandra.Mapping.Statements
                 SetStatementProperties(statement, cql);
                 return statement;
             }
-            var ps = await _statementCache.GetOrAdd(cql.Statement, session.PrepareAsync).ConfigureAwait(false);
-            if (_statementCache.Count > MaxPreparedStatementsThreshold)
-            {
-                Logger.Warning(string.Format("The prepared statement cache contains {0} queries. Use parameter" +
-                                             "markers for queries. You can configure this warning threshold using" +
-                                             " MappingConfiguration.SetMaxStatementPreparedThreshold() method.", 
-                                             _statementCache.Count));
-            }
+            var ps = await _statementCache
+                .GetOrAdd(cql.Statement, query => PrepareNew(query, session))
+                .ConfigureAwait(false);
             var boundStatement = ps.Bind(cql.Arguments);
             SetStatementProperties(boundStatement, cql);
             return boundStatement;
+        }
+
+        private Task<PreparedStatement> PrepareNew(string query, ISession session)
+        {
+            var count = Interlocked.Increment(ref _statementCacheCount);
+            if (count > MaxPreparedStatementsThreshold)
+            {
+                Logger.Warning("The prepared statement cache contains {0} queries. This issue is probably due " +
+                               "to misuse of the driver, you should use parameter markers for queries. You can " +
+                               "configure this warning threshold using " +
+                               "MappingConfiguration.SetMaxStatementPreparedThreshold() method.", count);
+            }
+            return session.PrepareAsync(query);
         }
 
         private void SetStatementProperties(IStatement stmt, Cql cql)
