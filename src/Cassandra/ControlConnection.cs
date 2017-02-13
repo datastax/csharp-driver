@@ -53,7 +53,7 @@ namespace Cassandra
         /// <summary>
         /// Gets the binary protocol version to be used for this cluster.
         /// </summary>
-        public byte ProtocolVersion 
+        public ProtocolVersion ProtocolVersion 
         {
             get { return _serializer.ProtocolVersion; }
         }
@@ -81,7 +81,7 @@ namespace Cassandra
             get { return _serializer; }
         }
 
-        internal ControlConnection(byte initialProtocolVersion, Configuration config, Metadata metadata)
+        internal ControlConnection(ProtocolVersion initialProtocolVersion, Configuration config, Metadata metadata)
         {
             _metadata = metadata;
             _reconnectionPolicy = config.Policies.ReconnectionPolicy;
@@ -170,9 +170,9 @@ namespace Cassandra
                             var nextVersion = _serializer.ProtocolVersion;
                             _logger.Info(string.Format("{0}, trying with version {1}", ex.Message, nextVersion));
                             c.Dispose();
-                            if (ProtocolVersion < 1)
+                            if (!nextVersion.IsSupported())
                             {
-                                throw new DriverInternalError("Invalid protocol version");
+                                throw new DriverInternalError("Invalid protocol version " + nextVersion);
                             }
                             //Retry using the new protocol version
                             return Connect(true);
@@ -211,6 +211,7 @@ namespace Cassandra
                 {
                     t.Exception.Handle(e => true);
                     Interlocked.Exchange(ref _reconnectTask, null);
+                    // ReSharper disable once AssignNullToNotNullAttribute
                     tcs.TrySetException(t.Exception.InnerException);
                     var delay = _reconnectionSchedule.NextDelayMs();
                     _logger.Error("ControlConnection was not able to reconnect: " + t.Exception.InnerException);
@@ -581,7 +582,7 @@ namespace Cassandra
     /// </summary>
     internal interface IMetadataQueryProvider
     {
-        byte ProtocolVersion { get; }
+        ProtocolVersion ProtocolVersion { get; }
 
         /// <summary>
         /// The address of the endpoint used by the ControlConnection

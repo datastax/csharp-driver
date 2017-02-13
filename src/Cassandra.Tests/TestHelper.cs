@@ -20,7 +20,7 @@ namespace Cassandra.Tests
         {
             var columns = new List<CqlColumn>();
             var rowValues = new List<object>();
-            var serializer = new Serializer(4);
+            var serializer = new Serializer(ProtocolVersion.MaxSupported);
             foreach (var kv in valueMap)
             {
                 if (kv.Value != null)

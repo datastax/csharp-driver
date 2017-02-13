@@ -39,7 +39,7 @@ namespace Cassandra
         private int _disposed;
         private volatile string _keyspace;
 
-        public int BinaryProtocolVersion { get { return _serializer.ProtocolVersion; } }
+        public int BinaryProtocolVersion { get { return (int)_serializer.ProtocolVersion; } }
 
         /// <inheritdoc />
         public ICluster Cluster { get { return _cluster; } }

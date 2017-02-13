@@ -395,7 +395,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Frozen_Udt()
         {
             string createQuery = null;
-            var serializer = new Serializer(4);
+            var serializer = new Serializer(ProtocolVersion.MaxSupported);
             var sessionMock = GetSessionMock(serializer);
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
@@ -443,7 +443,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Frozen_Collection_Key()
         {
             string createQuery = null;
-            var serializer = new Serializer(4);
+            var serializer = new Serializer(ProtocolVersion.MaxSupported);
             var sessionMock = GetSessionMock(serializer);
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
@@ -472,7 +472,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Frozen_Collection_Value()
         {
             string createQuery = null;
-            var serializer = new Serializer(4);
+            var serializer = new Serializer(ProtocolVersion.MaxSupported);
             var sessionMock = GetSessionMock(serializer);
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
@@ -501,7 +501,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Attribute_Defined_Mappings()
         {
             string createQuery = null;
-            var serializer = new Serializer(4);
+            var serializer = new Serializer(ProtocolVersion.MaxSupported);
             var sessionMock = GetSessionMock(serializer);
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
@@ -516,7 +516,7 @@ namespace Cassandra.Tests.Mapping.Linq
         {
             if (serializer == null)
             {
-                serializer = new Serializer(4);
+                serializer = new Serializer(ProtocolVersion.MaxSupported);
             }
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             var config = new Configuration();

@@ -23,12 +23,12 @@ namespace Cassandra
         public byte[] QueryId { get; private set; }
         public System.Guid? TraceId { get; internal set; }
 
-        internal OutputPrepared(byte protocolVersion, FrameReader reader)
+        internal OutputPrepared(ProtocolVersion protocolVersion, FrameReader reader)
         {
             var length = reader.ReadInt16();
             QueryId = new byte[length];
             reader.Read(QueryId, 0, length);
-            Metadata = new RowSetMetadata(reader, protocolVersion >= 4);
+            Metadata = new RowSetMetadata(reader, protocolVersion.SupportsPreparedPartitionKey());
         }
 
         public void Dispose()

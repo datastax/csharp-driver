@@ -128,7 +128,7 @@ namespace Cassandra.Tests
         {
             const int frameLength = 10;
             const int iterations = 8;
-            const byte protocolVersion = 2;
+            const ProtocolVersion protocolVersion = ProtocolVersion.V2;
             var bufferPool = new RecyclableMemoryStreamManager();
             using (var stream = bufferPool.GetStream("test"))
             {

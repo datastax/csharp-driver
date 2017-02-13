@@ -211,7 +211,7 @@ namespace Cassandra
             return Bind(values);
         }
 
-        internal override IQueryRequest CreateBatchRequest(int protocolVersion)
+        internal override IQueryRequest CreateBatchRequest(ProtocolVersion protocolVersion)
         {
             //Uses the default query options as the individual options of the query will be ignored
             var options = QueryProtocolOptions.CreateFromQuery(this, new QueryOptions());

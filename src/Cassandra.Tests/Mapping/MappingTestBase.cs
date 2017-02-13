@@ -97,7 +97,7 @@ namespace Cassandra.Tests.Mapping
         /// </summary>
         protected PreparedStatement GetPrepared(string query = null)
         {
-            return new PreparedStatement(null, null, query, null, new Serializer(2));
+            return new PreparedStatement(null, null, query, null, new Serializer(ProtocolVersion.MaxSupported));
         }
 
         [TearDown]

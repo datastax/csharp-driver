@@ -30,7 +30,7 @@ namespace Cassandra
         private readonly MemoryStream _stream;
         private readonly Serializer _serializer;
         private readonly long _offset;
-        private readonly byte _version;
+        private readonly ProtocolVersion _version;
 
         public long Length
         {
@@ -185,7 +185,7 @@ namespace Cassandra
         public void WriteFrameHeader(byte flags, short streamId, byte opCode)
         {
             byte[] header;
-            if (_version < 3)
+            if (!_version.Uses2BytesStreamIds())
             {
                 //8 bytes for the header, dedicating 1 for the streamId
                 if (streamId > 127)
@@ -194,7 +194,7 @@ namespace Cassandra
                 }
                 header = new byte[]
                 {
-                    _version,
+                    (byte) _version,
                     flags,
                     (byte) streamId,
                     opCode,
@@ -208,7 +208,7 @@ namespace Cassandra
             var streamIdBytes = BeConverter.GetBytes(streamId);
             header = new byte[]
             {
-                _version,
+                (byte) _version,
                 flags,
                 streamIdBytes[0],
                 streamIdBytes[1],
@@ -238,7 +238,7 @@ namespace Cassandra
             var lengthBytes = BeConverter.GetBytes(frameLength - FrameHeader.GetSize(_version));
             //The length could start at the 4th or 5th position
             long lengthOffset = 4;
-            if (_version >= 3)
+            if (_version.Uses2BytesStreamIds())
             {
                 lengthOffset = 5;
             }

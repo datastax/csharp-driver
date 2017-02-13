@@ -68,11 +68,11 @@ namespace Cassandra
         /// <summary>
         /// Protocol version of the protocol (1, 2, 3)
         /// </summary>
-        public byte Version
+        public ProtocolVersion Version
         {
             get
             {
-                return (byte)(_versionByte & 0x07);
+                return (ProtocolVersion)(byte)(_versionByte & 0x7f);
             }
         }
 
@@ -81,16 +81,16 @@ namespace Cassandra
         /// </summary>
         public bool IsValidResponse()
         {
-            return _versionByte >> 7 == 1 && (_versionByte & 0x07) > 0;
+            return _versionByte >> 7 == 1 && (_versionByte & 0x7f) > 0;
         }
 
         /// <summary>
         /// Gets the size of the protocol header, depending on the version of the protocol
         /// </summary>
         /// <param name="version">Version of the protocol used</param>
-        public static byte GetSize(ushort version)
+        public static byte GetSize(ProtocolVersion version)
         {
-            if (version >= 3)
+            if (version.Uses2BytesStreamIds())
             {
                 return 9;
             }
@@ -100,14 +100,14 @@ namespace Cassandra
         /// <summary>
         /// Parses the first 8 or 9 bytes and returns a FrameHeader
         /// </summary>
-        public static FrameHeader ParseResponseHeader(ushort version, byte[] buffer, int offset)
+        public static FrameHeader ParseResponseHeader(ProtocolVersion version, byte[] buffer, int offset)
         {
             var header = new FrameHeader()
             {
                 _versionByte = buffer[offset++],
                 Flags = (HeaderFlag)buffer[offset++]
             };
-            if (version < 3)
+            if (!version.Uses2BytesStreamIds())
             {
                 //Stream id is a signed byte in v1 and v2 of the protocol
                 header.StreamId =  (sbyte)buffer[offset++];
@@ -125,9 +125,9 @@ namespace Cassandra
         /// <summary>
         /// Parses the first 8 or 9 bytes from multiple buffers and returns a FrameHeader
         /// </summary>
-        public static FrameHeader ParseResponseHeader(ushort version, byte[] buffer1, byte[] buffer2)
+        public static FrameHeader ParseResponseHeader(ProtocolVersion version, byte[] buffer1, byte[] buffer2)
         {
-            var headerBuffer = new byte[version < 3 ? 8 : 9];
+            var headerBuffer = new byte[!version.Uses2BytesStreamIds() ? 8 : 9];
             Buffer.BlockCopy(buffer1, 0, headerBuffer, 0, buffer1.Length);
             Buffer.BlockCopy(buffer2, 0, headerBuffer, buffer1.Length, headerBuffer.Length - buffer1.Length);
             return ParseResponseHeader(version, headerBuffer, 0);
@@ -136,9 +136,9 @@ namespace Cassandra
         /// <summary>
         /// Gets the protocol version based on the first byte of the header
         /// </summary>
-        public static byte GetProtocolVersion(byte[] buffer)
+        public static ProtocolVersion GetProtocolVersion(byte[] buffer)
         {
-            return (byte)(buffer[0] & 0x7F);
+            return (ProtocolVersion)(buffer[0] & 0x7F);
         }
     }
 }

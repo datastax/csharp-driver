@@ -55,7 +55,7 @@ namespace Cassandra.Requests
 
         public IDictionary<string, byte[]> Payload { get; set; }
 
-        public ExecuteRequest(int protocolVersion, byte[] id, RowSetMetadata metadata, bool tracingEnabled, QueryProtocolOptions queryOptions)
+        public ExecuteRequest(ProtocolVersion protocolVersion, byte[] id, RowSetMetadata metadata, bool tracingEnabled, QueryProtocolOptions queryOptions)
         {
             if (metadata != null && queryOptions.Values.Length != metadata.Columns.Length)
             {
@@ -72,7 +72,7 @@ namespace Cassandra.Requests
             {
                 throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
             }
-            if (queryOptions.Timestamp != null && protocolVersion < 3)
+            if (queryOptions.Timestamp != null && !protocolVersion.SupportsTimestamp())
             {
                 throw new NotSupportedException("Timestamp for query is supported in Cassandra 2.1 or above.");
             }

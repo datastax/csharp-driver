@@ -35,7 +35,7 @@ namespace Cassandra.Tests.Mapping.TestData
         /// </summary>
         public static RowSet GetSingleColumnRowSet<T>(string columnName, T[] values)
         {
-            var serializer = new Serializer(4);
+            var serializer = new Serializer(ProtocolVersion.MaxSupported);
             var rs = new RowSet();
             IColumnInfo typeInfo;
             var typeCode = serializer.GetCqlType(typeof (T), out typeInfo);
@@ -63,7 +63,7 @@ namespace Cassandra.Tests.Mapping.TestData
 
         public static RowSet CreateMultipleValuesRowSet<T>(string[] columnNames, T[] genericValues, int rowLength = 1)
         {
-            var serializer = new Serializer(4);
+            var serializer = new Serializer(ProtocolVersion.MaxSupported);
             var rs = new RowSet();
             rs.Columns = new CqlColumn[columnNames.Length];
             for (var i = 0; i < columnNames.Length; i++)

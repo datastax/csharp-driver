@@ -307,9 +307,9 @@ namespace Cassandra
         /// <summary>
         /// Gets the default protocol options by protocol version
         /// </summary>
-        internal static PoolingOptions GetDefault(byte protocolVersion)
+        internal static PoolingOptions GetDefault(ProtocolVersion protocolVersion)
         {
-            if (protocolVersion < 3)
+            if (!protocolVersion.Uses2BytesStreamIds())
             {
                 //New instance of pooling options with default values
                 return new PoolingOptions();
@@ -318,7 +318,7 @@ namespace Cassandra
             return new PoolingOptions()
                 .SetCoreConnectionsPerHost(HostDistance.Local, 1)
                 .SetMaxConnectionsPerHost(HostDistance.Local, 2)
-                .SetMaxConnectionsPerHost(HostDistance.Remote, 1)
+                .SetCoreConnectionsPerHost(HostDistance.Remote, 1)
                 .SetMaxConnectionsPerHost(HostDistance.Remote, 1)
                 .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 1500)
                 .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Remote, 1500);

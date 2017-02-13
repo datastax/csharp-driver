@@ -79,7 +79,7 @@ namespace Cassandra.Responses
                     break;
             }
             ce.What = changeType;
-            if (frame.Header.Version < 3)
+            if (!frame.Header.Version.SupportsSchemaChangeFullMetadata())
             {
                 //protocol v1 and v2: <change_type><keyspace><table>
                 ce.Keyspace = Reader.ReadString();
