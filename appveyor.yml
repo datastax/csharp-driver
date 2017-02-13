@@ -1,11 +1,11 @@
 version: "{branch}-{build}"
 skip_tags: true
 shallow_clone: true
-#cache:
-#  - C:\ProgramData\chocolatey\bin -> appveyor_install.ps1                                                                             
-#  - C:\ProgramData\chocolatey\lib -> appveyor_install.ps1
-#  - C:\Users\appveyor\.ccm\repository -> appveyor_install.ps1
-#  - C:\Users\appveyor\deps -> appveyor_install.ps1
+cache:
+  - C:\ProgramData\chocolatey\bin -> appveyor_install.ps1                                                                             
+  - C:\ProgramData\chocolatey\lib -> appveyor_install.ps1
+  - C:\Users\appveyor\.ccm\repository -> appveyor_install.ps1
+  - C:\Users\appveyor\deps -> appveyor_install.ps1
 os: Previous Visual Studio 2015
 platform:
   - Any CPU
