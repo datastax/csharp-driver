@@ -329,6 +329,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Open().Wait();
+                Query(connection, String.Format("DROP KEYSPACE IF EXISTS test_events_kp", 1)).Wait();
                 var eventTypes = CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange;
                 var task = connection.Send(new RegisterForEventRequest(eventTypes));
                 TaskHelper.WaitToComplete(task, 1000);
