@@ -1,6 +1,7 @@
 $env:JAVA_HOME="C:\Program Files\Java\jdk1.8.0"
 $env:PYTHON="C:\Python27-x64"
 $env:PATH="$($env:PYTHON);$($env:PYTHON)\Scripts;$($env:JAVA_HOME)\bin;$($env:PATH)"
+$env:PATHEXT="$($env:PATHEXT);.PY"
 $dep_dir="C:\Users\appveyor\deps"
 
 $computerSystem = Get-CimInstance CIM_ComputerSystem
@@ -71,6 +72,7 @@ If (!(Test-Path $env:CCM_PATH)) {
   pushd $env:CCM_PATH
   Start-Process python -ArgumentList "setup.py install" -Wait -NoNewWindow
   popd
+  Copy-Item "$($env:PYTHON)\Scripts\ccm.py" "$($env:PYTHON)\Scripts\ccm"
 }
 
 Write-Host "Set execution Policy"
