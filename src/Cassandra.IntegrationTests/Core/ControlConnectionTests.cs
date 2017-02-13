@@ -49,10 +49,20 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_Downgrade_The_Protocol_Version()
         {
             //Use a higher protocol version
-            var version = (ProtocolVersion) (GetExpectedProtocolVersion() + 1);
+            var version = (ProtocolVersion)(GetExpectedProtocolVersion() + 1);
             var cc = NewInstance(version);
             cc.Init();
             Assert.AreEqual(version - 1, cc.ProtocolVersion);
+        }
+
+        [Test]
+        public void Should_Downgrade_The_Protocol_Version_With_Higher_Version_Than_Supported()
+        {
+            // Use a non-existent higher protocol version
+            var version = (ProtocolVersion)0x0f;
+            var cc = NewInstance(version);
+            cc.Init();
+            Assert.AreEqual(GetExpectedProtocolVersion(), cc.ProtocolVersion);
         }
 
         private ControlConnection NewInstance(
