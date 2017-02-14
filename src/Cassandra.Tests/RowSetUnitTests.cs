@@ -311,6 +311,25 @@ namespace Cassandra.Tests
         }
 
         [Test]
+        public void Nullable_DateTimeOffsets_can_be_read()
+        {
+            var dateTimeOffset = DateTimeOffset.UtcNow;
+            var c = new CqlColumn
+            {
+                Index = 0,
+                Name = "col1",
+                TypeCode = ColumnTypeCode.Timestamp,
+                Type = typeof(DateTimeOffset)
+            };
+
+            var row1 = new Row(new[] { (object)dateTimeOffset }, new[] { c }, new Dictionary<string, int>() { { c.Name, c.Index } });
+            var row2 = new Row(new[] { (object)null }, new[] { c }, new Dictionary<string, int>() { { c.Name, c.Index } });
+
+            Assert.AreEqual(dateTimeOffset, row1.GetValue<DateTimeOffset?>(0));
+            Assert.AreEqual(null, row2.GetValue<DateTimeOffset?>(0));
+        }
+
+        [Test]
         public void NullValuesWithStructTypeColumnThrows()
         {
             //Row with all null values
