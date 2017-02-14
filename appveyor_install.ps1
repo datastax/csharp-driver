@@ -2,7 +2,7 @@ $env:JAVA_HOME="C:\Program Files\Java\jdk1.8.0"
 $env:PYTHON="C:\Python27-x64"
 $env:PATH="$($env:PYTHON);$($env:PYTHON)\Scripts;$($env:JAVA_HOME)\bin;$($env:PATH)"
 $env:PATHEXT="$($env:PATHEXT);.PY"
-$dep_dir="C:\Users\appveyor\deps"
+$dep_dir="$($env:HOMEPATH)\deps"
 
 $computerSystem = Get-CimInstance CIM_ComputerSystem
 $computerOS = Get-CimInstance CIM_OperatingSystem
@@ -63,7 +63,7 @@ If (!(Test-Path $jce_indicator)) {
 Write-Host "Installing CCM and its dependencies"
 Start-Process python -ArgumentList "-m pip install psutil pyYaml six" -Wait -NoNewWindow
 
-$env:CCM_PATH="$($dep_dir)\ccm"
+$env:CCM_PATH="$($env:HOMEPATH)\ccm"
 
 If (!(Test-Path $env:CCM_PATH)) {
   Write-Host "Cloning git ccm... $($env:CCM_PATH)"
