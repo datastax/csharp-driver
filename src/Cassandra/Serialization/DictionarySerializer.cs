@@ -32,16 +32,16 @@ namespace Cassandra.Serialization
             var mapInfo = (MapColumnInfo) typeInfo;
             var keyType = GetClrType(mapInfo.KeyTypeCode, mapInfo.KeyTypeInfo);
             var valueType = GetClrType(mapInfo.ValueTypeCode, mapInfo.ValueTypeInfo);
-            var count = DecodeCollectionLength(protocolVersion, buffer, ref offset);
+            var count = DecodeCollectionLength((ProtocolVersion)protocolVersion, buffer, ref offset);
             var dicType = typeof(SortedDictionary<,>).MakeGenericType(keyType, valueType);
             var result = (IDictionary)Activator.CreateInstance(dicType);
             for (var i = 0; i < count; i++)
             {
-                var keyLength = DecodeCollectionLength(protocolVersion, buffer, ref offset);
+                var keyLength = DecodeCollectionLength((ProtocolVersion)protocolVersion, buffer, ref offset);
                 var key = DeserializeChild(buffer, offset, keyLength, mapInfo.KeyTypeCode, mapInfo.KeyTypeInfo);
                 offset += keyLength;
 
-                var valueLength = DecodeCollectionLength(protocolVersion, buffer, ref offset);
+                var valueLength = DecodeCollectionLength((ProtocolVersion)protocolVersion, buffer, ref offset);
                 var value = DeserializeChild(buffer, offset, valueLength, mapInfo.ValueTypeCode, mapInfo.ValueTypeInfo);
                 offset += valueLength;
 

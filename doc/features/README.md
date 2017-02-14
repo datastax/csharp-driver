@@ -14,6 +14,7 @@ Cassandra (1.2+) using exclusively Cassandra's binary protocol and Cassandra Que
     - [ADO.NET](components/adonet)
 - [Connection hearbeat](connection-heartbeat)
 - [Connection pooling](connection-pooling)
+- [Native protocol](native-protocol)
 - [Query warnings](query-warnings)
 - [Result paging](paging)
 - [Parametrized queries](parametrized-queries)
