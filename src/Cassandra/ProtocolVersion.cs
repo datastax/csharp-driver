@@ -101,28 +101,9 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Determines whether the protocol supports paging state and serial consistency parameters in 
-        /// QUERY and EXECUTE requests.
-        /// </summary>
-        /// <param name="version"></param>
-        /// <returns></returns>
-        public static bool SupportsPaging(this ProtocolVersion version)
-        {
-            return (version >= ProtocolVersion.V3);
-        }
-
-        /// <summary>
         /// Determines whether the protocol supports timestamps parameters in BATCH, QUERY and EXECUTE requests.
         /// </summary>
         public static bool SupportsTimestamp(this ProtocolVersion version)
-        {
-            return version >= ProtocolVersion.V3;
-        }
-
-        /// <summary>
-        /// Determines whether the protocol supports named parameters in QUERY and EXECUTE requests.
-        /// </summary>
-        public static bool SupportsNamedParameters(this ProtocolVersion version)
         {
             return version >= ProtocolVersion.V3;
         }
