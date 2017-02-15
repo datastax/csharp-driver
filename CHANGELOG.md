@@ -1,5 +1,15 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.2.1
+
+2017-02-15
+
+### Bug Fixes
+
+- [CSHARP-503] - TimeUuid values are deserialized as Guid causing problems
+- [CSHARP-530] - Row.GetValue() does not support Nullable<DateTimeOffset>
+- [CSHARP-531] - Mapper: Avoid using ConcurrentDictionary.Count for Statement cache
+
 ## 3.2.0
 
 2016-12-20
