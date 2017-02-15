@@ -1,5 +1,13 @@
 # ChangeLog - DataStax Enterprise C# Driver
 
+## 1.1.1
+
+2017-02-15
+
+### Features
+
+- [CSHARP-521] - Update core driver dependency to v3.2.1
+
 ## 1.1.0
 
 2016-12-20

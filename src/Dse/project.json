@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.1.1",
   "name": "Dse",
   "authors": [ "DataStax" ],
   "title": "DataStax Enterprise C# Driver",
@@ -18,7 +18,7 @@
     "languageVersion": "csharp5"
   },
   "dependencies": {
-    "CassandraCSharpDriver": "3.2.0",
+    "CassandraCSharpDriver": "3.2.1",
     "Newtonsoft.Json": "9.0.1"
   },
   "frameworks": {
