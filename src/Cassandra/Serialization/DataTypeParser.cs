@@ -93,7 +93,10 @@ namespace Cassandra.Serialization
         internal static ColumnDesc ParseFqTypeName(string typeName, int startIndex = 0, int length = 0)
         {
             const StringComparison comparison = StringComparison.Ordinal;
-            var dataType = new ColumnDesc();
+            var dataType = new ColumnDesc
+            {
+                TypeCode = ColumnTypeCode.Custom
+            };
             if (length == 0)
             {
                 length = typeName.Length;
@@ -114,8 +117,7 @@ namespace Cassandra.Serialization
             }
             if (typeName == EmptyTypeName)
             {
-                dataType.TypeCode = ColumnTypeCode.Custom;
-                dataType.TypeInfo = null;
+                // Set it as custom without type info
                 return dataType;
             }
             //Quick check if its a single type
@@ -131,7 +133,6 @@ namespace Cassandra.Serialization
                     dataType.TypeCode = typeCode;
                     return dataType;
                 }
-                throw GetTypeException(typeName);
             }
             if (typeName.IndexOf(ListTypeName, startIndex, comparison) == startIndex)
             {
@@ -245,7 +246,9 @@ namespace Cassandra.Serialization
                 dataType.TypeInfo = tupleInfo;
                 return dataType;
             }
-            throw GetTypeException(typeName);
+            // Assume custom type if cannot be parsed up to this point.
+            dataType.TypeInfo = new CustomColumnInfo(typeName.Substring(startIndex, length));
+            return dataType;
         }
 
         /// <summary>
@@ -255,7 +258,10 @@ namespace Cassandra.Serialization
         internal static Task<ColumnDesc> ParseTypeName(Func<string, string, Task<UdtColumnInfo>> udtResolver, string keyspace, string typeName, int startIndex = 0, int length = 0)
         {
             const StringComparison comparison = StringComparison.Ordinal;
-            var dataType = new ColumnDesc();
+            var dataType = new ColumnDesc
+            {
+                TypeCode = ColumnTypeCode.Custom
+            };
             if (length == 0)
             {
                 length = typeName.Length;
@@ -267,10 +273,15 @@ namespace Cassandra.Serialization
                 length -= CqlNames.Frozen.Length + 2;
                 dataType.IsFrozen = true;
             }
+            if (typeName.IndexOf("'", startIndex, comparison) == startIndex)
+            {
+                // When quoted, this is a custom type.
+                dataType.TypeInfo = new CustomColumnInfo(typeName.Substring(startIndex + 1, length - 2));
+                return TaskHelper.ToTask(dataType);
+            }
             if (typeName == CqlNames.Empty)
             {
-                dataType.TypeCode = ColumnTypeCode.Custom;
-                dataType.TypeInfo = null;
+                // A custom without type info
                 return TaskHelper.ToTask(dataType);
             }
             if (typeName.IndexOf(CqlNames.List, startIndex, comparison) == startIndex)
