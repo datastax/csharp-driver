@@ -34,7 +34,7 @@ namespace Cassandra
     /// <inheritdoc />
     public class Cluster : ICluster
     {
-        private static int _maxProtocolVersion = 4;
+        private static ProtocolVersion _maxProtocolVersion = ProtocolVersion.MaxSupported;
         // ReSharper disable once InconsistentNaming
         private static readonly Logger _logger = new Logger(typeof(Cluster));
         private readonly CopyOnWriteList<Session> _connectedSessions = new CopyOnWriteList<Session>();
@@ -91,13 +91,24 @@ namespace Cassandra
         /// Gets or sets the maximum protocol version used by this driver.
         /// <para>
         /// While property value is maintained for backward-compatibility, 
-        /// use <see cref="ProtocolOptions.SetMaxProtocolVersion(byte)"/> to set the maximum protocol version used by the driver.
+        /// use <see cref="ProtocolOptions.SetMaxProtocolVersion(ProtocolVersion)"/> to set the maximum protocol version used by the driver.
+        /// </para>
+        /// <para>
+        /// Protocol version used can not be higher than <see cref="ProtocolVersion.MaxSupported"/>.
         /// </para>
         /// </summary>
         public static int MaxProtocolVersion
         {
-            get { return _maxProtocolVersion; }
-            set { _maxProtocolVersion = value; }
+            get { return (int)_maxProtocolVersion; }
+            set
+            {
+                if (value > (int)ProtocolVersion.MaxSupported)
+                {
+                    // Ignore
+                    return;
+                }
+                _maxProtocolVersion = (ProtocolVersion) value;
+            }
         }
 
         /// <summary>
@@ -147,12 +158,11 @@ namespace Cassandra
                     //There was an exception that is not possible to recover from
                     throw _initException;
                 }
-                var protocolVersion = (byte) MaxProtocolVersion;
-                if (Configuration.ProtocolOptions.MaxProtocolVersion != null &&
-                    Configuration.ProtocolOptions.MaxProtocolVersion < MaxProtocolVersion
-                    )
+                var protocolVersion = _maxProtocolVersion;
+                if (Configuration.ProtocolOptions.MaxProtocolVersionValue != null &&
+                    Configuration.ProtocolOptions.MaxProtocolVersionValue.Value.IsSupported())
                 {
-                    protocolVersion = Configuration.ProtocolOptions.MaxProtocolVersion.Value;
+                    protocolVersion = Configuration.ProtocolOptions.MaxProtocolVersionValue.Value;
                 }
                 //create the buffer pool with 16KB for small buffers and 256Kb for large buffers.
                 Configuration.BufferPool = new RecyclableMemoryStreamManager(16 * 1024, 256 * 1024, ProtocolOptions.MaximumFrameLength);

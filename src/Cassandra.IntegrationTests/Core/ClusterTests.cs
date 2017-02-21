@@ -95,7 +95,8 @@ namespace Cassandra.IntegrationTests.Core
             cluster.Shutdown();
 
             // ProtocolVersion 0 does not exist
-            Assert.Throws<ArgumentException>(() => Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).WithMaxProtocolVersion(0));
+            Assert.Throws<ArgumentException>(
+                () => Cluster.Builder().AddContactPoint("127.0.0.1").WithMaxProtocolVersion((byte)0));
         }
 
 

@@ -49,7 +49,7 @@ namespace Cassandra
         private bool _withoutRowSetBuffering;
         private IAddressTranslator _addressTranslator = new DefaultAddressTranslator();
         private ISpeculativeExecutionPolicy _speculativeExecutionPolicy;
-        private byte _maxProtocolVersion = (byte)Cluster.MaxProtocolVersion;
+        private ProtocolVersion _maxProtocolVersion = ProtocolVersion.MaxSupported;
         private TypeSerializerDefinitions _typeSerializerDefinitions;
 
         /// <summary>
@@ -98,7 +98,8 @@ namespace Cassandra
                 _speculativeExecutionPolicy ?? Policies.DefaultSpeculativeExecutionPolicy);
             var config = new Configuration(policies,
                 new ProtocolOptions(_port, _sslOptions).SetCompression(_compression)
-                                                       .SetCustomCompressor(_customCompressor).SetMaxProtocolVersion(_maxProtocolVersion),
+                                                       .SetCustomCompressor(_customCompressor)
+                                                       .SetMaxProtocolVersion(_maxProtocolVersion),
                 _poolingOptions,
                 _socketOptions,
                 new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace),
@@ -498,11 +499,15 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// <para>Limits the maximum protocol version used to connect to the nodes, when it is not set
-        /// protocol version used between the driver and the Cassandra cluster is negotiated upon establishing 
-        /// the first connection.</para>
-        /// <para>Useful for using the driver against a cluster that contains nodes with different major/minor versions 
-        /// of Cassandra. For example, preparing for a rolling upgrade of the Cluster.</para>
+        /// <para>Limits the maximum protocol version used to connect to the nodes</para>
+        /// <para>
+        /// When it is not set, the protocol version used is negotiated between the driver and the Cassandra
+        /// cluster upon establishing the first connection.
+        /// </para>
+        /// <para>
+        /// Useful when connecting to a cluster that contains nodes with different major/minor versions 
+        /// of Cassandra. For example, preparing for a rolling upgrade of the Cluster.
+        /// </para>
         /// </summary>
         /// <param name="version">
         /// <para>The native protocol version.</para>
@@ -515,6 +520,24 @@ namespace Cassandra
         /// <remarks>Some Cassandra features are only available with a specific protocol version.</remarks>
         /// <returns>this instance</returns>
         public Builder WithMaxProtocolVersion(byte version)
+        {
+            return WithMaxProtocolVersion((ProtocolVersion)version);
+        }
+
+        /// <summary>
+        /// <para>Limits the maximum protocol version used to connect to the nodes</para>
+        /// <para>
+        /// When it is not set, the protocol version used is negotiated between the driver and the Cassandra
+        /// cluster upon establishing the first connection.
+        /// </para>
+        /// <para>
+        /// Useful when connecting to a cluster that contains nodes with different major/minor versions 
+        /// of Cassandra. For example, preparing for a rolling upgrade of the Cluster.
+        /// </para>
+        /// </summary>
+        /// <remarks>Some Cassandra features are only available with a specific protocol version.</remarks>
+        /// <returns>this instance</returns>
+        public Builder WithMaxProtocolVersion(ProtocolVersion version)
         {
             if (version == 0)
             {

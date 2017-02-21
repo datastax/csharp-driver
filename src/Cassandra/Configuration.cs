@@ -187,14 +187,14 @@ namespace Cassandra
         /// <summary>
         /// Gets the pooling options. If not specified, gets the default by protocol version
         /// </summary>
-        internal PoolingOptions GetPoolingOptions(byte protocolVersion)
+        internal PoolingOptions GetPoolingOptions(ProtocolVersion protocolVersion)
         {
-            if (this._poolingOptions != null)
+            if (_poolingOptions != null)
             {
-                return this._poolingOptions;
+                return _poolingOptions;
             }
-            this._poolingOptions = PoolingOptions.GetDefault(protocolVersion);
-            return this._poolingOptions;
+            _poolingOptions = PoolingOptions.GetDefault(protocolVersion);
+            return _poolingOptions;
         }
     }
 }

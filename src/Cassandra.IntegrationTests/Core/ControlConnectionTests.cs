@@ -33,11 +33,11 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestCassandraVersion(2, 0)]
         public void Should_Use_Maximum_Protocol_Version_Provided()
         {
-            byte version = 2;
+            var version = ProtocolVersion.V2;
             if (CassandraVersion >= Version.Parse("3.0"))
             {
                 //protocol 2 is not supported in Cassandra 3.0+
-                version = 3;
+                version = ProtocolVersion.V3;
             }
             var cc = NewInstance(version);
             cc.Init();
@@ -49,18 +49,27 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_Downgrade_The_Protocol_Version()
         {
             //Use a higher protocol version
-            var version = (byte) (GetExpectedProtocolVersion() + 1);
+            var version = (ProtocolVersion)(GetExpectedProtocolVersion() + 1);
             var cc = NewInstance(version);
             cc.Init();
             Assert.AreEqual(version - 1, cc.ProtocolVersion);
         }
 
-        private ControlConnection NewInstance(byte version = 0, Configuration config = null, Metadata metadata = null)
+        [Test]
+        public void Should_Downgrade_The_Protocol_Version_With_Higher_Version_Than_Supported()
         {
-            if (version == 0)
-            {
-                version = (byte) Cluster.MaxProtocolVersion;
-            }
+            // Use a non-existent higher protocol version
+            var version = (ProtocolVersion)0x0f;
+            var cc = NewInstance(version);
+            cc.Init();
+            Assert.AreEqual(GetExpectedProtocolVersion(), cc.ProtocolVersion);
+        }
+
+        private ControlConnection NewInstance(
+            ProtocolVersion version = ProtocolVersion.MaxSupported, 
+            Configuration config = null, 
+            Metadata metadata = null)
+        {
             if (config == null)
             {
                 config = new Configuration();
@@ -76,20 +85,20 @@ namespace Cassandra.IntegrationTests.Core
             return cc;
         }
 
-        private byte GetExpectedProtocolVersion()
+        private ProtocolVersion GetExpectedProtocolVersion()
         {
-            var expectedVersion = (byte)Cluster.MaxProtocolVersion;
+            var expectedVersion = ProtocolVersion.MaxSupported;
             if (TestClusterManager.CassandraVersion < Version.Parse("2.2"))
             {
-                expectedVersion = 3;
+                expectedVersion = ProtocolVersion.V3;
             }
             if (TestClusterManager.CassandraVersion < Version.Parse("2.1"))
             {
-                expectedVersion = 2;
+                expectedVersion = ProtocolVersion.V2;
             }
             if (TestClusterManager.CassandraVersion < Version.Parse("2.0"))
             {
-                expectedVersion = 1;
+                expectedVersion = ProtocolVersion.V1;
             }
             return expectedVersion;
         }

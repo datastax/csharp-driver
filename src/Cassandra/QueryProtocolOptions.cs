@@ -141,12 +141,11 @@ namespace Cassandra
             var protocolVersion = wb.Serializer.ProtocolVersion;
             var flags = GetFlags();
 
-            if (protocolVersion > 1)
+            if (protocolVersion != ProtocolVersion.V1)
             {
                 wb.WriteUInt16((ushort)Consistency);
                 wb.WriteByte((byte)flags);
             }
-
             if (flags.HasFlag(QueryFlags.Values))
             {
                 wb.WriteUInt16((ushort)Values.Length);
@@ -160,14 +159,14 @@ namespace Cassandra
                     wb.WriteAsBytes(Values[i]);
                 }
             }
-            else if (protocolVersion == 1 && isPrepared)
+            else if (protocolVersion == ProtocolVersion.V1 && isPrepared)
             {
                 //n values is not optional on protocol v1
                 //Write 0 values
                 wb.WriteUInt16(0);
             }
 
-            if (protocolVersion == 1)
+            if (protocolVersion == ProtocolVersion.V1)
             {
                 //Protocol v1 ends here
                 wb.WriteUInt16((ushort)Consistency);

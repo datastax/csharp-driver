@@ -149,7 +149,7 @@ namespace Cassandra
                         String.Format("It is not possible to encode a value of type {0} to a CQL type {1}", value.GetType(), p.TypeCode));
                 }
             }
-            if (values.Length < paramsMetadata.Length && _serializer.ProtocolVersion >= 4)
+            if (values.Length < paramsMetadata.Length && _serializer.ProtocolVersion.SupportsUnset())
             {
                 //Set the result of the unspecified parameters to Unset
                 var completeValues = new object[paramsMetadata.Length];
@@ -163,7 +163,7 @@ namespace Cassandra
             return values;
         }
 
-        internal override IQueryRequest CreateBatchRequest(int protocolVersion)
+        internal override IQueryRequest CreateBatchRequest(ProtocolVersion protocolVersion)
         {
             //Uses the default query options as the individual options of the query will be ignored
             var options = QueryProtocolOptions.CreateFromQuery(this, new QueryOptions());

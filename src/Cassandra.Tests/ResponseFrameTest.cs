@@ -27,14 +27,16 @@ namespace Cassandra.Tests
         public void Ctor_HeaderIsNull_Throws()
         {
             // ReSharper disable once ObjectCreationAsStatement
-            Assert.Throws<ArgumentNullException>(() => new Frame(null, new MemoryStream(), new Serializer(4)));
+            Assert.Throws<ArgumentNullException>(() => new Frame(
+                null, new MemoryStream(), new Serializer(ProtocolVersion.MaxSupported)));
         }
 
         [Test]
         public void Ctor_BodyIsNull_Throws()
         {
             // ReSharper disable once ObjectCreationAsStatement
-            Assert.Throws<ArgumentNullException>(() => new Frame(new FrameHeader(), null, new Serializer(4)));
+            Assert.Throws<ArgumentNullException>(() => new Frame(
+                new FrameHeader(), null, new Serializer(ProtocolVersion.MaxSupported)));
         } 
     }
 }

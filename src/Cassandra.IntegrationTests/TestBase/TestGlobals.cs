@@ -51,21 +51,21 @@ namespace Cassandra.IntegrationTests.TestBase
         /// <summary>
         /// Gets the latest protocol version depending on the Cassandra Version running the tests
         /// </summary>
-        public byte GetProtocolVersion()
+        public ProtocolVersion GetProtocolVersion()
         {
             var cassandraVersion = CassandraVersion;
-            byte protocolVersion = 1;
+            var protocolVersion = ProtocolVersion.V1;
             if (cassandraVersion >= Version.Parse("3.0"))
             {
-                protocolVersion = 4;
+                protocolVersion = ProtocolVersion.V4;
             }
             else if (cassandraVersion >= Version.Parse("2.1"))
             {
-                protocolVersion = 3;
+                protocolVersion = ProtocolVersion.V3;
             }
             else if (cassandraVersion > Version.Parse("2.0"))
             {
-                protocolVersion = 2;
+                protocolVersion = ProtocolVersion.V2;
             }
             return protocolVersion;
         }

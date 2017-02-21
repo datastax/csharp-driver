@@ -32,7 +32,7 @@ namespace Cassandra.Requests
 
         public int WriteFrame(short streamId, MemoryStream stream, Serializer serializer)
         {
-            if (serializer.ProtocolVersion > 1)
+            if (serializer.ProtocolVersion != ProtocolVersion.V1)
             {
                 throw new NotSupportedException("Credentials request is only supported in C* = 1.2.x");
             }

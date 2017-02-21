@@ -30,7 +30,11 @@ namespace Cassandra.Tests
     [TestFixture]
     public class SerializerTests
     {
-        private readonly byte[] _protocolVersions = { 1, 2, 3, 4 };
+        private readonly ProtocolVersion[] _protocolVersions =
+        {
+            ProtocolVersion.V1, ProtocolVersion.V2, ProtocolVersion.V3, ProtocolVersion.V4
+        };
+
         private static readonly MapColumnInfo MapColumnInfoStringString = new MapColumnInfo() { KeyTypeCode = ColumnTypeCode.Text, ValueTypeCode = ColumnTypeCode.Text };
 
         [Test]
@@ -499,7 +503,7 @@ namespace Cassandra.Tests
             }
         }
 
-        private static Serializer NewInstance(byte protocolVersion = 4)
+        private static Serializer NewInstance(ProtocolVersion protocolVersion = ProtocolVersion.MaxSupported)
         {
             return new Serializer(protocolVersion);
         }

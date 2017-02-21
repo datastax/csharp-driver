@@ -53,7 +53,7 @@ namespace Cassandra
         /// <summary>
         /// Gets the binary protocol version to be used for this cluster.
         /// </summary>
-        public byte ProtocolVersion 
+        public ProtocolVersion ProtocolVersion 
         {
             get { return _serializer.ProtocolVersion; }
         }
@@ -81,7 +81,7 @@ namespace Cassandra
             get { return _serializer; }
         }
 
-        internal ControlConnection(byte initialProtocolVersion, Configuration config, Metadata metadata)
+        internal ControlConnection(ProtocolVersion initialProtocolVersion, Configuration config, Metadata metadata)
         {
             _metadata = metadata;
             _reconnectionPolicy = config.Policies.ReconnectionPolicy;
@@ -140,51 +140,57 @@ namespace Cassandra
             return IterateAndConnect(hosts.GetEnumerator(), new Dictionary<IPEndPoint, Exception>());
         }
 
-        private Task<bool> IterateAndConnect(IEnumerator<Host> hostsEnumerator, Dictionary<IPEndPoint, Exception> triedHosts)
+        private async Task<bool> IterateAndConnect(IEnumerator<Host> hostsEnumerator, Dictionary<IPEndPoint, Exception> triedHosts)
         {
             var available = hostsEnumerator.MoveNext();
             if (!available)
             {
-                return TaskHelper.FromException<bool>(new NoHostAvailableException(triedHosts));
+                throw new NoHostAvailableException(triedHosts);
             }
             var host = hostsEnumerator.Current;
             var c = new Connection(_serializer, host.Address, _config);
-            return ((Task) c
-                .Open())
-                .ContinueWith(t =>
+            // Use a task to workaround "no await in catch"
+            Task<bool> nextTask;
+            try
+            {
+                await c.Open().ConfigureAwait(false);
+                _connection = c;
+                _host = host;
+                _logger.Info("Connection established to {0}", c.Address);
+                return true;
+            }
+            catch (UnsupportedProtocolVersionException ex)
+            {
+                // The server can respond with a message using a lower protocol version supported by the server
+                // or using the same version as the one provided
+                var nextVersion = _serializer.ProtocolVersion;
+                if (nextVersion == ex.ProtocolVersion || !nextVersion.IsSupported())
                 {
-                    if (t.Status == TaskStatus.RanToCompletion)
-                    {
-                        _connection = c;
-                        _host = host;
-                        _logger.Info("Connection established to {0}", c.Address);
-                        return TaskHelper.ToTask(true);
-                    }
-                    if (t.IsFaulted && t.Exception != null)
-                    {
-                        t.Exception.Handle(e => true);
-                        var ex = t.Exception.InnerException;
-                        if (ex is UnsupportedProtocolVersionException)
-                        {
-                            //Use the protocol version used to parse the response message
-                            var nextVersion = _serializer.ProtocolVersion;
-                            _logger.Info(string.Format("{0}, trying with version {1}", ex.Message, nextVersion));
-                            c.Dispose();
-                            if (ProtocolVersion < 1)
-                            {
-                                throw new DriverInternalError("Invalid protocol version");
-                            }
-                            //Retry using the new protocol version
-                            return Connect(true);
-                        }
-                        //There was a socket exception or an authentication exception
-                        triedHosts.Add(host.Address, ex);
-                        c.Dispose();
-                        return IterateAndConnect(hostsEnumerator, triedHosts);
-                    }
-                    throw new TaskCanceledException("The ControlConnection could not be connected.");
-                }, TaskContinuationOptions.ExecuteSynchronously)
-                .Unwrap();
+                    nextVersion = nextVersion.GetLowerSupported();
+                }
+                if (nextVersion == 0)
+                {
+                    throw new DriverInternalError("Connection was unable to STARTUP using protocol version " + 
+                        ex.ProtocolVersion);
+                }
+                _serializer.ProtocolVersion = nextVersion;
+                _logger.Info(string.Format("{0}, trying with version {1:D}", ex.Message, nextVersion));
+                c.Dispose();
+                if (!nextVersion.IsSupported())
+                {
+                    throw new DriverInternalError("Invalid protocol version " + nextVersion);
+                }
+                //Retry using the new protocol version
+                nextTask = Connect(true);
+            }
+            catch (Exception ex)
+            {
+                //There was a socket exception or an authentication exception
+                triedHosts.Add(host.Address, ex);
+                c.Dispose();
+                nextTask = IterateAndConnect(hostsEnumerator, triedHosts);
+            }
+            return await nextTask.ConfigureAwait(false);
         }
 
         internal Task<bool> Reconnect()
@@ -211,6 +217,7 @@ namespace Cassandra
                 {
                     t.Exception.Handle(e => true);
                     Interlocked.Exchange(ref _reconnectTask, null);
+                    // ReSharper disable once AssignNullToNotNullAttribute
                     tcs.TrySetException(t.Exception.InnerException);
                     var delay = _reconnectionSchedule.NextDelayMs();
                     _logger.Error("ControlConnection was not able to reconnect: " + t.Exception.InnerException);
@@ -581,7 +588,7 @@ namespace Cassandra
     /// </summary>
     internal interface IMetadataQueryProvider
     {
-        byte ProtocolVersion { get; }
+        ProtocolVersion ProtocolVersion { get; }
 
         /// <summary>
         /// The address of the endpoint used by the ControlConnection

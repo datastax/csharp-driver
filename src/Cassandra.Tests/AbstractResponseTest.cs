@@ -36,7 +36,7 @@ namespace Cassandra.Tests
         public void Ctor_NoFlags_TraceIdIsNull()
         {
             // Arrange
-            var frame = new Frame(new FrameHeader(), new MemoryStream(), new Serializer(4));
+            var frame = new Frame(new FrameHeader(), new MemoryStream(), new Serializer(ProtocolVersion.V4));
 
             // Act
             var uut = new Response(frame);
@@ -49,7 +49,7 @@ namespace Cassandra.Tests
         public void Ctor_NoFlags_BodyStreamPositionIsZero()
         {
             // Arrange
-            var frame = new Frame(new FrameHeader(), new MemoryStream(new byte[] { 1 }), new Serializer(4));
+            var frame = new Frame(new FrameHeader(), new MemoryStream(new byte[] { 1 }), new Serializer(ProtocolVersion.V4));
 
             // Act
             new Response(frame);
@@ -68,7 +68,7 @@ namespace Cassandra.Tests
             rnd.NextBytes(buffer);
             var expected = new Guid(TypeSerializer.GuidShuffle(buffer));
             var body = new MemoryStream(buffer);
-            var frame = new Frame(header, body, new Serializer(4));
+            var frame = new Frame(header, body, new Serializer(ProtocolVersion.V4));
 
             // Act
             var uut = new Response(frame);
@@ -83,7 +83,7 @@ namespace Cassandra.Tests
             // Arrange
             var header = new FrameHeader { Flags = FrameHeader.HeaderFlag.Tracing };
             var body = new MemoryStream(new byte[20]);
-            var frame = new Frame(header, body, new Serializer(4));
+            var frame = new Frame(header, body, new Serializer(ProtocolVersion.V4));
 
             // Act
             new Response(frame);

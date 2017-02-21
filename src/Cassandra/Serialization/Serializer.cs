@@ -30,8 +30,8 @@ namespace Cassandra.Serialization
     internal class Serializer
     {
         private static readonly Logger Logger = new Logger(typeof (Serializer));
-        internal static readonly Serializer Default = new Serializer(1);
-        private volatile byte _protocolVersion;
+        internal static readonly Serializer Default = new Serializer(ProtocolVersion.V1);
+        private volatile ProtocolVersion _protocolVersion;
         private readonly IDictionary<ColumnTypeCode, ITypeSerializer> _primitiveDeserializers = new Dictionary<ColumnTypeCode, ITypeSerializer>
         {
             { ColumnTypeCode.Ascii, TypeSerializer.PrimitiveAsciiStringSerializer },
@@ -72,13 +72,13 @@ namespace Cassandra.Serialization
         /// </summary>
         internal static readonly byte[] UnsetBuffer = new byte[0];
 
-        internal byte ProtocolVersion
+        internal ProtocolVersion ProtocolVersion
         {
             get { return _protocolVersion; }
             set { _protocolVersion = value; }
         }
 
-        internal Serializer(byte protocolVersion, IEnumerable<ITypeSerializer> typeSerializers = null)
+        internal Serializer(ProtocolVersion protocolVersion, IEnumerable<ITypeSerializer> typeSerializers = null)
         {
             _protocolVersion = protocolVersion;
             InitPrimitiveSerializers();
@@ -96,7 +96,7 @@ namespace Cassandra.Serialization
             ITypeSerializer typeSerializer;
             if (_primitiveDeserializers.TryGetValue(typeCode, out typeSerializer))
             {
-                return typeSerializer.Deserialize(_protocolVersion, buffer, offset, length, typeInfo);
+                return typeSerializer.Deserialize((byte)_protocolVersion, buffer, offset, length, typeInfo);
             }
             switch (typeCode)
             {
@@ -107,17 +107,17 @@ namespace Cassandra.Serialization
                         // Use byte[] by default
                         typeSerializer = TypeSerializer.PrimitiveByteArraySerializer;
                     }
-                    return typeSerializer.Deserialize(_protocolVersion, buffer, offset, length, typeInfo);
+                    return typeSerializer.Deserialize((byte)_protocolVersion, buffer, offset, length, typeInfo);
                 }
                 case ColumnTypeCode.Udt:
-                    return _udtSerializer.Deserialize(_protocolVersion, buffer, offset, length, typeInfo);
+                    return _udtSerializer.Deserialize((byte)_protocolVersion, buffer, offset, length, typeInfo);
                 case ColumnTypeCode.List:
                 case ColumnTypeCode.Set:
-                    return _collectionSerializer.Deserialize(_protocolVersion, buffer, offset, length, typeInfo);
+                    return _collectionSerializer.Deserialize((byte)_protocolVersion, buffer, offset, length, typeInfo);
                 case ColumnTypeCode.Map:
-                    return _dictionarySerializer.Deserialize(_protocolVersion, buffer, offset, length, typeInfo);
+                    return _dictionarySerializer.Deserialize((byte)_protocolVersion, buffer, offset, length, typeInfo);
                 case ColumnTypeCode.Tuple:
-                    return _tupleSerializer.Deserialize(_protocolVersion, buffer, offset, length, typeInfo);
+                    return _tupleSerializer.Deserialize((byte)_protocolVersion, buffer, offset, length, typeInfo);
             }
             //Unknown type, return the byte representation
             return buffer;
@@ -354,7 +354,7 @@ namespace Cassandra.Serialization
         {
             if (value == Unset.Value)
             {
-                if (_protocolVersion < 4)
+                if (!_protocolVersion.SupportsUnset())
                 {
                     throw new InvalidTypeException("Unset is not supported by this Cassandra version");
                 }
@@ -369,25 +369,25 @@ namespace Cassandra.Serialization
             ITypeSerializer typeSerializer;
             if (_primitiveSerializers.TryGetValue(type, out typeSerializer))
             {
-                return typeSerializer.Serialize(_protocolVersion, value);
+                return typeSerializer.Serialize((byte)_protocolVersion, value);
             }
             if (_customSerializers.Count > 0 && _customSerializers.TryGetValue(type, out typeSerializer))
             {
-                return typeSerializer.Serialize(_protocolVersion, value);
+                return typeSerializer.Serialize((byte)_protocolVersion, value);
             }
             if (typeof(IEnumerable).GetTypeInfo().IsAssignableFrom(type))
             {
                 if (typeof(IDictionary).GetTypeInfo().IsAssignableFrom(type))
                 {
-                    return _dictionarySerializer.Serialize(_protocolVersion, (IDictionary)value);
+                    return _dictionarySerializer.Serialize((byte)_protocolVersion, (IDictionary)value);
                 }
-                return _collectionSerializer.Serialize(_protocolVersion, (IEnumerable)value);
+                return _collectionSerializer.Serialize((byte)_protocolVersion, (IEnumerable)value);
             }
             if (typeof(IStructuralComparable).GetTypeInfo().IsAssignableFrom(type) && type.FullName.StartsWith("System.Tuple"))
             {
-                return _tupleSerializer.Serialize(_protocolVersion, (IStructuralEquatable) value);
+                return _tupleSerializer.Serialize((byte)_protocolVersion, (IStructuralEquatable) value);
             }
-            var buffer = _udtSerializer.Serialize(_protocolVersion, value);
+            var buffer = _udtSerializer.Serialize((byte)_protocolVersion, value);
             if (buffer != null)
             {
                 return buffer;

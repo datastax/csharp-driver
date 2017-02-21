@@ -19,7 +19,6 @@ namespace Cassandra.Tests
     public class HostConnectionPoolTests
     {
         private static readonly IPEndPoint Address = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1000);
-        private const byte ProtocolVersion = 2;
         private static readonly Host Host1 = TestHelper.CreateHost("127.0.0.1");
         private static readonly HashedWheelTimer Timer = new HashedWheelTimer();
 
@@ -46,7 +45,7 @@ namespace Cassandra.Tests
             {
                 config = GetConfig();
             }
-            return new Connection(new Serializer(ProtocolVersion), GetIpEndPoint(lastIpByte), config);
+            return new Connection(new Serializer(ProtocolVersion.MaxSupported), GetIpEndPoint(lastIpByte), config);
         }
 
         private static Mock<HostConnectionPool> GetPoolMock(Host host = null, Configuration config = null)
@@ -59,7 +58,7 @@ namespace Cassandra.Tests
             {
                 config = GetConfig();
             }
-            return new Mock<HostConnectionPool>(host, config, new Serializer(ProtocolVersion));
+            return new Mock<HostConnectionPool>(host, config, new Serializer(ProtocolVersion.MaxSupported));
         }
 
         private static Configuration GetConfig(int coreConnections = 3, int maxConnections = 8, IReconnectionPolicy rp = null)
@@ -94,7 +93,7 @@ namespace Cassandra.Tests
             {
                 BufferPool = new Microsoft.IO.RecyclableMemoryStreamManager()
             };
-            var connectionMock = new Mock<Connection>(MockBehavior.Loose, new Serializer(4), Address, config);
+            var connectionMock = new Mock<Connection>(MockBehavior.Loose, new Serializer(ProtocolVersion.MaxSupported), Address, config);
             connectionMock.Setup(c => c.InFlight).Returns(inflight);
             connectionMock.Setup(c => c.TimedOutOperations).Returns(timedOutOperations);
             return connectionMock.Object;

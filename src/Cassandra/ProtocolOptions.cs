@@ -35,7 +35,7 @@ namespace Cassandra
         private CompressionType _compression = CompressionType.NoCompression;
         private IFrameCompressor _compressor;
         private int _maxSchemaAgreementWaitSeconds = 10;
-        private byte? _maxProtocolVersion;
+        private ProtocolVersion? _maxProtocolVersion;
 
         /// <summary>
         ///  The port used to connect to the Cassandra hosts.
@@ -89,6 +89,11 @@ namespace Cassandra
         /// Useful for using the driver against a cluster that contains nodes with different major/minor versions of Cassandra.
         /// </summary>
         public byte? MaxProtocolVersion
+        {
+            get { return (byte?) _maxProtocolVersion; }
+        }
+
+        internal ProtocolVersion? MaxProtocolVersionValue
         {
             get { return _maxProtocolVersion; }
         }
@@ -163,6 +168,17 @@ namespace Cassandra
         /// Useful for using the driver against a cluster that contains nodes with different major/minor versions of Cassandra.
         /// </summary>
         public ProtocolOptions SetMaxProtocolVersion(byte value)
+        {
+            _maxProtocolVersion = (ProtocolVersion)value;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the maximum protocol version to be used.
+        /// When set, it limits the maximum protocol version used to connect to the nodes.
+        /// Useful for using the driver against a cluster that contains nodes with different major/minor versions of Cassandra.
+        /// </summary>
+        public ProtocolOptions SetMaxProtocolVersion(ProtocolVersion value)
         {
             _maxProtocolVersion = value;
             return this;

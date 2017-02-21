@@ -64,10 +64,10 @@ namespace Cassandra.Serialization
         /// <summary>
         /// Decodes length for collection types depending on the protocol version
         /// </summary>
-        internal static int DecodeCollectionLength(ushort protocolVersion, byte[] buffer, ref int index)
+        internal static int DecodeCollectionLength(ProtocolVersion protocolVersion, byte[] buffer, ref int index)
         {
             int result;
-            if (protocolVersion < 3)
+            if (!protocolVersion.Uses4BytesCollectionLength())
             {
                 //length is a short
                 result = BeConverter.ToInt16(buffer, index);

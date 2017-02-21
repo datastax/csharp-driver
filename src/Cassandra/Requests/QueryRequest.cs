@@ -58,7 +58,7 @@ namespace Cassandra.Requests
         private FrameHeader.HeaderFlag _headerFlags;
         private readonly QueryProtocolOptions _queryOptions;
 
-        public QueryRequest(int protocolVersion, string cqlQuery, bool tracingEnabled, QueryProtocolOptions queryOptions)
+        public QueryRequest(ProtocolVersion protocolVersion, string cqlQuery, bool tracingEnabled, QueryProtocolOptions queryOptions)
         {
             _cqlQuery = cqlQuery;
             _queryOptions = queryOptions;
@@ -74,7 +74,7 @@ namespace Cassandra.Requests
             {
                 throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
             }
-            if (protocolVersion < 3)
+            if (!protocolVersion.SupportsTimestamp())
             {
                 //Features supported in protocol v3 and above
                 if (queryOptions.Timestamp != null)

@@ -156,7 +156,7 @@ namespace Cassandra
         {
             get
             {
-                if (_serializer.ProtocolVersion < 3)
+                if (!_serializer.ProtocolVersion.Uses2BytesStreamIds())
                 {
                     return 128;
                 }
@@ -201,8 +201,9 @@ namespace Cassandra
             //Determine which authentication flow to use.
             //Check if its using a C* 1.2 with authentication patched version (like DSE 3.1)
             var protocolVersion = _serializer.ProtocolVersion;
-            var isPatchedVersion = protocolVersion == 1 && !(Configuration.AuthProvider is NoneAuthProvider) && Configuration.AuthInfoProvider == null;
-            if (protocolVersion < 2 && !isPatchedVersion)
+            var isPatchedVersion = protocolVersion == ProtocolVersion.V1 && 
+                !(Configuration.AuthProvider is NoneAuthProvider) && Configuration.AuthInfoProvider == null;
+            if (protocolVersion == ProtocolVersion.V1 && !isPatchedVersion)
             {
                 //Use protocol v1 authentication flow
                 if (Configuration.AuthInfoProvider == null)
@@ -452,12 +453,14 @@ namespace Cassandra
                                 throw new UnsupportedProtocolVersionException(protocolVersion, ex);
                             }
                         }
-                        if (ex is ServerErrorException && protocolVersion >= 3 && ex.Message.Contains("ProtocolException: Invalid or unsupported protocol version"))
+                        if (ex is ServerErrorException && protocolVersion.CanStartupResponseErrorBeWrapped() && 
+                            ex.Message.Contains("ProtocolException: Invalid or unsupported protocol version"))
                         {
                             //For some versions of Cassandra, the error is wrapped into a server error
                             //See CASSANDRA-9451
                             throw new UnsupportedProtocolVersionException(protocolVersion, ex);
                         }
+                        // ReSharper disable once PossibleNullReferenceException
                         throw ex;
                     }
                     return t.Result;
@@ -516,7 +519,7 @@ namespace Cassandra
             {
                 return false;
             }
-            byte protocolVersion;
+            ProtocolVersion protocolVersion;
             if (_frameHeaderSize == 0)
             {
                 //The server replies the first message with the max protocol version supported

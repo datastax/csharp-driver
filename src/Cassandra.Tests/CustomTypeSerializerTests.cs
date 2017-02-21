@@ -20,7 +20,7 @@ namespace Cassandra.Tests
         [Test]
         public void Should_Allow_Custom_Primitive_Serializers()
         {
-            var serializer = new Serializer(4, new [] {new BigDecimalSerializer()});
+            var serializer = new Serializer(ProtocolVersion.MaxSupported, new [] {new BigDecimalSerializer()});
             var value = new BigDecimal(5, 1);
             var buffer = serializer.Serialize(value);
             CollectionAssert.AreEqual(new byte[] { 0, 0, 0, 5, 1 }, buffer);
@@ -39,7 +39,7 @@ namespace Cassandra.Tests
         public void Should_Allow_Custom_Cql_Type_Serializers()
         {
             var typeSerializer = new DummyCustomTypeSerializer();
-            var serializer = new Serializer(4, new ITypeSerializer[] { typeSerializer });
+            var serializer = new Serializer(ProtocolVersion.MaxSupported, new ITypeSerializer[] { typeSerializer });
             var value = new DummyCustomType(new byte[] { 1, 2 });
             var buffer = serializer.Serialize(value);
             CollectionAssert.AreEqual(new byte[] { 1, 2 }, buffer);
@@ -56,7 +56,7 @@ namespace Cassandra.Tests
         public void Should_Allow_Custom_Udt_Serializers()
         {
             var typeSerializer = new UdtSerializerWrapper();
-            var serializer = new Serializer(4, new ITypeSerializer[] { typeSerializer });
+            var serializer = new Serializer(ProtocolVersion.MaxSupported, new ITypeSerializer[] { typeSerializer });
             var buffer = serializer.Serialize(new object());
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("DUMMY UDT SERIALIZED"), buffer);
             CollectionAssert.AreEqual(buffer, (IEnumerable)serializer.Deserialize(buffer, ColumnTypeCode.Udt, new UdtColumnInfo("ks1.udt1")));

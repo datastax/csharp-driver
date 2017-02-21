@@ -51,12 +51,12 @@ namespace Cassandra.Serialization
                 throw new DriverInternalError(string.Format("CollectionSerializer can not deserialize CQL values of type {0}",
                     typeInfo == null ? "null" : typeInfo.GetType().FullName));   
             }
-            var count = DecodeCollectionLength(protocolVersion, buffer, ref offset);
+            var count = DecodeCollectionLength((ProtocolVersion)protocolVersion, buffer, ref offset);
             var childType = GetClrType(childTypeCode.Value, childTypeInfo);
             var result = Array.CreateInstance(childType, count);
             for (var i = 0; i < count; i++)
             {
-                var itemLength = DecodeCollectionLength(protocolVersion, buffer, ref offset);
+                var itemLength = DecodeCollectionLength((ProtocolVersion)protocolVersion, buffer, ref offset);
                 result.SetValue(DeserializeChild(buffer, offset, itemLength, childTypeCode.Value, childTypeInfo), i);
                 offset += itemLength;
             }

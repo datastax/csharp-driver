@@ -36,9 +36,9 @@ namespace Cassandra.Requests
 
         public IDictionary<string, byte[]> Payload { get; set; }
 
-        public BatchRequest(int protocolVersion, BatchStatement statement, ConsistencyLevel consistency)
+        public BatchRequest(ProtocolVersion protocolVersion, BatchStatement statement, ConsistencyLevel consistency)
         {
-            if (protocolVersion < 2)
+            if (!protocolVersion.SupportsBatch())
             {
                 throw new NotSupportedException("Batch request is supported in C* >= 2.0.x");
             }
@@ -54,7 +54,7 @@ namespace Cassandra.Requests
             }
             if (statement.SerialConsistencyLevel != ConsistencyLevel.Any)
             {
-                if (protocolVersion < 3)
+                if (!protocolVersion.SupportsTimestamp())
                 {
                     throw new NotSupportedException("Serial consistency level for BATCH request is supported in Cassandra 2.1 or above.");
                 }
@@ -67,7 +67,7 @@ namespace Cassandra.Requests
             }
             if (_timestamp != null)
             {
-                if (protocolVersion < 3)
+                if (!protocolVersion.SupportsTimestamp())
                 {
                     throw new NotSupportedException("Timestamp for BATCH request is supported in Cassandra 2.1 or above.");
                 }
@@ -98,18 +98,18 @@ namespace Cassandra.Requests
                 br.WriteToBatch(wb);
             }
             wb.WriteInt16((short) Consistency);
-            if (protocolVersion >= 3)
+            if (protocolVersion.SupportsTimestamp())
             {
                 wb.WriteByte((byte)_batchFlags);
-            }
-            if (_serialConsistency != null)
-            {
-                wb.WriteInt16((short)_serialConsistency.Value);
-            }
-            if (_timestamp != null)
-            {
-                //Expressed in microseconds
-                wb.WriteLong(TypeSerializer.SinceUnixEpoch(_timestamp.Value).Ticks / 10);
+                if (_serialConsistency != null)
+                {
+                    wb.WriteInt16((short)_serialConsistency.Value);
+                }
+                if (_timestamp != null)
+                {
+                    //Expressed in microseconds
+                    wb.WriteLong(TypeSerializer.SinceUnixEpoch(_timestamp.Value).Ticks / 10);
+                }
             }
             return wb.Close();
         }

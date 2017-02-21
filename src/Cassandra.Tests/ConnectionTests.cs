@@ -29,7 +29,7 @@ namespace Cassandra.Tests
                     BufferPool = new RecyclableMemoryStreamManager()
                 };   
             }
-            return new Mock<Connection>(MockBehavior.Loose, new Serializer(2), Address, config);
+            return new Mock<Connection>(MockBehavior.Loose, new Serializer(ProtocolVersion.MaxSupported), Address, config);
         }
 
         [Test]
