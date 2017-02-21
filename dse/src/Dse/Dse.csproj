@@ -1,0 +1,164 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{A70CA3C8-DA71-4592-B593-C0FEE5FB9938}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Dse</RootNamespace>
+    <AssemblyName>Dse</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <LangVersion>4</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Release\Dse.XML</DocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>..\..\build\datastax.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Cassandra, Version=3.99.0.0, Culture=neutral, PublicKeyToken=10b231fbfc8c4b4d, processorArchitecture=MSIL">
+      <HintPath>..\packages\CassandraCSharpDriver.3.2.0\lib\net45\Cassandra.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="LZ4, Version=1.0.10.93, Culture=neutral, PublicKeyToken=fd2bda0a70c5a705, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\lz4net.1.0.10.93\lib\net4-client\LZ4.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Logging, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Microsoft.Extensions.Logging.1.0.0\lib\netstandard1.1\Microsoft.Extensions.Logging.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Logging.Abstractions, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Microsoft.Extensions.Logging.Abstractions.1.0.0\lib\netstandard1.1\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Auth\BaseAuthenticator.cs" />
+    <Compile Include="Auth\DseGssapiAuthProvider.cs" />
+    <Compile Include="Auth\DsePlainTextAuthProvider.cs" />
+    <Compile Include="Auth\GssapiClientFactory.cs" />
+    <Compile Include="Auth\IGssapiClient.cs" />
+    <Compile Include="Auth\Sspi\Buffers\SecureBuffer.cs" />
+    <Compile Include="Auth\Sspi\Buffers\SecureBufferAdapter.cs" />
+    <Compile Include="Auth\Sspi\Buffers\SecureBufferDataRep.cs" />
+    <Compile Include="Auth\Sspi\Buffers\SecureBufferDesc.cs" />
+    <Compile Include="Auth\Sspi\Buffers\SecureBufferType.cs" />
+    <Compile Include="Auth\Sspi\ByteWriter.cs" />
+    <Compile Include="Auth\Sspi\Contexts\ClientContext.cs" />
+    <Compile Include="Auth\Sspi\Contexts\Context.cs" />
+    <Compile Include="Auth\Sspi\Contexts\ContextAttrib.cs" />
+    <Compile Include="Auth\Sspi\Contexts\ContextNativeMethods.cs" />
+    <Compile Include="Auth\Sspi\Contexts\ContextQueries.cs" />
+    <Compile Include="Auth\Sspi\Contexts\ContextQueryAttrib.cs" />
+    <Compile Include="Auth\Sspi\Contexts\SafeContextHandle.cs" />
+    <Compile Include="Auth\Sspi\Credentials\ClientCredential.cs" />
+    <Compile Include="Auth\Sspi\Credentials\Credential.cs" />
+    <Compile Include="Auth\Sspi\Credentials\CredentialNativeMethods.cs" />
+    <Compile Include="Auth\Sspi\Credentials\CredentialQueryAttrib.cs" />
+    <Compile Include="Auth\Sspi\Credentials\CredentialUse.cs" />
+    <Compile Include="Auth\Sspi\Credentials\CurrentCredential.cs" />
+    <Compile Include="Auth\Sspi\Credentials\QueryNameSupport.cs" />
+    <Compile Include="Auth\Sspi\Credentials\SafeCredentialHandle.cs" />
+    <Compile Include="Auth\Sspi\Credentials\ServerCredential.cs" />
+    <Compile Include="Auth\Sspi\EnumMgr.cs" />
+    <Compile Include="Auth\Sspi\NativeMethods.cs" />
+    <Compile Include="Auth\Sspi\PackageNames.cs" />
+    <Compile Include="Auth\Sspi\PackageSupport.cs" />
+    <Compile Include="Auth\Sspi\SecPkgInfo.cs" />
+    <Compile Include="Auth\Sspi\SecurityStatus.cs" />
+    <Compile Include="Auth\SspiClient.cs" />
+    <Compile Include="Auth\Sspi\SspiException.cs" />
+    <Compile Include="Auth\Sspi\SspiHandle.cs" />
+    <Compile Include="Auth\Sspi\TimeStamp.cs" />
+    <Compile Include="DseCluster.cs" />
+    <Compile Include="DseClusterBuilder.cs" />
+    <Compile Include="DseConfiguration.cs" />
+    <Compile Include="DseSession.cs" />
+    <Compile Include="EndianBitConverter.cs" />
+    <Compile Include="Geometry\Geometry.cs" />
+    <Compile Include="Serialization\DseJsonContractResolver.cs" />
+    <Compile Include="Serialization\Geometry\GeometrySerializer.cs" />
+    <Compile Include="Geometry\LineString.cs" />
+    <Compile Include="Serialization\Geometry\LineStringSerializer.cs" />
+    <Compile Include="Geometry\Point.cs" />
+    <Compile Include="Serialization\Geometry\PointSerializer.cs" />
+    <Compile Include="Geometry\Polygon.cs" />
+    <Compile Include="Serialization\Geometry\PolygonSerializer.cs" />
+    <Compile Include="Graph\Edge.cs" />
+    <Compile Include="Graph\Element.cs" />
+    <Compile Include="Graph\GraphOptions.cs" />
+    <Compile Include="Graph\GraphNode.cs" />
+    <Compile Include="Graph\GraphResultSet.cs" />
+    <Compile Include="Graph\GraphStatement.cs" />
+    <Compile Include="Graph\IGraphStatement.cs" />
+    <Compile Include="Graph\Path.cs" />
+    <Compile Include="Graph\SimpleGraphStatement.cs" />
+    <Compile Include="Graph\Vertex.cs" />
+    <Compile Include="IDseCluster.cs" />
+    <Compile Include="IDseSession.cs" />
+    <Compile Include="Policies\DseLoadBalancingPolicy.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Serialization\DseJsonConverter.cs" />
+    <Compile Include="TargettedSimpleStatement.cs" />
+    <Compile Include="Tasks\TaskHelper.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
+  </Target>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
