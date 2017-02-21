@@ -21,6 +21,7 @@ namespace Dse
         private static readonly Logger Logger = new Logger(typeof(IDseSession));
         private readonly ISession _coreSession;
         private readonly DseConfiguration _config;
+        private readonly ICluster _cluster;
 
         public int BinaryProtocolVersion
         {
@@ -29,7 +30,7 @@ namespace Dse
 
         public ICluster Cluster
         {
-            get { return _coreSession.Cluster; }
+            get { return _cluster; }
         }
 
         public bool IsDisposed
@@ -47,7 +48,12 @@ namespace Dse
             get { return _coreSession.UserDefinedTypes; }
         }
 
-        public DseSession(ISession coreSession, DseConfiguration config)
+        internal DseSession(ISession coreSession, DseConfiguration config) : this(coreSession, coreSession.Cluster, config)
+        {
+            
+        }
+
+        public DseSession(ISession coreSession, ICluster cluster, DseConfiguration config)
         {
             if (coreSession == null)
             {
@@ -57,6 +63,8 @@ namespace Dse
             {
                 throw new ArgumentNullException("config");
             }
+
+            _cluster = cluster;
             _coreSession = coreSession;
             _config = config;
         }
