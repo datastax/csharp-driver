@@ -1,4 +1,11 @@
-﻿// ---------------------------------------------------------------------
+//
+//  Copyright (C) 2017 DataStax, Inc.
+//
+//  Please see the license for details:
+//  http://www.datastax.com/terms/datastax-dse-driver-license-terms
+//
+
+// ---------------------------------------------------------------------
 // Copyright (c) 2015 Microsoft
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy

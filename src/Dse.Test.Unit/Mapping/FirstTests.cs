@@ -1,3 +1,10 @@
+//
+//  Copyright (C) 2017 DataStax, Inc.
+//
+//  Please see the license for details:
+//  http://www.datastax.com/terms/datastax-dse-driver-license-terms
+//
+
 #if !NO_MOCKS
 using System;
 using System.Collections.Generic;
@@ -101,7 +108,7 @@ namespace Cassandra.Tests.Mapping
         [Test]
         public void GetFirstOrDefaultAsync_OneColumnFlattened_WithCql()
         {
-            const string valueExpected = "hello world, olé utf chars!";
+            const string valueExpected = "hello world, olï¿½ utf chars!";
             var rowset = TestDataHelper.GetSingleValueRowSet("name", valueExpected);
             var mappingClient = GetMappingClient(rowset);
             // Get random first created date and make sure it was one from our test data
@@ -117,7 +124,7 @@ namespace Cassandra.Tests.Mapping
         [Test]
         public void GetFirstOrDefault_OneColumnFlattened_WithCql()
         {
-            const string valueExpected = "hello world, olé utf chars!";
+            const string valueExpected = "hello world, olï¿½ utf chars!";
             var rowset = TestDataHelper.GetSingleValueRowSet("name", valueExpected);
             var mappingClient = GetMappingClient(rowset);
             // Get random first created date and make sure it was one from our test data

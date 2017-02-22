@@ -1,4 +1,11 @@
-﻿// //
+//
+//  Copyright (C) 2017 DataStax, Inc.
+//
+//  Please see the license for details:
+//  http://www.datastax.com/terms/datastax-dse-driver-license-terms
+//
+
+// //
 // //      Copyright (C) 2014 DataStax Inc.
 // //
 // //   Licensed under the Apache License, Version 2.0 (the "License");

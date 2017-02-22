@@ -1,17 +1,8 @@
 //
-//      Copyright (C) 2012-2014 DataStax Inc.
+//  Copyright (C) 2017 DataStax, Inc.
 //
-//   Licensed under the Apache License, Version 2.0 (the "License");
-//   you may not use this file except in compliance with the License.
-//   You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-//   Unless required by applicable law or agreed to in writing, software
-//   distributed under the License is distributed on an "AS IS" BASIS,
-//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//   See the License for the specific language governing permissions and
-//   limitations under the License.
+//  Please see the license for details:
+//  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
 using System;
@@ -512,8 +503,8 @@ namespace Cassandra
         /// <param name="version">
         /// <para>The native protocol version.</para>
         /// <para>Different Cassandra versions support a range of protocol versions, for example: </para>
-        /// <para>- Cassandra 2.0 (DSE 4.0 – 4.6): Supports protocol versions 1 and 2.</para>
-        /// <para>- Cassandra 2.1 (DSE 4.7 – 4.8): Supports protocol versions 1, 2 and 3.</para>
+        /// <para>- Cassandra 2.0 (DSE 4.0 ï¿½ 4.6): Supports protocol versions 1 and 2.</para>
+        /// <para>- Cassandra 2.1 (DSE 4.7 ï¿½ 4.8): Supports protocol versions 1, 2 and 3.</para>
         /// <para>- Cassandra 2.2: Supports protocol versions 1, 2, 3 and 4.</para>
         /// <para>- Cassandra 3.0: Supports protocol versions 3 and 4.</para>
         /// </param>

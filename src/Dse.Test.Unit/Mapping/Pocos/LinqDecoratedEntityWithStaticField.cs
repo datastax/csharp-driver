@@ -1,4 +1,11 @@
-﻿using Cassandra.Data.Linq;
+//
+//  Copyright (C) 2017 DataStax, Inc.
+//
+//  Please see the license for details:
+//  http://www.datastax.com/terms/datastax-dse-driver-license-terms
+//
+
+using Cassandra.Data.Linq;
 #pragma warning disable 618
 
 namespace Cassandra.Tests.Mapping.Pocos
