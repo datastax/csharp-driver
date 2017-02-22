@@ -8,8 +8,8 @@
     <ProjectGuid>{6E8C45DA-D958-4C75-98C3-B54C883299A2}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Cassandra</RootNamespace>
-    <AssemblyName>Cassandra</AssemblyName>
+    <RootNamespace>Dse</RootNamespace>
+    <AssemblyName>Dse</AssemblyName>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
@@ -37,7 +37,7 @@
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE;ERRORINJECTION</DefineConstants>
-    <DocumentationFile>bin\Release\Cassandra.xml</DocumentationFile>
+    <DocumentationFile>bin\Release\Dse.xml</DocumentationFile>
     <NoWarn>1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>

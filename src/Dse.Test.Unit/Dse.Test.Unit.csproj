@@ -7,8 +7,8 @@
     <ProjectGuid>{49996688-1380-4854-A32C-048C4014E478}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Cassandra.Tests</RootNamespace>
-    <AssemblyName>Cassandra.Tests</AssemblyName>
+    <RootNamespace>Dse.Test.Unit</RootNamespace>
+    <AssemblyName>Dse.Test.Unit</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <LangVersion>5</LangVersion>
@@ -148,9 +148,9 @@
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Cassandra\Cassandra.csproj">
+    <ProjectReference Include="..\Dse\Dse.csproj">
       <Project>{6e8c45da-d958-4c75-98c3-b54c883299a2}</Project>
-      <Name>Cassandra</Name>
+      <Name>Dse</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

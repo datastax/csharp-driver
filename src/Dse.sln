@@ -2,15 +2,14 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
-MinimumVisualStudioVersion = 10.0.40219.1
+MinimumVisualStudioVersion = 12.0
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{F6762B3F-9260-4FB4-A61F-E7654A056802}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra", "Cassandra\Cassandra.csproj", "{6E8C45DA-D958-4C75-98C3-B54C883299A2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dse", "Dse\Dse.csproj", "{6E8C45DA-D958-4C75-98C3-B54C883299A2}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{9A8259D4-6FAD-46F5-9141-7DC169927821}"
 	ProjectSection(SolutionItems) = preProject
-		..\build\build.proj = ..\build\build.proj
-		..\build\CassandraCSharpDriver.nuspec = ..\build\CassandraCSharpDriver.nuspec
+		..\build\pack.bat = ..\build\pack.bat
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{C29E0F5F-FC0E-466B-A2B7-30756AF22956}"
@@ -20,9 +19,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{C29E0F
 		.nuget\packages.config = .nuget\packages.config
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.Tests", "Cassandra.Tests\Cassandra.Tests.csproj", "{49996688-1380-4854-A32C-048C4014E478}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dse.Test.Unit", "Dse.Test.Unit\Dse.Test.Unit.csproj", "{49996688-1380-4854-A32C-048C4014E478}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.IntegrationTests", "Cassandra.IntegrationTests\Cassandra.IntegrationTests.csproj", "{D584651E-23C0-4714-9B92-6113C44BA6B8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dse.Test.Integration", "Dse.Test.Integration\Dse.Test.Integration.csproj", "{D584651E-23C0-4714-9B92-6113C44BA6B8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

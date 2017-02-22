@@ -1,6 +1,6 @@
 ﻿{
-  "version": "3.2.1",
-  "name": "Cassandra",
+  "version": "2.0.0-beta1",
+  "name": "Dse",
   "authors": [ "DataStax" ],
   "title": "DataStax C# Driver for Apache Cassandra",
   "description": "A modern, feature-rich and highly tunable C# client library for Apache Cassandra (1.2+) and DataStax Enterprise (3.1+) using exclusively Cassandra's binary protocol and Cassandra Query Language v3.\nFeatures: Sync and Async API; Simple, Prepared and Batch statements; Asynchronous IO, parallel execution, request pipelining; Connection pooling; Auto node discovery.\nWorks with any Cassandra cluster size.",
@@ -12,7 +12,6 @@
     "repository": { "url": "https://github.com/datastax/csharp-driver" }
   },
   "buildOptions": {
-    "outputName": "Cassandra",
     "warningsAsErrors": true,
     "keyFile": "../../build/datastax.snk",
     "xmlDoc": true,

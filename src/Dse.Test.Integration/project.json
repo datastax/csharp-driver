@@ -7,10 +7,10 @@
   },
   "testRunner": "nunit",
   "dependencies": {
-    "Cassandra": {
+    "Dse": {
       "target": "project"
     },
-    "Cassandra.Tests": {
+    "Dse.Test.Unit": {
       "target": "project"
     },
     "NUnit": "3.4.1",

@@ -9,7 +9,7 @@
   <PropertyGroup Label="Globals">
     <LangVersion>4</LangVersion>
     <ProjectGuid>cae67614-05b2-436e-8dff-be5a2cb4186f</ProjectGuid>
-    <RootNamespace>Cassandra</RootNamespace>
+    <RootNamespace>Dse</RootNamespace>
     <BaseIntermediateOutputPath Condition="'$(BaseIntermediateOutputPath)'=='' ">.\obj</BaseIntermediateOutputPath>
     <OutputPath Condition="'$(OutputPath)'=='' ">.\bin\</OutputPath>
   </PropertyGroup>
