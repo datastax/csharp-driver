@@ -6,10 +6,10 @@
 //
 
 using System;
-using Cassandra.Data.Linq;
+using Dse.Data.Linq;
 #pragma warning disable 618
 
-namespace Cassandra.IntegrationTests.Linq
+namespace Dse.Test.Integration.Linq
 {
     [AllowFiltering]
     [Table("sales")]

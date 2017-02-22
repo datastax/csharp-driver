@@ -1,4 +1,4 @@
-//
+﻿//
 //  Copyright (C) 2017 DataStax, Inc.
 //
 //  Please see the license for details:
@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Represents a Cassandra node.

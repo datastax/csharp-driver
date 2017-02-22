@@ -8,9 +8,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Cassandra.Tasks;
+using Dse.Tasks;
 
-namespace Cassandra.Data.Linq
+namespace Dse.Data.Linq
 {
     public abstract class Batch : Statement
     {

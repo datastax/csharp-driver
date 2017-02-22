@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Specifies the different protocol versions and provides methods (via extension methods) to check whether a

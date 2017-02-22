@@ -9,11 +9,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Cassandra.Mapping;
-using Cassandra.Mapping.TypeConversion;
+using Dse.Mapping;
+using Dse.Mapping.TypeConversion;
 using NUnit.Framework;
 
-namespace Cassandra.Tests.Mapping
+namespace Dse.Test.Unit.Mapping
 {
     [TestFixture]
     public class MappingConfigurationTests

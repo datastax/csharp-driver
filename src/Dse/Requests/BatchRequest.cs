@@ -9,9 +9,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Cassandra.Serialization;
+using Dse.Serialization;
 
-namespace Cassandra.Requests
+namespace Dse.Requests
 {
     internal class BatchRequest : ICqlRequest
     {

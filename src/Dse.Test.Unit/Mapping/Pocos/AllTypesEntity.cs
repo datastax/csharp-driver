@@ -8,9 +8,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Cassandra.Mapping.Utils;
+using Dse.Mapping.Utils;
 
-namespace Cassandra.Tests.Mapping.Pocos
+namespace Dse.Test.Unit.Mapping.Pocos
 {
     /// <summary>
     /// Test utility: Represents an application entity with most of single types as properties

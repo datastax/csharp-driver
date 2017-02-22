@@ -9,7 +9,7 @@ using System;
 using System.Globalization;
 using System.Linq;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// A date without a time-zone in the ISO-8601 calendar system.

@@ -12,7 +12,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
-namespace Cassandra.Serialization
+namespace Dse.Serialization
 {
     internal class TupleSerializer : TypeSerializer<IStructuralEquatable>
     {

@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     ///  Exception related to the execution of a query. This correspond to the

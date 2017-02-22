@@ -8,10 +8,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Cassandra.Mapping;
-using Cassandra.Mapping.Statements;
+using Dse.Mapping;
+using Dse.Mapping.Statements;
 
-namespace Cassandra.Data.Linq
+namespace Dse.Data.Linq
 {
     /// <summary>
     /// Represents an INSERT statement

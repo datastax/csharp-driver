@@ -1,4 +1,4 @@
-//
+﻿//
 //  Copyright (C) 2017 DataStax, Inc.
 //
 //  Please see the license for details:
@@ -13,7 +13,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 
-namespace Cassandra.Compression
+namespace Dse.Compression
 {
     internal class LZ4Compressor : IFrameCompressor
     {

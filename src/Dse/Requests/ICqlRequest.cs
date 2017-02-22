@@ -8,7 +8,7 @@
 ﻿using System;
 ﻿using System.Collections.Generic;
 
-namespace Cassandra.Requests
+namespace Dse.Requests
 {
     /// <summary>
     /// Represents an CQL Request (BATCH, EXECUTE or QUERY)

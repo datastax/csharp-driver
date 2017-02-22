@@ -10,9 +10,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using Cassandra.IntegrationTests.TestBase;
+using Dse.Test.Integration.TestClusterManagement;
 
-namespace Cassandra.IntegrationTests.TestClusterManagement
+namespace Dse.Test.Integration.TestClusterManagement
 {
     public class CcmCluster : ITestCluster
     {

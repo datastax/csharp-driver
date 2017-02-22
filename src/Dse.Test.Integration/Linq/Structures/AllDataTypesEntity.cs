@@ -8,11 +8,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Cassandra.Data.Linq;
+using Dse.Data.Linq;
 using NUnit.Framework;
 #pragma warning disable 618
 
-namespace Cassandra.IntegrationTests.Linq.Structures
+namespace Dse.Test.Integration.Linq.Structures
 {
     [AllowFiltering]
     [Table("allDataTypes")]
@@ -100,7 +100,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         public static List<AllDataTypesEntity> SetupDefaultTable(ISession session)
         {
             // drop table if exists, re-create
-            var table = new Table<AllDataTypesEntity>(session, new Cassandra.Mapping.MappingConfiguration());
+            var table = new Table<AllDataTypesEntity>(session, new Dse.Mapping.MappingConfiguration());
             table.Create();
 
             List<AllDataTypesEntity> allDataTypesRandomList = GetDefaultAllDataTypesList();

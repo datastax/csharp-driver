@@ -8,9 +8,9 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-﻿using Cassandra.Serialization;
+﻿using Dse.Serialization;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Allows configuration of user defined types.

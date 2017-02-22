@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Cassandra.Mapping.Attributes
+namespace Dse.Mapping.Attributes
 {
     /// <summary>
     /// Used to specify the table a POCO maps to.

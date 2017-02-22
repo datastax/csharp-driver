@@ -7,9 +7,9 @@
 
 using System;
 using System.Collections.Generic;
-using Cassandra.Serialization;
+using Dse.Serialization;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     ///  A non-prepared CQL statement.

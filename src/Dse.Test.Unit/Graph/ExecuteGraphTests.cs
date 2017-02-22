@@ -15,7 +15,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra;
+using Dse;
 using Dse.Graph;
 using Moq;
 using NUnit.Framework;
@@ -368,7 +368,7 @@ namespace Dse.Test.Unit.Graph
 
         private static byte[] ToBuffer(long value)
         {
-            return Cassandra.Serialization.TypeSerializer.PrimitiveLongSerializer.Serialize(4, value);
+            return Serialization.TypeSerializer.PrimitiveLongSerializer.Serialize(4, value);
         }
     }
 }

@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Cassandra
+namespace Dse
 {
     // We really only use the generic for type safety and it's not an interface because we don't want to expose
     // Note: we may want to expose this later if people use custom partitioner and want to be able to extend that. This is way premature however.

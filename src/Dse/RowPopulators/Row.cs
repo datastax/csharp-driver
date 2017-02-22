@@ -12,7 +12,7 @@ using System.Collections.Generic;
 using System.Reflection;
 
 // ReSharper disable once CheckNamespace
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Represents an CQL row

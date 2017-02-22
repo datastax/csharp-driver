@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     ///  A specific invalid query exception that indicates that the query is invalid

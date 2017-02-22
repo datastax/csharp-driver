@@ -12,7 +12,7 @@ using System.Net;
 using System.Text;
 using NUnit.Framework;
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     [TestFixture]
     public class ClusterUnitTests

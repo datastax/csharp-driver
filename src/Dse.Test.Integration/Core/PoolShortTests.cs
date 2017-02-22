@@ -13,15 +13,15 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.IntegrationTests.Policies.Util;
-using Cassandra.IntegrationTests.TestBase;
+using Dse.Test.Integration.Policies.Util;
+using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
-using Cassandra.IntegrationTests.TestClusterManagement;
-using Cassandra.Requests;
-using Cassandra.Tasks;
-using Cassandra.Tests;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Requests;
+using Dse.Tasks;
+using Dse.Test.Unit;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Dse.Test.Integration.Core
 {
     [TestFixture, Category("short")]
     public class PoolShortTests : TestGlobals

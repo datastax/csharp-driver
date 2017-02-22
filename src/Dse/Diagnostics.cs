@@ -8,7 +8,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Provides a set of methods and properties related to logging in the driver.

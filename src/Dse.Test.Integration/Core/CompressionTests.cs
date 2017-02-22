@@ -10,10 +10,11 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Cassandra.Tests;
+using Dse.Test.Integration;
+using Dse.Test.Unit;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Dse.Test.Integration.Core
 {
     [Category("short")]
     public class CompressionTests : SharedClusterTest

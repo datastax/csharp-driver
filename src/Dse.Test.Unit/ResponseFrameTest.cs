@@ -7,10 +7,10 @@
 
 using System;
 using System.IO;
-using Cassandra.Serialization;
+using Dse.Serialization;
 using NUnit.Framework;
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     public class ResponseFrameTest
     {

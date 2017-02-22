@@ -171,11 +171,6 @@
     <Compile Include="DseClusterBuilder.cs" />
     <Compile Include="DseConfiguration.cs" />
     <Compile Include="DseSession.cs" />
-    <Compile Include="DSE\DseAuthProvider.cs" />
-    <Compile Include="DSE\KerberosAuthenticator.SSPI.cs" />
-    <Compile Include="DSE\SASL.cs" />
-    <Compile Include="DSE\SSPI.cs" />
-    <Compile Include="DSE\WindowsAPI.cs" />
     <Compile Include="EndianBitConverter.cs" />
     <Compile Include="Exceptions\FunctionFailureException.cs" />
     <Compile Include="Exceptions\OperationTimedOutException.cs" />

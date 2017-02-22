@@ -5,10 +5,10 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using Cassandra.Data.Linq;
+using Dse.Data.Linq;
 #pragma warning disable 618
 
-namespace Cassandra.Tests.Mapping.Pocos
+namespace Dse.Test.Unit.Mapping.Pocos
 {
     [Table(Name = "Items", CaseSensitive = false)]
     public class LinqDecoratedEntityWithStaticField

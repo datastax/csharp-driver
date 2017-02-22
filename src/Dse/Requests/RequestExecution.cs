@@ -12,11 +12,11 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Responses;
-using Cassandra.Tasks;
+using Dse.Responses;
+using Dse.Tasks;
 using System.Reflection;
 
-namespace Cassandra.Requests
+namespace Dse.Requests
 {
     internal class RequestExecution<T> where T : class
     {

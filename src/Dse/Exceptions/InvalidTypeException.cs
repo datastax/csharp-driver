@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Exception that is thrown when the driver expected a type and other was provided

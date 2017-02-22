@@ -11,7 +11,7 @@ using System.Linq;
 using System.Net;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.TestBase
+namespace Dse.Test.Integration.TestClusterManagement
 {
     internal static class QueryTools
     {

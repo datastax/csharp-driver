@@ -9,10 +9,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Cassandra.Mapping.Statements;
-using Cassandra.Tasks;
+using Dse.Mapping.Statements;
+using Dse.Tasks;
 
-namespace Cassandra.Mapping
+namespace Dse.Mapping
 {
     /// <summary>
     /// The default CQL client implementation which uses the DataStax driver <see cref="ISession"/> provided in the constructor

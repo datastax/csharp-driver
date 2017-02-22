@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using Cassandra.Serialization;
+using Dse.Serialization;
 
 namespace Dse.Serialization.Geometry
 {

@@ -9,13 +9,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Linq.Structures;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.Mapping;
+using Dse.Data.Linq;
+using Dse.Test.Integration.Linq.Structures;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Mapping;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Linq.LinqTable
+namespace Dse.Test.Integration.Linq.LinqTable
 {
     /// <summary>
     /// NOTE: The GetTable() method is deprecated.

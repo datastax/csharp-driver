@@ -8,7 +8,7 @@
 using System;
 using System.Linq;
 
-namespace Cassandra.Data.Linq
+namespace Dse.Data.Linq
 {
     public interface ITable : IQueryProvider
     {

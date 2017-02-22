@@ -10,11 +10,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Cassandra.Serialization;
-using Cassandra.Tests.Extensions.Serializers;
+using Dse.Serialization;
+using Dse.Test.Unit.Extensions.Serializers;
 using NUnit.Framework;
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     [TestFixture]
     public class CustomTypeSerializerTests

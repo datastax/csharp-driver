@@ -8,7 +8,7 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.TestClusterManagement
+namespace Dse.Test.Integration.TestClusterManagement
 {
     public interface ITestCluster
     {

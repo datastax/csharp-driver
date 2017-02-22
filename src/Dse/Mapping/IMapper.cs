@@ -7,7 +7,7 @@
 
 using System.Threading.Tasks;
 
-namespace Cassandra.Mapping
+namespace Dse.Mapping
 {
     /// <summary>
     /// A client for creating, updating, deleting, and reading POCOs from a Cassandra cluster.

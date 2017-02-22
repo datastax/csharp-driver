@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-namespace Dse.Test.Integration.TestBase
+namespace Dse.Test.Integration.TestClusterManagement
 {
     public interface ICcmProcessExecuter
     {

@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Represents a reconnection policy that is possible to specify custom reconnection delays for each attempt.

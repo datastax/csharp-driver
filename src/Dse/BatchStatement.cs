@@ -8,10 +8,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Cassandra.Requests;
-using Cassandra.Serialization;
+using Dse.Requests;
+using Dse.Serialization;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// A statement that groups a number of <see cref="BoundStatement" /> and / or <see cref="SimpleStatement" /> so they get executed as a batch.

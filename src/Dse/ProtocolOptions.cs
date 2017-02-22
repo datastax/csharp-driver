@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     ///  Options of the Cassandra __native__ binary protocol.

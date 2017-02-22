@@ -8,7 +8,7 @@
 using System;
 using System.Net;
 
-namespace Cassandra
+namespace Dse
 {
     public class HostsEventArgs : EventArgs
     {

@@ -12,10 +12,10 @@ using System.IO;
 using System.Text;
 using System.Linq;
 using System.Threading;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.Tests;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Unit;
 
-namespace Cassandra.IntegrationTests.TestClusterManagement
+namespace Dse.Test.Integration.TestClusterManagement
 {
     public class CcmBridge : IDisposable
     {

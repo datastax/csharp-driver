@@ -9,10 +9,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Cassandra.Serialization;
-using Cassandra.Tests.Mapping.Pocos;
+using Dse.Serialization;
+using Dse.Test.Unit.Mapping.Pocos;
 
-namespace Cassandra.Tests.Mapping.TestData
+namespace Dse.Test.Unit.Mapping.TestData
 {
     internal static class TestDataHelper
     {

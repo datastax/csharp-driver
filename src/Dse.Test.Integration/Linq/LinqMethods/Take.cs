@@ -7,15 +7,15 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Linq.Structures;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.Mapping;
-using Cassandra.Mapping.Attributes;
+using Dse.Data.Linq;
+using Dse.Test.Integration.Linq.Structures;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Mapping;
+using Dse.Mapping.Attributes;
 using NUnit.Framework;
 #pragma warning disable 612
 
-namespace Cassandra.IntegrationTests.Linq.LinqMethods
+namespace Dse.Test.Integration.Linq.LinqMethods
 {
     [Category("short"), TestCassandraVersion(2, 0)]
     public class Take : SharedClusterTest

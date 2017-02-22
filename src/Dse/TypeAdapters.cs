@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// TypeAdapters are deprecated and will be removed in future versions. Use <see cref="Cassandra.Serialization.TypeSerializer{T}"/> instead.

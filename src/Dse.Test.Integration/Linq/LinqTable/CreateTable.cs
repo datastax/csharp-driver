@@ -8,17 +8,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Linq.Structures;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
-using Cassandra.Mapping;
-using Cassandra.Tests.Mapping.Pocos;
+using Dse.Data.Linq;
+using Dse.Test.Integration.Linq.Structures;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Mapping;
+using Dse.Test.Unit.Mapping.Pocos;
 using NUnit.Framework;
 #pragma warning disable 612
 #pragma warning disable 618
 
-namespace Cassandra.IntegrationTests.Linq.LinqTable
+namespace Dse.Test.Integration.Linq.LinqTable
 {
     [Category("short")]
     public class CreateTable : SharedClusterTest

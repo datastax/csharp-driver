@@ -9,7 +9,7 @@ using System;
 using System.Data;
 using System.Data.Common;
 
-namespace Cassandra.Data
+namespace Dse.Data
 {
     /// <summary>
     /// Represents a Cql parameter.

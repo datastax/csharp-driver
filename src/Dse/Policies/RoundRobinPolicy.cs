@@ -10,7 +10,7 @@ using System.Threading;
 using System.Linq;
 
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     ///  A Round-robin load balancing policy. 

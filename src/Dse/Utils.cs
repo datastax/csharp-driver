@@ -13,9 +13,9 @@ using System.Net;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
-using Cassandra.Tasks;
+using Dse.Tasks;
 
-namespace Cassandra
+namespace Dse
 {
     internal static class Utils
     {

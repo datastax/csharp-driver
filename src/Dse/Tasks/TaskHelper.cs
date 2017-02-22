@@ -10,7 +10,7 @@ using System.Reflection;
 ﻿using System.Threading;
 ﻿using System.Threading.Tasks;
 
-namespace Cassandra.Tasks
+namespace Dse.Tasks
 {
     internal static class TaskHelper
     {

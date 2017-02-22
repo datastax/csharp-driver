@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-namespace Cassandra.Serialization.Primitive
+namespace Dse.Serialization.Primitive
 {
     internal class LocalDateSerializer : TypeSerializer<LocalDate>
     {

@@ -9,9 +9,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Cassandra.Mapping;
+using Dse.Mapping;
 
-namespace Cassandra.IntegrationTests.Mapping.Structures
+namespace Dse.Test.Integration.Mapping.Structures
 {
     class ManyDataTypesPocoMappingCaseSensitive : Map<ManyDataTypesPoco>
     {

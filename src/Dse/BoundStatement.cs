@@ -7,10 +7,10 @@
 
 using System;
 using System.Linq;
-using Cassandra.Requests;
-using Cassandra.Serialization;
+using Dse.Requests;
+using Dse.Serialization;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     ///  A prepared statement with values bound to the bind variables. <p> Once a

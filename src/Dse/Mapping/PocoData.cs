@@ -9,9 +9,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Cassandra.Mapping.Utils;
+using Dse.Mapping.Utils;
 
-namespace Cassandra.Mapping
+namespace Dse.Mapping
 {
     /// <summary>
     /// Represents data about a POCO and its mapping to Cassandra Rows in a table.

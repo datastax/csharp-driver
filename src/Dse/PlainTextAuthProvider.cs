@@ -9,7 +9,7 @@ using System;
 using System.Net;
 using System.Text;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// A simple <see cref="IAuthProvider"/> implementation. 

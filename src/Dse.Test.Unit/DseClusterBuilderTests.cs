@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Dse.Graph;
-using Dse.Policies;
 using NUnit.Framework;
 
 namespace Dse.Test.Unit

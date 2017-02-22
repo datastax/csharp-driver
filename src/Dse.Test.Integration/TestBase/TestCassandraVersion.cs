@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Cassandra.IntegrationTests.TestBase
+namespace Dse.Test.Integration.TestClusterManagement
 {
     /// <summary>
     /// Quantifies the Cassandra version to determine whether a test should be run.

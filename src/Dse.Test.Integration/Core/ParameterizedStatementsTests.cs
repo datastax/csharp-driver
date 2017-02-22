@@ -6,14 +6,14 @@
 //
 
 ﻿using System.Linq;
-﻿using Cassandra.IntegrationTests.TestBase;
+﻿using Dse.Test.Integration.TestClusterManagement;
 ﻿using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-﻿using Cassandra.Serialization;
+﻿using Dse.Serialization;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Dse.Test.Integration.Core
 {
     [Category("short")]
     [TestCassandraVersion(2, 0)]

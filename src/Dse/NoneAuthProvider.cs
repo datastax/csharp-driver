@@ -7,7 +7,7 @@
 
 using System.Net;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     ///  A provider that provides no authentication capability. <p> This is only

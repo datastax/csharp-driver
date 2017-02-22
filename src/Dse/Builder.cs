@@ -11,9 +11,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
-using Cassandra.Serialization;
+using Dse.Serialization;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     ///  Helper class to build <link>Cluster</link> instances.

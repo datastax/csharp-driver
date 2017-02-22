@@ -9,9 +9,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
-using Cassandra.Serialization;
+using Dse.Serialization;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Represents a protocol-aware forward reader 

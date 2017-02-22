@@ -7,14 +7,14 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.Mapping;
+using Dse.Data.Linq;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Mapping;
 using NUnit.Framework;
 #pragma warning disable 618
 #pragma warning disable 612
 
-namespace Cassandra.IntegrationTests.Mapping.Tests
+namespace Dse.Test.Integration.Mapping.Tests
 {
     [Category("short")]
     public class CqlClientTest : SharedClusterTest
@@ -95,27 +95,27 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// Test Classes
         ////////////////////////////////////////////////////
 
-        [Cassandra.Data.Linq.Table("poco1")]
+        [Dse.Data.Linq.Table("poco1")]
         private class Poco1
         {
-            [Cassandra.Data.Linq.PartitionKeyAttribute]
-            [Cassandra.Mapping.Attributes.PartitionKey]
-            [Cassandra.Data.Linq.Column("somestring1")]
+            [Dse.Data.Linq.PartitionKeyAttribute]
+            [Dse.Mapping.Attributes.PartitionKey]
+            [Dse.Data.Linq.Column("somestring1")]
             public string SomeString1 = "somevalue_1_";
 
-            [Cassandra.Data.Linq.Column("somedouble1")]
+            [Dse.Data.Linq.Column("somedouble1")]
             public double SomeDouble1 = 1;
         }
 
-        [Cassandra.Data.Linq.Table("poco2")]
+        [Dse.Data.Linq.Table("poco2")]
         private class Poco2
         {
-            [Cassandra.Data.Linq.PartitionKeyAttribute]
-            [Cassandra.Mapping.Attributes.PartitionKey]
-            [Cassandra.Data.Linq.Column("somestring2")]
+            [Dse.Data.Linq.PartitionKeyAttribute]
+            [Dse.Mapping.Attributes.PartitionKey]
+            [Dse.Data.Linq.Column("somestring2")]
             public string SomeString2 = "somevalue_2_";
 
-            [Cassandra.Data.Linq.Column("somedouble2")]
+            [Dse.Data.Linq.Column("somedouble2")]
             public double SomeDouble2 = 2;
         }
 

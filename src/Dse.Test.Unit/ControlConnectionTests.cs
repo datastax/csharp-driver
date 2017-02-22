@@ -14,7 +14,7 @@ using Moq;
 #endif
 using NUnit.Framework;
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     [TestFixture]
     public class ControlConnectionTests
@@ -108,7 +108,7 @@ namespace Cassandra.Tests
                 .Returns<IPEndPoint>(e => e);
             const int portNumber = 9999;
             var metadata = new Metadata(new Configuration());
-            var config = new Configuration(Policies.DefaultPolicies,
+            var config = new Configuration(Dse.Policies.DefaultPolicies,
                  new ProtocolOptions(portNumber),
                  null,
                  new SocketOptions(),

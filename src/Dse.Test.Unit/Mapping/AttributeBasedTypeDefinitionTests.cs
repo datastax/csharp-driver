@@ -9,12 +9,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Cassandra.Mapping;
-using Cassandra.Mapping.Attributes;
-using Cassandra.Tests.Mapping.Pocos;
+using Dse.Mapping;
+using Dse.Mapping.Attributes;
+using Dse.Test.Unit.Mapping.Pocos;
 using NUnit.Framework;
 
-namespace Cassandra.Tests.Mapping
+namespace Dse.Test.Unit.Mapping
 {
     [TestFixture]
     public class AttributeBasedTypeDefinitionTests

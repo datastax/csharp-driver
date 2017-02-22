@@ -11,7 +11,7 @@ using System.Linq;
 using System.Text;
 
 // ReSharper disable once CheckNamespace
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Represents a plan that governs speculative executions for a given query.

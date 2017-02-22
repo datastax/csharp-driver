@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Represents a v1 uuid 

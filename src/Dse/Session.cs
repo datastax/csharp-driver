@@ -12,11 +12,11 @@ using System.Net;
 using System.Threading;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
- using Cassandra.Tasks;
-using Cassandra.Requests;
-﻿using Cassandra.Serialization;
+ using Dse.Tasks;
+using Dse.Requests;
+﻿using Dse.Serialization;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Implementation of <see cref="ISession"/>.

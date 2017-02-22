@@ -6,9 +6,9 @@
 //
 
 using System;
-using Cassandra.Mapping;
+using Dse.Mapping;
 
-namespace Cassandra.IntegrationTests.Mapping.Structures
+namespace Dse.Test.Integration.Mapping.Structures
 {
     /// <summary>
     /// Defines how to map the User class.

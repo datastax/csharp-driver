@@ -5,19 +5,19 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
 using System.Diagnostics;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Tasks;
+using Dse.Tasks;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Dse.Test.Integration.Core
 {
     [Category("short")]
     public class SessionTests : SharedClusterTest

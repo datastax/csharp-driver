@@ -9,13 +9,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.Mapping;
-using Cassandra.Mapping.Attributes;
+using Dse.Data.Linq;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Mapping;
+using Dse.Mapping.Attributes;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Mapping.Tests
+namespace Dse.Test.Integration.Mapping.Tests
 {
     [Category("short")]
     public class Counter : SharedClusterTest
@@ -103,11 +103,11 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
 
         class PocoWithCounterAttribute
         {
-            [Cassandra.Mapping.Attributes.Counter]
+            [Dse.Mapping.Attributes.Counter]
             public long Counter;
-            [Cassandra.Mapping.Attributes.PartitionKey(1)]
+            [Dse.Mapping.Attributes.PartitionKey(1)]
             public Guid KeyPart1;
-            [Cassandra.Mapping.Attributes.PartitionKey(2)]
+            [Dse.Mapping.Attributes.PartitionKey(2)]
             public Decimal KeyPart2;
         }
 

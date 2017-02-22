@@ -12,12 +12,12 @@ using System.Net;
 using System.Threading;
 using System.Net.Sockets;
 using System.Threading.Tasks;
-using Cassandra.Tasks;
-using Cassandra.Requests;
-using Cassandra.Responses;
-using Cassandra.Serialization;
+using Dse.Tasks;
+using Dse.Requests;
+using Dse.Responses;
+using Dse.Serialization;
 
-namespace Cassandra
+namespace Dse
 {
     internal class ControlConnection : IMetadataQueryProvider, IDisposable
     {

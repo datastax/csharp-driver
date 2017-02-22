@@ -10,10 +10,10 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Cassandra.Mapping.Attributes;
-using Cassandra.Mapping.Utils;
+using Dse.Mapping.Attributes;
+using Dse.Mapping.Utils;
 
-namespace Cassandra.Mapping
+namespace Dse.Mapping
 {
     /// <summary>
     /// Factory responsible for creating PocoData instances, uses AttributeBasedTypeDefinition to create new Poco information in case a definition was not provided.

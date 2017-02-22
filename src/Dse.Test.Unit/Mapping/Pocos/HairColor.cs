@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-namespace  Cassandra.Tests.Mapping.Pocos
+namespace Dse.Test.Unit.Mapping.Pocos
 {
     public enum HairColor
     {

@@ -11,11 +11,11 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Policies.Util
+namespace Dse.Test.Integration.Policies.Util
 {
     public class PolicyTestTools
     {

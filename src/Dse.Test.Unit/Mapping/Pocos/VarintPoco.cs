@@ -11,7 +11,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 
-namespace Cassandra.Tests.Mapping.Pocos
+namespace Dse.Test.Unit.Mapping.Pocos
 {
     public class VarintPoco
     {

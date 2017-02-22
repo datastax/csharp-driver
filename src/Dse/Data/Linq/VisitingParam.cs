@@ -9,7 +9,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Cassandra.Data.Linq
+namespace Dse.Data.Linq
 {
     /// <summary>
     /// Represents nested states

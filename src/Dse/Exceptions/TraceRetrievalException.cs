@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     ///  Exception thrown if a query trace cannot be retrieved.

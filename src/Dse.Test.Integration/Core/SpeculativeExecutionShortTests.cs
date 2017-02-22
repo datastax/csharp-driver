@@ -14,11 +14,11 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.Tests;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Unit;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Dse.Test.Integration.Core
 {
     [TestFixture, Category("short"), TestTimeout(60000)]
     public class SpeculativeExecutionShortTests : SharedClusterTest
@@ -34,7 +34,7 @@ namespace Cassandra.IntegrationTests.Core
             var builder = Cluster.Builder()
                 .AddContactPoint(TestCluster.InitialContactPoint)
                 .WithSpeculativeExecutionPolicy(speculativeExecutionPolicy)
-                .WithLoadBalancingPolicy(lbp ?? Cassandra.Policies.DefaultLoadBalancingPolicy)
+                .WithLoadBalancingPolicy(lbp ?? Dse.Policies.DefaultLoadBalancingPolicy)
                 .WithRetryPolicy(DowngradingConsistencyRetryPolicy.Instance)
                 .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(0));
             if (pooling != null)

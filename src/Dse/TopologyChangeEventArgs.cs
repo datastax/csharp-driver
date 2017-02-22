@@ -7,7 +7,7 @@
 
 using System.Net;
 
-namespace Cassandra
+namespace Dse
 {
     internal class TopologyChangeEventArgs : CassandraEventArgs
     {

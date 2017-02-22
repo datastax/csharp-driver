@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// The Unset class represents a unspecified value. 

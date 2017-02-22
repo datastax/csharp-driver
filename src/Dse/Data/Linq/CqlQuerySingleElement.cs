@@ -10,9 +10,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
-using Cassandra.Tasks;
+using Dse.Tasks;
 
-namespace Cassandra.Data.Linq
+namespace Dse.Data.Linq
 {
     public class CqlQuerySingleElement<TEntity> : CqlQueryBase<TEntity>
     {

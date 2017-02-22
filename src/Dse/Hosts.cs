@@ -11,9 +11,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Linq;
-using Cassandra.Collections;
+using Dse.Collections;
 
-namespace Cassandra
+namespace Dse
 {
     internal class Hosts : IEnumerable<Host>
     {

@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-namespace  Cassandra.IntegrationTests.Mapping.Structures
+namespace Dse.Test.Integration.Mapping.Structures
 {
     public enum ContactMethod
     {

@@ -5,8 +5,8 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -16,7 +16,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Dse.Test.Integration.Core
 {
     [TestFixture, Category("long")]
     public class MultiThreadingTests : TestGlobals

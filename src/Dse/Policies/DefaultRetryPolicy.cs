@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     ///  The default retry policy. <p> This policy retries queries in only two cases:

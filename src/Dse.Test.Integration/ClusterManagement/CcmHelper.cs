@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 using System;
-using Dse.Test.Integration.TestBase;
+using Dse.Test.Integration.TestClusterManagement;
 
 namespace Dse.Test.Integration.ClusterManagement
 {

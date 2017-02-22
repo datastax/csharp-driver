@@ -10,11 +10,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests
+namespace Dse.Test.Integration
 {
     /// <summary>
     /// Represents a test fixture that on setup, it creates a test cluster available for all tests.

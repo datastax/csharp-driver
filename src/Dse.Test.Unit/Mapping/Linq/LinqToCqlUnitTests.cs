@@ -12,18 +12,20 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Cassandra.Data.Linq;
-using Cassandra.Mapping;
-using Cassandra.Serialization;
-using Cassandra.Tests.Mapping.Pocos;
+using Dse.Data.Linq;
+using Dse.Mapping;
+using Dse.Serialization;
+using Dse.Test.Unit.Mapping.Pocos;
 #if !NO_MOCKS
 using Moq;
 #endif
 using NUnit.Framework;
-using Cassandra.Tasks;
+using Dse.Tasks;
+using Dse.Test.Unit.Mapping.Pocos;
+
 #pragma warning disable 618
 
-namespace Cassandra.Tests.Mapping.Linq
+namespace Dse.Test.Unit.Mapping.Linq
 {
     [TestFixture]
     public class LinqToCqlUnitTests : MappingTestBase

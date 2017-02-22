@@ -11,9 +11,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using Cassandra.Mapping.TypeConversion;
+using Dse.Mapping.TypeConversion;
 
-namespace Cassandra.Mapping
+namespace Dse.Mapping
 {
     /// <summary>
     /// Component capable of getting/creating Func&lt;Row, T&gt; functions that create POCOs of type T from a Cassandra Row.
@@ -106,7 +106,7 @@ namespace Cassandra.Mapping
 
             // See if we retrieved only one column and if that column does not exist in the PocoData
             if (rows.Columns.Length == 1 && 
-                !Cassandra.Utils.IsAnonymousType(pocoData.PocoType) && 
+                !Dse.Utils.IsAnonymousType(pocoData.PocoType) && 
                 !pocoData.Columns.Contains(rows.Columns[0].Name))
             {
                 // Map the single column value directly to the POCO

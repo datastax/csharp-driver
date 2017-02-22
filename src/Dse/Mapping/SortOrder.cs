@@ -6,7 +6,7 @@
 //
 
 
-namespace Cassandra.Mapping
+namespace Dse.Mapping
 {
     /// <summary>
     /// Specifies sort order

@@ -13,7 +13,7 @@ using NUnit.Framework;
 using System.Reflection;
 #pragma warning disable 618
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     /// <summary>
     /// Checks that the methods and properties that should be marked as obsolete, actually are
@@ -54,9 +54,9 @@ namespace Cassandra.Tests
         public void Linq_Attributes_Obsolete()
         {
 
-            var linqAttributes = typeof (Cassandra.Data.Linq.TableAttribute).GetTypeInfo().Assembly.GetTypes()
+            var linqAttributes = typeof (Dse.Data.Linq.TableAttribute).GetTypeInfo().Assembly.GetTypes()
                 .Select(t => t.GetTypeInfo())
-                .Where(t => t.IsPublic && t.IsSubclassOf(typeof(Attribute)) && t.Namespace == "Cassandra.Data.Linq")
+                .Where(t => t.IsPublic && t.IsSubclassOf(typeof(Attribute)) && t.Namespace == "Dse.Data.Linq")
                 .ToArray();
             Assert.Greater(linqAttributes.Length, 5);
             foreach (var attr in linqAttributes)

@@ -10,10 +10,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using Cassandra.Mapping.Utils;
-using Cassandra.Serialization;
+using Dse.Mapping.Utils;
+using Dse.Serialization;
 
-namespace Cassandra.Mapping.Statements
+namespace Dse.Mapping.Statements
 {
     /// <summary>
     /// A utility class capable of generating CQL statements for a POCO.

@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     ///  A reconnection policy that waits a constant time between each reconnection attempt.

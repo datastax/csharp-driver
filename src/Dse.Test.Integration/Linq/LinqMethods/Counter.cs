@@ -9,14 +9,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.Mapping;
+using Dse.Data.Linq;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Mapping;
 using NUnit.Framework;
 #pragma warning disable 618
 #pragma warning disable 612
 
-namespace Cassandra.IntegrationTests.Linq.LinqMethods
+namespace Dse.Test.Integration.Linq.LinqMethods
 {
     public class Counter : SharedClusterTest
     {
@@ -241,14 +241,14 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
 
-        [Cassandra.Data.Linq.Table]
+        [Dse.Data.Linq.Table]
         class CounterEntityWithLinqAttributes
         {
-            [Cassandra.Data.Linq.Counter]
+            [Dse.Data.Linq.Counter]
             public long Counter;
-            [Cassandra.Data.Linq.PartitionKey(1)]
+            [Dse.Data.Linq.PartitionKey(1)]
             public Guid KeyPart1;
-            [Cassandra.Data.Linq.PartitionKey(2)]
+            [Dse.Data.Linq.PartitionKey(2)]
             public Decimal KeyPart2;
         }
 

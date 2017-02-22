@@ -11,7 +11,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 
-namespace Cassandra.Data.Linq
+namespace Dse.Data.Linq
 {
     /// <summary>
     /// Represents a <see cref="CqlQuery{TResult}"/> that uses client projects of a given <see cref="CqlQuery{TSource}"/>.

@@ -7,7 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Dse.Test.Integration.TestBase;
+using Dse.Test.Integration.TestClusterManagement;
 
 namespace Dse.Test.Integration.ClusterManagement
 {

@@ -12,11 +12,11 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Collections;
-using Cassandra.Serialization;
-using Cassandra.Tasks;
+using Dse.Collections;
+using Dse.Serialization;
+using Dse.Tasks;
 
-namespace Cassandra.Requests
+namespace Dse.Requests
 {
     /// <summary>
     /// Handles request executions, each execution handles retry and failover.

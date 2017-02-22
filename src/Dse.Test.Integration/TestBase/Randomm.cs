@@ -9,7 +9,7 @@ using System;
 using System.Numerics;
 using System.Reflection;
 
-namespace Cassandra.IntegrationTests.TestBase
+namespace Dse.Test.Integration.TestClusterManagement
 {
     internal class Randomm : Random
     {

@@ -8,7 +8,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Cassandra.Mapping.Utils
+namespace Dse.Mapping.Utils
 {
     /// <summary>
     /// Extension methods to IEnumerable&lt;T&gt;.

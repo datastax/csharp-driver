@@ -9,7 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
-namespace Cassandra.Mapping.Utils
+namespace Dse.Mapping.Utils
 {
     /// <summary>
     /// A concrete implementation of System.Collections.ObjectModel.KeyedCollection which acts as a List/Dictionary hybrid where

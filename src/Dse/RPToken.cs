@@ -9,7 +9,7 @@ using System;
 using System.Numerics;
 using System.Security.Cryptography;
 
-namespace Cassandra
+namespace Dse
 {
     internal class RPToken : IToken
     {

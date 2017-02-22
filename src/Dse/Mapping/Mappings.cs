@@ -6,9 +6,9 @@
 //
 
 using System;
-using Cassandra.Mapping.Utils;
+using Dse.Mapping.Utils;
 
-namespace Cassandra.Mapping
+namespace Dse.Mapping
 {
     /// <summary>
     /// A class for defining how to map multiple POCOs via a fluent-style interface.  Inheritors should use the 

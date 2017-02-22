@@ -12,10 +12,10 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
-using Cassandra.Mapping.TypeConversion;
+using Dse.Mapping.TypeConversion;
 using NUnit.Framework;
 
-namespace Cassandra.Tests.Mapping
+namespace Dse.Test.Unit.Mapping
 {
     [TestFixture]
     public class TypeConverterTests : MappingTestBase

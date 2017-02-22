@@ -14,13 +14,13 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Serialization;
-using Cassandra.Tasks;
+using Dse.Serialization;
+using Dse.Tasks;
 using Moq;
 using NUnit.Framework;
 // ReSharper disable AccessToModifiedClosure
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     [TestFixture]
     public class HostConnectionPoolTests
@@ -74,11 +74,11 @@ namespace Cassandra.Tests
                 .SetCoreConnectionsPerHost(HostDistance.Local, coreConnections)
                 .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 1500)
                 .SetMaxConnectionsPerHost(HostDistance.Local, maxConnections);
-            var policies = new Policies(
-                Policies.DefaultLoadBalancingPolicy,
-                rp ?? Policies.DefaultReconnectionPolicy,
-                Policies.DefaultRetryPolicy,
-                Policies.DefaultSpeculativeExecutionPolicy);
+            var policies = new Dse.Policies(
+                Dse.Policies.DefaultLoadBalancingPolicy,
+                rp ?? Dse.Policies.DefaultReconnectionPolicy,
+                Dse.Policies.DefaultRetryPolicy,
+                Dse.Policies.DefaultSpeculativeExecutionPolicy);
             var config = new Configuration(
                 policies,
                 new ProtocolOptions(),

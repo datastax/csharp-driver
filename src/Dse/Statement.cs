@@ -8,9 +8,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using Cassandra.Requests;
+using Dse.Requests;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Base class for statements that contains the options.

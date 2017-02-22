@@ -8,9 +8,9 @@
 using System;
 using System.Text;
 using System.Threading.Tasks;
-using Cassandra.Tasks;
+using Dse.Tasks;
 
-namespace Cassandra.Data.Linq
+namespace Dse.Data.Linq
 {
     internal class BatchV1 : Batch
     {

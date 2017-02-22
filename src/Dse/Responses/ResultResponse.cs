@@ -8,7 +8,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Cassandra.Responses
+namespace Dse.Responses
 {
     internal class ResultResponse : Response
     {

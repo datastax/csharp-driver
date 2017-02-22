@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Cassandra.Mapping
+namespace Dse.Mapping
 {
     /// <summary>
     /// Represents a CQL statement and its arguments.

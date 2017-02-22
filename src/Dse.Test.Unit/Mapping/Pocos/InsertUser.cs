@@ -7,10 +7,10 @@
 
 using System;
 using System.Collections.Generic;
-using Cassandra.Mapping;
-using Cassandra.Mapping.Attributes;
+using Dse.Mapping;
+using Dse.Mapping.Attributes;
 
-namespace  Cassandra.Tests.Mapping.Pocos
+namespace Dse.Test.Unit.Mapping.Pocos
 {
     [Table("users")]
     public class InsertUser

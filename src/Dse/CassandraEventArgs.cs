@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Cassandra
+namespace Dse
 {
     internal class CassandraEventArgs : EventArgs
     {

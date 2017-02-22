@@ -6,10 +6,10 @@
 //
 
 using System;
-using Cassandra.Mapping;
-using Cassandra.Tests.Mapping.Pocos;
+using Dse.Mapping;
+using Dse.Test.Unit.Mapping.Pocos;
 
-namespace Cassandra.Tests.Mapping.FluentMappings
+namespace Dse.Test.Unit.Mapping.FluentMappings
 {
     /// <summary>
     /// Defines how to map the FluentUser class.

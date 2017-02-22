@@ -7,7 +7,7 @@
 
 using System.Collections.Generic;
 
-namespace Cassandra
+namespace Dse
 {
     internal class OutputOptions : IOutput
     {

@@ -9,10 +9,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
- using Cassandra.IntegrationTests.TestBase;
+ using Dse.Test.Integration.TestClusterManagement;
  using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Dse.Test.Integration.Core
 {
     [Category("short")]
     [TestCassandraVersion(2, 1)]

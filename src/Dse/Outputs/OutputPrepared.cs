@@ -6,7 +6,7 @@
 //
 
 // ReSharper disable once CheckNamespace
-namespace Cassandra
+namespace Dse
 {
     internal class OutputPrepared : IOutput
     {

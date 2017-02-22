@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-namespace Cassandra.IntegrationTests.Policies.Util
+namespace Dse.Test.Integration.Policies.Util
 {
     public class TryNextHostRetryPolicy : IRetryPolicy
     {

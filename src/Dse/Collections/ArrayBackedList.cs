@@ -11,7 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Cassandra.Collections
+namespace Dse.Collections
 {
     /// <summary>
     /// It creates a IList{T} wrapper of an array to avoid extra allocations of List{T} for read-only lists

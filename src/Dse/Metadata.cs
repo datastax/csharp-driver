@@ -12,10 +12,10 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Requests;
-using Cassandra.Tasks;
+using Dse.Requests;
+using Dse.Tasks;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     ///  Keeps metadata on the connected cluster, including known nodes and schema
@@ -439,9 +439,9 @@ namespace Cassandra
                     Task.WaitAll(queries, Configuration.ClientOptions.QueryAbortTimeout);
                     var versions = new HashSet<Guid>
                     {
-                        Cassandra.ControlConnection.GetRowSet(queries[0].Result).First().GetValue<Guid>("schema_version")
+                        Dse.ControlConnection.GetRowSet(queries[0].Result).First().GetValue<Guid>("schema_version")
                     };
-                    var peerVersions = Cassandra.ControlConnection.GetRowSet(queries[1].Result).Select(r => r.GetValue<Guid>("schema_version"));
+                    var peerVersions = Dse.ControlConnection.GetRowSet(queries[1].Result).Select(r => r.GetValue<Guid>("schema_version"));
                     foreach (var v in peerVersions)
                     {
                         versions.Add(v);

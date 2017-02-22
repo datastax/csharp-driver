@@ -10,10 +10,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using Cassandra;
-using Cassandra.IntegrationTests.TestBase;
+using Dse;
+using Dse.Test.Integration.TestClusterManagement;
 using Dse.Graph;
-using Dse.Policies;
 using Dse.Test.Integration.ClusterManagement;
 using NUnit.Framework;
 

@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// The distance to a Cassandra node as assigned by a <see cref="ILoadBalancingPolicy"/> relative to the

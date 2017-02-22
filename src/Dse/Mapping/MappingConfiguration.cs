@@ -8,11 +8,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Cassandra.Mapping.Statements;
-using Cassandra.Mapping.TypeConversion;
-using Cassandra.Mapping.Utils;
+using Dse.Mapping.Statements;
+using Dse.Mapping.TypeConversion;
+using Dse.Mapping.Utils;
 
-namespace Cassandra.Mapping
+namespace Dse.Mapping
 {
     /// <summary>
     /// Stores the mapping definitions to be used by the Mapper and Linq components.

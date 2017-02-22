@@ -7,7 +7,7 @@
 
 using System.Threading.Tasks;
 
-namespace Cassandra.Mapping
+namespace Dse.Mapping
 {
     /// <summary>
     /// The contract for Async write operations.

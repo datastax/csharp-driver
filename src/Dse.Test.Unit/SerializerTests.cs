@@ -13,10 +13,10 @@ using System.Linq;
 using System.Net;
 using System.Numerics;
 using System.Reflection;
-using Cassandra.Serialization;
-using Cassandra.Serialization.Primitive;
+using Dse.Serialization;
+using Dse.Serialization.Primitive;
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     [TestFixture]
     public class SerializerTests

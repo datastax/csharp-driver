@@ -11,11 +11,11 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Collections;
-using Cassandra.Serialization;
-using Cassandra.Tasks;
+using Dse.Collections;
+using Dse.Serialization;
+using Dse.Tasks;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Represents a pool of connections to a host

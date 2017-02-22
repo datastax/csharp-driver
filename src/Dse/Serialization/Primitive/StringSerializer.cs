@@ -7,7 +7,7 @@
 
 using System.Text;
 
-namespace Cassandra.Serialization.Primitive
+namespace Dse.Serialization.Primitive
 {
     internal class StringSerializer : TypeSerializer<string>
     {

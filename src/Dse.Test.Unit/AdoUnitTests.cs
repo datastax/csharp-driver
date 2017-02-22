@@ -6,11 +6,11 @@
 //
 
 #if !NETCORE
-using Cassandra.Data;
+using Dse.Data;
 using Moq;
 using NUnit.Framework;
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     [TestFixture]
     public class AdoUnitTests

@@ -8,9 +8,9 @@
 using System;
 using System.Numerics;
 
-namespace Cassandra.Serialization.Primitive
+namespace Dse.Serialization.Primitive
 {
-    public class DecimalSerializer : TypeSerializer<decimal>
+    internal class DecimalSerializer : TypeSerializer<decimal>
     {
         public override ColumnTypeCode CqlType
         {

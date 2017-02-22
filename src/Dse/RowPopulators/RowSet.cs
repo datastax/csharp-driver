@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 // ReSharper disable DoNotCallOverridableMethodsInConstructor
 // ReSharper disable CheckNamespace
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Represents a result of a query returned by Cassandra.

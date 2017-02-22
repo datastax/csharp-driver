@@ -7,7 +7,7 @@
 
 using System.Net;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Provides <see cref="IAuthenticator"/> instances for use when connecting to Cassandra nodes. See 

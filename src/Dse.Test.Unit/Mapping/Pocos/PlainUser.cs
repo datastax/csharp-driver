@@ -8,7 +8,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace  Cassandra.Tests.Mapping.Pocos
+namespace Dse.Test.Unit.Mapping.Pocos
 {
     /// <summary>
     /// A user POCO with no decorations.

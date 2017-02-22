@@ -7,7 +7,7 @@
 
 using System.Collections.Generic;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     ///  The policy that decides which Cassandra hosts to contact for each new query.

@@ -9,11 +9,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Cassandra.Mapping.Attributes;
+using Dse.Mapping.Attributes;
 
 #pragma warning disable 618
 
-namespace Cassandra.Tests.Mapping.Pocos
+namespace Dse.Test.Unit.Mapping.Pocos
 {
     [Table("x_ts", CaseSensitive = true)]
     public class LinqDecoratedWithStringCkEntity

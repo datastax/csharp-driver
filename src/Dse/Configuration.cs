@@ -7,11 +7,11 @@
 
 using System;
 using System.Collections.Generic;
-using Cassandra.Serialization;
-using Cassandra.Tasks;
+using Dse.Serialization;
+using Dse.Tasks;
 using Microsoft.IO;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     ///  The configuration of the cluster. This handle setting: <ul> <li>Cassandra

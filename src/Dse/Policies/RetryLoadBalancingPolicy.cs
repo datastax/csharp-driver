@@ -9,7 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
-namespace Cassandra
+namespace Dse
 {
     public class RetryLoadBalancingPolicy : ILoadBalancingPolicy
     {

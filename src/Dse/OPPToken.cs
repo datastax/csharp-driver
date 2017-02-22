@@ -7,7 +7,7 @@
 
 using System.Text;
 
-namespace Cassandra
+namespace Dse
 {
     internal class OPPToken : IToken
     {

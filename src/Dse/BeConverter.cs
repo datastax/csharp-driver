@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Contains methods for converting a big-endian array of bytes to one of the base data types, 

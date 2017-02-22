@@ -7,10 +7,10 @@
 
 using System.Linq;
 using System.Linq.Expressions;
-using Cassandra.Mapping;
-using Cassandra.Mapping.Statements;
+using Dse.Mapping;
+using Dse.Mapping.Statements;
 
-namespace Cassandra.Data.Linq
+namespace Dse.Data.Linq
 {
     public class CqlUpdate : CqlCommand
     {

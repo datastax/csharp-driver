@@ -7,13 +7,13 @@
 
 using System;
 using System.Collections.Generic;
-using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Linq.Structures;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.Mapping;
+using Dse.Data.Linq;
+using Dse.Test.Integration.Linq.Structures;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Mapping;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Mapping.Tests
+namespace Dse.Test.Integration.Mapping.Tests
 {
     [Category("short")]
     public class First : SharedClusterTest

@@ -10,7 +10,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data.Common;
 
-namespace Cassandra.Data
+namespace Dse.Data
 {
     /// <summary>
     /// Represents a collection of <see cref="CqlParameter"/>s.

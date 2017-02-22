@@ -10,9 +10,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Cassandra.Tasks;
+using Dse.Tasks;
 
-namespace Cassandra.Serialization
+namespace Dse.Serialization
 {
     /// <summary>
     /// A class containing methods for Cql types name parsing.

@@ -7,11 +7,11 @@
 
 using System;
 using System.IO;
-using Cassandra.Responses;
-using Cassandra.Serialization;
+using Dse.Responses;
+using Dse.Serialization;
 using NUnit.Framework;
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     [TestFixture]
     public class AbstractResponseTest

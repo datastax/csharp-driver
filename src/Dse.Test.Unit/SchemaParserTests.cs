@@ -12,12 +12,12 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using Cassandra.Tasks;
+using Dse.Tasks;
 using Moq;
 using NUnit.Framework;
-using SortOrder = Cassandra.DataCollectionMetadata.SortOrder;
+using SortOrder = Dse.DataCollectionMetadata.SortOrder;
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     [TestFixture]
     public class SchemaParserTests

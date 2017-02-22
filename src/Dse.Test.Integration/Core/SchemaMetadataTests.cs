@@ -8,12 +8,12 @@
 using System;
 using System.Linq;
 using System.Threading;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.Tasks;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Tasks;
 using NUnit.Framework;
-using SortOrder = Cassandra.DataCollectionMetadata.SortOrder;
+using SortOrder = Dse.DataCollectionMetadata.SortOrder;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Dse.Test.Integration.Core
 {
     [TestFixture, Category("short")]
     public class SchemaMetadataTests : SharedClusterTest

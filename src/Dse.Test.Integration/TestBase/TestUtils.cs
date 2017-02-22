@@ -15,14 +15,14 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using Cassandra.IntegrationTests.Core;
-using Cassandra.IntegrationTests.TestClusterManagement;
+using Dse.Test.Integration.Core;
+using Dse.Test.Integration.TestClusterManagement;
 #if NETCORE
 using Microsoft.DotNet.InternalAbstractions;
 #endif
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.TestBase
+namespace Dse.Test.Integration.TestClusterManagement
 {
     /// <summary>
     ///  A number of static fields/methods handy for tests.

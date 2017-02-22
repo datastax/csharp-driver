@@ -6,7 +6,7 @@
 //
 using System;
 
-namespace Dse.Test.Integration.TestBase
+namespace Dse.Test.Integration.TestClusterManagement
 {
     /// <summary>
     /// Represents an error on the infrastructure setup

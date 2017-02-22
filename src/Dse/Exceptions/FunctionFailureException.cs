@@ -12,7 +12,7 @@ using System.Runtime.Serialization;
 using System.Text;
 
 // ReSharper disable once CheckNamespace
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Specifies a User defined function execution failure.

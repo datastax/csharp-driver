@@ -9,9 +9,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Cassandra.Serialization;
+using Dse.Serialization;
 
-namespace Cassandra.Tests.Extensions.Serializers
+namespace Dse.Test.Unit.Extensions.Serializers
 {
     public class UdtSerializerWrapper : UdtSerializer
     {

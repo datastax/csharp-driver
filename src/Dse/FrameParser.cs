@@ -7,9 +7,9 @@
 
 using System;
 using System.Collections.Generic;
-using Cassandra.Responses;
+using Dse.Responses;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Parses the frame into a response

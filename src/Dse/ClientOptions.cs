@@ -8,7 +8,7 @@
 using System;
 using System.Threading;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     ///  Additional options of the .net Cassandra driver.

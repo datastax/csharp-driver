@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Cassandra
+namespace Dse
 {
     internal static class CqlQueryTools
     {

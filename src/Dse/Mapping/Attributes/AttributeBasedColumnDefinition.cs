@@ -9,7 +9,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 
-namespace Cassandra.Mapping.Attributes
+namespace Dse.Mapping.Attributes
 {
     /// <summary>
     /// A column definition that uses attributes on the field/property to get its settings.

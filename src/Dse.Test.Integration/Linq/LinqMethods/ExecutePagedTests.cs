@@ -10,15 +10,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Linq.Structures;
+using Dse.Data.Linq;
+using Dse.Test.Integration.Linq.Structures;
 using NUnit.Framework;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.Tests.Mapping.Pocos;
-using Cassandra.Tests.Mapping.TestData;
-using Cassandra.Mapping;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Unit.Mapping.Pocos;
+using Dse.Test.Unit.Mapping.TestData;
+using Dse.Mapping;
 
-namespace Cassandra.IntegrationTests.Linq.LinqMethods
+namespace Dse.Test.Integration.Linq.LinqMethods
 {
     [Category("short")]
     public class ExecutePagedTests : SharedClusterTest

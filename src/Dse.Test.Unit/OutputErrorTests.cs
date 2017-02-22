@@ -7,7 +7,7 @@
 
 using NUnit.Framework;
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     /// <summary>
     /// Tests for the Cassandra.OutputError class.

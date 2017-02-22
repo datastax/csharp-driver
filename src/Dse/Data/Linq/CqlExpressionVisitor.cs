@@ -13,10 +13,10 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
-using Cassandra.Mapping;
-using Cassandra.Mapping.Utils;
+using Dse.Mapping;
+using Dse.Mapping.Utils;
 
-namespace Cassandra.Data.Linq
+namespace Dse.Data.Linq
 {
     internal class CqlExpressionVisitor : ExpressionVisitor
     {

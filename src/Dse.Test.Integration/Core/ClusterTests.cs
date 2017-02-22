@@ -12,12 +12,12 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
-using Cassandra.Tests;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Unit;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Dse.Test.Integration.Core
 {
     [Category("short"), TestFixture]
     public class ClusterTests : TestGlobals

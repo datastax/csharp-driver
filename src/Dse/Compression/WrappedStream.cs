@@ -1,4 +1,4 @@
-//
+﻿//
 //  Copyright (C) 2017 DataStax, Inc.
 //
 //  Please see the license for details:
@@ -11,7 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace Cassandra.Compression
+namespace Dse.Compression
 {
     /// <summary>
     /// A simple wrapper to a stream that allows to limit the length of the provided stream.

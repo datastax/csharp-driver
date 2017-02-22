@@ -8,10 +8,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Cassandra.Requests;
-using Cassandra.Serialization;
+using Dse.Requests;
+using Dse.Serialization;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     ///  A simple <see cref="IStatement"/> implementation built directly from a query string.

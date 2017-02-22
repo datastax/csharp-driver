@@ -12,10 +12,10 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Tasks;
+using Dse.Tasks;
 using Microsoft.IO;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Represents a Tcp connection to a host.

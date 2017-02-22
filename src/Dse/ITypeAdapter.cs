@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// DEPRECATED, use <see cref="Cassandra.Serialization.TypeSerializer{T}"/> instead.

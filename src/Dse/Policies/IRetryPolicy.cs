@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-﻿namespace Cassandra
+﻿namespace Dse
 {
     /// <summary>
     ///  A policy that defines a default behavior to adopt when a request returns a

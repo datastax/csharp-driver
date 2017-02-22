@@ -10,14 +10,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Cassandra.Data.Linq;
-using Cassandra.Mapping;
-using Cassandra.Serialization;
-using Cassandra.Tests.Mapping.Pocos;
+using Dse.Data.Linq;
+using Dse.Mapping;
+using Dse.Serialization;
+using Dse.Test.Unit.Mapping.Pocos;
+using Dse.Test.Unit.Mapping.Pocos;
 using Moq;
 using NUnit.Framework;
 
-namespace Cassandra.Tests.Mapping.Linq
+namespace Dse.Test.Unit.Mapping.Linq
 {
     [TestFixture]
     public class LinqCreateTableUnitTests : MappingTestBase
@@ -353,7 +354,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
                 .Callback<string>(q => createQuery = q);
-            var definition = new Cassandra.Mapping.Attributes.AttributeBasedTypeDefinition(typeof(DecoratedTimeSeries));
+            var definition = new Dse.Mapping.Attributes.AttributeBasedTypeDefinition(typeof(DecoratedTimeSeries));
             var table = GetTable<DecoratedTimeSeries>(sessionMock.Object, definition);
             table.Create();
             //It contains Ignored props: Ignored1 and Ignored2

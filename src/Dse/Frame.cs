@@ -7,9 +7,9 @@
 
 using System;
 using System.IO;
-using Cassandra.Serialization;
+using Dse.Serialization;
 
-namespace Cassandra
+namespace Dse
 {
     internal class Frame
     {

@@ -9,14 +9,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Mapping.Tests;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.Mapping;
+using Dse.Data.Linq;
+using Dse.Test.Integration.Mapping.Tests;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Mapping;
 using NUnit.Framework;
 #pragma warning disable 618
 
-namespace Cassandra.IntegrationTests.Mapping.Structures
+namespace Dse.Test.Integration.Mapping.Structures
 {
     [AllowFiltering]
     [Table("allDataTypes")]

@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Cassandra.Mapping.TypeConversion
+namespace Dse.Mapping.TypeConversion
 {
     /// <summary>
     /// A default implementation of TypeConversionFactory that doesn't do any user defined conversions.

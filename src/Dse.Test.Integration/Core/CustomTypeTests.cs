@@ -5,14 +5,14 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using Cassandra.IntegrationTests.TestBase;
+using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Cassandra.Serialization;
+using Dse.Serialization;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Dse.Test.Integration.Core
 {
     [Category("short")]
     public class CustomTypeTests : SharedClusterTest

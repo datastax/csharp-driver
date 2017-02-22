@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Cassandra.Mapping.Attributes
+namespace Dse.Mapping.Attributes
 {
     /// <summary>
     /// Used on a POCO property of field.  Can be used to override the column name in the database that property or field maps to.

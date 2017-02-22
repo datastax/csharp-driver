@@ -12,10 +12,10 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using NUnit.Framework;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Dse.Test.Integration.Core
 {
     [Category("short")]
     public class ControlConnectionTests : TestGlobals
@@ -52,7 +52,7 @@ namespace Cassandra.IntegrationTests.Core
             cc.Dispose();
         }
 
-        [Test, TestCassandraVersion(2, 2, TestBase.Comparison.LessThan)]
+        [Test, TestCassandraVersion(2, 2, Comparison.LessThan)]
         public void Should_Downgrade_The_Protocol_Version()
         {
             //Use a higher protocol version

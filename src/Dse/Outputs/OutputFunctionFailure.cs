@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Parses a FunctionFailureException from a function failure error

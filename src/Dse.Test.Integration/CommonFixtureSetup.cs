@@ -8,11 +8,11 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Threading;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests
+namespace Dse.Test.Integration
 {
     [SetUpFixture]
     public class CommonFixtureSetup

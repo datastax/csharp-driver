@@ -14,7 +14,7 @@ using System.Text;
 using System.Threading;
 using NUnit.Framework;
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     [TestFixture]
     public class HostTests

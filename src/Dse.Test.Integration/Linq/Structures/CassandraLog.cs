@@ -6,11 +6,11 @@
 //
 
 using System;
-using Cassandra.Data.Linq;
+using Dse.Data.Linq;
 using System.Diagnostics;
 #pragma warning disable 618
 
-namespace Cassandra.IntegrationTests.Linq.Structures
+namespace Dse.Test.Integration.Linq.Structures
 {
     public class CassandraLog
     {

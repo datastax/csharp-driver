@@ -14,14 +14,14 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Tasks;
-using Cassandra.Compression;
-using Cassandra.Requests;
-using Cassandra.Responses;
-using Cassandra.Serialization;
+using Dse.Tasks;
+using Dse.Compression;
+using Dse.Requests;
+using Dse.Responses;
+using Dse.Serialization;
 using Microsoft.IO;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Represents a TCP connection to a Cassandra Node

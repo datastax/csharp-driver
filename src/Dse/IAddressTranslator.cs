@@ -7,7 +7,7 @@
 
 using System.Net;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     ///     Translates IP addresses received from Cassandra nodes into locally queriable addresses.

@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-namespace Cassandra
+namespace Dse
 {
     public delegate void SchemaChangedEventHandler(object sender, SchemaChangedEventArgs e);
 }

@@ -10,7 +10,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     public class ThreadPerTaskScheduler : TaskScheduler
     {

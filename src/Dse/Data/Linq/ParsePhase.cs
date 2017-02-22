@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-namespace Cassandra.Data.Linq
+namespace Dse.Data.Linq
 {
     internal enum ParsePhase
     {

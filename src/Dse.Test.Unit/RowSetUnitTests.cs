@@ -19,7 +19,7 @@ using System.Reflection;
 using Moq;
 #endif
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     [TestFixture]
     public class RowSetUnitTests

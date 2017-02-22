@@ -7,7 +7,7 @@
 
 using System.Collections.Generic;
 
-namespace Cassandra.Mapping
+namespace Dse.Mapping
 {
     /// <summary>
     /// The contract for synchronous read operations.

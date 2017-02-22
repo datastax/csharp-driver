@@ -12,7 +12,7 @@ using System.Linq;
 using System.Numerics;
 using System.Reflection;
 
-namespace Cassandra.Serialization
+namespace Dse.Serialization
 {
     /// <summary>
     /// Handles types serialization from binary form to objects and the other way around.

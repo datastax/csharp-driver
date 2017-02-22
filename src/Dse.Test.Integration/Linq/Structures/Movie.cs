@@ -7,12 +7,12 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
-using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.TestBase;
+using Dse.Data.Linq;
+using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 #pragma warning disable 618
 
-namespace Cassandra.IntegrationTests.Linq.Structures
+namespace Dse.Test.Integration.Linq.Structures
 {
     [AllowFiltering]
     [Table("coolMovies")]

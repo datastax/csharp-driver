@@ -11,9 +11,9 @@ using System.Linq;
 using System.Net;
 using System.Text;
 ﻿using NUnit.Framework;
-using DatacenterInfo = Cassandra.TokenMap.DatacenterInfo;
+using DatacenterInfo = Dse.TokenMap.DatacenterInfo;
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     [TestFixture]
     public class TokenTests

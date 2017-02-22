@@ -11,15 +11,15 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Threading.Tasks;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 using System.Net;
 using System.Collections;
 using System.Threading;
-using Cassandra.Tests;
+using Dse.Test.Unit;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Dse.Test.Integration.Core
 {
     [Category("short")]
     public class PreparedStatementsTests : SharedClusterTest

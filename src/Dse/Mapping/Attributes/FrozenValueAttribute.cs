@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Cassandra.Mapping.Attributes
+namespace Dse.Mapping.Attributes
 {
     /// <summary>
     /// Indicates that the property or field represents a column which value is frozen.

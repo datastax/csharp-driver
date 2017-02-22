@@ -8,7 +8,7 @@
 using System;
 using System.Linq.Expressions;
 
-namespace Cassandra.Data.Linq
+namespace Dse.Data.Linq
 {
     public static class CqlQueryExtensions
     {

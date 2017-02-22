@@ -15,9 +15,9 @@ using System.Linq;
 using Moq;
 using System.Threading.Tasks;
 using System.Threading;
-﻿using Cassandra.Requests;
+﻿using Dse.Requests;
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     [TestFixture]
     public class PoliciesUnitTests

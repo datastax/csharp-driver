@@ -6,18 +6,18 @@
 //
 
 using System.Diagnostics;
-using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Linq.Structures;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
+using Dse.Data.Linq;
+using Dse.Test.Integration.Linq.Structures;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Cassandra.Mapping;
-using Cassandra.Mapping.Statements;
+using Dse.Mapping;
+using Dse.Mapping.Statements;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Dse.Test.Integration.Core
 {
     [Category("long")]
     public class ConsistencyTests : TestGlobals

@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace Cassandra.Mapping.Attributes
+namespace Dse.Mapping.Attributes
 {
     /// <summary>
     /// A type definition that uses attributes on the class to determine its settings.

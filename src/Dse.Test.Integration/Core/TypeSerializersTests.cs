@@ -10,13 +10,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.Serialization;
-using Cassandra.Tests;
-using Cassandra.Tests.Extensions.Serializers;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Serialization;
+using Dse.Test.Unit;
+using Dse.Test.Unit.Extensions.Serializers;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Dse.Test.Integration.Core
 {
     [Category("short")]
     public class TypeSerializersTests : SharedClusterTest

@@ -7,7 +7,7 @@
 
 using System.Reflection;
 
-namespace Cassandra.Data.Linq
+namespace Dse.Data.Linq
 {
     internal class CqlMthHelps
     {

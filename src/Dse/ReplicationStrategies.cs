@@ -8,7 +8,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Provides utility methods to build replication strategies when creating a keyspace

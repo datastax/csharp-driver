@@ -9,7 +9,7 @@ using System.Diagnostics;
 using Renci.SshNet;
 using Renci.SshNet.Common;
 
-namespace Dse.Test.Integration.TestBase
+namespace Dse.Test.Integration.TestClusterManagement
 {
     public class RemoteCcmProcessExecuter : CcmProcessExecuter
     {

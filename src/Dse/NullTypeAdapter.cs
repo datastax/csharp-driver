@@ -6,9 +6,9 @@
 //
 
 using System;
-using Cassandra.Serialization;
+using Dse.Serialization;
 
-namespace Cassandra
+namespace Dse
 {
     public class NullTypeAdapter : ITypeAdapter
     {

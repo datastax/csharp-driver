@@ -6,10 +6,10 @@
 //
 
 using System;
-using Cassandra.Serialization;
-using HeaderFlag = Cassandra.FrameHeader.HeaderFlag;
+using Dse.Serialization;
+using HeaderFlag = Dse.FrameHeader.HeaderFlag;
 
-namespace Cassandra.Responses
+namespace Dse.Responses
 {
     internal class Response
     {

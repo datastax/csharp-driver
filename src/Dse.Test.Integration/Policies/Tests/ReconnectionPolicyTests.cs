@@ -8,12 +8,12 @@
 using System;
 using System.Diagnostics;
 using System.Threading;
-using Cassandra.IntegrationTests.Policies.Util;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
+using Dse.Test.Integration.Policies.Util;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Policies.Tests
+namespace Dse.Test.Integration.Policies.Tests
 {
     [TestFixture, Category("long")]
     public class ReconnectionPolicyTests : TestGlobals

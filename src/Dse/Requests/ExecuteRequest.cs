@@ -8,9 +8,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Cassandra.Serialization;
+using Dse.Serialization;
 
-namespace Cassandra.Requests
+namespace Dse.Requests
 {
     /// <summary>
     /// Represents a protocol EXECUTE request

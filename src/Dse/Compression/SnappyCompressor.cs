@@ -1,4 +1,4 @@
-//
+﻿//
 //  Copyright (C) 2017 DataStax, Inc.
 //
 //  Please see the license for details:
@@ -8,7 +8,7 @@
 using System;
 using System.IO;
 
-namespace Cassandra.Compression
+namespace Dse.Compression
 {
     internal class SnappyCompressor : IFrameCompressor
     {

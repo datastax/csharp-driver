@@ -8,7 +8,7 @@
 using System;
 using System.Data.Common;
 
-namespace Cassandra.Data
+namespace Dse.Data
 {
     /// <summary>
     /// Represents a set of methods for creating instances of a CQL ADO.NET implementation

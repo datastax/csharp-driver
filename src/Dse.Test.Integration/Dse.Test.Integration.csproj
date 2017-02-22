@@ -195,7 +195,6 @@
     <Compile Include="TestBase\TestGlobals.cs" />
     <Compile Include="TestBase\TestUtils.cs" />
     <Compile Include="TestBase\TestCassandraVersion.cs" />
-    <Compile Include="TestBase\TestInfrastructureException.cs" />
     <Compile Include="Mapping\Structures\Author.cs" />
     <Compile Include="Linq\Structures\CassandraLog.cs" />
     <Compile Include="Linq\Structures\FollowedTweet.cs" />

@@ -7,12 +7,11 @@
 
 using System;
 using System.Text;
-using Cassandra.Data;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
+using Dse.Data;
+using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Data
+namespace Dse.Test.Integration.Data
 {
     [TestFixture, Category("short")]
     public class AdoBasicTests : SharedClusterTest

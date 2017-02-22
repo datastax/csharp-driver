@@ -6,14 +6,14 @@
 //
 
 using System;
-using Cassandra.Mapping;
+using Dse.Mapping;
 
-namespace Cassandra.Data.Linq
+namespace Dse.Data.Linq
 {
     /// <summary>
     /// Indicates that the property or field is part of the Clustering Key
     /// </summary>
-    [Obsolete("Linq attributes are deprecated, use mapping attributes defined in Cassandra.Mapping.Attributes instead.")]
+    [Obsolete("Linq attributes are deprecated, use mapping attributes defined in Dse.Mapping.Attributes instead.")]
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = true)]
     public class ClusteringKeyAttribute : Attribute
     {

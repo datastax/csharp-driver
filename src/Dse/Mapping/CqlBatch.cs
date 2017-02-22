@@ -7,9 +7,9 @@
 
 using System;
 using System.Collections.Generic;
-using Cassandra.Mapping.Statements;
+using Dse.Mapping.Statements;
 
-namespace Cassandra.Mapping
+namespace Dse.Mapping
 {
     /// <summary>
     /// A batch of CQL statements.

@@ -9,10 +9,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Cassandra.Data.Linq;
+using Dse.Data.Linq;
 #pragma warning disable 618
 
-namespace Cassandra.Tests.Mapping.Pocos
+namespace Dse.Test.Unit.Mapping.Pocos
 {
     [Table(CaseSensitive=false, Name="tbl1")]
     public class LinqDecoratedCaseInsensitiveEntity

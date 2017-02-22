@@ -11,12 +11,12 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using Cassandra.Tasks;
+using Dse.Tasks;
 using NUnit.Framework;
-using Bucket = Cassandra.Tasks.HashedWheelTimer.Bucket;
-using TimeoutItem = Cassandra.Tasks.HashedWheelTimer.TimeoutItem;
+using Bucket = Dse.Tasks.HashedWheelTimer.Bucket;
+using TimeoutItem = Dse.Tasks.HashedWheelTimer.TimeoutItem;
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     [TestFixture]
     public class TimeoutTests

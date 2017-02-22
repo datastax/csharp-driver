@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-namespace Cassandra
+namespace Dse
 {
     internal delegate void CassandraEventHandler(object sender, CassandraEventArgs e);
 }

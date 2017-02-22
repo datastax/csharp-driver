@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-namespace Cassandra.Requests
+namespace Dse.Requests
 {
     /// <summary>
     /// Represents a QUERY or EXECUTE request that can be included in a batch

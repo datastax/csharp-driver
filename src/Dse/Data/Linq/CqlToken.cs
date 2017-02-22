@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Cassandra.Data.Linq
+namespace Dse.Data.Linq
 {
     public class CqlToken
     {

@@ -10,9 +10,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using Cassandra.Mapping;
+using Dse.Mapping;
 
-namespace Cassandra.Data.Linq
+namespace Dse.Data.Linq
 {
     [Obsolete]
     internal class LinqAttributeBasedColumnDefinition : IColumnDefinition

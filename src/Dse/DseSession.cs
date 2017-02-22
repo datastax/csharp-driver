@@ -10,9 +10,9 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using Cassandra;
+using Dse;
 using Dse.Graph;
-using Cassandra.Tasks;
+using Dse.Tasks;
 
 namespace Dse
 {

@@ -1,4 +1,4 @@
-//
+﻿//
 //  Copyright (C) 2017 DataStax, Inc.
 //
 //  Please see the license for details:
@@ -9,7 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// A session holds connections to a Cassandra cluster, allowing it to be queried.

@@ -10,9 +10,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using Cassandra.IntegrationTests.TestBase;
+using Dse.Test.Integration.TestClusterManagement;
 
-namespace Cassandra.IntegrationTests.TestClusterManagement
+namespace Dse.Test.Integration.TestClusterManagement
 {
     /// <summary>
     /// Test Helper class for keeping track of multiple CCM (Cassandra Cluster Manager) instances

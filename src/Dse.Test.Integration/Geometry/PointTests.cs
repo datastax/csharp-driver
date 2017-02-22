@@ -8,8 +8,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.Serialization;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Serialization;
 using Dse.Geometry;
 
 namespace Dse.Test.Integration.Geometry

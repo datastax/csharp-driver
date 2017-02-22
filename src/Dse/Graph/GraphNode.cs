@@ -11,7 +11,7 @@ using System.Dynamic;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
-using Cassandra;
+using Dse;
 using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;

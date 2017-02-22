@@ -12,7 +12,7 @@ using System.Text;
 using NUnit.Framework;
 // ReSharper disable ObjectCreationAsStatement
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     [TestFixture]
     public class LocalTimeTests

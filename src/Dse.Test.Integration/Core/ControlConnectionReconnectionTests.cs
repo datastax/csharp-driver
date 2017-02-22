@@ -13,13 +13,13 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
-using Cassandra.Tasks;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Tasks;
 using Moq;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Dse.Test.Integration.Core
 {
     [Category("short")]
     public class ControlConnectionReconnectionTests : TestGlobals
@@ -46,7 +46,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var lbp = new RoundRobinPolicy();
             var config = new Configuration(
-                new Cassandra.Policies(lbp, new ConstantReconnectionPolicy(1000), FallthroughRetryPolicy.Instance),
+                new Dse.Policies(lbp, new ConstantReconnectionPolicy(1000), FallthroughRetryPolicy.Instance),
                 new ProtocolOptions(),
                 null,
                 new SocketOptions(),
@@ -84,7 +84,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var lbp = new RoundRobinPolicy();
             var config = new Configuration(
-                new Cassandra.Policies(lbp, new ConstantReconnectionPolicy(1000), FallthroughRetryPolicy.Instance),
+                new Dse.Policies(lbp, new ConstantReconnectionPolicy(1000), FallthroughRetryPolicy.Instance),
                 new ProtocolOptions(),
                 null,
                 new SocketOptions(),
@@ -123,7 +123,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var lbp = new RoundRobinPolicy();
             var config = new Configuration(
-                new Cassandra.Policies(lbp, new ConstantReconnectionPolicy(1000), FallthroughRetryPolicy.Instance),
+                new Dse.Policies(lbp, new ConstantReconnectionPolicy(1000), FallthroughRetryPolicy.Instance),
                 new ProtocolOptions(),
                 null,
                 new SocketOptions(),

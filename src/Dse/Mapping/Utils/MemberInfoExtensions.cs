@@ -23,7 +23,7 @@
 
 using System.Reflection;
 
-namespace Cassandra.Mapping.Utils
+namespace Dse.Mapping.Utils
 {
     using System;
     using System.Linq;

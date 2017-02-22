@@ -16,10 +16,10 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Serialization;
-using IgnoreAttribute = Cassandra.Mapping.Attributes.IgnoreAttribute;
+using Dse.Serialization;
+using IgnoreAttribute = Dse.Mapping.Attributes.IgnoreAttribute;
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     internal static class TestHelper
     {

@@ -6,18 +6,18 @@
 //
 
 using System;
-using Cassandra.Requests;
-using Cassandra.Serialization;
+using Dse.Requests;
+using Dse.Serialization;
 using NUnit.Framework;
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     [TestFixture]
     public class RequestHandlerTests
     {
         private static Configuration GetConfig(QueryOptions queryOptions = null)
         {
-            return new Configuration(new Policies(),
+            return new Configuration(new Dse.Policies(),
                 new ProtocolOptions(),
                 null,
                 new SocketOptions(),
@@ -158,7 +158,7 @@ namespace Cassandra.Tests
         [Test]
         public void RequestExecution_GetRetryDecision_Test()
         {
-            var policy = Policies.DefaultRetryPolicy;
+            var policy = Dse.Policies.DefaultRetryPolicy;
             var statement = new SimpleStatement("SELECT WILL FAIL");
             //Using default retry policy the decision will always be to rethrow on read/write timeout
             var expected = RetryDecision.RetryDecisionType.Rethrow;

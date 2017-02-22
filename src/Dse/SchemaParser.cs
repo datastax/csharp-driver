@@ -12,11 +12,11 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Cassandra.Serialization;
-using Cassandra.Tasks;
-using SortOrder = Cassandra.DataCollectionMetadata.SortOrder;
+using Dse.Serialization;
+using Dse.Tasks;
+using SortOrder = Dse.DataCollectionMetadata.SortOrder;
 
-namespace Cassandra
+namespace Dse
 {
     internal abstract class SchemaParser
     {

@@ -11,11 +11,11 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
-using Cassandra.Mapping;
-using Cassandra.Mapping.Statements;
-using Cassandra.Tasks;
+using Dse.Mapping;
+using Dse.Mapping.Statements;
+using Dse.Tasks;
 
-namespace Cassandra.Data.Linq
+namespace Dse.Data.Linq
 {
     /// <summary>
     /// Represents an INSERT/UPDATE/DELETE command with support for Lightweight transactions.

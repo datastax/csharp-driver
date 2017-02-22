@@ -8,7 +8,7 @@
 #if !NETCORE
 using System.Data.Common;
 
-namespace Cassandra.Data
+namespace Dse.Data
 {
     /// <summary>
     /// Implementation of the <see cref="System.Data.IDbDataAdapter"/> interface. Provides

@@ -7,7 +7,7 @@
 
 using System.Net;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// The default <c>AddressTranslater</c> used by the driver that performs no translation, returning the same IPEndPoint as the one provided.

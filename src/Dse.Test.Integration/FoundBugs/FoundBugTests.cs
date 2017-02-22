@@ -11,11 +11,11 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.FoundBugs
+namespace Dse.Test.Integration.FoundBugs
 {
     [TestFixture, Category("long")]
     public class FoundBugTests : TestGlobals
@@ -76,7 +76,7 @@ namespace Cassandra.IntegrationTests.FoundBugs
                 }
                 catch (Exception e)
                 {
-                    if (e.GetType() == typeof (Cassandra.NoHostAvailableException))
+                    if (e.GetType() == typeof (NoHostAvailableException))
                     {
                         noHostAvailableExceptionWasCaught = true;
                     }
@@ -101,7 +101,7 @@ namespace Cassandra.IntegrationTests.FoundBugs
                 }
                 catch (Exception e)
                 {
-                    if (e.GetType() == typeof (Cassandra.NoHostAvailableException))
+                    if (e.GetType() == typeof (NoHostAvailableException))
                     {
                         Trace.TraceInformation("Host still not up yet, waiting another one second ... ");
                         Thread.Sleep(1000);

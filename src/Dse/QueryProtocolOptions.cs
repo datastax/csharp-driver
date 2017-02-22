@@ -7,9 +7,9 @@
 
 using System;
 using System.Collections.Generic;
-using Cassandra.Serialization;
+using Dse.Serialization;
 
-namespace Cassandra
+namespace Dse
 {
     public class QueryProtocolOptions
     {

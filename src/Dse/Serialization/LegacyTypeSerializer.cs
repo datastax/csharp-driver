@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Cassandra.Serialization
+namespace Dse.Serialization
 {
     /// <summary>
     /// Legacy <see cref="ITypeSerializer"/> to support <see cref="ITypeAdapter"/>.

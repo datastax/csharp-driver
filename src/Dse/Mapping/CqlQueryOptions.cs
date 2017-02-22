@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Cassandra.Mapping
+namespace Dse.Mapping
 {
     /// <summary>
     /// Represents options available on a per-query basis.

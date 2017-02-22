@@ -5,13 +5,13 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using ﻿Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 using System;
 using System.Diagnostics;
 using System.Linq.Expressions;
+using Dse.Test.Integration.TestClusterManagement;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Dse.Test.Integration.Core
 {
     [TestFixture, Category("short")]
     public class ConnectionTimeoutTest : TestGlobals

@@ -10,10 +10,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Cassandra.Mapping;
-using Cassandra.Mapping.Attributes;
+using Dse.Mapping;
+using Dse.Mapping.Attributes;
 
-namespace Cassandra.Tests.Mapping.Pocos
+namespace Dse.Test.Unit.Mapping.Pocos
 {
     [Table("attr_mapping_class_table")]
     public class AttributeMappingClass

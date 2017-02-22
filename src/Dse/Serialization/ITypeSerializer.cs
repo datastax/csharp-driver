@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Cassandra.Serialization
+namespace Dse.Serialization
 {
     internal interface ITypeSerializer
     {

@@ -10,11 +10,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using Cassandra.Mapping;
-using Cassandra.Mapping.Statements;
-using Cassandra.Mapping.TypeConversion;
+using Dse.Mapping;
+using Dse.Mapping.Statements;
+using Dse.Mapping.TypeConversion;
 
-namespace Cassandra.Data.Linq
+namespace Dse.Data.Linq
 {
     /// <summary>
     /// A Linq IQueryProvider that represents a table in Cassandra

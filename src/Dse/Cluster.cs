@@ -12,12 +12,12 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Collections;
-using Cassandra.Serialization;
-using Cassandra.Tasks;
+using Dse.Collections;
+using Dse.Serialization;
+using Dse.Tasks;
 using Microsoft.IO;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Implementation of <see cref="ICluster"/>

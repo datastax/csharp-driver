@@ -11,7 +11,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.Extensions.Logging;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Represents a driver Logger

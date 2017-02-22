@@ -8,7 +8,7 @@
 using System;
 using System.Runtime.Serialization;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Top level class for exceptions thrown by the driver.

@@ -11,7 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Cassandra.Mapping
+namespace Dse.Mapping
 {
     internal class Page<T> : IPage<T>
     {

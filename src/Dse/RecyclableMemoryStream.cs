@@ -27,7 +27,7 @@
 // THE SOFTWARE.
 // ---------------------------------------------------------------------
 
-using Cassandra.Collections;
+using Dse.Collections;
 
 namespace Microsoft.IO
 {

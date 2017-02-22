@@ -8,7 +8,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace  Cassandra.IntegrationTests.Mapping.Structures
+namespace Dse.Test.Integration.Mapping.Structures
 {
     /// <summary>
     /// A user class that should have fluent mappings defined in the FluentUserMapping class.

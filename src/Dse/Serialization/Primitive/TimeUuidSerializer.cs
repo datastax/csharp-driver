@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Cassandra.Serialization.Primitive
+namespace Dse.Serialization.Primitive
 {
     internal class TimeUuidSerializer : TypeSerializer<TimeUuid>
     {

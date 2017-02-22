@@ -7,9 +7,9 @@
 
 using System;
 using System.Numerics;
-using Cassandra.Serialization;
+using Dse.Serialization;
 
-namespace Cassandra
+namespace Dse
 {
     public class BigIntegerTypeAdapter : ITypeAdapter
     {

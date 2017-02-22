@@ -10,9 +10,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using Cassandra.Mapping;
+using Dse.Mapping;
 
-namespace Cassandra.Data.Linq
+namespace Dse.Data.Linq
 {
     /// <summary>
     /// A type definition that uses Linq attributes on the class to determine its settings.
@@ -112,7 +112,7 @@ namespace Cassandra.Data.Linq
                 return new LinqAttributeBasedTypeDefinition(type, null, null);
             }
             //Use the default mapping attributes
-            return new Cassandra.Mapping.Attributes.AttributeBasedTypeDefinition(type);
+            return new Mapping.Attributes.AttributeBasedTypeDefinition(type);
         }
 
         public IColumnDefinition GetColumnDefinition(FieldInfo field)

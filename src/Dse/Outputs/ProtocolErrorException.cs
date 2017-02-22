@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Cassandra
+namespace Dse
 {
     public class ProtocolErrorException : QueryValidationException
     {

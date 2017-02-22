@@ -7,11 +7,11 @@
 
 using System;
 using System.Collections.Generic;
-using Cassandra.Data.Linq;
+using Dse.Data.Linq;
 using NUnit.Framework;
 #pragma warning disable 618
 
-namespace Cassandra.IntegrationTests.CqlFunctions.Structures
+namespace Dse.Test.Integration.CqlFunctions.Structures
 {
     [Table("EntityWithTimeUuid")]
     [AllowFiltering]

@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Cassandra.Mapping.Attributes
+namespace Dse.Mapping.Attributes
 {
     /// <summary>
     /// Determines that there is a secondary index defined for the column

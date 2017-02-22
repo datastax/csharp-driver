@@ -5,9 +5,9 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
-using Cassandra.Tests;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Unit;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -15,9 +15,9 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using SortOrder = Cassandra.DataCollectionMetadata.SortOrder;
+using SortOrder = Dse.DataCollectionMetadata.SortOrder;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Dse.Test.Integration.Core
 {
     [TestFixture, Category("long")]
     public class MetadataTests : TestGlobals

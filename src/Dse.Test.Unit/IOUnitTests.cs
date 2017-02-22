@@ -15,13 +15,13 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Compression;
-using Cassandra.Responses;
-using Cassandra.Serialization;
-using Cassandra.Tasks;
+using Dse.Compression;
+using Dse.Responses;
+using Dse.Serialization;
+using Dse.Tasks;
 using Microsoft.IO;
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     [TestFixture]
     public class IOUnitTests

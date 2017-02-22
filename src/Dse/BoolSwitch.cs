@@ -7,7 +7,7 @@
 
 using System.Threading;
 
-namespace Cassandra
+namespace Dse
 {
     internal class BoolSwitch
     {

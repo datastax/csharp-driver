@@ -7,7 +7,7 @@
 
 using System;
 
-namespace Cassandra.Mapping.Attributes
+namespace Dse.Mapping.Attributes
 {
     /// <summary>
     /// Tells the mapper to ignore mapping this property.

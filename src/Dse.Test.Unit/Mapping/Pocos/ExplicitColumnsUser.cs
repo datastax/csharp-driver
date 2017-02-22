@@ -6,10 +6,10 @@
 //
 
 using System;
-using Cassandra.Mapping;
-using Cassandra.Mapping.Attributes;
+using Dse.Mapping;
+using Dse.Mapping.Attributes;
 
-namespace  Cassandra.Tests.Mapping.Pocos
+namespace Dse.Test.Unit.Mapping.Pocos
 {
     /// <summary>
     /// A user decorated with attributes indicating how it should be mapped, specifically the ExplicitColumnsAttribute.

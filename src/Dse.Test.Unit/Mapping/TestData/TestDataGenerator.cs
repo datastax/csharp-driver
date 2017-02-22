@@ -11,7 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace Cassandra.Tests.Mapping.TestData
+namespace Dse.Test.Unit.Mapping.TestData
 {
     /// <summary>
     /// Static utility class to help with generating test data.

@@ -11,7 +11,7 @@ using System.Net;
 using System.Linq;
 using System.Threading;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     ///  A wrapper load balancing policy that add token awareness to a child policy.

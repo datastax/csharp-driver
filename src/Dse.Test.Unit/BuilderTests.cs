@@ -13,7 +13,7 @@ using System.Net.Sockets;
 using System.Text;
 using NUnit.Framework;
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     [TestFixture]
     public class BuilderTests

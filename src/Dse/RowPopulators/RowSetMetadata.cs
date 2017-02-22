@@ -9,7 +9,7 @@ using System;
 using System.Collections.Generic;
 
 // ReSharper disable once CheckNamespace
-namespace Cassandra
+namespace Dse
 {
     [Flags]
     internal enum RowSetMetadataFlags

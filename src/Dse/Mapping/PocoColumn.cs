@@ -8,7 +8,7 @@
 using System;
 using System.Reflection;
 
-namespace Cassandra.Mapping
+namespace Dse.Mapping
 {
     internal class PocoColumn
     {

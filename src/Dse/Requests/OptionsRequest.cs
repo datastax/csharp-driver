@@ -6,9 +6,9 @@
 //
 
 using System.IO;
-using Cassandra.Serialization;
+using Dse.Serialization;
 
-namespace Cassandra.Requests
+namespace Dse.Requests
 {
     internal class OptionsRequest : IRequest
     {

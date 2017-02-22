@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-namespace Cassandra.Serialization
+namespace Dse.Serialization
 {
     /// <summary>
     /// Base serializer for custom types.

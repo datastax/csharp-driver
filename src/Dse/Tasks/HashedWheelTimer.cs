@@ -9,11 +9,9 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
-using Cassandra.Collections;
 
-namespace Cassandra.Tasks
+namespace Dse.Tasks
 {
     /// <summary>
     /// A reusable low precision timer with approximate scheduling

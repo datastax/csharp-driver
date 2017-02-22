@@ -8,10 +8,10 @@
 using System;
 using System.Linq;
 using System.Numerics;
-using Cassandra.Serialization;
-using Cassandra.Serialization.Primitive;
+using Dse.Serialization;
+using Dse.Serialization.Primitive;
 
-namespace Cassandra.Tests.Extensions.Serializers
+namespace Dse.Test.Unit.Extensions.Serializers
 {
     /// <summary>
     /// A BigDecimal serializer

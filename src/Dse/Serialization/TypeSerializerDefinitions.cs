@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Cassandra.Serialization
+namespace Dse.Serialization
 {
     /// <summary>
     /// Contains <see cref="TypeSerializer{T}"/> definitions for the driver to use, replacing the default ones.

@@ -8,7 +8,7 @@
 using System;
 using System.Data.Common;
 
-namespace Cassandra
+namespace Dse
 {
     public class CassandraConnectionStringBuilder : DbConnectionStringBuilder
     {

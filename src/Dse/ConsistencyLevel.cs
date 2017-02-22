@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Consistency refers to how up-to-date and synchronized a row of Cassandra data is on all of its replicas.

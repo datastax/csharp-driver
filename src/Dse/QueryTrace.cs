@@ -9,9 +9,9 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
-using Cassandra.Tasks;
+using Dse.Tasks;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// The Cassandra trace for a query. 

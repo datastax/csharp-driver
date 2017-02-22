@@ -8,7 +8,7 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 
-namespace Dse.Test.Integration.TestBase
+namespace Dse.Test.Integration.TestClusterManagement
 {
     public abstract class CcmProcessExecuter : ICcmProcessExecuter
     {

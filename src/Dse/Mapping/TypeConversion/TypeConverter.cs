@@ -12,7 +12,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace Cassandra.Mapping.TypeConversion
+namespace Dse.Mapping.TypeConversion
 {
     /// <summary>
     /// A factory for retrieving Functions capable of converting between two Types.  To use custom Type conversions, inheritors

@@ -11,11 +11,10 @@ using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Text;
-using Cassandra;
-using Cassandra.Serialization;
+using Dse;
+using Dse.Serialization;
 using Dse.Geometry;
 using Dse.Graph;
-using Dse.Policies;
 using Dse.Serialization.Geometry;
 
 namespace Dse

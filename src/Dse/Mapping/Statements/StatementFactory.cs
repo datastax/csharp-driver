@@ -11,9 +11,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Tasks;
+using Dse.Tasks;
 
-namespace Cassandra.Mapping.Statements
+namespace Dse.Mapping.Statements
 {
     /// <summary>
     /// Creates statements from CQL that can be executed with the C* driver.

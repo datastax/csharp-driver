@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Threading;
 
 // ReSharper disable CheckNamespace
-namespace Cassandra
+namespace Dse
 {
     internal class OutputRows : IOutput
     {

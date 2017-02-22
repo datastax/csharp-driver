@@ -9,15 +9,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Mapping.Structures;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.Mapping;
-using Cassandra.Serialization;
-using Cassandra.Tests.Mapping.Pocos;
+using Dse.Data.Linq;
+using Dse.Test.Integration.Mapping.Structures;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Mapping;
+using Dse.Serialization;
+using Dse.Test.Unit.Mapping.Pocos;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Mapping.Tests
+namespace Dse.Test.Integration.Mapping.Tests
 {
     [Category("short")]
     public class InsertTests : SharedClusterTest

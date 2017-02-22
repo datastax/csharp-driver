@@ -12,10 +12,10 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Globalization;
 using System.Threading;
-﻿using Cassandra.IntegrationTests.TestBase;
+﻿using Dse.Test.Integration.TestClusterManagement;
 ﻿using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.Core
+namespace Dse.Test.Integration.Core
 {
     [Category("short")]
     public class SessionExecuteAsyncTests : SharedClusterTest

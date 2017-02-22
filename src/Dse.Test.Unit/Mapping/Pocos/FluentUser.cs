@@ -8,7 +8,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace  Cassandra.Tests.Mapping.Pocos
+namespace Dse.Test.Unit.Mapping.Pocos
 {
     /// <summary>
     /// A user class that should have fluent mappings defined in the FluentUserMapping class.

@@ -10,12 +10,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Cassandra.Data.Linq;
-using Cassandra.Mapping;
-using Cassandra.Tests.Mapping.Pocos;
+using Dse.Data.Linq;
+using Dse.Mapping;
+using Dse.Test.Unit.Mapping.Pocos;
 using NUnit.Framework;
 
-namespace Cassandra.Tests.Mapping.Linq
+namespace Dse.Test.Unit.Mapping.Linq
 {
     [TestFixture]
     public class LinqToCqlFunctionTests : MappingTestBase

@@ -9,19 +9,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Linq.Structures;
-using Cassandra.IntegrationTests.Mapping.Structures;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.Mapping;
-using Cassandra.Mapping.Attributes;
-using Cassandra.Tests.Mapping.FluentMappings;
-using Cassandra.Tests.Mapping.Pocos;
+using Dse.Data.Linq;
+using Dse.Test.Integration.Linq.Structures;
+using Dse.Test.Integration.Mapping.Structures;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Mapping;
+using Dse.Mapping.Attributes;
+using Dse.Test.Unit.Mapping.FluentMappings;
+using Dse.Test.Unit.Mapping.Pocos;
 using NUnit.Framework;
 #pragma warning disable 618
 #pragma warning disable 612
 
-namespace Cassandra.IntegrationTests.Mapping.Tests
+namespace Dse.Test.Integration.Mapping.Tests
 {
     [Category("short")]
     public class Attributes : SharedClusterTest
@@ -172,7 +172,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         }
 
         /// <summary>
-        /// Verify that inserting a mapped object that totally omits the Cassandra.Mapping.Attributes.PartitionKey silently fails.
+        /// Verify that inserting a mapped object that totally omits the Dse.Mapping.Attributes.PartitionKey silently fails.
         /// However, using mapping and a different Poco that has the key, records can be inserted and fetched into the same table
         /// </summary>
         [Test]
@@ -255,7 +255,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         }
 
         /// <summary>
-        /// Verify that inserting a mapped object without specifying Cassandra.Mapping.Attributes.PartitionKey does not fail
+        /// Verify that inserting a mapped object without specifying Dse.Mapping.Attributes.PartitionKey does not fail
         /// This also validates that not all columns need to be included for the Poco insert / fetch to succeed
         /// </summary>
         [Test, TestCassandraVersion(2, 0)]
@@ -533,30 +533,30 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// Private test classes
         /////////////////////////////////////////
 
-        [Cassandra.Mapping.Attributes.Table("SimplePocoWithColumnLabel_CustomColumnName")]
+        [Dse.Mapping.Attributes.Table("SimplePocoWithColumnLabel_CustomColumnName")]
         public class SimplePocoWithColumnLabel_CustomColumnName
         {
-            [Cassandra.Mapping.Attributes.Column("someCaseSensitivePartitionKey")]
-            [Cassandra.Mapping.Attributes.PartitionKey]
+            [Dse.Mapping.Attributes.Column("someCaseSensitivePartitionKey")]
+            [Dse.Mapping.Attributes.PartitionKey]
             public string SomePartitionKey = "defaultPartitionKeyVal";
-            [Cassandra.Mapping.Attributes.Column("some_column_label_thats_different")]
+            [Dse.Mapping.Attributes.Column("some_column_label_thats_different")]
             public int SomeColumn = 191991919;
         }
 
         public class SimplePocoWithColumnAttribute
         {
-            [Cassandra.Mapping.Attributes.PartitionKey]
+            [Dse.Mapping.Attributes.PartitionKey]
             public string SomePartitionKey = "defaultPartitionKeyVal";
-            [Cassandra.Mapping.Attributes.Column]
+            [Dse.Mapping.Attributes.Column]
             public int SomeColumn = 121212121;
         }
 
 
         public class SimplePocoWithSecondaryIndex
         {
-            [Cassandra.Mapping.Attributes.PartitionKey]
+            [Dse.Mapping.Attributes.PartitionKey]
             public string SomePartitionKey;
-            [Cassandra.Mapping.Attributes.SecondaryIndex]
+            [Dse.Mapping.Attributes.SecondaryIndex]
             public int SomeSecondaryIndex = 1;
 
             public SimplePocoWithSecondaryIndex() { }
@@ -570,54 +570,54 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         private class SimplePocoWithPartitionKey
         {
             public string StringTyp = "someStringValue";
-            [Cassandra.Mapping.Attributes.PartitionKey]
+            [Dse.Mapping.Attributes.PartitionKey]
             public string StringType = "someStringValue";
             public string StringTypeNotPartitionKey = "someStringValueNotPk";
         }
 
         private class PocoWithIgnoredAttributes
         {
-            [Cassandra.Mapping.Attributes.PartitionKey]
+            [Dse.Mapping.Attributes.PartitionKey]
             public string SomePartitionKey = "somePartitionKeyDefaultValue";
             public double SomeNonIgnoredDouble = 123456;
-            [Cassandra.Mapping.Attributes.Ignore]
+            [Dse.Mapping.Attributes.Ignore]
             public string IgnoredStringAttribute = "someIgnoredString";
         }
 
         /// <summary>
         /// Test poco class that uses both Linq and Cassandra.Mapping attributes at the same time
         /// </summary>
-        [Cassandra.Data.Linq.Table("pocowithignrdattr_linqandmapping")]
+        [Dse.Data.Linq.Table("pocowithignrdattr_linqandmapping")]
         private class PocoWithIgnrdAttr_LinqAndMapping
         {
-            [Cassandra.Data.Linq.PartitionKey]
-            [Cassandra.Mapping.Attributes.PartitionKey]
-            [Cassandra.Data.Linq.Column("somepartitionkey")]
+            [Dse.Data.Linq.PartitionKey]
+            [Dse.Mapping.Attributes.PartitionKey]
+            [Dse.Data.Linq.Column("somepartitionkey")]
             public string SomePartitionKey = "somePartitionKeyDefaultValue";
 
-            [Cassandra.Data.Linq.Column("somenonignoreddouble")]
+            [Dse.Data.Linq.Column("somenonignoreddouble")]
             public double SomeNonIgnoredDouble = 123456;
 
-            [Cassandra.Mapping.Attributes.Ignore]
-            [Cassandra.Data.Linq.Column(Attributes.IgnoredStringAttribute)]
+            [Dse.Mapping.Attributes.Ignore]
+            [Dse.Data.Linq.Column(Attributes.IgnoredStringAttribute)]
             public string IgnoredStringAttribute = "someIgnoredString";
         }
 
         /// <summary>
         /// See PocoWithIgnoredAttributes for correctly implemented counterpart
         /// </summary>
-        [Cassandra.Data.Linq.Table("pocowithwrongfieldlabeledpk")]
+        [Dse.Data.Linq.Table("pocowithwrongfieldlabeledpk")]
         private class PocoWithWrongFieldLabeledPk
         {
-            [Cassandra.Data.Linq.PartitionKey]
-            [Cassandra.Data.Linq.Column("somepartitionkey")]
+            [Dse.Data.Linq.PartitionKey]
+            [Dse.Data.Linq.Column("somepartitionkey")]
             public string SomePartitionKey = "somePartitionKeyDefaultValue";
 
-            [Cassandra.Data.Linq.Column("somenonignoreddouble")]
+            [Dse.Data.Linq.Column("somenonignoreddouble")]
             public double SomeNonIgnoredDouble = 123456;
 
-            [Cassandra.Mapping.Attributes.PartitionKey]
-            [Cassandra.Data.Linq.Column("someotherstring")]
+            [Dse.Mapping.Attributes.PartitionKey]
+            [Dse.Data.Linq.Column("someotherstring")]
             public string SomeOtherString = "someOtherString";
         }
 
@@ -643,7 +643,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// </summary>
         private class PocoMislabeledClusteringKey
         {
-            [Cassandra.Mapping.Attributes.ClusteringKey]
+            [Dse.Mapping.Attributes.ClusteringKey]
             public string SomeString = "someStringValue";
         }
 
@@ -661,7 +661,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// </summary>
         private class PocoWithPartitionKeyIncluded
         {
-            [Cassandra.Mapping.Attributes.PartitionKey]
+            [Dse.Mapping.Attributes.PartitionKey]
             public string SomeString = "somePartitionKeyDefaultValue";
             public double SomeDouble = (double)123456;
             public List<string> SomeList = new List<string>();
@@ -680,48 +680,48 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             }
         }
 
-        [Cassandra.Data.Linq.Table("pocowithcompositekey")]
+        [Dse.Data.Linq.Table("pocowithcompositekey")]
         private class PocoWithCompositeKey
         {
-            [Cassandra.Data.Linq.PartitionKey(1)]
-            [Cassandra.Mapping.Attributes.PartitionKey(1)]
-            [Cassandra.Data.Linq.Column("somepartitionkey1")]
+            [Dse.Data.Linq.PartitionKey(1)]
+            [Dse.Mapping.Attributes.PartitionKey(1)]
+            [Dse.Data.Linq.Column("somepartitionkey1")]
             public string SomePartitionKey1 = "somepartitionkey1_val";
 
-            [Cassandra.Data.Linq.PartitionKey(2)]
-            [Cassandra.Mapping.Attributes.PartitionKey(2)]
-            [Cassandra.Data.Linq.Column("somepartitionkey2")]
+            [Dse.Data.Linq.PartitionKey(2)]
+            [Dse.Mapping.Attributes.PartitionKey(2)]
+            [Dse.Data.Linq.Column("somepartitionkey2")]
             public string SomePartitionKey2 = "somepartitionkey2_val";
 
-            [Cassandra.Data.Linq.Column("listofguids")]
+            [Dse.Data.Linq.Column("listofguids")]
             public List<Guid> ListOfGuids;
 
-            [Cassandra.Mapping.Attributes.Ignore]
-            [Cassandra.Data.Linq.Column("ignoredstring")]
+            [Dse.Mapping.Attributes.Ignore]
+            [Dse.Data.Linq.Column("ignoredstring")]
             public string IgnoredString = "someIgnoredString_val";
         }
 
-        [Cassandra.Data.Linq.Table("pocowithclusteringkeys")]
+        [Dse.Data.Linq.Table("pocowithclusteringkeys")]
         private class PocoWithClusteringKeys
         {
-            [Cassandra.Data.Linq.PartitionKey(1)]
-            [Cassandra.Mapping.Attributes.PartitionKey(1)]
-            [Cassandra.Data.Linq.Column("somepartitionkey1")]
+            [Dse.Data.Linq.PartitionKey(1)]
+            [Dse.Mapping.Attributes.PartitionKey(1)]
+            [Dse.Data.Linq.Column("somepartitionkey1")]
             public string SomePartitionKey1 = "somepartitionkey1_val";
 
-            [Cassandra.Data.Linq.PartitionKey(2)]
-            [Cassandra.Mapping.Attributes.PartitionKey(2)]
-            [Cassandra.Data.Linq.Column("somepartitionkey2")]
+            [Dse.Data.Linq.PartitionKey(2)]
+            [Dse.Mapping.Attributes.PartitionKey(2)]
+            [Dse.Data.Linq.Column("somepartitionkey2")]
             public string SomePartitionKey2 = "somepartitionkey2_val";
 
-            [Cassandra.Data.Linq.ClusteringKey(1)]
-            [Cassandra.Mapping.Attributes.ClusteringKey(1)]
-            [Cassandra.Data.Linq.Column("guid1")]
+            [Dse.Data.Linq.ClusteringKey(1)]
+            [Dse.Mapping.Attributes.ClusteringKey(1)]
+            [Dse.Data.Linq.Column("guid1")]
             public Guid Guid1;
 
-            [Cassandra.Data.Linq.ClusteringKey(2)]
-            [Cassandra.Mapping.Attributes.ClusteringKey(2)]
-            [Cassandra.Data.Linq.Column("guid2")]
+            [Dse.Data.Linq.ClusteringKey(2)]
+            [Dse.Mapping.Attributes.ClusteringKey(2)]
+            [Dse.Data.Linq.Column("guid2")]
             public Guid Guid2;
 
 

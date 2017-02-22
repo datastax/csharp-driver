@@ -8,7 +8,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Represents a table column information
