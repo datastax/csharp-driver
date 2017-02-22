@@ -1,5 +1,5 @@
-title:    DataStax C# Driver
-summary:  DataStax C# Driver for Apache Cassandra
+title:    "DataStax Enterprise C# Driver"
+summary:  "A C# driver built for DataStax Enterprise"
 theme:    datastax
 sections:
   - title:    Features
@@ -9,12 +9,14 @@ sections:
   - title:    Frequently Asked Questions
     prefix:   /faq
     type:     markdown
-    files:    'doc/faq/**/*.md'
+    files:    'doc/faq/**/*.md'  
+  - title:    Getting started
+    prefix:   /getting-started
+    type:     markdown
+    files:    'doc/getting-started/**/*.md'
 links:
   - title: Code
-    href:  https://github.com/datastax/csharp-driver/
-  - title: API docs
-    href:  http://docs.datastax.com/en/latest-csharp-driver-api/html/N_Cassandra.htm
+    href:  https://github.com/datastax/csharp-driver-dse/
   - title: Issues
     href:  https://datastax-oss.atlassian.net/projects/CSHARP/issues
   - title: Mailing List
@@ -22,15 +24,12 @@ links:
   - title: IRC Channel
     href:  irc://irc.freenode.net/datastax-drivers
   - title: Nuget
-    href:  https://www.nuget.org/packages/CassandraCSharpDriver
+    href:  https://www.nuget.org/packages/Dse
 api_docs:
-  3.0: http://docs.datastax.com/en/drivers/csharp/3.0
-  3.1: http://docs.datastax.com/en/drivers/csharp/3.1
-  3.2: http://docs.datastax.com/en/drivers/csharp/3.2
+  1.0: http://docs.datastax.com/en/drivers/csharp-dse/1.0
+  1.1: http://docs.datastax.com/en/drivers/csharp-dse/1.1
 versions:
-  - name: '3.2'
+  - name: '1.1'
     ref: 'master'
-  - name: '3.1'
-    ref: '3.1'
-  - name: '3.0'
-    ref: '3.0'
+  - name: '1.0'
+    ref: '1.0'

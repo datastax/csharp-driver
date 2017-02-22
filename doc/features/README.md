@@ -1,7 +1,6 @@
 # Features
 
-The DataStax C# Driver for Apache Cassandra is feature-rich and highly tunable C# client library for Apache
-Cassandra (1.2+) using exclusively Cassandra's binary protocol and Cassandra Query Language v3.
+The DataStax Enterprise C# Driver is feature-rich and highly tunable C# client library for [DataStax Enterprise][dse].
 
 ## Usage
 
@@ -14,6 +13,8 @@ Cassandra (1.2+) using exclusively Cassandra's binary protocol and Cassandra Que
     - [ADO.NET](components/adonet)
 - [Connection hearbeat](connection-heartbeat)
 - [Connection pooling](connection-pooling)
+- [Geospatial types support](geotypes)
+- [Graph support](graph-support)
 - [Native protocol](native-protocol)
 - [Query warnings](query-warnings)
 - [Result paging](paging)
@@ -23,3 +24,6 @@ Cassandra (1.2+) using exclusively Cassandra's binary protocol and Cassandra Que
 - [Tuning policies](tuning-policies)
 - [User-defined functions and aggregates](udfs)
 - [User-defined types](udts)
+
+
+[dse]: http://www.datastax.com/products/datastax-enterprise

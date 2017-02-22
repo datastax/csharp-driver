@@ -1,12 +1,9 @@
 os:
   - ubuntu/trusty64
-cassandra:
-  - 2.0
-  - 2.1
-  - 2.2
-  - 3.0
-  - 3.7
 env:
+  DSE_VERSION:
+    - 4.8.11
+    - 5.0.4
   CSHARP_VERSION:
     - mono
     - netcore
@@ -16,14 +13,20 @@ build:
       export JAVA_HOME=$CCM_JAVA_HOME
       export PATH=$JAVA_HOME/bin:$PATH
 
-      # Define Cassandra runtime
-      echo "==========setting cassandra version=========="
-      export CASSANDRA_VERSION=$CCM_CASSANDRA_VERSION
+      export DSE_IN_REMOTE_SERVER="false"
+      export DSE_PATH="/home/jenkins/.ccm/repository/$DSE_VERSION"
+      export DSE_INITIAL_IPPREFIX="127.0.0."
+
+      echo $DSE_VERSION
+      echo $DSE_PATH
+      echo $DSE_INITIAL_IPPREFIX
+      echo $CSHARP_VERSION
+
       echo "==========installing saxon parser==========="
       sudo apt-get install -y libsaxon-java
- 
+
       if [ $CSHARP_VERSION = 'mono' ]; then
-          echo "==========csharp verion mono=========="
+          echo "==========csharp verion dse mono=========="
           # Define alias for Nuget
           nuget() {
                 mono /home/jenkins/nuget/NuGet.exe "$@"
@@ -31,26 +34,26 @@ build:
           export -f nuget
           # Install the required packages
           export EnableNuGetPackageRestore=true
-          nuget restore src/Cassandra.sln
+          nuget restore src/Dse.sln
           nuget install NUnit.Runners -Version 3.4.1 -OutputDirectory testrunner
           # Compile the driver and test code
-          xbuild /p:Configuration=Release /v:m /p:restorepackages=false src/Cassandra.sln
+          xbuild /p:Configuration=Release /v:m /p:restorepackages=false src/Dse.sln
           # Run the tests
           echo "==========RUNNING FULL SUITE OF TESTS=========="
-          mono ./testrunner/NUnit.ConsoleRunner.3.4.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/Cassandra.IntegrationTests.dll --where:cat=short --labels=All --result:"TestResult_nunit3.xml"
+          mono ./testrunner/NUnit.ConsoleRunner.3.4.1/tools/nunit3-console.exe src/Dse.Test.Integration/bin/Release/Dse.Test.Integration.dll --where:cat=short --labels=All --result:"TestResult_nunit3.xml"
 
       else
-         echo "==========csharp verion netcore=========="
+         echo "==========csharp verion dse netcore=========="
           # Install the required packages
           dotnet restore
 
           # Run the tests
           echo "==========RUNNING FULL SUITE OF TESTS=========="
-          pushd src/Cassandra.IntegrationTests
-          dotnet test -f netcoreapp1.0 --work=../../ --where:cat=short --result=TestResult_nunit3.xml
+          pushd src/Dse.Test.Integration
+          dotnet test -f netcoreapp1.0 --work=../../ --result=TestResult_nunit3.xml
           popd
       fi
       echo "==========parsing nunit3 report================"
-      saxon-xslt -o TestResult.xml TestResult_nunit3.xml tools/nunit3-xunit.xslt
+      saxon-xslt -o TestResult.xml TestResult_nunit3.xml build/nunit3-xunit.xslt
   - xunit:
     - "TestResult.xml"

@@ -1,9 +1,29 @@
 # FAQ
 
-## Should I create multiple ISession instances in my client application?
+### Which versions of DSE does the driver support?
+
+The driver supports versions from 4.8 to 5 of [DataStax Enterprise][dse].
+
+### How can I upgrade from the Apache Cassandra driver to the DSE driver?
+
+There is a section in the [Getting Started](../getting-started/) page.
+
+## Should I create multiple `IDseSession` instances in my client application?
 
 Normally you should use one `ISession` instance per application. You should share that instance between classes within
-your application.
+your application. In the case you are using CQL and Graph workloads on a single application, it is recommended that
+you use 2 different instances.
+
+### Can I use a single `IDseCluster` and `IDseSession` instance for graph and CQL?
+
+It's currently not recommended, as different different workloads should be distributed across different datacenters
+and the load balancing policy should select the appropriate coordinator for each workload.
+We are planning to introduce execution profiles, that will allow you to use the same `IDseSession` instance
+for all workloads.
+
+### Should I dispose or shut down `IDseCluster` or `IDseSession` instances after executing a query?
+
+No, only call `cluster.Shutdown()` once in your application's lifetime, normally when you shutdown your application.
 
 ## How can I enable logging in the driver?
 

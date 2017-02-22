@@ -1,242 +1,222 @@
-# DataStax C# Driver for Apache Cassandra
+# DataStax Enterprise C# Driver
 
-A modern, [feature-rich][features] and highly tunable C# client library for Apache Cassandra (1.2+) and DataStax
-Enterprise (3.1+) using exclusively Cassandra's binary protocol and Cassandra Query Language v3.
+This driver is built on top of [DataStax C# driver for Apache Cassandra][cassandra-driver] and provides the following
+additions for [DataStax Enterprise][dse]:
+
+* `IAuthenticator` implementations that use the authentication scheme negotiation in the server-side
+`DseAuthenticator`.
+* [DSE graph][dse-graph] integration.
+* Serializers for geospatial types which integrate seamlessly with the driver.
+
+The DataStax Enterprise C# Driver can be used solely with DataStax Enterprise. Please consult
+[the license](#license).
+
 
 ## Installation
 
 [Get it on Nuget][nuget]
 
-```bash
-PM> Install-Package CassandraCSharpDriver
+```
+PM> Install-Package Dse
 ```
 
-[![Build status](https://travis-ci.org/datastax/csharp-driver.svg?branch=master)](https://travis-ci.org/datastax/csharp-driver)
-[![Windows Build status](https://ci.appveyor.com/api/projects/status/ri1olv8bl7b7yk7y/branch/master?svg=true)](https://ci.appveyor.com/project/DataStax/csharp-driver/branch/master)
-[![Latest stable](https://img.shields.io/nuget/v/CassandraCSharpDriver.svg)](https://www.nuget.org/packages/CassandraCSharpDriver)
-
-## Features
-
-- Sync and [Async](#asynchronous-api) API
-- Simple, [Prepared](#prepared-statements), and [Batch](#batching-statements) statements
-- Asynchronous IO, parallel execution, request pipelining
-- Connection pooling
-- Auto node discovery
-- Automatic reconnection
-- Configurable [load balancing][policies] and [retry policies][policies]
-- Works with any cluster size
-- [Linq2Cql][linq] and Ado.Net support
+[![Build status](https://travis-ci.org/datastax/csharp-driver-dse.svg?branch=master)](https://travis-ci.org/datastax/csharp-driver-dse)
+[![Windows Build status](https://ci.appveyor.com/api/projects/status/yuk0p8i8r2l9f6xk/branch/master?svg=true)](https://ci.appveyor.com/project/DataStax/csharp-driver-dse/branch/master)
+[![Latest stable on Nuget.org](https://img.shields.io/nuget/v/Dse.svg)](https://www.nuget.org/packages/Dse)
 
 ## Documentation
 
-- [Documentation index][docindex]
-- [Getting started guide][getting-started]
-- [API docs][apidocs]
+- [Documentation index][doc-index]
+- [API docs][api-docs]
+- [FAQ][faq]
 
 ## Getting Help
 
-You can use the project [Mailing list][mailinglist] or create a ticket on the [Jira issue tracker][jira].
+You can use the [project mailing list][mailing-list] or create a ticket on the [Jira issue tracker][jira].
 
-## Upgrading from previous versions
+## Getting Started
 
-If you are upgrading from the 2.1 branch of the driver, be sure to have a look at the [upgrade guide][upgrade-to-250].
-
-If you are upgrading from the 1.x branch of the driver, follow the [upgrade guide to 2.0][upgrade-to-200], and then the above document.
-
-## Basic Usage
+`IDseCluster` and `IDseSession` extend their CQL driver counterparts, so you can use `Dse` instances to execute CQL
+queries.
 
 ```csharp
-//Create a cluster instance using 3 cassandra nodes.
-var cluster = Cluster.Builder()
-  .AddContactPoints("host1", "host2", "host3")
-  .Build();
-//Create connections to the nodes using a keyspace
-var session = cluster.Connect("sample_keyspace");
-//Execute a query on a connection synchronously
-var rs = session.Execute("SELECT * FROM sample_table");
-//Iterate through the RowSet
-foreach (var row in rs)
+using Dse;
+```
+
+```csharp
+IDseCluster cluster = DseCluster.Builder()
+                                .AddContactPoint("127.0.0.1")
+                                .Build();
+IDseSession session = cluster.Connect();
+Row row = session.Execute("select * from system.local").First();
+Console.WriteLine(row.GetValue<string>("cluster_name"));
+```
+
+## Authentication
+
+For clients connecting to a DSE cluster secured with `DseAuthenticator`, two authentication providers are included:
+
+* `DsePlainTextAuthProvider`: plain-text authentication;
+* `DseGSSAPIAuthProvider`: GSSAPI authentication.
+
+To configure a provider, pass it when initializing the cluster:
+
+```csharp
+using Dse;
+using Dse.Auth;
+```
+
+```csharp
+IDseCluster dseCluster = DseCluster.Builder()
+    .AddContactPoint("127.0.0.1")
+    .WithAuthProvider(new DseGssapiAuthProvider())
+    .Build();
+```
+
+## Graph
+
+`IDseSession` has dedicated methods to execute graph queries:
+
+```csharp
+using Dse.Graph;
+```
+
+```csharp
+session.ExecuteGraph("system.createGraph('demo').ifNotExist().build()");
+
+GraphStatement s1 = new SimpleGraphStatement("g.addV(label, 'test_vertex')").SetGraphName("demo");
+session.ExecuteGraph(s1);
+
+GraphStatement s2 = new SimpleGraphStatement("g.V()").SetGraphName("demo");
+GraphResultSet rs = session.ExecuteGraph(s2);
+Vertex vertex = rs.First();
+Console.WriteLine(vertex.Label);
+```
+
+### Graph options
+
+You can set default graph options when initializing the cluster. They will be used for all graph statements. For
+example, to avoid repeating `SetGraphName("demo")` on each statement:
+
+```csharp
+IDseCluster dseCluster = DseCluster.Builder()
+    .AddContactPoint("127.0.0.1")
+    .WithGraphOptions(new GraphOptions().SetName("demo"))
+    .Build();
+```
+
+If an option is set manually on a `GraphStatement`, it always takes precedence; otherwise the default option is used.
+This might be a problem if a default graph name is set, but you explicitly want to execute a statement targeting
+`system`, for which no graph name must be set. In that situation, use `GraphStatement.SetSystemQuery()`:
+
+```csharp
+GraphStatement s = new SimpleGraphStatement("system.createGraph('demo').ifNotExist().build()")
+    .SetSystemQuery();
+session.ExecuteGraph(s);
+```
+
+### Query execution
+
+As explained, graph statements can be executed with the session's `ExecuteGraph` method. There is also an
+asynchronous equivalent called `ExecuteGraphAsync`.
+
+### Handling results
+
+Graph queries return a `GraphResultSet`, which is essentially an enumerable of `GraphNode`:
+
+```csharp
+GraphResultSet rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
+
+// Iterating as GraphNode
+foreach (GraphNode r in rs)
 {
-  var value = row.GetValue<int>("sample_int_column");
-  //do something with the value
+    Console.WriteLine(r);
 }
 ```
+
+`GraphNode` represent a response item returned by the server. You can cast the result to a specific type as it
+implements implicit conversion operators to `Vertex`, `Edge` and `Path`:
+
+```csharp
+GraphResultSet rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
+
+// Iterating as Vertex
+foreach (Vertex vextex in rs)
+{
+    Console.WriteLine(vertex.Label);
+}
+```
+
+`GraphNode` also provides conversion methods for scalar values like `ToDouble()`, `ToInt32()` and `ToString()`:
+
+```csharp
+GraphNode r = session.ExecuteGraph(new SimpleGraphStatement("g.V().count()")).First();
+Console.WriteLine("The graph has {0} vertices.", r.ToInt32());
+```
+
+`GraphNode` inherits from [`DynamicObject`][dynamic], allowing you to consume it using the `dynamic` keyword and/or
+as a dictionary. 
+
+```csharp
+dynamic r = session.ExecuteGraph(new SimpleGraphStatement("g.V()")).First();
+```
+
+### Parameters
+
+Graph query parameters are always named. Parameter bindings are passed as an anonymous type or as a
+`IDictionary<string, object>` alongside the query:
+
+```csharp
+session.ExecuteGraph("g.addV(label, vertexLabel)", new { vertexLabel = "test_vertex_2" });
+```
+
+Note that, unlike in CQL, Gremlin placeholders are not prefixed with ":".
 
 ### Prepared statements
 
-Prepare your query **once** and bind different parameters to obtain best performance.
+Prepared graph statements are not supported by DSE Graph yet (they will be added in the near future).
+
+## Geospatial types
+
+DSE 5 comes with a set of additional types to represent geospatial data: `PointType`, `LineStringType` and
+`PolygonType`:
+
+```
+cqlsh> CREATE TABLE points_of_interest(name text PRIMARY KEY, coords 'PointType');
+cqlsh> INSERT INTO points_of_interest (name, coords) VALUES ('Eiffel Tower', 'POINT(48.8582 2.2945)');
+```
+
+The DSE driver includes C# representations of these types, that can be used directly in queries:
 
 ```csharp
-//Prepare a statement once
-var ps = session.Prepare("UPDATE user_profiles SET birth=? WHERE key=?");
+using Dse.Geometry;
+```
 
-//...bind different parameters every time you need to execute
-var statement = ps.Bind(new DateTime(1942, 11, 27), "hendrix");
-//Execute the bound statement with the provided parameters
+```csharp
+Row row = session.Execute("SELECT coords FROM points_of_interest WHERE name = 'Eiffel Tower'").First();
+Point coords = row.GetValue<Point>("coords");
+
+var statement = new SimpleStatement("INSERT INTO points_of_interest (name, coords) VALUES (?, ?)",
+    "Washington Monument", 
+    new Point(38.8895, 77.0352));
 session.Execute(statement);
 ```
 
-### Batching statements
-
-You can execute multiple statements (prepared or unprepared) in a batch to update/insert several rows atomically even in different column families.
-
-```csharp
-//Prepare the statements involved in a profile update once
-var profileStmt = session.Prepare("UPDATE user_profiles SET email=? WHERE key=?");
-var userTrackStmt = session.Prepare("INSERT INTO user_track (key, text, date) VALUES (?, ?, ?)");
-//...you should reuse the prepared statement
-//Bind the parameters and add the statement to the batch batch
-var batch = new BatchStatement()
-  .Add(profileStmt.Bind(emailAddress, "hendrix"))
-  .Add(userTrackStmt.Bind("hendrix", "You changed your email", DateTime.Now));
-//Execute the batch
-session.Execute(batch);
-```
-
-### Asynchronous API
-
-Session allows asynchronous execution of statements (for any type of statement: simple, bound or batch) by exposing the `ExecuteAsync` method.
-
-```csharp
-//Execute a statement asynchronously using await
-var rs = await session.ExecuteAsync(statement);
-```
-
-### Avoid boilerplate mapping code
-
-The driver features a built-in [Mapper][mapper] and [Linq][linq] components that can use to avoid boilerplate mapping code between cql rows and your application entities.
-
-```csharp
-User user = mapper.Single<User>("SELECT name, email FROM users WHERE id = ?", userId);
-```
-
-See the [driver components documentation][components] for more information.
-
-### Automatic pagination of results
-
-You can iterate indefinitely over the `RowSet`, having the rows fetched block by block until the rows available on the client side are exhausted.
-
-```csharp
-var statement = new SimpleStatement("SELECT * from large_table");
-//Set the page size, in this case the RowSet will not contain more than 1000 at any time
-statement.SetPageSize(1000);
-var rs = session.Execute(statement);
-foreach (var row in rs)
-{
-  //The enumerator will yield all the rows from Cassandra
-  //Retrieving them in the back in blocks of 1000.
-}
-```
-
-### User defined types mapping
-
-You can map your [Cassandra User Defined Types][udt] to your application entities.
-
-For a given udt
-```cql
-CREATE TYPE address (
-  street text,
-  city text,
-  zip_code int,
-  phones set<text>
-);
-```
-For a given class
-```csharp
-public class Address
-{
-  public string Street { get; set; }
-  public string City { get; set; }
-  public int ZipCode { get; set; }
-  public IEnumerable<string> Phones { get; set;}
-}
-```
-
-You can either map the properties by name
-```csharp
-//Map the properties by name automatically
-session.UserDefinedTypes.Define(
-  UdtMap.For<Address>()
-);
-```
-Or you can define the properties manually
-```csharp
-session.UserDefinedTypes.Define(
-  UdtMap.For<Address>()
-    .Map(a => a.Street, "street")
-    .Map(a => a.City, "city")
-    .Map(a => a.ZipCode, "zip_code")
-    .Map(a => a.Phones, "phones")
-);
-```
-
-You should **map your [UDT][udt] to your entity once** and you will be able to use that mapping during all your application lifetime.
-
-```csharp
-var rs = session.Execute("SELECT id, name, address FROM users where id = x");
-var row = rs.First();
-//You can retrieve the field as a value of type Address
-var userAddress = row.GetValue<Address>("address");
-Console.WriteLine("user lives on {0} Street", userAddress.Street);
-```
-
-
-### Setting cluster and statement execution options
-
-You can set the options on how the driver connects to the nodes and the execution options.
-
-```csharp
-//Example at cluster level
-var cluster = Cluster
-  .Builder()
-  .AddContactPoints(hosts)
-  .WithCompression(CompressionType.LZ4)
-  .WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("west"));
-
-//Example at statement (simple, bound, batch) level
-var statement = new SimpleStatement(query)
-  .SetConsistencyLevel(ConsistencyLevel.Quorum)
-  .SetRetryPolicy(DowngradingConsistencyRetryPolicy.Instance)
-  .SetPageSize(1000);
-```
-## Feedback Requested
-
-**Help us focus our efforts!** Provide your input on the [Platform and Runtime Survey][survey] (we kept it short).
-
-## Building and running the tests
-
-You can use Visual Studio or msbuild to build the solution. 
-
-[Check the documentation for building the driver from source and running the tests](https://github.com/datastax/csharp-driver/wiki/Building-and-running-tests).
-
 ## License
-Copyright 2012-2016, DataStax.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+Copyright 2016 DataStax
 
-http://www.apache.org/licenses/LICENSE-2.0
+http://www.datastax.com/terms/datastax-dse-driver-license-terms
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-  [apidocs]: http://docs.datastax.com/en/drivers/csharp/3.2/
-  [docindex]: http://docs.datastax.com/en/developer/csharp-driver/latest/
-  [features]: http://docs.datastax.com/en/developer/csharp-driver/latest/features/
-  [getting-started]: https://academy.datastax.com/resources/getting-started-apache-cassandra-and-c-net
-  [nuget]: https://nuget.org/packages/CassandraCSharpDriver/
-  [mailinglist]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
-  [jira]: https://datastax-oss.atlassian.net/projects/CSHARP/issues
-  [udt]: http://docs.datastax.com/en/cql/3.1/cql/cql_reference/cqlRefUDType.html
-  [poco]: http://en.wikipedia.org/wiki/Plain_Old_CLR_Object
-  [linq]: http://docs.datastax.com/en/developer/csharp-driver/latest/features/components/linq/
-  [mapper]: http://docs.datastax.com/en/developer/csharp-driver/latest/features/components/mapper/
-  [components]: http://docs.datastax.com/en/developer/csharp-driver/latest/features/components/
-  [policies]: http://docs.datastax.com/en/developer/csharp-driver/latest/features/tuning-policies/
-  [upgrade-to-250]: https://github.com/datastax/csharp-driver/blob/master/doc/upgrade-guide-2.5.md
-  [upgrade-to-200]: https://github.com/datastax/csharp-driver/blob/master/doc/upgrade-guide-2.0.md
-  [survey]: http://goo.gl/forms/3BxcP8nKs6
+[dse]: http://www.datastax.com/products/datastax-enterprise
+[dse-graph]: http://www.datastax.com/products/datastax-enterprise-graph
+[cassandra-driver]: https://github.com/datastax/csharp-driver
+[core-driver-docs]: http://docs.datastax.com/en/developer/csharp-driver-dse/latest/
+[modern]: http://tinkerpop.apache.org/docs/3.1.1-incubating/reference/#_the_graph_structure
+[nuget]: https://nuget.org/packages/Dse/
+[dynamic]: https://msdn.microsoft.com/en-us/library/dd264736.aspx
+[jira]: https://datastax-oss.atlassian.net/projects/CSHARP/issues
+[mailing-list]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
+[doc-index]: http://docs.datastax.com/en/developer/csharp-driver-dse/latest/
+[api-docs]: http://docs.datastax.com/en/drivers/csharp-dse/1.1/
+[faq]: http://docs.datastax.com/en/developer/csharp-driver-dse/latest/faq/
