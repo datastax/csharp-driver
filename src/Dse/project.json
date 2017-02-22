@@ -2,24 +2,26 @@
   "version": "2.0.0-beta1",
   "name": "Dse",
   "authors": [ "DataStax" ],
-  "title": "DataStax C# Driver for Apache Cassandra",
-  "description": "A modern, feature-rich and highly tunable C# client library for Apache Cassandra (1.2+) and DataStax Enterprise (3.1+) using exclusively Cassandra's binary protocol and Cassandra Query Language v3.\nFeatures: Sync and Async API; Simple, Prepared and Batch statements; Asynchronous IO, parallel execution, request pipelining; Connection pooling; Auto node discovery.\nWorks with any Cassandra cluster size.",
-  "copyright": "Copyright © 2016 by DataStax",
+  "title": "DataStax Enterprise C# Driver",
+  "description": "Built on top of DataStax C# driver for Apache Cassandra, it provides additional features designed for DataStax Enterprise.",
+  "copyright": "Copyright © 2017 by DataStax",
   "packOptions": {
-    "summary": "A modern, feature-rich and highly tunable C# client library for Apache Cassandra and DataStax Enterprise",
-    "licenseUrl": "https://github.com/datastax/csharp-driver/blob/master/LICENSE",
-    "tags": [ "cassandra", "apache", "datastax", "driver", "client", "database", "nosql", "dotnet", "netcore", "db" ],
-    "repository": { "url": "https://github.com/datastax/csharp-driver" }
+    "summary": "Built on top of DataStax C# driver for Apache Cassandra, it provides additional features designed for DataStax Enterprise.",
+    "licenseUrl": "https://github.com/datastax/csharp-driver/blob/master/LICENSE.txt",
+    "tags": [ "cassandra", "apache", "datastax", "driver", "client", "database", "nosql", "dotnet", "netcore", "db", "dse" ],
+    "repository": { "url": "https://github.com/datastax/csharp-driver-dse" }
   },
   "buildOptions": {
     "warningsAsErrors": true,
     "keyFile": "../../build/datastax.snk",
     "xmlDoc": true,
-    "nowarn": [ "1591" ]
+    "nowarn": [ "1591" ],
+    "languageVersion": "csharp5"
   },
   "dependencies": {
     "Microsoft.Extensions.Logging": "1.0.0",
-    "Microsoft.Extensions.Logging.Abstractions": "1.0.0"
+    "Microsoft.Extensions.Logging.Abstractions": "1.0.0",
+    "Newtonsoft.Json": "9.0.1"
   },
   "frameworks": {
     "net45": {
@@ -35,12 +37,16 @@
     },
     "netstandard1.5": {
       "buildOptions": {
-        "define": [ "NETCORE" ]
+        "define": [ "NETCORE" ],
+        "compile": {
+          "exclude": [ "Auth/Sspi/**" ]
+        }
       },
       "dependencies": {
         "System.Collections": "4.0.11",
         "System.Collections.Concurrent": "4.0.12",
         "System.Data.Common": "4.1.0",
+        "System.Diagnostics.FileVersionInfo": "4.0.0",
         "System.Diagnostics.StackTrace": "4.0.1",
         "System.Diagnostics.TraceSource": "4.0.0",
         "System.Globalization.Calendars": "4.0.1",

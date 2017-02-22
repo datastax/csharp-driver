@@ -14,7 +14,8 @@
       "target": "project"
     },
     "NUnit": "3.4.1",
-    "dotnet-test-nunit": "3.4.0-beta-1"
+    "dotnet-test-nunit": "3.4.0-beta-1",
+    "SSH.NET": "2016.0.0"
   },
   "frameworks": {
     "net452": {

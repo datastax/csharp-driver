@@ -56,6 +56,9 @@
   <ItemGroup>
     <Compile Include="AbstractResponseTest.cs" />
     <Compile Include="AdoUnitTests.cs" />
+    <Compile Include="ApiTests.cs" />
+    <Compile Include="Auth\DsePlainTextAuthProviderTests.cs" />
+    <Compile Include="BaseUnitTest.cs" />
     <Compile Include="BuilderTests.cs" />
     <Compile Include="ClusterTests.cs" />
     <Compile Include="CollectionTests.cs" />
@@ -63,9 +66,17 @@
     <Compile Include="ControlConnectionTests.cs" />
     <Compile Include="CustomTypeSerializerTests.cs" />
     <Compile Include="DataTypeParserTests.cs" />
+    <Compile Include="DseClusterBuilderTests.cs" />
+    <Compile Include="EndianBitConverterTests.cs" />
     <Compile Include="Extensions\Serializers\BigDecimalSerializer.cs" />
     <Compile Include="Extensions\Serializers\DummyCustomTypeSerializer.cs" />
     <Compile Include="Extensions\Serializers\UdtSerializerWrapper.cs" />
+    <Compile Include="Geometry\LineStringTests.cs" />
+    <Compile Include="Geometry\PointTests.cs" />
+    <Compile Include="Geometry\PolygonTests.cs" />
+    <Compile Include="Graph\ExecuteGraphTests.cs" />
+    <Compile Include="Graph\GraphOptionsTests.cs" />
+    <Compile Include="Graph\GraphResultTests.cs" />
     <Compile Include="HostConnectionPoolTests.cs" />
     <Compile Include="HostTests.cs" />
     <Compile Include="IOUnitTests.cs" />
@@ -125,6 +136,7 @@
     <Compile Include="ObsoletedMemberTests.cs" />
     <Compile Include="OutputErrorTests.cs" />
     <Compile Include="PoliciesUnitTests.cs" />
+    <Compile Include="Policies\DseLoadBalancingTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RequestHandlerTests.cs" />
     <Compile Include="ResponseFrameTest.cs" />

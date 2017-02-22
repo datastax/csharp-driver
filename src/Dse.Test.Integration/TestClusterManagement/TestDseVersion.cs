@@ -33,11 +33,4 @@ namespace Cassandra.IntegrationTests.TestBase
             Comparison = comparison;
         }
     }
-
-    public enum Comparison
-    {
-        LessThan = -1, 
-        Equal = 0, 
-        GreaterThanOrEqualsTo = 1
-    };
 }

@@ -16,6 +16,7 @@
   "dependencies": {
     "lz4net": "1.0.10.93",
     "Microsoft.Extensions.Logging": "1.0.0",
-    "Microsoft.Extensions.Logging.Abstractions": "1.0.0"
+    "Microsoft.Extensions.Logging.Abstractions": "1.0.0",
+    "Newtonsoft.Json": "9.0.1"
   }
 }

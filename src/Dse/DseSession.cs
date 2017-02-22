@@ -12,7 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Cassandra;
 using Dse.Graph;
-using Dse.Tasks;
+using Cassandra.Tasks;
 
 namespace Dse
 {
