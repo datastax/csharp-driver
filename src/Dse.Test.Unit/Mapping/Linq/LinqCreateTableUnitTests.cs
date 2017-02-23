@@ -14,7 +14,6 @@ using Dse.Data.Linq;
 using Dse.Mapping;
 using Dse.Serialization;
 using Dse.Test.Unit.Mapping.Pocos;
-using Dse.Test.Unit.Mapping.Pocos;
 using Moq;
 using NUnit.Framework;
 

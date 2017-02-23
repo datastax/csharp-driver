@@ -10,7 +10,6 @@ using System.Diagnostics;
 using System.Threading;
 using Dse.Test.Integration.Policies.Util;
 using Dse.Test.Integration.TestClusterManagement;
-using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Policies.Tests

@@ -9,7 +9,6 @@ using System.Diagnostics;
 using Dse.Data.Linq;
 using Dse.Test.Integration.Linq.Structures;
 using Dse.Test.Integration.TestClusterManagement;
-using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;

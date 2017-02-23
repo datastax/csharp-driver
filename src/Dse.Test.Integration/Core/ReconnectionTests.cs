@@ -14,7 +14,6 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using Dse.Test.Integration.TestClusterManagement;
-using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Unit;
 using NUnit.Framework;
 

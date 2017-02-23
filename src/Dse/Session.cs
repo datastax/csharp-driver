@@ -21,7 +21,7 @@ namespace Dse
     /// <summary>
     /// Implementation of <see cref="ISession"/>.
     /// </summary>
-    /// <inheritdoc cref="Cassandra.ISession" />
+    /// <inheritdoc cref="ISession" />
     public class Session : ISession
     {
         private readonly Serializer _serializer;

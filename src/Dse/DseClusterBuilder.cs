@@ -272,7 +272,7 @@ namespace Dse
         /// <summary>
         ///  Configure the speculative execution to use for the new cluster. 
         /// <para> 
-        /// If no speculative execution policy is set through this method, <see cref="Cassandra.Policies.DefaultSpeculativeExecutionPolicy"/> will be used instead.
+        /// If no speculative execution policy is set through this method, <see cref="Dse.Policies.DefaultSpeculativeExecutionPolicy"/> will be used instead.
         /// </para>
         /// </summary>
         /// <param name="policy"> the speculative execution policy to use </param>
@@ -334,7 +334,7 @@ namespace Dse
         /// Default timeout value is set to <code>20,000</code> (20 seconds).
         /// </summary>
         /// <remarks>
-        /// If you want to define a read timeout at a lower level, you can use <see cref="Cassandra.SocketOptions.SetReadTimeoutMillis(int)"/>.
+        /// If you want to define a read timeout at a lower level, you can use <see cref="SocketOptions.SetReadTimeoutMillis(int)"/>.
         /// </remarks>
         /// <param name="queryAbortTimeout">Timeout specified in milliseconds.</param>
         /// <returns>this builder</returns>

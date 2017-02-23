@@ -9,7 +9,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Threading;
 using Dse.Test.Integration.TestClusterManagement;
-using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration

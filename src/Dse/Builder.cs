@@ -404,7 +404,7 @@ namespace Dse
         /// Default timeout value is set to <code>20,000</code> (20 seconds).
         /// </summary>
         /// <remarks>
-        /// If you want to define a read timeout at a lower level, you can use <see cref="Cassandra.SocketOptions.SetReadTimeoutMillis(int)"/>.
+        /// If you want to define a read timeout at a lower level, you can use <see cref="SocketOptions.SetReadTimeoutMillis(int)"/>.
         /// </remarks>
         /// <param name="queryAbortTimeout">Timeout specified in milliseconds.</param>
         /// <returns>this builder</returns>

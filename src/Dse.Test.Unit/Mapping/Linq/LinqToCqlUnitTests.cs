@@ -21,7 +21,6 @@ using Moq;
 #endif
 using NUnit.Framework;
 using Dse.Tasks;
-using Dse.Test.Unit.Mapping.Pocos;
 
 #pragma warning disable 618
 

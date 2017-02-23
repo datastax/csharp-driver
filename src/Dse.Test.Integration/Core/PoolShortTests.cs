@@ -16,7 +16,6 @@ using System.Threading.Tasks;
 using Dse.Test.Integration.Policies.Util;
 using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
-using Dse.Test.Integration.TestClusterManagement;
 using Dse.Requests;
 using Dse.Tasks;
 using Dse.Test.Unit;

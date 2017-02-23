@@ -12,7 +12,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using Dse.Test.Integration.TestClusterManagement;
-using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Policies.Tests

@@ -24,7 +24,7 @@ namespace Dse
     ///  you will have to set values by indexes (or the <c>PreparedStatement.Bind(object[])</c>
     ///  method) as the methods to set by name only allows to set the first prepared
     ///  occurrence of the column.</p>
-    /// <seealso cref="Cassandra.PreparedStatement"/>
+    /// <seealso cref="PreparedStatement"/>
     /// </summary>
     public class BoundStatement : Statement
     {

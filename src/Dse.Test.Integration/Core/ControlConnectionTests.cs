@@ -13,7 +13,6 @@ using System.Net;
 using System.Text;
 using NUnit.Framework;
 using Dse.Test.Integration.TestClusterManagement;
-using Dse.Test.Integration.TestClusterManagement;
 
 namespace Dse.Test.Integration.Core
 {

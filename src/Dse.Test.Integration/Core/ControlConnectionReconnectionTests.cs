@@ -14,7 +14,6 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using Dse.Test.Integration.TestClusterManagement;
-using Dse.Test.Integration.TestClusterManagement;
 using Dse.Tasks;
 using Moq;
 using NUnit.Framework;

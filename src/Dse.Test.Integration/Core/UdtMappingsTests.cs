@@ -6,7 +6,6 @@
 //
 
 using Dse.Test.Integration.TestClusterManagement;
-using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;

@@ -15,7 +15,6 @@ using System.Text;
 using Dse.Data.Linq;
 using Dse.Mapping;
 using Dse.Test.Unit.Mapping.Pocos;
-using Dse.Test.Unit.Mapping.Pocos;
 using NUnit.Framework;
 
 namespace Dse.Test.Unit.Mapping.Linq

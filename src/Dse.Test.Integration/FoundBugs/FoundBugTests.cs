@@ -12,7 +12,6 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using Dse.Test.Integration.TestClusterManagement;
-using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.FoundBugs

@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Dse.Test.Integration.Policies.Util;
 using Dse.Test.Integration.TestClusterManagement;
-using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Policies.Tests

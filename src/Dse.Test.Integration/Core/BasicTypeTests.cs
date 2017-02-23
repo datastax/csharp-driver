@@ -14,7 +14,6 @@ using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using System.Net;
 using Dse.Test.Integration.TestClusterManagement;
-using Dse.Test.Integration.TestClusterManagement;
 using System.Reflection;
 using NUnit.Framework;
 #pragma warning disable 618

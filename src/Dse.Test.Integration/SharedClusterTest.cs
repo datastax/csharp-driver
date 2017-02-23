@@ -11,7 +11,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using Dse.Test.Integration.TestClusterManagement;
-using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration
