@@ -24,7 +24,7 @@ IMapper mapper = new Mapper(session);
 ```
 
 New `Mapper` instances can be created each time they are needed, as short-lived instances, as long as you are
-reusing the same `ISession` instance.
+reusing the same `ISession` instance and mapping configuration.
 
 The Mapper works by mapping the column names in your CQL statement to the property names on your classes.
 
@@ -90,6 +90,10 @@ Then, you can assign the mappings class in your configuration.
 ```csharp
 MappingConfiguration.Global.Define<MyMappings>();
 ```
+
+You should map one C# class per table. The Mapper component of the driver will use the configuration defined 
+when creating the `Mapper` instance to determine to which keyspace and table it maps to, using 
+`MappingConfiguration.Global` when not specified.
 
 ## Mapper API example 
 
