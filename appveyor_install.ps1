@@ -5,12 +5,12 @@ $env:PATHEXT="$($env:PATHEXT);.PY"
 $dep_dir="$($env:HOMEPATH)\deps"
 
 $computerSystem = Get-CimInstance CIM_ComputerSystem
-$computerOS = Get-CimInstance CIM_OperatingSystem
 $computerCPU = Get-CimInstance CIM_Processor
 
 Write-Host "System Information for: " $computerSystem.Name
 "CPU: " + $computerCPU.Name
 "RAM: " + "{0:N2}" -f ($computerSystem.TotalPhysicalMemory/1GB) + "GB"
+"OS: " + [System.Environment]::OSVersion
 
 Write-Host "Install..."
 
