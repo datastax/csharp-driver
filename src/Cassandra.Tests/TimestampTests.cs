@@ -23,7 +23,7 @@ namespace Cassandra.Tests
         public void AtomicMonotonicTimestampGenerator_Should_Log_When_Drifting_Above_Threshold()
         {
             var loggerHandler = new TestHelper.TestLoggerHandler();
-            var generator = new AtomicMonotonicTimestampGenerator(100, 1000, new Logger(loggerHandler));
+            var generator = new AtomicMonotonicTimestampGenerator(80, 1000, new Logger(loggerHandler));
             TimestampGeneratorLogDriftingTest(generator, loggerHandler);
         }
 
@@ -31,7 +31,7 @@ namespace Cassandra.Tests
         public void AtomicMonotonicTimestampGenerator_Should_Log_After_Cooldown()
         {
             var loggerHandler = new TestHelper.TestLoggerHandler();
-            var generator = new AtomicMonotonicTimestampGenerator(100, 1000, new Logger(loggerHandler));
+            var generator = new AtomicMonotonicTimestampGenerator(80, 1000, new Logger(loggerHandler));
             TimestampGeneratorLogAfterCooldownTest(generator, loggerHandler);
         }
 
@@ -46,7 +46,7 @@ namespace Cassandra.Tests
         public void AtomicMonotonicWinApiTimestampGenerator_Should_Log_When_Drifting_Above_Threshold()
         {
             var loggerHandler = new TestHelper.TestLoggerHandler();
-            var generator = new AtomicMonotonicWinApiTimestampGenerator(100, 1000, new Logger(loggerHandler));
+            var generator = new AtomicMonotonicWinApiTimestampGenerator(80, 1000, new Logger(loggerHandler));
             TimestampGeneratorLogDriftingTest(generator, loggerHandler);
         }
 
@@ -54,7 +54,7 @@ namespace Cassandra.Tests
         public void AtomicMonotonicWinApiTimestampGenerator_Should_Log_After_Cooldown()
         {
             var loggerHandler = new TestHelper.TestLoggerHandler();
-            var generator = new AtomicMonotonicWinApiTimestampGenerator(100, 1000, new Logger(loggerHandler));
+            var generator = new AtomicMonotonicWinApiTimestampGenerator(80, 1000, new Logger(loggerHandler));
             TimestampGeneratorLogAfterCooldownTest(generator, loggerHandler);
         }
 
@@ -73,7 +73,7 @@ namespace Cassandra.Tests
             TestHelper.ParallelInvoke(() =>
             {
                 var lastValue = 0L;
-                for (var i = 0; i < 500; i++)
+                for (var i = 0; i < 5000; i++)
                 {
                     var value = generator.Next();
                     Assert.Greater(value, lastValue);
@@ -85,57 +85,49 @@ namespace Cassandra.Tests
         private static void TimestampGeneratorLogDriftingTest(ITimestampGenerator generator,
                                                               TestHelper.TestLoggerHandler loggerHandler)
         {
-            var stopWatch = new Stopwatch();
-            stopWatch.Start();
             // A little less than 3 seconds
             // It should generate a warning initially and then next 2 after 1 second each
             var maxElapsed = TimeSpan.FromSeconds(2.8);
             TestHelper.ParallelInvoke(() =>
             {
-                var lastValue = 0L;
+                var stopWatch = new Stopwatch();
+                stopWatch.Start();
                 while (stopWatch.Elapsed < maxElapsed)
                 {
                     for (var i = 0; i < 10000; i++)
                     {
-                        var value = generator.Next();
-                        Assert.Greater(value, lastValue);
-                        lastValue = value;
+                        generator.Next();
                     }
                 }
-            }, 8);
-            stopWatch.Stop();
+            }, 2);
             Assert.AreEqual(3, loggerHandler.DequeueAllMessages().Count(i => i.Item1 == "warning"));
         }
 
         private static void TimestampGeneratorLogAfterCooldownTest(ITimestampGenerator generator,
                                                                    TestHelper.TestLoggerHandler loggerHandler)
         {
-            var stopWatch = new Stopwatch();
-            stopWatch.Start();
             // It should generate a warning initially and then 1 more
             var maxElapsed = TimeSpan.FromSeconds(1.8);
             Action action = () =>
             {
-                var lastValue = 0L;
+                var stopWatch = new Stopwatch();
+                stopWatch.Start();
                 // ReSharper disable once AccessToModifiedClosure
                 while (stopWatch.Elapsed < maxElapsed)
                 {
                     for (var i = 0; i < 5000; i++)
                     {
-                        var value = generator.Next();
-                        Assert.Greater(value, lastValue);
-                        lastValue = value;
+                        generator.Next();
                     }
                 }
             };
-            TestHelper.ParallelInvoke(action, 8);
+            TestHelper.ParallelInvoke(action, 2);
             Assert.AreEqual(2, loggerHandler.DequeueAllMessages().Count(i => i.Item1 == "warning"));
             // Cooldown: make current time > last generated value
             Thread.Sleep(3000);
-            stopWatch.Restart();
             // It should generate a warning initially
             maxElapsed = TimeSpan.FromSeconds(0.8);
-            TestHelper.ParallelInvoke(action, 8);
+            TestHelper.ParallelInvoke(action, 2);
             Assert.AreEqual(1, loggerHandler.DequeueAllMessages().Count(i => i.Item1 == "warning"));
         }
     }
