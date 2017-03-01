@@ -175,15 +175,19 @@ namespace Dse.Graph
         /// </summary>
         private T GetTokenValue<T>(JToken token)
         {
-            var type = typeof (T);
+            return (T)GetTokenValue(token, typeof(T));
+        }
+
+        private object GetTokenValue(JToken token, Type type)
+        {
             if (token is JValue)
             {
-                if (typeof (T) == typeof (TimeUuid))
+                if (type == typeof (TimeUuid))
                 {
                     // TimeUuid is not Serializable but convertible from Uuid
-                    return (T)(object)(TimeUuid)token.ToObject<Guid>();
+                    return (TimeUuid)token.ToObject<Guid>();
                 }
-                return token.ToObject<T>(Serializer);
+                return token.ToObject(type, Serializer);
             }
             if (token is JObject)
             {
@@ -193,7 +197,7 @@ namespace Dse.Graph
                     throw new InvalidCastException(string.Format("Can not convert from an object tree to {0}: {1}", 
                         type.Name, token));
                 }
-                return (T) (object) new GraphNode(token);
+                return new GraphNode(token);
             }
             if (token is JArray)
             {
@@ -206,7 +210,7 @@ namespace Dse.Graph
                 {
                     elementType = type.GetTypeInfo().GetGenericArguments()[0];
                 }
-                return (T) (object) ToArray((JArray)token, elementType);
+                return ToArray((JArray)token, elementType);
             }
             throw new NotSupportedException(string.Format("Token of type {0} is not supported", token.GetType()));
         }
@@ -336,6 +340,11 @@ namespace Dse.Graph
         public T To<T>()
         {
             return GetTokenValue<T>(_parsedGraphItem);
+        }
+
+        public object To(Type type)
+        {
+            return GetTokenValue(_parsedGraphItem, type);
         }
 
         private Array ToArray(JArray jArray, Type elementType = null)
