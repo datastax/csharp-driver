@@ -28,7 +28,8 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var session = cluster.Connect();
                 TestHelper.ParallelInvoke(() => session.Execute("SELECT * FROM system.local"), 10);
-                Assert.AreEqual(10, generator.GetCounter());
+                // The driver should use the generator against C* 2.1+
+                Assert.AreEqual(CassandraVersion < new Version(2, 1) ? 0 : 10, generator.GetCounter());
             }
         }
 
