@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -70,16 +71,22 @@ namespace Cassandra.Tests
 
         private static void TimestampGeneratorMonitonicityTest(ITimestampGenerator generator)
         {
+            // Use a set to determine the amount of different values
+            const int iterations = 5000;
+            const int threads = 8;
+            var values = new ConcurrentDictionary<long, bool>();
             TestHelper.ParallelInvoke(() =>
             {
                 var lastValue = 0L;
-                for (var i = 0; i < 5000; i++)
+                for (var i = 0; i < iterations; i++)
                 {
                     var value = generator.Next();
                     Assert.Greater(value, lastValue);
                     lastValue = value;
+                    values.TryAdd(value, true);
                 }
-            }, 8);
+            }, threads);
+            Assert.AreEqual(iterations*threads, values.Count);
         }
 
         private static void TimestampGeneratorLogDriftingTest(ITimestampGenerator generator,

@@ -23,6 +23,11 @@ namespace Cassandra
     public class QueryOptions
     {
         /// <summary>
+        /// Represents the 
+        /// </summary>
+        internal static readonly QueryOptions Empty = new QueryOptions();
+
+        /// <summary>
         /// The default consistency level for queries: <c>ConsistencyLevel.LocalOne</c>.
         /// </summary>    
         public const ConsistencyLevel DefaultConsistencyLevel = ConsistencyLevel.LocalOne;

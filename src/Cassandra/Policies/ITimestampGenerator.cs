@@ -13,7 +13,7 @@ namespace Cassandra
     /// monotonically increasing timestamps for successive invocations of <see cref="Next()"/>.
     /// </para>
     /// </summary>
-    public interface ITimestampGenerator : IDisposable
+    public interface ITimestampGenerator
     {
         /// <summary>
         /// Returns the next timestamp in microseconds since UNIX epoch.

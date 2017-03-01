@@ -78,11 +78,6 @@ namespace Cassandra
             _logger = logger;
         }
 
-        public virtual void Dispose()
-        {
-
-        }
-
         /// <summary>
         /// Retrieves the current system-clock time in expressed microseconds since UNIX epoch.
         /// </summary>
