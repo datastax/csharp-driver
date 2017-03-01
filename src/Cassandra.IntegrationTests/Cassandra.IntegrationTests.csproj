@@ -62,6 +62,7 @@
     <Compile Include="Core\PoolShortTests.cs" />
     <Compile Include="Core\ReconnectionTests.cs" />
     <Compile Include="Core\SchemaMetadataTests.cs" />
+    <Compile Include="Core\TimestampTests.cs" />
     <Compile Include="Core\TypeSerializersTests.cs" />
     <Compile Include="Core\UdfTests.cs" />
     <Compile Include="Core\SpeculativeExecutionLongTests.cs" />
