@@ -250,6 +250,10 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
 
             var err = Assert.Throws<InvalidQueryException>(() => mapper.Fetch<ClassWithTwoPartitionKeys>("SELECT * from \"" + table.Name + "\" where \"PartitionKey1\" = '" + instance.PartitionKey1 + "'"));
             string expectedErrMsg = "Partition key part(s:)? PartitionKey2 must be restricted (since preceding part is|as other parts are)";
+            if (CassandraVersion >= Version.Parse("3.10"))
+            {
+                expectedErrMsg = "Cannot execute this query as it might involve data filtering and thus may have unpredictable performance. If you want to execute this query despite the performance unpredictability, use ALLOW FILTERING";
+            }
             StringAssert.IsMatch(expectedErrMsg, err.Message);
 
             Assert.Throws<InvalidQueryException>(() => mapper.Fetch<ClassWithTwoPartitionKeys>("SELECT * from \"" + table.Name + "\" where \"PartitionKey2\" = '" + instance.PartitionKey2 + "'"));
