@@ -17,7 +17,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -29,6 +28,21 @@ namespace Cassandra.Data.Linq
 {
     internal class CqlExpressionVisitor : ExpressionVisitor
     {
+        /// <summary>
+        /// The initial capacity for query string builders.
+        /// </summary>
+        private const int DefaultQueryStringCapacity = 128;
+
+        /// <summary>
+        /// The initial capacity for WHERE and SET string builders.
+        /// </summary>
+        private const int DefaultClauseStringCapacity = 64;
+
+        /// <summary>
+        /// The initial capacity for WHERE and SET list parameters
+        /// </summary>
+        private const int DefaultClauseParameterCapacity = 8;
+
         private readonly string _utf8MaxValue = Encoding.UTF8.GetString(new byte[] { 0xF4, 0x8F, 0xBF, 0xBF });
 
         private static readonly Dictionary<ExpressionType, string> CqlTags = new Dictionary<ExpressionType, string>
@@ -72,15 +86,19 @@ namespace Cassandra.Data.Linq
         private int _limit;
         private readonly List<Tuple<PocoColumn, object, ExpressionType>> _projections = new List<Tuple<PocoColumn, object, ExpressionType>>();
         private readonly List<Tuple<string, bool>> _orderBy = new List<Tuple<string, bool>>();
-        private readonly List<string> _selectFields = new List<string>();
+        private readonly List<string> _selectFields = new List<string>(DefaultClauseParameterCapacity);
+        
         /// <summary>
         /// Represents a pair composed by cql string and the parameters for the WHERE clause
         /// </summary>
-        private readonly Tuple<StringBuilder, List<object>> _whereClause = Tuple.Create(new StringBuilder(), new List<object>());
+        private readonly Tuple<StringBuilder, List<object>> _whereClause = Tuple.Create(
+            new StringBuilder(DefaultClauseStringCapacity), new List<object>(DefaultClauseParameterCapacity));
+
         /// <summary>
         /// Represents a pair composed by cql string and the parameters for the WHERE clause
         /// </summary>
-        private readonly Tuple<StringBuilder, List<object>> _updateIfClause = Tuple.Create(new StringBuilder(), new List<object>());
+        private readonly Tuple<StringBuilder, List<object>> _updateIfClause = Tuple.Create(
+            new StringBuilder(DefaultClauseStringCapacity), new List<object>(DefaultClauseParameterCapacity));
 
         private readonly string _tableName;
         private readonly string _keyspaceName;
@@ -102,7 +120,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public string GetSelect(out object[] values)
         {
-            var query = new StringBuilder();
+            var query = new StringBuilder(DefaultQueryStringCapacity);
             var parameters = new List<object>();
             query.Append("SELECT ");
             query.Append(_selectFields.Count == 0
@@ -156,7 +174,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public string GetDelete(out object[] values, DateTimeOffset? timestamp, bool ifExists)
         {
-            var query = new StringBuilder();
+            var query = new StringBuilder(DefaultQueryStringCapacity);
             var parameters = new List<object>();
             query.Append("DELETE FROM ");
             query.Append(GetEscapedTableName());
@@ -201,7 +219,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public string GetUpdate(out object[] values, int? ttl, DateTimeOffset? timestamp, MapperFactory mapperFactory)
         {
-            var query = new StringBuilder();
+            var query = new StringBuilder(DefaultQueryStringCapacity);
             var parameters = new List<object>();
             query.Append("UPDATE ");
             query.Append(GetEscapedTableName());
@@ -288,7 +306,7 @@ namespace Cassandra.Data.Linq
 
         public string GetCount(out object[] values)
         {
-            var query = new StringBuilder();
+            var query = new StringBuilder(DefaultQueryStringCapacity);
             var parameters = new List<object>();
             query.Append("SELECT count(*) FROM ");
             query.Append(GetEscapedTableName());
@@ -505,7 +523,15 @@ namespace Cassandra.Data.Linq
         /// </summary>
         private Expression AddProjection(Expression node, PocoColumn column = null)
         {
-            var value = Expression.Lambda(node).Compile().DynamicInvoke();
+            object value;
+            if (node is MemberExpression)
+            {
+                value = GetClosureValue((MemberExpression) node);
+            }
+            else
+            {
+                value = Expression.Lambda(node).Compile().DynamicInvoke();
+            }
             if (column == null)
             {
                 column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
@@ -548,8 +574,8 @@ namespace Cassandra.Data.Linq
             {
                 case "Contains":
                 {
-                    Expression what = null;
-                    Expression inp = null;
+                    Expression what;
+                    Expression inp;
                     if (node.Object == null)
                     {
                         what = node.Arguments[1];
@@ -867,111 +893,162 @@ namespace Cassandra.Data.Linq
             switch (_parsePhase.Get())
             {
                 case ParsePhase.Condition:
-                {
-                    var clause = _currentCondition.Get().Item1;
-                    var parameters = _currentCondition.Get().Item2;
-                    if (node.Expression == null)
-                    {
-                        var val = Expression.Lambda(node).Compile().DynamicInvoke();
-                        parameters.Add(val);
-                        clause.Append("?");
-                        return node;
-                    }
-                    if (node.Expression.NodeType == ExpressionType.Parameter)
-                    {
-                        var columnName = _pocoData.GetColumnName(node.Member);
-                        if (columnName == null)
-                        {
-                            throw new InvalidOperationException(
-                                "Trying to order by a field or property that is ignored or not part of the mapping definition.");
-                        }
-                        clause.Append(Escape(columnName));
-                        return node;
-                    }
-                    if (node.Expression.NodeType == ExpressionType.Constant)
-                    {
-                        var val = Expression.Lambda(node).Compile().DynamicInvoke();
-                        if (val is CqlToken)
-                        {
-                            clause.Append("token(");
-                            var tokenPlaceholders = new StringBuilder();
-                            foreach (var pk in (val as CqlToken).Values)
-                            {
-                                parameters.Add(pk);
-                                tokenPlaceholders.Append(tokenPlaceholders.Length == 0 ? "?" : ", ?");
-                            }
-                            clause.Append(")");
-                        }
-                        else
-                        {
-                            parameters.Add(val);
-                            clause.Append("?");
-                        }
-                        return node;
-                    }
-                    if (node.Expression.NodeType == ExpressionType.MemberAccess)
-                    {
-                        var val = Expression.Lambda(node).Compile().DynamicInvoke();
-                        parameters.Add(val);
-                        clause.Append("?");
-                        return node;
-                    }
-                    break;
-                }
+                    return FillCondition(node, _currentCondition.Get().Item1, _currentCondition.Get().Item2);
                 case ParsePhase.SelectBinding:
+                    return FillProjections(node);
+                case ParsePhase.OrderByDescending:
+                case ParsePhase.OrderBy:
+                    return FillOrderBy(node);
+            }
+            throw new CqlLinqNotSupportedException(node, _parsePhase.Get());
+        }
+
+        private Expression FillCondition(MemberExpression node, StringBuilder clause, List<object> parameters)
+        {
+            if (node.Expression == null || node.Expression.NodeType == ExpressionType.MemberAccess)
+            {
+                var val = GetClosureValue(node);
+                parameters.Add(val);
+                clause.Append("?");
+                return node;
+            }
+            if (node.Expression.NodeType == ExpressionType.Parameter)
+            {
+                var columnName = _pocoData.GetColumnName(node.Member);
+                if (columnName == null)
                 {
-                    PocoColumn column;
-                    if (node.Expression == null || node.Expression.NodeType != ExpressionType.Parameter)
+                    throw new InvalidOperationException(
+                        "Trying to order by a field or property that is ignored or not part of the mapping definition.");
+                }
+                clause.Append(Escape(columnName));
+                return node;
+            }
+            if (node.Expression.NodeType == ExpressionType.Constant)
+            {
+                var val = GetClosureValue(node);
+                if (val is CqlToken)
+                {
+                    clause.Append("token(");
+                    var tokenValues = (val as CqlToken).Values;
+                    var tokenPlaceholders = new StringBuilder(tokenValues.Length * 3);
+                    foreach (var pk in tokenValues)
                     {
-                        column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
-                        if (column == null)
-                            break;
-                        if (column.IsCounter)
-                        {
-                            var value = Expression.Lambda(node).Compile().DynamicInvoke();
-                            if (!(value is long || value is int))
-                            {
-                                throw new ArgumentException("Only Int64 and Int32 values are supported as counter increment of decrement values");
-                            }
-                            _projections.Add(Tuple.Create(column, value, ExpressionType.Increment));
-                            _selectFields.Add(column.ColumnName);
-                            return node;
-                        }
-                        AddProjection(node, column);
-                        _selectFields.Add(column.ColumnName);
-                        return node;
+                        parameters.Add(pk);
+                        tokenPlaceholders.Append(tokenPlaceholders.Length == 0 ? "?" : ", ?");
                     }
-                    column = _pocoData.GetColumnByMemberName(node.Member.Name);
-                    if (column == null)
+                    clause.Append(")");
+                }
+                else
+                {
+                    parameters.Add(val);
+                    clause.Append("?");
+                }
+                return node;
+            }
+            return node;
+        }
+
+        private Expression FillProjections(MemberExpression node)
+        {
+            PocoColumn column;
+            if (node.Expression == null || node.Expression.NodeType != ExpressionType.Parameter)
+            {
+                column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
+                if (column == null)
+                {
+                    throw new InvalidOperationException("No mapping defined for member: " + node.Member.Name);
+                }
+                if (column.IsCounter)
+                {
+                    var value = Expression.Lambda(node).Compile().DynamicInvoke();
+                    if (!(value is long || value is int))
                     {
-                        throw new InvalidOperationException("No mapping defined for member: " + node.Member.Name);
+                        throw new ArgumentException("Only Int64 and Int32 values are supported as counter increment of decrement values");
                     }
-                    _projections.Add(Tuple.Create(column, (object)column.ColumnName, ExpressionType.Assign));
+                    _projections.Add(Tuple.Create(column, value, ExpressionType.Increment));
                     _selectFields.Add(column.ColumnName);
                     return node;
                 }
-                case ParsePhase.OrderByDescending:
-                case ParsePhase.OrderBy:
-                {
-                    var columnName = _pocoData.GetColumnName(node.Member);
-                    if (columnName == null)
-                    {
-                        throw new InvalidOperationException(
-                            "Trying to order by a field or property that is ignored or not part of the mapping definition.");
-                    }
-                    _orderBy.Add(Tuple.Create(columnName, _parsePhase.Get() == ParsePhase.OrderBy));
-                    if ((node.Expression is ConstantExpression))
-                    {
-                        return node;
-                    }
-                    if (node.Expression.NodeType == ExpressionType.Parameter)
-                    {
-                        return node;
-                    }
-                    break;
-                }
+                AddProjection(node, column);
+                _selectFields.Add(column.ColumnName);
+                return node;
+            }
+            column = _pocoData.GetColumnByMemberName(node.Member.Name);
+            if (column == null)
+            {
+                throw new InvalidOperationException("No mapping defined for member: " + node.Member.Name);
+            }
+            _projections.Add(Tuple.Create(column, (object)column.ColumnName, ExpressionType.Assign));
+            _selectFields.Add(column.ColumnName);
+            return node;
+        }
+
+        private Expression FillOrderBy(MemberExpression node)
+        {
+            var columnName = _pocoData.GetColumnName(node.Member);
+            if (columnName == null)
+            {
+                throw new InvalidOperationException(
+                    "Trying to order by a field or property that is ignored or not part of the mapping definition.");
+            }
+            _orderBy.Add(Tuple.Create(columnName, _parsePhase.Get() == ParsePhase.OrderBy));
+            if ((node.Expression is ConstantExpression))
+            {
+                return node;
+            }
+            if (node.Expression.NodeType == ExpressionType.Parameter)
+            {
+                return node;
             }
             throw new CqlLinqNotSupportedException(node, _parsePhase.Get());
+        }
+
+        private static object GetClosureValue(MemberExpression node)
+        {
+            object value;
+            if (node.Member.MemberType == MemberTypes.Field)
+            {
+                value = GetFieldValue(node);
+            }
+            else if (node.Member.MemberType == MemberTypes.Property)
+            {
+                value = GetPropertyValue(node);
+            }
+            else
+            {
+                value = Expression.Lambda(node).Compile().DynamicInvoke();
+            }
+            return value;
+        }
+
+        private static object GetFieldValue(MemberExpression node)
+        {
+            var fieldInfo = (FieldInfo)node.Member;
+            if (node.Expression is MemberExpression)
+            {
+                // The field of a field instance
+                var instance = GetFieldValue((MemberExpression)node.Expression);
+                return fieldInfo.GetValue(instance);
+            }
+            if (node.Expression == null)
+            {
+                // Static field
+                return fieldInfo.GetValue(null);
+            }
+            return fieldInfo.GetValue(((ConstantExpression)node.Expression).Value);
+        }
+
+        private static object GetPropertyValue(MemberExpression node)
+        {
+            var propertyInfo = (PropertyInfo)node.Member;
+            if (node.Expression is MemberExpression)
+            {
+                // Field property
+                var instance = GetFieldValue((MemberExpression)node.Expression);
+                return propertyInfo.GetValue(instance, null);
+            }
+            // Current instance property
+            return propertyInfo.GetValue(((ConstantExpression)node.Expression).Value, null);
         }
     }
 }
