@@ -348,7 +348,11 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             // Attempt to select from Camel Case partition key
             string cqlCamelCasePartitionKey = "SELECT * from " + typeof (lowercaseclassnamepkcamelcase).Name + " where \"SomePartitionKey\" = 'doesntmatter'";
             var ex = Assert.Throws<InvalidQueryException>(() => _session.Execute(cqlCamelCasePartitionKey));
-            string expectedErrMsg = "Undefined name SomePartitionKey in where clause";
+            var expectedErrMsg = "Undefined name SomePartitionKey in where clause";
+            if (CassandraVersion >= Version.Parse("3.10"))
+            {
+                expectedErrMsg = "Undefined column name \"SomePartitionKey\"";
+            }
             StringAssert.Contains(expectedErrMsg, ex.Message);
 
             // Validate that select on lower case key does not fail
@@ -372,7 +376,12 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
 
             // Validate expected exception
             var ex = Assert.Throws<InvalidQueryException>(() => cqlClient.Insert(pocoWithCustomAttributes));
-            StringAssert.Contains("Unknown identifier someotherstring", ex.Message);
+            var expectedMessage = "Unknown identifier someotherstring";
+            if (CassandraVersion >= Version.Parse("3.10"))
+            {
+                expectedMessage = "Undefined column name someotherstring";
+            }
+            StringAssert.Contains(expectedMessage, ex.Message);
         }
 
         [Test]
