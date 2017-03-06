@@ -167,7 +167,7 @@ namespace Cassandra.Tests
         [Test]
         public void RequestExecution_GetRetryDecision_Test()
         {
-            var policy = Policies.DefaultRetryPolicy;
+            var policy = Policies.DefaultRetryPolicy as IExtendedRetryPolicy;
             var statement = new SimpleStatement("SELECT WILL FAIL");
             //Using default retry policy the decision will always be to rethrow on read/write timeout
             var expected = RetryDecision.RetryDecisionType.Rethrow;

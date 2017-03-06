@@ -259,12 +259,17 @@ namespace Cassandra.Requests
             }
             if (ex is OperationTimedOutException)
             {
-                OnTimeout(ex);
-                return;
-            }
-            if (ex is SocketException)
-            {
-                Logger.Verbose("Socket error " + ((SocketException)ex).SocketErrorCode);
+                Logger.Warning(ex.Message);
+                var connection = _connection;
+                if (connection == null)
+                {
+                    Logger.Error("Host and Connection must not be null");
+                }
+                else
+                {
+                    // Checks how many timed out operations are in the connection
+                    ((Session)_session).CheckHealth(connection);
+                }
             }
             var decision = GetRetryDecision(ex, _parent.RetryPolicy, _parent.Statement, _retryCount);
             switch (decision.DecisionType)
@@ -293,60 +298,47 @@ namespace Cassandra.Requests
         }
 
         /// <summary>
-        /// It handles the steps required when there is a client-level read timeout.
-        /// It is invoked by a thread from the default TaskScheduler
-        /// </summary>
-        private void OnTimeout(Exception ex)
-        {
-            Logger.Warning(ex.Message);
-            if (_session == null || _connection == null)
-            {
-                Logger.Error("Session, Host and Connection must not be null");
-                return;
-            }
-            ((Session)_session).CheckHealth(_connection);
-            if (_session.Cluster.Configuration.QueryOptions.RetryOnTimeout || _request is PrepareRequest)
-            {
-                if (_parent.HasCompleted())
-                {
-                    return;
-                }
-                TryStartNew(false);
-                return;
-            }
-            _parent.SetCompleted(ex);
-        }
-
-        /// <summary>
         /// Gets the retry decision based on the exception from Cassandra
         /// </summary>
-        public static RetryDecision GetRetryDecision(Exception ex, IRetryPolicy policy, IStatement statement, int retryCount)
+        public static RetryDecision GetRetryDecision(Exception ex, IExtendedRetryPolicy policy, IStatement statement, 
+                                                     int retryCount)
         {
-            var decision = RetryDecision.Rethrow();
             if (ex is SocketException)
             {
-                decision = RetryDecision.Retry(null, false);
+                Logger.Verbose("Socket error " + ((SocketException)ex).SocketErrorCode);
+                return policy.OnRequestError(statement, ex, retryCount);
             }
-            else if (ex is OverloadedException || ex is IsBootstrappingException || ex is TruncateException)
+            if (ex is OverloadedException || ex is IsBootstrappingException || ex is TruncateException)
             {
-                decision = RetryDecision.Retry(null, false);
+                return policy.OnRequestError(statement, ex, retryCount);
             }
-            else if (ex is ReadTimeoutException)
+            if (ex is ReadTimeoutException)
             {
                 var e = (ReadTimeoutException)ex;
-                decision = policy.OnReadTimeout(statement, e.ConsistencyLevel, e.RequiredAcknowledgements, e.ReceivedAcknowledgements, e.WasDataRetrieved, retryCount);
+                return policy.OnReadTimeout(statement, e.ConsistencyLevel, e.RequiredAcknowledgements, e.ReceivedAcknowledgements, e.WasDataRetrieved, retryCount);
             }
-            else if (ex is WriteTimeoutException)
+            if (ex is WriteTimeoutException)
             {
                 var e = (WriteTimeoutException)ex;
-                decision = policy.OnWriteTimeout(statement, e.ConsistencyLevel, e.WriteType, e.RequiredAcknowledgements, e.ReceivedAcknowledgements, retryCount);
+                return policy.OnWriteTimeout(statement, e.ConsistencyLevel, e.WriteType, e.RequiredAcknowledgements, e.ReceivedAcknowledgements, retryCount);
             }
-            else if (ex is UnavailableException)
+            if (ex is UnavailableException)
             {
                 var e = (UnavailableException)ex;
-                decision = policy.OnUnavailable(statement, e.Consistency, e.RequiredReplicas, e.AliveReplicas, retryCount);
+                return policy.OnUnavailable(statement, e.Consistency, e.RequiredReplicas, e.AliveReplicas, retryCount);
             }
-            return decision;
+            if (ex is OperationTimedOutException)
+            {
+                if (statement == null)
+                {
+                    // For PREPARE requests, retry on next host
+                    return RetryDecision.Retry(null, false);
+                }
+                // Delegate on retry policy
+                return policy.OnRequestError(statement, ex, retryCount);
+            }
+            // Any other Exception just throw it
+            return RetryDecision.Rethrow();
         }
 
         /// <summary>

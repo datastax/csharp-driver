@@ -14,15 +14,18 @@
 //   limitations under the License.
 //
 
+using System;
+
 namespace Cassandra
 {
     /// <summary>
-    ///  A retry policy that never retry (nor ignore). <p> All of the methods of this
-    ///  retry policy unconditionally return
-    ///  <link>RetryPolicy.RetryDecision#rethrow</link>. If this policy is used, retry
-    ///  will have to be implemented in business code.</p>
+    /// A retry policy that never retry (nor ignore).
+    /// <para>
+    /// All of the methods of this retry policy unconditionally return <see cref="RetryDecision.Rethrow()"/>.
+    /// If this policy is used, retry will have to be implemented in business code.
+    /// </para>
     /// </summary>
-    public class FallthroughRetryPolicy : IRetryPolicy
+    public class FallthroughRetryPolicy : IExtendedRetryPolicy
     {
         public static readonly FallthroughRetryPolicy Instance = new FallthroughRetryPolicy();
 
@@ -89,6 +92,18 @@ namespace Cassandra
         /// 
         /// <returns><c>RetryDecision.rethrow()</c>.</returns>
         public RetryDecision OnUnavailable(IStatement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
+        {
+            return RetryDecision.Rethrow();
+        }
+
+        /// <inheritdoc />
+        public void Initialize(ICluster cluster)
+        {
+            
+        }
+
+        /// <inheritdoc /> 
+        public RetryDecision OnRequestError(IStatement statement, Exception ex, int nbRetry)
         {
             return RetryDecision.Rethrow();
         }

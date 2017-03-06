@@ -14,28 +14,34 @@
 //   limitations under the License.
 //
 
+using System;
+
 namespace Cassandra
 {
     /// <summary>
-    ///  A retry policy that wraps another policy, logging the decision made by its
-    ///  sub-policy. <p> Note that this policy only log the Ignore and Retry decisions
-    ///  (since Rethrow decisions just amount to propate the cassandra exception). The
-    ///  logging is done at the Info level.</p>
+    /// A retry policy that wraps another policy, logging the decision made by its sub-policy. 
+    /// <para>
+    /// Note that this policy only log the <c>Ignore</c> and <c>Retry</c> decisions (since <c>Rethrow</c>
+    /// decisions just amount to propagate the cassandra exception). The logging is done at the <c>Info</c> level.
+    /// </para>
     /// </summary>
-    public class LoggingRetryPolicy : IRetryPolicy
+    public class LoggingRetryPolicy : IExtendedRetryPolicy
     {
         private readonly Logger _logger = new Logger(typeof (LoggingRetryPolicy));
         private readonly IRetryPolicy _policy;
+        private readonly IExtendedRetryPolicy _extendedPolicy;
 
         /// <summary>
-        ///  Creates a new <c>RetryPolicy</c> that logs the decision of
-        ///  <c>policy</c>.
+        /// Creates a new <see cref="IExtendedRetryPolicy"/> that logs the decision of the provided <c>policy</c>.
         /// </summary>
         /// <param name="policy"> the policy to wrap. The policy created by this
         ///  constructor will return the same decision than <c>policy</c> but will log them.</param>
         public LoggingRetryPolicy(IRetryPolicy policy)
         {
             _policy = policy;
+            // Use the provided policy for extended policy methods.
+            // If the provided policy is not IExtendedRetryPolicy, use the default.
+            _extendedPolicy = (policy as IExtendedRetryPolicy) ?? new DefaultRetryPolicy();
         }
 
         public RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved,
@@ -105,6 +111,28 @@ namespace Cassandra
         private static ConsistencyLevel CL(ConsistencyLevel cl, RetryDecision decision)
         {
             return decision.RetryConsistencyLevel ?? cl;
+        }
+
+        /// <inheritdoc />
+        public void Initialize(ICluster cluster)
+        {
+            _extendedPolicy.Initialize(cluster);
+        }
+
+        /// <inheritdoc />
+        public RetryDecision OnRequestError(IStatement statement, Exception ex, int nbRetry)
+        {
+            var decision = _extendedPolicy.OnRequestError(statement, ex, nbRetry);
+            switch (decision.DecisionType)
+            {
+                case RetryDecision.RetryDecisionType.Ignore:
+                    _logger.Info("Ignoring on request error(retries: {0}, exception: {1})",  nbRetry, ex);
+                    break;
+                case RetryDecision.RetryDecisionType.Retry:
+                    _logger.Info("Retrying on request error (retries: {0}, exception: {1})", nbRetry, ex);
+                    break;
+            }
+            return decision;
         }
     }
 }

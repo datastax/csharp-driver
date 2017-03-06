@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using System;
+
 namespace Cassandra
 {
     /// <summary>
@@ -26,11 +28,9 @@ namespace Cassandra
     ///  convenient to use a more aggressive retry policy like
     ///  <link>DowngradingConsistencyRetryPolicy</link>.</p>
     /// </summary>
-    public class DefaultRetryPolicy : IRetryPolicy
+    public class DefaultRetryPolicy : IExtendedRetryPolicy
     {
-        public DefaultRetryPolicy()
-        {
-        }
+        private Configuration _config;
 
         /// <summary>
         ///  Defines whether to retry and at which consistency level on a read timeout.
@@ -118,11 +118,29 @@ namespace Cassandra
         ///  by the coordinator of the operation. </param>
         /// <param name="nbRetry"> the number of retry already performed for this
         ///  operation. </param>
-        /// 
         /// <returns><c>RetryDecision.rethrow()</c>.</returns>
         public RetryDecision OnUnavailable(IStatement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
             return RetryDecision.Rethrow();
+        }
+
+        /// <inheritdoc />
+        public void Initialize(ICluster cluster)
+        {
+            _config = cluster.Configuration;
+        }
+
+        /// <summary>
+        /// The default implementation triggers a retry on the next host in the query plan with the same consistency level,
+        /// regardless of the statement's idempotence, for historical reasons.
+        /// </summary>
+        public RetryDecision OnRequestError(IStatement statement, Exception ex, int nbRetry)
+        {
+            if (ex is OperationTimedOutException && !_config.QueryOptions.RetryOnTimeout)
+            {
+                return RetryDecision.Rethrow();
+            }
+            return RetryDecision.Retry(null, false);
         }
     }
 }

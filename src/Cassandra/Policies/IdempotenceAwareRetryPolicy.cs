@@ -26,9 +26,10 @@ namespace Cassandra
     /// For all other cases, this policy delegates the decision to the child policy.
     /// </para>
     /// </summary>
-    public class IdempotenceAwareRetryPolicy : IRetryPolicy
+    public class IdempotenceAwareRetryPolicy : IExtendedRetryPolicy
     {
         private readonly IRetryPolicy _childPolicy;
+        private readonly IExtendedRetryPolicy _extendedChildPolicy;
 
         /// <summary>
         /// Creates a new instance of <see cref="IdempotenceAwareRetryPolicy"/>.
@@ -41,6 +42,7 @@ namespace Cassandra
                 throw new ArgumentNullException("childPolicy");
             }
             _childPolicy = childPolicy;
+            _extendedChildPolicy = childPolicy as IExtendedRetryPolicy;
         }
 
         /// <inheritdoc />
@@ -63,6 +65,29 @@ namespace Cassandra
         public RetryDecision OnUnavailable(IStatement stmt, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
             return _childPolicy.OnUnavailable(stmt, cl, requiredReplica, aliveReplica, nbRetry);
+        }
+
+        /// <inheritdoc />
+        public void Initialize(ICluster cluster)
+        {
+            if (_extendedChildPolicy != null)
+            {
+                _extendedChildPolicy.Initialize(cluster);
+            }
+        }
+
+        /// <inheritdoc />
+        public RetryDecision OnRequestError(IStatement stmt, Exception ex, int nbRetry)
+        {
+            if (stmt != null && stmt.IsIdempotent == true)
+            {
+                if (_extendedChildPolicy != null)
+                {
+                    return _extendedChildPolicy.OnRequestError(stmt, ex, nbRetry);
+                }
+                return RetryDecision.Retry(null, false);
+            }
+            return RetryDecision.Rethrow();
         }
     }
 }
