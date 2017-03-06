@@ -30,6 +30,8 @@ namespace Cassandra
     /// </summary>
     public class DefaultRetryPolicy : IExtendedRetryPolicy
     {
+        private Configuration _config;
+
         /// <summary>
         ///  Defines whether to retry and at which consistency level on a read timeout.
         ///  <p> This method triggers a maximum of one retry, and only if enough replica
@@ -122,13 +124,19 @@ namespace Cassandra
             return RetryDecision.Rethrow();
         }
 
+        /// <inheritdoc />
+        public void Initialize(ICluster cluster)
+        {
+            _config = cluster.Configuration;
+        }
+
         /// <summary>
         /// The default implementation triggers a retry on the next host in the query plan with the same consistency level,
         /// regardless of the statement's idempotence, for historical reasons.
         /// </summary>
-        public RetryDecision OnRequestError(IStatement statement, Configuration config, Exception ex, int nbRetry)
+        public RetryDecision OnRequestError(IStatement statement, Exception ex, int nbRetry)
         {
-            if (ex is OperationTimedOutException && !config.QueryOptions.RetryOnTimeout)
+            if (ex is OperationTimedOutException && !_config.QueryOptions.RetryOnTimeout)
             {
                 return RetryDecision.Rethrow();
             }

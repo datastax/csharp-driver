@@ -114,9 +114,15 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        public RetryDecision OnRequestError(IStatement statement, Configuration config, Exception ex, int nbRetry)
+        public void Initialize(ICluster cluster)
         {
-            var decision = _extendedPolicy.OnRequestError(statement, config, ex, nbRetry);
+            _extendedPolicy.Initialize(cluster);
+        }
+
+        /// <inheritdoc />
+        public RetryDecision OnRequestError(IStatement statement, Exception ex, int nbRetry)
+        {
+            var decision = _extendedPolicy.OnRequestError(statement, ex, nbRetry);
             switch (decision.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.Ignore:

@@ -25,6 +25,12 @@ namespace Cassandra
     public interface IExtendedRetryPolicy : IRetryPolicy
     {
         /// <summary>
+        /// Initializes the retry policy.
+        /// This method will be invoked by the driver when initializing the <see cref="ICluster"/>.
+        /// </summary>
+        void Initialize(ICluster cluster);
+
+        /// <summary>
         /// Defines whether to retry and at which consistency level on an
         /// unexpected error.
         /// <para>
@@ -42,10 +48,9 @@ namespace Cassandra
         /// </para>
         /// </summary>
         /// <param name="statement">The original query that failed.</param>
-        /// <param name="config">The current cluster configuration.</param>
         /// <param name="ex">The exception that caused this request to fail.</param>
         /// <param name="nbRetry">The number of retries already performed for this operation.</param>
-        RetryDecision OnRequestError(IStatement statement, Configuration config, Exception ex, int nbRetry);
+        RetryDecision OnRequestError(IStatement statement, Exception ex, int nbRetry);
     }
 
     internal static class RetryPolicyExtensions
@@ -105,9 +110,14 @@ namespace Cassandra
                 return _policy.OnUnavailable(query, cl, requiredReplica, aliveReplica, nbRetry);
             }
 
-            public RetryDecision OnRequestError(IStatement statement, Configuration config, Exception ex, int nbRetry)
+            public void Initialize(ICluster cluster)
             {
-                return _defaultPolicy.OnRequestError(statement, config, ex, nbRetry);
+                _defaultPolicy.Initialize(cluster);
+            }
+
+            public RetryDecision OnRequestError(IStatement statement, Exception ex, int nbRetry)
+            {
+                return _defaultPolicy.OnRequestError(statement, ex, nbRetry);
             }
         }
     }

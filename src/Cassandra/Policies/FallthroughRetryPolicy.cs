@@ -96,8 +96,14 @@ namespace Cassandra
             return RetryDecision.Rethrow();
         }
 
+        /// <inheritdoc />
+        public void Initialize(ICluster cluster)
+        {
+            
+        }
+
         /// <inheritdoc /> 
-        public RetryDecision OnRequestError(IStatement statement, Configuration config, Exception ex, int nbRetry)
+        public RetryDecision OnRequestError(IStatement statement, Exception ex, int nbRetry)
         {
             return RetryDecision.Rethrow();
         }
