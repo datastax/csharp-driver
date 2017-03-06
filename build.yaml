@@ -54,3 +54,4 @@ build:
       saxon-xslt -o TestResult.xml TestResult_nunit3.xml tools/nunit3-xunit.xslt
   - xunit:
     - "TestResult.xml"
+
