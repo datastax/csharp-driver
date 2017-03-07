@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Cassandra.Serialization;
 using NUnit.Framework;
 
@@ -240,6 +241,40 @@ namespace Cassandra.Tests
                 Assert.AreEqual(ColumnTypeCode.List, subTypeInfo.ValueTypeCode);
                 var subListTypeInfo = (ListColumnInfo)subTypeInfo.ValueTypeInfo;
                 Assert.AreEqual(ColumnTypeCode.Int, subListTypeInfo.ValueTypeCode);
+            }
+        }
+
+        [Test]
+        public async Task ParseTypeName_Should_Parse_Custom_Types()
+        {
+            var typeNames = new[]
+            {
+              "org.apache.cassandra.db.marshal.MyCustomType",
+              "com.datastax.dse.whatever.TypeName"
+            };
+            foreach (var typeName in typeNames)
+            {
+                var type = await DataTypeParser.ParseTypeName(null, null, string.Format("'{0}'", typeName));
+                Assert.AreEqual(ColumnTypeCode.Custom, type.TypeCode);
+                var info = (CustomColumnInfo)type.TypeInfo;
+                Assert.AreEqual(typeName, info.CustomTypeName);
+            }
+        }
+
+        [Test]
+        public void ParseFqTypeName_Should_Parse_Custom_Types()
+        {
+            var typeNames = new[]
+            {
+              "org.apache.cassandra.db.marshal.MyCustomType",
+              "com.datastax.dse.whatever.TypeName"
+            };
+            foreach (var typeName in typeNames)
+            {
+                var type = DataTypeParser.ParseFqTypeName(typeName);
+                Assert.AreEqual(ColumnTypeCode.Custom, type.TypeCode);
+                var info = (CustomColumnInfo)type.TypeInfo;
+                Assert.AreEqual(typeName, info.CustomTypeName);
             }
         }
     }
