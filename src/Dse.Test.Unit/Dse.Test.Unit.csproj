@@ -1,0 +1,180 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{49996688-1380-4854-A32C-048C4014E478}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Dse.Test.Unit</RootNamespace>
+    <AssemblyName>Dse.Test.Unit</AssemblyName>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <LangVersion>5</LangVersion>
+    <TargetFrameworkProfile />
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\..\build\datastax.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Moq">
+      <HintPath>..\packages\Moq.4.2.1402.2112\lib\net40\Moq.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.framework, Version=3.4.1.0, Culture=neutral, PublicKeyToken=2638cd05610744eb, processorArchitecture=MSIL">
+      <HintPath>..\packages\NUnit.3.4.1\lib\net40\nunit.framework.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net40\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AbstractResponseTest.cs" />
+    <Compile Include="AdoUnitTests.cs" />
+    <Compile Include="ApiTests.cs" />
+    <Compile Include="Auth\DsePlainTextAuthProviderTests.cs" />
+    <Compile Include="BaseUnitTest.cs" />
+    <Compile Include="BuilderTests.cs" />
+    <Compile Include="ClusterTests.cs" />
+    <Compile Include="CollectionTests.cs" />
+    <Compile Include="ConnectionTests.cs" />
+    <Compile Include="ControlConnectionTests.cs" />
+    <Compile Include="CustomTypeSerializerTests.cs" />
+    <Compile Include="DataTypeParserTests.cs" />
+    <Compile Include="DseClusterBuilderTests.cs" />
+    <Compile Include="EndianBitConverterTests.cs" />
+    <Compile Include="Extensions\Serializers\BigDecimalSerializer.cs" />
+    <Compile Include="Extensions\Serializers\DummyCustomTypeSerializer.cs" />
+    <Compile Include="Extensions\Serializers\UdtSerializerWrapper.cs" />
+    <Compile Include="Geometry\LineStringTests.cs" />
+    <Compile Include="Geometry\PointTests.cs" />
+    <Compile Include="Geometry\PolygonTests.cs" />
+    <Compile Include="Graph\ExecuteGraphTests.cs" />
+    <Compile Include="Graph\GraphOptionsTests.cs" />
+    <Compile Include="Graph\GraphResultTests.cs" />
+    <Compile Include="HostConnectionPoolTests.cs" />
+    <Compile Include="HostTests.cs" />
+    <Compile Include="IOUnitTests.cs" />
+    <Compile Include="CqlCommandTest.cs" />
+    <Compile Include="CqlParameterCollectionTest.cs" />
+    <Compile Include="CqlParameterTest.cs" />
+    <Compile Include="LocalDateTests.cs" />
+    <Compile Include="LocalTimeTests.cs" />
+    <Compile Include="LoggingTests.cs" />
+    <Compile Include="Mapping\AttributeBasedTypeDefinitionTests.cs" />
+    <Compile Include="Mapping\BatchTests.cs" />
+    <Compile Include="Mapping\DeleteTests.cs" />
+    <Compile Include="Mapping\ExecuteTests.cs" />
+    <Compile Include="Mapping\Linq\LinqCreateTableUnitTests.cs" />
+    <Compile Include="Mapping\Linq\LinqEntryPointsTests.cs" />
+    <Compile Include="Mapping\Linq\LinqToCqlDeleteTests.cs" />
+    <Compile Include="Mapping\Linq\LinqToCqlFunctionTests.cs" />
+    <Compile Include="Mapping\Linq\LinqToCqlSelectUnitTests.cs" />
+    <Compile Include="Mapping\Linq\LinqToCqlUnitTests.cs" />
+    <Compile Include="Mapping\CqlGeneratorTests.cs" />
+    <Compile Include="Mapping\FetchTests.cs" />
+    <Compile Include="Mapping\FirstTests.cs" />
+    <Compile Include="Mapping\FluentMappings\FluentUserMapping.cs" />
+    <Compile Include="Mapping\InsertTests.cs" />
+    <Compile Include="Mapping\Linq\LinqMappingUnitTests.cs" />
+    <Compile Include="Mapping\Linq\LinqToCqlUpdateUnitTests.cs" />
+    <Compile Include="Mapping\MappingConfigurationTests.cs" />
+    <Compile Include="Mapping\MappingTestBase.cs" />
+    <Compile Include="Mapping\Pocos\Album.cs" />
+    <Compile Include="Mapping\Pocos\AllTypesDecorated.cs" />
+    <Compile Include="Mapping\Pocos\AllTypesEntity.cs" />
+    <Compile Include="Mapping\Pocos\AttributeMappingClass.cs" />
+    <Compile Include="Mapping\Pocos\CollectionTypesEntity.cs" />
+    <Compile Include="Mapping\Pocos\ContactMethod.cs" />
+    <Compile Include="Mapping\Pocos\DecoratedUser.cs" />
+    <Compile Include="Mapping\Pocos\ExplicitColumnsUser.cs" />
+    <Compile Include="Mapping\Pocos\FluentUser.cs" />
+    <Compile Include="Mapping\Pocos\HairColor.cs" />
+    <Compile Include="Mapping\Pocos\InsertUser.cs" />
+    <Compile Include="Mapping\Pocos\LinqDecoratedCaseInsensitiveEntity.cs" />
+    <Compile Include="Mapping\Pocos\LinqDecoratedWithStringCkEntity.cs" />
+    <Compile Include="Mapping\Pocos\LinqDecoratedEntity.cs" />
+    <Compile Include="Mapping\Pocos\LinqDecoratedEntityWithStaticField.cs" />
+    <Compile Include="Mapping\Pocos\PlainUser.cs" />
+    <Compile Include="Mapping\Pocos\PocoWithCollections.cs" />
+    <Compile Include="Mapping\Pocos\RainbowColor.cs" />
+    <Compile Include="Mapping\Pocos\Song.cs" />
+    <Compile Include="Mapping\Pocos\DecoratedTimeSeries.cs" />
+    <Compile Include="Mapping\Pocos\UdtAndTuplePoco.cs" />
+    <Compile Include="Mapping\Pocos\UserDifferentPropTypes.cs" />
+    <Compile Include="Mapping\Pocos\UserType.cs" />
+    <Compile Include="Mapping\Pocos\VarintPoco.cs" />
+    <Compile Include="Mapping\TestData\TestDataGenerator.cs" />
+    <Compile Include="Mapping\TestData\TestDataHelper.cs" />
+    <Compile Include="Mapping\TypeConverterTests.cs" />
+    <Compile Include="Mapping\UpdateTests.cs" />
+    <Compile Include="ObsoletedMemberTests.cs" />
+    <Compile Include="OutputErrorTests.cs" />
+    <Compile Include="PoliciesUnitTests.cs" />
+    <Compile Include="Policies\DseLoadBalancingTests.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RequestHandlerTests.cs" />
+    <Compile Include="ResponseFrameTest.cs" />
+    <Compile Include="RowSetUnitTests.cs" />
+    <Compile Include="SchemaParserTests.cs" />
+    <Compile Include="StatementTests.cs" />
+    <Compile Include="TaskTests.cs" />
+    <Compile Include="TestHelper.cs" />
+    <Compile Include="TestTimeoutAttribute.cs" />
+    <Compile Include="ThreadPerTaskScheduler.cs" />
+    <Compile Include="TimeoutTests.cs" />
+    <Compile Include="TimeUuidTests.cs" />
+    <Compile Include="TokenTests.cs" />
+    <Compile Include="SerializerTests.cs" />
+    <Compile Include="UtilsTests.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Dse\Dse.csproj">
+      <Project>{6e8c45da-d958-4c75-98c3-b54c883299a2}</Project>
+      <Name>Dse</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

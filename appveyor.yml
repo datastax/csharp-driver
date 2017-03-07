@@ -2,53 +2,27 @@ version: "{branch}-{build}"
 skip_tags: true
 shallow_clone: true
 cache:
-  - C:\ProgramData\chocolatey\bin -> appveyor_install.ps1                                                                             
-  - C:\ProgramData\chocolatey\lib -> appveyor_install.ps1
-  - C:\Users\appveyor\.ccm\repository -> appveyor_install.ps1
-  - C:\Users\appveyor\deps -> appveyor_install.ps1
-os: Previous Visual Studio 2015
+  - C:\ProgramData\chocolatey\bin                                                                                                     
+  - C:\ProgramData\chocolatey\lib
+os: Visual Studio 2015
 platform:
   - Any CPU
 configuration:
   - Release
 environment:
-  NUNIT_PATH: nunit3-console
   matrix:
     - TARGET: net452
-      CI_TYPE: UNIT
     - TARGET: netcoreapp1.0
-      CI_TYPE: UNIT
-    - TARGET: net452
-      CASSANDRA_VERSION: 3.0.9
-      CI_TYPE: INTEGRATION
-    - TARGET: netcoreapp1.0
-      CASSANDRA_VERSION: 3.0.9
-      CI_TYPE: INTEGRATION
-    - TARGET: net452
-      CASSANDRA_VERSION: 2.2.7
-      CI_TYPE: INTEGRATION
-
-install:
-  - ps: .\appveyor_install.ps1
+    - TARGET: msbuild-net45
 
 build:
-  project: src/Cassandra.sln
+  project: src\Dse.sln
   verbosity: minimal
-
-test:
-  assemblies:
-    - src/Cassandra.Tests/bin/$(configuration)/Cassandra.Tests.dll
-    - src/Cassandra.IntegrationTests/bin/$(configuration)/Cassandra.IntegrationTests.dll
-
-  categories:
-    except:
-      - long
-      - duration
-
+  
 test_script:
-  - dotnet restore
-  - IF "%CI_TYPE%" == "UNIT" dotnet test src\Cassandra.Tests -c Release -f %TARGET% --result=TestResult.xml
-  - IF "%CI_TYPE%" == "INTEGRATION" dotnet test src\Cassandra.IntegrationTests -c Release -f %TARGET% --where "cat=short" --result=TestResult.xml
+
+  - IF "%TARGET%" NEQ "msbuild-net45" dotnet restore && dotnet test src\Dse.Test.Unit -c Release -f %TARGET% --result=TestResult.xml
+  - IF "%TARGET%" == "msbuild-net45" nunit3-console src\Dse.Test.Unit\bin\Release\Dse.Test.Unit.dll --result=TestResult.xml
 
 after_test:
   - ps: >-
