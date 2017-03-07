@@ -82,6 +82,45 @@ namespace Dse.Test.Integration.Core
             Assert.AreEqual(ColumnTypeCode.Udt, tableMetadata.TableColumns.First(c => c.Name == "addr").TypeCode);
         }
 
+        [Test]
+        public void Custom_MetadataTest()
+        {
+            var cluster = GetNewCluster();
+            var session = cluster.Connect();
+            var keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
+            session.CreateKeyspace(keyspaceName);
+            session.ChangeKeyspace(keyspaceName);
+
+            const string typeName1 = "org.apache.cassandra.db.marshal.DynamicCompositeType(" +
+                                     "s=>org.apache.cassandra.db.marshal.UTF8Type," +
+                                     "i=>org.apache.cassandra.db.marshal.Int32Type)";
+            const string typeName2 = "org.apache.cassandra.db.marshal.CompositeType(" +
+                                     "org.apache.cassandra.db.marshal.UTF8Type," +
+                                     "org.apache.cassandra.db.marshal.Int32Type)";
+            session.Execute("CREATE TABLE tbl_custom (id int PRIMARY KEY, " +
+                            "c1 'DynamicCompositeType(s => UTF8Type, i => Int32Type)', " +
+                            "c2 'CompositeType(UTF8Type, Int32Type)')");
+
+            var table = cluster.Metadata.GetTable(keyspaceName, "tbl_custom");
+            Assert.AreEqual(3, table.TableColumns.Length);
+            var c1 = table.TableColumns.First(c => c.Name == "c1");
+            Assert.AreEqual(ColumnTypeCode.Custom, c1.TypeCode);
+            var typeInfo1 = (CustomColumnInfo)c1.TypeInfo;
+            Assert.AreEqual("tbl_custom", c1.Table);
+            Assert.AreEqual(keyspaceName, c1.Keyspace);
+            Assert.IsFalse(c1.IsFrozen);
+            Assert.IsFalse(c1.IsReversed);
+            Assert.AreEqual(typeName1, typeInfo1.CustomTypeName);
+            var c2 = table.TableColumns.First(c => c.Name == "c2");
+            Assert.AreEqual(ColumnTypeCode.Custom, c2.TypeCode);
+            Assert.AreEqual("tbl_custom", c2.Table);
+            Assert.AreEqual(keyspaceName, c2.Keyspace);
+            Assert.IsFalse(c2.IsFrozen);
+            Assert.IsFalse(c2.IsReversed);
+            var typeInfo2 = (CustomColumnInfo)c2.TypeInfo;
+            Assert.AreEqual(typeName2, typeInfo2.CustomTypeName);
+        }
+
         [Test, TestCassandraVersion(2, 1)]
         public void Udt_Case_Sensitive_Metadata_Test()
         {

@@ -1,4 +1,4 @@
-//
+﻿//
 //  Copyright (C) 2017 DataStax, Inc.
 //
 //  Please see the license for details:
@@ -132,6 +132,5 @@ namespace Dse.Test.Integration.Linq.LinqMethods
                 StringAssert.IsMatch(expectedErrMsg, e.Message);
             }
         }
-
     }
 }
