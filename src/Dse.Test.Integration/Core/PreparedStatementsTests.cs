@@ -33,7 +33,7 @@ namespace Dse.Test.Integration.Core
         public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
-            Session.WaitForSchemaAgreement(Session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)));
+            Session.Execute(string.Format(TestUtils.CreateTableAllTypes, AllTypesTableName));
         }
 
         [Test]
@@ -180,7 +180,7 @@ namespace Dse.Test.Integration.Core
         /// 
         /// @since 3.0.0
         /// @jira_ticket CSHARP-356
-        /// @expected_result In Cassandra < 2.2 should throw an error, while in Cassandra >= 2.2 the driver should set UNSET values.
+        /// @expected_result In Cassandra &lt; 2.2 should throw an error, while in Cassandra >= 2.2 the driver should set UNSET values.
         /// 
         /// @test_category data_types:unset
         [Test]
@@ -435,7 +435,7 @@ namespace Dse.Test.Integration.Core
             var pageSize = 10;
             var totalRowLength = 1003;
             var table = "table" + Guid.NewGuid().ToString("N").ToLower();
-            Session.WaitForSchemaAgreement(Session.Execute(String.Format(TestUtils.CreateTableAllTypes, table)));
+            Session.Execute(string.Format(TestUtils.CreateTableAllTypes, table));
             for (var i = 0; i < totalRowLength; i++)
             {
                 Session.Execute(String.Format("INSERT INTO {0} (id, text_sample) VALUES ({1}, '{2}')", table, Guid.NewGuid(), "value" + i));

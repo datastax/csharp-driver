@@ -159,7 +159,7 @@ namespace Dse.Test.Integration.Mapping.Tests
             var err = Assert.Throws<InvalidQueryException>(() => mapper.Fetch<Author>(cql).ToList());
             Assert.AreEqual("ANY ConsistencyLevel is only supported for writes", err.Message);
 
-            if (CassandraVersion < Version.Parse("3.0.0"))
+            if (CassandraVersion < Version.Parse("3.0"))
             {
                 cql = new Cql("SELECT * from " + table.Name).WithOptions(c => c.SetConsistencyLevel(ConsistencyLevel.EachQuorum));
                 err = Assert.Throws<InvalidQueryException>(() => mapper.Fetch<Author>(cql).ToList());

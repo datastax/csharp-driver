@@ -23,6 +23,8 @@
         "portable-net45+win8"
       ],
       "frameworkAssemblies": {
+        "System.Net": "",
+        "System.Net.Http": "",
         "System.Data": "",
         "System.Numerics": ""
       },

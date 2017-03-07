@@ -106,10 +106,20 @@ namespace Dse.Test.Integration.Linq.LinqMethods
             Assert.DoesNotThrow(() => _movieTable.First().SetConsistencyLevel(ConsistencyLevel.Serial).Execute());
         }
 
+        /// <summary>
+        /// Test if driver throws exception when query without all partition keys.
+        /// Since Cassandra 3.10 it is not expected to throw InvalidException.
+        ///
+        /// @expected_errors InvalidQueryException
+        /// @jira_ticket CASSANDRA-11031
+        /// @test_assumptions
+        ///     - Cassandra version less than 3.10
+        /// </summary>
         [Test]
+        [TestCassandraVersion(3, 9, Comparison.LessThan)]
         public void First_MissingPartitionKey()
         {
-            string randomStr = "somethingrandom_" + Randomm.RandomAlphaNum(10);
+            var randomStr = "somethingrandom_" + Randomm.RandomAlphaNum(10);
 
             try
             {
@@ -122,9 +132,6 @@ namespace Dse.Test.Integration.Linq.LinqMethods
                 StringAssert.IsMatch(expectedErrMsg, e.Message);
             }
         }
-
-
-
 
     }
 }

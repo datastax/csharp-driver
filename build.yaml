@@ -4,6 +4,7 @@ env:
   DSE_VERSION:
     - 4.8.11
     - 5.0.4
+    - 5.1
   CSHARP_VERSION:
     - mono
     - netcore
@@ -17,6 +18,11 @@ build:
       export DSE_PATH="/home/jenkins/.ccm/repository/$DSE_VERSION"
       export DSE_INITIAL_IPPREFIX="127.0.0."
 
+      if [ $DSE_VERSION = '5.1' ]; then
+        export DSE_PATH="/home/jenkins/bdp-5.1"
+        export DSE_VERSION="5.1.0"
+      fi
+
       echo $DSE_VERSION
       echo $DSE_PATH
       echo $DSE_INITIAL_IPPREFIX
@@ -26,7 +32,7 @@ build:
       sudo apt-get install -y libsaxon-java
 
       if [ $CSHARP_VERSION = 'mono' ]; then
-          echo "==========csharp verion dse mono=========="
+          echo "==========csharp dse mono=========="
           # Define alias for Nuget
           nuget() {
                 mono /home/jenkins/nuget/NuGet.exe "$@"
@@ -39,18 +45,18 @@ build:
           # Compile the driver and test code
           xbuild /p:Configuration=Release /v:m /p:restorepackages=false src/Dse.sln
           # Run the tests
-          echo "==========RUNNING FULL SUITE OF TESTS=========="
+          echo "==========RUNNING SHORT SUITE OF TESTS=========="
           mono ./testrunner/NUnit.ConsoleRunner.3.4.1/tools/nunit3-console.exe src/Dse.Test.Integration/bin/Release/Dse.Test.Integration.dll --where:cat=short --labels=All --result:"TestResult_nunit3.xml"
 
       else
-         echo "==========csharp verion dse netcore=========="
+          echo "==========csharp dse netcore=========="
           # Install the required packages
           dotnet restore
 
           # Run the tests
-          echo "==========RUNNING FULL SUITE OF TESTS=========="
+          echo "==========RUNNING SHORT SUITE OF TESTS=========="
           pushd src/Dse.Test.Integration
-          dotnet test -f netcoreapp1.0 --work=../../ --result=TestResult_nunit3.xml
+          dotnet test -f netcoreapp1.0 --work=../../ --where:cat=short --result=TestResult_nunit3.xml --trace=DEBUG
           popd
       fi
       echo "==========parsing nunit3 report================"

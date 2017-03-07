@@ -23,19 +23,23 @@ namespace Dse.Test.Integration.TestClusterManagement
         public const int DefaultCmdTimeout = 90 * 1000;
         public string Name { get; private set; }
         public string IpPrefix { get; private set; }
+        public ICcmProcessExecuter CcmProcessExecuter { get; set; }
+        private readonly string _dseInstallPath;
 
-        public CcmBridge(string name, string ipPrefix)
+        public CcmBridge(string name, string ipPrefix, string dsePath, ICcmProcessExecuter executor)
         {
             Name = name;
             IpPrefix = ipPrefix;
             CcmDir = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
+            CcmProcessExecuter = executor;
+            _dseInstallPath = dsePath;
         }
 
         public void Dispose()
         {
         }
 
-        public void Create(string version, bool useSsl)
+        public void Create(bool useSsl)
         {
             var sslParams = "";
             if (useSsl)
@@ -47,7 +51,23 @@ namespace Dse.Test.Integration.TestClusterManagement
                 }
                 sslParams = "--ssl " + sslPath;
             }
-            ExecuteCcm(string.Format("create {0} -i {1} -v {2} {3}", Name, IpPrefix, version, sslParams));
+            ExecuteCcm(string.Format(
+                "create {0} --dse --install-dir={1} {2}", Name, _dseInstallPath, sslParams));
+        }
+
+        protected string GetHomePath()
+        {
+            var home = Environment.GetEnvironmentVariable("USERPROFILE");
+            if (!string.IsNullOrEmpty(home))
+            {
+                return home;
+            }
+            home = Environment.GetEnvironmentVariable("HOME");
+            if (string.IsNullOrEmpty(home))
+            {
+                throw new NotSupportedException("HOME or USERPROFILE are not defined");
+            }
+            return home;
         }
 
         public void Start(string[] jvmArgs)
@@ -57,7 +77,7 @@ namespace Dse.Test.Integration.TestClusterManagement
                 "start",
                 "--wait-for-binary-proto"
             };
-            if (TestUtils.IsWin)
+            if (TestUtils.IsWin && CcmProcessExecuter is LocalCcmProcessExecuter)
             {
                 parameters.Add("--quiet-windows");
             }
@@ -78,7 +98,9 @@ namespace Dse.Test.Integration.TestClusterManagement
             {
                 "populate",
                 "-n",
-                dc1NodeLength + (dc2NodeLength > 0 ? ":" + dc2NodeLength : null)
+                dc1NodeLength + (dc2NodeLength > 0 ? ":" + dc2NodeLength : null),
+                "-i",
+                IpPrefix
             };
             if (useVNodes)
             {
@@ -111,7 +133,7 @@ namespace Dse.Test.Integration.TestClusterManagement
         public void Start(int n, string additionalArgs = null)
         {
             string quietWindows = null;
-            if (TestUtils.IsWin)
+            if (TestUtils.IsWin && CcmProcessExecuter is LocalCcmProcessExecuter)
             {
                 quietWindows = "--quiet-windows";
             }
@@ -133,15 +155,18 @@ namespace Dse.Test.Integration.TestClusterManagement
             ExecuteCcm("remove");
         }
 
-        public void BootstrapNode(int n)
+        public void BootstrapNode(int n, bool start = true)
         {
-            BootstrapNode(n, null);
+            BootstrapNode(n, null, start);
         }
 
-        public void BootstrapNode(int n, string dc)
+        public void BootstrapNode(int n, string dc, bool start = true)
         {
-            ExecuteCcm(string.Format("add node{0} -i {1}{2} -j {3} -b -s {4}", n, IpPrefix, n, 7000 + 100 * n, dc != null ? "-d " + dc : null));
-            Start(n);
+            ExecuteCcm(string.Format("add node{0} -i {1}{2} -j {3} -b -s {4} --dse", n, IpPrefix, n, 7000 + 100 * n, dc != null ? "-d " + dc : null));
+            if (start)
+            {
+                Start(n);
+            }
         }
 
         public void DecommissionNode(int n)
@@ -149,28 +174,52 @@ namespace Dse.Test.Integration.TestClusterManagement
             ExecuteCcm(string.Format("node{0} decommission", n));
         }
 
-        public static ProcessOutput ExecuteCcm(string args, int timeout = DefaultCmdTimeout, bool throwOnProcessError = true)
+        public ProcessOutput ExecuteCcm(string args, int timeout = DefaultCmdTimeout, bool throwOnProcessError = true)
         {
-            var executable = "/usr/local/bin/ccm";
-            if (TestUtils.IsWin)
-            {
-                executable = "cmd.exe";
-                args = "/c ccm " + args;
-            }
-            Trace.TraceInformation(executable + " " + args);
-            var output = ExecuteProcess(executable, args, timeout);
-            if (throwOnProcessError)
-            {
-                ValidateOutput(output);
-            }
-            return output;
+            return CcmProcessExecuter.ExecuteCcm(args, timeout, throwOnProcessError);
         }
 
-        private static void ValidateOutput(ProcessOutput output)
+        public void UpdateConfig(params string[] configs)
         {
-            if (output.ExitCode != 0)
+            if (configs == null)
             {
-                throw new TestInfrastructureException(string.Format("Process exited in error {0}", output.ToString()));
+                return;
+            }
+            foreach (var c in configs)
+            {
+                ExecuteCcm(string.Format("updateconf \"{0}\"", c));
+            }
+        }
+
+        public void UpdateDseConfig(params string[] configs)
+        {
+            if (configs == null)
+            {
+                return;
+            }
+            foreach (var c in configs)
+            {
+                ExecuteCcm(string.Format("updatedseconf \"{0}\"", c));
+            }
+        }
+
+        public void SetNodeWorkloads(int nodeId, string[] workloads)
+        {
+            ExecuteCcm(string.Format("node{0} setworkload {1}", nodeId, string.Join(",", workloads)));
+        }
+
+        /// <summary>
+        /// Sets the workloads for all nodes.
+        /// </summary>
+        public void SetWorkloads(int nodeLength, string[] workloads)
+        {
+            if (workloads == null || workloads.Length == 0)
+            {
+                return;
+            }
+            for (var nodeId = 1; nodeId <= nodeLength; nodeId++)
+            {
+                SetNodeWorkloads(nodeId, workloads);
             }
         }
 

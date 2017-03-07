@@ -5,9 +5,6 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using System.Collections.Generic;
-using NUnit.Framework;
-
 namespace Dse.Test.Integration.TestClusterManagement
 {
     public interface ITestCluster
@@ -69,20 +66,35 @@ namespace Dse.Test.Integration.TestClusterManagement
         /// Bootstraps and adds a node to the cluster
         /// </summary>
         /// <param name="nodeIdToStart">The node ID to be added to the cluster</param>
-        void BootstrapNode(int nodeIdToStart);
+        /// <param name="start">If the node should be started</param>
+        void BootstrapNode(int nodeIdToStart, bool start = true);
+
+        /// <summary>
+        /// Set workload of a single node
+        /// </summary>
+        /// <param name="nodeId">The node ID to be added to the cluster</param>
+        /// <param name="workloads">The node workloads</param>
+        void SetNodeWorkloads(int nodeId, string[] workloads);
 
         /// <summary>
         /// Bootstraps and adds a node to the cluster
         /// </summary>
         /// <param name="nodeIdToStart"></param>
         /// <param name="dataCenterName"></param>
-        void BootstrapNode(int nodeIdToStart, string dataCenterName);
+        /// <param name="start">If the node should be started</param>
+        void BootstrapNode(int nodeIdToStart, string dataCenterName, bool start = true);
 
         /// <summary>
         /// Decommission the node associated with provided node ID
         /// </summary>
         /// <param name="nodeId">The node ID to be decommissioned</param>
         void DecommissionNode(int nodeId);
+
+        /// <summary>
+        /// Forcefully decommission the node associated with provided node ID
+        /// </summary>
+        /// <param name="nodeId">The node ID to be decommissioned</param>
+        void DecommissionNodeForcefully(int nodeId);
 
         /// <summary>
         /// Pause the node (SIGSTOP) associated with provided node ID
@@ -108,5 +120,15 @@ namespace Dse.Test.Integration.TestClusterManagement
         public int Dc2NodeLength { get; set; }
 
         public string[] JvmArgs { get; set; }
+
+        /// <summary>
+        /// DSE yaml options
+        /// </summary>
+        public string[] DseYaml { get; set; }
+
+        /// <summary>
+        /// DSE Nodes workloads
+        /// </summary>
+        public string[] Workloads { get; set; }
     }
 }

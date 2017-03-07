@@ -141,18 +141,28 @@ namespace Dse.Test.Integration.Core
         [Test]
         public void Should_Remove_Decommissioned_Node()
         {
-            _testCluster = TestClusterManager.CreateNew(2);
-            using (var cluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build())
+            const int numberOfNodes = 2;
+            _testCluster = TestClusterManager.CreateNew(numberOfNodes);
+            using (var cluster = Cluster.Builder()
+                .AddContactPoints(_testCluster.InitialContactPoint, _testCluster.ClusterIpPrefix + numberOfNodes)
+                .Build())
             {
                 var session = cluster.Connect();
-                Assert.AreEqual(2, cluster.AllHosts().Count);
-                _testCluster.DecommissionNode(2);
+                Assert.AreEqual(numberOfNodes, cluster.AllHosts().Count);
+                if (TestClusterManager.DseVersion >= Version.Parse("5.1.0"))
+                {
+                    _testCluster.DecommissionNodeForcefully(numberOfNodes);
+                }
+                else
+                {
+                    _testCluster.DecommissionNode(numberOfNodes);
+                }
                 Trace.TraceInformation("Node decommissioned");
                 Thread.Sleep(10000);
-                var decommisionedNode = _testCluster.ClusterIpPrefix + 2;
+                var decommisionedNode = _testCluster.ClusterIpPrefix + numberOfNodes;
                 Assert.False(TestUtils.IsNodeReachable(IPAddress.Parse(decommisionedNode)));
                 //New node should be part of the metadata
-                Assert.AreEqual(1, cluster.AllHosts().Count);
+                Assert.AreEqual(numberOfNodes - 1, cluster.AllHosts().Count);
                 var queried = false;
                 for (var i = 0; i < 10; i++)
                 {

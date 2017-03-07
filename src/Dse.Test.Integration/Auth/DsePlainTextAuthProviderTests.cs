@@ -14,7 +14,6 @@ using Dse;
 using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 using Dse.Auth;
-using Dse.Test.Integration.ClusterManagement;
 
 namespace Dse.Test.Integration.Auth
 {
@@ -31,16 +30,17 @@ namespace Dse.Test.Integration.Auth
         [Test, TestDseVersion(5,0)]
         public void Should_Authenticate_Against_Dse_5_DseAuthenticator()
         {
-            CcmHelper.Start(
-                1,
-                new[] { "authentication_options.default_scheme: internal" },
-                new[] { "authenticator: com.datastax.bdp.cassandra.auth.DseAuthenticator" },
-                new[] { "-Dcassandra.superuser_setup_delay_ms=0" });
+            TestClusterManager.CreateNew(1, new TestClusterOptions
+            {
+                DseYaml = new[] { "authentication_options.default_scheme: internal" },
+                CassandraYaml = new[] { "authenticator: com.datastax.bdp.cassandra.auth.DseAuthenticator" },
+                JvmArgs = new[] { "-Dcassandra.superuser_setup_delay_ms=0" }
+            });
             Trace.TraceInformation("Waiting additional time for test Cluster to be ready");
             Thread.Sleep(15000);
             var authProvider = new DsePlainTextAuthProvider("cassandra", "cassandra");
             using (var cluster = Cluster.Builder()
-                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithAuthProvider(authProvider)
                 .Build())
             {
@@ -52,15 +52,16 @@ namespace Dse.Test.Integration.Auth
         [Test]
         public void Should_Authenticate_Against_Dse_Daemon_With_PasswordAuthenticator()
         {
-            CcmHelper.Start(
-                1,
-                cassYamlOptions: new[] { "authenticator: PasswordAuthenticator" },
-                jvmArgs: new[] { "-Dcassandra.superuser_setup_delay_ms=0" });
+            TestClusterManager.CreateNew(1, new TestClusterOptions
+            {
+                CassandraYaml = new[] { "authenticator: PasswordAuthenticator" },
+                JvmArgs = new[] { "-Dcassandra.superuser_setup_delay_ms=0" }
+            });
             Trace.TraceInformation("Waiting additional time for test Cluster to be ready");
             Thread.Sleep(15000);
             var authProvider = new DsePlainTextAuthProvider("cassandra", "cassandra");
             using (var cluster = Cluster.Builder()
-                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithAuthProvider(authProvider)
                 .Build())
             {
@@ -72,14 +73,7 @@ namespace Dse.Test.Integration.Auth
         [TearDown]
         public void TearDown()
         {
-            try
-            {
-                CcmHelper.Remove();
-            }
-            catch
-            {
-                //Tried to remove, never mind if it fails.
-            }
+            TestClusterManager.TryRemove();
         }
     }
 }

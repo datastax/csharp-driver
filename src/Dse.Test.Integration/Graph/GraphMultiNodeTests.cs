@@ -6,14 +6,17 @@
 //
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Dse;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Graph;
-using Dse.Test.Integration.ClusterManagement;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Graph
@@ -22,42 +25,107 @@ namespace Dse.Test.Integration.Graph
     [TestDseVersion(5, 0)]
     class GraphMultiNodeTests : BaseIntegrationTest
     {
+        private const string GraphName = "multiNodeGraph";
+
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            CcmHelper.Start(3, new[] { "initial_spark_worker_resources:0.1" }, null, null, "graph,spark");
+            var testCluster = TestClusterManager.CreateNew(1, new TestClusterOptions
+            {
+                Workloads = new[] { "graph", "spark" }
+            });
             Trace.TraceInformation("Waiting additional time for test Cluster to be ready");
-            Thread.Sleep(15000);
+            Thread.Sleep(20000);
+
+            const string replicationConfigStr = "{'class' : 'SimpleStrategy', 'replication_factor' : 2}";
+            using (var cluster = DseCluster.Builder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
+            {
+                WaitForWorkers(1);
+
+                var session = cluster.Connect();
+
+                Trace.TraceInformation("GraphMultiNodeTests: Altering keyspace for dse_leases");
+                session.Execute(
+                    "ALTER KEYSPACE dse_leases WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'GraphAnalytics': '2'}");
+
+                Trace.TraceInformation("GraphMultiNodeTests: Bootstrapping node 2");
+                testCluster.BootstrapNode(2, false);
+                Trace.TraceInformation("GraphMultiNodeTests: Setting workload");
+                testCluster.SetNodeWorkloads(2, new [] { "graph", "spark" });
+                Trace.TraceInformation("GraphMultiNodeTests: Starting node 2");
+                testCluster.Start(2);
+                Trace.TraceInformation("Waiting additional time for new node to be ready");
+                Thread.Sleep(15000);
+                WaitForWorkers(2);
+
+                Trace.TraceInformation("GraphMultiNodeTests: Creating graph");
+                session.ExecuteGraph(new SimpleGraphStatement(
+                                             "system.graph(name)" +
+                                            ".option('graph.replication_config').set(replicationConfig)" +
+                                            ".option('graph.system_replication_config').set(replicationConfig)" +
+                                            ".ifNotExists().create()", new { name = GraphName, replicationConfig = replicationConfigStr }));
+                Trace.TraceInformation("GraphMultiNodeTests: Created graph");
+
+                var graphStatements = new StringBuilder();
+                graphStatements.Append(MakeStrict + "\n");
+                graphStatements.Append(AllowScans + "\n");
+                graphStatements.Append(ClassicSchemaGremlinQuery + "\n");
+                graphStatements.Append(ClassicLoadGremlinQuery);
+                session.ExecuteGraph(new SimpleGraphStatement(graphStatements.ToString()).SetGraphName(GraphName));
+            }
         }
 
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {
-            CcmHelper.Remove();
+            TestClusterManager.TryRemove();
         }
 
-        [Test, TestDseVersion(5, 0)]
-        public void Should_Contact_Spark_Master_Directly()
+        public void WaitForWorkers(int expectedWorkers)
         {
-            var graphName = "name1";
-            using (var cluster = DseCluster.Builder().AddContactPoint(CcmHelper.InitialContactPoint).Build())
+            Trace.TraceInformation("GraphMultiNodeTests: WaitForWorkers");
+            var master = FindSparkMaster();
+            var client = new HttpClient();
+            var count = 100;
+            while (count > 0)
             {
-                var session = cluster.Connect();
-                session.ExecuteGraph(new SimpleGraphStatement(string.Format("system.graph(\"{0}\")" +
-                                                                            ".option(\"graph.schema_mode\").set(com.datastax.bdp.graph.api.model.Schema.Mode.Production)" +
-                                                                            ".ifNotExists().create()", graphName)));
-                Thread.Sleep(2000); // sleep 2 seconds to allow graph to propagate to all nodes (DSP-9376). 
-                session.ExecuteGraph(new SimpleGraphStatement(ClassicSchemaGremlinQuery).SetGraphName(graphName));
-                Thread.Sleep(2000);
-                session.ExecuteGraph(new SimpleGraphStatement(ClassicLoadGremlinQuery).SetGraphName(graphName));
-
+                var task = client.GetAsync(string.Format("http://{0}:7080", master));
+                task.Wait(5000);
+                var response = task.Result;
+                if (response.StatusCode == HttpStatusCode.OK)
+                {
+                    var content = response.Content.ReadAsStringAsync();
+                    content.Wait();
+                    var body = content.Result;
+                    var match = Regex.Match(body, "Alive\\s+Workers:.*(\\d+)</li>", RegexOptions.Multiline);
+                    if (match.Success && match.Groups.Count > 1)
+                    {
+                        try
+                        {
+                            var workers = int.Parse(match.Groups[1].Value);
+                            if (workers == expectedWorkers)
+                            {
+                                return;
+                            }
+                        }
+                        catch
+                        {
+                            // ignored
+                        }
+                    }
+                }
+                count--;
+                Thread.Sleep(500);
             }
+        }
 
+        public string FindSparkMaster()
+        {
+            Trace.TraceInformation("GraphMultiNodeTests: FindSparkMaster");
             using (var cluster = DseCluster.Builder()
-                .AddContactPoint(CcmHelper.InitialContactPoint)
-                .WithGraphOptions(new GraphOptions().SetName(graphName))
-                .WithLoadBalancingPolicy(DseLoadBalancingPolicy.CreateDefault())
-                .Build())
+                        .AddContactPoint(TestClusterManager.InitialContactPoint)
+                        .WithLoadBalancingPolicy(DseLoadBalancingPolicy.CreateDefault())
+                        .Build())
             {
                 var session = cluster.Connect();
 
@@ -65,7 +133,23 @@ namespace Dse.Test.Integration.Graph
                 var result = sparksRS.ToArray();
                 var sparkLocation = ((SortedDictionary<string, string>)result.First()[0])["location"];
                 var sparkHost = sparkLocation.Split(':')[0];
+                return sparkHost;
+            }
+        }
+        
+        [Test, TestDseVersion(5, 0)]
+        public void Should_Contact_Spark_Master_Directly()
+        {
+            Trace.TraceInformation("GraphMultiNodeTests: Should_Contact_Spark_Master_Directly");
+            var sparkHost = FindSparkMaster();
 
+            using (var cluster = DseCluster.Builder()
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
+                .WithGraphOptions(new GraphOptions().SetName(GraphName))
+                .WithLoadBalancingPolicy(DseLoadBalancingPolicy.CreateDefault())
+                .Build())
+            {
+                var session = cluster.Connect();
                 for (var i = 0; i < 10; i++)
                 {
                     var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V().count()").SetGraphSourceAnalytics().SetReadTimeoutMillis(120000));

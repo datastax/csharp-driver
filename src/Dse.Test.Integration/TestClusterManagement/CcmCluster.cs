@@ -5,12 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Threading;
-using Dse.Test.Integration.TestClusterManagement;
 
 namespace Dse.Test.Integration.TestClusterManagement
 {
@@ -22,28 +17,30 @@ namespace Dse.Test.Integration.TestClusterManagement
         public ISession Session { get; set; }
         public string InitialContactPoint { get; set; }
         public string ClusterIpPrefix { get; set; }
+        public string DsePath { get; set; }
         public string DefaultKeyspace { get; set; }
-        private readonly string _version;
+        private readonly ICcmProcessExecuter _executor;
         private CcmBridge _ccm;
 
-        public CcmCluster(string version, string name, string clusterIpPrefix, string defaultKeyspace)
+        public CcmCluster(string name, string clusterIpPrefix, string dsePath, ICcmProcessExecuter executor, string defaultKeyspace)
         {
-            _version = version;
+            _executor = executor;
             Name = name;
             DefaultKeyspace = defaultKeyspace;
             ClusterIpPrefix = clusterIpPrefix;
+            DsePath = dsePath;
             InitialContactPoint = ClusterIpPrefix + "1";
         }
 
         public void Create(int nodeLength, TestClusterOptions options = null)
         {
-            if (options == null)
-            {
-                options = TestClusterOptions.Default;
-            }
-            _ccm = new CcmBridge(Name, ClusterIpPrefix);
-            _ccm.Create(_version, options.UseSsl);
+            options = options ?? TestClusterOptions.Default;
+            _ccm = new CcmBridge(Name, ClusterIpPrefix, DsePath, _executor);
+            _ccm.Create(options.UseSsl);
             _ccm.Populate(nodeLength, options.Dc2NodeLength, options.UseVNodes);
+            _ccm.UpdateConfig(options.CassandraYaml);
+            _ccm.UpdateDseConfig(options.DseYaml);
+            _ccm.SetWorkloads(nodeLength, options.Workloads);
         }
 
         public void InitClient()
@@ -54,7 +51,7 @@ namespace Dse.Test.Integration.TestClusterManagement
             }
             if (Builder == null)
             {
-                Builder = new Builder();   
+                Builder = new DseClusterBuilder();   
             }
             Cluster = Builder.AddContactPoint(InitialContactPoint).Build();
             Session = Cluster.Connect();
@@ -85,14 +82,19 @@ namespace Dse.Test.Integration.TestClusterManagement
             _ccm.DecommissionNode(nodeId);
         }
 
+        public void DecommissionNodeForcefully(int nodeId)
+        {
+            _ccm.ExecuteCcm(string.Format("node{0} nodetool \"decommission -f\"", nodeId));
+        }
+
         public void PauseNode(int nodeId)
         {
-            CcmBridge.ExecuteCcm(string.Format("node{0} pause", nodeId));
+            _ccm.ExecuteCcm(string.Format("node{0} pause", nodeId));
         }
 
         public void ResumeNode(int nodeId)
         {
-            CcmBridge.ExecuteCcm(string.Format("node{0} resume", nodeId));
+            _ccm.ExecuteCcm(string.Format("node{0} resume", nodeId));
         }
 
         public void SwitchToThisCluster()
@@ -120,14 +122,19 @@ namespace Dse.Test.Integration.TestClusterManagement
             _ccm.Start(nodeIdToStart, additionalArgs);
         }
 
-        public void BootstrapNode(int nodeIdToStart)
+        public void BootstrapNode(int nodeIdToStart, bool start = true)
         {
-            _ccm.BootstrapNode(nodeIdToStart);
+            _ccm.BootstrapNode(nodeIdToStart, start);
         }
 
-        public void BootstrapNode(int nodeIdToStart, string dataCenterName)
+        public void SetNodeWorkloads(int nodeId, string[] workloads)
         {
-            _ccm.BootstrapNode(nodeIdToStart, dataCenterName);
+            _ccm.SetNodeWorkloads(nodeId, workloads);
+        }
+
+        public void BootstrapNode(int nodeIdToStart, string dataCenterName, bool start = true)
+        {
+            _ccm.BootstrapNode(nodeIdToStart, dataCenterName, start);
         }
 
         public void UpdateConfig(params string[] yamlChanges)
@@ -135,7 +142,7 @@ namespace Dse.Test.Integration.TestClusterManagement
             if (yamlChanges == null) return;
             foreach (var setting in yamlChanges)
             {
-                CcmBridge.ExecuteCcm("updateconf \"" + setting + "\"");
+                _ccm.ExecuteCcm("updateconf \"" + setting + "\"");
             }
         }
     }

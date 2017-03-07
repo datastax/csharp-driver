@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using Dse.Test.Integration.TestClusterManagement;
 
 namespace Dse.Test.Integration.TestClusterManagement
 {
@@ -21,8 +20,18 @@ namespace Dse.Test.Integration.TestClusterManagement
     {
         public static ITestCluster LastInstance { get; private set; }
         public const string DefaultKeyspaceName = "test_cluster_keyspace";
-        private static string _cassandraVersionText;
-        private static Version _cassandraVersion;
+        private static ICcmProcessExecuter _executor;
+
+        private static readonly Version Version2Dot0 = new Version(2, 0);
+        private static readonly Version Version2Dot1 = new Version(2, 1);
+        private static readonly Version Version2Dot2 = new Version(2, 2);
+        private static readonly Version Version3Dot0 = new Version(3, 0);
+        private static readonly Version Version3Dot10 = new Version(3, 10);
+        private static readonly Version Version4Dot6 = new Version(4, 6);
+        private static readonly Version Version4Dot7 = new Version(4, 7);
+        private static readonly Version Version4Dot8 = new Version(4, 8);
+        private static readonly Version Version5Dot0 = new Version(5, 0);
+        private static readonly Version Version5Dot1 = new Version(5, 1);
 
         /// <summary>
         /// Gets the Cassandra version used for this test run
@@ -31,51 +40,104 @@ namespace Dse.Test.Integration.TestClusterManagement
         {
             get
             {
-                LoadCassandraVersion();
-                return _cassandraVersion;
+                var dseVersion = DseVersion;
+                if (dseVersion < Version4Dot7)
+                {
+                    // C* 2.0
+                    return Version2Dot0;
+                }
+                if (dseVersion < Version5Dot0)
+                {
+                    // C* 2.1
+                    return Version2Dot1;
+                }
+                if (dseVersion < Version5Dot1)
+                {
+                    // C* 3.0
+                    return Version3Dot0;
+                }
+                // C* 3.10
+                return Version3Dot10;
             }
         }
 
         /// <summary>
-        /// Gets the full Cassandra version used for this test run, in semver format: 2.2.0-rc1
-        /// </summary>
-        public static string CassandraVersionText
-        {
-            get
-            {
-                LoadCassandraVersion();
-                return _cassandraVersionText;
-            }
-        }
-
-        /// <summary>
-        /// Gets the ip prefix for the Cassandra instances
+        /// Gets the IP prefix for the DSE instances
         /// </summary>
         public static string IpPrefix
         {
-            get { return "127.0.0."; }
+            get { return Environment.GetEnvironmentVariable("DSE_INITIAL_IPPREFIX") ?? "127.0.0."; }
         }
 
         /// <summary>
-        /// Loads the cassandra version from environment variables and configuration
+        /// Gets the path to DSE source code
         /// </summary>
-        private static void LoadCassandraVersion()
+        public static string DsePath
         {
-            if (_cassandraVersionText != null)
-            {
-                return;
-            }
-            var versionText = Environment.GetEnvironmentVariable("CASSANDRA_VERSION");
-            if (versionText == null)
-            {
-                versionText = "3.0.7";
-            }
-            _cassandraVersionText = versionText;
-            //in case there is a version label like rc1 / beta1
-            versionText = versionText.Split('-')[0];
-            _cassandraVersion = Version.Parse(versionText);
+            get { return Environment.GetEnvironmentVariable("DSE_PATH") ?? "/home/vagrant/dse"; }
         }
-        
+
+        public static string InitialContactPoint
+        {
+            get { return IpPrefix + "1"; }
+        }
+
+        public static Version DseVersion
+        {
+            get { return new Version(Environment.GetEnvironmentVariable("DSE_VERSION") ?? "5.0.0"); }
+        }
+
+        /// <summary>
+        /// Get the ccm executor instance (local or remote)
+        /// </summary>
+        public static ICcmProcessExecuter Executor
+        {
+            get
+            {
+                if (_executor != null)
+                {
+                    return _executor;
+                }
+                var dseRemote = bool.Parse(Environment.GetEnvironmentVariable("DSE_IN_REMOTE_SERVER") ?? "true");
+                if (!dseRemote)
+                {
+                    _executor = LocalCcmProcessExecuter.Instance;
+                }
+                else
+                {
+                    var remoteDseServer = Environment.GetEnvironmentVariable("DSE_SERVER_IP") ?? "127.0.0.1";
+                    var remoteDseServerUser = Environment.GetEnvironmentVariable("DSE_SERVER_USER") ?? "vagrant";
+                    var remoteDseServerPassword = Environment.GetEnvironmentVariable("DSE_SERVER_PWD") ?? "vagrant";
+                    var remoteDseServerPort = int.Parse(Environment.GetEnvironmentVariable("DSE_SERVER_PORT") ?? "2222");
+                    var remoteDseServerUserPrivateKey = Environment.GetEnvironmentVariable("DSE_SERVER_PRIVATE_KEY");
+                    _executor = new RemoteCcmProcessExecuter(remoteDseServer, remoteDseServerUser, remoteDseServerPassword,
+                        remoteDseServerPort, remoteDseServerUserPrivateKey);
+                }
+                return _executor;
+            }
+        }
+
+        public static Version GetDseVersion(Version cassandraVersion)
+        {
+            if (cassandraVersion < Version2Dot1)
+            {
+                // C* 2.0 => DSE 4.6
+                return Version4Dot6;
+            }
+            if (cassandraVersion < Version2Dot2)
+            {
+                // C* 2.1 => DSE 4.8
+                return Version4Dot8;
+            }
+            if (cassandraVersion < Version3Dot10)
+            {
+                // C* 3.0 => DSE 5.0
+                return Version5Dot0;
+            }
+            // DSE 5.1
+            return Version5Dot1;
+        }
+
         /// <summary>
         /// Creates a new test cluster
         /// </summary>
@@ -83,7 +145,12 @@ namespace Dse.Test.Integration.TestClusterManagement
         {
             TryRemove();
             options = options ?? new TestClusterOptions();
-            var testCluster = new CcmCluster(CassandraVersionText, TestUtils.GetTestClusterNameBasedOnTime(), IpPrefix, DefaultKeyspaceName);
+            var testCluster = new CcmCluster(
+                TestUtils.GetTestClusterNameBasedOnTime(), 
+                IpPrefix, 
+                DsePath, 
+                Executor,
+                DefaultKeyspaceName);
             testCluster.Create(nodeLength, options);
             if (startCluster)
             {
@@ -142,21 +209,13 @@ namespace Dse.Test.Integration.TestClusterManagement
         }
 
         /// <summary>
-        /// Removes the current ccm cluster
-        /// </summary>
-        public static void Remove()
-        {
-            CcmBridge.ExecuteCcm("remove");
-        }
-
-        /// <summary>
         /// Removes the current ccm cluster, without throwing exceptions if it fails
         /// </summary>
         public static void TryRemove()
         {
             try
             {
-                CcmBridge.ExecuteCcm("remove");
+                Executor.ExecuteCcm("remove");
             }
             catch (Exception ex)
             {

@@ -29,11 +29,6 @@ namespace Dse.Test.Integration.TestClusterManagement
         private static bool _clusterManagerIsInitializing;
         private static bool _clusterManagerIsInitalized;
 
-        public string CassandraVersionStr 
-        {
-            get { return TestClusterManager.CassandraVersionText; }
-        }
-
         public Version CassandraVersion
         {
             get { return TestClusterManager.CassandraVersion; }

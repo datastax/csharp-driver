@@ -26,7 +26,8 @@ namespace Dse.Test.Integration
     {
         private static ITestCluster _reusableInstance;
         private readonly bool _reuse;
-        private readonly List<Cluster> _clusterInstances = new List<Cluster>();
+        protected readonly List<ICluster> ClusterInstances = new List<ICluster>();
+
         /// <summary>
         /// Gets the amount of nodes in the test cluster
         /// </summary>
@@ -50,7 +51,7 @@ namespace Dse.Test.Integration
         /// <summary>
         /// The shared Session instance of the fixture
         /// </summary>
-        protected Session Session { get; private set; }
+        protected ISession Session { get; set; }
 
         /// <summary>
         /// It executes the queries provided on test fixture setup.
@@ -97,20 +98,30 @@ namespace Dse.Test.Integration
             }
             if (CreateSession)
             {
-                Cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
-                    .WithQueryTimeout(60000)
-                    .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000))
-                    .Build();
-                Session = (Session) Cluster.Connect();
-                Session.CreateKeyspace(KeyspaceName, null, false);
-                Session.ChangeKeyspace(KeyspaceName);
+                CreateCommonSession();
                 if (SetupQueries != null)
                 {
-                    foreach (var query in SetupQueries)
-                    {
-                        Session.Execute(query);
-                    }
+                    ExecuteSetupQueries();
                 }
+            }
+        }
+
+        protected virtual void CreateCommonSession()
+        {
+            Cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
+                .WithQueryTimeout(60000)
+                .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000))
+                .Build();
+            Session = (Session)Cluster.Connect();
+            Session.CreateKeyspace(KeyspaceName, null, false);
+            Session.ChangeKeyspace(KeyspaceName);
+        }
+
+        protected virtual void ExecuteSetupQueries()
+        {
+            foreach (var query in SetupQueries)
+            {
+                Session.Execute(query);
             }
         }
 
@@ -122,7 +133,7 @@ namespace Dse.Test.Integration
                 Cluster.Shutdown(1000);   
             }
             //Shutdown the other instances created by helper methods
-            foreach (var c in _clusterInstances)
+            foreach (var c in ClusterInstances)
             {
                 c.Shutdown(1000);
             }
@@ -133,10 +144,10 @@ namespace Dse.Test.Integration
             return GetNewCluster().Connect(keyspace);
         }
 
-        protected Cluster GetNewCluster()
+        protected ICluster GetNewCluster()
         {
             var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build();
-            _clusterInstances.Add(cluster);
+            ClusterInstances.Add(cluster);
             return cluster;
         }
     }

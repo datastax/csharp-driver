@@ -23,19 +23,32 @@ namespace Dse.Test.Integration.Core
         private const string Keyspace = "ks_client_warnings";
         private const string Table = Keyspace + ".tbl1";
 
+        private ITestCluster _testCluster;
+
         [OneTimeSetUp]
         public void SetupFixture()
         {
-            if (CassandraVersion < Version.Parse("2.2.0"))
+            if (CassandraVersion < Version.Parse("2.2"))
                 Assert.Ignore("Requires Cassandra version >= 2.2");
 
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
             //Using a mirroring handler, the server will reply providing the same payload that was sent
             var jvmArgs = new[] {"-Dcassandra.custom_query_handler_class=org.apache.cassandra.cql3.CustomPayloadMirroringQueryHandler"};
-            var testCluster = TestClusterManager.GetTestCluster(1, 0, false, DefaultMaxClusterCreateRetries, true, true, 0, jvmArgs);
-            Session = testCluster.Session;
+            _testCluster = TestClusterManager.CreateNew(1, new TestClusterOptions()
+            {
+                CassandraYaml = new[] {"batch_size_warn_threshold_in_kb:5" },
+                JvmArgs = jvmArgs
+            });
+            _testCluster.InitClient();
+            Session = _testCluster.Session;
             Session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, Keyspace, 1));
             Session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, Table));
+        }
+
+        [OneTimeTearDown]
+        public void TearDown()
+        {
+            _testCluster.Remove();
         }
 
         [Test, TestCassandraVersion(2, 2)]
@@ -54,7 +67,7 @@ namespace Dse.Test.Integration.Core
 
             //at cassandra 3.6 warnings changed according to CASSANDRA-10876
             var warningsChangingVersion = new Version(3, 6);
-            if (CassandraVersion.CompareTo(warningsChangingVersion) < 0)
+            if (CassandraVersion < warningsChangingVersion)
             {
                 Assert.NotNull(rs.Info.Warnings);
                 Assert.AreEqual(1, rs.Info.Warnings.Length);
