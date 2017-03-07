@@ -39,7 +39,7 @@ namespace Dse.Test.Unit
                 isMatch = n => n == nameSpace;
             }
             var assembly = typeof (IDseSession).GetTypeInfo().Assembly;
-            return assembly.GetTypes().Where(t => isMatch(t.Namespace) && t.GetTypeInfo().IsPublic);
+            return assembly.GetTypes().Where(t => t.GetTypeInfo().IsPublic && isMatch(t.Namespace));
         }
     }
 }

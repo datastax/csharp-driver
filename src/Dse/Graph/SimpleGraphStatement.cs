@@ -8,7 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Cassandra;
+using Dse;
 using Dse.Serialization;
 using Newtonsoft.Json;
 

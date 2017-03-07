@@ -1,0 +1,139 @@
+//
+//  Copyright (C) 2017 DataStax, Inc.
+//
+//  Please see the license for details:
+//  http://www.datastax.com/terms/datastax-dse-driver-license-terms
+//
+
+using System;
+using System.Numerics;
+using System.Reflection;
+
+namespace Dse.Test.Integration.TestClusterManagement
+{
+    internal class Randomm : Random
+    {
+        [ThreadStatic] private static Randomm _rnd;
+
+        public static Randomm Instance
+        {
+            get { return _rnd ?? (_rnd = new Randomm(5)); }
+        }
+
+        private Randomm(int seed) : base(seed)
+        {
+        }
+
+        internal static object RandomVal(Type tp)
+        {
+            if (tp != null)
+                return Instance.GetType().GetTypeInfo().GetMethod("Next" + tp.Name).Invoke(Instance, new object[] {});
+            return "";
+        }
+
+        public float NextSingle()
+        {
+            double numb = NextDouble();
+            numb -= 0.5;
+            numb *= 2;
+            return float.MaxValue*(float) numb;
+        }
+
+        public UInt16 NextUInt16()
+        {
+            return (ushort) Next(0, 65535);
+        }
+
+        public static int NextInt32()
+        {
+            return Instance.Next();
+        }
+
+        public Int64 NextInt64()
+        {
+            var buffer = new byte[sizeof (Int64)];
+            NextBytes(buffer);
+            return BitConverter.ToInt64(buffer, 0);
+        }
+
+        public decimal NextDecimal()
+        {
+            var scale = (byte) Next(29);
+            bool sign = Next(2) == 1;
+
+            return new decimal(NextInt32(),
+                               NextInt32(),
+                               NextInt32(),
+                               sign,
+                               scale);
+        }
+
+        public BigInteger NextBigInteger()
+        {
+            return new BigInteger(Int64.MaxValue)*10;
+        }
+
+        public string NextString()
+        {
+            return NextChar();
+        }
+
+        public string NextChar()
+        {
+            string asciiString = string.Empty;
+            for (int i = 0; i < 128; i++)
+                if (i == 34 || i == 39)
+                    continue;
+                else
+                    asciiString += (char) i;
+
+            return asciiString;
+        }
+
+        public DateTimeOffset NextDateTimeOffset()
+        {
+            DateTime now = DateTimeOffset.Now.UtcDateTime;
+            return new DateTimeOffset(now.Year, now.Month, now.Day, now.Hour, now.Minute, now.Second, now.Millisecond, TimeSpan.Zero);
+        }
+
+        public byte[] NextByte()
+        {
+            var btarr = new byte[NextUInt16()];
+            NextBytes(btarr);
+            return btarr;
+        }
+
+        public System.Net.IPAddress NextIPAddress()
+        {
+            byte[] btarr = new byte[]{(byte)this.Next(0, 128), (byte)this.Next(0, 128), (byte)this.Next(0, 128), (byte)this.Next(0, 128)};
+            return new System.Net.IPAddress(btarr);
+        }
+
+        public bool NextBoolean()
+        {
+            return NextUInt16() > 127 ? true : false;
+        }
+
+        public Guid NextGuid()
+        {
+            return Guid.NewGuid();
+        }
+
+        public static int RandomInt()
+        {
+            return NextInt32();
+        }
+
+        public static string RandomAlphaNum(int strLen)
+        {
+            string randomStr = "";
+            while (randomStr.Length < strLen)
+            {
+                randomStr += Guid.NewGuid().ToString().Replace("-", "");
+                if (randomStr.Length > strLen)
+                    randomStr = randomStr.Substring(0, strLen);
+            }
+            return randomStr;
+        }
+    }
+}

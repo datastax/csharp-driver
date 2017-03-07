@@ -4,26 +4,28 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{608F2DE4-1251-4156-B81A-BAD364FAE26C}</ProjectGuid>
+    <ProjectGuid>{D584651E-23C0-4714-9B92-6113C44BA6B8}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Dse.Test.Integration</RootNamespace>
     <AssemblyName>Dse.Test.Integration</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <LangVersion>5</LangVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\..\build\datastax.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <LangVersion>4</LangVersion>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -33,100 +35,194 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
-  <PropertyGroup>
-    <SignAssembly>false</SignAssembly>
-  </PropertyGroup>
-  <PropertyGroup>
-    <AssemblyOriginatorKeyFile>..\..\build\datastax.snk</AssemblyOriginatorKeyFile>
-  </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Cassandra, Version=3.99.0.0, Culture=neutral, PublicKeyToken=10b231fbfc8c4b4d, processorArchitecture=MSIL">
-      <HintPath>..\packages\CassandraCSharpDriver.3.2.0\lib\net45\Cassandra.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="LZ4, Version=1.0.10.93, Culture=neutral, PublicKeyToken=fd2bda0a70c5a705, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\lz4net.1.0.10.93\lib\net4-client\LZ4.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Logging, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\Microsoft.Extensions.Logging.1.0.0\lib\netstandard1.1\Microsoft.Extensions.Logging.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Logging.Abstractions, Version=1.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\Microsoft.Extensions.Logging.Abstractions.1.0.0\lib\netstandard1.1\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
-    </Reference>
     <Reference Include="Moq">
-      <HintPath>..\packages\Moq.4.2.1510.2205\lib\net40\Moq.dll</HintPath>
+      <HintPath>..\packages\Moq.4.2.1402.2112\lib\net40\Moq.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.framework, Version=3.4.1.0, Culture=neutral, PublicKeyToken=2638cd05610744eb, processorArchitecture=MSIL">
+      <HintPath>..\packages\NUnit.3.4.1\lib\net40\nunit.framework.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net40\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="nunit.framework, Version=3.4.1.0, Culture=neutral, PublicKeyToken=2638cd05610744eb, processorArchitecture=MSIL">
-      <HintPath>..\packages\NUnit.3.4.1\lib\net45\nunit.framework.dll</HintPath>
-    </Reference>
-    <Reference Include="Renci.SshNet, Version=2016.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="Renci.SshNet">
       <HintPath>..\packages\SSH.NET.2016.0.0\lib\net40\Renci.SshNet.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
-    <Reference Include="System.Configuration" />
+    <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Net.Http" />
     <Reference Include="System.Numerics" />
-    <Reference Include="System.Web.Extensions" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Auth\DseGssapiAuthProviderTests.cs" />
     <Compile Include="Auth\DsePlainTextAuthProviderTests.cs" />
+    <Compile Include="Auth\SspiClientTests.cs" />
     <Compile Include="BaseIntegrationTest.cs" />
-    <Compile Include="ClusterManagement\CcmBridge.cs" />
-    <Compile Include="ClusterManagement\CcmDseBridge.cs" />
-    <Compile Include="ClusterManagement\CcmHelper.cs" />
+    <Compile Include="Core\ClientTimeoutTests.cs" />
+    <Compile Include="Core\ClientWarningsTests.cs" />
+    <Compile Include="Core\ClusterTests.cs" />
+    <Compile Include="Core\CompressionTests.cs" />
+    <Compile Include="Core\ControlConnectionReconnectionTests.cs" />
+    <Compile Include="Core\ControlConnectionTests.cs" />
+    <Compile Include="Core\CustomPayloadTests.cs" />
+    <Compile Include="Core\PoolShortTests.cs" />
+    <Compile Include="Core\ReconnectionTests.cs" />
+    <Compile Include="Core\SchemaMetadataTests.cs" />
+    <Compile Include="Core\TypeSerializersTests.cs" />
+    <Compile Include="Core\UdfTests.cs" />
+    <Compile Include="Core\SpeculativeExecutionLongTests.cs" />
+    <Compile Include="Core\SpeculativeExecutionShortTests.cs" />
+    <Compile Include="CqlFunctions\Structures\EntityWithNullableTimeUuid.cs" />
+    <Compile Include="CqlFunctions\Structures\EntityWithTimeUuid.cs" />
+    <Compile Include="CqlFunctions\Tests\MaxTimeUuid.cs" />
+    <Compile Include="CqlFunctions\Tests\MinTimeUuid.cs" />
+    <Compile Include="CqlFunctions\Tests\Token.cs" />
     <Compile Include="Geometry\GeometryTests.cs" />
     <Compile Include="Geometry\LineStringTests.cs" />
     <Compile Include="Geometry\PointTests.cs" />
     <Compile Include="Geometry\PolygonTests.cs" />
     <Compile Include="Graph\GraphMultiNodeTests.cs" />
     <Compile Include="Graph\GraphTests.cs" />
-    <Compile Include="InfrastructureTest.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Auth\SspiClientTests.cs" />
-    <Compile Include="TestBase\CcmProcessExecuter.cs" />
-    <Compile Include="TestBase\ICcmProcessExecuter.cs" />
-    <Compile Include="TestBase\LocalCcmProcessExecuter.cs" />
-    <Compile Include="TestBase\RemoteCcmProcessExecuter.cs" />
-    <Compile Include="TestBase\TestDseVersion.cs" />
-    <Compile Include="TestBase\TestInfrastructureException.cs" />
+    <Compile Include="Linq\CqlOperatorTests\Prepend.cs" />
+    <Compile Include="Linq\CqlOperatorTests\SubstractAssign.cs" />
+    <Compile Include="Linq\CqlOperatorTests\Append.cs" />
+    <Compile Include="Linq\LinqMethods\Count.cs" />
+    <Compile Include="Linq\LinqMethods\Counter.cs" />
+    <Compile Include="Linq\LinqMethods\ExecutePagedTests.cs" />
+    <Compile Include="Linq\LinqTable\CreateTable.cs" />
+    <Compile Include="Linq\LinqMethods\Delete.cs" />
+    <Compile Include="Linq\LinqMethods\DeleteIf.cs" />
+    <Compile Include="Linq\LinqMethods\First.cs" />
+    <Compile Include="Linq\LinqMethods\FirstOrDefault.cs" />
+    <Compile Include="Linq\LinqMethods\InsertTests.cs" />
+    <Compile Include="Linq\LinqTable\LinqUdtTests.cs" />
+    <Compile Include="Linq\LinqMethods\OrderBy.cs" />
+    <Compile Include="Linq\LinqMethods\Select.cs" />
+    <Compile Include="Linq\LinqMethods\TableSelectDefault.cs" />
+    <Compile Include="Linq\LinqMethods\Take.cs" />
+    <Compile Include="Linq\LinqMethods\Update.cs" />
+    <Compile Include="Linq\LinqMethods\UpdateIfTests.cs" />
+    <Compile Include="Linq\LinqMethods\Where.cs" />
+    <Compile Include="Linq\LinqTable\GetTable.cs" />
+    <Compile Include="Linq\LinqTable\TableSelectDefault.cs" />
+    <Compile Include="Linq\Structures\AllDataTypesEntityBase.cs" />
+    <Compile Include="Linq\Structures\AllDataTypesEntityUtil.cs" />
+    <Compile Include="Linq\Structures\EntityWithAllCollectionTypes.cs" />
+    <Compile Include="Linq\Structures\EntityWithArrayType.cs" />
+    <Compile Include="Linq\Structures\EntityWithDictionaryType.cs" />
+    <Compile Include="Linq\Structures\EntityWithListType.cs" />
+    <Compile Include="Linq\Structures\IAllDataTypesEntity.cs" />
+    <Compile Include="Core\CollectionsNestedTests.cs" />
+    <Compile Include="Linq\Structures\ManyDataTypesEntity.cs" />
+    <Compile Include="Policies\Tests\IdempotenceAwareRetryPolicyTests.cs" />
+    <Compile Include="Policies\Tests\LoadBalancingPolicyShortTests.cs" />
+    <Compile Include="SharedClusterTest.cs" />
+    <Compile Include="Linq\Structures\SalesOrder.cs" />
+    <Compile Include="Linq\Structures\AllDataTypesNoColumnMeta.cs" />
+    <Compile Include="Linq\Structures\Movie.cs" />
+    <Compile Include="Linq\Structures\AllDataTypesEntity.cs" />
+    <Compile Include="Mapping\Structures\ContactMethod.cs" />
+    <Compile Include="Mapping\Structures\ManyDataTypesPocoMappingCaseSensitive.cs" />
+    <Compile Include="Mapping\Structures\NestedCollectionsPoco.cs" />
+    <Compile Include="Mapping\Structures\UserMapping.cs" />
+    <Compile Include="Mapping\Structures\RainbowColor.cs" />
+    <Compile Include="Mapping\Structures\User.cs" />
+    <Compile Include="Mapping\Structures\ManyDataTypesPoco.cs" />
+    <Compile Include="Mapping\Structures\UserType.cs" />
+    <Compile Include="Mapping\Tests\Attributes.cs" />
+    <Compile Include="Mapping\Tests\Counter.cs" />
+    <Compile Include="Mapping\Tests\CqlClientTest.cs" />
+    <Compile Include="Mapping\Tests\CqlClientConfig.cs" />
+    <Compile Include="Mapping\Tests\CreateTable.cs" />
+    <Compile Include="Mapping\Tests\Delete.cs" />
+    <Compile Include="Mapping\Tests\Fetch.cs" />
+    <Compile Include="Mapping\Tests\First.cs" />
+    <Compile Include="Mapping\Tests\FluentMapping.cs" />
+    <Compile Include="Mapping\Tests\InsertTests.cs" />
+    <Compile Include="Mapping\Tests\Single.cs" />
+    <Compile Include="Mapping\Tests\Update.cs" />
+    <Compile Include="SharedDseClusterTest.cs" />
+    <Compile Include="TestBase\TestCategories.cs" />
+    <Compile Include="Core\ConnectionTests.cs" />
+    <Compile Include="Core\ConsistencyTests.cs" />
+    <Compile Include="Core\MultiThreadingTests.cs" />
+    <Compile Include="Core\BasicTypeTests.cs" />
+    <Compile Include="Core\BatchStatements.cs" />
+    <Compile Include="Core\CollectionsTests.cs" />
+    <Compile Include="Core\ConnectionTimeoutTest.cs" />
+    <Compile Include="Policies\Tests\ConsistencyTests.cs" />
+    <Compile Include="Core\CustomTypeTests.cs" />
+    <Compile Include="Core\ExceptionsTests.cs" />
+    <Compile Include="FoundBugs\FoundBugTests.cs" />
+    <Compile Include="Core\LargeDataTests.cs" />
+    <Compile Include="Policies\Tests\LoadBalancingPolicyTests.cs" />
+    <Compile Include="Core\MetadataTests.cs" />
+    <Compile Include="Policies\Util\AlwaysIgnoreRetryPolicy.cs" />
+    <Compile Include="Policies\Util\AlwaysRetryRetryPolicy.cs" />
+    <Compile Include="Policies\Util\PolicyTestTools.cs" />
+    <Compile Include="Policies\Util\TryNextHostRetryPolicy.cs" />
+    <Compile Include="Core\PoolTests.cs" />
+    <Compile Include="Core\PreparedStatementsTests.cs" />
+    <Compile Include="TestBase\QueryTools.cs" />
+    <Compile Include="TestBase\Randomm.cs" />
+    <Compile Include="Policies\Tests\ReconnectionPolicyTests.cs" />
+    <Compile Include="Policies\Tests\RetryPolicyTests.cs" />
+    <Compile Include="Core\SessionAuthenticationTests.cs" />
+    <Compile Include="Core\SessionExecuteAsyncTests.cs" />
+    <Compile Include="Core\SessionTests.cs" />
+    <Compile Include="Core\StressTests.cs" />
+    <Compile Include="Core\TimeUuidSerializationTests.cs" />
+    <Compile Include="Core\TupleTests.cs" />
+    <Compile Include="Core\UdtMappingsTests.cs" />
+    <Compile Include="Ado\AdoBasicTests.cs" />
+    <Compile Include="TestClusterManagement\CcmBridge.cs" />
+    <Compile Include="TestClusterManagement\CcmCluster.cs" />
+    <Compile Include="CommonFixtureSetup.cs" />
+    <Compile Include="TestClusterManagement\CcmProcessExecuter.cs" />
+    <Compile Include="TestClusterManagement\ICcmProcessExecuter.cs" />
+    <Compile Include="TestClusterManagement\ITestCluster.cs" />
+    <Compile Include="TestClusterManagement\LocalCcmProcessExecuter.cs" />
+    <Compile Include="TestClusterManagement\RemoteCcmProcessExecuter.cs" />
+    <Compile Include="TestClusterManagement\TestClusterManager.cs" />
+    <Compile Include="TestBase\TestGlobals.cs" />
     <Compile Include="TestBase\TestUtils.cs" />
+    <Compile Include="Mapping\Structures\Author.cs" />
+    <Compile Include="Linq\Structures\CassandraLog.cs" />
+    <Compile Include="Linq\Structures\FollowedTweet.cs" />
+    <Compile Include="Linq\Structures\Statistics.cs" />
+    <Compile Include="Linq\Structures\Tweet.cs" />
+    <Compile Include="Core\ParameterizedStatementsTests.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TestClusterManagement\TestDseVersion.cs" />
+    <Compile Include="TestClusterManagement\TestInfrastructureException.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Dse\Dse.csproj">
-      <Project>{a70ca3c8-da71-4592-b593-c0fee5fb9938}</Project>
-      <Name>Dse</Name>
-    </ProjectReference>
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="project.json" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Dse.Test.Unit\Dse.Test.Unit.csproj">
+      <Project>{49996688-1380-4854-a32c-048c4014e478}</Project>
+      <Name>Dse.Test.Unit</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Dse\Dse.csproj">
+      <Project>{6e8c45da-d958-4c75-98c3-b54c883299a2}</Project>
+      <Name>Dse</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
-  </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

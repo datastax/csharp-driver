@@ -1,0 +1,34 @@
+//
+//  Copyright (C) 2017 DataStax, Inc.
+//
+//  Please see the license for details:
+//  http://www.datastax.com/terms/datastax-dse-driver-license-terms
+//
+
+using System;
+using Dse.Data.Linq;
+using System.Diagnostics;
+#pragma warning disable 618
+
+namespace Dse.Test.Integration.Linq.Structures
+{
+    public class Tweet
+    {
+        [PartitionKey] 
+        public string author_id;
+
+        public string body;
+        [SecondaryIndex] 
+        public DateTimeOffset date;
+
+        [ClusteringKey(0)] 
+        public Guid tweet_id;
+
+        public void display()
+        {
+            Trace.TraceInformation("Author: " + author_id);
+            Trace.TraceInformation("Date: " + date);
+            Trace.TraceInformation("Tweet content: " + body + Environment.NewLine);
+        }
+    }
+}

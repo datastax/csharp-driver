@@ -1,24 +1,26 @@
-{
-  "version": "1.1.1",
+﻿{
+  "version": "2.0.0-beta1",
   "name": "Dse",
   "authors": [ "DataStax" ],
   "title": "DataStax Enterprise C# Driver",
   "description": "Built on top of DataStax C# driver for Apache Cassandra, it provides additional features designed for DataStax Enterprise.",
-  "copyright": "Copyright © 2016 by DataStax",
+  "copyright": "Copyright © 2017 by DataStax",
   "packOptions": {
     "summary": "Built on top of DataStax C# driver for Apache Cassandra, it provides additional features designed for DataStax Enterprise.",
     "licenseUrl": "https://github.com/datastax/csharp-driver/blob/master/LICENSE.txt",
-    "tags": [ "cassandra", "datastax", "driver", "client", "database", "nosql", "dotnet", "netcore", "db" ],
+    "tags": [ "cassandra", "apache", "datastax", "driver", "client", "database", "nosql", "dotnet", "netcore", "db", "dse" ],
     "repository": { "url": "https://github.com/datastax/csharp-driver-dse" }
   },
   "buildOptions": {
     "warningsAsErrors": true,
     "keyFile": "../../build/datastax.snk",
     "xmlDoc": true,
+    "nowarn": [ "1591" ],
     "languageVersion": "csharp5"
   },
   "dependencies": {
-    "CassandraCSharpDriver": "3.2.1",
+    "Microsoft.Extensions.Logging": "1.0.0",
+    "Microsoft.Extensions.Logging.Abstractions": "1.0.0",
     "Newtonsoft.Json": "9.0.1"
   },
   "frameworks": {
@@ -37,29 +39,41 @@
       "buildOptions": {
         "define": [ "NETCORE" ],
         "compile": {
-          "exclude": ["Auth/Sspi/**"]
+          "exclude": [ "Auth/Sspi/**" ]
         }
       },
       "dependencies": {
         "System.Collections": "4.0.11",
         "System.Collections.Concurrent": "4.0.12",
+        "System.Data.Common": "4.1.0",
         "System.Diagnostics.FileVersionInfo": "4.0.0",
+        "System.Diagnostics.StackTrace": "4.0.1",
+        "System.Diagnostics.TraceSource": "4.0.0",
+        "System.Globalization.Calendars": "4.0.1",
         "System.IO": "4.1.0",
+        "System.Linq": "4.1.0",
+        "System.Linq.Expressions": "4.1.0",
         "System.Net.NameResolution": "4.0.0",
         "System.Net.Primitives": "4.0.11",
         "System.Net.Security": "4.0.0",
         "System.Net.Sockets": "4.1.0",
+        "System.ObjectModel": "4.0.12",
         "System.Reflection": "4.1.0",
         "System.Reflection.Extensions": "4.0.1",
         "System.Reflection.Primitives": "4.0.1",
         "System.Runtime": "4.1.0",
         "System.Runtime.Extensions": "4.1.0",
+        "System.Runtime.InteropServices": "4.1.0",
+        "System.Runtime.Numerics": "4.0.1",
+        "System.Runtime.Serialization.Primitives": "4.1.1",
         "System.Security.Cryptography.Primitives": "4.0.0",
         "System.Security.Cryptography.X509Certificates": "4.1.0",
         "System.Text.Encoding": "4.0.11",
+        "System.Text.RegularExpressions": "4.1.0",
         "System.Threading": "4.0.11",
         "System.Threading.Tasks": "4.0.11",
-        "System.Threading.Thread": "4.0.0"
+        "System.Threading.Thread": "4.0.0",
+        "System.Threading.Timer": "4.0.1"
       }
     }
   }

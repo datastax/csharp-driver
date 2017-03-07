@@ -4,13 +4,11 @@
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
+
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Cassandra;
 
-namespace Dse.Policies
+namespace Dse
 {
     /// <summary>
     /// A load balancing policy designed to run against DSE cluster.
@@ -53,11 +51,11 @@ namespace Dse.Policies
 
         /// <summary>
         /// Creates the default load balancing policy, using 
-        /// <see cref="Cassandra.Policies.DefaultLoadBalancingPolicy"/> as child policy.
+        /// <see cref="Policies.DefaultLoadBalancingPolicy"/> as child policy.
         /// </summary>
         public static DseLoadBalancingPolicy CreateDefault()
         {
-            return new DseLoadBalancingPolicy(Cassandra.Policies.DefaultLoadBalancingPolicy);
+            return new DseLoadBalancingPolicy(Policies.DefaultLoadBalancingPolicy);
         }
 
         /// <summary>

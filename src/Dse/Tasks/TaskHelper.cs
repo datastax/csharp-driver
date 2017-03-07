@@ -1,13 +1,14 @@
-﻿//
-//  Copyright (C) 2016 DataStax, Inc.
+//
+//  Copyright (C) 2017 DataStax, Inc.
 //
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
-using System;
+
+﻿using System;
 using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Threading;
+﻿using System.Threading.Tasks;
 
 namespace Dse.Tasks
 {
@@ -15,13 +16,16 @@ namespace Dse.Tasks
     {
         private static readonly MethodInfo PreserveStackMethod;
         private static readonly Action<Exception> PreserveStackHandler = ex => { };
+        private static readonly Task<bool> CompletedTask;
 
         static TaskHelper()
         {
             try
             {
-                PreserveStackMethod = typeof(Exception).GetTypeInfo()
-                    .GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic);
+                TaskCompletionSource<bool> tcs = new TaskCompletionSource<bool>();
+                tcs.SetResult(false);
+                CompletedTask = tcs.Task;
+                PreserveStackMethod = typeof(Exception).GetTypeInfo().GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic);
                 if (PreserveStackMethod == null)
                 {
                     return;
@@ -49,6 +53,137 @@ namespace Dse.Tasks
         }
 
         /// <summary>
+        /// Gets a single completed task
+        /// </summary>
+        public static Task<bool> Completed
+        {
+            get { return CompletedTask; }
+        }
+
+        /// <summary>
+        /// Returns an AsyncResult according to the .net async programming model (Begin)
+        /// </summary>
+        public static Task<TResult> ToApm<TResult>(this Task<TResult> task, AsyncCallback callback, object state)
+        {
+            if (task.AsyncState == state)
+            {
+                if (callback != null)
+                {
+                    task.ContinueWith(t => callback(t), TaskContinuationOptions.ExecuteSynchronously);
+                }
+                return task;
+            }
+
+            var tcs = new TaskCompletionSource<TResult>(state);
+            task.ContinueWith(delegate
+            {
+                if (task.IsFaulted)
+                {
+                    // ReSharper disable once PossibleNullReferenceException
+                    tcs.TrySetException(task.Exception.InnerExceptions);
+                }
+                else if (task.IsCanceled)
+                {
+                    tcs.TrySetCanceled();
+                }
+                else
+                {
+                    tcs.TrySetResult(task.Result);
+                }
+
+                if (callback != null)
+                {
+                    callback(tcs.Task);
+                }
+
+            }, TaskContinuationOptions.ExecuteSynchronously);
+            return tcs.Task;
+        }
+
+        /// <summary>
+        /// Returns a faulted task with the provided exception
+        /// </summary>
+        public static Task<TResult> FromException<TResult>(Exception exception)
+        {
+            var tcs = new TaskCompletionSource<TResult>();
+            tcs.SetException(exception);
+            return tcs.Task;
+        }
+
+        /// <summary>
+        /// Waits the task to transition to RanToComplete and returns the Task.Result.
+        /// It throws the inner exception of the AggregateException in case there is a single exception.
+        /// It throws the Aggregate exception when there is more than 1 inner exception.
+        /// It throws a TimeoutException when the task didn't complete in the expected time.
+        /// </summary>
+        /// <param name="task">the task to wait upon</param>
+        /// <param name="timeout">timeout in milliseconds</param>
+        /// <exception cref="TimeoutException" />
+        /// <exception cref="AggregateException" />
+        public static T WaitToComplete<T>(Task<T> task, int timeout = Timeout.Infinite)
+        {
+            WaitToComplete((Task) task, timeout);
+            return task.Result;
+        }
+
+        /// <summary>
+        /// Waits the task to transition to RanToComplete.
+        /// It throws the inner exception of the AggregateException in case there is a single exception.
+        /// It throws the Aggregate exception when there is more than 1 inner exception.
+        /// It throws a TimeoutException when the task didn't complete in the expected time.
+        /// </summary>
+        /// <param name="task">the task to wait upon</param>
+        /// <param name="timeout">timeout in milliseconds</param>
+        /// <exception cref="TimeoutException" />
+        /// <exception cref="AggregateException" />
+        public static void WaitToComplete(Task task, int timeout = Timeout.Infinite)
+        {
+            //It should wait and throw any exception
+            try
+            {
+                task.Wait(timeout);
+            }
+            catch (AggregateException ex)
+            {
+                ex = ex.Flatten();
+                //throw the actual exception when there was a single exception
+                if (ex.InnerExceptions.Count == 1)
+                {
+                    throw PreserveStackTrace(ex.InnerExceptions[0]);
+                }
+                throw;
+            }
+            if (task.Status != TaskStatus.RanToCompletion)
+            {
+                throw new TimeoutException("The task didn't complete before timeout.");
+            }
+        }
+
+        /// <summary>
+        /// Attempts to transition the underlying Task to RanToCompletion or Faulted state.
+        /// </summary>
+        public static void TrySet<T>(this TaskCompletionSource<T> tcs, Exception ex, T result)
+        {
+            if (ex != null)
+            {
+                tcs.TrySetException(ex);
+            }
+            else
+            {
+                tcs.TrySetResult(result);
+            }
+        }
+
+        /// <summary>
+        /// Required when retrowing exceptions to maintain the stack trace of the original exception
+        /// </summary>
+        private static Exception PreserveStackTrace(Exception ex)
+        {
+            PreserveStackHandler(ex);
+            return ex;
+        }
+
+        /// <summary>
         /// Smart ContinueWith that executes the sync delegate once the initial task is completed and returns 
         /// a Task of the result of sync delegate while propagating exceptions
         /// </summary>
@@ -69,10 +204,27 @@ namespace Dse.Tasks
         }
 
         /// <summary>
+        /// Invokes the next function immediately and assigns the result to a Task
+        /// </summary>
+        private static Task<TOut> DoNext<TIn, TOut>(Task<TIn> task, Func<Task<TIn>, TOut> next)
+        {
+            var tcs = new TaskCompletionSource<TOut>();
+            try
+            {
+                var res = next(task);
+                tcs.TrySetResult(res);
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetException(ex);
+            }
+            return tcs.Task;
+        }
+
+        /// <summary>
         /// Invokes the next function immediately and assigns the result to a Task, propagating exceptions to the new Task
         /// </summary>
-        private static void DoNextAndHandle<TIn, TOut>(TaskCompletionSource<TOut> tcs, Task<TIn> previousTask,
-            Func<TIn, TOut> next)
+        private static void DoNextAndHandle<TIn, TOut>(TaskCompletionSource<TOut> tcs, Task<TIn> previousTask, Func<TIn, TOut> next)
         {
             try
             {
@@ -92,31 +244,6 @@ namespace Dse.Tasks
             {
                 tcs.TrySetException(ex);
             }
-        }
-
-
-        /// <summary>
-        /// Returns a faulted task with the provided exception
-        /// </summary>
-        public static Task<TResult> FromException<TResult>(Exception exception)
-        {
-            var tcs = new TaskCompletionSource<TResult>();
-            tcs.SetException(exception);
-            return tcs.Task;
-        }
-
-        /// <summary>
-        /// Required when re-throwing exceptions to maintain the stack trace of the original exception
-        /// </summary>
-        private static Exception PreserveStackTrace(Exception ex)
-        {
-            PreserveStackHandler(ex);
-            return ex;
-        }
-
-        private static void SetInnerException<T>(TaskCompletionSource<T> tcs, AggregateException ex)
-        {
-            tcs.TrySetException(ex.InnerException);
         }
 
         /// <summary>
@@ -182,10 +309,11 @@ namespace Dse.Tasks
             }
         }
 
+        private static void SetInnerException<T>(TaskCompletionSource<T> tcs, AggregateException ex)
+        {
+            tcs.TrySetException(ex.InnerException);
+        }
 
-        /// <summary>
-        /// Returns a completed task with the result.
-        /// </summary>
         public static Task<T> ToTask<T>(T value)
         {
             var tcs = new TaskCompletionSource<T>();
@@ -193,54 +321,65 @@ namespace Dse.Tasks
             return tcs.Task;
         }
 
-
         /// <summary>
-        /// Waits the task to transition to RanToComplete and returns the Task.Result.
-        /// It throws the inner exception of the AggregateException in case there is a single exception.
-        /// It throws the Aggregate exception when there is more than 1 inner exception.
-        /// It throws a TimeoutException when the task didn't complete in the expected time.
+        /// It creates a <see cref="TaskCompletionSource{T}"/> that transitions to Faulted once 
         /// </summary>
-        /// <param name="task">the task to wait upon</param>
-        /// <param name="timeout">timeout in milliseconds</param>
-        /// <exception cref="TimeoutException" />
-        /// <exception cref="AggregateException" />
-        public static T WaitToComplete<T>(Task<T> task, int timeout = Timeout.Infinite)
+        /// <typeparam name="T">The type of the result value associated with this <see cref="TaskCompletionSource{T}"/></typeparam>
+        /// <param name="milliseconds">The timer due time in milliseconds</param>
+        /// <param name="newTimeoutException">The method to call in case timeout expired</param>
+        public static TaskCompletionSource<T> TaskCompletionSourceWithTimeout<T>(int milliseconds, Func<Exception> newTimeoutException)
         {
-            WaitToComplete((Task)task, timeout);
-            return task.Result;
+            var tcs = new TaskCompletionSource<T>();
+            Timer timer = null;
+            TimerCallback timerCallback = _ =>
+            {
+                // ReSharper disable once PossibleNullReferenceException, AccessToModifiedClosure
+                timer.Dispose();
+                //Transition the underlying Task outside the IO thread
+                Task.Factory.StartNew(() =>
+                {
+                    try
+                    {
+                        tcs.TrySetException(newTimeoutException());
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        //The task was already disposed: move on
+                    }
+                    catch (Exception ex)
+                    {
+                        tcs.TrySetException(ex);
+                    }
+                });
+            };
+            timer = new Timer(timerCallback, null, milliseconds, Timeout.Infinite);
+            tcs.Task.ContinueWith(t =>
+            {
+                //Timer can be disposed multiple times
+                timer.Dispose();
+            });
+            return tcs;
         }
 
         /// <summary>
-        /// Waits the task to transition to RanToComplete.
-        /// It throws the inner exception of the AggregateException in case there is a single exception.
-        /// It throws the Aggregate exception when there is more than 1 inner exception.
-        /// It throws a TimeoutException when the task didn't complete in the expected time.
+        /// Executes method after the provided delay
         /// </summary>
-        /// <param name="task">the task to wait upon</param>
-        /// <param name="timeout">timeout in milliseconds</param>
-        /// <exception cref="TimeoutException" />
-        /// <exception cref="AggregateException" />
-        public static void WaitToComplete(Task task, int timeout = Timeout.Infinite)
+        public static Task<TOut> ScheduleExecution<TOut>(Func<TOut> method, HashedWheelTimer timer, int delay)
         {
-            //It should wait and throw any exception
-            try
+            var tcs = new TaskCompletionSource<TOut>();
+            timer.NewTimeout(state =>
             {
-                task.Wait(timeout);
-            }
-            catch (AggregateException ex)
-            {
-                ex = ex.Flatten();
-                //throw the actual exception when there was a single exception
-                if (ex.InnerExceptions.Count == 1)
+                var tcsState = (TaskCompletionSource<TOut>) state;
+                try
                 {
-                    throw PreserveStackTrace(ex.InnerExceptions[0]);
+                    tcsState.SetResult(method());
                 }
-                throw;
-            }
-            if (task.Status != TaskStatus.RanToCompletion)
-            {
-                throw new TimeoutException("The task didn't complete before timeout.");
-            }
+                catch (Exception ex)
+                {
+                    tcsState.SetException(ex);
+                }
+            }, tcs, delay);
+            return tcs.Task;
         }
     }
 }

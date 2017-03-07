@@ -6,7 +6,7 @@
 //
 
 using System;
-using Cassandra;
+using Dse;
 using Dse.Geometry;
 
 namespace Dse.Serialization.Geometry

@@ -4,84 +4,42 @@
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading;
-using Cassandra;
-using Cassandra.IntegrationTests.TestBase;
+using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
-using Dse.Geometry;
-using Dse.Test.Integration.ClusterManagement;
 
 namespace Dse.Test.Integration.Geometry
 {
-    [TestDseVersion(5, 0)]
-    public abstract class GeometryTests<T> : BaseIntegrationTest
+    [TestDseVersion(5, 0), Category("short")]
+    public abstract class GeometryTests<T> : SharedDseClusterTest
     {
         protected abstract T[] Values { get; }
         protected abstract string TypeName { get; }
-
-        protected IDseCluster Cluster;
-        protected IDseSession Session;
-        protected readonly string Keyspace;
-
-        private const string CreateKeyspaceQuery =
-            "CREATE KEYSPACE {0} WITH replication = {{'class': 'SimpleStrategy', 'replication_factor' : 1}} and durable_writes = false";
-
-        private string[] _queries;
         private const string InsertGeoQuery = "INSERT INTO geotable1 (id, value) VALUES (?, ?)";
         public const string SelectGeoQuery = "SELECT * FROM geotable1 WHERE id = ?";
         private const string SelectKeyedQuery = "SELECT * FROM keyed WHERE id = ?";
 
-        protected GeometryTests()
+        protected override string[] SetupQueries
         {
-            Keyspace = "ks_" + GetType().Name.ToLowerInvariant();
-        }
-
-        [OneTimeSetUp]
-        public void OneTimeSetUp()
-        {
-            if (Values == null || Values.Length == 0)
+            get
             {
-                throw new InconclusiveException("You must specify the values to test");
+                return new[]
+                {
+                    string.Format("CREATE TABLE geotable1 (id text, value '{0}', PRIMARY KEY (id))", TypeName),
+                    string.Format("CREATE TABLE keyed (id '{0}', value text, PRIMARY KEY (id))", TypeName),
+                    string.Format("INSERT INTO keyed (id, value) VALUES ('{0}', 'hello')", Values[0]),
+                    string.Format("CREATE TYPE geo_udt (f text, v '{0}')", TypeName),
+                    "CREATE TABLE tbl_udts (id uuid PRIMARY KEY, value frozen<geo_udt>)",
+                    string.Format("CREATE TABLE tbl_tuple (id uuid PRIMARY KEY, value tuple<int, '{0}'>)", TypeName),
+                    string.Format("CREATE TABLE tbl_list (id uuid PRIMARY KEY, value list<'{0}'>)", TypeName),
+                    string.Format("CREATE TABLE tbl_set (id uuid PRIMARY KEY, value set<'{0}'>)", TypeName),
+                    string.Format("CREATE TABLE tbl_map (id uuid PRIMARY KEY, value map<text, '{0}'>)", TypeName)
+                };
             }
-            CcmHelper.Start(1);
-            Cluster = DseCluster.Builder().AddContactPoint(CcmHelper.InitialContactPoint).Build();
-            Trace.TraceInformation("Waiting additional time for test Cluster to be ready");
-            Thread.Sleep(15000);
-            Session = Cluster.Connect();
-            Session.Execute(string.Format(CreateKeyspaceQuery, Keyspace));
-            Session.Execute(string.Format("USE {0}", Keyspace));
-            _queries = new[]
-            {
-                string.Format("CREATE TABLE geotable1 (id text, value '{0}', PRIMARY KEY (id))", TypeName),
-                string.Format("CREATE TABLE keyed (id '{0}', value text, PRIMARY KEY (id))", TypeName),
-                string.Format("INSERT INTO keyed (id, value) VALUES ('{0}', 'hello')", Values[0]),
-                string.Format("CREATE TYPE geo_udt (f text, v '{0}')", TypeName),
-                "CREATE TABLE tbl_udts (id uuid PRIMARY KEY, value frozen<geo_udt>)",
-                string.Format("CREATE TABLE tbl_tuple (id uuid PRIMARY KEY, value tuple<int, '{0}'>)", TypeName),
-                string.Format("CREATE TABLE tbl_list (id uuid PRIMARY KEY, value list<'{0}'>)", TypeName),
-                string.Format("CREATE TABLE tbl_set (id uuid PRIMARY KEY, value set<'{0}'>)", TypeName),
-                string.Format("CREATE TABLE tbl_map (id uuid PRIMARY KEY, value map<text, '{0}'>)", TypeName)
-            };
-            foreach (var query in _queries)
-            {
-                Session.Execute(query);
-            }
-        }
-
-        [OneTimeTearDown]
-        public void OneTimeTearDown()
-        {
-            if (Cluster != null)
-            {
-                Cluster.Dispose();
-            }
-            CcmHelper.Remove();
         }
 
         private void SerializeDeserializeTest(bool prepared)

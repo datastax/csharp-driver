@@ -31,7 +31,8 @@ obj/
 [Rr]elease*/
 _ReSharper*/
 [Tt]est[Rr]esult*
+#Ignore packages from sample projects
+src/samples/packages
+src/other/**/packages
 src/packages/*/
-doc/api-docs/*
-build/packages/*
 /docs

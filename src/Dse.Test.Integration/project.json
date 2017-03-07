@@ -2,11 +2,15 @@
   "version": "1.0.0",
   "buildOptions": {
     "warningsAsErrors": true,
-    "keyFile": "../../build/datastax.snk"
+    "keyFile": "../../build/datastax.snk",
+    "publicSign": true
   },
   "testRunner": "nunit",
   "dependencies": {
     "Dse": {
+      "target": "project"
+    },
+    "Dse.Test.Unit": {
       "target": "project"
     },
     "NUnit": "3.4.1",
@@ -19,6 +23,8 @@
         "portable-net45+win8"
       ],
       "frameworkAssemblies": {
+        "System.Net": "",
+        "System.Net.Http": "",
         "System.Data": "",
         "System.Numerics": ""
       },

@@ -1,36 +1,18 @@
+//
+//  Copyright (C) 2017 DataStax, Inc.
+//
+//  Please see the license for details:
+//  http://www.datastax.com/terms/datastax-dse-driver-license-terms
+//
+
 ﻿using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.CompilerServices;
+﻿using System.Runtime.InteropServices;
 
-// General Information about an assembly is controlled through the following 
-// set of attributes. Change these attribute values to modify the information
-// associated with an assembly.
-[assembly: AssemblyTitle("Dse.Test.Unit")]
-[assembly: AssemblyDescription("")]
-[assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Microsoft")]
-[assembly: AssemblyProduct("Dse.Test.Unit")]
-[assembly: AssemblyCopyright("Copyright © Microsoft 2016")]
-[assembly: AssemblyTrademark("")]
-[assembly: AssemblyCulture("")]
-
-// Setting ComVisible to false makes the types in this assembly not visible 
-// to COM components.  If you need to access a type in this assembly from 
-// COM, set the ComVisible attribute to true on that type.
-[assembly: ComVisible(false)]
+// See the SharedAssemblyInfo.cs file for information shared by all assemblies
+[assembly: AssemblyTitle("Cassandra.Tests")]
+[assembly: AssemblyDescription("Unit tests for DataStax .NET Driver for Apache Cassandra")]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("c0fba894-80e2-45d7-af79-752912fa994e")]
-
-// Version information for an assembly consists of the following four values:
-//
-//      Major Version
-//      Minor Version 
-//      Build Number
-//      Revision
-//
-// You can specify all the values or you can default the Build and Revision Numbers 
-// by using the '*' as shown below:
-// [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: Guid("f7b15ff9-afa4-4a55-b12e-21d620ab5662")]
+[assembly: InternalsVisibleTo("Dse.Test.Integration, PublicKey=00240000048000009400000006020000002400005253413100040000010001002367a0d2a0b22d308ce0139f644baa0e17ea09bd0d951b5c85f9e6440302d3e0e45f59676a4f31c970ff534c65ff7746184a95d538933d10115bfaf2eaa89332f0ab72bb9d5d1828501c580a3ade6c91d258159701b7317ee5d57f914e8cd28df32f83ad190169c4427c62da85d173aa7ab5d1870e19140bb1275d7620bebab4")]

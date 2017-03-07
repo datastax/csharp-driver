@@ -11,13 +11,10 @@ using System.Linq;
 using System.Net;
 using System.Numerics;
 using System.Threading;
-using Cassandra;
-using Cassandra.IntegrationTests.TestBase;
 using Dse.Geometry;
+using Dse.Test.Integration.TestClusterManagement;
 using Dse.Graph;
-using Dse.Test.Integration.ClusterManagement;
 using NUnit.Framework;
-using Newtonsoft.Json;
 
 namespace Dse.Test.Integration.Graph
 {
@@ -30,23 +27,23 @@ namespace Dse.Test.Integration.Graph
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            CcmHelper.Start(1, null, null, null, "graph");
+            TestClusterManager.CreateNew(1, new TestClusterOptions { Workloads = new [] { "graph" } });
             Trace.TraceInformation("Waiting additional time for test Cluster to be ready");
             Thread.Sleep(20000);
-            CreateClassicGraph(CcmHelper.InitialContactPoint, GraphName);
+            CreateClassicGraph(TestClusterManager.InitialContactPoint, GraphName);
         }
 
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {
-            CcmHelper.Remove();
+            TestClusterManager.TryRemove();
         }
 
         [Test]
         public void Should_Get_Vertices_Of_Classic_Schema()
         {
             using (var cluster = DseCluster.Builder()
-                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
             {
@@ -68,7 +65,7 @@ namespace Dse.Test.Integration.Graph
         public void Should_Retrieve_Graph_Vertices()
         {
             using (var cluster = DseCluster.Builder()
-                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
             {
@@ -90,7 +87,7 @@ namespace Dse.Test.Integration.Graph
         public void Should_Retrieve_Graph_Edges()
         {
             using (var cluster = DseCluster.Builder()
-                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
             {
@@ -112,7 +109,7 @@ namespace Dse.Test.Integration.Graph
         public void Should_Support_Named_Parameters()
         {
             using (var cluster = DseCluster.Builder()
-                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
             {
@@ -134,7 +131,7 @@ namespace Dse.Test.Integration.Graph
         {
             var names = new[] { "Mario", "Luigi", "Toad", "Bowser", "Peach", "Wario", "Waluigi" };
             using (var cluster = DseCluster.Builder()
-                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
             {
@@ -169,7 +166,7 @@ namespace Dse.Test.Integration.Graph
             var citizenship = new[] { "Kingdom of Württemberg", "Switzerland", "Austria", "Germany", "United States" };
 
             using (var cluster = DseCluster.Builder()
-                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
             {
@@ -216,7 +213,7 @@ namespace Dse.Test.Integration.Graph
         public void Should_Support_Dictionary_As_Parameter()
         {
             using (var cluster = DseCluster.Builder()
-                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
             {
@@ -239,7 +236,7 @@ namespace Dse.Test.Integration.Graph
         public void Should_Support_Multiple_Named_Parameters()
         {
             using (var cluster = DseCluster.Builder()
-                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
             {
@@ -258,7 +255,7 @@ namespace Dse.Test.Integration.Graph
         public void Should_Handle_Vertex_Id_As_Parameter()
         {
             using (var cluster = DseCluster.Builder()
-                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
             {
@@ -284,7 +281,7 @@ namespace Dse.Test.Integration.Graph
         public void Should_Handle_Edge_Id_As_Parameter()
         {
             using (var cluster = DseCluster.Builder()
-                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
             {
@@ -310,7 +307,7 @@ namespace Dse.Test.Integration.Graph
         public void Should_Retrieve_Path_With_Labels()
         {
             using (var cluster = DseCluster.Builder()
-                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
             {
@@ -391,7 +388,7 @@ namespace Dse.Test.Integration.Graph
         public void Should_Return_Zero_Results()
         {
             using (var cluster = DseCluster.Builder()
-                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
             {
@@ -406,9 +403,10 @@ namespace Dse.Test.Integration.Graph
         [Test]
         public void Should_Have_The_Same_ReadTimeout_Per_Statement_And_Global()
         {
-            var timeout = 2000;
+            const int timeout = 2000;
+            const int timeoutThreshold = timeout / 10; //10%
             using (var cluster = DseCluster.Builder()
-                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName).SetReadTimeoutMillis(timeout))
                 .Build())
             {
@@ -422,7 +420,7 @@ namespace Dse.Test.Integration.Graph
                 catch
                 {
                     stopwatch.Stop();
-                    Assert.GreaterOrEqual(stopwatch.ElapsedMilliseconds, timeout);
+                    Assert.GreaterOrEqual(stopwatch.ElapsedMilliseconds, timeout - timeoutThreshold);
                 }
             }
         }
@@ -430,15 +428,16 @@ namespace Dse.Test.Integration.Graph
         [Test]
         public void Should_Have_The_Different_ReadTimeout_Per_Statement()
         {
-            var timeout = 2000;
+            const int timeout = 2000;
             using (var cluster = DseCluster.Builder()
-                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName).SetReadTimeoutMillis(timeout))
                 .Build())
             {
                 var session = cluster.Connect();
                 var stopwatch = new Stopwatch();
-                var stmtTimeout = 500;
+                const int stmtTimeout = 500;
+                const int stmtTimeoutThreshold = stmtTimeout / 10; //10%
                 try
                 {
                     stopwatch.Start();
@@ -448,21 +447,22 @@ namespace Dse.Test.Integration.Graph
                 catch
                 {
                     stopwatch.Stop();
-                    Assert.GreaterOrEqual(stopwatch.ElapsedMilliseconds, stmtTimeout);
+                    Assert.GreaterOrEqual(stopwatch.ElapsedMilliseconds, stmtTimeout - stmtTimeoutThreshold);
                     Assert.Less(stopwatch.ElapsedMilliseconds, timeout);
                 }
             }
         }
 
-
         [Test]
         public void Should_Have_Infinite_ReadTimeout_Per_Statement()
         {
             //setting a really small global timeout to make sure that the query exceeds this time
-            var timeout = 2000;
-            var stmtSleep = 10000L;
+            const int timeout = 2000;
+            const int timeoutThreshold = timeout / 10; //10%
+            const long stmtSleep = 10000L;
+            const long stmtSleepThreashold = stmtSleep / 10; //10%
             using (var cluster = DseCluster.Builder()
-                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName).SetReadTimeoutMillis(timeout))
                 .Build())
             {
@@ -477,8 +477,8 @@ namespace Dse.Test.Integration.Graph
                 finally
                 {
                     stopwatch.Stop();
-                    Assert.GreaterOrEqual(stopwatch.ElapsedMilliseconds, timeout);
-                    Assert.GreaterOrEqual(stopwatch.ElapsedMilliseconds, stmtSleep);
+                    Assert.GreaterOrEqual(stopwatch.ElapsedMilliseconds, timeout - timeoutThreshold);
+                    Assert.GreaterOrEqual(stopwatch.ElapsedMilliseconds, stmtSleep - stmtSleepThreashold);
                 }
             }
         }
@@ -487,7 +487,7 @@ namespace Dse.Test.Integration.Graph
         public void Should_Get_Path_With_Labels()
         {
             using (var cluster = DseCluster.Builder()
-                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
             {
@@ -509,29 +509,28 @@ namespace Dse.Test.Integration.Graph
             }
         }
 
-        [TestCase("Boolean", true, "True")]
-        [TestCase("Boolean", false, "False")]
-        [TestCase("Int", int.MaxValue, "2147483647")]
-        [TestCase("Int", int.MinValue, "-2147483648")]
-        [TestCase("Int", 0, "0")]
-        [TestCase("Smallint", short.MaxValue, "32767")]
-        [TestCase("Smallint", -short.MinValue, "-32768")]
-        [TestCase("Smallint", 0, "0")]
-        [TestCase("Bigint", long.MaxValue,  "9223372036854775807")]
-        [TestCase("Bigint", long.MinValue, "-9223372036854775808")]
-        [TestCase("Bigint", 0L, "0")]
-        [TestCase("Float", 3.1415927f, "3.1415927")]
-        [TestCase("Double", 3.1415d, "3.1415")]
-        [TestCase("Duration", "5 s", "PT5S")]
-        [TestCase("Duration", "5 seconds", "PT5S")]
-        [TestCase("Duration", "1 minute", "PT1M")]
-        [TestCase("Duration", "1 hour", "PT1H")]
-        [TestCase("Text", "The quick brown fox jumps over the lazy dog", "The quick brown fox jumps over the lazy dog")]
-        [TestCase("Point", "POINT (44.1 45)", "POINT (44.1 45)")]
+        [TestCase("Boolean()", true, "True")]
+        [TestCase("Boolean()", false, "False")]
+        [TestCase("Int()", int.MaxValue, "2147483647")]
+        [TestCase("Int()", int.MinValue, "-2147483648")]
+        [TestCase("Int()", 0, "0")]
+        [TestCase("Smallint()", short.MaxValue, "32767")]
+        [TestCase("Smallint()", -short.MinValue, "-32768")]
+        [TestCase("Smallint()", 0, "0")]
+        [TestCase("Bigint()", long.MaxValue, "9223372036854775807")]
+        [TestCase("Bigint()", long.MinValue, "-9223372036854775808")]
+        [TestCase("Bigint()", 0L, "0")]
+        [TestCase("Float()", 3.1415927f, "3.1415927")]
+        [TestCase("Double()", 3.1415d, "3.1415")]
+        [TestCase("Duration()", "5 s", "PT5S")]
+        [TestCase("Duration()", "5 seconds", "PT5S")]
+        [TestCase("Duration()", "1 minute", "PT1M")]
+        [TestCase("Duration()", "1 hour", "PT1H")]
+        [TestCase("Text()", "The quick brown fox jumps over the lazy dog", "The quick brown fox jumps over the lazy dog")]
         public void Should_Support_Types(string type, object value, string expectedString)
         {
             using (var cluster = DseCluster.Builder()
-                .AddContactPoint(CcmHelper.InitialContactPoint)
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
             {
@@ -540,12 +539,12 @@ namespace Dse.Test.Integration.Graph
                 var vertexLabel = "vertex" + id;
                 var propertyName = "prop" + id;
 
-                var schemaQuery = string.Format("schema.propertyKey(propertyName).{0}().ifNotExists().create();\n", type) +
+                var schemaQuery = string.Format("schema.propertyKey(propertyName).{0}.ifNotExists().create();\n", type) +
                                   "schema.vertexLabel(vertexLabel).properties(propertyName).ifNotExists().create();";
 
-                session.ExecuteGraph(new SimpleGraphStatement(schemaQuery, new {vertexLabel = vertexLabel, propertyName = propertyName}));
+                session.ExecuteGraph(new SimpleGraphStatement(schemaQuery, new { vertexLabel = vertexLabel, propertyName = propertyName }));
 
-                var parameters = new { vertexLabel = vertexLabel, propertyName = propertyName, val = value};
+                var parameters = new { vertexLabel = vertexLabel, propertyName = propertyName, val = value };
                 var rs = session.ExecuteGraph(new SimpleGraphStatement("g.addV(label, vertexLabel, propertyName, val)", parameters));
                 ValidateVertexResult(rs, vertexLabel, propertyName, expectedString);
 
@@ -557,28 +556,77 @@ namespace Dse.Test.Integration.Graph
         }
 
         [Test]
+        [Ignore("Will be implemented at CSHARP-544")]
+        public void Should_Support_Point()
+        {
+            var type = "Point()";
+            if (TestClusterManager.DseVersion >= Version.Parse("5.1.0"))
+            {
+                type = "Point().withBounds(-40, -40, 40, 40)";
+            }
+            var point = new Point(0, 1);
+            Should_Support_Types(type, point, point.ToString());
+        }
+
+        [Test]
+        [Ignore("Will be implemented at CSHARP-544")]
+        public void Should_Support_Line()
+        {
+            var type = "Linestring()";
+            if (TestClusterManager.DseVersion >= Version.Parse("5.1.0"))
+            {
+                type = "Linestring().withGeoBounds()";
+            }
+
+            var lineString = new LineString(new Point(0, 0), new Point(0, 1), new Point(1, 1));
+            Should_Support_Types(type, lineString, lineString.ToString());
+        }
+
+        [Test]
+        [Ignore("Will be implemented at CSHARP-544")]
+        public void Should_Support_Polygon()
+        {
+            var type = "Polygon()";
+            if (TestClusterManager.DseVersion >= Version.Parse("5.1.0"))
+            {
+                type = "Polygon().withGeoBounds()";
+            }
+            var polygon = new Polygon(new Point(0, 0), new Point(0, 1), new Point(1, 0), new Point(1, 1));
+            Should_Support_Types(type, polygon, polygon.ToString());
+        }
+
+
+        [Test]
+        [Ignore("Will be implemented at CSHARP-544")]
+        public void Should_Support_Inet()
+        {
+            var address = IPAddress.Parse("127.0.0.1");
+            Should_Support_Types("Inet()", address, address.ToString());
+        }
+
+        [Test]
         public void Should_Support_Guid()
         {
             var guid = Guid.NewGuid();
-            Should_Support_Types("Uuid", guid, guid.ToString());
+            Should_Support_Types("Uuid()", guid, guid.ToString());
         }
 
         [Test]
         public void Should_Support_Decimal()
         {
-            Should_Support_Types("Decimal", 10.10M, "10.1");
+            Should_Support_Types("Decimal()", 10.10M, "10.1");
         }
 
         [Test]
         public void Should_Support_BigInteger()
         {
-            Should_Support_Types("Varint", BigInteger.Parse("8675309"), "8675309");
+            Should_Support_Types("Varint()", BigInteger.Parse("8675309"), "8675309");
         }
 
         [Test]
         public void Should_Support_Timestamp()
         {
-            Should_Support_Types("Timestamp", DateTimeOffset.Parse("2016-02-04T02:26:31.657Z"), "02/04/2016 02:26:31");
+            Should_Support_Types("Timestamp()", DateTimeOffset.Parse("2016-02-04T02:26:31.657Z"), "02/04/2016 02:26:31");
         }
 
         private void ValidateVertexResult(GraphResultSet rs, string vertexLabel, string propertyName, string expectedValueString)

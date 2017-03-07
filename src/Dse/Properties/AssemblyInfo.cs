@@ -1,13 +1,21 @@
-﻿using System.Reflection;
+//
+//  Copyright (C) 2017 DataStax, Inc.
+//
+//  Please see the license for details:
+//  http://www.datastax.com/terms/datastax-dse-driver-license-terms
+//
+
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-[assembly: Guid("8ffcf136-4bc5-4d9b-b132-0c4ea8f759c3")]
+[assembly: AssemblyCompany("DataStax")]
 [assembly: ComVisible(false)]
-// AssemblyVersion attribute should remain constant within minor and patch releases.
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: InternalsVisibleTo("Dse.Test.Unit, PublicKey=00240000048000009400000006020000002400005253413100040000010001006d4ae55582f682" +
-                              "15832e317eb495455208f766149664fd5411ba94c7e8ffe215d93cadfa2b15f83fd08f61007a0b" +
-                              "7901ef5c0e61dca0461dc8fea8c53ae5bd3981f44e507abdd443549f9c1bc1199826af480cdc1f" +
-                              "fe680f6ca80c82f7a2c4a466d5ab549ca48152e6d05f07c44bdce325ce5f5ae400e25b1a5eb947" +
-                              "4bcd1bc4")]
+
+// Assembly Version should remain constant within minor and patch releases
+[assembly: AssemblyVersion("2.0.0.0")]
+
+// Make internals visible to the Tests project(s)
+[assembly: InternalsVisibleTo("Dse.Test.Integration, PublicKey=00240000048000009400000006020000002400005253413100040000010001002367a0d2a0b22d308ce0139f644baa0e17ea09bd0d951b5c85f9e6440302d3e0e45f59676a4f31c970ff534c65ff7746184a95d538933d10115bfaf2eaa89332f0ab72bb9d5d1828501c580a3ade6c91d258159701b7317ee5d57f914e8cd28df32f83ad190169c4427c62da85d173aa7ab5d1870e19140bb1275d7620bebab4")]
+[assembly: InternalsVisibleTo("Dse.Test.Unit, PublicKey=00240000048000009400000006020000002400005253413100040000010001002367a0d2a0b22d308ce0139f644baa0e17ea09bd0d951b5c85f9e6440302d3e0e45f59676a4f31c970ff534c65ff7746184a95d538933d10115bfaf2eaa89332f0ab72bb9d5d1828501c580a3ade6c91d258159701b7317ee5d57f914e8cd28df32f83ad190169c4427c62da85d173aa7ab5d1870e19140bb1275d7620bebab4")]
+[assembly: InternalsVisibleTo("DynamicProxyGenAssembly2, PublicKey=0024000004800000940000000602000000240000525341310004000001000100c547cac37abd99c8db225ef2f6c8a3602f3b3606cc9891605d02baa56104f4cfc0734aa39b93bf7852f7d9266654753cc297e7d2edfe0bac1cdcf9f717241550e0a7b191195b7667bb4f64bcb8e2121380fd1d9d46ad2d92d2d15605093924cceaf74c4861eff62abf69b9291ed0a340e113be11e6a7d3113e92484cf7045cc7")]

@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 using System;
-using Cassandra;
+using Dse;
 
 namespace Dse
 {
