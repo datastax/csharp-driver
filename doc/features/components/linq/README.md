@@ -7,6 +7,9 @@ When you execute a Linq statement, the component translates language-integrated 
 the cluster for execution. When the cluster returns the results, the LINQ component translates them back into objects
 that you can work with in C#.
 
+Linq query execution involves expression evaluation which brings an additional overhead each time a Linq query
+is executed.
+
 1.- Add a using statement to your class:
 
 ```csharp
@@ -23,7 +26,7 @@ var users = new Table<User>(session);
 ```
 
 New `Table<T>` (`IQueryable`) instances can be created each time they are needed, as short-lived instances, as long as
-you are reusing the same `ISession` instance.
+you are reusing the same `ISession` instance and mapping configuration.
 
 ## Example
 
@@ -92,6 +95,10 @@ Then, you can assign the mappings class in your configuration.
 ```csharp
 MappingConfiguration.Global.Define<MyMappings>();
 ```
+
+You should map one C# class per table. The Linq component of the driver will use the configuration defined 
+when creating the `Table<T>` instance to determine to which keyspace and table it maps to, using 
+`MappingConfiguration.Global` when not specified.
 
 ## Linq API examples
 
