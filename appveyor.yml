@@ -19,10 +19,10 @@ environment:
     - TARGET: netcoreapp1.0
       CI_TYPE: UNIT
     - TARGET: net452
-      CASSANDRA_VERSION: 3.0.9
+      CASSANDRA_VERSION: 3.10
       CI_TYPE: INTEGRATION
     - TARGET: netcoreapp1.0
-      CASSANDRA_VERSION: 3.0.9
+      CASSANDRA_VERSION: 3.10
       CI_TYPE: INTEGRATION
     - TARGET: net452
       CASSANDRA_VERSION: 2.2.7

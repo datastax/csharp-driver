@@ -5,7 +5,7 @@ cassandra:
   - 2.1
   - 2.2
   - 3.0
-  - 3.7
+  - '3.10'
 env:
   CSHARP_VERSION:
     - mono
@@ -54,3 +54,4 @@ build:
       saxon-xslt -o TestResult.xml TestResult_nunit3.xml tools/nunit3-xunit.xslt
   - xunit:
     - "TestResult.xml"
+
