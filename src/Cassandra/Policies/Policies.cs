@@ -191,14 +191,13 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Sets the current policy as extended retry policy and initializes it.
+        /// Sets the current policy as extended retry policy.
         /// If the current policy is not <see cref="IExtendedRetryPolicy"/>, it creates a wrapper to delegate
         /// the methods that were not implemented to a default policy.
         /// </summary>
         internal void InitializeRetryPolicy(ICluster cluster)
         {
             _extendedRetryPolicy = _retryPolicy.Wrap(null);
-            _extendedRetryPolicy.Initialize(cluster);
         }
     }
 }

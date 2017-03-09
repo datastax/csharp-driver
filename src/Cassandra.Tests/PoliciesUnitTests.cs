@@ -423,6 +423,7 @@ namespace Cassandra.Tests
         [Test]
         public void DowngradingConsistencyRetryTest()
         {
+            var config = new Configuration();
             var policy = DowngradingConsistencyRetryPolicy.Instance.Wrap(null);
             var dummyStatement = new SimpleStatement().SetRetryPolicy(policy);
             //Retry if 1 of 2 replicas are alive
