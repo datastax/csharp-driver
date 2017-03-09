@@ -26,17 +26,21 @@ namespace Dse.Test.Integration.Graph
     class GraphMultiNodeTests : BaseIntegrationTest
     {
         private const string GraphName = "multiNodeGraph";
+        private ITestCluster _testCluster;
 
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            var testCluster = TestClusterManager.CreateNew(1, new TestClusterOptions
+            _testCluster = TestClusterManager.CreateNew(1, new TestClusterOptions
             {
                 Workloads = new[] { "graph", "spark" }
             });
             Trace.TraceInformation("Waiting additional time for test Cluster to be ready");
             Thread.Sleep(20000);
+        }
 
+        private void PrepareForSparkTest(ITestCluster testCluster)
+        {
             const string replicationConfigStr = "{'class' : 'SimpleStrategy', 'replication_factor' : 2}";
             using (var cluster = DseCluster.Builder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
             {
@@ -51,7 +55,7 @@ namespace Dse.Test.Integration.Graph
                 Trace.TraceInformation("GraphMultiNodeTests: Bootstrapping node 2");
                 testCluster.BootstrapNode(2, false);
                 Trace.TraceInformation("GraphMultiNodeTests: Setting workload");
-                testCluster.SetNodeWorkloads(2, new [] { "graph", "spark" });
+                testCluster.SetNodeWorkloads(2, new[] {"graph", "spark"});
                 Trace.TraceInformation("GraphMultiNodeTests: Starting node 2");
                 testCluster.Start(2);
                 Trace.TraceInformation("Waiting additional time for new node to be ready");
@@ -60,10 +64,10 @@ namespace Dse.Test.Integration.Graph
 
                 Trace.TraceInformation("GraphMultiNodeTests: Creating graph");
                 session.ExecuteGraph(new SimpleGraphStatement(
-                                             "system.graph(name)" +
-                                            ".option('graph.replication_config').set(replicationConfig)" +
-                                            ".option('graph.system_replication_config').set(replicationConfig)" +
-                                            ".ifNotExists().create()", new { name = GraphName, replicationConfig = replicationConfigStr }));
+                    "system.graph(name)" +
+                    ".option('graph.replication_config').set(replicationConfig)" +
+                    ".option('graph.system_replication_config').set(replicationConfig)" +
+                    ".ifNotExists().create()", new {name = GraphName, replicationConfig = replicationConfigStr}));
                 Trace.TraceInformation("GraphMultiNodeTests: Created graph");
 
                 var graphStatements = new StringBuilder();
@@ -140,6 +144,7 @@ namespace Dse.Test.Integration.Graph
         [Test, TestDseVersion(5, 0)]
         public void Should_Contact_Spark_Master_Directly()
         {
+            PrepareForSparkTest(_testCluster);
             Trace.TraceInformation("GraphMultiNodeTests: Should_Contact_Spark_Master_Directly");
             var sparkHost = FindSparkMaster();
 
@@ -156,6 +161,14 @@ namespace Dse.Test.Integration.Graph
                     Assert.AreEqual(sparkHost, rs.Info.QueriedHost.Address.ToString());
                 }
             }
+        }
+
+        [Test, Order(1)]
+        public void Should_Parse_Dse_Workload()
+        {
+            TestUtils.VerifyCurrentClusterWorkloads(DseVersion >= Version.Parse("5.1")
+                ? new[] {"Analytics", "Cassandra", "Graph"}
+                : new[] {"Analytics"});
         }
     }
 }

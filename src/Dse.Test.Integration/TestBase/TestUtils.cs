@@ -648,6 +648,21 @@ namespace Dse.Test.Integration.TestClusterManagement
         {
             WaitForSchemaAgreement(clusterInfo.Cluster);
         }
+
+        public static void VerifyCurrentClusterWorkloads(string[] expectedWorkloads)
+        {
+            using (var cluster = DseCluster.Builder()
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
+                .Build())
+            {
+                cluster.Connect();
+                foreach (var host in cluster.Metadata.AllHosts())
+                {
+
+                    CollectionAssert.AreEquivalent(expectedWorkloads, host.Workloads);
+                }
+            }
+        }
     }
 
     /// <summary>

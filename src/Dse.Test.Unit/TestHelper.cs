@@ -54,9 +54,33 @@ namespace Dse.Test.Unit
         public static Host CreateHost(string address, string dc = "dc1", string rack = "rack1", IEnumerable<string> tokens = null)
         {
             var h = new Host(new IPEndPoint(IPAddress.Parse(address), ProtocolOptions.DefaultPort), new ConstantReconnectionPolicy(1));
-            h.SetLocationInfo(dc, rack);
-            h.Tokens = tokens;
+            h.SetInfo(new DictionaryBasedRow(new Dictionary<string, object>
+            {
+                { "data_center", dc },
+                { "rack", rack },
+                { "tokens", tokens}
+            }));
             return h;
+        }
+
+        internal class DictionaryBasedRow : IRow
+        {
+            private readonly IDictionary<string, object> _values;
+
+            internal DictionaryBasedRow(IDictionary<string, object> values)
+            {
+                _values = values;
+            }
+
+            public T GetValue<T>(string name)
+            {
+                return (T)_values[name];
+            }
+
+            public bool ContainsColumn(string name)
+            {
+                return _values.ContainsKey(name);
+            }
         }
 
         public static byte GetLastAddressByte(Host h)

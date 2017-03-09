@@ -444,9 +444,8 @@ namespace Dse
             {
                 _metadata.ClusterName = clusterName;
             }
-            localhost.SetLocationInfo(row.GetValue<string>("data_center"), row.GetValue<string>("rack"));
+            localhost.SetInfo(row);
             SetCassandraVersion(localhost, row);
-            localhost.Tokens = row.GetValue<IEnumerable<string>>("tokens") ?? new string[0];
             _metadata.SetCassandraVersion(localhost.CassandraVersion);
         }
 
@@ -467,9 +466,8 @@ namespace Dse
                 {
                     host = _metadata.AddHost(address);
                 }
-                host.SetLocationInfo(row.GetValue<string>("data_center"), row.GetValue<string>("rack"));
+                host.SetInfo(row);
                 SetCassandraVersion(host, row);
-                host.Tokens = row.GetValue<IEnumerable<string>>("tokens") ?? new string[0];
             }
 
             // Removes all those that seems to have been removed (since we lost the control connection or not valid contact point)

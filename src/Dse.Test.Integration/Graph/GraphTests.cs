@@ -40,6 +40,14 @@ namespace Dse.Test.Integration.Graph
         }
 
         [Test]
+        public void Should_Parse_Dse_Workload()
+        {
+            TestUtils.VerifyCurrentClusterWorkloads(DseVersion >= Version.Parse("5.1")
+                ? new[] { "Cassandra", "Graph" }
+                : new[] { "Cassandra"});
+        }
+
+        [Test]
         public void Should_Get_Vertices_Of_Classic_Schema()
         {
             using (var cluster = DseCluster.Builder()
