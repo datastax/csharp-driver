@@ -68,22 +68,13 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        public void Initialize(ICluster cluster)
-        {
-            if (_extendedChildPolicy != null)
-            {
-                _extendedChildPolicy.Initialize(cluster);
-            }
-        }
-
-        /// <inheritdoc />
-        public RetryDecision OnRequestError(IStatement stmt, Exception ex, int nbRetry)
+        public RetryDecision OnRequestError(IStatement stmt, Configuration config, Exception ex, int nbRetry)
         {
             if (stmt != null && stmt.IsIdempotent == true)
             {
                 if (_extendedChildPolicy != null)
                 {
-                    return _extendedChildPolicy.OnRequestError(stmt, ex, nbRetry);
+                    return _extendedChildPolicy.OnRequestError(stmt, config, ex, nbRetry);
                 }
                 return RetryDecision.Retry(null, false);
             }

@@ -55,6 +55,10 @@ namespace Cassandra
 
         /// <summary>
         /// Gets a value that determines if the client should retry when it didn't hear back from a host within <see cref="SocketOptions.ReadTimeoutMillis"/>.
+        /// <para>
+        /// DEPRECATED: Instead, use <see cref="IExtendedRetryPolicy.OnRequestError"/> to control the behavior when 
+        /// <see cref="OperationTimedOutException"/> is obtained.
+        /// </para>
         /// </summary>
         public bool RetryOnTimeout { get { return _retryOnTimeout; }}
 
@@ -127,6 +131,10 @@ namespace Cassandra
 
         /// <summary>
         /// Determines if the client should retry when it didn't hear back from a host within <see cref="SocketOptions.ReadTimeoutMillis"/>.
+        /// <para>
+        /// DEPRECATED: Instead, use <see cref="IExtendedRetryPolicy.OnRequestError"/> to control the behavior when 
+        /// <see cref="OperationTimedOutException"/> is obtained.
+        /// </para>
         /// </summary>
         public QueryOptions SetRetryOnTimeout(bool retry)
         {

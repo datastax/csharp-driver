@@ -271,7 +271,8 @@ namespace Cassandra.Requests
                     ((Session)_session).CheckHealth(connection);
                 }
             }
-            var decision = GetRetryDecision(ex, _parent.RetryPolicy, _parent.Statement, _retryCount);
+            var decision = GetRetryDecision(
+                ex, _parent.RetryPolicy, _parent.Statement, _session.Cluster.Configuration, _retryCount);
             switch (decision.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.Rethrow:
@@ -300,17 +301,17 @@ namespace Cassandra.Requests
         /// <summary>
         /// Gets the retry decision based on the exception from Cassandra
         /// </summary>
-        public static RetryDecision GetRetryDecision(Exception ex, IExtendedRetryPolicy policy, IStatement statement, 
-                                                     int retryCount)
+        public static RetryDecision GetRetryDecision(Exception ex, IExtendedRetryPolicy policy, IStatement statement,
+                                                     Configuration config, int retryCount)
         {
             if (ex is SocketException)
             {
                 Logger.Verbose("Socket error " + ((SocketException)ex).SocketErrorCode);
-                return policy.OnRequestError(statement, ex, retryCount);
+                return policy.OnRequestError(statement, config, ex, retryCount);
             }
             if (ex is OverloadedException || ex is IsBootstrappingException || ex is TruncateException)
             {
-                return policy.OnRequestError(statement, ex, retryCount);
+                return policy.OnRequestError(statement, config, ex, retryCount);
             }
             if (ex is ReadTimeoutException)
             {
@@ -335,7 +336,7 @@ namespace Cassandra.Requests
                     return RetryDecision.Retry(null, false);
                 }
                 // Delegate on retry policy
-                return policy.OnRequestError(statement, ex, retryCount);
+                return policy.OnRequestError(statement, config, ex, retryCount);
             }
             // Any other Exception just throw it
             return RetryDecision.Rethrow();

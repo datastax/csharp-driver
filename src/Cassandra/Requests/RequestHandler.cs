@@ -72,12 +72,9 @@ namespace Cassandra.Requests
             Statement = statement;
             Policies = _session.Cluster.Configuration.Policies;
             RetryPolicy = Policies.ExtendedRetryPolicy;
-            if (statement != null)
+            if (statement != null && statement.RetryPolicy != null)
             {
-                if (statement.RetryPolicy != null)
-                {
-                    RetryPolicy = statement.RetryPolicy.Wrap(Policies.ExtendedRetryPolicy);
-                }
+                RetryPolicy = statement.RetryPolicy.Wrap(Policies.ExtendedRetryPolicy);
             }
             _queryPlan = Policies.LoadBalancingPolicy.NewQueryPlan(_session.Keyspace, statement).GetEnumerator();
         }
