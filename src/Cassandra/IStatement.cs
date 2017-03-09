@@ -150,16 +150,21 @@ namespace Cassandra
         /// from the socket options will be used.
         /// </param>
         IStatement SetReadTimeoutMillis(int timeout);
+
         /// <summary>
-        ///  Sets the retry policy to use for this query. <p> The default retry policy, if
-        ///  this method is not called, is the one returned by
-        ///  <link>Policies#RetryPolicy</link> in the
-        ///  cluster configuration. This method is thus only useful in case you want to
-        ///  punctually override the default policy for this request.</p>
+        /// Sets the retry policy to use for this query.
+        /// <para>
+        /// Calling this method is only required when you want to override the default 
+        /// <see cref="Policies.RetryPolicy"/> set in the cluster configuration for this request.
+        /// </para>
+        /// <para>
+        /// Use a <see cref="IExtendedRetryPolicy"/> implementation to cover all error scenarios.
+        /// </para>
         /// </summary>
-        /// <param name="policy"> the retry policy to use for this query. </param>
-        /// <returns>this <c>IStatement</c> object.</returns>
+        /// <param name="policy">The retry policy to use for this query.</param>
+        /// <returns>this <see cref="IStatement"/> instance.</returns>
         IStatement SetRetryPolicy(IRetryPolicy policy);
+
         /// <summary>
         /// Sets the serial consistency level for the query.
         /// The serial consistency level is only used by conditional updates (so INSERT, UPDATE
