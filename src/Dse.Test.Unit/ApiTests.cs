@@ -62,6 +62,7 @@ namespace Dse.Test.Unit
                 "Dse.Mapping.Attributes",
                 "Dse.Mapping.TypeConversion",
                 "Dse.Mapping.Utils",
+                "Dse.Search",
                 "Dse.Serialization"
             }, set);
         }
