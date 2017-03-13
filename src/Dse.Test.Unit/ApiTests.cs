@@ -8,7 +8,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using Dse.Auth;
 using NUnit.Framework;
 
@@ -29,6 +28,42 @@ namespace Dse.Test.Unit
                     typeof(DsePlainTextAuthProvider)
                 },
                 types);
+        }
+
+        [Test]
+        public void Dse_Single_Root_Namespace()
+        {
+            var assembly = typeof(IDseSession).GetTypeInfo().Assembly;
+            var types = assembly.GetTypes();
+            var set = new SortedSet<string>(
+                types.Where(t => t.GetTypeInfo().IsPublic).Select(t => t.Namespace.Split('.')[0]));
+            Assert.AreEqual(1, set.Count);
+            Assert.AreEqual("Dse", set.First());
+        }
+
+        [Test]
+        public void Dse_Exported_Namespaces()
+        {
+            var assembly = typeof(IDseSession).GetTypeInfo().Assembly;
+            var types = assembly.GetTypes();
+            var set = new SortedSet<string>(types.Where(t => t.GetTypeInfo().IsPublic).Select(t => t.Namespace));
+            CollectionAssert.AreEqual(new[]
+            {
+                "Dse",
+                "Dse.Auth",
+#if !NETCORE
+                "Dse.Auth.Sspi",
+#endif
+                "Dse.Data",
+                "Dse.Data.Linq",
+                "Dse.Geometry",
+                "Dse.Graph",
+                "Dse.Mapping",
+                "Dse.Mapping.Attributes",
+                "Dse.Mapping.TypeConversion",
+                "Dse.Mapping.Utils",
+                "Dse.Serialization"
+            }, set);
         }
 
         private static IEnumerable<Type> GetTypesInNamespace(string nameSpace, bool recursive)
