@@ -155,6 +155,9 @@
     <Compile Include="TokenTests.cs" />
     <Compile Include="SerializerTests.cs" />
     <Compile Include="UtilsTests.cs" />
+    <Compile Include="Search\DateRangeBoundTests.cs" />
+    <Compile Include="Search\DateRangeSerializerTests.cs" />
+    <Compile Include="Search\DateRangeTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

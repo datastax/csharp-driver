@@ -405,6 +405,9 @@
     <Compile Include="ProtocolOptions.cs" />
     <Compile Include="Requests\RequestExecution.cs" />
     <Compile Include="SchemaParser.cs" />
+    <Compile Include="Search\DateRange.cs" />
+    <Compile Include="Search\DateRangeBound.cs" />
+    <Compile Include="Search\DateRangePrecision.cs" />
     <Compile Include="Serialization\CollectionSerializer.cs" />
     <Compile Include="Serialization\CustomTypeSerializer.cs" />
     <Compile Include="Serialization\DataTypeParser.cs" />
@@ -479,6 +482,7 @@
     <Compile Include="RowPopulators\Row.cs" />
     <Compile Include="RowPopulators\RowSetMetadata.cs" />
     <Compile Include="DataCollectionMetadata.cs" />
+    <Compile Include="Serialization\Search\DateRangeSerializer.cs" />
     <Compile Include="TargettedSimpleStatement.cs" />
     <Compile Include="Tasks\HashedWheelTimer.cs" />
     <Compile Include="TimeUuid.cs" />

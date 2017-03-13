@@ -16,6 +16,7 @@ using Dse.Serialization;
 using Dse.Geometry;
 using Dse.Graph;
 using Dse.Serialization.Geometry;
+using Dse.Serialization.Search;
 
 namespace Dse
 {
@@ -478,7 +479,8 @@ namespace Dse
             typeSerializerDefinitions
                 .Define(new LineStringSerializer())
                 .Define(new PointSerializer())
-                .Define(new PolygonSerializer());
+                .Define(new PolygonSerializer())
+                .Define(new DateRangeSerializer());
 
             base.WithTypeSerializers(typeSerializerDefinitions);
             var coreCluster = base.Build();
