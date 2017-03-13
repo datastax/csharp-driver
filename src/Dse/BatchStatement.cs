@@ -119,8 +119,13 @@ namespace Dse
         {
             if (_queries.Count > short.MaxValue)
             {
-                //see BatchMessage.codec field in BatchMessage.java in server code, and BatchRequest.GetFrame in this driver
-                throw new ArgumentOutOfRangeException(string.Format("There can be only {0} child statement in a batch statement accordung to the cassandra native protocol", short.MaxValue));
+                throw new ArgumentOutOfRangeException(
+                    string.Format("Batch statement cannot contain more than {0} statements", short.MaxValue));
+            }
+            if (statement.OutgoingPayload != null && statement.OutgoingPayload.ContainsKey(ProxyExecuteKey))
+            {
+                throw new ArgumentException("Batch statement cannot contain statements with proxy execution." +
+                                            "Use ExecuteAs(...) on the batch statement instead");
             }
             _queries.Add(statement);
             return this;

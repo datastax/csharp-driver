@@ -32,21 +32,38 @@ namespace Dse.Auth
         private static readonly byte[] InitialServerChallenge = Encoding.UTF8.GetBytes("PLAIN-START");
         private readonly string _username;
         private readonly string _password;
+        private readonly string _authorizationId;
         private string _name;
 
         /// <summary>
-        /// Creates a new instance of <see cref="DsePlainTextAuthProvider"/>
+        /// Creates a new instance of <see cref="DsePlainTextAuthProvider"/>.
         /// </summary>
-        public DsePlainTextAuthProvider(string username, string password)
+        /// <param name="username">A not <c>null</c> string representing the username.</param>
+        /// <param name="password">A not <c>null</c> string representing the username.</param>
+        public DsePlainTextAuthProvider(string username, string password) : this(username, password, null)
+        {
+        }
+
+        /// <summary>
+        /// Creates a new instance of <see cref="DsePlainTextAuthProvider"/>, enabling proxy authentication.
+        /// </summary>
+        /// <param name="username">A not <c>null</c> string representing the username.</param>
+        /// <param name="password">A not <c>null</c> string representing the username.</param>
+        /// <param name="authorizationId">
+        /// The optional authorization ID. Providing an authorization ID allows the currently authenticated user
+        /// to act as a different user (a.k.a. proxy authentication).
+        /// </param>
+        public DsePlainTextAuthProvider(string username, string password, string authorizationId)
         {
             _username = username;
             _password = password;
+            _authorizationId = authorizationId;
         }
 
         /// <inheritdoc />
         public IAuthenticator NewAuthenticator(IPEndPoint host)
         {
-            return new PlainTextAuthenticator(_name, _username, _password);
+            return new PlainTextAuthenticator(_name, _username, _password, _authorizationId);
         }
 
         /// <inheritdoc />
@@ -59,11 +76,17 @@ namespace Dse.Auth
         {
             private readonly byte[] _username;
             private readonly byte[] _password;
+            private readonly byte[] _authorizationId = new byte[0];
 
-            public PlainTextAuthenticator(string authenticatorName, string username, string password) : base(authenticatorName)
+            public PlainTextAuthenticator(string authenticatorName, string username, string password,
+                string authorizationId) : base(authenticatorName)
             {
                 _username = Encoding.UTF8.GetBytes(username);
                 _password = Encoding.UTF8.GetBytes(password);
+                if (authorizationId != null)
+                {
+                    _authorizationId = Encoding.UTF8.GetBytes(authorizationId);
+                }
             }
 
             protected override byte[] GetMechanism()
@@ -82,11 +105,16 @@ namespace Dse.Auth
                 {
                     throw new AuthenticationException("Incorrect SASL challenge from server");
                 }
-                var buffer = new byte[_username.Length + _password.Length + 2];
-                buffer[0] = 0;
-                Buffer.BlockCopy(_username, 0, buffer, 1, _username.Length);
-                buffer[_username.Length + 1] = 0;
-                Buffer.BlockCopy(_password, 0, buffer, _username.Length + 2, _password.Length);
+                // The SASL plain text format is: authorizationId 0 username 0 password
+                var buffer = new byte[_authorizationId.Length + _username.Length + _password.Length + 2];
+                var offset = 0;
+                Buffer.BlockCopy(_authorizationId, 0, buffer, offset, _authorizationId.Length);
+                offset += _authorizationId.Length;
+                buffer[offset++] = 0;
+                Buffer.BlockCopy(_username, 0, buffer, offset, _username.Length);
+                offset += _username.Length;
+                buffer[offset++] = 0;
+                Buffer.BlockCopy(_password, 0, buffer, offset, _password.Length);
                 return buffer;
             }
         }

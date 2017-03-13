@@ -250,5 +250,14 @@ namespace Dse.Test.Unit
                 .Concat(new byte[] { 0 });
             CollectionAssert.AreEqual(expectedRoutingKey, batch.RoutingKey.RawRoutingKey);
         }
+
+        [Test]
+        public void BatchStatement_Should_Throw_When_Child_Statement_Has_Proxy_Auth_Set()
+        {
+            var batch = new BatchStatement();
+            var childStatement = new SimpleStatement("DELETE FROM tbl1 WHERE KEY = ?", Guid.NewGuid());
+            childStatement.ExecutingAs("bob");
+            Assert.Throws<ArgumentException>(() => batch.Add(childStatement));
+        }
     }
 }

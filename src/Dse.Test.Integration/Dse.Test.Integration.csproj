@@ -62,6 +62,7 @@
   <ItemGroup>
     <Compile Include="Auth\DseGssapiAuthProviderTests.cs" />
     <Compile Include="Auth\DsePlainTextAuthProviderTests.cs" />
+    <Compile Include="Auth\ProxyAuthenticationTests.cs" />
     <Compile Include="Auth\SspiClientTests.cs" />
     <Compile Include="BaseIntegrationTest.cs" />
     <Compile Include="Core\ClientTimeoutTests.cs" />

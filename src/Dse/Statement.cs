@@ -7,6 +7,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Text;
 using System.Threading;
 using Dse.Requests;
 
@@ -17,10 +19,13 @@ namespace Dse
     /// </summary>
     public abstract class Statement : IStatement
     {
+        protected const string ProxyExecuteKey = "ProxyExecute";
         private ConsistencyLevel _serialConsistency = QueryProtocolOptions.Default.SerialConsistency;
         private object[] _values;
         private bool _autoPage = true;
         private volatile int _isIdempotent = int.MinValue;
+        private string _authorizationId;
+        private IDictionary<string, byte[]> _outgoingPayload;
 
         public virtual object[] QueryValues
         {
@@ -65,7 +70,11 @@ namespace Dse
         }
 
         /// <inheritdoc />
-        public IDictionary<string, byte[]> OutgoingPayload { get; private set; }
+        public IDictionary<string, byte[]> OutgoingPayload
+        {
+            get { return _outgoingPayload; }
+            private set { RebuildOutgoingPayload(value); }
+        }
 
         /// <inheritdoc />
         public abstract RoutingKey RoutingKey { get; }
@@ -93,6 +102,34 @@ namespace Dse
         protected Statement(QueryProtocolOptions queryProtocolOptions)
         {
             //the unused parameter is maintained for backward compatibility
+        }
+
+        /// <inheritdoc />
+        public IStatement ExecutingAs(string userOrRole)
+        {
+            _authorizationId = userOrRole;
+            RebuildOutgoingPayload(_outgoingPayload);
+            return this;
+        }
+
+        private void RebuildOutgoingPayload(IDictionary<string, byte[]> payload)
+        {
+            if (_authorizationId == null)
+            {
+                _outgoingPayload = payload;
+                return;
+            }
+            IDictionary<string, byte[]> builder;
+            if (payload != null)
+            {
+                builder = new Dictionary<string, byte[]>(payload);
+            }
+            else
+            {
+                builder = new Dictionary<string, byte[]>(1);
+            }
+            builder[ProxyExecuteKey] = Encoding.UTF8.GetBytes(_authorizationId);
+            _outgoingPayload = builder;
         }
 
         /// <inheritdoc />

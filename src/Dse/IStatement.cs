@@ -94,6 +94,16 @@ namespace Dse
         /// When the property is null, the driver will use the default value from the <see cref="QueryOptions.GetDefaultIdempotence()"/>.
         /// </summary>
         bool? IsIdempotent { get; }
+
+        /// <summary>
+        /// Allows this statement to be executed as a different user/role than the one 
+        /// currently authenticated (a.k.a. proxy execution).
+        /// </summary>
+        /// <param name="userOrRole">The user or role name to act as when executing this statement.</param>
+        /// <returns>This statement</returns>
+        /// <remarks>This feature is only available in DSE 5.1+.</remarks>
+        IStatement ExecutingAs(string userOrRole);
+
         /// <summary>
         /// Sets the paging behavior.
         /// When set to true (default), the <see cref="RowSet"/> returned when executing this <c>IStatement</c> will automatically fetch the following result pages.
