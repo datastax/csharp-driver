@@ -70,6 +70,7 @@
     <Compile Include="CustomTypeSerializerTests.cs" />
     <Compile Include="DataTypeParserTests.cs" />
     <Compile Include="DseClusterBuilderTests.cs" />
+    <Compile Include="DurationTests.cs" />
     <Compile Include="EndianBitConverterTests.cs" />
     <Compile Include="Extensions\Serializers\BigDecimalSerializer.cs" />
     <Compile Include="Extensions\Serializers\DummyCustomTypeSerializer.cs" />

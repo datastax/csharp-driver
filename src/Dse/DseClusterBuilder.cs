@@ -477,10 +477,11 @@ namespace Dse
                 FileVersionInfo.GetVersionInfo(cassandraAssembly.Location).FileVersion);
             var typeSerializerDefinitions = _typeSerializerDefinitions ?? new TypeSerializerDefinitions();
             typeSerializerDefinitions
+                .Define(new DateRangeSerializer())
+                .Define(new DurationSerializer(true))
                 .Define(new LineStringSerializer())
                 .Define(new PointSerializer())
-                .Define(new PolygonSerializer())
-                .Define(new DateRangeSerializer());
+                .Define(new PolygonSerializer());
 
             base.WithTypeSerializers(typeSerializerDefinitions);
             var coreCluster = base.Build();

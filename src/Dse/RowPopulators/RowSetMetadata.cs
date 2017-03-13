@@ -45,6 +45,7 @@ namespace Dse
         Time = 0x0012,
         SmallInt = 0x0013,
         TinyInt = 0x0014,
+        Duration = 0x0015,
         List = 0x0020,
         Map = 0x0021,
         Set = 0x0022,

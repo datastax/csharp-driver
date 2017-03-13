@@ -129,6 +129,9 @@ namespace Dse.Search
                    (UpperBound != null ? UpperBound.Equals(other.UpperBound) : (other.UpperBound == null));
         }
 
+        /// <summary>
+        /// Compares the DateRange based to the bytes representation.
+        /// </summary>
         public int CompareTo(DateRange other)
         {
             var buffer1 = Serializer.Serialize((ushort)ProtocolVersion.MaxSupported, this);

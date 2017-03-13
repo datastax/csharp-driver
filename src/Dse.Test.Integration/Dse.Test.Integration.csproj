@@ -85,6 +85,7 @@
     <Compile Include="CqlFunctions\Tests\MaxTimeUuid.cs" />
     <Compile Include="CqlFunctions\Tests\MinTimeUuid.cs" />
     <Compile Include="CqlFunctions\Tests\Token.cs" />
+    <Compile Include="DurationTests.cs" />
     <Compile Include="Geometry\GeometryTests.cs" />
     <Compile Include="Geometry\LineStringTests.cs" />
     <Compile Include="Geometry\PointTests.cs" />

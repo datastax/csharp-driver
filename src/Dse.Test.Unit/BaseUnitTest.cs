@@ -31,6 +31,26 @@ namespace Dse.Test.Unit
         }
 
         /// <summary>
+        /// Returns the hex string representation in lowercase
+        /// </summary>
+        protected static string ToHex(byte[] ba)
+        {
+            var hex = BitConverter.ToString(ba);
+            return hex.Replace("-", "").ToLowerInvariant();
+        }
+
+        /// <summary>
+        /// Returns the byte array representation from a hex string
+        /// </summary>
+        protected static byte[] FromHex(string hex)
+        {
+            return Enumerable.Range(0, hex.Length)
+                .Where(x => x % 2 == 0)
+                .Select(x => Convert.ToByte(hex.Substring(x, 2), 16))
+                .ToArray();
+        }
+
+        /// <summary>
         /// A Load balancing suitable for testing that returns 2 hardcoded nodes.
         /// </summary>
         protected class TestLoadBalancingPolicy : ILoadBalancingPolicy

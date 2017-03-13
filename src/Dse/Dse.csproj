@@ -171,6 +171,7 @@
     <Compile Include="DseClusterBuilder.cs" />
     <Compile Include="DseConfiguration.cs" />
     <Compile Include="DseSession.cs" />
+    <Compile Include="Duration.cs" />
     <Compile Include="EndianBitConverter.cs" />
     <Compile Include="Exceptions\FunctionFailureException.cs" />
     <Compile Include="Exceptions\OperationTimedOutException.cs" />
@@ -414,6 +415,7 @@
     <Compile Include="Serialization\DictionarySerializer.cs" />
     <Compile Include="Serialization\DseJsonContractResolver.cs" />
     <Compile Include="Serialization\DseJsonConverter.cs" />
+    <Compile Include="Serialization\DurationSerializer.cs" />
     <Compile Include="Serialization\Geometry\GeometrySerializer.cs" />
     <Compile Include="Serialization\Geometry\LineStringSerializer.cs" />
     <Compile Include="Serialization\Geometry\PointSerializer.cs" />

@@ -83,6 +83,7 @@ namespace Dse.Serialization
             {"time", ColumnTypeCode.Time},
             {"smallint", ColumnTypeCode.SmallInt},
             {"tinyint", ColumnTypeCode.TinyInt},
+            {"duration", ColumnTypeCode.Duration},
             {"timestamp", ColumnTypeCode.Timestamp},
             {"bigint", ColumnTypeCode.Bigint},
             {"decimal", ColumnTypeCode.Decimal},
