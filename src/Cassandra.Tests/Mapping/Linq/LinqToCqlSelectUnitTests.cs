@@ -45,6 +45,128 @@ namespace Cassandra.Tests.Mapping.Linq
         }
 
         [Test]
+        public void Select_Group_By_Projected_To_Constructor_With_Parameter()
+        {
+            string query = null;
+            var session = GetSession((q, v) => query = q, TestHelper.CreateRowSetFromSingle(new [] 
+            {
+                new KeyValuePair<string, object>("id", Guid.NewGuid()),
+                new KeyValuePair<string, object>("string_value", "hello"),
+                new KeyValuePair<string, object>("sum", 100L)
+            }));
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.UuidValue, cm => cm.WithName("id1"))
+                .Column(t => t.StringValue, cm => cm.WithName("id2"))
+                .Column(t => t.Int64Value, cm => cm.WithName("val1"))
+                .PartitionKey(t => t.UuidValue)
+                .ClusteringKey(t => t.Int64Value)
+                .TableName("tbl1");
+            var table = GetTable<AllTypesEntity>(session, map);
+            var id = Guid.NewGuid();
+            var linqQuery = table
+                .Where(e => e.UuidValue == id)
+                .GroupBy(e => new {e.UuidValue, e.StringValue})
+                .Select(eGrouped => new Song3(eGrouped.Key.UuidValue)
+                {
+                    Title = eGrouped.Key.StringValue,
+                    Counter = eGrouped.Sum(e => e.Int64Value)
+                });
+            linqQuery.Execute();
+            Assert.AreEqual("SELECT id1, id2, SUM(val1) FROM tbl1 WHERE id1 = ? GROUP BY id1, id2", query);
+        }
+
+        [Test]
+        public void Select_Group_By_Grouped_By_Single_Column()
+        {
+            string query = null;
+            var session = GetSession((q, v) => query = q, TestHelper.CreateRowSetFromSingle(new[]
+            {
+                new KeyValuePair<string, object>("id", Guid.NewGuid()),
+                new KeyValuePair<string, object>("sum", 100L)
+            }));
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.UuidValue, cm => cm.WithName("id1"))
+                .Column(t => t.Int64Value, cm => cm.WithName("val1"))
+                .PartitionKey(t => t.UuidValue)
+                .ClusteringKey(t => t.Int64Value)
+                .TableName("tbl1");
+            var table = GetTable<AllTypesEntity>(session, map);
+            var id = Guid.NewGuid();
+            var linqQuery = table
+                .Where(e => e.UuidValue == id)
+                .GroupBy(e => e.UuidValue)
+                .Select(eGrouped => new Song3
+                {
+                    Id = eGrouped.Key,
+                    Counter = eGrouped.Sum(e => e.Int64Value)
+                });
+            linqQuery.Execute();
+            Assert.AreEqual("SELECT id1, SUM(val1) FROM tbl1 WHERE id1 = ? GROUP BY id1", query);
+        }
+
+        [Test]
+        public void Select_Group_By_Projected_To_Parameter_Less_Constructor()
+        {
+            string query = null;
+            var session = GetSession((q, v) => query = q, TestHelper.CreateRowSetFromSingle(new[]
+            {
+                new KeyValuePair<string, object>("id", Guid.NewGuid()),
+                new KeyValuePair<string, object>("string_value", "hello"),
+                new KeyValuePair<string, object>("sum", 100L)
+            }));
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.UuidValue, cm => cm.WithName("id1"))
+                .Column(t => t.StringValue, cm => cm.WithName("id2"))
+                .Column(t => t.Int64Value, cm => cm.WithName("val1"))
+                .PartitionKey(t => t.UuidValue)
+                .ClusteringKey(t => t.Int64Value)
+                .TableName("tbl1");
+            var table = GetTable<AllTypesEntity>(session, map);
+            var id = Guid.NewGuid();
+
+            var linqQuery = table
+                .Where(e => e.UuidValue == id)
+                .GroupBy(e => new { e.UuidValue, e.StringValue })
+                .Select(eGrouped => new 
+                {
+                    Id1 = eGrouped.Key.UuidValue,
+                    Id2 = eGrouped.Key.StringValue,
+                    Sum = eGrouped.Sum(e => e.Int64Value)
+                });
+            linqQuery.Execute();
+            Assert.AreEqual("SELECT id1, id2, SUM(val1) FROM tbl1 WHERE id1 = ? GROUP BY id1, id2", query);
+        }
+
+        [Test]
+        public void Select_Group_By_Projected_To_Single_Value()
+        {
+            string query = null;
+            var session = GetSession((q, v) => query = q, TestHelper.CreateRowSetFromSingle(new[]
+            {
+                new KeyValuePair<string, object>("sum", 100L)
+            }));
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.UuidValue, cm => cm.WithName("id1"))
+                .Column(t => t.StringValue, cm => cm.WithName("id2"))
+                .Column(t => t.Int64Value, cm => cm.WithName("val1"))
+                .PartitionKey(t => t.UuidValue)
+                .ClusteringKey(t => t.Int64Value)
+                .TableName("tbl1");
+            var table = GetTable<AllTypesEntity>(session, map);
+            var id = Guid.NewGuid();
+            var linqQuery = table
+                .Where(e => e.UuidValue == id)
+                .GroupBy(e => new { e.UuidValue, e.StringValue })
+                .Select(eGrouped => eGrouped.Sum(e => e.Int64Value));
+            linqQuery.Execute();
+            Assert.AreEqual("SELECT SUM(val1) FROM tbl1 WHERE id1 = ? GROUP BY id1, id2", query);
+        }
+
+        [Test]
         public void Select_Contains_Test()
         {
             string query = null;

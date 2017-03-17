@@ -67,6 +67,10 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             //in case there is a version label like rc1 / beta1
             versionText = versionText.Split('-')[0];
             _cassandraVersion = Version.Parse(versionText);
+            if (_cassandraVersion.Build == -1)
+            {
+                _cassandraVersion = new Version(_cassandraVersion.Major, _cassandraVersion.Minor, 0);
+            }
         }
         
         /// <summary>

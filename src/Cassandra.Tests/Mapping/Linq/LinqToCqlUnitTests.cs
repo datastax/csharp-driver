@@ -128,10 +128,8 @@ namespace Cassandra.Tests.Mapping.Linq
             var query = table.Where(t => t.pk == "a" && t.ck1.StartsWith("foo") && t.pk == "bar");
             var pocoData = MappingConfiguration.Global.MapperFactory.GetPocoData<LinqDecoratedWithStringCkEntity>();
             var visitor = new CqlExpressionVisitor(pocoData, "x_ts", null);
-            visitor.Evaluate(query.Expression);
             object[] parameters;
-
-            var queryCql = visitor.GetSelect(out parameters);
+            var queryCql = visitor.GetSelect(query.Expression, out parameters);
 
             Assert.That(parameters, Is.EquivalentTo(new[] { "a", "foo", "foo" + Encoding.UTF8.GetString(new byte[] { 0xF4, 0x8F, 0xBF, 0xBF }), "bar" }));
             Assert.AreEqual(@"SELECT ""x_pk"", ""x_ck1"", ""x_f1"" FROM ""x_ts"" WHERE ""x_pk"" = ? AND ""x_ck1"" >= ? AND ""x_ck1"" < ? AND ""x_pk"" = ?", queryCql);

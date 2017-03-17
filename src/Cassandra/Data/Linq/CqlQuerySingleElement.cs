@@ -34,8 +34,7 @@ namespace Cassandra.Data.Linq
         protected override string GetCql(out object[] values)
         {
             var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
-            visitor.Evaluate(Expression);
-            return visitor.GetSelect(out values);
+            return visitor.GetSelect(Expression, out values);
         }
 
         public override string ToString()
