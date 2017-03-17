@@ -74,9 +74,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         public void Should_Project_To_Single_Type()
         {
             var table = new Table<SensorData>(Session, GetSensorDataMappingConfig());
-            var linqQuery = from t in table
-                            group t by new { t.Id, t.Bucket } into g
-                            select g.Max(i => i.Value);
+            CqlQuery<double> linqQuery = table.GroupBy(t => new {t.Id, t.Bucket}).Select(g => g.Max(i => i.Value));
             var results = linqQuery.Execute().ToArray();
             Assert.AreEqual(1, results.Length);
             var max = results[0];
@@ -87,7 +85,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         public void Should_Project_To_Single_Type_With_Where_Clause()
         {
             var table = new Table<SensorData>(Session, GetSensorDataMappingConfig());
-            var linqQuery = from t in table
+            CqlQuery<double> linqQuery = from t in table
                             where t.Id == "sensor1" && t.Bucket == "bucket1"
                             group t by new { t.Id, t.Bucket } into g
                             select g.Min(i => i.Value);
