@@ -115,7 +115,8 @@ namespace Cassandra.Data.Linq
         /// <param name="predicate">A function to test each element for a condition.</param>
         /// <returns>a CqlQuery&lt;TSource&gt; which after execution will return an IEnumerable&lt;TSource&gt;
         /// that contains elements from the input sequence that satisfy the condition.</returns>
-        public static CqlQuery<IGrouping<TKey, TSource>> GroupBy<TSource, TKey>(this CqlQuery<TSource> source, Expression<Func<TSource, TKey>> predicate)
+        public static CqlQuery<IGrouping<TKey, TSource>> GroupBy<TKey, TSource>(this CqlQuery<TSource> source, 
+            Expression<Func<TSource, TKey>> predicate)
         {
             if (source == null)
             {
@@ -125,11 +126,11 @@ namespace Cassandra.Data.Linq
             {
                 throw new ArgumentNullException("predicate");
             }
-            var ret = (CqlQuery<IGrouping<TKey, TSource>>)source.Table.CreateQuery<IGrouping<TKey, TSource>>(Expression.Call(
+            var result = (CqlQuery<IGrouping<TKey, TSource>>)source.Table.CreateQuery<IGrouping<TKey, TSource>>(Expression.Call(
                 null, CqlMthHelps.GroupByMi,
                 new[] { source.Expression, predicate }));
-            source.CopyQueryPropertiesTo(ret);
-            return ret;
+            source.CopyQueryPropertiesTo(result);
+            return result;
         }
 
         /// <summary>

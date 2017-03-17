@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Cassandra.Mapping;
 using Cassandra.Data.Linq;
+using System.Linq;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
@@ -46,18 +46,18 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         public void Should_Project_To_New_Anonymous_Type()
         {
             var table = new Table<SensorData>(Session, GetSensorDataMappingConfig());
-            var linqQuery = from t in table
-                            group t by new { t.Id, t.Bucket } into g
-                            select new
-                            {
-                                g.Key.Id,
-                                Avg = g.Average(i => i.Value),
-                                Count = g.Count(),
-                                Sum = g.Sum(i => i.Value),
-                                Min = g.Min(i => i.Value),
-                                Max = g.Max(i => i.Value),
-                                g.Key.Bucket
-                            };
+            var linqQuery = table
+                .GroupBy(t => new {t.Id, t.Bucket})
+                .Select(g => new
+                {
+                    g.Key.Id,
+                    Avg = g.Average(i => i.Value),
+                    Count = g.Count(),
+                    Sum = g.Sum(i => i.Value),
+                    Min = g.Min(i => i.Value),
+                    Max = g.Max(i => i.Value),
+                    g.Key.Bucket
+                });
             var results = linqQuery.Execute().ToArray();
             Assert.AreEqual(1, results.Length);
             var aggregation = results[0];
@@ -74,7 +74,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         public void Should_Project_To_Single_Type()
         {
             var table = new Table<SensorData>(Session, GetSensorDataMappingConfig());
-            CqlQuery<double> linqQuery = table.GroupBy(t => new {t.Id, t.Bucket}).Select(g => g.Max(i => i.Value));
+            var linqQuery = table.GroupBy(t => new {t.Id, t.Bucket}).Select(g => g.Max(i => i.Value));
             var results = linqQuery.Execute().ToArray();
             Assert.AreEqual(1, results.Length);
             var max = results[0];
@@ -85,10 +85,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         public void Should_Project_To_Single_Type_With_Where_Clause()
         {
             var table = new Table<SensorData>(Session, GetSensorDataMappingConfig());
-            CqlQuery<double> linqQuery = from t in table
-                            where t.Id == "sensor1" && t.Bucket == "bucket1"
-                            group t by new { t.Id, t.Bucket } into g
-                            select g.Min(i => i.Value);
+            var linqQuery = table
+                .Where(t => t.Id == "sensor1" && t.Bucket == "bucket1")
+                .GroupBy(t => new {t.Id, t.Bucket})
+                .Select(g => g.Min(i => i.Value));
             var results = linqQuery.Execute().ToArray();
             Assert.AreEqual(1, results.Length);
             var min = results[0];
