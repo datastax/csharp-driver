@@ -30,7 +30,7 @@ namespace Cassandra.IntegrationTests.Core
                 var session = cluster.Connect();
                 TestHelper.ParallelInvoke(() => session.Execute("SELECT * FROM system.local"), 10);
                 // The driver should use the generator against C* 2.1+
-                Assert.AreEqual(CassandraVersion < new Version(2, 1) ? 0 : 10, generator.GetCounter());
+                Assert.AreEqual(GetProtocolVersion() < ProtocolVersion.V3 ? 0 : 10, generator.GetCounter());
             }
         }
 
@@ -46,7 +46,14 @@ namespace Cassandra.IntegrationTests.Core
                 var session = cluster.Connect();
                 var stmt = new SimpleStatement("SELECT * FROM system.local");
                 stmt.SetTimestamp(DateTimeOffset.Now);
-                session.Execute(stmt);
+                if (GetProtocolVersion() < ProtocolVersion.V3)
+                {
+                    Assert.Throws<NotSupportedException>(() => session.Execute(stmt));
+                }
+                else
+                {
+                    session.Execute(stmt);
+                }
                 // The driver should use the generator against C* 2.1+
                 Assert.AreEqual(0, generator.GetCounter());
             }
