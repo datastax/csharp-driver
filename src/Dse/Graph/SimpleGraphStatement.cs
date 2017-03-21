@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text;
 using Dse;
 using Dse.Serialization;
+using Dse.Serialization.Graph;
 using Newtonsoft.Json;
 
 namespace Dse.Graph
@@ -97,7 +98,7 @@ namespace Dse.Graph
             IStatement stmt;
             if (parameters != null)
             {
-                var jsonParams = JsonConvert.SerializeObject(parameters, DseJsonContractResolver.JsonSerializerSettings);
+                var jsonParams = JsonConvert.SerializeObject(parameters, GraphJsonContractResolver.Settings);
                 stmt = new TargettedSimpleStatement(Query, jsonParams);
             }
             else

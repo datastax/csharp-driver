@@ -11,6 +11,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Dse.Geometry
 {
@@ -22,6 +23,9 @@ namespace Dse.Geometry
 #endif
     public class LineString : GeometryBase
     {
+        private static readonly Regex WktRegex = new Regex(
+            @"^LINESTRING ?\(([-0-9\. ,]+)\)+$", RegexOptions.Compiled);
+
         /// <summary>
         /// Gets the read-only list of points describing the LineString.
         /// </summary>
@@ -104,6 +108,51 @@ namespace Dse.Geometry
                 return "LINESTRING EMPTY";
             }
             return string.Format("LINESTRING ({0})", string.Join(", ", Points.Select(p => p.X + " " + p.Y)));
+        }
+
+        /// <summary>
+        /// Creates a <see cref="LineString"/> instance from a 
+        /// <see href="https://en.wikipedia.org/wiki/Well-known_text">Well-known Text(WKT)</see>
+        /// representation of a line.
+        /// </summary>
+        public static LineString Parse(string textValue)
+        {
+            if (textValue == null)
+            {
+                throw new ArgumentNullException("textValue");
+            }
+            if (textValue == "LINESTRING EMPTY")
+            {
+                return new LineString();
+            }
+            var match = WktRegex.Match(textValue);
+            if (!match.Success)
+            {
+                throw InvalidFormatException(textValue);
+            }
+            var points = ParseSegments(match.Groups[1].Value);
+            return new LineString(points);
+        }
+
+        internal static Point[] ParseSegments(string textValue)
+        {
+            var pointParts = textValue.Split(',');
+            var points = new Point[pointParts.Length];
+            for (var i = 0; i < pointParts.Length; i++)
+            {
+                var p = pointParts[i].Trim();
+                if (p.Length == 0)
+                {
+                    throw InvalidFormatException(textValue);
+                }
+                var xyText = p.Split(' ').Select(e => e.Trim()).Where(e => e.Length > 0).ToArray();
+                if (xyText.Length != 2)
+                {
+                    throw InvalidFormatException(textValue);
+                }
+                points[i] = new Point(Convert.ToDouble(xyText[0]), Convert.ToDouble(xyText[1]));
+            }
+            return points;
         }
     }
 }

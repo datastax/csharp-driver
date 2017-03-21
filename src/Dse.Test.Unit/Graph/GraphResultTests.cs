@@ -10,8 +10,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Dse;
+using Dse.Geometry;
 using Dse.Graph;
 using Dse.Serialization;
+using Dse.Serialization.Graph;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
@@ -78,6 +80,16 @@ namespace Dse.Test.Unit.Graph
                 (TimeUuid)Guid.Parse("92d4a960-1cf3-11e6-9417-bd9ef43c1c95"));
             TestGet("{\"result\": {\"something\": [1, 2, 3] }}", "something", new[] { 1, 2, 3 });
             TestGet<IEnumerable<int>>("{\"result\": {\"something\": [1, 2, 3] }}", "something", new[] { 1, 2, 3 });
+        }
+
+        [Test]
+        public void Get_T_Should_Allow_Geometry_Types()
+        {
+            TestGet("{\"result\": {\"something\": \"POINT (1.0 2.0)\" }}", "something", new Point(1, 2));
+            TestGet("{\"result\": {\"something\": \"LINESTRING (1 2, 3 4.1234)\" }}", "something",
+                new LineString(new Point(1, 2), new Point(3, 4.1234)));
+            TestGet("{\"result\": {\"something\": \"POLYGON ((1 3, 3 1, 3 6, 1 3))\" }}", "something",
+                new Polygon(new Point(1, 3), new Point(3, 1), new Point(3, 6), new Point(1, 3)));
         }
 
         [Test]
@@ -228,7 +240,7 @@ namespace Dse.Test.Unit.Graph
             var settings = new JsonSerializerSettings();
             if (useConverter)
             {
-                settings = DseJsonContractResolver.JsonSerializerSettings;
+                settings = GraphJsonContractResolver.Settings;
             }
             const string json = "{" +
                 "\"~type\":\"knows\"," +

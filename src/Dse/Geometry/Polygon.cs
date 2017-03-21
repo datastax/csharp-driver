@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Dse.Geometry
 {
@@ -22,6 +23,9 @@ namespace Dse.Geometry
 #endif
     public class Polygon : GeometryBase
     {
+        private static readonly Regex WktRegex = new Regex(
+            @"^POLYGON ?\((\(.*\))\)$", RegexOptions.Compiled);
+
         /// <summary>
         /// A read-only list describing the rings of the polygon.
         /// </summary>
@@ -136,6 +140,55 @@ namespace Dse.Geometry
                     "(" + 
                     string.Join(", ", r.Select(p => p.X + " " + p.Y)) + 
                     ")")));
+        }
+
+        /// <summary>
+        /// Creates a <see cref="Polygon"/> instance from a 
+        /// <see href="https://en.wikipedia.org/wiki/Well-known_text">Well-known Text(WKT)</see>
+        /// representation of a polygon.
+        /// </summary>
+        public static Polygon Parse(string textValue)
+        {
+            if (textValue == null)
+            {
+                throw new ArgumentNullException("textValue");
+            }
+            if (textValue == "POLYGON EMPTY")
+            {
+                return new Polygon();
+            }
+            Action<bool> validateWkt = condition =>
+            {
+                if (condition)
+                {
+                    throw InvalidFormatException(textValue);
+                }
+            };
+            var match = WktRegex.Match(textValue);
+            validateWkt(!match.Success || match.Groups.Count != 2);
+            var ringsText = match.Groups[1].Value;
+            var ringsArray = new LinkedList<string>();
+            var ringStart = -1;
+            for (var i = 0; i < ringsText.Length; i++)
+            {
+                var c = ringsText[i];
+                if (c == '(')
+                {
+                    validateWkt(ringStart != -1);
+                    ringStart = i + 1;
+                    continue;
+                }
+                if (c == ')')
+                {
+                    validateWkt(ringStart == -1);
+                    ringsArray.AddLast(ringsText.Substring(ringStart, i - ringStart));
+                    ringStart = -1;
+                    continue;
+                }
+                validateWkt(ringStart == -1 && c != ' ' && c != ',');
+            }
+            var lines = ringsArray.Select(r => (IList<Point>)LineString.ParseSegments(r)).ToList();
+            return new Polygon(lines);
         }
     }
 }

@@ -13,6 +13,7 @@ using System.Runtime.Serialization;
 using System.Text;
 using Dse;
 using System.Reflection;
+using Dse.Serialization.Graph;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -29,6 +30,8 @@ namespace Dse.Graph
         , ISerializable
 #endif
     {
+        private static readonly JsonSerializer Serializer = 
+            JsonSerializer.CreateDefault(GraphJsonContractResolver.Settings);
         private volatile string _json;
         private readonly JToken _parsedGraphItem;
 
@@ -180,7 +183,7 @@ namespace Dse.Graph
                     // TimeUuid is not Serializable but convertible from Uuid
                     return (T)(object)(TimeUuid)token.ToObject<Guid>();
                 }
-                return token.ToObject<T>();
+                return token.ToObject<T>(Serializer);
             }
             if (token is JObject)
             {

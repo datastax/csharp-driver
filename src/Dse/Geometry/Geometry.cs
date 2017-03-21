@@ -13,6 +13,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using Dse.Serialization;
+using Dse.Serialization.Graph;
 using Newtonsoft.Json;
 
 namespace Dse.Geometry
@@ -28,8 +29,7 @@ namespace Dse.Geometry
         : ISerializable
 #endif
     {
-        private static readonly JsonSerializer DefaultJsonSerializer = JsonSerializer.CreateDefault(
-            DseJsonContractResolver.JsonSerializerSettings);
+        private static readonly JsonSerializer DefaultJsonSerializer = JsonSerializer.CreateDefault();
 
         /// <summary>
         /// Gets the type name to be used for GeoJSON serialization.
@@ -108,6 +108,11 @@ namespace Dse.Geometry
             writer.WritePropertyName("coordinates");
             serializer.Serialize(writer, GeoCoordinates);
             writer.WriteEndObject();
+        }
+
+        internal static FormatException InvalidFormatException(string textValue)
+        {
+            return new FormatException("Format for Geometry type is incorrect: " + textValue);
         }
     }
 }

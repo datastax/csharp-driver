@@ -291,6 +291,22 @@ namespace Dse.Test.Unit.Graph
             Assert.AreEqual("{\"value\":" + value + "}", coreStatement.QueryValues[0]);
         }
 
+        [Test]
+        public void ExecuteGraph_Should_Allow_IpAddress_As_Parameters()
+        {
+            SimpleStatement coreStatement = null;
+            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
+            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
+                .Returns(TaskOf(new RowSet()))
+                .Callback<SimpleStatement>(stmt => coreStatement = stmt);
+            var session = NewInstance(coreSessionMock.Object);
+            var value = IPAddress.Parse("192.168.1.100");
+            session.ExecuteGraph(new SimpleGraphStatement("g.V(vertexId)", new { value }));
+            Assert.NotNull(coreStatement);
+            Assert.AreEqual(1, coreStatement.QueryValues.Length);
+            Assert.AreEqual("{\"value\":\"" + value + "\"}", coreStatement.QueryValues[0]);
+        }
+
         public void Should_Make_Rpc_Call_When_Using_Analytics_Source()
         {
             var coreStatements = new List<SimpleStatement>();

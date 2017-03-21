@@ -413,8 +413,8 @@
     <Compile Include="Serialization\CustomTypeSerializer.cs" />
     <Compile Include="Serialization\DataTypeParser.cs" />
     <Compile Include="Serialization\DictionarySerializer.cs" />
-    <Compile Include="Serialization\DseJsonContractResolver.cs" />
-    <Compile Include="Serialization\DseJsonConverter.cs" />
+    <Compile Include="Serialization\Graph\GraphJsonContractResolver.cs" />
+    <Compile Include="Serialization\Graph\GraphJsonConverter.cs" />
     <Compile Include="Serialization\DurationSerializer.cs" />
     <Compile Include="Serialization\Geometry\GeometrySerializer.cs" />
     <Compile Include="Serialization\Geometry\LineStringSerializer.cs" />

@@ -4,13 +4,13 @@
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Dse.Geometry;
-using Dse.Serialization;
 using Dse.Serialization.Geometry;
+using Dse.Serialization.Graph;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
@@ -26,25 +26,31 @@ namespace Dse.Test.Unit.Geometry
                 new[] {new Point(2.1, 2.1), new Point(2.1, 1.1), new Point(1.1, 1.1), new Point(2.1, 2.1)})
         };
 
-        [Test, TestCase(true)]
-#if !NETCORE
-        [TestCase(false)]
-#endif
-        public void Should_Be_Serialized_As_GeoJson(bool useConverter)
+        [Test]
+        public void Should_Be_Serialized_As_GeoJson()
         {
-            var settings = new JsonSerializerSettings();
-            if (useConverter)
-            {
-                settings = DseJsonContractResolver.JsonSerializerSettings;
-            }
             foreach (var polygon in Values)
             {
-                var json = JsonConvert.SerializeObject(polygon, settings);
                 var expected = string.Format("{{\"type\":\"Polygon\",\"coordinates\":[{0}]}}",
-                    string.Join(",", polygon.Rings.Select(r => 
+                    string.Join(",", polygon.Rings.Select(r =>
                         "[" + string.Join(",", r.Select(p => "[" + p.X + "," + p.Y + "]")) + "]")));
+#if !NETCORE
+                // Default serialization to Json is GeoJson
+                var json = JsonConvert.SerializeObject(polygon);
                 Assert.AreEqual(expected, json);
+#endif
                 Assert.AreEqual(expected, polygon.ToGeoJson());
+            }
+        }
+
+        [Test]
+        public void Should_Be_Serialized_As_WKT()
+        {
+            foreach (var polygon in Values)
+            {
+                var json = JsonConvert.SerializeObject(polygon, GraphJsonContractResolver.Settings);
+                var expected = string.Format("\"{0}\"", polygon);
+                Assert.AreEqual(expected, json);
             }
         }
 

@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Dse.Geometry
 {
@@ -22,6 +23,9 @@ namespace Dse.Geometry
 #endif
     public class Point : GeometryBase
     {
+        private static readonly Regex WktRegex = new Regex(
+            @"^POINT\s?\(([-0-9\.]+) ([-0-9\.]+)\)$", RegexOptions.Compiled);
+
         /// <summary>
         /// Returns the X coordinate of this 2D point.
         /// </summary>
@@ -88,6 +92,25 @@ namespace Dse.Geometry
         public override string ToString()
         {
             return string.Format("POINT ({0} {1})", X, Y);
+        }
+
+        /// <summary>
+        /// Creates a <see cref="Point"/> instance from a 
+        /// <see href="https://en.wikipedia.org/wiki/Well-known_text">Well-known Text(WKT)</see>
+        /// representation of a 2D point.
+        /// </summary>
+        public static Point Parse(string textValue)
+        {
+            if (textValue == null)
+            {
+                throw new ArgumentNullException("textValue");
+            }
+            var match = WktRegex.Match(textValue);
+            if (!match.Success)
+            {
+                throw InvalidFormatException(textValue);
+            }
+            return new Point(Convert.ToDouble(match.Groups[1].Value), Convert.ToDouble(match.Groups[2].Value));
         }
     }
 }

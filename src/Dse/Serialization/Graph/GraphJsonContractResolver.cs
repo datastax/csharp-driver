@@ -16,19 +16,19 @@ using Dse.Graph;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
-namespace Dse.Serialization
+namespace Dse.Serialization.Graph
 {
-    internal class DseJsonContractResolver : DefaultContractResolver
+    internal class GraphJsonContractResolver : DefaultContractResolver
     {
         /// <summary>
         /// A single instance of a JsonSerializerSettings that uses this ContractResolver.
         /// </summary>
-        internal static readonly JsonSerializerSettings JsonSerializerSettings = new JsonSerializerSettings
+        internal static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
         {
-            ContractResolver = new DseJsonContractResolver()
+            ContractResolver = new GraphJsonContractResolver()
         };
 
-        protected DseJsonContractResolver()
+        protected GraphJsonContractResolver()
         {
 
         }
@@ -36,17 +36,9 @@ namespace Dse.Serialization
         protected override JsonContract CreateContract(Type objectType)
         {
             var contract = base.CreateContract(objectType);
-            if (typeof(GeometryBase).GetTypeInfo().IsAssignableFrom(objectType))
+            if (GraphJsonConverter.Instance.CanConvert(objectType))
             {
-                contract.Converter = DseJsonConverter.Instance;
-            }
-            if (typeof(GraphNode).GetTypeInfo().IsAssignableFrom(objectType))
-            {
-                contract.Converter = DseJsonConverter.Instance;
-            }
-            if (typeof(BigInteger).GetTypeInfo().IsAssignableFrom(objectType))
-            {
-                contract.Converter = DseJsonConverter.Instance;
+                contract.Converter = GraphJsonConverter.Instance;
             }
             return contract;
         }

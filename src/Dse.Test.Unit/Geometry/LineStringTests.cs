@@ -11,6 +11,7 @@ using System.Text;
 using Dse.Geometry;
 using Dse.Serialization;
 using Dse.Serialization.Geometry;
+using Dse.Serialization.Graph;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
@@ -24,25 +25,31 @@ namespace Dse.Test.Unit.Geometry
             new LineString(),
             new LineString(new Point(-1.101, -20.2121121221211), new Point(2.01, 4.02), new Point(10.010, 14.03))
         };
-
-        [Test, TestCase(true)]
-#if !NETCORE
-        [TestCase(false)]
-#endif
-        public void Should_Be_Serialized_As_GeoJson(bool useConverter)
+        
+        [Test]
+        public void Should_Be_Serialized_As_GeoJson()
         {
-            var settings = new JsonSerializerSettings();
-            if (useConverter)
-            {
-                settings = DseJsonContractResolver.JsonSerializerSettings;
-            }
             foreach (var line in Values)
             {
-                var json = JsonConvert.SerializeObject(line, settings);
                 var expected = string.Format("{{\"type\":\"LineString\",\"coordinates\":[{0}]}}",
                     string.Join(",", line.Points.Select(p => "[" + p.X + "," + p.Y + "]")));
+#if !NETCORE
+                // Default serialization to JSON is GeoJson
+                var json = JsonConvert.SerializeObject(line);
                 Assert.AreEqual(expected, json);
+#endif
                 Assert.AreEqual(expected, line.ToGeoJson());
+            }
+        }
+
+        [Test]
+        public void Should_Be_Serialized_As_WKT()
+        {
+            foreach (var line in Values)
+            {
+                var json = JsonConvert.SerializeObject(line, GraphJsonContractResolver.Settings);
+                var expected = string.Format("\"{0}\"", line);
+                Assert.AreEqual(expected, json);
             }
         }
 

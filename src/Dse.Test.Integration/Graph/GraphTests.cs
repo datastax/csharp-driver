@@ -537,15 +537,21 @@ namespace Dse.Test.Integration.Graph
         [TestCase("Text()", "The quick brown fox jumps over the lazy dog", "The quick brown fox jumps over the lazy dog")]
         public void Should_Support_Types(string type, object value, string expectedString)
         {
+            var id = _idGenerator++;
+            var vertexLabel = "vertex" + id;
+            var propertyName = "prop" + id;
+            IncludeAndQueryVertex(vertexLabel, propertyName, type, value, expectedString);
+        }
+
+        private Vertex IncludeAndQueryVertex(string vertexLabel, string propertyName, string type, object value, string expectedString, bool verifyToString = true)
+        {
+            Vertex vertex = null;
             using (var cluster = DseCluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
             {
                 var session = cluster.Connect();
-                var id = _idGenerator++;
-                var vertexLabel = "vertex" + id;
-                var propertyName = "prop" + id;
 
                 var schemaQuery = string.Format("schema.propertyKey(propertyName).{0}.ifNotExists().create();\n", type) +
                                   "schema.vertexLabel(vertexLabel).properties(propertyName).ifNotExists().create();";
@@ -553,18 +559,34 @@ namespace Dse.Test.Integration.Graph
                 session.ExecuteGraph(new SimpleGraphStatement(schemaQuery, new { vertexLabel = vertexLabel, propertyName = propertyName }));
 
                 var parameters = new { vertexLabel = vertexLabel, propertyName = propertyName, val = value };
-                var rs = session.ExecuteGraph(new SimpleGraphStatement("g.addV(label, vertexLabel, propertyName, val)", parameters));
-                ValidateVertexResult(rs, vertexLabel, propertyName, expectedString);
+                session.ExecuteGraph(new SimpleGraphStatement("g.addV(label, vertexLabel, propertyName, val)", parameters));
 
-                rs =
+
+                var rs =
                     session.ExecuteGraph(
                         new SimpleGraphStatement("g.V().hasLabel(vertexLabel).has(propertyName, val).next()", parameters));
-                ValidateVertexResult(rs, vertexLabel, propertyName, expectedString);
+                var first = rs.FirstOrDefault();
+                Assert.NotNull(first);
+                vertex = first.ToVertex();
+                if (verifyToString)
+                {
+                    ValidateVertexResult(vertex, vertexLabel, propertyName, expectedString);
+                }
             }
+            return vertex;
+        }
+
+        private void TestInsertSelectProperty<T>(string type, T value, bool verifyToString = true)
+        {
+            var id = _idGenerator++;
+            var vertexLabel = "vertex" + id;
+            var propertyName = "prop" + id;
+            var vertex = IncludeAndQueryVertex(vertexLabel, propertyName, type, value, value.ToString(), verifyToString);
+            var propObject = vertex.Properties[propertyName].ToArray()[0].Get<T>("value");
+            Assert.AreEqual(value, propObject);
         }
 
         [Test]
-        [Ignore("Will be implemented at CSHARP-544")]
         public void Should_Support_Point()
         {
             var type = "Point()";
@@ -573,11 +595,10 @@ namespace Dse.Test.Integration.Graph
                 type = "Point().withBounds(-40, -40, 40, 40)";
             }
             var point = new Point(0, 1);
-            Should_Support_Types(type, point, point.ToString());
+            TestInsertSelectProperty(type, point);
         }
 
         [Test]
-        [Ignore("Will be implemented at CSHARP-544")]
         public void Should_Support_Line()
         {
             var type = "Linestring()";
@@ -585,13 +606,11 @@ namespace Dse.Test.Integration.Graph
             {
                 type = "Linestring().withGeoBounds()";
             }
-
             var lineString = new LineString(new Point(0, 0), new Point(0, 1), new Point(1, 1));
-            Should_Support_Types(type, lineString, lineString.ToString());
+            TestInsertSelectProperty(type, lineString);
         }
 
         [Test]
-        [Ignore("Will be implemented at CSHARP-544")]
         public void Should_Support_Polygon()
         {
             var type = "Polygon()";
@@ -599,53 +618,53 @@ namespace Dse.Test.Integration.Graph
             {
                 type = "Polygon().withGeoBounds()";
             }
-            var polygon = new Polygon(new Point(0, 0), new Point(0, 1), new Point(1, 0), new Point(1, 1));
-            Should_Support_Types(type, polygon, polygon.ToString());
+            var polygon = new Polygon(new Point(-10, 10), new Point(10, 0), new Point(10, 10), new Point(-10, 10));
+            TestInsertSelectProperty(type, polygon);
         }
 
-
         [Test]
-        [Ignore("Will be implemented at CSHARP-544")]
         public void Should_Support_Inet()
         {
             var address = IPAddress.Parse("127.0.0.1");
-            Should_Support_Types("Inet()", address, address.ToString());
+            TestInsertSelectProperty("Inet()", address);
         }
 
         [Test]
         public void Should_Support_Guid()
         {
             var guid = Guid.NewGuid();
-            Should_Support_Types("Uuid()", guid, guid.ToString());
+            TestInsertSelectProperty("Uuid()", guid);
         }
 
         [Test]
         public void Should_Support_Decimal()
         {
-            Should_Support_Types("Decimal()", 10.10M, "10.1");
+            var type = "Decimal()";
+            var decimalValue = 10.10M;
+            TestInsertSelectProperty(type, decimalValue, false);
         }
 
         [Test]
         public void Should_Support_BigInteger()
         {
-            Should_Support_Types("Varint()", BigInteger.Parse("8675309"), "8675309");
+            var type = "Varint()";
+            var varint = BigInteger.Parse("8675309");
+            TestInsertSelectProperty(type, varint);
         }
 
         [Test]
         public void Should_Support_Timestamp()
         {
-            Should_Support_Types("Timestamp()", DateTimeOffset.Parse("2016-02-04T02:26:31.657Z"), "02/04/2016 02:26:31");
+            var type = "Timestamp()";
+            var timestamp = DateTimeOffset.Parse("2016-02-04T02:26:31.657Z");
+            TestInsertSelectProperty(type, timestamp, false);
         }
 
-        private void ValidateVertexResult(GraphResultSet rs, string vertexLabel, string propertyName, string expectedValueString)
+        private void ValidateVertexResult(Vertex vertex, string vertexLabel, string propertyName, string expectedValueString)
         {
-            var first = rs.FirstOrDefault();
-            Assert.NotNull(first);
-            var vertex = first.ToVertex();
             Assert.AreEqual(vertex.Label, vertexLabel);
             var valueString = vertex.Properties[propertyName].ToArray()[0].Get<string>("value");
             Assert.AreEqual(valueString, expectedValueString);
         }
-
     }
 }
