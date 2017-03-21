@@ -26,9 +26,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using Cassandra.IntegrationTests.Core;
 using Cassandra.IntegrationTests.TestClusterManagement;
-#if NETCORE
-using Microsoft.DotNet.InternalAbstractions;
-#endif
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.TestBase
@@ -373,22 +371,7 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public static bool IsWin
         {
-            get
-            {
-#if !NETCORE
-                switch (Environment.OSVersion.Platform)
-                {
-                    case PlatformID.Win32NT:
-                    case PlatformID.Win32S:
-                    case PlatformID.Win32Windows:
-                    case PlatformID.WinCE:
-                        return true;
-                }
-                return false;
-#else
-                return RuntimeEnvironment.OperatingSystemPlatform == Platform.Windows;
-#endif
-            }
+            get { return TestHelper.IsWin; }
         }
 
         private static void ValidateOutput(ProcessOutput output)

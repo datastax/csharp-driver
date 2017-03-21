@@ -124,14 +124,14 @@ namespace Cassandra.Requests
             {
                 var s = (RegularStatement)statement;
                 s.Serializer = serializer;
-                var options = QueryProtocolOptions.CreateFromQuery(s, config.QueryOptions);
+                var options = QueryProtocolOptions.CreateFromQuery(s, config.QueryOptions, config.Policies);
                 options.ValueNames = s.QueryValueNames;
                 request = new QueryRequest(serializer.ProtocolVersion, s.QueryString, s.IsTracing, options);
             }
             if (statement is BoundStatement)
             {
                 var s = (BoundStatement)statement;
-                var options = QueryProtocolOptions.CreateFromQuery(s, config.QueryOptions);
+                var options = QueryProtocolOptions.CreateFromQuery(s, config.QueryOptions, config.Policies);
                 request = new ExecuteRequest(serializer.ProtocolVersion, s.PreparedStatement.Id, null, s.IsTracing, options);
             }
             if (statement is BatchStatement)

@@ -136,10 +136,12 @@
     <Compile Include="TestTimeoutAttribute.cs" />
     <Compile Include="ThreadPerTaskScheduler.cs" />
     <Compile Include="TimeoutTests.cs" />
+    <Compile Include="TimestampTests.cs" />
     <Compile Include="TimeUuidTests.cs" />
     <Compile Include="TokenTests.cs" />
     <Compile Include="SerializerTests.cs" />
     <Compile Include="UtilsTests.cs" />
+    <Compile Include="TestAttributes\WinOnlyAttribute.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
