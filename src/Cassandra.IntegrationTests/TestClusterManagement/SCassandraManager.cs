@@ -91,7 +91,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             try
             {
                 _scassandraProcess.Kill();
-                _scassandraProcess.WaitForExit();
+                _scassandraProcess.Dispose();
             }
             catch
             {
