@@ -20,6 +20,20 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             get { return new Uri("http://127.0.0.1:" + _adminPort); }
         }
 
+        private static SCassandraManager _instance;
+
+        public static SCassandraManager Instance
+        {
+            get
+            {
+                if (_instance != null) return _instance;
+                _instance = new SCassandraManager();
+                _instance.Start();
+                _instance.SetupInitialConf().Wait();
+                return _instance;
+            }
+        }
+
         public SCassandraManager(int binaryPort = 8042, int adminPort = 8043)
         {
             BinaryPort = binaryPort;
@@ -202,15 +216,23 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                                     "}," +
                                     "\"then\" : " + result +
                                  "}";
-            Console.WriteLine(bodyFormatJson);
             var content = new StringContent(bodyFormatJson, Encoding.UTF8,
                                                             "application/json");
 
             using (var client = new HttpClient())
             {
                 client.BaseAddress = BaseAddress;
-                Console.WriteLine(BaseAddress);
                 var response = await client.PostAsync("/prime-query-single", content);
+                response.EnsureSuccessStatusCode();
+            }
+        }
+
+        public async Task ClearPrimedQueries()
+        {
+            using (var client = new HttpClient())
+            {
+                client.BaseAddress = BaseAddress;
+                var response = await client.DeleteAsync("/prime-query-single");
                 response.EnsureSuccessStatusCode();
             }
         }

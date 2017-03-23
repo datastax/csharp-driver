@@ -28,6 +28,18 @@ namespace Cassandra.IntegrationTests.Policies.Tests
     [TestFixture, Category("long")]
     public class RetryPolicyTests : TestGlobals
     {
+        private SCassandraManager _scassandraManager;
+
+        [OneTimeTearDown]
+        public void OnTearDown()
+        {
+            TestClusterManager.TryRemove();
+            if (_scassandraManager != null)
+            {
+                _scassandraManager.Stop();
+            }
+        }
+
         /// <summary>
         ///  Tests DowngradingConsistencyRetryPolicy
         /// </summary>
@@ -175,7 +187,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             // Try with 0 hosts
             policyTestTools.ResetCoordinators();
             testCluster.PauseNode(2);
-            Assert.Throws<NoHostAvailableException>( () => policyTestTools.Query(testCluster, 10));
+            Assert.Throws<NoHostAvailableException>(() => policyTestTools.Query(testCluster, 10));
             policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + 1 + ":" + DefaultCassandraPort, 0);
             policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + 2 + ":" + DefaultCassandraPort, 0);
 
@@ -183,10 +195,42 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             testCluster.ResumeNode(2);
         }
 
-        [Test]
-        public void RestryPolicy_Extended()
+        [TestCase("overloaded", typeof(OverloadedException))]
+        [TestCase("server_error", typeof(ServerErrorException))]
+        [TestCase("is_bootstrapping", typeof(IsBootstrappingException))]
+        public void RestryPolicy_Extended(string resultError, Type exceptionType)
         {
-            
+            _scassandraManager = SCassandraManager.Instance;
+            var extendedRetryPolicy = new TestExtendedRetryPolicy();
+            var builder = Cluster.Builder()
+                                 .AddContactPoint("127.0.0.1")
+                                 .WithPort(_scassandraManager.BinaryPort)
+                                 .WithRetryPolicy(extendedRetryPolicy)
+                                 .WithReconnectionPolicy(new ConstantReconnectionPolicy(long.MaxValue));
+            using (var cluster = builder.Build())
+            {
+                var session = (Session) cluster.Connect();
+                const string cql = "select * from table1";
+                _scassandraManager.PrimeQuery(cql, "{\"result\" : \"" + resultError + "\"}").Wait();
+                Exception throwedException = null;
+                try
+                {
+                    session.Execute(cql);
+                }
+                catch (Exception ex)
+                {
+                    throwedException = ex;
+                }
+                finally
+                {
+                    Assert.NotNull(throwedException);
+                    Assert.AreEqual(throwedException.GetType(), exceptionType);
+                    Assert.AreEqual(1, Interlocked.Read(ref extendedRetryPolicy.RequestErrorConter));
+                    Assert.AreEqual(0, Interlocked.Read(ref extendedRetryPolicy.ReadTimeoutCounter));
+                    Assert.AreEqual(0, Interlocked.Read(ref extendedRetryPolicy.WriteTimeoutCounter));
+                    Assert.AreEqual(0, Interlocked.Read(ref extendedRetryPolicy.UnavailableCounter));
+                }
+            }
         }
 
         private void RetryPolicyTest(ITestCluster testCluster)
@@ -232,6 +276,38 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + clusterPosQueried + ":" + DefaultCassandraPort, 1);
             policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + clusterPosNotQueried + ":" + DefaultCassandraPort, 1);
 
+        }
+    }
+
+    class TestExtendedRetryPolicy : IExtendedRetryPolicy
+    {
+        public long ReadTimeoutCounter;
+        public long WriteTimeoutCounter;
+        public long UnavailableCounter;
+        public long RequestErrorConter;
+
+        public RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
+        {
+            Interlocked.Increment(ref ReadTimeoutCounter);
+            return RetryDecision.Rethrow();
+        }
+
+        public RetryDecision OnWriteTimeout(IStatement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
+        {
+            Interlocked.Increment(ref WriteTimeoutCounter);
+            return RetryDecision.Rethrow();
+        }
+
+        public RetryDecision OnUnavailable(IStatement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
+        {
+            Interlocked.Increment(ref UnavailableCounter);
+            return RetryDecision.Rethrow();
+        }
+
+        public RetryDecision OnRequestError(IStatement statement, Configuration config, Exception ex, int nbRetry)
+        {
+            Interlocked.Increment(ref RequestErrorConter);
+            return RetryDecision.Rethrow();
         }
     }
 }
