@@ -15,10 +15,12 @@
 //
 
 using System;
+using System.Linq;
 using System.Threading;
 using Cassandra.IntegrationTests.Policies.Util;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Policies.Tests
@@ -181,6 +183,12 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             testCluster.ResumeNode(2);
         }
 
+        [Test]
+        public void RestryPolicy_Extended()
+        {
+            
+        }
+
         private void RetryPolicyTest(ITestCluster testCluster)
         {
             PolicyTestTools policyTestTools = new PolicyTestTools();
@@ -225,8 +233,5 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + clusterPosNotQueried + ":" + DefaultCassandraPort, 1);
 
         }
-
-
-
     }
 }
