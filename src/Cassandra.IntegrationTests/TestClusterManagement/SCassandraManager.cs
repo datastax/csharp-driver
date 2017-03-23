@@ -11,10 +11,22 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 {
     public class SCassandraManager
     {
+        private Process _scassandraProcess;
+        public int BinaryPort { get; private set; }
+        private readonly int _adminPort;
 
-        private static Process _scassandraProcess;
+        private Uri BaseAddress
+        {
+            get { return new Uri("http://127.0.0.1:" + _adminPort); }
+        }
 
-        public static void Start()
+        public SCassandraManager(int binaryPort = 8042, int adminPort = 8043)
+        {
+            BinaryPort = binaryPort;
+            _adminPort = adminPort;
+        }
+
+        public void Start()
         {
             Stop();
             _scassandraProcess = new Process();
@@ -24,7 +36,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 throw new Exception("SCassandra: SCASSANDRA_JAR environment variable not set!");
             }
             _scassandraProcess.StartInfo.FileName = "java";
-            _scassandraProcess.StartInfo.Arguments = string.Format("-jar {0}", jarPath);
+            _scassandraProcess.StartInfo.Arguments = string.Format("-jar {0}  -Dscassandra.binary.port={1} -Dscassandra.binary.admin={2}", jarPath, BinaryPort, _adminPort);
             _scassandraProcess.StartInfo.UseShellExecute = false;
             _scassandraProcess.StartInfo.CreateNoWindow = true;
             _scassandraProcess.StartInfo.RedirectStandardOutput = true;
@@ -40,16 +52,16 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             _scassandraProcess.OutputDataReceived += (sender, e) =>
             {
                 if (e.Data == null || isReady) return;
-                if (e.Data.Contains("Port 8042 ready for Cassandra binary connections"))
+                if (e.Data.Contains("Port " +  BinaryPort + " ready for Cassandra binary connections"))
                 {
                     scassandraPortReady = true;
                 }
-                if (e.Data.Contains("Bound to localhost/127.0.0.1:8043"))
+                if (e.Data.Contains("Bound to localhost/127.0.0.1:" + _adminPort))
                 {
                     primingPortReady = true;
                 }
 
-                if (e.Data.Contains("Unable to bind to port 8042"))
+                if (e.Data.Contains("Unable to bind to port " + BinaryPort))
                 {
                     isPortAlreadyUsed = true;
                     eventWaitHandler.Set();
@@ -84,7 +96,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
         }
 
-        public static void Stop()
+        public void Stop()
         {
             if (_scassandraProcess == null) return;
 
@@ -103,28 +115,32 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
         }
 
-        public static async Task SetupInitialConf()
+        public async Task SetupInitialConf()
         {
-            using (var client = new HttpClient())
-            {
-                client.BaseAddress = new Uri("http://127.0.0.1:8043");
-                var json = "{\"when\":{\"query\":\"SELECT * FROM system.local WHERE key='local'\"}," +
-                           "\"then\":{\"rows\":[{\"cluster_name\":\"custom cluster name\"," +
-                           "\"partitioner\":\"org.apache.cassandra.dht.Murmur3Partitioner\"," +
-                           "\"data_center\":\"dc1\",\"rack\":\"rc1\",\"tokens\":[\"1743244960790844724\"],\"release_version\":\"2.0.1\"}]," +
-                           "\"result\":\"success\",\"column_types\":{\"tokens\":\"set<text>\"}}}";
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await client.PostAsync("/prime-query-single", content);
-                response.EnsureSuccessStatusCode();
-            }
+            const string cql = "SELECT * FROM system.local WHERE key='local'";
+            const string result = "{" +
+                                  "\"rows\": " +
+                                  "[" +
+                                    "{" +
+                                        "\"cluster_name\":\"custom cluster name\"," +
+                                        "\"partitioner\":\"org.apache.cassandra.dht.Murmur3Partitioner\"," +
+                                        "\"data_center\":\"dc1\"," +
+                                        "\"rack\":\"rc1\"," +
+                                        "\"tokens\":[\"1743244960790844724\"]," +
+                                        "\"release_version\":\"2.0.1\"" +
+                                    "}" +
+                                  "]," +
+                                  "\"result\":\"success\"," +
+                                  "\"column_types\":{\"tokens\":\"set<text>\"}}";
+            await PrimeQuery(cql, result);
         }
 
-        public static async Task<int[]> GetListOfConnectedPorts()
+        public async Task<int[]> GetListOfConnectedPorts()
         {
             //current/connections
             using (var client = new HttpClient())
             {
-                client.BaseAddress = new Uri("http://127.0.0.1:8043");
+                client.BaseAddress = BaseAddress;
                 var response = await client.GetAsync("/current/connections");
                 if (response.IsSuccessStatusCode)
                 {
@@ -138,34 +154,63 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             return null;
         }
 
-        public static async Task DropConnection(int port)
+        public async Task DropConnection(int port)
         {
             //current/connections/127.0.0.1/<port>
             using (var client = new HttpClient())
             {
-                client.BaseAddress = new Uri("http://127.0.0.1:8043");
+                client.BaseAddress = BaseAddress;
                 var response = await client.DeleteAsync(string.Format("/current/connections/127.0.0.1/{0}", port));
                 response.EnsureSuccessStatusCode();
             }
         }
 
-        public static async Task DisableConnectionListener()
+        public async Task DisableConnectionListener()
         {
             //http://127.0.0.1:9043/current/listener
             using (var client = new HttpClient())
             {
-                client.BaseAddress = new Uri("http://127.0.0.1:8043");
+                client.BaseAddress = BaseAddress;
                 var response = await client.DeleteAsync("/current/listener");
                 response.EnsureSuccessStatusCode();
             }
         }
-        public static async Task EnableConnectionListener()
+        public async Task EnableConnectionListener()
         {
             //http://127.0.0.1:9043/current/listener
             using (var client = new HttpClient())
             {
-                client.BaseAddress = new Uri("http://127.0.0.1:8043");
+                client.BaseAddress = BaseAddress;
                 var response = await client.PutAsync("/current/listener", null);
+                response.EnsureSuccessStatusCode();
+            }
+        }
+
+        public async Task PrimeQuery(string cql, string result)
+        {
+            //{
+            //   "when": {
+            //       "query" :"select * from people"
+            //   },
+            //   "then": {
+            //       "result" : "read_request_timeout"
+            //   }
+            //}
+            var bodyFormatJson = "{" +
+                                    "\"when\" : {" +
+                                        "\"query\" : \"" + cql + "\"" +
+                                    "}," +
+                                    "\"then\" : " + result +
+                                 "}";
+            Console.WriteLine(bodyFormatJson);
+            var content = new StringContent(bodyFormatJson, Encoding.UTF8,
+                                                            "application/json");
+
+            using (var client = new HttpClient())
+            {
+                client.BaseAddress = BaseAddress;
+                Console.WriteLine(BaseAddress);
+                var response = await client.PostAsync("/prime-query-single", content);
                 response.EnsureSuccessStatusCode();
             }
         }
