@@ -15,6 +15,20 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public int BinaryPort { get; private set; }
         private readonly int _adminPort;
 
+        private static SCassandraManager _instance;
+
+        public static SCassandraManager Instance
+        {
+            get
+            {
+                if (_instance != null) return _instance;
+                _instance = new SCassandraManager();
+                _instance.Start();
+                _instance.SetupInitialConf().Wait();
+                return _instance;
+            }
+        }
+
         private Uri BaseAddress
         {
             get { return new Uri("http://127.0.0.1:" + _adminPort); }
@@ -211,6 +225,16 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 client.BaseAddress = BaseAddress;
                 Console.WriteLine(BaseAddress);
                 var response = await client.PostAsync("/prime-query-single", content);
+                response.EnsureSuccessStatusCode();
+            }
+        }
+
+        public async Task ClearPrimedQueries()
+        {
+            using (var client = new HttpClient())
+            {
+                client.BaseAddress = BaseAddress;
+                var response = await client.DeleteAsync("/prime-query-single");
                 response.EnsureSuccessStatusCode();
             }
         }
