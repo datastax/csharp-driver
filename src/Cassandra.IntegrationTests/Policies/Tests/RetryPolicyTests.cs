@@ -198,6 +198,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         [TestCase("overloaded", typeof(OverloadedException))]
         [TestCase("server_error", typeof(ServerErrorException))]
         [TestCase("is_bootstrapping", typeof(IsBootstrappingException))]
+        [Category("short")]
         public void RestryPolicy_Extended(string resultError, Type exceptionType)
         {
             _scassandraManager = SCassandraManager.Instance;
