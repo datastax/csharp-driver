@@ -17,7 +17,7 @@
 namespace Cassandra
 {
     /// <summary>
-    /// Represents the policies configured for a <see cref="ICluster"/> instance.
+    /// Policies configured for a <see cref="ICluster"/> instance.
     /// </summary>
     public class Policies
     {
@@ -101,7 +101,6 @@ namespace Cassandra
         private readonly IRetryPolicy _retryPolicy;
         private readonly ISpeculativeExecutionPolicy _speculativeExecutionPolicy;
         private IExtendedRetryPolicy _extendedRetryPolicy;
-        private readonly ITimestampGenerator _timestampGenerator;
 
         /// <summary>
         ///  Gets the load balancing policy in use. <p> The load balancing policy defines how
@@ -148,15 +147,7 @@ namespace Cassandra
             get { return _extendedRetryPolicy; }
         }
 
-        /// <summary>
-        /// Gets the <see cref="ITimestampGenerator"/> instance in use.
-        /// </summary>
-        public ITimestampGenerator TimestampGenerator
-        {
-            get { return _timestampGenerator; }
-        }
-
-        public Policies() : this(null, null, null, null, null)
+        public Policies()
         {
             //Part of the public API can not be removed
         }
@@ -187,6 +178,16 @@ namespace Cassandra
             _retryPolicy = retryPolicy ?? DefaultRetryPolicy;
             _speculativeExecutionPolicy = speculativeExecutionPolicy ?? DefaultSpeculativeExecutionPolicy;
             _timestampGenerator = timestampGenerator ?? DefaultTimestampGenerator;
+        }
+
+        /// <summary>
+        /// Sets the current policy as extended retry policy.
+        /// If the current policy is not <see cref="IExtendedRetryPolicy"/>, it creates a wrapper to delegate
+        /// the methods that were not implemented to a default policy.
+        /// </summary>
+        internal void InitializeRetryPolicy(ICluster cluster)
+        {
+            _extendedRetryPolicy = _retryPolicy.Wrap(null);
         }
 
         /// <summary>

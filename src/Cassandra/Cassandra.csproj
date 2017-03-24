@@ -148,7 +148,6 @@
     <Compile Include="Policies\AtomicMonotonicWinApiTimestampGenerator.cs" />
     <Compile Include="Policies\IdempotenceAwareRetryPolicy.cs" />
     <Compile Include="Policies\IExtendedRetryPolicy.cs" />
-    <Compile Include="Policies\ITimestampGenerator.cs" />
     <Compile Include="ProtocolVersion.cs" />
     <Compile Include="Requests\ICqlRequest.cs" />
     <Compile Include="IndexMetadata.cs" />
