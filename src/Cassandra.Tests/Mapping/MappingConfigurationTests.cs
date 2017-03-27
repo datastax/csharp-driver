@@ -22,19 +22,21 @@ namespace Cassandra.Tests.Mapping
         }
 
         [Test]
-        public void Get_FromGlobalConfig_Returns_Mapping_IfExists()
+        public void Get_Returns_Mapping_IfExists()
         {
             var userMapping = new FluentUserMapping();
-            MappingConfiguration.Global.Define(userMapping);
-            var existingMapping = MappingConfiguration.Global.Get<FluentUser>();
+            var mappingConfig = new MappingConfiguration();
+            mappingConfig.Define(userMapping);
+            var existingMapping = mappingConfig.Get<FluentUser>();
             Assert.IsNotNull(existingMapping);
             Assert.IsInstanceOf(typeof(FluentUserMapping), existingMapping);
         }
 
         [Test]
-        public void Get_FromGlobalConfig_Returns_Null_IfDoesNotExist()
+        public void Get_Returns_Null_IfDoesNotExist()
         {
-            var existingMapping = MappingConfiguration.Global.Get<Album>();
+            var mappingConfig = new MappingConfiguration();
+            var existingMapping = mappingConfig.Get<Album>();
             Assert.IsNull(existingMapping);
         }
     }
