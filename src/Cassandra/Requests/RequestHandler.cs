@@ -48,7 +48,7 @@ namespace Cassandra.Requests
         private volatile HashedWheelTimer.ITimeout _nextExecutionTimeout;
 
         public Policies Policies { get; private set; }
-        public IRetryPolicy RetryPolicy { get; private set; }
+        public IExtendedRetryPolicy RetryPolicy { get; private set; }
         public Serializer Serializer { get; private set; }
         public IStatement Statement { get; private set; }
 
@@ -71,13 +71,10 @@ namespace Cassandra.Requests
             Serializer = serializer;
             Statement = statement;
             Policies = _session.Cluster.Configuration.Policies;
-            RetryPolicy = session.Cluster.Configuration.Policies.RetryPolicy;
-            if (statement != null)
+            RetryPolicy = Policies.ExtendedRetryPolicy;
+            if (statement != null && statement.RetryPolicy != null)
             {
-                if (statement.RetryPolicy != null)
-                {
-                    RetryPolicy = statement.RetryPolicy;   
-                }
+                RetryPolicy = statement.RetryPolicy.Wrap(Policies.ExtendedRetryPolicy);
             }
             _queryPlan = Policies.LoadBalancingPolicy.NewQueryPlan(_session.Keyspace, statement).GetEnumerator();
         }

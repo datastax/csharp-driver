@@ -324,12 +324,16 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Configure the retry policy to use for the new cluster. <p> If no retry policy
-        ///  is set through this method, <link>Policies.DefaultRetryPolicy</link> will
-        ///  be used instead.</p>
+        /// Configure the retry policy to be used for the new cluster.
+        /// <para>
+        /// When the retry policy is not set with this method, the <see cref="Policies.DefaultRetryPolicy" />
+        /// will be used instead.
+        /// </para>
+        /// <para>
+        /// Use a <see cref="IExtendedRetryPolicy"/> implementation to cover all error scenarios.
+        /// </para>
         /// </summary>
         /// <param name="policy"> the retry policy to use </param>
-        /// 
         /// <returns>this Builder</returns>
         public Builder WithRetryPolicy(IRetryPolicy policy)
         {

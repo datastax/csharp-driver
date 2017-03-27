@@ -100,6 +100,7 @@ namespace Cassandra
         private readonly IReconnectionPolicy _reconnectionPolicy;
         private readonly IRetryPolicy _retryPolicy;
         private readonly ISpeculativeExecutionPolicy _speculativeExecutionPolicy;
+        private IExtendedRetryPolicy _extendedRetryPolicy;
         private readonly ITimestampGenerator _timestampGenerator;
 
         /// <summary>
@@ -135,6 +136,16 @@ namespace Cassandra
         public ISpeculativeExecutionPolicy SpeculativeExecutionPolicy
         {
             get { return _speculativeExecutionPolicy; }
+        }
+
+        /// <summary>
+        /// Gets the extended retry policy that contains the default behavior to handle request errors.
+        /// The returned value is either the same instance as <see cref="RetryPolicy"/> or the default
+        /// retry policy. It can not be null.
+        /// </summary>
+        internal IExtendedRetryPolicy ExtendedRetryPolicy
+        {
+            get { return _extendedRetryPolicy; }
         }
 
         /// <summary>
@@ -176,6 +187,16 @@ namespace Cassandra
             _retryPolicy = retryPolicy ?? DefaultRetryPolicy;
             _speculativeExecutionPolicy = speculativeExecutionPolicy ?? DefaultSpeculativeExecutionPolicy;
             _timestampGenerator = timestampGenerator ?? DefaultTimestampGenerator;
+        }
+
+        /// <summary>
+        /// Sets the current policy as extended retry policy.
+        /// If the current policy is not <see cref="IExtendedRetryPolicy"/>, it creates a wrapper to delegate
+        /// the methods that were not implemented to a default policy.
+        /// </summary>
+        internal void InitializeRetryPolicy(ICluster cluster)
+        {
+            _extendedRetryPolicy = _retryPolicy.Wrap(null);
         }
     }
 }
