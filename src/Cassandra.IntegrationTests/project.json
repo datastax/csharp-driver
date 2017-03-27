@@ -15,7 +15,10 @@
     },
     "NUnit": "3.4.1",
     "dotnet-test-nunit": "3.4.0-beta-1",
-    "Newtonsoft.Json": "9.0.1"
+    "Newtonsoft.Json": "9.0.1",
+    "System.Runtime.Serialization.Json": "4.0.2",
+    "System.Runtime.Serialization.Primitives": "4.1.1",
+    "System.Net.Http": "4.3.0"
   },
   "frameworks": {
     "net452": {
@@ -28,10 +31,7 @@
       },
       "dependencies": {
         "Moq": "4.2.1402.2112",
-        "Microsoft.NETCore.Platforms": "1.0.1",
-        "System.Runtime.Serialization.Json": "4.0.2",
-        "System.Runtime.Serialization.Primitives": "4.1.1",
-        "System.Net.Http": "4.3.0"
+        "Microsoft.NETCore.Platforms": "1.0.1"
       }
     },
     "netcoreapp1.0": {
@@ -49,10 +49,7 @@
         "System.Reflection": "4.1.0",
         "System.Reflection.Extensions": "4.0.1",
         "System.Reflection.Primitives": "4.0.1",
-        "Microsoft.DotNet.InternalAbstractions": "1.0.0",
-        "System.Runtime.Serialization.Json": "4.0.2",
-        "System.Runtime.Serialization.Primitives": "4.1.1",
-        "System.Net.Http": "4.3.0"
+        "Microsoft.DotNet.InternalAbstractions": "1.0.0"
       }
     }
   }
