@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using Cassandra.Mapping.Statements;
 using Cassandra.Mapping.TypeConversion;
 using Cassandra.Mapping.Utils;
@@ -122,6 +120,17 @@ namespace Cassandra.Mapping
                 _typeDefinitions.Add(map);
             }
             return this;
+        }
+
+        /// <summary>
+        /// If defined, returns the mapping for POCO type T, otherwise returns null.
+        /// </summary>
+        public ITypeDefinition Get<T>()
+        {
+            ITypeDefinition existingMapping;
+            _typeDefinitions.TryGetItem(typeof(T), out existingMapping);
+
+            return existingMapping;
         }
 
         /// <summary>

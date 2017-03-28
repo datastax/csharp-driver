@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Cassandra.Mapping;
+﻿using Cassandra.Mapping;
 using Cassandra.Mapping.TypeConversion;
+using Cassandra.Tests.Mapping.FluentMappings;
+using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
 
 namespace Cassandra.Tests.Mapping
@@ -21,6 +19,25 @@ namespace Cassandra.Tests.Mapping
             config.ConvertTypesUsing(new DefaultTypeConverter());
             //New instance of the mapper factory
             Assert.AreNotSame(originalMapperFactory, config.MapperFactory);
+        }
+
+        [Test]
+        public void Get_Returns_Mapping_IfExists()
+        {
+            var userMapping = new FluentUserMapping();
+            var mappingConfig = new MappingConfiguration();
+            mappingConfig.Define(userMapping);
+            var existingMapping = mappingConfig.Get<FluentUser>();
+            Assert.IsNotNull(existingMapping);
+            Assert.IsInstanceOf(typeof(FluentUserMapping), existingMapping);
+        }
+
+        [Test]
+        public void Get_Returns_Null_IfDoesNotExist()
+        {
+            var mappingConfig = new MappingConfiguration();
+            var existingMapping = mappingConfig.Get<Album>();
+            Assert.IsNull(existingMapping);
         }
     }
 }
