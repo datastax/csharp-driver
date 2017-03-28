@@ -16,7 +16,7 @@ namespace Dse.Test.Integration
     [Category("short"), TestDseVersion(5, 1)]
     public class DurationTests : SharedDseClusterTest
     {
-        private static readonly string[] Values = 
+        public static readonly string[] Values = 
         {
             "1y2mo",
             "-1y2mo",

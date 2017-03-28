@@ -4,12 +4,14 @@
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Numerics;
+using System.Text;
 using System.Threading;
 using Dse.Geometry;
 using Dse.Test.Integration.TestClusterManagement;
@@ -27,9 +29,7 @@ namespace Dse.Test.Integration.Graph
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            TestClusterManager.CreateNew(1, new TestClusterOptions { Workloads = new [] { "graph" } });
-            Trace.TraceInformation("Waiting additional time for test Cluster to be ready");
-            Thread.Sleep(20000);
+            TestClusterManager.CreateNew(1, new TestClusterOptions {Workloads = new[] {"graph"}});
             CreateClassicGraph(TestClusterManager.InitialContactPoint, GraphName);
         }
 
@@ -375,7 +375,8 @@ namespace Dse.Test.Integration.Graph
                     {
                         Assert.AreEqual(0.4, created.Properties["weight"].ToDouble());
                     }
-                    else {
+                    else
+                    {
                         Assert.AreEqual(1.0, created.Properties["weight"].ToDouble());
                         Assert.AreEqual("ripple", software.Properties["name"].ToArray()[0].Get<string>("value"));
                     }
@@ -530,6 +531,7 @@ namespace Dse.Test.Integration.Graph
         [TestCase("Bigint()", 0L, "0")]
         [TestCase("Float()", 3.1415927f, "3.1415927")]
         [TestCase("Double()", 3.1415d, "3.1415")]
+        [TestCase("Duration()", "P2DT3H4M", "PT51H4M")]
         [TestCase("Duration()", "5 s", "PT5S")]
         [TestCase("Duration()", "5 seconds", "PT5S")]
         [TestCase("Duration()", "1 minute", "PT1M")]
@@ -561,7 +563,6 @@ namespace Dse.Test.Integration.Graph
 
                 var parameters = new { vertexLabel = vertexLabel, propertyName = propertyName, val = value };
                 session.ExecuteGraph(new SimpleGraphStatement("g.addV(label, vertexLabel, propertyName, val)", parameters));
-
 
                 var rs =
                     session.ExecuteGraph(
@@ -661,12 +662,21 @@ namespace Dse.Test.Integration.Graph
             TestInsertSelectProperty(type, timestamp, false);
         }
 
-        [Test]
-        public void Should_Support_Duration()
+        [TestCase("1m1s")]
+        [TestCase("30h")]
+        [TestCase("30h20m")]
+        [TestCase("20m")]
+        [TestCase("56s")]
+        [TestCase("567ms", IgnoreReason = "Fixed by DSP-13013")]
+        [TestCase("1950us", IgnoreReason = "Fixed by DSP-13013")]
+        [TestCase("1950µs", IgnoreReason = "Fixed by DSP-13013")]
+        [TestCase("1950000ns", IgnoreReason = "Fixed by DSP-13013")]
+        [TestCase("1950000NS", IgnoreReason = "Fixed by DSP-13013")]
+        [TestCase("-1950000ns", IgnoreReason = "Fixed by DSP-13013")]
+        public void Should_Support_Duration(string valueStr)
         {
-            var type = "Duration()";
-            var value = new Duration(0, 0, 61000000000L);
-            TestInsertSelectProperty(type, value, false);
+            const string type = "Duration()";
+            TestInsertSelectProperty(type, Duration.Parse(valueStr), false);
         }
 
         [Test]
