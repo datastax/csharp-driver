@@ -27,10 +27,13 @@ namespace Dse
         private const long NanosPerHour = 60L * NanosPerMinute;
         private const int DaysPerWeek = 7;
         private const int MonthsPerYear = 12;
+        //                       ticks * micro * milli * second * minute
+        private const long TicksPerDay = 10L * 1000L * 1000L * 60L * 60 * 24;
+        private const long NanosPerTick = 100L;
         private static readonly Regex StandardRegex = new Regex(
             @"(\d+)(y|mo|w|d|h|s|ms|us|µs|ns|m)", RegexOptions.Compiled);
         private static readonly Regex Iso8601Regex = new Regex(
-            @"^P((\d+)Y)?((\d+)M)?((\d+)D)?(T((\d+)H)?((\d+)M)?((\d+)S)?)?$", RegexOptions.Compiled);
+            @"^P((\d+)Y)?((\d+)M)?((\d+)D)?(T((\d+)H)?((\d+)M)?((\d+(\.\d+)?)S)?)?$", RegexOptions.Compiled);
         private static readonly Regex Iso8601WeekRegex = new Regex(
             @"^P(\d+)W$", RegexOptions.Compiled);
         private static readonly Regex Iso8601AlternateRegex = new Regex(
@@ -119,6 +122,47 @@ namespace Dse
         }
 
         /// <summary>
+        /// Creates a new <see cref="Duration"/> instance based on the <see cref="TimeSpan"/> provided.
+        /// <para>Consider that 24 hour days (no leap seconds) are used to calculate the days portion.</para>
+        /// </summary>
+        public static Duration FromTimeSpan(TimeSpan timespan)
+        {
+            var ticks = timespan.Ticks;
+            var days = Convert.ToInt32(ticks / TicksPerDay);
+            long nanos;
+            if (days != 0L)
+            {
+                nanos = (ticks%TicksPerDay)*NanosPerTick;
+            }
+            else
+            {
+                nanos = ticks*NanosPerTick;
+            }
+            return new Duration(0, days, nanos);
+        }
+
+        /// <summary>
+        /// Returns a <see cref="TimeSpan"/> instance that represents the same interval than this instance.
+        /// <para>
+        /// You should take into consideration that <see cref="TimeSpan"/> is internally represented in ticks,
+        /// so for the conversion, 24h days will be used (leap seconds are not considered).
+        /// For <see cref="Duration"/> values with month portion, it will throw an 
+        /// <see cref="InvalidOperationException"/>.
+        /// </para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">values including month portion.</exception>
+        public TimeSpan ToTimeSpan()
+        {
+            if (Months != 0)
+            {
+                throw new InvalidOperationException("Duration instance can not be converted to TimeSpan as " +
+                                                    "Duration contains month portion");
+            }
+            var ticks = TicksPerDay * Days + Nanoseconds / NanosPerTick;
+            return new TimeSpan(ticks);
+        }
+
+        /// <summary>
         /// Returns the string representation of the value.
         /// </summary>
         public override string ToString()
@@ -145,6 +189,80 @@ namespace Dse
                 remainder = Append(builder, remainder, NanosPerMilli, "ms");
                 remainder = Append(builder, remainder, NanosPerMicro, "us");
                 Append(builder, remainder, 1L, "ns");
+            }
+            return builder.ToString();
+        }
+
+        /// <summary>
+        /// A string representation of this duration using ISO-8601 based representation, such as PT8H6M12.345S.
+        /// </summary>
+        public string ToIsoString()
+        {
+            if (Equals(Zero))
+            {
+                return "PT0S";
+            }
+            var builder = new StringBuilder();
+            if (Months < 0 || Days < 0 || Nanoseconds < 0)
+            {
+                builder.Append('-');
+            }
+            builder.Append("P");
+            var remainder = Append(builder, Math.Abs(Months), MonthsPerYear, "Y");
+            Append(builder, remainder, 1, "M");
+            Append(builder, Math.Abs(Days), 1, "D");
+            if (Nanoseconds != 0L)
+            {
+                builder.Append("T");
+                var nanos = Math.Abs(Nanoseconds);
+                remainder = Append(builder, nanos, NanosPerHour, "H");
+                remainder = Append(builder, remainder, NanosPerMinute, "M");
+                if (remainder > 0L)
+                {
+                    var seconds = Convert.ToDecimal(remainder) / NanosPerSecond;
+                    builder.Append(string.Format("{0:0.#########}", seconds)).Append("S");
+                }
+            }
+            return builder.ToString();
+        }
+
+        /// <summary>
+        /// A string representation of this duration using ISO-8601 based representation, with the HOUR portion
+        /// as higher component.
+        /// </summary>
+        /// <remarks>24H days are considered for the conversion (no leap seconds).</remarks>
+        /// <exception cref="ArgumentOutOfRangeException">When the value is out of the range of a Java Duration.</exception>
+        internal string ToJavaDurationString()
+        {
+            if (Equals(Zero))
+            {
+                return "PT0S";
+            }
+            if (Months != 0L)
+            {
+                throw new ArgumentOutOfRangeException(string.Format(
+                    "Duration {0} can not be represented in java.time.Duration (seconds and nanoseconds)", this));
+            }
+            var builder = new StringBuilder();
+            if (Days < 0 || Nanoseconds < 0)
+            {
+                builder.Append('-');
+            }
+            builder.Append("PT");
+            // No leap seconds considered
+            const long hoursPerDay = 24L;
+            var nanos = Math.Abs(Nanoseconds);
+            var remainder = nanos%NanosPerHour;
+            long hours = Math.Abs(Days)*hoursPerDay + nanos/NanosPerHour;
+            if (hours > 0L)
+            {
+                builder.Append(hours).Append("H");
+            }
+            remainder = Append(builder, remainder, NanosPerMinute, "M");
+            if (remainder > 0L)
+            {
+                var seconds = Convert.ToDecimal(remainder) / NanosPerSecond;
+                builder.Append(string.Format("{0:0.#########}", seconds)).Append("S");
             }
             return builder.ToString();
         }
@@ -268,7 +386,15 @@ namespace Dse
                 }
                 if (match.Groups[12].Success)
                 {
-                    builder.AddSeconds(match.Groups[13].Value);
+                    if (match.Groups[14].Success)
+                    {
+                        // Using seconds with fractional decimal places
+                        builder.AddSecondsWithFractional(match.Groups[13].Value);
+                    }
+                    else
+                    {
+                        builder.AddSeconds(match.Groups[13].Value);
+                    }
                 }
             }
             return builder.Build();
@@ -377,6 +503,21 @@ namespace Dse
             public Builder AddSeconds(string textValue)
             {
                 return AddNanos(7, textValue, NanosPerSecond);
+            }
+
+            public Builder AddSecondsWithFractional(string textValue)
+            {
+                ValidateOrder(7);
+                var limit = (long.MaxValue - _nanoseconds) / Convert.ToDecimal(NanosPerSecond);
+                var value = Convert.ToDecimal(textValue);
+                if (value > limit)
+                {
+                    throw new FormatException(
+                        string.Format("Invalid duration. The total number of nanoseconds must be less or equal to {0}",
+                        long.MaxValue));
+                }
+                _nanoseconds += Convert.ToInt64(Math.Ceiling(NanosPerSecond * value));
+                return this;
             }
 
             public Builder AddMillis(string textValue)

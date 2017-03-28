@@ -6,6 +6,7 @@
 //
 
 using System;
+using System.Linq;
 using Dse.Serialization;
 using NUnit.Framework;
 
@@ -18,6 +19,7 @@ namespace Dse.Test.Unit
             // Duration representation, hex value, standard format
             Tuple.Create(new Duration(0, 0, 1L), "000002", "1ns"),
             Tuple.Create(new Duration(0, 0, 128), "00008100", "128ns"),
+            Tuple.Create(new Duration(0, 0, 200), "00008190", "200ns"),
             Tuple.Create(new Duration(0, 0, 2), "000004", "2ns"),
             Tuple.Create(new Duration(0, 0, 256), "00008200", "256ns"),
             Tuple.Create(new Duration(0, 0, 33001), "0000c101d2", "33us1ns"),
@@ -38,7 +40,8 @@ namespace Dse.Test.Unit
             Tuple.Create(new Duration(2, 15, 0), "P2M15D"),
             Tuple.Create(new Duration(0, 14, 0), "P14D"),
             Tuple.Create(new Duration(257, 0, 0), "P21Y5M"),
-            Tuple.Create(new Duration(0, 2, 120000000000), "P2DT2M")
+            Tuple.Create(new Duration(0, 2, 120000000000), "P2DT2M"),
+            Tuple.Create(new Duration(0, 0, 1105000), "PT0.001105S")
         };
 
         [Test]
@@ -51,11 +54,13 @@ namespace Dse.Test.Unit
         }
         
         [Test]
-        public void Parse_Should_Read_Iso_Format_Test()
+        public void Parse_Should_Parse_And_Output_Iso_Format_Test()
         {
             foreach (var value in IsoFormatValues)
             {
-                Assert.AreEqual(Duration.Parse(value.Item2), value.Item1);
+                var duration = Duration.Parse(value.Item2);
+                Assert.AreEqual(value.Item1, duration);
+                Assert.AreEqual(value.Item2, duration.ToIsoString());
             }
         }
 
@@ -108,6 +113,32 @@ namespace Dse.Test.Unit
             {
                 var buffer = FromHex(value.Item2);
                 Assert.AreEqual(value.Item1, serializer.Deserialize(4, buffer, 0, buffer.Length, null));
+            }
+        }
+
+        [Test]
+        public void ToTimeSpan_Should_Throw_For_Month_Not_Equals_To_Zero()
+        {
+            var values = new[]
+            {
+                new Duration(1, 0, 0),
+                new Duration(-10, 0, 0),
+                new Duration(500, 1, 1L)
+            };
+            foreach (var value in values)
+            {
+                Assert.Throws<InvalidOperationException>(() => value.ToTimeSpan());
+            }
+        }
+
+        [Test]
+        public void ToTimeSpan_FromTimeSpan_Test()
+        {
+            var values = Values.Select(t => t.Item1).Where(d => d.Months == 0L && d.Nanoseconds%100L == 0L);
+            foreach (var value in values)
+            {
+                var timespan = value.ToTimeSpan();
+                Assert.AreEqual(value, Duration.FromTimeSpan(timespan));
             }
         }
     }

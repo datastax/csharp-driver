@@ -32,7 +32,8 @@ namespace Dse.Serialization.Graph
             { typeof(BigInteger), (r, _) => BigInteger.Parse(r.Value.ToString()) },
             { typeof(Point), (r, _) => Point.Parse(r.Value.ToString()) },
             { typeof(LineString), (r, _) => LineString.Parse(r.Value.ToString()) },
-            { typeof(Polygon), (r, _) => Polygon.Parse(r.Value.ToString()) }
+            { typeof(Polygon), (r, _) => Polygon.Parse(r.Value.ToString()) },
+            { typeof(Duration), (r, _) => Duration.Parse(r.Value.ToString()) }
         };
 
         private static readonly Dictionary<Type, WriteDelegate> Writers = new Dictionary<Type, WriteDelegate>
@@ -42,7 +43,8 @@ namespace Dse.Serialization.Graph
             { typeof(Point), WriteStringValue },
             { typeof(LineString), WriteStringValue },
             { typeof(Polygon), WriteStringValue },
-            { typeof(BigInteger), WriteStringRawValue }
+            { typeof(BigInteger), WriteStringRawValue },
+            { typeof(Duration), WriteDuration }
         };
 
         internal static readonly GraphJsonConverter Instance = new GraphJsonConverter();
@@ -97,6 +99,12 @@ namespace Dse.Serialization.Graph
         private static object ReadIpAddress(JsonReader reader, JsonSerializer serializer)
         {
             return IPAddress.Parse(reader.Value.ToString());
+        }
+
+        private static void WriteDuration(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            var durationString = ((Duration)value).ToJavaDurationString();
+            writer.WriteValue(durationString);
         }
     }
 }

@@ -533,7 +533,8 @@ namespace Dse.Test.Integration.Graph
         [TestCase("Duration()", "5 s", "PT5S")]
         [TestCase("Duration()", "5 seconds", "PT5S")]
         [TestCase("Duration()", "1 minute", "PT1M")]
-        [TestCase("Duration()", "1 hour", "PT1H")]
+        [TestCase("Duration()", "PT1H1M", "PT1H1M")]
+        [TestCase("Duration()", "PT240H", "PT240H")]
         [TestCase("Text()", "The quick brown fox jumps over the lazy dog", "The quick brown fox jumps over the lazy dog")]
         public void Should_Support_Types(string type, object value, string expectedString)
         {
@@ -660,11 +661,43 @@ namespace Dse.Test.Integration.Graph
             TestInsertSelectProperty(type, timestamp, false);
         }
 
+        [Test]
+        public void Should_Support_Duration()
+        {
+            var type = "Duration()";
+            var value = new Duration(0, 0, 61000000000L);
+            TestInsertSelectProperty(type, value, false);
+        }
+
+        [Test]
+        public void ExecuteGraph_Should_Throw_ArgumentOutOfRange_When_Duration_Is_Out_Of_Range()
+        {
+            var values = new[]
+            {
+                new Duration(1, 0, 0),
+                new Duration(-1, 0, 0)
+            };
+            using (var cluster = DseCluster.Builder()
+                                           .AddContactPoint(TestClusterManager.InitialContactPoint)
+                                           .WithGraphOptions(new GraphOptions().SetName(GraphName))
+                                           .Build())
+            {
+                var session = cluster.Connect();
+                foreach (var value in values)
+                {
+
+                    var parameters = new {vertexLabel = "v1", propertyName = "prop1", val = value};
+                    var stmt = new SimpleGraphStatement("g.addV(label, vertexLabel, propertyName, val)", parameters);
+                    Assert.Throws<ArgumentOutOfRangeException>(() => session.ExecuteGraph(stmt));
+                }
+            }
+        }
+
         private void ValidateVertexResult(Vertex vertex, string vertexLabel, string propertyName, string expectedValueString)
         {
             Assert.AreEqual(vertex.Label, vertexLabel);
             var valueString = vertex.Properties[propertyName].ToArray()[0].Get<string>("value");
-            Assert.AreEqual(valueString, expectedValueString);
+            Assert.AreEqual(expectedValueString, valueString);
         }
     }
 }
