@@ -110,7 +110,7 @@
     <Compile Include="Linq\Structures\ManyDataTypesEntity.cs" />
     <Compile Include="Policies\Tests\IdempotenceAwareRetryPolicyTests.cs" />
     <Compile Include="Policies\Tests\LoadBalancingPolicyShortTests.cs" />
-    <Compile Include="Policies\Tests\RetryPolicyShortTests .cs" />
+    <Compile Include="Policies\Tests\RetryPolicyShortTests.cs" />
     <Compile Include="SharedClusterTest.cs" />
     <Compile Include="Linq\Structures\SalesOrder.cs" />
     <Compile Include="Linq\Structures\AllDataTypesNoColumnMeta.cs" />

@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) 2017 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 using System;
 using System.Threading;
-using Cassandra.IntegrationTests.Policies.Util;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
@@ -40,7 +39,6 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         
         [TestCase("overloaded", typeof(OverloadedException))]
         [TestCase("is_bootstrapping", typeof(IsBootstrappingException))]
-        [Category("short")]
         public void RetryPolicy_Extended(string resultError, Type exceptionType)
         {
             _scassandraManager = SCassandraManager.Instance;
