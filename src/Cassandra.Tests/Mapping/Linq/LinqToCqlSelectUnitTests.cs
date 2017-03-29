@@ -259,6 +259,69 @@ namespace Cassandra.Tests.Mapping.Linq
             Assert.AreEqual(@"SELECT ""id"" FROM ""ks1"".""tbl1"" WHERE ""id"" = ?", query);
             CollectionAssert.AreEqual(parameters, new object[] { 199 });
         }
+
+        private int _instanceField = 18;
+        private bool InstanceProperty { get; set; }
+
+        private class ClassWithPublicField
+        {
+            public Guid GuidField;
+            public static decimal DecimalStaticField = 10M;
+            public const double DoubleConstant = 3.1D;
+        }
+
+        [Test]
+        public void Select_With_All_Possible_Member_Expression_In_Where_Clause()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            }, TestDataHelper.CreateMultipleValuesRowSet(new[] { "id" }, new[] { 5000 }));
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.DoubleValue, cm => cm.WithName("c0"))
+                .Column(t => t.StringValue, cm => cm.WithName("c1"))
+                .Column(t => t.IntValue, cm => cm.WithName("c2"))
+                .Column(t => t.BooleanValue, cm => cm.WithName("c3"))
+                .Column(t => t.DateTimeValue, cm => cm.WithName("c4"))
+                .Column(t => t.UuidValue, cm => cm.WithName("c5"))
+                .Column(t => t.DecimalValue, cm => cm.WithName("c6"))
+                .Column(t => t.Int64Value, cm => cm.WithName("id"))
+                .PartitionKey(t => t.Int64Value)
+                .TableName("tbl1");
+            var table = GetTable<AllTypesEntity>(session, map);
+            var fieldWithProp = new AllTypesEntity {Int64Value = long.MaxValue};
+            ClassWithPublicField.DecimalStaticField++;
+            var fieldWithField = new ClassWithPublicField { GuidField = Guid.NewGuid() };
+            _instanceField++;
+            InstanceProperty = true;
+            var date = DateTime.UtcNow;
+            var linqQuery = from t in table
+                            where
+                                t.Int64Value == fieldWithProp.Int64Value &&
+                                t.DoubleValue == ClassWithPublicField.DoubleConstant &&
+                                t.StringValue == fieldWithProp.IntValue.ToString() &&
+                                t.IntValue == _instanceField &&
+                                t.BooleanValue == InstanceProperty &&
+                                t.DateTimeValue == date &&
+                                t.UuidValue == fieldWithField.GuidField &&
+                                t.DecimalValue == ClassWithPublicField.DecimalStaticField
+                            select new { Age = t.DoubleValue, Id = t.Int64Value };
+            linqQuery.Execute();
+            Assert.AreEqual(
+                "SELECT c0, id FROM tbl1 " +
+                "WHERE id = ? AND c0 = ? AND c1 = ? AND c2 = ? AND c3 = ? AND c4 = ? AND c5 = ? AND c6 = ?",
+                query);
+            CollectionAssert.AreEqual(parameters, new object[] 
+            {
+                fieldWithProp.Int64Value, ClassWithPublicField.DoubleConstant, "0",
+                _instanceField, InstanceProperty, date, fieldWithField.GuidField,
+                ClassWithPublicField.DecimalStaticField
+            });
+        }
     }
 }
 #endif
