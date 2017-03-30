@@ -24,7 +24,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                     " PRIMARY KEY ((sensor_id, bucket), timestamp))",
                     "INSERT INTO sensor_data (sensor_id, bucket, timestamp, value) VALUES ('sensor1', 'bucket1', now(), 1.5)",
                     "INSERT INTO sensor_data (sensor_id, bucket, timestamp, value) VALUES ('sensor1', 'bucket1', now(), 2)",
-                    "INSERT INTO sensor_data (sensor_id, bucket, timestamp, value) VALUES ('sensor1', 'bucket1', now(), 2.5)"
+                    "INSERT INTO sensor_data (sensor_id, bucket, timestamp, value) VALUES ('sensor1', 'bucket1', now(), 2.5)",
+                    "INSERT INTO sensor_data (sensor_id, bucket, timestamp, value) VALUES ('sensor1', 'bucket2', now(), 1)",
+                    "INSERT INTO sensor_data (sensor_id, bucket, timestamp, value) VALUES ('sensor1', 'bucket2', now(), 1.5)",
+                    "INSERT INTO sensor_data (sensor_id, bucket, timestamp, value) VALUES ('sensor1', 'bucket2', now(), 0.5)"
                 };
             }
         }
@@ -57,17 +60,18 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                     Min = g.Min(i => i.Value),
                     Max = g.Max(i => i.Value),
                     g.Key.Bucket
-                });
+                })
+                .Where(t => t.Id == "sensor1" && t.Bucket == "bucket1");
             var results = linqQuery.Execute().ToArray();
             Assert.AreEqual(1, results.Length);
             var aggregation = results[0];
             Assert.AreEqual("sensor1", aggregation.Id);
             Assert.AreEqual("bucket1", aggregation.Bucket);
-            Assert.AreEqual(aggregation.Avg, 2);
-            Assert.AreEqual(aggregation.Count, 3);
-            Assert.AreEqual(aggregation.Sum, 6);
-            Assert.AreEqual(aggregation.Min, 1.5);
-            Assert.AreEqual(aggregation.Max, 2.5);
+            Assert.AreEqual(2, aggregation.Avg);
+            Assert.AreEqual(3, aggregation.Count);
+            Assert.AreEqual(6, aggregation.Sum);
+            Assert.AreEqual(1.5, aggregation.Min);
+            Assert.AreEqual(2.5, aggregation.Max);
         }
 
         [Test]
@@ -76,9 +80,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             var table = new Table<SensorData>(Session, GetSensorDataMappingConfig());
             var linqQuery = table.GroupBy(t => new {t.Id, t.Bucket}).Select(g => g.Max(i => i.Value));
             var results = linqQuery.Execute().ToArray();
-            Assert.AreEqual(1, results.Length);
+            Assert.AreEqual(2, results.Length);
             var max = results[0];
-            Assert.AreEqual(max, 2.5);
+            Assert.AreEqual(2.5, max);
         }
 
         [Test]
@@ -92,7 +96,31 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             var results = linqQuery.Execute().ToArray();
             Assert.AreEqual(1, results.Length);
             var min = results[0];
-            Assert.AreEqual(min, 1.5);
+            Assert.AreEqual(1.5, min);
+        }
+
+        [Test]
+        public void Should_GroupBy_Clustering_Key_With_PK_On_Where_Clause()
+        {
+            var table = new Table<SensorData>(Session, GetSensorDataMappingConfig());
+            var linqQuery = table
+                .Where(t => t.Id == "sensor1" && t.Bucket == "bucket2")
+                //group by clustering key. PKs are in where clause (no need to be on group by)
+                .GroupBy(t => new { t.Timestamp }) 
+                .Select(g => g.Min(i => i.Value));
+            var results = linqQuery.Execute().ToArray();
+            Assert.AreEqual(3, results.Length);
+        }
+
+        [Test]
+        public void Should_Throw_Exception_When_GroupBy_With_Non_PK_Or_Clustering()
+        {
+            var table = new Table<SensorData>(Session, GetSensorDataMappingConfig());
+            var linqQuery = table
+                .Where(t => t.Id == "sensor1" && t.Bucket == "bucket2")
+                .GroupBy(t => new { t.Value })//no clustering key
+                .Select(g => g.Min(i => i.Value));
+            Assert.Throws<InvalidQueryException>(() => linqQuery.Execute());
         }
     }
 }
