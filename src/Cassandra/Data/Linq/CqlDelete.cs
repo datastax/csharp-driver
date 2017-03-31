@@ -40,8 +40,7 @@ namespace Cassandra.Data.Linq
         protected internal override string GetCql(out object[] values)
         {
             var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
-            visitor.Evaluate(Expression);
-            return visitor.GetDelete(out values, _timestamp, _ifExists);
+            return visitor.GetDelete(Expression, out values, _timestamp, _ifExists);
         }
 
         public override string ToString()

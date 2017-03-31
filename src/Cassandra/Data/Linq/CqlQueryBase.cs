@@ -103,9 +103,8 @@ namespace Cassandra.Data.Linq
         public async Task<IEnumerable<TEntity>> ExecuteAsync()
         {
             var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
-            visitor.Evaluate(Expression);
             object[] values;
-            var cql = visitor.GetSelect(out values);
+            var cql = visitor.GetSelect(Expression, out values);
             var rs = await InternalExecuteAsync(cql, values).ConfigureAwait(false);
             return AdaptResult(cql, rs);
         }

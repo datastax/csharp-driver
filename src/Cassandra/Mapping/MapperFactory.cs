@@ -45,7 +45,7 @@ namespace Cassandra.Mapping
 
         private readonly TypeConverter _typeConverter;
         private readonly PocoDataFactory _pocoDataFactory;
-        private readonly ConcurrentDictionary<Tuple<Type, string>, Delegate> _mapperFuncCache;
+        private readonly ConcurrentDictionary<Tuple<Type, string, string>, Delegate> _mapperFuncCache;
         private readonly ConcurrentDictionary<Tuple<Type, string>, Delegate> _valueCollectorFuncCache;
 
         public TypeConverter TypeConverter
@@ -65,7 +65,7 @@ namespace Cassandra.Mapping
             _typeConverter = typeConverter;
             _pocoDataFactory = pocoDataFactory;
 
-            _mapperFuncCache = new ConcurrentDictionary<Tuple<Type, string>, Delegate>();
+            _mapperFuncCache = new ConcurrentDictionary<Tuple<Type, string, string>, Delegate>();
             _valueCollectorFuncCache = new ConcurrentDictionary<Tuple<Type, string>, Delegate>();
         }
 
@@ -74,9 +74,24 @@ namespace Cassandra.Mapping
         /// </summary>
         public Func<Row, T> GetMapper<T>(string cql, RowSet rows)
         {
-            Tuple<Type, string> key = Tuple.Create(typeof (T), cql);
-            Delegate mapperFunc = _mapperFuncCache.GetOrAdd(key, _ => CreateMapper<T>(rows));
-            return (Func<Row, T>) mapperFunc;
+            var key = GetMapperCacheKey<T>(cql);
+            var mapperFunc = _mapperFuncCache.GetOrAdd(key, _ => CreateMapper<T>(rows));
+            return (Func<Row, T>)mapperFunc;
+        }
+
+        public Func<Row, T> GetMapperWithProjection<T>(string cql, RowSet rows, Expression projectionExpression)
+        {
+            // Use ExpressionStringBuilder to build the string representation, which should not be drag for
+            // small projections
+            var key = GetMapperCacheKey<T>(cql, projectionExpression.ToString());
+            var mapperFunc = _mapperFuncCache
+                .GetOrAdd(key, _ => CreateMapperWithProjection<T>(rows, projectionExpression));
+            return (Func<Row, T>)mapperFunc;
+        }
+
+        private static Tuple<Type, string, string> GetMapperCacheKey<T>(string cql, string additional = null)
+        {
+            return Tuple.Create(typeof(T), cql, additional ?? "");
         }
 
         /// <summary>
@@ -108,6 +123,28 @@ namespace Cassandra.Mapping
             
             // Create a default POCO mapper
             return CreateMapperForPoco<T>(rows, pocoData);
+        }
+
+        private Func<Row, T> CreateMapperWithProjection<T>(RowSet rows, Expression projectionExpression)
+        {
+            var pocoData = GetPocoData<T>();
+
+            // See if we retrieved only one column and if that column does not exist in the PocoData
+            if (rows.Columns.Length == 1 && typeof(T).GetTypeInfo().IsAssignableFrom(rows.Columns[0].Type))
+            {
+                // Map the single column value directly to the POCO
+                return CreateMapperForSingleColumnToPoco<T>(rows, pocoData);
+            }
+            var expressionVisitor = new ProjectionExpressionVisitor();
+            expressionVisitor.Visit(projectionExpression);
+            // Process the expression to extract the constructor and properties involved
+            var projection = expressionVisitor.Projection;
+            if (projection == null)
+            {
+                throw new NotSupportedException("Projection expression not supported: " + projectionExpression);
+            }
+            // Create a mapper for the given projection
+            return CreateMapperForProjection<T>(rows, projection);
         }
 
         public PocoData GetPocoData<T>()
@@ -195,7 +232,7 @@ namespace Cassandra.Mapping
         private Func<Row, T> CreateMapperForPoco<T>(RowSet rows, PocoData pocoData)
         {
             // We're going to store the method body expressions in a list since we need to use some looping to generate it
-            var methodBodyExpressions = new List<Expression>();
+            ICollection<Expression> methodBodyExpressions = new LinkedList<Expression>();
 
             // The input parameter for our Func<Row, T>, a C* Row
             ParameterExpression row = Expression.Parameter(CassandraRowType, "row");
@@ -277,8 +314,98 @@ namespace Cassandra.Mapping
         }
 
         /// <summary>
-        /// Gets an Expression that gets the value of a POCO field or property.
+        /// Creates a mapper Func for a projection.
         /// </summary>
+        private Func<Row, T> CreateMapperForProjection<T>(RowSet rows, NewTypeProjection projection)
+        {
+            ICollection<Expression> methodBodyExpressions = new LinkedList<Expression>();
+            // The input parameter for our Func<Row, T>, a C* Row
+            ParameterExpression row = Expression.Parameter(CassandraRowType, "row");
+            // poco variable
+            ParameterExpression poco = Expression.Variable(typeof(T), "poco");
+            var constructorParameters = projection.ConstructorInfo.GetParameters();
+            var columnIndex = 0;
+            if (constructorParameters.Length == 0)
+            {
+                // Use default constructor
+                // T poco = new T()
+                methodBodyExpressions.Add(Expression.Assign(poco, Expression.New(projection.ConstructorInfo)));
+            }
+            else
+            {
+                var parameterExpressions = new List<Expression>();
+                if (constructorParameters.Length > rows.Columns.Length)
+                {
+                    throw new IndexOutOfRangeException(string.Format("Expected at least {0} column(s), obtained {1}",
+                        constructorParameters.Length, rows.Columns.Length));
+                }
+                for (columnIndex = 0; columnIndex < constructorParameters.Length; columnIndex++)
+                {
+                    var c = rows.Columns[columnIndex];
+                    var param = constructorParameters[columnIndex];
+                    var getValueT = GetExpressionToGetColumnValueFromRow(row, c, param.ParameterType);
+                    parameterExpressions.Add(getValueT);
+                }
+                // T poco = new T(param1, param2, ...)
+                methodBodyExpressions.Add(Expression.Assign(poco, 
+                    Expression.New(projection.ConstructorInfo, parameterExpressions)));
+            }
+            // Fill the rest of members with the rest of the column values
+            // ReSharper disable once GenericEnumeratorNotDisposed
+            var membersEnumerator = projection.Members.GetEnumerator();
+            while (membersEnumerator.MoveNext() && columnIndex < rows.Columns.Length)
+            {
+                var member = membersEnumerator.Current;
+                var c = rows.Columns[columnIndex];
+                var memberType = GetUnderlyingType(member);
+                var getColumnValue = GetExpressionToGetColumnValueFromRow(row, c, memberType);
+                // poco.SomeFieldOrProp = ... getColumnValue call ...
+                var getValueAndAssign = Expression.Assign(
+                    Expression.MakeMemberAccess(poco, member), getColumnValue);
+                // Start with an expression that does nothing if the row is null
+                Expression ifRowValueIsNull = Expression.Empty();
+                // For collections, make an effort to return an empty collection instead of null
+                Expression createEmptyCollection;
+                if (TryGetCreateEmptyCollectionExpression(c, memberType, out createEmptyCollection))
+                {
+                    // poco.SomeFieldOrProp = ... createEmptyCollection ...
+                    ifRowValueIsNull = Expression.Assign(Expression.MakeMemberAccess(poco, member), createEmptyCollection);
+                }
+
+                var columnIndexExpression = Expression.Constant(columnIndex, IntType);
+                //Expression equivalent to
+                // if (row.IsNull(columnIndex) == false) => getValueAndAssign ...
+                // else => ifRowIsNull ...
+                methodBodyExpressions.Add(Expression.IfThenElse(
+                    Expression.IsFalse(Expression.Call(row, IsNullMethod, columnIndexExpression)), 
+                    getValueAndAssign, 
+                    ifRowValueIsNull));
+                columnIndex++;
+            }
+            // The last expression in the method body is the return value, so put our new POCO at the end
+            methodBodyExpressions.Add(poco);
+            // Create a block expression for the method body expressions
+            var methodBody = Expression.Block(new [] { poco }, methodBodyExpressions);
+            // Return compiled expression
+            return Expression.Lambda<Func<Row, T>>(methodBody, row).Compile();
+        }
+
+        private static Type GetUnderlyingType(MemberInfo member)
+        {
+            switch (member.MemberType)
+            {
+                case MemberTypes.Field:
+                    return ((FieldInfo)member).FieldType;
+                case MemberTypes.Property:
+                    return ((PropertyInfo)member).PropertyType;
+                default:
+                    throw new NotSupportedException("Only FieldInfo and PropertyInfo are supported");
+            }
+        }
+
+        /// <summary>
+            /// Gets an Expression that gets the value of a POCO field or property.
+            /// </summary>
         private Expression GetExpressionToGetValueFromPoco(ParameterExpression poco, PocoColumn column)
         {
             // Start by assuming the database wants the same type that the property is and that we'll just be getting the value from the property:

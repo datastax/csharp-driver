@@ -55,7 +55,7 @@ namespace Cassandra.Data.Linq
 
         public IEnumerator<TEntity> GetEnumerator()
         {
-            throw new InvalidOperationException("Did you forget to Execute()?");
+            throw new InvalidOperationException("You must explicitly invoke ExecuteAsync() or Execute()");
         }
 
         public new CqlQuery<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)
@@ -101,8 +101,7 @@ namespace Cassandra.Data.Linq
         protected override string GetCql(out object[] values)
         {
             var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
-            visitor.Evaluate(Expression);
-            return visitor.GetSelect(out values);
+            return visitor.GetSelect(Expression, out values);
         }
 
         /// <summary>
@@ -112,9 +111,8 @@ namespace Cassandra.Data.Linq
         {
             SetAutoPage(false);
             var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
-            visitor.Evaluate(Expression);
             object[] values;
-            var cql = visitor.GetSelect(out values);
+            var cql = visitor.GetSelect(Expression, out values);
             var rs = await InternalExecuteAsync(cql, values).ConfigureAwait(false);
             var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
             return new Page<TEntity>(rs.Select(mapper), PagingState, rs.PagingState);

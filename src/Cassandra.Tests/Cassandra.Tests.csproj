@@ -112,6 +112,7 @@
     <Compile Include="Mapping\Pocos\PlainUser.cs" />
     <Compile Include="Mapping\Pocos\PocoWithCollections.cs" />
     <Compile Include="Mapping\Pocos\RainbowColor.cs" />
+    <Compile Include="Mapping\Pocos\SensorData.cs" />
     <Compile Include="Mapping\Pocos\Song.cs" />
     <Compile Include="Mapping\Pocos\DecoratedTimeSeries.cs" />
     <Compile Include="Mapping\Pocos\UdtAndTuplePoco.cs" />
