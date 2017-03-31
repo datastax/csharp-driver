@@ -127,6 +127,7 @@
     <Compile Include="Mapping\Pocos\PlainUser.cs" />
     <Compile Include="Mapping\Pocos\PocoWithCollections.cs" />
     <Compile Include="Mapping\Pocos\RainbowColor.cs" />
+    <Compile Include="Mapping\Pocos\SensorData.cs" />
     <Compile Include="Mapping\Pocos\Song.cs" />
     <Compile Include="Mapping\Pocos\DecoratedTimeSeries.cs" />
     <Compile Include="Mapping\Pocos\UdtAndTuplePoco.cs" />
@@ -152,6 +153,7 @@
     <Compile Include="TestTimeoutAttribute.cs" />
     <Compile Include="ThreadPerTaskScheduler.cs" />
     <Compile Include="TimeoutTests.cs" />
+    <Compile Include="TimestampTests.cs" />
     <Compile Include="TimeUuidTests.cs" />
     <Compile Include="TokenTests.cs" />
     <Compile Include="SerializerTests.cs" />
@@ -159,6 +161,7 @@
     <Compile Include="Search\DateRangeBoundTests.cs" />
     <Compile Include="Search\DateRangeSerializerTests.cs" />
     <Compile Include="Search\DateRangeTests.cs" />
+    <Compile Include="TestAttributes\WinOnlyAttribute.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

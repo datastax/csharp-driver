@@ -40,7 +40,7 @@ namespace Dse.Requests
         private volatile HashedWheelTimer.ITimeout _nextExecutionTimeout;
 
         public Policies Policies { get; private set; }
-        public IRetryPolicy RetryPolicy { get; private set; }
+        public IExtendedRetryPolicy RetryPolicy { get; private set; }
         public Serializer Serializer { get; private set; }
         public IStatement Statement { get; private set; }
 
@@ -63,13 +63,10 @@ namespace Dse.Requests
             Serializer = serializer;
             Statement = statement;
             Policies = _session.Cluster.Configuration.Policies;
-            RetryPolicy = session.Cluster.Configuration.Policies.RetryPolicy;
-            if (statement != null)
+            RetryPolicy = Policies.ExtendedRetryPolicy;
+            if (statement != null && statement.RetryPolicy != null)
             {
-                if (statement.RetryPolicy != null)
-                {
-                    RetryPolicy = statement.RetryPolicy;   
-                }
+                RetryPolicy = statement.RetryPolicy.Wrap(Policies.ExtendedRetryPolicy);
             }
             _queryPlan = Policies.LoadBalancingPolicy.NewQueryPlan(_session.Keyspace, statement).GetEnumerator();
         }
@@ -116,14 +113,14 @@ namespace Dse.Requests
             {
                 var s = (RegularStatement)statement;
                 s.Serializer = serializer;
-                var options = QueryProtocolOptions.CreateFromQuery(s, config.QueryOptions);
+                var options = QueryProtocolOptions.CreateFromQuery(s, config.QueryOptions, config.Policies);
                 options.ValueNames = s.QueryValueNames;
                 request = new QueryRequest(serializer.ProtocolVersion, s.QueryString, s.IsTracing, options);
             }
             if (statement is BoundStatement)
             {
                 var s = (BoundStatement)statement;
-                var options = QueryProtocolOptions.CreateFromQuery(s, config.QueryOptions);
+                var options = QueryProtocolOptions.CreateFromQuery(s, config.QueryOptions, config.Policies);
                 request = new ExecuteRequest(serializer.ProtocolVersion, s.PreparedStatement.Id, null, s.IsTracing, options);
             }
             if (statement is BatchStatement)

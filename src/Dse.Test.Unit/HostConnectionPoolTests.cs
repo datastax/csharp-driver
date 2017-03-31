@@ -1,4 +1,4 @@
-//
+﻿//
 //  Copyright (C) 2017 DataStax, Inc.
 //
 //  Please see the license for details:
@@ -74,11 +74,7 @@ namespace Dse.Test.Unit
                 .SetCoreConnectionsPerHost(HostDistance.Local, coreConnections)
                 .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 1500)
                 .SetMaxConnectionsPerHost(HostDistance.Local, maxConnections);
-            var policies = new Dse.Policies(
-                Dse.Policies.DefaultLoadBalancingPolicy,
-                rp ?? Dse.Policies.DefaultReconnectionPolicy,
-                Dse.Policies.DefaultRetryPolicy,
-                Dse.Policies.DefaultSpeculativeExecutionPolicy);
+            var policies = new Dse.Policies(null, rp, null, null, null);
             var config = new Configuration(
                 policies,
                 new ProtocolOptions(),

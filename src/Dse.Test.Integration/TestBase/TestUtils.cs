@@ -17,9 +17,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using Dse.Test.Integration.Core;
 using Dse.Test.Integration.TestClusterManagement;
-#if NETCORE
-using Microsoft.DotNet.InternalAbstractions;
-#endif
+using Dse.Test.Unit;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.TestClusterManagement
@@ -364,22 +362,7 @@ namespace Dse.Test.Integration.TestClusterManagement
 
         public static bool IsWin
         {
-            get
-            {
-#if !NETCORE
-                switch (Environment.OSVersion.Platform)
-                {
-                    case PlatformID.Win32NT:
-                    case PlatformID.Win32S:
-                    case PlatformID.Win32Windows:
-                    case PlatformID.WinCE:
-                        return true;
-                }
-                return false;
-#else
-                return RuntimeEnvironment.OperatingSystemPlatform == Platform.Windows;
-#endif
-            }
+            get { return TestHelper.IsWin; }
         }
 
         private static void ValidateOutput(ProcessOutput output)

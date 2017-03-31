@@ -33,10 +33,17 @@ namespace Dse
         public readonly int PageSize;
         public readonly ConsistencyLevel SerialConsistency;
 
+        /// <summary>
+        /// The current policies being used.
+        /// </summary>
+        private readonly Policies _policies;
+
         public byte[] PagingState { get; set; }
         public object[] Values { get; private set; }
         public ConsistencyLevel Consistency { get; set; }
         public DateTimeOffset? Timestamp { get; private set; }
+
+
         /// <summary>
         /// Names of the query parameters
         /// </summary>
@@ -47,7 +54,8 @@ namespace Dse
                                       bool skipMetadata,
                                       int pageSize,
                                       byte[] pagingState,
-                                      ConsistencyLevel serialConsistency)
+                                      ConsistencyLevel serialConsistency,
+                                      Policies policies = null)
         {
             Consistency = consistency;
             Values = values;
@@ -66,9 +74,11 @@ namespace Dse
             }
             PagingState = pagingState;
             SerialConsistency = serialConsistency;
+            _policies = policies;
         }
 
-        internal static QueryProtocolOptions CreateFromQuery(Statement query, QueryOptions queryOptions)
+        internal static QueryProtocolOptions CreateFromQuery(Statement query, QueryOptions queryOptions,
+                                                             Policies policies)
         {
             if (query == null)
             {
@@ -82,11 +92,21 @@ namespace Dse
                 query.SkipMetadata, 
                 pageSize, 
                 query.PagingState, 
-                query.SerialConsistencyLevel)
+                query.SerialConsistencyLevel,
+                policies)
             {
                 Timestamp = query.Timestamp
             };
             return options;
+        }
+
+        /// <summary>
+        /// Returns a new instance with the minimum amount of values, valid to generate a batch request item.
+        /// </summary>
+        internal static QueryProtocolOptions CreateForBatchItem(Statement statement)
+        {
+            return new QueryProtocolOptions(
+                ConsistencyLevel.One, statement.QueryValues, false, 0, null, ConsistencyLevel.Serial);
         }
 
         private QueryFlags GetFlags()
@@ -175,10 +195,22 @@ namespace Dse
             {
                 wb.WriteUInt16((ushort)SerialConsistency);
             }
-            if (Timestamp != null)
+            if (protocolVersion.SupportsTimestamp())
             {
-                //Expressed in microseconds
-                wb.WriteLong(TypeSerializer.SinceUnixEpoch(Timestamp.Value).Ticks / 10);
+                if (Timestamp != null)
+                {
+                    // Expressed in microseconds
+                    wb.WriteLong(TypeSerializer.SinceUnixEpoch(Timestamp.Value).Ticks / 10);
+                }
+                else if (_policies != null)
+                {
+                    // Use timestamp generator
+                    var timestamp = _policies.TimestampGenerator.Next();
+                    if (timestamp != long.MinValue)
+                    {
+                        wb.WriteLong(timestamp);
+                    }
+                }
             }
         }
     }

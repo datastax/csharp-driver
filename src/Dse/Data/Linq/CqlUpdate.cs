@@ -25,8 +25,7 @@ namespace Dse.Data.Linq
         protected internal override string GetCql(out object[] values)
         {
             var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
-            visitor.Evaluate(Expression);
-            return visitor.GetUpdate(out values, _ttl, _timestamp, _mapperFactory);
+            return visitor.GetUpdate(Expression, out values, _ttl, _timestamp, _mapperFactory);
         }
 
         public override string ToString()

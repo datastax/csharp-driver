@@ -36,4 +36,30 @@ namespace Dse.Test.Unit.Mapping.Pocos
 
         public DateTime? ReleaseDate { get; set; }
     }
+
+    /// <summary>
+    /// A song class with 2 constructors
+    /// </summary>
+    public class Song3
+    {
+        public Song3()
+        {
+            
+        }
+
+        public Song3(Guid id)
+        {
+            Id = id;
+        }
+
+        public Guid Id { get; set; }
+
+        public string Title { get; set; }
+
+        public string Artist { get; set; }
+
+        public DateTimeOffset ReleaseYear { get; set; }
+
+        public long Counter { get; set; }
+    }
 }

@@ -16,6 +16,7 @@ namespace Dse.Test.Integration.Policies.Tests
     [TestFixture, Category("long")]
     public class RetryPolicyTests : TestGlobals
     {
+
         /// <summary>
         ///  Tests DowngradingConsistencyRetryPolicy
         /// </summary>
@@ -163,7 +164,7 @@ namespace Dse.Test.Integration.Policies.Tests
             // Try with 0 hosts
             policyTestTools.ResetCoordinators();
             testCluster.PauseNode(2);
-            Assert.Throws<NoHostAvailableException>( () => policyTestTools.Query(testCluster, 10));
+            Assert.Throws<NoHostAvailableException>(() => policyTestTools.Query(testCluster, 10));
             policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + 1 + ":" + DefaultCassandraPort, 0);
             policyTestTools.AssertQueried(testCluster.ClusterIpPrefix + 2 + ":" + DefaultCassandraPort, 0);
 
@@ -215,8 +216,5 @@ namespace Dse.Test.Integration.Policies.Tests
             policyTestTools.AssertQueriedAtLeast(testCluster.ClusterIpPrefix + clusterPosNotQueried + ":" + DefaultCassandraPort, 1);
 
         }
-
-
-
     }
 }

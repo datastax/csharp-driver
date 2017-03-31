@@ -31,6 +31,7 @@ namespace Dse
         private string _defaultKeyspace;
 
         private ILoadBalancingPolicy _loadBalancingPolicy;
+        private ITimestampGenerator _timestampGenerator;
         private int _port = ProtocolOptions.DefaultPort;
         private int _queryAbortTimeout = DefaultQueryAbortTimeout;
         private QueryOptions _queryOptions = new QueryOptions();
@@ -83,10 +84,11 @@ namespace Dse
         public Configuration GetConfiguration()
         {
             var policies = new Policies(
-                _loadBalancingPolicy ?? Policies.DefaultLoadBalancingPolicy,
-                _reconnectionPolicy ?? Policies.DefaultReconnectionPolicy,
-                _retryPolicy ?? Policies.DefaultRetryPolicy,
-                _speculativeExecutionPolicy ?? Policies.DefaultSpeculativeExecutionPolicy);
+                _loadBalancingPolicy,
+                _reconnectionPolicy,
+                _retryPolicy,
+                _speculativeExecutionPolicy,
+                _timestampGenerator);
             var config = new Configuration(policies,
                 new ProtocolOptions(_port, _sslOptions).SetCompression(_compression)
                                                        .SetCustomCompressor(_customCompressor)
@@ -313,12 +315,16 @@ namespace Dse
         }
 
         /// <summary>
-        ///  Configure the retry policy to use for the new cluster. <p> If no retry policy
-        ///  is set through this method, <link>Policies.DefaultRetryPolicy</link> will
-        ///  be used instead.</p>
+        /// Configure the retry policy to be used for the new cluster.
+        /// <para>
+        /// When the retry policy is not set with this method, the <see cref="Policies.DefaultRetryPolicy" />
+        /// will be used instead.
+        /// </para>
+        /// <para>
+        /// Use a <see cref="IExtendedRetryPolicy"/> implementation to cover all error scenarios.
+        /// </para>
         /// </summary>
         /// <param name="policy"> the retry policy to use </param>
-        /// 
         /// <returns>this Builder</returns>
         public Builder WithRetryPolicy(IRetryPolicy policy)
         {
@@ -337,6 +343,26 @@ namespace Dse
         public Builder WithSpeculativeExecutionPolicy(ISpeculativeExecutionPolicy policy)
         {
             _speculativeExecutionPolicy = policy;
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the generator that will produce the client-side timestamp sent with each query.
+        /// <para>
+        /// This feature is only available with protocol version 3 or above of the native protocol. 
+        /// With earlier versions, timestamps are always generated server-side, and setting a generator
+        /// through this method will have no effect.
+        /// </para>
+        /// <para>
+        /// If no generator is set through this method, the driver will default to client-side timestamps
+        /// by using <see cref="AtomicMonotonicTimestampGenerator"/>.
+        /// </para>
+        /// </summary>
+        /// <param name="generator">The generator to use.</param>
+        /// <returns>This builder instance</returns>
+        public Builder WithTimestampGenerator(ITimestampGenerator generator)
+        {
+            _timestampGenerator = generator;
             return this;
         }
 

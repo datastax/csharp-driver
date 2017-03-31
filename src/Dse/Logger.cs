@@ -35,6 +35,11 @@ namespace Dse
             }
         }
 
+        internal Logger(ILoggerHandler handler)
+        {
+            _loggerHandler = handler;
+        }
+
         public void Error(Exception ex)
         {
             _loggerHandler.Error(ex);

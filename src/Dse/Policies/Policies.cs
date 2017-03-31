@@ -8,8 +8,7 @@
 namespace Dse
 {
     /// <summary>
-    ///  Policies configured for a <link>Cluster</link>
-    ///  instance.
+    /// Represents the policies configured for a <see cref="ICluster"/> instance.
     /// </summary>
     public class Policies
     {
@@ -66,11 +65,25 @@ namespace Dse
             }
         }
 
+        /// <summary>
+        /// Gets a new instance of the default <see cref="ITimestampGenerator"/> policy.
+        /// <para>
+        /// The default <see cref="ITimestampGenerator"/> is <see cref="AtomicMonotonicTimestampGenerator"/>
+        /// </para>
+        /// </summary>
+        public static ITimestampGenerator DefaultTimestampGenerator
+        {
+            get { return new AtomicMonotonicTimestampGenerator(); }
+        }
+
+        /// <summary>
+        /// Gets a new instance <see cref="Policies"/> containing default policies of the driver.
+        /// </summary>
         public static Policies DefaultPolicies
         {
             get
             {
-                return new Policies(DefaultLoadBalancingPolicy, DefaultReconnectionPolicy, DefaultRetryPolicy, DefaultSpeculativeExecutionPolicy);
+                return new Policies();
             }
         }
 
@@ -78,6 +91,8 @@ namespace Dse
         private readonly IReconnectionPolicy _reconnectionPolicy;
         private readonly IRetryPolicy _retryPolicy;
         private readonly ISpeculativeExecutionPolicy _speculativeExecutionPolicy;
+        private IExtendedRetryPolicy _extendedRetryPolicy;
+        private readonly ITimestampGenerator _timestampGenerator;
 
         /// <summary>
         ///  Gets the load balancing policy in use. <p> The load balancing policy defines how
@@ -114,12 +129,31 @@ namespace Dse
             get { return _speculativeExecutionPolicy; }
         }
 
-        public Policies()
+        /// <summary>
+        /// Gets the extended retry policy that contains the default behavior to handle request errors.
+        /// The returned value is either the same instance as <see cref="RetryPolicy"/> or the default
+        /// retry policy. It can not be null.
+        /// </summary>
+        internal IExtendedRetryPolicy ExtendedRetryPolicy
         {
+            get { return _extendedRetryPolicy; }
         }
 
         /// <summary>
-        ///  Creates a new <c>Policies</c> object using the provided policies.
+        /// Gets the <see cref="ITimestampGenerator"/> instance in use.
+        /// </summary>
+        public ITimestampGenerator TimestampGenerator
+        {
+            get { return _timestampGenerator; }
+        }
+
+        public Policies() : this(null, null, null, null, null)
+        {
+            //Part of the public API can not be removed
+        }
+
+        /// <summary>
+        /// Creates a new <c>Policies</c> object using the provided policies.
         /// </summary>
         /// <param name="loadBalancingPolicy"> the load balancing policy to use. </param>
         /// <param name="reconnectionPolicy"> the reconnection policy to use. </param>
@@ -127,7 +161,8 @@ namespace Dse
         public Policies(ILoadBalancingPolicy loadBalancingPolicy,
                         IReconnectionPolicy reconnectionPolicy,
                         IRetryPolicy retryPolicy)
-            : this(loadBalancingPolicy, reconnectionPolicy, retryPolicy, NoSpeculativeExecutionPolicy.Instance)
+            : this(loadBalancingPolicy, reconnectionPolicy, retryPolicy, DefaultSpeculativeExecutionPolicy,
+                   DefaultTimestampGenerator)
         {
             //Part of the public API can not be removed
         }
@@ -135,12 +170,24 @@ namespace Dse
         internal Policies(ILoadBalancingPolicy loadBalancingPolicy,
             IReconnectionPolicy reconnectionPolicy,
             IRetryPolicy retryPolicy,
-            ISpeculativeExecutionPolicy speculativeExecutionPolicy)
+            ISpeculativeExecutionPolicy speculativeExecutionPolicy,
+            ITimestampGenerator timestampGenerator)
         {
-            _loadBalancingPolicy = loadBalancingPolicy;
-            _reconnectionPolicy = reconnectionPolicy;
-            _retryPolicy = retryPolicy;
-            _speculativeExecutionPolicy = speculativeExecutionPolicy;
+            _loadBalancingPolicy = loadBalancingPolicy ?? DefaultLoadBalancingPolicy;
+            _reconnectionPolicy = reconnectionPolicy ?? DefaultReconnectionPolicy;
+            _retryPolicy = retryPolicy ?? DefaultRetryPolicy;
+            _speculativeExecutionPolicy = speculativeExecutionPolicy ?? DefaultSpeculativeExecutionPolicy;
+            _timestampGenerator = timestampGenerator ?? DefaultTimestampGenerator;
+        }
+
+        /// <summary>
+        /// Sets the current policy as extended retry policy.
+        /// If the current policy is not <see cref="IExtendedRetryPolicy"/>, it creates a wrapper to delegate
+        /// the methods that were not implemented to a default policy.
+        /// </summary>
+        internal void InitializeRetryPolicy(ICluster cluster)
+        {
+            _extendedRetryPolicy = _retryPolicy.Wrap(null);
         }
     }
 }

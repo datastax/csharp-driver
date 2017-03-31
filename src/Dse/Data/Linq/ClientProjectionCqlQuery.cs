@@ -1,4 +1,4 @@
-//
+﻿//
 //  Copyright (C) 2017 DataStax, Inc.
 //
 //  Please see the license for details:
@@ -9,7 +9,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
 
 namespace Dse.Data.Linq
 {
@@ -21,6 +20,7 @@ namespace Dse.Data.Linq
     internal class ClientProjectionCqlQuery<TSource, TResult> : CqlQuery<TResult>, IClientProjectionCqlQuery
     {
         private readonly Expression<Func<TSource, TResult>> _projectionExpression;
+        private readonly bool _canCompile;
         private readonly CqlQuery<TSource> _source;
 
         /// <summary>
@@ -29,18 +29,47 @@ namespace Dse.Data.Linq
         /// <param name="expression">The complete query expression</param>
         /// <param name="source">The source <see cref="CqlQuery{TSource}"/></param>
         /// <param name="projectionExpression">The projection expression</param>
-        internal ClientProjectionCqlQuery(Expression expression, CqlQuery<TSource> source, Expression<Func<TSource, TResult>> projectionExpression) : 
+        /// <param name="canCompile">Determines if the projection can be compiled and the delegate called.</param>
+        internal ClientProjectionCqlQuery(Expression expression, CqlQuery<TSource> source, 
+            Expression<Func<TSource, TResult>> projectionExpression, bool canCompile) :
             base(expression, source.Table, source.MapperFactory, source.StatementFactory, source.PocoData)
         {
             _source = source;
             _projectionExpression = projectionExpression;
+            _canCompile = canCompile;
         }
 
         internal override IEnumerable<TResult> AdaptResult(string cql, RowSet rs)
         {
-            IEnumerable<TSource> sourceData = _source.AdaptResult(cql, rs).ToArray();
-            var func = _projectionExpression.Compile();
-            return sourceData.Select(func);
+            IEnumerable<TResult> result;
+            if (!_canCompile)
+            {
+                var mapper = MapperFactory.GetMapperWithProjection<TResult>(cql, rs, _projectionExpression);
+                result = rs.Select(mapper);
+            }
+            else
+            {
+                IEnumerable<TSource> sourceData = _source.AdaptResult(cql, rs);
+                var func = _projectionExpression.Compile();
+                result = sourceData.Select(func);
+            }
+            var enumerator = result.GetEnumerator();
+            // Eagerly evaluate the first one in order to fail fast
+            var hasFirstItem = enumerator.MoveNext();
+            return YieldFromFirst(enumerator, hasFirstItem);
+        }
+
+        private static IEnumerable<TResult> YieldFromFirst(IEnumerator<TResult> enumerator, bool hasFirstItem)
+        {
+            if (!hasFirstItem)
+            {
+                yield break;
+            }
+            yield return enumerator.Current;
+            while (enumerator.MoveNext())
+            {
+                yield return enumerator.Current;
+            }
         }
     }
 

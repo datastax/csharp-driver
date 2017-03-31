@@ -6,6 +6,7 @@
 //
 
 using System;
+using System.Linq;
 using System.Linq.Expressions;
 
 namespace Dse.Data.Linq
@@ -42,19 +43,18 @@ namespace Dse.Data.Linq
             CqlQuery<TResult> result;
             if (typeof (TSource) != typeof (TResult))
             {
-
                 //Its a client projection of an existent CqlQuery
                 if (!(source is IClientProjectionCqlQuery))
                 {
                     //The SELECT expression changed
                     expression = Expression.Call(null, CqlMthHelps.SelectMi, new[] { source.Expression, selector });
-                    result = new ClientProjectionCqlQuery<TSource, TResult>(expression, source, selector);
+                    result = new ClientProjectionCqlQuery<TSource, TResult>(expression, source, selector, true);
                 }
                 else
                 {
                     //its a client projection of a client projection
                     //we should use the original source.Expression
-                    result = new ClientProjectionCqlQuery<TSource, TResult>(expression, source, selector);
+                    result = new ClientProjectionCqlQuery<TSource, TResult>(expression, source, selector, true);
                 }
             }
             else
@@ -64,6 +64,17 @@ namespace Dse.Data.Linq
                 result = (CqlQuery<TResult>)source.Table.CreateQuery<TResult>(expression);
             }
             source.CopyQueryPropertiesTo(result);
+            return result;
+        }
+
+        public static CqlQuery<TResult> Select<TGroup, TSource, TResult>(
+            this CqlQuery<IGrouping<TGroup, TSource>> source, 
+            Expression<Func<IGrouping<TGroup, TSource>, TResult>> selector)
+        {
+            var expression = Expression.Call(null, CqlMthHelps.SelectMi, new[] { source.Expression, selector });
+            var result = new ClientProjectionCqlQuery<IGrouping<TGroup, TSource>, TResult>(
+                expression, source, selector, false);
+            result.CopyQueryPropertiesTo(result);
             return result;
         }
 
@@ -83,6 +94,34 @@ namespace Dse.Data.Linq
                 new[] {source.Expression, predicate}));
             source.CopyQueryPropertiesTo(ret);
             return ret;
+        }
+
+        /// <summary>
+        ///  Returns a CqlQuery which after execution returns grouped sequence of values based on a predicate.
+        ///  To execute this CqlQuery use <c>Execute()</c> method.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements of source.</typeparam>
+        /// <typeparam name="TKey">The type of the value returned by selector.</typeparam>
+        /// <param name="source">The CqlQuery&lt;TSource&gt; to filter.</param>
+        /// <param name="predicate">A function to test each element for a condition.</param>
+        /// <returns>a CqlQuery&lt;TSource&gt; which after execution will return an IEnumerable&lt;TSource&gt;
+        /// that contains elements from the input sequence that satisfy the condition.</returns>
+        public static CqlQuery<IGrouping<TKey, TSource>> GroupBy<TKey, TSource>(this CqlQuery<TSource> source, 
+            Expression<Func<TSource, TKey>> predicate)
+        {
+            if (source == null)
+            {
+                throw new ArgumentNullException("source");
+            }
+            if (predicate == null)
+            {
+                throw new ArgumentNullException("predicate");
+            }
+            var result = (CqlQuery<IGrouping<TKey, TSource>>)source.Table.CreateQuery<IGrouping<TKey, TSource>>(Expression.Call(
+                null, CqlMthHelps.GroupByMi,
+                new[] { source.Expression, predicate }));
+            source.CopyQueryPropertiesTo(result);
+            return result;
         }
 
         /// <summary>

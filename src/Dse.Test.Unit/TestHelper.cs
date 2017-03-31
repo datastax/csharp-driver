@@ -1,4 +1,4 @@
-//
+﻿//
 //  Copyright (C) 2017 DataStax, Inc.
 //
 //  Please see the license for details:
@@ -8,6 +8,7 @@
 using NUnit.Framework;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -18,12 +19,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dse.Serialization;
 using IgnoreAttribute = Dse.Mapping.Attributes.IgnoreAttribute;
+#if NETCORE
+using Microsoft.DotNet.InternalAbstractions;
+#endif
 
 namespace Dse.Test.Unit
 {
     internal static class TestHelper
     {
-        public static Row CreateRow(IDictionary<string, object> valueMap)
+        public static Row CreateRow(ICollection<KeyValuePair<string, object>> valueMap)
         {
             var columns = new List<CqlColumn>();
             var rowValues = new List<object>();
@@ -46,9 +50,76 @@ namespace Dse.Test.Unit
             return new Row(rowValues.ToArray(), columns.ToArray(), valueMap.ToDictionary(kv => kv.Key, kv => i++));
         }
 
-        public static IEnumerable<Row> CreateRows(IEnumerable<Dictionary<string, object>> valueMapList)
+        public static IEnumerable<Row> CreateRows(IEnumerable<IDictionary<string, object>> valueMapList)
         {
             return valueMapList.Select(CreateRow);
+        }
+
+        private static CqlColumn[] CreateColumns(ICollection<KeyValuePair<string, object>> rowValues)
+        {
+            var columns = new CqlColumn[rowValues.Count];
+            var index = 0;
+            var serializer = new Serializer(ProtocolVersion.MaxSupported);
+            foreach (var kv in rowValues)
+            {
+                CqlColumn c;
+                if (kv.Value != null)
+                {
+                    IColumnInfo typeInfo;
+                    var typeCode = serializer.GetCqlType(kv.Value.GetType(), out typeInfo);
+                    c = new CqlColumn
+                    {
+                        Name = kv.Key, TypeCode = typeCode, TypeInfo = typeInfo,
+                        Type = kv.Value.GetType(), Index = index
+                    };
+                }
+                else
+                {
+                    // Default to type Text
+                    c = new CqlColumn
+                    {
+                        Name = kv.Key, TypeCode = ColumnTypeCode.Text, Type = typeof(string), Index = index
+                    };
+                }
+                columns[index++] = c;
+            }
+            return columns;
+        }
+
+        /// <summary>
+        /// Creates a RowSet given a list of rows, each row represented as a collection of keys (column names) and values (cell values).
+        /// </summary>
+        public static RowSet CreateRowSet(IList<ICollection<KeyValuePair<string, object>>> valueMapList)
+        {
+            if (valueMapList.Count == 0)
+            {
+                throw new NotSupportedException("This test helper can't create empty rowsets");
+            }
+            var rs = new RowSet { Columns = CreateColumns(valueMapList[0]) };
+            foreach (var row in valueMapList.Select(CreateRow))
+            {
+                rs.AddRow(row);
+            }
+            return rs;
+        }
+
+        /// <summary>
+        /// Creates a RowSet given a list of rows, each row represented as a collection of keys (column names) and values (cell values).
+        /// </summary>
+        public static RowSet CreateRowSetFromSingle(ICollection<KeyValuePair<string, object>> valueMap)
+        {
+            if (valueMap == null)
+            {
+                throw new ArgumentNullException("valueMap");
+            }
+            var rs = new RowSet { Columns = CreateColumns(valueMap) };
+            rs.AddRow(CreateRow(valueMap));
+            return rs;
+        }
+
+        public static KeyValuePair<TKey, TValue> CreateKeyValue<TKey, TValue>(TKey key, TValue value)
+        {
+            return new KeyValuePair<TKey, TValue>(key, value);
         }
 
         public static Host CreateHost(string address, string dc = "dc1", string rack = "rack1", IEnumerable<string> tokens = null)
@@ -300,6 +371,25 @@ namespace Dse.Test.Unit
             return home;
         }
 
+        public static bool IsWin
+        {
+            get
+            {
+#if !NETCORE
+                switch (Environment.OSVersion.Platform)
+                {
+                    case PlatformID.Win32NT:
+                    case PlatformID.Win32S:
+                    case PlatformID.Win32Windows:
+                        return true;
+                }
+                return false;
+#else
+                return RuntimeEnvironment.OperatingSystemPlatform == Platform.Windows;
+#endif
+            }
+        }
+
         /// <summary>
         /// Executes the <see cref="Func{T}"/> provided n times, awaiting for the task to be completed, limiting the
         /// concurrency.
@@ -359,6 +449,51 @@ namespace Dse.Test.Unit
             public int IncrementReceived()
             {
                 return Interlocked.Increment(ref _receiveCounter);
+            }
+        }
+
+        internal class TestLoggerHandler : Logger.ILoggerHandler
+        {
+            private readonly ConcurrentQueue<Tuple<string, string, object[]>> _messages =
+                new ConcurrentQueue<Tuple<string, string, object[]>>();
+
+            public void Error(Exception ex)
+            {
+                _messages.Enqueue(Tuple.Create("error", (string)null, new object[] { ex }));
+            }
+
+            public void Error(string message, Exception ex = null)
+            {
+                _messages.Enqueue(Tuple.Create("error", message, new object[] { ex }));
+            }
+
+            public void Error(string message, params object[] args)
+            {
+                _messages.Enqueue(Tuple.Create("error", message, args));
+            }
+
+            public void Verbose(string message, params object[] args)
+            {
+                _messages.Enqueue(Tuple.Create("verbose", message, args));
+            }
+
+            public void Info(string message, params object[] args)
+            {
+                _messages.Enqueue(Tuple.Create("info", message, args));
+            }
+
+            public void Warning(string message, params object[] args)
+            {
+                _messages.Enqueue(Tuple.Create("warning", message, args));
+            }
+
+            public IEnumerable<Tuple<string, string, object[]>> DequeueAllMessages()
+            {
+                Tuple<string, string, object[]> value;
+                while (_messages.TryDequeue(out value))
+                {
+                    yield return value;
+                }
             }
         }
     }

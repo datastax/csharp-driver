@@ -59,15 +59,17 @@ depends on the consistency level set for the query before executing it.
 A retry policy centralizes the handling of query retries, minimizing the need for catching and handling of exceptions
 in your business code.
 
-The retry policy interface consists of three methods:
+The `IExtendedRetryPolicy` interface consists of four methods:
 
 - `OnReadTimeout()`
 - `OnUnavailable()`
 - `OnWriteTimeout()`
+- `OnRequestError()`
 
-By default, the driver uses a default retry policy. The driver includes these four policy classes:
+By default, the driver uses a default retry policy. The driver includes these five policy classes:
 
 - `DefaultRetryPolicy`
 - `DowngradingConsistencyRetryPolicy`
 - `FallthroughRetryPolicy`
 - `LoggingRetryPolicy`
+- `IdempotenceAwareRetryPolicy`

@@ -1,9 +1,11 @@
-//
+﻿//
 //  Copyright (C) 2017 DataStax, Inc.
 //
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
+
+using System;
 
 namespace Dse
 {
@@ -17,12 +19,8 @@ namespace Dse
     ///  convenient to use a more aggressive retry policy like
     ///  <link>DowngradingConsistencyRetryPolicy</link>.</p>
     /// </summary>
-    public class DefaultRetryPolicy : IRetryPolicy
+    public class DefaultRetryPolicy : IExtendedRetryPolicy
     {
-        public DefaultRetryPolicy()
-        {
-        }
-
         /// <summary>
         ///  Defines whether to retry and at which consistency level on a read timeout.
         ///  <p> This method triggers a maximum of one retry, and only if enough replica
@@ -109,11 +107,23 @@ namespace Dse
         ///  by the coordinator of the operation. </param>
         /// <param name="nbRetry"> the number of retry already performed for this
         ///  operation. </param>
-        /// 
         /// <returns><c>RetryDecision.rethrow()</c>.</returns>
         public RetryDecision OnUnavailable(IStatement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
             return RetryDecision.Rethrow();
+        }
+
+        /// <summary>
+        /// The default implementation triggers a retry on the next host in the query plan with the same consistency level,
+        /// regardless of the statement's idempotence, for historical reasons.
+        /// </summary>
+        public RetryDecision OnRequestError(IStatement statement, Configuration config, Exception ex, int nbRetry)
+        {
+            if (ex is OperationTimedOutException && !config.QueryOptions.RetryOnTimeout)
+            {
+                return RetryDecision.Rethrow();
+            }
+            return RetryDecision.Retry(null, false);
         }
     }
 }

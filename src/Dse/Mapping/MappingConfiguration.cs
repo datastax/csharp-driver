@@ -1,4 +1,4 @@
-//
+﻿//
 //  Copyright (C) 2017 DataStax, Inc.
 //
 //  Please see the license for details:
@@ -6,8 +6,6 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using Dse.Mapping.Statements;
 using Dse.Mapping.TypeConversion;
 using Dse.Mapping.Utils;
@@ -129,6 +127,17 @@ namespace Dse.Mapping
                 _typeDefinitions.Add(map);
             }
             return this;
+        }
+
+        /// <summary>
+        /// If defined, returns the mapping for POCO type T, otherwise returns null.
+        /// </summary>
+        public ITypeDefinition Get<T>()
+        {
+            ITypeDefinition existingMapping;
+            _typeDefinitions.TryGetItem(typeof(T), out existingMapping);
+
+            return existingMapping;
         }
 
         /// <summary>

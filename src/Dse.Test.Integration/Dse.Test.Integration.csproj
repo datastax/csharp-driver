@@ -42,6 +42,10 @@
     <Reference Include="Moq">
       <HintPath>..\packages\Moq.4.2.1402.2112\lib\net40\Moq.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="nunit.framework, Version=3.4.1.0, Culture=neutral, PublicKeyToken=2638cd05610744eb, processorArchitecture=MSIL">
       <HintPath>..\packages\NUnit.3.4.1\lib\net40\nunit.framework.dll</HintPath>
       <Private>True</Private>
@@ -76,6 +80,7 @@
     <Compile Include="Core\PoolShortTests.cs" />
     <Compile Include="Core\ReconnectionTests.cs" />
     <Compile Include="Core\SchemaMetadataTests.cs" />
+    <Compile Include="Core\TimestampTests.cs" />
     <Compile Include="Core\TypeSerializersTests.cs" />
     <Compile Include="Core\UdfTests.cs" />
     <Compile Include="Core\SpeculativeExecutionLongTests.cs" />
@@ -98,6 +103,7 @@
     <Compile Include="Linq\LinqMethods\Count.cs" />
     <Compile Include="Linq\LinqMethods\Counter.cs" />
     <Compile Include="Linq\LinqMethods\ExecutePagedTests.cs" />
+    <Compile Include="Linq\LinqMethods\GroupByTests.cs" />
     <Compile Include="Linq\LinqTable\CreateTable.cs" />
     <Compile Include="Linq\LinqMethods\Delete.cs" />
     <Compile Include="Linq\LinqMethods\DeleteIf.cs" />
@@ -125,6 +131,7 @@
     <Compile Include="Linq\Structures\ManyDataTypesEntity.cs" />
     <Compile Include="Policies\Tests\IdempotenceAwareRetryPolicyTests.cs" />
     <Compile Include="Policies\Tests\LoadBalancingPolicyShortTests.cs" />
+    <Compile Include="Policies\Tests\RetryPolicyShortTests.cs" />
     <Compile Include="SharedClusterTest.cs" />
     <Compile Include="Linq\Structures\SalesOrder.cs" />
     <Compile Include="Linq\Structures\AllDataTypesNoColumnMeta.cs" />
@@ -192,6 +199,7 @@
     <Compile Include="TestClusterManagement\ITestCluster.cs" />
     <Compile Include="TestClusterManagement\LocalCcmProcessExecuter.cs" />
     <Compile Include="TestClusterManagement\RemoteCcmProcessExecuter.cs" />
+    <Compile Include="TestClusterManagement\SCassandraManager.cs" />
     <Compile Include="TestClusterManagement\TestClusterManager.cs" />
     <Compile Include="TestBase\TestGlobals.cs" />
     <Compile Include="TestBase\TestUtils.cs" />

@@ -12,7 +12,8 @@ namespace Dse.Data.Linq
     internal class CqlMthHelps
     {
         internal static MethodInfo SelectMi = typeof (CqlMthHelps).GetTypeInfo().GetMethod("Select", BindingFlags.NonPublic | BindingFlags.Static);
-        internal static MethodInfo WhereMi = typeof (CqlMthHelps).GetTypeInfo().GetMethod("Where", BindingFlags.NonPublic | BindingFlags.Static);
+        internal static MethodInfo WhereMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("Where", BindingFlags.NonPublic | BindingFlags.Static);
+        internal static MethodInfo GroupByMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("GroupBy", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo UpdateIfMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("UpdateIf", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo DeleteIfMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("DeleteIf", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo FirstMi = typeof (CqlMthHelps).GetTypeInfo().GetMethod("First", BindingFlags.NonPublic | BindingFlags.Static);
@@ -85,6 +86,11 @@ namespace Dse.Data.Linq
         }
 
         internal static object OrderBy(object a, object b)
+        {
+            return null;
+        }
+
+        internal static object GroupBy(object a, object b)
         {
             return null;
         }
