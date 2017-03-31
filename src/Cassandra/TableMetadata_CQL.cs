@@ -45,7 +45,7 @@ namespace Cassandra
                                          select string.Format("{0}", c.Item1.Name)).ToList();
 
                     if (clusterNames.Count() > 1)
-                        cql.AppendFormat("({0})", string.Join(",", clusterNames));
+                        cql.AppendFormat("{0}", string.Join(",", clusterNames));
                     else if (clusterNames.Count() == 1)
                         cql.AppendFormat("{0}", clusterNames[0]);
                 }
