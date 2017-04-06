@@ -1,6 +1,6 @@
 # Address resolution
 
-The driver auto-detects new Cassandra nodes when they are added to the cluster by means of server-side push
+The driver auto-detects new DSE nodes when they are added to the cluster by means of server-side push
 notifications and checking the system tables.
 
 For each node, the address the driver receives the address set as [`rpc_address` in the node’s cassandra.yaml file][rpc]
@@ -12,10 +12,10 @@ address to the local datacenter (to reduce network costs) and the public IP addr
 ## The AddressTranslator interface
 
 The `IAddressTranslator` interface allows you to deal with such cases, by transforming the address sent by a
-Cassandra node to another address to be used by the driver for connection.
+DSE node to another address to be used by the driver for connection.
 
 ```csharp
-namespace Cassandra
+namespace Dse
 {
     public interface IAddressTranslator
     {
@@ -34,6 +34,6 @@ var cluster = Cluster.Builder()
 ```
 
 Note: The contact points provided while building the `Cluster` are not translated, only addresses retrieved from or
-sent by Cassandra nodes are.
+sent by DSE nodes are.
 
 [rpc]: https://docs.datastax.com/en/cassandra/2.1/cassandra/configuration/configCassandra_yaml_r.html?scroll=reference_ds_qfg_n1r_1k__rpc_address

@@ -2,8 +2,8 @@
 
 The Mapper component handles the mapping of CQL table columns to fields in your classes.
 
-The Mapper component (previously known as [cqlpoco][cqlpoco]) is a lightweight object mapper for Apache Cassandra. It
-lets you write queries with CQL, while it takes care of mapping rows returned from Cassandra to your classes.
+The Mapper component (previously known as [cqlpoco][cqlpoco]) is a lightweight object mapper for DataStax Enterprise.
+It lets you write queries with CQL, while it takes care of mapping rows returned from DSE to your classes.
 It was inspired by [PetaPoco][petapoco], NPoco, [Dapper.NET][dapper] and the [cqlengine][cqlengine] project.
 
 To use the Mapper:
@@ -11,7 +11,7 @@ To use the Mapper:
 1.- Add the following using statement to your class:
 
 ```csharp
-using Cassandra.Mapping;
+using Dse.Mapping;
 ```
 
 2.- Retrieve an `ISession` instance in the usual way and reuse that session within all the classes in your client
@@ -37,7 +37,7 @@ public class User
    public string Name { get; set; }
 }
 
-// Get a list of users from Cassandra
+// Get a list of users from DSE
 IEnumerable<User> users = mapper.Fetch<User>("SELECT userid, name FROM users");
 IEnumerable<User> users = mapper.Fetch<User>("SELECT * FROM users WHERE name = ?", someName);
 ```

@@ -7,7 +7,7 @@ connection heartbeat: if a connection has been idle for a given amount of time, 
 by writing a dummy request to the connection.
 
 This feature is enabled by default since version 3.0 of the driver. The default heartbeat interval is 30 seconds,
-but this can be customized with the [SetHeartBeatInterval()][setheartbeat-api] method of the pooling options:
+but this can be customized with the `SetHeartBeatInterval()` method of the pooling options:
 
 ```csharp
 poolingOptions.SetHeartBeatInterval(60000);
@@ -18,5 +18,3 @@ that the driver waits for a regular query to complete, therefore the connection 
 before it has elapsed.
 
 To disable heartbeat, set the interval to `0`.
-
-[setheartbeat-api]: http://docs.datastax.com/en/latest-csharp-driver-api/html/M_Cassandra_PoolingOptions_SetHeartBeatInterval.htm

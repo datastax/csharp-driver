@@ -1,6 +1,6 @@
 # Speculative query execution
 
-Sometimes a Cassandra node might be experiencing difficulties (for example, long GC pause) and take longer than
+Sometimes a DSE node might be experiencing difficulties (for example, long GC pause) and take longer than
 usual to reply. Queries sent to that node experience bad latency. One thing we can do to improve that is pre-emptively
 start a second execution of the query against another node, before the first node has replied or errored out.
 If that second node replies faster, we can send the response back to the client (we also cancel the first query):

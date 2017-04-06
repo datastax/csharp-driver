@@ -9,7 +9,7 @@ configurable maximum number of connections (`GetMaxConnectionPerHost(HostDistanc
 
 The driver uses connections in an asynchronous manner and multiple requests can be submitted on the same connection
 at the same time without waiting for a response. This means that the driver only needs to maintain a relatively small
-number of connections to each Cassandra host. The [PoolingOptions][pooling-options-api] allows you to control
+number of connections to each DSE host. The `PoolingOptions` allows you to control
 how many connections are kept per host.
 
 Each of these parameters can be separately set for `Local` and `Remote` hosts. For `Ignored` hosts, the default for
@@ -29,5 +29,3 @@ For older Cassandra versions (1.2 and 2.0), the default amount of connections pe
 - Local datacenter: two core connection per host, with eight connections as maximum if the simultaneous requests
 threshold is reached.
 - Remote datacenter: one core connection per host (being two the maximum).
-
-[pooling-options-api]: http://docs.datastax.com/en/latest-csharp-driver-api/html/T_Cassandra_PoolingOptions.htm

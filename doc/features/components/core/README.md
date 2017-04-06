@@ -4,7 +4,7 @@ The core component is responsible for maintaining a pool of connections to the c
 
 Even though the core component allows low-level fine tuning, (for example, load-balancing policies to determine
 which node to use for each query), you interact using high-level objects like the `ISession` that represents a pool of
-connections to the Cassandra cluster.
+connections to the DSE cluster.
 
 The other three components use the core component to execute statements and to handle the encoding and decoding of data.
 

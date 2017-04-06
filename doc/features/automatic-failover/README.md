@@ -1,6 +1,6 @@
 # Automatic failover
 
-If a Cassandra node fails or becomes unreachable, the C# driver automatically and transparently tries other nodes in
+If a DSE node fails or becomes unreachable, the C# driver automatically and transparently tries other nodes in
 the cluster and schedules reconnections to the dead nodes in the background.
 
 How the driver handles failover is determined by which retry and reconnection policies are used when building a

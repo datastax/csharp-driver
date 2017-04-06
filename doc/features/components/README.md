@@ -1,6 +1,6 @@
 # Driver components
 
-The driver contains four different components that you can choose to interact with Cassandra nodes.
+The driver contains four different components that you can choose to interact with DSE nodes.
 
 - [**Core component**](core): The core component is responsible for maintaining a pool of connections to the cluster and
 executes the statements based on client configuration.

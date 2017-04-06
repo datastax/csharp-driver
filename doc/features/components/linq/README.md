@@ -13,7 +13,7 @@ is executed.
 1.- Add a using statement to your class:
 
 ```csharp
-using Cassandra.Data.Linq;
+using Dse.Data.Linq;
 ```
 
 2.- Retrieve an `ISession` instance in the usual way and reuse that session within all the classes in your client
@@ -38,7 +38,7 @@ public class User
    public string Group { get; set; }
 }
 
-// Get a list of users from Cassandra using a Linq query
+// Get a list of users from DSE using a Linq query
 IEnumerable<User> adminUsers = 
       (from user in users where user.Group == "admin" select user).Execute();
 ```

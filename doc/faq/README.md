@@ -2,7 +2,7 @@
 
 ### Which versions of DSE does the driver support?
 
-The driver supports versions from 4.8 to 5 of [DataStax Enterprise][dse].
+The driver supports any [DataStax Enterprise][dse] version from 4.8+.
 
 ### How can I upgrade from the Apache Cassandra driver to the DSE driver?
 
@@ -10,7 +10,7 @@ There is a section in the [Getting Started](../getting-started/) page.
 
 ## Should I create multiple `IDseSession` instances in my client application?
 
-Normally you should use one `ISession` instance per application. You should share that instance between classes within
+Normally you should use one `IDseSession` instance per application. You should share that instance between classes within
 your application. In the case you are using CQL and Graph workloads on a single application, it is recommended that
 you use 2 different instances.
 
@@ -36,7 +36,7 @@ You should set the provider before initializing the cluster, using the `Diagnost
 // Use the provider you prefer, in this case NLog
 ILoggerProvider provider = new NLogLoggerProvider();
 // Add it before initializing the Cluster
-Cassandra.Diagnostics.AddLoggerProvider(provider);
+Dse.Diagnostics.AddLoggerProvider(provider);
 ```
 
 You can configure the log levels you want to output using the provider API.
@@ -46,9 +46,9 @@ the .NET Tracing API.
 
 ```csharp
 // Specify the minimum trace level you want to see
-Cassandra.Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
+Dse.Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
 // Add a standard .NET trace listener
-Trace.Listeners.Add(new ConsoleTraceListener());
+Dse.Listeners.Add(new ConsoleTraceListener());
 ```
 
 ## What is the recommended number of queries that a batch should contain?
@@ -68,3 +68,4 @@ instruct the driver to retrieve fewer rows per request (the default is 5000).
 [logging-api]: https://github.com/aspnet/Logging
 [nlog]: https://github.com/NLog/NLog.Extensions.Logging
 [serilog]: https://github.com/serilog/serilog-extensions-logging
+[dse]: https://www.datastax.com/products/datastax-enterprise
