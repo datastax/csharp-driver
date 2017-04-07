@@ -1,4 +1,4 @@
-  $dep_dir="$($env:USERPROFILE)\deps"
+$dep_dir="$($env:USERPROFILE)\deps"
 
 Write-Host "Install scassandra..."
 

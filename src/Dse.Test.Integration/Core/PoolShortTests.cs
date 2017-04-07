@@ -174,6 +174,8 @@ namespace Dse.Test.Integration.Core
                     Assert.GreaterOrEqual(pool.OpenConnections, 4 - index - 1);
                     Assert.IsTrue(h1.IsUp);
                 }
+                var attempts = TestHelper.WaitUntil(() => _scassandraManager.GetListOfConnectedPorts().Result.Length == 2);
+                Assert.LessOrEqual(attempts, 10, "SCassandra didnt updated the number of connected ports to continue test");
                 ports = _scassandraManager.GetListOfConnectedPorts().Result;
                 Assert.AreEqual(2, ports.Length);
                 _scassandraManager.DropConnection(ports[1]).Wait();

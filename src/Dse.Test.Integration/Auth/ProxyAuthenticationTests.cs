@@ -147,16 +147,12 @@ namespace Dse.Test.Integration.Auth
         [Test]
         public void Should__Not_Allow_Plain_Text_Unauthorized_User_To_LOGIN_As_Without_EXECUTE_ON_ROLE()
         {
-            var ex = Assert.Throws<NoHostAvailableException>(
+            var ex = Assert.Throws<UnauthorizedException>(
                 () => ConnectAndQuery(new DsePlainTextAuthProvider("paul", "paul")));
-            Assert.AreEqual(1, ex.Errors.Count);
-            Assert.IsInstanceOf<AuthenticationException>(ex.Errors.Values.First());
 
-            var exBatch = Assert.Throws<NoHostAvailableException>(
+            var exBatch = Assert.Throws<UnauthorizedException>(
                 () => ConnectAndQuery(new DsePlainTextAuthProvider("paul", "paul"),
                 "DELETE FROM aliceks.alicetable WHERE KEY = 'doesnotexist'"));
-            Assert.AreEqual(1, exBatch.Errors.Count);
-            Assert.IsInstanceOf<AuthenticationException>(exBatch.Errors.Values.First());
         }
 
         /// <summary>

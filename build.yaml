@@ -3,7 +3,7 @@ os:
 env:
   DSE_VERSION:
     - 4.8.11
-    - 5.0.4
+    - 5.0.7
     - 5.1
   CSHARP_VERSION:
     - mono
