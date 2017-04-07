@@ -39,11 +39,7 @@ namespace Dse.Test.Unit.Graph
         public void ExecuteGraph_Should_Call_ExecuteAsync_With_SimpleStatement()
         {
             SimpleStatement coreStatement = null;
-            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
-            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
-                .Returns(TaskOf(new RowSet()))
-                .Callback<SimpleStatement>(stmt => coreStatement = stmt)
-                .Verifiable();
+            var coreSessionMock = GetCoreSessionMock(stmt => coreStatement = stmt);
             var session = NewInstance(coreSessionMock.Object);
             session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
             Assert.NotNull(coreStatement);
@@ -56,11 +52,7 @@ namespace Dse.Test.Unit.Graph
         public void ExecuteGraph_Should_Call_ExecuteAsync_With_Timestamp_Set()
         {
             SimpleStatement coreStatement = null;
-            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
-            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
-                .Returns(TaskOf(new RowSet()))
-                .Callback<SimpleStatement>(stmt => coreStatement = stmt)
-                .Verifiable();
+            var coreSessionMock = GetCoreSessionMock(stmt => coreStatement = stmt);
             var session = NewInstance(coreSessionMock.Object);
             var timestamp = DateTimeOffset.Now;
             session.ExecuteGraph(new SimpleGraphStatement("g.V()").SetTimestamp(timestamp));
@@ -74,11 +66,7 @@ namespace Dse.Test.Unit.Graph
         public void ExecuteGraph_Should_Call_ExecuteAsync_With_ConsistencyLevel_Set()
         {
             SimpleStatement coreStatement = null;
-            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
-            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
-                .Returns(TaskOf(new RowSet()))
-                .Callback<SimpleStatement>(stmt => coreStatement = stmt)
-                .Verifiable();
+            var coreSessionMock = GetCoreSessionMock(stmt => coreStatement = stmt);
             var session = NewInstance(coreSessionMock.Object);
             const ConsistencyLevel consistency = ConsistencyLevel.Three;
             session.ExecuteGraph(new SimpleGraphStatement("g.V()").SetConsistencyLevel(consistency));
@@ -92,11 +80,7 @@ namespace Dse.Test.Unit.Graph
         public void ExecuteGraph_Should_Call_ExecuteAsync_With_ReadTimeout_Set_To_Default()
         {
             SimpleStatement coreStatement = null;
-            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
-            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
-                .Returns(TaskOf(new RowSet()))
-                .Callback<SimpleStatement>(stmt => coreStatement = stmt)
-                .Verifiable();
+            var coreSessionMock = GetCoreSessionMock(stmt => coreStatement = stmt);
             const int readTimeout = 5000;
             var session = NewInstance(coreSessionMock.Object, new GraphOptions().SetReadTimeoutMillis(readTimeout));
             session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
@@ -115,11 +99,7 @@ namespace Dse.Test.Unit.Graph
         public void ExecuteGraph_Should_Call_ExecuteAsync_With_ReadTimeout_Set_From_Statement()
         {
             SimpleStatement coreStatement = null;
-            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
-            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
-                .Returns(TaskOf(new RowSet()))
-                .Callback<SimpleStatement>(stmt => coreStatement = stmt)
-                .Verifiable();
+            var coreSessionMock = GetCoreSessionMock(stmt => coreStatement = stmt);
             const int defaultReadTimeout = 15000;
             const int readTimeout = 6000;
             var session = NewInstance(coreSessionMock.Object, 
@@ -136,11 +116,7 @@ namespace Dse.Test.Unit.Graph
         public void ExecuteGraph_Should_Call_ExecuteAsync_With_Dictionary_Parameters_Set()
         {
             SimpleStatement coreStatement = null;
-            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
-            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
-                .Returns(TaskOf(new RowSet()))
-                .Callback<SimpleStatement>(stmt => coreStatement = stmt)
-                .Verifiable();
+            var coreSessionMock = GetCoreSessionMock(stmt => coreStatement = stmt);
             var session = NewInstance(coreSessionMock.Object);
             var parameters = new Dictionary<string, object>
             {
@@ -173,6 +149,7 @@ namespace Dse.Test.Unit.Graph
             coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
                 .Returns(TaskOf(rsMock.Object))
                 .Verifiable();
+            coreSessionMock.Setup(s => s.Cluster).Returns((ICluster) null);
             var session = NewInstance(coreSessionMock.Object);
             var rsGraph = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
             coreSessionMock.Verify();
@@ -186,10 +163,7 @@ namespace Dse.Test.Unit.Graph
         public void ExecuteGraph_Should_Build_Payload_With_Default_Values()
         {
             SimpleStatement coreStatement = null;
-            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
-            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
-                .Returns(TaskOf(new RowSet()))
-                .Callback<SimpleStatement>(stmt => coreStatement = stmt);
+            var coreSessionMock = GetCoreSessionMock(stmt => coreStatement = stmt);
             var session = NewInstance(coreSessionMock.Object);
             session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
             Assert.NotNull(coreStatement);
@@ -203,10 +177,7 @@ namespace Dse.Test.Unit.Graph
         public void ExecuteGraph_Should_Build_Payload_With_GraphOptions()
         {
             SimpleStatement coreStatement = null;
-            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
-            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
-                .Returns(TaskOf(new RowSet()))
-                .Callback<SimpleStatement>(stmt => coreStatement = stmt);
+            var coreSessionMock = GetCoreSessionMock(stmt => coreStatement = stmt);
             var session = NewInstance(coreSessionMock.Object,
                 new GraphOptions()
                     .SetName("name1")
@@ -230,10 +201,7 @@ namespace Dse.Test.Unit.Graph
         public void ExecuteGraph_Should_Build_Payload_With_Statement_Properties()
         {
             SimpleStatement coreStatement = null;
-            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
-            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
-                .Returns(TaskOf(new RowSet()))
-                .Callback<SimpleStatement>(stmt => coreStatement = stmt);
+            var coreSessionMock = GetCoreSessionMock(stmt => coreStatement = stmt);
             var session = NewInstance(coreSessionMock.Object,
                 new GraphOptions()
                     .SetName("name1")
@@ -261,10 +229,7 @@ namespace Dse.Test.Unit.Graph
         public void ExecuteGraph_Should_Allow_GraphNode_As_Parameters()
         {
             SimpleStatement coreStatement = null;
-            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
-            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
-                .Returns(TaskOf(new RowSet()))
-                .Callback<SimpleStatement>(stmt => coreStatement = stmt);
+            var coreSessionMock = GetCoreSessionMock(stmt => coreStatement = stmt);
             var session = NewInstance(coreSessionMock.Object);
             const string expectedJson =
                 "{\"member_id\":123,\"community_id\":586910,\"~label\":\"vertex\",\"group_id\":2}";
@@ -279,10 +244,7 @@ namespace Dse.Test.Unit.Graph
         public void ExecuteGraph_Should_Allow_BigInteger_As_Parameters()
         {
             SimpleStatement coreStatement = null;
-            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
-            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
-                .Returns(TaskOf(new RowSet()))
-                .Callback<SimpleStatement>(stmt => coreStatement = stmt);
+            var coreSessionMock = GetCoreSessionMock(stmt => coreStatement = stmt);
             var session = NewInstance(coreSessionMock.Object);
             var value = BigInteger.Parse("1234567890123456789123456789");
             session.ExecuteGraph(new SimpleGraphStatement("g.V(vertexId)", new { value }));
@@ -299,6 +261,8 @@ namespace Dse.Test.Unit.Graph
             coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
                 .Returns(TaskOf(new RowSet()))
                 .Callback<SimpleStatement>(stmt => coreStatement = stmt);
+            coreSessionMock.Setup(s => s.Cluster)
+                           .Returns((ICluster)null);
             var session = NewInstance(coreSessionMock.Object);
             var value = IPAddress.Parse("192.168.1.100");
             session.ExecuteGraph(new SimpleGraphStatement("g.V(vertexId)", new { value }));
@@ -351,10 +315,7 @@ namespace Dse.Test.Unit.Graph
         public void Should_Not_Make_Rpc_Calls_When_Using_Other_Sources()
         {
             var coreStatements = new List<SimpleStatement>();
-            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
-            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<SimpleStatement>()))
-                .Returns<SimpleStatement>(stmt => TaskOf(new RowSet()))
-                .Callback<SimpleStatement>(stmt => coreStatements.Add(stmt));
+            var coreSessionMock = GetCoreSessionMock(stmt => coreStatements.Add(stmt));
             var session = NewInstance(coreSessionMock.Object);
             session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
             Assert.AreEqual(1, coreStatements.Count);
@@ -368,10 +329,7 @@ namespace Dse.Test.Unit.Graph
         public void Should_Identity_Timeout_Infinite_ReadTimeout()
         {
             SimpleStatement coreStatement = null;
-            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
-            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
-                .Returns(TaskOf(new RowSet()))
-                .Callback<SimpleStatement>(stmt => coreStatement = stmt);
+            var coreSessionMock = GetCoreSessionMock(stmt => coreStatement = stmt);
             var session = NewInstance(coreSessionMock.Object,
                 new GraphOptions().SetReadTimeoutMillis(32000));
             session.ExecuteGraph(new SimpleGraphStatement("g.V()")
@@ -386,6 +344,17 @@ namespace Dse.Test.Unit.Graph
         {
             return Serialization.TypeSerializer.PrimitiveLongSerializer.Serialize(4, value);
         }
+
+        private static Mock<ISession> GetCoreSessionMock(Action<SimpleStatement> executeCallback)
+        {
+            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
+            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
+                .Returns(TaskOf(new RowSet()))
+                .Callback(executeCallback)
+                .Verifiable();
+            coreSessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
+            return coreSessionMock;
+        } 
     }
 }
 #endif
