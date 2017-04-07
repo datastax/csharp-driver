@@ -20,7 +20,7 @@ The DataStax Enterprise C# Driver can be used solely with DataStax Enterprise. P
 PM> Install-Package Dse
 ```
 
-[![Build status](https://travis-ci.org/datastax/csharp-driver-dse.svg?branch=master)](https://travis-ci.org/datastax/csharp-driver-dse)
+[![Build status](https://travis-ci.org/datastax/csharp-dse-driver.svg?branch=master)](https://travis-ci.org/datastax/csharp-dse-driver)
 [![Windows Build status](https://ci.appveyor.com/api/projects/status/yuk0p8i8r2l9f6xk/branch/master?svg=true)](https://ci.appveyor.com/project/DataStax/csharp-driver-dse/branch/master)
 [![Latest stable on Nuget.org](https://img.shields.io/nuget/v/Dse.svg)](https://www.nuget.org/packages/Dse)
 
@@ -204,7 +204,7 @@ session.Execute(statement);
 
 ## License
 
-Copyright 2016 DataStax
+Copyright 2016-2017 DataStax
 
 http://www.datastax.com/terms/datastax-dse-driver-license-terms
 
@@ -218,5 +218,5 @@ http://www.datastax.com/terms/datastax-dse-driver-license-terms
 [jira]: https://datastax-oss.atlassian.net/projects/CSHARP/issues
 [mailing-list]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
 [doc-index]: http://docs.datastax.com/en/developer/csharp-driver-dse/latest/
-[api-docs]: http://docs.datastax.com/en/drivers/csharp-dse/1.1/
+[api-docs]: http://docs.datastax.com/en/drivers/csharp-dse/2.0/
 [faq]: http://docs.datastax.com/en/developer/csharp-driver-dse/latest/faq/

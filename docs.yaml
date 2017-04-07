@@ -16,7 +16,7 @@ sections:
     files:    'doc/getting-started/**/*.md'
 links:
   - title: Code
-    href:  https://github.com/datastax/csharp-driver-dse/
+    href:  https://github.com/datastax/csharp-dse-driver/
   - title: Issues
     href:  https://datastax-oss.atlassian.net/projects/CSHARP/issues
   - title: Mailing List
@@ -28,8 +28,11 @@ links:
 api_docs:
   1.0: http://docs.datastax.com/en/drivers/csharp-dse/1.0
   1.1: http://docs.datastax.com/en/drivers/csharp-dse/1.1
+  2.0: http://docs.datastax.com/en/drivers/csharp-dse/2.0
 versions:
+  - name: '2.0'
+    ref: 'dse'
   - name: '1.1'
-    ref: 'master'
+    ref: '1.1'
   - name: '1.0'
     ref: '1.0'

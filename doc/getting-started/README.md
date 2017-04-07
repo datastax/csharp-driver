@@ -46,6 +46,4 @@ GraphResultSet rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
 
 [nuget]: https://nuget.org/packages/Dse/
 [dse]: http://www.datastax.com/products/datastax-enterprise
-[core-driver]: https://github.com/datastax/csharp-driver-dse
-[core-driver-docs]: http://datastax.github.io/csharp-driver/
 [core-features]: http://datastax.github.io/csharp-driver/features/
