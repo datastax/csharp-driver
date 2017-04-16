@@ -251,9 +251,9 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        ////////////////////////////////////////
-        /// Nested Collection Helpers
-        ///////////////////////////////////////
+        /**************************************
+        * Nested Collection Helpers
+        **************************************/
 
         private static void ValidateSelectedNestedFrozenRow(Row row, 
             Dictionary<string, IEnumerable<string>> expectedMap1 = null, 

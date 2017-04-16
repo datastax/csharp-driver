@@ -428,9 +428,9 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(1, rs.InnerQueueCount);
         }
 
-        ///////////////////////
-        /// Helper Methods
-        ///////////////////////
+        /**************************************
+        * Test Helper Methods
+        **************************************/
 
         public static void PreserveStackTraceOnConnectAndAssert()
         {

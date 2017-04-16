@@ -102,7 +102,7 @@ namespace Cassandra.IntegrationTests.Policies
                 schedule.NextDelayMs();
             Assert.True(schedule.NextDelayMs() == reconnectionPolicy.MaxDelayMs);
 
-            //// Run integration test
+            // Run integration test
             //long restartTime = 2 + 4 + 8 + 2;   // 16: 3 full cycles + 2 seconds
             //long retryTime = 30;                // 4th cycle start time
             //long breakTime = 62;                // time until next reconnection attempt
@@ -145,7 +145,7 @@ namespace Cassandra.IntegrationTests.Policies
             Assert.True(schedule.NextDelayMs() == 10000);
             Assert.True(schedule.NextDelayMs() == 10000);
 
-            //// Run integration test
+            // Run integration test
             //int restartTime = 32;   
             //int retryTime = 50;        
             //int breakTime = 10;        // time until next reconnection attempt
