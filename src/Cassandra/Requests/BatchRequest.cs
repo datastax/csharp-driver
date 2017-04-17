@@ -92,6 +92,8 @@ namespace Cassandra.Requests
                 wb.WriteBytesMap(Payload);
             }
             wb.WriteByte((byte) _type);
+            //TODO: it would be good if this, and other places where Int16 is used,  will be modified according to the cql binary protocol standard section 3. [short] 2 bytes unsigned integer
+            //TODO: however on some places [short] is interpreted as signed to denote null values.
             wb.WriteInt16((short) _requests.Count);
             foreach (var br in _requests)
             {
