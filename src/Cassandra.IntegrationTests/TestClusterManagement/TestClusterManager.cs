@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 
@@ -78,7 +79,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// </summary>
         public static ITestCluster CreateNew(int nodeLength = 1, TestClusterOptions options = null, bool startCluster = true)
         {
-            TryRemove();
+            TryRemove(true);
             options = options ?? new TestClusterOptions();
             var testCluster = new CcmCluster(CassandraVersionText, TestUtils.GetTestClusterNameBasedOnTime(), IpPrefix, DefaultKeyspaceName);
             testCluster.Create(nodeLength, options);
@@ -149,8 +150,38 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// <summary>
         /// Removes the current ccm cluster, without throwing exceptions if it fails
         /// </summary>
-        public static void TryRemove()
+        public static void TryRemove(bool onlyRemoveTestCluster = false)
         {
+	        bool skipRemove = false;
+			if (onlyRemoveTestCluster)
+			{
+				try
+				{
+					var output = CcmBridge.ExecuteCcm("status").OutputText.ToString();
+					var match = Regex.Match(output, "^Cluster: '(.*)'");
+					string clusterName = match.Groups[1].Value;
+					if (!clusterName.StartsWith(string.Format(TestUtils.TEST_CLUSTER_NAME_FORMAT, "")))
+					{
+						if (Diagnostics.CassandraTraceSwitch.TraceInfo)
+						{
+							Trace.TraceInformation("ccm current cluster does not appear to be a test cluster, skipping remove: {0}", clusterName);
+						}
+						skipRemove = true;
+					}
+				}
+				catch (Exception ex)
+				{
+					if (Diagnostics.CassandraTraceSwitch.Level == TraceLevel.Verbose)
+					{
+						Trace.TraceError("ccm test cluster status could not be determined, skipping remove: {0}", ex);
+					}
+					skipRemove = true;
+				}
+			}
+			if (skipRemove)
+			{
+				return;
+			}
             try
             {
                 CcmBridge.ExecuteCcm("remove");
