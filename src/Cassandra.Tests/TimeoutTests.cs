@@ -105,6 +105,48 @@ namespace Cassandra.Tests
         }
 
         [Test]
+        public void WheelTimer_Bucket_Should_Remove_Head_Items_Correctly()
+        {
+            var bucket = new Bucket();
+
+            var t1 = new TimeoutItem(EmptyAction);
+            var t2 = new TimeoutItem(EmptyAction);
+            var t3 = new TimeoutItem(EmptyAction);
+            var t4 = new TimeoutItem(EmptyAction);
+
+            bucket.Add(t1);
+            CollectionAssert.AreEqual(bucket.ToArray(), new[] { t1 });
+            Assert.AreEqual(bucket.Tail, t1);
+
+            bucket.Add(t2);
+            CollectionAssert.AreEqual(bucket.ToArray(), new[] { t1, t2 });
+            Assert.AreEqual(bucket.Tail, t2);
+
+            bucket.Add(t3);
+            CollectionAssert.AreEqual(bucket.ToArray(), new[] { t1, t2, t3 });
+            Assert.AreEqual(bucket.Tail, t3);
+
+            bucket.Add(t4);
+            CollectionAssert.AreEqual(bucket.ToArray(), new[] { t1, t2, t3, t4 });
+            Assert.AreEqual(bucket.Tail, t4);
+
+            bucket.Remove(t1);
+            CollectionAssert.AreEqual(bucket.ToArray(), new[] { t2, t3, t4 });
+            Assert.AreEqual(bucket.Tail, t4);
+
+            bucket.Remove(t3);
+            CollectionAssert.AreEqual(bucket.ToArray(), new[] { t2, t4 });
+            Assert.AreEqual(bucket.Tail, t4);
+
+            bucket.Remove(t4);
+            CollectionAssert.AreEqual(bucket.ToArray(), new[] { t2 });
+            Assert.AreEqual(bucket.Tail, t2);
+
+            bucket.Remove(t2);
+            Assert.AreEqual(bucket.ToArray(), new TimeoutItem[0]);
+        }
+
+        [Test]
         public void HashedWheelTimer_Should_Schedule_In_Order()
         {
             var results = new List<int>();
