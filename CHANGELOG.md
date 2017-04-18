@@ -1,5 +1,27 @@
 # ChangeLog - DataStax Enterprise C# Driver
 
+## 2.0.0
+
+2017-04-18
+
+### Notable Changes
+
+- Timestamp generation: client-side timestamps are generated and sent in the request by default when the server 
+supports it.
+- Enhanced retry policies: handle client timeouts, connection closed and other errors.
+
+### Features
+
+- [CSHARP-205] - Add client-side timestamp generator
+- [CSHARP-449] - Expose OnRequestError() method in a new extended retry policy interface
+- [CSHARP-496] - Linq: Support Cassandra 3.10 GROUP BY
+- [CSHARP-484] - Add support for Duration graph datatype
+- [CSHARP-543] - Linq: Evaluation of closures can be done more efficiently
+
+### Bug Fixes
+
+- [CSHARP-544] - Geometry instances as graph parameters should be serialized into WKT
+
 ## 2.0.0-beta1
 
 2017-03-15
