@@ -118,7 +118,7 @@ session.ExecuteGraph(s);
 ### Query execution
 
 As explained, graph statements can be executed with the session's `ExecuteGraph` method. There is also an
-asynchronous equivalent called `ExecuteGraphAsync`.
+asynchronous equivalent called `ExecuteGraphAsync` that returns a Task that can be awaited upon.
 
 ### Handling results
 
