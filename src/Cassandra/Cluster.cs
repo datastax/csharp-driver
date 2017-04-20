@@ -15,8 +15,8 @@
 //
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -24,7 +24,6 @@ using System.Threading.Tasks;
 using Cassandra.Collections;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
-using Microsoft.IO;
 
 namespace Cassandra
 {
@@ -38,12 +37,12 @@ namespace Cassandra
         // ReSharper disable once InconsistentNaming
         private static readonly Logger _logger = new Logger(typeof(Cluster));
         private readonly CopyOnWriteList<Session> _connectedSessions = new CopyOnWriteList<Session>();
-        private ControlConnection _controlConnection;
+        private readonly ControlConnection _controlConnection;
         private volatile bool _initialized;
         private volatile Exception _initException;
-        private readonly object _initLock = new Object();
+        private readonly object _initLock = new object();
         private readonly Metadata _metadata;
-        private Serializer _serializer;
+        private readonly Serializer _serializer;
 
         /// <inheritdoc />
         public event Action<Host> HostAdded;
@@ -134,6 +133,15 @@ namespace Cassandra
             {
                 _metadata.AddHost(ep);
             }
+            var protocolVersion = _maxProtocolVersion;
+            if (Configuration.ProtocolOptions.MaxProtocolVersionValue != null &&
+                Configuration.ProtocolOptions.MaxProtocolVersionValue.Value.IsSupported())
+            {
+                protocolVersion = Configuration.ProtocolOptions.MaxProtocolVersionValue.Value;
+            }
+            _controlConnection = new ControlConnection(protocolVersion, Configuration, _metadata);
+            _metadata.ControlConnection = _controlConnection;
+            _serializer = _controlConnection.Serializer;
         }
 
         /// <summary>
@@ -158,21 +166,14 @@ namespace Cassandra
                     //There was an exception that is not possible to recover from
                     throw _initException;
                 }
-                var protocolVersion = _maxProtocolVersion;
-                if (Configuration.ProtocolOptions.MaxProtocolVersionValue != null &&
-                    Configuration.ProtocolOptions.MaxProtocolVersionValue.Value.IsSupported())
-                {
-                    protocolVersion = Configuration.ProtocolOptions.MaxProtocolVersionValue.Value;
-                }
-                //create the buffer pool with 16KB for small buffers and 256Kb for large buffers.
-                Configuration.BufferPool = new RecyclableMemoryStreamManager(16 * 1024, 256 * 1024, ProtocolOptions.MaximumFrameLength);
-                _controlConnection = new ControlConnection(protocolVersion, Configuration, _metadata);
-                _metadata.ControlConnection = _controlConnection;
                 try
                 {
-                    _controlConnection.Init();
-                    _serializer = _controlConnection.Serializer;
-                    //Initialize policies
+
+                    //Only abort when twice the time for ConnectTimeout per host passed
+                    var initialAbortTimeout = Configuration.SocketOptions.ConnectTimeoutMillis * 2 * _metadata.Hosts.Count;
+                    //TODO: Handle abort
+                    TaskHelper.WaitToComplete(_controlConnection.Init(), initialAbortTimeout);
+                    // Initialize policies
                     Configuration.Policies.LoadBalancingPolicy.Initialize(this);
                     Configuration.Policies.SpeculativeExecutionPolicy.Initialize(this);
                     Configuration.Policies.InitializeRetryPolicy(this);
@@ -190,7 +191,6 @@ namespace Cassandra
                     //Throw the actual exception for the first time
                     throw;
                 }
-                Configuration.Timer = new HashedWheelTimer();
                 _logger.Info("Cluster Connected using binary protocol version: [" + _serializer.ProtocolVersion + "]");
                 _initialized = true;
                 _metadata.Hosts.Added += OnHostAdded;

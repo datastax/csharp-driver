@@ -231,5 +231,26 @@ namespace Cassandra.IntegrationTests.Core
                 testCluster.ResumeNode(2);
             }
         }
+
+        [Test]
+        public void Should_Throw_NoHostAvailable_When_Startup_Times_out()
+        {
+            var testCluster = TestClusterManager.CreateNew(1);
+            var socketOptions = new SocketOptions().SetReadTimeoutMillis(1000).SetConnectTimeoutMillis(1000);
+            var builder = Cluster.Builder()
+                                 .AddContactPoint(testCluster.InitialContactPoint)
+                                 .WithSocketOptions(socketOptions);
+            using (var cluster = builder.Build())
+            {
+                testCluster.PauseNode(1);
+                var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
+                Assert.AreEqual(1, ex.Errors.Count);
+                foreach (var innerException in ex.Errors.Values)
+                {
+                    Assert.IsInstanceOf<OperationTimedOutException>(innerException);
+                }
+                testCluster.ResumeNode(1);
+            }
+        }
     }
 }

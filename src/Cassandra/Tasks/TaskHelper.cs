@@ -390,5 +390,13 @@ namespace Cassandra.Tasks
             }, tcs, delay);
             return tcs.Task;
         }
+        
+        /// <summary>
+        /// Designed for Tasks that were started but the result should not be awaited upon (fire and forget)
+        /// </summary>
+        public static void Forget(Task t)
+        {
+            // Avoid compiler warning CS4014
+        }
     }
 }

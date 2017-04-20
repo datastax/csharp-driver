@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Security;
@@ -107,14 +108,18 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Connects synchronously to the host and starts reading
+        /// Connects asynchronously to the host and starts reading
         /// </summary>
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
-        public Task<bool> Connect()
+        public async Task<bool> Connect()
         {
             var tcs = TaskHelper.TaskCompletionSourceWithTimeout<bool>(
                 Options.ConnectTimeoutMillis, 
-                () => new SocketException((int)SocketError.TimedOut));
+                () =>
+                {
+                    _logger.Info("TCS transitioning to SocketException timedout");
+                    return new SocketException((int) SocketError.TimedOut);
+                });
             var socketConnectTask = tcs.Task;
             var eventArgs = new SocketAsyncEventArgs
             {
@@ -123,6 +128,7 @@ namespace Cassandra
 
             eventArgs.Completed += (sender, e) =>
             {
+                _logger.Info("Completed with err: {0}", e.SocketError);
                 if (e.SocketError != SocketError.Success)
                 {
                     tcs.TrySetException(new SocketException((int)e.SocketError));
@@ -132,43 +138,32 @@ namespace Cassandra
                 e.Dispose();
             };
 
-            try
+            _socket.ConnectAsync(eventArgs);
+            await socketConnectTask;
+            _logger.Info("socketConnectTask completed");
+            if (SSLOptions != null)
             {
-                _socket.ConnectAsync(eventArgs);
+                return await ConnectSsl();
             }
-            catch (Exception ex)
+            // Prepare read and write
+            // There are 2 modes: using SocketAsyncEventArgs (most performant) and Stream mode with APM methods
+            if (!Options.UseStreamMode)
             {
-                return TaskHelper.FromException<bool>(ex);
+                _logger.Verbose("Socket connected, start reading using SocketEventArgs interface");
+                //using SocketAsyncEventArgs
+                _receiveSocketEvent = new SocketAsyncEventArgs();
+                _receiveSocketEvent.SetBuffer(_receiveBuffer, 0, _receiveBuffer.Length);
+                _receiveSocketEvent.Completed += OnReceiveCompleted;
+                _sendSocketEvent = new SocketAsyncEventArgs();
+                _sendSocketEvent.Completed += OnSendCompleted;
+                ReceiveAsync();
+                return true;
             }
-            //Prepare read and write
-            //There are 2 modes: using SocketAsyncEventArgs (most performant) and Stream mode with APM methods
-            if (SSLOptions == null && !Options.UseStreamMode)
-            {
-                return socketConnectTask.ContinueSync(_ =>
-                {
-                    _logger.Verbose("Socket connected, start reading using SocketEventArgs interface");
-                    //using SocketAsyncEventArgs
-                    _receiveSocketEvent = new SocketAsyncEventArgs();
-                    _receiveSocketEvent.SetBuffer(_receiveBuffer, 0, _receiveBuffer.Length);
-                    _receiveSocketEvent.Completed += OnReceiveCompleted;
-                    _sendSocketEvent = new SocketAsyncEventArgs();
-                    _sendSocketEvent.Completed += OnSendCompleted;
-                    ReceiveAsync();
-                    return true;
-                });
-            }
-            if (SSLOptions == null)
-            {
-                return socketConnectTask.ContinueSync(_ =>
-                {
-                    _logger.Verbose("Socket connected, start reading using Stream interface");
-                    //Stream mode: not the most performant but it is a choice
-                    _socketStream = new NetworkStream(_socket);
-                    ReceiveAsync();
-                    return true;
-                });
-            }
-            return socketConnectTask.Then(_ => ConnectSsl());
+            _logger.Verbose("Socket connected, start reading using Stream interface");
+            //Stream mode: not the most performant but it is a choice
+            _socketStream = new NetworkStream(_socket);
+            ReceiveAsync();
+            return true;
         }
 
         private async Task<bool> ConnectSsl()

@@ -86,7 +86,7 @@ namespace Cassandra
             _metadata = metadata;
             _reconnectionPolicy = config.Policies.ReconnectionPolicy;
             _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
-            _reconnectionTimer = new Timer(_ => Reconnect(), null, Timeout.Infinite, Timeout.Infinite);
+            _reconnectionTimer = new Timer(_ => TaskHelper.Forget(Reconnect()), null, Timeout.Infinite, Timeout.Infinite);
             _config = config;
             _serializer = new Serializer(initialProtocolVersion, config.TypeSerializers);
         }
@@ -100,26 +100,30 @@ namespace Cassandra
         /// Tries to create a connection to any of the contact points and retrieve cluster metadata for the first time. Not thread-safe.
         /// </summary>
         /// <exception cref="NoHostAvailableException" />
+        /// <exception cref="TimeoutException" />
         /// <exception cref="DriverInternalError" />
-        internal void Init()
+        internal async Task Init()
         {
             _logger.Info("Trying to connect the ControlConnection");
-            //Only abort when twice the time for ConnectTimeout per host passed
-            var initialAbortTimeout = _config.SocketOptions.ConnectTimeoutMillis * 2 * _metadata.Hosts.Count;
-            TaskHelper.WaitToComplete(Connect(true), initialAbortTimeout);
+            await Connect(true).ConfigureAwait(false);
+            SubscribeEventHandlers();
+            var obtainingMetadataFailed = false;
             try
             {
-                SubscribeEventHandlers();
-                RefreshNodeList();
-                TaskHelper.WaitToComplete(_metadata.RefreshKeyspaces(false), MetadataAbortTimeout);
+                await RefreshNodeList().ConfigureAwait(false);
+                await _metadata.RefreshKeyspaces(false).ConfigureAwait(false);
             }
             catch (SocketException ex)
             {
-                //There was a problem using the connection obtained
-                //It is not usual but can happen
                 _logger.Error("An error occurred when trying to retrieve the cluster metadata, retrying.", ex);
-                //Retry one more time and throw if there is problem
-                TaskHelper.WaitToComplete(Reconnect(), _config.SocketOptions.ConnectTimeoutMillis);
+                // Can't await on catch
+                obtainingMetadataFailed = true;
+            }
+            if (obtainingMetadataFailed)
+            {
+                // There was a problem using the connection obtained, it is not usual but can happen
+                // Retry one more time and throw if there is problem
+                await Reconnect().ConfigureAwait(false);
             }
         }
 
@@ -193,72 +197,72 @@ namespace Cassandra
             return await nextTask.ConfigureAwait(false);
         }
 
-        internal Task<bool> Reconnect()
+        internal async Task<bool> Reconnect()
         {
-            //If there is another thread reconnecting, use the same task
             var tcs = new TaskCompletionSource<bool>();
             var currentTask = Interlocked.CompareExchange(ref _reconnectTask, tcs.Task, null);
             if (currentTask != null)
             {
-                return currentTask;
+                // If there is another thread reconnecting, use the same task
+                return await currentTask.ConfigureAwait(false);
             }
             Unsubscribe();
-            Connect(false).ContinueWith(t =>
+            #pragma warning disable 4014 // Compiler is trying to warn about a task not awaited upon: its not a problem
+            try
             {
-                if (Interlocked.Read(ref _isShutdown) > 0L)
-                {
-                    if (t.Exception != null)
-                    {
-                        t.Exception.Handle(e => true);
-                    }
-                    return;
-                }
-                if (t.Exception != null)
-                {
-                    t.Exception.Handle(e => true);
-                    Interlocked.Exchange(ref _reconnectTask, null);
-                    // ReSharper disable once AssignNullToNotNullAttribute
-                    tcs.TrySetException(t.Exception.InnerException);
-                    var delay = _reconnectionSchedule.NextDelayMs();
-                    _logger.Error("ControlConnection was not able to reconnect: " + t.Exception.InnerException);
-                    try
-                    {
-                        _reconnectionTimer.Change((int)delay, Timeout.Infinite);
-                    }
-                    catch (ObjectDisposedException)
-                    {
-                        //Control connection is being disposed
-                    }
-                    return;
-                }
+                await Connect(false).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                // It failed to reconnect, schedule the timer for next reconnection and let go.
+                Interlocked.Exchange(ref _reconnectTask, null);
+                tcs.TrySetException(ex);
+                var delay = _reconnectionSchedule.NextDelayMs();
+                _logger.Error("ControlConnection was not able to reconnect: " + ex);
                 try
                 {
-                    RefreshNodeList();
-                    TaskHelper.WaitToComplete(_metadata.RefreshKeyspaces(false), MetadataAbortTimeout);
-                    _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
-                    tcs.TrySetResult(true);
-                    Interlocked.Exchange(ref _reconnectTask, null);
-                    _logger.Info("ControlConnection reconnected to host {0}", _host.Address);
+                    _reconnectionTimer.Change((int)delay, Timeout.Infinite);
                 }
-                catch (Exception ex)
+                catch (ObjectDisposedException)
                 {
-                    Interlocked.Exchange(ref _reconnectTask, null);
-                    _logger.Error("There was an error when trying to refresh the ControlConnection", ex);
-                    tcs.TrySetException(ex);
-                    try
-                    {
-                        _reconnectionTimer.Change((int)_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);   
-                    }
-                    catch (ObjectDisposedException)
-                    {
-                        //Control connection is being disposed
-                    }
+                    //Control connection is being disposed
                 }
-            });
-            return tcs.Task;
+                // It will throw the same exception that it was set in the TCS
+                throw;
+            }
+
+            if (Interlocked.Read(ref _isShutdown) > 0L)
+            {
+                return false;
+            }
+            try
+            {
+                await RefreshNodeList().ConfigureAwait(false);
+                TaskHelper.WaitToComplete(_metadata.RefreshKeyspaces(false), MetadataAbortTimeout);
+                _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
+                tcs.TrySetResult(true);
+                Interlocked.Exchange(ref _reconnectTask, null);
+                _logger.Info("ControlConnection reconnected to host {0}", _host.Address);
+            }
+            catch (Exception ex)
+            {
+                Interlocked.Exchange(ref _reconnectTask, null);
+                _logger.Error("There was an error when trying to refresh the ControlConnection", ex);
+                tcs.TrySetException(ex);
+                try
+                {
+                    _reconnectionTimer.Change((int)_reconnectionSchedule.NextDelayMs(), Timeout.Infinite);
+                }
+                catch (ObjectDisposedException)
+                {
+                    //Control connection is being disposed
+                }
+            }
+            #pragma warning restore 4014
+            return await tcs.Task;
         }
 
-        internal void Refresh()
+        internal async Task Refresh()
         {
             if (Interlocked.Increment(ref _refreshCounter) != 1)
             {
@@ -269,7 +273,7 @@ namespace Cassandra
             var reconnect = false;
             try
             {
-                RefreshNodeList();
+                await RefreshNodeList().ConfigureAwait(false);
                 TaskHelper.WaitToComplete(_metadata.RefreshKeyspaces(false), MetadataAbortTimeout);
                 _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             }
@@ -288,7 +292,7 @@ namespace Cassandra
             }
             if (reconnect)
             {
-                Reconnect();
+                await Reconnect().ConfigureAwait(false);
             }
         }
 
@@ -346,7 +350,7 @@ namespace Cassandra
             _logger.Warning("Host {0} used by the ControlConnection DOWN", h.Address);
             Task.Factory.StartNew(() => Reconnect(), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
         }
-
+        
         private void OnConnectionCassandraEvent(object sender, CassandraEventArgs e)
         {
             //This event is invoked from a worker thread (not a IO thread)
@@ -355,7 +359,8 @@ namespace Cassandra
                 var tce = (TopologyChangeEventArgs)e;
                 if (tce.What == TopologyChangeEventArgs.Reason.NewNode || tce.What == TopologyChangeEventArgs.Reason.RemovedNode)
                 {
-                    Refresh();
+                    // Start refresh
+                    TaskHelper.Forget(Refresh());
                     return;
                 }
             }
@@ -428,11 +433,12 @@ namespace Cassandra
             return _config.AddressTranslator.Translate(value);
         }
 
-        private void RefreshNodeList()
+        private async Task RefreshNodeList()
         {
             _logger.Info("Refreshing node list");
-            var localRow = Query(SelectLocal).FirstOrDefault();
-            var rsPeers = Query(SelectPeers);
+            var rsLocal = await QueryAsync(SelectLocal).ConfigureAwait(false);
+            var localRow = rsLocal.FirstOrDefault();
+            var rsPeers = await QueryAsync(SelectPeers).ConfigureAwait(false);
             if (localRow == null)
             {
                 _logger.Error("Local host metadata could not be retrieved");

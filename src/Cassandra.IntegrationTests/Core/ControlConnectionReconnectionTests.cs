@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Tasks;
@@ -17,6 +18,8 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short")]
     public class ControlConnectionReconnectionTests : TestGlobals
     {
+        private const int InitTimeout = 2000;
+
         private ControlConnection NewInstance(ITestCluster testCluster, Configuration config = null, Metadata metadata = null)
         {
             var version = GetProtocolVersion();
@@ -48,7 +51,6 @@ namespace Cassandra.IntegrationTests.Core
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator());
-            config.BufferPool = new Microsoft.IO.RecyclableMemoryStreamManager();
             var testCluster = TestClusterManager.GetNonShareableTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
             var metadata = new Metadata(config);
             metadata.AddHost(new IPEndPoint(IPAddress.Parse(testCluster.InitialContactPoint), ProtocolOptions.DefaultPort));
@@ -57,7 +59,7 @@ namespace Cassandra.IntegrationTests.Core
             lbp.Initialize(clusterMock.Object);
             using (var cc = NewInstance(testCluster, config, metadata))
             {
-                cc.Init();
+                cc.Init().Wait(InitTimeout);
                 var host = metadata.Hosts.First();
                 testCluster.Stop(1);
                 host.SetDown();
@@ -73,7 +75,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void Should_Reconnect_Once_If_Called_Serially()
+        public async Task Should_Issue_Reconnect_Once()
         {
             var lbp = new RoundRobinPolicy();
             var config = new Configuration(
@@ -86,7 +88,6 @@ namespace Cassandra.IntegrationTests.Core
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator());
-            config.BufferPool = new Microsoft.IO.RecyclableMemoryStreamManager();
             var testCluster = TestClusterManager.GetNonShareableTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
             var metadata = new Metadata(config);
             metadata.AddHost(new IPEndPoint(IPAddress.Parse(testCluster.InitialContactPoint), ProtocolOptions.DefaultPort));
@@ -95,16 +96,25 @@ namespace Cassandra.IntegrationTests.Core
             lbp.Initialize(clusterMock.Object);
             using (var cc = NewInstance(testCluster, config))
             {
-                cc.Init();
+                await cc.Init();
                 testCluster.Stop(1);
-                var t1 = cc.Reconnect();
-                var t2 = cc.Reconnect();
-                var t3 = cc.Reconnect();
-                var t4 = cc.Reconnect();
-                Assert.AreEqual(t1, t2);
-                Assert.AreEqual(t1, t3);
-                Assert.AreEqual(t1, t4);
-                var ex = Assert.Throws<NoHostAvailableException>(() => TaskHelper.WaitToComplete(t1));
+                const int lengthPerProcessor = 20;
+                var arr = new Task[Environment.ProcessorCount * lengthPerProcessor];
+                Parallel.For(0, Environment.ProcessorCount, j =>
+                {
+                    for (var i = 0; i < lengthPerProcessor; i++)
+                    {
+                        arr[j * lengthPerProcessor + i] = cc.Reconnect();
+                    }
+                });
+                // When any of the tasks completes, all the task should have completed
+                await Task.WhenAny(arr);
+                await Task.Delay(20);
+
+                var notFaultedTaskStatus = arr.Where(t => !t.IsFaulted)
+                                              .Select(t => (TaskStatus?)t.Status).FirstOrDefault();
+                Assert.Null(notFaultedTaskStatus, "Expected only faulted tasks");
+                var ex = Assert.Throws<NoHostAvailableException>(() => TaskHelper.WaitToComplete(arr[0]));
                 Assert.AreEqual(1, ex.Errors.Count);
                 Assert.IsInstanceOf<SocketException>(ex.Errors.Values.First());
             }
@@ -125,7 +135,6 @@ namespace Cassandra.IntegrationTests.Core
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator());
-            config.BufferPool = new Microsoft.IO.RecyclableMemoryStreamManager();
             var testCluster = TestClusterManager.GetNonShareableTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
             var metadata = new Metadata(config);
             metadata.AddHost(new IPEndPoint(IPAddress.Parse(testCluster.InitialContactPoint), ProtocolOptions.DefaultPort));
@@ -134,7 +143,7 @@ namespace Cassandra.IntegrationTests.Core
             lbp.Initialize(clusterMock.Object);
             using (var cc = NewInstance(testCluster, config))
             {
-                cc.Init();
+                cc.Init().Wait(InitTimeout);
                 testCluster.Stop(1);
                 Assert.Throws<NoHostAvailableException>(() => TaskHelper.WaitToComplete(cc.Reconnect()));
                 Assert.Throws<NoHostAvailableException>(() => TaskHelper.WaitToComplete(cc.Reconnect()));

@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -180,10 +181,6 @@ namespace Cassandra
             if (configuration == null)
             {
                 throw new ArgumentNullException("configuration");
-            }
-            if (configuration.BufferPool == null)
-            {
-                throw new ArgumentNullException(null, "BufferPool can not be null");
             }
             _serializer = serializer;
             Configuration = configuration;
@@ -437,7 +434,10 @@ namespace Cassandra
             var protocolVersion = _serializer.ProtocolVersion;
             return _tcpSocket
                 .Connect()
-                .Then(_ => Startup())
+                .Then(_ =>
+                {
+                    return Startup();
+                })
                 .ContinueWith(t =>
                 {
                     if (t.IsFaulted && t.Exception != null)
@@ -781,7 +781,7 @@ namespace Cassandra
                     //lazy initialize the stream
                     stream = stream ?? (RecyclableMemoryStream) Configuration.BufferPool.GetStream(GetType().Name + "/SendStream");
                     frameLength = state.Request.WriteFrame(streamId, stream, _serializer);
-                    if (state.TimeoutMillis > 0 && Configuration.Timer != null)
+                    if (state.TimeoutMillis > 0)
                     {
                         var requestTimeout = Configuration.Timer.NewTimeout(OnTimeout, streamId, state.TimeoutMillis);
                         state.SetTimeout(requestTimeout);
