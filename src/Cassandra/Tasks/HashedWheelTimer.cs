@@ -114,7 +114,7 @@ namespace Cassandra.Tasks
                 // Already started, ignore
                 return;
             }
-            var previousState = Interlocked.CompareExchange(ref _state, InitState, StartedState);
+            var previousState = Interlocked.CompareExchange(ref _state, StartedState, InitState);
             if (previousState == DisposedState)
             {
                 throw new InvalidOperationException("Can not start timer after Disposed");

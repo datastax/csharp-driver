@@ -115,11 +115,7 @@ namespace Cassandra
         {
             var tcs = TaskHelper.TaskCompletionSourceWithTimeout<bool>(
                 Options.ConnectTimeoutMillis, 
-                () =>
-                {
-                    _logger.Info("TCS transitioning to SocketException timedout");
-                    return new SocketException((int) SocketError.TimedOut);
-                });
+                () => new SocketException((int) SocketError.TimedOut));
             var socketConnectTask = tcs.Task;
             var eventArgs = new SocketAsyncEventArgs
             {
@@ -128,7 +124,6 @@ namespace Cassandra
 
             eventArgs.Completed += (sender, e) =>
             {
-                _logger.Info("Completed with err: {0}", e.SocketError);
                 if (e.SocketError != SocketError.Success)
                 {
                     tcs.TrySetException(new SocketException((int)e.SocketError));
