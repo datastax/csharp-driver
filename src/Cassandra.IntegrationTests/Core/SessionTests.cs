@@ -271,6 +271,10 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestTimeout(5 * 60 * 1000), Repeat(10)]
         public async Task Session_With_Host_Changing_Distance()
         {
+            if (TestHelper.IsMono)
+            {
+                Assert.Ignore("The test should not run under the Mono runtime");
+            }
             var lbp = new DistanceChangingLbp();
             var builder = Cluster.Builder()
                 .AddContactPoint(TestCluster.InitialContactPoint)
@@ -319,7 +323,7 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     return localSession.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local"));
                 };
-                await TestHelper.TimesLimit(execute, 500000, 32);
+                await TestHelper.TimesLimit(execute, 200000, 32);
                 Assert.That(pool1.OpenConnections, Is.EqualTo(3));
                 Assert.That(pool2.OpenConnections, Is.EqualTo(3));
             }
