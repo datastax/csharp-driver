@@ -16,7 +16,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -168,10 +167,10 @@ namespace Cassandra
                 }
                 try
                 {
-
-                    //Only abort when twice the time for ConnectTimeout per host passed
-                    var initialAbortTimeout = Configuration.SocketOptions.ConnectTimeoutMillis * 2 * _metadata.Hosts.Count;
-                    //TODO: Handle abort
+                    // Only abort the async operations when at least twice the time for ConnectTimeout per host passed
+                    var initialAbortTimeout = Configuration.SocketOptions.ConnectTimeoutMillis * 2 *
+                                              _metadata.Hosts.Count;
+                    initialAbortTimeout = Math.Max(initialAbortTimeout, ControlConnection.MetadataAbortTimeout);
                     TaskHelper.WaitToComplete(_controlConnection.Init(), initialAbortTimeout);
                     // Initialize policies
                     Configuration.Policies.LoadBalancingPolicy.Initialize(this);
@@ -182,6 +181,14 @@ namespace Cassandra
                 {
                     //No host available now, maybe later it can recover from
                     throw;
+                }
+                catch (TimeoutException ex)
+                {
+                    _initException = ex;
+                    throw new TimeoutException(
+                        "Cluster initialization was aborted after timing out. This mechanism is put in place to" +
+                        " avoid blocking the calling thread forever. This usually caused by a networking issue" +
+                        " between the client driver instance and the cluster.", ex);
                 }
                 catch (Exception ex)
                 {

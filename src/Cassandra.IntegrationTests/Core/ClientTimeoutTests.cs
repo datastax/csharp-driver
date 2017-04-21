@@ -235,7 +235,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_Throw_NoHostAvailable_When_Startup_Times_out()
         {
-            var testCluster = TestClusterManager.CreateNew(1);
+            var testCluster = TestClusterManager.CreateNew();
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(1000).SetConnectTimeoutMillis(1000);
             var builder = Cluster.Builder()
                                  .AddContactPoint(testCluster.InitialContactPoint)

@@ -691,16 +691,17 @@ namespace Cassandra
             {
                 startupOptions.Add("COMPRESSION", "snappy");
             }
-            return Send(new StartupRequest(startupOptions));
+            // Use the Connect timeout for the startup request timeout 
+            return Send(new StartupRequest(startupOptions), Configuration.SocketOptions.ConnectTimeoutMillis);
         }
 
         /// <summary>
         /// Sends a new request if possible. If it is not possible it queues it up.
         /// </summary>
-        public Task<Response> Send(IRequest request)
+        public Task<Response> Send(IRequest request, int timeoutMillis = Timeout.Infinite)
         {
             var tcs = new TaskCompletionSource<Response>();
-            Send(request, tcs.TrySet);
+            Send(request, tcs.TrySet, timeoutMillis);
             return tcs.Task;
         }
 

@@ -59,6 +59,7 @@
   <ItemGroup>
     <Compile Include="Core\ClientTimeoutTests.cs" />
     <Compile Include="Core\ClientWarningsTests.cs" />
+    <Compile Include="Core\ClusterSharedSingleNodeTests.cs" />
     <Compile Include="Core\ClusterTests.cs" />
     <Compile Include="Core\CompressionTests.cs" />
     <Compile Include="Core\ControlConnectionReconnectionTests.cs" />
