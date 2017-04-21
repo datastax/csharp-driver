@@ -141,22 +141,22 @@ namespace Cassandra
                 return await ConnectSsl();
             }
             // Prepare read and write
-            // There are 2 modes: using SocketAsyncEventArgs (most performant) and Stream mode with APM methods
-            if (!Options.UseStreamMode)
+            // There are 2 modes: using SocketAsyncEventArgs (most performant) and Stream mode
+            if (Options.UseStreamMode)
             {
-                _logger.Verbose("Socket connected, start reading using SocketEventArgs interface");
-                //using SocketAsyncEventArgs
-                _receiveSocketEvent = new SocketAsyncEventArgs();
-                _receiveSocketEvent.SetBuffer(_receiveBuffer, 0, _receiveBuffer.Length);
-                _receiveSocketEvent.Completed += OnReceiveCompleted;
-                _sendSocketEvent = new SocketAsyncEventArgs();
-                _sendSocketEvent.Completed += OnSendCompleted;
+                _logger.Verbose("Socket connected, start reading using Stream interface");
+                //Stream mode: not the most performant but it is a choice
+                _socketStream = new NetworkStream(_socket);
                 ReceiveAsync();
                 return true;
             }
-            _logger.Verbose("Socket connected, start reading using Stream interface");
-            //Stream mode: not the most performant but it is a choice
-            _socketStream = new NetworkStream(_socket);
+            _logger.Verbose("Socket connected, start reading using SocketEventArgs interface");
+            //using SocketAsyncEventArgs
+            _receiveSocketEvent = new SocketAsyncEventArgs();
+            _receiveSocketEvent.SetBuffer(_receiveBuffer, 0, _receiveBuffer.Length);
+            _receiveSocketEvent.Completed += OnReceiveCompleted;
+            _sendSocketEvent = new SocketAsyncEventArgs();
+            _sendSocketEvent.Completed += OnSendCompleted;
             ReceiveAsync();
             return true;
         }
@@ -190,21 +190,24 @@ namespace Cassandra
             var tcs = TaskHelper.TaskCompletionSourceWithTimeout<bool>(
                 Options.ConnectTimeoutMillis,
                 () => new TimeoutException("The timeout period elapsed prior to completion of SSL authentication operation."));
-#pragma warning disable 4014
+
             sslStream.AuthenticateAsClientAsync(targetHost,
-                                                SSLOptions.CertificateCollection,
-                                                SSLOptions.SslProtocol,
-                                                SSLOptions.CheckCertificateRevocation)
+                         SSLOptions.CertificateCollection,
+                         SSLOptions.SslProtocol,
+                         SSLOptions.CheckCertificateRevocation)
                      .ContinueWith(t =>
                      {
                          if (t.Exception != null)
                          {
+                             // ReSharper disable once AssignNullToNotNullAttribute
                              tcs.TrySetException(t.Exception.InnerException);
                              return;
                          }
                          tcs.TrySetResult(true);
-                     }, TaskContinuationOptions.ExecuteSynchronously);
-#pragma warning restore 4014
+                     }, TaskContinuationOptions.ExecuteSynchronously)
+                     // Do not await as it may never yield
+                     .Forget();
+
             await tcs.Task.ConfigureAwait(false);
             _logger.Verbose("SSL authentication successful");
             ReceiveAsync();

@@ -86,7 +86,7 @@ namespace Cassandra
             _metadata = metadata;
             _reconnectionPolicy = config.Policies.ReconnectionPolicy;
             _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
-            _reconnectionTimer = new Timer(_ => TaskHelper.Forget(Reconnect()), null, Timeout.Infinite, Timeout.Infinite);
+            _reconnectionTimer = new Timer(_ => Reconnect().Forget(), null, Timeout.Infinite, Timeout.Infinite);
             _config = config;
             _serializer = new Serializer(initialProtocolVersion, config.TypeSerializers);
         }
@@ -207,7 +207,6 @@ namespace Cassandra
                 return await currentTask.ConfigureAwait(false);
             }
             Unsubscribe();
-            #pragma warning disable 4014 // Compiler is trying to warn about a task not awaited upon: its not a problem
             try
             {
                 await Connect(false).ConfigureAwait(false);
@@ -215,7 +214,7 @@ namespace Cassandra
             catch (Exception ex)
             {
                 // It failed to reconnect, schedule the timer for next reconnection and let go.
-                Interlocked.Exchange(ref _reconnectTask, null);
+                Interlocked.Exchange(ref _reconnectTask, null).Forget();
                 tcs.TrySetException(ex);
                 var delay = _reconnectionSchedule.NextDelayMs();
                 _logger.Error("ControlConnection was not able to reconnect: " + ex);
@@ -241,12 +240,12 @@ namespace Cassandra
                 TaskHelper.WaitToComplete(_metadata.RefreshKeyspaces(false), MetadataAbortTimeout);
                 _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
                 tcs.TrySetResult(true);
-                Interlocked.Exchange(ref _reconnectTask, null);
+                Interlocked.Exchange(ref _reconnectTask, null).Forget();
                 _logger.Info("ControlConnection reconnected to host {0}", _host.Address);
             }
             catch (Exception ex)
             {
-                Interlocked.Exchange(ref _reconnectTask, null);
+                Interlocked.Exchange(ref _reconnectTask, null).Forget();
                 _logger.Error("There was an error when trying to refresh the ControlConnection", ex);
                 tcs.TrySetException(ex);
                 try
@@ -258,7 +257,6 @@ namespace Cassandra
                     //Control connection is being disposed
                 }
             }
-            #pragma warning restore 4014
             return await tcs.Task;
         }
 
@@ -350,7 +348,7 @@ namespace Cassandra
             _logger.Warning("Host {0} used by the ControlConnection DOWN", h.Address);
             Task.Factory.StartNew(() => Reconnect(), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
         }
-        
+
         private void OnConnectionCassandraEvent(object sender, CassandraEventArgs e)
         {
             //This event is invoked from a worker thread (not a IO thread)
@@ -360,7 +358,7 @@ namespace Cassandra
                 if (tce.What == TopologyChangeEventArgs.Reason.NewNode || tce.What == TopologyChangeEventArgs.Reason.RemovedNode)
                 {
                     // Start refresh
-                    TaskHelper.Forget(Refresh());
+                    Refresh().Forget();
                     return;
                 }
             }

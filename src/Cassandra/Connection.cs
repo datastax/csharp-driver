@@ -17,7 +17,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -434,10 +433,7 @@ namespace Cassandra
             var protocolVersion = _serializer.ProtocolVersion;
             return _tcpSocket
                 .Connect()
-                .Then(_ =>
-                {
-                    return Startup();
-                })
+                .Then(_ => Startup())
                 .ContinueWith(t =>
                 {
                     if (t.IsFaulted && t.Exception != null)
