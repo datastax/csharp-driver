@@ -10,22 +10,42 @@ namespace Cassandra.Mapping
     {
         /// <summary>
         /// Creates a new batch.
+        /// <para>
+        /// To set the consistency level, timestamp and other batch options, use
+        /// <see cref="ICqlBatch.WithOptions(System.Action{CqlQueryOptions})"/>. Individual options for each
+        /// query within the batch will be ignored.
+        /// </para>
         /// </summary>
         ICqlBatch CreateBatch();
 
         /// <summary>
         /// Creates a new batch.
+        /// <para>
+        /// To set the consistency level, timestamp and other batch options, use
+        /// <see cref="ICqlBatch.WithOptions(System.Action{CqlQueryOptions})"/>. Individual options for each
+        /// query within the batch will be ignored.
+        /// </para>
         /// </summary>
         ICqlBatch CreateBatch(BatchType batchType);
 
         /// <summary>
         /// Executes the batch specfied synchronously.
         /// </summary>
+        /// <remarks>
+        /// To set the consistency level, timestamp and other batch options, use
+        /// <see cref="ICqlBatch.WithOptions(System.Action{CqlQueryOptions})"/>. Individual options for each
+        /// query within the batch will be ignored.
+        /// </remarks>
         void Execute(ICqlBatch batch);
 
         /// <summary>
         /// Executes the batch specified asynchronously.
         /// </summary>
+        /// <remarks>
+        /// To set the consistency level, timestamp and other batch options, use
+        /// <see cref="ICqlBatch.WithOptions(System.Action{CqlQueryOptions})"/>. Individual options for each
+        /// query within the batch will be ignored.
+        /// </remarks>
         Task ExecuteAsync(ICqlBatch batch);
 
         /// <summary>
@@ -220,6 +240,11 @@ namespace Cassandra.Mapping
         /// <para>
         /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
         /// </para>
+        /// <remarks>
+        /// To set the consistency level, timestamp and other batch options, use
+        /// <see cref="ICqlBatch.WithOptions(System.Action{CqlQueryOptions})"/>. Individual options for each
+        /// query within the batch will be ignored.
+        /// </remarks>
         Task<AppliedInfo<T>> ExecuteConditionalAsync<T>(ICqlBatch batch);
 
         /// <summary>
@@ -228,6 +253,11 @@ namespace Cassandra.Mapping
         /// <para>
         /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
         /// </para>
+        /// <remarks>
+        /// To set the consistency level, timestamp and other batch options, use
+        /// <see cref="ICqlBatch.WithOptions(System.Action{CqlQueryOptions})"/>. Individual options for each
+        /// query within the batch will be ignored.
+        /// </remarks>
         AppliedInfo<T> ExecuteConditional<T>(ICqlBatch batch);
     }
 }

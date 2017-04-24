@@ -21,6 +21,8 @@ namespace Cassandra.Mapping
 
         public BatchType BatchType { get; private set; }
 
+        public CqlQueryOptions Options { get; private set; }
+
         public CqlBatch(MapperFactory mapperFactory, CqlGenerator cqlGenerator)
             :this(mapperFactory, cqlGenerator, BatchType.Logged)
         {
@@ -32,9 +34,9 @@ namespace Cassandra.Mapping
             if (cqlGenerator == null) throw new ArgumentNullException("cqlGenerator");
             _mapperFactory = mapperFactory;
             _cqlGenerator = cqlGenerator;
-
             _statements = new List<Cql>();
             BatchType = type;
+            Options = new CqlQueryOptions();
         }
 
         public void Insert<T>(T poco, CqlQueryOptions queryOptions = null)
@@ -51,8 +53,7 @@ namespace Cassandra.Mapping
         {
             Insert(false, insertNulls, poco, queryOptions, ttl);
         }
-
-
+        
         public void InsertIfNotExists<T>(T poco, CqlQueryOptions queryOptions = null)
         {
             InsertIfNotExists(poco, true, queryOptions);
@@ -132,6 +133,16 @@ namespace Cassandra.Mapping
         public void Execute(Cql cql)
         {
             _statements.Add(cql);
+        }
+
+        public ICqlBatch WithOptions(Action<CqlQueryOptions> action)
+        {
+            if (action == null)
+            {
+                throw new ArgumentNullException("action");
+            }
+            action(Options);
+            return this;
         }
 
         public TDatabase ConvertCqlArgument<TValue, TDatabase>(TValue value)

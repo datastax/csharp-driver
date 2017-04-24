@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Cassandra.Mapping
@@ -16,6 +17,16 @@ namespace Cassandra.Mapping
         /// The type of batch to use.
         /// </summary>
         BatchType BatchType { get; }
+
+        /// <summary>
+        /// The execution options to use.
+        /// </summary>
+        CqlQueryOptions Options { get; }
+
+        /// <summary>
+        /// Configures any individual option for this instance.
+        /// </summary>
+        ICqlBatch WithOptions(Action<CqlQueryOptions> action);
 
         /// <summary>
         /// Allows you to convert an argument/bind variable value being used in a CQL statement using the same converters that are being used by the client
