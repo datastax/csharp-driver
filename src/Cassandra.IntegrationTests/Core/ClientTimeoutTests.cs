@@ -252,5 +252,31 @@ namespace Cassandra.IntegrationTests.Core
                 testCluster.ResumeNode(1);
             }
         }
+
+        [Test]
+        public void Should_Not_Leak_Connections_Test()
+        {
+            var testCluster = TestClusterManager.CreateNew();
+            var socketOptions = new SocketOptions().SetReadTimeoutMillis(1).SetConnectTimeoutMillis(1);
+            var builder = Cluster.Builder()
+                                 .AddContactPoint(testCluster.InitialContactPoint)
+                                 .WithSocketOptions(socketOptions);
+
+            testCluster.PauseNode(1);
+            const int length = 200;
+            using (var cluster = builder.Build())
+            {
+                var initialLength = GC.GetTotalMemory(true);
+                for (var i = 0; i < length; i++)
+                {
+                    var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
+                    Assert.AreEqual(1, ex.Errors.Count);
+                }
+                GC.Collect();
+                Thread.Sleep(1000);
+                testCluster.ResumeNode(1);
+                Assert.Less(GC.GetTotalMemory(true), initialLength * 1.4);
+            }
+        }
     }
 }

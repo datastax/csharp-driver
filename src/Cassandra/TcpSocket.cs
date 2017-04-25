@@ -132,10 +132,15 @@ namespace Cassandra
                 tcs.TrySetResult(true);
                 e.Dispose();
             };
-
-            _socket.ConnectAsync(eventArgs);
-            await socketConnectTask;
-            _logger.Info("socketConnectTask completed");
+            try
+            {
+                _socket.ConnectAsync(eventArgs);
+                await socketConnectTask;
+            }
+            finally
+            {
+                eventArgs.Dispose();
+            }
             if (SSLOptions != null)
             {
                 return await ConnectSsl();
