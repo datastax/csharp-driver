@@ -191,8 +191,6 @@ namespace Cassandra.IntegrationTests.Core
 
             // wait for the node to be up
             testCluster.Start(1);
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
             TestUtils.WaitForUp(testCluster.InitialContactPoint, 9042, 5);
             // Now the node is ready to accept connections
             var session = cluster.Connect("system");
