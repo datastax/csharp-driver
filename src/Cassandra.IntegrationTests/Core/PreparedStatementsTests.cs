@@ -190,7 +190,7 @@ namespace Cassandra.IntegrationTests.Core
         /// 
         /// @since 3.0.0
         /// @jira_ticket CSHARP-356
-        /// @expected_result In Cassandra < 2.2 should throw an error, while in Cassandra >= 2.2 the driver should set UNSET values.
+        /// @expected_result In Cassandra &lt; 2.2 should throw an error, while in Cassandra >= 2.2 the driver should set UNSET values.
         /// 
         /// @test_category data_types:unset
         [Test]
@@ -762,17 +762,29 @@ namespace Cassandra.IntegrationTests.Core
         public void Prepared_With_Composite_Routing_Key()
         {
             Session.Execute("CREATE TABLE tbl_ps_multiple_pk (a uuid, b text, c text, d text, primary key ((a, b), c))");
+            // Parameters at position 2 and 0 are part of the routing key
             var ps = Session.Prepare("SELECT * FROM tbl_ps_multiple_pk WHERE b = ? AND c = ? AND a = ?");
-            //Parameters at position 2 and 0 are part of the routing key
             CollectionAssert.AreEqual(new[] { 2, 0 }, ps.RoutingIndexes);
+            var bound = ps.Bind("a", "c", Guid.NewGuid());
+            Assert.NotNull(bound.RoutingKey);
+            Assert.AreEqual(bound.Keyspace, KeyspaceName);
+
+            // The same as before but with keyspace specified
+            ps = Session.Prepare(string.Format("SELECT * FROM {0}.tbl_ps_multiple_pk WHERE b = ? AND c = ? AND a = ?", KeyspaceName));
+            bound = ps.Bind("a", "c", Guid.NewGuid());
+            Assert.NotNull(bound.RoutingKey);
+            Assert.AreEqual(bound.Keyspace, KeyspaceName);
+            Assert.AreEqual(KeyspaceName, bound.Keyspace);
 
             ps = Session.Prepare("SELECT * FROM tbl_ps_multiple_pk WHERE b = :b AND a = :a AND c = :ce");
-            //Parameters at position 1 and 0 are part of the routing key
+            // Parameters at position 1 and 0 are part of the routing key
             CollectionAssert.AreEqual(new[] { 1, 0 }, ps.RoutingIndexes);
-            Assert.NotNull(ps.Bind("a", Guid.NewGuid()).RoutingKey);
+            bound = ps.Bind("a", Guid.NewGuid());
+            Assert.NotNull(bound.RoutingKey);
+            Assert.AreEqual(bound.Keyspace, KeyspaceName);
 
+            // Parameters names are different from partition keys
             ps = Session.Prepare("SELECT * FROM tbl_ps_multiple_pk WHERE b = :nice_name1 AND a = :nice_name2 AND c = :nice_name3");
-            //Parameters names are different from partition keys
             if (CassandraVersion < new Version(2, 2))
             {
                 //For older versions, there is no way to determine that nice_name_a is actually partition column
