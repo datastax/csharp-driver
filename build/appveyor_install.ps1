@@ -63,7 +63,7 @@ If (!(Test-Path $jce_indicator)) {
 Write-Host "Installing CCM and its dependencies"
 Start-Process python -ArgumentList "-m pip install psutil pyYaml six" -Wait -NoNewWindow
 
-$env:CCM_PATH="$($env:HOMEPATH)\ccm"
+$env:CCM_PATH="C:$($env:HOMEPATH)\ccm"
 
 If (!(Test-Path $env:CCM_PATH)) {
   Write-Host "Cloning git ccm... $($env:CCM_PATH)"
@@ -72,7 +72,11 @@ If (!(Test-Path $env:CCM_PATH)) {
   pushd $env:CCM_PATH
   Start-Process python -ArgumentList "setup.py install" -Wait -NoNewWindow
   popd
-  Copy-Item "$($env:PYTHON)\Scripts\ccm.py" "$($env:PYTHON)\Scripts\ccm"
+}
+
+$sslPath="C:$($env:HOMEPATH)\ssl"
+If (!(Test-Path $sslPath)) {
+  Copy-Item "$($env:CCM_PATH)\ssl" -Destination $sslPath -Recurse
 }
 
 Write-Host "Set execution Policy"
