@@ -96,7 +96,7 @@ namespace Cassandra
         {
             _preparedStatement = statement;
             _routingKey = statement.RoutingKey;
-            _keyspace = statement.Keyspace;
+            _keyspace = statement.Metadata.Keyspace;
             SetConsistencyLevel(statement.ConsistencyLevel);
             if (statement.IsIdempotent != null)
             {

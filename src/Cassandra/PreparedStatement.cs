@@ -34,6 +34,7 @@ namespace Cassandra
         private readonly Serializer _serializer;
         private volatile RoutingKey _routingKey;
         private string[] _routingNames;
+        private volatile int[] _routingIndexes;
 
         /// <summary>
         /// The cql query
@@ -80,7 +81,11 @@ namespace Cassandra
         /// <summary>
         /// Gets or sets the parameter indexes that are part of the partition key
         /// </summary>
-        public int[] RoutingIndexes { get; internal set; }
+        public int[] RoutingIndexes
+        {
+            get { return _routingIndexes; }
+            internal set { _routingIndexes = value; }
+        }
 
         /// <summary>
         /// Gets the default consistency level for all executions using this instance
@@ -193,7 +198,7 @@ namespace Cassandra
                 //The parameter names don't match the partition keys
                 return false;
             }
-            RoutingIndexes = routingIndexes.ToArray();
+            _routingIndexes = routingIndexes.ToArray();
             return true;
         }
 

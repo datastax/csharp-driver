@@ -253,6 +253,11 @@ namespace Cassandra
 
         internal byte[] PagingState { get; private set; }
 
+        /// <summary>
+        /// Returns the keyspace as defined in the metadata response by global tables spec or the first column.
+        /// </summary>
+        internal string Keyspace { get; private set; }
+
         public CqlColumn[] Columns { get; internal set; }
 
         /// <summary>
@@ -268,9 +273,8 @@ namespace Cassandra
                 //Allow to be created for unit tests
                 return;
             }
-            var coldat = new List<ColumnDesc>();
             var flags = (RowSetMetadataFlags) reader.ReadInt32();
-            var numberOfcolumns = reader.ReadInt32();
+            var columnLength = reader.ReadInt32();
 
             if (parsePartitionKeys)
             {
@@ -288,7 +292,6 @@ namespace Cassandra
             {
                 PagingState = reader.ReadBytes();
             }
-
             if ((flags & RowSetMetadataFlags.NoMetadata) == RowSetMetadataFlags.NoMetadata)
             {
                 return;
@@ -299,10 +302,12 @@ namespace Cassandra
                 gTablename = reader.ReadString();
             }
 
-            for (var i = 0; i < numberOfcolumns; i++)
+            Columns = new CqlColumn[columnLength];
+            ColumnIndexes = new Dictionary<string, int>(columnLength);
+            for (var i = 0; i < columnLength; i++)
             {
-                var col = new ColumnDesc();
-                if ((flags & RowSetMetadataFlags.GlobalTablesSpec) != RowSetMetadataFlags.GlobalTablesSpec)
+                var col = new CqlColumn { Index = i };
+                if ((flags & RowSetMetadataFlags.GlobalTablesSpec) == 0)
                 {
                     col.Keyspace = reader.ReadString();
                     col.Table = reader.ReadString();
@@ -315,29 +320,11 @@ namespace Cassandra
                 col.Name = reader.ReadString();
                 col.TypeCode = (ColumnTypeCode) reader.ReadUInt16();
                 col.TypeInfo = GetColumnInfo(reader, col.TypeCode);
-                coldat.Add(col);
+                col.Type = reader.Serializer.GetClrType(col.TypeCode, col.TypeInfo);
+                Columns[i] = col;
+                ColumnIndexes[col.Name] = i;
             }
-            var rawColumns = coldat.ToArray();
-
-            Columns = new CqlColumn[rawColumns.Length];
-            ColumnIndexes = new Dictionary<string, int>();
-            for (var i = 0; i < rawColumns.Length; i++)
-            {
-                Columns[i] = new CqlColumn
-                {
-                    Name = rawColumns[i].Name,
-                    Keyspace = rawColumns[i].Keyspace,
-                    Table = rawColumns[i].Table,
-                    Type = reader.Serializer.GetClrType(
-                        rawColumns[i].TypeCode,
-                        rawColumns[i].TypeInfo),
-                    TypeCode = rawColumns[i].TypeCode,
-                    TypeInfo = rawColumns[i].TypeInfo,
-                    Index = i
-                };
-
-                ColumnIndexes[rawColumns[i].Name] = i;
-            }
+            Keyspace = gKsname ?? (columnLength > 0 ? Columns[0].Keyspace : null);
         }
 
         private IColumnInfo GetColumnInfo(FrameReader reader, ColumnTypeCode code)

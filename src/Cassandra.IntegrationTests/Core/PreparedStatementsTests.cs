@@ -18,7 +18,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Collections.Generic;
-using System.Numerics;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
@@ -765,12 +764,15 @@ namespace Cassandra.IntegrationTests.Core
             // Parameters at position 2 and 0 are part of the routing key
             var ps = Session.Prepare("SELECT * FROM tbl_ps_multiple_pk WHERE b = ? AND c = ? AND a = ?");
             CollectionAssert.AreEqual(new[] { 2, 0 }, ps.RoutingIndexes);
+            Assert.AreEqual(ps.Keyspace, KeyspaceName);
             var bound = ps.Bind("a", "c", Guid.NewGuid());
             Assert.NotNull(bound.RoutingKey);
             Assert.AreEqual(bound.Keyspace, KeyspaceName);
 
             // The same as before but with keyspace specified
-            ps = Session.Prepare(string.Format("SELECT * FROM {0}.tbl_ps_multiple_pk WHERE b = ? AND c = ? AND a = ?", KeyspaceName));
+            var fullyQualifiedQuery = string.Format(
+                "SELECT * FROM {0}.tbl_ps_multiple_pk WHERE b = ? AND c = ? AND a = ?", KeyspaceName);
+            ps = Session.Prepare(fullyQualifiedQuery);
             bound = ps.Bind("a", "c", Guid.NewGuid());
             Assert.NotNull(bound.RoutingKey);
             Assert.AreEqual(bound.Keyspace, KeyspaceName);
@@ -790,6 +792,14 @@ namespace Cassandra.IntegrationTests.Core
                 //For older versions, there is no way to determine that nice_name_a is actually partition column
                 Assert.Null(ps.RoutingIndexes);
             }
+
+            // using a different session, not using any keyspace
+            var otherSession = Cluster.Connect();
+            ps = otherSession.Prepare(fullyQualifiedQuery);
+            // It was not prepared in any keyspace, so it should be null
+            Assert.Null(ps.Keyspace);
+            bound = ps.Bind("a", "c", Guid.NewGuid());
+            Assert.AreEqual(bound.Keyspace, KeyspaceName);
         }
 
         [Test]

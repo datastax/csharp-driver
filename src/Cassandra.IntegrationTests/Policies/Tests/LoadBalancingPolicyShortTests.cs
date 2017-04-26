@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using Cassandra.IntegrationTests.Policies.Util;
@@ -330,6 +331,42 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                     //The coordinator must be the only one executing the query
                     Assert.True(t.Events.All(e => e.Source.ToString() == t.Coordinator.ToString()), "There were trace events from another host for coordinator " + t.Coordinator);
                 }
+            }
+            finally
+            {
+                cluster.Dispose();
+                testCluster.Remove();
+            }
+        }
+
+        [Test]
+        public void Token_Aware_Uses_Keyspace_From_Statement_To_Determine_Replication()
+        {
+            var testCluster = TestClusterManager.CreateNew(3, new TestClusterOptions { UseVNodes = true });
+            var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build();
+            try
+            {
+                // Connect without a keyspace
+                var session = cluster.Connect();
+                session.Execute("CREATE KEYSPACE ks_tap_stmt_ks WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 2}");
+                session.Execute("CREATE TABLE ks_tap_stmt_ks.tbl1 (id uuid primary key)");
+                var ps = session.Prepare("INSERT INTO ks_tap_stmt_ks.tbl1 (id) VALUES (?)");
+                var id = Guid.NewGuid();
+                var coordinators = new HashSet<IPEndPoint>();
+                for (var i = 0; i < 20; i++)
+                {
+                    var rs = session.Execute(ps.Bind(id));
+                    coordinators.Add(rs.Info.QueriedHost);
+                }
+                // There should be exactly 2 different coordinators for a given token
+                Assert.AreEqual(2, coordinators.Count);
+
+                // Manually calculate the routing key
+                var routingKey = Serializer.Default.Serialize(id);
+                // Get the replicas
+                var replicas = cluster.GetReplicas("ks_tap_stmt_ks", routingKey);
+                Assert.AreEqual(2, replicas.Count);
+                CollectionAssert.AreEquivalent(replicas.Select(h => h.Address), coordinators);
             }
             finally
             {
