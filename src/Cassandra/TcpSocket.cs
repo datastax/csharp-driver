@@ -506,7 +506,7 @@ namespace Cassandra
             }
             catch
             {
-                //We should not mind if the socket Close methods throw an exception
+                //We should not mind if socket's Close method throws an exception
             }
             if (_receiveSocketEvent != null)
             {

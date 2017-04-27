@@ -70,7 +70,7 @@ namespace Cassandra.Tests
         {
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(1).SetConnectTimeoutMillis(1);
             var builder = Cluster.Builder()
-                                 .AddContactPoint("1.1.1.1")
+                                 .AddContactPoint(TestHelper.UnreachableHostAddress)
                                  .WithSocketOptions(socketOptions);
             const int length = 1000;
             using (var cluster = builder.Build())
