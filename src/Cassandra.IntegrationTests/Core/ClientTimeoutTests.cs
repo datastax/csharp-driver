@@ -263,10 +263,10 @@ namespace Cassandra.IntegrationTests.Core
                                  .WithSocketOptions(socketOptions);
 
             testCluster.PauseNode(1);
-            const int length = 200;
+            const int length = 1000;
             using (var cluster = builder.Build())
             {
-                var initialLength = GC.GetTotalMemory(true);
+                decimal initialLength = GC.GetTotalMemory(true);
                 for (var i = 0; i < length; i++)
                 {
                     var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
@@ -275,7 +275,8 @@ namespace Cassandra.IntegrationTests.Core
                 GC.Collect();
                 Thread.Sleep(1000);
                 testCluster.ResumeNode(1);
-                Assert.Less(GC.GetTotalMemory(true), initialLength * 1.4);
+                Assert.Less(GC.GetTotalMemory(true) / initialLength, 1.2M,
+                    "Should not exceed a 20% (1.2) more than was previously allocated");
             }
         }
     }

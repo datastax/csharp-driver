@@ -495,11 +495,18 @@ namespace Cassandra
                 //Try to close it.
                 //Some operations could make the socket to dispose itself
                 _socket.Shutdown(SocketShutdown.Both);
+            }
+            catch
+            {
+                // Shutdown might throw an exception if the socket was not open-open
+            }
+            try
+            {
                 _socket.Dispose();
             }
             catch
             {
-                //We should not mind if the socket shutdown or close methods throw an exception
+                //We should not mind if the socket Close methods throw an exception
             }
             if (_receiveSocketEvent != null)
             {

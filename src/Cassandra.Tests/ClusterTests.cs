@@ -64,5 +64,27 @@ namespace Cassandra.Tests
             Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
             Assert.DoesNotThrow(cluster.Dispose);
         }
+
+        [Test]
+        public void Should_Not_Leak_Connections_When_Node_Unreacheable_Test()
+        {
+            var socketOptions = new SocketOptions().SetReadTimeoutMillis(1).SetConnectTimeoutMillis(1);
+            var builder = Cluster.Builder()
+                                 .AddContactPoint("1.1.1.1")
+                                 .WithSocketOptions(socketOptions);
+            const int length = 1000;
+            using (var cluster = builder.Build())
+            {
+                decimal initialLength = GC.GetTotalMemory(true);
+                for (var i = 0; i < length; i++)
+                {
+                    var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
+                    Assert.AreEqual(1, ex.Errors.Count);
+                }
+                GC.Collect();
+                Assert.Less(GC.GetTotalMemory(true) / initialLength, 1.2M,
+                    "Should not exceed a 20% (1.2) more than was previously allocated");
+            }
+        }
     }
 }
