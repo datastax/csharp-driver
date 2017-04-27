@@ -6,7 +6,7 @@ cache:
   - C:\ProgramData\chocolatey\lib -> .\build\appveyor_install.ps1
   - C:\Users\appveyor\.ccm\repository -> .\build\appveyor_install.ps1
   - C:\Users\appveyor\deps -> .\build\appveyor_install.ps1
-os: Previous Visual Studio 2015
+image: Visual Studio 2015
 platform:
   - Any CPU
 configuration:
