@@ -31,7 +31,8 @@
       },
       "dependencies": {
         "Moq": "4.2.1402.2112",
-        "Microsoft.NETCore.Platforms": "1.0.1"
+        "Microsoft.NETCore.Platforms": "1.0.1",
+        "JetBrains.DotMemoryUnit": "2.3.20160517.113140"
       }
     },
     "netcoreapp1.0": {

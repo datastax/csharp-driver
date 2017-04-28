@@ -79,10 +79,17 @@ If (!(Test-Path $sslPath)) {
   Copy-Item "$($env:CCM_PATH)\ssl" -Destination $sslPath -Recurse
 }
 
-$sslPath="$($env:HOMEPATH)\ssl"
-If (!(Test-Path $sslPath)) {
-  Copy-Item "$($env:CCM_PATH)\ssl" -Destination $sslPath -Recurse
+#install dotMemory unit
+$dotMemory_base = "$($dep_dir)\dotMemory"
+If (!(Test-Path $dotMemory_base)) {
+  Write-Host "Installing dotMemory"
+  $dotMemory_url = "https://download-cf.jetbrains.com/resharper/JetBrains.dotMemoryUnit.2.3.20160517.113140.zip"
+  $dotMemory_zip = "C:\Users\appveyor\dotMemory.zip"
+  (new-object System.Net.WebClient).DownloadFile($dotMemory_url, $dotMemory_zip)
+  [System.IO.Compression.ZipFile]::ExtractToDirectory($dotMemory_zip, $dotMemory_base)
 }
+$env:PATH="$($dotMemory_base);$($env:PATH)"
+
 
 Write-Host "Set execution Policy"
 Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process
