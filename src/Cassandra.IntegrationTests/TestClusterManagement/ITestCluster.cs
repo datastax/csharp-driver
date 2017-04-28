@@ -24,6 +24,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         void Remove();
 
         /// <summary>
+        /// Removes specific node from Cassandra cluster.
+        /// </summary>
+        void Remove(int nodeId);
+
+        /// <summary>
         /// Creates the cluster with the option provided
         /// </summary>
         void Create(int nodeLength, TestClusterOptions options = null);

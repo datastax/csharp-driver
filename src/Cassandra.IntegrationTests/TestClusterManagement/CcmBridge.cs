@@ -142,6 +142,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             ExecuteCcm("remove");
         }
 
+        public void Remove(int nodeId)
+        {
+            ExecuteCcm(string.Format("node{0} remove", nodeId));
+        }
+
         public void BootstrapNode(int n)
         {
             BootstrapNode(n, null);
