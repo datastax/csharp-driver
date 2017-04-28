@@ -50,6 +50,7 @@ namespace Cassandra.IntegrationTests.Core
                     actions[i] = session.ExecuteAsync(new SimpleStatement("SELECT * FROM local"));
                 }
                 Task.WaitAll(actions);
+                Assert.That(actions.Count(a => a.Exception != null), Is.EqualTo(0));
             }
         }
 
