@@ -107,6 +107,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                     DateTimeType = entity.DateTimeType
                 };
                 AllDataTypesEntityUtil.AssertListContains(actualEntities, expectedEntity);
+                Assert.AreEqual(DateTimeKind.Utc, entity.DateTimeType.Kind);
             }
         }
 
