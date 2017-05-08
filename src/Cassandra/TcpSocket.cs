@@ -197,9 +197,9 @@ namespace Cassandra
                 () => new TimeoutException("The timeout period elapsed prior to completion of SSL authentication operation."));
 
             sslStream.AuthenticateAsClientAsync(targetHost,
-                         SSLOptions.CertificateCollection,
-                         SSLOptions.SslProtocol,
-                         SSLOptions.CheckCertificateRevocation)
+                                                SSLOptions.CertificateCollection,
+                                                SSLOptions.SslProtocol,
+                                                SSLOptions.CheckCertificateRevocation)
                      .ContinueWith(t =>
                      {
                          if (t.Exception != null)
