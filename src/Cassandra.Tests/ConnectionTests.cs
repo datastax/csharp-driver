@@ -22,14 +22,9 @@ namespace Cassandra.Tests
 
         private static Mock<Connection> GetConnectionMock(Configuration config = null)
         {
-            if (config == null)
-            {
-                config = new Configuration
-                {
-                    BufferPool = new RecyclableMemoryStreamManager()
-                };   
-            }
-            return new Mock<Connection>(MockBehavior.Loose, new Serializer(ProtocolVersion.MaxSupported), Address, config);
+            config = config ?? new Configuration();
+            return new Mock<Connection>(
+                MockBehavior.Loose, new Serializer(ProtocolVersion.MaxSupported), Address, config);
         }
 
         [Test]

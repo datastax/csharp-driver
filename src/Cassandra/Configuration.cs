@@ -23,7 +23,7 @@ using Microsoft.IO;
 namespace Cassandra
 {
     /// <summary>
-    ///  The configuration of the cluster. This handle setting: <ul> <li>Cassandra
+    ///  The configuration of the cluster. It configures the following: <ul> <li>Cassandra
     ///  binary protocol level configuration (compression).</li> <li>Connection
     ///  pooling configurations.</li> <li>low-level tcp configuration options
     ///  (tcpNoDelay, keepAlive, ...).</li> </ul>
@@ -40,6 +40,8 @@ namespace Cassandra
         private readonly QueryOptions _queryOptions;
         private readonly SocketOptions _socketOptions;
         private readonly IAddressTranslator _addressTranslator;
+        private readonly RecyclableMemoryStreamManager _bufferPool;
+        private readonly HashedWheelTimer _timer;
 
         /// <summary>
         ///  Gets the policies set for the cluster.
@@ -126,12 +128,18 @@ namespace Cassandra
         /// <summary>
         /// Shared reusable timer
         /// </summary>
-        internal HashedWheelTimer Timer { get; set; }
+        internal HashedWheelTimer Timer
+        {
+            get { return _timer; }
+        }
 
         /// <summary>
         /// Shared buffer pool
         /// </summary>
-        internal RecyclableMemoryStreamManager BufferPool { get; set;}
+        internal RecyclableMemoryStreamManager BufferPool
+        {
+            get { return _bufferPool; }
+        }
 
         /// <summary>
         /// Gets or sets the list of <see cref="TypeSerializer{T}"/> defined.
@@ -182,6 +190,11 @@ namespace Cassandra
             _authInfoProvider = authInfoProvider;
             _queryOptions = queryOptions;
             _addressTranslator = addressTranslator;
+            // Create the buffer pool with 16KB for small buffers and 256Kb for large buffers.
+            // The pool does not eagerly reserve the buffers, so it doesn't take unnecessary memory
+            // to create the instance.
+            _bufferPool = new RecyclableMemoryStreamManager(16 * 1024, 256 * 1024, ProtocolOptions.MaximumFrameLength);
+            _timer = new HashedWheelTimer();
         }
 
         /// <summary>

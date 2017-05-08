@@ -17,14 +17,15 @@
 namespace Cassandra
 {
     /// <summary>
-    ///  Options of the Cassandra __native__ binary protocol.
+    ///  Options of the Cassandra native binary protocol.
     /// </summary>
     public class ProtocolOptions
     {
         /// <summary>
-        ///  The default port for Cassandra __native__ binary protocol: 9042.
+        ///  The default port for Cassandra native binary protocol: 9042.
         /// </summary>
         public const int DefaultPort = 9042;
+
         /// <summary>
         /// Maximum length of a frame according to the protocol
         /// </summary>

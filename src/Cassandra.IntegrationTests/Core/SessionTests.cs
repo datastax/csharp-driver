@@ -263,9 +263,18 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+        /// <summary>
+        /// It uses a load balancing policy that initially uses 2 hosts as local.
+        /// Then changes one of the hosts as ignored: the pool should be closed.
+        /// Then changes the host back to local: the pool should be recreated.
+        /// </summary>
         [Test, TestTimeout(5 * 60 * 1000), Repeat(10)]
         public async Task Session_With_Host_Changing_Distance()
         {
+            if (TestHelper.IsMono)
+            {
+                Assert.Ignore("The test should not run under the Mono runtime");
+            }
             var lbp = new DistanceChangingLbp();
             var builder = Cluster.Builder()
                 .AddContactPoint(TestCluster.InitialContactPoint)
@@ -277,25 +286,44 @@ namespace Cassandra.IntegrationTests.Core
                 var localSession = (Session)localCluster.Connect();
                 var remoteHost = localCluster.AllHosts().First(h => TestHelper.GetLastAddressByte(h) == 2);
                 var stopWatch = new Stopwatch();
-                Func<Task<RowSet>> execute = () =>
-                {
-                    var count = Interlocked.Increment(ref counter);
-                    if (count == 80)
-                    {
-                        // ReSharper disable once AccessToDisposedClosure
-                        lbp.SetRemoteHost(remoteHost);
-                        stopWatch.Start();
-                    }
-                    else if (count >= 240 && stopWatch.ElapsedMilliseconds > 1400)
-                    {
-                        lbp.SetRemoteHost(null);
-                    }
-                    return localSession.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local"));
-                };
-                await TestHelper.TimesLimit(execute, 12000, 32);
+                var distanceReset = 0;
+                TestHelper.Invoke(() => Session.Execute("SELECT key FROM system.local"), 10);
                 var hosts = localCluster.AllHosts().ToArray();
                 var pool1 = localSession.GetOrCreateConnectionPool(hosts[0], HostDistance.Local);
                 var pool2 = localSession.GetOrCreateConnectionPool(hosts[1], HostDistance.Local);
+                var tcs = new TaskCompletionSource<RowSet>();
+                tcs.SetResult(null);
+                var completedTask = tcs.Task;
+                Func<Task<RowSet>> execute = () =>
+                {
+                    var wasReset = Volatile.Read(ref distanceReset);
+                    var count = Interlocked.Increment(ref counter);
+                    if (count == 80)
+                    {
+                        Trace.TraceInformation("Setting to remote: {0}", DateTimeOffset.Now);
+                        lbp.SetRemoteHost(remoteHost);
+                        stopWatch.Start();
+                    }
+                    if (wasReset == 0 && count >= 240 && stopWatch.ElapsedMilliseconds > 2000)
+                    {
+                        if (Interlocked.CompareExchange(ref distanceReset, 1, 0) == 0)
+                        {
+                            Trace.TraceInformation("Setting back to local: {0}", DateTimeOffset.Now);
+                            lbp.SetRemoteHost(null);
+                            stopWatch.Restart();
+                        }
+                    }
+                    var poolHasBeenReset = wasReset == 1 && pool2.OpenConnections == 3 &&
+                                           stopWatch.ElapsedMilliseconds > 2000;
+                    if (poolHasBeenReset)
+                    {
+                        // We have been setting the host as ignored and then take it back into account
+                        // The pool is looking good, there is no point in continue executing queries
+                        return completedTask;
+                    }
+                    return localSession.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local"));
+                };
+                await TestHelper.TimesLimit(execute, 200000, 32);
                 Assert.That(pool1.OpenConnections, Is.EqualTo(3));
                 Assert.That(pool2.OpenConnections, Is.EqualTo(3));
             }

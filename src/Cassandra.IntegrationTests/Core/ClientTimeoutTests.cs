@@ -231,5 +231,53 @@ namespace Cassandra.IntegrationTests.Core
                 testCluster.ResumeNode(2);
             }
         }
+
+        [Test]
+        public void Should_Throw_NoHostAvailable_When_Startup_Times_out()
+        {
+            var testCluster = TestClusterManager.CreateNew();
+            var socketOptions = new SocketOptions().SetReadTimeoutMillis(1000).SetConnectTimeoutMillis(1000);
+            var builder = Cluster.Builder()
+                                 .AddContactPoint(testCluster.InitialContactPoint)
+                                 .WithSocketOptions(socketOptions);
+            using (var cluster = builder.Build())
+            {
+                testCluster.PauseNode(1);
+                var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
+                Assert.AreEqual(1, ex.Errors.Count);
+                foreach (var innerException in ex.Errors.Values)
+                {
+                    Assert.IsInstanceOf<OperationTimedOutException>(innerException);
+                }
+                testCluster.ResumeNode(1);
+            }
+        }
+
+        [Test]
+        public void Should_Not_Leak_Connections_Test()
+        {
+            var testCluster = TestClusterManager.CreateNew();
+            var socketOptions = new SocketOptions().SetReadTimeoutMillis(1).SetConnectTimeoutMillis(1);
+            var builder = Cluster.Builder()
+                                 .AddContactPoint(testCluster.InitialContactPoint)
+                                 .WithSocketOptions(socketOptions);
+
+            testCluster.PauseNode(1);
+            const int length = 1000;
+            using (var cluster = builder.Build())
+            {
+                decimal initialLength = GC.GetTotalMemory(true);
+                for (var i = 0; i < length; i++)
+                {
+                    var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
+                    Assert.AreEqual(1, ex.Errors.Count);
+                }
+                GC.Collect();
+                Thread.Sleep(1000);
+                testCluster.ResumeNode(1);
+                Assert.Less(GC.GetTotalMemory(true) / initialLength, 1.2M,
+                    "Should not exceed a 20% (1.2) more than was previously allocated");
+            }
+        }
     }
 }

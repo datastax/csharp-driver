@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Security;
@@ -107,14 +108,14 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Connects synchronously to the host and starts reading
+        /// Connects asynchronously to the host and starts reading
         /// </summary>
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
-        public Task<bool> Connect()
+        public async Task<bool> Connect()
         {
             var tcs = TaskHelper.TaskCompletionSourceWithTimeout<bool>(
                 Options.ConnectTimeoutMillis, 
-                () => new SocketException((int)SocketError.TimedOut));
+                () => new SocketException((int) SocketError.TimedOut));
             var socketConnectTask = tcs.Task;
             var eventArgs = new SocketAsyncEventArgs
             {
@@ -131,44 +132,38 @@ namespace Cassandra
                 tcs.TrySetResult(true);
                 e.Dispose();
             };
-
             try
             {
                 _socket.ConnectAsync(eventArgs);
+                await socketConnectTask;
             }
-            catch (Exception ex)
+            finally
             {
-                return TaskHelper.FromException<bool>(ex);
+                eventArgs.Dispose();
             }
-            //Prepare read and write
-            //There are 2 modes: using SocketAsyncEventArgs (most performant) and Stream mode with APM methods
-            if (SSLOptions == null && !Options.UseStreamMode)
+            if (SSLOptions != null)
             {
-                return socketConnectTask.ContinueSync(_ =>
-                {
-                    _logger.Verbose("Socket connected, start reading using SocketEventArgs interface");
-                    //using SocketAsyncEventArgs
-                    _receiveSocketEvent = new SocketAsyncEventArgs();
-                    _receiveSocketEvent.SetBuffer(_receiveBuffer, 0, _receiveBuffer.Length);
-                    _receiveSocketEvent.Completed += OnReceiveCompleted;
-                    _sendSocketEvent = new SocketAsyncEventArgs();
-                    _sendSocketEvent.Completed += OnSendCompleted;
-                    ReceiveAsync();
-                    return true;
-                });
+                return await ConnectSsl();
             }
-            if (SSLOptions == null)
+            // Prepare read and write
+            // There are 2 modes: using SocketAsyncEventArgs (most performant) and Stream mode
+            if (Options.UseStreamMode)
             {
-                return socketConnectTask.ContinueSync(_ =>
-                {
-                    _logger.Verbose("Socket connected, start reading using Stream interface");
-                    //Stream mode: not the most performant but it is a choice
-                    _socketStream = new NetworkStream(_socket);
-                    ReceiveAsync();
-                    return true;
-                });
+                _logger.Verbose("Socket connected, start reading using Stream interface");
+                //Stream mode: not the most performant but it is a choice
+                _socketStream = new NetworkStream(_socket);
+                ReceiveAsync();
+                return true;
             }
-            return socketConnectTask.Then(_ => ConnectSsl());
+            _logger.Verbose("Socket connected, start reading using SocketEventArgs interface");
+            //using SocketAsyncEventArgs
+            _receiveSocketEvent = new SocketAsyncEventArgs();
+            _receiveSocketEvent.SetBuffer(_receiveBuffer, 0, _receiveBuffer.Length);
+            _receiveSocketEvent.Completed += OnReceiveCompleted;
+            _sendSocketEvent = new SocketAsyncEventArgs();
+            _sendSocketEvent.Completed += OnSendCompleted;
+            ReceiveAsync();
+            return true;
         }
 
         private async Task<bool> ConnectSsl()
@@ -200,7 +195,7 @@ namespace Cassandra
             var tcs = TaskHelper.TaskCompletionSourceWithTimeout<bool>(
                 Options.ConnectTimeoutMillis,
                 () => new TimeoutException("The timeout period elapsed prior to completion of SSL authentication operation."));
-#pragma warning disable 4014
+
             sslStream.AuthenticateAsClientAsync(targetHost,
                                                 SSLOptions.CertificateCollection,
                                                 SSLOptions.SslProtocol,
@@ -209,12 +204,15 @@ namespace Cassandra
                      {
                          if (t.Exception != null)
                          {
+                             // ReSharper disable once AssignNullToNotNullAttribute
                              tcs.TrySetException(t.Exception.InnerException);
                              return;
                          }
                          tcs.TrySetResult(true);
-                     }, TaskContinuationOptions.ExecuteSynchronously);
-#pragma warning restore 4014
+                     }, TaskContinuationOptions.ExecuteSynchronously)
+                     // Do not await as it may never yield
+                     .Forget();
+
             await tcs.Task.ConfigureAwait(false);
             _logger.Verbose("SSL authentication successful");
             ReceiveAsync();
@@ -497,11 +495,18 @@ namespace Cassandra
                 //Try to close it.
                 //Some operations could make the socket to dispose itself
                 _socket.Shutdown(SocketShutdown.Both);
+            }
+            catch
+            {
+                // Shutdown might throw an exception if the socket was not open-open
+            }
+            try
+            {
                 _socket.Dispose();
             }
             catch
             {
-                //We should not mind if the socket shutdown or close methods throw an exception
+                //We should not mind if socket's Close method throws an exception
             }
             if (_receiveSocketEvent != null)
             {

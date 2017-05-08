@@ -306,10 +306,10 @@ namespace Cassandra.IntegrationTests.Core
         {
             using (var cluster = Cluster.Builder()
                 .AddContactPoint(TestCluster.InitialContactPoint)
+                .WithMaxProtocolVersion(ProtocolVersion.V2)
                 .Build())
             {
-                cluster.Configuration.ProtocolOptions.SetMaxProtocolVersion(2);
-                var localSession = cluster.Connect(base.KeyspaceName);
+                var localSession = cluster.Connect(KeyspaceName);
                 Assert.Throws<NotSupportedException>(() => localSession.UserDefinedTypes.Define(UdtMap.For<Phone>()));   
             }
         }

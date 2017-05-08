@@ -24,6 +24,9 @@ build:
 
       export SCASSANDRA_JAR=$HOME/scassandra-server_2.11-1.0.10-standalone.jar 
       ./build/scassandra_install.sh
+
+      echo "==========copying ssl files to $HOME/ssl=========="
+      cp -r /home/jenkins/ccm/ssl $HOME/ssl
  
       if [ $CSHARP_VERSION = 'mono' ]; then
           echo "==========csharp verion mono=========="

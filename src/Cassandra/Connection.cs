@@ -181,10 +181,6 @@ namespace Cassandra
             {
                 throw new ArgumentNullException("configuration");
             }
-            if (configuration.BufferPool == null)
-            {
-                throw new ArgumentNullException(null, "BufferPool can not be null");
-            }
             _serializer = serializer;
             Configuration = configuration;
             _tcpSocket = new TcpSocket(endpoint, configuration.SocketOptions, configuration.ProtocolOptions.SslOptions);
@@ -691,16 +687,17 @@ namespace Cassandra
             {
                 startupOptions.Add("COMPRESSION", "snappy");
             }
-            return Send(new StartupRequest(startupOptions));
+            // Use the Connect timeout for the startup request timeout 
+            return Send(new StartupRequest(startupOptions), Configuration.SocketOptions.ConnectTimeoutMillis);
         }
 
         /// <summary>
         /// Sends a new request if possible. If it is not possible it queues it up.
         /// </summary>
-        public Task<Response> Send(IRequest request)
+        public Task<Response> Send(IRequest request, int timeoutMillis = Timeout.Infinite)
         {
             var tcs = new TaskCompletionSource<Response>();
-            Send(request, tcs.TrySet);
+            Send(request, tcs.TrySet, timeoutMillis);
             return tcs.Task;
         }
 
@@ -781,7 +778,7 @@ namespace Cassandra
                     //lazy initialize the stream
                     stream = stream ?? (RecyclableMemoryStream) Configuration.BufferPool.GetStream(GetType().Name + "/SendStream");
                     frameLength = state.Request.WriteFrame(streamId, stream, _serializer);
-                    if (state.TimeoutMillis > 0 && Configuration.Timer != null)
+                    if (state.TimeoutMillis > 0)
                     {
                         var requestTimeout = Configuration.Timer.NewTimeout(OnTimeout, streamId, state.TimeoutMillis);
                         state.SetTimeout(requestTimeout);

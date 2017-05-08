@@ -13,6 +13,7 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short")]
     public class ControlConnectionTests : TestGlobals
     {
+        private const int InitTimeout = 2000;
         private ITestCluster _testCluster;
 
         [OneTimeSetUp]
@@ -25,7 +26,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_Use_Maximum_Protocol_Version_Supported()
         {
             var cc = NewInstance();
-            cc.Init();
+            cc.Init().Wait(InitTimeout);
             Assert.AreEqual(GetExpectedProtocolVersion(), cc.ProtocolVersion);
             cc.Dispose();
         }
@@ -40,7 +41,7 @@ namespace Cassandra.IntegrationTests.Core
                 version = ProtocolVersion.V3;
             }
             var cc = NewInstance(version);
-            cc.Init();
+            cc.Init().Wait(InitTimeout);
             Assert.AreEqual(version, cc.ProtocolVersion);
             cc.Dispose();
         }
@@ -51,7 +52,7 @@ namespace Cassandra.IntegrationTests.Core
             //Use a higher protocol version
             var version = (ProtocolVersion)(GetExpectedProtocolVersion() + 1);
             var cc = NewInstance(version);
-            cc.Init();
+            cc.Init().Wait(InitTimeout);
             Assert.AreEqual(version - 1, cc.ProtocolVersion);
         }
 
@@ -61,7 +62,7 @@ namespace Cassandra.IntegrationTests.Core
             // Use a non-existent higher protocol version
             var version = (ProtocolVersion)0x0f;
             var cc = NewInstance(version);
-            cc.Init();
+            cc.Init().Wait(InitTimeout);
             Assert.AreEqual(GetExpectedProtocolVersion(), cc.ProtocolVersion);
         }
 
@@ -70,11 +71,7 @@ namespace Cassandra.IntegrationTests.Core
             Configuration config = null, 
             Metadata metadata = null)
         {
-            if (config == null)
-            {
-                config = new Configuration();
-                config.BufferPool = new Microsoft.IO.RecyclableMemoryStreamManager();
-            }
+            config = config ?? new Configuration();
             if (metadata == null)
             {
                 metadata = new Metadata(config);
