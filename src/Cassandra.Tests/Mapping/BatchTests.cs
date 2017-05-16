@@ -138,6 +138,26 @@ namespace Cassandra.Tests.Mapping
         }
 
         [Test]
+        public void Execute_With_Options()
+        {
+            BatchStatement statement = null;
+            var mapper = GetMapper(() => TestHelper.DelayedTask(new RowSet()), s => statement = s);
+            var batch = mapper.CreateBatch();
+            batch.Insert(new Song { Id = Guid.NewGuid() });
+            batch.Insert(new Song { Id = Guid.NewGuid() });
+            var consistency = ConsistencyLevel.EachQuorum;
+            var timestamp = DateTimeOffset.UtcNow.Subtract(TimeSpan.FromDays(1));
+            mapper.Execute(batch
+                .WithOptions(o => o.SetConsistencyLevel(consistency))
+                .WithOptions(o => o.SetTimestamp(timestamp)));
+            Assert.NotNull(statement);
+            Assert.AreEqual(BatchType.Logged, statement.BatchType);
+            Assert.AreEqual(consistency, statement.ConsistencyLevel);
+            Assert.AreEqual(timestamp, statement.Timestamp);
+            Assert.AreEqual(2, batch.Statements.Count());
+        }
+
+        [Test]
         public void Execute_With_Ttl()
         {
             BatchStatement statement = null;
