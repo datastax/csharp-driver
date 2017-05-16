@@ -31,6 +31,7 @@ namespace Cassandra
         private string _query;
         private volatile RoutingKey _routingKey;
         private object[] _routingValues;
+        private string _keyspace;
 
         /// <summary>
         ///  Gets the query string.
@@ -71,6 +72,21 @@ namespace Cassandra
                     .Select(value => new RoutingKey(serializer.Serialize(value)))
                     .ToArray());
             }
+        }
+
+        /// <summary>
+        /// Returns the keyspace this query operates on, as set using <see cref="SetKeyspace(string)"/>
+        /// <para>
+        /// The keyspace returned is used as a hint for token-aware routing.
+        /// </para>
+        /// </summary>
+        /// <remarks>
+        /// Consider using a <see cref="ISession"/> connected to single keyspace using 
+        /// <see cref="ICluster.Connect(string)"/>.
+        /// </remarks>
+        public override string Keyspace
+        {
+            get { return _keyspace; }
         }
 
         /// <summary>
@@ -209,6 +225,16 @@ namespace Cassandra
         public SimpleStatement BindObjects(object[] values)
         {
             return Bind(values);
+        }
+
+        /// <summary>
+        /// Sets the keyspace of this <see cref="SimpleStatement"/> to be used as a hint for token-aware routing.
+        /// </summary>
+        /// <param name="name">The keyspace name</param>
+        public SimpleStatement SetKeyspace(string name)
+        {
+            _keyspace = name;
+            return this;
         }
 
         internal override IQueryRequest CreateBatchRequest(ProtocolVersion protocolVersion)
