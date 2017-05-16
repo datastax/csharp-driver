@@ -1,7 +1,8 @@
 # DataStax C# Driver for Apache Cassandra
 
-A modern, [feature-rich][features] and highly tunable C# client library for Apache Cassandra (1.2+) and DataStax
-Enterprise (3.1+) using exclusively Cassandra's binary protocol and Cassandra Query Language v3.
+A modern, [feature-rich][features] and highly tunable C# client library for Apache Cassandra (1.2+) using exclusively Cassandra's binary protocol and Cassandra Query Language v3. _Use the [DSE C# driver][dse-driver] for better compatibility and support for DataStax Enterprise_.
+
+The driver supports .NET Framework 4.5+ and .NET Core 1+.
 
 ## Installation
 
@@ -35,9 +36,11 @@ PM> Install-Package CassandraCSharpDriver
 
 ## Getting Help
 
-You can use the project [Mailing list][mailinglist] or create a ticket on the [Jira issue tracker][jira].
+You can use the project [Mailing list][mailinglist] or create a ticket on the [Jira issue tracker][jira]. Additionally, you can use the `#datastax-drivers` channel in the [DataStax Academy Slack][slack].
 
 ## Upgrading from previous versions
+
+If you are upgrading to [DataStax Enterprise][dse], use the [DSE C# driver][dse-driver] for more features and better compatibility.
 
 If you are upgrading from the 2.1 branch of the driver, be sure to have a look at the [upgrade guide][upgrade-to-250].
 
@@ -210,7 +213,7 @@ You can use Visual Studio or msbuild to build the solution.
 [Check the documentation for building the driver from source and running the tests](https://github.com/datastax/csharp-driver/wiki/Building-and-running-tests).
 
 ## License
-Copyright 2012-2016, DataStax.
+Copyright 2012-2017, DataStax.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -240,3 +243,6 @@ limitations under the License.
   [upgrade-to-250]: https://github.com/datastax/csharp-driver/blob/master/doc/upgrade-guide-2.5.md
   [upgrade-to-200]: https://github.com/datastax/csharp-driver/blob/master/doc/upgrade-guide-2.0.md
   [survey]: http://goo.gl/forms/3BxcP8nKs6
+  [dse-driver]: https://github.com/datastax/csharp-dse-driver
+  [slack]: https://academy.datastax.com/slack
+  [dse]: https://www.datastax.com/products/datastax-enterprise
