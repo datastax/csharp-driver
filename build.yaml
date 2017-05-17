@@ -40,7 +40,7 @@ build:
           nuget restore src/Cassandra.sln
           nuget install NUnit.Runners -Version 3.4.1 -OutputDirectory testrunner
           # Compile the driver and test code
-          xbuild /p:Configuration=Release /v:m /p:restorepackages=false src/Cassandra.sln
+          xbuild /p:Configuration=Release /v:m /p:restorepackages=false /p:DynamicConstants=LINUX src/Cassandra.sln
           # Run the tests
           echo "==========RUNNING FULL SUITE OF TESTS=========="
           mono ./testrunner/NUnit.ConsoleRunner.3.4.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/Cassandra.IntegrationTests.dll --where:cat=short --labels=All --result:"TestResult_nunit3.xml"

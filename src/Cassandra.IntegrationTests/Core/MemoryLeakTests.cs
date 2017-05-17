@@ -1,4 +1,4 @@
-﻿#if !(NETCORE || __MonoCS__)
+﻿#if !(NETCORE || LINUX)
 using System;
 using System.Net.Sockets;
 using System.Threading;

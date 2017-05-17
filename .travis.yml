@@ -24,7 +24,7 @@ install:
   - nuget restore src/Cassandra.sln
   - nuget install NUnit.Runners -Version 3.4.1 -OutputDirectory testrunner
 script:
-  - xbuild /p:Configuration=Release /v:m /p:restorepackages=false src/Cassandra.sln
+  - xbuild /p:Configuration=Release /v:m /p:restorepackages=false /p:DynamicConstants=LINUX src/Cassandra.sln
   - mono ./testrunner/NUnit.ConsoleRunner.3.4.1/tools/nunit3-console.exe ./src/Cassandra.Tests/bin/Release/Cassandra.Tests.dll
   - dotnet restore
   - dotnet test src/Cassandra.Tests -c Release -f netcoreapp1.0

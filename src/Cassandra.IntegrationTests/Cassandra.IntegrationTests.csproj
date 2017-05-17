@@ -37,6 +37,9 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(DynamicConstants)' != ''">
+    <DefineConstants>$(DynamicConstants)</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="dotMemory.Unit">
       <HintPath>..\packages\JetBrains.dotMemoryUnit.2.3.20160517.113140\Lib\dotMemory.Unit.dll</HintPath>
