@@ -13,7 +13,6 @@
     }
   },
   "dependencies": {
-    "JetBrains.DotMemoryUnit": "2.3.20160517.113140",
     "lz4net": "1.0.10.93"
   }
 }
