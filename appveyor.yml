@@ -27,10 +27,16 @@ environment:
     - TARGET: net452
       CASSANDRA_VERSION: 2.2.7
       CI_TYPE: INTEGRATION
+    - TARGET: net452
+      CASSANDRA_VERSION: 3.10
+      CI_TYPE: MEMORY
 
 install:
   - ps: .\build\appveyor_install.ps1
   - ps: .\build\scassandra_install.ps1
+
+before_build:
+  - ps: dotnet restore
 
 build:
   project: src/Cassandra.sln
@@ -47,9 +53,16 @@ test:
       - duration
 
 test_script:
-  - dotnet restore
-  - IF "%CI_TYPE%" == "UNIT" dotnet test src\Cassandra.Tests -c Release -f %TARGET% --result=TestResult.xml
-  - IF "%CI_TYPE%" == "INTEGRATION" dotnet test src\Cassandra.IntegrationTests -c Release -f %TARGET% --where "cat=short" --result=TestResult.xml
+  - ps: >-
+      If ("$($env:CI_TYPE)" -eq "UNIT") {
+        dotnet test src\Cassandra.Tests -c Release -f $env:TARGET --result=TestResult.xml
+      }
+      If ("$($env:CI_TYPE)" -eq "INTEGRATION") {
+        dotnet test src\Cassandra.IntegrationTests -c Release -f $env:TARGET --where "cat=short" --result=TestResult.xml
+      }
+      If ("$($env:CI_TYPE)" -eq "MEMORY") {
+        .\build\memory_tests.ps1
+      }
 
 after_test:
   - ps: >-

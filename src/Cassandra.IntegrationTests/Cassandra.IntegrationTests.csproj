@@ -37,7 +37,13 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(DynamicConstants)' != ''">
+    <DefineConstants>$(DynamicConstants)</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
+    <Reference Include="dotMemory.Unit">
+      <HintPath>..\packages\JetBrains.dotMemoryUnit.2.3.20160517.113140\Lib\dotMemory.Unit.dll</HintPath>
+    </Reference>
     <Reference Include="Moq">
       <HintPath>..\packages\Moq.4.2.1402.2112\lib\net40\Moq.dll</HintPath>
     </Reference>
@@ -65,6 +71,7 @@
     <Compile Include="Core\ControlConnectionReconnectionTests.cs" />
     <Compile Include="Core\ControlConnectionTests.cs" />
     <Compile Include="Core\CustomPayloadTests.cs" />
+    <Compile Include="Core\MemoryLeakTests.cs" />
     <Compile Include="Core\PoolShortTests.cs" />
     <Compile Include="Core\ReconnectionTests.cs" />
     <Compile Include="Core\SchemaMetadataTests.cs" />
