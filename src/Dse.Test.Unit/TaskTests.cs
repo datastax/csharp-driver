@@ -132,6 +132,22 @@ namespace Dse.Test.Unit
             Assert.AreEqual(ex, task.Exception.InnerException);
         }
 
+        [Test]
+        public void TaskHelper_TaskCompletionSourceWithTimeout_Does_Not_Invoke_Delegate_When_Transitioned()
+        {
+            bool called = false;
+            var tcs = TaskHelper.TaskCompletionSourceWithTimeout<int>(200, () =>
+            {
+                called = true;
+                return new Exception();
+            });
+            var task = tcs.Task;
+            tcs.TrySetResult(1);
+            Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
+            Thread.Sleep(200);
+            Assert.False(called);
+        }
+
         /// <summary>
         /// Gets a completed task
         /// </summary>

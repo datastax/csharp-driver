@@ -1,4 +1,4 @@
-//
+﻿//
 //  Copyright (C) 2017 DataStax, Inc.
 //
 //  Please see the license for details:
@@ -7,7 +7,6 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,9 +31,16 @@ namespace Dse.Mapping.Statements
             _statementCache = new ConcurrentDictionary<string, Task<PreparedStatement>>();
         }
 
-        public async Task<Statement> GetStatementAsync(ISession session, Cql cql)
+        /// <summary>
+        /// Given a <see cref="Cql"/>, it creates the corresponding <see cref="Statement"/>.
+        /// </summary>
+        /// <param name="session">The current session.</param>
+        /// <param name="cql">The cql query, parameter and options.</param>
+        /// <param name="forceNoPrepare">When defined, it's used to override the CQL options behavior.</param>
+        public async Task<Statement> GetStatementAsync(ISession session, Cql cql, bool? forceNoPrepare = null)
         {
-            if (cql.QueryOptions.NoPrepare)
+            var noPrepare = forceNoPrepare ?? cql.QueryOptions.NoPrepare;
+            if (noPrepare)
             {
                 // Use a SimpleStatement if we're not supposed to prepare
                 var statement = new SimpleStatement(cql.Statement, cql.Arguments);
@@ -74,32 +80,19 @@ namespace Dse.Mapping.Statements
             return GetStatementAsync(session, cql).Result;
         }
 
-        public Task<BatchStatement> GetBatchStatementAsync(ISession session, IEnumerable<Cql> cqlToBatch, BatchType batchType)
+        public async Task<BatchStatement> GetBatchStatementAsync(ISession session, ICqlBatch cqlBatch)
         {
             // Get all the statements async in parallel, then add to batch
-            return Task.Factory.ContinueWhenAll(cqlToBatch.Select(cql => GetStatementAsync(session, cql)).ToArray(), (tasks) =>
+            var childStatements = await Task
+                .WhenAll(cqlBatch.Statements.Select(cql => GetStatementAsync(session, cql, cqlBatch.Options.NoPrepare)))
+                .ConfigureAwait(false);
+            var statement = new BatchStatement().SetBatchType(cqlBatch.BatchType);
+            cqlBatch.Options.CopyOptionsToStatement(statement);
+            foreach (var stmt in childStatements)
             {
-                var batch = new BatchStatement().SetBatchType(batchType);
-                foreach (var t in tasks)
-                {
-                    if (t.Exception != null)
-                    {
-                        throw t.Exception;
-                    }
-                    batch.Add(t.Result);
-                }
-                return batch;
-            }, TaskContinuationOptions.ExecuteSynchronously);
-        }
-
-        public BatchStatement GetBatchStatement(ISession session, IEnumerable<Cql> cqlToBatch, BatchType batchType)
-        {
-            var batch = new BatchStatement().SetBatchType(batchType);
-            foreach (var cql in cqlToBatch)
-            {
-                batch.Add(GetStatement(session, cql));
+                statement.Add(stmt);
             }
-            return batch;
+            return statement;
         }
     }
 }

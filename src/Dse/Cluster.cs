@@ -1,4 +1,4 @@
-//
+﻿//
 //  Copyright (C) 2017 DataStax, Inc.
 //
 //  Please see the license for details:
@@ -6,7 +6,6 @@
 //
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -15,7 +14,6 @@ using System.Threading.Tasks;
 using Dse.Collections;
 using Dse.Serialization;
 using Dse.Tasks;
-using Microsoft.IO;
 
 namespace Dse
 {
@@ -29,12 +27,12 @@ namespace Dse
         // ReSharper disable once InconsistentNaming
         private static readonly Logger _logger = new Logger(typeof(Cluster));
         private readonly CopyOnWriteList<Session> _connectedSessions = new CopyOnWriteList<Session>();
-        private ControlConnection _controlConnection;
+        private readonly ControlConnection _controlConnection;
         private volatile bool _initialized;
         private volatile Exception _initException;
-        private readonly object _initLock = new Object();
+        private readonly object _initLock = new object();
         private readonly Metadata _metadata;
-        private Serializer _serializer;
+        private readonly Serializer _serializer;
 
         /// <inheritdoc />
         public event Action<Host> HostAdded;
@@ -125,6 +123,15 @@ namespace Dse
             {
                 _metadata.AddHost(ep);
             }
+            var protocolVersion = _maxProtocolVersion;
+            if (Configuration.ProtocolOptions.MaxProtocolVersionValue != null &&
+                Configuration.ProtocolOptions.MaxProtocolVersionValue.Value.IsSupported())
+            {
+                protocolVersion = Configuration.ProtocolOptions.MaxProtocolVersionValue.Value;
+            }
+            _controlConnection = new ControlConnection(protocolVersion, Configuration, _metadata);
+            _metadata.ControlConnection = _controlConnection;
+            _serializer = _controlConnection.Serializer;
         }
 
         /// <summary>
@@ -149,21 +156,14 @@ namespace Dse
                     //There was an exception that is not possible to recover from
                     throw _initException;
                 }
-                var protocolVersion = _maxProtocolVersion;
-                if (Configuration.ProtocolOptions.MaxProtocolVersionValue != null &&
-                    Configuration.ProtocolOptions.MaxProtocolVersionValue.Value.IsSupported())
-                {
-                    protocolVersion = Configuration.ProtocolOptions.MaxProtocolVersionValue.Value;
-                }
-                //create the buffer pool with 16KB for small buffers and 256Kb for large buffers.
-                Configuration.BufferPool = new RecyclableMemoryStreamManager(16 * 1024, 256 * 1024, ProtocolOptions.MaximumFrameLength);
-                _controlConnection = new ControlConnection(protocolVersion, Configuration, _metadata);
-                _metadata.ControlConnection = _controlConnection;
                 try
                 {
-                    _controlConnection.Init();
-                    _serializer = _controlConnection.Serializer;
-                    //Initialize policies
+                    // Only abort the async operations when at least twice the time for ConnectTimeout per host passed
+                    var initialAbortTimeout = Configuration.SocketOptions.ConnectTimeoutMillis * 2 *
+                                              _metadata.Hosts.Count;
+                    initialAbortTimeout = Math.Max(initialAbortTimeout, ControlConnection.MetadataAbortTimeout);
+                    TaskHelper.WaitToComplete(_controlConnection.Init(), initialAbortTimeout);
+                    // Initialize policies
                     Configuration.Policies.LoadBalancingPolicy.Initialize(this);
                     Configuration.Policies.SpeculativeExecutionPolicy.Initialize(this);
                     Configuration.Policies.InitializeRetryPolicy(this);
@@ -173,6 +173,14 @@ namespace Dse
                     //No host available now, maybe later it can recover from
                     throw;
                 }
+                catch (TimeoutException ex)
+                {
+                    _initException = ex;
+                    throw new TimeoutException(
+                        "Cluster initialization was aborted after timing out. This mechanism is put in place to" +
+                        " avoid blocking the calling thread forever. This usually caused by a networking issue" +
+                        " between the client driver instance and the cluster.", ex);
+                }
                 catch (Exception ex)
                 {
                     //There was an error that the driver is not able to recover from
@@ -181,7 +189,6 @@ namespace Dse
                     //Throw the actual exception for the first time
                     throw;
                 }
-                Configuration.Timer = new HashedWheelTimer();
                 _logger.Info("Cluster Connected using binary protocol version: [" + _serializer.ProtocolVersion + "]");
                 _initialized = true;
                 _metadata.Hosts.Added += OnHostAdded;

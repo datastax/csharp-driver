@@ -289,7 +289,7 @@ namespace Dse.Requests
                 catch (Exception ex)
                 {
                     // Probably a SocketException/AuthenticationException, move along
-                    Logger.Error(ex);
+                    Logger.Error("Exception while trying borrow a connection from a pool", ex);
                     triedHosts[host.Address] = ex;
                 }
                 if (c == null)

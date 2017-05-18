@@ -1,4 +1,4 @@
-//
+﻿//
 //  Copyright (C) 2017 DataStax, Inc.
 //
 //  Please see the license for details:
@@ -528,6 +528,68 @@ namespace Dse.Test.Integration.Mapping.Tests
             Assert.AreEqual(user.FavoriteColor, retrievedUser.FavoriteColor);
         }
 
+        [Test]
+        public void Insert_Batch_With_Options()
+        {
+            var anotherKeyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
+            using (var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
+                                                .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000))
+                                                .Build())
+            {
+                var session = cluster.Connect();
+                session.CreateKeyspace(anotherKeyspace, new Dictionary<string, string>
+                {
+                    { "class", "SimpleStrategy"},
+                    { "replication_factor", "3"}
+                });
+                session.ChangeKeyspace(anotherKeyspace);
+
+                var config = new MappingConfiguration().Define(new Map<PlainUser>()
+                    .ExplicitColumns()
+                    .PartitionKey(s => s.UserId)
+                    .Column(s => s.FavoriteColor, c => c.WithDbType<int>())
+                    .Column(s => s.Name)
+                    .Column(s => s.UserId, c => c.WithName("id"))
+                    .TableName("batch_with_options_table"));
+                //Use linq to create the table
+                new Table<PlainUser>(session, config).CreateIfNotExists();
+                var mapper = new Mapper(session, config);
+                var user1 = new PlainUser
+                {
+                    UserId = Guid.NewGuid(),
+                    Name = "My user",
+                    FavoriteColor = RainbowColor.Orange
+                };
+                var user2 = new PlainUser
+                {
+                    UserId = Guid.NewGuid(),
+                    Name = "My user 2",
+                    FavoriteColor = RainbowColor.Blue
+                };
+                var user3 = new PlainUser
+                {
+                    UserId = Guid.NewGuid(),
+                    Name = "My user 3",
+                    FavoriteColor = RainbowColor.Blue
+                };
+                var batch = mapper.CreateBatch();
+                batch.Insert(user1);
+                batch.Insert(user2);
+                var consistency = ConsistencyLevel.All;
+                batch.WithOptions(o => o.SetConsistencyLevel(consistency));
+                //Timestamp for BATCH request is supported in Cassandra 2.1 or above.
+                if (VersionMatch(new TestCassandraVersion(2, 1), TestClusterManager.CassandraVersion))
+                {
+                    var timestamp = DateTimeOffset.UtcNow.Subtract(TimeSpan.FromDays(1));
+                    batch.WithOptions(o => o.SetTimestamp(timestamp));
+                }
+                var ex = Assert.Throws<UnavailableException>(() => mapper.Execute(batch));
+                Assert.AreEqual(ConsistencyLevel.All, ex.Consistency,
+                            "Consistency level of batch exception should be the same as specified at CqlQueryOptions: ALL");
+                Assert.AreEqual(3, ex.RequiredReplicas);
+                Assert.AreEqual(1, ex.AliveReplicas);
+            }
+        }
 
         /////////////////////////////////////////
         /// Private test classes

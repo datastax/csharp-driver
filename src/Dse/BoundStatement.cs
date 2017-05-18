@@ -31,6 +31,7 @@ namespace Dse
         private readonly PreparedStatement _preparedStatement;
         private RoutingKey _routingKey;
         private readonly Serializer _serializer;
+        private readonly string _keyspace;
 
         /// <summary>
         ///  Gets the prepared statement on which this BoundStatement is based.
@@ -59,6 +60,17 @@ namespace Dse
         }
 
         /// <summary>
+        /// Returns the keyspace this query operates on, based on the <see cref="PreparedStatement"/> metadata.
+        /// <para>
+        /// The keyspace returned is used as a hint for token-aware routing.
+        /// </para>
+        /// </summary>
+        public override string Keyspace
+        {
+            get { return _keyspace; }
+        }
+
+        /// <summary>
         /// Initializes a new instance of the Cassandra.BoundStatement class
         /// </summary>
         public BoundStatement()
@@ -75,6 +87,10 @@ namespace Dse
         {
             _preparedStatement = statement;
             _routingKey = statement.RoutingKey;
+            if (statement.Metadata != null)
+            {
+                _keyspace = statement.Metadata.Keyspace;
+            }
             SetConsistencyLevel(statement.ConsistencyLevel);
             if (statement.IsIdempotent != null)
             {

@@ -194,115 +194,6 @@ namespace Dse.Test.Integration.Core
             }
         }
 
-        [Test]
-        public void InitialKeyspaceRaceTest()
-        {
-            var testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, true, false);
-            using (var cluster = Cluster.Builder()
-                .AddContactPoint(testCluster.InitialContactPoint)
-                //using a keyspace
-                .WithDefaultKeyspace("system")
-                //lots of connections per host
-                .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 30))
-                .Build())
-            {
-                var session = cluster.Connect();
-                //Try to be force a race condition
-                TestHelper.ParallelInvoke(() =>
-                {
-                    var t = session.ExecuteAsync(new SimpleStatement("SELECT * FROM local"));
-                    t.Wait();
-                }, 1000);
-                var actions = new Task[1000];
-                for (var i = 0; i < actions.Length; i++)
-                {
-                    actions[i] = session.ExecuteAsync(new SimpleStatement("SELECT * FROM local"));
-                }
-                // ReSharper disable once CoVariantArrayConversion
-                Task.WaitAll(actions);
-            }
-        }
-
-        [Test]
-        public void ConnectWithWrongKeyspaceNameTest()
-        {
-            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1);
-
-            var cluster = Cluster.Builder()
-                .AddContactPoint(testCluster.InitialContactPoint)
-                //using a keyspace that does not exists
-                .WithDefaultKeyspace("DOES_NOT_EXISTS_" + Randomm.RandomAlphaNum(12))
-                .Build();
-
-            Assert.Throws<InvalidQueryException>(() => cluster.Connect());
-            Assert.Throws<InvalidQueryException>(() => cluster.Connect("ANOTHER_THAT_DOES"));
-        }
-
-        [Test]
-        public void Connect_With_Ssl_Test()
-        {
-            //use ssl
-            var testCluster = TestClusterManager.CreateNew(1, new TestClusterOptions { UseSsl = true });
-
-            using (var cluster = Cluster.Builder()
-                                        .AddContactPoint(testCluster.InitialContactPoint)
-                                        .WithSSL(new SSLOptions().SetRemoteCertValidationCallback((a, b, c, d) => true))
-                                        .Build())
-            {
-                Assert.DoesNotThrow(() =>
-                {
-                    var session = cluster.Connect();
-                    TestHelper.Invoke(() => session.Execute("select * from system.local"), 10);
-                });
-            }
-        }
-
-        [Test]
-        public void ConnectShouldResolveNames()
-        {
-            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1);
-
-            var cluster = Cluster.Builder()
-                .AddContactPoint(testCluster.InitialContactPoint)
-                .Build();
-
-            testCluster.Cluster.Connect("system");
-            StringAssert.StartsWith(testCluster.InitialContactPoint, cluster.AllHosts().First().Address.ToString());
-        }
-
-        /// <summary>
-        /// Tests that if no host is available at Cluster.Init(), it will initialize next time it is invoked
-        /// </summary>
-        [Test]
-        public void ClusterInitializationRecoversFromNoHostAvailable()
-        {
-            ITestCluster nonShareableTestCluster = TestClusterManager.GetNonShareableTestCluster(1);
-            nonShareableTestCluster.StopForce(1);
-            var cluster = Cluster.Builder()
-                .AddContactPoint(nonShareableTestCluster.InitialContactPoint)
-                .Build();
-            //initially it will throw as there is no node reachable
-            Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
-
-            // wait for the node to be up
-            nonShareableTestCluster.Start(1);
-            DateTime timeInTheFuture = DateTime.Now.AddSeconds(60);
-            bool clusterIsUp = false;
-            while (!clusterIsUp && DateTime.Now < timeInTheFuture)
-            {
-                try
-                {
-                    cluster.Connect();
-                    clusterIsUp = true;
-                }
-                catch (NoHostAvailableException) { }
-            }
-
-            //Now the node is ready to accept connections
-            var session = cluster.Connect("system");
-            TestHelper.ParallelInvoke(() => session.Execute("SELECT * from local"), 20);
-        }
-
         /// <summary>
         /// Tests that the reconnection attempt (on a dead node) is attempted only once per try (when allowed by the reconnection policy).
         /// </summary>
@@ -352,23 +243,6 @@ namespace Dse.Test.Integration.Core
             Assert.True(waitHandle.WaitOne(waitTime), "Wait time passed but it was not signaled");
             t.Dispose();
             Assert.AreEqual(4, connectionAttempts);
-        }
-
-        [Test]
-        public void Cluster_Should_Ignore_IpV6_Addresses_For_Not_Valid_Hosts()
-        {
-            var testCluster = TestClusterManager.GetNonShareableTestCluster(1, 0, true, false);
-            using (var cluster = Cluster.Builder()
-                                        .AddContactPoint(IPAddress.Parse("::1"))
-                                        .AddContactPoint(testCluster.InitialContactPoint)
-                                        .Build())
-            {
-                Assert.DoesNotThrow(() =>
-                {
-                    var session = cluster.Connect();
-                    session.Execute("select * from system.local");
-                });
-            }
         }
 
 #if !NO_MOCKS

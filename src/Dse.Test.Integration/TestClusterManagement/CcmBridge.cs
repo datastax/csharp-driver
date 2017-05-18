@@ -167,6 +167,11 @@ namespace Dse.Test.Integration.TestClusterManagement
             ExecuteCcm("remove");
         }
 
+        public void Remove(int nodeId)
+        {
+            ExecuteCcm(string.Format("node{0} remove", nodeId));
+        }
+
         public void BootstrapNode(int n, bool start = true)
         {
             BootstrapNode(n, null, start);

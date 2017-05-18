@@ -28,6 +28,9 @@ build:
 
       export SCASSANDRA_JAR=$HOME/scassandra-server_2.11-1.0.10-standalone.jar 
       ./build/scassandra_install.sh
+
+      echo "==========copying ssl files to $HOME/ssl=========="
+      cp -r /home/jenkins/ccm/ssl $HOME/ssl
  
       if [ $CSHARP_VERSION = 'mono' ]; then
           echo "==========csharp dse mono=========="
@@ -41,7 +44,7 @@ build:
           nuget restore src/Dse.sln
           nuget install NUnit.Runners -Version 3.4.1 -OutputDirectory testrunner
           # Compile the driver and test code
-          xbuild /p:Configuration=Release /v:m /p:restorepackages=false src/Dse.sln
+          xbuild /p:Configuration=Release /v:m /p:restorepackages=false /p:DynamicConstants=LINUX src/Dse.sln
           # Run the tests
           echo "==========RUNNING SHORT SUITE OF TESTS=========="
           mono ./testrunner/NUnit.ConsoleRunner.3.4.1/tools/nunit3-console.exe src/Dse.Test.Integration/bin/Release/Dse.Test.Integration.dll --where:cat=short --labels=All --result:"TestResult_nunit3.xml"

@@ -80,6 +80,12 @@ namespace Dse.Test.Integration.TestClusterManagement
             _ccm.Remove();
         }
 
+        public void Remove(int nodeId)
+        {
+            Trace.TraceInformation("Removing node '{0}' from cluster '{1}'", nodeId, Name);
+            _ccm.Remove(nodeId);
+        }
+
         public void DecommissionNode(int nodeId)
         {
             _ccm.DecommissionNode(nodeId);

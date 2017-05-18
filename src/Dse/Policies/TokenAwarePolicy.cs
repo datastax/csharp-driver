@@ -5,37 +5,32 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using System.Collections;
+using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Linq;
 using System.Threading;
 
 namespace Dse
 {
     /// <summary>
-    ///  A wrapper load balancing policy that add token awareness to a child policy.
-    ///  <p> This policy encapsulates another policy. The resulting policy works in
-    ///  the following way: <ul> <li>the <c>distance</c> method is inherited
-    ///  from the child policy.</li> <li>the iterator return by the
-    ///  <c>newQueryPlan</c> method will first return the <c>LOCAL</c>
-    ///  replicas for the query (based on Statement.GetRoutingKey) <i>if
-    ///  possible</i> (i.e. if the query <c>getRoutingKey</c> method doesn't
-    ///  return <c>null</c> and if <see cref="Metadata.GetReplicas(string, byte[])" /> returns a non empty
-    ///  set of replicas for that partition key). If no local replica can be either
-    ///  found or successfully contacted, the rest of the query plan will fallback to
-    ///  one of the child policy.</li> </ul> </p><p> Do note that only replica for which
-    ///  the child policy <c>distance</c> method returns
-    ///  <c>HostDistance.Local</c> will be considered having priority. For
-    ///  example, if you wrap <link>DCAwareRoundRobinPolicy</link> with this token
-    ///  aware policy, replicas from remote data centers may only be returned after
-    ///  all the host of the local data center.</p>
+    /// A wrapper load balancing policy that adds token awareness to a child policy.
+    /// <para> This policy encapsulates another policy. The resulting policy works in the following way:
+    /// </para>
+    /// <list type="number">
+    /// <item>The <see cref="Distance(Host)"/> method is inherited  from the child policy.</item>
+    /// <item>The host yielded by the <see cref="NewQueryPlan(string, IStatement)"/> method will first return the
+    /// <see cref="HostDistance.Local"/> replicas for the statement, based on the <see cref="Statement.RoutingKey"/>.
+    /// </item>
+    /// </list>
     /// </summary>
     public class TokenAwarePolicy : ILoadBalancingPolicy
     {
+
         private readonly ILoadBalancingPolicy _childPolicy;
         private ICluster _cluster;
-        int _index;
+        private readonly ThreadLocal<Random> _prng = new ThreadLocal<Random>(() => new Random(
+            // Predictable random numbers are OK
+            Environment.TickCount * Environment.CurrentManagedThreadId));
 
         /// <summary>
         ///  Creates a new <c>TokenAware</c> policy that wraps the provided child
@@ -73,70 +68,60 @@ namespace Dse
         ///  <c>IStatement.RoutingKey</c> is not <c>null</c>). Following what
         ///  it will return the plan of the child policy.</p>
         /// </summary>
-        /// <param name="keyspace">Keyspace on which the query is going to be executed</param>
+        /// <param name="loggedKeyspace">Keyspace on which the query is going to be executed</param>
         /// <param name="query"> the query for which to build the plan. </param>
         /// <returns>the new query plan.</returns>
-        public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+        public IEnumerable<Host> NewQueryPlan(string loggedKeyspace, IStatement query)
         {
             var routingKey = query == null ? null : query.RoutingKey;
             IEnumerable<Host> childIterator;
             if (routingKey == null)
             {
-                childIterator = _childPolicy.NewQueryPlan(keyspace, query);
+                childIterator = _childPolicy.NewQueryPlan(loggedKeyspace, query);
                 foreach (var h in childIterator)
                 {
                     yield return h;
                 }
                 yield break;
             }
-            var replicas = _cluster.GetReplicas(keyspace, routingKey.RawRoutingKey);
-            //We need to have split into local and remote replicas
-            //We need actual lists (not lazy) as we need to round-robin through them
-            var localReplicas = new List<Host>();
-            var remoteReplicas = new List<Host>();
-            foreach (var h in replicas)
+            var keyspace = loggedKeyspace;
+            // Story: Keyspace property has been added at Statement abstract class level and not at interface level
+            // to avoid introducing a breaking change
+            var statement = query as Statement;
+            if (statement != null && statement.Keyspace != null)
             {
-                var distance = _childPolicy.Distance(h);
-                if (distance == HostDistance.Local)
-                {
-                    localReplicas.Add(h);
-                }
-                else if (distance == HostDistance.Remote)
-                {
-                    remoteReplicas.Add(h);
-                }
+                keyspace = statement.Keyspace;
             }
-            //Return the local replicas first
-            if (localReplicas.Count > 0)
+
+            var replicas = _cluster.GetReplicas(keyspace, routingKey.RawRoutingKey);
+
+            var localReplicaSet = new HashSet<Host>();
+            var localReplicaList = new List<Host>(replicas.Count);
+            // We can't do it lazily as we need to balance the load between local replicas
+            foreach (var localReplica in replicas.Where(h => _childPolicy.Distance(h) == HostDistance.Local))
             {
-                //Round robin through the local replicas
-                var roundRobinIndex = Interlocked.Increment(ref _index);
-                //Overflow protection
-                if (roundRobinIndex > int.MaxValue - 10000)
+                localReplicaSet.Add(localReplica);
+                localReplicaList.Add(localReplica);
+            }
+            // Return the local replicas first
+            if (localReplicaList.Count > 0)
+            {
+                // Use a pseudo random start index
+                var startIndex = _prng.Value.Next();
+                for (var i = 0; i < localReplicaList.Count; i++)
                 {
-                    Interlocked.Exchange(ref _index, 0);
-                }
-                for (var i = 0; i < localReplicas.Count; i++)
-                {
-                    yield return localReplicas[(roundRobinIndex + i)%localReplicas.Count];
+                    yield return localReplicaList[(startIndex + i) % localReplicaList.Count];
                 }
             }
 
-            //Then, return the child policy hosts
-            childIterator = _childPolicy.NewQueryPlan(keyspace, query);
+            // Then, return the rest of child policy hosts
+            childIterator = _childPolicy.NewQueryPlan(loggedKeyspace, query);
             foreach (var h in childIterator)
             {
-                //It is yielded with the rest of replicas
-                if (replicas.Contains(h))
+                if (localReplicaSet.Contains(h))
                 {
                     continue;
                 }
-                yield return h;
-            }
-
-            //Then, the remote replicas
-            foreach (var h in remoteReplicas)
-            {
                 yield return h;
             }
         }

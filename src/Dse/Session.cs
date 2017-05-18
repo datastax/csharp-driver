@@ -303,58 +303,58 @@ namespace Dse
         }
 
         /// <inheritdoc />
-        public Task<PreparedStatement> PrepareAsync(string query, IDictionary<string, byte[]> customPayload)
+        public async Task<PreparedStatement> PrepareAsync(string query, IDictionary<string, byte[]> customPayload)
         {
             var request = new PrepareRequest(query)
             {
                 Payload = customPayload
             };
-            return new RequestHandler<PreparedStatement>(this, _serializer, request)
-                .Send()
-                .Then(SetPrepareTableInfo);
+            var handler = new RequestHandler<PreparedStatement>(this, _serializer, request);
+            var ps = await handler.Send().ConfigureAwait(false);
+            await SetPrepareTableInfo(ps).ConfigureAwait(false);
+            return ps;
         }
 
-        private Task<PreparedStatement> SetPrepareTableInfo(PreparedStatement ps)
+        private async Task SetPrepareTableInfo(PreparedStatement ps)
         {
             const string msgRoutingNotSet = "Routing information could not be set for query \"{0}\"";
             var column = ps.Metadata.Columns.FirstOrDefault();
             if (column == null || column.Keyspace == null)
             {
-                //The prepared statement does not contain parameters
-                return TaskHelper.ToTask(ps);
+                // The prepared statement does not contain parameters
+                return;
             }
             if (ps.Metadata.PartitionKeys != null)
             {
                 //The routing indexes where parsed in the prepared response
                 if (ps.Metadata.PartitionKeys.Length == 0)
                 {
-                    //zero-length partition keys means that none of the parameters are partition keys
-                    //the partition key is hard-coded.
-                    return TaskHelper.ToTask(ps);
+                    // zero-length partition keys means that none of the parameters are partition keys
+                    // the partition key is hard-coded.
+                    return;
                 }
                 ps.RoutingIndexes = ps.Metadata.PartitionKeys;
-                return TaskHelper.ToTask(ps);
+                return;
             }
-            return Cluster.Metadata.GetTableAsync(column.Keyspace, column.Table).ContinueWith(t =>
+            try
             {
-                if (t.Exception != null)
-                {
-                    Logger.Error("There was an error while trying to retrieve table metadata for {0}.{1}. {2}", column.Keyspace, column.Table, t.Exception.InnerException);
-                    return ps;
-                }
-                var table = t.Result;
+                var table = await Cluster.Metadata.GetTableAsync(column.Keyspace, column.Table).ConfigureAwait(false);
                 if (table == null)
                 {
                     Logger.Info(msgRoutingNotSet, ps.Cql);
-                    return ps;
+                    return;
                 }
                 var routingSet = ps.SetPartitionKeys(table.PartitionKeys);
                 if (!routingSet)
                 {
                     Logger.Info(msgRoutingNotSet, ps.Cql);
                 }
-                return ps;
-            });
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("There was an error while trying to retrieve table metadata for {0}.{1}. {2}", 
+                             column.Keyspace, column.Table, ex.InnerException);
+            }
         }
 
         public void WaitForSchemaAgreement(RowSet rs)

@@ -27,11 +27,11 @@ namespace Dse.Tasks
     internal sealed class HashedWheelTimer : IDisposable
     {
         private const int InitState = 0;
-        private const int ExpiredState = 1;
-        private const int CancelledState = 2;
+        private const int StartedState = 1;
+        private const int DisposedState = 2;
+        private int _state;
         private readonly Bucket[] _wheel;
         private readonly Timer _timer;
-        private int _isDisposed;
         private readonly int _tickDuration;
         private readonly ConcurrentQueue<Tuple<TimeoutItem, long>> _pendingToAdd = new ConcurrentQueue<Tuple<TimeoutItem, long>>();
         private readonly ConcurrentQueue<TimeoutItem> _cancelledTimeouts = new ConcurrentQueue<TimeoutItem>();
@@ -59,7 +59,7 @@ namespace Dse.Tasks
             }
             //Create the timer
             _tickDuration = tickDuration;
-            _timer = new Timer(TimerTick, null, _tickDuration, Timeout.Infinite);
+            _timer = new Timer(TimerTick, null, Timeout.Infinite, Timeout.Infinite);
         }
 
         private void TimerTick(object state)
@@ -89,6 +89,11 @@ namespace Dse.Tasks
             }
             //Setup the next tick
             Index = (Index + 1) % _wheel.Length;
+            SetTimer();
+        }
+
+        private void SetTimer()
+        {
             try
             {
                 _timer.Change(_tickDuration, Timeout.Infinite);
@@ -98,14 +103,42 @@ namespace Dse.Tasks
                 //the _timer might already have been disposed of
             }
         }
+        
+        /// <summary>
+        /// Starts the timer explicitly.
+        /// <para>Calls to <see cref="NewTimeout"/> will internally call this method.</para>
+        /// </summary>
+        public void Start()
+        {
+            // Only consider the case when it's not started and it should be.
+            // We have to avoid atomic operations in the most common execution path, as they are somehow expensive
+            // Use a volatile read first
+            var state = Volatile.Read(ref _state);
+            if (state == StartedState)
+            {
+                // Already started, ignore
+                return;
+            }
+            var previousState = Interlocked.CompareExchange(ref _state, StartedState, InitState);
+            if (previousState == DisposedState)
+            {
+                throw new InvalidOperationException("Can not start timer after Disposed");
+            }
+            if (previousState != InitState)
+            {
+                // Already started, ignore
+                return;
+            }
+            SetTimer();
+        }
 
         /// <summary>
         /// Releases the underlying timer instance.
         /// </summary>
         public void Dispose()
         {
-            //Allow multiple calls to dispose
-            if (Interlocked.Increment(ref _isDisposed) != 1)
+            var previuosState = Interlocked.Exchange(ref _state, DisposedState);
+            if (previuosState == DisposedState)
             {
                 return;
             }
@@ -122,6 +155,7 @@ namespace Dse.Tasks
         /// <param name="delay">Delay in milliseconds</param>
         public ITimeout NewTimeout(Action<object> action, object state, long delay)
         {
+            Start();
             if (delay < _tickDuration)
             {
                 delay = _tickDuration;
@@ -269,6 +303,8 @@ namespace Dse.Tasks
 
         internal sealed class TimeoutItem : ITimeout
         {
+            private const int ExpiredState = 1;
+            private const int CancelledState = 2;
             //Use fields instead of properties as micro optimization
             //More 100 thousand timeout items could be created and GC collected each second
             private object _actionState;

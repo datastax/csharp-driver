@@ -503,8 +503,6 @@ namespace Dse.Test.Unit
             Assert.AreEqual(7, hosts.Count);
             //local replica first
             Assert.AreEqual(1, TestHelper.GetLastAddressByte(hosts[0]));
-            //remote replica last
-            Assert.AreEqual(3, TestHelper.GetLastAddressByte(hosts[6]));
             clusterMock.Verify();
 
             //key for host :::2 and :::5
@@ -513,8 +511,7 @@ namespace Dse.Test.Unit
             hosts = policy.NewQueryPlan(null, new SimpleStatement().SetRoutingKey(k)).ToList();
             Assert.AreEqual(7, hosts.Count);
             //local replicas first
-            Assert.AreEqual(2, TestHelper.GetLastAddressByte(hosts[0]));
-            Assert.AreEqual(5, TestHelper.GetLastAddressByte(hosts[1]));
+            CollectionAssert.AreEquivalent(new[] { 2, 5}, hosts.Take(2).Select(TestHelper.GetLastAddressByte));
             //next should be local nodes
             Assert.AreEqual("dc1", hosts[2].Datacenter);
             Assert.AreEqual("dc1", hosts[3].Datacenter);
@@ -562,29 +559,21 @@ namespace Dse.Test.Unit
 
             var firstHosts = new ConcurrentBag<Host>();
             var k = new RoutingKey { RawRoutingKey = new byte[] { 1 } };
-            //key for host :::1 and :::2
-            var actions = new List<Action>();
-            const int times = 100;
-            for (var i = 0; i < times; i++)
+            // key for host :::1 and :::2
+            const int times = 10000;
+            Action action = () =>
             {
-                actions.Add(() =>
-                {
-                    var h = policy.NewQueryPlan(null, new SimpleStatement().SetRoutingKey(k)).First();
-                    firstHosts.Add(h);
-                });
-            }
-            
-
-            var parallelOptions = new ParallelOptions();
-            parallelOptions.TaskScheduler = new ThreadPerTaskScheduler();
-            parallelOptions.MaxDegreeOfParallelism = 1000;
-
-            Parallel.Invoke(parallelOptions, actions.ToArray());
+                var h = policy.NewQueryPlan(null, new SimpleStatement().SetRoutingKey(k)).First();
+                firstHosts.Add(h);
+            };
+            TestHelper.ParallelInvoke(action, times);
             Assert.AreEqual(times, firstHosts.Count);
-            //Half the times
-            Assert.AreEqual(times / 2, firstHosts.Count(h => TestHelper.GetLastAddressByte(h) == 1));
-            Assert.AreEqual(times / 2, firstHosts.Count(h => TestHelper.GetLastAddressByte(h) == 2));
-
+            double queryPlansWithHost1AsFirst = firstHosts.Count(h => TestHelper.GetLastAddressByte(h) == 1);
+            double queryPlansWithHost2AsFirst = firstHosts.Count(h => TestHelper.GetLastAddressByte(h) == 2);
+            Assert.AreEqual(times, queryPlansWithHost1AsFirst + queryPlansWithHost2AsFirst);
+            // Around half will to one and half to the other
+            Assert.That(queryPlansWithHost1AsFirst / times, Is.GreaterThan(0.48).And.LessThan(0.52));
+            Assert.That(queryPlansWithHost2AsFirst / times, Is.GreaterThan(0.48).And.LessThan(0.52));
             clusterMock.Verify();
         }
 

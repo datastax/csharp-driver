@@ -419,7 +419,6 @@ namespace Dse.Test.Integration.Core
                  null,
                  new QueryOptions(),
                  new DefaultAddressTranslator());
-            config.BufferPool = new RecyclableMemoryStreamManager();
             using (var connection = CreateConnection(GetLatestProtocolVersion(), config))
             {
                 var ex = Assert.Throws<AggregateException>(() => connection.Open().Wait(10000));
@@ -609,7 +608,6 @@ namespace Dse.Test.Integration.Core
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator());
-            config.BufferPool = new RecyclableMemoryStreamManager();
             using (var connection = new Connection(new Serializer(GetLatestProtocolVersion()), new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042), config))
             {
                 var ex = Assert.Throws<SocketException>(() => TaskHelper.WaitToComplete(connection.Open()));
@@ -668,11 +666,7 @@ namespace Dse.Test.Integration.Core
         [TestCassandraVersion(2, 2, Comparison.LessThan)]
         public void Startup_Greater_Protocol_Version_Throws()
         {
-            var config = new Configuration
-            {
-                BufferPool = new RecyclableMemoryStreamManager()
-            };
-            using (var connection = CreateConnection(ProtocolVersion.V4, config))
+            using (var connection = CreateConnection(ProtocolVersion.V4, new Configuration()))
             {
                 var ex = Assert.Throws<UnsupportedProtocolVersionException>(
                     () => TaskHelper.WaitToComplete(connection.Open()));
@@ -781,8 +775,6 @@ namespace Dse.Test.Integration.Core
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator());
-            config.BufferPool = new RecyclableMemoryStreamManager();
-            config.Timer = new HashedWheelTimer();
             return CreateConnection(GetLatestProtocolVersion(), config);
         }
 

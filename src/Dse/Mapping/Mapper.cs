@@ -73,17 +73,20 @@ namespace Dse.Mapping
             var rs = await _session.ExecuteAsync(stmt).ConfigureAwait(false);
             return adaptation(stmt, rs);
         }
-
+        
+        /// <inheritdoc />
         public Task<IEnumerable<T>> FetchAsync<T>(CqlQueryOptions options = null)
         {
             return FetchAsync<T>(Cql.New(string.Empty, new object[0], options ?? CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public Task<IEnumerable<T>> FetchAsync<T>(string cql, params object[] args)
         {
             return FetchAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public Task<IEnumerable<T>> FetchAsync<T>(Cql cql)
         {
             //Use ExecuteAsyncAndAdapt with a delegate to handle the adaptation from RowSet to IEnumerable<T>
@@ -95,6 +98,7 @@ namespace Dse.Mapping
             });
         }
 
+        /// <inheritdoc />
         public Task<IPage<T>> FetchPageAsync<T>(Cql cql)
         {
             if (cql == null)
@@ -110,21 +114,25 @@ namespace Dse.Mapping
             });
         }
 
+        /// <inheritdoc />
         public Task<IPage<T>> FetchPageAsync<T>(CqlQueryOptions options = null)
         {
             return FetchPageAsync<T>(Cql.New(string.Empty, new object[0], options ?? new CqlQueryOptions()));
         }
 
+        /// <inheritdoc />
         public Task<IPage<T>> FetchPageAsync<T>(int pageSize, byte[] pagingState, string query, object[] args)
         {
             return FetchPageAsync<T>(Cql.New(query, args, new CqlQueryOptions().SetPageSize(pageSize).SetPagingState(pagingState)));
         }
 
+        /// <inheritdoc />
         public Task<T> SingleAsync<T>(string cql, params object[] args)
         {
             return SingleAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public Task<T> SingleAsync<T>(Cql cql)
         {
             _cqlGenerator.AddSelect<T>(cql);
@@ -135,11 +143,13 @@ namespace Dse.Mapping
             });
         }
 
+        /// <inheritdoc />
         public Task<T> SingleOrDefaultAsync<T>(string cql, params object[] args)
         {
             return SingleOrDefaultAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public Task<T> SingleOrDefaultAsync<T>(Cql cql)
         {
             _cqlGenerator.AddSelect<T>(cql);
@@ -156,11 +166,13 @@ namespace Dse.Mapping
             });
         }
 
+        /// <inheritdoc />
         public Task<T> FirstAsync<T>(string cql, params object[] args)
         {
             return FirstAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public Task<T> FirstAsync<T>(Cql cql)
         {
             _cqlGenerator.AddSelect<T>(cql);
@@ -173,11 +185,13 @@ namespace Dse.Mapping
             });
         }
 
+        /// <inheritdoc />
         public Task<T> FirstOrDefaultAsync<T>(string cql, params object[] args)
         {
             return FirstOrDefaultAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public Task<T> FirstOrDefaultAsync<T>(Cql cql)
         {
             _cqlGenerator.AddSelect<T>(cql);
@@ -194,16 +208,19 @@ namespace Dse.Mapping
             });
         }
 
+        /// <inheritdoc />
         public Task InsertAsync<T>(T poco, CqlQueryOptions queryOptions = null)
         {
             return InsertAsync(poco, true, queryOptions);
         }
 
+        /// <inheritdoc />
         public Task InsertAsync<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null)
         {
             return InsertAsync(poco, insertNulls, null, queryOptions);
         }
 
+        /// <inheritdoc />
         public Task InsertAsync<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null)
         {
             var pocoData = _mapperFactory.PocoDataFactory.GetPocoData<T>();
@@ -217,16 +234,19 @@ namespace Dse.Mapping
             return ExecuteAsync(Cql.New(cql, queryParameters, queryOptions ?? CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, CqlQueryOptions queryOptions = null)
         {
             return InsertIfNotExistsAsync(poco, true, queryOptions);
         }
 
+        /// <inheritdoc />
         public Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null)
         {
             return InsertIfNotExistsAsync(poco, insertNulls, null, queryOptions);
         }
 
+        /// <inheritdoc />
         public Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null)
         {
             var pocoData = _mapperFactory.PocoDataFactory.GetPocoData<T>();
@@ -242,6 +262,7 @@ namespace Dse.Mapping
                 (stmt, rs) => AppliedInfo<T>.FromRowSet(_mapperFactory, cql, rs));
         }
 
+        /// <inheritdoc />
         public Task UpdateAsync<T>(T poco, CqlQueryOptions queryOptions = null)
         {
             // Get statement and bind values from POCO
@@ -252,28 +273,33 @@ namespace Dse.Mapping
             return ExecuteAsync(Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public Task UpdateAsync<T>(string cql, params object[] args)
         {
             return UpdateAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public Task UpdateAsync<T>(Cql cql)
         {
             _cqlGenerator.PrependUpdate<T>(cql);
             return ExecuteAsync(cql);
         }
 
+        /// <inheritdoc />
         public Task<AppliedInfo<T>> UpdateIfAsync<T>(string cql, params object[] args)
         {
             return UpdateIfAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public Task<AppliedInfo<T>> UpdateIfAsync<T>(Cql cql)
         {
             _cqlGenerator.PrependUpdate<T>(cql);
             return ExecuteAsyncAndAdapt(cql, (stmt, rs) => AppliedInfo<T>.FromRowSet(_mapperFactory, cql.Statement, rs));
         }
 
+        /// <inheritdoc />
         public Task DeleteAsync<T>(T poco, CqlQueryOptions queryOptions = null)
         {
             // Get the statement and bind values from POCO
@@ -283,23 +309,27 @@ namespace Dse.Mapping
 
             return ExecuteAsync(Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None));
         }
-        
+
+        /// <inheritdoc />
         public Task DeleteAsync<T>(string cql, params object[] args)
         {
             return DeleteAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public Task DeleteAsync<T>(Cql cql)
         {
             _cqlGenerator.PrependDelete<T>(cql);
             return ExecuteAsync(cql);
         }
 
+        /// <inheritdoc />
         public Task ExecuteAsync(string cql, params object[] args)
         {
             return ExecuteAsync(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public async Task ExecuteAsync(Cql cql)
         {
             // Execute the statement
@@ -307,22 +337,26 @@ namespace Dse.Mapping
             await _session.ExecuteAsync(statement).ConfigureAwait(false);
         }
 
+        /// <inheritdoc />
         public ICqlBatch CreateBatch()
         {
             return new CqlBatch(_mapperFactory, _cqlGenerator);
         }
 
+        /// <inheritdoc />
         public ICqlBatch CreateBatch(BatchType batchType)
         {
             return new CqlBatch(_mapperFactory, _cqlGenerator, batchType);
         }
 
+        /// <inheritdoc />
         public void Execute(ICqlBatch batch)
         {
             //Wait async method to be completed or throw
             TaskHelper.WaitToComplete(ExecuteAsync(batch), _queryAbortTimeout);
         }
 
+        /// <inheritdoc />
         public async Task ExecuteAsync(ICqlBatch batch)
         {
             if (batch == null)
@@ -330,7 +364,8 @@ namespace Dse.Mapping
                 throw new ArgumentNullException("batch");
             }
             var batchStatement = await _statementFactory
-                .GetBatchStatementAsync(_session, batch.Statements, batch.BatchType).ConfigureAwait(false);
+                .GetBatchStatementAsync(_session, batch)
+                .ConfigureAwait(false);
             await _session.ExecuteAsync(batchStatement).ConfigureAwait(false);
         }
 
@@ -339,38 +374,45 @@ namespace Dse.Mapping
             return _mapperFactory.TypeConverter.ConvertCqlArgument<TValue, TDatabase>(value);
         }
 
+        /// <inheritdoc />
         public AppliedInfo<T> DeleteIf<T>(string cql, params object[] args)
         {
             return DeleteIf<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public AppliedInfo<T> DeleteIf<T>(Cql cql)
         {
             return TaskHelper.WaitToComplete(DeleteIfAsync<T>(cql), _queryAbortTimeout);
         }
 
+        /// <inheritdoc />
         public Task<AppliedInfo<T>> DeleteIfAsync<T>(string cql, params object[] args)
         {
             return DeleteIfAsync<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public Task<AppliedInfo<T>> DeleteIfAsync<T>(Cql cql)
         {
             _cqlGenerator.PrependDelete<T>(cql);
             return ExecuteAsyncAndAdapt(cql, (stmt, rs) => AppliedInfo<T>.FromRowSet(_mapperFactory, cql.Statement, rs));
         }
 
+        /// <inheritdoc />
         public IEnumerable<T> Fetch<T>(CqlQueryOptions queryOptions = null)
         {
             // Just let the SQL be auto-generated
             return Fetch<T>(Cql.New(string.Empty, new object[0], queryOptions ?? CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public IEnumerable<T> Fetch<T>(string cql, params object[] args)
         {
             return Fetch<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public IEnumerable<T> Fetch<T>(Cql cql)
         {
             //Use the async method
@@ -380,16 +422,19 @@ namespace Dse.Mapping
             return t.Result;
         }
 
+        /// <inheritdoc />
         public IPage<T> FetchPage<T>(CqlQueryOptions queryOptions = null)
         {
             return FetchPage<T>(Cql.New(string.Empty, new object[0], queryOptions ?? new CqlQueryOptions()));
         }
 
+        /// <inheritdoc />
         public IPage<T> FetchPage<T>(int pageSize, byte[] pagingState, string cql, params object[] args)
         {
             return FetchPage<T>(Cql.New(cql, args, new CqlQueryOptions().SetPageSize(pageSize).SetPagingState(pagingState)));
         }
 
+        /// <inheritdoc />
         public IPage<T> FetchPage<T>(Cql cql)
         {
             //Use the async method
@@ -399,11 +444,13 @@ namespace Dse.Mapping
             return t.Result;
         }
 
+        /// <inheritdoc />
         public T Single<T>(string cql, params object[] args)
         {
             return Single<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public T Single<T>(Cql cql)
         {
             //Use the async method
@@ -413,11 +460,13 @@ namespace Dse.Mapping
             return t.Result;
         }
 
+        /// <inheritdoc />
         public T SingleOrDefault<T>(string cql, params object[] args)
         {
             return SingleOrDefault<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public T SingleOrDefault<T>(Cql cql)
         {
             //Use async method
@@ -427,11 +476,13 @@ namespace Dse.Mapping
             return t.Result;
         }
 
+        /// <inheritdoc />
         public T First<T>(string cql, params object[] args)
         {
             return First<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public T First<T>(Cql cql)
         {
             //Use async method
@@ -441,11 +492,13 @@ namespace Dse.Mapping
             return t.Result;
         }
 
+        /// <inheritdoc />
         public T FirstOrDefault<T>(string cql, params object[] args)
         {
             return FirstOrDefault<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public T FirstOrDefault<T>(Cql cql)
         {
             //Use async method
@@ -455,98 +508,115 @@ namespace Dse.Mapping
             return t.Result;
         }
 
+        /// <inheritdoc />
         public void Insert<T>(T poco, CqlQueryOptions queryOptions = null)
         {
             Insert(poco, true, queryOptions);
         }
 
+        /// <inheritdoc />
         public void Insert<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null)
         {
             Insert(poco, insertNulls, null, queryOptions);
         }
 
+        /// <inheritdoc />
         public void Insert<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null)
         {
             //Wait async method to be completed or throw
             TaskHelper.WaitToComplete(InsertAsync(poco, insertNulls, ttl, queryOptions), _queryAbortTimeout);
         }
 
+        /// <inheritdoc />
         public AppliedInfo<T> InsertIfNotExists<T>(T poco, CqlQueryOptions queryOptions = null)
         {
             return InsertIfNotExists(poco, true, queryOptions);
         }
 
+        /// <inheritdoc />
         public AppliedInfo<T> InsertIfNotExists<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null)
         {
             return InsertIfNotExists(poco, insertNulls, null, queryOptions);
         }
 
+        /// <inheritdoc />
         public AppliedInfo<T> InsertIfNotExists<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null)
         {
             return TaskHelper.WaitToComplete(InsertIfNotExistsAsync(poco, insertNulls, ttl, queryOptions), _queryAbortTimeout);
         }
 
+        /// <inheritdoc />
         public void Update<T>(T poco, CqlQueryOptions queryOptions = null)
         {
             //Wait async method to be completed or throw
             TaskHelper.WaitToComplete(UpdateAsync(poco, queryOptions), _queryAbortTimeout);
         }
 
+        /// <inheritdoc />
         public void Update<T>(string cql, params object[] args)
         {
             Update<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public void Update<T>(Cql cql)
         {
             //Wait async method to be completed or throw
             TaskHelper.WaitToComplete(UpdateAsync<T>(cql), _queryAbortTimeout);
         }
 
+        /// <inheritdoc />
         public AppliedInfo<T> UpdateIf<T>(string cql, params object[] args)
         {
             return UpdateIf<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
-        
+
+        /// <inheritdoc />
         public AppliedInfo<T> UpdateIf<T>(Cql cql)
         {
             //Wait async method to be completed or throw
             return TaskHelper.WaitToComplete(UpdateIfAsync<T>(cql), _queryAbortTimeout);
         }
 
+        /// <inheritdoc />
         public void Delete<T>(T poco, CqlQueryOptions queryOptions = null)
         {
             //Wait async method to be completed or throw
             TaskHelper.WaitToComplete(DeleteAsync(poco, queryOptions), _queryAbortTimeout);
         }
 
+        /// <inheritdoc />
         public void Delete<T>(string cql, params object[] args)
         {
             Delete<T>(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public void Delete<T>(Cql cql)
         {
             //Wait async method to be completed or throw
             TaskHelper.WaitToComplete(DeleteAsync<T>(cql), _queryAbortTimeout);
         }
 
+        /// <inheritdoc />
         public void Execute(string cql, params object[] args)
         {
             Execute(Cql.New(cql, args, CqlQueryOptions.None));
         }
 
+        /// <inheritdoc />
         public void Execute(Cql cql)
         {
             //Wait async method to be completed or throw
             TaskHelper.WaitToComplete(ExecuteAsync(cql), _queryAbortTimeout);
         }
 
+        /// <inheritdoc />
         public async Task<AppliedInfo<T>> ExecuteConditionalAsync<T>(ICqlBatch batch)
         {
             if (batch == null) throw new ArgumentNullException("batch");
             var batchStatement =  await _statementFactory
-                .GetBatchStatementAsync(_session, batch.Statements, batch.BatchType)
+                .GetBatchStatementAsync(_session, batch)
                 .ConfigureAwait(false);
 
             //Use the concatenation of cql strings as hash for the mapper
@@ -555,6 +625,7 @@ namespace Dse.Mapping
             return AppliedInfo<T>.FromRowSet(_mapperFactory, cqlString, rs);
         }
 
+        /// <inheritdoc />
         public AppliedInfo<T> ExecuteConditional<T>(ICqlBatch batch)
         {
             return TaskHelper.WaitToComplete(ExecuteConditionalAsync<T>(batch), _queryAbortTimeout);

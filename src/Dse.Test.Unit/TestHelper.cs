@@ -27,6 +27,15 @@ namespace Dse.Test.Unit
 {
     internal static class TestHelper
     {
+        /// <summary>
+        /// Returns an address that's supposed to be unreachable.
+        /// </summary>
+        /// <remarks>
+        /// Use the last address in the 172.16.0.0 – 172.31.255.255 range
+        /// reserved for private networks (not commonly used) see RFC 1918.
+        /// </remarks>
+        public const string UnreachableHostAddress = "172.31.255.255";
+
         public static Row CreateRow(ICollection<KeyValuePair<string, object>> valueMap)
         {
             var columns = new List<CqlColumn>();
@@ -387,6 +396,17 @@ namespace Dse.Test.Unit
 #else
                 return RuntimeEnvironment.OperatingSystemPlatform == Platform.Windows;
 #endif
+            }
+        }
+
+        /// <summary>
+        /// Determines if we are running under mono.
+        /// </summary>
+        public static bool IsMono
+        {
+            get
+            {
+                return Type.GetType("Mono.Runtime") != null;
             }
         }
 

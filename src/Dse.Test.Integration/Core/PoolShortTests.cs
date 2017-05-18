@@ -10,8 +10,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Dse.Test.Integration.Policies.Util;
@@ -182,6 +180,47 @@ namespace Dse.Test.Integration.Core
                 _scassandraManager.DropConnection(ports[0]).Wait();
                 TestHelper.WaitUntil(() => pool.OpenConnections == 0 && !h1.IsUp);
                 Assert.IsFalse(h1.IsUp);
+            }
+        }
+
+        /// <summary>
+        /// Tests that if no host is available at Cluster.Init(), it will initialize next time it is invoked
+        /// </summary>
+        [Test]
+        public void Cluster_Initialization_Recovers_From_NoHostAvailableException()
+        {
+            var testCluster = TestClusterManager.CreateNew();
+            testCluster.StopForce(1);
+            var cluster = Cluster.Builder()
+                                 .AddContactPoint(testCluster.InitialContactPoint)
+                                 .Build();
+            //initially it will throw as there is no node reachable
+            Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
+
+            // wait for the node to be up
+            testCluster.Start(1);
+            TestUtils.WaitForUp(testCluster.InitialContactPoint, 9042, 5);
+            // Now the node is ready to accept connections
+            var session = cluster.Connect("system");
+            TestHelper.ParallelInvoke(() => session.Execute("SELECT * from local"), 20);
+        }
+
+        [Test]
+        public void Connect_With_Ssl_Test()
+        {
+            //use ssl
+            var testCluster = TestClusterManager.CreateNew(1, new TestClusterOptions { UseSsl = true });
+
+            using (var cluster = Cluster.Builder()
+                                        .AddContactPoint(testCluster.InitialContactPoint)
+                                        .WithSSL(new SSLOptions().SetRemoteCertValidationCallback((a, b, c, d) => true))
+                                        .Build())
+            {
+                Assert.DoesNotThrow(() =>
+                {
+                    var session = cluster.Connect();
+                    TestHelper.Invoke(() => session.Execute("select * from system.local"), 10);
+                });
             }
         }
     }

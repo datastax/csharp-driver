@@ -330,12 +330,13 @@ namespace Dse.Tasks
         public static TaskCompletionSource<T> TaskCompletionSourceWithTimeout<T>(int milliseconds, Func<Exception> newTimeoutException)
         {
             var tcs = new TaskCompletionSource<T>();
-            Timer timer = null;
+            var timerWrapper = new Timer[] {null};
             TimerCallback timerCallback = _ =>
             {
-                // ReSharper disable once PossibleNullReferenceException, AccessToModifiedClosure
-                timer.Dispose();
-                //Transition the underlying Task outside the IO thread
+                var t = timerWrapper[0];
+                Interlocked.MemoryBarrier();
+                t.Dispose();
+                // Transition the underlying Task outside the IO thread
                 Task.Factory.StartNew(() =>
                 {
                     try
@@ -352,10 +353,14 @@ namespace Dse.Tasks
                     }
                 });
             };
-            timer = new Timer(timerCallback, null, milliseconds, Timeout.Infinite);
+            // We can not use constructor that sets the timer as the state object
+            // as it is not available in .NET Standard 1.5 
+            var timer = new Timer(timerCallback, null, milliseconds, Timeout.Infinite);
+            Interlocked.MemoryBarrier();
+            timerWrapper[0] = timer;
             tcs.Task.ContinueWith(t =>
             {
-                //Timer can be disposed multiple times
+                // Timer can be disposed multiple times
                 timer.Dispose();
             });
             return tcs;
@@ -380,6 +385,14 @@ namespace Dse.Tasks
                 }
             }, tcs, delay);
             return tcs.Task;
+        }
+
+        /// <summary>
+        /// Designed for Tasks that were started but the result should not be awaited upon (fire and forget)
+        /// </summary>
+        public static void Forget(this Task t)
+        {
+            // Avoid compiler warning CS4014
         }
     }
 }

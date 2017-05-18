@@ -85,18 +85,13 @@ namespace Dse.Test.Unit
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator());
-            config.BufferPool = new Microsoft.IO.RecyclableMemoryStreamManager();
-            config.Timer = Timer;
             return config;
         }
 
         private static Connection GetConnectionMock(int inflight, int timedOutOperations = 0)
         {
-            var config = new Configuration
-            {
-                BufferPool = new Microsoft.IO.RecyclableMemoryStreamManager()
-            };
-            var connectionMock = new Mock<Connection>(MockBehavior.Loose, new Serializer(ProtocolVersion.MaxSupported), Address, config);
+            var connectionMock = new Mock<Connection>(
+                MockBehavior.Loose, new Serializer(ProtocolVersion.MaxSupported), Address, new Configuration());
             connectionMock.Setup(c => c.InFlight).Returns(inflight);
             connectionMock.Setup(c => c.TimedOutOperations).Returns(timedOutOperations);
             return connectionMock.Object;
