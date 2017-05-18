@@ -14,6 +14,7 @@ using System.Linq;
 using System.Threading;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Unit;
+using NUnit.Framework;
 
 namespace Dse.Test.Integration.TestClusterManagement
 {
@@ -22,17 +23,19 @@ namespace Dse.Test.Integration.TestClusterManagement
         public DirectoryInfo CcmDir { get; private set; }
         public const int DefaultCmdTimeout = 90 * 1000;
         public string Name { get; private set; }
+        public string Version { get; private set; }
         public string IpPrefix { get; private set; }
         public ICcmProcessExecuter CcmProcessExecuter { get; set; }
         private readonly string _dseInstallPath;
 
-        public CcmBridge(string name, string ipPrefix, string dsePath, ICcmProcessExecuter executor)
+        public CcmBridge(string name, string ipPrefix, string dsePath, string version, ICcmProcessExecuter executor)
         {
             Name = name;
             IpPrefix = ipPrefix;
             CcmDir = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()));
             CcmProcessExecuter = executor;
             _dseInstallPath = dsePath;
+            Version = version;
         }
 
         public void Dispose()
@@ -51,8 +54,17 @@ namespace Dse.Test.Integration.TestClusterManagement
                 }
                 sslParams = "--ssl " + sslPath;
             }
-            ExecuteCcm(string.Format(
-                "create {0} --dse --install-dir={1} {2}", Name, _dseInstallPath, sslParams));
+
+            if (string.IsNullOrEmpty(_dseInstallPath))
+            {
+                ExecuteCcm(string.Format(
+                    "create {0} --dse -v {1} {2}", Name, Version, sslParams));
+            }
+            else
+            {
+                ExecuteCcm(string.Format(
+                    "create {0} --install-dir={1} {2}", Name, _dseInstallPath, sslParams));
+            }
         }
 
         protected string GetHomePath()

@@ -5,11 +5,14 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
+using System;
+
 namespace Dse.Test.Integration.TestClusterManagement
 {
     public interface ITestCluster
     {
         string Name { get; set; }
+        string Version { get; set; }
         Builder Builder { get; set; }
         Cluster Cluster { get; set; }
         ISession Session { get; set; }

@@ -74,7 +74,7 @@ namespace Dse.Test.Integration.TestClusterManagement
         /// </summary>
         public static string DsePath
         {
-            get { return Environment.GetEnvironmentVariable("DSE_PATH") ?? "/home/vagrant/dse"; }
+            get { return Environment.GetEnvironmentVariable("DSE_PATH"); }
         }
 
         public static string InitialContactPoint
@@ -82,9 +82,14 @@ namespace Dse.Test.Integration.TestClusterManagement
             get { return IpPrefix + "1"; }
         }
 
+        public static string DseVersionString
+        {
+            get { return Environment.GetEnvironmentVariable("DSE_VERSION") ?? "5.0.0"; }
+        }
+
         public static Version DseVersion
         {
-            get { return new Version(Environment.GetEnvironmentVariable("DSE_VERSION") ?? "5.0.0"); }
+            get { return new Version(DseVersionString); }
         }
 
         /// <summary>
@@ -150,7 +155,8 @@ namespace Dse.Test.Integration.TestClusterManagement
                 IpPrefix, 
                 DsePath, 
                 Executor,
-                DefaultKeyspaceName);
+                DefaultKeyspaceName,
+                DseVersionString);
             testCluster.Create(nodeLength, options);
             if (startCluster)
             {

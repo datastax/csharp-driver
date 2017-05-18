@@ -5,6 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
+using System;
 using System.Diagnostics;
 
 namespace Dse.Test.Integration.TestClusterManagement
@@ -12,6 +13,7 @@ namespace Dse.Test.Integration.TestClusterManagement
     public class CcmCluster : ITestCluster
     {
         public string Name { get; set; }
+        public string Version { get; set; }
         public Builder Builder { get; set; }
         public Cluster Cluster { get; set; }
         public ISession Session { get; set; }
@@ -22,7 +24,7 @@ namespace Dse.Test.Integration.TestClusterManagement
         private readonly ICcmProcessExecuter _executor;
         private CcmBridge _ccm;
 
-        public CcmCluster(string name, string clusterIpPrefix, string dsePath, ICcmProcessExecuter executor, string defaultKeyspace)
+        public CcmCluster(string name, string clusterIpPrefix, string dsePath, ICcmProcessExecuter executor, string defaultKeyspace, string version)
         {
             _executor = executor;
             Name = name;
@@ -30,12 +32,13 @@ namespace Dse.Test.Integration.TestClusterManagement
             ClusterIpPrefix = clusterIpPrefix;
             DsePath = dsePath;
             InitialContactPoint = ClusterIpPrefix + "1";
+            Version = version;
         }
 
         public void Create(int nodeLength, TestClusterOptions options = null)
         {
             options = options ?? TestClusterOptions.Default;
-            _ccm = new CcmBridge(Name, ClusterIpPrefix, DsePath, _executor);
+            _ccm = new CcmBridge(Name, ClusterIpPrefix, DsePath, Version, _executor);
             _ccm.Create(options.UseSsl);
             _ccm.Populate(nodeLength, options.Dc2NodeLength, options.UseVNodes);
             _ccm.UpdateConfig(options.CassandraYaml);

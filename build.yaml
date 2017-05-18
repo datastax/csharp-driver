@@ -1,27 +1,22 @@
 os:
   - ubuntu/trusty64
+cassandra:
+  - dse-4.8
+  - dse-5.0
+  - dse-5.1
 env:
-  DSE_VERSION:
-    - 4.8.11
-    - 5.0.7
-    - 5.1
   CSHARP_VERSION:
     - mono
     - netcore
 build:
   - script: |
-      # Set the Java paths (for CCM)
+      export CASSANDRA_VERSION=$CCM_CASSANDRA_VERSION
       export JAVA_HOME=$CCM_JAVA_HOME
-      export PATH=$JAVA_HOME/bin:$PATH
-
-      export DSE_IN_REMOTE_SERVER="false"
-      export DSE_PATH="/home/jenkins/.ccm/repository/$DSE_VERSION"
+      export CCM_PATH=$HOME/ccm
       export DSE_INITIAL_IPPREFIX="127.0.0."
-
-      if [ $DSE_VERSION = '5.1' ]; then
-        export DSE_PATH="/home/jenkins/bdp-5.1"
-        export DSE_VERSION="5.1.0"
-      fi
+      export DSE_BRANCH=$CCM_BRANCH
+      export DSE_VERSION=$CCM_VERSION
+      export DSE_IN_REMOTE_SERVER="false"
 
       echo $DSE_VERSION
       echo $DSE_PATH
