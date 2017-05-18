@@ -45,6 +45,11 @@ namespace Dse.Auth.Sspi
         {
             FieldInfo field = value.GetType().GetField( value.ToString() );
 
+            if (field == null)
+            {
+                return null;
+            }
+
             EnumStringAttribute[] attribs = (EnumStringAttribute[])field.GetCustomAttributes( typeof( EnumStringAttribute ), false );
 
             if( attribs == null || attribs.Length == 0 )

@@ -43,6 +43,11 @@ namespace Dse.Auth.Sspi.Contexts
     internal abstract class Context : IDisposable
     {
         /// <summary>
+        /// Produce a header or trailer but do not encrypt the message. See: KERB_WRAP_NO_ENCRYPT.
+        /// </summary>
+        private const uint WrapNoEncrypt = 0x80000001;
+
+        /// <summary>
         /// Performs basic initialization of a new instance of the Context class.
         /// Initialization is not complete until the ContextHandle property has been set
         /// and the Initialize method has been called.
@@ -183,7 +188,7 @@ namespace Dse.Auth.Sspi.Contexts
             {
                 status = ContextNativeMethods.SafeEncryptMessage(
                     this.ContextHandle,
-                    0,
+                    WrapNoEncrypt,
                     adapter,
                     0
                 );
@@ -195,22 +200,9 @@ namespace Dse.Auth.Sspi.Contexts
             }
 
             int position = 0;
-
-            // Enough room to fit:
-            //  -- 2 bytes for the trailer buffer size
-            //  -- 4 bytes for the message size
-            //  -- 2 bytes for the padding size.
-            //  -- The encrypted message
-            result = new byte[2 + 4 + 2 + trailerBuffer.Length + dataBuffer.Length + paddingBuffer.Length];
-
-            ByteWriter.WriteInt16_BE( (short)trailerBuffer.Length, result, position );
-            position += 2;
-
-            ByteWriter.WriteInt32_BE( dataBuffer.Length, result, position );
-            position += 4;
-
-            ByteWriter.WriteInt16_BE( (short)paddingBuffer.Length, result, position );
-            position += 2;
+            
+            // Return 1 buffer with the 3 buffers joined
+            result = new byte[trailerBuffer.Length + dataBuffer.Length + paddingBuffer.Length];
 
             Array.Copy( trailerBuffer.Buffer, 0, result, position, trailerBuffer.Length );
             position += trailerBuffer.Length;
@@ -219,8 +211,7 @@ namespace Dse.Auth.Sspi.Contexts
             position += dataBuffer.Length;
 
             Array.Copy( paddingBuffer.Buffer, 0, result, position, paddingBuffer.Length );
-            position += paddingBuffer.Length;
-                        
+
             return result;
         }
 
@@ -248,7 +239,6 @@ namespace Dse.Auth.Sspi.Contexts
             SecureBufferAdapter adapter;
 
             SecurityStatus status;
-            byte[] result = null;
             int remaining;
             int position;
 
@@ -261,28 +251,25 @@ namespace Dse.Auth.Sspi.Contexts
             sizes = QueryBufferSizes();
 
             // This check is required, but not sufficient. We could be stricter.
-            if( input.Length < 2 + 4 + 2 + sizes.SecurityTrailer )
+            if (input.Length < sizes.SecurityTrailer)
             {
-                throw new ArgumentException( "Buffer is too small to possibly contain an encrypted message" );
+                throw new ArgumentException("Buffer is too small to possibly contain an encrypted message");
             }
 
             position = 0;
 
-            trailerLength = ByteWriter.ReadInt16_BE( input, position );
-            position += 2;
+            trailerLength = input.Length;
 
-            dataLength = ByteWriter.ReadInt32_BE( input, position );
-            position += 4;
+            dataLength = 0;
 
-            paddingLength = ByteWriter.ReadInt16_BE( input, position );
-            position += 2;
+            paddingLength = 0;
 
-            if ( trailerLength + dataLength + paddingLength + 2 + 4 + 2 > input.Length )
+            if (trailerLength + dataLength + paddingLength > input.Length)
             {
                 throw new ArgumentException( "The buffer contains invalid data - the embedded length data does not add up." );
             }
 
-            trailerBuffer = new SecureBuffer( new byte[trailerLength], BufferType.Token );
+            trailerBuffer = new SecureBuffer( new byte[trailerLength], BufferType.Stream );
             dataBuffer = new SecureBuffer( new byte[dataLength], BufferType.Data );
             paddingBuffer = new SecureBuffer( new byte[paddingLength], BufferType.Padding );
 
@@ -298,7 +285,7 @@ namespace Dse.Auth.Sspi.Contexts
             {
                 throw new ArgumentException( "Input is missing data - it is not long enough to contain a fully encrypted message" );
             }
-            
+
             if( dataBuffer.Length <= remaining )
             {
                 Array.Copy( input, position, dataBuffer.Buffer, 0, dataBuffer.Length );
@@ -307,17 +294,17 @@ namespace Dse.Auth.Sspi.Contexts
             }
             else
             {
-                throw new ArgumentException( "Input is missing data - it is not long enough to contain a fully encrypted message" );
+                throw new ArgumentException("Input is missing data - it is not long enough to contain a fully encrypted message");
             }
 
             if( paddingBuffer.Length <= remaining )
             {
-                Array.Copy( input, position, paddingBuffer.Buffer, 0, paddingBuffer.Length );
+                Array.Copy(input, position, paddingBuffer.Buffer, 0, paddingBuffer.Length);
             }
             // else there was no padding.
-            
 
-            using( adapter = new SecureBufferAdapter( new [] { trailerBuffer, dataBuffer, paddingBuffer } ) )
+
+            using ( adapter = new SecureBufferAdapter( new[] { trailerBuffer, dataBuffer, paddingBuffer } ) )
             {
                 status = ContextNativeMethods.SafeDecryptMessage(
                     this.ContextHandle,
@@ -331,9 +318,14 @@ namespace Dse.Auth.Sspi.Contexts
             {
                 throw new SspiException( "Failed to encrypt message", status );
             }
+            if (dataBuffer.Buffer.Length == 0)
+            {
+                // No data expected
+                return null;
+            }
 
-            result = new byte[dataBuffer.Length];
-            Array.Copy( dataBuffer.Buffer, 0, result, 0, dataBuffer.Length );
+            var result = new byte[dataBuffer.Length];
+            Array.Copy(dataBuffer.Buffer, 0, result, 0, dataBuffer.Length);
 
             return result;
         }

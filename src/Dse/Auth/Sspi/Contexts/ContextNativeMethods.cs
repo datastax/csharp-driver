@@ -135,7 +135,7 @@ namespace Dse.Auth.Sspi.Contexts
         [DllImport( "Secur32.dll", EntryPoint = "EncryptMessage", CharSet = CharSet.Unicode )]
         internal static extern SecurityStatus EncryptMessage(
             ref RawSspiHandle contextHandle,
-            int qualityOfProtection,
+            uint qualityOfProtection,
             IntPtr bufferDescriptor,
             int sequenceNumber
         );
@@ -207,7 +207,7 @@ namespace Dse.Auth.Sspi.Contexts
         /// <returns></returns>
         internal static SecurityStatus SafeEncryptMessage(
             SafeContextHandle handle,
-            int qualityOfProtection,
+            uint qualityOfProtection,
             SecureBufferAdapter bufferAdapter,
             int sequenceNumber )
         {

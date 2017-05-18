@@ -92,9 +92,9 @@ namespace Dse.Auth
             var plainResult = new byte[]
             {
                 0x1, // QOP
-                0x1, // MAX BUF SIZE
-                0x0, // MAX BUF SIZE
-                0x0 // MAX BUF SIZE
+                0x0,
+                0x0,
+                0x0
             };
             return _context.Encrypt(plainResult);
         }
