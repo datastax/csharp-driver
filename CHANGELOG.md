@@ -1,5 +1,30 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.3.0
+
+2017-05-22
+
+### Notable Changes
+
+- Timestamp generation: client-side timestamps are generated and sent in the request by default when the server 
+supports it.
+- Enhanced retry policies: handle client timeouts, connection closed and other errors.
+
+### Features
+
+- [CSHARP-205] - Add client-side timestamp generator
+- [CSHARP-449] - Expose OnRequestError() method in a new extended retry policy interface
+- [CSHARP-529] - Make protocol negotiation more resilient
+- [CSHARP-543] - Linq: Evaluation of closures can be done more efficiently
+- [CSHARP-496] - Linq: Support Cassandra 3.10 GROUP BY
+
+### Bug Fixes
+
+- [CSHARP-540] - Table metadata can not read custom types column info
+- [CSHARP-555] - Cluster.Init: C# driver appears to be leaking on TimeoutException
+- [CSHARP-559] - Mapper.ExecuteAsync doesn't allow ConsistencyLevel setting on the BatchStatement
+- [CSHARP-563] - TokenAwarePolicy does not take statement keyspace into account
+
 ## 3.2.1
 
 2017-02-15

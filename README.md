@@ -227,7 +227,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-  [apidocs]: http://docs.datastax.com/en/drivers/csharp/3.2/
+  [apidocs]: http://docs.datastax.com/en/drivers/csharp/3.3/
   [docindex]: http://docs.datastax.com/en/developer/csharp-driver/latest/
   [features]: http://docs.datastax.com/en/developer/csharp-driver/latest/features/
   [getting-started]: https://academy.datastax.com/resources/getting-started-apache-cassandra-and-c-net

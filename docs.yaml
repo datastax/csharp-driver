@@ -27,9 +27,12 @@ api_docs:
   3.0: http://docs.datastax.com/en/drivers/csharp/3.0
   3.1: http://docs.datastax.com/en/drivers/csharp/3.1
   3.2: http://docs.datastax.com/en/drivers/csharp/3.2
+  3.3: http://docs.datastax.com/en/drivers/csharp/3.3
 versions:
-  - name: '3.2'
+  - name: '3.3'
     ref: 'master'
+  - name: '3.2'
+    ref: '3.2'
   - name: '3.1'
     ref: '3.1'
   - name: '3.0'
