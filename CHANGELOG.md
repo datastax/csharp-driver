@@ -1,5 +1,16 @@
 # ChangeLog - DataStax Enterprise C# Driver
 
+## 2.0.1
+
+2017-05-22
+
+###  Bug Fixes
+
+- [CSHARP-555] - Cluster.Init: C# driver appears to be leaking on TimeoutException
+- [CSHARP-559] - Mapper.ExecuteAsync doesn't allow ConsistencyLevel setting on the BatchStatement
+- [CSHARP-563] - TokenAwarePolicy does not take statement keyspace into account
+- [CSHARP-568] - SSPI usage is not MIT Kerberos compatible
+
 ## 2.0.0
 
 2017-04-18

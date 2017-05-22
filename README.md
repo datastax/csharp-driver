@@ -57,7 +57,7 @@ Console.WriteLine(row.GetValue<string>("cluster_name"));
 For clients connecting to a DSE cluster secured with `DseAuthenticator`, two authentication providers are included:
 
 * `DsePlainTextAuthProvider`: plain-text authentication;
-* `DseGSSAPIAuthProvider`: GSSAPI authentication.
+* `DseGssapiAuthProvider`: GSSAPI authentication.
 
 To configure a provider, pass it when initializing the cluster:
 
