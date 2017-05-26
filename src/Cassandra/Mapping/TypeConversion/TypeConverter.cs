@@ -133,6 +133,11 @@ namespace Cassandra.Mapping.TypeConversion
                     Func<Int64, TimeSpan> timespanMapper = ConvertToTimeSpan;
                     return timespanMapper;
                 }
+                if (pocoType == typeof(Nullable<TimeSpan>))
+                {
+                    Func<Int64, Nullable<TimeSpan>> timespanMapper = ConvertToNullableTimeSpan;
+                    return timespanMapper;
+                }
             }
 
 
@@ -237,8 +242,16 @@ namespace Cassandra.Mapping.TypeConversion
             return new TimeSpan(databaseValue);
         }
 
+        private static TimeSpan? ConvertToNullableTimeSpan(Int64 databaseValue)
+        {
+            if (databaseValue == 0)
+                return null;
+
+            return new TimeSpan(databaseValue);
+        }
+
         // ReSharper restore UnusedMember.Local
-        
+
         /// <summary>
         /// Gets any user defined conversion functions that can convert a value of type <typeparamref name="TDatabase"/> (coming from Cassandra) to a
         /// type of <typeparamref name="TPoco"/> (a field or property on a POCO).  Return null if no conversion Func is available.
