@@ -132,6 +132,7 @@
     <Compile Include="DSE\SASL.cs" />
     <Compile Include="DSE\SSPI.cs" />
     <Compile Include="DSE\WindowsAPI.cs" />
+    <Compile Include="EC2MultiRegionAddressTranslator.cs" />
     <Compile Include="Exceptions\FunctionFailureException.cs" />
     <Compile Include="Exceptions\OperationTimedOutException.cs" />
     <Compile Include="Exceptions\ReadFailureException.cs" />

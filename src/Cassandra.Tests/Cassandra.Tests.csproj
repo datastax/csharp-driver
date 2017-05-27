@@ -63,6 +63,7 @@
     <Compile Include="ControlConnectionTests.cs" />
     <Compile Include="CustomTypeSerializerTests.cs" />
     <Compile Include="DataTypeParserTests.cs" />
+    <Compile Include="EC2MultiRegionAddressTranslatorTest.cs" />
     <Compile Include="Extensions\Serializers\BigDecimalSerializer.cs" />
     <Compile Include="Extensions\Serializers\DummyCustomTypeSerializer.cs" />
     <Compile Include="Extensions\Serializers\UdtSerializerWrapper.cs" />
