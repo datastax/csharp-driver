@@ -509,6 +509,33 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.AreEqual(TypeSerializer.SinceUnixEpoch(timestamp).Ticks / 10, rows[0].GetValue<object>("timestamp"));
         }
 
+        [Test]
+        public void Insert_Mapping_Attributes_Test()
+        {
+            const string createQuery = @"
+                CREATE TABLE omfieldtest (
+                    integer int,
+                    bigint varint,
+                    stringtext text, 
+                    universal_col uuid, 
+                    bool boolean, 
+                    singleprecision float,
+                    variableprecision decimal,
+                    PRIMARY KEY ((integer), bigint, stringtext, universal_col)
+                )";
+            _session.Execute(createQuery);
+            var table = new Table<AttributeMappingClass>(_session, new MappingConfiguration());
+            table.Insert(new AttributeMappingClass
+            {
+                integer = 1,
+                bigint = 2L,
+                stringVal = "3",
+                universal = Guid.NewGuid()
+            }).Execute();
+            var result = table.Where(c => c.integer == 1).Execute();
+            Assert.That(result.Count(), Is.EqualTo(1));
+        }
+
 
 
         [Test]
@@ -604,6 +631,24 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /////////////////////////////////////////
         /// Private test classes
         /////////////////////////////////////////
+        [Cassandra.Mapping.Attributes.Table("omfieldtest")]
+        public class AttributeMappingClass
+        {
+            [Cassandra.Mapping.Attributes.PartitionKey]
+            public Int32 integer;
+            [Cassandra.Mapping.Attributes.ClusteringKey(0, SortOrder.Ascending, Name = "bigint")]
+            public Int64 bigint;
+            [Cassandra.Mapping.Attributes.ClusteringKey(1, SortOrder.Ascending, Name = "stringtext")]
+            public string stringVal;
+            [Cassandra.Mapping.Attributes.ClusteringKey(2, SortOrder.Ascending, Name = "universal_col")]
+            public Guid universal;
+            [Cassandra.Mapping.Attributes.Column("bool")]
+            public bool boolVal;
+            [Cassandra.Mapping.Attributes.Column("singleprecision")]
+            public float singlePrecisionVal;
+            [Cassandra.Mapping.Attributes.Column("variableprecision")]
+            public decimal variablePrecisionVal;
+        }
 
         private class ClassWithTwoPartitionKeys
         {
