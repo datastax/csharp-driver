@@ -148,6 +148,10 @@ namespace Cassandra
         /// <returns></returns>
         public object GetValue(Type type, int index)
         {
+            var underlyingType = Nullable.GetUnderlyingType(type);
+            if (underlyingType != null)
+                return this.GetValue(underlyingType, index);
+
             var value = _rowValues[index];
             return value == null ? null : TryConvertToType(value, Columns[index], type);
         }
