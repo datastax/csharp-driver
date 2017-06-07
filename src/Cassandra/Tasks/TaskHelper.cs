@@ -344,6 +344,10 @@ namespace Cassandra.Tasks
             {
                 var t = timerWrapper[0];
                 Interlocked.MemoryBarrier();
+                if (t == null)
+                {
+                    throw new NullReferenceException("timerWrapper is null");
+                }
                 t.Dispose();
                 // Transition the underlying Task outside the IO thread
                 Task.Factory.StartNew(() =>
