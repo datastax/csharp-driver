@@ -257,7 +257,7 @@ namespace Cassandra
                     //Control connection is being disposed
                 }
             }
-            return await tcs.Task;
+            return await tcs.Task.ConfigureAwait(false);
         }
 
         internal async Task Refresh()
