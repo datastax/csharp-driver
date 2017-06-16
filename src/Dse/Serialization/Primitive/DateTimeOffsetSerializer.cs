@@ -18,12 +18,14 @@ namespace Dse.Serialization.Primitive
 
         internal static DateTimeOffset Deserialize(byte[] buffer, int offset)
         {
-            return UnixStart.AddMilliseconds(BeConverter.ToInt64(buffer, offset));
+            var milliseconds = BeConverter.ToInt64(buffer, offset);
+            return UnixStart.AddTicks(TimeSpan.TicksPerMillisecond * milliseconds);
         }
 
         internal static byte[] Serialize(DateTimeOffset value)
         {
-            return BeConverter.GetBytes(Convert.ToInt64(Math.Floor((value - UnixStart).TotalMilliseconds)));
+            var ticks = (value - UnixStart).Ticks;
+            return BeConverter.GetBytes(ticks / TimeSpan.TicksPerMillisecond);
         }
 
         public override DateTimeOffset Deserialize(ushort protocolVersion, byte[] buffer, int offset, int length, IColumnInfo typeInfo)

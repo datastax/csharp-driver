@@ -107,7 +107,7 @@ namespace Dse
             catch (SocketException ex)
             {
                 _logger.Error("An error occurred when trying to retrieve the cluster metadata, retrying.", ex);
-                // Can't await on catch
+                // Can't be awaited on catch
                 obtainingMetadataFailed = true;
             }
             if (obtainingMetadataFailed)
@@ -144,7 +144,7 @@ namespace Dse
             }
             var host = hostsEnumerator.Current;
             var c = new Connection(_serializer, host.Address, _config);
-            // Use a task to workaround "no await in catch"
+            // Use a task to workaround "no awaiting in catch"
             Task<bool> nextTask;
             try
             {
@@ -248,7 +248,7 @@ namespace Dse
                     //Control connection is being disposed
                 }
             }
-            return await tcs.Task;
+            return await tcs.Task.ConfigureAwait(false);
         }
 
         internal async Task Refresh()

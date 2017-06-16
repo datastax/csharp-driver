@@ -8,8 +8,11 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Dse.Tasks;
@@ -146,6 +149,39 @@ namespace Dse.Test.Unit
             Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
             Thread.Sleep(200);
             Assert.False(called);
+        }
+
+        [Test]
+        public void ConfigureAwait_Used_For_Every_Awaited_Task()
+        {
+            var assemblyFile = new FileInfo(new Uri(GetType().GetTypeInfo().Assembly.CodeBase).LocalPath);
+            var directory = assemblyFile.Directory;
+            while (directory != null && directory.Name != "src")
+            {
+                directory = directory.Parent;
+            }
+            if (directory == null)
+            {
+                Assert.Fail("src folder could not be determined");
+            }
+            directory = directory.GetDirectories("Cassandra").FirstOrDefault() ??
+                        directory.GetDirectories("Dse").FirstOrDefault();
+            if (directory == null)
+            {
+                Assert.Fail("Library source folder could not be determined");
+            }
+            var regex = new Regex("await\\b[^;]*?(?<!ConfigureAwait\\(false\\));", 
+                                  RegexOptions.Multiline | RegexOptions.Compiled);
+            foreach (var fileInfo in directory.GetFiles("*.cs", SearchOption.AllDirectories))
+            {
+                var source = File.ReadAllText(fileInfo.FullName);
+                var match = regex.Match(source);
+                if (match.Success)
+                {
+                    Assert.Fail("Awaited Task without ConfigureAwait() call in file {0}: {1}", 
+                                fileInfo.FullName, match.Value);
+                }
+            }
         }
 
         /// <summary>

@@ -615,7 +615,7 @@ namespace Dse
             catch (Exception ex)
             {
                 Logger.Info("Connection to {0} could not be created: {1}", _host.Address, ex);
-                // Can not await on catch on C# 5...
+                // Can not be awaited on catch on C# 5...
                 creationEx = ex;
             }
             if (creationEx != null)

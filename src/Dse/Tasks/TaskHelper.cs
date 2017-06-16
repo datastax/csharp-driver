@@ -330,11 +330,16 @@ namespace Dse.Tasks
         public static TaskCompletionSource<T> TaskCompletionSourceWithTimeout<T>(int milliseconds, Func<Exception> newTimeoutException)
         {
             var tcs = new TaskCompletionSource<T>();
-            var timerWrapper = new Timer[] {null};
+            Timer timer = null;
             TimerCallback timerCallback = _ =>
             {
-                var t = timerWrapper[0];
-                Interlocked.MemoryBarrier();
+                // ReSharper disable once AccessToModifiedClosure
+                // timer is a modified closure and can not be null
+                var t = timer;
+                if (t == null)
+                {
+                    throw new NullReferenceException("timer instance from closure is null");
+                }
                 t.Dispose();
                 // Transition the underlying Task outside the IO thread
                 Task.Factory.StartNew(() =>
@@ -355,14 +360,10 @@ namespace Dse.Tasks
             };
             // We can not use constructor that sets the timer as the state object
             // as it is not available in .NET Standard 1.5 
-            var timer = new Timer(timerCallback, null, milliseconds, Timeout.Infinite);
+            timer = new Timer(timerCallback, null, Timeout.Infinite, Timeout.Infinite);
             Interlocked.MemoryBarrier();
-            timerWrapper[0] = timer;
-            tcs.Task.ContinueWith(t =>
-            {
-                // Timer can be disposed multiple times
-                timer.Dispose();
-            });
+            tcs.Task.ContinueWith(t => timer.Dispose());
+            timer.Change(milliseconds, Timeout.Infinite);
             return tcs;
         }
 
