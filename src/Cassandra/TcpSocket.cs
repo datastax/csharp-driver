@@ -135,7 +135,7 @@ namespace Cassandra
             try
             {
                 _socket.ConnectAsync(eventArgs);
-                await socketConnectTask;
+                await socketConnectTask.ConfigureAwait(false);
             }
             finally
             {
@@ -143,7 +143,7 @@ namespace Cassandra
             }
             if (SSLOptions != null)
             {
-                return await ConnectSsl();
+                return await ConnectSsl().ConfigureAwait(false);
             }
             // Prepare read and write
             // There are 2 modes: using SocketAsyncEventArgs (most performant) and Stream mode
@@ -173,7 +173,7 @@ namespace Cassandra
             var targetHost = IPEndPoint.Address.ToString();
             //HostNameResolver is a sync operation but it can block
             //Use another thread
-            await Task.Factory.StartNew(() =>
+            Action resolveAction = () =>
             {
                 try
                 {
@@ -186,7 +186,8 @@ namespace Cassandra
                             "SSL connection: Can not resolve host name for address {0}. Using the IP address instead of the host name. This may cause RemoteCertificateNameMismatch error during Cassandra host authentication. Note that the Cassandra node SSL certificate's CN(Common Name) must match the Cassandra node hostname.",
                             targetHost), ex);
                 }
-            }).ConfigureAwait(false);
+            };
+            await Task.Factory.StartNew(resolveAction).ConfigureAwait(false);
 
             _logger.Verbose("Starting SSL authentication");
             var sslStream = new SslStream(new NetworkStream(_socket), false, SSLOptions.RemoteCertValidationCallback, null);
@@ -210,7 +211,7 @@ namespace Cassandra
                          }
                          tcs.TrySetResult(true);
                      }, TaskContinuationOptions.ExecuteSynchronously)
-                     // Do not await as it may never yield
+                     // Avoid awaiting as it may never yield
                      .Forget();
 
             await tcs.Task.ConfigureAwait(false);
