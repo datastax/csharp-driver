@@ -40,7 +40,7 @@ namespace Dse
         /// <param name="statement">The graph statement containing the query</param>
         /// <example>
         /// <code>
-        /// GraphResultSet rs = await session.ExecuteGraphAsync(new SimpleGraphStatement("g.V()"));
+        /// Task&lt;GraphResultSet$gt; task = session.ExecuteGraphAsync(new SimpleGraphStatement("g.V()"));
         /// </code>
         /// </example>
         Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement statement);
