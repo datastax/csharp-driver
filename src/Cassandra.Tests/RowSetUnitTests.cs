@@ -24,9 +24,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Reflection;
-#if !NO_MOCKS
 using Moq;
-#endif
 
 namespace Cassandra.Tests
 {
@@ -320,7 +318,6 @@ namespace Cassandra.Tests
             Assert.DoesNotThrow(() => row.GetValue<int?>("int_sample"));
         }
 
-#if !NO_MOCKS
         [Test]
         public void RowsetIsMockable()
         {
@@ -339,7 +336,6 @@ namespace Cassandra.Tests
             Assert.AreEqual(rowArray.Length, 1);
             Assert.AreEqual(rowArray[0].GetValue<int>("int_value"), 100);
         }
-#endif
 
         /// <summary>
         /// Creates a rowset.

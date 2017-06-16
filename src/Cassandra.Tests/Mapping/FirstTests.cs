@@ -1,4 +1,3 @@
-#if !NO_MOCKS
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -131,4 +130,3 @@ namespace Cassandra.Tests.Mapping
         }
     }
 }
-#endif

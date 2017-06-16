@@ -1,17 +1,9 @@
 language: csharp
 sudo: required
+mono: none
+dotnet: 1.0.1
 dist: trusty
-dotnet: 1.0.0-preview2-003131
-mono: latest
-addons:
-  apt:
-    packages:
-    - gettext
-    - libcurl4-openssl-dev
-    - libicu-dev
-    - libssl-dev
-    - libunwind8
-    - zlib1g
+
 branches:
   except:
     - 1.0
@@ -19,12 +11,6 @@ branches:
     - 2.1
     - dse_3.1
 
-solution: src/Cassandra.sln
-install:
-  - nuget restore src/Cassandra.sln
-  - nuget install NUnit.Runners -Version 3.4.1 -OutputDirectory testrunner
 script:
-  - xbuild /p:Configuration=Release /v:m /p:restorepackages=false /p:DynamicConstants=LINUX src/Cassandra.sln
-  - mono ./testrunner/NUnit.ConsoleRunner.3.4.1/tools/nunit3-console.exe ./src/Cassandra.Tests/bin/Release/Cassandra.Tests.dll
-  - dotnet restore
-  - dotnet test src/Cassandra.Tests -c Release -f netcoreapp1.0
+  - dotnet restore src
+  - dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj -c Release -f netcoreapp1.0

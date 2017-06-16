@@ -1,5 +1,4 @@
-﻿#if !NO_MOCKS
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -302,4 +301,3 @@ namespace Cassandra.Tests.Mapping.Linq
         }
     }
 }
-#endif

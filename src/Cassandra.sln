@@ -1,73 +1,34 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
-MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{F6762B3F-9260-4FB4-A61F-E7654A056802}"
+# Visual Studio 15
+VisualStudioVersion = 15.0.26403.0
+MinimumVisualStudioVersion = 15.0
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cassandra", "Cassandra\Cassandra.csproj", "{CD3ECE56-DB5A-4C1D-8863-8D91DC21F321}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra", "Cassandra\Cassandra.csproj", "{6E8C45DA-D958-4C75-98C3-B54C883299A2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cassandra.Tests", "Cassandra.Tests\Cassandra.Tests.csproj", "{670A9F87-822C-4DD3-877A-178135C3C9A1}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{C29E0F5F-FC0E-466B-A2B7-30756AF22956}"
-	ProjectSection(SolutionItems) = preProject
-		.nuget\NuGet.Config = .nuget\NuGet.Config
-		.nuget\NuGet.targets = .nuget\NuGet.targets
-		.nuget\packages.config = .nuget\packages.config
-	EndProjectSection
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.Tests", "Cassandra.Tests\Cassandra.Tests.csproj", "{49996688-1380-4854-A32C-048C4014E478}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cassandra.IntegrationTests", "Cassandra.IntegrationTests\Cassandra.IntegrationTests.csproj", "{D584651E-23C0-4714-9B92-6113C44BA6B8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cassandra.IntegrationTests", "Cassandra.IntegrationTests\Cassandra.IntegrationTests.csproj", "{6E9E4BBB-7FFD-4337-8639-6F52DCACD591}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
-		Debug|Mixed Platforms = Debug|Mixed Platforms
-		Debug|x86 = Debug|x86
 		Release|Any CPU = Release|Any CPU
-		Release|Mixed Platforms = Release|Mixed Platforms
-		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Debug|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Debug|Mixed Platforms.Build.0 = Release|Any CPU
-		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{6E8C45DA-D958-4C75-98C3-B54C883299A2}.Release|x86.ActiveCfg = Release|Any CPU
-		{49996688-1380-4854-A32C-048C4014E478}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{49996688-1380-4854-A32C-048C4014E478}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{49996688-1380-4854-A32C-048C4014E478}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{49996688-1380-4854-A32C-048C4014E478}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{49996688-1380-4854-A32C-048C4014E478}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{49996688-1380-4854-A32C-048C4014E478}.Debug|x86.Build.0 = Debug|Any CPU
-		{49996688-1380-4854-A32C-048C4014E478}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{49996688-1380-4854-A32C-048C4014E478}.Release|Any CPU.Build.0 = Release|Any CPU
-		{49996688-1380-4854-A32C-048C4014E478}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{49996688-1380-4854-A32C-048C4014E478}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{49996688-1380-4854-A32C-048C4014E478}.Release|x86.ActiveCfg = Release|Any CPU
-		{49996688-1380-4854-A32C-048C4014E478}.Release|x86.Build.0 = Release|Any CPU
-		{D584651E-23C0-4714-9B92-6113C44BA6B8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D584651E-23C0-4714-9B92-6113C44BA6B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D584651E-23C0-4714-9B92-6113C44BA6B8}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{D584651E-23C0-4714-9B92-6113C44BA6B8}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{D584651E-23C0-4714-9B92-6113C44BA6B8}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{D584651E-23C0-4714-9B92-6113C44BA6B8}.Debug|x86.Build.0 = Debug|Any CPU
-		{D584651E-23C0-4714-9B92-6113C44BA6B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D584651E-23C0-4714-9B92-6113C44BA6B8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D584651E-23C0-4714-9B92-6113C44BA6B8}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{D584651E-23C0-4714-9B92-6113C44BA6B8}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{D584651E-23C0-4714-9B92-6113C44BA6B8}.Release|x86.ActiveCfg = Release|Any CPU
-		{D584651E-23C0-4714-9B92-6113C44BA6B8}.Release|x86.Build.0 = Release|Any CPU
+		{CD3ECE56-DB5A-4C1D-8863-8D91DC21F321}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CD3ECE56-DB5A-4C1D-8863-8D91DC21F321}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CD3ECE56-DB5A-4C1D-8863-8D91DC21F321}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CD3ECE56-DB5A-4C1D-8863-8D91DC21F321}.Release|Any CPU.Build.0 = Release|Any CPU
+		{670A9F87-822C-4DD3-877A-178135C3C9A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{670A9F87-822C-4DD3-877A-178135C3C9A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{670A9F87-822C-4DD3-877A-178135C3C9A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{670A9F87-822C-4DD3-877A-178135C3C9A1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6E9E4BBB-7FFD-4337-8639-6F52DCACD591}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6E9E4BBB-7FFD-4337-8639-6F52DCACD591}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6E9E4BBB-7FFD-4337-8639-6F52DCACD591}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6E9E4BBB-7FFD-4337-8639-6F52DCACD591}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{49996688-1380-4854-A32C-048C4014E478} = {F6762B3F-9260-4FB4-A61F-E7654A056802}
-		{D584651E-23C0-4714-9B92-6113C44BA6B8} = {F6762B3F-9260-4FB4-A61F-E7654A056802}
 	EndGlobalSection
 EndGlobal

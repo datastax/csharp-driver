@@ -25,9 +25,7 @@ using Cassandra.Data.Linq;
 using Cassandra.Mapping;
 using Cassandra.Serialization;
 using Cassandra.Tests.Mapping.Pocos;
-#if !NO_MOCKS
 using Moq;
-#endif
 using NUnit.Framework;
 using Cassandra.Tasks;
 #pragma warning disable 618
@@ -222,7 +220,6 @@ APPLY BATCH".Replace("\r", ""));
                 (from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new { f1 = 1223, ck1 = (int?)null }).UpdateIf((a) => a.f1 == 123).ToString());
         }
 
-#if !NETCORE
         /// <summary>
         /// Tests the Linq to CQL generated where clause 
         /// </summary>
@@ -277,7 +274,6 @@ APPLY BATCH".Replace("\r", ""));
                     "Expected Cql query and generated CQL query by Linq do not match.");
             }
         }
-#endif
 
         [Table]
         private class AllowFilteringTestTable
@@ -335,7 +331,6 @@ APPLY BATCH".Replace("\r", ""));
             public long Value { get; set; }
         }
 
-#if !NO_MOCKS
         [Test]
         public void CreateTableCounterTest()
         {
@@ -395,7 +390,6 @@ APPLY BATCH".Replace("\r", ""));
             table2.CreateIfNotExists();
             Assert.AreEqual("CREATE TABLE \"InheritedEntity\" (\"Id\" int, \"Description\" text, \"Name\" text, PRIMARY KEY (\"Id\"))", createQuery);
         }
-#endif
 
         [Test]
         public void LinqGeneratedUpdateStatementForCounterTest()
