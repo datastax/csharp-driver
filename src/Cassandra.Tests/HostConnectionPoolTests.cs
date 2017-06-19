@@ -238,7 +238,7 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void OnHostUp_Recreates_Pool_In_The_Background()
+        public async Task OnHostUp_Recreates_Pool_In_The_Background()
         {
             var mock = GetPoolMock(null, GetConfig(2, 2));
             var creationCounter = 0;
@@ -255,15 +255,15 @@ namespace Cassandra.Tests
             Assert.AreEqual(0, Volatile.Read(ref creationCounter));
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
             pool.OnHostUp(null);
-            Thread.Sleep(100);
+            await Task.Delay(100);
             Assert.AreEqual(0, pool.OpenConnections);
             Assert.AreEqual(1, Volatile.Read(ref creationCounter));
             Assert.AreEqual(1, Volatile.Read(ref isCreating));
-            Thread.Sleep(500);
+            await Task.Delay(550);
             Assert.AreEqual(1, pool.OpenConnections);
             Assert.AreEqual(2, Volatile.Read(ref creationCounter));
             Assert.AreEqual(1, Volatile.Read(ref isCreating));
-            Thread.Sleep(500);
+            await Task.Delay(550);
             Assert.AreEqual(2, pool.OpenConnections);
             Assert.AreEqual(2, Volatile.Read(ref creationCounter));
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
