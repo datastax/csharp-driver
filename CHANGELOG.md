@@ -1,5 +1,13 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.3.1
+
+2017-06-19
+
+### Bug Fixes
+
+- [CSHARP-579] - SynchronizationContext-based deadlock on Connect()
+
 ## 3.3.0
 
 2017-05-22
