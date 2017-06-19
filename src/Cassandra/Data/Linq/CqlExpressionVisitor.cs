@@ -336,6 +336,12 @@ namespace Cassandra.Data.Linq
                 query.Append(" LIMIT ?");
                 parameters.Add(_limit);
             }
+
+            if (_allowFiltering || _pocoData.AllowFiltering)
+            {
+                query.Append(" ALLOW FILTERING");
+            }
+
             values = parameters.ToArray();
 
             return query.ToString();
