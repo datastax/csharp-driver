@@ -44,7 +44,7 @@ build_script:
 test_script:
   - ps: >-
       If ("$($env:CI_TYPE)" -ne "MEMORY") {
-        dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET
+        dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --filter "(TestCategory!=short)&(TestCategory!=memory)"
       }
       Else {
         .\build\memory_tests.ps1
