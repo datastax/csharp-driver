@@ -8,7 +8,6 @@ cassandra:
   - '3.10'
 env:
   CSHARP_VERSION:
-    - mono
     - netcore
 build:
   - script: |
@@ -19,45 +18,19 @@ build:
       # Define Cassandra runtime
       echo "==========setting cassandra version=========="
       export CASSANDRA_VERSION=$CCM_CASSANDRA_VERSION
-      echo "==========installing saxon parser==========="
-      sudo apt-get install -y libsaxon-java
-
       export SCASSANDRA_JAR=$HOME/scassandra-server_2.11-1.0.10-standalone.jar 
       ./build/scassandra_install.sh
 
       echo "==========copying ssl files to $HOME/ssl=========="
       cp -r /home/jenkins/ccm/ssl $HOME/ssl
  
-      if [ $CSHARP_VERSION = 'mono' ]; then
-          echo "==========csharp verion mono=========="
-          # Define alias for Nuget
-          nuget() {
-                mono /home/jenkins/nuget/NuGet.exe "$@"
-          }
-          export -f nuget
-          # Install the required packages
-          export EnableNuGetPackageRestore=true
-          nuget restore src/Cassandra.sln
-          nuget install NUnit.Runners -Version 3.4.1 -OutputDirectory testrunner
-          # Compile the driver and test code
-          xbuild /p:Configuration=Release /v:m /p:restorepackages=false /p:DynamicConstants=LINUX src/Cassandra.sln
-          # Run the tests
-          echo "==========RUNNING FULL SUITE OF TESTS=========="
-          mono ./testrunner/NUnit.ConsoleRunner.3.4.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/Cassandra.IntegrationTests.dll --where:cat=short --labels=All --result:"TestResult_nunit3.xml"
+      # Install the required packages
+      dotnet restore
 
-      else
-         echo "==========csharp verion netcore=========="
-          # Install the required packages
-          dotnet restore
-
-          # Run the tests
-          echo "==========RUNNING FULL SUITE OF TESTS=========="
-          pushd src/Cassandra.IntegrationTests
-          dotnet test -f netcoreapp1.0 --work=../../ --where:cat=short --result=TestResult_nunit3.xml
-          popd
-      fi
-      echo "==========parsing nunit3 report================"
-      saxon-xslt -o TestResult.xml TestResult_nunit3.xml tools/nunit3-xunit.xslt
+      # Run the tests
+      echo "==========RUNNING FULL SUITE OF TESTS=========="
+      #dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f netcoreapp1.0 -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult.xml"
+      dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f netcoreapp1.0 -c Release --filter Name=QueryBinding --logger "trx;LogFileName=../../../TestResult.xml"
   - xunit:
     - "TestResult.xml"
 
