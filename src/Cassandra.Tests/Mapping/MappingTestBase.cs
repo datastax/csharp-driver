@@ -57,10 +57,11 @@ namespace Cassandra.Tests.Mapping
 
         protected ISession GetSession(Action<string, object[]> callback, RowSet rs = null)
         {
-            return GetSession(rs, stmt => callback(stmt.PreparedStatement.Cql, stmt.QueryValues));
+            return GetSession<BoundStatement>(rs, stmt => callback(stmt.PreparedStatement.Cql, stmt.QueryValues));
         }
 
-        protected ISession GetSession(RowSet rs, Action<BoundStatement> callback)
+        protected ISession GetSession<TStatement>(RowSet rs, Action<TStatement> callback)
+            where TStatement : IStatement
         {
             if (rs == null)
             {
@@ -69,7 +70,7 @@ namespace Cassandra.Tests.Mapping
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
             sessionMock
-                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Setup(s => s.ExecuteAsync(It.IsAny<TStatement>()))
                 .Returns(() => TaskHelper.ToTask(rs))
                 .Callback(callback)
                 .Verifiable();
@@ -77,6 +78,9 @@ namespace Cassandra.Tests.Mapping
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
                 .Returns<string>(query => TaskHelper.ToTask(GetPrepared(query)))
                 .Verifiable();
+            sessionMock
+                .Setup(s => s.BinaryProtocolVersion)
+                .Returns((int)ProtocolVersion.MaxSupported);
             return sessionMock.Object;
         }
 

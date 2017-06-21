@@ -30,7 +30,7 @@ namespace Cassandra.Data.Linq
             get { return _batchScript.Length == 0; }
         }
 
-        internal BatchV1(ISession session) : base(session)
+        internal BatchV1(ISession session, BatchType batchType) : base(session, batchType)
         {
         }
 
@@ -56,12 +56,12 @@ namespace Cassandra.Data.Linq
 
         private string GetCql()
         {
-            string bt = _batchType == BatchType.Counter ? "COUNTER" : "";
+            var bt = BatchTypeString();
             return "BEGIN " + bt + "BATCH\r\n" +
                    ((_timestamp == null)
                         ? ""
                         : ("USING TIMESTAMP " + (_timestamp.Value - CqlQueryTools.UnixStart).Ticks / 10 + " ")) +
-                   _batchScript + "APPLY " + bt + "BATCH";
+                   _batchScript + "APPLY BATCH";
         }
 
         public override string ToString()

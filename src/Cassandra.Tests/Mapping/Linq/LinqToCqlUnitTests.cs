@@ -210,11 +210,28 @@ namespace Cassandra.Tests.Mapping.Linq
             Assert.AreEqual(@"SELECT ""x_pk"", ""x_ck1"", ""x_f1"" FROM ""x_ts"" WHERE ""x_pk"" = ? AND ""x_ck1"" = ?", queryCql);
         }
 
+
         [Test]
-        public void Linq_Batch_Test()
+        public void Linq_Unlogged_Batch_Test()
         {
             var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
-            var batch = SessionExtensions.CreateBatch(null);
+            var batch = SessionExtensions.CreateBatch(null, BatchType.Unlogged);
+            batch.Append(table.Insert(new LinqDecoratedEntity() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" }));
+            batch.Append(table.Where(ent => new int[] { 10, 30, 40 }.Contains(ent.ck2)).Select(ent => new { f1 = 1223 }).Update());
+            batch.Append(table.Where(ent => new int[] { 10, 30, 40 }.Contains(ent.ck2)).Delete());
+            Assert.AreEqual(batch.ToString().Replace("\r", ""),
+                @"BEGIN UNLOGGED BATCH
+INSERT INTO ""x_t"" (""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES (?, ?, ?, ?);
+UPDATE ""x_t"" SET ""x_f1"" = ? WHERE ""x_ck2"" IN (?, ?, ?);
+DELETE FROM ""x_t"" WHERE ""x_ck2"" IN (?, ?, ?);
+APPLY BATCH".Replace("\r", ""));
+        }
+
+        [Test]
+        public void Linq_Logged_Batch_Test()
+        {
+            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
+            var batch = SessionExtensions.CreateBatch(null, BatchType.Logged);
             batch.Append(table.Insert(new LinqDecoratedEntity() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" }));
             batch.Append(table.Where(ent => new int[] { 10, 30, 40 }.Contains(ent.ck2)).Select(ent => new { f1 = 1223 }).Update());
             batch.Append(table.Where(ent => new int[] { 10, 30, 40 }.Contains(ent.ck2)).Delete());
@@ -223,6 +240,21 @@ namespace Cassandra.Tests.Mapping.Linq
 INSERT INTO ""x_t"" (""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES (?, ?, ?, ?);
 UPDATE ""x_t"" SET ""x_f1"" = ? WHERE ""x_ck2"" IN (?, ?, ?);
 DELETE FROM ""x_t"" WHERE ""x_ck2"" IN (?, ?, ?);
+APPLY BATCH".Replace("\r", ""));
+        }
+
+        [Test]
+        public void Linq_Counter_Batch_Test()
+        {
+            //TODO: Write actual counter statements
+            var table = SessionExtensions.GetTable<CounterTestTable1>(null);
+            var batch = SessionExtensions.CreateBatch(null, BatchType.Counter);
+            batch.Append(table.Where(ent => ent.RowKey1 == 1 && ent.RowKey2 == 2).Select(_ => new CounterTestTable1 { Value = 1 }).Update());
+            batch.Append(table.Where(ent => ent.RowKey1 == 3 && ent.RowKey2 == 4).Select(_ => new CounterTestTable1 { Value = 1 }).Update());
+            Assert.AreEqual(batch.ToString().Replace("\r", ""),
+                @"BEGIN COUNTER BATCH
+UPDATE ""CounterTestTable1"" SET ""Value"" = ""Value"" + ? WHERE ""RowKey1"" = ? AND ""RowKey2"" = ?;
+UPDATE ""CounterTestTable1"" SET ""Value"" = ""Value"" + ? WHERE ""RowKey1"" = ? AND ""RowKey2"" = ?;
 APPLY BATCH".Replace("\r", ""));
         }
 

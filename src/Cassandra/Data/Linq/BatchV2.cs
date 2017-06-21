@@ -30,7 +30,7 @@ namespace Cassandra.Data.Linq
             get { return _batchScript.IsEmpty; }
         }
 
-        internal BatchV2(ISession session) : base(session)
+        internal BatchV2(ISession session, BatchType batchType) : base(session, batchType)
         {
         }
 
@@ -58,7 +58,7 @@ namespace Cassandra.Data.Linq
         public override string ToString()
         {
             var sb = new StringBuilder();
-            sb.AppendLine("BEGIN " + (_batchType == BatchType.Counter ? "COUNTER " : "") + "BATCH");
+            sb.AppendLine("BEGIN " + BatchTypeString() + "BATCH");
             foreach (Statement q in _batchScript.Queries)
                 sb.AppendLine(q + ";");
             sb.Append("APPLY BATCH");
