@@ -28,9 +28,9 @@ build:
 
       # Run the tests
       echo "==========RUNNING FULL SUITE OF TESTS=========="
-      #dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f netcoreapp1.0 -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_xunit.xml"
-      dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f netcoreapp1.0 -c Release --filter Name=QueryBinding --logger "trx;LogFileName=../../../TestResult_xunit.xml"
-      saxon-xslt -o TestResult.xml TestResult_xunit.xml tools/nunit3-xunit.xslt
+      #dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f netcoreapp1.0 -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx.xml"
+      dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f netcoreapp1.0 -c Release --filter Name=QueryBinding --logger "trx;LogFileName=../../../TestResult_trx.xml"
+      saxon-xslt -o TestResult.xml TestResult_trx.xml tools/trx-to-junit.xslt
   - xunit:
     - "TestResult.xml"
 

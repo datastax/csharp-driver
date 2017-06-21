@@ -55,5 +55,6 @@ on_failure:
 on_finish:
   - ps: >-
       # upload results to AppVeyor
+      xml tr tools\trx-to-junit.xslt src\${env:PROJECT}\TestResults\TestResult.xml > ResultsJUnit.xml
       $wc = New-Object 'System.Net.WebClient'
-      $wc.UploadFile("https://ci.appveyor.com/api/testresults/xunit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\src\${env:PROJECT}\TestResults\TestResult.xml))
+      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path ResultsJUnit.xml))
