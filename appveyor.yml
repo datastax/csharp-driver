@@ -44,20 +44,16 @@ build_script:
 test_script:
   - ps: >-
       If ("$($env:CI_TYPE)" -ne "MEMORY") {
-        dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --filter "(TestCategory!=short)&(TestCategory!=memory)"  --logger "trx;LogFileName=TestResult.xml"
+        dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --filter "(TestCategory!=short)&(TestCategory!=memory)"  --logger "trx;LogFileName=..\..\..\TestResult.xml"
       }
       Else {
         .\build\memory_tests.ps1
       }
       Write-Host "upload results to AppVeyor"
-      xml tr tools\trx-to-junit.xslt "src\$($env:PROJECT)\TestResults\TestResult.xml" > ResultsJUnit.xml
+      xml tr tools\trx-to-junit.xslt TestResult.xml > ResultsJUnit.xml
       $wc = New-Object 'System.Net.WebClient'
-      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path ResultsJUnit.xml))
+      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\ResultsJUnit.xml))
 on_failure:
   - ps: >-
       Write-Host "Build failed"
       on_finish:
-on_finish:
-  - ps: >-
-      $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-
