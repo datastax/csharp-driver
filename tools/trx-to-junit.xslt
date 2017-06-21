@@ -8,9 +8,21 @@
       <xsl:variable name="numberOfFailures" select="count(//a:UnitTestResult/@outcome[.='Failed']) + count(//b:UnitTestResult/@outcome[.='Failed'])" />
       <xsl:variable name="numberOfErrors" select="count(//a:UnitTestResult[not(@outcome)]) + count(//b:UnitTestResult[not(@outcome)])" />
       <xsl:variable name="numberSkipped" select="count(//a:UnitTestResult/@outcome[.!='Passed' and .!='Failed']) + count(//b:UnitTestResult/@outcome[.!='Passed' and .!='Failed'])" />
+
+      <xsl:variable name="totalTestTimeA">
+        <xsl:call-template name="getTotalTime">
+          <xsl:with-param name="testcase" select="//a:UnitTestResult" />
+        </xsl:call-template>
+      </xsl:variable>
+      <xsl:variable name="totalTestTimeB">
+        <xsl:call-template name="getTotalTime">
+          <xsl:with-param name="testcase" select="//b:UnitTestResult" />
+        </xsl:call-template>
+      </xsl:variable>
+      <xsl:variable name="totalTestTime" select="$totalTestTimeA + $totalTestTimeB"/>
       <testsuite name="MSTestSuite"
 				tests="{$numberOfTests}"
-				time="0"
+				time="{$totalTestTime}"
 				failures="{$numberOfFailures}"
 				errors="{$numberOfErrors}"
 				skipped="{$numberSkipped}">
@@ -49,7 +61,7 @@
           <xsl:for-each select="//a:UnitTest">
             <xsl:variable name="currentExecutionId" select="a:Execution/@id"/>
             <xsl:if test="$currentExecutionId = $executionId" >
-              <xsl:variable name="className" select="substring-before(a:TestMethod/@className, ',')"/>
+              <xsl:variable name="className" select="a:TestMethod/@className"/>
               <testcase classname="{$className}"
                 name="{$testName}"
                 time="{$totalduration}">
@@ -112,7 +124,7 @@
           <xsl:for-each select="//b:UnitTest">
             <xsl:variable name="currentTestId" select="@id"/>
             <xsl:if test="$currentTestId = $testId" >
-              <xsl:variable name="className" select="substring-before(b:TestMethod/@className, ',')"/>
+              <xsl:variable name="className" select="b:TestMethod/@className"/>
               <testcase classname="{$className}"
                 name="{$testName}"
                 time="{$totalduration}"
@@ -143,5 +155,34 @@
 
       </testsuite>
     </testsuites>
+  </xsl:template>
+  <xsl:template name="getDurationSecondsTime">
+  <xsl:param name="durationstr" />
+  <xsl:variable name="duration_seconds" select="substring($durationstr, 7)"/>
+  <xsl:variable name="duration_minutes" select="substring($durationstr, 4,2 )"/>
+  <xsl:variable name="duration_hours" select="substring($durationstr, 1, 2)"/>
+  <xsl:value-of select="$duration_hours*3600 + $duration_minutes*60 + $duration_seconds"/>
+ </xsl:template>
+
+ <xsl:template name="getTotalTime">
+    <xsl:param name="testcase" />
+    <xsl:if test="not($testcase)">
+      <xsl:text>0</xsl:text>
+    </xsl:if>
+    <xsl:if test="$testcase">
+      <xsl:variable name="currentValue">
+        <xsl:call-template name="getDurationSecondsTime">
+          <xsl:with-param name="durationstr" select="$testcase[1]/@duration" />
+        </xsl:call-template>
+      </xsl:variable>
+
+      <xsl:variable name="sumRemainder">
+        <xsl:call-template name="getTotalTime">
+          <xsl:with-param name="testcase" select="$testcase[position() > 1]" />
+        </xsl:call-template>
+      </xsl:variable>
+
+      <xsl:value-of select="$currentValue + $sumRemainder"/>
+    </xsl:if>
   </xsl:template>
 </xsl:stylesheet>
