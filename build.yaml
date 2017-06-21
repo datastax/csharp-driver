@@ -19,13 +19,12 @@ build:
       echo "==========setting cassandra version=========="
       export CASSANDRA_VERSION=$CCM_CASSANDRA_VERSION
       export SCASSANDRA_JAR=$HOME/scassandra-server_2.11-1.0.10-standalone.jar 
-      ./build/scassandra_install.sh
 
       echo "==========copying ssl files to $HOME/ssl=========="
       cp -r /home/jenkins/ccm/ssl $HOME/ssl
  
       # Install the required packages
-      dotnet restore
+      dotnet restore src
 
       # Run the tests
       echo "==========RUNNING FULL SUITE OF TESTS=========="
