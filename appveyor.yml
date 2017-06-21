@@ -44,7 +44,7 @@ build_script:
 test_script:
   - ps: >-
       If ("$($env:CI_TYPE)" -ne "MEMORY") {
-        dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --filter "(TestCategory!=short)&(TestCategory!=memory)"
+        dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --filter "(TestCategory!=short)&(TestCategory!=memory)"  --logger "trx;LogFileName=../../../TestResult.xml"
       }
       Else {
         .\build\memory_tests.ps1
@@ -52,3 +52,8 @@ test_script:
 on_failure:
   - ps: >-
       Write-Host "Build failed"
+on_finish:
+  - ps: >-
+      # upload results to AppVeyor
+      $wc = New-Object 'System.Net.WebClient'
+      $wc.UploadFile("https://ci.appveyor.com/api/testresults/xunit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\TestResult.xml))
