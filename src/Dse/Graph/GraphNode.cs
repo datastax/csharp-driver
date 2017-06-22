@@ -113,6 +113,9 @@ namespace Dse.Graph
         /// </summary>
         /// <typeparam name="T">Type of the property. Use dynamic for object trees.</typeparam>
         /// <param name="propertyName">Name of the property.</param>
+        /// <exception cref="NotSupportedException">
+        /// Throws NotSupportedException when the target type is not supported
+        /// </exception>
         public T Get<T>(string propertyName)
         {
             return Get<T>(propertyName, false);
@@ -175,38 +178,49 @@ namespace Dse.Graph
         /// </summary>
         private T GetTokenValue<T>(JToken token)
         {
-            var type = typeof (T);
-            if (token is JValue)
+            return (T)GetTokenValue(token, typeof(T));
+        }
+
+        private object GetTokenValue(JToken token, Type type)
+        {
+            try
             {
-                if (typeof (T) == typeof (TimeUuid))
+                if (token is JValue)
                 {
-                    // TimeUuid is not Serializable but convertible from Uuid
-                    return (T)(object)(TimeUuid)token.ToObject<Guid>();
+                    if (type == typeof(TimeUuid))
+                    {
+                        // TimeUuid is not Serializable but convertible from Uuid
+                        return (TimeUuid) token.ToObject<Guid>();
+                    }
+                    return token.ToObject(type, Serializer);
                 }
-                return token.ToObject<T>(Serializer);
+                if (token is JObject)
+                {
+                    // Only graph node and dynamic supported
+                    if (type != typeof(GraphNode) && type != typeof(object))
+                    {
+                        throw new InvalidCastException(string.Format("Can not convert from an object tree to {0}: {1}",
+                            type.Name, token));
+                    }
+                    return new GraphNode(token);
+                }
+                if (token is JArray)
+                {
+                    Type elementType = null;
+                    if (type.IsArray)
+                    {
+                        elementType = type.GetElementType();
+                    }
+                    else if (type.GetTypeInfo().IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                    {
+                        elementType = type.GetTypeInfo().GetGenericArguments()[0];
+                    }
+                    return ToArray((JArray) token, elementType);
+                }
             }
-            if (token is JObject)
+            catch (JsonSerializationException ex)
             {
-                // Only graph node and dynamic supported
-                if (type != typeof(GraphNode) && type != typeof(object))
-                {
-                    throw new InvalidCastException(string.Format("Can not convert from an object tree to {0}: {1}", 
-                        type.Name, token));
-                }
-                return (T) (object) new GraphNode(token);
-            }
-            if (token is JArray)
-            {
-                Type elementType = null;
-                if (type.IsArray)
-                {
-                    elementType = type.GetElementType();
-                }
-                else if (type.GetTypeInfo().IsGenericType && type.GetGenericTypeDefinition() == typeof (IEnumerable<>))
-                {
-                    elementType = type.GetTypeInfo().GetGenericArguments()[0];
-                }
-                return (T) (object) ToArray((JArray)token, elementType);
+                throw new NotSupportedException(string.Format("Type {0} is not supported", type), ex);
             }
             throw new NotSupportedException(string.Format("Token of type {0} is not supported", token.GetType()));
         }
@@ -333,9 +347,27 @@ namespace Dse.Graph
         /// Returns the representation of the <see cref="GraphNode"/> as an instance of type T.
         /// </summary>
         /// <typeparam name="T">The type to which the current instance is going to be converted to.</typeparam>
+        /// <exception cref="NotSupportedException">
+        /// Throws NotSupportedException when the target type is not supported
+        /// </exception>
         public T To<T>()
         {
             return GetTokenValue<T>(_parsedGraphItem);
+        }
+
+        /// <summary>
+        /// Returns the representation of the <see cref="GraphNode"/> as an instance of the type provided.
+        /// </summary>
+        /// <exception cref="NotSupportedException">
+        /// Throws NotSupportedException when the target type is not supported
+        /// </exception>
+        public object To(Type type)
+        {
+            if (type == null)
+            {
+                throw new ArgumentNullException("type");
+            }
+            return GetTokenValue(_parsedGraphItem, type);
         }
 
         private Array ToArray(JArray jArray, Type elementType = null)
@@ -348,7 +380,7 @@ namespace Dse.Graph
             var isGraphNode = elementType == typeof (GraphNode);
             for (var i = 0; i < arr.Length; i++)
             {
-                var value = isGraphNode ? new GraphNode(jArray[i]) : jArray[i].ToObject(elementType);
+                var value = isGraphNode ? new GraphNode(jArray[i]) : jArray[i].ToObject(elementType, Serializer);
                 arr.SetValue(value, i);
             }
             return arr;
