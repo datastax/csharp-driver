@@ -49,9 +49,11 @@ test_script:
       Else {
         .\build\memory_tests.ps1
       }
-      xml tr tools\trx-to-junit.xslt TestResult.xml > ResultsJUnit.xml
-      $wc = New-Object 'System.Net.WebClient'
-      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\ResultsJUnit.xml))
 on_failure:
   - ps: |
       Write-Host "Build failed"
+on_finish:
+  - ps: |
+      xml tr tools\trx-to-junit.xslt TestResult.xml > ResultsJUnit.xml
+      $wc = New-Object 'System.Net.WebClient'
+      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\ResultsJUnit.xml))
