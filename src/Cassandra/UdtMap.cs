@@ -14,12 +14,12 @@
 //   limitations under the License.
 //
 
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-﻿using Cassandra.Serialization;
+using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -80,9 +80,12 @@ namespace Cassandra
     {
         // ReSharper disable InconsistentNaming
         protected readonly Dictionary<string, PropertyInfo> _fieldNameToProperty;
+
         protected readonly Dictionary<PropertyInfo, string> _propertyToFieldName;
+
         // ReSharper enable InconsistentNaming
         private Serializer _serializer;
+
         protected const BindingFlags PropertyFlags = BindingFlags.FlattenHierarchy | BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
 
         protected internal Type NetType { get; protected set; }
@@ -168,7 +171,7 @@ namespace Cassandra
             Validate();
         }
 
-        private void Validate()
+        protected virtual void Validate()
         {
             if (_serializer == null)
             {
@@ -265,7 +268,7 @@ namespace Cassandra
         /// <summary>
         /// Creates a new instance of the mapped object and sets the values
         /// </summary>
-        internal object ToObject(object[] values)
+        internal virtual object ToObject(object[] values)
         {
             var obj = CreateInstance();
             for (var i = 0; i < Definition.Fields.Count && i < values.Length; i++)
