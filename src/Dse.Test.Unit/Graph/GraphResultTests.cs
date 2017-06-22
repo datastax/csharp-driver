@@ -9,6 +9,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Text;
 using Dse;
 using Dse.Geometry;
 using Dse.Graph;
@@ -106,6 +107,35 @@ namespace Dse.Test.Unit.Graph
             TestTo("{\"result\": \"92d4a960-1cf3-11e6-9417-bd9ef43c1c95\"}", (TimeUuid)Guid.Parse("92d4a960-1cf3-11e6-9417-bd9ef43c1c95"));
         }
 
+        [Test]
+        public void To_Should_Throw_For_Not_Supported_Types()
+        {
+            const string json = "{\"result\": \"123\"}";
+            var types = new [] { typeof(UIntPtr), typeof(IntPtr), typeof(StringBuilder) };
+            foreach (var t in types)
+            {
+                Assert.Throws<NotSupportedException>(() => new GraphNode(json).To(t));
+            }
+        }
+
+        [Test]
+        public void To_T_Should_Throw_For_Not_Supported_Types()
+        {
+            const string json = "{\"result\": \"123\"}";
+            TestToThrows<IntPtr, NotSupportedException>(json);
+            TestToThrows<UIntPtr, NotSupportedException>(json);
+            TestToThrows<StringBuilder, NotSupportedException>(json);
+        }
+
+        [Test]
+        public void Get_T_Should_Throw_For_Not_Supported_Types()
+        {
+            const string json = "{\"result\": {\"something\": \"123\" }}";
+            TestGetThrows<IntPtr, NotSupportedException>(json, "something");
+            TestGetThrows<UIntPtr, NotSupportedException>(json, "something");
+            TestGetThrows<StringBuilder, NotSupportedException>(json, "something");
+        }
+
         private static void TestGet<T>(string json, string property, T expectedValue)
         {
             var result = new GraphNode(json);
@@ -117,10 +147,20 @@ namespace Dse.Test.Unit.Graph
             Assert.AreEqual(expectedValue, result.Get<T>(property));
         }
 
+        private static void TestGetThrows<T, TException>(string json, string property) where TException : Exception
+        {
+            Assert.Throws<TException>(() => new GraphNode(json).Get<T>(property));
+        }
+
         private static void TestTo<T>(string json, T expectedValue)
         {
             var result = new GraphNode(json);
             Assert.AreEqual(expectedValue, result.To<T>());
+        }
+
+        private static void TestToThrows<T, TException>(string json) where TException : Exception
+        {
+            Assert.Throws<TException>(() => new GraphNode(json).To<T>());
         }
 
         [Test]
