@@ -45,6 +45,26 @@ namespace Cassandra.Tests.Mapping.Linq
         }
 
         [Test]
+        public void Select_With_ConsistencyLevel()
+        {
+            BoundStatement statement = null;
+            var session = GetSession(new RowSet(), stmt => statement = stmt);
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.StringValue, cm => cm.WithName("val"))
+                .Column(t => t.UuidValue, cm => cm.WithName("id"))
+                .PartitionKey(t => t.UuidValue)
+                .TableName("tbl1");
+            var table = GetTable<AllTypesEntity>(session, map);
+            var consistency = ConsistencyLevel.LocalQuorum;
+            table.Where(t => t.UuidValue == Guid.NewGuid())
+                 .SetConsistencyLevel(consistency)
+                 .Execute();
+            Assert.NotNull(statement);
+            Assert.AreEqual(consistency, statement.ConsistencyLevel);
+        }
+
+        [Test]
         public void Select_Group_By_Projected_To_Constructor_With_Parameter()
         {
             string query = null;
