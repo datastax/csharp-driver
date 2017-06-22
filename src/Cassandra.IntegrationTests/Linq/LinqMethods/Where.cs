@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
@@ -178,6 +179,41 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             Assert.AreEqual(1, result3Actual.Last().TimeColumn);
         }
 
+        /// @jira_ticket CSHARP-577
+        [Test]
+        public void LinqWhere_Expression_From_Property_Type()
+        {
+            MappingConfiguration config = new MappingConfiguration();
+            config.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(TestTable), () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(TestTable)));
+            
+            Table<TestTable> table = new Table<TestTable>(_session, config);
+            table.CreateIfNotExists();
+
+            var obj = new TestTableMirror { Id = 1, Date = 12, TimeColumn = DateTime.UtcNow };
+            var guid = Guid.NewGuid();
+            var cqlInsert = table.Insert(new TestTable() {UserId = obj.Id, Date = obj.Date, TimeColumn = obj.TimeColumn.Ticks, Guid = guid, IntCol = TestTableMirror.IntConst});
+            Session.Execute(cqlInsert);
+            var data = table.Where(dto => dto.UserId == obj.Id 
+                                    && dto.Date == obj.Date 
+                                    && dto.TimeColumn == obj.TimeColumn.Ticks 
+                                    && dto.Guid == new Guid(guid.ToString())
+                                    && dto.IntCol == TestTableMirror.IntConst).Execute().First();
+            Assert.AreEqual(obj.Id, data.UserId);
+            Assert.AreEqual(obj.TimeColumn.Ticks, data.TimeColumn);
+            Assert.AreEqual(obj.Date, data.Date);
+            Assert.AreEqual(TestTableMirror.IntConst, data.IntCol);
+            Assert.AreEqual(guid, data.Guid);
+        }
+
+        private class TestTableMirror
+        {
+            public int Id { get; set; }
+            public int Date { get; set; }
+            public DateTime TimeColumn { get; set; }
+
+            public const int IntConst = 12;
+        }
+
         [AllowFiltering]
         [Table("test1")]
         public class TestTable
@@ -193,6 +229,14 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             [ClusteringKey(1)]
             [Column("time")]
             public long TimeColumn { get; set; }
+
+            [ClusteringKey(2)]
+            [Column("guid")]
+            public Guid Guid { get; set; }
+
+            [ClusteringKey(3)]
+            [Column("intCol")]
+            public int IntCol { get; set; }
         }
     }
 }

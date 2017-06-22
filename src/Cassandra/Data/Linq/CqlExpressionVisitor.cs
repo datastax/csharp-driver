@@ -1118,19 +1118,32 @@ namespace Cassandra.Data.Linq
 
         private static object GetFieldValue(MemberExpression node)
         {
-            var fieldInfo = (FieldInfo)node.Member;
+            Func<object, object> getValueDel;
+            switch (node.Member.MemberType)
+            {
+                case MemberTypes.Field:
+                    var fieldInfo = (FieldInfo)node.Member;
+                    getValueDel = fieldInfo.GetValue;
+                    break;
+                case MemberTypes.Property:
+                    var propertyInfo = (PropertyInfo) node.Member;
+                    getValueDel = propertyInfo.GetValue;
+                    break;
+                default:
+                    throw new CqlLinqNotSupportedException(node.Expression, ParsePhase.None);
+            }
             if (node.Expression is MemberExpression)
             {
                 // The field of a field instance
                 var instance = GetFieldValue((MemberExpression)node.Expression);
-                return fieldInfo.GetValue(instance);
+                return getValueDel(instance);
             }
             if (node.Expression == null)
             {
                 // Static field
-                return fieldInfo.GetValue(null);
+                return getValueDel(null);
             }
-            return fieldInfo.GetValue(((ConstantExpression)node.Expression).Value);
+            return getValueDel(((ConstantExpression)node.Expression).Value);
         }
 
         private static object GetPropertyValue(MemberExpression node)
