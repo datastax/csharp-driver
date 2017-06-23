@@ -40,7 +40,7 @@ build:
           # Run the tests
           echo "==========RUNNING FULL SUITE OF TESTS=========="
           mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net452/Cassandra.IntegrationTests.dll --where:cat=short --labels=All --result:"TestResult_nunit3.xml"
-          saxon-xslt -o TestResult.xml TestResult_trx.xml tools/nunit3-xunit.xslt
+          saxon-xslt -o TestResult.xml TestResult_nunit3.xml tools/nunit3-xunit.xslt
       else
           # Install the required packages
           dotnet restore src
