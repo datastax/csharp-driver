@@ -29,6 +29,9 @@ environment:
       CASSANDRA_VERSION: 2.2.7
       CI_TYPE: INTEGRATION
       PROJECT: Cassandra.IntegrationTests
+    - TARGET: net452
+      CASSANDRA_VERSION: 3.10
+      CI_TYPE: MEMORY
 
 install:
   - ps: .\build\appveyor_install.ps1
@@ -44,6 +47,8 @@ on_failure:
       Write-Host "Build failed"
 on_finish:
   - ps: |
-      xml tr tools\trx-to-junit.xslt TestResult.xml > ResultsJUnit.xml
+      If ("$($env:CI_TYPE)" -ne "MEMORY") {
+        xml tr tools\trx-to-junit.xslt TestResult.xml > ResultsJUnit.xml
+      }
       $wc = New-Object 'System.Net.WebClient'
       $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\ResultsJUnit.xml))

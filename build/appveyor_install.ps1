@@ -91,7 +91,6 @@ If (!(Test-Path $dotMemory_base)) {
 }
 $env:PATH="$($dotMemory_base);$($env:PATH)"
 
-
 Write-Host "Set execution Policy"
 Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process
 
