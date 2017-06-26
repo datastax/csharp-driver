@@ -245,7 +245,6 @@ namespace Dse.Test.Integration.Core
             Assert.AreEqual(4, connectionAttempts);
         }
 
-#if !NO_MOCKS
         /// <summary>
         /// Tests that when a peer is added or set as down, the address translator is invoked
         /// </summary>
@@ -280,7 +279,6 @@ namespace Dse.Test.Integration.Core
             Assert.AreEqual(3, TestHelper.GetLastAddressByte(invokedEndPoints.Last()));
             cluster.Dispose();
         }
-#endif
 
         /// <summary>
         /// Tests that a node is down and the schema is not the same, it waits until the max wait time is reached

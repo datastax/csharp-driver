@@ -5,8 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-#if !NO_MOCKS
-﻿using System;
+using System;
 ﻿using System.Collections.Concurrent;
 ﻿using System.Collections.Generic;
 using System.Linq;
@@ -701,4 +700,3 @@ namespace Dse.Test.Unit
         }
     }
 }
-#endif

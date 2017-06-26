@@ -1,11 +1,10 @@
-//
+﻿//
 //  Copyright (C) 2017 DataStax, Inc.
 //
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-#if !NO_MOCKS
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -49,6 +48,26 @@ namespace Dse.Test.Unit.Mapping.Linq
             table.AllowFiltering().Execute();
             Assert.AreEqual("SELECT val2, val, StringValue, id FROM values ALLOW FILTERING", query);
             Assert.AreEqual(0, parameters.Length);
+        }
+
+        [Test]
+        public void Select_With_ConsistencyLevel()
+        {
+            BoundStatement statement = null;
+            var session = GetSession(new RowSet(), stmt => statement = stmt);
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.StringValue, cm => cm.WithName("val"))
+                .Column(t => t.UuidValue, cm => cm.WithName("id"))
+                .PartitionKey(t => t.UuidValue)
+                .TableName("tbl1");
+            var table = GetTable<AllTypesEntity>(session, map);
+            var consistency = ConsistencyLevel.LocalQuorum;
+            table.Where(t => t.UuidValue == Guid.NewGuid())
+                 .SetConsistencyLevel(consistency)
+                 .Execute();
+            Assert.NotNull(statement);
+            Assert.AreEqual(consistency, statement.ConsistencyLevel);
         }
 
         [Test]
@@ -453,4 +472,3 @@ namespace Dse.Test.Unit.Mapping.Linq
         }
     }
 }
-#endif

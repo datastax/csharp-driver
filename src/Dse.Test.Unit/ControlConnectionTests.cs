@@ -9,9 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-#if !NETCORE
 using Moq;
-#endif
 using NUnit.Framework;
 
 namespace Dse.Test.Unit
@@ -96,7 +94,6 @@ namespace Dse.Test.Unit
             Assert.AreEqual(1, metadata.AllHosts().Count);
         }
 
-#if !NETCORE
         [Test]
         public void UpdatePeersInfoUsesAddressTranslator()
         {
@@ -135,6 +132,5 @@ namespace Dse.Test.Unit
             Assert.AreEqual(hostAddress3, invokedEndPoints[1].Address);
             Assert.AreEqual(portNumber, invokedEndPoints[1].Port);
         }
-#endif
     }
 }

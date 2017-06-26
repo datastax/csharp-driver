@@ -15,9 +15,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Reflection;
-#if !NO_MOCKS
 using Moq;
-#endif
 
 namespace Dse.Test.Unit
 {
@@ -311,7 +309,6 @@ namespace Dse.Test.Unit
             Assert.DoesNotThrow(() => row.GetValue<int?>("int_sample"));
         }
 
-#if !NO_MOCKS
         [Test]
         public void RowsetIsMockable()
         {
@@ -330,7 +327,6 @@ namespace Dse.Test.Unit
             Assert.AreEqual(rowArray.Length, 1);
             Assert.AreEqual(rowArray[0].GetValue<int>("int_value"), 100);
         }
-#endif
 
         /// <summary>
         /// Creates a rowset.

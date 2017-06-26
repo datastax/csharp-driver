@@ -5,7 +5,6 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-#if !NETCORE
 using Dse.Data;
 using Moq;
 using NUnit.Framework;
@@ -38,4 +37,3 @@ namespace Dse.Test.Unit
         }
     }
 }
-#endif

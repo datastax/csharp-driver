@@ -1,4 +1,4 @@
-//
+﻿//
 //  Copyright (C) 2017 DataStax, Inc.
 //
 //  Please see the license for details:
@@ -15,16 +15,13 @@ using Dse.Mapping;
 using Dse.Serialization;
 using Dse.Tasks;
 using Dse.Test.Unit.Mapping.FluentMappings;
-#if !NETCORE
 using Moq;
-#endif
 using NUnit.Framework;
 
 namespace Dse.Test.Unit.Mapping
 {
     public abstract class MappingTestBase
     {
-#if !NETCORE
         protected IMapper GetMappingClient(RowSet rowset, MappingConfiguration config = null)
         {
             return GetMappingClient(() => TaskHelper.ToTask(rowset), config);
@@ -89,7 +86,6 @@ namespace Dse.Test.Unit.Mapping
                 .Verifiable();
             return sessionMock.Object;
         }
-#endif
 
         /// <summary>
         /// Gets a IQueryProvider with a new mapping configuration containing the definition provided

@@ -19,9 +19,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dse.Serialization;
 using IgnoreAttribute = Dse.Mapping.Attributes.IgnoreAttribute;
-#if NETCORE
 using Microsoft.DotNet.InternalAbstractions;
-#endif
 
 namespace Dse.Test.Unit
 {

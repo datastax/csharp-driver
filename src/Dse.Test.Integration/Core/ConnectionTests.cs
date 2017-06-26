@@ -428,13 +428,15 @@ namespace Dse.Test.Integration.Core
                     //So we throw a TimeoutException
                     StringAssert.IsMatch("SSL", ex.InnerException.Message);
                 }
-                else if (ex.InnerException is System.IO.IOException)
+                else if (ex.InnerException is System.IO.IOException || 
+                         ex.InnerException.GetType().Name.Contains("Mono"))
                 {
-                    //Under Mono and others, it throws a IOException
+                    //Under Mono, it throws a IOException or MonoBtlsException (regression mono 5)
                 }
                 else
                 {
-                    throw new AssertionException(string.Format("Expected TimeoutException or IOException, obtained {0}", ex.InnerException.GetType()));
+                    throw new AssertionException(string.Format(
+                        "Expected TimeoutException or IOException, obtained {0}", ex.InnerException.GetType()));
                 }
             }
         }

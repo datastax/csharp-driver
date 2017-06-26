@@ -1,4 +1,4 @@
-//
+﻿//
 //  Copyright (C) 2017 DataStax, Inc.
 //
 //  Please see the license for details:
@@ -16,9 +16,7 @@ using Dse.Data.Linq;
 using Dse.Mapping;
 using Dse.Serialization;
 using Dse.Test.Unit.Mapping.Pocos;
-#if !NO_MOCKS
 using Moq;
-#endif
 using NUnit.Framework;
 using Dse.Tasks;
 
@@ -126,7 +124,84 @@ namespace Dse.Test.Unit.Mapping.Linq
             Assert.That(parameters, Is.EquivalentTo(new[] { "a", "foo", "foo" + Encoding.UTF8.GetString(new byte[] { 0xF4, 0x8F, 0xBF, 0xBF }), "bar" }));
             Assert.AreEqual(@"SELECT ""x_pk"", ""x_ck1"", ""x_f1"" FROM ""x_ts"" WHERE ""x_pk"" = ? AND ""x_ck1"" >= ? AND ""x_ck1"" < ? AND ""x_pk"" = ?", queryCql);
         }
-        
+
+        private class TestObject
+        {
+            public string Field;
+            public string Property { get; set; }
+            public TestObject AnotherObjectField;
+            public TestObject AnotherObjectProperty { get; set; }
+        }
+
+        [Test]
+        public void PropertyAccess_Test()
+        {
+            var testObject = new TestObject
+            {
+                Property = "a",
+                AnotherObjectProperty = new TestObject
+                {
+                    Property = "b"
+                }
+            };
+            var table = new Table<LinqDecoratedWithStringCkEntity>(null);
+            var query = table.Where(t => t.pk == testObject.Property && t.ck1 == testObject.AnotherObjectProperty.Property);
+            var pocoData = MappingConfiguration.Global.MapperFactory.GetPocoData<LinqDecoratedWithStringCkEntity>();
+            var visitor = new CqlExpressionVisitor(pocoData, "x_ts", null);
+            object[] parameters;
+            var queryCql = visitor.GetSelect(query.Expression, out parameters);
+
+            Assert.That(parameters, Is.EquivalentTo(new[] { "a", "b" }));
+            Assert.AreEqual(@"SELECT ""x_pk"", ""x_ck1"", ""x_f1"" FROM ""x_ts"" WHERE ""x_pk"" = ? AND ""x_ck1"" = ?", queryCql);
+        }
+
+        [Test]
+        public void FieldAccess_Test()
+        {
+            var testObject = new TestObject
+            {
+                Field = "a",
+                AnotherObjectField = new TestObject
+                {
+                    Field = "b"
+                }
+            };
+            var table = new Table<LinqDecoratedWithStringCkEntity>(null);
+            var query = table.Where(t => t.pk == testObject.Field && t.ck1 == testObject.AnotherObjectField.Field);
+            var pocoData = MappingConfiguration.Global.MapperFactory.GetPocoData<LinqDecoratedWithStringCkEntity>();
+            var visitor = new CqlExpressionVisitor(pocoData, "x_ts", null);
+            object[] parameters;
+            var queryCql = visitor.GetSelect(query.Expression, out parameters);
+
+            Assert.That(parameters, Is.EquivalentTo(new[] { "a", "b" }));
+            Assert.AreEqual(@"SELECT ""x_pk"", ""x_ck1"", ""x_f1"" FROM ""x_ts"" WHERE ""x_pk"" = ? AND ""x_ck1"" = ?", queryCql);
+        }
+
+        [Test]
+        public void MixedFieldAndPropertyAccess_Test()
+        {
+            var testObject = new TestObject
+            {
+                AnotherObjectField = new TestObject
+                {
+                    Property = "a"
+                },
+                AnotherObjectProperty = new TestObject
+                {
+                    Field = "b"
+                }
+            };
+            var table = new Table<LinqDecoratedWithStringCkEntity>(null);
+            var query = table.Where(t => t.pk == testObject.AnotherObjectField.Property && t.ck1 == testObject.AnotherObjectProperty.Field);
+            var pocoData = MappingConfiguration.Global.MapperFactory.GetPocoData<LinqDecoratedWithStringCkEntity>();
+            var visitor = new CqlExpressionVisitor(pocoData, "x_ts", null);
+            object[] parameters;
+            var queryCql = visitor.GetSelect(query.Expression, out parameters);
+
+            Assert.That(parameters, Is.EquivalentTo(new[] { "a", "b" }));
+            Assert.AreEqual(@"SELECT ""x_pk"", ""x_ck1"", ""x_f1"" FROM ""x_ts"" WHERE ""x_pk"" = ? AND ""x_ck1"" = ?", queryCql);
+        }
+
         [Test]
         public void Linq_Batch_Test()
         {
@@ -214,7 +289,6 @@ APPLY BATCH".Replace("\r", ""));
                 (from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new { f1 = 1223, ck1 = (int?)null }).UpdateIf((a) => a.f1 == 123).ToString());
         }
 
-#if !NETCORE
         /// <summary>
         /// Tests the Linq to CQL generated where clause 
         /// </summary>
@@ -269,7 +343,6 @@ APPLY BATCH".Replace("\r", ""));
                     "Expected Cql query and generated CQL query by Linq do not match.");
             }
         }
-#endif
 
         [Table]
         private class AllowFilteringTestTable
@@ -327,7 +400,6 @@ APPLY BATCH".Replace("\r", ""));
             public long Value { get; set; }
         }
 
-#if !NO_MOCKS
         [Test]
         public void CreateTableCounterTest()
         {
@@ -387,7 +459,6 @@ APPLY BATCH".Replace("\r", ""));
             table2.CreateIfNotExists();
             Assert.AreEqual("CREATE TABLE \"InheritedEntity\" (\"Id\" int, \"Description\" text, \"Name\" text, PRIMARY KEY (\"Id\"))", createQuery);
         }
-#endif
 
         [Test]
         public void LinqGeneratedUpdateStatementForCounterTest()

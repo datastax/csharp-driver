@@ -1113,7 +1113,7 @@ namespace Dse.Data.Linq
             if (node.Expression is MemberExpression)
             {
                 // The field of a field instance
-                var instance = GetFieldValue((MemberExpression)node.Expression);
+                var instance = GetClosureValue((MemberExpression)node.Expression);
                 return fieldInfo.GetValue(instance);
             }
             if (node.Expression == null)
@@ -1130,7 +1130,7 @@ namespace Dse.Data.Linq
             if (node.Expression is MemberExpression)
             {
                 // Field property
-                var instance = GetFieldValue((MemberExpression)node.Expression);
+                var instance = GetClosureValue((MemberExpression)node.Expression);
                 return propertyInfo.GetValue(instance, null);
             }
             // Current instance property

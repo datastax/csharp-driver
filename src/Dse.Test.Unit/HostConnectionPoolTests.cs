@@ -5,7 +5,6 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-#if !NETCORE
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -246,7 +245,7 @@ namespace Dse.Test.Unit
         }
 
         [Test]
-        public void OnHostUp_Recreates_Pool_In_The_Background()
+        public async Task OnHostUp_Recreates_Pool_In_The_Background()
         {
             var mock = GetPoolMock(null, GetConfig(2, 2));
             var creationCounter = 0;
@@ -263,15 +262,15 @@ namespace Dse.Test.Unit
             Assert.AreEqual(0, Volatile.Read(ref creationCounter));
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
             pool.OnHostUp(null);
-            Thread.Sleep(100);
+            await Task.Delay(100);
             Assert.AreEqual(0, pool.OpenConnections);
             Assert.AreEqual(1, Volatile.Read(ref creationCounter));
             Assert.AreEqual(1, Volatile.Read(ref isCreating));
-            Thread.Sleep(500);
+            await Task.Delay(550);
             Assert.AreEqual(1, pool.OpenConnections);
             Assert.AreEqual(2, Volatile.Read(ref creationCounter));
             Assert.AreEqual(1, Volatile.Read(ref isCreating));
-            Thread.Sleep(500);
+            await Task.Delay(550);
             Assert.AreEqual(2, pool.OpenConnections);
             Assert.AreEqual(2, Volatile.Read(ref creationCounter));
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
@@ -367,22 +366,23 @@ namespace Dse.Test.Unit
             pool.SetDistance(HostDistance.Local);
             await pool.EnsureCreate();
             Assert.AreEqual(1, pool.OpenConnections);
-            Thread.Sleep(100);
+            await Task.Delay(100);
             //No connections added yet
             Assert.AreEqual(2, Volatile.Read(ref creationCounter));
             Assert.AreEqual(1, Volatile.Read(ref isCreating));
-            Thread.Sleep(500);
-            Assert.AreEqual(2, pool.OpenConnections);
+            Assert.AreEqual(1, pool.OpenConnections);
+            await Task.Delay(550);
             Assert.AreEqual(3, Volatile.Read(ref creationCounter));
             Assert.AreEqual(1, Volatile.Read(ref isCreating));
-            Thread.Sleep(500);
-            Assert.AreEqual(3, pool.OpenConnections);
+            Assert.AreEqual(2, pool.OpenConnections);
+            await Task.Delay(550);
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
             Assert.AreEqual(3, Volatile.Read(ref creationCounter));
-            Thread.Sleep(500);
             Assert.AreEqual(3, pool.OpenConnections);
+            await Task.Delay(550);
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
             Assert.AreEqual(3, Volatile.Read(ref creationCounter));
+            Assert.AreEqual(3, pool.OpenConnections);
         }
 
         [Test]
@@ -420,6 +420,7 @@ namespace Dse.Test.Unit
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
             // Above threshold
             pool.ConsiderResizingPool(1700);
+            await Task.Delay(20);
             Assert.AreEqual(3, Volatile.Read(ref creationCounter));
             Assert.AreEqual(1, Volatile.Read(ref isCreating));
             // Wait for the creation
@@ -493,14 +494,14 @@ namespace Dse.Test.Unit
         }
 
         [Test]
-        public void ScheduleReconnection_Should_Reconnect_In_The_Background()
+        public async Task ScheduleReconnection_Should_Reconnect_In_The_Background()
         {
             var mock = GetPoolMock(null, GetConfig(1, 1, new ConstantReconnectionPolicy(50)));
             mock.Setup(p => p.DoCreateAndOpen()).Returns(() => TestHelper.DelayedTask(CreateConnection(), 20));
             var pool = mock.Object;
             Assert.AreEqual(0, pool.OpenConnections);
             pool.ScheduleReconnection();
-            Thread.Sleep(200);
+            await Task.Delay(300);
             Assert.AreEqual(1, pool.OpenConnections);
         }
 
@@ -670,4 +671,3 @@ namespace Dse.Test.Unit
         }
     }
 }
-#endif

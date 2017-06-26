@@ -1,12 +1,4 @@
-//
-//  Copyright (C) 2017 DataStax, Inc.
-//
-//  Please see the license for details:
-//  http://www.datastax.com/terms/datastax-dse-driver-license-terms
-//
-
-#if !NO_MOCKS
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -368,4 +360,3 @@ namespace Dse.Test.Unit.Mapping
         }
     }
 }
-#endif
