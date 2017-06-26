@@ -413,6 +413,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
             // Above threshold
             pool.ConsiderResizingPool(1700);
+            await Task.Delay(20);
             Assert.AreEqual(3, Volatile.Read(ref creationCounter));
             Assert.AreEqual(1, Volatile.Read(ref isCreating));
             // Wait for the creation
