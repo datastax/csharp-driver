@@ -12,9 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Serialization;
 using IgnoreAttribute = Cassandra.Mapping.Attributes.IgnoreAttribute;
-#if NETCORE
 using Microsoft.DotNet.InternalAbstractions;
-#endif
 
 namespace Cassandra.Tests
 {

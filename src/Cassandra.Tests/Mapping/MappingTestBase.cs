@@ -8,16 +8,13 @@ using Cassandra.Mapping;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
 using Cassandra.Tests.Mapping.FluentMappings;
-#if !NETCORE
 using Moq;
-#endif
 using NUnit.Framework;
 
 namespace Cassandra.Tests.Mapping
 {
     public abstract class MappingTestBase
     {
-#if !NETCORE
         protected IMapper GetMappingClient(RowSet rowset, MappingConfiguration config = null)
         {
             return GetMappingClient(() => TaskHelper.ToTask(rowset), config);
@@ -82,7 +79,6 @@ namespace Cassandra.Tests.Mapping
                 .Verifiable();
             return sessionMock.Object;
         }
-#endif
 
         /// <summary>
         /// Gets a IQueryProvider with a new mapping configuration containing the definition provided

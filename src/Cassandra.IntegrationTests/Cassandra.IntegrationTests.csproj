@@ -1,227 +1,49 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{D584651E-23C0-4714-9B92-6113C44BA6B8}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Cassandra.IntegrationTests</RootNamespace>
+    <TargetFrameworks>net452;netcoreapp1.0</TargetFrameworks>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <PublicSign>false</PublicSign>
     <AssemblyName>Cassandra.IntegrationTests</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
-    <LangVersion>5</LangVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
-    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
-    <RestorePackages>true</RestorePackages>
+    <AssemblyOriginatorKeyFile>../../build/datastax.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>..\..\build\datastax.snk</AssemblyOriginatorKeyFile>
+    <PublicSign Condition="'$(OS)' != 'Windows_NT'">true</PublicSign>
+    <PackageId>Cassandra.IntegrationTests</PackageId>
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(DynamicConstants)' != ''">
-    <DefineConstants>$(DynamicConstants)</DefineConstants>
-  </PropertyGroup>
+
   <ItemGroup>
-    <Reference Include="dotMemory.Unit">
-      <HintPath>..\packages\JetBrains.dotMemoryUnit.2.3.20160517.113140\Lib\dotMemory.Unit.dll</HintPath>
-    </Reference>
-    <Reference Include="Moq">
-      <HintPath>..\packages\Moq.4.2.1402.2112\lib\net40\Moq.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="nunit.framework, Version=3.4.1.0, Culture=neutral, PublicKeyToken=2638cd05610744eb, processorArchitecture=MSIL">
-      <HintPath>..\packages\NUnit.3.4.1\lib\net40\nunit.framework.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.configuration" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Numerics" />
+    <ProjectReference Include="..\Cassandra\Cassandra.csproj" />
+    <ProjectReference Include="..\Cassandra.Tests\Cassandra.Tests.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.DotNet.InternalAbstractions" Version="1.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.0.0" />
+    <PackageReference Include="NUnit" Version="3.7.1" />
+    <PackageReference Include="NUnit3TestAdapter" Version="3.8.0-alpha1" />
+    <PackageReference Include="Moq" Version="4.7.25" />
+    <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
+    <PackageReference Include="System.Runtime.Serialization.Json" Version="4.0.2" />
+    <PackageReference Include="System.Runtime.Serialization.Primitives" Version="4.1.1" />
+    <PackageReference Include="System.Net.Http" Version="4.3.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
+    <PackageReference Include="JetBrains.DotMemoryUnit" Version="2.3.20160517.113140" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System" />
+    <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
+
   <ItemGroup>
-    <Compile Include="Core\ClientTimeoutTests.cs" />
-    <Compile Include="Core\ClientWarningsTests.cs" />
-    <Compile Include="Core\ClusterSharedSingleNodeTests.cs" />
-    <Compile Include="Core\ClusterTests.cs" />
-    <Compile Include="Core\CompressionTests.cs" />
-    <Compile Include="Core\ControlConnectionReconnectionTests.cs" />
-    <Compile Include="Core\ControlConnectionTests.cs" />
-    <Compile Include="Core\CustomPayloadTests.cs" />
-    <Compile Include="Core\MemoryLeakTests.cs" />
-    <Compile Include="Core\PoolShortTests.cs" />
-    <Compile Include="Core\ReconnectionTests.cs" />
-    <Compile Include="Core\SchemaMetadataTests.cs" />
-    <Compile Include="Core\TimestampTests.cs" />
-    <Compile Include="Core\TypeSerializersTests.cs" />
-    <Compile Include="Core\UdfTests.cs" />
-    <Compile Include="Core\SpeculativeExecutionLongTests.cs" />
-    <Compile Include="Core\SpeculativeExecutionShortTests.cs" />
-    <Compile Include="CqlFunctions\Structures\EntityWithNullableTimeUuid.cs" />
-    <Compile Include="CqlFunctions\Structures\EntityWithTimeUuid.cs" />
-    <Compile Include="CqlFunctions\Tests\MaxTimeUuid.cs" />
-    <Compile Include="CqlFunctions\Tests\MinTimeUuid.cs" />
-    <Compile Include="CqlFunctions\Tests\Token.cs" />
-    <Compile Include="Linq\CqlOperatorTests\Prepend.cs" />
-    <Compile Include="Linq\CqlOperatorTests\SubstractAssign.cs" />
-    <Compile Include="Linq\CqlOperatorTests\Append.cs" />
-    <Compile Include="Linq\LinqMethods\Count.cs" />
-    <Compile Include="Linq\LinqMethods\Counter.cs" />
-    <Compile Include="Linq\LinqMethods\ExecutePagedTests.cs" />
-    <Compile Include="Linq\LinqMethods\GroupByTests.cs" />
-    <Compile Include="Linq\LinqTable\CreateTable.cs" />
-    <Compile Include="Linq\LinqMethods\Delete.cs" />
-    <Compile Include="Linq\LinqMethods\DeleteIf.cs" />
-    <Compile Include="Linq\LinqMethods\First.cs" />
-    <Compile Include="Linq\LinqMethods\FirstOrDefault.cs" />
-    <Compile Include="Linq\LinqMethods\InsertTests.cs" />
-    <Compile Include="Linq\LinqTable\LinqUdtTests.cs" />
-    <Compile Include="Linq\LinqMethods\OrderBy.cs" />
-    <Compile Include="Linq\LinqMethods\Select.cs" />
-    <Compile Include="Linq\LinqMethods\TableSelectDefault.cs" />
-    <Compile Include="Linq\LinqMethods\Take.cs" />
-    <Compile Include="Linq\LinqMethods\Update.cs" />
-    <Compile Include="Linq\LinqMethods\UpdateIfTests.cs" />
-    <Compile Include="Linq\LinqMethods\Where.cs" />
-    <Compile Include="Linq\LinqTable\GetTable.cs" />
-    <Compile Include="Linq\LinqTable\TableSelectDefault.cs" />
-    <Compile Include="Linq\Structures\AllDataTypesEntityBase.cs" />
-    <Compile Include="Linq\Structures\AllDataTypesEntityUtil.cs" />
-    <Compile Include="Linq\Structures\EntityWithAllCollectionTypes.cs" />
-    <Compile Include="Linq\Structures\EntityWithArrayType.cs" />
-    <Compile Include="Linq\Structures\EntityWithDictionaryType.cs" />
-    <Compile Include="Linq\Structures\EntityWithListType.cs" />
-    <Compile Include="Linq\Structures\IAllDataTypesEntity.cs" />
-    <Compile Include="Core\CollectionsNestedTests.cs" />
-    <Compile Include="Linq\Structures\ManyDataTypesEntity.cs" />
-    <Compile Include="Policies\Tests\IdempotenceAwareRetryPolicyTests.cs" />
-    <Compile Include="Policies\Tests\LoadBalancingPolicyShortTests.cs" />
-    <Compile Include="Policies\Tests\RetryPolicyShortTests.cs" />
-    <Compile Include="SharedClusterTest.cs" />
-    <Compile Include="Linq\Structures\SalesOrder.cs" />
-    <Compile Include="Linq\Structures\AllDataTypesNoColumnMeta.cs" />
-    <Compile Include="Linq\Structures\Movie.cs" />
-    <Compile Include="Linq\Structures\AllDataTypesEntity.cs" />
-    <Compile Include="Mapping\Structures\ContactMethod.cs" />
-    <Compile Include="Mapping\Structures\ManyDataTypesPocoMappingCaseSensitive.cs" />
-    <Compile Include="Mapping\Structures\NestedCollectionsPoco.cs" />
-    <Compile Include="Mapping\Structures\UserMapping.cs" />
-    <Compile Include="Mapping\Structures\RainbowColor.cs" />
-    <Compile Include="Mapping\Structures\User.cs" />
-    <Compile Include="Mapping\Structures\ManyDataTypesPoco.cs" />
-    <Compile Include="Mapping\Structures\UserType.cs" />
-    <Compile Include="Mapping\Tests\Attributes.cs" />
-    <Compile Include="Mapping\Tests\Counter.cs" />
-    <Compile Include="Mapping\Tests\CqlClientTest.cs" />
-    <Compile Include="Mapping\Tests\CqlClientConfig.cs" />
-    <Compile Include="Mapping\Tests\CreateTable.cs" />
-    <Compile Include="Mapping\Tests\Delete.cs" />
-    <Compile Include="Mapping\Tests\Fetch.cs" />
-    <Compile Include="Mapping\Tests\First.cs" />
-    <Compile Include="Mapping\Tests\FluentMapping.cs" />
-    <Compile Include="Mapping\Tests\InsertTests.cs" />
-    <Compile Include="Mapping\Tests\Single.cs" />
-    <Compile Include="Mapping\Tests\Update.cs" />
-    <Compile Include="TestBase\TestCategories.cs" />
-    <Compile Include="Core\ConnectionTests.cs" />
-    <Compile Include="Core\ConsistencyTests.cs" />
-    <Compile Include="Core\MultiThreadingTests.cs" />
-    <Compile Include="Core\BasicTypeTests.cs" />
-    <Compile Include="Core\BatchStatements.cs" />
-    <Compile Include="Core\CollectionsTests.cs" />
-    <Compile Include="Core\ConnectionTimeoutTest.cs" />
-    <Compile Include="Policies\Tests\ConsistencyTests.cs" />
-    <Compile Include="Core\CustomTypeTests.cs" />
-    <Compile Include="Core\ExceptionsTests.cs" />
-    <Compile Include="FoundBugs\FoundBugTests.cs" />
-    <Compile Include="Core\LargeDataTests.cs" />
-    <Compile Include="Policies\Tests\LoadBalancingPolicyTests.cs" />
-    <Compile Include="Core\MetadataTests.cs" />
-    <Compile Include="Policies\Util\AlwaysIgnoreRetryPolicy.cs" />
-    <Compile Include="Policies\Util\AlwaysRetryRetryPolicy.cs" />
-    <Compile Include="Policies\Util\PolicyTestTools.cs" />
-    <Compile Include="Policies\Util\TryNextHostRetryPolicy.cs" />
-    <Compile Include="Core\PoolTests.cs" />
-    <Compile Include="Core\PreparedStatementsTests.cs" />
-    <Compile Include="TestBase\QueryTools.cs" />
-    <Compile Include="TestBase\Randomm.cs" />
-    <Compile Include="Policies\Tests\ReconnectionPolicyTests.cs" />
-    <Compile Include="Policies\Tests\RetryPolicyTests.cs" />
-    <Compile Include="Core\SessionAuthenticationTests.cs" />
-    <Compile Include="Core\SessionExecuteAsyncTests.cs" />
-    <Compile Include="Core\SessionTests.cs" />
-    <Compile Include="Core\StressTests.cs" />
-    <Compile Include="Core\TimeUuidSerializationTests.cs" />
-    <Compile Include="Core\TupleTests.cs" />
-    <Compile Include="Core\UdtMappingsTests.cs" />
-    <Compile Include="Ado\AdoBasicTests.cs" />
-    <Compile Include="TestClusterManagement\CcmBridge.cs" />
-    <Compile Include="TestClusterManagement\CcmCluster.cs" />
-    <Compile Include="TestBase\Options.cs" />
-    <Compile Include="CommonFixtureSetup.cs" />
-    <Compile Include="TestClusterManagement\ITestCluster.cs" />
-    <Compile Include="TestClusterManagement\SCassandraManager.cs" />
-    <Compile Include="TestClusterManagement\TestClusterManager.cs" />
-    <Compile Include="TestBase\TestGlobals.cs" />
-    <Compile Include="TestBase\TestUtils.cs" />
-    <Compile Include="TestBase\TestCassandraVersion.cs" />
-    <Compile Include="TestBase\TestInfrastructureException.cs" />
-    <Compile Include="Mapping\Structures\Author.cs" />
-    <Compile Include="Linq\Structures\CassandraLog.cs" />
-    <Compile Include="Linq\Structures\FollowedTweet.cs" />
-    <Compile Include="Linq\Structures\Statistics.cs" />
-    <Compile Include="Linq\Structures\Tweet.cs" />
-    <Compile Include="Core\ParameterizedStatementsTests.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config">
-      <SubType>Designer</SubType>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Cassandra.Tests\Cassandra.Tests.csproj">
-      <Project>{49996688-1380-4854-a32c-048c4014e478}</Project>
-      <Name>Cassandra.Tests</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Cassandra\Cassandra.csproj">
-      <Project>{6e8c45da-d958-4c75-98c3-b54c883299a2}</Project>
-      <Name>Cassandra</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp1.0' ">
+    <DefineConstants>$(DefineConstants);NETCORE</DefineConstants>
+  </PropertyGroup>
+
 </Project>

@@ -6,27 +6,29 @@ cache:
   - C:\ProgramData\chocolatey\lib -> .\build\appveyor_install.ps1
   - C:\Users\appveyor\.ccm\repository -> .\build\appveyor_install.ps1
   - C:\Users\appveyor\deps -> .\build\appveyor_install.ps1
-image: Visual Studio 2015
-platform:
-  - Any CPU
-configuration:
-  - Release
+image: Visual Studio 2017
 environment:
+  appveyor_build_worker_cloud: gce
   NUNIT_PATH: nunit3-console
   matrix:
     - TARGET: net452
       CI_TYPE: UNIT
+      PROJECT: Cassandra.Tests
     - TARGET: netcoreapp1.0
       CI_TYPE: UNIT
+      PROJECT: Cassandra.Tests
     - TARGET: net452
       CASSANDRA_VERSION: 3.10
       CI_TYPE: INTEGRATION
+      PROJECT: Cassandra.IntegrationTests
     - TARGET: netcoreapp1.0
       CASSANDRA_VERSION: 3.10
       CI_TYPE: INTEGRATION
+      PROJECT: Cassandra.IntegrationTests
     - TARGET: net452
       CASSANDRA_VERSION: 2.2.7
       CI_TYPE: INTEGRATION
+      PROJECT: Cassandra.IntegrationTests
     - TARGET: net452
       CASSANDRA_VERSION: 3.10
       CI_TYPE: MEMORY
@@ -35,43 +37,23 @@ install:
   - ps: .\build\appveyor_install.ps1
   - ps: .\build\scassandra_install.ps1
 
-before_build:
-  - ps: dotnet restore
-
-build:
-  project: src/Cassandra.sln
-  verbosity: minimal
-
-test:
-  assemblies:
-    - src/Cassandra.Tests/bin/$(configuration)/Cassandra.Tests.dll
-    - src/Cassandra.IntegrationTests/bin/$(configuration)/Cassandra.IntegrationTests.dll
-
-  categories:
-    except:
-      - long
-      - duration
+build_script:
+  - ps: dotnet restore src
+  - ps: dotnet build src\Cassandra.sln -c Release
 
 test_script:
-  - ps: >-
-      If ("$($env:CI_TYPE)" -eq "UNIT") {
-        dotnet test src\Cassandra.Tests -c Release -f $env:TARGET --result=TestResult.xml
+  - ps: |
+      If ("$($env:CI_TYPE)" -ne "MEMORY") {
+        dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --filter "(TestCategory!=long)&(TestCategory!=memory)"  --logger "trx;LogFileName=..\..\..\TestResult.xml"
       }
-      If ("$($env:CI_TYPE)" -eq "INTEGRATION") {
-        dotnet test src\Cassandra.IntegrationTests -c Release -f $env:TARGET --where "cat=short" --result=TestResult.xml
-      }
-      If ("$($env:CI_TYPE)" -eq "MEMORY") {
+      Else {
         .\build\memory_tests.ps1
       }
-
-after_test:
-  - ps: >-
-      if($true)
-      {
-        $wc = New-Object 'System.Net.WebClient'
-        $wc.UploadFile("https://ci.appveyor.com/api/testresults/nunit3/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\TestResult.xml))
-      }
-
 on_failure:
-  - ps: >-
+  - ps: |
       Write-Host "Build failed"
+on_finish:
+  - ps: |
+      xml tr tools\trx-to-junit.xslt TestResult.xml > ResultsJUnit.xml
+      $wc = New-Object 'System.Net.WebClient'
+      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\ResultsJUnit.xml))

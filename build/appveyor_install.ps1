@@ -128,3 +128,5 @@ If (!(Test-Path C:\Users\appveyor\.ccm\repository\$env:cassandra_version)) {
 } else {
   Write-Host "Cassandra $env:cassandra_version was already preloaded"
 }
+
+choco install -y xmlstarlet

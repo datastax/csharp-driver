@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-#if !NETCORE
 using Moq;
-#endif
 using NUnit.Framework;
 
 namespace Cassandra.Tests
@@ -89,7 +87,6 @@ namespace Cassandra.Tests
             Assert.AreEqual(1, metadata.AllHosts().Count);
         }
 
-#if !NETCORE
         [Test]
         public void UpdatePeersInfoUsesAddressTranslator()
         {
@@ -128,6 +125,5 @@ namespace Cassandra.Tests
             Assert.AreEqual(hostAddress3, invokedEndPoints[1].Address);
             Assert.AreEqual(portNumber, invokedEndPoints[1].Port);
         }
-#endif
     }
 }
