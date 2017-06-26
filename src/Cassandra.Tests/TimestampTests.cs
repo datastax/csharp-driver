@@ -95,6 +95,7 @@ namespace Cassandra.Tests
             // A little less than 3 seconds
             // It should generate a warning initially and then next 2 after 1 second each
             var maxElapsed = TimeSpan.FromSeconds(2.8);
+            var counter = 0;
             TestHelper.ParallelInvoke(() =>
             {
                 var stopWatch = new Stopwatch();
@@ -104,9 +105,15 @@ namespace Cassandra.Tests
                     for (var i = 0; i < 10000; i++)
                     {
                         generator.Next();
+                        Interlocked.Increment(ref counter);
                     }
                 }
             }, 2);
+            if (Volatile.Read(ref counter) < 5000000)
+            {
+                // if during this time, , don't mind
+                Assert.Ignore("It was not able to generate 5M values");
+            }
             Assert.AreEqual(3, loggerHandler.DequeueAllMessages().Count(i => i.Item1 == "warning"));
         }
 

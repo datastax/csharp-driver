@@ -406,14 +406,14 @@ namespace Cassandra.Tests
             Assert.AreEqual(2, Volatile.Read(ref creationCounter));
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
             // Wait for the connection pool to allow further connections
-            await Task.Delay(2100);
+            await Task.Delay(2500);
             // Below threshold
             pool.ConsiderResizingPool(20);
             Assert.AreEqual(2, Volatile.Read(ref creationCounter));
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
             // Above threshold
             pool.ConsiderResizingPool(1700);
-            await Task.Delay(20);
+            await TestHelper.WaitUntilAsync(() => Volatile.Read(ref creationCounter) == 3);
             Assert.AreEqual(3, Volatile.Read(ref creationCounter));
             Assert.AreEqual(1, Volatile.Read(ref isCreating));
             // Wait for the creation

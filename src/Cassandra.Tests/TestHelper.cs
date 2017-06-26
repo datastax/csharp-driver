@@ -209,6 +209,19 @@ namespace Cassandra.Tests
             return i;
         }
 
+        /// <summary>
+        /// Waits on the current thread until the condition is met and returns the number of attempts made
+        /// </summary>
+        public static async Task<int> WaitUntilAsync(Func<bool> condition, int intervals = 500, int attempts = 10)
+        {
+            var i = 0;
+            for (; i < attempts && !condition(); i++)
+            {
+                await Task.Delay(intervals).ConfigureAwait(false);
+            }
+            return i;
+        }
+
         public static void AssertPropertiesEqual(object actual, object expected)
         {
             var properties = expected.GetType().GetProperties();
