@@ -2,16 +2,11 @@
 
   <PropertyGroup>
     <Description>A modern, feature-rich and highly tunable C# client library for Apache Cassandra and DataStax Enterprise</Description>
-    <Summary>
-      A modern, feature-rich and highly tunable C# client library for Apache Cassandra (1.2+) and DataStax Enterprise (3.1+) using exclusively Cassandra's binary protocol and Cassandra Query Language v3.
-      Features: Sync and Async API; Simple, Prepared and Batch statements; Asynchronous IO, parallel execution, request pipelining; Connection pooling; Auto node discovery.
-      Works with any Cassandra cluster size.
-    </Summary>
     <Copyright>Copyright © 2017 by DataStax</Copyright>
     <AssemblyTitle>DataStax C# Driver for Apache Cassandra</AssemblyTitle>
     <AssemblyVersion>3.99.0.0</AssemblyVersion>
-    <AssemblyFileVersion>3.3.0.0</AssemblyFileVersion>
-    <VersionPrefix>3.3.0</VersionPrefix>
+    <FileVersion>3.3.1.0</FileVersion>
+    <VersionPrefix>3.3.1</VersionPrefix>
     <VersionSuffix></VersionSuffix>
     <Authors>DataStax</Authors>
     <TargetFrameworks>net45;netstandard1.5</TargetFrameworks>
@@ -32,8 +27,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="1.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="1.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="1.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="1.0.0" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
