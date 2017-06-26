@@ -1,11 +1,6 @@
 version: "{branch}-{build}"
 skip_tags: true
 shallow_clone: true
-cache:
-  - C:\ProgramData\chocolatey\bin -> .\build\appveyor_install.ps1                                                                             
-  - C:\ProgramData\chocolatey\lib -> .\build\appveyor_install.ps1
-  - C:\Users\appveyor\.ccm\repository -> .\build\appveyor_install.ps1
-  - C:\Users\appveyor\deps -> .\build\appveyor_install.ps1
 image: Visual Studio 2017
 environment:
   appveyor_build_worker_cloud: gce
@@ -31,8 +26,3 @@ test_script:
 on_failure:
   - ps: |
       Write-Host "Build failed"
-on_finish:
-  - ps: |
-      xml tr tools\trx-to-junit.xslt TestResult.xml > ResultsJUnit.xml
-      $wc = New-Object 'System.Net.WebClient'
-      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\ResultsJUnit.xml))

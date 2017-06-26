@@ -13,6 +13,15 @@ build:
       # Set the Java paths (for CCM)
       export JAVA_HOME=$CCM_JAVA_HOME
       export PATH=$JAVA_HOME/bin:$PATH
+      export CCM_PATH=$HOME/ccm
+      export DSE_INITIAL_IPPREFIX="127.0.0."
+      export DSE_BRANCH=$CCM_BRANCH
+      export DSE_VERSION=$CCM_VERSION
+      export DSE_IN_REMOTE_SERVER="false"
+      echo $DSE_VERSION
+      echo $DSE_PATH
+      echo $DSE_INITIAL_IPPREFIX
+      echo $CSHARP_VERSION
 
       # Define Cassandra runtime
       echo "==========setting cassandra version=========="
