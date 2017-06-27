@@ -13,10 +13,6 @@ environment:
       CI_TYPE: UNIT
       PROJECT: Dse.Test.Unit
 
-install:
-  - ps: .\build\appveyor_install.ps1
-  - ps: .\build\scassandra_install.ps1
-
 build_script:
   - ps: dotnet restore src
   - ps: dotnet build src\Dse.sln -c Release

@@ -351,94 +351,6 @@ namespace Dse.Test.Unit
         }
 
         [Test]
-        public async Task EnsureCreate_Should_Increase_One_At_A_Time_Until_Core_Connections()
-        {
-            var mock = GetPoolMock(null, GetConfig(3, 3));
-            var creationCounter = 0;
-            var isCreating = 0;
-            mock.Setup(p => p.DoCreateAndOpen()).Returns(() =>
-            {
-                Interlocked.Increment(ref creationCounter);
-                Interlocked.Exchange(ref isCreating, 1);
-                return TestHelper.DelayedTask(CreateConnection(), 500, () => Interlocked.Exchange(ref isCreating, 0));
-            });
-            var pool = mock.Object;
-            pool.SetDistance(HostDistance.Local);
-            await pool.EnsureCreate();
-            Assert.AreEqual(1, pool.OpenConnections);
-            await Task.Delay(100);
-            //No connections added yet
-            Assert.AreEqual(2, Volatile.Read(ref creationCounter));
-            Assert.AreEqual(1, Volatile.Read(ref isCreating));
-            Assert.AreEqual(1, pool.OpenConnections);
-            await Task.Delay(550);
-            Assert.AreEqual(3, Volatile.Read(ref creationCounter));
-            Assert.AreEqual(1, Volatile.Read(ref isCreating));
-            Assert.AreEqual(2, pool.OpenConnections);
-            await Task.Delay(550);
-            Assert.AreEqual(0, Volatile.Read(ref isCreating));
-            Assert.AreEqual(3, Volatile.Read(ref creationCounter));
-            Assert.AreEqual(3, pool.OpenConnections);
-            await Task.Delay(550);
-            Assert.AreEqual(0, Volatile.Read(ref isCreating));
-            Assert.AreEqual(3, Volatile.Read(ref creationCounter));
-            Assert.AreEqual(3, pool.OpenConnections);
-        }
-
-        [Test]
-        public async Task ConsiderResizingPool_Should_Increase_One_At_A_Time_Until_Max_Connections()
-        {
-            var mock = GetPoolMock(null, GetConfig(1, 3));
-            var creationCounter = 0;
-            var isCreating = 0;
-            mock.Setup(p => p.DoCreateAndOpen()).Returns(() =>
-            {
-                Interlocked.Increment(ref creationCounter);
-                Interlocked.Exchange(ref isCreating, 1);
-                return TestHelper.DelayedTask(CreateConnection(), 50, () => Interlocked.Exchange(ref isCreating, 0));
-            });
-            var pool = mock.Object;
-            pool.SetDistance(HostDistance.Local);
-            await pool.EnsureCreate();
-            // Low in-flight
-            pool.ConsiderResizingPool(20);
-            Assert.AreEqual(1, Volatile.Read(ref creationCounter));
-            Assert.AreEqual(0, Volatile.Read(ref isCreating));
-            // Above threshold
-            pool.ConsiderResizingPool(1501);
-            Assert.AreEqual(2, Volatile.Read(ref creationCounter));
-            Assert.AreEqual(1, Volatile.Read(ref isCreating));
-            // Wait for the creation
-            await Task.Delay(100);
-            Assert.AreEqual(2, Volatile.Read(ref creationCounter));
-            Assert.AreEqual(0, Volatile.Read(ref isCreating));
-            // Wait for the connection pool to allow further connections
-            await Task.Delay(2100);
-            // Below threshold
-            pool.ConsiderResizingPool(20);
-            Assert.AreEqual(2, Volatile.Read(ref creationCounter));
-            Assert.AreEqual(0, Volatile.Read(ref isCreating));
-            // Above threshold
-            pool.ConsiderResizingPool(1700);
-            await Task.Delay(20);
-            Assert.AreEqual(3, Volatile.Read(ref creationCounter));
-            Assert.AreEqual(1, Volatile.Read(ref isCreating));
-            // Wait for the creation
-            await Task.Delay(100);
-            Assert.AreEqual(3, Volatile.Read(ref creationCounter));
-            Assert.AreEqual(0, Volatile.Read(ref isCreating));
-            // Wait for the connection pool to allow further connections
-            await Task.Delay(2100);
-            Assert.AreEqual(3, Volatile.Read(ref creationCounter));
-            Assert.AreEqual(0, Volatile.Read(ref isCreating));
-            // Reached max: above threshold
-            pool.ConsiderResizingPool(1700);
-            // Still max
-            Assert.AreEqual(3, Volatile.Read(ref creationCounter));
-            Assert.AreEqual(0, Volatile.Read(ref isCreating));
-        }
-
-        [Test]
         public void MinInFlight_Returns_The_Min_Inflight_From_Two_Connections()
         {
             var connections = new[]
@@ -491,18 +403,6 @@ namespace Dse.Test.Unit
             Assert.AreEqual(index, 3);
             // Should pick the first below the threshold
             Assert.AreSame(connections[0], c);
-        }
-
-        [Test]
-        public async Task ScheduleReconnection_Should_Reconnect_In_The_Background()
-        {
-            var mock = GetPoolMock(null, GetConfig(1, 1, new ConstantReconnectionPolicy(50)));
-            mock.Setup(p => p.DoCreateAndOpen()).Returns(() => TestHelper.DelayedTask(CreateConnection(), 20));
-            var pool = mock.Object;
-            Assert.AreEqual(0, pool.OpenConnections);
-            pool.ScheduleReconnection();
-            await Task.Delay(300);
-            Assert.AreEqual(1, pool.OpenConnections);
         }
 
         [Test]
