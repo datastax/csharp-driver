@@ -29,9 +29,6 @@ environment:
       CASSANDRA_VERSION: 2.2.7
       CI_TYPE: INTEGRATION
       PROJECT: Cassandra.IntegrationTests
-    - TARGET: net452
-      CASSANDRA_VERSION: 3.10
-      CI_TYPE: MEMORY
 
 install:
   - ps: .\build\appveyor_install.ps1
@@ -42,13 +39,7 @@ build_script:
   - ps: dotnet build src\Cassandra.sln -c Release
 
 test_script:
-  - ps: |
-      If ("$($env:CI_TYPE)" -ne "MEMORY") {
-        dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --filter "(TestCategory!=long)&(TestCategory!=memory)"  --logger "trx;LogFileName=..\..\..\TestResult.xml"
-      }
-      Else {
-        .\build\memory_tests.ps1
-      }
+  - ps: dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --filter "(TestCategory!=long)&(TestCategory!=memory)"  --logger "trx;LogFileName=..\..\..\TestResult.xml"
 on_failure:
   - ps: |
       Write-Host "Build failed"
