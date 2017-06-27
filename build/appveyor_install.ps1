@@ -9,6 +9,7 @@ $computerCPU = Get-CimInstance CIM_Processor
 
 Write-Host "System Information for: " $computerSystem.Name
 "CPU: " + $computerCPU.Name
+"Cores: " + $computerCPU.NumberOfCores + " (" + $computerCPU.NumberOfLogicalProcessors + " logical)"
 "RAM: " + "{0:N2}" -f ($computerSystem.TotalPhysicalMemory/1GB) + "GB"
 "OS: " + [System.Environment]::OSVersion
 
