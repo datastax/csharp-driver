@@ -220,5 +220,33 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
 
+        [TestCase(BatchType.Unlogged)]
+        [TestCase(BatchType.Logged)]
+        [TestCase(null)]
+        [TestCassandraVersion(2, 0)]
+        public void Delete_BatchType(BatchType batchType)
+        {
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            var count = table.Count().Execute();
+            Assert.AreEqual(_entityList.Count, count);
+            AllDataTypesEntity entityToDelete = _entityList[0];
+            AllDataTypesEntity entityToDelete2 = _entityList[1];
+
+            var selectQuery = table.Select(m => m).Where(m => m.StringType == entityToDelete.StringType);
+            var deleteQuery = selectQuery.Delete();
+            var selectQuery2 = table.Select(m => m).Where(m => m.StringType == entityToDelete2.StringType);
+            var deleteQuery2 = selectQuery2.Delete();
+
+
+            var batch = table.GetSession().CreateBatch(batchType);
+            batch.Append(deleteQuery);
+            batch.Append(deleteQuery2);
+            batch.Execute();
+            
+            count = table.Count().Execute();
+            Assert.AreEqual(_entityList.Count - 2, count);
+            Assert.AreEqual(0, selectQuery.Execute().ToList().Count);
+            Assert.AreEqual(0, selectQuery2.Execute().ToList().Count);
+        }
     }
 }
