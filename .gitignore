@@ -31,8 +31,19 @@ obj/
 [Rr]elease*/
 _ReSharper*/
 [Tt]est[Rr]esult*
+
 #Ignore packages from sample projects
 src/samples/packages
 src/other/**/packages
 src/packages/*/
+
 /docs
+
+# OS X
+.DS_Store
+
+# Rider
+**/.idea/
+
+# Visual Studio for Mac
+*.userprefs
