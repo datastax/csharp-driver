@@ -157,8 +157,10 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     // Closure
                     var index = i;
+                    var expectedOpenConnections = 5 - index;
+                    TestHelper.WaitUntil(() => _scassandraManager.GetListOfConnectedPorts().Result.Length == expectedOpenConnections);
                     ports = _scassandraManager.GetListOfConnectedPorts().Result;
-                    Assert.AreEqual(5 - index, ports.Length);
+                    Assert.AreEqual(expectedOpenConnections, ports.Length, "Cassandra simulator contains unexpected number of connected clients");
                     _scassandraManager.DropConnection(ports.Last()).Wait();
                     // Host pool could have between pool.OpenConnections - i and pool.OpenConnections - i - 1
                     TestHelper.WaitUntil(() => pool.OpenConnections >= 4 - index - 1 && pool.OpenConnections <= 4 - index);
