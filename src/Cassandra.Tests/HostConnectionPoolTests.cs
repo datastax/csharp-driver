@@ -247,7 +247,7 @@ namespace Cassandra.Tests
             {
                 Interlocked.Increment(ref creationCounter);
                 Interlocked.Exchange(ref isCreating, 1);
-                return TestHelper.DelayedTask(CreateConnection(), 500, () => Interlocked.Exchange(ref isCreating, 0));
+                return TestHelper.DelayedTask(CreateConnection(), 30, () => Interlocked.Exchange(ref isCreating, 0));
             });
             var pool = mock.Object;
             pool.SetDistance(HostDistance.Local);
@@ -255,15 +255,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(0, Volatile.Read(ref creationCounter));
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
             pool.OnHostUp(null);
-            await Task.Delay(100);
-            Assert.AreEqual(0, pool.OpenConnections);
-            Assert.AreEqual(1, Volatile.Read(ref creationCounter));
-            Assert.AreEqual(1, Volatile.Read(ref isCreating));
-            await Task.Delay(550);
-            Assert.AreEqual(1, pool.OpenConnections);
-            Assert.AreEqual(2, Volatile.Read(ref creationCounter));
-            Assert.AreEqual(1, Volatile.Read(ref isCreating));
-            await Task.Delay(550);
+            await TestHelper.WaitUntilAsync(() => pool.OpenConnections == 2);
             Assert.AreEqual(2, pool.OpenConnections);
             Assert.AreEqual(2, Volatile.Read(ref creationCounter));
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
