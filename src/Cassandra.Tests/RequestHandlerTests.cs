@@ -15,9 +15,13 @@
 //
 
 using System;
+using System.IO;
+using System.Linq;
+using System.Text;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using NUnit.Framework;
+using QueryFlags = Cassandra.QueryProtocolOptions.QueryFlags;
 
 namespace Cassandra.Tests
 {
@@ -199,6 +203,43 @@ namespace Cassandra.Tests
             decision = RequestExecution<RowSet>.GetRetryDecision(
                 new TruncateException(null), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
+        }
+
+        [Test]
+        public void GetRequest_With_Timestamp_Generator()
+        {
+            // Timestamp generator should be enabled by default
+            var statement = new SimpleStatement("QUERY");
+            var config = new Configuration();
+            var request = RequestHandler<RowSet>.GetRequest(statement, Serializer.Default, config);
+            var stream = new MemoryStream();
+            request.WriteFrame(1, stream, new Serializer(ProtocolVersion.MaxSupported));
+            var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);
+            var bodyBuffer = new byte[stream.Length - headerSize];
+            stream.Position = headerSize;
+            stream.Read(bodyBuffer, 0, bodyBuffer.Length);
+            // The query request is composed by:
+            // <query><consistency><flags><result_page_size><timestamp>
+            var queryBuffer = BeConverter.GetBytes(statement.QueryString.Length)
+                .Concat(Encoding.UTF8.GetBytes(statement.QueryString))
+                .ToArray();
+            CollectionAssert.AreEqual(queryBuffer, bodyBuffer.Take(queryBuffer.Length));
+            // Skip the query and consistency (2)
+            var offset = queryBuffer.Length + 2;
+            // The remaining length should be 13 = flags (1) + result_page_size (4) + timestamp (8)
+            Assert.AreEqual(13, bodyBuffer.Length - offset);
+            var flags = (QueryFlags) bodyBuffer[offset];
+            Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
+            Assert.True(flags.HasFlag(QueryFlags.PageSize));
+            Assert.False(flags.HasFlag(QueryFlags.Values));
+            Assert.False(flags.HasFlag(QueryFlags.WithPagingState));
+            Assert.False(flags.HasFlag(QueryFlags.SkipMetadata));
+            Assert.False(flags.HasFlag(QueryFlags.WithSerialConsistency));
+            // Skip flags (1) + result_page_size (4)
+            offset += 5;
+            var timestamp = BeConverter.ToInt64(bodyBuffer, offset);
+            var expectedTimestamp = TypeSerializer.SinceUnixEpoch(DateTimeOffset.Now.Subtract(TimeSpan.FromMilliseconds(100))).Ticks / 10;
+            Assert.Greater(timestamp, expectedTimestamp);
         }
     }
 }
