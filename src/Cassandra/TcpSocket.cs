@@ -113,34 +113,17 @@ namespace Cassandra
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
         public async Task<bool> Connect()
         {
-            var tcs = TaskHelper.TaskCompletionSourceWithTimeout<bool>(
-                Options.ConnectTimeoutMillis, 
-                () => new SocketException((int) SocketError.TimedOut));
-            var socketConnectTask = tcs.Task;
-            var eventArgs = new SocketAsyncEventArgs
+            var connectTask = Task.Factory.FromAsync(
+                                  (ipEndPoint, callback, state) => ((Socket)state).BeginConnect(ipEndPoint, callback, state),
+                                  asyncResult => ((Socket)asyncResult.AsyncState).EndConnect(asyncResult),
+                                  IPEndPoint, _socket);
+            var timeoutTask = await Task.WhenAny(connectTask, Task.Delay(Options.ConnectTimeoutMillis)).ConfigureAwait(false);
+            if (timeoutTask != connectTask)
             {
-                RemoteEndPoint = IPEndPoint
-            };
+                throw new SocketException((int)SocketError.TimedOut);
+            }
+            await connectTask.ConfigureAwait(false);
 
-            eventArgs.Completed += (sender, e) =>
-            {
-                if (e.SocketError != SocketError.Success)
-                {
-                    tcs.TrySetException(new SocketException((int)e.SocketError));
-                    return;
-                }
-                tcs.TrySetResult(true);
-                e.Dispose();
-            };
-            try
-            {
-                _socket.ConnectAsync(eventArgs);
-                await socketConnectTask.ConfigureAwait(false);
-            }
-            finally
-            {
-                eventArgs.Dispose();
-            }
             if (SSLOptions != null)
             {
                 return await ConnectSsl().ConfigureAwait(false);
