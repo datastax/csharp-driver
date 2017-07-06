@@ -16,7 +16,7 @@ namespace Dse.Data.Linq
     {
         protected readonly ISession _session;
 
-        protected BatchType _batchType = BatchType.Logged;
+        protected BatchType _batchType;
         protected DateTimeOffset? _timestamp = null;
 
         public abstract bool IsEmpty { get; }
@@ -28,9 +28,10 @@ namespace Dse.Data.Linq
 
         public QueryTrace QueryTrace { get; private set; }
 
-        internal Batch(ISession session)
+        internal Batch(ISession session, BatchType batchType)
         {
             _session = session;
+            _batchType = batchType;
         }
 
         public abstract void Append(CqlCommand cqlCommand);
@@ -77,6 +78,19 @@ namespace Dse.Data.Linq
         {
             var task = (Task)ar;
             task.Wait();
+        }
+
+        protected string BatchTypeString()
+        {
+            switch (_batchType)
+            {
+                case BatchType.Counter: return "COUNTER ";
+                case BatchType.Unlogged: return "UNLOGGED ";
+                case BatchType.Logged:
+                    return "";
+                default:
+                    throw new ArgumentException();
+            }
         }
     }
 }

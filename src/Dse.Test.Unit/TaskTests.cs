@@ -127,7 +127,7 @@ namespace Dse.Test.Unit
         public void TaskHelper_TaskCompletionSourceWithTimeout_Sets_Exception_When_Expired()
         {
             var ex = new TimeoutException("Test message");
-            var tcs = TaskHelper.TaskCompletionSourceWithTimeout<int>(100, () => ex);
+            var tcs = TaskHelper.TaskCompletionSourceWithTimeout<int>(20, () => ex);
             var task = tcs.Task;
             Thread.Sleep(200);
             Assert.AreEqual(TaskStatus.Faulted, task.Status);

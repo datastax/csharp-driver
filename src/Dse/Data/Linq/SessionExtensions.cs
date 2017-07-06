@@ -39,11 +39,16 @@ namespace Dse.Data.Linq
 
         public static Batch CreateBatch(this ISession session)
         {
+            return CreateBatch(session, BatchType.Logged);
+        } 
+
+        public static Batch CreateBatch(this ISession session, BatchType batchType)
+        {
             if (session == null || session.BinaryProtocolVersion > 1)
             {
-                return new BatchV2(session);
+                return new BatchV2(session, batchType);
             }
-            return new BatchV1(session);
+            return new BatchV1(session, batchType);
         }
 
         internal static Configuration GetConfiguration(this ISession session)

@@ -38,13 +38,13 @@ namespace Dse.Test.Integration.Core
                                         .WithDefaultKeyspace("system")
                                         //lots of connections per host
                                         .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 30))
-                                        .WithQueryTimeout(30000)
+                                        .WithQueryTimeout(45000)
                                         .Build())
             {
                 var session = cluster.Connect();
                 // Try to be force a race condition
-                Parallel.For(0, 500, _ => session.Execute(new SimpleStatement("SELECT * FROM local")));
-                var actions = new Task[500];
+                Parallel.For(0, 200, _ => session.Execute(new SimpleStatement("SELECT * FROM local")));
+                var actions = new Task[200];
                 for (var i = 0; i < actions.Length; i++)
                 {
                     actions[i] = session.ExecuteAsync(new SimpleStatement("SELECT * FROM local"));

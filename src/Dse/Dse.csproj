@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <Description>Built on top of DataStax C# driver for Apache Cassandra, it provides additional features designed for DataStax Enterprise.</Description>
     <Copyright>Copyright © 2017 by DataStax</Copyright>
@@ -7,7 +6,6 @@
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
     <FileVersion>2.0.2.0</FileVersion>
     <VersionPrefix>2.0.2</VersionPrefix>
-    <VersionSuffix></VersionSuffix>
     <Authors>DataStax</Authors>
     <TargetFrameworks>net45;netstandard1.5</TargetFrameworks>
     <NoWarn>$(NoWarn);1591</NoWarn>
@@ -25,13 +23,11 @@
     <PackageProjectUrl>https://github.com/datastax/csharp-dse-driver</PackageProjectUrl>
     <NetStandardImplicitPackageVersion>1.6.0</NetStandardImplicitPackageVersion>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging" Version="1.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="1.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
   </ItemGroup>
-
   <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
     <PackageReference Include="lz4net" Version="1.0.10.93" />
     <Reference Include="System.Data" />
@@ -41,12 +37,10 @@
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
-
   <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard1.5' ">
     <DefineConstants>$(DefineConstants);NETCORE</DefineConstants>
     <DefaultItemExcludes>$(DefaultItemExcludes);Auth/Sspi/**</DefaultItemExcludes>
   </PropertyGroup>
-
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.5' ">
     <PackageReference Include="System.Data.Common" Version="4.1.0" />
     <PackageReference Include="System.Diagnostics.FileVersionInfo" Version="4.0.0" />
@@ -57,7 +51,6 @@
     <PackageReference Include="System.Runtime.Serialization.Primitives" Version="4.1.1" />
     <PackageReference Include="System.Threading.Thread" Version="4.0.0" />
   </ItemGroup>
-
   <ItemGroup>
     <Compile Update="Data\CqlCommand.cs">
       <SubType>Component</SubType>

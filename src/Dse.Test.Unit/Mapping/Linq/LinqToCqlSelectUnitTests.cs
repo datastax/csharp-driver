@@ -54,7 +54,7 @@ namespace Dse.Test.Unit.Mapping.Linq
         public void Select_With_ConsistencyLevel()
         {
             BoundStatement statement = null;
-            var session = GetSession(new RowSet(), stmt => statement = stmt);
+            var session = GetSession<BoundStatement>(new RowSet(), stmt => statement = stmt);
             var map = new Map<AllTypesEntity>()
                 .ExplicitColumns()
                 .Column(t => t.StringValue, cm => cm.WithName("val"))
@@ -305,7 +305,7 @@ namespace Dse.Test.Unit.Mapping.Linq
                 .Column(t => t.IntValue, cm => cm.WithName("id"))
                 .PartitionKey(t => t.UuidValue)
                 .TableName("tbl1");
-            var session = GetSession(
+            var session = GetSession<BoundStatement>(
                 TestDataHelper.CreateMultipleValuesRowSet(new [] {"val", "id"}, new object[] { -1D, 10 }),
                 s =>
                 {

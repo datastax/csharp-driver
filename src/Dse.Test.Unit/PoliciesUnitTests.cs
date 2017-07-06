@@ -6,7 +6,7 @@
 //
 
 using System;
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 ﻿using System.Collections.Generic;
 using System.Linq;
 ﻿using System.Net;
@@ -571,8 +571,8 @@ namespace Dse.Test.Unit
             double queryPlansWithHost2AsFirst = firstHosts.Count(h => TestHelper.GetLastAddressByte(h) == 2);
             Assert.AreEqual(times, queryPlansWithHost1AsFirst + queryPlansWithHost2AsFirst);
             // Around half will to one and half to the other
-            Assert.That(queryPlansWithHost1AsFirst / times, Is.GreaterThan(0.48).And.LessThan(0.52));
-            Assert.That(queryPlansWithHost2AsFirst / times, Is.GreaterThan(0.48).And.LessThan(0.52));
+            Assert.That(queryPlansWithHost1AsFirst / times, Is.GreaterThan(0.45).And.LessThan(0.55));
+            Assert.That(queryPlansWithHost2AsFirst / times, Is.GreaterThan(0.45).And.LessThan(0.55));
             clusterMock.Verify();
         }
 

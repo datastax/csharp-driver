@@ -111,7 +111,7 @@ namespace Dse.Test.Unit
             }, 2);
             if (Volatile.Read(ref counter) < 5000000)
             {
-                // if during this time, , don't mind
+                // if during this time, we weren't able to generate a lot of values, don't mind
                 Assert.Ignore("It was not able to generate 5M values");
             }
             Assert.AreEqual(3, loggerHandler.DequeueAllMessages().Count(i => i.Item1 == "warning"));
@@ -122,6 +122,7 @@ namespace Dse.Test.Unit
         {
             // It should generate a warning initially and then 1 more
             var maxElapsed = TimeSpan.FromSeconds(1.8);
+            var counter = 0;
             Action action = () =>
             {
                 var stopWatch = new Stopwatch();
@@ -132,10 +133,16 @@ namespace Dse.Test.Unit
                     for (var i = 0; i < 5000; i++)
                     {
                         generator.Next();
+                        Interlocked.Increment(ref counter);
                     }
                 }
             };
             TestHelper.ParallelInvoke(action, 2);
+            if (Volatile.Read(ref counter) < 5000000)
+            {
+                // if during this time, we weren't able to generate a lot of values, don't mind
+                Assert.Ignore("It was not able to generate 5M values");
+            }
             Assert.AreEqual(2, loggerHandler.DequeueAllMessages().Count(i => i.Item1 == "warning"));
             // Cooldown: make current time > last generated value
             Thread.Sleep(3000);

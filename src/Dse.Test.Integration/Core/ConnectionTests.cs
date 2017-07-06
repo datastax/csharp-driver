@@ -688,7 +688,7 @@ namespace Dse.Test.Integration.Core
                 Interlocked.MemoryBarrier();
                 var writeCounter = 0;
                 connection.WriteCompleted += () => Interlocked.Increment(ref writeCounter);
-                Thread.Sleep(2200);
+                Thread.Sleep(2450);
                 Assert.GreaterOrEqual(Volatile.Read(ref writeCounter), 4);
             }
         }

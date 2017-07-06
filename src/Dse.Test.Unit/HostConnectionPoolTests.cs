@@ -254,7 +254,7 @@ namespace Dse.Test.Unit
             {
                 Interlocked.Increment(ref creationCounter);
                 Interlocked.Exchange(ref isCreating, 1);
-                return TestHelper.DelayedTask(CreateConnection(), 500, () => Interlocked.Exchange(ref isCreating, 0));
+                return TestHelper.DelayedTask(CreateConnection(), 30, () => Interlocked.Exchange(ref isCreating, 0));
             });
             var pool = mock.Object;
             pool.SetDistance(HostDistance.Local);
@@ -262,15 +262,7 @@ namespace Dse.Test.Unit
             Assert.AreEqual(0, Volatile.Read(ref creationCounter));
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
             pool.OnHostUp(null);
-            await Task.Delay(100);
-            Assert.AreEqual(0, pool.OpenConnections);
-            Assert.AreEqual(1, Volatile.Read(ref creationCounter));
-            Assert.AreEqual(1, Volatile.Read(ref isCreating));
-            await Task.Delay(550);
-            Assert.AreEqual(1, pool.OpenConnections);
-            Assert.AreEqual(2, Volatile.Read(ref creationCounter));
-            Assert.AreEqual(1, Volatile.Read(ref isCreating));
-            await Task.Delay(550);
+            await TestHelper.WaitUntilAsync(() => pool.OpenConnections == 2);
             Assert.AreEqual(2, pool.OpenConnections);
             Assert.AreEqual(2, Volatile.Read(ref creationCounter));
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
@@ -448,42 +440,6 @@ namespace Dse.Test.Unit
             // Should continue to reconnect
             Assert.Greater(Volatile.Read(ref openConnectionsAttempts), 1);
             pool.Dispose();
-        }
-
-        [Test]
-        public void ScheduleReconnection_Try_To_Reconnect_While_There_Is_At_Least_One_Connection()
-        {
-            var mock = GetPoolMock(null, GetConfig(3, 3, new ConstantReconnectionPolicy(100)));
-            var openConnectionsAttempts = 0;
-            mock.Setup(p => p.DoCreateAndOpen()).Returns(() =>
-            {
-                var attempts = Interlocked.Increment(ref openConnectionsAttempts);
-                if (attempts == 1)
-                {
-                    // First connection succeeded
-                    return TaskHelper.ToTask(CreateConnection());
-                }
-                if (attempts < 5)
-                {
-                    // 2 to 4 attempts: fail
-                    return TaskHelper.FromException<Connection>(new Exception("Test Exception"));
-                }
-                return TaskHelper.ToTask(CreateConnection());
-            });
-            var pool = mock.Object;
-            var eventRaised = 0;
-            pool.AllConnectionClosed += (_, __) => Interlocked.Increment(ref eventRaised);
-            pool.SetDistance(HostDistance.Local);
-            pool.ScheduleReconnection();
-            Thread.Sleep(300);
-            Assert.AreEqual(1, pool.OpenConnections);
-            Assert.AreEqual(0, Volatile.Read(ref eventRaised));
-            // Should retry to reconnect
-            Assert.Greater(Volatile.Read(ref openConnectionsAttempts), 1);
-            Thread.Sleep(1000);
-            Assert.AreEqual(3, pool.OpenConnections);
-            Assert.AreEqual(0, Volatile.Read(ref eventRaised));
-            Assert.AreEqual(6, Volatile.Read(ref openConnectionsAttempts));
         }
 
         [Test]
