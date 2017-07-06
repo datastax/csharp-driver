@@ -158,7 +158,7 @@ namespace Cassandra.IntegrationTests.Core
                     // Closure
                     var index = i;
                     var expectedOpenConnections = 5 - index;
-                    TestHelper.WaitUntil(() => _scassandraManager.GetListOfConnectedPorts().Result.Length == expectedOpenConnections);
+                    WaitSimulatorConnections(_scassandraManager, expectedOpenConnections);
                     ports = _scassandraManager.GetListOfConnectedPorts().Result;
                     Assert.AreEqual(expectedOpenConnections, ports.Length, "Cassandra simulator contains unexpected number of connected clients");
                     _scassandraManager.DropConnection(ports.Last()).Wait();
@@ -168,6 +168,7 @@ namespace Cassandra.IntegrationTests.Core
                     Assert.GreaterOrEqual(pool.OpenConnections, 4 - index - 1);
                     Assert.IsTrue(h1.IsUp);
                 }
+                WaitSimulatorConnections(_scassandraManager, 2);
                 ports = _scassandraManager.GetListOfConnectedPorts().Result;
                 Assert.AreEqual(2, ports.Length);
                 _scassandraManager.DropConnection(ports[1]).Wait();
@@ -175,6 +176,14 @@ namespace Cassandra.IntegrationTests.Core
                 TestHelper.WaitUntil(() => pool.OpenConnections == 0 && !h1.IsUp);
                 Assert.IsFalse(h1.IsUp);
             }
+        }
+
+        /// <summary>
+        /// Waits for the simulator to have the expected number of connections
+        /// </summary>
+        private static void WaitSimulatorConnections(SCassandraManager scassandra, int expected)
+        {
+            TestHelper.WaitUntil(() => scassandra.GetListOfConnectedPorts().Result.Length == expected);
         }
 
         /// <summary>
