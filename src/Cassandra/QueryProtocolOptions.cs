@@ -161,6 +161,25 @@ namespace Cassandra
             var protocolVersion = wb.Serializer.ProtocolVersion;
             var flags = GetFlags();
 
+            // Determine timestamp
+            long? timestamp = null;
+            if (Timestamp.HasValue)
+            {
+                timestamp = TypeSerializer.SinceUnixEpoch(Timestamp.Value).Ticks / 10;
+            }
+            else if (protocolVersion.SupportsTimestamp() && _policies != null)
+            {
+                timestamp = _policies.TimestampGenerator.Next();
+                if (timestamp.Value == long.MinValue)
+                {
+                    timestamp = null;
+                }
+                else
+                {
+                    flags = flags | QueryFlags.WithDefaultTimestamp;
+                }
+            }
+
             if (protocolVersion != ProtocolVersion.V1)
             {
                 wb.WriteUInt16((ushort)Consistency);
@@ -204,22 +223,10 @@ namespace Cassandra
             {
                 wb.WriteUInt16((ushort)SerialConsistency);
             }
-            if (protocolVersion.SupportsTimestamp())
+            if (timestamp.HasValue)
             {
-                if (Timestamp != null)
-                {
-                    // Expressed in microseconds
-                    wb.WriteLong(TypeSerializer.SinceUnixEpoch(Timestamp.Value).Ticks / 10);
-                }
-                else if (_policies != null)
-                {
-                    // Use timestamp generator
-                    var timestamp = _policies.TimestampGenerator.Next();
-                    if (timestamp != long.MinValue)
-                    {
-                        wb.WriteLong(timestamp);
-                    }
-                }
+                // Expressed in microseconds
+                wb.WriteLong(timestamp.Value);
             }
         }
     }
