@@ -691,7 +691,7 @@ APPLY BATCH".Replace("\r", ""));
             var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
             Assert.AreEqual(
                 (from ent in table select ent).Count().ToString(),
-                @"SELECT count(*) FROM ""x_t""");
+                @"SELECT count(*) FROM ""x_t"" ALLOW FILTERING");
         }
 
         [Test]
