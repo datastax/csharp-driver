@@ -91,8 +91,8 @@ namespace Cassandra
             _timestamp = timestamp;
         }
 
-        internal static QueryProtocolOptions CreateFromQuery(Statement query, QueryOptions queryOptions,
-                                                             Policies policies)
+        internal static QueryProtocolOptions CreateFromQuery(ProtocolVersion protocolVersion, Statement query,
+                                                             QueryOptions queryOptions, Policies policies)
         {
             if (query == null)
             {
@@ -100,12 +100,12 @@ namespace Cassandra
             }
             var consistency = query.ConsistencyLevel ?? queryOptions.GetConsistencyLevel();
             var pageSize = query.PageSize != 0 ? query.PageSize : queryOptions.GetPageSize();
-            long? timestamp;
+            long? timestamp = null;
             if (query.Timestamp != null)
             {
                 timestamp = TypeSerializer.SinceUnixEpoch(query.Timestamp.Value).Ticks / 10;
             }
-            else
+            else if (protocolVersion.SupportsTimestamp())
             {
                 timestamp = policies.TimestampGenerator.Next();
                 if (timestamp == long.MinValue)
