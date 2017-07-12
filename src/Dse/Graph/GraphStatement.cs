@@ -114,7 +114,7 @@ namespace Dse.Graph
         /// <inheritdoc />
         public IGraphStatement SetGraphWriteConsistencyLevel(ConsistencyLevel consistency)
         {
-            GraphReadConsistencyLevel = consistency;
+            GraphWriteConsistencyLevel = consistency;
             return this;
         }
 

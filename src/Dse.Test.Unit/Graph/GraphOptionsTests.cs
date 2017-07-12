@@ -84,5 +84,22 @@ namespace Dse.Test.Unit.Graph
             Assert.AreSame(payload1["graph-language"], payload2["graph-language"]);
             Assert.AreSame(payload1["graph-source"], payload2["graph-source"]);
         }
+
+        [Test]
+        public void GraphStatement_Set_Methods_Test()
+        {
+            var statement = new SimpleGraphStatement("g.V()");
+            statement
+                .SetGraphSource("source1")
+                .SetGraphLanguage("lang1")
+                .SetGraphName("name1")
+                .SetGraphReadConsistencyLevel(ConsistencyLevel.Two)
+                .SetGraphWriteConsistencyLevel(ConsistencyLevel.Three);
+            Assert.AreEqual("source1", statement.GraphSource);
+            Assert.AreEqual("lang1", statement.GraphLanguage);
+            Assert.AreEqual("name1", statement.GraphName);
+            Assert.AreEqual(ConsistencyLevel.Two, statement.GraphReadConsistencyLevel);
+            Assert.AreEqual(ConsistencyLevel.Three, statement.GraphWriteConsistencyLevel);
+        }
     }
 }

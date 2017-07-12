@@ -13,6 +13,7 @@ using System.Net;
 using System.Numerics;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Dse.Geometry;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Graph;
@@ -24,18 +25,27 @@ namespace Dse.Test.Integration.Graph
     public class GraphTests : BaseIntegrationTest
     {
         private const string GraphName = "graph1";
+        private const string GraphSON2Language = "bytecode-json";
         private int _idGenerator;
+        private IDseCluster _cluster;
+        private IDseSession _session;
 
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
             TestClusterManager.CreateNew(1, new TestClusterOptions {Workloads = new[] {"graph"}});
             CreateClassicGraph(TestClusterManager.InitialContactPoint, GraphName);
+            _cluster = DseCluster.Builder()
+                                    .AddContactPoint(TestClusterManager.InitialContactPoint)
+                                    .WithGraphOptions(new GraphOptions().SetName(GraphName))
+                                    .Build();
+            _session = _cluster.Connect();
         }
 
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {
+            _cluster.Shutdown();
             TestClusterManager.TryRemove();
         }
 
@@ -700,6 +710,38 @@ namespace Dse.Test.Integration.Graph
                     var stmt = new SimpleGraphStatement("g.addV(label, vertexLabel, propertyName, val)", parameters);
                     Assert.Throws<ArgumentOutOfRangeException>(() => session.ExecuteGraph(stmt));
                 }
+            }
+        }
+
+        [Test]
+        public async Task With_GraphSON2_It_Should_Retrieve_Vertex_Instances()
+        {
+            var statement = new SimpleGraphStatement("{\"@type\": \"g:Bytecode\", \"@value\": {" +
+                                                     "  \"step\": [[\"V\"], [\"hasLabel\", \"person\"]]}}");
+            statement.SetGraphLanguage(GraphSON2Language);
+            var rs = await _session.ExecuteGraphAsync(statement).ConfigureAwait(false);
+            var results = rs.ToArray();
+            Assert.Greater(results.Length, 0);
+            foreach (var graphNode in results)
+            {
+                var vertex = graphNode.ToVertex();
+                Assert.AreEqual("person", vertex.Label);
+            }
+        }
+
+        [Test]
+        public async Task With_GraphSON2_It_Should_Retrieve_Edge_Instances()
+        {
+            var statement = new SimpleGraphStatement("{\"@type\": \"g:Bytecode\", \"@value\": {" +
+                                                     "  \"step\": [[\"E\"], [\"hasLabel\", \"created\"]]}}");
+            statement.SetGraphLanguage(GraphSON2Language);
+            var rs = await _session.ExecuteGraphAsync(statement).ConfigureAwait(false);
+            var results = rs.ToArray();
+            Assert.Greater(results.Length, 0);
+            foreach (var graphNode in results)
+            {
+                var edge = graphNode.ToEdge();
+                Assert.AreEqual("created", edge.Label);
             }
         }
 

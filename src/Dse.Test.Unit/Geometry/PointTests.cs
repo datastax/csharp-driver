@@ -4,18 +4,13 @@
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
+
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text;
-using System.Reflection;
 using Dse.Geometry;
-using Dse.Serialization;
 using Dse.Serialization.Geometry;
-using Dse.Serialization.Graph;
+using Dse.Serialization.Graph.GraphSON1;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 namespace Dse.Test.Unit.Geometry
@@ -49,7 +44,7 @@ namespace Dse.Test.Unit.Geometry
         {
             foreach (var point in Values)
             {
-                var json = JsonConvert.SerializeObject(point, GraphJsonContractResolver.Settings);
+                var json = JsonConvert.SerializeObject(point, GraphSON1ContractResolver.Settings);
                 var expected = string.Format("\"{0}\"", point);
                 Assert.AreEqual(expected, json);
             }

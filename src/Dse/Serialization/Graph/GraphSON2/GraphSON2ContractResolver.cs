@@ -6,29 +6,22 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Reflection;
-using System.Threading.Tasks;
-using Dse.Geometry;
-using Dse.Graph;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
-namespace Dse.Serialization.Graph
+namespace Dse.Serialization.Graph.GraphSON2
 {
-    internal class GraphJsonContractResolver : DefaultContractResolver
+    internal class GraphSON2ContractResolver : DefaultContractResolver
     {
         /// <summary>
         /// A single instance of a JsonSerializerSettings that uses this ContractResolver.
         /// </summary>
         internal static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
         {
-            ContractResolver = new GraphJsonContractResolver()
+            ContractResolver = new GraphSON2ContractResolver()
         };
 
-        protected GraphJsonContractResolver()
+        protected GraphSON2ContractResolver()
         {
 
         }
@@ -36,9 +29,9 @@ namespace Dse.Serialization.Graph
         protected override JsonContract CreateContract(Type objectType)
         {
             var contract = base.CreateContract(objectType);
-            if (GraphJsonConverter.Instance.CanConvert(objectType))
+            if (GraphSON2Converter.Instance.CanConvert(objectType))
             {
-                contract.Converter = GraphJsonConverter.Instance;
+                contract.Converter = GraphSON2Converter.Instance;
             }
             return contract;
         }

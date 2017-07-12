@@ -26,6 +26,12 @@ namespace Dse.Graph
         /// Default value for graph language.
         /// </summary>
         public const string DefaultLanguage = "gremlin-groovy";
+        
+        /// <summary>
+        /// Default value for graph language.
+        /// </summary>
+        internal const string GraphSON2Language = "bytecode-json";
+
         /// <summary>
         /// Default value for graph source.
         /// </summary>

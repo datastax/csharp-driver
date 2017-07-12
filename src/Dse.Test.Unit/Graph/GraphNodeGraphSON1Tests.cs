@@ -4,29 +4,28 @@
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
-using Dse;
 using Dse.Geometry;
 using Dse.Graph;
-using Dse.Serialization;
-using Dse.Serialization.Graph;
+using Dse.Serialization.Graph.GraphSON1;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Dse.Test.Unit.Graph
 {
-    public class GraphResultTests : BaseUnitTest
+    public class GraphNodeGraphSON1Tests : BaseUnitTest
     {
         [Test]
         public void Constructor_Should_Throw_When_Json_Is_Null()
         {
             // ReSharper disable once ObjectCreationAsStatement
-            Assert.Throws<ArgumentNullException>(() => new GraphNode(null));
+            Assert.Throws<ArgumentNullException>(() => new GraphNode((string)null));
         }
 
         [Test]
@@ -100,10 +99,12 @@ namespace Dse.Test.Unit.Graph
             TestTo("{\"result\": 2.2}", 2.2D);
             TestTo("{\"result\": 2.2}", 2.2F);
             TestTo("{\"result\": 22}", 22);
+            TestTo("{\"result\": 22}", (int?)22);
             TestTo("{\"result\": 22}", 22L);
             TestTo("{\"result\": 22}", BigInteger.Parse("22"));
             TestTo("{\"result\": 22}", "22");
             TestTo("{\"result\": \"92d4a960-1cf3-11e6-9417-bd9ef43c1c95\"}", Guid.Parse("92d4a960-1cf3-11e6-9417-bd9ef43c1c95"));
+            TestTo("{\"result\": \"92d4a960-1cf3-11e6-9417-bd9ef43c1c95\"}", (Guid?) Guid.Parse("92d4a960-1cf3-11e6-9417-bd9ef43c1c95"));
             TestTo("{\"result\": \"92d4a960-1cf3-11e6-9417-bd9ef43c1c95\"}", (TimeUuid)Guid.Parse("92d4a960-1cf3-11e6-9417-bd9ef43c1c95"));
         }
 
@@ -218,6 +219,25 @@ namespace Dse.Test.Unit.Graph
         }
 
         [Test]
+        public void Get_T_Should_Allow_Dynamic_For_Nested_Object_Trees()
+        {
+            var result = new GraphNode("{\"result\": {\"everything\": {\"is_awesome\": {\"when\": {" +
+                                       "    \"we\": \"are together\"} }} }}");
+            var everything = result.Get<dynamic>("everything");
+            Assert.AreEqual("are together", everything.is_awesome.when.we);
+        }
+
+        [Test]
+        public void Get_T_Should_Allow_GraphNode_For_Object_Trees()
+        {
+            var result = new GraphNode("{\"result\": {\"something\": {\"is_awesome\": {\"it\": \"maybe\" }} }}");
+            var node = result.Get<GraphNode>("something");
+            Assert.NotNull(node);
+            Assert.NotNull(node.Get<GraphNode>("is_awesome"));
+            Assert.AreEqual("maybe", node.Get<GraphNode>("is_awesome").Get<string>("it"));
+        }
+
+        [Test]
         public void Get_T_Should_Not_Throw_For_Non_Existent_Dynamic_Property_Name()
         {
             var result = new GraphNode("{\"result\": {\"everything\": {\"is_awesome\": true} }}");
@@ -280,7 +300,7 @@ namespace Dse.Test.Unit.Graph
             var settings = new JsonSerializerSettings();
             if (useConverter)
             {
-                settings = GraphJsonContractResolver.Settings;
+                settings = GraphSON1ContractResolver.Settings;
             }
             const string json = "{" +
                 "\"~type\":\"knows\"," +
@@ -301,7 +321,35 @@ namespace Dse.Test.Unit.Graph
         }
 
         [Test]
-        public void ToEdge_Should_Convert_To_Vertex()
+        public void ToVertex_Should_Not_Throw_When_The_Properties_Is_Not_Present()
+        {
+            var vertex = GetGraphNode(
+                "{" +
+                "\"id\":{\"member_id\":0,\"community_id\":586910,\"~label\":\"vertex\",\"group_id\":2}," +
+                "\"label\":\"vertex1\"," +
+                "\"type\":\"vertex\"" +
+                "}").ToVertex();
+            Assert.AreEqual("vertex1", vertex.Label);
+            Assert.NotNull(vertex.Id);
+        }
+
+        [Test]
+        public void ToVertex_Should_Throw_When_Required_Attributes_Are_Not_Present()
+        {
+            Assert.Throws<InvalidOperationException>(() => GetGraphNode(
+                "{" +
+                "\"label\":\"vertex1\"," +
+                "\"type\":\"vertex\"" +
+                "}").ToVertex());
+            Assert.Throws<InvalidOperationException>(() => GetGraphNode(
+                "{" +
+                "\"id\":{\"member_id\":0,\"community_id\":586910,\"~label\":\"vertex\",\"group_id\":2}," +
+                "\"type\":\"vertex\"" +
+                "}").ToVertex());
+        }
+
+        [Test]
+        public void ToEdge_Should_Convert()
         {
             var result = new GraphNode("{" +
               "\"result\":{" +
@@ -345,7 +393,44 @@ namespace Dse.Test.Unit.Graph
         }
 
         [Test]
-        public void ToPath_Should_Convert_To_Path()
+        public void ToEdge_Should_Not_Throw_When_The_Properties_Is_Not_Present()
+        {
+            var edge = GetGraphNode("{" +
+                "\"id\":{" +
+                    "\"out_vertex\":{\"member_id\":0,\"community_id\":680148,\"~label\":\"vertex\",\"group_id\":3}," + 
+                    "\"local_id\":\"4e78f871-c5c8-11e5-a449-130aecf8e504\",\"in_vertex\":{\"member_id\":0,\"community_id\":680148,\"~label\":\"vertex\",\"group_id\":5},\"~type\":\"knows\"}," +
+                "\"label\":\"knows\"," +
+                "\"type\":\"edge\"," +
+                "\"inVLabel\":\"in-vertex\"" +
+                "}").ToEdge();
+            Assert.AreEqual("knows", edge.Label);
+            Assert.AreEqual("in-vertex", edge.InVLabel);
+            Assert.Null(edge.OutVLabel);
+        }
+
+
+        [Test]
+        public void ToEdge_Should_Throw_When_Required_Attributes_Are_Not_Present()
+        {
+            Assert.Throws<InvalidOperationException>(() => GetGraphNode(
+                "{" +
+                "\"label\":\"knows\"," +
+                "\"type\":\"edge\"," +
+                "\"inVLabel\":\"in-vertex\"" +
+                "}").ToEdge());
+            
+            Assert.Throws<InvalidOperationException>(() => GetGraphNode(
+                "{" +
+                "\"id\":{" +
+                "\"out_vertex\":{\"member_id\":0,\"community_id\":680148,\"~label\":\"vertex\",\"group_id\":3}," + 
+                "\"local_id\":\"4e78f871-c5c8-11e5-a449-130aecf8e504\",\"in_vertex\":{\"member_id\":0,\"community_id\":680148,\"~label\":\"vertex\",\"group_id\":5},\"~type\":\"knows\"}," +
+                "\"type\":\"edge\"," +
+                "\"inVLabel\":\"in-vertex\"" +
+                "}").ToEdge());
+        }
+
+        [Test]
+        public void ToPath_Should_Convert()
         {
             const string pathJson = "{\"result\":" + 
                 "{" +
@@ -471,5 +556,10 @@ namespace Dse.Test.Unit.Graph
             Assert.AreEqual(json, JsonConvert.SerializeObject(result));
         }
 #endif
+
+        private static GraphNode GetGraphNode(string json)
+        {
+            return new GraphNode(new GraphSON1Node("{\"result\": " + json + "}"));
+        }
     }
 }

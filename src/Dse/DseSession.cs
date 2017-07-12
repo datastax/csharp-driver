@@ -74,17 +74,15 @@ namespace Dse
             return TaskHelper.WaitToComplete(ExecuteGraphAsync(statement));
         }
 
-        public Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement graphStatement)
+        public async Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement graphStatement)
         {
             var stmt = graphStatement.ToIStatement(_config.GraphOptions);
-            return GetAnalyticsMaster(stmt, graphStatement)
-                .Then(s =>
-                    _coreSession
-                        .ExecuteAsync(s)
-                        .ContinueSync(rs => new GraphResultSet(rs)));
+            await GetAnalyticsMaster(stmt, graphStatement).ConfigureAwait(false);
+            var rs = await _coreSession.ExecuteAsync(stmt).ConfigureAwait(false);
+            return GraphResultSet.CreateNew(rs, graphStatement, _config.GraphOptions);
         }
 
-        public Task<IStatement> GetAnalyticsMaster(IStatement statement, IGraphStatement graphStatement)
+        private Task<IStatement> GetAnalyticsMaster(IStatement statement, IGraphStatement graphStatement)
         {
             if (!(statement is TargettedSimpleStatement) || !_config.GraphOptions.IsAnalyticsQuery(graphStatement))
             {

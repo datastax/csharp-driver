@@ -1,15 +1,18 @@
 ﻿//
-//  Copyright (C) 2016 DataStax, Inc.
+//  Copyright (C) 2016-2017 DataStax, Inc.
 //
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Dse;
+using Dse.Serialization.Graph;
+using Dse.Serialization.Graph.GraphSON1;
+using Dse.Serialization.Graph.GraphSON2;
+using Newtonsoft.Json;
 
 namespace Dse.Graph
 {
@@ -18,26 +21,40 @@ namespace Dse.Graph
     /// </summary>
     public class GraphResultSet : IEnumerable<GraphNode>
     {
+        private static readonly JsonSerializer GraphSON1Serializer =
+            JsonSerializer.CreateDefault(GraphSON1ContractResolver.Settings);
+        private static readonly JsonSerializer GraphSON2Serializer =
+            JsonSerializer.CreateDefault(GraphSON2ContractResolver.Settings);
         private readonly RowSet _rs;
-
+        private readonly Func<Row, GraphNode> _factory;
+        
         /// <summary>
         /// Gets the execution information for the query execution.
         /// </summary>
-        public ExecutionInfo Info
-        {
-            get { return _rs.Info; }
-        }
+        public ExecutionInfo Info => _rs.Info;
 
         /// <summary>
         /// Creates a new instance of <see cref="GraphResultSet"/>.
         /// </summary>
-        public GraphResultSet(RowSet rs)
+        public GraphResultSet(RowSet rs) : this(rs, null)
         {
-            if (rs == null)
+
+        }
+
+        private GraphResultSet(RowSet rs, string language)
+        {
+            _rs = rs ?? throw new ArgumentNullException(nameof(rs));
+            Func<Row, GraphNode> factory = GetGraphSON1Node;
+            if (language == GraphOptions.GraphSON2Language)
             {
-                throw new ArgumentNullException("rs");
+                factory = GetGraphSON2Node;
             }
-            _rs = rs;
+            _factory = factory;
+        }
+
+        internal static GraphResultSet CreateNew(RowSet rs, IGraphStatement statement, GraphOptions options)
+        {
+            return new GraphResultSet(rs, statement.GraphLanguage ?? options.Language);
         }
 
         /// <summary>
@@ -45,12 +62,17 @@ namespace Dse.Graph
         /// </summary>
         public IEnumerator<GraphNode> GetEnumerator()
         {
-            return _rs.Select(ParseRow).GetEnumerator();
+            return _rs.Select(_factory).GetEnumerator();
         }
 
-        private static GraphNode ParseRow(Row row)
+        private static GraphNode GetGraphSON1Node(Row row)
         {
-            return new GraphNode(row.GetValue<string>("gremlin"));
+            return new GraphNode(new GraphSON1Node(row.GetValue<string>("gremlin")));
+        }
+
+        private static GraphNode GetGraphSON2Node(Row row)
+        {
+            return new GraphNode(new GraphSON2Node(row.GetValue<string>("gremlin")));
         }
 
         IEnumerator IEnumerable.GetEnumerator()

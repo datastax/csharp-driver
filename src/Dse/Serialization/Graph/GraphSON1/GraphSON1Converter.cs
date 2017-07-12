@@ -7,35 +7,17 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Numerics;
-using System.Reflection;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
 using Dse.Geometry;
 using Dse.Graph;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Dse.Serialization.Graph
+namespace Dse.Serialization.Graph.GraphSON1
 {
-    internal class GraphJsonConverter : JsonConverter
+    internal class GraphSON1Converter : GraphSONConverter
     {
-        private delegate object ReadDelegate(JsonReader reader, JsonSerializer serializer);
-        private delegate void WriteDelegate(JsonWriter writer, object value, JsonSerializer serializer);
-
-        private static readonly Dictionary<Type, ReadDelegate> Readers = new Dictionary<Type, ReadDelegate>
-        {
-            { typeof(IPAddress), (r, _) => IPAddress.Parse(r.Value.ToString()) },
-            { typeof(BigInteger), (r, _) => BigInteger.Parse(r.Value.ToString()) },
-            { typeof(Point), (r, _) => Point.Parse(r.Value.ToString()) },
-            { typeof(LineString), (r, _) => LineString.Parse(r.Value.ToString()) },
-            { typeof(Polygon), (r, _) => Polygon.Parse(r.Value.ToString()) },
-            { typeof(Duration), (r, _) => Duration.Parse(r.Value.ToString()) }
-        };
-
         private static readonly Dictionary<Type, WriteDelegate> Writers = new Dictionary<Type, WriteDelegate>
         {
             { typeof(GraphNode), WriteGraphNode },
@@ -47,11 +29,39 @@ namespace Dse.Serialization.Graph
             { typeof(Duration), WriteDuration }
         };
 
-        internal static readonly GraphJsonConverter Instance = new GraphJsonConverter();
+        internal static readonly GraphSON1Converter Instance = new GraphSON1Converter();
+        
+        private readonly Dictionary<Type, ReadDelegate> _readers;
 
-        private GraphJsonConverter()
+        private GraphSON1Converter()
         {
-            
+            _readers = new Dictionary<Type, ReadDelegate>
+            {
+                { typeof(IPAddress), (r, _) => IPAddress.Parse(r.Value.ToString()) },
+                { typeof(BigInteger), (r, _) => BigInteger.Parse(r.Value.ToString()) },
+                { typeof(Point), (r, _) => Point.Parse(r.Value.ToString()) },
+                { typeof(LineString), (r, _) => LineString.Parse(r.Value.ToString()) },
+                { typeof(Polygon), (r, _) => Polygon.Parse(r.Value.ToString()) },
+                { typeof(Duration), (r, _) => Duration.Parse(r.Value.ToString()) },
+                { typeof(GraphNode), GetTokenReader(t => new GraphNode(new GraphSON1Node(t))) },
+                { typeof(Vertex), GetTokenReader(ToVertex) },
+                { typeof(Edge), GetTokenReader(ToEdge) },
+                { typeof(Path), GetTokenReader(ToPath) }
+            };
+        }
+
+        private ReadDelegate GetTokenReader<T>(Func<JToken, T> tokenReader)
+        {
+            object TokenReader(JTokenReader reader, JsonSerializer serializer)
+            {
+                var token = reader.CurrentToken;
+                if (!(token is JObject))
+                {
+                    throw new InvalidOperationException($"Cannot create a {typeof(T).Name} from '{token}'");
+                }
+                return tokenReader(token);
+            }
+            return TokenReader;
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
@@ -67,16 +77,21 @@ namespace Dse.Serialization.Graph
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             ReadDelegate readHandler;
-            if (!Readers.TryGetValue(objectType, out readHandler))
+            if (!_readers.TryGetValue(objectType, out readHandler))
             {
                 return null;
             }
-            return readHandler(reader, serializer);
+            return readHandler((JTokenReader)reader, serializer);
+        }
+
+        protected override GraphNode ToGraphNode(JToken token)
+        {
+            return token == null ? null : new GraphNode(new GraphSON1Node(token));
         }
 
         public override bool CanConvert(Type objectType)
         {
-            return Writers.ContainsKey(objectType);
+            return _readers.ContainsKey(objectType);
         }
 
         private static void WriteStringValue(JsonWriter writer, object value, JsonSerializer serializer)
@@ -94,11 +109,6 @@ namespace Dse.Serialization.Graph
         private static void WriteGraphNode(JsonWriter writer, object value, JsonSerializer serializer)
         {
             ((GraphNode)value).WriteJson(writer, serializer);
-        }
-
-        private static object ReadIpAddress(JsonReader reader, JsonSerializer serializer)
-        {
-            return IPAddress.Parse(reader.Value.ToString());
         }
 
         private static void WriteDuration(JsonWriter writer, object value, JsonSerializer serializer)

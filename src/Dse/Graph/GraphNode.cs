@@ -1,19 +1,18 @@
 ﻿//
-//  Copyright (C) 2016 DataStax, Inc.
+//  Copyright (C) 2016-2017 DataStax, Inc.
 //
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
+
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
 using System.Runtime.Serialization;
-using System.Text;
-using Dse;
-using System.Reflection;
 using Dse.Serialization.Graph;
+using Dse.Serialization.Graph.GraphSON1;
+using Dse.Serialization.Graph.GraphSON2;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -30,34 +29,22 @@ namespace Dse.Graph
         , ISerializable
 #endif
     {
-        private static readonly JsonSerializer Serializer = 
-            JsonSerializer.CreateDefault(GraphJsonContractResolver.Settings);
-        private volatile string _json;
-        private readonly JToken _parsedGraphItem;
+        private readonly INode _node;
 
         /// <summary>
         /// Returns true if the underlying value is an array.
         /// </summary>
-        public bool IsArray
-        {
-            get { return _parsedGraphItem is JArray; }
-        }
+        public bool IsArray => _node.IsArray;
 
         /// <summary>
         /// Returns true if the underlying value is an object tree.
         /// </summary>
-        public bool IsObjectTree
-        {
-            get { return _parsedGraphItem is JObject; }
-        }
+        public bool IsObjectTree => _node.IsObjectTree;
 
         /// <summary>
         /// Returns true if the underlying value is a scalar value (string, double, boolean, ...).
         /// </summary>
-        public bool IsScalar
-        {
-            get { return _parsedGraphItem is JValue; }
-        }
+        public bool IsScalar => _node.IsScalar;
 
         /// <summary>
         /// Creates a new instance of <see cref="GraphNode"/>.
@@ -65,21 +52,13 @@ namespace Dse.Graph
         /// <param name="json">The graph string json with the form: "{\"result\": ...}".</param>
         public GraphNode(string json)
         {
-            if (json == null)
-            {
-                throw new ArgumentNullException("json");
-            }
-            JObject parsedJson = (JObject)JsonConvert.DeserializeObject(json);
-            _parsedGraphItem = parsedJson["result"];
+            // A local default
+            _node = new GraphSON1Node(json);
         }
-
-        private GraphNode(JToken parsedGraphItem)
+        
+        internal GraphNode(INode node)
         {
-            if (parsedGraphItem == null)
-            {
-                throw new ArgumentNullException("parsedGraphItem");
-            }
-            _parsedGraphItem = parsedGraphItem;
+            _node = node;
         }
 
 #if !NETCORE
@@ -104,7 +83,14 @@ namespace Dse.Graph
                 }
                 objectTree.Add(field.Name, new JValue(field.Value));
             }
-            _parsedGraphItem = objectTree;
+            if (objectTree["@type"] != null)
+            {
+                _node = new GraphSON2Node(objectTree);
+            }
+            else
+            {
+                _node = new GraphSON1Node(objectTree);   
+            }
         }
 #endif
 
@@ -121,149 +107,37 @@ namespace Dse.Graph
             return Get<T>(propertyName, false);
         }
 
-        private T Get<T>(string propertyName, bool throwIfNotFound)
-        {
-            var value = GetPropertyValue(propertyName, throwIfNotFound);
-            if (value == null)
-            {
-                if (default(T) != null)
-                {
-                    throw new NullReferenceException(string.Format(
-                        "Cannot convert null to {0} because it is a value type, try using Nullable<{0}>",
-                        typeof(T).Name));
-                }
-                return (T)(object)null;
-            }
-            return GetTokenValue<T>(value);
-        }
-
-        private string GetJson()
-        {
-            var json = _json;
-            if (json != null)
-            {
-                return json;
-            }
-            json = _parsedGraphItem.ToString();
-            //Converting a JToken to string is an operation we want to avoid
-            _json = json;
-            return json;
-        }
-
-        private JToken GetPropertyValue(string name, bool throwIfNotFound)
-        {
-            if (!(_parsedGraphItem is JObject))
-            {
-                if (_parsedGraphItem is JValue)
-                {
-                    throw new KeyNotFoundException("Cannot retrieve properties of scalar value of type '{0}'" + ((JValue)_parsedGraphItem).Type);
-                }
-                throw new KeyNotFoundException("Cannot retrieve properties of scalar value");
-            }
-            var graphObject = (JObject)_parsedGraphItem;
-            var property = graphObject.Property(name);
-            if (property == null)
-            {
-                if (throwIfNotFound)
-                {
-                    throw new KeyNotFoundException(string.Format("Graph result has no top-level property '{0}'", name));   
-                }
-                return null;
-            }
-            return property.Value;
-        }
+        private T Get<T>(string propertyName, bool throwIfNotFound) => _node.Get<T>(propertyName, throwIfNotFound);
 
         /// <summary>
-        /// Returns either a scalar value or an array representing the token value, performing conversions when required.
+        /// Gets the raw data represented by this instance.
+        /// <para>
+        /// Raw internal representation might be different depending on the graph serialization format and
+        /// it is subject to change without any prior notice.
+        /// </para>
         /// </summary>
-        private T GetTokenValue<T>(JToken token)
+        public dynamic GetRaw()
         {
-            return (T)GetTokenValue(token, typeof(T));
-        }
-
-        private object GetTokenValue(JToken token, Type type)
-        {
-            try
-            {
-                if (token is JValue)
-                {
-                    if (type == typeof(TimeUuid))
-                    {
-                        // TimeUuid is not Serializable but convertible from Uuid
-                        return (TimeUuid) token.ToObject<Guid>();
-                    }
-                    return token.ToObject(type, Serializer);
-                }
-                if (token is JObject)
-                {
-                    // Only graph node and dynamic supported
-                    if (type != typeof(GraphNode) && type != typeof(object))
-                    {
-                        throw new InvalidCastException(string.Format("Can not convert from an object tree to {0}: {1}",
-                            type.Name, token));
-                    }
-                    return new GraphNode(token);
-                }
-                if (token is JArray)
-                {
-                    Type elementType = null;
-                    if (type.IsArray)
-                    {
-                        elementType = type.GetElementType();
-                    }
-                    else if (type.GetTypeInfo().IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
-                    {
-                        elementType = type.GetTypeInfo().GetGenericArguments()[0];
-                    }
-                    return ToArray((JArray) token, elementType);
-                }
-            }
-            catch (JsonSerializationException ex)
-            {
-                throw new NotSupportedException(string.Format("Type {0} is not supported", type), ex);
-            }
-            throw new NotSupportedException(string.Format("Token of type {0} is not supported", token.GetType()));
-        }
-
-        /// <summary>
-        /// Returns either a JSON supported scalar value, a GraphNode or an Array of GraphNodes.
-        /// </summary>
-        private object GetTokenValue(JToken token)
-        {
-            if (token is JValue)
-            {
-                return ((JValue)token).Value;
-            }
-            if (token is JObject)
-            {
-                return new GraphNode(token);
-            }
-            if (token is JArray)
-            {
-                return ToArray((JArray)token);
-            }
-            throw new NotSupportedException(string.Format("Token of type {0} is not supported", token.GetType()));
+            return _node.GetRaw();
         }
 
         /// <summary>
         /// Returns true if the property is defined in this instance.
         /// </summary>
         /// <exception cref="InvalidOperationException">When the underlying value is not an object tree</exception>
-        public bool HasProperty(string name)
-        {
-            if (!(_parsedGraphItem is JObject))
-            {
-                return false;
-            }
-            return ((JObject) _parsedGraphItem).Property(name) != null;
-        }
+        public bool HasProperty(string name) => _node.HasProperty(name);
 
         /// <summary>
         /// Provides the implementation for operations that get member values.
         /// </summary>
         public override bool TryGetMember(GetMemberBinder binder, out object result)
         {
-            result = GetTokenValue(GetPropertyValue(binder.Name, false));
+            return _node.TryGetMember(binder, out result);
+        }
+
+        public override bool TryConvert(ConvertBinder binder, out object result)
+        {
+            result = To(binder.ReturnType);
             return true;
         }
 
@@ -280,68 +154,31 @@ namespace Dse.Graph
             {
                 return true;
             }
-            return GetJson() == other.GetJson();
+            return _node.GetHashCode() == other._node.GetHashCode();
         }
 
         /// <summary>
         /// Returns true if the value represented by this instance is the same.
         /// </summary>
-        public override bool Equals(object obj)
-        {
-            return Equals(obj as GraphNode);
-        }
+        public override bool Equals(object obj) => Equals(obj as GraphNode);
 
         /// <summary>
         /// Gets the hash code for this instance, based on its value.
         /// </summary>
-        public override int GetHashCode()
-        {
-            return GetJson().GetHashCode();
-        }
+        public override int GetHashCode() => _node.GetHashCode();
 
 #if !NETCORE
         /// <inheritdoc />
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
-            if (!IsObjectTree)
-            {
-                throw new NotSupportedException("Deserialization of GraphNodes that don't represent object trees is not supported");
-            }
-            foreach (var prop in ((JObject) _parsedGraphItem).Properties())
-            {
-                info.AddValue(prop.Name, prop.Value);
-            }
+            _node.GetObjectData(info, context);
         }
 #endif
 
         /// <summary>
         /// Gets the a dictionary of properties of this node.
         /// </summary>
-        public IDictionary<string, GraphNode> GetProperties()
-        {
-            return GetProperties(_parsedGraphItem);
-        }
-
-        private IDictionary<string, GraphNode> GetProperties(JToken item)
-        {
-            if (!(item is JObject))
-            {
-                throw new InvalidOperationException(string.Format("Can not get properties from '{0}'", item));
-            }
-            return ((JObject) item)
-                .Properties()
-                .ToDictionary(prop => prop.Name, prop => new GraphNode(prop.Value));
-        }
-
-        private object GetScalarValue()
-        {
-            var jsonValue = _parsedGraphItem as JValue;
-            if (jsonValue == null)
-            {
-                throw new InvalidOperationException("Cannot retrieve an scalar value from result");
-            }
-            return jsonValue.Value;
-        }
+        public IDictionary<string, GraphNode> GetProperties() => _node.GetProperties();
 
         /// <summary>
         /// Returns the representation of the <see cref="GraphNode"/> as an instance of type T.
@@ -350,10 +187,7 @@ namespace Dse.Graph
         /// <exception cref="NotSupportedException">
         /// Throws NotSupportedException when the target type is not supported
         /// </exception>
-        public T To<T>()
-        {
-            return GetTokenValue<T>(_parsedGraphItem);
-        }
+        public T To<T>() => (T) To(typeof(T));
 
         /// <summary>
         /// Returns the representation of the <see cref="GraphNode"/> as an instance of the type provided.
@@ -365,38 +199,19 @@ namespace Dse.Graph
         {
             if (type == null)
             {
-                throw new ArgumentNullException("type");
+                throw new ArgumentNullException(nameof(type));
             }
-            return GetTokenValue(_parsedGraphItem, type);
-        }
-
-        private Array ToArray(JArray jArray, Type elementType = null)
-        {
-            if (elementType == null)
+            if (type == typeof(object) || type == typeof(GraphNode))
             {
-                elementType = typeof (GraphNode);
+                return this;
             }
-            var arr = Array.CreateInstance(elementType, jArray.Count);
-            var isGraphNode = elementType == typeof (GraphNode);
-            for (var i = 0; i < arr.Length; i++)
-            {
-                var value = isGraphNode ? new GraphNode(jArray[i]) : jArray[i].ToObject(elementType, Serializer);
-                arr.SetValue(value, i);
-            }
-            return arr;
+            return _node.To(type);
         }
 
         /// <summary>
         /// Converts the instance into an array when the internal representation is a json array.
         /// </summary>
-        public GraphNode[] ToArray()
-        {
-            if (!(_parsedGraphItem is JArray))
-            {
-                throw new InvalidOperationException(string.Format("Cannot convert to array from {0}", GetJson()));
-            }
-            return (GraphNode[])ToArray((JArray) _parsedGraphItem);
-        }
+        public GraphNode[] ToArray() => _node.ToArray();
 
         /// <summary>
         /// Returns the representation of the result as a boolean.
@@ -405,10 +220,7 @@ namespace Dse.Graph
         /// It throws an InvalidOperationException when the internal value is not an scalar.
         /// </exception>
         /// <exception cref="InvalidCastException">When the scalar value is not convertible to target type.</exception>
-        public bool ToBoolean()
-        {
-            return Convert.ToBoolean(GetScalarValue());
-        }
+        public bool ToBoolean() => To<bool>();
 
         /// <summary>
         /// Returns the representation of the result as a double.
@@ -417,32 +229,12 @@ namespace Dse.Graph
         /// It throws an InvalidOperationException when the internal value is not an scalar.
         /// </exception>
         /// <exception cref="InvalidCastException">When the scalar value is not convertible to target type.</exception>
-        public double ToDouble()
-        {
-            return Convert.ToDouble(GetScalarValue());
-        }
+        public double ToDouble() => To<double>();
 
         /// <summary>
         /// Returns an edge representation of the current instance.
         /// </summary>
-        public Edge ToEdge()
-        {
-            if (!(_parsedGraphItem is JObject))
-            {
-                throw new InvalidOperationException(string.Format("Cannot create an Edge from {0}", GetJson()));
-            }
-            IDictionary<string, GraphNode> properties = ((JObject)_parsedGraphItem["properties"])
-                .Properties()
-                .ToDictionary(prop => prop.Name, prop => new GraphNode(prop.Value));
-            return new Edge(
-                Get<GraphNode>("id", true),
-                Get<string>("label", true),
-                properties,
-                Get<GraphNode>("inV", true),
-                Get<string>("inVLabel", true),
-                Get<GraphNode>("outV", true),
-                Get<string>("outVLabel", true));
-        }
+        public Edge ToEdge() => To<Edge>();
 
         /// <summary>
         /// Returns the representation of the result as an int.
@@ -451,64 +243,26 @@ namespace Dse.Graph
         /// It throws an InvalidOperationException when the internal value is not an scalar.
         /// </exception>
         /// <exception cref="InvalidCastException">When the scalar value is not convertible to target type.</exception>
-        public int ToInt32()
-        {
-            return Convert.ToInt32(GetScalarValue());
-        }
+        public int ToInt32() => To<int>();
 
         /// <summary>
         /// Returns a <see cref="Path"/> representation of the current instance.
         /// </summary>
-        public Path ToPath()
-        {
-            if (!(_parsedGraphItem is JObject))
-            {
-                throw new InvalidOperationException(string.Format("Cannot create an Path from {0}", _json));
-            }
-            ICollection<ICollection<string>> labels = null;
-            var labelsProp = Get<GraphNode[]>("labels", true);
-            if (labelsProp != null)
-            {
-                labels = labelsProp
-                    .Select(node => node.ToArray().Select(value => value.ToString()).ToArray())
-                    .ToArray();
-            }
-            return new Path(labels, Get<GraphNode[]>("objects", true));
-        }
+        public Path ToPath() => To<Path>();
 
         /// <summary>
         /// Returns the json representation of the result.
         /// </summary>
-        public override string ToString()
-        {
-            return _parsedGraphItem.ToString();
-        }
+        public override string ToString() => _node.ToString();
 
         /// <summary>
         /// Returns a vertex representation of the current instance.
         /// </summary>
-        public Vertex ToVertex()
-        {
-            if (!(_parsedGraphItem is JObject))
-            {
-                throw new InvalidOperationException(string.Format("Cannot create a Vertex from {0}", GetJson()));
-            }
-            var properties = ((JObject) _parsedGraphItem["properties"])
-                .Properties()
-                .ToDictionary(prop => prop.Name, prop => new GraphNode(prop.Value));
-            return new Vertex(
-                Get<GraphNode>("id", true),
-                Get<string>("label", true),
-                properties);
-        }
+        public Vertex ToVertex() => To<Vertex>();
 
         internal void WriteJson(JsonWriter writer, JsonSerializer serializer)
         {
-            if (!IsObjectTree)
-            {
-                throw new NotSupportedException("Deserialization of GraphNodes that don't represent object trees is not supported");
-            }
-            serializer.Serialize(writer, _parsedGraphItem);
+            _node.WriteJson(writer, serializer);
         }
 
         /// <summary>

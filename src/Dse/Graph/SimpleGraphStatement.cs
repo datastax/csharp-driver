@@ -11,6 +11,7 @@ using System.Text;
 using Dse;
 using Dse.Serialization;
 using Dse.Serialization.Graph;
+using Dse.Serialization.Graph.GraphSON1;
 using Newtonsoft.Json;
 
 namespace Dse.Graph
@@ -98,7 +99,7 @@ namespace Dse.Graph
             IStatement stmt;
             if (parameters != null)
             {
-                var jsonParams = JsonConvert.SerializeObject(parameters, GraphJsonContractResolver.Settings);
+                var jsonParams = JsonConvert.SerializeObject(parameters, GraphSON1ContractResolver.Settings);
                 stmt = new TargettedSimpleStatement(Query, jsonParams);
             }
             else

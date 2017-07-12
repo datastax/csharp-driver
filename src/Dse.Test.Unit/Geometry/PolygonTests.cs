@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Dse.Geometry;
 using Dse.Serialization.Geometry;
-using Dse.Serialization.Graph;
+using Dse.Serialization.Graph.GraphSON1;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
@@ -48,7 +48,7 @@ namespace Dse.Test.Unit.Geometry
         {
             foreach (var polygon in Values)
             {
-                var json = JsonConvert.SerializeObject(polygon, GraphJsonContractResolver.Settings);
+                var json = JsonConvert.SerializeObject(polygon, GraphSON1ContractResolver.Settings);
                 var expected = string.Format("\"{0}\"", polygon);
                 Assert.AreEqual(expected, json);
             }
