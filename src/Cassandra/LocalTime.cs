@@ -98,7 +98,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Creates a new <see cref="LocalDate"/> instance based on the string representation.
+        /// Creates a new <see cref="LocalTime"/> instance based on the string representation.
         /// </summary>
         public static LocalTime Parse(string value)
         {
@@ -109,7 +109,7 @@ namespace Cassandra
             var parts = value.Split(':');
             if (parts.Length < 2 || parts.Length > 3)
             {
-                throw new FormatException("LocalDate format is invalid");
+                throw new FormatException("LocalTime format is invalid");
             }
             var seconds = 0;
             var nanos = 0;

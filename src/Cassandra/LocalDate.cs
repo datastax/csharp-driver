@@ -218,8 +218,6 @@ namespace Cassandra
         /// Creates a new instance of <see cref="LocalDate"/> using the year, month and day provided in the form:
         /// yyyy-mm-dd or days since epoch (i.e. -1 for Dec 31, 1969).
         /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
         public static LocalDate Parse(string value)
         {
             if (value == null)
