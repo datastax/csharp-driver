@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Cassandra
 {
@@ -98,6 +95,32 @@ namespace Cassandra
                 minute*NanosInMinutes +
                 second*NanosInSeconds +
                 nanosecond;
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="LocalTime"/> instance based on the string representation.
+        /// </summary>
+        public static LocalTime Parse(string value)
+        {
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+            var parts = value.Split(':');
+            if (parts.Length < 2 || parts.Length > 3)
+            {
+                throw new FormatException("LocalTime format is invalid");
+            }
+            var seconds = 0;
+            var nanos = 0;
+            if (parts.Length == 3)
+            {
+                var decimalSeconds = Convert.ToDecimal(parts[2]);
+                var integralPart = Math.Truncate(decimalSeconds);
+                seconds = (int) integralPart;
+                nanos = (int)(NanosInSeconds * (decimalSeconds - integralPart));
+            }
+            return new LocalTime(Convert.ToInt32(parts[0]), Convert.ToInt32(parts[1]), seconds, nanos);
         }
 
         public override string ToString()

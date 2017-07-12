@@ -1,6 +1,5 @@
 ﻿using System;
-using System.Globalization;
-using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Cassandra
 {
@@ -22,6 +21,11 @@ namespace Cassandra
         private const int DaysIn4Years = 4 * 365 + 1;
         private const int DaysIn100Years = 25 * DaysIn4Years - 1;
         private const int DaysIn400Years = 4 * DaysIn100Years + 1;
+        
+        private static readonly Regex RegexInteger = new Regex("^-?\\d+$", RegexOptions.Compiled);
+
+        private const string BadFormatMessage =
+            "LocalDate must be provided in the yyyy-mm-dd format or in days since epoch";
 
         /// <summary>
         /// An unsigned integer representing days with epoch centered at 2^31 (unix epoch January 1st, 1970).
@@ -208,6 +212,39 @@ namespace Cassandra
         public bool Equals(LocalDate other)
         {
             return CompareTo(other) == 0;
+        }
+
+        /// <summary>
+        /// Creates a new instance of <see cref="LocalDate"/> using the year, month and day provided in the form:
+        /// yyyy-mm-dd or days since epoch (i.e. -1 for Dec 31, 1969).
+        /// </summary>
+        public static LocalDate Parse(string value)
+        {
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+            if (RegexInteger.IsMatch(value))
+            {
+                return new LocalDate(Convert.ToUInt32(DateCenter + long.Parse(value)));
+            }
+            var parts = value.Split('-');
+            if (parts.Length < 3)
+            {
+                throw new FormatException(BadFormatMessage);
+            }
+            var sign = parts[0].Length == 0 ? -1 : 1;
+            var index = 0;
+            if (sign == -1)
+            {
+                index = 1;
+                if (parts.Length != 4)
+                {
+                    throw new FormatException(BadFormatMessage);
+                }
+            }
+            return new LocalDate(sign * Convert.ToInt32(parts[index]), Convert.ToInt32(parts[index + 1]),
+                Convert.ToInt32(parts[index + 2]));
         }
 
         /// <summary>

@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-﻿using System.Linq;
+ using System.Linq;
 ﻿using Cassandra.IntegrationTests.TestBase;
 ﻿using NUnit.Framework;
 using System;
@@ -348,7 +348,10 @@ namespace Cassandra.IntegrationTests.Core
                 new LocalDate(0, 3, 12),
                 new LocalDate(-10, 2, 4),
                 new LocalDate(5881580, 7, 11),
-                new LocalDate(-5877641, 6, 23) 
+                new LocalDate(-5877641, 6, 23),
+                LocalDate.Parse("-1"),
+                LocalDate.Parse("0"),
+                LocalDate.Parse("1"),
             };
             for (var i = 0; i < values.Length; i++)
             {
@@ -375,6 +378,9 @@ namespace Cassandra.IntegrationTests.Core
                 new LocalTime(6, 1, 59, 0),
                 new LocalTime(10, 31, 5, 789776),
                 new LocalTime(23, 59, 59, 999999999),
+                LocalTime.Parse("23:59:59.999999999"),
+                LocalTime.Parse("00:10:10.00003"),
+                LocalTime.Parse("00:00:00"),
             };
             for (var i = 0; i < values.Length; i++)
             {

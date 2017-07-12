@@ -97,6 +97,32 @@ namespace Cassandra.Tests
             Assert.AreEqual(value1, new LocalTime(10, 3, 15, 0));
         }
 
+        [Test]
+        public void LocalTime_Parse_Should_Throw_When_Format_Invalid()
+        {
+            var values = new[]
+            {
+                "1",
+                "1:1:1:1",
+                ""
+            };
+            foreach (var v in values)
+            {
+                Assert.Throws<FormatException>(() => LocalTime.Parse(v));
+            }
+            Assert.Throws<ArgumentNullException>(() => LocalTime.Parse(null));
+        }
+
+        [Test]
+        public void LocalTime_Parse_Should_Return_A_New_Instance_Based_On_String_Representation()
+        {
+            foreach (var v in Values)
+            {
+                var time = LocalTime.Parse(v.Item6);
+                Assert.AreEqual(new LocalTime(v.Item5), time);
+            }
+        }
+
         private static LocalTime GetLocalTime(Tuple<int, int, int, int, long, string> v)
         {
             return new LocalTime(v.Item1, v.Item2, v.Item3, v.Item4);
