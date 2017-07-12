@@ -171,14 +171,5 @@ namespace Dse.Test.Integration.Mapping.Tests
             Assert.True(appliedInfo.Applied);
             Assert.Null(appliedInfo.Existing);
         }
-
-        public class ExtMovie
-        {
-            public int Size;
-            public string TheDirector;
-            public string TheMaker;
-        }
-
-
     }
 }

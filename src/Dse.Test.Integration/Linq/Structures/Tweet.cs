@@ -14,21 +14,8 @@ namespace Dse.Test.Integration.Linq.Structures
 {
     public class Tweet
     {
-        [PartitionKey] 
-        public string author_id;
-
-        public string body;
-        [SecondaryIndex] 
-        public DateTimeOffset date;
-
-        [ClusteringKey(0)] 
-        public Guid tweet_id;
-
-        public void display()
-        {
-            Trace.TraceInformation("Author: " + author_id);
-            Trace.TraceInformation("Date: " + date);
-            Trace.TraceInformation("Tweet content: " + body + Environment.NewLine);
-        }
+        public string AuthorId;
+        public string Body;
+        public Guid TweetId;
     }
 }

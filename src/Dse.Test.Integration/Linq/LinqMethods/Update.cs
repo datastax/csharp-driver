@@ -128,16 +128,41 @@ namespace Dse.Test.Integration.Linq.LinqMethods
             Movie.AssertListContains(actualMovieList, expectedMovie2);
         }
 
-
-
-
-        public class ExtMovie
+        [TestCase(BatchType.Unlogged)]
+        [TestCase(BatchType.Logged)]
+        [TestCase(null)]
+        [TestCassandraVersion(2, 0)]
+        public void LinqUpdate_UpdateBatchType(BatchType batchType)
         {
-            public int Size;
-            public string TheDirector;
-            public string TheMaker;
+            // Setup
+            Table<Movie> table = new Table<Movie>(_session, new MappingConfiguration());
+            table.CreateIfNotExists();
+            Movie movieToUpdate1 = _movieList[1];
+            Movie movieToUpdate2 = _movieList[2];
+
+            var batch = table.GetSession().CreateBatch(batchType);
+
+            var expectedMovie1 = new Movie(movieToUpdate1.Title, movieToUpdate1.Director, "something_different_" + Randomm.RandomAlphaNum(10), movieToUpdate1.MovieMaker, 1212);
+            var update1 = table.Where(m => m.Title == movieToUpdate1.Title && m.MovieMaker == movieToUpdate1.MovieMaker && m.Director == movieToUpdate1.Director)
+                               .Select(m => new Movie { Year = expectedMovie1.Year, MainActor = expectedMovie1.MainActor })
+                               .Update();
+            batch.Append(update1);
+
+            var expectedMovie2 = new Movie(movieToUpdate2.Title, movieToUpdate2.Director, "also_something_different_" + Randomm.RandomAlphaNum(10), movieToUpdate2.MovieMaker, 1212);
+            var update2 = table.Where(m => m.Title == movieToUpdate2.Title && m.MovieMaker == movieToUpdate2.MovieMaker && m.Director == movieToUpdate2.Director)
+                               .Select(m => new Movie { Year = expectedMovie2.Year, MainActor = expectedMovie2.MainActor })
+                               .Update();
+            batch.Append(update2);
+
+            batch.Execute();
+
+            List<Movie> actualMovieList = table.Execute().ToList();
+            Assert.AreEqual(_movieList.Count, actualMovieList.Count());
+            Assert.AreNotEqual(expectedMovie1.MainActor, expectedMovie2.MainActor);
+            Assert.IsFalse(Movie.ListContains(_movieList, expectedMovie1));
+            Assert.IsFalse(Movie.ListContains(_movieList, expectedMovie2));
+            Movie.AssertListContains(actualMovieList, expectedMovie1);
+            Movie.AssertListContains(actualMovieList, expectedMovie2);
         }
-
-
     }
 }

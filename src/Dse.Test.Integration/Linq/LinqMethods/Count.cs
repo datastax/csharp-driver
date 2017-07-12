@@ -5,6 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Dse.Data.Linq;
@@ -56,6 +57,31 @@ namespace Dse.Test.Integration.Linq.LinqMethods
             Assert.AreEqual(1, count);
         }
 
+        [Test, TestCassandraVersion(3, 0)]
+        public void LinqCount_Where_Sync_AllowFiltering()
+        {
+            var mapping = new MappingConfiguration();
+            mapping.Define(new Map<Tweet>()
+                .ExplicitColumns()
+                .Column(t => t.AuthorId)
+                .Column(t => t.TweetId)
+                .Column(t => t.Body)
+                .PartitionKey(t => t.AuthorId)
+                .ClusteringKey(t => t.TweetId)
+                .TableName("tweets"));
+            var table = new Table<Tweet>(_session, mapping);
+            table.Create();
+            table.Insert(new Tweet { AuthorId = "1", Body = "I like", TweetId = Guid.NewGuid() }).Execute();
+            table.Insert(new Tweet { AuthorId = "1", Body = "to tweet", TweetId = Guid.NewGuid() }).Execute();
+            table.Insert(new Tweet { AuthorId = "1", Body = "a lot", TweetId = Guid.NewGuid() }).Execute();
+            table.Insert(new Tweet { AuthorId = "1", Body = "a lot", TweetId = Guid.NewGuid() }).Execute();
+            table.Insert(new Tweet { AuthorId = "1", Body = "a lot", TweetId = Guid.NewGuid() }).Execute();
+
+            Assert.Throws<InvalidQueryException>(() => { table.Where(e => e.Body == "a lot").Count().Execute(); });
+            long count = table.Where(e => e.Body == "a lot").AllowFiltering().Count().Execute();
+            Assert.AreEqual(3, count);
+        }
+
         [Test]
         public void LinqCount_Async()
         {
@@ -72,7 +98,5 @@ namespace Dse.Test.Integration.Linq.LinqMethods
             long count = table.Where(e => e.StringType == expectedEntity.StringType && e.GuidType == expectedEntity.GuidType).Count().ExecuteAsync().Result;
             Assert.AreEqual(1, count);
         }
-
-
     }
 }

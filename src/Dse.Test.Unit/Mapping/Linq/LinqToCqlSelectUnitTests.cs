@@ -470,5 +470,24 @@ namespace Dse.Test.Unit.Mapping.Linq
                 ClassWithPublicField.DecimalStaticField
             });
         }
+
+        [Test]
+        public void Select_Count_With_And_Without_Allow_Filtering()
+        {
+            string query = null;
+            var session = GetSession((q, v) => query = q);
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.UuidValue, cm => cm.WithName("id"))
+                .Column(t => t.StringValue, cm => cm.WithName("val"))
+                .PartitionKey(t => t.UuidValue)
+                .TableName("tbl1");
+            var table = GetTable<AllTypesEntity>(session, map);
+            table.Where(t => t.StringValue == "hello").Count().Execute();
+            Assert.AreEqual("SELECT count(*) FROM tbl1 WHERE val = ?", query);
+
+            table.Where(t => t.StringValue == "hello").AllowFiltering().Count().Execute();
+            Assert.AreEqual("SELECT count(*) FROM tbl1 WHERE val = ? ALLOW FILTERING", query);
+        }
     }
 }

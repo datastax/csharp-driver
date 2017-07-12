@@ -174,5 +174,51 @@ namespace Dse.Test.Unit
                 Assert.Throws<ArgumentOutOfRangeException>(() => new LocalDate(v.Item1, v.Item2, v.Item3).ToDateTimeOffset());
             }
         }
+
+        [Test]
+        public void Parse_From_Integer_Text_Values()
+        {
+            var values = new[]
+            {
+                Tuple.Create("-1", new LocalDate(1969, 12, 31)),
+                Tuple.Create("0", new LocalDate(1970, 1, 1)),
+                Tuple.Create("1", new LocalDate(1970, 1, 2))
+            };
+            foreach (var v in values)
+            {
+                Assert.AreEqual(v.Item2, LocalDate.Parse(v.Item1));
+            }
+        }
+
+        [Test]
+        public void Parse_From_Standard_Format()
+        {
+            var values = new[]
+            {
+                Tuple.Create("1960-6-12", new LocalDate(1960, 6, 12)),
+                Tuple.Create("1981-09-14", new LocalDate(1981, 9, 14)),
+                Tuple.Create("1-1-1", new LocalDate(1, 1, 1))
+            };
+            foreach (var v in values)
+            {
+                Assert.AreEqual(v.Item2, LocalDate.Parse(v.Item1));
+            }
+        }
+
+        [Test]
+        public void Parse_With_Wrong_Format_Should_Throw()
+        {
+            var values = new[]
+            {
+                "1960-1",
+                "-1909-14",
+                "-1-1"
+            };
+            foreach (var v in values)
+            {
+                Assert.Throws<FormatException>(() => LocalDate.Parse(v));
+            }
+            Assert.Throws<ArgumentNullException>(() => LocalDate.Parse(null));
+        }
     }
 }
