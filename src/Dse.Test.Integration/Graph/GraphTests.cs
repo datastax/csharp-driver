@@ -21,10 +21,11 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Graph
 {
-    [TestFixture, TestDseVersion(5, 0)]
+    [TestFixture, TestDseVersion(5, 0), Category("short")]
     public class GraphTests : BaseIntegrationTest
     {
         private const string GraphName = "graph1";
+        private const string GraphSON1Language = "gremlin-groovy";
         private const string GraphSON2Language = "bytecode-json";
         private int _idGenerator;
         private IDseCluster _cluster;
@@ -321,18 +322,22 @@ namespace Dse.Test.Integration.Graph
             }
         }
 
-        [Test]
-        public void Should_Retrieve_Path_With_Labels()
+        [TestCase(GraphSON1Language, "g.V().hasLabel('person').has('name', 'marko').as('a')" +
+                                     ".outE('knows').as('b').inV().as('c', 'd')" +
+                                     ".outE('created').as('e', 'f', 'g').inV().as('h').path()")]
+        [Ignore("Fix on CSHARP-434"), TestCase(GraphSON2Language, "{\"@type\":\"Bytecode\",\"step\":[" +
+                                     "[\"V\"],[\"has\",\"person\",\"name\",\"marko\"],[\"as\",\"a\"]," +
+                                     "[\"outE\",\"knows\"],[\"as\",\"b\"],[\"inV\"],[\"as\",\"c\",\"d\"]," +
+                                     "[\"outE\",\"hasLabel\",\"created\"],[\"as\",\"e\",\"f\",\"g\"],[\"inV\"],[\"as\", \"h\"],[\"path\"]]}")]
+        public void Should_Retrieve_Path_With_Labels(string graphsonLanguage, string graphQuery)
         {
             using (var cluster = DseCluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
-                .WithGraphOptions(new GraphOptions().SetName(GraphName))
+                .WithGraphOptions(new GraphOptions().SetName(GraphName).SetLanguage(graphsonLanguage))
                 .Build())
             {
                 var session = cluster.Connect();
-                var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V().hasLabel('person').has('name', 'marko').as('a')" +
-                                                                        ".outE('knows').as('b').inV().as('c', 'd')" +
-                                                                        ".outE('created').as('e', 'f', 'g').inV().as('h').path()"));
+                var rs = session.ExecuteGraph(new SimpleGraphStatement(graphQuery));
 
                 var resultArray = rs.ToArray();
                 Assert.AreEqual(2, resultArray.Length);
@@ -743,6 +748,20 @@ namespace Dse.Test.Integration.Graph
                 var edge = graphNode.ToEdge();
                 Assert.AreEqual("created", edge.Label);
             }
+        }
+
+        [Test]
+        public async Task With_GraphSON2_It_Should_Retrieve_Vertex_Name_Marko()
+        {
+            var statement = new SimpleGraphStatement("{\"@type\": \"g:Bytecode\", \"@value\": {" +
+                                                     "  \"step\": [[\"V\"], [\"has\", \"person\", \"name\", \"marko\"]]}}");
+            statement.SetGraphLanguage(GraphSON2Language);
+            var rs = await _session.ExecuteGraphAsync(statement).ConfigureAwait(false);
+            var results = rs.ToArray();
+            Assert.AreEqual(1, results.Length);
+            var markoVertex = results.FirstOrDefault().ToVertex();
+            Assert.AreEqual("person", markoVertex.Label);
+            Assert.AreEqual("marko", markoVertex.Properties["name"].ToArray()[0].Get<string>("value"));
         }
 
         private void ValidateVertexResult(Vertex vertex, string vertexLabel, string propertyName, string expectedValueString)

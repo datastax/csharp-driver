@@ -21,7 +21,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Graph
 {
-    [TestFixture]
+    [TestFixture, NUnit.Framework.Category("short")]
     [TestDseVersion(5, 0)]
     class GraphMultiNodeTests : BaseIntegrationTest
     {
