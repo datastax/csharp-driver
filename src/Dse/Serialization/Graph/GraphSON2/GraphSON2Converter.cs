@@ -55,6 +55,8 @@ namespace Dse.Serialization.Graph.GraphSON2
                 { typeof(Polygon), GetParserReader(Polygon.Parse, true) },
                 { typeof(Duration), GetParserReader(Duration.Parse) },
                 { typeof(Duration?), GetParserReader(Duration.Parse, true) },
+                { typeof(LocalDate), GetParserReader(LocalDate.Parse, true) },
+                { typeof(LocalTime), GetParserReader(LocalTime.Parse, true) },
                 { typeof(byte[]), GetParserReader(Convert.FromBase64String) },
                 { typeof(DateTimeOffset), GetValueReader(ToDateTimeOffset) },
                 { typeof(DateTimeOffset?), GetValueReader(ToDateTimeOffset) },

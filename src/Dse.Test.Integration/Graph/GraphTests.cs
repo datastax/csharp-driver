@@ -677,6 +677,37 @@ namespace Dse.Test.Integration.Graph
             TestInsertSelectProperty(type, timestamp, false);
         }
 
+        [Test, TestDseVersion(5, 1)]
+        public void Should_Support_Date()
+        {
+            var type = "Date()";
+            var dates = new[]
+            {
+                LocalDate.Parse("1999-07-29"),
+                new LocalDate(1960, 6, 12),
+                new LocalDate(1981, 9, 14)
+            };
+            foreach (var date in dates)
+            {
+                TestInsertSelectProperty(type, date);
+            }
+        }
+
+        [Test, TestDseVersion(5, 1)]
+        public void Should_Support_Time()
+        {
+            var type = "Time()";
+            var times = new[]
+            {
+                LocalTime.Parse("00:00:01.001"),
+                LocalTime.Parse("18:30:41.554")
+            };
+            foreach (var time in times)
+            {
+                TestInsertSelectProperty(type, time);
+            }
+        }
+
         [TestCase("1m1s")]
         [TestCase("30h")]
         [TestCase("30h20m")]
@@ -748,6 +779,39 @@ namespace Dse.Test.Integration.Graph
                 var edge = graphNode.ToEdge();
                 Assert.AreEqual("created", edge.Label);
             }
+        }
+
+        [Test, Ignore("WIP: Fixed on CSHARP-434")]
+        public async Task With_GraphSON2_It_Should_Insert_And_Retrieve_LocalDate_LocalTime()
+        {
+            const string schemaQuery = "schema.propertyKey('localdate').Date().ifNotExists().create();\n" +
+                                       "schema.propertyKey('localtime').Time().ifNotExists().create();\n" +
+                                       "schema.vertexLabel('typetests').properties('name', 'localdate', 'localtime').ifNotExists().create();\n";
+
+            _session.ExecuteGraph(new SimpleGraphStatement(schemaQuery));
+
+            var deleteStatement = new SimpleGraphStatement("{\"@type\": \"g:Bytecode\", \"step\": " +
+                                                           "[[\"V\"], [\"has\", \"typetests\", \"name\", \"stephen\"],[\"drop\"]}}");
+            deleteStatement.SetGraphLanguage(GraphSON2Language);
+            _session.ExecuteGraph(deleteStatement);
+
+            var addStatement = new SimpleGraphStatement("{\"@type\":\"Bytecode\",\"step\":[" +
+                                                        "[\"addV\", \"typetests\"],[\"property\",\"name\",\"stephen\"]," +
+                                                        "[\"property\",{\"@type\":\"T\",\"value\":\"gx:LocalDate\"},\"localdate\", \"1981-09-14\"]," +
+                                                        "[\"property\",{\"@type\":\"T\",\"value\":\"gx:LocalTime\"},\"localtime\", \"12:50\"]]}");
+            addStatement.SetGraphLanguage(GraphSON2Language);
+            await _session.ExecuteGraphAsync(addStatement).ConfigureAwait(false);
+
+            var statement = new SimpleGraphStatement("{\"@type\": \"g:Bytecode\", \"@value\": {" +
+                                                     "  \"step\": [[\"V\"], [\"has\", \"typetests\", \"name\", \"stephen\"]]}}");
+            statement.SetGraphLanguage(GraphSON2Language);
+            var rs = await _session.ExecuteGraphAsync(statement).ConfigureAwait(false);
+            var results = rs.ToArray();
+            Assert.AreEqual(1, results.Length);
+            var stephen = rs.FirstOrDefault().ToVertex();
+            Assert.AreEqual("stephen", stephen.Properties["name"].ToArray()[0].Get<string>("value"));
+            Assert.AreEqual(LocalDate.Parse("1981-09-14"), stephen.Properties["localdate"].ToArray()[0].Get<LocalDate>("value"));
+            Assert.AreEqual(LocalTime.Parse("12:50"), stephen.Properties["localtime"].ToArray()[0].Get<LocalTime>("value"));
         }
 
         [Test]

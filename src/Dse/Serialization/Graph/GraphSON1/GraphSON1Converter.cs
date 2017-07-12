@@ -26,7 +26,9 @@ namespace Dse.Serialization.Graph.GraphSON1
             { typeof(LineString), WriteStringValue },
             { typeof(Polygon), WriteStringValue },
             { typeof(BigInteger), WriteStringRawValue },
-            { typeof(Duration), WriteDuration }
+            { typeof(Duration), WriteDuration },
+            { typeof(LocalDate), WriteStringValue },
+            { typeof(LocalTime), WriteStringValue }
         };
 
         internal static readonly GraphSON1Converter Instance = new GraphSON1Converter();
@@ -43,6 +45,8 @@ namespace Dse.Serialization.Graph.GraphSON1
                 { typeof(LineString), (r, _) => LineString.Parse(r.Value.ToString()) },
                 { typeof(Polygon), (r, _) => Polygon.Parse(r.Value.ToString()) },
                 { typeof(Duration), (r, _) => Duration.Parse(r.Value.ToString()) },
+                { typeof(LocalDate), (r, _) => LocalDate.Parse(r.Value.ToString()) },
+                { typeof(LocalTime), (r, _) => LocalTime.Parse(r.Value.ToString()) },
                 { typeof(GraphNode), GetTokenReader(t => new GraphNode(new GraphSON1Node(t))) },
                 { typeof(Vertex), GetTokenReader(ToVertex) },
                 { typeof(Edge), GetTokenReader(ToEdge) },

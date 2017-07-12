@@ -227,6 +227,22 @@ namespace Dse.Test.Unit.Graph
             Assert.AreEqual(DateTimeOffset.Parse(stringValue), node.To<DateTimeOffset>());
         }
 
+        [TestCase("{\"@type\": \"gx:LocalDate\", \"@value\": \"1981-09-14\"}", "1981-09-14")]
+        [TestCase("{\"@type\": \"gx:LocalDate\", \"@value\": \"-1\"}", "-1")]
+        public void To_Should_Parse_LocalDate_Values(string json, string stringValue)
+        {
+            var node = GetGraphNode(json);
+            Assert.AreEqual(LocalDate.Parse(stringValue), node.To<LocalDate>());
+        }
+
+        [TestCase("{\"@type\": \"gx:LocalTime\", \"@value\": \"12:50\"}", "12:50")]
+        [TestCase("{\"@type\": \"gx:LocalTime\", \"@value\": \"6:50:07.12345678\"}", "6:50:07.12345678")]
+        public void To_Should_Parse_LocalTime_Values(string json, string stringValue)
+        {
+            var node = GetGraphNode(json);
+            Assert.AreEqual(LocalTime.Parse(stringValue), node.To<LocalTime>());
+        }
+
         [Test]
         public void To_Should_Parse_Vertex_Values()
         {
