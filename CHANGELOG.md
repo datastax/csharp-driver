@@ -1,5 +1,24 @@
 # ChangeLog - DataStax Enterprise C# Driver
 
+## 2.0.3
+
+2017-07-13
+
+###  Bug Fixes
+
+- [CSHARP-570] - GraphNode.ToEdge fails when no properties are defined
+- [CSHARP-577] - InvalidCastException in Cassandra.Data.Linq
+- [CSHARP-586] - WithDefaultTimestamp flag is not on when using timestamp generator
+
+
+### Features
+
+- [CSHARP-581] - Linq Batch: allow setting the batch type
+- [CSHARP-582] - Linq: Add Allow filtering on scalar Count() method
+- [CSHARP-584] - Support non generic overload for GraphNode.To()
+- [CSHARP-585] - GraphSON2 Deserialization on the DSE driver
+- [CSHARP-587] - Support LocalDate and LocalTime parsing
+
 ## 2.0.2
 
 2017-06-19

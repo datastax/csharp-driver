@@ -4,8 +4,8 @@
     <Copyright>Copyright © 2017 by DataStax</Copyright>
     <AssemblyTitle>DataStax Enterprise C# Driver</AssemblyTitle>
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
-    <FileVersion>2.0.2.0</FileVersion>
-    <VersionPrefix>2.0.2</VersionPrefix>
+    <FileVersion>2.0.3.0</FileVersion>
+    <VersionPrefix>2.0.3</VersionPrefix>
     <Authors>DataStax</Authors>
     <TargetFrameworks>net45;netstandard1.5</TargetFrameworks>
     <NoWarn>$(NoWarn);1591</NoWarn>
@@ -17,6 +17,7 @@
     <SignAssembly>true</SignAssembly>
     <PublicSign Condition="'$(OS)' != 'Windows_NT'">true</PublicSign>
     <PackageId>Dse</PackageId>
+    <Title>DataStax Enterprise C# Driver</Title>
     <PackageTags>cassandra;dse;datastax;driver;client;database;nosql;dotnet;netcore;db</PackageTags>
     <PackageLicenseUrl>http://www.datastax.com/terms/datastax-dse-driver-license-terms</PackageLicenseUrl>
     <RepositoryUrl>https://github.com/datastax/csharp-dse-driver</RepositoryUrl>
