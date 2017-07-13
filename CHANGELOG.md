@@ -1,5 +1,20 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.3.2
+
+2017-07-13
+
+### Features
+
+- [CSHARP-581] - Linq Batch: allow setting the batch type
+- [CSHARP-582] - Linq: Add Allow filtering on scalar Count() method
+- [CSHARP-587] - Support LocalDate and LocalTime parsing
+
+### Bug Fixes
+
+- [CSHARP-577] - InvalidCastException in Cassandra.Data.Linq
+- [CSHARP-586] - WithDefaultTimestamp flag is not on when using timestamp generator
+
 ## 3.3.1
 
 2017-06-19
