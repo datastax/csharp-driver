@@ -169,6 +169,41 @@ namespace Cassandra.Tasks
         }
 
         /// <summary>
+        /// Waits the task to transition to RanToComplete.
+        /// It throws the inner exception of the AggregateException in case there is a single exception.
+        /// It throws the Aggregate exception when there is more than 1 inner exception.
+        /// It throws a TimeoutException when the task didn't complete in the expected time.
+        /// </summary>
+        /// <param name="task">the task to wait upon</param>
+        /// <param name="timeout">timeout in milliseconds</param>
+        /// <exception cref="TimeoutException" />
+        /// <exception cref="AggregateException" />
+        public static async Task WaitToCompleteAsync(this Task task, int timeout = Timeout.Infinite)
+        {
+            //It should wait and throw any exception
+            try
+            {
+                var timeoutTask = Task.Delay(TimeSpan.FromMilliseconds(timeout));
+                var finishedTask = await Task.WhenAny(task, timeoutTask).ConfigureAwait(false);
+                if (finishedTask == timeoutTask)
+                {
+                    throw new TimeoutException("The task didn't complete before timeout.");
+                }
+                await task.ConfigureAwait(false);
+            }
+            catch (AggregateException ex)
+            {
+                ex = ex.Flatten();
+                //throw the actual exception when there was a single exception
+                if (ex.InnerExceptions.Count == 1)
+                {
+                    throw PreserveStackTrace(ex.InnerExceptions[0]);
+                }
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Attempts to transition the underlying Task to RanToCompletion or Faulted state.
         /// </summary>
         public static void TrySet<T>(this TaskCompletionSource<T> tcs, Exception ex, T result)
