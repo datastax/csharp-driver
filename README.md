@@ -8,6 +8,8 @@ additions for [DataStax Enterprise][dse]:
 * [DSE graph][dse-graph] integration.
 * Serializers for geospatial types which integrate seamlessly with the driver.
 
+The driver supports .NET Framework 4.5+ and .NET Core 1+.
+
 The DataStax Enterprise C# Driver can be used solely with DataStax Enterprise. Please consult
 [the license](#license).
 
@@ -201,6 +203,13 @@ var statement = new SimpleStatement("INSERT INTO points_of_interest (name, coord
     new Point(38.8895, 77.0352));
 session.Execute(statement);
 ```
+
+## Compatibility
+
+- DataStax Enterprise versions 4.5 and above.
+- .NET Framework versions 4.5 and above and .NET Core versions 1.0 and above.
+
+Note: DataStax products do not support big-endian systems.
 
 ## License
 
