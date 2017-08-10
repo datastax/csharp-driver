@@ -202,6 +202,15 @@ var statement = new SimpleStatement(query)
   .SetRetryPolicy(DowngradingConsistencyRetryPolicy.Instance)
   .SetPageSize(1000);
 ```
+
+## Compatibility
+
+- Apache Cassandra versions 2.0 and above.
+- DataStax Enterprise versions 4.5 and above.
+- .NET Framework versions 4.5 and above and .NET Core versions 1.0 and above.
+
+Note: DataStax products do not support big-endian systems.
+
 ## Feedback Requested
 
 **Help us focus our efforts!** Provide your input on the [Platform and Runtime Survey][survey] (we kept it short).
