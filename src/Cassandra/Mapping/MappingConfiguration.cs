@@ -14,6 +14,7 @@ namespace Cassandra.Mapping
         /// Instance to be used for global mappings. It won't get initialized until the first use.
         /// </summary>
         private static readonly MappingConfiguration GlobalInstance = new MappingConfiguration();
+
         private TypeConverter _typeConverter;
         private LookupKeyedCollection<Type, ITypeDefinition> _typeDefinitions;
 
@@ -62,7 +63,7 @@ namespace Cassandra.Mapping
         }
 
         /// <summary>
-        /// Configures CqlPoco to use the specified type conversion factory when getting type conversion functions for converting 
+        /// Configures CqlPoco to use the specified type conversion factory when getting type conversion functions for converting
         /// between data types in the database and your POCO objects.
         /// </summary>
         public MappingConfiguration ConvertTypesUsing(TypeConverter typeConverter)
@@ -145,7 +146,7 @@ namespace Cassandra.Mapping
         /// <summary>
         /// Clears all the mapping defined for this instance
         /// </summary>
-        internal void Clear()
+        public void Clear()
         {
             _typeDefinitions = new LookupKeyedCollection<Type, ITypeDefinition>(td => td.PocoType);
             MapperFactory = new MapperFactory(_typeConverter, new PocoDataFactory(_typeDefinitions));
