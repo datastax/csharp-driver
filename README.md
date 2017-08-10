@@ -49,19 +49,18 @@ If you are upgrading from the 1.x branch of the driver, follow the [upgrade guid
 ## Basic Usage
 
 ```csharp
-//Create a cluster instance using 3 cassandra nodes.
 var cluster = Cluster.Builder()
-  .AddContactPoints("host1", "host2", "host3")
-  .Build();
-//Create connections to the nodes using a keyspace
+                     .AddContactPoints("host1")
+                     .Build();
+// Connect to the nodes using a keyspace
 var session = cluster.Connect("sample_keyspace");
-//Execute a query on a connection synchronously
+// Execute a query on a connection synchronously
 var rs = session.Execute("SELECT * FROM sample_table");
-//Iterate through the RowSet
+// Iterate through the RowSet
 foreach (var row in rs)
 {
   var value = row.GetValue<int>("sample_int_column");
-  //do something with the value
+  // Do something with the value
 }
 ```
 
@@ -70,12 +69,12 @@ foreach (var row in rs)
 Prepare your query **once** and bind different parameters to obtain best performance.
 
 ```csharp
-//Prepare a statement once
+// Prepare a statement once
 var ps = session.Prepare("UPDATE user_profiles SET birth=? WHERE key=?");
 
-//...bind different parameters every time you need to execute
+// ...bind different parameters every time you need to execute
 var statement = ps.Bind(new DateTime(1942, 11, 27), "hendrix");
-//Execute the bound statement with the provided parameters
+// Execute the bound statement with the provided parameters
 session.Execute(statement);
 ```
 
@@ -84,15 +83,15 @@ session.Execute(statement);
 You can execute multiple statements (prepared or unprepared) in a batch to update/insert several rows atomically even in different column families.
 
 ```csharp
-//Prepare the statements involved in a profile update once
+// Prepare the statements involved in a profile update once
 var profileStmt = session.Prepare("UPDATE user_profiles SET email=? WHERE key=?");
 var userTrackStmt = session.Prepare("INSERT INTO user_track (key, text, date) VALUES (?, ?, ?)");
-//...you should reuse the prepared statement
-//Bind the parameters and add the statement to the batch batch
+// ...you should reuse the prepared statement
+// Bind the parameters and add the statement to the batch batch
 var batch = new BatchStatement()
   .Add(profileStmt.Bind(emailAddress, "hendrix"))
   .Add(userTrackStmt.Bind("hendrix", "You changed your email", DateTime.Now));
-//Execute the batch
+// Execute the batch
 session.Execute(batch);
 ```
 
@@ -101,7 +100,7 @@ session.Execute(batch);
 Session allows asynchronous execution of statements (for any type of statement: simple, bound or batch) by exposing the `ExecuteAsync` method.
 
 ```csharp
-//Execute a statement asynchronously using await
+// Execute a statement asynchronously using await
 var rs = await session.ExecuteAsync(statement);
 ```
 
@@ -121,13 +120,13 @@ You can iterate indefinitely over the `RowSet`, having the rows fetched block by
 
 ```csharp
 var statement = new SimpleStatement("SELECT * from large_table");
-//Set the page size, in this case the RowSet will not contain more than 1000 at any time
+// Set the page size, in this case the RowSet will not contain more than 1000 at any time
 statement.SetPageSize(1000);
 var rs = session.Execute(statement);
 foreach (var row in rs)
 {
-  //The enumerator will yield all the rows from Cassandra
-  //Retrieving them in the back in blocks of 1000.
+  // The enumerator will yield all the rows from Cassandra
+  // Retrieving them in the back in blocks of 1000.
 }
 ```
 
@@ -178,7 +177,7 @@ You should **map your [UDT][udt] to your entity once** and you will be able to u
 ```csharp
 var rs = session.Execute("SELECT id, name, address FROM users where id = x");
 var row = rs.First();
-//You can retrieve the field as a value of type Address
+// You can retrieve the field as a value of type Address
 var userAddress = row.GetValue<Address>("address");
 Console.WriteLine("user lives on {0} Street", userAddress.Street);
 ```
@@ -189,14 +188,14 @@ Console.WriteLine("user lives on {0} Street", userAddress.Street);
 You can set the options on how the driver connects to the nodes and the execution options.
 
 ```csharp
-//Example at cluster level
+// Example at cluster level
 var cluster = Cluster
   .Builder()
   .AddContactPoints(hosts)
   .WithCompression(CompressionType.LZ4)
   .WithLoadBalancingPolicy(new DCAwareRoundRobinPolicy("west"));
 
-//Example at statement (simple, bound, batch) level
+// Example at statement (simple, bound, batch) level
 var statement = new SimpleStatement(query)
   .SetConsistencyLevel(ConsistencyLevel.Quorum)
   .SetRetryPolicy(DowngradingConsistencyRetryPolicy.Instance)
