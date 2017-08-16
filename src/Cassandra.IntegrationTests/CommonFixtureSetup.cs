@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
@@ -14,7 +15,11 @@ namespace Cassandra.IntegrationTests
         public void SetupTestSuite()
         {
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
-            Trace.TraceInformation("TestBase Setup Complete. Starting Test Run ...");
+            if (Environment.GetEnvironmentVariable("TEST_TRACE")?.ToUpper() == "ON")
+            {
+                Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
+            }
+            Trace.TraceInformation("Starting Test Run ...");
         }
 
         [OneTimeTearDown]
