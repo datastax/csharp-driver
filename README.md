@@ -2,7 +2,7 @@
 
 A modern, [feature-rich][features] and highly tunable C# client library for Apache Cassandra (1.2+) using exclusively Cassandra's binary protocol and Cassandra Query Language v3. _Use the [DSE C# driver][dse-driver] for better compatibility and support for DataStax Enterprise_.
 
-The driver supports .NET Framework 4.5+ and .NET Core 1+.
+The driver supports .NET Framework 4.5+ and .NET Standard 1.5+.
 
 ## Installation
 
