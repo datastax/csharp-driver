@@ -16,8 +16,9 @@
 
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-﻿using Cassandra.Serialization;
+ using System.Threading.Tasks;
+using Cassandra.Serialization;
+using Cassandra.Tasks;
 
 namespace Cassandra
 {
@@ -45,6 +46,15 @@ namespace Cassandra
         /// <exception cref="ArgumentException" />
         public void Define(params UdtMap[] udtMaps)
         {
+            TaskHelper.WaitToComplete(DefineAsync(udtMaps), _cluster.Configuration.ClientOptions.QueryAbortTimeout);
+        }
+
+        /// <summary>
+        /// Add mapping definition(s) for UDTs, specifying how UDTs should be mapped to .NET types and vice versa.
+        /// </summary>
+        /// <exception cref="ArgumentException" />
+        public async Task DefineAsync(params UdtMap[] udtMaps)
+        {
             if (udtMaps == null)
             {
                 throw new ArgumentNullException("udtMaps");
@@ -61,7 +71,7 @@ namespace Cassandra
             // Add types to both indexes
             foreach (var map in udtMaps)
             {
-                var udtDefition = GetDefinition(keyspace, map);
+                var udtDefition = await GetDefinitionAsync(keyspace, map).ConfigureAwait(false);
                 map.SetSerializer(_serializer);
                 map.Build(udtDefition);
                 _serializer.SetUdtMap(udtDefition.Name, map);
@@ -73,7 +83,7 @@ namespace Cassandra
         /// Gets the definition and validates the fields
         /// </summary>
         /// <exception cref="InvalidTypeException" />
-        private UdtColumnInfo GetDefinition(string keyspace, UdtMap map)
+        private async Task<UdtColumnInfo> GetDefinitionAsync(string keyspace, UdtMap map)
         {
             var caseSensitiveUdtName = map.UdtName;
             if (map.IgnoreCase)
@@ -81,7 +91,7 @@ namespace Cassandra
                 //identifiers are lower cased in Cassandra
                 caseSensitiveUdtName = caseSensitiveUdtName.ToLower();
             }
-            var udtDefinition = _cluster.Metadata.GetUdtDefinition(keyspace, caseSensitiveUdtName);
+            var udtDefinition = await _cluster.Metadata.GetUdtDefinitionAsync(keyspace, caseSensitiveUdtName).ConfigureAwait(false);
             if (udtDefinition == null)
             {
                 throw new InvalidTypeException(caseSensitiveUdtName + " UDT not found on keyspace " + keyspace);

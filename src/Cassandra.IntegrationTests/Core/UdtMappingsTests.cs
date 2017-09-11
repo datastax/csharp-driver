@@ -15,12 +15,11 @@
 //
 
 using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Threading.Tasks;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -54,6 +53,26 @@ namespace Cassandra.IntegrationTests.Core
                     .Map(v => v.Alias, "alias")
                     .Map(v => v.CountryCode, "country_code")
                     .Map(v => v.Number, "number")
+            );
+            localSession.Execute("INSERT INTO users (id, main_phone) values (1, {alias: 'home phone', number: '123', country_code: 34})");
+            var rs = localSession.Execute("SELECT * FROM users WHERE id = 1");
+            var row = rs.First();
+            var value = row.GetValue<Phone>("main_phone");
+            Assert.NotNull(value);
+            Assert.AreEqual("home phone", value.Alias);
+            Assert.AreEqual("123", value.Number);
+            Assert.AreEqual(34, value.CountryCode);
+        }
+
+        [Test]
+        public async Task MappingSingleExplicitTestAsync()
+        {
+            var localSession = GetNewSession(KeyspaceName);
+            await localSession.UserDefinedTypes.DefineAsync(
+                UdtMap.For<Phone>("phone")
+                      .Map(v => v.Alias, "alias")
+                      .Map(v => v.CountryCode, "country_code")
+                      .Map(v => v.Number, "number")
             );
             localSession.Execute("INSERT INTO users (id, main_phone) values (1, {alias: 'home phone', number: '123', country_code: 34})");
             var rs = localSession.Execute("SELECT * FROM users WHERE id = 1");
