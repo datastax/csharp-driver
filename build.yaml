@@ -15,6 +15,7 @@ build:
       # Set the Java paths (for CCM)
       export JAVA_HOME=$CCM_JAVA_HOME
       export PATH=$JAVA_HOME/bin:$PATH
+      export SIMULACRON_PATH=$HOME/simulacron.jar
 
       # Define Cassandra runtime
       echo "==========setting cassandra version=========="
