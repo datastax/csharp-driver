@@ -11,24 +11,24 @@ environment:
   appveyor_build_worker_cloud: gce
   NUNIT_PATH: nunit3-console
   matrix:
-    # - TARGET: net452
-    #   CI_TYPE: UNIT
-    #   PROJECT: Cassandra.Tests
-    # - TARGET: netcoreapp1.0
-    #   CI_TYPE: UNIT
-    #   PROJECT: Cassandra.Tests
-    # - TARGET: net452
-    #   CASSANDRA_VERSION: 3.10
-    #   CI_TYPE: INTEGRATION
-    #   PROJECT: Cassandra.IntegrationTests
+    - TARGET: net452
+      CI_TYPE: UNIT
+      PROJECT: Cassandra.Tests
+    - TARGET: netcoreapp1.0
+      CI_TYPE: UNIT
+      PROJECT: Cassandra.Tests
+    - TARGET: net452
+      CASSANDRA_VERSION: 3.10
+      CI_TYPE: INTEGRATION
+      PROJECT: Cassandra.IntegrationTests
     - TARGET: netcoreapp1.0
       CASSANDRA_VERSION: 3.10
       CI_TYPE: INTEGRATION
       PROJECT: Cassandra.IntegrationTests
-    # - TARGET: net452
-    #   CASSANDRA_VERSION: 2.2.7
-    #   CI_TYPE: INTEGRATION
-    #   PROJECT: Cassandra.IntegrationTests
+    - TARGET: net452
+      CASSANDRA_VERSION: 2.2.7
+      CI_TYPE: INTEGRATION
+      PROJECT: Cassandra.IntegrationTests
 
 install:
   - ps: .\build\appveyor_install.ps1
@@ -39,13 +39,12 @@ build_script:
   - ps: dotnet build src\Cassandra.sln -c Release
 
 test_script:
-  - ps: dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --filter TestCategory=simulacron  --logger "trx;LogFileName=..\..\..\TestResult.xml"
-  # - ps: dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --filter "(TestCategory!=long)&(TestCategory!=memory)"  --logger "trx;LogFileName=..\..\..\TestResult.xml"
+  - ps: dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --filter "(TestCategory!=long)&(TestCategory!=memory)"  --logger "trx;LogFileName=..\..\..\TestResult.xml"
 on_failure:
   - ps: |
       Write-Host "Build failed"
 on_finish:
-  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-      # xml tr tools\trx-to-junit.xslt TestResult.xml > ResultsJUnit.xml
-      # $wc = New-Object 'System.Net.WebClient'
-      # $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\ResultsJUnit.xml))
+  - ps: |
+      xml tr tools\trx-to-junit.xslt TestResult.xml > ResultsJUnit.xml
+      $wc = New-Object 'System.Net.WebClient'
+      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\ResultsJUnit.xml))
