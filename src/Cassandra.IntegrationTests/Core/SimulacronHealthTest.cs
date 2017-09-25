@@ -12,15 +12,21 @@ namespace Cassandra.IntegrationTests.Core
     [Category("simulacron"), TestFixture]
     public class SimulacronHealthTest
     {
+        [SetUp]
+        public void Setup()
+        {
+            SimulacronManager.Instance.Start();
+        }
+        
         [TearDown]
         public void TestTearDown()
         {
+            SimulacronManager.Instance.Stop();
         }
 
         [Test]
         public void Should__Create_Cluster()
         {
-            SimulacronManager.Instance.Start();
             var simulacronCluster = SCluster.Create("3", "3.10", "test", true, 1);
             var contactPoint = simulacronCluster.InitialContactPoint;
             var builder = Cluster.Builder()
@@ -71,7 +77,6 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.True(executed);
 
             }   
-            SimulacronManager.Instance.Stop();
         }
     }
 }
