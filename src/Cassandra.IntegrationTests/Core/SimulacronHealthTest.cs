@@ -9,7 +9,7 @@ using SCluster = Cassandra.IntegrationTests.TestClusterManagement.Simulacron.Clu
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), TestFixture]
+    [Category("simulacron"), TestFixture]
     public class SimulacronHealthTest
     {
         [SetUp]
