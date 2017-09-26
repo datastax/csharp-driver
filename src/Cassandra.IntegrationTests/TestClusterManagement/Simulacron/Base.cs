@@ -2,7 +2,9 @@
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 {
@@ -15,13 +17,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             Id = id;
         }
 
-        protected static async Task<JObject> Post(string url, JObject body)
+        protected static async Task<dynamic> Post(string url, dynamic body)
         {
-            var bodyStr = string.Empty;
-            if (body != null)
-            {
-                bodyStr = body.ToString();
-            }
+            var bodyStr = GetJsonFromDynamic(body);
             var content = new StringContent(bodyStr, Encoding.UTF8, "application/json");
 
             using (var client = new HttpClient())
@@ -37,13 +35,19 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             }
         }
 
-        protected static async Task<JObject> Put(string url, JObject body)
+        private static string GetJsonFromDynamic(dynamic body)
         {
             var bodyStr = string.Empty;
             if (body != null)
             {
-                bodyStr = body.ToString();
+                bodyStr = JObject.FromObject(body).ToString();
             }
+            return bodyStr;
+        }
+
+        protected static async Task<dynamic> Put(string url, dynamic body)
+        {
+            var bodyStr = GetJsonFromDynamic(body);
             var content = new StringContent(bodyStr, Encoding.UTF8, "application/json");
 
             using (var client = new HttpClient())
@@ -56,7 +60,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             }
         }
 
-        protected static async Task<JObject> Get(string url)
+        protected static async Task<dynamic> Get(string url)
         {
             using (var client = new HttpClient())
             {
@@ -78,12 +82,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             }
         }
 
-        public JObject GetLogs()
+        public dynamic GetLogs()
         {
             return Get(GetPath("log")).Result;
         }
 
-        public JObject Prime(JObject body)
+        public dynamic Prime(dynamic body)
         {
             return Post(GetPath("prime"), body).Result;
         }
@@ -93,7 +97,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             return "/" + endpoint + "/" + Id;
         }
 
-        public JObject GetConnections()
+        public dynamic GetConnections()
         {
             return Get(GetPath("connections")).Result;
         }

@@ -40,6 +40,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public static Cluster Create(string dcNodes, string version, string name, bool activityLog, int numTokens, bool dse = false)
         {
+            var simulacronManager = SimulacronManager.Instance;
+            if (!simulacronManager.IsUp())
+            {
+                simulacronManager.Start();
+            }
             var path = string.Format(CreateClusterPathFormat, dcNodes, (!dse ? version : ""), (dse ? version : ""), name, activityLog, numTokens);
             var data = Post(path, null).Result;
             var cluster = new Cluster(data["id"].ToString());

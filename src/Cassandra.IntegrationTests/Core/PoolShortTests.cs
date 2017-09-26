@@ -15,15 +15,10 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture, Category("short")]
     public class PoolShortTests : TestGlobals
     {
-        private static SimulacronManager _simulacronManager;
         [TearDown]
         public void OnTearDown()
         {
             TestClusterManager.TryRemove();
-            if (_simulacronManager != null)
-            {
-                _simulacronManager.Stop();
-            }
         }
 
         [Test, TestTimeout(1000 * 60 * 4), TestCase(false), TestCase(true)]
@@ -120,9 +115,6 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void MarkHostDown_PartialPoolConnection()
         {
-            //start scassandra
-            _simulacronManager = SimulacronManager.Instance;
-            _simulacronManager.Start();
             var sCluster = SCluster.Create("1", TestClusterManager.CassandraVersionText, "poolShort", false, 1);
             var contactPoint = sCluster.InitialContactPoint;
 

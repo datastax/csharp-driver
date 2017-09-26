@@ -27,24 +27,16 @@ namespace Cassandra.IntegrationTests.Policies.Tests
     [TestFixture, Category("short")]
     public class RetryPolicyShortTests : TestGlobals
     {
-        private static SimulacronManager _simulacronManager;
-
         [OneTimeTearDown]
         public void OnTearDown()
         {
             TestClusterManager.TryRemove();
-            if (_simulacronManager != null)
-            {
-                _simulacronManager.Stop();
-            }
         }
         
         [TestCase("overloaded", typeof(OverloadedException))]
         [TestCase("is_bootstrapping", typeof(IsBootstrappingException))]
         public void RetryPolicy_Extended(string resultError, Type exceptionType)
         {
-            _simulacronManager = SimulacronManager.Instance;
-            _simulacronManager.Start();
             var sCluster = SCluster.Create("1", TestClusterManager.CassandraVersionText, "retryPolicy", false, 1);
             var contactPoint = sCluster.InitialContactPoint;
             var extendedRetryPolicy = new TestExtendedRetryPolicy();
@@ -57,14 +49,17 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                 var session = (Session) cluster.Connect();
                 const string cql = "select * from table1";
                 
-                dynamic primeQuery = new JObject();
-                primeQuery.when = new JObject();
-                primeQuery.when.query = cql;
-                primeQuery.then = new JObject();
-                primeQuery.then.result = resultError;
-                primeQuery.then.message = resultError;
-                primeQuery.then.delay_in_ms = 0;
-                primeQuery.then.ignore_on_prepare = false;
+                var primeQuery = new
+                {
+                    when = new { query = cql },
+                    then = new
+                    {
+                        result = resultError, 
+                        delay_in_ms = 0,
+                        message = resultError,
+                        ignore_on_prepare = false
+                    }
+                };
                 
                 sCluster.Prime(primeQuery);
                 Exception throwedException = null;

@@ -11,26 +11,29 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         private static SimulacronManager _instance;
 
+        private bool _started;
+
         public static SimulacronManager Instance
         {
             get
             {
                 if (_instance != null) return _instance;
                 _instance = new SimulacronManager();
-                _instance.Start();
                 return _instance;
             }
         }
 
         public static Uri BaseAddress
         {
-            get { return new Uri("http://127.0.0.1:8187"); }
+            get { return new Uri("http://127.0.0.1:8188"); }
         }
-
 
         public void Start()
         {
-            Stop();
+            if (_started)
+            {
+                return;
+            }
             _simulacronProcess = new Process();
             var jarPath = Environment.GetEnvironmentVariable("SIMULACRON_PATH");
             if (string.IsNullOrEmpty(jarPath))
@@ -42,7 +45,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 throw new Exception("Simulacron: Simulacron jar not found: " + jarPath);
             }
             _simulacronProcess.StartInfo.FileName = "java";
-            _simulacronProcess.StartInfo.Arguments = string.Format("-jar {0} --ip 127.0.0.101", jarPath);
+            _simulacronProcess.StartInfo.Arguments = string.Format("-jar {0} --ip 127.0.0.101 -p 8188", jarPath);
             _simulacronProcess.StartInfo.UseShellExecute = false;
             _simulacronProcess.StartInfo.CreateNoWindow = true;
             _simulacronProcess.StartInfo.RedirectStandardOutput = true;
@@ -51,14 +54,13 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             _simulacronProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
 #endif
             var eventWaitHandler = new AutoResetEvent(false);
-            var isReady = false;
             _simulacronProcess.OutputDataReceived += (sender, e) =>
             {
-                if (e.Data == null || isReady) return;
+                if (e.Data == null || _started) return;
                 Console.WriteLine(e.Data);
                 if (e.Data.Contains("Created nodes will start with ip"))
                 {
-                    isReady = true;
+                    _started = true;
                     eventWaitHandler.Set();
                 }
             };
@@ -73,7 +75,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             _simulacronProcess.BeginErrorReadLine();
 
             eventWaitHandler.WaitOne(8000);
-            if (!isReady)
+            if (!_started)
             {
                 Stop();
                 throw new Exception("Simulacron not started!");
@@ -96,8 +98,13 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             finally
             {
                 _simulacronProcess = null;
+                _started = false;
             }
         }
 
+        public bool IsUp()
+        {
+            return _started;
+        }
     }
 }
