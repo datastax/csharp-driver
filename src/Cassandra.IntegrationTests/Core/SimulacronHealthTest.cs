@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
-using SCluster = Cassandra.IntegrationTests.TestClusterManagement.Simulacron.Cluster;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -17,11 +17,12 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_CreateSimulacronCluster()
         {
             const string query = "SELECT * FROM system.traces";
-            var simulacronCluster = SCluster.Create("3", "3.10", "test", true, 1);
+            var options = SimulacronOptions.GetDefaultOptions();
+            options.Nodes = "3";
+            var simulacronCluster = SimulacronCluster.CreateNew(options);
             var contactPoint = simulacronCluster.InitialContactPoint;
             var builder = Cluster.Builder()
-                                 .AddContactPoint(contactPoint.Item1)
-                .WithPort(contactPoint.Item2);
+                                 .AddContactPoint(contactPoint);
             using (var cluster = builder.Build())
             {
                 var session = cluster.Connect();

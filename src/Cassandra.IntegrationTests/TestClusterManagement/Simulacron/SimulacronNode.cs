@@ -1,9 +1,9 @@
 ﻿namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 {
-    public class Node : Base
+    public class SimulacronNode : SimulacronBase
     {
         public string ContactPoint { get; set; }
-        public Node(string id) : base(id)
+        public SimulacronNode(string id) : base(id)
         {
         }
     }

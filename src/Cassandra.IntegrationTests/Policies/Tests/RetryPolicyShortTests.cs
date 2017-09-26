@@ -18,9 +18,9 @@ using System;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
-using SCluster = Cassandra.IntegrationTests.TestClusterManagement.Simulacron.Cluster;
 
 namespace Cassandra.IntegrationTests.Policies.Tests
 {
@@ -37,11 +37,11 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         [TestCase("is_bootstrapping", typeof(IsBootstrappingException))]
         public void RetryPolicy_Extended(string resultError, Type exceptionType)
         {
-            var sCluster = SCluster.Create("1", TestClusterManager.CassandraVersionText, "retryPolicy", false, 1);
-            var contactPoint = sCluster.InitialContactPoint;
+            var simulacronCluster = SimulacronCluster.CreateNew(SimulacronOptions.GetDefaultOptions());
+            var contactPoint = simulacronCluster.InitialContactPoint;
             var extendedRetryPolicy = new TestExtendedRetryPolicy();
             var builder = Cluster.Builder()
-                                 .AddContactPoint(contactPoint.Item1)
+                                 .AddContactPoint(contactPoint)
                                  .WithRetryPolicy(extendedRetryPolicy)
                                  .WithReconnectionPolicy(new ConstantReconnectionPolicy(long.MaxValue));
             using (var cluster = builder.Build())
@@ -61,7 +61,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                     }
                 };
                 
-                sCluster.Prime(primeQuery);
+                simulacronCluster.Prime(primeQuery);
                 Exception throwedException = null;
                 try
                 {

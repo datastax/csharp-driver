@@ -1,18 +1,15 @@
-﻿using System;
-using System.Net.Http;
+﻿using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 {
-    public class Base
+    public class SimulacronBase
     {
         public string Id { get; set; }
 
-        protected Base(string id)
+        protected SimulacronBase(string id)
         {
             Id = id;
         }
