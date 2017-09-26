@@ -18,22 +18,24 @@ using System;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using SCluster = Cassandra.IntegrationTests.TestClusterManagement.Simulacron.Cluster;
 
 namespace Cassandra.IntegrationTests.Policies.Tests
 {
     [TestFixture, Category("short")]
     public class RetryPolicyShortTests : TestGlobals
     {
-        private SCassandraManager _scassandraManager;
+        private static SimulacronManager _simulacronManager;
 
         [OneTimeTearDown]
         public void OnTearDown()
         {
             TestClusterManager.TryRemove();
-            if (_scassandraManager != null)
+            if (_simulacronManager != null)
             {
-                _scassandraManager.Stop();
+                _simulacronManager.Stop();
             }
         }
         
@@ -41,18 +43,30 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         [TestCase("is_bootstrapping", typeof(IsBootstrappingException))]
         public void RetryPolicy_Extended(string resultError, Type exceptionType)
         {
-            _scassandraManager = SCassandraManager.Instance;
+            _simulacronManager = SimulacronManager.Instance;
+            _simulacronManager.Start();
+            var sCluster = SCluster.Create("1", TestClusterManager.CassandraVersionText, "retryPolicy", false, 1);
+            var contactPoint = sCluster.InitialContactPoint;
             var extendedRetryPolicy = new TestExtendedRetryPolicy();
             var builder = Cluster.Builder()
-                                 .AddContactPoint("127.0.0.1")
-                                 .WithPort(_scassandraManager.BinaryPort)
+                                 .AddContactPoint(contactPoint.Item1)
                                  .WithRetryPolicy(extendedRetryPolicy)
                                  .WithReconnectionPolicy(new ConstantReconnectionPolicy(long.MaxValue));
             using (var cluster = builder.Build())
             {
                 var session = (Session) cluster.Connect();
                 const string cql = "select * from table1";
-                _scassandraManager.PrimeQuery(cql, "{\"result\" : \"" + resultError + "\"}").Wait();
+                
+                dynamic primeQuery = new JObject();
+                primeQuery.when = new JObject();
+                primeQuery.when.query = cql;
+                primeQuery.then = new JObject();
+                primeQuery.then.result = resultError;
+                primeQuery.then.message = resultError;
+                primeQuery.then.delay_in_ms = 0;
+                primeQuery.then.ignore_on_prepare = false;
+                
+                sCluster.Prime(primeQuery);
                 Exception throwedException = null;
                 try
                 {

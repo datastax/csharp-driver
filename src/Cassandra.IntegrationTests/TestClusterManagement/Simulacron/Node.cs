@@ -3,9 +3,8 @@
     public class Node : Base
     {
         public string ContactPoint { get; set; }
-        public Node(string id)
+        public Node(string id) : base(id)
         {
-            this.Id = id;
         }
     }
 }

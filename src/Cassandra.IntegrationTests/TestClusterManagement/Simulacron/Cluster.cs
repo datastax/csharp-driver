@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
@@ -17,46 +18,73 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             get
             {
                 var contact = DataCenters.First().Nodes.First().ContactPoint;
-                if (contact.Contains(":"))
-                {
-                    var parts = contact.Split(':');
-                    var addr = parts[0];
-                    var port = int.Parse(parts[1]);
-                    return new Tuple<string, int>(addr, port);
-                }
-                return new Tuple<string, int>(contact, 9042);
+                return GetTupleFromContactPoint(contact);
             }
         }
 
-        private Cluster()
+        private Tuple<string, int> GetTupleFromContactPoint(string contact)
+        {
+            if (contact.Contains(":"))
+            {
+                var parts = contact.Split(':');
+                var addr = parts[0];
+                var port = int.Parse(parts[1]);
+                return new Tuple<string, int>(addr, port);
+            }
+            return new Tuple<string, int>(contact, 9042);
+        }
+
+        private Cluster(string id) : base(id)
         {
         }
 
         public static Cluster Create(string dcNodes, string version, string name, bool activityLog, int numTokens, bool dse = false)
         {
             var path = string.Format(CreateClusterPathFormat, dcNodes, (!dse ? version : ""), (dse ? version : ""), name, activityLog, numTokens);
-            var cluster = new Cluster();
-            cluster.BaseAddress = SimulacronManager.BaseAddress;
-            cluster.Data = cluster.Post(path, null).Result;
-            cluster.Id = cluster.Data["id"];
+            var data = Post(path, null).Result;
+            var cluster = new Cluster(data["id"].ToString());
+            cluster.Data = data;
             cluster.DataCenters = new List<DataCenter>();
             var dcs = (JArray) cluster.Data["data_centers"];
             foreach (var dc in dcs)
             {
                 var dataCenter = new DataCenter(cluster.Id + "/" + dc["id"]);
                 cluster.DataCenters.Add(dataCenter);
-                dataCenter.BaseAddress = cluster.BaseAddress;
                 dataCenter.Nodes = new List<Node>();
                 var nodes = (JArray) dc["nodes"];
                 foreach (var nodeJObject in nodes)
                 {
                     var node = new Node(dataCenter.Id + "/" + nodeJObject["id"]);
                     dataCenter.Nodes.Add(node);
-                    node.BaseAddress = cluster.BaseAddress;
                     node.ContactPoint = nodeJObject["address"].ToString();
                 }
             }
             return cluster;
+        }
+        
+        public Task DropConnection(string ip, int port)
+        {
+            return Delete(GetPath("connection") + "/" + ip + "/" + port);
+        }
+
+        public List<Tuple<string, int>> GetConnectedPorts()
+        {
+            var result = new List<Tuple<string, int>>();
+            var response = GetConnections();
+            var dcs = (JArray) response["data_centers"];
+            foreach (var dc in dcs)
+            {
+                var nodes = (JArray) dc["nodes"];
+                foreach (var nodeJObject in nodes)
+                {
+                    var connections = (JArray) nodeJObject["connections"];
+                    foreach (var conn in connections)
+                    {
+                        result.Add(GetTupleFromContactPoint(conn.ToString()));
+                    }
+                }
+            }
+            return result;
         }
     }
 }
