@@ -115,7 +115,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void MarkHostDown_PartialPoolConnection()
         {
-            var sCluster = SimulacronCluster.CreateNew(SimulacronOptions.GetDefaultOptions());
+            var sCluster = SimulacronCluster.CreateNew(new SimulacronOptions());
             const int connectionLength = 4;
             var builder = Cluster.Builder()
                                  .AddContactPoint(sCluster.InitialContactPoint)

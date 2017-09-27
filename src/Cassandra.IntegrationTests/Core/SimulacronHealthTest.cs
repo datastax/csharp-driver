@@ -17,9 +17,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_CreateSimulacronCluster()
         {
             const string query = "SELECT * FROM system.traces";
-            var options = SimulacronOptions.GetDefaultOptions();
-            options.Nodes = "3";
-            var simulacronCluster = SimulacronCluster.CreateNew(options);
+            var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } );
             var contactPoint = simulacronCluster.InitialContactPoint;
             var builder = Cluster.Builder()
                                  .AddContactPoint(contactPoint);

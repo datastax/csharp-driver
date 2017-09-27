@@ -37,7 +37,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         [TestCase("is_bootstrapping", typeof(IsBootstrappingException))]
         public void RetryPolicy_Extended(string resultError, Type exceptionType)
         {
-            var simulacronCluster = SimulacronCluster.CreateNew(SimulacronOptions.GetDefaultOptions());
+            var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions());
             var contactPoint = simulacronCluster.InitialContactPoint;
             var extendedRetryPolicy = new TestExtendedRetryPolicy();
             var builder = Cluster.Builder()
