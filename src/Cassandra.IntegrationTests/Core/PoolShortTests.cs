@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,8 +7,7 @@ using Cassandra.IntegrationTests.Policies.Util;
 using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 using Cassandra.IntegrationTests.TestClusterManagement;
-using Cassandra.Requests;
-using Cassandra.Tasks;
+using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core
@@ -18,15 +15,10 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture, Category("short")]
     public class PoolShortTests : TestGlobals
     {
-        private static SCassandraManager _scassandraManager;
         [TearDown]
         public void OnTearDown()
         {
             TestClusterManager.TryRemove();
-            if (_scassandraManager != null)
-            {
-                _scassandraManager.Stop();
-            }
         }
 
         [Test, TestTimeout(1000 * 60 * 4), TestCase(false), TestCase(true)]
@@ -123,14 +115,10 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void MarkHostDown_PartialPoolConnection()
         {
-            //start scassandra
-            _scassandraManager = new SCassandraManager();
-            _scassandraManager.Start();
-            _scassandraManager.SetupInitialConf().Wait();
+            var sCluster = SimulacronCluster.CreateNew(new SimulacronOptions());
             const int connectionLength = 4;
             var builder = Cluster.Builder()
-                                 .AddContactPoint("127.0.0.1")
-                                 .WithPort(_scassandraManager.BinaryPort)
+                                 .AddContactPoint(sCluster.InitialContactPoint)
                                  .WithPoolingOptions(new PoolingOptions()
                                      .SetCoreConnectionsPerHost(HostDistance.Local, connectionLength)
                                      .SetMaxConnectionsPerHost(HostDistance.Local, connectionLength)
@@ -148,31 +136,31 @@ namespace Cassandra.IntegrationTests.Core
                     ) == allHosts.Count * connectionLength);
                 var h1 = allHosts.FirstOrDefault();
                 var pool = session.GetOrCreateConnectionPool(h1, HostDistance.Local);
-                var ports = _scassandraManager.GetListOfConnectedPorts().Result;
+                var ports = sCluster.GetConnectedPorts();
                 // 4 pool connections + the control connection
-                Assert.AreEqual(5, ports.Length);
-                _scassandraManager.DisableConnectionListener().Wait();
+                Assert.AreEqual(5, ports.Count);
+                sCluster.DisableConnectionListener().Wait();
                 // Remove the first connections
                 for (var i = 0; i < 3; i++)
                 {
                     // Closure
                     var index = i;
                     var expectedOpenConnections = 5 - index;
-                    WaitSimulatorConnections(_scassandraManager, expectedOpenConnections);
-                    ports = _scassandraManager.GetListOfConnectedPorts().Result;
-                    Assert.AreEqual(expectedOpenConnections, ports.Length, "Cassandra simulator contains unexpected number of connected clients");
-                    _scassandraManager.DropConnection(ports.Last()).Wait();
+                    WaitSimulatorConnections(sCluster, expectedOpenConnections);
+                    ports = sCluster.GetConnectedPorts();
+                    Assert.AreEqual(expectedOpenConnections, ports.Count, "Cassandra simulator contains unexpected number of connected clients");
+                    sCluster.DropConnection(ports.Last().Address.ToString(), ports.Last().Port).Wait();
                     // Host pool could have between pool.OpenConnections - i and pool.OpenConnections - i - 1
                     TestHelper.WaitUntil(() => pool.OpenConnections >= 4 - index - 1 && pool.OpenConnections <= 4 - index);
                     Assert.LessOrEqual(pool.OpenConnections, 4 - index);
                     Assert.GreaterOrEqual(pool.OpenConnections, 4 - index - 1);
                     Assert.IsTrue(h1.IsUp);
                 }
-                WaitSimulatorConnections(_scassandraManager, 2);
-                ports = _scassandraManager.GetListOfConnectedPorts().Result;
-                Assert.AreEqual(2, ports.Length);
-                _scassandraManager.DropConnection(ports[1]).Wait();
-                _scassandraManager.DropConnection(ports[0]).Wait();
+                WaitSimulatorConnections(sCluster, 2);
+                ports = sCluster.GetConnectedPorts();
+                Assert.AreEqual(2, ports.Count);
+                sCluster.DropConnection(ports.Last().Address.ToString(), ports.Last().Port).Wait();
+                sCluster.DropConnection(ports.First().Address.ToString(), ports.First().Port).Wait();
                 TestHelper.WaitUntil(() => pool.OpenConnections == 0 && !h1.IsUp);
                 Assert.IsFalse(h1.IsUp);
             }
@@ -181,9 +169,9 @@ namespace Cassandra.IntegrationTests.Core
         /// <summary>
         /// Waits for the simulator to have the expected number of connections
         /// </summary>
-        private static void WaitSimulatorConnections(SCassandraManager scassandra, int expected)
+        private static void WaitSimulatorConnections(SimulacronCluster sSimulacronCluster, int expected)
         {
-            TestHelper.WaitUntil(() => scassandra.GetListOfConnectedPorts().Result.Length == expected);
+            TestHelper.WaitUntil(() => sSimulacronCluster.GetConnectedPorts().Count == expected);
         }
 
         /// <summary>

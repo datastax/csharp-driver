@@ -32,7 +32,6 @@ environment:
 
 install:
   - ps: .\build\appveyor_install.ps1
-  - ps: .\build\scassandra_install.ps1
 
 build_script:
   - ps: dotnet restore src

@@ -20,6 +20,7 @@ namespace Cassandra.IntegrationTests
                 Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
             }
             Trace.TraceInformation("Starting Test Run ...");
+            SimulacronManager.Instance.Start();
         }
 
         [OneTimeTearDown]
@@ -27,6 +28,7 @@ namespace Cassandra.IntegrationTests
         {
             // this method is executed once after all the fixtures have completed execution
             TestClusterManager.TryRemove();
+            SimulacronManager.Instance.Stop();
         }
     }
 }

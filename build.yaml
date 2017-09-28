@@ -15,11 +15,11 @@ build:
       # Set the Java paths (for CCM)
       export JAVA_HOME=$CCM_JAVA_HOME
       export PATH=$JAVA_HOME/bin:$PATH
+      export SIMULACRON_PATH=$HOME/simulacron.jar
 
       # Define Cassandra runtime
       echo "==========setting cassandra version=========="
       export CASSANDRA_VERSION=$CCM_CASSANDRA_VERSION
-      export SCASSANDRA_JAR=$HOME/scassandra-server_2.11-1.0.10-standalone.jar 
 
       echo "==========copying ssl files to $HOME/ssl=========="
       cp -r /home/jenkins/ccm/ssl $HOME/ssl
