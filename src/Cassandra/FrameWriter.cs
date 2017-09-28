@@ -75,14 +75,6 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Writes BE int 16
-        /// </summary>
-        public void WriteInt16(short value)
-        {
-            Write(BeConverter.GetBytes(value));
-        }
-
-        /// <summary>
         /// Writes BE int
         /// </summary>
         public void WriteInt32(int value)
@@ -104,7 +96,7 @@ namespace Cassandra
         public void WriteString(string str)
         {
             var bytes = Encoding.UTF8.GetBytes(str);
-            WriteInt16((short) bytes.Length);
+            WriteUInt16((ushort) bytes.Length);
             Write(bytes);
         }
 
@@ -123,7 +115,7 @@ namespace Cassandra
         /// </summary>
         public void WriteStringList(ICollection<string> l)
         {
-            WriteInt16((short) l.Count);
+            WriteUInt16((ushort) l.Count);
             foreach (var str in l)
             {
                 WriteString(str);
@@ -162,7 +154,7 @@ namespace Cassandra
         /// </summary>
         public void WriteShortBytes(byte[] buffer)
         {
-            WriteInt16((short) buffer.Length);
+            WriteUInt16((ushort) buffer.Length);
             Write(buffer);
         }
 
@@ -171,7 +163,7 @@ namespace Cassandra
         /// </summary>
         public void WriteBytesMap(IDictionary<string, byte[]> map)
         {
-            WriteInt16((short)map.Count);
+            WriteUInt16((ushort)map.Count);
             foreach (var kv in map)
             {
                 WriteString(kv.Key);
