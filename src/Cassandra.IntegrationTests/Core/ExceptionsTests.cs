@@ -311,50 +311,16 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void PreserveStackTraceTest()
         {
-            // we need to make sure at least a single node cluster is available, running locally
-            var session = TestClusterManager.GetNonShareableTestCluster(1).Session;
-            try // writing without delegate assertion since that is undependable for this use case
-            {
-                session.Execute("SELECT WILL FAIL");
-                Assert.Fail("Expected Exception was not thrown!");
-            }
-            catch (SyntaxError ex) 
-            {
-                Assert.True(ex.StackTrace.Contains("PreserveStackTraceTest"));
-                Assert.True(ex.StackTrace.Contains("ExceptionsTests"));
-            }
-        }
-
-#if !NETCORE
-        public static AppDomain CreatePartialTrustDomain()
-        {
-            AppDomainSetup setup = new AppDomainSetup() { ApplicationBase = AppDomain.CurrentDomain.BaseDirectory };
-            PermissionSet permissions = new PermissionSet(null);
-            permissions.AddPermission(new SecurityPermission(SecurityPermissionFlag.Execution));
-            permissions.AddPermission(new ReflectionPermission(ReflectionPermissionFlag.RestrictedMemberAccess));
-            permissions.AddPermission(new SocketPermission(PermissionState.Unrestricted));
-            return AppDomain.CreateDomain("Partial Trust AppDomain", null, setup, permissions);
-        }
-        
-        [Test]
-        public void ExceptionsOnPartialTrust()
-        {
             var testCluster = TestClusterManager.CreateNew();
-            var appDomain = CreatePartialTrustDomain();
-            appDomain.DoCallBack(() => PreserveStackTraceOnConnectAndAssert(testCluster.InitialContactPoint));
-        }
-        
-        public static void PreserveStackTraceOnConnectAndAssert(string contactPoint)
-        {
-            var ex = Assert.Throws<SecurityException>(() => Cluster.Builder().AddContactPoint(contactPoint).Build());
-            string stackTrace = ex.StackTrace;
-
-            //Must maintain the original call stack trace
-            StringAssert.Contains("PreserveStackTraceOnConnectAndAssert", stackTrace);
-            StringAssert.Contains("ExceptionsTests", stackTrace);
-            StringAssert.Contains("Cassandra.Utils.ResolveHostByName", stackTrace); // something actually from the Cassandra library
-        }
+            testCluster.InitClient();
+            var session = testCluster.Session;
+            var ex = Assert.Throws<SyntaxError>(() => session.Execute("SELECT WILL FAIL"));
+#if !NETCORE || DEBUG
+            // On .NET Core using Release compilation, the stack trace is limited
+            StringAssert.Contains(nameof(PreserveStackTraceTest), ex.StackTrace);
+            StringAssert.Contains(nameof(ExceptionsTests), ex.StackTrace);
 #endif
+        }
 
         [Test]
         public void RowSetIteratedTwice()
