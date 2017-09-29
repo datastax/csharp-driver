@@ -82,6 +82,19 @@ namespace Cassandra
         private int _heartBeatInterval = DefaultHeartBeatInterval;
 
         /// <summary>
+        /// DEPRECATED: It will be removed in future versions. Use <see cref="PoolingOptions.Create"/> instead.
+        /// <para>
+        /// Creates a new instance of <see cref="PoolingOptions"/> using defaults suitable for old server versions
+        /// (Apache Cassandra 2.0 and below) for compatibility reasons. It's recommended that you
+        /// use <see cref="PoolingOptions.Create"/> providing the server protocol version.
+        /// </para>
+        /// </summary>
+        public PoolingOptions()
+        {
+
+        }
+
+        /// <summary>
         ///  Number of simultaneous requests on a connection below which connections in
         ///  excess are reclaimed. <p> If an opened connection to an host at distance
         ///  <c>distance</c> handles less than this number of simultaneous requests
@@ -305,9 +318,16 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Gets the default protocol options by protocol version
+        /// Creates a new instance of <see cref="PoolingOptions"/> using the default amount of connections
+        /// and settings based on the protocol version.
+        /// <para>
+        /// For modern server versions (Apache Cassandra 2.1+) the amount of core connections are set to 1,
+        /// setting 2 for max local connections.
+        /// </para>
         /// </summary>
-        internal static PoolingOptions GetDefault(ProtocolVersion protocolVersion)
+        /// <returns>A new instance of <see cref="PoolingOptions"/></returns>
+        /// <seealso cref="ProtocolVersion"/>
+        public static PoolingOptions Create(ProtocolVersion protocolVersion = ProtocolVersion.MaxSupported)
         {
             if (!protocolVersion.Uses2BytesStreamIds())
             {

@@ -164,9 +164,7 @@ namespace Cassandra.IntegrationTests.Core
             var queryOptions = new QueryOptions().SetRetryOnTimeout(false);
             var builder = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint)
                 .WithSocketOptions(socketOptions)
-                .WithPoolingOptions(new PoolingOptions()
-                    .SetCoreConnectionsPerHost(HostDistance.Local, 1)
-                    .SetHeartBeatInterval(0))
+                .WithPoolingOptions(PoolingOptions.Create().SetHeartBeatInterval(0))
                 .WithQueryTimeout(Timeout.Infinite)
                 .WithQueryOptions(queryOptions);
             using (var cluster = builder.Build())
