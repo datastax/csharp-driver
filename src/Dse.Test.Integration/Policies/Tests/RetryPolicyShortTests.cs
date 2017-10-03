@@ -17,6 +17,7 @@
 using System;
 using System.Threading;
 using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Integration.TestClusterManagement.Simulacron;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Policies.Tests
@@ -24,34 +25,41 @@ namespace Dse.Test.Integration.Policies.Tests
     [TestFixture, Category("short")]
     public class RetryPolicyShortTests : TestGlobals
     {
-        private SCassandraManager _scassandraManager;
-
         [OneTimeTearDown]
         public void OnTearDown()
         {
             TestClusterManager.TryRemove();
-            if (_scassandraManager != null)
-            {
-                _scassandraManager.Stop();
-            }
         }
         
         [TestCase("overloaded", typeof(OverloadedException))]
         [TestCase("is_bootstrapping", typeof(IsBootstrappingException))]
         public void RetryPolicy_Extended(string resultError, Type exceptionType)
         {
-            _scassandraManager = SCassandraManager.Instance;
+            var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions());
+            var contactPoint = simulacronCluster.InitialContactPoint;
             var extendedRetryPolicy = new TestExtendedRetryPolicy();
             var builder = Cluster.Builder()
-                                 .AddContactPoint("127.0.0.1")
-                                 .WithPort(_scassandraManager.BinaryPort)
+                                 .AddContactPoint(contactPoint)
                                  .WithRetryPolicy(extendedRetryPolicy)
                                  .WithReconnectionPolicy(new ConstantReconnectionPolicy(long.MaxValue));
             using (var cluster = builder.Build())
             {
                 var session = (Session) cluster.Connect();
                 const string cql = "select * from table1";
-                _scassandraManager.PrimeQuery(cql, "{\"result\" : \"" + resultError + "\"}").Wait();
+                
+                var primeQuery = new
+                {
+                    when = new { query = cql },
+                    then = new
+                    {
+                        result = resultError, 
+                        delay_in_ms = 0,
+                        message = resultError,
+                        ignore_on_prepare = false
+                    }
+                };
+                
+                simulacronCluster.Prime(primeQuery);
                 Exception throwedException = null;
                 try
                 {

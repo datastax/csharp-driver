@@ -162,11 +162,11 @@ namespace Dse
         /// <summary>
         /// Initialize the session
         /// </summary>
-        internal void Init()
+        internal Task Init()
         {
             var handler = new RequestHandler<RowSet>(this, _serializer);
             //Borrow a connection, trying to fail fast
-            TaskHelper.WaitToComplete(handler.GetNextConnection(new Dictionary<IPEndPoint,Exception>()));
+            return handler.GetNextConnection(new Dictionary<IPEndPoint, Exception>());
         }
 
         /// <inheritdoc />

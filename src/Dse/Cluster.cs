@@ -30,7 +30,8 @@ namespace Dse
         private readonly ControlConnection _controlConnection;
         private volatile bool _initialized;
         private volatile Exception _initException;
-        private readonly object _initLock = new object();
+        private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
+
         private readonly Metadata _metadata;
         private readonly Serializer _serializer;
 
@@ -110,7 +111,7 @@ namespace Dse
         {
             get
             {
-                Init();
+                TaskHelper.WaitToComplete(Init());
                 return _metadata;
             }
         }
@@ -137,14 +138,15 @@ namespace Dse
         /// <summary>
         /// Initializes once (Thread-safe) the control connection and metadata associated with the Cluster instance
         /// </summary>
-        private void Init()
+        private async Task Init()
         {
             if (_initialized)
             {
                 //It was already initialized
                 return;
             }
-            lock (_initLock)
+            await _initLock.WaitAsync().ConfigureAwait(false);
+            try
             {
                 if (_initialized)
                 {
@@ -162,7 +164,8 @@ namespace Dse
                     var initialAbortTimeout = Configuration.SocketOptions.ConnectTimeoutMillis * 2 *
                                               _metadata.Hosts.Count;
                     initialAbortTimeout = Math.Max(initialAbortTimeout, ControlConnection.MetadataAbortTimeout);
-                    TaskHelper.WaitToComplete(_controlConnection.Init(), initialAbortTimeout);
+                    await _controlConnection.Init().WaitToCompleteAsync(initialAbortTimeout).ConfigureAwait(false);
+
                     // Initialize policies
                     Configuration.Policies.LoadBalancingPolicy.Initialize(this);
                     Configuration.Policies.SpeculativeExecutionPolicy.Initialize(this);
@@ -194,6 +197,10 @@ namespace Dse
                 _metadata.Hosts.Added += OnHostAdded;
                 _metadata.Hosts.Removed += OnHostRemoved;
             }
+            finally
+            {
+                _initLock.Release();
+            }
         }
 
         /// <inheritdoc />
@@ -212,14 +219,31 @@ namespace Dse
         }
 
         /// <summary>
+        /// Creates a new session on this cluster.
+        /// </summary>
+        public Task<ISession> ConnectAsync()
+        {
+            return ConnectAsync(Configuration.ClientOptions.DefaultKeyspace);
+        }
+
+        /// <summary>
         /// Creates a new session on this cluster and using a keyspace an existing keyspace.
         /// </summary>
         /// <param name="keyspace">Case-sensitive keyspace name to use</param>
         public ISession Connect(string keyspace)
         {
-            Init();
+            return TaskHelper.WaitToComplete(ConnectAsync(keyspace));
+        }
+
+        /// <summary>
+        /// Creates a new session on this cluster and using a keyspace an existing keyspace.
+        /// </summary>
+        /// <param name="keyspace">Case-sensitive keyspace name to use</param>
+        public async Task<ISession> ConnectAsync(string keyspace)
+        {
+            await Init().ConfigureAwait(false);
             var session = new Session(this, Configuration, keyspace, _serializer);
-            session.Init();
+            await session.Init().ConfigureAwait(false);
             _connectedSessions.Add(session);
             _logger.Info("Session connected ({0})", session.GetHashCode());
             return session;
@@ -298,6 +322,12 @@ namespace Dse
         /// <inheritdoc />
         public void Shutdown(int timeoutMs = Timeout.Infinite)
         {
+            ShutdownAsync(timeoutMs).Wait();
+        }
+
+        /// <inheritdoc />
+        public async Task ShutdownAsync(int timeoutMs = Timeout.Infinite)
+        {
             if (!_initialized)
             {
                 return;
@@ -305,13 +335,14 @@ namespace Dse
             var sessions = _connectedSessions.ClearAndGet();
             try
             {
-                Task.Run(() =>
+                var task = Task.Run(() =>
                 {
                     foreach (var s in sessions)
                     {
                         s.Dispose();
                     }
-                }).Wait(timeoutMs);
+                }).WaitToCompleteAsync(timeoutMs);
+                await task.ConfigureAwait(false);
             }
             catch (AggregateException ex)
             {

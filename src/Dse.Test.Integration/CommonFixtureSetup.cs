@@ -5,9 +5,8 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
+using System;
 using System.Diagnostics;
-using System.Globalization;
-using System.Threading;
 using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
@@ -20,7 +19,12 @@ namespace Dse.Test.Integration
         public void SetupTestSuite()
         {
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
-            Trace.TraceInformation("TestBase Setup Complete. Starting Test Run ...");
+            if (Environment.GetEnvironmentVariable("TEST_TRACE")?.ToUpper() == "ON")
+            {
+                Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
+            }
+            Trace.TraceInformation("Starting Test Run ...");
+            SimulacronManager.Instance.Start();
         }
 
         [OneTimeTearDown]
@@ -28,6 +32,7 @@ namespace Dse.Test.Integration
         {
             // this method is executed once after all the fixtures have completed execution
             TestClusterManager.TryRemove();
+            SimulacronManager.Instance.Stop();
         }
     }
 }
