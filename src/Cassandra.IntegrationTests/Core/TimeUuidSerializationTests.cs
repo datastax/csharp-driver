@@ -11,24 +11,20 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short")]
     public class TimeUuidSerializationTests : SharedClusterTest
     {
-        private const string Keyspace = "ks_fortimeuuidserializationtests";
         private const string AllTypesTableName = "all_formats_table";
         private const string MinMaxTimeUuidTable = "min_max_timeuuid";
         private PreparedStatement _insertPrepared;
         private PreparedStatement _selectPrepared;
 
+        protected override string[] SetupQueries => new[]
+        {
+            $"CREATE TABLE {MinMaxTimeUuidTable} (id uuid, timeuuid_sample timeuuid, PRIMARY KEY((id), timeuuid_sample))",
+            String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)
+        };
+        
         public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
-            Session.CreateKeyspaceIfNotExists(Keyspace);
-            try
-            {
-                Session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName));
-                Session.Execute(String.Format("create table {0} (id uuid, timeuuid_sample timeuuid, PRIMARY KEY((id), timeuuid_sample))",
-                    MinMaxTimeUuidTable));
-            }
-            catch (Cassandra.AlreadyExistsException) { }
-
             var insertQuery = String.Format("INSERT INTO {0} (id, timeuuid_sample) VALUES (?, ?)", AllTypesTableName);
             var selectQuery = String.Format("SELECT id, timeuuid_sample, dateOf(timeuuid_sample) FROM {0} WHERE id = ?", AllTypesTableName);
             if (CassandraVersion >= new Version(2, 2))
@@ -81,13 +77,13 @@ namespace Cassandra.IntegrationTests.Core
             var dateOffset = timeuuidSample.GetDate();
 
             var selectMinMaxTimeuuidPrepared = Session.Prepare(string.Format("select * from {0} where id = ? " +
-                                                                         "and timeuuid_sample < maxTimeUuid(?) and timeuuid_sample > minTimeuuid(?)",
+                                                                         "and timeuuid_sample < ? and timeuuid_sample > ?",
                 MinMaxTimeUuidTable));
             var insertMinMaxTimeuuidPrepared = Session.Prepare(string.Format("insert into {0} (id, timeuuid_sample) values (?, ?)",
                 MinMaxTimeUuidTable));
 
             Session.Execute(insertMinMaxTimeuuidPrepared.Bind(guid, timeuuidSample));
-            var row = Session.Execute(selectMinMaxTimeuuidPrepared.Bind(guid, dateOffset, dateOffset)).FirstOrDefault();
+            var row = Session.Execute(selectMinMaxTimeuuidPrepared.Bind(guid, TimeUuid.Max(dateOffset), TimeUuid.Min(dateOffset))).FirstOrDefault();
             Assert.NotNull(row);
         }
 
