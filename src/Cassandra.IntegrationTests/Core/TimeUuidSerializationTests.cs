@@ -13,6 +13,7 @@ namespace Cassandra.IntegrationTests.Core
     {
         private const string Keyspace = "ks_fortimeuuidserializationtests";
         private const string AllTypesTableName = "all_formats_table";
+        private const string MinMaxTimeUuidTable = "min_max_timeuuid";
         private PreparedStatement _insertPrepared;
         private PreparedStatement _selectPrepared;
 
@@ -23,6 +24,8 @@ namespace Cassandra.IntegrationTests.Core
             try
             {
                 Session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName));
+                Session.Execute(String.Format("create table {0} (id uuid, timeuuid_sample timeuuid, PRIMARY KEY((id), timeuuid_sample))",
+                    MinMaxTimeUuidTable));
             }
             catch (Cassandra.AlreadyExistsException) { }
 
@@ -68,6 +71,24 @@ namespace Cassandra.IntegrationTests.Core
                 //The precision is lost, up to milliseconds is fine
                 Assert.AreEqual(timeUuid.GetDate().ToString(format), row.GetValue<DateTimeOffset>(2).ToString(format));
             }
+        }
+
+        [Test]
+        public void TimeUuid_Should_Execute_TimeUuid_CQL_Functions()
+        {
+            var guid = Guid.NewGuid();
+            var timeuuidSample = TimeUuid.NewId();
+            var dateOffset = timeuuidSample.GetDate();
+
+            var selectMinMaxTimeuuidPrepared = Session.Prepare(string.Format("select * from {0} where id = ? " +
+                                                                         "and timeuuid_sample < maxTimeUuid(?) and timeuuid_sample > minTimeuuid(?)",
+                MinMaxTimeUuidTable));
+            var insertMinMaxTimeuuidPrepared = Session.Prepare(string.Format("insert into {0} (id, timeuuid_sample) values (?, ?)",
+                MinMaxTimeUuidTable));
+
+            Session.Execute(insertMinMaxTimeuuidPrepared.Bind(guid, timeuuidSample));
+            var row = Session.Execute(selectMinMaxTimeuuidPrepared.Bind(guid, dateOffset, dateOffset)).FirstOrDefault();
+            Assert.NotNull(row);
         }
 
         [Test]
