@@ -556,6 +556,7 @@ namespace Cassandra
                     _host.BringUpIfDown();
                     return;
                 }
+                t.Exception?.Handle(_ => true);
                 // The connection could not be opened
                 if (IsClosing)
                 {

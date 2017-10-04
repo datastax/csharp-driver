@@ -192,7 +192,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="name">Authenticator name from server.</param>
         /// <exception cref="AuthenticationException" />
-        private Task<Response> StartAuthenticationFlow(string name)
+        private async Task<Response> StartAuthenticationFlow(string name)
         {
             //Determine which authentication flow to use.
             //Check if its using a C* 1.2 with authentication patched version (like DSE 3.1)
@@ -205,23 +205,20 @@ namespace Cassandra
                 if (Configuration.AuthInfoProvider == null)
                 {
                     throw new AuthenticationException(
-                        String.Format("Host {0} requires authentication, but no credentials provided in Cluster configuration", Address),
+                        $"Host {Address} requires authentication, but no credentials provided in Cluster configuration",
                         Address);
                 }
                 var credentialsProvider = Configuration.AuthInfoProvider;
                 var credentials = credentialsProvider.GetAuthInfos(Address);
                 var request = new CredentialsRequest(credentials);
-                return Send(request)
-                    .ContinueSync(response =>
-                    {
-                        if (!(response is ReadyResponse))
-                        {
-                            //If Cassandra replied with a auth response error
-                            //The task already is faulted and the exception was already thrown.
-                            throw new ProtocolErrorException("Expected SASL response, obtained " + response.GetType().Name);
-                        }
-                        return response;
-                    });
+                var response = await Send(request).ConfigureAwait(false);
+                if (!(response is ReadyResponse))
+                {
+                    //If Cassandra replied with a auth response error
+                    //The task already is faulted and the exception was already thrown.
+                    throw new ProtocolErrorException("Expected SASL response, obtained " + response.GetType().Name);
+                }
+                return response;
             }
             //Use protocol v2+ authentication flow
             if (Configuration.AuthProvider is IAuthProviderNamed)
@@ -233,40 +230,38 @@ namespace Cassandra
             var authenticator = Configuration.AuthProvider.NewAuthenticator(Address);
 
             var initialResponse = authenticator.InitialResponse() ?? new byte[0];
-            return Authenticate(initialResponse, authenticator);
+            return await Authenticate(initialResponse, authenticator).ConfigureAwait(false);
         }
 
         /// <exception cref="AuthenticationException" />
-        private Task<Response> Authenticate(byte[] token, IAuthenticator authenticator)
+        private async Task<Response> Authenticate(byte[] token, IAuthenticator authenticator)
         {
             var request = new AuthResponseRequest(token);
-            return Send(request)
-                .Then(response =>
+            var response = await Send(request).ConfigureAwait(false);
+            
+            if (response is AuthSuccessResponse)
+            {
+                // It is now authenticated, dispose Authenticator if it implements IDisposable()
+                // ReSharper disable once SuspiciousTypeConversion.Global
+                var disposableAuthenticator = authenticator as IDisposable;
+                if (disposableAuthenticator != null)
                 {
-                    if (response is AuthSuccessResponse)
-                    {
-                        //It is now authenticated
-                        // ReSharper disable once SuspiciousTypeConversion.Global
-                        var disposableAuthenticator = authenticator as IDisposable;
-                        if (disposableAuthenticator != null)
-                        {
-                            disposableAuthenticator.Dispose();
-                        }
-                        return TaskHelper.ToTask(response);
-                    }
-                    if (response is AuthChallengeResponse)
-                    {
-                        token = authenticator.EvaluateChallenge(((AuthChallengeResponse)response).Token);
-                        if (token == null)
-                        {
-                            // If we get a null response, then authentication has completed
-                            //return without sending a further response back to the server.
-                            return TaskHelper.ToTask(response);
-                        }
-                        return Authenticate(token, authenticator);
-                    }
-                    throw new ProtocolErrorException("Expected SASL response, obtained " + response.GetType().Name);
-                });
+                    disposableAuthenticator.Dispose();
+                }
+                return response;
+            }
+            if (response is AuthChallengeResponse)
+            {
+                token = authenticator.EvaluateChallenge(((AuthChallengeResponse)response).Token);
+                if (token == null)
+                {
+                    // If we get a null response, then authentication has completed
+                    // return without sending a further response back to the server.
+                    return response;
+                }
+                return await Authenticate(token, authenticator).ConfigureAwait(false);
+            }
+            throw new ProtocolErrorException("Expected SASL response, obtained " + response.GetType().Name);
         }
 
         /// <summary>
@@ -400,7 +395,7 @@ namespace Cassandra
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
         /// <exception cref="AuthenticationException" />
         /// <exception cref="UnsupportedProtocolVersionException"></exception>
-        public Task<Response> Open()
+        public async Task<Response> Open()
         {
             _freeOperations = new ConcurrentStack<short>(Enumerable.Range(0, MaxConcurrentRequests).Select(s => (short)s).Reverse());
             _pendingOperations = new ConcurrentDictionary<short, OperationState>();
@@ -415,7 +410,7 @@ namespace Cassandra
 #if !NETCORE
                 Compressor = new LZ4Compressor();
 #else
-                return TaskHelper.FromException<Response>(new NotSupportedException("Lz4 compression not supported under .NETCore"));
+                throw new NotSupportedException("Lz4 compression not supported under .NETCore");
 #endif
             }
             else if (Options.Compression == CompressionType.Snappy)
@@ -431,48 +426,32 @@ namespace Cassandra
             _tcpSocket.Read += ReadHandler;
             _tcpSocket.WriteCompleted += WriteCompletedHandler;
             var protocolVersion = _serializer.ProtocolVersion;
-            return _tcpSocket
-                .Connect()
-                .Then(_ => Startup())
-                .ContinueWith(t =>
+            await _tcpSocket.Connect().ConfigureAwait(false);
+            Response response;
+            try
+            {
+                response = await Startup().ConfigureAwait(false);
+            }
+            catch (ProtocolErrorException ex)
+            {
+                // As we are starting up, check for protocol version errors.
+                // There is no other way than checking the error message from Cassandra
+                if (ex.Message.Contains("Invalid or unsupported protocol version"))
                 {
-                    if (t.IsFaulted && t.Exception != null)
-                    {
-                        //Adapt the inner exception and rethrow
-                        var ex = t.Exception.InnerException;
-                        if (ex is ProtocolErrorException)
-                        {
-                            //As we are starting up, check for protocol version errors
-                            //There is no other way than checking the error message from Cassandra
-                            if (ex.Message.Contains("Invalid or unsupported protocol version"))
-                            {
-                                throw new UnsupportedProtocolVersionException(protocolVersion, ex);
-                            }
-                        }
-                        if (ex is ServerErrorException && protocolVersion.CanStartupResponseErrorBeWrapped() && 
-                            ex.Message.Contains("ProtocolException: Invalid or unsupported protocol version"))
-                        {
-                            //For some versions of Cassandra, the error is wrapped into a server error
-                            //See CASSANDRA-9451
-                            throw new UnsupportedProtocolVersionException(protocolVersion, ex);
-                        }
-                        // ReSharper disable once PossibleNullReferenceException
-                        throw ex;
-                    }
-                    return t.Result;
-                }, TaskContinuationOptions.ExecuteSynchronously)
-                .Then(response =>
-                {
-                    if (response is AuthenticateResponse)
-                    {
-                        return StartAuthenticationFlow(((AuthenticateResponse)response).Authenticator);
-                    }
-                    if (response is ReadyResponse)
-                    {
-                        return TaskHelper.ToTask(response);
-                    }
-                    throw new DriverInternalError("Expected READY or AUTHENTICATE, obtained " + response.GetType().Name);
-                });
+                    throw new UnsupportedProtocolVersionException(protocolVersion, ex);
+                }
+                throw;
+            }
+            if (response is AuthenticateResponse)
+            {
+                return await StartAuthenticationFlow(((AuthenticateResponse)response).Authenticator)
+                    .ConfigureAwait(false);
+            }
+            if (response is ReadyResponse)
+            {
+                return response;
+            }
+            throw new DriverInternalError("Expected READY or AUTHENTICATE, obtained " + response.GetType().Name);
         }
 
         /// <summary>

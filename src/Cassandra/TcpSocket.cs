@@ -15,7 +15,6 @@
 //
 
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Security;
@@ -205,6 +204,7 @@ namespace Cassandra
                      {
                          if (t.Exception != null)
                          {
+                             t.Exception.Handle(_ => true);
                              // ReSharper disable once AssignNullToNotNullAttribute
                              tcs.TrySetException(t.Exception.InnerException);
                              return;
@@ -311,6 +311,7 @@ namespace Cassandra
         {
             if (readTask.Exception != null)
             {
+                readTask.Exception.Handle(_ => true);
                 HandleStreamException(readTask.Exception.InnerException);
                 return;
             }
@@ -383,6 +384,7 @@ namespace Cassandra
         {
             if (writeTask.Exception != null)
             {
+                writeTask.Exception.Handle(_ => true);
                 HandleStreamException(writeTask.Exception.InnerException);
                 return;
             }

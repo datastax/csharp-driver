@@ -178,7 +178,7 @@ namespace Cassandra
                         ex.ProtocolVersion);
                 }
                 _serializer.ProtocolVersion = nextVersion;
-                _logger.Info(string.Format("{0}, trying with version {1:D}", ex.Message, nextVersion));
+                _logger.Info("{0}, trying with version {1:D}", ex.Message, nextVersion);
                 c.Dispose();
                 if (!nextVersion.IsSupported())
                 {
@@ -272,7 +272,7 @@ namespace Cassandra
             try
             {
                 await RefreshNodeList().ConfigureAwait(false);
-                TaskHelper.WaitToComplete(_metadata.RefreshKeyspaces(false), MetadataAbortTimeout);
+                await _metadata.RefreshKeyspaces(false).ConfigureAwait(false);
                 _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             }
             catch (SocketException ex)
@@ -538,29 +538,28 @@ namespace Cassandra
             return TaskHelper.WaitToComplete(QueryAsync(cqlQuery, retry), MetadataAbortTimeout);
         }
 
-        public Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry = false)
+        public async Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry = false)
         {
             var request = new QueryRequest(ProtocolVersion, cqlQuery, false, QueryProtocolOptions.Default);
-            var task = _connection
-                .Send(request)
-                .ContinueSync(GetRowSet);
-            if (!retry)
+            Response response;
+            try
             {
-                return task;
+                response = await _connection.Send(request).ConfigureAwait(false);
             }
-            return task.ContinueWith(t =>
+            catch (SocketException ex)
             {
-                var ex = t.Exception != null ? t.Exception.InnerException : null;
-                if (ex is SocketException)
+                const string message = "There was an error while executing on the host {0} the query '{1}'";
+                _logger.Error(string.Format(message, cqlQuery, _connection.Address), ex);
+                if (!retry)
                 {
-                    const string message = "There was an error while executing on the host {0} the query '{1}'";
-                    _logger.Error(string.Format(message, cqlQuery, _connection.Address), ex);
-                    //Reconnect and query again
-                    return Reconnect()
-                        .Then(_ => QueryAsync(cqlQuery, false));
+                    throw;
                 }
-                return task;
-            }).Unwrap();
+                // Try reconnect
+                await Reconnect().ConfigureAwait(false);
+                // Query with retry set to false
+                return await QueryAsync(cqlQuery, false).ConfigureAwait(false);
+            }
+            return GetRowSet(response);
         }
 
         /// <summary>
