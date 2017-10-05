@@ -20,6 +20,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 
@@ -184,6 +185,29 @@ namespace Cassandra.IntegrationTests.TestBase
             return comparison == versionAttr.Comparison;
         }
 
+        public static async Task Connect(Cluster cluster, bool asyncConnect, Action<ISession> action)
+        {
+            if (asyncConnect)
+            {
+                try
+                {
+                    var session = await cluster.ConnectAsync();
+                    action(session);
+                }
+                finally
+                {
+                    cluster?.ShutdownAsync().Wait();
+                }
+            }
+            else
+            {
+                using (cluster)
+                {
+                    var session = cluster.Connect();
+                    action(session);
+                }
+            }
+        }
 
     }
 }
