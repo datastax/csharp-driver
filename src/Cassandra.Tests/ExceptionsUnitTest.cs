@@ -14,6 +14,9 @@
 // limitations under the License.
 //
 
+using System;
+using System.Collections.Generic;
+using System.Net;
 using NUnit.Framework;
 
 namespace Cassandra.Tests
@@ -43,6 +46,54 @@ namespace Cassandra.Tests
             var ex = new WriteFailureException(ConsistencyLevel.All, 8, 10, "SIMPLE", 2);
             StringAssert.Contains("Server failure during write query at consistency ALL", ex.Message);
             StringAssert.Contains(" (10 responses were required but only 8 replica responded, 2 failed)", ex.Message);
+        }
+
+        [Test]
+        public void NoHostAvailableException_Message_Includes_No_Host_Tried()
+        {
+            var ex = new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>());
+            Assert.AreEqual("No host is available to be queried (no host tried)", ex.Message);
+        }
+
+        [Test]
+        public void NoHostAvailableException_Message_Includes_First_Host()
+        {
+            var ex = new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>
+            {
+                { new IPEndPoint(IPAddress.Parse("10.10.0.1"), 9042), new AuthenticationException("Bad credentials") }
+            });
+            Assert.AreEqual(
+                "All hosts tried for query failed (tried 10.10.0.1:9042: AuthenticationException 'Bad credentials')", 
+                ex.Message);
+        }
+
+        [Test]
+        public void NoHostAvailableException_Message_Includes_Message_To_See_Errors_Property()
+        {
+            var ex = new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>
+            {
+                { new IPEndPoint(IPAddress.Parse("10.10.0.1"), 9042), new AuthenticationException("Bad credentials") },
+                { new IPEndPoint(IPAddress.Parse("10.10.0.2"), 9042), new AuthenticationException("No credentials") },
+                { new IPEndPoint(IPAddress.Parse("10.10.0.3"), 9042), new AuthenticationException("No credentials") }
+            });
+            Assert.AreEqual(
+                "All hosts tried for query failed (tried 10.10.0.1:9042: AuthenticationException 'Bad credentials';" +
+                " 10.10.0.2:9042: AuthenticationException 'No credentials'; ...), see Errors property for more info", 
+                ex.Message);
+        }
+
+        [Test]
+        public void NoHostAvailableException_Message_Can_Contain_Host_Without_Info()
+        {
+            var ex = new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>
+            {
+                { new IPEndPoint(IPAddress.Parse("10.10.0.1"), 9042), null },
+                { new IPEndPoint(IPAddress.Parse("10.10.0.2"), 9042), new AuthenticationException("No credentials") }
+            });
+            Assert.AreEqual(
+                "All hosts tried for query failed (tried 10.10.0.1:9042; 10.10.0.2:9042: AuthenticationException " +
+                "'No credentials')", 
+                ex.Message);
         }
     }
 }
