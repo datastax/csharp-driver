@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,12 +24,6 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestTimeout(1000 * 60 * 4), TestCase(false), TestCase(true)]
         public void StopForce_With_Inflight_Requests(bool useStreamMode)
         {
-            Trace.TraceInformation("::::::Starting");
-            TaskScheduler.UnobservedTaskException += (sender, e) =>
-            {
-                Trace.TraceInformation("-------!!!!!!!!--------");
-                Trace.TraceInformation(e.ToString());
-            };
             var testCluster = TestClusterManager.CreateNew(2);
             const int connectionLength = 4;
             var builder = Cluster.Builder()
@@ -39,13 +32,11 @@ namespace Cassandra.IntegrationTests.Core
                     .SetCoreConnectionsPerHost(HostDistance.Local, connectionLength)
                     .SetMaxConnectionsPerHost(HostDistance.Local, connectionLength)
                     .SetHeartBeatInterval(0))
-                .WithReconnectionPolicy(new ConstantReconnectionPolicy(300))
                 .WithRetryPolicy(AlwaysIgnoreRetryPolicy.Instance)
                 .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(0).SetStreamMode(useStreamMode))
                 .WithLoadBalancingPolicy(new RoundRobinPolicy());
             using (var cluster = builder.Build())
             {
-                
                 var session = (Session)cluster.Connect();
                 session.Execute(string.Format(TestUtils.CreateKeyspaceSimpleFormat, "ks1", 2));
                 session.Execute("CREATE TABLE ks1.table1 (id1 int, id2 int, PRIMARY KEY (id1, id2))");
@@ -64,13 +55,7 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(
                     hosts.Length * connectionLength, 
                     hosts.Sum(h => session.GetOrCreateConnectionPool(h, HostDistance.Local).OpenConnections));
-                ExecuteMultiple(testCluster, session, ps, true, 8000, 20000).Wait();
-                Thread.Sleep(5000);
-                GC.Collect();
-                testCluster.Start(2);
-                Thread.Sleep(5000);
-                GC.Collect();
-                GC.Collect();
+                ExecuteMultiple(testCluster, session, ps, true, 8000, 200000).Wait();
             }
         }
 
