@@ -155,7 +155,14 @@ namespace Cassandra
             }
             Logger.Warning("Connection to {0} considered as unhealthy after {1} timed out operations", 
                 _host.Address, timedOutOps);
-            //Defunct: close it and remove it from the pool
+            Remove(c);
+        }
+
+        /// <summary>
+        /// Closes the connection and removes it from the pool
+        /// </summary>
+        public void Remove(Connection c)
+        {
             OnConnectionClosing(c);
             c.Dispose();
         }

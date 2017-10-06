@@ -258,7 +258,6 @@ namespace Cassandra.Requests
             Host host;
             // Use the concrete implementation in this method
             var session = (Session) _session;
-            Connection c = null;
             // While there is an available host
             while ((host = GetNextHost()) != null && !session.IsDisposed)
             {
@@ -272,45 +271,65 @@ namespace Cassandra.Requests
                     // We should not use an ignored host
                     continue;
                 }
-                if (!_host.IsUp)
+                if (!host.IsUp)
                 {
                     // The host is not considered UP by the driver.
                     // We could have filtered earlier by hosts that are considered UP, but we must check the host
                     // distance first.
                     continue;
                 }
-                var hostPool = session.GetOrCreateConnectionPool(host, distance);
-                try
-                {
-                    c = await hostPool.BorrowConnection().ConfigureAwait(false);
-                }
-                catch (UnsupportedProtocolVersionException ex)
-                {
-                    // The version of the protocol is not supported on this host
-                    // Most likely, we are using a higher protocol version than the host supports
-                    Logger.Error("Host {0} does not support protocol version {1}. You should use a fixed protocol " +
-                                 "version during rolling upgrades of the cluster. Setting the host as DOWN to " +
-                                 "avoid hitting this node as part of the query plan for a while", host.Address, ex.ProtocolVersion);
-                    triedHosts[host.Address] = ex;
-                    session.MarkAsDownAndScheduleReconnection(host, hostPool);
-                }
-                catch (Exception ex)
-                {
-                    // Probably a SocketException/AuthenticationException, move along
-                    Logger.Error("Exception while trying borrow a connection from a pool", ex);
-                    triedHosts[host.Address] = ex;
-                }
+                var c = await GetConnectionFromHost(host, distance, session, triedHosts);
                 if (c == null)
                 {
                     continue;
                 }
-                await c.SetKeyspace(_session.Keyspace).ConfigureAwait(false);
-                break;
+                return c;
             }
+            throw new NoHostAvailableException(triedHosts);
+        }
 
+        /// <summary>
+        /// Gets a connection from a host or null if its not possible, filling the triedHosts map with the failures.
+        /// </summary>
+        internal static async Task<Connection> GetConnectionFromHost(Host host, HostDistance distance, Session session,
+                                                                     IDictionary<IPEndPoint, Exception> triedHosts)
+        {
+            Connection c = null;
+            var hostPool = session.GetOrCreateConnectionPool(host, distance);
+            try
+            {
+                c = await hostPool.BorrowConnection().ConfigureAwait(false);
+            }
+            catch (UnsupportedProtocolVersionException ex)
+            {
+                // The version of the protocol is not supported on this host
+                // Most likely, we are using a higher protocol version than the host supports
+                Logger.Error("Host {0} does not support protocol version {1}. You should use a fixed protocol " +
+                             "version during rolling upgrades of the cluster. Setting the host as DOWN to " +
+                             "avoid hitting this node as part of the query plan for a while", host.Address, ex.ProtocolVersion);
+                triedHosts[host.Address] = ex;
+                session.MarkAsDownAndScheduleReconnection(host, hostPool);
+            }
+            catch (Exception ex)
+            {
+                // Probably a SocketException/AuthenticationException, move along
+                Logger.Error("Exception while trying borrow a connection from a pool", ex);
+                triedHosts[host.Address] = ex;
+            }
             if (c == null)
             {
-                throw new NoHostAvailableException(triedHosts);
+                return null;
+            }
+            try
+            {
+                await c.SetKeyspace(session.Keyspace).ConfigureAwait(false);
+            }
+            catch (SocketException)
+            {
+                hostPool.Remove(c);
+                // A socket exception on the current connection does not mean that all the pool is closed:
+                // Retry on the same host
+                return await GetConnectionFromHost(host, distance, session, triedHosts);
             }
             return c;
         }

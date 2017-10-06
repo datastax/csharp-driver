@@ -1,4 +1,7 @@
-﻿using System.Net.Http;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
@@ -109,5 +112,21 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             return Put(GetPath("listener") + "?after=" + attempts + "&type=" + type, null);
         }
 
+        public IList<dynamic> GetQueries(string query, string queryType = "QUERY")
+        {
+            var response = GetLogs();
+            IEnumerable<dynamic> dcInfo = response?.data_centers;
+            if (dcInfo == null)
+            {
+                return new List<dynamic>(0);
+            }
+            return dcInfo
+                .Select(dc => dc.nodes)
+                .Where(nodes => nodes != null)
+                .SelectMany<dynamic, dynamic>(nodes => nodes)
+                .Where(n => n.queries != null)
+                .SelectMany<dynamic, dynamic>(n => n.queries)
+                .Where(q => q.type == queryType && q.query == query).ToArray();
+        }
     }
 }

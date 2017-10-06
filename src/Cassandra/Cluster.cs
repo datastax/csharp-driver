@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -56,6 +57,12 @@ namespace Cassandra
         {
             return _controlConnection;
         }
+        
+        /// <summary>
+        /// Gets the the prepared statements cache
+        /// </summary>
+        internal ConcurrentDictionary<byte[], PreparedStatement> PreparedQueries { get; } 
+            = new ConcurrentDictionary<byte[], PreparedStatement>(new ByteArrayComparer());
 
         /// <summary>
         ///  Build a new cluster based on the provided initializer. <p> Note that for

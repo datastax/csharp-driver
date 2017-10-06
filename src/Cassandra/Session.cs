@@ -13,7 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Net;
@@ -22,7 +22,7 @@ using System.Collections.Concurrent;
 using System.Threading.Tasks;
  using Cassandra.Tasks;
 using Cassandra.Requests;
-﻿using Cassandra.Serialization;
+ using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -317,14 +317,14 @@ namespace Cassandra
             {
                 Payload = customPayload
             };
-            var handler = new RequestHandler<PreparedStatement>(this, _serializer, request);
-            var ps = await handler.Send().ConfigureAwait(false);
+            var ps = await PrepareHandler.Send(this, _serializer, request).ConfigureAwait(false);
             await SetPrepareTableInfo(ps).ConfigureAwait(false);
             return ps;
         }
 
         private async Task SetPrepareTableInfo(PreparedStatement ps)
         {
+            //TODO: Move
             const string msgRoutingNotSet = "Routing information could not be set for query \"{0}\"";
             var column = ps.Metadata.Columns.FirstOrDefault();
             if (column == null || column.Keyspace == null)
