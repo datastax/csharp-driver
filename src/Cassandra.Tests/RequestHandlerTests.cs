@@ -311,6 +311,29 @@ namespace Cassandra.Tests
             var timestamp = BeConverter.ToInt64(bodyBuffer, offset);
             Assert.AreEqual(TypeSerializer.SinceUnixEpoch(expectedTimestamp).Ticks / 10, timestamp);
         }
+
+        [Test]
+        public void GetRequest_Batch_With_64K_Queries()
+        {
+            var batch = new BatchStatement();
+            for (var i = 0; i < ushort.MaxValue; i++)
+            {
+                batch.Add(new SimpleStatement("QUERY"));
+            }
+            var config = new Configuration(
+                Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.GetDefault(ProtocolVersion.MaxSupported), new SocketOptions(),
+                new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
+            var request = RequestHandler<RowSet>.GetRequest(batch, Serializer, config);
+            var stream = new MemoryStream();
+            request.WriteFrame(1, stream, Serializer);
+            var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);
+            var bodyBuffer = new byte[stream.Length - headerSize];
+            stream.Position = headerSize;
+            stream.Read(bodyBuffer, 0, bodyBuffer.Length);
+            // The batch request is composed by:
+            // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
+            CollectionAssert.AreEqual(new byte[] {0xff, 0xff}, bodyBuffer.Skip(1).Take(2));
+        }
         
         /// <summary>
         /// A timestamp generator that generates empty values 

@@ -243,5 +243,18 @@ namespace Cassandra.Tests
                 .Concat(new byte[] { 0 });
             CollectionAssert.AreEqual(expectedRoutingKey, batch.RoutingKey.RawRoutingKey);
         }
+
+        [Test]
+        public void BatchStatement_Max_Queries_Test()
+        {
+            var batch = new BatchStatement();
+            var id = Guid.NewGuid();
+            for (int i = 0; i < ushort.MaxValue; i++)
+            {
+                batch.Add(new SimpleStatement("QUERY", id));
+            }
+            // It shouldn't allow more
+            Assert.Throws<ArgumentOutOfRangeException>(() => batch.Add(new SimpleStatement("QUERY", id)));
+        }
     }
 }

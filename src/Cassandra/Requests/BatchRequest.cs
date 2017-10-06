@@ -92,18 +92,18 @@ namespace Cassandra.Requests
                 wb.WriteBytesMap(Payload);
             }
             wb.WriteByte((byte) _type);
-            wb.WriteInt16((short) _requests.Count);
+            wb.WriteUInt16((ushort) _requests.Count);
             foreach (var br in _requests)
             {
                 br.WriteToBatch(wb);
             }
-            wb.WriteInt16((short) Consistency);
+            wb.WriteUInt16((ushort) Consistency);
             if (protocolVersion.SupportsTimestamp())
             {
                 wb.WriteByte((byte)_batchFlags);
                 if (_serialConsistency != null)
                 {
-                    wb.WriteInt16((short)_serialConsistency.Value);
+                    wb.WriteUInt16((ushort)_serialConsistency.Value);
                 }
                 if (_timestamp != null)
                 {

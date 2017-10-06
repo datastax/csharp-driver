@@ -136,7 +136,7 @@ namespace Cassandra.Tests
                 {
                     var writer = new FrameWriter(stream, new Serializer(protocolVersion));
                     writer.WriteFrameHeader(0, 127, 8);
-                    writer.WriteInt16(Convert.ToInt16(0x0900 + i));
+                    writer.WriteUInt16(Convert.ToUInt16(0x0900 + i));
                     var length = writer.Close();
                     Assert.AreEqual(frameLength, length);
                 }
