@@ -103,5 +103,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
         {
             return Delete(GetPath("listener") + "?after=" + attempts + "&type=" + type);
         }
+
+        public Task<dynamic> EnableConnectionListener(int attempts = 0, string type = "unbind")
+        {
+            return Put(GetPath("listener") + "?after=" + attempts + "&type=" + type, null);
+        }
+
     }
 }

@@ -30,10 +30,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void Start()
         {
-            if (_started)
-            {
-                return;
-            }
+            Stop();
             _simulacronProcess = new Process();
             var jarPath = Environment.GetEnvironmentVariable("SIMULACRON_PATH");
             if (string.IsNullOrEmpty(jarPath))

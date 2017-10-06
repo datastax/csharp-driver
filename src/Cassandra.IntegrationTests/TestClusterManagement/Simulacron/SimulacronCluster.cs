@@ -93,5 +93,10 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             }
             return result;
         }
+
+        public Task Remove()
+        {
+            return Delete(GetPath("cluster"));
+        }
     }
 }
