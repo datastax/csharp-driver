@@ -56,7 +56,7 @@ namespace Cassandra.Tests
             var stmt = new SimpleStatement("DUMMY QUERY");
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
-            var request = (QueryRequest)RequestHandler<RowSet>.GetRequest(stmt, Serializer, GetConfig());
+            var request = (QueryRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
             Assert.AreEqual(DefaultQueryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(DefaultQueryOptions.GetConsistencyLevel(), request.Consistency);
         }
@@ -68,7 +68,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
             var queryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalQuorum).SetPageSize(100);
-            var request = (QueryRequest)RequestHandler<RowSet>.GetRequest(stmt, Serializer, GetConfig(queryOptions));
+            var request = (QueryRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig(queryOptions));
             Assert.AreEqual(100, request.PageSize);
             Assert.AreEqual(queryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(queryOptions.GetConsistencyLevel(), request.Consistency);
@@ -85,7 +85,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(350, stmt.PageSize);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, stmt.ConsistencyLevel);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, stmt.SerialConsistencyLevel);
-            var request = (QueryRequest)RequestHandler<RowSet>.GetRequest(stmt, Serializer, GetConfig());
+            var request = (QueryRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
             Assert.AreEqual(350, request.PageSize);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, request.Consistency);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, request.SerialConsistency);
@@ -98,7 +98,7 @@ namespace Cassandra.Tests
             var stmt = ps.Bind();
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
-            var request = (ExecuteRequest)RequestHandler<RowSet>.GetRequest(stmt, Serializer, GetConfig());
+            var request = (ExecuteRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
             Assert.AreEqual(DefaultQueryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(DefaultQueryOptions.GetConsistencyLevel(), request.Consistency);
         }
@@ -111,7 +111,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
             var queryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalQuorum).SetPageSize(100);
-            var request = (ExecuteRequest)RequestHandler<RowSet>.GetRequest(stmt, Serializer, GetConfig(queryOptions));
+            var request = (ExecuteRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig(queryOptions));
             Assert.AreEqual(100, request.PageSize);
             Assert.AreEqual(queryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(queryOptions.GetConsistencyLevel(), request.Consistency);
@@ -129,7 +129,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(350, stmt.PageSize);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, stmt.ConsistencyLevel);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, stmt.SerialConsistencyLevel);
-            var request = (ExecuteRequest)RequestHandler<RowSet>.GetRequest(stmt, Serializer, GetConfig());
+            var request = (ExecuteRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
             Assert.AreEqual(350, request.PageSize);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, request.Consistency);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, request.SerialConsistency);
@@ -140,7 +140,7 @@ namespace Cassandra.Tests
         {
             var stmt = new BatchStatement();
             Assert.Null(stmt.ConsistencyLevel);
-            var request = (BatchRequest)RequestHandler<RowSet>.GetRequest(stmt, Serializer, GetConfig());
+            var request = (BatchRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
             Assert.AreEqual(DefaultQueryOptions.GetConsistencyLevel(), request.Consistency);
         }
 
@@ -150,7 +150,7 @@ namespace Cassandra.Tests
             var stmt = new BatchStatement();
             Assert.Null(stmt.ConsistencyLevel);
             var queryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalQuorum);
-            var request = (BatchRequest)RequestHandler<RowSet>.GetRequest(stmt, Serializer, GetConfig(queryOptions));
+            var request = (BatchRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig(queryOptions));
             Assert.AreEqual(queryOptions.GetConsistencyLevel(), request.Consistency);
         }
 
@@ -160,7 +160,7 @@ namespace Cassandra.Tests
             var stmt = new BatchStatement();
             stmt.SetConsistencyLevel(ConsistencyLevel.EachQuorum);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, stmt.ConsistencyLevel);
-            var request = (BatchRequest)RequestHandler<RowSet>.GetRequest(stmt, Serializer, GetConfig());
+            var request = (BatchRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
             Assert.AreEqual(ConsistencyLevel.EachQuorum, request.Consistency);
         }
 
@@ -172,31 +172,31 @@ namespace Cassandra.Tests
             var statement = new SimpleStatement("SELECT WILL FAIL");
             //Using default retry policy the decision will always be to rethrow on read/write timeout
             var expected = RetryDecision.RetryDecisionType.Rethrow;
-            var decision = RequestExecution<RowSet>.GetRetryDecision(
+            var decision = RequestExecution.GetRetryDecision(
                 new ReadTimeoutException(ConsistencyLevel.Quorum, 1, 2, true), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
 
-            decision = RequestExecution<RowSet>.GetRetryDecision(
+            decision = RequestExecution.GetRetryDecision(
                 new WriteTimeoutException(ConsistencyLevel.Quorum, 1, 2, "SIMPLE"), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
 
-            decision = RequestExecution<RowSet>.GetRetryDecision(
+            decision = RequestExecution.GetRetryDecision(
                 new UnavailableException(ConsistencyLevel.Quorum, 2, 1), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
 
-            decision = RequestExecution<RowSet>.GetRetryDecision(
+            decision = RequestExecution.GetRetryDecision(
                 new Exception(), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
 
             //Expecting to retry when a Cassandra node is Bootstrapping/overloaded
             expected = RetryDecision.RetryDecisionType.Retry;
-            decision = RequestExecution<RowSet>.GetRetryDecision(
+            decision = RequestExecution.GetRetryDecision(
                 new OverloadedException(null), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
-            decision = RequestExecution<RowSet>.GetRetryDecision(
+            decision = RequestExecution.GetRetryDecision(
                 new IsBootstrappingException(null), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
-            decision = RequestExecution<RowSet>.GetRetryDecision(
+            decision = RequestExecution.GetRetryDecision(
                 new TruncateException(null), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
         }
@@ -207,7 +207,7 @@ namespace Cassandra.Tests
             // Timestamp generator should be enabled by default
             var statement = new SimpleStatement("QUERY");
             var config = new Configuration();
-            var request = RequestHandler<RowSet>.GetRequest(statement, Serializer, config);
+            var request = RequestHandler.GetRequest(statement, Serializer, config);
             var stream = new MemoryStream();
             request.WriteFrame(1, stream, Serializer);
             var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);
@@ -248,7 +248,7 @@ namespace Cassandra.Tests
             var config = new Configuration(
                 policies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(), new ClientOptions(),
                 NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
-            var request = RequestHandler<RowSet>.GetRequest(statement, Serializer.Default, config);
+            var request = RequestHandler.GetRequest(statement, Serializer.Default, config);
             var stream = new MemoryStream();
             request.WriteFrame(1, stream, Serializer);
             var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);
@@ -286,7 +286,7 @@ namespace Cassandra.Tests
             var config = new Configuration(
                 policies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(), new ClientOptions(),
                 NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
-            var request = RequestHandler<RowSet>.GetRequest(statement, Serializer, config);
+            var request = RequestHandler.GetRequest(statement, Serializer, config);
             var stream = new MemoryStream();
             request.WriteFrame(1, stream, Serializer);
             var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);

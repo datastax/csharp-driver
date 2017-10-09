@@ -22,6 +22,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Collections;
+using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
 
@@ -212,6 +213,7 @@ namespace Cassandra
                 _initialized = true;
                 _metadata.Hosts.Added += OnHostAdded;
                 _metadata.Hosts.Removed += OnHostRemoved;
+                _metadata.Hosts.Up += OnHostUp;
             }
             finally
             {
@@ -325,6 +327,16 @@ namespace Cassandra
             {
                 HostAdded(h);
             }
+        }
+
+        private void OnHostUp(Host h)
+        {
+            if (!Configuration.QueryOptions.IsReprepareOnUp())
+            {
+                return;
+            }
+            // We should prepare all current queries on the host
+            PrepareHandler.PrepareAllQueries(this, _connectedSessions, h).Forget();
         }
 
         /// <summary>

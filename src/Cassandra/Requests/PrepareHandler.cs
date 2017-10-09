@@ -46,7 +46,7 @@ namespace Cassandra.Requests
                                                            PrepareRequest request)
         {
             // The cast to Cluster class is safe as we are using the Session concrete implementation as parameter
-            var cluster = ((Cluster) session.Cluster);
+            var cluster = (Cluster) session.Cluster;
             var lbp = cluster.Configuration.Policies.LoadBalancingPolicy;
             var handler = new PrepareHandler(serializer, lbp.NewQueryPlan(session.Keyspace, null).GetEnumerator());
             var ps = await handler.Prepare(request, session, null).ConfigureAwait(false);
@@ -66,7 +66,7 @@ namespace Cassandra.Requests
             return ps;
         }
 
-        internal static Task PrepareAllQueries(Cluster cluster, Host host)
+        internal static Task PrepareAllQueries(Cluster cluster, IEnumerable<Session> sessions, Host host)
         {
             foreach (var ps in cluster.PreparedQueries.Values)
             {
@@ -90,12 +90,21 @@ namespace Cassandra.Requests
             {
                 response = await connection.Send(request).ConfigureAwait(false);
             }
-            catch (SocketException ex)
+            catch (Exception ex) when (CanBeRetried(ex))
             {
                 triedHosts[connection.Address] = ex;
                 return await Prepare(request, session, triedHosts).ConfigureAwait(false);
             }
             return GetPreparedStatement(response, request, connection.Keyspace);
+        }
+
+        /// <summary>
+        /// Determines if the request can be retried on the next node, based on the exception information.
+        /// </summary>
+        private static bool CanBeRetried(Exception ex)
+        {
+            return ex is SocketException || ex is OperationTimedOutException || ex is IsBootstrappingException ||
+                   ex is OverloadedException || ex is QueryExecutionException;
         }
 
         private async Task PrepareOnTheRestOfTheNodes(PrepareRequest request, Session session)
@@ -107,7 +116,7 @@ namespace Cassandra.Requests
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
             while ((host = GetNextHost(lbp, out distance)) != null)
             {
-                var connection = await RequestHandler<RowSet>
+                var connection = await RequestHandler
                     .GetConnectionFromHost(host, distance, session, triedHosts).ConfigureAwait(false);
                 if (connection == null)
                 {
@@ -156,7 +165,7 @@ namespace Cassandra.Requests
             var lbp = session.Cluster.Configuration.Policies.LoadBalancingPolicy;
             while ((host = GetNextHost(lbp, out distance)) != null)
             {
-                var connection = await RequestHandler<RowSet>
+                var connection = await RequestHandler
                     .GetConnectionFromHost(host, distance, session, triedHosts).ConfigureAwait(false);
                 if (connection != null)
                 {

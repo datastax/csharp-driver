@@ -13,9 +13,9 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -29,50 +29,41 @@ namespace Cassandra.Requests
     /// <summary>
     /// Handles request executions, each execution handles retry and failover.
     /// </summary>
-    internal class RequestHandler<T> where T : class
+    internal class RequestHandler
     {
-        // ReSharper disable once StaticMemberInGenericType
         private static readonly Logger Logger = new Logger(typeof(Session));
         public const long StateInit = 0;
         public const long StateCompleted = 1;
 
         private readonly IRequest _request;
         private readonly ISession _session;
-        private readonly TaskCompletionSource<T> _tcs;
+        private readonly TaskCompletionSource<RowSet> _tcs;
         private long _state;
         private readonly IEnumerator<Host> _queryPlan;
         private readonly object _queryPlanLock = new object();
-        private readonly ICollection<RequestExecution<T>> _running = new CopyOnWriteList<RequestExecution<T>>();
+        private readonly ICollection<RequestExecution> _running = new CopyOnWriteList<RequestExecution>();
         private ISpeculativeExecutionPlan _executionPlan;
         private volatile Host _host;
         private volatile HashedWheelTimer.ITimeout _nextExecutionTimeout;
 
-        public Policies Policies { get; private set; }
-        public IExtendedRetryPolicy RetryPolicy { get; private set; }
-        public Serializer Serializer { get; private set; }
-        public IStatement Statement { get; private set; }
+        public Policies Policies { get; }
+        public IExtendedRetryPolicy RetryPolicy { get; }
+        public Serializer Serializer { get; }
+        public IStatement Statement { get; }
 
         /// <summary>
         /// Creates a new instance using a request and the statement.
         /// </summary>
         public RequestHandler(ISession session, Serializer serializer, IRequest request, IStatement statement)
         {
-            if (session == null)
-            {
-                throw new ArgumentNullException("session");
-            }
-            if (serializer == null)
-            {
-                throw new ArgumentNullException("session");
-            }
-            _tcs = new TaskCompletionSource<T>();
-            _session = session;
+            _tcs = new TaskCompletionSource<RowSet>();
+            _session = session ?? throw new ArgumentNullException(nameof(session));
             _request = request;
-            Serializer = serializer;
+            Serializer = serializer ?? throw new ArgumentNullException(nameof(session));
             Statement = statement;
             Policies = _session.Cluster.Configuration.Policies;
             RetryPolicy = Policies.ExtendedRetryPolicy;
-            if (statement != null && statement.RetryPolicy != null)
+            if (statement?.RetryPolicy != null)
             {
                 RetryPolicy = statement.RetryPolicy.Wrap(Policies.ExtendedRetryPolicy);
             }
@@ -154,7 +145,7 @@ namespace Cassandra.Requests
         /// <summary>
         /// Marks this instance as completed (if not already) and sets the exception or result
         /// </summary>
-        public bool SetCompleted(Exception ex, T result = null)
+        public bool SetCompleted(Exception ex, RowSet result = null)
         {
             return SetCompleted(ex, result, null);
         }
@@ -162,7 +153,7 @@ namespace Cassandra.Requests
         /// <summary>
         /// Marks this instance as completed (if not already) and in a new Task using the default scheduler, it invokes the action and sets the result
         /// </summary>
-        public bool SetCompleted(T result, Action action)
+        public bool SetCompleted(RowSet result, Action action)
         {
             return SetCompleted(null, result, action);
         }
@@ -172,7 +163,7 @@ namespace Cassandra.Requests
         /// If ex is not null, sets the exception.
         /// If action is not null, it invokes it using the default task scheduler.
         /// </summary>
-        private bool SetCompleted(Exception ex, T result, Action action)
+        private bool SetCompleted(Exception ex, RowSet result, Action action)
         {
             var finishedNow = Interlocked.CompareExchange(ref _state, StateCompleted, StateInit) == StateInit;
             if (!finishedNow)
@@ -216,7 +207,7 @@ namespace Cassandra.Requests
             return true;
         }
 
-        public void SetNoMoreHosts(NoHostAvailableException ex, RequestExecution<T> execution)
+        public void SetNoMoreHosts(NoHostAvailableException ex, RequestExecution execution)
         {
             //An execution ended with a NoHostAvailableException (retrying or starting).
             //If there is a running execution, do not yield it to the user
@@ -334,7 +325,7 @@ namespace Cassandra.Requests
             return c;
         }
 
-        public Task<T> Send()
+        public Task<RowSet> Send()
         {
             if (_request == null)
             {
@@ -352,7 +343,7 @@ namespace Cassandra.Requests
         {
             try
             {
-                var execution = new RequestExecution<T>(this, _session, _request);
+                var execution = new RequestExecution(this, _session, _request);
                 execution.Start();
                 _running.Add(execution);
                 ScheduleNext();

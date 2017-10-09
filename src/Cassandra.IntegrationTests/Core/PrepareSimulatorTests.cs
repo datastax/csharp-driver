@@ -16,7 +16,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using NUnit.Framework;
 
@@ -26,16 +28,27 @@ namespace Cassandra.IntegrationTests.Core
     public class PrepareSimulatorTests
     {
         private const string Query = "SELECT * FROM ks1.prepare_table1";
-        
-        private static readonly object QueryPrime = new
+
+        private static object QueryPrime(int delay = 0) => new
         {
-            when = new { query = Query },
+            when = new {query = Query},
             then = new
             {
-                result = "success", 
+                result = "success",
+                delay_in_ms = delay,
+                rows = new[] {new {id = Guid.NewGuid()}},
+                column_types = new {id = "uuid"}
+            }
+        };
+
+        private static readonly object IsBootstrapingPrime = new
+        {
+            when = new {query = Query},
+            then = new
+            {
+                result = "is_bootstrapping",
                 delay_in_ms = 0,
-                rows = new [] { new { id = Guid.NewGuid() } },
-                column_types = new { id = "uuid" }
+                ignore_on_prepare = false
             }
         };
         
@@ -50,9 +63,10 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = builder.Build())
             {
                 var session = cluster.Connect();
-                simulacronCluster.Prime(QueryPrime);
+                simulacronCluster.Prime(QueryPrime());
                 var ps = session.Prepare(Query);
                 Assert.NotNull(ps);
+                Assert.AreEqual(Query, ps.Cql);
                 var firstRow = session.Execute(ps.Bind()).FirstOrDefault();
                 Assert.NotNull(firstRow);
                 var node = simulacronCluster.GetNode(cluster.AllHosts().First().Address);
@@ -73,7 +87,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = builder.Build())
             {
                 var session = cluster.Connect();
-                simulacronCluster.Prime(QueryPrime);
+                simulacronCluster.Prime(QueryPrime());
                 var ps = session.Prepare(Query);
                 Assert.NotNull(ps);
                 // Executed on each node
@@ -94,11 +108,83 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = builder.Build())
             {
                 var session = cluster.Connect();
-                simulacronCluster.Prime(QueryPrime);
+                simulacronCluster.Prime(QueryPrime());
                 var ps = session.Prepare(Query);
                 Assert.NotNull(ps);
                 Assert.AreSame(ps, session.Prepare(Query));
                 Assert.AreNotSame(ps, session.Prepare("SELECT * FROM system.local"));
+            }
+        }
+
+        [Test]
+        public void Should_Failover_When_First_Node_Fails()
+        {
+            var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } );
+            var builder = Cluster.Builder()
+                                 .AddContactPoint(simulacronCluster.InitialContactPoint)
+                                 .WithQueryOptions(new QueryOptions().SetPrepareOnAllHosts(false))
+                                 .WithLoadBalancingPolicy(new OrderedLoadBalancingPolicy());
+            using (var cluster = builder.Build())
+            {
+                var session = cluster.Connect();
+                var firstHost = cluster.AllHosts().First();
+                foreach (var h in cluster.AllHosts())
+                {
+                    var node = simulacronCluster.GetNode(h.Address);
+                    node.Prime(h == firstHost ? IsBootstrapingPrime : QueryPrime());
+                }
+                var ps = session.Prepare(Query);
+                Assert.NotNull(ps);
+                // Should have been executed in the first node (failed) and in the second one (succeeded)
+                Assert.AreEqual(2, simulacronCluster.GetQueries(Query, "PREPARE").Count);
+            }
+        }
+
+        [Test]
+        public void Should_Prepare_On_All_Ignoring_Individual_Failures()
+        {
+            var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } );
+            var builder = Cluster.Builder()
+                                 .AddContactPoint(simulacronCluster.InitialContactPoint)
+                                 .WithLoadBalancingPolicy(new OrderedLoadBalancingPolicy());
+            using (var cluster = builder.Build())
+            {
+                var session = cluster.Connect();
+                var secondHost = cluster.AllHosts().Skip(1).First();
+                foreach (var h in cluster.AllHosts())
+                {
+                    var node = simulacronCluster.GetNode(h.Address);
+                    node.Prime(h == secondHost ? IsBootstrapingPrime : QueryPrime());
+                }
+                var ps = session.Prepare(Query);
+                Assert.NotNull(ps);
+                Assert.AreEqual(3, simulacronCluster.GetQueries(Query, "PREPARE").Count);
+            }
+        }
+
+        [Test]
+        public void Should_Failover_When_First_Node_Timeouts()
+        {
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
+            var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } );
+            var builder = Cluster.Builder()
+                                 .AddContactPoint(simulacronCluster.InitialContactPoint)
+                                 .WithQueryOptions(new QueryOptions().SetPrepareOnAllHosts(false))
+                                 .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(400))
+                                 .WithLoadBalancingPolicy(new OrderedLoadBalancingPolicy());
+            using (var cluster = builder.Build())
+            {
+                var session = cluster.Connect();
+                var firstHost = cluster.AllHosts().First();
+                foreach (var h in cluster.AllHosts())
+                {
+                    var node = simulacronCluster.GetNode(h.Address);
+                    node.Prime(QueryPrime(h == firstHost ? 5000 : 0));
+                }
+                var ps = session.Prepare(Query);
+                Assert.NotNull(ps);
+                // Should have been executed in the first node (timed out) and in the second one (succeeded)
+                Assert.AreEqual(2, simulacronCluster.GetQueries(Query, "PREPARE").Count);
             }
         }
         

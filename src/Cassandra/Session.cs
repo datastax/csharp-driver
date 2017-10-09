@@ -172,7 +172,7 @@ namespace Cassandra
         /// </summary>
         internal Task Init()
         {
-            var handler = new RequestHandler<RowSet>(this, _serializer);
+            var handler = new RequestHandler(this, _serializer);
             //Borrow a connection, trying to fail fast
             return handler.GetNextConnection(new Dictionary<IPEndPoint, Exception>());
         }
@@ -222,7 +222,7 @@ namespace Cassandra
         /// <inheritdoc />
         public Task<RowSet> ExecuteAsync(IStatement statement)
         {
-            return new RequestHandler<RowSet>(this, _serializer, statement).Send();
+            return new RequestHandler(this, _serializer, statement).Send();
         }
 
         /// <summary>

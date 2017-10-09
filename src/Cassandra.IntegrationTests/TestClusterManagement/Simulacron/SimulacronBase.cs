@@ -1,16 +1,18 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Cassandra.Tasks;
 using Newtonsoft.Json.Linq;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 {
     public class SimulacronBase
     {
-        public string Id { get; set; }
+        public string Id { get; }
 
         protected SimulacronBase(string id)
         {
@@ -28,9 +30,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
                 var response = await client.PostAsync(url, content);
                 if (!response.IsSuccessStatusCode)
                 {
-                    return null;
+                    // Get the error message
+                    throw new InvalidOperationException(await response.Content.ReadAsStringAsync()
+                                                                      .ConfigureAwait(false));
                 }
-                var dataStr = await response.Content.ReadAsStringAsync();
+                var dataStr = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 return JObject.Parse(dataStr);
             }
         }
@@ -84,12 +88,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public dynamic GetLogs()
         {
-            return Get(GetPath("log")).Result;
+            return TaskHelper.WaitToComplete(Get(GetPath("log")));
         }
 
         public dynamic Prime(dynamic body)
         {
-            return Post(GetPath("prime"), body).Result;
+            return TaskHelper.WaitToComplete(Post(GetPath("prime"), body));
         }
 
         protected string GetPath(string endpoint)
@@ -99,7 +103,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public dynamic GetConnections()
         {
-            return Get(GetPath("connections")).Result;
+            return TaskHelper.WaitToComplete(Get(GetPath("connections")));
         }
 
         public Task DisableConnectionListener(int attempts = 0, string type = "unbind")

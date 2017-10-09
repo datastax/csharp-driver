@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using Cassandra.Tasks;
 using Newtonsoft.Json.Linq;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
@@ -46,7 +48,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             simulacronManager.Start();
             var path = string.Format(CreateClusterPathFormat, options.Nodes, options.GetCassandraVersion(), options.GetDseVersion(), options.Name, 
                 options.ActivityLog, options.NumberOfTokens);
-            var data = Post(path, null).Result;
+            var data = TaskHelper.WaitToComplete(Post(path, null));
             var cluster = new SimulacronCluster(data["id"].ToString());
             cluster.Data = data;
             cluster.DataCenters = new List<SimulacronDataCenter>();
