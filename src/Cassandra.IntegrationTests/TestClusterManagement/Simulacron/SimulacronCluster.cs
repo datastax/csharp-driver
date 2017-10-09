@@ -108,5 +108,10 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
         {
             return GetNode(endpoint.ToString());
         }
+
+        public IEnumerable<SimulacronNode> GetNodes()
+        {
+            return DataCenters.SelectMany(dc => dc.Nodes);
+        }
     }
 }

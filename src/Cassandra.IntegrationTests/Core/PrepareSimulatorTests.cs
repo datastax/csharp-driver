@@ -18,8 +18,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
+using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
@@ -185,6 +186,36 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.NotNull(ps);
                 // Should have been executed in the first node (timed out) and in the second one (succeeded)
                 Assert.AreEqual(2, simulacronCluster.GetQueries(Query, "PREPARE").Count);
+            }
+        }
+
+        [Test]
+        public async Task Should_Reprepare_On_Up_Node()
+        {
+            var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } );
+            var builder = Cluster.Builder()
+                                 .AddContactPoint(simulacronCluster.InitialContactPoint)
+                                 .WithReconnectionPolicy(new ConstantReconnectionPolicy(500))
+                                 .WithLoadBalancingPolicy(new OrderedLoadBalancingPolicy());
+            using (var cluster = builder.Build())
+            {
+                var session = cluster.Connect();
+                simulacronCluster.Prime(QueryPrime());
+                var ps = await session.PrepareAsync(Query).ConfigureAwait(false);
+                Assert.NotNull(ps);
+                Assert.AreEqual(3, simulacronCluster.GetQueries(Query, "PREPARE").Count);
+                var node = simulacronCluster.GetNodes().Skip(1).First();
+                // It should have been prepared once on the node we are about to stop
+                Assert.AreEqual(1, node.GetQueries(Query, "PREPARE").Count);
+                await node.Stop().ConfigureAwait(false);
+                await TestHelper.WaitUntilAsync(() => cluster.AllHosts().Any(h => !h.IsUp)).ConfigureAwait(false);
+                Assert.AreEqual(1, cluster.AllHosts().Count(h => !h.IsUp));
+                await node.Start().ConfigureAwait(false);
+                await TestHelper.WaitUntilAsync(() => cluster.AllHosts().All(h => h.IsUp)).ConfigureAwait(false);
+                Assert.AreEqual(0, cluster.AllHosts().Count(h => !h.IsUp));
+                TestHelper.WaitUntil(() => node.GetQueries(Query, "PREPARE").Count == 2);
+                // It should be prepared 2 times
+                Assert.AreEqual(2, node.GetQueries(Query, "PREPARE").Count);
             }
         }
         

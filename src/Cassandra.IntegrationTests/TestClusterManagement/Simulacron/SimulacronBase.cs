@@ -60,6 +60,10 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
                 var response = await client.PutAsync(url, content);
                 response.EnsureSuccessStatusCode();
                 var dataStr = await response.Content.ReadAsStringAsync();
+                if (string.IsNullOrEmpty(dataStr))
+                {
+                    return null;
+                }
                 return JObject.Parse(dataStr);
             }
         }
