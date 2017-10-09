@@ -269,7 +269,7 @@ namespace Cassandra.Requests
                     // distance first.
                     continue;
                 }
-                var c = await GetConnectionFromHost(host, distance, session, triedHosts);
+                var c = await GetConnectionFromHost(host, distance, session, triedHosts).ConfigureAwait(false);
                 if (c == null)
                 {
                     continue;
@@ -320,7 +320,7 @@ namespace Cassandra.Requests
                 hostPool.Remove(c);
                 // A socket exception on the current connection does not mean that all the pool is closed:
                 // Retry on the same host
-                return await GetConnectionFromHost(host, distance, session, triedHosts);
+                return await GetConnectionFromHost(host, distance, session, triedHosts).ConfigureAwait(false);
             }
             return c;
         }

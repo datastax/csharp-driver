@@ -96,6 +96,11 @@ namespace Cassandra
             get { return _connections.Count; }
         }
 
+        /// <summary>
+        /// Gets a snapshot of the current state of the pool.
+        /// </summary>
+        public Connection[] ConnectionsSnapshot => _connections.GetSnapshot();
+
         public bool IsClosing
         {
             get { return Volatile.Read(ref _state) != PoolState.Init; }

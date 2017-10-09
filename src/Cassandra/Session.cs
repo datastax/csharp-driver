@@ -274,10 +274,10 @@ namespace Cassandra
         /// <summary>
         /// Gets the existing connection pool for this host and session or null when it does not exists
         /// </summary>
-        internal HostConnectionPool GetExistingPool(Connection connection)
+        internal HostConnectionPool GetExistingPool(IPEndPoint address)
         {
             HostConnectionPool pool;
-            _connectionPool.TryGetValue(connection.Address, out pool);
+            _connectionPool.TryGetValue(address, out pool);
             return pool;
         }
 

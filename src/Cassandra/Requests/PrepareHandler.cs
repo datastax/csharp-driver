@@ -16,8 +16,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Responses;
 using Cassandra.Serialization;
@@ -66,13 +68,53 @@ namespace Cassandra.Requests
             return ps;
         }
 
-        internal static Task PrepareAllQueries(Cluster cluster, IEnumerable<Session> sessions, Host host)
+        internal static async Task PrepareAllQueries(Cluster cluster, IEnumerable<Session> sessions, Host host)
         {
-            foreach (var ps in cluster.PreparedQueries.Values)
+            var preparedQueries = cluster.PreparedQueries.Values;
+            if (preparedQueries.Count == 0)
             {
-                //TODO
+                return;
             }
-            throw new NotImplementedException();
+            // Get the first connection for that host, in any of the existings connection pool
+            var connection = sessions.SelectMany(s => s.GetExistingPool(host.Address)?.ConnectionsSnapshot)
+                                     .FirstOrDefault();
+            if (connection == null)
+            {
+                Logger.Info($"Could not re-prepare queries on {host.Address} as there wasn't an open connection to" +
+                            " the node");
+                return;
+            }
+            Logger.Info($"Re-preparing {preparedQueries.Count} queries on {host.Address}");
+            var tasks = new List<Task>(preparedQueries.Count);
+            using (var semaphore = new SemaphoreSlim(64, 64))
+            {
+                foreach (var query in preparedQueries.Select(ps => ps.Cql))
+                {
+                    var request = new PrepareRequest(query);
+                    await semaphore.WaitAsync().ConfigureAwait(false);
+                    tasks.Add(Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await connection.Send(request).ConfigureAwait(false);
+                        }
+                        finally
+                        {
+                            // ReSharper disable once AccessToDisposedClosure
+                            // There is no risk of being disposed as the list of tasks is awaited upon below
+                            semaphore.Release();
+                        }
+                    }));
+                }
+                try
+                {
+                    await Task.WhenAll(tasks).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"There was an error when re-preparing queries on {host.Address}", ex);
+                }
+            }
         }
 
         private async Task<PreparedStatement> Prepare(PrepareRequest request, Session session,
