@@ -336,7 +336,7 @@ namespace Cassandra
                 return;
             }
             // We should prepare all current queries on the host
-            PrepareHandler.PrepareAllQueries(this, _connectedSessions, h).Forget();
+            PrepareHandler.PrepareAllQueries(h, PreparedQueries.Values, _connectedSessions).Forget();
         }
 
         /// <summary>

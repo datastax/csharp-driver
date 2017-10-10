@@ -323,7 +323,7 @@ namespace Cassandra.Tests
             var config = new Configuration(
                 Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
                 new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
-            var request = RequestHandler<RowSet>.GetRequest(batch, Serializer, config);
+            var request = RequestHandler.GetRequest(batch, Serializer, config);
             var stream = new MemoryStream();
             request.WriteFrame(1, stream, Serializer);
             var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);

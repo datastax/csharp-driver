@@ -44,7 +44,7 @@ namespace Cassandra.Requests
         /// When <see cref="QueryOptions.IsPrepareOnAllHosts"/> is enabled, it prepares on the rest of the hosts in
         /// parallel.
         /// </summary>
-        internal static async Task<PreparedStatement> Send(Session session, Serializer serializer, 
+        internal static async Task<PreparedStatement> Prepare(Session session, Serializer serializer, 
                                                            PrepareRequest request)
         {
             // The cast to Cluster class is safe as we are using the Session concrete implementation as parameter
@@ -68,9 +68,9 @@ namespace Cassandra.Requests
             return ps;
         }
 
-        internal static async Task PrepareAllQueries(Cluster cluster, IEnumerable<Session> sessions, Host host)
+        internal static async Task PrepareAllQueries(Host host, ICollection<PreparedStatement> preparedQueries,
+                                                     IEnumerable<Session> sessions)
         {
-            var preparedQueries = cluster.PreparedQueries.Values;
             if (preparedQueries.Count == 0)
             {
                 return;
@@ -92,7 +92,8 @@ namespace Cassandra.Requests
                 {
                     var request = new PrepareRequest(query);
                     await semaphore.WaitAsync().ConfigureAwait(false);
-                    tasks.Add(Task.Run(async () =>
+
+                    async Task SendSingle()
                     {
                         try
                         {
@@ -104,7 +105,9 @@ namespace Cassandra.Requests
                             // There is no risk of being disposed as the list of tasks is awaited upon below
                             semaphore.Release();
                         }
-                    }));
+                    }
+
+                    tasks.Add(Task.Run(SendSingle));
                 }
                 try
                 {
@@ -137,7 +140,8 @@ namespace Cassandra.Requests
                 triedHosts[connection.Address] = ex;
                 return await Prepare(request, session, triedHosts).ConfigureAwait(false);
             }
-            return GetPreparedStatement(response, request, connection.Keyspace);
+            return await GetPreparedStatement(response, request, connection.Keyspace, session.Cluster)
+                .ConfigureAwait(false);
         }
 
         /// <summary>
@@ -177,7 +181,8 @@ namespace Cassandra.Requests
             }
         }
         
-        private PreparedStatement GetPreparedStatement(Response response, PrepareRequest request, string keyspace)
+        private async Task<PreparedStatement> GetPreparedStatement(Response response, PrepareRequest request,
+                                                                   string keyspace, ICluster cluster)
         {
             if (response == null)
             {
@@ -194,10 +199,54 @@ namespace Cassandra.Requests
                 throw new DriverInternalError("Expected prepared response, obtained " + output.GetType().FullName);
             }
             var prepared = (OutputPrepared)output;
-            return new PreparedStatement(prepared.Metadata, prepared.QueryId, request.Query, keyspace, _serializer)
+            var ps = new PreparedStatement(prepared.Metadata, prepared.QueryId, request.Query, keyspace, _serializer)
             {
                 IncomingPayload = resultResponse.CustomPayload
             };
+            await FillRoutingInfo(ps, cluster).ConfigureAwait(false);
+            return ps;
+        }
+
+        private static async Task FillRoutingInfo(PreparedStatement ps, ICluster cluster)
+        {
+            var column = ps.Metadata.Columns.FirstOrDefault();
+            if (column?.Keyspace == null)
+            {
+                // The prepared statement does not contain parameters
+                return;
+            }
+            if (ps.Metadata.PartitionKeys != null)
+            {
+                // The routing indexes where parsed in the prepared response
+                if (ps.Metadata.PartitionKeys.Length == 0)
+                {
+                    // zero-length partition keys means that none of the parameters are partition keys
+                    // the partition key is hard-coded.
+                    return;
+                }
+                ps.RoutingIndexes = ps.Metadata.PartitionKeys;
+                return;
+            }
+            try
+            {
+                const string msgRoutingNotSet = "Routing information could not be set for query \"{0}\"";
+                var table = await cluster.Metadata.GetTableAsync(column.Keyspace, column.Table).ConfigureAwait(false);
+                if (table == null)
+                {
+                    Logger.Info(msgRoutingNotSet, ps.Cql);
+                    return;
+                }
+                var routingSet = ps.SetPartitionKeys(table.PartitionKeys);
+                if (!routingSet)
+                {
+                    Logger.Info(msgRoutingNotSet, ps.Cql);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("There was an error while trying to retrieve table metadata for {0}.{1}. {2}", 
+                    column.Keyspace, column.Table, ex.InnerException);
+            }
         }
 
         private async Task<Connection> GetNextConnection(Session session, Dictionary<IPEndPoint, Exception> triedHosts)
