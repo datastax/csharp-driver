@@ -25,11 +25,12 @@ namespace Cassandra.IntegrationTests.Core
         public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
-            var insertQuery = String.Format("INSERT INTO {0} (id, timeuuid_sample) VALUES (?, ?)", AllTypesTableName);
-            var selectQuery = String.Format("SELECT id, timeuuid_sample, dateOf(timeuuid_sample) FROM {0} WHERE id = ?", AllTypesTableName);
+            var insertQuery = $"INSERT INTO {AllTypesTableName} (id, timeuuid_sample) VALUES (?, ?)";
+            var selectQuery = $"SELECT id, timeuuid_sample, dateOf(timeuuid_sample) FROM {AllTypesTableName} WHERE id = ?";
             if (CassandraVersion >= new Version(2, 2))
             {
-                selectQuery = String.Format("SELECT id, timeuuid_sample, toTimestamp(timeuuid_sample) as timeuuid_date_value FROM {0} WHERE id = ?", AllTypesTableName);
+                selectQuery =
+                    $"SELECT id, timeuuid_sample, toTimestamp(timeuuid_sample) as timeuuid_date_value FROM {AllTypesTableName} WHERE id = ?";
             }
             _insertPrepared = Session.Prepare(insertQuery);
             _selectPrepared = Session.Prepare(selectQuery);
@@ -76,11 +77,9 @@ namespace Cassandra.IntegrationTests.Core
             var timeuuidSample = TimeUuid.NewId();
             var dateOffset = timeuuidSample.GetDate();
 
-            var selectMinMaxTimeuuidPrepared = Session.Prepare(string.Format("select * from {0} where id = ? " +
-                                                                         "and timeuuid_sample < ? and timeuuid_sample > ?",
-                MinMaxTimeUuidTable));
-            var insertMinMaxTimeuuidPrepared = Session.Prepare(string.Format("insert into {0} (id, timeuuid_sample) values (?, ?)",
-                MinMaxTimeUuidTable));
+            var selectMinMaxTimeuuidPrepared = Session.Prepare($"select * from {MinMaxTimeUuidTable} where id = ? " +
+                                                               "and timeuuid_sample < ? and timeuuid_sample > ?");
+            var insertMinMaxTimeuuidPrepared = Session.Prepare($"insert into {MinMaxTimeUuidTable} (id, timeuuid_sample) values (?, ?)");
 
             Session.Execute(insertMinMaxTimeuuidPrepared.Bind(guid, timeuuidSample));
             var row = Session.Execute(selectMinMaxTimeuuidPrepared.Bind(guid, TimeUuid.Max(dateOffset), TimeUuid.Min(dateOffset))).FirstOrDefault();
@@ -98,7 +97,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             Assert.DoesNotThrow(() => Task.WaitAll(tasks.ToArray()));
 
-            var selectQuery = String.Format("SELECT id, timeuuid_sample, dateOf(timeuuid_sample) FROM {0} LIMIT 10000", AllTypesTableName);
+            var selectQuery = $"SELECT id, timeuuid_sample, dateOf(timeuuid_sample) FROM {AllTypesTableName} LIMIT 10000";
             Assert.DoesNotThrow(() =>
                 Session.Execute(selectQuery).Select(r => r.GetValue<TimeUuid>("timeuuid_sample")).ToArray());
         }
