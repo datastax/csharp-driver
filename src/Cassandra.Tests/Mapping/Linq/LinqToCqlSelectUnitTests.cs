@@ -64,6 +64,89 @@ namespace Cassandra.Tests.Mapping.Linq
         }
 
         [Test]
+        public void Select_In_With_Composite_Keys()
+        {
+            BoundStatement statement = null;
+            var session = GetSession<BoundStatement>(new RowSet(), stmt => statement = stmt);
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.IntValue, cm => cm.WithName("id3"))
+                .Column(t => t.StringValue, cm => cm.WithName("id2"))
+                .Column(t => t.UuidValue, cm => cm.WithName("id1"))
+                .PartitionKey(t => t.UuidValue)
+                .ClusteringKey(t => t.StringValue, SortOrder.Ascending)
+                .ClusteringKey(t => t.IntValue, SortOrder.Descending)
+                .TableName("tbl1");
+            var table = GetTable<AllTypesEntity>(session, map);
+            const string expectedQuery = "SELECT id3, id2, id1 FROM tbl1 WHERE id1 = ? AND (id2, id3) IN ?";
+            var id = Guid.NewGuid();
+            var list = new List<Tuple<string, int>> {Tuple.Create("z", 1)};
+            // Using Tuple.Create()
+            table.Where(t => t.UuidValue == id && list.Contains(Tuple.Create(t.StringValue, t.IntValue))).Execute();
+            Assert.NotNull(statement);
+            Assert.AreEqual(new object[] {id, list}, statement.QueryValues);
+            Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
+            // Using constructor
+            table.Where(t => t.UuidValue == id && list.Contains(new Tuple<string, int>(t.StringValue, t.IntValue)))
+                 .Execute();
+            Assert.NotNull(statement);
+            Assert.AreEqual(new object[] {id, list}, statement.QueryValues);
+            Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
+        }
+
+        [Test]
+        public void Select_In_Field_And_New()
+        {
+            BoundStatement statement = null;
+            var session = GetSession<BoundStatement>(new RowSet(), stmt => statement = stmt);
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.StringValue, cm => cm.WithName("id2"))
+                .Column(t => t.UuidValue, cm => cm.WithName("id1"))
+                .PartitionKey(t => t.UuidValue)
+                .ClusteringKey(t => t.StringValue, SortOrder.Ascending)
+                .TableName("tbl1");
+            var table = GetTable<AllTypesEntity>(session, map);
+            var id = Guid.NewGuid();
+            const string expectedQuery = "SELECT id2, id1 FROM tbl1 WHERE id1 = ? AND id2 IN ?";
+            var values = new[] {"a", "b"};
+            // Using a field
+            table.Where(t => t.UuidValue == id && values.Contains(t.StringValue)).Execute();
+            Assert.NotNull(statement);
+            Assert.AreEqual(new object[] {id, values}, statement.QueryValues);
+            Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
+            // Using a new expression
+            table.Where(t => t.UuidValue == id && new[] {"a", "b"}.Contains(t.StringValue)).Execute();
+            Assert.NotNull(statement);
+            Assert.AreEqual(new object[] {id, values}, statement.QueryValues);
+            Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
+            // Using a list
+            var list = new List<string>(new[] {"a", "b"});
+            table.Where(t => t.UuidValue == id && list.Contains(t.StringValue)).Execute();
+            Assert.NotNull(statement);
+            Assert.AreEqual(new object[] {id, list}, statement.QueryValues);
+            Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
+        }
+
+        [Test]
+        public void Select_Contains_With_String_Throws()
+        {
+            var session = GetSession<BoundStatement>(new RowSet(), _ => { });
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.StringValue, cm => cm.WithName("id2"))
+                .Column(t => t.UuidValue, cm => cm.WithName("id1"))
+                .PartitionKey(t => t.UuidValue)
+                .ClusteringKey(t => t.StringValue, SortOrder.Ascending)
+                .TableName("tbl1");
+            var table = GetTable<AllTypesEntity>(session, map);
+            var id = Guid.NewGuid();
+            var ex = Assert.Throws<InvalidOperationException>(() =>
+                table.Where(t => t.UuidValue == id && "a".Contains(t.StringValue)).Execute());
+            Assert.AreEqual("String.Contains() is not supported for CQL IN clause", ex.Message);
+        }
+
+        [Test]
         public void Select_Group_By_Projected_To_Constructor_With_Parameter()
         {
             string query = null;
@@ -202,9 +285,11 @@ namespace Cassandra.Tests.Mapping.Linq
                 .TableName("values");
 
             var table = GetTable<AllTypesEntity>(session, map);
-            table.Where(t => new [] {1M, 2M}.Contains(t.DecimalValue)).Select(t => new AllTypesEntity { DateTimeValue = t.DateTimeValue}).Execute();
-            Assert.AreEqual("SELECT d FROM values WHERE val2 IN (?, ?)", query);
-            CollectionAssert.AreEqual(new [] {1M, 2M}, parameters);
+            var values = new[] {1M, 2M};
+            table.Where(t => values.Contains(t.DecimalValue))
+                 .Select(t => new AllTypesEntity { DateTimeValue = t.DateTimeValue}).Execute();
+            Assert.AreEqual("SELECT d FROM values WHERE val2 IN ?", query);
+            CollectionAssert.AreEqual(new[] {values}, parameters);
         }
 
         [Test]

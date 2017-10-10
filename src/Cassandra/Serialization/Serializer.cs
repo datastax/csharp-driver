@@ -383,7 +383,7 @@ namespace Cassandra.Serialization
                 }
                 return _collectionSerializer.Serialize((byte)_protocolVersion, (IEnumerable)value);
             }
-            if (typeof(IStructuralComparable).GetTypeInfo().IsAssignableFrom(type) && type.FullName.StartsWith("System.Tuple"))
+            if (Utils.IsTuple(type))
             {
                 return _tupleSerializer.Serialize((byte)_protocolVersion, (IStructuralEquatable) value);
             }

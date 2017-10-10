@@ -636,31 +636,7 @@ namespace Cassandra.Data.Linq
             {
                 case "Contains":
                 {
-                    Expression what;
-                    Expression inp;
-                    if (node.Object == null)
-                    {
-                        what = node.Arguments[1];
-                        inp = node.Arguments[0];
-                    }
-                    else
-                    {
-                        what = node.Arguments[0];
-                        inp = node.Object;
-                    }
-                    Visit(what);
-                    var values = (IEnumerable)Expression.Lambda(inp).Compile().DynamicInvoke();
-                    var placeHolders = new StringBuilder();
-                    foreach (var v in values)
-                    {
-                        placeHolders.Append(placeHolders.Length == 0 ? "?" : ", ?");
-                        parameters.Add(v);
-                    }
-
-                    clause
-                        .Append(" IN (")
-                        .Append(placeHolders)
-                        .Append(")");
+                    EvaluateContainsMethod(node, clause, parameters);
                     return true;
                 }
                 case "StartsWith":
@@ -723,6 +699,70 @@ namespace Cassandra.Data.Linq
                     return true;
             }
             return false;
+        }
+
+        private void EvaluateContainsMethod(MethodCallExpression node, StringBuilder clause, List<Object> parameters)
+        {
+            Expression columnExpression;
+            Expression parameterExpression;
+            if (node.Object == null)
+            {
+                columnExpression = node.Arguments[1];
+                parameterExpression = node.Arguments[0];
+            }
+            else
+            {
+                columnExpression = node.Arguments[0];
+                parameterExpression = node.Object;
+            }
+            if (columnExpression.NodeType != ExpressionType.Call && columnExpression.NodeType != ExpressionType.New)
+            {
+                // Use the expression visitor to extract the column
+                Visit(columnExpression);
+            }
+            else
+            {
+                EvaluateCompositeColumn(columnExpression, clause);
+            }
+            var values = Expression.Lambda(parameterExpression).Compile().DynamicInvoke() as IEnumerable;
+            if (values == null)
+            {
+                throw new InvalidOperationException("Contains parameter must be IEnumerable");
+            }
+            if (values is string)
+            {
+                throw new InvalidOperationException("String.Contains() is not supported for CQL IN clause");
+            }
+            clause.Append(" IN ?");
+            parameters.Add(values);
+        }
+
+        private void EvaluateCompositeColumn(Expression expression, StringBuilder clause)
+        {
+            ICollection<Expression> columnsExpression;
+            switch (expression.NodeType)
+            {
+                case ExpressionType.Call:
+                    columnsExpression = ((MethodCallExpression) expression).Arguments;
+                    break;
+                case ExpressionType.New:
+                    columnsExpression = ((NewExpression) expression).Arguments;
+                    break;
+                default:
+                    throw new CqlLinqNotSupportedException(expression, _parsePhase.Get());
+            }
+            clause.Append("(");
+            var first = true;
+            foreach (var c in columnsExpression)
+            {
+                if (!first)
+                {
+                    clause.Append(", ");
+                }
+                Visit(c);
+                first = false;
+            }
+            clause.Append(")");
         }
 
         private bool EvaluateOperatorMethod(MethodCallExpression node)
