@@ -42,10 +42,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
         public static SimulacronCluster CreateNew(SimulacronOptions options)
         {
             var simulacronManager = SimulacronManager.Instance;
-            if (!simulacronManager.IsUp())
-            {
-                simulacronManager.Start();
-            }
+            simulacronManager.Start();
             var path = string.Format(CreateClusterPathFormat, options.Nodes, options.GetCassandraVersion(), options.GetDseVersion(), options.Name, 
                 options.ActivityLog, options.NumberOfTokens);
             var data = Post(path, null).Result;

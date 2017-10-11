@@ -30,7 +30,10 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void Start()
         {
-            Stop();
+            if (IsUp())
+            {
+                return;
+            }
             _simulacronProcess = new Process();
             var jarPath = Environment.GetEnvironmentVariable("SIMULACRON_PATH");
             if (string.IsNullOrEmpty(jarPath))
@@ -101,7 +104,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public bool IsUp()
         {
-            return _started;
+            return _started && _simulacronProcess != null && !_simulacronProcess.HasExited;
         }
     }
 }
