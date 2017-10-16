@@ -58,6 +58,27 @@ namespace Cassandra.Data.Linq
         }
 
         /// <summary>
+        /// Sets the time for data in a column to expire (TTL) for INSERT and UPDATE commands.
+        /// </summary>
+        /// <param name="seconds">Amount of seconds.</param>
+        /// <returns>This instance.</returns>
+        public new CqlConditionalCommand<TEntity> SetTTL(int seconds)
+        {
+            _origin.SetTTL(seconds);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the timestamp associated with this statement execution.
+        /// </summary>
+        /// <returns>This instance.</returns>
+        public new CqlConditionalCommand<TEntity> SetTimestamp(DateTimeOffset timestamp)
+        {
+            _origin.SetTimestamp(timestamp);
+            return this;
+        }
+
+        /// <summary>
         /// Generates and returns the Cql query
         /// </summary>
         public override string ToString()

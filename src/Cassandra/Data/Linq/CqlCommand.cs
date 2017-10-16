@@ -116,6 +116,10 @@ namespace Cassandra.Data.Linq
             return this;
         }
 
+        /// <summary>
+        /// Sets the timestamp associated with this statement execution.
+        /// </summary>
+        /// <returns>This instance.</returns>
         public new CqlCommand SetTimestamp(DateTimeOffset timestamp)
         {
             _timestamp = timestamp;
