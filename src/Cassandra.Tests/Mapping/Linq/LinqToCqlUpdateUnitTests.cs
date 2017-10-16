@@ -154,6 +154,43 @@ namespace Cassandra.Tests.Mapping.Linq
         }
 
         [Test]
+        public void Update_If_Exists()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            });
+            var id = Guid.NewGuid();
+            var table = GetTable<Song>(session, new Map<Song>()
+                .ExplicitColumns()
+                .Column(t => t.Title, cm => cm.WithName("title"))
+                .Column(t => t.Id, cm => cm.WithName("id"))
+                .PartitionKey(t => t.Id)
+                .TableName("songs"));
+
+            // IF EXISTS
+            table
+                .Where(t => t.Id == id)
+                .Select(t => new Song { Title = "When The Sun Goes Down" })
+                .UpdateIfExists()
+                .Execute();
+            Assert.AreEqual("UPDATE songs SET title = ? WHERE id = ? IF EXISTS", query);
+            CollectionAssert.AreEqual(new object[] { "When The Sun Goes Down", id }, parameters);
+            
+            //IF NOT EXISTS
+            table
+                .Where(t => t.Id == id)
+                .Select(t => new Song { Title = "Cornerstone" })
+                .UpdateIfNotExists()
+                .Execute();
+            Assert.AreEqual("UPDATE songs SET title = ? WHERE id = ? IF NOT EXISTS", query);
+            CollectionAssert.AreEqual(new object[] { "Cornerstone", id }, parameters);
+        }
+
+        [Test]
         public void UpdateIf_With_Where_Clause()
         {
             string query = null;

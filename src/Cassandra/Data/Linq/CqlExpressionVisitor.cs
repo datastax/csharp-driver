@@ -96,7 +96,8 @@ namespace Cassandra.Data.Linq
             new StringBuilder(DefaultClauseStringCapacity), new List<object>(DefaultClauseParameterCapacity));
 
         /// <summary>
-        /// Represents a pair composed by cql string and the parameters for the WHERE clause
+        /// Represents a pair composed by cql string and the parameters for the WHERE clause.
+        /// IF EXISTS are represented as text in the string builder item but not parameter. 
         /// </summary>
         private readonly Tuple<StringBuilder, List<object>> _updateIfClause = Tuple.Create(
             new StringBuilder(DefaultClauseStringCapacity), new List<object>(DefaultClauseParameterCapacity));
@@ -210,7 +211,7 @@ namespace Cassandra.Data.Linq
             {
                 if (ifExists)
                 {
-                    throw new CqlArgumentException("IfExits and DeleteIf are mutually excusive,");
+                    throw new CqlArgumentException("IF EXISTS and IF (condition) are mutually exclusive");
                 }
                 query.Append(" IF ");
                 query.Append(_updateIfClause.Item1);
@@ -472,6 +473,12 @@ namespace Cassandra.Data.Linq
                     {
                         if (_updateIfClause.Item1.Length != 0)
                         {
+                            if (_updateIfClause.Item2.Count == 0)
+                            {
+                                // There was a IF EXISTS condition prior to this one
+                                throw new CqlArgumentException(
+                                    "'IF (NOT) EXISTS' and 'IF condition' are mutually exclusive");
+                            }
                             _updateIfClause.Item1.Append(" AND ");
                         }
                         using (_currentCondition.Set(_updateIfClause))
@@ -479,6 +486,17 @@ namespace Cassandra.Data.Linq
                             Visit(node.Arguments[1]);
                         }
                     }
+                    return node;
+                case nameof(CqlMthHelps.UpdateIfExists):
+                case nameof(CqlMthHelps.UpdateIfNotExists):
+                    if (_updateIfClause.Item1.Length > 0)
+                    {
+                        throw new CqlArgumentException("'IF (NOT) EXISTS' and 'IF condition' are mutually exclusive");
+                    }
+                    _updateIfClause.Item1.Append(node.Method.Name == nameof(CqlMthHelps.UpdateIfExists)
+                        ? "EXISTS"
+                        : "NOT EXISTS");
+                    Visit(node.Arguments[0]);
                     return node;
                 case "Take":
                     Visit(node.Arguments[0]);
