@@ -301,6 +301,31 @@ namespace Cassandra.Tests.Mapping.Linq
         }
 
         [Test]
+        public void Update_Dictionary_With_Substract_Assign()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            });
+            var map = new Map<CollectionTypesEntity>()
+                .ExplicitColumns()
+                .PartitionKey(x => x.Id)
+                .Column(x => x.Id, cm => cm.WithName("id"))
+                .Column(x => x.Favs, cm => cm.WithName("favs"))
+                .TableName("tbl1");
+            var table = GetTable<CollectionTypesEntity>(session, map);
+            var id = 100L;
+            table.Where(x => x.Id == id)
+                 .Select(x => new CollectionTypesEntity { Favs = x.Favs.SubstractAssign("a", "b", "c")})
+                 .Update().Execute();
+            Assert.AreEqual("UPDATE tbl1 SET favs = favs - ? WHERE id = ?", query);
+            Assert.AreEqual(new object[]{ new [] { "a", "b", "c" }, id }, parameters);
+        }
+
+        [Test]
         public void Update_Where_In_With_Composite_Keys()
         {
             BoundStatement statement = null;

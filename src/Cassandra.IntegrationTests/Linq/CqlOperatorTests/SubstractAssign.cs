@@ -392,12 +392,13 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
             };
 
             // Attempt to remove the data
-            var updateStatement = table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithDictionaryType { DictionaryType = CqlOperator.SubstractAssign(dictToDelete) }).Update();
-            Assert.Throws<InvalidQueryException>(() => updateStatement.Execute());
+            var updateStatement = table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithDictionaryType
+            {
+                // Use incorrect substract assign overload
+                DictionaryType = CqlOperator.SubstractAssign(dictToDelete)
+            }).Update();
+            Assert.Throws<InvalidOperationException>(() => updateStatement.Execute(),
+                "Use dedicated method to substract assign keys only for maps");
         }
-
-
     }
-
-
 }
