@@ -17,7 +17,9 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Net;
+#if !NETCORE
 using System.Runtime.Serialization;
+#endif
 using System.Text;
 
 namespace Cassandra
