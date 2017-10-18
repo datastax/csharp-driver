@@ -461,6 +461,18 @@ namespace Cassandra.Tests.Mapping.Linq
         }
 
         [Test]
+        public void Select_With_Query_Trace_Defined()
+        {
+            TestQueryTrace(table =>
+            {
+                var linqQuery = table.Where(x => x.IntValue == 1);
+                linqQuery.EnableTracing();
+                linqQuery.Execute();
+                return linqQuery.QueryTrace;
+            });
+        }
+
+        [Test]
         public void Select_With_Keyspace_Defined()
         {
             string query = null;

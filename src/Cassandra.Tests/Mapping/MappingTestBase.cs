@@ -8,6 +8,7 @@ using Cassandra.Mapping;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
 using Cassandra.Tests.Mapping.FluentMappings;
+using Cassandra.Tests.Mapping.Pocos;
 using Moq;
 using NUnit.Framework;
 
@@ -103,6 +104,39 @@ namespace Cassandra.Tests.Mapping
         protected PreparedStatement GetPrepared(string query = null)
         {
             return new PreparedStatement(null, null, query, null, new Serializer(ProtocolVersion.MaxSupported));
+        }
+
+        protected void TestQueryTrace(Func<Table<AllTypesEntity>, QueryTrace> queryExecutor)
+        {
+            var rs = new RowSet();
+
+            var clusterMock = new Mock<ICluster>();
+            clusterMock.Setup(c => c.Configuration).Returns(new Configuration());
+            
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
+                .ReturnsAsync(() => rs)
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>(query => TaskHelper.ToTask(GetPrepared(query)))
+                .Verifiable();
+
+            var trace = new Mock<QueryTrace>(MockBehavior.Strict, Guid.NewGuid(), sessionMock.Object);
+            trace.Setup(t => t.ToString()).Returns("instance");
+            rs.Info.SetQueryTrace(trace.Object);
+
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.IntValue, cm => cm.WithName("id"))
+                .Column(t => t.StringValue, cm => cm.WithName("val"))
+                .PartitionKey(t => t.IntValue)
+                .TableName("tbl1");
+            var table = GetTable<AllTypesEntity>(sessionMock.Object, map);
+            var resultTrace = queryExecutor(table);
+            Assert.AreSame(rs.Info.QueryTrace, resultTrace);
         }
 
         [TearDown]

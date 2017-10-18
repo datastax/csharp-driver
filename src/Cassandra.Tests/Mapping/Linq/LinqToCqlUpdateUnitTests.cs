@@ -124,6 +124,20 @@ namespace Cassandra.Tests.Mapping.Linq
         }
 
         [Test]
+        public void Update_With_Query_Trace_Defined()
+        {
+            TestQueryTrace(table =>
+            {
+                var linqQuery = table.Where(x => x.IntValue == 1)
+                                     .Select(x => new AllTypesEntity { StringValue = "a"})
+                                     .Update();
+                linqQuery.EnableTracing();
+                linqQuery.Execute();
+                return linqQuery.QueryTrace;
+            });
+        }
+
+        [Test]
         public void Update_With_Keyspace_Defined_Test()
         {
             string query = null;

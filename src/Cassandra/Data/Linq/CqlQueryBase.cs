@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) 2012-2017 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
@@ -27,6 +28,7 @@ namespace Cassandra.Data.Linq
 {
     public abstract class CqlQueryBase<TEntity> : Statement
     {
+        private QueryTrace _queryTrace;
         internal ITable Table { get; private set; }
 
         public Expression Expression { get; private set; }
@@ -36,7 +38,19 @@ namespace Cassandra.Data.Linq
             get { return typeof (TEntity); }
         }
 
-        public QueryTrace QueryTrace { get; protected set; }
+        /// <summary>
+        /// After being executed, it retrieves the trace of the CQL query.
+        /// <para>Use <see cref="IStatement.EnableTracing"/> to enable tracing.</para>
+        /// <para>
+        /// Note that enabling query trace introduces server-side overhead by storing request information, so it's
+        /// recommended that you only enable query tracing when trying to identify possible issues / debugging. 
+        /// </para>
+        /// </summary>
+        public QueryTrace QueryTrace
+        {
+            get => Volatile.Read(ref _queryTrace);
+            protected set => Volatile.Write(ref _queryTrace, value);
+        }
 
         internal MapperFactory MapperFactory { get; set; }
 
@@ -76,16 +90,16 @@ namespace Cassandra.Data.Linq
 
         protected abstract string GetCql(out object[] values);
 
-        protected Task<RowSet> InternalExecuteAsync(string cqlQuery, object[] values)
+        protected async Task<RowSet> InternalExecuteAsync(string cqlQuery, object[] values)
         {
             var session = GetTable().GetSession();
-            return StatementFactory
-                .GetStatementAsync(session, Cql.New(cqlQuery, values))
-                .ContinueSync(stmt =>
-                {
-                    this.CopyQueryPropertiesTo(stmt);
-                    return session.ExecuteAsync(stmt);
-                }).Unwrap();
+            var statement = await StatementFactory.GetStatementAsync(session, Cql.New(cqlQuery, values))
+                                             .ConfigureAwait(false);
+            
+            this.CopyQueryPropertiesTo(statement);
+            var rs = await session.ExecuteAsync(statement).ConfigureAwait(false);
+            QueryTrace = rs.Info.QueryTrace;
+            return rs;
         }
 
         /// <summary>
