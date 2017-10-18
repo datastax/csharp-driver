@@ -11,6 +11,10 @@ namespace Cassandra
         //Reuse the random generator to avoid collisions
         private static readonly Random RandomGenerator = new Random();
         private static readonly object RandomLock = new object();
+        private static readonly byte[] MinNodeId = {0x80, 0x80, 0x80, 0x80, 0x80, 0x80};
+        private static readonly byte[] MinClockId = {0x80, 0x80};
+        private static readonly byte[] MaxNodeId = {0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f};
+        private static readonly byte[] MaxClockId = {0x7f, 0x7f};
 
         private readonly Guid _value;
 
@@ -19,15 +23,22 @@ namespace Cassandra
             _value = value;
         }
 
+        /// <summary>
+        /// Creates a new instance of <see cref="TimeUuid"/>.
+        /// </summary>
+        /// <param name="nodeId">6-byte node identifier</param>
+        /// <param name="clockId">2-byte clock identifier</param>
+        /// <param name="time">The timestamp</param>
+        /// <exception cref="ArgumentException"></exception>
         private TimeUuid(byte[] nodeId, byte[] clockId, DateTimeOffset time)
         {
             if (nodeId == null || nodeId.Length != 6)
             {
-                throw new ArgumentException("node Id should contain 6 bytes", "nodeId");
+                throw new ArgumentException("node Id should contain 6 bytes", nameof(nodeId));
             }
             if (clockId == null || clockId.Length != 2)
             {
-                throw new ArgumentException("clock Id should contain 2 bytes", "clockId");
+                throw new ArgumentException("clock Id should contain 2 bytes", nameof(clockId));
             }
             var timeBytes = BitConverter.GetBytes((time - GregorianCalendarTime).Ticks);
             if (!BitConverter.IsLittleEndian)
@@ -156,6 +167,22 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Returns the smaller possible type 1 uuid with the provided date.
+        /// </summary>
+        public static TimeUuid Min(DateTimeOffset date)
+        {
+            return new TimeUuid(MinNodeId, MinClockId, date);
+        }
+
+        /// <summary>
+        /// Returns the biggest possible type 1 uuid with the provided Date.
+        /// </summary>
+        public static TimeUuid Max(DateTimeOffset date)
+        {
+            return new TimeUuid(MaxNodeId, MaxClockId, date);
+        }
+
+        /// <summary>
         /// Initializes a new instance of the TimeUuid structure, using a random node id and clock sequence and the current date time
         /// </summary>
         public static TimeUuid NewId()
@@ -187,6 +214,17 @@ namespace Cassandra
         public static TimeUuid NewId(byte[] nodeId, byte[] clockId, DateTimeOffset date)
         {
             return new TimeUuid(nodeId, clockId, date);
+        }
+
+        /// <summary>
+        /// Converts the string representation of a time-based uuid (v1) to the equivalent 
+        /// <see cref="TimeUuid"/> structure.
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        public static TimeUuid Parse(string input)
+        {
+            return new TimeUuid(Guid.Parse(input));
         }
 
         /// <summary>
