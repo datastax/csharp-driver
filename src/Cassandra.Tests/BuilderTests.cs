@@ -184,23 +184,18 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void PoolingOptions_Create_Based_On_Protocol_Version()
+        [TestCase(ProtocolVersion.MaxSupported, 1, 2)]
+        [TestCase(ProtocolVersion.V2, 2, 8)]
+        public void PoolingOptions_Create_Based_On_Protocol_Version(ProtocolVersion protocolVersion, 
+            int coreConnections, int maxConnections)
         {
-            var options1 = PoolingOptions.Create();
+            var options1 = PoolingOptions.Create(protocolVersion);
             var cluster1 = Cluster.Builder()
                                   .AddContactPoint("::1")
                                   .WithPoolingOptions(options1)
                                   .Build();
-            Assert.AreEqual(1, cluster1.Configuration.PoolingOptions.GetCoreConnectionsPerHost(HostDistance.Local));
-            Assert.AreEqual(2, cluster1.Configuration.PoolingOptions.GetMaxConnectionPerHost(HostDistance.Local));
-            
-            var options2 = PoolingOptions.Create(ProtocolVersion.V2);
-            var cluster2 = Cluster.Builder()
-                                  .AddContactPoint("::1")
-                                  .WithPoolingOptions(options2)
-                                  .Build();
-            Assert.AreEqual(2, cluster2.Configuration.PoolingOptions.GetCoreConnectionsPerHost(HostDistance.Local));
-            Assert.AreEqual(8, cluster2.Configuration.PoolingOptions.GetMaxConnectionPerHost(HostDistance.Local));
+            Assert.AreEqual(coreConnections, cluster1.Configuration.PoolingOptions.GetCoreConnectionsPerHost(HostDistance.Local));
+            Assert.AreEqual(maxConnections, cluster1.Configuration.PoolingOptions.GetMaxConnectionPerHost(HostDistance.Local));
         }
     }
 }
