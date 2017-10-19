@@ -17,14 +17,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void Start()
         {
-            lock (this)
+            if (_initialized)
             {
-                if (_initialized)
-                {
-                    return;
-                }
-                _initialized = true;
+                return;
             }
+            _initialized = true;
             var started = false;
             var errorMessage = "Simulacron is taking too long to start. Aborting initialization...";
             _simulacronProcess = new Process();
