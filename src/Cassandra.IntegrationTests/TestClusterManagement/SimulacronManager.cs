@@ -9,31 +9,21 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
     {
         private Process _simulacronProcess;
 
-        private static SimulacronManager _instance;
+        private bool _initialized;
 
-        private bool _started;
+        public static SimulacronManager Instance { get; } = new SimulacronManager();
 
-        public static SimulacronManager Instance
-        {
-            get
-            {
-                if (_instance != null) return _instance;
-                _instance = new SimulacronManager();
-                return _instance;
-            }
-        }
-
-        public static Uri BaseAddress
-        {
-            get { return new Uri("http://127.0.0.1:8188"); }
-        }
+        public static Uri BaseAddress => new Uri("http://127.0.0.1:8188");
 
         public void Start()
         {
-            if (_started)
+            if (_initialized)
             {
                 return;
             }
+            _initialized = true;
+            var started = false;
+            var errorMessage = "Simulacron is taking too long to start. Aborting initialization...";
             _simulacronProcess = new Process();
             var jarPath = Environment.GetEnvironmentVariable("SIMULACRON_PATH");
             if (string.IsNullOrEmpty(jarPath))
@@ -45,7 +35,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 throw new Exception("Simulacron: Simulacron jar not found: " + jarPath);
             }
             _simulacronProcess.StartInfo.FileName = "java";
-            _simulacronProcess.StartInfo.Arguments = string.Format("-jar {0} --ip 127.0.0.101 -p 8188", jarPath);
+            _simulacronProcess.StartInfo.Arguments = $"-jar {jarPath} --ip 127.0.0.101 -p 8188";
             _simulacronProcess.StartInfo.UseShellExecute = false;
             _simulacronProcess.StartInfo.CreateNoWindow = true;
             _simulacronProcess.StartInfo.RedirectStandardOutput = true;
@@ -56,18 +46,20 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             var eventWaitHandler = new AutoResetEvent(false);
             _simulacronProcess.OutputDataReceived += (sender, e) =>
             {
-                if (e.Data == null || _started) return;
-                Console.WriteLine(e.Data);
+                if (e.Data == null || started) return;
+                Trace.TraceInformation(e.Data);
                 if (e.Data.Contains("Created nodes will start with ip"))
                 {
-                    _started = true;
+                    started = true;
                     eventWaitHandler.Set();
                 }
             };
             _simulacronProcess.ErrorDataReceived += (sender, e) =>
             {
                 if (e.Data == null) return;
-                Console.WriteLine(e.Data);
+                Trace.TraceError(e.Data);
+                errorMessage = $"Simulacron start error: {e.Data}";
+                eventWaitHandler.Set();
             };
             _simulacronProcess.Start();
 
@@ -75,11 +67,13 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             _simulacronProcess.BeginErrorReadLine();
 
             eventWaitHandler.WaitOne(8000);
-            if (!_started)
+            if (!started)
             {
+                Trace.TraceError(errorMessage);
                 Stop();
-                throw new Exception("Simulacron not started!");
+                throw new Exception("Simulacron failed to start!");
             }
+            Trace.TraceInformation("Simulacron started");
         }
 
         public void Stop()
@@ -91,20 +85,16 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 _simulacronProcess.Kill();
                 _simulacronProcess.Dispose();
             }
-            catch
+            catch (Exception ex)
             {
-                //ignore 
+                Trace.TraceWarning(ex.Message);
             }
             finally
             {
                 _simulacronProcess = null;
-                _started = false;
+                _initialized = false;
+                Trace.TraceInformation("Simulacron process stopped");
             }
-        }
-
-        public bool IsUp()
-        {
-            return _started;
         }
     }
 }

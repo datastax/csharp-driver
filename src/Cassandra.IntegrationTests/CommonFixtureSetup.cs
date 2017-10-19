@@ -20,7 +20,6 @@ namespace Cassandra.IntegrationTests
                 Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
             }
             Trace.TraceInformation("Starting Test Run ...");
-            SimulacronManager.Instance.Start();
         }
 
         [OneTimeTearDown]
