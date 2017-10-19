@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
+using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Mapping.Tests
@@ -24,6 +26,9 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             _session = Session;
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
+            
+            
+            Session.Execute(string.Format(PocoWithEnumCollections.DefaultCreateTableCql, "tbl_with_enum_collections"));
 
             // drop table if exists, re-create
             var config = new Map<Movie>().PartitionKey(c => c.Title).PartitionKey(c => c.MovieMaker);
@@ -72,6 +77,61 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             {
                 Assert.AreEqual("Sequence contains no elements", e.InnerException.Message);
             }
+        }
+
+        [Test]
+        public void First_With_Enum_Collections()
+        {
+            var expectedCollection = new[]{ HairColor.Blonde, HairColor.Gray };
+            var expectedMap = new SortedDictionary<HairColor, TimeUuid>
+            {
+                { HairColor.Brown, TimeUuid.NewId() },
+                { HairColor.Red, TimeUuid.NewId() }
+            };
+            var collectionValues = expectedCollection.Select(x => (int)x).ToArray();
+            var mapValues =
+                new SortedDictionary<int, Guid>(expectedMap.ToDictionary(kv => (int) kv.Key, kv => (Guid) kv.Value));
+
+            const string insertQuery =
+                "INSERT INTO tbl_with_enum_collections (id, list1, list2, array1, set1, set2, set3, map1, map2, map3)" +
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            Session.Execute(new SimpleStatement(insertQuery, 2000L, collectionValues, collectionValues,
+                collectionValues, collectionValues, collectionValues, collectionValues, mapValues, mapValues,
+                mapValues));
+            Session.Execute(new SimpleStatement(insertQuery, 2001L, null, null, null, null, null, null, null, null,
+                null));
+            
+            var config =
+                new MappingConfiguration().Define(
+                    PocoWithEnumCollections.DefaultMapping.TableName("tbl_with_enum_collections"));
+            var mapper = new Mapper(Session, config);
+            var result = mapper
+                .First<PocoWithEnumCollections>("SELECT * FROM tbl_with_enum_collections WHERE id = ?", 2000L);
+            Assert.NotNull(result);
+            Assert.AreEqual(2000L, result.Id);
+            Assert.AreEqual(expectedCollection, result.List1);
+            Assert.AreEqual(expectedCollection, result.List2);
+            Assert.AreEqual(expectedCollection, result.Array1);
+            Assert.AreEqual(expectedCollection, result.Set1);
+            Assert.AreEqual(expectedCollection, result.Set2);
+            Assert.AreEqual(expectedCollection, result.Set3);
+            Assert.AreEqual(expectedMap, result.Dictionary1);
+            Assert.AreEqual(expectedMap, result.Dictionary2);
+            Assert.AreEqual(expectedMap, result.Dictionary3);
+            
+            result = mapper
+                .First<PocoWithEnumCollections>("SELECT * FROM tbl_with_enum_collections WHERE id = ?", 2001L);
+            Assert.NotNull(result);
+            Assert.AreEqual(2001L, result.Id);
+            Assert.AreEqual(new HairColor[0], result.List1);
+            Assert.AreEqual(new HairColor[0], result.List2);
+            Assert.AreEqual(new HairColor[0], result.Array1);
+            Assert.AreEqual(new HairColor[0], result.Set1);
+            Assert.AreEqual(new HairColor[0], result.Set2);
+            Assert.AreEqual(new HairColor[0], result.Set3);
+            Assert.AreEqual(new Dictionary<HairColor, TimeUuid>(), result.Dictionary1);
+            Assert.AreEqual(new Dictionary<HairColor, TimeUuid>(), result.Dictionary2);
+            Assert.AreEqual(new Dictionary<HairColor, TimeUuid>(), result.Dictionary3);
         }
 
         ///////////////////////////////////////////////

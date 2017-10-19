@@ -2,12 +2,12 @@
 {
     public enum HairColor
     {
-        Black,
-        Blonde,
-        Brown,
-        Gray,
-        Red,
-        White,
-        Other
+        Black = 0,
+        Blonde = 1,
+        Brown = 2,
+        Gray = 3,
+        Red = 4,
+        White = 5,
+        Other = 6
     }
 }

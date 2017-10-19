@@ -246,5 +246,24 @@ namespace Cassandra.Tests.Mapping
                 CqlQueryOptions.New().SetTimestamp(timestamp)));
             Assert.AreEqual(timestamp, statement.Timestamp);
         }
+
+        [Test]
+        public void Update_Poco_With_Enum_Collections()
+        {
+            object[] parameters = null;
+            var config = new MappingConfiguration().Define(PocoWithEnumCollections.DefaultMapping);
+            var mapper = GetMappingClient(() => TaskHelper.ToTask(RowSet.Empty()), (_, p) =>
+            {
+                parameters = p;
+            }, config);
+            var collectionValues = new[]{ HairColor.Blonde, HairColor.Gray };
+            var expectedCollection = collectionValues.Select(x => (int) x).ToArray();
+            mapper.Update<PocoWithEnumCollections>("UPDATE tbl1 SET list1 = ? WHERE id = ?", 
+                mapper.ConvertCqlArgument<IEnumerable<HairColor>, IEnumerable<int>>(collectionValues), 3L);
+            Assert.AreEqual(new object[]{ expectedCollection, 3L }, parameters);
+            mapper.Update<PocoWithEnumCollections>("UPDATE tbl1 SET list1 = ? WHERE id = ?", 
+                mapper.ConvertCqlArgument<HairColor[], IEnumerable<int>>(collectionValues), 3L);
+            Assert.AreEqual(new object[]{ expectedCollection, 3L }, parameters);
+        }
     }
 }

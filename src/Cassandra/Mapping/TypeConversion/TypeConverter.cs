@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,40 +19,46 @@ namespace Cassandra.Mapping.TypeConversion
         private const BindingFlags PrivateInstance = BindingFlags.NonPublic | BindingFlags.Instance;
 
         private static readonly MethodInfo FindFromDbConverterMethod = typeof (TypeConverter).GetTypeInfo()
-            .GetMethod("FindFromDbConverter", PrivateInstance);
+            .GetMethod(nameof(FindFromDbConverter), PrivateInstance);
 
         private static readonly MethodInfo FindToDbConverterMethod = typeof (TypeConverter).GetTypeInfo()
-            .GetMethod("FindToDbConverter", PrivateInstance);
+            .GetMethod(nameof(FindToDbConverter), PrivateInstance);
 
         private static readonly MethodInfo ConvertToDictionaryMethod = typeof(TypeConverter).GetTypeInfo()
-            .GetMethod("ConvertToDictionary", PrivateStatic);
+            .GetMethod(nameof(ConvertToDictionary), PrivateStatic);
 
-        private static readonly MethodInfo ConvertToDictionaryWithCastMethod = typeof(TypeConverter).GetTypeInfo()
-            .GetMethod("ConvertToDictionaryWithCast", PrivateInstance);
+        private static readonly MethodInfo ConvertToDictionaryFromDbMethod = typeof(TypeConverter).GetTypeInfo()
+            .GetMethod(nameof(ConvertToDictionaryFromDb), PrivateInstance);
 
-        private static readonly MethodInfo ConvertToSortedDictionaryWithCastMethod = typeof(TypeConverter).GetTypeInfo()
-            .GetMethod("ConvertToSortedDictionaryWithCast", PrivateInstance);
+        private static readonly MethodInfo ConvertToSortedDictionaryFromDbMethod = typeof(TypeConverter).GetTypeInfo()
+            .GetMethod(nameof(ConvertToSortedDictionaryFromDb), PrivateInstance);
 
         private static readonly MethodInfo ConvertToHashSetMethod = typeof(TypeConverter).GetTypeInfo()
-            .GetMethod("ConvertToHashSet", PrivateStatic);
+            .GetMethod(nameof(ConvertToHashSet), PrivateStatic);
 
-        private static readonly MethodInfo ConvertToHashSetWithCastMethod = typeof(TypeConverter).GetTypeInfo()
-            .GetMethod("ConvertToHashSetWithCast", PrivateInstance);
+        private static readonly MethodInfo ConvertToHashSetFromDbMethod = typeof(TypeConverter).GetTypeInfo()
+            .GetMethod(nameof(ConvertToHashSetFromDb), PrivateInstance);
 
         private static readonly MethodInfo ConvertToSortedSetMethod = typeof(TypeConverter).GetTypeInfo()
-            .GetMethod("ConvertToSortedSet", PrivateStatic);
+            .GetMethod(nameof(ConvertToSortedSet), PrivateStatic);
 
-        private static readonly MethodInfo ConvertToSortedSetWithCastMethod = typeof(TypeConverter).GetTypeInfo()
-            .GetMethod("ConvertToSortedSetWithCast", PrivateInstance);
+        private static readonly MethodInfo ConvertToSortedSetFromDbMethod = typeof(TypeConverter).GetTypeInfo()
+            .GetMethod(nameof(ConvertToSortedSetFromDb), PrivateInstance);
 
         private static readonly MethodInfo ConvertToListMethod = typeof(TypeConverter).GetTypeInfo()
-            .GetMethod("ConvertToList", PrivateStatic);
+            .GetMethod(nameof(ConvertToList), PrivateStatic);
 
-        private static readonly MethodInfo ConvertToListWithCastMethod = typeof(TypeConverter).GetTypeInfo()
-            .GetMethod("ConvertToListWithCast", PrivateInstance);
+        private static readonly MethodInfo ConvertToListFromDbMethod = typeof(TypeConverter).GetTypeInfo()
+            .GetMethod(nameof(ConvertToListFromDb), PrivateInstance);
 
-        private static readonly MethodInfo ConvertToArrayMethod = typeof(TypeConverter).GetTypeInfo()
-            .GetMethod("ConvertToArray", PrivateInstance);
+        private static readonly MethodInfo ConvertToArrayFromDbMethod = typeof(TypeConverter).GetTypeInfo()
+            .GetMethod(nameof(ConvertToArrayFromDb), PrivateInstance);
+
+        private static readonly MethodInfo ConvertToIEnumerableToDbTypeMethod = typeof(TypeConverter)
+            .GetTypeInfo().GetMethod(nameof(ConvertToIEnumerableToDbType), PrivateInstance);
+
+        private static readonly MethodInfo ConvertToIDictionaryToDbTypeMethod = typeof(TypeConverter)
+            .GetTypeInfo().GetMethod(nameof(ConvertToIDictionaryToDbType), PrivateInstance);
 
         private readonly ConcurrentDictionary<Tuple<Type, Type>, Delegate> _fromDbConverterCache;
         private readonly ConcurrentDictionary<Tuple<Type, Type>, Delegate> _toDbConverterCache; 
@@ -115,7 +122,7 @@ namespace Cassandra.Mapping.TypeConversion
         /// <summary>
         /// Gets a Function that can convert a source type value from the database to a destination type value on a POCO.
         /// </summary>
-        internal Delegate GetFromDbConverter(Type dbType, Type pocoType)
+        internal Delegate TryGetFromDbConverter(Type dbType, Type pocoType)
         {
             return _fromDbConverterCache.GetOrAdd(
                 Tuple.Create(dbType, pocoType),
@@ -124,15 +131,32 @@ namespace Cassandra.Mapping.TypeConversion
         }
 
         /// <summary>
-        /// Gets the conversion function from cache or finds it, throwing if not found.
+        /// Gets the conversion function from cache or tries to cast.
         /// </summary>
-        /// <exception cref="InvalidOperationException" />
-        private Func<TSource, TResult> GetFromDbConverter<TSource, TResult>()
+        private Func<TSource, TResult> TryGetFromDbConverter<TSource, TResult>()
         {
             Delegate converter;
             if (typeof(TSource) != typeof(TResult))
             {
-                converter = GetFromDbConverter(typeof(TSource), typeof(TResult));
+                converter = TryGetFromDbConverter(typeof(TSource), typeof(TResult));
+                if (converter == null)
+                {
+                    // Try cast
+                    TResult ChangeType(TSource a)
+                    {
+                        try
+                        {
+                            return (TResult) (object) a;
+                        }
+                        catch (InvalidCastException ex)
+                        {
+                            throw new InvalidCastException(
+                                $"Specified cast is not valid: from {a.GetType()} to {typeof(TResult)}", ex);
+                        }
+                    }
+
+                    return ChangeType;
+                }
             }
             else
             {
@@ -146,6 +170,7 @@ namespace Cassandra.Mapping.TypeConversion
             }
             return (Func<TSource, TResult>) converter;
         }
+
 
         /// <summary>
         /// Gets a Function that can convert a source type value on a POCO to a destination type value for storage in C*.
@@ -215,83 +240,96 @@ namespace Cassandra.Mapping.TypeConversion
                 Type[] sourceGenericArgs = dbType.GetTypeInfo().GetGenericArguments();
                 if (pocoType.IsArray && sourceGenericDefinition == typeof(IEnumerable<>))
                 {
-                    return ConvertToArrayMethod
+                    return ConvertToArrayFromDbMethod
                         .MakeGenericMethod(sourceGenericArgs[0], pocoType.GetTypeInfo().GetElementType())
                         .CreateDelegateLocal(this);
                 }
                 if (pocoType.GetTypeInfo().IsGenericType)
                 {
-                    Type targetGenericType = pocoType.GetTypeInfo().GetGenericTypeDefinition();
-                    Type[] targetGenericArgs = pocoType.GetTypeInfo().GetGenericArguments();
-
-                    // Allow conversion from IDictionary<,> -> Dictionary<,> since C* driver uses
-                    // SortedDictionary which can't be casted into Dictionary
-                    if (typeof(IDictionary<,>).GetTypeInfo().IsAssignableFrom(sourceGenericDefinition))
+                    var targetGenericType = pocoType.GetTypeInfo().GetGenericTypeDefinition();
+                    var targetGenericArgs = pocoType.GetTypeInfo().GetGenericArguments();
+                    
+                    if (sourceGenericDefinition == typeof(IDictionary<,>))
                     {
-                        if (targetGenericType == typeof(Dictionary<,>))
-                        {
-                            if (sourceGenericArgs[0] == targetGenericArgs[0] && sourceGenericArgs[1] == targetGenericArgs[1])
-                            {
-                                return ConvertToDictionaryMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegateLocal();
-                            }
-                            return ConvertToDictionaryWithCastMethod.MakeGenericMethod(
-                                sourceGenericArgs[0], sourceGenericArgs[1], targetGenericArgs[0], targetGenericArgs[1])
-                                .CreateDelegateLocal(this);
-                        }
-                        if (targetGenericType == typeof(SortedDictionary<,>))
-                        {
-                            if (sourceGenericArgs[0] != targetGenericArgs[0] || sourceGenericArgs[1] != targetGenericArgs[1])
-                            {
-                                return ConvertToSortedDictionaryWithCastMethod.MakeGenericMethod(
-                                    sourceGenericArgs[0], sourceGenericArgs[1], targetGenericArgs[0], targetGenericArgs[1])
-                                    .CreateDelegateLocal(this);
-                            }
-                        }
+                        return ConvertFromIDictionary(targetGenericType, sourceGenericArgs, targetGenericArgs,
+                            pocoType);
                     }
 
                     // IEnumerable<> could be a Set or a List from Cassandra
                     if (sourceGenericDefinition == typeof(IEnumerable<>))
                     {
-                        if (targetGenericType.GetTypeInfo().IsAssignableFrom(typeof(SortedSet<>)))
-                        {
-                            if (sourceGenericArgs[0] == targetGenericArgs[0])
-                            {
-                                return ConvertToSortedSetMethod
-                                    .MakeGenericMethod(sourceGenericArgs)
-                                    .CreateDelegateLocal();
-                            }
-                            return ConvertToSortedSetWithCastMethod
-                                .MakeGenericMethod(sourceGenericArgs[0], targetGenericArgs[0])
-                                .CreateDelegateLocal(this);
-                        }
-                        if (targetGenericType.GetTypeInfo().IsAssignableFrom(typeof(List<>)))
-                        {
-                            if (sourceGenericArgs[0] == targetGenericArgs[0])
-                            {
-                                return ConvertToListMethod
-                                    .MakeGenericMethod(sourceGenericArgs)
-                                    .CreateDelegateLocal();
-                            }
-                            return ConvertToListWithCastMethod
-                                .MakeGenericMethod(sourceGenericArgs[0], targetGenericArgs[0])
-                                .CreateDelegateLocal(this);
-                        }
-                        if (targetGenericType.GetTypeInfo().IsAssignableFrom(typeof(HashSet<>)))
-                        {
-                            if (sourceGenericArgs[0] == targetGenericArgs[0])
-                            {
-                                return ConvertToHashSetMethod
-                                    .MakeGenericMethod(sourceGenericArgs)
-                                    .CreateDelegateLocal();
-                            }
-                            return ConvertToHashSetWithCastMethod
-                                .MakeGenericMethod(sourceGenericArgs[0], targetGenericArgs[0])
-                                .CreateDelegateLocal(this);
-                        }
+                        return ConvertFromIEnumerable(targetGenericType, sourceGenericArgs, targetGenericArgs,
+                            pocoType);
                     }
                 }
             }
             
+            return null;
+        }
+
+        private Delegate ConvertFromIDictionary(Type targetGenericType, Type[] sourceGenericArgs,
+                                                Type[] targetGenericArgs, Type pocoType)
+        {
+            if (targetGenericType == typeof(SortedDictionary<,>) || targetGenericType == typeof(IDictionary<,>))
+            {
+                if (sourceGenericArgs[0] != targetGenericArgs[0] || sourceGenericArgs[1] != targetGenericArgs[1])
+                {
+                    return ConvertToSortedDictionaryFromDbMethod
+                        .MakeGenericMethod(sourceGenericArgs[0], sourceGenericArgs[1], targetGenericArgs[0],
+                            targetGenericArgs[1], pocoType).CreateDelegateLocal(this);
+                }
+            }
+            if (targetGenericType == typeof(Dictionary<,>))
+            {
+                // Allow conversion from IDictionary<,> -> Dictionary<,> since C* driver uses
+                // SortedDictionary which can't be casted into Dictionary
+                if (sourceGenericArgs[0] == targetGenericArgs[0] && sourceGenericArgs[1] == targetGenericArgs[1])
+                {
+                    return ConvertToDictionaryMethod.MakeGenericMethod(sourceGenericArgs).CreateDelegateLocal();
+                }
+                return ConvertToDictionaryFromDbMethod
+                    .MakeGenericMethod(sourceGenericArgs[0], sourceGenericArgs[1], targetGenericArgs[0], 
+                        targetGenericArgs[1]).CreateDelegateLocal(this);
+            }
+            return null;
+        }
+
+        private Delegate ConvertFromIEnumerable(Type targetGenericType, Type[] sourceGenericArgs,
+                                                                  Type[] targetGenericArgs, Type pocoType)
+        {
+            // Use equality operators to compare supported open generic types (IsAssignableFrom() won't help)
+            if (targetGenericType == typeof(List<>) || targetGenericType == typeof(IList<>))
+            {
+                if (sourceGenericArgs[0] == targetGenericArgs[0])
+                {
+                    return ConvertToListMethod
+                        .MakeGenericMethod(sourceGenericArgs)
+                        .CreateDelegateLocal();
+                }
+                return ConvertToListFromDbMethod
+                    .MakeGenericMethod(sourceGenericArgs[0], targetGenericArgs[0], pocoType)
+                    .CreateDelegateLocal(this);
+            }
+            if (targetGenericType == typeof(SortedSet<>) || targetGenericType == typeof(ISet<>))
+            {
+                if (sourceGenericArgs[0] == targetGenericArgs[0])
+                {
+                    return ConvertToSortedSetMethod
+                        .MakeGenericMethod(sourceGenericArgs).CreateDelegateLocal();
+                }
+                return ConvertToSortedSetFromDbMethod
+                    .MakeGenericMethod(sourceGenericArgs[0], targetGenericArgs[0], pocoType).CreateDelegateLocal(this);
+            }
+            if (targetGenericType == typeof(HashSet<>))
+            {
+                if (sourceGenericArgs[0] == targetGenericArgs[0])
+                {
+                    return ConvertToHashSetMethod
+                        .MakeGenericMethod(sourceGenericArgs).CreateDelegateLocal();
+                }
+                return ConvertToHashSetFromDbMethod
+                    .MakeGenericMethod(sourceGenericArgs[0], targetGenericArgs[0]).CreateDelegateLocal(this);
+            }
             return null;
         }
 
@@ -316,7 +354,6 @@ namespace Cassandra.Mapping.TypeConversion
             {
                 if (pocoType.GetTypeInfo().IsEnum)
                 {
-                    // Just call ToStirng() on the enum value from the POCO
                     Func<TPoco, string> enumConverter = prop => prop.ToString();
                     return enumConverter;
                 }
@@ -328,22 +365,91 @@ namespace Cassandra.Mapping.TypeConversion
                     return enumConverter;
                 }
             }
+            if (dbType == typeof(Guid) && pocoType == typeof(TimeUuid))
+            {
+                Guid TimeUuidConverter(TimeUuid a) => a.ToGuid();
+                return (Func<TimeUuid, Guid>) TimeUuidConverter;
+            }
+            if (typeof(IEnumerable).GetTypeInfo().IsAssignableFrom(dbType) && dbType.GetTypeInfo().IsGenericType)
+            {
+                Type dbGenericType = dbType.GetTypeInfo().GetGenericTypeDefinition();
+                Type[] dbTypeGenericArgs = dbType.GetTypeInfo().GetGenericArguments();
+                if (pocoType.GetTypeInfo().IsArray)
+                {
+                    // Its an array, convert each element
+                    return ConvertToIEnumerableToDbTypeMethod
+                        .MakeGenericMethod(pocoType.GetTypeInfo().GetElementType(), dbTypeGenericArgs[0])
+                        .CreateDelegateLocal(this);
+                }
+                if (!pocoType.GetTypeInfo().IsGenericType || dbType.GetTypeInfo().IsAssignableFrom(pocoType))
+                {
+                    return null;
+                }
+                Type[] pocoTypeGenericArgs = pocoType.GetTypeInfo().GetGenericArguments();
+                if (dbGenericType == typeof(IEnumerable<>))
+                {
+                    // Its a list or a set but the child types doesn't match
+                    return ConvertToIEnumerableToDbTypeMethod
+                        .MakeGenericMethod(pocoTypeGenericArgs[0], dbTypeGenericArgs[0]).CreateDelegateLocal(this);
+                }
+                if (dbGenericType == typeof(IDictionary<,>))
+                {
+                    return ConvertToIDictionaryToDbTypeMethod
+                        .MakeGenericMethod(pocoTypeGenericArgs[0], pocoTypeGenericArgs[1], dbTypeGenericArgs[0],
+                            dbTypeGenericArgs[1]).CreateDelegateLocal(this);
+                }
+            }
 
             return null;
         }
 
-        // ReSharper disable UnusedMember.Local 
-        // (these methods are invoked via reflection above)
-        private static Dictionary<TKey, TValue> ConvertToDictionary<TKey, TValue>(IDictionary<TKey, TValue> mapFromDatabase)
+        private Func<TPoco, TDatabase> TryFindToDbConverter<TPoco, TDatabase>()
         {
-            return new Dictionary<TKey, TValue>(mapFromDatabase);
+            var converter = FindToDbConverter<TPoco, TDatabase>();
+            if (converter != null)
+            {
+                return (Func<TPoco, TDatabase>)converter;
+            }
+            
+            TDatabase ChangeType(TPoco a)
+            {
+                try
+                {
+                    return (TDatabase) (object) a;
+                }
+                catch (InvalidCastException ex)
+                {
+                    throw new InvalidCastException(
+                        $"Specified cast is not valid: from {a.GetType()} to {typeof(TDatabase)}", ex);
+                }
+            }
+
+            return ChangeType;
         }
 
-        private Dictionary<TKeyResult, TValueResult> ConvertToDictionaryWithCast<TKeySource, TValueSource, TKeyResult, TValueResult>
-            (IDictionary<TKeySource, TValueSource> mapFromDatabase)
+        private IEnumerable<TResult> ConvertToIEnumerableToDbType<TSource, TResult>(IEnumerable<TSource> items)
         {
-            var keyConverter = GetFromDbConverter<TKeySource, TKeyResult>();
-            var valueConverter = GetFromDbConverter<TValueSource, TValueResult>();
+            return items?.Select(TryFindToDbConverter<TSource, TResult>());
+        }
+
+        private IDictionary<TResultKey, TResultValue> ConvertToIDictionaryToDbType<TSourceKey, TSourceValue, TResultKey,
+            TResultValue>(IDictionary<TSourceKey, TSourceValue> map)
+        {
+            var keyConverter = TryFindToDbConverter<TSourceKey, TResultKey>();
+            var valueConverter = TryFindToDbConverter<TSourceValue, TResultValue>();
+            return map?.ToDictionary(kv => keyConverter(kv.Key), kv => valueConverter(kv.Value));
+        }
+
+        private static Dictionary<TKey, TValue> ConvertToDictionary<TKey, TValue>(IDictionary<TKey, TValue> map)
+        {
+            return new Dictionary<TKey, TValue>(map);
+        }
+
+        private Dictionary<TKeyResult, TValueResult> ConvertToDictionaryFromDb<TKeySource, TValueSource, TKeyResult,
+            TValueResult>(IDictionary<TKeySource, TValueSource> mapFromDatabase)
+        {
+            var keyConverter = TryGetFromDbConverter<TKeySource, TKeyResult>();
+            var valueConverter = TryGetFromDbConverter<TValueSource, TValueResult>();
             var dictionary = new Dictionary<TKeyResult, TValueResult>(mapFromDatabase.Count);
             foreach (var kv in mapFromDatabase)
             {
@@ -352,56 +458,65 @@ namespace Cassandra.Mapping.TypeConversion
             return dictionary;
         }
 
-        private SortedDictionary<TKeyResult, TValueResult> ConvertToSortedDictionaryWithCast
-            <TKeySource, TValueSource, TKeyResult, TValueResult>
+        private TDictionaryResult ConvertToSortedDictionaryFromDb
+            <TKeySource, TValueSource, TKeyResult, TValueResult, TDictionaryResult>
             (IDictionary<TKeySource, TValueSource> mapFromDatabase)
         {
-            var keyConverter = GetFromDbConverter<TKeySource, TKeyResult>();
-            var valueConverter = GetFromDbConverter<TValueSource, TValueResult>();
+            var keyConverter = TryGetFromDbConverter<TKeySource, TKeyResult>();
+            var valueConverter = TryGetFromDbConverter<TValueSource, TValueResult>();
             var dictionary = new SortedDictionary<TKeyResult, TValueResult>();
             foreach (var kv in mapFromDatabase)
             {
                 dictionary.Add(keyConverter(kv.Key), valueConverter(kv.Value));
             }
-            return dictionary;
+            return (TDictionaryResult) (object) dictionary;
         }
 
-        private static HashSet<T> ConvertToHashSet<T>(IEnumerable<T> setFromDatabase)
+        private static HashSet<T> ConvertToHashSet<T>(IEnumerable<T> set)
         {
-            return new HashSet<T>(setFromDatabase);
+            return new HashSet<T>(set);
         }
 
-        private HashSet<TResult> ConvertToHashSetWithCast<TSource, TResult>(IEnumerable<TSource> setFromDatabase)
+        private HashSet<TResult> ConvertToHashSetFromDb<TSource, TResult>(IEnumerable<TSource> setFromDatabase)
         {
-            return new HashSet<TResult>(setFromDatabase.Select(GetFromDbConverter<TSource, TResult>()));
+            return new HashSet<TResult>(setFromDatabase.Select(TryGetFromDbConverter<TSource, TResult>()));
         }
 
-        private static SortedSet<T> ConvertToSortedSet<T>(IEnumerable<T> setFromDatabase)
+        private static SortedSet<T> ConvertToSortedSet<T>(IEnumerable<T> set)
         {
-            return new SortedSet<T>(setFromDatabase);
+            if (set is SortedSet<T>)
+            {
+                return (SortedSet<T>) set;
+            }
+            return new SortedSet<T>(set);
         }
 
-        private SortedSet<TResult> ConvertToSortedSetWithCast<TSource, TResult>(IEnumerable<TSource> setFromDatabase)
+        private TSetResult ConvertToSortedSetFromDb<TSource, TResult, TSetResult>(
+            IEnumerable<TSource> setFromDatabase)
         {
-            return new SortedSet<TResult>(setFromDatabase.Select(GetFromDbConverter<TSource, TResult>()));
+            return (TSetResult) (object) new SortedSet<TResult>(
+                setFromDatabase.Select(TryGetFromDbConverter<TSource, TResult>()));
         }
 
-        private static List<T> ConvertToList<T>(IEnumerable<T> itemsDatabase)
+        private static List<T> ConvertToList<T>(IEnumerable<T> list)
         {
-            return new List<T>(itemsDatabase);
+            if (list is List<T>)
+            {
+                return (List<T>) list;
+            }
+            return new List<T>(list);
         }
 
-        private List<TResult> ConvertToListWithCast<TSource, TResult>(IEnumerable<TSource> itemsDatabase)
+        private TListResult ConvertToListFromDb<TSource, TResult, TListResult>(IEnumerable<TSource> itemsDatabase)
         {
-            return new List<TResult>(itemsDatabase.Select(GetFromDbConverter<TSource, TResult>()));
+            return (TListResult) (object) new List<TResult>(
+                itemsDatabase.Select(TryGetFromDbConverter<TSource, TResult>()));
         }
         
-        private TResult[] ConvertToArray<TSource, TResult>(IEnumerable<TSource> listFromDatabase)
+        private TResult[] ConvertToArrayFromDb<TSource, TResult>(IEnumerable<TSource> listFromDatabase)
         {
-            return listFromDatabase.Select(GetFromDbConverter<TSource, TResult>()).ToArray();
+            return listFromDatabase.Select(TryGetFromDbConverter<TSource, TResult>()).ToArray();
         }
-
-        // ReSharper restore UnusedMember.Local
 
         /// <summary>
         /// Gets any user defined conversion functions that can convert a value of type <typeparamref name="TDatabase"/> (coming from Cassandra) to a

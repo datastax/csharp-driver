@@ -26,6 +26,7 @@ using Cassandra.Mapping;
 using Cassandra.Serialization;
 using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
+using HairColor = Cassandra.Tests.Mapping.Pocos.HairColor;
 #pragma warning disable 169
 
 namespace Cassandra.IntegrationTests.Mapping.Tests
@@ -600,6 +601,53 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 Assert.AreEqual(3, ex.RequiredReplicas);
                 Assert.AreEqual(1, ex.AliveReplicas);
             }
+        }
+
+        [Test]
+        public void Insert_Poco_With_Enum_Collections_Test()
+        {
+            Session.Execute(string.Format(PocoWithEnumCollections.DefaultCreateTableCql, "tbl_with_enum_collections"));
+            var mapper = new Mapper(Session, new MappingConfiguration().Define(
+                PocoWithEnumCollections.DefaultMapping.TableName("tbl_with_enum_collections")));
+            var collectionValues = new[]{ HairColor.Blonde, HairColor.Gray, HairColor.Red };
+            var mapValues = new SortedDictionary<HairColor, TimeUuid>
+            {
+                { HairColor.Brown, TimeUuid.NewId() },
+                { HairColor.Red, TimeUuid.NewId() }
+            };
+            var expectedCollection = collectionValues.Select(x => (int) x).ToArray();
+            var expectedMap = mapValues.ToDictionary(kv => (int) kv.Key, kv => (Guid) kv.Value);
+            var poco = new PocoWithEnumCollections
+            {
+                Id = 1000L,
+                List1 = new List<HairColor>(collectionValues),
+                List2 = collectionValues,
+                Array1 = collectionValues,
+                Set1 = new SortedSet<HairColor>(collectionValues),
+                Set2 = new SortedSet<HairColor>(collectionValues),
+                Set3 = new HashSet<HairColor>(collectionValues),
+                Dictionary1 = new Dictionary<HairColor, TimeUuid>(mapValues),
+                Dictionary2 = mapValues,
+                Dictionary3 = new SortedDictionary<HairColor, TimeUuid>(mapValues)
+            };
+
+            mapper.Insert(poco);
+
+            var statement = new SimpleStatement("SELECT * FROM tbl_with_enum_collections WHERE id = ?", 1000L);
+            var row = Session.Execute(statement).First();
+            Assert.AreEqual(1000L, row.GetValue<long>("id"));
+            Assert.AreEqual(expectedCollection, row.GetValue<IEnumerable<int>>("list1"));
+            Assert.AreEqual(expectedCollection, row.GetValue<IEnumerable<int>>("list2"));
+            Assert.AreEqual(expectedCollection, row.GetValue<IEnumerable<int>>("array1"));
+            Assert.AreEqual(expectedCollection, row.GetValue<IEnumerable<int>>("set1"));
+            Assert.AreEqual(expectedCollection, row.GetValue<IEnumerable<int>>("set2"));
+            Assert.AreEqual(expectedCollection, row.GetValue<IEnumerable<int>>("set3"));
+            Assert.AreEqual(expectedMap, row.GetValue<IDictionary<int, Guid>>("map1"));
+            Assert.AreEqual(expectedMap, row.GetValue<IDictionary<int, Guid>>("map2"));
+            Assert.AreEqual(expectedMap, row.GetValue<IDictionary<int, Guid>>("map3"));
+            
+            // BONUS: Attempt insert with null values
+            Assert.DoesNotThrow(() => mapper.Insert(new PocoWithEnumCollections { Id = 1001L }));
         }
 
         /////////////////////////////////////////
