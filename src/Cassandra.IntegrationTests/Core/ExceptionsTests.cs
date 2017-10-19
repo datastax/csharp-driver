@@ -419,11 +419,14 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 var session = cluster.Connect();
-                session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspace, 2));
-                session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, table));
-                var query = String.Format("INSERT INTO {0} (k, t) VALUES ('ONE', 'ONE VALUES')", table);
-                Assert.Throws<WriteFailureException>(() => 
+                session.Execute(string.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspace, 2));
+                session.Execute(string.Format(TestUtils.CreateTableSimpleFormat, table));
+                var query = $"INSERT INTO {table} (k, t) VALUES ('ONE', 'ONE VALUES')";
+                var ex = Assert.Throws<WriteFailureException>(() => 
                     session.Execute(new SimpleStatement(query).SetConsistencyLevel(ConsistencyLevel.All)));
+                StringAssert.Contains("Server failure during write query at consistency ALL", ex.Message);
+                StringAssert.Contains("(2 responses were required but only 1 replica responded, 1 failed)", 
+                                      ex.Message);
             }
         }
 
