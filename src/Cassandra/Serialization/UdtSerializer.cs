@@ -29,10 +29,7 @@ namespace Cassandra.Serialization
         private readonly ConcurrentDictionary<string, UdtMap> _udtMapsByName = new ConcurrentDictionary<string, UdtMap>();
         private readonly ConcurrentDictionary<Type, UdtMap> _udtMapsByClrType = new ConcurrentDictionary<Type, UdtMap>();
 
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Udt; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Udt;
 
         protected internal UdtSerializer()
         {

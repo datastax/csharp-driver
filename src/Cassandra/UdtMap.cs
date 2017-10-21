@@ -120,17 +120,17 @@ namespace Cassandra
         {
             if (_fieldNameToProperty.ContainsKey(udtFieldName))
             {
-                throw new ArgumentException(string.Format("A mapping has already been defined for '{0}'.", udtFieldName));
+                throw new ArgumentException($"A mapping has already been defined for '{udtFieldName}'.");
             }
 
             if (_propertyToFieldName.ContainsKey(propInfo))
             {
-                throw new ArgumentException(string.Format("A mapping has already been defined for property '{0}'", propInfo.Name));
+                throw new ArgumentException($"A mapping has already been defined for property '{propInfo.Name}'");
             }
 
             if (propInfo.CanRead == false || propInfo.CanWrite == false)
             {
-                throw new ArgumentException(string.Format("Must be able to read and write to property '{0}'.", propInfo.Name));
+                throw new ArgumentException($"Must be able to read and write to property '{propInfo.Name}'.");
             }
 
             _fieldNameToProperty[udtFieldName] = propInfo;
@@ -183,7 +183,7 @@ namespace Cassandra
             {
                 if (Definition.Fields.All(f => f.Name != fieldName))
                 {
-                    throw new InvalidTypeException("Mapping defined for not existent field " + fieldName);
+                    throw new InvalidTypeException($"Mapping defined for not existent field {fieldName}");
                 }
             }
         }

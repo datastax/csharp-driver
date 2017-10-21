@@ -396,15 +396,11 @@ namespace Cassandra.IntegrationTests.Core
                     return false;
                 }
                 var phoneValue = (Phone)obj;
-                if (phoneValue.Alias == this.Alias &&
-                    phoneValue.Number == this.Number &&
-                    phoneValue.CountryCode == this.CountryCode &&
-                    phoneValue.VerifiedAt == this.VerifiedAt &&
-                    phoneValue.PhoneType == this.PhoneType)
-                {
-                    return true;
-                }
-                return false;
+                return phoneValue.Alias == this.Alias &&
+                       phoneValue.Number == this.Number &&
+                       phoneValue.CountryCode == this.CountryCode &&
+                       phoneValue.VerifiedAt == this.VerifiedAt &&
+                       phoneValue.PhoneType == this.PhoneType;
             }
 
             public override int GetHashCode()

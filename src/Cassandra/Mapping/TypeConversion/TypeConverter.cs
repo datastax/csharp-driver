@@ -78,8 +78,7 @@ namespace Cassandra.Mapping.TypeConversion
             var converter = (Func<TValue, TDatabase>) GetToDbConverter(typeof (TValue), typeof (TDatabase));
             if (converter == null)
             {
-                throw new InvalidOperationException(string.Format("No converter is available from Type {0} to Type {1}", typeof(TValue).Name,
-                                                                  typeof(TDatabase).Name));
+                throw new InvalidOperationException($"No converter is available from Type {typeof(TValue).Name} to Type {typeof(TDatabase).Name}");
             }
 
             return converter(value);
@@ -93,7 +92,7 @@ namespace Cassandra.Mapping.TypeConversion
             var converter = GetToDbConverter(valueType, dbType);
             if (converter == null)
             {
-                throw new InvalidTypeException(string.Format("No converter is available from Type {0} is not convertible to type {1}", valueType, dbType));
+                throw new InvalidTypeException($"No converter is available from Type {valueType} is not convertible to type {dbType}");
             }
 
             return converter.DynamicInvoke(value);
@@ -107,7 +106,7 @@ namespace Cassandra.Mapping.TypeConversion
             var converter = GetFromDbConverter(dbType, valueType);
             if (converter == null)
             {
-                throw new InvalidTypeException(string.Format("No converter is available from Type {0} is not convertible to type {1}", dbType, valueType));
+                throw new InvalidTypeException($"No converter is available from Type {dbType} is not convertible to type {valueType}");
             }
 
             return converter.DynamicInvoke(value);
@@ -143,9 +142,7 @@ namespace Cassandra.Mapping.TypeConversion
             if (converter == null)
             {
                 throw new InvalidOperationException(
-                    string.Format("No converter is available from Type {0} to Type {1}", 
-                    typeof(TSource).Name,
-                    typeof(TResult).Name));
+                    $"No converter is available from Type {typeof(TSource).Name} to Type {typeof(TResult).Name}");
             }
             return (Func<TSource, TResult>) converter;
         }
