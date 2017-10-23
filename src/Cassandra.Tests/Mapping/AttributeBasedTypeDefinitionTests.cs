@@ -51,5 +51,27 @@ namespace Cassandra.Tests.Mapping
             CollectionAssert.AreEqual(new [] {Tuple.Create("Time", SortOrder.Unspecified)}, definition.ClusteringKeys);
             CollectionAssert.AreEqual(new[] { "name", "Slice" }, definition.PartitionKeys);
         }
+
+        [Test]
+        public void AttributeBased_Without_Name_For_Clustering_Key_Test()
+        {
+            var definition = new AttributeBasedTypeDefinition(typeof(SamplePocoWithoutClusteringKeyName));
+            Assert.False(definition.CaseSensitive);
+            Assert.False(definition.CompactStorage);
+            Assert.False(definition.AllowFiltering);
+            Assert.False(definition.ExplicitColumns);
+            CollectionAssert.AreEqual(new [] {Tuple.Create("Id2", SortOrder.Unspecified)}, definition.ClusteringKeys);
+            CollectionAssert.AreEqual(new[] { "Id1" }, definition.PartitionKeys);
+        }
+
+        private class SamplePocoWithoutClusteringKeyName
+        {
+            [PartitionKey]
+            public int Id1 { get; set; }
+
+            [ClusteringKey]
+            [Column]
+            public int Id2 { get; set; }
+        }
     }
 }
