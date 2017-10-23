@@ -14,26 +14,44 @@
 //   limitations under the License.
 //
 
-using System.Diagnostics;
-using System.Security;
 using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Threading;
-#if !NETCORE
-using System.Security.Permissions;
-#endif
-using Cassandra.Tests;
+using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("long")]
+    [TestFixture, Category("short")]
     public class ExceptionsTests : TestGlobals
     {
+        private ISession _session;
+        private string _keyspace;
+        private string _table;
+        private static SimulacronCluster _simulacronCluster;
+
+        [SetUp]
+        public void RestartCluster()
+        {
+            _simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions());
+            var contactPoint = _simulacronCluster.InitialContactPoint;
+            var builder = Cluster.Builder()
+                                 .AddContactPoint(contactPoint);
+            var cluster = builder.Build();
+            _session = cluster.Connect();
+            _keyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
+            _table = TestUtils.GetUniqueTableName().ToLowerInvariant();
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            _session.Cluster.Shutdown();
+            _simulacronCluster.Remove();
+        }
+
         /// <summary>
         ///  Tests the AlreadyExistsException. Create a keyspace twice and a table twice.
         ///  Catch and test all the exception methods.
@@ -41,43 +59,51 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void AlreadyExistsException()
         {
-            ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(1);
-            ISession session = testCluster.Session;
-            
-            string keyspace = TestUtils.GetUniqueKeyspaceName();
-            string table = TestUtils.GetUniqueTableName();
+            var cql = string.Format(TestUtils.CreateKeyspaceSimpleFormat, _keyspace, 1);
 
-            String[] cqlCommands =
+            var primeQuery = new
             {
-                String.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspace, 1),
-                String.Format("USE \"{0}\"", keyspace),
-                String.Format(TestUtils.CreateTableSimpleFormat, table)
+                when = new { query = cql },
+                then = new
+                {
+                    result = "already_exists",
+                    delay_in_ms = 0,
+                    message = "already_exists",
+                    keyspace = _keyspace,
+                    table = "",
+                    ignore_on_prepare = false
+                }
             };
 
-            // Create the schema once
-            session.Execute(cqlCommands[0]);
-            session.Execute(cqlCommands[1]);
-            session.Execute(cqlCommands[2]);
+            _simulacronCluster.Prime(primeQuery);
 
-            // Try creating the keyspace again
-            var ex = Assert.Throws<AlreadyExistsException>(() => session.Execute(cqlCommands[0]));
-            Assert.AreEqual(ex.Keyspace, keyspace);
+            var ex = Assert.Throws<AlreadyExistsException>(() => _session.Execute(cql));
+            Assert.AreEqual(ex.Keyspace, _keyspace);
             Assert.AreEqual(ex.Table, null);
             Assert.AreEqual(ex.WasTableCreation, false);
 
-            session.Execute(cqlCommands[1]);
 
-            // Try creating the table again
-            try
+            var cqlTable = string.Format(TestUtils.CreateTableSimpleFormat, _table);
+
+            var primeQueryTable = new
             {
-                session.Execute(cqlCommands[2]);
-            }
-            catch (AlreadyExistsException e)
-            {
-                Assert.AreEqual(e.Keyspace, keyspace);
-                Assert.AreEqual(e.Table, table.ToLower());
-                Assert.AreEqual(e.WasTableCreation, true);
-            }
+                when = new { query = cqlTable },
+                then = new
+                {
+                    result = "already_exists",
+                    delay_in_ms = 0,
+                    message = "already_exists",
+                    table = _table,
+                    keyspace = _keyspace,
+                    ignore_on_prepare = false
+                }
+            };
+
+            _simulacronCluster.Prime(primeQueryTable);
+            var e = Assert.Throws<AlreadyExistsException>(() => _session.Execute(cqlTable));
+            Assert.AreEqual(e.Keyspace, _keyspace);
+            Assert.AreEqual(e.Table, _table);
+            Assert.AreEqual(e.WasTableCreation, true);
         }
 
         /// <summary>
@@ -87,9 +113,8 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void NoHostAvailableException()
         {
-            var ipAddress = "255.255.255.255";
-            var errorsHashMap = new Dictionary<IPAddress, Exception>();
-            errorsHashMap.Add(IPAddress.Parse(ipAddress), null);
+            const string ipAddress = "255.255.255.255";
+            var errorsHashMap = new Dictionary<IPAddress, Exception> {{IPAddress.Parse(ipAddress), null}};
 
             try
             {
@@ -97,7 +122,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             catch (NoHostAvailableException e)
             {
-                Assert.AreEqual(e.Message, String.Format("All host tried for query are in error (tried: {0})", ipAddress));
+                Assert.AreEqual(e.Message, $"All host tried for query are in error (tried: {ipAddress})");
                 Assert.AreEqual(e.Errors.Keys.ToArray(), errorsHashMap.Keys.ToArray());
             }
         }
@@ -110,28 +135,29 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void ReadTimeoutException()
         {
-            ITestCluster nonShareableTestCluster = TestClusterManager.GetNonShareableTestCluster(2);
-            ISession session = nonShareableTestCluster.Session;
+            var cql = string.Format(TestUtils.SELECT_ALL_FORMAT, _table);
+            var primeQuery = new
+            {
+                when = new
+                {
+                    query = cql
+                },
+                then = new
+                {
+                    result = "read_timeout",
+                    consistency_level = 5,
+                    received = 1,
+                    block_for = 2,
+                    data_present = true,
+                    delay_in_ms = 0,
+                    message = "read_timeout",
+                    ignore_on_prepare = false
+                }
+            };
 
-            string keyspace = "TestKeyspace_" + Randomm.RandomAlphaNum(10);
-            string table = "TestTable_" + Randomm.RandomAlphaNum(10);
-            int replicationFactor = 2;
-            string key = "1";
-
-            session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspace, replicationFactor));
-            Thread.Sleep(5000);
-            session.ChangeKeyspace(keyspace);
-            session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, table));
-            Thread.Sleep(3000);
-
-            session.Execute(
-                new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(
-                    ConsistencyLevel.All));
-            session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
-
-            nonShareableTestCluster.StopForce(2);
-            var ex = Assert.Throws<ReadTimeoutException>(() => 
-                session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All)));
+            _simulacronCluster.Prime(primeQuery);
+            var ex = Assert.Throws<ReadTimeoutException>(() =>
+                _session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.All)));
             Assert.AreEqual(ex.ConsistencyLevel, ConsistencyLevel.All);
             Assert.AreEqual(ex.ReceivedAcknowledgements, 1);
             Assert.AreEqual(ex.RequiredAcknowledgements, 2);
@@ -144,7 +170,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void SyntaxError()
         {
-            var errorMessage = "Test Message";
+            const string errorMessage = "Test Message";
 
             try
             {
@@ -162,7 +188,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void TraceRetrievalException()
         {
-            var errorMessage = "Test Message";
+            const string errorMessage = "Test Message";
 
             try
             {
@@ -180,7 +206,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void TruncateException()
         {
-            var errorMessage = "Test Message";
+            const string errorMessage = "Test Message";
 
             try
             {
@@ -198,7 +224,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void UnauthorizedException()
         {
-            var errorMessage = "Test Message";
+            const string errorMessage = "Test Message";
 
             try
             {
@@ -219,52 +245,31 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void UnavailableException()
         {
-            ITestCluster nonShareableTestCluster = TestClusterManager.GetNonShareableTestCluster(2);
-            ISession session = nonShareableTestCluster.Session;
-
-            string keyspaceName = "TestKeyspace_" + Randomm.RandomAlphaNum(10);
-            string tableName = "TestTable_" + Randomm.RandomAlphaNum(10);
-            int replicationFactor = 2;
-            string key = "1";
-            session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspaceName, replicationFactor));
-            session.ChangeKeyspace(keyspaceName);
-            session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, tableName));
-
-            session.Execute(
-                new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, tableName, key, "foo", 42, 24.03f)).SetConsistencyLevel(ConsistencyLevel.All));
-            session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, tableName)).SetConsistencyLevel(ConsistencyLevel.All));
-
-            nonShareableTestCluster.StopForce(2);
-            // Ensure that gossip has reported the node as down.
-
-            bool expectedExceptionWasCaught = false;
-            int readTimeoutWasCaught = 0;
-            int maxReadTimeouts = 6; // as long as we're getting Read Timeouts, then we're on the right track
-
-            while (!expectedExceptionWasCaught && readTimeoutWasCaught < maxReadTimeouts)
+            var cql = string.Format(TestUtils.SELECT_ALL_FORMAT, _table);
+            var primeQuery = new
             {
-                try
+                when = new
                 {
-                    session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, tableName)).SetConsistencyLevel(ConsistencyLevel.All));
-                }
-                catch (UnavailableException e)
+                    query = cql
+                },
+                then = new
                 {
-                    Assert.AreEqual(e.Consistency, ConsistencyLevel.All);
-                    Assert.AreEqual(e.RequiredReplicas, replicationFactor);
-                    Assert.AreEqual(e.AliveReplicas, replicationFactor - 1);
-                    expectedExceptionWasCaught = true;
+                    result = "unavailable",
+                    consistency_level = 5,
+                    required = 2,
+                    alive = 1,
+                    delay_in_ms = 0,
+                    message = "unavailable",
+                    ignore_on_prepare = false
                 }
-                catch (ReadTimeoutException e)
-                {
-                    Assert.AreEqual(e.ConsistencyLevel, ConsistencyLevel.All);
-                    Trace.TraceInformation("We caught a ReadTimeoutException as expected, extending the total time to wait ... ");
-                    readTimeoutWasCaught++;
-                }
-                Trace.TraceInformation("Expected exception was not thrown, trying again ... ");
-            }
+            };
 
-            Assert.True(expectedExceptionWasCaught,
-                string.Format("Expected exception {0} was not caught after {1} read timeouts were caught!", "UnavailableException", maxReadTimeouts));
+            _simulacronCluster.Prime(primeQuery);
+            var ex = Assert.Throws<UnavailableException>(() =>
+                _session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.All)));
+            Assert.AreEqual(ex.Consistency, ConsistencyLevel.All);
+            Assert.AreEqual(ex.RequiredReplicas, 2);
+            Assert.AreEqual(ex.AliveReplicas, 1);
         }
 
         /// <summary>
@@ -275,101 +280,95 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void WriteTimeoutException()
         {
-            ITestCluster nonShareableTestCluster = TestClusterManager.GetNonShareableTestCluster(2);
-            ISession session = nonShareableTestCluster.Session;
-
-            string keyspace = "TestKeyspace_" + Randomm.RandomAlphaNum(10);
-            string table = "TestTable_" + Randomm.RandomAlphaNum(10);
-            int replicationFactor = 2;
-            string key = "1";
-
-            session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspace, replicationFactor));
-            session.ChangeKeyspace(keyspace);
-                session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, table));
-
-            session.Execute(
-                new SimpleStatement(
-                    String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(ConsistencyLevel.All));
-            session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetConsistencyLevel(ConsistencyLevel.All));
-
-            nonShareableTestCluster.StopForce(2);
-            try
+            var cql = string.Format(TestUtils.SELECT_ALL_FORMAT, _table);
+            var primeQuery = new
             {
-                session.Execute(
-                    new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)).SetConsistencyLevel(
-                        ConsistencyLevel.All));
-            }
-            catch (WriteTimeoutException e)
-            {
-                Assert.AreEqual(e.ConsistencyLevel, ConsistencyLevel.All);
-                Assert.AreEqual(1, e.ReceivedAcknowledgements);
-                Assert.AreEqual(2, e.RequiredAcknowledgements);
-                Assert.AreEqual(e.WriteType, "SIMPLE");
-            }
+                when = new
+                {
+                    query = cql
+                },
+                then = new
+                {
+                    result = "write_timeout",
+                    consistency_level = 5,
+                    received = 1,
+                    block_for = 2,
+                    delay_in_ms = 0,
+                    message = "write_timeout",
+                    ignore_on_prepare = false,
+                    write_type = "SIMPLE"
+                }
+            };
+
+            _simulacronCluster.Prime(primeQuery);
+            var ex = Assert.Throws<WriteTimeoutException>(() =>
+                _session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.All)));
+            Assert.AreEqual(ex.ConsistencyLevel, ConsistencyLevel.All);
+            Assert.AreEqual(1, ex.ReceivedAcknowledgements);
+            Assert.AreEqual(2, ex.RequiredAcknowledgements);
+            Assert.AreEqual(ex.WriteType, "SIMPLE");
         }
 
         [Test]
         public void PreserveStackTraceTest()
         {
-            // we need to make sure at least a single node cluster is available, running locally
-            var session = TestClusterManager.GetNonShareableTestCluster(1).Session;
-            try // writing without delegate assertion since that is undependable for this use case
+            var primeQuery = new
             {
-                session.Execute("SELECT WILL FAIL");
-                Assert.Fail("Expected Exception was not thrown!");
-            }
-            catch (SyntaxError ex) 
-            {
-                Assert.True(ex.StackTrace.Contains("PreserveStackTraceTest"));
-                Assert.True(ex.StackTrace.Contains("ExceptionsTests"));
-            }
-        }
+                when = new
+                {
+                    query = "SELECT WILL FAIL"
+                },
+                then = new
+                {
+                    result = "syntax_error",
+                    delay_in_ms = 0,
+                    message = "syntax_error",
+                    ignore_on_prepare = false,
+                }
+            };
 
-#if !NETCORE
-        public static AppDomain CreatePartialTrustDomain()
-        {
-            AppDomainSetup setup = new AppDomainSetup() { ApplicationBase = AppDomain.CurrentDomain.BaseDirectory };
-            PermissionSet permissions = new PermissionSet(null);
-            permissions.AddPermission(new SecurityPermission(SecurityPermissionFlag.Execution));
-            permissions.AddPermission(new ReflectionPermission(ReflectionPermissionFlag.RestrictedMemberAccess));
-            permissions.AddPermission(new SocketPermission(PermissionState.Unrestricted));
-            return AppDomain.CreateDomain("Partial Trust AppDomain", null, setup, permissions);
-        }
-        
-        [Test]
-        public void ExceptionsOnPartialTrust()
-        {
-            var testCluster = TestClusterManager.CreateNew();
-            var appDomain = CreatePartialTrustDomain();
-            appDomain.DoCallBack(() => PreserveStackTraceOnConnectAndAssert(testCluster.InitialContactPoint));
-        }
-        
-        public static void PreserveStackTraceOnConnectAndAssert(string contactPoint)
-        {
-            var ex = Assert.Throws<SecurityException>(() => Cluster.Builder().AddContactPoint(contactPoint).Build());
-            string stackTrace = ex.StackTrace;
-
-            //Must maintain the original call stack trace
-            StringAssert.Contains("PreserveStackTraceOnConnectAndAssert", stackTrace);
-            StringAssert.Contains("ExceptionsTests", stackTrace);
-            StringAssert.Contains("Cassandra.Utils.ResolveHostByName", stackTrace); // something actually from the Cassandra library
-        }
+            _simulacronCluster.Prime(primeQuery);
+            var ex = Assert.Throws<SyntaxError>(() => _session.Execute("SELECT WILL FAIL"));
+#if !NETCORE || DEBUG
+            // On .NET Core using Release compilation, the stack trace is limited
+            StringAssert.Contains(nameof(PreserveStackTraceTest), ex.StackTrace);
+            StringAssert.Contains(nameof(ExceptionsTests), ex.StackTrace);
 #endif
+        }
 
         [Test]
         public void RowSetIteratedTwice()
         {
-            ISession session = TestClusterManager.GetNonShareableTestCluster(1).Session;
-            string keyspace = "TestKeyspace_" + Randomm.RandomAlphaNum(10);
-            string table = "TestTable_" + Randomm.RandomAlphaNum(10);
-            string key = "1";
+            var cql = string.Format(TestUtils.SELECT_ALL_FORMAT, _table);
+            var primeQuery = new
+            {
+                when = new
+                {
+                    query = cql
+                },
+                then = new
+                {
+                    result = "success",
+                    delay_in_ms = 0,
+                    rows = new[]
+                    {
+                        new
+                        {
+                            id = Guid.NewGuid(),
+                            value = "value"
+                        }
+                    },
+                    column_types = new
+                    {
+                        id = "uuid",
+                        value = "varchar"
+                    }
+                }
+            };
 
-            session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspace, 1));
-            session.ChangeKeyspace(keyspace);
-            session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, table));
-
-            session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, key, "foo", 42, 24.03f)));
-            var rowset = session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table))).GetRows();
+            _simulacronCluster.Prime(primeQuery);
+            var rowset = _session.Execute(new SimpleStatement(cql)).GetRows();
+            Assert.NotNull(rowset);
             //Linq Count iterates
             Assert.AreEqual(1, rowset.Count());
             Assert.AreEqual(0, rowset.Count());
@@ -378,17 +377,35 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void RowSetPagingAfterSessionDispose()
         {
-            ISession session = TestClusterManager.GetNonShareableTestCluster(1).Session;
-            string keyspace = "TestKeyspace_" + Randomm.RandomAlphaNum(10);
-            string table = "TestTable_" + Randomm.RandomAlphaNum(10);
+            var cql = string.Format(TestUtils.SELECT_ALL_FORMAT, _table);
+            var primeQuery = new
+            {
+                when = new
+                {
+                    query = cql
+                },
+                then = new
+                {
+                    result = "success",
+                    delay_in_ms = 0,
+                    rows = new[]
+                    {
+                        new
+                        {
+                            id = Guid.NewGuid(),
+                            value = "value"
+                        }
+                    },
+                    column_types = new
+                    {
+                        id = "uuid",
+                        value = "varchar"
+                    }
+                }
+            };
 
-            session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspace, 1));
-            session.ChangeKeyspace(keyspace);
-            session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, table));
-
-            session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, "1", "foo", 42, 24.03f)));
-            session.Execute(new SimpleStatement(String.Format(TestUtils.INSERT_FORMAT, table, "2", "foo", 42, 24.03f)));
-            var rs = session.Execute(new SimpleStatement(String.Format(TestUtils.SELECT_ALL_FORMAT, table)).SetPageSize(1));
+            _simulacronCluster.Prime(primeQuery);
+            var rs = _session.Execute(new SimpleStatement(string.Format(TestUtils.SELECT_ALL_FORMAT, _table)).SetPageSize(1));
             if (CassandraVersion.Major < 2)
             {
                 //Paging should be ignored in 1.x
@@ -398,131 +415,102 @@ namespace Cassandra.IntegrationTests.Core
             }
             Assert.AreEqual(1, rs.InnerQueueCount);
 
-            session.Dispose();
+            _session.Dispose();
             //It should not fail, just do nothing
             rs.FetchMoreResults();
             Assert.AreEqual(1, rs.InnerQueueCount);
         }
 
         [Test]
+        [TestCassandraVersion(2, 2)]
         public void WriteFailureExceptionTest()
         {
-            if (TestClusterManager.CassandraVersion < Version.Parse("2.2"))
+            var cql = string.Format(TestUtils.SELECT_ALL_FORMAT, _table);
+            var primeQuery = new
             {
-                Assert.Ignore("Write failure error were introduced in Cassandra 2.2");
-            }
-            const string keyspace = "ks_wfail";
-            const string table = keyspace + ".tbl1";
-            var testCluster = TestClusterManager.GetTestCluster(2, 0, false, DefaultMaxClusterCreateRetries, false, false);
-            testCluster.Start(1, "--jvm_arg=-Dcassandra.test.fail_writes_ks=" + keyspace);
-            testCluster.Start(2);
-            using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build())
-            {
-                var session = cluster.Connect();
-                session.Execute(string.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspace, 2));
-                session.Execute(string.Format(TestUtils.CreateTableSimpleFormat, table));
-                var query = $"INSERT INTO {table} (k, t) VALUES ('ONE', 'ONE VALUES')";
-                var ex = Assert.Throws<WriteFailureException>(() => 
-                    session.Execute(new SimpleStatement(query).SetConsistencyLevel(ConsistencyLevel.All)));
-                StringAssert.Contains("Server failure during write query at consistency ALL", ex.Message);
-                StringAssert.Contains("(2 responses were required but only 1 replica responded, 1 failed)", 
-                                      ex.Message);
-            }
+                when = new
+                {
+                    query = cql
+                },
+                then = new
+                {
+                    result = "write_failure",
+                    consistency_level = 5,
+                    received = 1,
+                    block_for = 2,
+                    delay_in_ms = 0,
+                    message = "write_failure",
+                    ignore_on_prepare = false,
+                    failure_reasons = new Dictionary<string, int> { { "127.0.0.1", 0 } },
+                    write_type = "SIMPLE"
+                }
+            };
+
+            _simulacronCluster.Prime(primeQuery);
+            var ex = Assert.Throws<WriteFailureException>(() =>
+                _session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.All)));
+            Assert.AreEqual(ex.ConsistencyLevel, ConsistencyLevel.All);
+            Assert.AreEqual(1, ex.ReceivedAcknowledgements);
+            Assert.AreEqual(2, ex.RequiredAcknowledgements);
+            Assert.AreEqual(ex.WriteType, "SIMPLE");
         }
 
         [Test]
+        [TestCassandraVersion(2, 2)]
         public void ReadFailureExceptionTest()
         {
-            if (TestClusterManager.CassandraVersion < Version.Parse("2.2"))
+            var cql = string.Format(TestUtils.SELECT_ALL_FORMAT, _table);
+            var primeQuery = new
             {
-                Assert.Ignore("Read failure error were introduced in Cassandra 2.2");
-            }
-            const string keyspace = "ks_rfail";
-            const string table = keyspace + ".tbl1";
-            var testCluster = TestClusterManager.GetTestCluster(2, 0, false, DefaultMaxClusterCreateRetries, false, false);
-            testCluster.UpdateConfig("tombstone_failure_threshold: 1000");
-            TestHelper.ParallelInvoke(new Action[]
-            {
-                () => testCluster.Start(1),
-                () => testCluster.Start(2)
-            });
-            var builder = Cluster
-                .Builder()
-                .WithLoadBalancingPolicy(new WhiteListLoadBalancingPolicy(2))
-                .AddContactPoint(testCluster.ClusterIpPrefix + "2");
-            using (var cluster = builder.Build())
-            {
-                var session = cluster.Connect();
-                session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspace, 1));
-                session.Execute(String.Format("CREATE TABLE {0} (pk int, cc int, v int, primary key (pk, cc))", table));
-                // The rest of the test relies on the fact that the PK '1' will be placed on node1 with MurmurPartitioner
-                var ps = session.Prepare(String.Format("INSERT INTO {0} (pk, cc, v) VALUES (1, ?, null)", table));
-                var counter = 0;
-                TestHelper.ParallelInvoke(() =>
+                when = new
                 {
-                    var rs = session.Execute(ps.Bind(Interlocked.Increment(ref counter)));
-                    Assert.AreEqual(2, TestHelper.GetLastAddressByte(rs.Info.QueriedHost));
-                }, 1100);
-                Assert.Throws<ReadFailureException>(() => 
-                    session.Execute(String.Format("SELECT * FROM {0} WHERE pk = 1", table)));
-            }
+                    query = cql
+                },
+                then = new
+                {
+                    result = "read_failure",
+                    consistency_level = 5,
+                    received = 1,
+                    block_for = 2,
+                    delay_in_ms = 0,
+                    data_present = true,
+                    message = "read_failure",
+                    ignore_on_prepare = false,
+                    failure_reasons = new Dictionary<string, int> { { "127.0.0.1", 0 } },
+                }
+            };
+
+            _simulacronCluster.Prime(primeQuery);
+            var ex = Assert.Throws<ReadFailureException>(() =>
+                _session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.All)));
+            Assert.AreEqual(ex.ConsistencyLevel, ConsistencyLevel.All);
+            Assert.AreEqual(1, ex.ReceivedAcknowledgements);
+            Assert.AreEqual(2, ex.RequiredAcknowledgements);
         }
 
         [Test]
+        [TestCassandraVersion(2, 2)]
         public void FunctionFailureExceptionTest()
         {
-            if (TestClusterManager.CassandraVersion < Version.Parse("2.2"))
+            const string cql = "SELECT ks_func.div(v1,v2) FROM ks_func.tbl1 where id = 1";
+            var primeQuery = new
             {
-                Assert.Ignore("Function failure error were introduced in Cassandra 2.2");
-            }
-            var testCluster = TestClusterManager.GetTestCluster(1, 0, false, DefaultMaxClusterCreateRetries, false, false);
-            testCluster.UpdateConfig("enable_user_defined_functions: true");
-            testCluster.Start(1);
-            var builder = Cluster
-                .Builder()
-                .AddContactPoint(testCluster.InitialContactPoint);
-            using (var cluster = builder.Build())
-            {
-                var session = cluster.Connect();
-                session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, "ks_func", 1));
-                session.Execute("CREATE TABLE ks_func.tbl1 (id int PRIMARY KEY, v1 int, v2 int)");
-                session.Execute("INSERT INTO ks_func.tbl1 (id, v1, v2) VALUES (1, 1, 0)");
-                session.Execute("CREATE FUNCTION ks_func.div(a int, b int) RETURNS NULL ON NULL INPUT RETURNS int LANGUAGE java AS 'return a / b;'");
+                when = new { query = cql },
+                then = new
+                {
+                    result = "function_failure",
+                    keyspace = "ks_func",
+                    function = "div",
+                    arg_types = new [] {"text"},
+                    detail = "function_failure",
+                    delay_in_ms = 0,
+                    ignore_on_prepare = false
+                }
+            };
 
-                Assert.Throws<FunctionFailureException>(() =>
-                    session.Execute("SELECT ks_func.div(v1,v2) FROM ks_func.tbl1 where id = 1"));
-            }
-        }
+            _simulacronCluster.Prime(primeQuery);
 
-        ///////////////////////
-        /// Helper Methods
-        ///////////////////////
-
-        private class WhiteListLoadBalancingPolicy: ILoadBalancingPolicy
-        {
-            private readonly ILoadBalancingPolicy _childPolicy = new RoundRobinPolicy();
-            private readonly byte[] _list;
-
-            public WhiteListLoadBalancingPolicy(params byte[] listLastOctet)
-            {
-                _list = listLastOctet;
-            }
-
-            public void Initialize(ICluster cluster)
-            {
-                _childPolicy.Initialize(cluster);
-            }
-
-            public HostDistance Distance(Host host)
-            {
-                return _childPolicy.Distance(host);
-            }
-
-            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
-            {
-                var hosts = _childPolicy.NewQueryPlan(keyspace, query);
-                return hosts.Where(h => _list.Contains(TestHelper.GetLastAddressByte(h)));
-            }
+            Assert.Throws<FunctionFailureException>(() => _session.Execute(cql));
         }
     }
 }
