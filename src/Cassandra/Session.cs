@@ -241,6 +241,14 @@ namespace Cassandra
             return hostPool;
         }
 
+        /// <summary>
+        /// Gets a snapshot of the connection pools
+        /// </summary>
+        internal KeyValuePair<IPEndPoint, HostConnectionPool>[] GetPools()
+        {
+            return _connectionPool.ToArray();
+        }
+
         internal void OnAllConnectionClosed(Host host, HostConnectionPool pool)
         {
             if (_cluster.AnyOpenConnections(host))

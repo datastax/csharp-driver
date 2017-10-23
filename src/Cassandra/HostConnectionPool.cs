@@ -86,25 +86,24 @@ namespace Cassandra
 
         public event Action<Host, HostConnectionPool> AllConnectionClosed;
 
-        public bool HasConnections
-        {
-            get { return _connections.Count > 0; }
-        }
+        public bool HasConnections => _connections.Count > 0;
 
-        public int OpenConnections
-        {
-            get { return _connections.Count; }
-        }
+        /// <summary>
+        /// Gets the total amount of open connections. 
+        /// </summary>
+        public int OpenConnections => _connections.Count;
 
+        /// <summary>
+        /// Gets the total of in-flight requests on all connections. 
+        /// </summary>
+        public int InFlight => _connections.Sum(c => c.InFlight);
+
+        public bool IsClosing => Volatile.Read(ref _state) != PoolState.Init;
+        
         /// <summary>
         /// Gets a snapshot of the current state of the pool.
         /// </summary>
         public Connection[] ConnectionsSnapshot => _connections.GetSnapshot();
-
-        public bool IsClosing
-        {
-            get { return Volatile.Read(ref _state) != PoolState.Init; }
-        }
 
         public HostConnectionPool(Host host, Configuration config, Serializer serializer)
         {
