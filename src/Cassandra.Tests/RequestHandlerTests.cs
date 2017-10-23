@@ -246,7 +246,7 @@ namespace Cassandra.Tests
                 Policies.DefaultLoadBalancingPolicy, Policies.DefaultReconnectionPolicy, Policies.DefaultRetryPolicy,
                 Policies.DefaultSpeculativeExecutionPolicy, new NoTimestampGenerator());
             var config = new Configuration(
-                policies, new ProtocolOptions(), PoolingOptions.GetDefault(ProtocolVersion.MaxSupported), new SocketOptions(), new ClientOptions(),
+                policies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(), new ClientOptions(),
                 NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
             var request = RequestHandler<RowSet>.GetRequest(statement, Serializer.Default, config);
             var stream = new MemoryStream();
@@ -284,7 +284,7 @@ namespace Cassandra.Tests
                 Policies.DefaultLoadBalancingPolicy, Policies.DefaultReconnectionPolicy, Policies.DefaultRetryPolicy,
                 Policies.DefaultSpeculativeExecutionPolicy, new NoTimestampGenerator());
             var config = new Configuration(
-                policies, new ProtocolOptions(), PoolingOptions.GetDefault(ProtocolVersion.MaxSupported), new SocketOptions(), new ClientOptions(),
+                policies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(), new ClientOptions(),
                 NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
             var request = RequestHandler<RowSet>.GetRequest(statement, Serializer, config);
             var stream = new MemoryStream();
@@ -321,7 +321,7 @@ namespace Cassandra.Tests
                 batch.Add(new SimpleStatement("QUERY"));
             }
             var config = new Configuration(
-                Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.GetDefault(ProtocolVersion.MaxSupported), new SocketOptions(),
+                Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
                 new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
             var request = RequestHandler<RowSet>.GetRequest(batch, Serializer, config);
             var stream = new MemoryStream();

@@ -182,5 +182,20 @@ namespace Cassandra.Tests
                 .AddContactPoint("192.168.1.10")
                 .WithMaxProtocolVersion((byte)0));
         }
+
+        [Test]
+        [TestCase(ProtocolVersion.MaxSupported, 1, 2)]
+        [TestCase(ProtocolVersion.V2, 2, 8)]
+        public void PoolingOptions_Create_Based_On_Protocol_Version(ProtocolVersion protocolVersion, 
+            int coreConnections, int maxConnections)
+        {
+            var options1 = PoolingOptions.Create(protocolVersion);
+            var cluster1 = Cluster.Builder()
+                                  .AddContactPoint("::1")
+                                  .WithPoolingOptions(options1)
+                                  .Build();
+            Assert.AreEqual(coreConnections, cluster1.Configuration.PoolingOptions.GetCoreConnectionsPerHost(HostDistance.Local));
+            Assert.AreEqual(maxConnections, cluster1.Configuration.PoolingOptions.GetMaxConnectionPerHost(HostDistance.Local));
+        }
     }
 }
