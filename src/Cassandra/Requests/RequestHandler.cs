@@ -131,7 +131,7 @@ namespace Cassandra.Requests
                 {
                     consistency = s.ConsistencyLevel.Value;
                 }
-                request = new BatchRequest(serializer.ProtocolVersion, s, consistency);
+                request = new BatchRequest(serializer.ProtocolVersion, s, consistency, config.Policies);
             }
             if (request == null)
             {
