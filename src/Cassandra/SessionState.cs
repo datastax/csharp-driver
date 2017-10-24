@@ -56,7 +56,7 @@ namespace Cassandra
             foreach (var kv in _infos)
             {
                 builder.Append($"  \"{kv.Key.Address}\": {{ openConnections: {kv.Value.OpenConnections}" +
-                               $", inFlightQueries: {kv.Value.InFlightQueries} }}\n");
+                               $", inFlightQueries: {kv.Value.InFlightQueries} }},\n");
             }
             builder.Append("}");
             return builder.ToString();
