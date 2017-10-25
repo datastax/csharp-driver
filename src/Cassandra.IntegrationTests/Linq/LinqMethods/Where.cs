@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
@@ -17,10 +16,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
     {
         ISession _session = null;
         private List<Movie> _movieList = Movie.GetDefaultMovieList();
-        string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
+        readonly string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
         private Table<Movie> _movieTable;
         private readonly List<Tuple<int, long>> _tupleList = new List<Tuple<int, long>> {Tuple.Create(0, 0L), Tuple.Create(1, 1L)};
-        private static List<Tuple<int, long>> TupleList = new List<Tuple<int, long>> {Tuple.Create(0, 0L), Tuple.Create(1, 1L)};
+        private static readonly List<Tuple<int, long>> TupleList = new List<Tuple<int, long>> {Tuple.Create(0, 0L), Tuple.Create(1, 1L)};
 
         public override void OneTimeSetUp()
         {
