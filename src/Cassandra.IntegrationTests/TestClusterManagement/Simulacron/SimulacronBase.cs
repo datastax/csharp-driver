@@ -1,13 +1,18 @@
-﻿using System.Net.Http;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Cassandra.Tasks;
 using Newtonsoft.Json.Linq;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 {
     public class SimulacronBase
     {
-        public string Id { get; set; }
+        public string Id { get; }
 
         protected SimulacronBase(string id)
         {
@@ -25,9 +30,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
                 var response = await client.PostAsync(url, content);
                 if (!response.IsSuccessStatusCode)
                 {
-                    return null;
+                    // Get the error message
+                    throw new InvalidOperationException(await response.Content.ReadAsStringAsync()
+                                                                      .ConfigureAwait(false));
                 }
-                var dataStr = await response.Content.ReadAsStringAsync();
+                var dataStr = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 return JObject.Parse(dataStr);
             }
         }
@@ -53,6 +60,10 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
                 var response = await client.PutAsync(url, content);
                 response.EnsureSuccessStatusCode();
                 var dataStr = await response.Content.ReadAsStringAsync();
+                if (string.IsNullOrEmpty(dataStr))
+                {
+                    return null;
+                }
                 return JObject.Parse(dataStr);
             }
         }
@@ -81,12 +92,13 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public dynamic GetLogs()
         {
-            return Get(GetPath("log")).Result;
+            return TaskHelper.WaitToComplete(Get(GetPath("log")));
         }
 
         public dynamic Prime(dynamic body)
         {
-            return Post(GetPath("prime"), body).Result;
+            Task<dynamic> task = Post(GetPath("prime"), body);
+            return TaskHelper.WaitToComplete(task);
         }
 
         protected string GetPath(string endpoint)
@@ -96,7 +108,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public dynamic GetConnections()
         {
-            return Get(GetPath("connections")).Result;
+            return TaskHelper.WaitToComplete(Get(GetPath("connections")));
         }
 
         public Task DisableConnectionListener(int attempts = 0, string type = "unbind")
@@ -109,5 +121,21 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             return Put(GetPath("listener") + "?after=" + attempts + "&type=" + type, null);
         }
 
+        public IList<dynamic> GetQueries(string query, string queryType = "QUERY")
+        {
+            var response = GetLogs();
+            IEnumerable<dynamic> dcInfo = response?.data_centers;
+            if (dcInfo == null)
+            {
+                return new List<dynamic>(0);
+            }
+            return dcInfo
+                .Select(dc => dc.nodes)
+                .Where(nodes => nodes != null)
+                .SelectMany<dynamic, dynamic>(nodes => nodes)
+                .Where(n => n.queries != null)
+                .SelectMany<dynamic, dynamic>(n => n.queries)
+                .Where(q => q.type == queryType && q.query == query).ToArray();
+        }
     }
 }

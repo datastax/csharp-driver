@@ -13,16 +13,17 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-﻿using System;
+
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
- using Cassandra.Tasks;
+using Cassandra.Tasks;
 using Cassandra.Requests;
-﻿using Cassandra.Serialization;
+using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -172,7 +173,7 @@ namespace Cassandra
         /// </summary>
         internal Task Init()
         {
-            var handler = new RequestHandler<RowSet>(this, _serializer);
+            var handler = new RequestHandler(this, _serializer);
             //Borrow a connection, trying to fail fast
             return handler.GetNextConnection(new Dictionary<IPEndPoint, Exception>());
         }
@@ -222,7 +223,7 @@ namespace Cassandra
         /// <inheritdoc />
         public Task<RowSet> ExecuteAsync(IStatement statement)
         {
-            return new RequestHandler<RowSet>(this, _serializer, statement).Send();
+            return new RequestHandler(this, _serializer, statement).Send();
         }
 
         /// <summary>
@@ -274,10 +275,10 @@ namespace Cassandra
         /// <summary>
         /// Gets the existing connection pool for this host and session or null when it does not exists
         /// </summary>
-        internal HostConnectionPool GetExistingPool(Connection connection)
+        internal HostConnectionPool GetExistingPool(IPEndPoint address)
         {
             HostConnectionPool pool;
-            _connectionPool.TryGetValue(connection.Address, out pool);
+            _connectionPool.TryGetValue(address, out pool);
             return pool;
         }
 
@@ -317,52 +318,7 @@ namespace Cassandra
             {
                 Payload = customPayload
             };
-            var handler = new RequestHandler<PreparedStatement>(this, _serializer, request);
-            var ps = await handler.Send().ConfigureAwait(false);
-            await SetPrepareTableInfo(ps).ConfigureAwait(false);
-            return ps;
-        }
-
-        private async Task SetPrepareTableInfo(PreparedStatement ps)
-        {
-            const string msgRoutingNotSet = "Routing information could not be set for query \"{0}\"";
-            var column = ps.Metadata.Columns.FirstOrDefault();
-            if (column == null || column.Keyspace == null)
-            {
-                // The prepared statement does not contain parameters
-                return;
-            }
-            if (ps.Metadata.PartitionKeys != null)
-            {
-                //The routing indexes where parsed in the prepared response
-                if (ps.Metadata.PartitionKeys.Length == 0)
-                {
-                    // zero-length partition keys means that none of the parameters are partition keys
-                    // the partition key is hard-coded.
-                    return;
-                }
-                ps.RoutingIndexes = ps.Metadata.PartitionKeys;
-                return;
-            }
-            try
-            {
-                var table = await Cluster.Metadata.GetTableAsync(column.Keyspace, column.Table).ConfigureAwait(false);
-                if (table == null)
-                {
-                    Logger.Info(msgRoutingNotSet, ps.Cql);
-                    return;
-                }
-                var routingSet = ps.SetPartitionKeys(table.PartitionKeys);
-                if (!routingSet)
-                {
-                    Logger.Info(msgRoutingNotSet, ps.Cql);
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error("There was an error while trying to retrieve table metadata for {0}.{1}. {2}", 
-                             column.Keyspace, column.Table, ex.InnerException);
-            }
+            return await PrepareHandler.Prepare(this, _serializer, request).ConfigureAwait(false);
         }
 
         public void WaitForSchemaAgreement(RowSet rs)

@@ -52,6 +52,8 @@ namespace Cassandra
         private ConsistencyLevel _serialConsistency = DefaultSerialConsistencyLevel;
         private bool _retryOnTimeout = DefaultRetryOnTimeout;
         private bool _defaultIdempotence = false;
+        private bool _prepareOnAllHosts = true;
+        private bool _reprepareOnUp = true;
 
         /// <summary>
         /// Gets a value that determines if the client should retry when it didn't hear back from a host within <see cref="SocketOptions.ReadTimeoutMillis"/>.
@@ -160,11 +162,85 @@ namespace Cassandra
             return this;
         }
 
+        /// <summary>
+        /// Gets the default idempotence for all queries.
+        /// </summary>
         public bool GetDefaultIdempotence()
         {
             //A get method is not very C#-like, a get property should be more appropriate
             //But it's to be consistent with the rest of the class
             return _defaultIdempotence;
+        }
+
+        /// <summary>
+        /// Determines whether the driver should prepare statements on all hosts in the cluster.
+        /// </summary>
+        public bool IsPrepareOnAllHosts()
+        {
+            return _prepareOnAllHosts;
+        }
+
+        /// <summary>
+        /// Sets whether the driver should prepare statements on all hosts in the cluster.
+        /// <para>
+        /// A statement is normally prepared in two steps: prepare the query on a single host in the cluster; 
+        /// if that succeeds, prepare on all other hosts.
+        /// </para>
+        /// <para>
+        /// This option controls whether step 2 is executed. It is enabled by default.
+        /// </para>
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The reason why you might want to disable it is to optimize network usage if you have a large 
+        /// number of clients preparing the same set of statements at startup. If your load balancing policy
+        /// distributes queries randomly, each client will pick a different host to prepare its statements, 
+        /// and on the whole each host has a good chance of having been hit by at least one client for each statement.
+        /// </para>
+        /// <para>
+        /// On the other hand, if that assumption turns out to be wrong and one host hasn't prepared a given
+        /// statement, it needs to be re-prepared on the fly the first time it gets executed; this causes a 
+        /// performance penalty (one extra roundtrip to resend the query to prepare, and another to retry
+        /// the execution).
+        /// </para>
+        /// </remarks>
+        public QueryOptions SetPrepareOnAllHosts(bool prepareOnAllHosts)
+        {
+            _prepareOnAllHosts = prepareOnAllHosts;
+            return this;
+        }
+
+        /// <summary>
+        /// Determines whether the driver should re-prepare all cached prepared statements on a host when its marks
+        /// that host back up.
+        /// </summary>
+        public bool IsReprepareOnUp()
+        {
+            return _reprepareOnUp;
+        }
+
+        /// <summary>
+        /// Set whether the driver should re-prepare all cached prepared statements on a host when it marks it back up.
+        /// <para>This option is enabled by default.</para>
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The reason why you might want to disable it is to optimize reconnection time when you believe hosts 
+        /// often get marked down because of temporary network issues, rather than the host really crashing. 
+        /// In that case, the host still has prepared statements in its cache when the driver reconnects, 
+        /// so re-preparing is redundant.
+        /// </para>
+        /// <para>
+        /// On the other hand, if that assumption turns out to be wrong and the host had really restarted, 
+        /// its prepared statement cache is empty, and statements need to be re-prepared on the fly the 
+        /// first time they get executed; this causes a performance penalty (one extra roundtrip to resend 
+        /// the query to prepare, and another to retry the execution).
+        /// </para>
+        /// </remarks>
+        public QueryOptions SetReprepareOnUp(bool reprepareOnUp)
+        {
+            _reprepareOnUp = reprepareOnUp;
+            return this;
         }
     }
 }

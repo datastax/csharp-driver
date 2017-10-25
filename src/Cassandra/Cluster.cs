@@ -15,12 +15,14 @@
 //
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Collections;
+using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
 
@@ -56,6 +58,12 @@ namespace Cassandra
         {
             return _controlConnection;
         }
+        
+        /// <summary>
+        /// Gets the the prepared statements cache
+        /// </summary>
+        internal ConcurrentDictionary<byte[], PreparedStatement> PreparedQueries { get; } 
+            = new ConcurrentDictionary<byte[], PreparedStatement>(new ByteArrayComparer());
 
         /// <summary>
         ///  Build a new cluster based on the provided initializer. <p> Note that for
@@ -205,6 +213,7 @@ namespace Cassandra
                 _initialized = true;
                 _metadata.Hosts.Added += OnHostAdded;
                 _metadata.Hosts.Removed += OnHostRemoved;
+                _metadata.Hosts.Up += OnHostUp;
             }
             finally
             {
@@ -318,6 +327,16 @@ namespace Cassandra
             {
                 HostAdded(h);
             }
+        }
+
+        private void OnHostUp(Host h)
+        {
+            if (!Configuration.QueryOptions.IsReprepareOnUp())
+            {
+                return;
+            }
+            // We should prepare all current queries on the host
+            PrepareHandler.PrepareAllQueries(h, PreparedQueries.Values, _connectedSessions).Forget();
         }
 
         /// <summary>

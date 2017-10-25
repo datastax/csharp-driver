@@ -76,8 +76,12 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestCassandraVersion(2, 2)]
         public void Prepare_Payload_Test()
         {
-            var outgoing = new Dictionary<string, byte[]> { { "k1-prep", Encoding.UTF8.GetBytes("value1-prep") }, { "k2-prep", Encoding.UTF8.GetBytes("value2-prep") } };
-            var prepared = Session.Prepare("SELECT * FROM system.local WHERE key = ?", outgoing);
+            var outgoing = new Dictionary<string, byte[]>
+            {
+                { "k1-prep", Encoding.UTF8.GetBytes("value1-prep") }, 
+                { "k2-prep", Encoding.UTF8.GetBytes("value2-prep") }
+            };
+            var prepared = Session.Prepare("SELECT key as k FROM system.local WHERE key = ?", outgoing);
             Assert.NotNull(prepared.IncomingPayload);
             Assert.AreEqual(outgoing.Count, prepared.IncomingPayload.Count);
             CollectionAssert.AreEqual(outgoing["k1-prep"], prepared.IncomingPayload["k1-prep"]);
