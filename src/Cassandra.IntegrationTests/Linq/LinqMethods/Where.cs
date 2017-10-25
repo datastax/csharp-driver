@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
@@ -18,6 +19,8 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         private List<Movie> _movieList = Movie.GetDefaultMovieList();
         string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
         private Table<Movie> _movieTable;
+        private readonly List<Tuple<int, long>> _tupleList = new List<Tuple<int, long>> {Tuple.Create(0, 0L), Tuple.Create(1, 1L)};
+        private static List<Tuple<int, long>> TupleList = new List<Tuple<int, long>> {Tuple.Create(0, 0L), Tuple.Create(1, 1L)};
 
         public override void OneTimeSetUp()
         {
@@ -176,6 +179,133 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             Assert.AreEqual(5, result2Actual.Last().TimeColumn);
             Assert.AreEqual(3, result3Actual.First().TimeColumn);
             Assert.AreEqual(1, result3Actual.Last().TimeColumn);
+        }
+
+        [Test]
+        public void LinqWhere_TupleWithClusteringKeys()
+        {
+            var map = new Map<TestTable>()
+                .ExplicitColumns()
+                .Column(t => t.UserId, cm => cm.WithName("id"))
+                .Column(t => t.Date, cm => cm.WithName("date"))
+                .Column(t => t.TimeColumn, cm => cm.WithName("time"))
+                .PartitionKey(t => t.UserId)
+                .ClusteringKey(t => t.Date)
+                .TableName(TestUtils.GetUniqueTableName());
+            
+            var table = new Table<TestTable>(Session, new MappingConfiguration().Define(map));
+            table.CreateIfNotExists();
+            table.Insert(new TestTable
+            {
+                UserId = 1,
+                Date = 1,
+                TimeColumn = 1
+            }).Execute();
+            var localList = new List<int> {0, 2};
+            var emptyResults = table.Where(t => t.UserId == 1 && localList.Contains(t.Date)).Execute();
+            Assert.NotNull(emptyResults);
+            Assert.AreEqual(0, emptyResults.ToArray().Length);
+            
+            localList.Add(1); //adding to list existent tuple
+            var tCreateResults = table.Where(t => t.UserId == 1 && localList.Contains(t.Date)).Execute();
+            Assert.NotNull(tCreateResults, "Linq Where using 'Tuble.Create': Result should not be null");
+            var tCreateResultsArr = tCreateResults.ToArray();
+            Assert.AreEqual(1, tCreateResultsArr.Length);
+            var tCreateResultObj = tCreateResultsArr[0];
+            Assert.AreEqual(1, tCreateResultObj.UserId);
+            Assert.AreEqual(1, tCreateResultObj.Date);
+            Assert.AreEqual(1, tCreateResultObj.UserId);
+            
+            var tNewResults = table.Where(t => t.UserId == 1 && localList.Contains(t.Date)).Execute();
+            Assert.NotNull(tNewResults, "Linq Where using 'new Tuple()': Result should not be null");
+            var tNewResultsArr = tNewResults.ToArray();
+            Assert.AreEqual(1, tNewResultsArr.Length);
+            var tNewResultObj = tNewResultsArr[0];
+            Assert.AreEqual(1, tNewResultObj.UserId);
+            Assert.AreEqual(1, tNewResultObj.Date);
+            Assert.AreEqual(1, tNewResultObj.UserId);
+
+            //invalid case: string.Contains
+            Assert.Throws<InvalidOperationException>(() =>
+                table.Where(t => t.UserId == 1 && "error".Contains($"{t.Date}")).Execute());
+        }
+        [Test]
+        public void LinqWhere_TupleWithCompositeKeys()
+        {
+            var map = new Map<TestTable>()
+                .ExplicitColumns()
+                .Column(t => t.UserId, cm => cm.WithName("id"))
+                .Column(t => t.Date, cm => cm.WithName("date"))
+                .Column(t => t.TimeColumn, cm => cm.WithName("time"))
+                .PartitionKey(t => t.UserId)
+                .ClusteringKey(t => t.Date)
+                .ClusteringKey(t => t.TimeColumn)
+                .TableName(TestUtils.GetUniqueTableName());
+            
+            var table = new Table<TestTable>(Session, new MappingConfiguration().Define(map));
+            table.CreateIfNotExists();
+            table.Insert(new TestTable
+            {
+                UserId = 1,
+                Date = 1,
+                TimeColumn = 1
+            }).Execute();
+            var localList = new List<Tuple<int, long>> {Tuple.Create(0, 0L), Tuple.Create(0, 2L)};
+            var emptyResults = table.Where(t => t.UserId == 1 && localList.Contains(Tuple.Create(t.Date, t.TimeColumn))).Execute();
+            Assert.NotNull(emptyResults);
+            Assert.AreEqual(0, emptyResults.ToArray().Length);
+            
+            emptyResults = table.Where(t => t.UserId == 1 && new List<Tuple<int, long>>().Contains(Tuple.Create(t.Date, t.TimeColumn))).Execute();
+            Assert.NotNull(emptyResults);
+            Assert.AreEqual(0, emptyResults.ToArray().Length);
+            
+            localList.Add(Tuple.Create(1, 1L)); //adding to list existent tuple
+            var tCreateResults = table.Where(t => t.UserId == 1 && localList.Contains(Tuple.Create(t.Date, t.TimeColumn))).Execute();
+            Assert.NotNull(tCreateResults);
+            var tCreateResultsArr = tCreateResults.ToArray();
+            Assert.AreEqual(1, tCreateResultsArr.Length);
+            var tCreateResultObj = tCreateResultsArr[0];
+            Assert.AreEqual(1, tCreateResultObj.UserId);
+            Assert.AreEqual(1, tCreateResultObj.Date);
+            Assert.AreEqual(1, tCreateResultObj.UserId);
+        }
+
+        [Test]
+        public void LinqWhere_TupleWithCompositeKeys_Scopes()
+        {
+            var map = new Map<TestTable>()
+                .ExplicitColumns()
+                .Column(t => t.UserId, cm => cm.WithName("id"))
+                .Column(t => t.Date, cm => cm.WithName("date"))
+                .Column(t => t.TimeColumn, cm => cm.WithName("time"))
+                .PartitionKey(t => t.UserId)
+                .ClusteringKey(t => t.Date)
+                .ClusteringKey(t => t.TimeColumn)
+                .TableName(TestUtils.GetUniqueTableName());
+
+            var table = new Table<TestTable>(Session, new MappingConfiguration().Define(map));
+            table.CreateIfNotExists();
+            table.Insert(new TestTable
+            {
+                UserId = 1,
+                Date = 1,
+                TimeColumn = 1
+            }).Execute();
+            var anomObj = new
+            {
+                list = new List<Tuple<int, long>> {Tuple.Create(0, 0L), Tuple.Create(1, 1L), Tuple.Create(0, 2L)}
+            };
+            var listInsideObjResults = table.Where(t => t.UserId == 1 && anomObj.list.Contains(Tuple.Create(t.Date, t.TimeColumn))).Execute();
+            Assert.NotNull(listInsideObjResults);
+            Assert.AreEqual(1, listInsideObjResults.Count());
+
+            var listOuterScopeResults = table.Where(t => t.UserId == 1 && _tupleList.Contains(Tuple.Create(t.Date, t.TimeColumn))).Execute();
+            Assert.NotNull(listOuterScopeResults);
+            Assert.AreEqual(1, listOuterScopeResults.Count());
+
+            var listOuterStaticScopeResults = table.Where(t => t.UserId == 1 && TupleList.Contains(Tuple.Create(t.Date, t.TimeColumn))).Execute();
+            Assert.NotNull(listOuterStaticScopeResults);
+            Assert.AreEqual(1, listOuterStaticScopeResults.Count());
         }
 
         [AllowFiltering]
