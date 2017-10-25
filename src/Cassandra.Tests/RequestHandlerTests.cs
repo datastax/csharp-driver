@@ -341,6 +341,8 @@ namespace Cassandra.Tests
             var batch = new BatchStatement();
             batch.Add(new SimpleStatement("QUERY"));
             var startDate = DateTimeOffset.Now;
+            // To microsecond precision
+            startDate = startDate.Subtract(TimeSpan.FromTicks(startDate.Ticks % 10));
             var config = new Configuration(
                 Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
                 new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(),
@@ -368,7 +370,7 @@ namespace Cassandra.Tests
             var flags = (QueryFlags)bodyBuffer[offset++];
             Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
             var timestamp = TypeSerializer.UnixStart.AddTicks(BeConverter.ToInt64(bodyBuffer, offset) * 10);
-            Assert.Greater(timestamp,  startDate);
+            Assert.GreaterOrEqual(timestamp,  startDate);
             Assert.LessOrEqual(timestamp, DateTimeOffset.Now.Add(TimeSpan.FromMilliseconds(100)));
         }
         
@@ -410,6 +412,8 @@ namespace Cassandra.Tests
             var batch = new BatchStatement();
             batch.Add(new SimpleStatement("QUERY"));
             var providedTimestamp = DateTimeOffset.Now;
+            // To microsecond precision
+            providedTimestamp = providedTimestamp.Subtract(TimeSpan.FromTicks(providedTimestamp.Ticks % 10));
             batch.SetTimestamp(providedTimestamp);
             var config = new Configuration(
                 Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
