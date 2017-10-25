@@ -702,6 +702,8 @@ APPLY BATCH".Replace("\r", ""));
             Assert.AreEqual(@"SELECT ""x_f1"" FROM ""x_t"" ALLOW FILTERING", query.ToString());
         }
 
+
+
         [Test]
         public void Select_OrderBy_Columns()
         {
@@ -719,6 +721,59 @@ APPLY BATCH".Replace("\r", ""));
             Assert.AreEqual(@"SELECT ""boolean_VALUE"", ""datetime_VALUE"", ""decimal_VALUE"", ""double_VALUE"", ""int64_VALUE"", ""int_VALUE"", ""string_VALUE"", ""timeuuid_VALUE"", ""uuid_VALUE"" FROM ""atd"" WHERE ""int_VALUE"" IN (?, ?, ?) AND ""int64_VALUE"" = ?", query.ToString());
         }
 
+
+      
+
+        [Test]
+        public void Select_Where_Boolean_False()
+        {
+            var table = SessionExtensions.GetTable<AllTypesEntity>(null);
+            var query = table.Where(t => t.BooleanValue == false).Select(t => t.BooleanValue);
+            Assert.AreEqual(@"SELECT ""BooleanValue"" FROM ""AllTypesEntity"" WHERE ""BooleanValue"" = ?", query.ToString());
+        }
+
+        [Test]
+        public void Select_Where_Boolean_Redundant()
+        {
+            var table = SessionExtensions.GetTable<AllTypesEntity>(null);
+            var query = table.Where(t => t.BooleanValue == true).Select(t => t.BooleanValue);
+            Assert.AreEqual(@"SELECT ""BooleanValue"" FROM ""AllTypesEntity"" WHERE ""BooleanValue"" = ?", query.ToString());
+        }
+
+        [Test]
+        public void Select_Where_Boolean_NonRedundant()
+        {
+            var table = SessionExtensions.GetTable<AllTypesEntity>(null);
+            var query = table.Where(t => t.BooleanValue).Select(t => t.BooleanValue);
+            Assert.AreEqual(@"SELECT ""BooleanValue"" FROM ""AllTypesEntity"" WHERE ""BooleanValue"" = ?", query.ToString());
+        }
+
+
+
+        [Test]
+        public void Select_Where_Boolean_With_NonRedundantFirst()
+        {
+            var table = SessionExtensions.GetTable<AllTypesEntity>(null);
+            var query = table.Where(t => t.BooleanValue && t.IntValue == 1).Select(t => t.BooleanValue);
+            Assert.AreEqual(@"SELECT ""BooleanValue"" FROM ""AllTypesEntity"" WHERE ""BooleanValue"" = ? AND ""IntValue"" = ?", query.ToString());
+        }
+
+        [Test]
+        public void Select_Where_Boolean_With_NonRedundantMiddle()
+        {
+            var table = SessionExtensions.GetTable<AllTypesEntity>(null);
+            var query = table.Where(t => t.IntValue == 1 && t.BooleanValue && t.StringValue == "a").Select(t => t.BooleanValue);
+            Assert.AreEqual(@"SELECT ""BooleanValue"" FROM ""AllTypesEntity"" WHERE ""IntValue"" = ? AND ""BooleanValue"" = ? AND ""StringValue"" = ?", query.ToString());
+        }
+
+        [Test]
+        public void Select_Where_Boolean_With_NonRedundantLast()
+        {
+            var table = SessionExtensions.GetTable<AllTypesEntity>(null);
+            var query = table.Where(t => t.IntValue == 1 && t.StringValue == "a" && t.BooleanValue).Select(t => t.BooleanValue);
+            Assert.AreEqual(@"SELECT ""BooleanValue"" FROM ""AllTypesEntity"" WHERE ""IntValue"" = ? AND ""StringValue"" = ? AND ""BooleanValue"" = ?", query.ToString());
+        }
+        
         [Test]
         public void DeleteIf_With_Where_Clause()
         {
