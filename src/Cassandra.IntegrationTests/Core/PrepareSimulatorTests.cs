@@ -163,7 +163,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test]
+        [Test, Ignore("Simulacron issue, see: datastax/simulacron#23")]
         public void Should_Failover_When_First_Node_Timeouts()
         {
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
