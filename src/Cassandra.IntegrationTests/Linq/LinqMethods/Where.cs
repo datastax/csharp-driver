@@ -207,27 +207,19 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             
             localList.Add(1); //adding to list existent tuple
             var tCreateResults = table.Where(t => t.UserId == 1 && localList.Contains(t.Date)).Execute();
-            Assert.NotNull(tCreateResults, "Linq Where using 'Tuble.Create': Result should not be null");
+            Assert.NotNull(tCreateResults);
             var tCreateResultsArr = tCreateResults.ToArray();
             Assert.AreEqual(1, tCreateResultsArr.Length);
             var tCreateResultObj = tCreateResultsArr[0];
             Assert.AreEqual(1, tCreateResultObj.UserId);
             Assert.AreEqual(1, tCreateResultObj.Date);
             Assert.AreEqual(1, tCreateResultObj.UserId);
-            
-            var tNewResults = table.Where(t => t.UserId == 1 && localList.Contains(t.Date)).Execute();
-            Assert.NotNull(tNewResults, "Linq Where using 'new Tuple()': Result should not be null");
-            var tNewResultsArr = tNewResults.ToArray();
-            Assert.AreEqual(1, tNewResultsArr.Length);
-            var tNewResultObj = tNewResultsArr[0];
-            Assert.AreEqual(1, tNewResultObj.UserId);
-            Assert.AreEqual(1, tNewResultObj.Date);
-            Assert.AreEqual(1, tNewResultObj.UserId);
 
             //invalid case: string.Contains
             Assert.Throws<InvalidOperationException>(() =>
                 table.Where(t => t.UserId == 1 && "error".Contains($"{t.Date}")).Execute());
         }
+
         [Test]
         public void LinqWhere_TupleWithCompositeKeys()
         {
