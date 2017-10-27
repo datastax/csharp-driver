@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -411,6 +412,12 @@ namespace Cassandra
             keyType = subTypes[0];
             valueType = subTypes[1];
             return true;
+        }
+
+        public static bool IsTuple(Type type)
+        {
+            return typeof(IStructuralComparable).GetTypeInfo().IsAssignableFrom(type) &&
+                type.FullName.StartsWith("System.Tuple");
         }
 
         /// <summary>

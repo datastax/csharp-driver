@@ -299,5 +299,41 @@ namespace Cassandra.Tests.Mapping.Linq
             }).Update().Execute();
             Assert.AreEqual("UPDATE attr_mapping_class_table SET decimal_value_col = ? WHERE partition_key = ? AND clustering_key_0 = ?", query);
         }
+
+        [Test]
+        public void Update_Where_In_With_Composite_Keys()
+        {
+            BoundStatement statement = null;
+            var session = GetSession<BoundStatement>(new RowSet(), stmt => statement = stmt);
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.IntValue, cm => cm.WithName("id3"))
+                .Column(t => t.StringValue, cm => cm.WithName("id2"))
+                .Column(t => t.UuidValue, cm => cm.WithName("id1"))
+                .Column(t => t.Int64Value, cm => cm.WithName("val"))
+                .PartitionKey(t => t.UuidValue)
+                .ClusteringKey(t => t.StringValue, SortOrder.Ascending)
+                .ClusteringKey(t => t.IntValue, SortOrder.Descending)
+                .TableName("tbl1");
+            var table = GetTable<AllTypesEntity>(session, map);
+            const string expectedQuery = "UPDATE tbl1 SET val = ? WHERE id1 = ? AND (id2, id3) IN ?";
+            var id = Guid.NewGuid();
+            var value = 100L;
+            var list = new List<Tuple<string, int>> {Tuple.Create("z", 1)};
+            // Using Tuple.Create()
+            table.Where(t => t.UuidValue == id && list.Contains(Tuple.Create(t.StringValue, t.IntValue)))
+                 .Select(t => new AllTypesEntity { Int64Value = value })
+                 .Update().Execute();
+            Assert.NotNull(statement);
+            Assert.AreEqual(new object[] {value, id, list }, statement.QueryValues);
+            Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
+            // Using constructor
+            table.Where(t => t.UuidValue == id && list.Contains(new Tuple<string, int>(t.StringValue, t.IntValue)))
+                 .Select(t => new AllTypesEntity { Int64Value = value })
+                 .Update().Execute();
+            Assert.NotNull(statement);
+            Assert.AreEqual(new object[] {value, id, list}, statement.QueryValues);
+            Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
+        }
     }
 }
