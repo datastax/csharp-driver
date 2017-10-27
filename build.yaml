@@ -1,10 +1,6 @@
 os:
   - ubuntu/trusty64
 cassandra:
-  - 2.0
-  - 2.1
-  - 2.2
-  - 3.0
   - '3.10'
 env:
   CSHARP_VERSION:
@@ -34,21 +30,9 @@ build:
           # Install the required packages
           export EnableNuGetPackageRestore=true
           msbuild /t:restore /v:m src/Cassandra.sln
-          nuget install NUnit.Runners -Version 3.6.1 -OutputDirectory testrunner
-          # Compile the driver and test code
-          msbuild /p:Configuration=Release /v:m /p:DynamicConstants=LINUX src/Cassandra.sln
-          # Run the tests
-          echo "==========RUNNING FULL SUITE OF TESTS=========="
-          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net452/Cassandra.IntegrationTests.dll --where:cat=short --labels=All --result:"TestResult_nunit3.xml"
-          saxon-xslt -o TestResult.xml TestResult_nunit3.xml tools/nunit3-xunit.xslt
       else
           # Install the required packages
           dotnet restore src
-
-          # Run the tests
-          echo "==========RUNNING FULL SUITE OF TESTS=========="
-          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f netcoreapp1.0 -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx.xml"
-          saxon-xslt -o TestResult.xml TestResult_trx.xml tools/trx-to-junit.xslt
       fi
 
   - xunit:
