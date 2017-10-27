@@ -33,7 +33,7 @@ namespace Cassandra.IntegrationTests.Core
 
             base.OneTimeSetUp();
 
-            const string cqlType1 = "CREATE TYPE phone (alias text, number text, country_code int)";
+            const string cqlType1 = "CREATE TYPE phone (alias text, number text, country_code int, verified_at timestamp, phone_type text)";
             const string cqlType2 = "CREATE TYPE contact (first_name text, last_name text, birth_date timestamp, phones set<frozen<phone>>, emails set<text>)";
             const string cqlTable1 = "CREATE TABLE users (id int PRIMARY KEY, main_phone frozen<phone>)";
             const string cqlTable2 = "CREATE TABLE users_contacts (id int PRIMARY KEY, contacts list<frozen<contact>>)";
@@ -53,8 +53,11 @@ namespace Cassandra.IntegrationTests.Core
                     .Map(v => v.Alias, "alias")
                     .Map(v => v.CountryCode, "country_code")
                     .Map(v => v.Number, "number")
+                    .Map(v => v.VerifiedAt, "verified_at")
+                    .Map(v => v.PhoneType, "phone_type")
             );
-            localSession.Execute("INSERT INTO users (id, main_phone) values (1, {alias: 'home phone', number: '123', country_code: 34})");
+            var date = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(100000);
+            localSession.Execute($"INSERT INTO users (id, main_phone) values (1, {{alias: 'home phone', number: '123', country_code: 34, verified_at: '100000', phone_type: 'Home'}})");
             var rs = localSession.Execute("SELECT * FROM users WHERE id = 1");
             var row = rs.First();
             var value = row.GetValue<Phone>("main_phone");
@@ -62,6 +65,8 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual("home phone", value.Alias);
             Assert.AreEqual("123", value.Number);
             Assert.AreEqual(34, value.CountryCode);
+            Assert.AreEqual(date, value.VerifiedAt);
+            Assert.AreEqual(PhoneType.Home, value.PhoneType);
         }
 
         [Test]
@@ -380,6 +385,10 @@ namespace Cassandra.IntegrationTests.Core
 
             public int CountryCode { get; set; }
 
+            public DateTime VerifiedAt { get; set; }
+
+            public PhoneType PhoneType { get; set; }
+
             public override bool Equals(object obj)
             {
                 if (!(obj is Phone))
@@ -387,13 +396,11 @@ namespace Cassandra.IntegrationTests.Core
                     return false;
                 }
                 var phoneValue = (Phone)obj;
-                if (phoneValue.Alias == this.Alias &&
-                    phoneValue.Number == this.Number &&
-                    phoneValue.CountryCode == this.CountryCode)
-                {
-                    return true;
-                }
-                return false;
+                return phoneValue.Alias == this.Alias &&
+                       phoneValue.Number == this.Number &&
+                       phoneValue.CountryCode == this.CountryCode &&
+                       phoneValue.VerifiedAt == this.VerifiedAt &&
+                       phoneValue.PhoneType == this.PhoneType;
             }
 
             public override int GetHashCode()
@@ -405,6 +412,11 @@ namespace Cassandra.IntegrationTests.Core
         private class DummyClass
         {
             
+        }
+
+        private enum PhoneType
+        {
+            Mobile, Home, Work
         }
     }
 }

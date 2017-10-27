@@ -14,9 +14,9 @@
 //   limitations under the License.
 //
 
-﻿using System;
+using System;
 using System.Collections.Concurrent;
- using System.Threading.Tasks;
+using System.Threading.Tasks;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
 
@@ -94,7 +94,7 @@ namespace Cassandra
             var udtDefinition = await _cluster.Metadata.GetUdtDefinitionAsync(keyspace, caseSensitiveUdtName).ConfigureAwait(false);
             if (udtDefinition == null)
             {
-                throw new InvalidTypeException(caseSensitiveUdtName + " UDT not found on keyspace " + keyspace);
+                throw new InvalidTypeException($"{caseSensitiveUdtName} UDT not found on keyspace {keyspace}");
             }
             return udtDefinition;
         }

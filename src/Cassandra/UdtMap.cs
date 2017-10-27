@@ -14,12 +14,13 @@
 //   limitations under the License.
 //
 
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-﻿using Cassandra.Serialization;
+using Cassandra.Mapping.TypeConversion;
+using Cassandra.Serialization;
 
 namespace Cassandra
 {
@@ -83,7 +84,10 @@ namespace Cassandra
         protected readonly Dictionary<PropertyInfo, string> _propertyToFieldName;
         // ReSharper enable InconsistentNaming
         private Serializer _serializer;
-        protected const BindingFlags PropertyFlags = BindingFlags.FlattenHierarchy | BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
+        internal static TypeConverter TypeConverter = new DefaultTypeConverter();
+
+        public const BindingFlags PropertyFlags =
+            BindingFlags.FlattenHierarchy | BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
 
         protected internal Type NetType { get; protected set; }
 
@@ -116,17 +120,17 @@ namespace Cassandra
         {
             if (_fieldNameToProperty.ContainsKey(udtFieldName))
             {
-                throw new ArgumentException(string.Format("A mapping has already been defined for '{0}'.", udtFieldName));
+                throw new ArgumentException($"A mapping has already been defined for '{udtFieldName}'.");
             }
 
             if (_propertyToFieldName.ContainsKey(propInfo))
             {
-                throw new ArgumentException(string.Format("A mapping has already been defined for property '{0}'", propInfo.Name));
+                throw new ArgumentException($"A mapping has already been defined for property '{propInfo.Name}'");
             }
 
             if (propInfo.CanRead == false || propInfo.CanWrite == false)
             {
-                throw new ArgumentException(string.Format("Must be able to read and write to property '{0}'.", propInfo.Name));
+                throw new ArgumentException($"Must be able to read and write to property '{propInfo.Name}'.");
             }
 
             _fieldNameToProperty[udtFieldName] = propInfo;
@@ -174,33 +178,12 @@ namespace Cassandra
             {
                 throw new DriverInternalError("Serializer can not be null");
             }
-            //Check that the field type and the property type matches
-            foreach (var field in Definition.Fields)
-            {
-                if (field.TypeCode == ColumnTypeCode.Udt)
-                {
-                    //We deal with nested UDTs later
-                    continue;
-                }
-                var prop = GetPropertyForUdtField(field.Name);
-                if (prop == null)
-                {
-                    //No mapping defined
-                    continue;
-                }
-                //Check if its assignable to and from
-                var fieldTargetType = _serializer.GetClrType(field.TypeCode, field.TypeInfo);
-                if (!prop.PropertyType.GetTypeInfo().IsAssignableFrom(fieldTargetType))
-                {
-                    throw new InvalidTypeException(string.Format("{0} type {1} is not assignable to {2}", field.Name, fieldTargetType.Name, prop.PropertyType.Name));
-                }
-            }
             //Check that there isn't a map to a non existent field
             foreach (var fieldName in _fieldNameToProperty.Keys)
             {
                 if (Definition.Fields.All(f => f.Name != fieldName))
                 {
-                    throw new InvalidTypeException("Mapping defined for not existent field " + fieldName);
+                    throw new InvalidTypeException($"Mapping defined for not existent field {fieldName}");
                 }
             }
         }
@@ -272,9 +255,14 @@ namespace Cassandra
             {
                 var field = Definition.Fields[i];
                 var prop = GetPropertyForUdtField(field.Name);
+                var fieldTargetType = _serializer.GetClrType(field.TypeCode, field.TypeInfo);
                 if (prop == null)
                 {
                     continue;
+                }
+                if (!prop.PropertyType.GetTypeInfo().IsAssignableFrom(fieldTargetType))
+                {
+                    values[i] = TypeConverter.ConvertToUdtFieldFromDbValue(fieldTargetType, prop.PropertyType, values[i]);
                 }
                 prop.SetValue(obj, values[i], null);
             }

@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Reflection;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 
@@ -28,10 +29,7 @@ namespace Cassandra.Serialization
         private readonly ConcurrentDictionary<string, UdtMap> _udtMapsByName = new ConcurrentDictionary<string, UdtMap>();
         private readonly ConcurrentDictionary<Type, UdtMap> _udtMapsByClrType = new ConcurrentDictionary<Type, UdtMap>();
 
-        public override ColumnTypeCode CqlType
-        {
-            get { return ColumnTypeCode.Udt; }
-        }
+        public override ColumnTypeCode CqlType => ColumnTypeCode.Udt;
 
         protected internal UdtSerializer()
         {
@@ -105,9 +103,16 @@ namespace Cassandra.Serialization
             {
                 object fieldValue = null;
                 var prop = map.GetPropertyForUdtField(field.Name);
+                var fieldTargetType = GetClrType(field.TypeCode, field.TypeInfo);
                 if (prop != null)
                 {
                     fieldValue = prop.GetValue(value, null);
+                    if (!fieldTargetType.GetTypeInfo().IsAssignableFrom(prop.PropertyType.GetTypeInfo()))
+                    {
+                        fieldValue = UdtMap.TypeConverter.ConvertToDbFromUdtFieldValue(prop.PropertyType,
+                                               fieldTargetType,
+                                               fieldValue);
+                    }
                 }
                 var itemBuffer = SerializeChild(fieldValue);
                 bufferList.Add(itemBuffer);
