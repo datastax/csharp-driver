@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
+using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
@@ -402,6 +403,7 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [TestCase(0, "firstKey", "secondKey", "lastkey")]
         [TestCase(3, "unexistentKey", "unexistentKey2", "unexistentKey3")]
         [TestCase(3, new string[0])]
+        [TestCassandraVersion(2, 1)]
         public void SubtractAssign_FromDictionary(int remainingKeysCount, params string[] keysToRemove)
         {
             var tupleDictionaryType = EntityWithDictionaryType.SetupDefaultTable(Session);
