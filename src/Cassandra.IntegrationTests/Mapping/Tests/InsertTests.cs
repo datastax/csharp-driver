@@ -26,6 +26,7 @@ using Cassandra.Mapping;
 using Cassandra.Serialization;
 using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
+#pragma warning disable 169
 
 namespace Cassandra.IntegrationTests.Mapping.Tests
 {

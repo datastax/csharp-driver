@@ -34,7 +34,12 @@ namespace Cassandra.IntegrationTests.TestBase
         /// <summary>
         /// Creates the TestCassandraVersion object
         /// </summary>
-        /// <param name="comparisonOperator">Determines if the Cassandra version required should be "greater or equals to" = 1, "equals to" = 0, "less than or equal to " = -1</param>
+        /// <param name="major">Major version</param>
+        /// <param name="minor">Minor version</param>
+        /// <param name="comparisonAA">
+        /// Determines if the Cassandra version required should be "greater or equals to" = 1, "equals to" = 0,
+        /// "less than or equal to " = -1
+        /// </param>
         public TestCassandraVersion(int major, int minor, Comparison comparison = Comparison.GreaterThanOrEqualsTo)
         {
             Major = major;
@@ -46,8 +51,16 @@ namespace Cassandra.IntegrationTests.TestBase
         /// <summary>
         /// Creates the TestCassandraVersion object with the option of specifying a Build
         /// </summary>
-        /// <param name="comparisonOperator">Determines if the Cassandra version required should be "greater or equals to" = 1, "equals to" = 0, "less than or equal to " = -1</param>
-        public TestCassandraVersion(int major, int minor, int build, Comparison comparison = Comparison.GreaterThanOrEqualsTo) : this(major, minor, comparison)
+        /// <param name="major">Major version</param>
+        /// <param name="minor">Minor version</param>
+        /// <param name="build">Build number</param>
+        /// <param name="comparison">
+        /// Determines if the Cassandra version required should be "greater or equals to" = 1, "equals to" = 0,
+        /// "less than or equal to " = -1
+        /// </param>
+        public TestCassandraVersion(int major, int minor, int build,
+                                    Comparison comparison = Comparison.GreaterThanOrEqualsTo) : this(major, minor,
+            comparison)
         {
             Build = build;
         }

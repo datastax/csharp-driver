@@ -11,6 +11,7 @@ using Cassandra.Mapping.Attributes;
 using Cassandra.Tests.Mapping.FluentMappings;
 using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
+#pragma warning disable 169
 #pragma warning disable 618
 #pragma warning disable 612
 
