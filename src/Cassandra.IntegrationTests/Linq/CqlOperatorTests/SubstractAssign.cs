@@ -4,7 +4,6 @@ using System.Linq;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
-using Cassandra.Mapping;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
@@ -12,26 +11,18 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
     [Category("short")]
     public class SubstractAssign : SharedClusterTest
     {
-        private ISession _session;
-
-        public override void OneTimeSetUp()
-        {
-            base.OneTimeSetUp();
-            _session = Session;
-        }
-
         /// <summary>
         /// Use SubtractAssign to remove values from a list, then validate that the expected data remains in Cassandra
         /// </summary>
         [Test]
         public void SubtractAssign_FromList_AllValues()
         {
-            Tuple<Table<EntityWithListType>, List<EntityWithListType>> tupleListType = EntityWithListType.SetupDefaultTable(_session);
-            Table<EntityWithListType> table = tupleListType.Item1;
-            List<EntityWithListType> expectedEntities = tupleListType.Item2;
+            var tupleListType = EntityWithListType.SetupDefaultTable(Session);
+            var table = tupleListType.Item1;
+            var expectedEntities = tupleListType.Item2;
 
-            EntityWithListType singleEntity = expectedEntities.First();
-            EntityWithListType expectedEntity = singleEntity.Clone();
+            var singleEntity = expectedEntities.First();
+            var expectedEntity = singleEntity.Clone();
             expectedEntity.ListType.Clear();
 
             // SubstractAssign the values
@@ -50,12 +41,12 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void SubtractAssign_FromList_Duplicates()
         {
-            Tuple<Table<EntityWithListType>, List<EntityWithListType>> tupleListType = EntityWithListType.SetupDefaultTable(_session);
-            Table<EntityWithListType> table = tupleListType.Item1;
-            List<EntityWithListType> expectedEntities = tupleListType.Item2;
-            EntityWithListType singleEntity = expectedEntities.First();
+            var tupleListType = EntityWithListType.SetupDefaultTable(Session);
+            var table = tupleListType.Item1;
+            var expectedEntities = tupleListType.Item2;
+            var singleEntity = expectedEntities.First();
             Assert.AreEqual(1, singleEntity.ListType.Count); // make sure there's only one value in the list
-            int indexToRemove = 0;
+            var indexToRemove = 0;
             singleEntity.ListType.AddRange(new[] { singleEntity.ListType[indexToRemove], singleEntity.ListType[indexToRemove], singleEntity.ListType[indexToRemove] });
 
             // Overwrite one of the rows, validate the data got there
@@ -65,8 +56,8 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
             singleEntity.AssertEquals(entityListPreTest[0]);
 
             // Get single value to remove
-            List<int> valsToDelete = new List<int>() { singleEntity.ListType[indexToRemove] };
-            EntityWithListType expectedEntity = singleEntity.Clone();
+            var valsToDelete = new List<int>() { singleEntity.ListType[indexToRemove] };
+            var expectedEntity = singleEntity.Clone();
             expectedEntity.ListType.Clear();
             // SubstractAssign the values
             table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithListType { ListType = CqlOperator.SubstractAssign(valsToDelete) }).Update().Execute();
@@ -85,19 +76,19 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void SubtractAssign_FromList_OneValueOfMany_IndexZero()
         {
-            Tuple<Table<EntityWithListType>, List<EntityWithListType>> tupleListType = EntityWithListType.SetupDefaultTable(_session);
-            Table<EntityWithListType> table = tupleListType.Item1;
-            List<EntityWithListType> expectedEntities = tupleListType.Item2;
-            EntityWithListType singleEntity = expectedEntities.First();
+            var tupleListType = EntityWithListType.SetupDefaultTable(Session);
+            var table = tupleListType.Item1;
+            var expectedEntities = tupleListType.Item2;
+            var singleEntity = expectedEntities.First();
             singleEntity.ListType.AddRange(new[] { 999, 9999, 99999, 999999 });
 
             // Overwrite one of the rows
             table.Insert(singleEntity).Execute();
 
             // Get value to remove
-            int indexToRemove = 0;
-            List<int> valsToDelete = new List<int>() { singleEntity.ListType[indexToRemove] };
-            EntityWithListType expectedEntity = singleEntity.Clone();
+            var indexToRemove = 0;
+            var valsToDelete = new List<int>() { singleEntity.ListType[indexToRemove] };
+            var expectedEntity = singleEntity.Clone();
             expectedEntity.ListType.RemoveAt(indexToRemove);
             // SubstractAssign the values
             table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithListType { ListType = CqlOperator.SubstractAssign(valsToDelete) }).Update().Execute();
@@ -115,19 +106,19 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void SubtractAssign_FromList_OneValueOfMany_IndexNonZero()
         {
-            Tuple<Table<EntityWithListType>, List<EntityWithListType>> tupleListType = EntityWithListType.SetupDefaultTable(_session);
-            Table<EntityWithListType> table = tupleListType.Item1;
-            List<EntityWithListType> expectedEntities = tupleListType.Item2;
-            EntityWithListType singleEntity = expectedEntities.First();
+            var tupleListType = EntityWithListType.SetupDefaultTable(Session);
+            var table = tupleListType.Item1;
+            var expectedEntities = tupleListType.Item2;
+            var singleEntity = expectedEntities.First();
             singleEntity.ListType.AddRange(new[] { 999, 9999, 99999, 999999 });
 
             // Overwrite one of the rows
             table.Insert(singleEntity).Execute();
 
             // Get Value to remove
-            int indexToRemove = 2;
-            List<int> valsToDelete = new List<int>() { singleEntity.ListType[indexToRemove] };
-            EntityWithListType expectedEntity = singleEntity.Clone();
+            var indexToRemove = 2;
+            var valsToDelete = new List<int>() { singleEntity.ListType[indexToRemove] };
+            var expectedEntity = singleEntity.Clone();
             expectedEntity.ListType.RemoveAt(indexToRemove);
 
             // SubstractAssign the values
@@ -146,11 +137,11 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void SubtractAssign_FromList_ValNotInList()
         {
-            Tuple<Table<EntityWithListType>, List<EntityWithListType>> tupleListType = EntityWithListType.SetupDefaultTable(_session);
-            Table<EntityWithListType> table = tupleListType.Item1;
-            List<EntityWithListType> expectedEntities = tupleListType.Item2;
-            EntityWithListType singleEntity = expectedEntities.First();
-            List<int> valsToDelete = new List<int>() { 9999 };
+            var tupleListType = EntityWithListType.SetupDefaultTable(Session);
+            var table = tupleListType.Item1;
+            var expectedEntities = tupleListType.Item2;
+            var singleEntity = expectedEntities.First();
+            var valsToDelete = new List<int>() { 9999 };
 
             // make sure this value is not in the list
             Assert.IsFalse(singleEntity.ListType.Contains(valsToDelete.First()));
@@ -170,11 +161,11 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void SubtractAssign_FromList_EmptyList()
         {
-            Tuple<Table<EntityWithListType>, List<EntityWithListType>> tupleListType = EntityWithListType.SetupDefaultTable(_session);
-            Table<EntityWithListType> table = tupleListType.Item1;
-            List<EntityWithListType> expectedEntities = tupleListType.Item2;
-            EntityWithListType singleEntity = expectedEntities.First();
-            List<int> valsToDelete = new List<int>() { };
+            var tupleListType = EntityWithListType.SetupDefaultTable(Session);
+            var table = tupleListType.Item1;
+            var expectedEntities = tupleListType.Item2;
+            var singleEntity = expectedEntities.First();
+            var valsToDelete = new List<int>();
 
             // SubstractAssign the values
             table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithListType { ListType = CqlOperator.SubstractAssign(valsToDelete) }).Update().Execute();
@@ -195,22 +186,22 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void SubtractAssign_FromArray_AllValues_QueryUsingCql()
         {
-            Tuple<Table<EntityWithArrayType>, List<EntityWithArrayType>> tupleListType = EntityWithArrayType.SetupDefaultTable(_session);
-            Table<EntityWithArrayType> table = tupleListType.Item1;
-            List<EntityWithArrayType> expectedEntities = tupleListType.Item2;
+            var tupleListType = EntityWithArrayType.SetupDefaultTable(Session);
+            var table = tupleListType.Item1;
+            var expectedEntities = tupleListType.Item2;
 
-            EntityWithArrayType singleEntity = expectedEntities.First();
-            EntityWithArrayType expectedEntity = singleEntity.Clone();
+            var singleEntity = expectedEntities.First();
+            var expectedEntity = singleEntity.Clone();
             expectedEntity.ArrayType = new string[] {};
 
             // SubstractAssign the values
             table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithArrayType { ArrayType = CqlOperator.SubstractAssign(singleEntity.ArrayType) }).Update().Execute();
 
             // Validate final state of the data
-            List<Row> rows = _session.Execute("SELECT * from " + table.Name + " where id='" + expectedEntity.Id + "'").GetRows().ToList();
+            var rows = Session.Execute($"SELECT * from {table.Name} where id=\'{expectedEntity.Id}\'").GetRows().ToList();
             Assert.AreEqual(1, rows.Count);
             Assert.AreNotEqual(expectedEntity.ArrayType, singleEntity.ArrayType);
-            object actualArr = rows[0].GetValue<object>("arraytype");
+            var actualArr = rows[0].GetValue<object>("arraytype");
             Assert.AreEqual(null, actualArr);
         }
 
@@ -220,32 +211,32 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void SubtractAssign_FromArray_Duplicates()
         {
-            Tuple<Table<EntityWithArrayType>, List<EntityWithArrayType>> tupleArrayType = EntityWithArrayType.SetupDefaultTable(_session);
-            Table<EntityWithArrayType> table = tupleArrayType.Item1;
-            List<EntityWithArrayType> expectedEntities = tupleArrayType.Item2;
-            EntityWithArrayType singleEntity = expectedEntities.First();
+            var tupleArrayType = EntityWithArrayType.SetupDefaultTable(Session);
+            var table = tupleArrayType.Item1;
+            var expectedEntities = tupleArrayType.Item2;
+            var singleEntity = expectedEntities.First();
             Assert.AreEqual(1, singleEntity.ArrayType.Length); // make sure there's only one value in the list
-            int indexToRemove = 0;
+            var indexToRemove = 0;
             singleEntity.ArrayType.ToList().AddRange(new[] { singleEntity.ArrayType[indexToRemove], singleEntity.ArrayType[indexToRemove], singleEntity.ArrayType[indexToRemove] });
 
             // Overwrite one of the rows, validate the data got there
             table.Insert(singleEntity).Execute();
-            List<Row> rows = _session.Execute("SELECT * from " + table.Name + " where id='" + singleEntity.Id + "'").GetRows().ToList();
+            var rows = Session.Execute($"SELECT * from {table.Name} where id=\'{singleEntity.Id}\'").GetRows().ToList();
             Assert.AreEqual(1, rows.Count);
-            string[] actualArr = rows[0].GetValue<string[]>("arraytype");
+            var actualArr = rows[0].GetValue<string[]>("arraytype");
             Assert.AreEqual(singleEntity.ArrayType, actualArr);
 
             // Get single value to remove
-            string[] valsToDelete = new string[] { singleEntity.ArrayType[indexToRemove] };
-            EntityWithArrayType expectedEntity = singleEntity.Clone();
+            var valsToDelete = new [] { singleEntity.ArrayType[indexToRemove] };
+            var expectedEntity = singleEntity.Clone();
             expectedEntity.ArrayType = new string[] {};
             // SubstractAssign the values
             table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithArrayType { ArrayType = CqlOperator.SubstractAssign(valsToDelete) }).Update().Execute();
 
             // Validate final state of the data
-            rows = _session.Execute("SELECT * from " + table.Name + " where id='" + expectedEntity.Id + "'").GetRows().ToList();
+            rows = Session.Execute($"SELECT * from {table.Name} where id=\'{expectedEntity.Id}\'").GetRows().ToList();
             Assert.AreEqual(1, rows.Count);
-            object probablyNullArr = rows[0].GetValue<object>("arraytype");
+            var probablyNullArr = rows[0].GetValue<object>("arraytype");
             Assert.AreEqual(null, probablyNullArr);
         }
 
@@ -256,11 +247,11 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void SubtractAssign_FromArray_OneValueOfMany_IndexZero()
         {
-            Tuple<Table<EntityWithArrayType>, List<EntityWithArrayType>> tupleArrayType = EntityWithArrayType.SetupDefaultTable(_session);
-            Table<EntityWithArrayType> table = tupleArrayType.Item1;
-            List<EntityWithArrayType> expectedEntities = tupleArrayType.Item2;
-            EntityWithArrayType singleEntity = expectedEntities.First();
-            List<string> tempList = singleEntity.ArrayType.ToList();
+            var tupleArrayType = EntityWithArrayType.SetupDefaultTable(Session);
+            var table = tupleArrayType.Item1;
+            var expectedEntities = tupleArrayType.Item2;
+            var singleEntity = expectedEntities.First();
+            var tempList = singleEntity.ArrayType.ToList();
             tempList.AddRange(new[] { "999", "9999", "99999", "999999" });
             singleEntity.ArrayType = tempList.ToArray();
 
@@ -268,9 +259,9 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
             table.Insert(singleEntity).Execute();
 
             // Get value to remove
-            int indexToRemove = 0;
+            var indexToRemove = 0;
             string[] valsToDelete = { singleEntity.ArrayType[indexToRemove] };
-            EntityWithArrayType expectedEntity = singleEntity.Clone();
+            var expectedEntity = singleEntity.Clone();
             tempList = expectedEntity.ArrayType.ToList();
             tempList.RemoveAt(indexToRemove);
             expectedEntity.ArrayType = tempList.ToArray();
@@ -279,7 +270,7 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
             table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithArrayType { ArrayType = CqlOperator.SubstractAssign(valsToDelete) }).Update().Execute();
 
             // Validate final state of the data
-            List<Row> rows = _session.Execute("SELECT * from " + table.Name + " where id='" + expectedEntity.Id + "'").GetRows().ToList();
+            var rows = Session.Execute($"SELECT * from {table.Name} where id=\'{expectedEntity.Id}\'").GetRows().ToList();
             Assert.AreEqual(1, rows.Count);
             Assert.AreNotEqual(expectedEntity.ArrayType, singleEntity.ArrayType);
             Assert.AreEqual(expectedEntity.ArrayType, rows[0].GetValue<string[]>("arraytype"));
@@ -291,11 +282,11 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void SubtractAssign_FromArray_OneValueOfMany_IndexNonZero()
         {
-            Tuple<Table<EntityWithArrayType>, List<EntityWithArrayType>> tupleArrayType = EntityWithArrayType.SetupDefaultTable(_session);
-            Table<EntityWithArrayType> table = tupleArrayType.Item1;
-            List<EntityWithArrayType> expectedEntities = tupleArrayType.Item2;
-            EntityWithArrayType singleEntity = expectedEntities.First();
-            List<string> tempList = singleEntity.ArrayType.ToList();
+            var tupleArrayType = EntityWithArrayType.SetupDefaultTable(Session);
+            var table = tupleArrayType.Item1;
+            var expectedEntities = tupleArrayType.Item2;
+            var singleEntity = expectedEntities.First();
+            var tempList = singleEntity.ArrayType.ToList();
             tempList.AddRange(new[] { "999", "9999", "99999", "999999" });
             singleEntity.ArrayType = tempList.ToArray();
 
@@ -303,9 +294,9 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
             table.Insert(singleEntity).Execute();
 
             // Get Value to remove
-            int indexToRemove = 2;
+            var indexToRemove = 2;
             string[] valsToDelete = { singleEntity.ArrayType[indexToRemove] };
-            EntityWithArrayType expectedEntity = singleEntity.Clone();
+            var expectedEntity = singleEntity.Clone();
             tempList = expectedEntity.ArrayType.ToList();
             tempList.RemoveAt(indexToRemove);
             expectedEntity.ArrayType = tempList.ToArray();
@@ -314,7 +305,7 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
             table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithArrayType { ArrayType = CqlOperator.SubstractAssign(valsToDelete) }).Update().Execute();
 
             // Validate final state of the data
-            List<Row> rows = _session.Execute("SELECT * from " + table.Name + " where id='" + expectedEntity.Id + "'").GetRows().ToList();
+            var rows = Session.Execute($"SELECT * from {table.Name} where id=\'{expectedEntity.Id}\'").GetRows().ToList();
             Assert.AreEqual(1, rows.Count);
             Assert.AreNotEqual(expectedEntity.ArrayType, singleEntity.ArrayType);
             Assert.AreEqual(expectedEntity.ArrayType, rows[0].GetValue<string[]>("arraytype"));
@@ -326,10 +317,10 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void SubtractAssign_FromArray_ValNotInArray()
         {
-            Tuple<Table<EntityWithArrayType>, List<EntityWithArrayType>> tupleArrayType = EntityWithArrayType.SetupDefaultTable(_session);
-            Table<EntityWithArrayType> table = tupleArrayType.Item1;
-            List<EntityWithArrayType> expectedEntities = tupleArrayType.Item2;
-            EntityWithArrayType singleEntity = expectedEntities.First();
+            var tupleArrayType = EntityWithArrayType.SetupDefaultTable(Session);
+            var table = tupleArrayType.Item1;
+            var expectedEntities = tupleArrayType.Item2;
+            var singleEntity = expectedEntities.First();
             string[] valsToDelete = { "9999" };
 
             // make sure this value is not in the array 
@@ -340,9 +331,9 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
             table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithArrayType { ArrayType = CqlOperator.SubstractAssign(valsToDelete) }).Update().Execute();
 
             // Validate final state of the data
-            List<Row> rows = _session.Execute("SELECT * from " + table.Name + " where id='" + singleEntity.Id + "'").GetRows().ToList();
+            var rows = Session.Execute($"SELECT * from {table.Name} where id=\'{singleEntity.Id}\'").GetRows().ToList();
             Assert.AreEqual(1, rows.Count);
-            object actualArr = rows[0].GetValue<object>("arraytype");
+            var actualArr = rows[0].GetValue<object>("arraytype");
             Assert.AreEqual(singleEntity.ArrayType, actualArr);
         }
 
@@ -352,19 +343,19 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void SubtractAssign_FromArray_EmptyArray()
         {
-            Tuple<Table<EntityWithArrayType>, List<EntityWithArrayType>> tupleArrayType = EntityWithArrayType.SetupDefaultTable(_session);
-            Table<EntityWithArrayType> table = tupleArrayType.Item1;
-            List<EntityWithArrayType> expectedEntities = tupleArrayType.Item2;
-            EntityWithArrayType singleEntity = expectedEntities.First();
+            var tupleArrayType = EntityWithArrayType.SetupDefaultTable(Session);
+            var table = tupleArrayType.Item1;
+            var expectedEntities = tupleArrayType.Item2;
+            var singleEntity = expectedEntities.First();
             string[] valsToDelete = { };
 
             // SubstractAssign the values
             table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithArrayType { ArrayType = CqlOperator.SubstractAssign(valsToDelete) }).Update().Execute();
 
             // Validate final state of the data
-            List<Row> rows = _session.Execute("SELECT * from " + table.Name + " where id='" + singleEntity.Id + "'").GetRows().ToList();
+            var rows = Session.Execute($"SELECT * from {table.Name} where id=\'{singleEntity.Id}\'").GetRows().ToList();
             Assert.AreEqual(1, rows.Count);
-            object actualArr = rows[0].GetValue<object>("arraytype");
+            var actualArr = rows[0].GetValue<object>("arraytype");
             Assert.AreEqual(singleEntity.ArrayType, actualArr);
         }
 
@@ -380,24 +371,65 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void SubtractAssign_FromDictionary_NotAllowed()
         {
-            Tuple<Table<EntityWithDictionaryType>, List<EntityWithDictionaryType>> tupleDictionaryType = EntityWithDictionaryType.SetupDefaultTable(_session);
-            Table<EntityWithDictionaryType> table = tupleDictionaryType.Item1;
-            List<EntityWithDictionaryType> expectedEntities = tupleDictionaryType.Item2;
+            var tupleDictionaryType = EntityWithDictionaryType.SetupDefaultTable(Session);
+            var table = tupleDictionaryType.Item1;
+            var expectedEntities = tupleDictionaryType.Item2;
 
-            EntityWithDictionaryType singleEntity = expectedEntities.First();
-            EntityWithDictionaryType expectedEntity = singleEntity.Clone();
+            var singleEntity = expectedEntities.First();
+            var expectedEntity = singleEntity.Clone();
             expectedEntity.DictionaryType.Clear();
-            Dictionary<string, string> dictToDelete = new Dictionary<string, string>() { 
+            var dictToDelete = new Dictionary<string, string>() { 
                 { singleEntity.DictionaryType.First().Key, singleEntity.DictionaryType.First().Value }, 
             };
 
             // Attempt to remove the data
-            var updateStatement = table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithDictionaryType { DictionaryType = CqlOperator.SubstractAssign(dictToDelete) }).Update();
-            Assert.Throws<InvalidQueryException>(() => updateStatement.Execute());
+            var updateStatement = table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithDictionaryType
+            {
+                // Use incorrect substract assign overload
+                DictionaryType = CqlOperator.SubstractAssign(dictToDelete)
+            }).Update();
+            Assert.Throws<InvalidOperationException>(() => updateStatement.Execute(),
+                "Use dedicated method to substract assign keys only for maps");
         }
 
+        /// <summary>
+        /// Remove keys from map.
+        ///
+        /// This test creates a map with 3 keys (firstey, secondkey, lastkey) whitin an entity, and removes keys from this map,
+        /// and check the remaining keys result
+        /// </summary>
+        [TestCase(2, "firstKey")]
+        [TestCase(1, "firstKey", "secondKey")]
+        [TestCase(0, "firstKey", "secondKey", "lastkey")]
+        [TestCase(3, "unexistentKey", "unexistentKey2", "unexistentKey3")]
+        [TestCase(3, new string[0])]
+        [TestCassandraVersion(2, 1)]
+        public void SubtractAssign_FromDictionary(int remainingKeysCount, params string[] keysToRemove)
+        {
+            var tupleDictionaryType = EntityWithDictionaryType.SetupDefaultTable(Session);
+            var table = tupleDictionaryType.Item1;
 
+            var newdict = new Dictionary<string, string>
+            {
+                { "firstKey", "firstvalue" },
+                { "secondKey", "secondvalue" },
+                { "lastkey", "lastvalue" },
+            };
+            var id = Guid.NewGuid().ToString();
+            var newEntity = new EntityWithDictionaryType
+            {
+                Id = id,
+                DictionaryType = newdict
+            };
+            table.Insert(newEntity).Execute();
+
+            table.Where(t => t.Id == newEntity.Id).Select(x => new EntityWithDictionaryType
+            {
+                DictionaryType = x.DictionaryType.SubstractAssign(keysToRemove)
+            }).Update().Execute();
+            var updatedEntity = table.Where(t => t.Id == newEntity.Id).Execute().FirstOrDefault();
+            Assert.NotNull(updatedEntity);
+            Assert.AreEqual(remainingKeysCount, updatedEntity.DictionaryType.Count);
+        }
     }
-
-
 }

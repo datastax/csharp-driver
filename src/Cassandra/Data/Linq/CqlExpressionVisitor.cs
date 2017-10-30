@@ -771,8 +771,6 @@ namespace Cassandra.Data.Linq
             {
                 return false;
             }
-            var column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
-            object value = Expression.Lambda(node.Arguments[0]).Compile().DynamicInvoke();
             ExpressionType expressionType;
             switch (node.Method.Name)
             {
@@ -788,6 +786,20 @@ namespace Cassandra.Data.Linq
                 default:
                     return false;
             }
+            var column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
+            if (expressionType == ExpressionType.SubtractAssign && node.Arguments.Count == 1 &&
+                typeof(IDictionary).GetTypeInfo().IsAssignableFrom(column.ColumnType))
+            {
+                throw new InvalidOperationException("Use dedicated method to substract assign keys only for maps");
+            }
+            if (node.Arguments.Count < 1 || node.Arguments.Count > 2)
+            {
+                throw new InvalidOperationException(
+                    "Only up to 2 arguments are supported for CqlOperator functions");
+            }
+            // Use the last argument (valid for maps and list/sets)
+            var argument = node.Arguments[node.Arguments.Count - 1];
+            var value = Expression.Lambda(argument).Compile().DynamicInvoke();
             _projections.Add(Tuple.Create(column, value, expressionType));
             return true;
         }
