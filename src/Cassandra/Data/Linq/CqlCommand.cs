@@ -15,8 +15,6 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Cassandra.Mapping;
@@ -29,11 +27,11 @@ namespace Cassandra.Data.Linq
     {
         private readonly Expression _expression;
         private readonly StatementFactory _statementFactory;
-        protected DateTimeOffset? _timestamp = null;
-        protected int? _ttl = null;
+        protected DateTimeOffset? _timestamp;
+        protected int? _ttl;
 
-        internal PocoData PocoData { get; private set; }
-        internal ITable Table { get; private set; }
+        internal PocoData PocoData { get; }
+        internal ITable Table { get; }
 
         /// <inheritdoc />
         public override string QueryString
@@ -57,15 +55,9 @@ namespace Cassandra.Data.Linq
             }
         }
 
-        internal StatementFactory StatementFactory
-        {
-            get { return _statementFactory; }
-        }
+        internal StatementFactory StatementFactory => _statementFactory;
 
-        public Expression Expression
-        {
-            get { return _expression; }
-        }
+        public Expression Expression => _expression;
 
         public QueryTrace QueryTrace { get; private set; }
 
@@ -116,6 +108,10 @@ namespace Cassandra.Data.Linq
             return this;
         }
 
+        /// <summary>
+        /// Sets the timestamp associated with this statement execution.
+        /// </summary>
+        /// <returns>This instance.</returns>
         public new CqlCommand SetTimestamp(DateTimeOffset timestamp)
         {
             _timestamp = timestamp;
@@ -132,7 +128,7 @@ namespace Cassandra.Data.Linq
 
         public ITable GetTable()
         {
-            return (Table as ITable);
+            return Table;
         }
 
         public async Task<RowSet> ExecuteAsync()
