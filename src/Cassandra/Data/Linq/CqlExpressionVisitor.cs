@@ -299,7 +299,7 @@ namespace Cassandra.Data.Linq
             {
                 throw new CqlArgumentException("Nothing to update");
             }
-            query.Append(String.Join(", ", setStatements));
+            query.Append(string.Join(", ", setStatements));
 
             if (_whereClause.Item1.Length > 0)
             {
@@ -773,7 +773,7 @@ namespace Cassandra.Data.Linq
         private static Expression DropNullableConversion(Expression node)
         {
             if (node is UnaryExpression && node.NodeType == ExpressionType.Convert && node.Type.GetTypeInfo().IsGenericType &&
-                String.Compare(node.Type.Name, "Nullable`1", StringComparison.Ordinal) == 0)
+                string.Compare(node.Type.Name, "Nullable`1", StringComparison.Ordinal) == 0)
             {
                 return (node as UnaryExpression).Operand;
             }
