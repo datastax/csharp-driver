@@ -68,6 +68,23 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         [Test]
+        public void LinqWhere_ExecuteSync_Trace()
+        {
+            var expectedMovie = _movieList.First();
+
+            // test
+            var linqWhere = _movieTable.Where(m => m.Title == expectedMovie.Title && m.MovieMaker == expectedMovie.MovieMaker);
+            linqWhere.EnableTracing();
+            List<Movie> movies = linqWhere.Execute().ToList();
+            Assert.AreEqual(1, movies.Count);
+            var actualMovie = movies.First();
+            Movie.AssertEquals(expectedMovie, actualMovie);
+            var trace = linqWhere.QueryTrace;
+            Assert.NotNull(trace);
+            Assert.AreEqual(TestCluster.InitialContactPoint, trace.Coordinator.ToString());
+        }
+
+        [Test]
         public void LinqWhere_NoSuchRecord()
         {
             Movie existingMovie = _movieList.Last();
