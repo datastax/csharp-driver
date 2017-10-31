@@ -24,6 +24,13 @@ namespace Cassandra.Data.Linq
         internal static MethodInfo WhereMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("Where", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo GroupByMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("GroupBy", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo UpdateIfMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("UpdateIf", BindingFlags.NonPublic | BindingFlags.Static);
+
+        internal static MethodInfo UpdateIfExistsMi = typeof(CqlMthHelps)
+            .GetTypeInfo().GetMethod(nameof(UpdateIfExists), BindingFlags.NonPublic | BindingFlags.Static);
+
+        internal static MethodInfo UpdateIfNotExistsMi = typeof(CqlMthHelps)
+            .GetTypeInfo().GetMethod(nameof(UpdateIfNotExists), BindingFlags.NonPublic | BindingFlags.Static);
+        
         internal static MethodInfo DeleteIfMi = typeof(CqlMthHelps).GetTypeInfo().GetMethod("DeleteIf", BindingFlags.NonPublic | BindingFlags.Static);
         internal static MethodInfo FirstMi = typeof (CqlMthHelps).GetTypeInfo().GetMethod("First", BindingFlags.NonPublic | BindingFlags.Static);
 
@@ -60,6 +67,16 @@ namespace Cassandra.Data.Linq
         }
 
         internal static object UpdateIf(object a, object b)
+        {
+            return null;
+        }
+
+        internal static object UpdateIfExists(object a)
+        {
+            return null;
+        }
+
+        internal static object UpdateIfNotExists(object a)
         {
             return null;
         }
