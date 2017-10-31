@@ -1,15 +1,11 @@
 os:
   - ubuntu/trusty64
 cassandra:
-  - 2.0
-  - 2.1
-  - 2.2
-  - 3.0
   - '3.10'
 env:
   CSHARP_VERSION:
-    - mono
     - netcore
+disable_commit_status: false
 build:
   - script: |
       # Set the Java paths (for CCM)
@@ -47,8 +43,7 @@ build:
 
           # Run the tests
           echo "==========RUNNING FULL SUITE OF TESTS=========="
-          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f netcoreapp1.0 -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx.xml"
-          saxon-xslt -o TestResult.xml TestResult_trx.xml tools/trx-to-junit.xslt
+          dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj
       fi
 
   - xunit:
