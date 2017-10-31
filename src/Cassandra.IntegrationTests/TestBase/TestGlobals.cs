@@ -196,7 +196,8 @@ namespace Cassandra.IntegrationTests.TestBase
                 }
                 finally
                 {
-                    cluster?.ShutdownAsync().Wait();
+                    var shutdownAsync = cluster?.ShutdownAsync();
+                    if (shutdownAsync != null) await shutdownAsync;
                 }
             }
             else
