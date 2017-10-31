@@ -5,6 +5,7 @@ cassandra:
 env:
   CSHARP_VERSION:
     - netcore
+disable_commit_status: false
 build:
   - script: |
       # Set the Java paths (for CCM)
