@@ -31,7 +31,7 @@ namespace Cassandra
     public class PreparedStatement
     {
         internal readonly RowSetMetadata Metadata;
-        private readonly Serializer _serializer;
+        private readonly Serializer _serializer = Serializer.Default;
         private volatile RoutingKey _routingKey;
         private string[] _routingNames;
         private volatile int[] _routingIndexes;
