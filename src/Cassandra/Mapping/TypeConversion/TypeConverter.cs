@@ -54,11 +54,11 @@ namespace Cassandra.Mapping.TypeConversion
         private static readonly MethodInfo ConvertToArrayFromDbMethod = typeof(TypeConverter).GetTypeInfo()
             .GetMethod(nameof(ConvertToArrayFromDb), PrivateInstance);
 
-        private static readonly MethodInfo ConvertToIEnumerableToDbTypeMethod = typeof(TypeConverter)
-            .GetTypeInfo().GetMethod(nameof(ConvertToIEnumerableToDbType), PrivateInstance);
+        private static readonly MethodInfo ConvertIEnumerableToDbTypeMethod = typeof(TypeConverter)
+            .GetTypeInfo().GetMethod(nameof(ConvertIEnumerableToDbType), PrivateInstance);
 
-        private static readonly MethodInfo ConvertToIDictionaryToDbTypeMethod = typeof(TypeConverter)
-            .GetTypeInfo().GetMethod(nameof(ConvertToIDictionaryToDbType), PrivateInstance);
+        private static readonly MethodInfo ConvertIDictionaryToDbTypeMethod = typeof(TypeConverter)
+            .GetTypeInfo().GetMethod(nameof(ConvertIDictionaryToDbType), PrivateInstance);
 
         private readonly ConcurrentDictionary<Tuple<Type, Type>, Delegate> _fromDbConverterCache;
         private readonly ConcurrentDictionary<Tuple<Type, Type>, Delegate> _toDbConverterCache; 
@@ -110,7 +110,7 @@ namespace Cassandra.Mapping.TypeConversion
         /// </summary>
         internal object ConvertToUdtFieldFromDbValue(Type dbType, Type valueType, object value)
         {
-            var converter = GetFromDbConverter(dbType, valueType);
+            var converter = TryGetFromDbConverter(dbType, valueType);
             if (converter == null)
             {
                 throw new InvalidTypeException($"No converter is available from Type {dbType} is not convertible to type {valueType}");
@@ -182,12 +182,13 @@ namespace Cassandra.Mapping.TypeConversion
         }
 
         /// <summary>
-        /// This method is generic because it seems like a good idea to enforce that the abstract method that returns a user-defined Func returns 
-        /// one with the correct type parameters, so we'd be invoking that abstract method generically via reflection anyway each time.  So we might
-        /// as well make this method generic and invoke it via reflection (it also makes the code for returning the built-in EnumStringMapper func 
-        /// simpler since that class is generic).
+        /// This method is generic because it seems like a good idea to enforce that the abstract method that returns
+        /// a user-defined Func returns one with the correct type parameters, so we'd be invoking that abstract method
+        /// generically via reflection anyway each time.  So we might as well make this method generic and invoke it
+        /// via reflection (it also makes the code for returning the built-in EnumStringMapper func simpler since that
+        /// class is generic).
         /// </summary>
-        // ReSharper disable once UnusedMember.Local (invoked via reflection)
+        /// <returns>A delegate or null.</returns>
         private Delegate FindFromDbConverter<TDatabase, TPoco>()
         {
             // Allow for user-defined conversions
@@ -377,7 +378,7 @@ namespace Cassandra.Mapping.TypeConversion
                 if (pocoType.GetTypeInfo().IsArray)
                 {
                     // Its an array, convert each element
-                    return ConvertToIEnumerableToDbTypeMethod
+                    return ConvertIEnumerableToDbTypeMethod
                         .MakeGenericMethod(pocoType.GetTypeInfo().GetElementType(), dbTypeGenericArgs[0])
                         .CreateDelegateLocal(this);
                 }
@@ -389,12 +390,12 @@ namespace Cassandra.Mapping.TypeConversion
                 if (dbGenericType == typeof(IEnumerable<>))
                 {
                     // Its a list or a set but the child types doesn't match
-                    return ConvertToIEnumerableToDbTypeMethod
+                    return ConvertIEnumerableToDbTypeMethod
                         .MakeGenericMethod(pocoTypeGenericArgs[0], dbTypeGenericArgs[0]).CreateDelegateLocal(this);
                 }
                 if (dbGenericType == typeof(IDictionary<,>))
                 {
-                    return ConvertToIDictionaryToDbTypeMethod
+                    return ConvertIDictionaryToDbTypeMethod
                         .MakeGenericMethod(pocoTypeGenericArgs[0], pocoTypeGenericArgs[1], dbTypeGenericArgs[0],
                             dbTypeGenericArgs[1]).CreateDelegateLocal(this);
                 }
@@ -427,12 +428,12 @@ namespace Cassandra.Mapping.TypeConversion
             return ChangeType;
         }
 
-        private IEnumerable<TResult> ConvertToIEnumerableToDbType<TSource, TResult>(IEnumerable<TSource> items)
+        private IEnumerable<TResult> ConvertIEnumerableToDbType<TSource, TResult>(IEnumerable<TSource> items)
         {
             return items?.Select(TryFindToDbConverter<TSource, TResult>());
         }
 
-        private IDictionary<TResultKey, TResultValue> ConvertToIDictionaryToDbType<TSourceKey, TSourceValue, TResultKey,
+        private IDictionary<TResultKey, TResultValue> ConvertIDictionaryToDbType<TSourceKey, TSourceValue, TResultKey,
             TResultValue>(IDictionary<TSourceKey, TSourceValue> map)
         {
             var keyConverter = TryFindToDbConverter<TSourceKey, TResultKey>();
