@@ -36,7 +36,7 @@ namespace Cassandra.IntegrationTests.TestBase
         /// </summary>
         /// <param name="major">Major version</param>
         /// <param name="minor">Minor version</param>
-        /// <param name="comparisonAA">
+        /// <param name="comparison">
         /// Determines if the Cassandra version required should be "greater or equals to" = 1, "equals to" = 0,
         /// "less than or equal to " = -1
         /// </param>
