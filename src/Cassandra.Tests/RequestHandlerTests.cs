@@ -334,6 +334,110 @@ namespace Cassandra.Tests
             // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
             CollectionAssert.AreEqual(new byte[] {0xff, 0xff}, bodyBuffer.Skip(1).Take(2));
         }
+
+        [Test]
+        public void GetRequest_Batch_With_Timestamp_Generator()
+        {
+            var batch = new BatchStatement();
+            batch.Add(new SimpleStatement("QUERY"));
+            var startDate = DateTimeOffset.Now;
+            // To microsecond precision
+            startDate = startDate.Subtract(TimeSpan.FromTicks(startDate.Ticks % 10));
+            var config = new Configuration(
+                Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
+                new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(),
+                new DefaultAddressTranslator());
+            var request = RequestHandler.GetRequest(batch, Serializer, config);
+            var stream = new MemoryStream();
+            request.WriteFrame(1, stream, Serializer);
+            var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);
+            var bodyBuffer = new byte[stream.Length - headerSize];
+            stream.Position = headerSize;
+            stream.Read(bodyBuffer, 0, bodyBuffer.Length);
+            // The batch request is composed by:
+            // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
+            var offset = 1;
+            // n = 1
+            Assert.AreEqual(1, BeConverter.ToInt16(bodyBuffer, offset));
+            // Query_1 <kind><string><n_params>
+            offset += 2;
+            // kind = 0, not prepared
+            Assert.AreEqual(0, bodyBuffer[offset++]);
+            var queryLength = BeConverter.ToInt32(bodyBuffer, offset);
+            Assert.AreEqual(5, queryLength);
+            // skip query, n_params and consistency
+            offset += 4 + queryLength + 2 + 2;
+            var flags = (QueryFlags)bodyBuffer[offset++];
+            Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
+            var timestamp = TypeSerializer.UnixStart.AddTicks(BeConverter.ToInt64(bodyBuffer, offset) * 10);
+            Assert.GreaterOrEqual(timestamp,  startDate);
+            Assert.LessOrEqual(timestamp, DateTimeOffset.Now.Add(TimeSpan.FromMilliseconds(100)));
+        }
+        
+        [Test]
+        public void GetRequest_Batch_With_Empty_Timestamp_Generator()
+        {
+            var batch = new BatchStatement();
+            batch.Add(new SimpleStatement("QUERY"));
+            var policies = new Policies(
+                Policies.DefaultLoadBalancingPolicy, Policies.DefaultReconnectionPolicy, Policies.DefaultRetryPolicy,
+                Policies.DefaultSpeculativeExecutionPolicy, new NoTimestampGenerator());
+            var config = new Configuration(
+                policies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
+                new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(),
+                new DefaultAddressTranslator());
+            var request = RequestHandler.GetRequest(batch, Serializer, config);
+            var stream = new MemoryStream();
+            request.WriteFrame(1, stream, Serializer);
+            var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);
+            var bodyBuffer = new byte[stream.Length - headerSize];
+            stream.Position = headerSize;
+            stream.Read(bodyBuffer, 0, bodyBuffer.Length);
+            // The batch request is composed by:
+            // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
+            var offset = 1 + 2 + 1;
+            var queryLength = BeConverter.ToInt32(bodyBuffer, offset);
+            Assert.AreEqual(5, queryLength);
+            // skip query, n_params and consistency
+            offset += 4 + queryLength + 2 + 2;
+            var flags = (QueryFlags)bodyBuffer[offset++];
+            Assert.False(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
+            // No more data
+            Assert.AreEqual(bodyBuffer.Length, offset);
+        }
+
+        [Test]
+        public void GetRequest_Batch_With_Provided_Timestamp()
+        {
+            var batch = new BatchStatement();
+            batch.Add(new SimpleStatement("QUERY"));
+            var providedTimestamp = DateTimeOffset.Now;
+            // To microsecond precision
+            providedTimestamp = providedTimestamp.Subtract(TimeSpan.FromTicks(providedTimestamp.Ticks % 10));
+            batch.SetTimestamp(providedTimestamp);
+            var config = new Configuration(
+                Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
+                new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(),
+                new DefaultAddressTranslator());
+            var request = RequestHandler.GetRequest(batch, Serializer, config);
+            var stream = new MemoryStream();
+            request.WriteFrame(1, stream, Serializer);
+            var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);
+            var bodyBuffer = new byte[stream.Length - headerSize];
+            stream.Position = headerSize;
+            stream.Read(bodyBuffer, 0, bodyBuffer.Length);
+            // The batch request is composed by:
+            // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
+            var offset = 1 + 2 + 1;
+            var queryLength = BeConverter.ToInt32(bodyBuffer, offset);
+            Assert.AreEqual(5, queryLength);
+            // skip query, n_params and consistency
+            offset += 4 + queryLength + 2 + 2;
+            var flags = (QueryFlags)bodyBuffer[offset++];
+            Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
+            var timestamp = TypeSerializer.UnixStart.AddTicks(BeConverter.ToInt64(bodyBuffer, offset) * 10);
+            Assert.AreEqual(providedTimestamp, timestamp);
+        }
         
         /// <summary>
         /// A timestamp generator that generates empty values 
