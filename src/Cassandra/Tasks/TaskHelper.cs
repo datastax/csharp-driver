@@ -17,7 +17,7 @@
 using System;
 using System.Runtime.ExceptionServices;
 using System.Threading;
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 
 namespace Cassandra.Tasks
 {

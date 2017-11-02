@@ -24,7 +24,7 @@ namespace Cassandra
     /// <summary>
     /// Represents a Cassandra node.
     /// </summary>
-    public class Host
+    public class Host : IEquatable<Host>
     {
         private static readonly Logger Logger = new Logger(typeof(Host));
         private long _isUpNow = 1;
@@ -71,7 +71,7 @@ namespace Cassandra
         /// <summary>
         ///  Gets the node address.
         /// </summary>
-        public IPEndPoint Address { get; private set; }
+        public IPEndPoint Address { get; }
 
         /// <summary>
         /// Tokens assigned to the host
@@ -113,7 +113,7 @@ namespace Cassandra
         
         internal Host(IPEndPoint address)
         {
-            Address = address;
+            Address = address ?? throw new ArgumentNullException(nameof(address));
         }
 
         /// <summary>
@@ -175,6 +175,23 @@ namespace Cassandra
         public override int GetHashCode()
         {
             return Address.GetHashCode();
+        }
+
+        /// <summary>
+        /// Determines if the this instance can be considered equal to the provided host.
+        /// </summary>
+        public bool Equals(Host other)
+        {
+            return Equals(Address, other?.Address);
+        }
+
+        /// <inheritdoc />
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((Host) obj);
         }
 
         /// <summary>
