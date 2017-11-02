@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
@@ -59,6 +57,55 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             Assert.AreEqual(_movieList.Count, actualMovieList.Count());
             Assert.IsFalse(Movie.ListContains(_movieList, expectedMovie));
             Movie.AssertListContains(actualMovieList, expectedMovie);
+        }
+
+        /// <summary>
+        /// Try to update a non existing record
+        /// </summary>
+        [Test, TestCassandraVersion(2, 0)]
+        public void LinqUpdate_IfExists()
+        {
+            // Setup
+            Table<Movie> table = new Table<Movie>(_session, new MappingConfiguration());
+            table.CreateIfNotExists();
+
+            var unexistingMovie = new Movie("Unexisting movie title", "Unexisting movie director", "Unexisting movie actor", "Unexisting movie maker", 1212);
+            var cql = table.Where(m => m.Title == unexistingMovie.Title && m.MovieMaker == unexistingMovie.MovieMaker && m.Director == unexistingMovie.Director)
+                           .Select(m => new Movie { Year = unexistingMovie.Year, MainActor = unexistingMovie.MainActor })
+                           .UpdateIfExists();
+            var appliedInfo = cql.Execute();
+
+            Assert.IsFalse(appliedInfo.Applied);
+            List<Movie> actualMovieList = table.Execute().ToList();
+            Assert.AreEqual(_movieList.Count, actualMovieList.Count());
+            Assert.IsFalse(Movie.ListContains(actualMovieList, unexistingMovie));
+        }
+
+        /// <summary>
+        /// Upsert non existing record
+        /// </summary>
+        [Test, TestCassandraVersion(3, 0)]
+        public void LinqUpdate_IfNotExists()
+        {
+            // Setup
+            Table<Movie> table = new Table<Movie>(_session, new MappingConfiguration());
+            table.CreateIfNotExists();
+
+            var unexistingMovie = new Movie("Unexisting movie title", "Unexisting movie director", "Unexisting movie actor", "Unexisting movie maker", 1212);
+            var cql = table.Where(m => m.Title == unexistingMovie.Title && m.MovieMaker == unexistingMovie.MovieMaker && m.Director == unexistingMovie.Director)
+                           .Select(m => new Movie { Year = unexistingMovie.Year, MainActor = unexistingMovie.MainActor })
+                           .UpdateIfExists();
+            var appliedInfo = cql.Execute();
+
+            Assert.IsFalse(appliedInfo.Applied);
+            List<Movie> actualMovieList = table.Execute().ToList();
+            Assert.AreEqual(_movieList.Count + 1, actualMovieList.Count());
+            Assert.IsTrue(Movie.ListContains(actualMovieList, unexistingMovie));
+            var recentlyAddedMovie = actualMovieList.FirstOrDefault(m => m.Title == unexistingMovie.Title);
+            Assert.NotNull(recentlyAddedMovie);
+            Assert.AreEqual(unexistingMovie.Director, recentlyAddedMovie.Director);
+            Assert.AreEqual(unexistingMovie.MainActor, recentlyAddedMovie.MainActor);
+            Assert.AreEqual(unexistingMovie.Year, recentlyAddedMovie.Year);
         }
 
         /// <summary>
