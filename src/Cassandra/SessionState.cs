@@ -51,7 +51,7 @@ namespace Cassandra
 
         public override string ToString()
         {
-            var builder = new StringBuilder(64 * _infos.Count);
+            var builder = new StringBuilder(3 + 70 * _infos.Count);
             builder.Append("{\n");
             foreach (var kv in _infos)
             {

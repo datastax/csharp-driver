@@ -56,6 +56,7 @@ namespace Cassandra.IntegrationTests.Core
                 ISessionState state = null;
                 // Warmup
                 await TestHelper.TimesLimit(() => session.ExecuteAsync(new SimpleStatement(query)), 200, 10);
+                const int limit = 100;
                 // Perform several queries and get a snapshot somewhere
                 await TestHelper.TimesLimit(async () =>
                 {
@@ -73,9 +74,11 @@ namespace Cassandra.IntegrationTests.Core
                 foreach (var host in cluster.AllHosts())
                 {
                     Assert.AreEqual(2, state.GetOpenConnections(host));
-                    StringAssert.Contains("\"" + host.Address + "\": {", stringState);
+                    StringAssert.Contains($"\"{host.Address}\": {{", stringState);
                 }
-                Assert.Greater(cluster.AllHosts().Sum(h => state.GetInFlightQueries(h)), 0);
+                var totalInFlight = cluster.AllHosts().Sum(h => state.GetInFlightQueries(h));
+                Assert.Greater(totalInFlight, 0);
+                Assert.LessOrEqual(totalInFlight, limit);
             }
         }
     }

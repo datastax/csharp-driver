@@ -15,7 +15,6 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
@@ -86,6 +85,9 @@ namespace Cassandra
 
         public event Action<Host, HostConnectionPool> AllConnectionClosed;
 
+        /// <summary>
+        /// Determines whether the connection pool has opened connections using snapshot semantics.
+        /// </summary>
         public bool HasConnections => _connections.Count > 0;
 
         /// <summary>
@@ -98,7 +100,10 @@ namespace Cassandra
         /// </summary>
         public int InFlight => _connections.Sum(c => c.InFlight);
 
-        public bool IsClosing => Volatile.Read(ref _state) != PoolState.Init;
+        /// <summary>
+        /// Determines whether the pool is not on the initial state.
+        /// </summary>
+        private bool IsClosing => Volatile.Read(ref _state) != PoolState.Init;
         
         /// <summary>
         /// Gets a snapshot of the current state of the pool.
