@@ -13,6 +13,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -23,7 +24,7 @@ namespace Cassandra.Requests
 {
     internal class BatchRequest : ICqlRequest
     {
-        public const byte OpCode = 0x0D;
+        private const byte OpCode = 0x0D;
 
         private FrameHeader.HeaderFlag _headerFlags;
         private readonly QueryProtocolOptions.QueryFlags _batchFlags = 0;
@@ -65,27 +66,35 @@ namespace Cassandra.Requests
                 _batchFlags |= QueryProtocolOptions.QueryFlags.WithSerialConsistency;
                 _serialConsistency = statement.SerialConsistencyLevel;
             }
-            if (protocolVersion.SupportsTimestamp())
+            _timestamp = GetRequestTimestamp(protocolVersion, statement, policies);
+            if (_timestamp != null)
+            {
+                _batchFlags |= QueryProtocolOptions.QueryFlags.WithDefaultTimestamp;   
+            }
+        }
+
+        /// <summary>
+        /// Gets the timestamp of the request or null if not defined.
+        /// </summary>
+        /// <exception cref="NotSupportedException" />
+        private static long? GetRequestTimestamp(ProtocolVersion protocolVersion, BatchStatement statement,
+                                                 Policies policies)
+        {
+            if (!protocolVersion.SupportsTimestamp())
             {
                 if (statement.Timestamp != null)
                 {
-                    _batchFlags |= QueryProtocolOptions.QueryFlags.WithDefaultTimestamp;
-                    _timestamp = TypeSerializer.SinceUnixEpoch(statement.Timestamp.Value).Ticks / 10;
+                    throw new NotSupportedException(
+                        "Timestamp for BATCH request is supported in Cassandra 2.1 or above.");
                 }
-                else
-                {
-                    var timestamp = policies.TimestampGenerator.Next();
-                    if (timestamp != long.MinValue)
-                    {
-                        _batchFlags |= QueryProtocolOptions.QueryFlags.WithDefaultTimestamp;
-                        _timestamp = timestamp;
-                    }
-                }   
+                return null;
             }
-            else if (statement.Timestamp != null)
+            if (statement.Timestamp != null)
             {
-                throw new NotSupportedException("Timestamp for BATCH request is supported in Cassandra 2.1 or above.");   
+                return TypeSerializer.SinceUnixEpoch(statement.Timestamp.Value).Ticks / 10;
             }
+            var timestamp = policies.TimestampGenerator.Next();
+            return timestamp != long.MinValue ? (long?) timestamp : null;
         }
 
         public int WriteFrame(short streamId, MemoryStream stream, Serializer serializer)
