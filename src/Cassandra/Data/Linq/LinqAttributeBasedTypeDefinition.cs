@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using Cassandra.Mapping;
 
 namespace Cassandra.Data.Linq
@@ -15,23 +14,19 @@ namespace Cassandra.Data.Linq
     internal class LinqAttributeBasedTypeDefinition : ITypeDefinition
     {
         private const BindingFlags PublicInstanceBindingFlags = BindingFlags.Public | BindingFlags.Instance;
-        public Type PocoType { get; private set; }
-        public string TableName { get; private set; }
-        public string KeyspaceName { get; private set; }
-        public bool ExplicitColumns { get; private set; }
-        public string[] PartitionKeys { get; private set; }
-        public Tuple<string, SortOrder>[] ClusteringKeys { get; private set; }
-        public bool CaseSensitive { get; private set; }
-        public bool CompactStorage { get; private set; }
-        public bool AllowFiltering { get; private set; }
+        public Type PocoType { get; }
+        public string TableName { get; }
+        public string KeyspaceName { get; }
+        public bool ExplicitColumns { get; }
+        public string[] PartitionKeys { get; }
+        public Tuple<string, SortOrder>[] ClusteringKeys { get; }
+        public bool CaseSensitive { get; }
+        public bool CompactStorage { get; }
+        public bool AllowFiltering { get; }
 
         public LinqAttributeBasedTypeDefinition(Type type, string tableName, string keyspaceName)
         {
-            if (type == null)
-            {
-                throw new ArgumentNullException("type");
-            }
-            PocoType = type;
+            PocoType = type ?? throw new ArgumentNullException(nameof(type));
             CaseSensitive = true;
             ExplicitColumns = false;
             TableName = tableName;
@@ -105,7 +100,7 @@ namespace Cassandra.Data.Linq
                 return new LinqAttributeBasedTypeDefinition(type, null, null);
             }
             //Use the default mapping attributes
-            return new Cassandra.Mapping.Attributes.AttributeBasedTypeDefinition(type);
+            return new Mapping.Attributes.AttributeBasedTypeDefinition(type);
         }
 
         public IColumnDefinition GetColumnDefinition(FieldInfo field)
