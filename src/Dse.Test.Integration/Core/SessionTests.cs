@@ -14,7 +14,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Dse.Tasks;
 
 namespace Dse.Test.Integration.Core
 {
@@ -475,6 +474,44 @@ namespace Dse.Test.Integration.Core
             finally
             {
                 localCluster.Shutdown(1000);
+            }
+        }
+
+        [Test]
+        public async Task Cluster_ConnectAsync_Should_Create_A_Session_With_Keyspace_Set()
+        {
+            const string query = "SELECT * FROM local";
+            // Using a default keyspace
+            using (var cluster = DseCluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
+                                           .WithDefaultKeyspace("system").Build())
+            {
+                IDseSession session = await cluster.ConnectAsync().ConfigureAwait(false);
+                Assert.DoesNotThrowAsync(async () =>
+                    await session.ExecuteAsync(new SimpleStatement(query)).ConfigureAwait(false));
+                Assert.DoesNotThrowAsync(async () =>
+                    await session.ExecuteAsync(new SimpleStatement(query)).ConfigureAwait(false));
+                await cluster.ShutdownAsync().ConfigureAwait(false);
+            }
+
+            // Setting the keyspace on ConnectAsync
+            using (var cluster = DseCluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
+            {
+                IDseSession session = await cluster.ConnectAsync("system").ConfigureAwait(false);
+                Assert.DoesNotThrowAsync(async () =>
+                    await session.ExecuteAsync(new SimpleStatement(query)).ConfigureAwait(false));
+                Assert.DoesNotThrowAsync(async () =>
+                    await session.ExecuteAsync(new SimpleStatement(query)).ConfigureAwait(false));
+                await cluster.ShutdownAsync().ConfigureAwait(false);
+            }
+
+            // Without setting the keyspace
+            using (var cluster = DseCluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
+            {
+                IDseSession session = await cluster.ConnectAsync().ConfigureAwait(false);
+                Assert.DoesNotThrowAsync(async () =>
+                    await session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local"))
+                                 .ConfigureAwait(false));
+                await cluster.ShutdownAsync().ConfigureAwait(false);
             }
         }
     }

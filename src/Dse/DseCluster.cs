@@ -1,16 +1,15 @@
 ﻿//
-//  Copyright (C) 2016 DataStax, Inc.
+//  Copyright (C) 2016-2017 DataStax, Inc.
 //
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
+
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Text;
-using Dse;
-using Dse.Graph;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Dse
 {
@@ -33,7 +32,7 @@ namespace Dse
     /// </example>
     public class DseCluster : IDseCluster
     {
-        private readonly ICluster _coreCluster;
+        private readonly Cluster _coreCluster;
         private readonly DseConfiguration _config;
 
         /// <summary>
@@ -72,7 +71,7 @@ namespace Dse
             return new DseClusterBuilder();
         }
 
-        internal DseCluster(ICluster coreCluster, DseConfiguration config)
+        internal DseCluster(Cluster coreCluster, DseConfiguration config)
         {
             _coreCluster = coreCluster;
             _config = config;
@@ -124,6 +123,24 @@ namespace Dse
         }
 
         /// <summary>
+        /// Asynchronously creates a new session on this cluster.
+        /// </summary>
+        public Task<IDseSession> ConnectAsync()
+        {
+            return ConnectAsync(_config.CassandraConfiguration.ClientOptions.DefaultKeyspace);
+        }
+
+        /// <summary>
+        /// Asynchronously creates a new session on this cluster and using a keyspace an existing keyspace.
+        /// </summary>
+        /// <param name="keyspace">Case-sensitive keyspace name to use</param>
+        public async Task<IDseSession> ConnectAsync(string keyspace)
+        {
+            var coreSession = await _coreCluster.ConnectAsync(keyspace).ConfigureAwait(false);
+            return new DseSession(coreSession, this, _config);
+        }
+
+        /// <summary>
         /// Get a host instance for a given endpoint.
         /// </summary>
         public Host GetHost(IPEndPoint address)
@@ -171,6 +188,16 @@ namespace Dse
         public void Shutdown(int timeoutMs = -1)
         {
             _coreCluster.Shutdown(timeoutMs);
+        }
+
+        /// <summary>
+        /// Shutdown this cluster instance. This closes all connections from all the sessions of this instance and
+        /// reclaim all resources used by it. 
+        /// <para>This method has no effect if the cluster has already been shutdown.</para>
+        /// </summary>
+        public Task ShutdownAsync(int timeout = Timeout.Infinite)
+        {
+            return _coreCluster.ShutdownAsync(timeout);
         }
     }
 }
