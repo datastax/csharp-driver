@@ -35,10 +35,34 @@ namespace Cassandra.IntegrationTests.Core
                 .AddContactPoint(_testCluster.InitialContactPoint)
                 .WithLoadBalancingPolicy(lbp)
                 .Build();
-            return Run(cluster, asyncConnect, session =>
+            return Connect(cluster, asyncConnect, session =>
             {
                 Assert.NotNull(lbp.ControlConnectionHost);
                 Assert.AreEqual(IPAddress.Parse(_testCluster.InitialContactPoint),
+                    lbp.ControlConnectionHost.Address.Address);
+            });
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public Task Cluster_Connect_Should_Use_Node2_Address(bool asyncConnect)
+        {
+            _testCluster = TestClusterManager.CreateNew(2);
+            _testCluster.PauseNode(1);
+            var lbp = new TestLoadBalancingPolicy();
+            var cluster = Cluster.Builder()
+                                 .AddContactPoints(new []
+                                 {
+                                     _testCluster.InitialContactPoint,
+                                     _testCluster.ClusterIpPrefix + "2"
+                                 })
+                                 .WithLoadBalancingPolicy(lbp)
+                                 .Build();
+            return Connect(cluster, asyncConnect, session =>
+            {
+                Assert.NotNull(lbp.ControlConnectionHost);
+                Assert.AreEqual(IPAddress.Parse(_testCluster.ClusterIpPrefix + "2"),
                     lbp.ControlConnectionHost.Address.Address);
             });
         }
@@ -78,7 +102,7 @@ namespace Cassandra.IntegrationTests.Core
                 .WithMaxProtocolVersion(3)
                 .Build();
             Assert.AreEqual(3, clusterMax.Configuration.ProtocolOptions.MaxProtocolVersion);
-            await Run(clusterMax, asyncConnect, session =>
+            await Connect(clusterMax, asyncConnect, session =>
             {
                 if (CassandraVersion < Version.Parse("2.1"))
                     Assert.AreEqual(2, session.BinaryProtocolVersion);
@@ -92,7 +116,7 @@ namespace Cassandra.IntegrationTests.Core
                 .WithMaxProtocolVersion(10)
                 .Build();
             Assert.AreEqual(10, clusterNegotiate.Configuration.ProtocolOptions.MaxProtocolVersion);
-            await Run(clusterNegotiate, asyncConnect, session =>
+            await Connect(clusterNegotiate, asyncConnect, session =>
             {
                 Assert.LessOrEqual(4, clusterNegotiate.Configuration.ProtocolOptions.MaxProtocolVersion);
             });
@@ -113,7 +137,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             _testCluster = TestClusterManager.CreateNew();
             var cluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
-            await Run(cluster, asyncConnect, session =>
+            await Connect(cluster, asyncConnect, session =>
             {
                 Assert.AreEqual(1, cluster.AllHosts().Count);
                 _testCluster.BootstrapNode(2);
@@ -144,7 +168,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             _testCluster = TestClusterManager.CreateNew(2);
             var cluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
-            await Run(cluster, asyncConnect, session =>
+            await Connect(cluster, asyncConnect, session =>
             {
                 Assert.AreEqual(2, cluster.AllHosts().Count);
                 _testCluster.DecommissionNode(2);
@@ -187,30 +211,6 @@ namespace Cassandra.IntegrationTests.Core
             public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
             {
                 return _cluster.AllHosts();
-            }
-        }
-
-        private static async Task Run(Cluster cluster, bool asyncConnect, Action<ISession> action)
-        {
-            if (asyncConnect)
-            {
-                try
-                {
-                    var session = await cluster.ConnectAsync();
-                    action(session);
-                }
-                finally
-                {
-                    cluster?.ShutdownAsync().Wait();
-                }
-            }
-            else
-            {
-                using (cluster)
-                {
-                    var session = cluster.Connect();
-                    action(session);
-                }
             }
         }
     }
