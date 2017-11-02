@@ -838,6 +838,14 @@ namespace Cassandra.Data.Linq
             {
                 var clause = _currentCondition.Get().Item1;
                 var parameters = _currentCondition.Get().Item2;
+                if (node.NodeType == ExpressionType.Not && node.Operand.NodeType == ExpressionType.MemberAccess)
+                {
+                    // We are evaluating a boolean expression parameter, the value we are trying to match is false
+                    FillBooleanCondition((MemberExpression) node.Operand, clause);
+                    clause.Append("?");
+                    parameters.Add(false);
+                    return node;
+                }
                 if (CqlTags.ContainsKey(node.NodeType))
                 {
                     clause.Append(CqlTags[node.NodeType] + " (");
@@ -879,6 +887,13 @@ namespace Cassandra.Data.Linq
             throw new CqlLinqNotSupportedException(node, _parsePhase.Get());
         }
 
+        private void FillBooleanCondition(MemberExpression node, StringBuilder clause)
+        {
+            var column = _pocoData.GetColumnByMemberName(node.Member.Name);
+            clause.Append(Escape(column.ColumnName));
+            clause.Append(" = ");
+        }
+
         private static bool IsCompareTo(Expression node)
         {
             if (node.NodeType == ExpressionType.Call)
@@ -909,10 +924,20 @@ namespace Cassandra.Data.Linq
             return false;
         }
 
+        private bool IsBoolMember(Expression node)
+        {
+            return node.NodeType == ExpressionType.MemberAccess && node.Type == typeof(bool) &&
+                   _pocoData.PocoType.GetTypeInfo().IsAssignableFrom(((MemberExpression) node).Member.DeclaringType);
+        }
+
         protected override Expression VisitBinary(BinaryExpression node)
         {
             if (_parsePhase.Get() == ParsePhase.Condition)
             {
+                var condition = _currentCondition.Get();
+                var clause = condition.Item1;
+                var parameters = condition.Item2;
+                
                 if (CqlTags.ContainsKey(node.NodeType))
                 {
                     if (IsCompareTo(node.Left))
@@ -937,10 +962,24 @@ namespace Cassandra.Data.Linq
                             return node;
                         }
                     }
+                    else if (node.NodeType == ExpressionType.Equal && IsBoolMember(node.Left))
+                    {
+                        // Handle x.prop == boolValue explicitly
+                        FillBooleanCondition((MemberExpression)node.Left, clause);
+                        Visit(node.Right);
+                        return node;
+                    }
+                    else if (node.NodeType == ExpressionType.Equal && IsBoolMember(node.Right))
+                    {
+                        // Handle boolValue == x.prop explicitly
+                        FillBooleanCondition((MemberExpression)node.Right, clause);
+                        Visit(node.Left);
+                        return node;
+                    }
                     else
                     {
                         Visit(DropNullableConversion(node.Left));
-                        _currentCondition.Get().Item1.Append(" " + CqlTags[node.NodeType] + " ");
+                        clause.Append(" " + CqlTags[node.NodeType] + " ");
                         Visit(DropNullableConversion(node.Right));
                         return node;
                     }
@@ -948,8 +987,8 @@ namespace Cassandra.Data.Linq
                 else if (!CqlUnsupTags.Contains(node.NodeType))
                 {
                     var val = Expression.Lambda(node).Compile().DynamicInvoke();
-                    _currentCondition.Get().Item2.Add(val);
-                    _currentCondition.Get().Item1.Append("?");
+                    parameters.Add(val);
+                    clause.Append("?");
                     return node;
                 }
             }
@@ -1052,13 +1091,19 @@ namespace Cassandra.Data.Linq
             }
             if (node.Expression.NodeType == ExpressionType.Parameter)
             {
-                var columnName = _pocoData.GetColumnName(node.Member);
-                if (columnName == null)
+                var column = _pocoData.GetColumnByMemberName(node.Member.Name);
+                if (column == null)
                 {
                     throw new InvalidOperationException(
                         "Trying to order by a field or property that is ignored or not part of the mapping definition.");
                 }
-                clause.Append(Escape(columnName));
+                clause.Append(Escape(column.ColumnName));
+                if (column.ColumnType == typeof(bool))
+                {
+                    clause.Append(" = ?");
+                    // We are evaluating a boolean expression parameter, the value we are trying to match is true 
+                    parameters.Add(true);
+                }
                 return node;
             }
             if (node.Expression.NodeType == ExpressionType.Constant)

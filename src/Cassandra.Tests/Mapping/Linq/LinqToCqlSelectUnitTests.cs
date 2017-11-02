@@ -42,6 +42,55 @@ namespace Cassandra.Tests.Mapping.Linq
         }
 
         [Test]
+        public void Select_With_Boolean_Field_Test()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            });
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.UuidValue, cm => cm.WithName("a"))
+                .Column(t => t.BooleanValue, cm => cm.WithName("b"))
+                .Column(t => t.StringValue, cm => cm.WithName("c"))
+                .PartitionKey(t => t.UuidValue)
+                .TableName("tbl1");
+            var id = Guid.NewGuid();
+            var valueTrue = true;
+            var valueFalse = false;
+            const string expectedQuery = "SELECT c FROM tbl1 WHERE a = ? AND b = ?";
+            var table = GetTable<AllTypesEntity>(session, map);
+            
+            // Using equality operator
+            table.Where(x => x.UuidValue == id && x.BooleanValue == valueFalse).Select(x => x.StringValue).Execute();
+            Assert.AreEqual(expectedQuery, query);
+            Assert.AreEqual(new object[] { id, false }, parameters);
+            
+            // Using equality operator, with inverted condition
+            table.Where(x => x.UuidValue == id && valueTrue == x.BooleanValue).Select(x => x.StringValue).Execute();
+            Assert.AreEqual(expectedQuery, query);
+            Assert.AreEqual(new object[] { id, true }, parameters);
+            
+            // Using equality operator, with constant condition
+            table.Where(x => x.UuidValue == id && x.BooleanValue == false).Select(x => x.StringValue).Execute();
+            Assert.AreEqual(expectedQuery, query);
+            Assert.AreEqual(new object[] { id, false }, parameters);
+            
+            // Using false expression
+            table.Where(x => x.UuidValue == id && !x.BooleanValue).Select(x => x.StringValue).Execute();
+            Assert.AreEqual(expectedQuery, query);
+            Assert.AreEqual(new object[] { id, false }, parameters);
+            
+            // Using true expresion
+            table.Where(x => x.UuidValue == id && x.BooleanValue).Select(x => x.StringValue).Execute();
+            Assert.AreEqual(expectedQuery, query);
+            Assert.AreEqual(new object[] { id, true }, parameters);
+        }
+
+        [Test]
         public void Select_With_ConsistencyLevel()
         {
             BoundStatement statement = null;
