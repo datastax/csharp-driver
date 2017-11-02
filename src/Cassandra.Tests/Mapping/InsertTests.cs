@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Cassandra.Mapping;
 using Cassandra.Tasks;
@@ -354,6 +355,51 @@ namespace Cassandra.Tests.Mapping
             timestamp = DateTimeOffset.Now.Subtract(TimeSpan.FromHours(10));
             mapper.InsertIfNotExists(song, CqlQueryOptions.New().SetTimestamp(timestamp));
             Assert.AreEqual(timestamp, statement.Timestamp);
+        }
+
+        [Test]
+        public void Insert_Poco_With_Enum_Collections()
+        {
+            string query = null;
+            object[] parameters = null;
+            var config = new MappingConfiguration().Define(PocoWithEnumCollections.DefaultMapping);
+            var mapper = GetMappingClient(() => TaskHelper.ToTask(RowSet.Empty()), (q, p) =>
+            {
+                query = q;
+                parameters = p;
+            }, config);
+            var collectionValues = new[]{ HairColor.Blonde, HairColor.Gray };
+            var mapValues = new SortedDictionary<HairColor, TimeUuid>
+            {
+                { HairColor.Brown, TimeUuid.NewId() },
+                { HairColor.Red, TimeUuid.NewId() }
+            };
+            var expectedCollection = collectionValues.Select(x => (int) x).ToArray();
+            var expectedMap = mapValues.ToDictionary(kv => (int) kv.Key, kv => (Guid) kv.Value);
+            var poco = new PocoWithEnumCollections
+            {
+                Id = 2L,
+                List1 = new List<HairColor>(collectionValues),
+                List2 = collectionValues,
+                Array1 = collectionValues,
+                Set1 = new SortedSet<HairColor>(collectionValues),
+                Set2 = new SortedSet<HairColor>(collectionValues),
+                Set3 = new HashSet<HairColor>(collectionValues),
+                Dictionary1 = new Dictionary<HairColor, TimeUuid>(mapValues),
+                Dictionary2 = mapValues,
+                Dictionary3 = new SortedDictionary<HairColor, TimeUuid>(mapValues)
+            };
+
+            mapper.Insert(poco, false);
+            Assert.AreEqual("INSERT INTO tbl1 (id, list1, list2, array1, set1, set2, set3, map1, map2, map3)" +
+                            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", query);
+
+            Assert.AreEqual(
+                new object[]
+                {
+                    2L, expectedCollection, expectedCollection, expectedCollection, expectedCollection,
+                    expectedCollection, expectedCollection, expectedMap, expectedMap, expectedMap
+                }, parameters);
         }
     }
 }
