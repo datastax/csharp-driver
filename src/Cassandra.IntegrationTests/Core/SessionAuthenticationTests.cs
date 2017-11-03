@@ -22,7 +22,6 @@ using System.Text;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
-using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
@@ -70,6 +69,9 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
                 Assert.AreEqual(1, ex.Errors.Count);
+                Assert.IsTrue(TestClusterManager.CassandraVersion.CompareTo(Version.Parse("3.1")) > 0
+                    ? ex.Message.Contains("Provided username wrong_username and/or password are incorrect")
+                    : ex.Message.Contains("Username and/or password are incorrect"));
                 Assert.IsInstanceOf<AuthenticationException>(ex.Errors.First().Value);
             }
         }
@@ -133,6 +135,9 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
                 Assert.AreEqual(1, ex.Errors.Count);
+                Assert.IsTrue(TestClusterManager.CassandraVersion.CompareTo(Version.Parse("3.1")) > 0
+                    ? ex.Message.Contains("Provided username wrong_username and/or password are incorrect")
+                    : ex.Message.Contains("Username and/or password are incorrect"));
                 Assert.IsInstanceOf<AuthenticationException>(ex.Errors.First().Value);
             }
         }
@@ -147,6 +152,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
                 Assert.AreEqual(1, ex.Errors.Count);
+                Assert.IsTrue(ex.Message.Contains("requires authentication, but no authenticator found in Cluster configuration"));
                 Assert.IsInstanceOf<AuthenticationException>(ex.Errors.First().Value);
             }
         }
