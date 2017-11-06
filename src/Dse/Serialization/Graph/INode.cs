@@ -47,6 +47,11 @@ namespace Dse.Serialization.Graph
         IDictionary<string, GraphNode> GetProperties();
 
         /// <summary>
+        /// Gets the a dictionary of properties of this node.
+        /// </summary>
+        IDictionary<string, IGraphNode> GetIProperties();
+
+        /// <summary>
         /// Gets the raw data represented by this instance.
         /// </summary>
         dynamic GetRaw();

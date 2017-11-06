@@ -35,6 +35,23 @@ namespace Dse.Test.Unit.Graph
         }
 
         [Test]
+        public void Implicit_Conversion_Operators_Test()
+        {
+            var intNode = GetGraphNode("{\"@type\": \"g:Int16\", \"@value\": 123}");
+            Assert.AreEqual(123, (int) intNode);
+            Assert.AreEqual(123L, (long) intNode);
+            Assert.AreEqual((short)123, (short) intNode);
+            Assert.AreEqual(123, (int) intNode);
+            string stringValue = GetGraphNode("\"something\"");
+            Assert.AreEqual("something", stringValue);
+            bool boolValue = GetGraphNode("true");
+            Assert.True(boolValue);
+            var floatNode = GetGraphNode("{\"@type\": \"g:Float\", \"@value\": 123.1}");
+            Assert.AreEqual(123.1f, (float) floatNode);
+            Assert.AreEqual(123.1D, (double) floatNode);
+        }
+
+        [Test]
         public void To_Should_Throw_For_Structs_With_Null()
         {
             var node = GetGraphNode("null");
@@ -111,6 +128,9 @@ namespace Dse.Test.Unit.Graph
             var node = GetGraphNode(json);
             Assert.AreEqual(789, node.Get<int>("prop1"));
             Assert.AreEqual("prop2 value", node.Get<string>("prop2"));
+            var prop = node.Get<IGraphNode>("prop1");
+            Assert.AreEqual(789, prop.To<int>());
+            Assert.AreEqual("prop2 value", node.Get<IGraphNode>("prop2").ToString());
         }
 
         [Test]
@@ -248,16 +268,21 @@ namespace Dse.Test.Unit.Graph
         {
             var node = GetGraphNode(
                 "{\"@type\": \"g:Vertex\", \"@value\": {" +
-                "\"id\":{\"member_id\":0,\"community_id\":586910,\"~label\":\"vertex\",\"group_id\":2}," +
+                "\"id\":{\"@type\": \"g:Int32\",\"@value\": 1368843392}," +
                 "\"label\":\"user\"," +
                 "\"properties\":{" +
-                "\"name\":[{\"id\":{\"@type\":\"g:Int64\",\"@value\":0},\"value\":\"jorge\"}]," +
-                "\"age\":[{\"id\":{\"@type\":\"g:Int64\",\"@value\":1},\"value\":{\"@type\":\"g:Int32\",\"@value\":35}}]}" +
+                "\"name\":[{\"@type\": \"g:VertexProperty\",\"@value\":{\"id\":{\"@type\":\"g:Int64\",\"@value\":0},\"value\":\"jorge\"}}]," +
+                "\"age\":[{\"@type\": \"g:VertexProperty\",\"@value\":{\"id\":{\"@type\":\"g:Int64\",\"@value\":1},\"value\":{\"@type\":\"g:Int32\",\"@value\":35}}}]}" +
                 "}}");
             var vertex = node.To<Vertex>();
             Assert.AreEqual("user", vertex.Label);
             Assert.AreEqual("jorge", vertex.Properties["name"].ToArray().First().Get<string>("value"));
             Assert.AreEqual(35, vertex.Properties["age"].ToArray().First().Get<int>("value"));
+            var iVertex = node.To<IVertex>();
+            Assert.AreEqual("user", iVertex.Label);
+            Assert.AreEqual("jorge", iVertex.GetProperty("name").Value.ToString());
+            Assert.AreEqual(35, iVertex.GetProperty("age").Value.To<int>());
+            Assert.Null(iVertex.GetProperty("nonExistent"));
         }
 
         [Test]
@@ -267,6 +292,9 @@ namespace Dse.Test.Unit.Graph
             Assert.Null(node.To<Vertex>());
             Assert.Null(node.To<Edge>());
             Assert.Null(node.To<Path>());
+            Assert.Null(node.To<IVertex>());
+            Assert.Null(node.To<IEdge>());
+            Assert.Null(node.To<IPath>());
         }
 
         /// <summary>

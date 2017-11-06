@@ -24,7 +24,7 @@ namespace Dse.Graph
 #if !NETCORE
     [Serializable]
 #endif
-    public class GraphNode : DynamicObject, IEquatable<GraphNode>
+    public class GraphNode : DynamicObject, IEquatable<GraphNode>, IGraphNode
 #if !NETCORE
         , ISerializable
 #endif
@@ -107,7 +107,7 @@ namespace Dse.Graph
             return Get<T>(propertyName, false);
         }
 
-        private T Get<T>(string propertyName, bool throwIfNotFound) => _node.Get<T>(propertyName, throwIfNotFound);
+        internal T Get<T>(string propertyName, bool throwIfNotFound) => _node.Get<T>(propertyName, throwIfNotFound);
 
         /// <summary>
         /// Gets the raw data represented by this instance.
@@ -157,6 +157,24 @@ namespace Dse.Graph
             return _node.GetHashCode() == other._node.GetHashCode();
         }
 
+        public bool Equals(IGraphNode other)
+        {
+            if (other == null)
+            {
+                return false;
+            }
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+            var otherNode = other as GraphNode;
+            if (otherNode == null)
+            {
+                return false;
+            }
+            return _node.GetHashCode() == otherNode._node.GetHashCode();
+        }
+
         /// <summary>
         /// Returns true if the value represented by this instance is the same.
         /// </summary>
@@ -180,6 +198,8 @@ namespace Dse.Graph
         /// </summary>
         public IDictionary<string, GraphNode> GetProperties() => _node.GetProperties();
 
+        IDictionary<string, IGraphNode> IGraphNode.GetProperties() => _node.GetIProperties();
+
         /// <summary>
         /// Returns the representation of the <see cref="GraphNode"/> as an instance of type T.
         /// </summary>
@@ -201,7 +221,7 @@ namespace Dse.Graph
             {
                 throw new ArgumentNullException(nameof(type));
             }
-            if (type == typeof(object) || type == typeof(GraphNode))
+            if (type == typeof(object) || type == typeof(GraphNode) || type == typeof(IGraphNode))
             {
                 return this;
             }
@@ -212,6 +232,12 @@ namespace Dse.Graph
         /// Converts the instance into an array when the internal representation is a json array.
         /// </summary>
         public GraphNode[] ToArray() => _node.ToArray();
+
+        /// <summary>
+        /// Converts the instance into an array when the internal representation is a json array.
+        /// </summary>
+        // ReSharper disable once CoVariantArrayConversion It should not be written.
+        public IGraphNode[] ToIArray() => _node.ToArray();
 
         /// <summary>
         /// Returns the representation of the result as a boolean.
@@ -233,6 +259,10 @@ namespace Dse.Graph
 
         /// <summary>
         /// Returns an edge representation of the current instance.
+        /// <para>
+        /// This method is maintained for backward compatibity. It's recommended that you use
+        /// <see cref="To{IEdge}()"/> instead, providing <see cref="IEdge"/> as type parameter
+        /// </para>
         /// </summary>
         public Edge ToEdge() => To<Edge>();
 
@@ -247,6 +277,10 @@ namespace Dse.Graph
 
         /// <summary>
         /// Returns a <see cref="Path"/> representation of the current instance.
+        /// <para>
+        /// This method is maintained for backward compatibity. It's recommended that you use
+        /// <see cref="To{IPath}()"/> instead, providing <see cref="IPath"/> as type parameter.
+        /// </para>
         /// </summary>
         public Path ToPath() => To<Path>();
 
@@ -257,6 +291,10 @@ namespace Dse.Graph
 
         /// <summary>
         /// Returns a vertex representation of the current instance.
+        /// <para>
+        /// This method is maintained for backward compatibity. It's recommended that you use
+        /// <see cref="To{IVertex}()"/> instead, providing <see cref="IVertex"/> as type parameter.
+        /// </para>
         /// </summary>
         public Vertex ToVertex() => To<Vertex>();
 
@@ -314,6 +352,62 @@ namespace Dse.Graph
         public static implicit operator Path(GraphNode b)
         {
             return b.ToPath();
+        }
+
+        /// <summary>
+        /// Converts this instance to a string representation.
+        /// </summary>
+        public static implicit operator string(GraphNode b)
+        {
+            return b.ToString();
+        }
+
+        /// <summary>
+        /// Converts this instance to a short representation.
+        /// </summary>
+        public static implicit operator short(GraphNode b)
+        {
+            return b.To<short>();
+        }
+
+        /// <summary>
+        /// Converts this instance to an int representation.
+        /// </summary>
+        public static implicit operator int(GraphNode b)
+        {
+            return b.To<int>();
+        }
+
+        /// <summary>
+        /// Converts this instance to a long representation.
+        /// </summary>
+        public static implicit operator long(GraphNode b)
+        {
+            return b.To<long>();
+        }
+
+        /// <summary>
+        /// Converts this instance to a float representation.
+        /// </summary>
+        public static implicit operator float(GraphNode b)
+        {
+            return b.To<float>();
+        }
+
+        /// <summary>
+        /// Converts this instance to a long representation.
+        /// </summary>
+        public static implicit operator double(GraphNode b)
+        {
+            return b.To<double>();
+        }
+
+        /// <summary>
+        /// Converts this instance to a boolean representation.
+        /// </summary>
+        public static implicit operator bool(GraphNode b)
+        {
+            return b.To<bool>();
         }
     }
 }

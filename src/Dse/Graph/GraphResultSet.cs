@@ -65,6 +65,17 @@ namespace Dse.Graph
             return _rs.Select(_factory).GetEnumerator();
         }
 
+        /// <summary>
+        /// Applies a conversion to each element of the sequence.
+        /// </summary>
+        /// <returns>
+        /// An IEnumerable{T} that contains each element of the source sequence converted to the specified type.
+        /// </returns>
+        public IEnumerable<T> To<T>()
+        {
+            return this.Select(node => node.To<T>());
+        }
+
         private static GraphNode GetGraphSON1Node(Row row)
         {
             return new GraphNode(new GraphSON1Node(row.GetValue<string>("gremlin")));

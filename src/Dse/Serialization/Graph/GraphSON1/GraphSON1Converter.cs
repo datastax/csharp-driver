@@ -48,9 +48,15 @@ namespace Dse.Serialization.Graph.GraphSON1
                 { typeof(LocalDate), (r, _) => LocalDate.Parse(r.Value.ToString()) },
                 { typeof(LocalTime), (r, _) => LocalTime.Parse(r.Value.ToString()) },
                 { typeof(GraphNode), GetTokenReader(t => new GraphNode(new GraphSON1Node(t))) },
+                { typeof(IGraphNode), GetTokenReader(t => new GraphNode(new GraphSON1Node(t))) },
                 { typeof(Vertex), GetTokenReader(ToVertex) },
+                { typeof(IVertex), GetTokenReader(ToVertex) },
                 { typeof(Edge), GetTokenReader(ToEdge) },
-                { typeof(Path), GetTokenReader(ToPath) }
+                { typeof(IEdge), GetTokenReader(ToEdge) },
+                { typeof(Path), GetTokenReader(ToPath) },
+                { typeof(IPath), GetTokenReader(ToPath) },
+                { typeof(IVertexProperty), GetTokenReader(ToVertexProperty) },
+                { typeof(IProperty), GetTokenReader(ToProperty) }
             };
         }
 

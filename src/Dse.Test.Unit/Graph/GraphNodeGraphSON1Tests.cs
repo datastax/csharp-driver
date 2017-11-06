@@ -269,8 +269,8 @@ namespace Dse.Test.Unit.Graph
                 "\"label\":\"vertex\"," +
                 "\"type\":\"vertex\"," +
                 "\"properties\":{" +
-                  "\"name\":[{\"id\":{\"local_id\":\"00000000-0000-8007-0000-000000000000\",\"~type\":\"name\",\"out_vertex\":{\"member_id\":0,\"community_id\":586910,\"~label\":\"vertex\",\"group_id\":2}},\"value\":\"j\"}]," +
-                  "\"age\":[{\"id\":{\"local_id\":\"00000000-0000-8008-0000-000000000000\",\"~type\":\"age\",\"out_vertex\":{\"member_id\":0,\"community_id\":586910,\"~label\":\"vertex\",\"group_id\":2}},\"value\":34}]}" +
+                  "\"name\":[{\"id\":{\"local_id\":\"00000000-0000-8007-0000-000000000000\",\"~type\":\"name\",\"out_vertex\":{\"member_id\":0,\"community_id\":586910,\"~label\":\"vertex\",\"group_id\":2}},\"value\":\"j\",\"label\":\"name\"}]," +
+                  "\"age\":[{\"id\":{\"local_id\":\"00000000-0000-8008-0000-000000000000\",\"~type\":\"age\",\"out_vertex\":{\"member_id\":0,\"community_id\":586910,\"~label\":\"vertex\",\"group_id\":2}},\"value\":34,\"label\":\"age\"}]}" +
                "}}");
             var vertex = result.ToVertex();
             Assert.AreEqual("vertex", vertex.Label);
@@ -281,6 +281,19 @@ namespace Dse.Test.Unit.Graph
             dynamic nameProp = vertex.Properties["name"].ToArray();
             Assert.NotNull(nameProp);
             Assert.NotNull(nameProp[0].id);
+            
+            // Validate properties
+            var properties = vertex.GetProperties();
+            CollectionAssert.AreEquivalent(new[] {"name", "age"}, properties.Select(p => p.Name));
+            var nameProperty = vertex.GetProperty("name");
+            Assert.NotNull(nameProperty);
+            Assert.AreEqual("j", nameProperty.Value.ToString());
+            Assert.AreEqual(0, nameProperty.GetProperties().Count());
+            var ageProperty = vertex.GetProperty("age");
+            Assert.NotNull(ageProperty);
+            Assert.AreEqual(34, ageProperty.Value.To<int>());
+            Assert.AreEqual(0, ageProperty.GetProperties().Count());
+            
             //Is convertible
             Assert.NotNull((Vertex)result);
             //Any enumeration of graph result can be casted to vertex
@@ -374,6 +387,13 @@ namespace Dse.Test.Unit.Graph
             var weightProp = edge.Properties["weight"];
             Assert.NotNull(weightProp);
             Assert.AreEqual(1.5D, weightProp.ToDouble());
+            var property = edge.GetProperty("weight");
+            Assert.NotNull(property);
+            Assert.AreEqual("weight", property.Name);
+            Assert.AreEqual(1.5D, property.Value.To<double>());
+            
+            Assert.Null(edge.GetProperty("nonExistentProperty"));
+            
             //Is convertible
             Assert.NotNull((Edge)result);
             //Any enumeration of graph result can be casted to edge
@@ -537,6 +557,10 @@ namespace Dse.Test.Unit.Graph
             var path2 = (Path) result;
             CollectionAssert.AreEqual(path.Labels, path2.Labels);
             Assert.AreEqual(path.Objects.Count, path2.Objects.Count);
+            var path3 = (IPath) path;
+            Assert.AreEqual(path.Objects.Count, path3.Objects.Count);
+            var path4 = result.To<IPath>();
+            Assert.AreEqual(path.Objects.Count, path4.Objects.Count);
         }
 
 #if !NETCORE

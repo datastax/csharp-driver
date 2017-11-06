@@ -14,8 +14,22 @@ session.ExecuteGraph(s1);
 
 GraphStatement s2 = new SimpleGraphStatement("g.V()").SetGraphName("demo");
 GraphResultSet rs = session.ExecuteGraph(s2);
-Vertex vertex = rs.First();
+```
+
+`GraphResultSet` is a sequence of `GraphNode` elements. Each item can be converted to the expected type.
+
+```csharp
+IVertex vertex = rs.First().To<IVertex>();
 Console.WriteLine(vertex.Label);
+```
+
+Additionally, you can apply the conversion to all the sequence by using `GraphResultSet.To<T>()` method:
+
+```csharp
+foreach (IVertex vertex in rs.To<IVertex>())
+{
+    Console.WriteLine(vertex.Label);
+}
 ```
 
 ## Graph options
@@ -50,41 +64,48 @@ GraphResultSet rs = await session.ExecuteGraphAsync(new SimpleGraphStatement("g.
 
 ## Handling results
 
-Graph queries return a `GraphResultSet`, which is essentially an enumerable of `GraphNode`:
+Graph queries return a `GraphResultSet`, which is a sequence of `GraphNode` elements:
 
 ```csharp
 GraphResultSet rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
 
-// Iterating as GraphNode
-foreach (GraphNode n in rs)
+// Iterating as IGraphNode
+foreach (IGraphNode r in rs)
 {
-    Console.WriteLine(n);
+    Console.WriteLine(r);
 }
 ```
 
-`GraphNode` represent a response item returned by the server. You can cast the result to a specific type as it
-implements implicit conversion operators to `Vertex`, `Edge` and `Path`:
-
+`IGraphNode` represents a response item returned by the server. Each item can be converted to the expected type:
+                                                              
 ```csharp
 GraphResultSet rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
+IVertex vertex = rs.First().To<IVertex>();
+Console.WriteLine(vertex.Label);
+```
 
-// Iterating as Vertex
-foreach (Vertex vextex in rs)
+Additionally, you can apply the conversion to all the sequence by using `GraphResultSet.To<T>()` method:
+
+```csharp
+foreach (IVertex vertex in rs.To<IVertex>())
 {
     Console.WriteLine(vertex.Label);
 }
 ```
 
-`GraphNode` also provides conversion methods for scalar values like `ToDouble()`, `ToInt32()`, `To<T>()` and
-`ToString()`:
+`GraphNode` provides [implicit conversion operators][implicit] to `string`, `int`, `long` and others in order to 
+improve code readability, allowing the following C# syntax:
 
 ```csharp
-GraphNode r = session.ExecuteGraph(new SimpleGraphStatement("g.V().count()")).First();
-Console.WriteLine("The graph has {0} vertices.", r.ToInt32());
+var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V().has('name', 'marko').values('location')"));
+foreach (string location in rs)
+{
+    Console.WriteLine(location);
+}
 ```
 
-`GraphNode` inherits from [`DynamicObject`][dynamic], allowing you to consume it using the `dynamic` keyword and/or as a
-dictionary. 
+`GraphNode` inherits from [`DynamicObject`][dynamic], allowing you to consume it using the `dynamic` keyword and/or
+as a dictionary. 
 
 ```csharp
 dynamic r = session.ExecuteGraph(new SimpleGraphStatement("g.V()")).First();

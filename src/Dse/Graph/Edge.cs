@@ -4,37 +4,39 @@
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
-using System;
+
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Dse.Graph
 {
     /// <summary>
     /// Represents an edge in DSE graph.
     /// </summary>
-    public class Edge : Element
+    public class Edge : Element, IEdge
     {
         /// <summary>
         /// Gets the incoming/head vertex.
         /// </summary>
-        public GraphNode InV { get; private set; }
+        public GraphNode InV { get; }
+
+        IGraphNode IEdge.InV => InV;
 
         /// <summary>
         /// Gets the label of the incoming/head vertex.
         /// </summary>
-        public string InVLabel { get; private set; }
+        public string InVLabel { get; }
 
         /// <summary>
         /// Gets the outgoing/tail vertex.
         /// </summary>
-        public GraphNode OutV { get; private set; }
+        public GraphNode OutV { get; }
+
+        IGraphNode IEdge.OutV => OutV;
 
         /// <summary>
         /// Gets the label of the outgoing/tail vertex.
         /// </summary>
-        public string OutVLabel { get; private set; }
+        public string OutVLabel { get; }
 
         /// <summary>
         /// Creates a new instance of <see cref="Edge"/>.

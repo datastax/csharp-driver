@@ -199,10 +199,18 @@ namespace Dse.Serialization.Graph.GraphSON2
         /// </summary>
         public IDictionary<string, GraphNode> GetProperties()
         {
-            return GetProperties(_token);
+            return GetProperties<GraphNode>(_token);
         }
 
-        private IDictionary<string, GraphNode> GetProperties(JToken item)
+        /// <summary>
+        /// Gets the a dictionary of properties of this node.
+        /// </summary>
+        public IDictionary<string, IGraphNode> GetIProperties()
+        {
+            return GetProperties<IGraphNode>(_token);
+        }
+
+        private IDictionary<string, T> GetProperties<T>(JToken item) where T : class, IGraphNode
         {
             if (!(item is JObject))
             {
@@ -210,7 +218,7 @@ namespace Dse.Serialization.Graph.GraphSON2
             }
             return ((JObject) item)
                 .Properties()
-                .ToDictionary(prop => prop.Name, prop => new GraphNode(new GraphSON2Node(prop.Value)));
+                .ToDictionary(prop => prop.Name, prop => new GraphNode(new GraphSON2Node(prop.Value)) as T);
         }
 
         /// <summary>

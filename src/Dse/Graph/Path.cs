@@ -14,7 +14,7 @@ namespace Dse.Graph
     /// <summary>
     /// Represents a walk through a graph as defined by a traversal.
     /// </summary>
-    public class Path
+    public class Path : IPath
     {
         /// <summary>
         /// Returns the sets of labels of the steps traversed by this path, or an empty list, if this path is empty.
@@ -25,6 +25,8 @@ namespace Dse.Graph
         /// Returns the objects traversed by this path, or an empty list, if this path is empty.
         /// </summary>
         public ICollection<GraphNode> Objects { get; protected set; }
+
+        ICollection<IGraphNode> IPath.Objects => (ICollection<IGraphNode>) Objects;
 
         /// <summary>
         /// Creates a new instance of <see cref="Path"/>.
