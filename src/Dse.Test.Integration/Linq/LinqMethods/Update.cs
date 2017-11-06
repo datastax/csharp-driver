@@ -21,7 +21,7 @@ namespace Dse.Test.Integration.Linq.LinqMethods
     [Category("short")]
     public class Update : SharedClusterTest
     {
-        ISession _session = null;
+        ISession _session;
         private List<Movie> _movieList = Movie.GetDefaultMovieList();
         string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
         private Table<Movie> _movieTable;
@@ -157,7 +157,7 @@ namespace Dse.Test.Integration.Linq.LinqMethods
             batch.Execute();
 
             List<Movie> actualMovieList = table.Execute().ToList();
-            Assert.AreEqual(_movieList.Count, actualMovieList.Count());
+            Assert.AreEqual(_movieList.Count, actualMovieList.Count);
             Assert.AreNotEqual(expectedMovie1.MainActor, expectedMovie2.MainActor);
             Assert.IsFalse(Movie.ListContains(_movieList, expectedMovie1));
             Assert.IsFalse(Movie.ListContains(_movieList, expectedMovie2));

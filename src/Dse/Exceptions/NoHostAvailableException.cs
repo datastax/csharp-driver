@@ -9,7 +9,10 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Net;
+#if !NETCORE
 using System.Runtime.Serialization;
+#endif
+using System.Text;
 
 namespace Dse
 {
@@ -26,13 +29,16 @@ namespace Dse
 #endif
     public class NoHostAvailableException : DriverException
     {
+        private const string StartMessage = "All hosts tried for query failed (tried ";
+        private const int MaxTriedInfo = 2;
+        
         /// <summary>
         ///  Gets the hosts tried along with descriptions of the error encountered while trying them. 
         /// </summary>
-        public Dictionary<IPEndPoint, Exception> Errors { get; private set; }
+        public Dictionary<IPEndPoint, Exception> Errors { get; }
 
         public NoHostAvailableException(Dictionary<IPEndPoint, Exception> errors)
-            : base(MakeMessage(errors))
+            : base(CreateMessage(errors))
         {
             Errors = errors;
         }
@@ -45,9 +51,33 @@ namespace Dse
         }
 #endif
 
-        private static String MakeMessage(Dictionary<IPEndPoint, Exception> errors)
+        private static string CreateMessage(Dictionary<IPEndPoint, Exception> errors)
         {
-            return string.Format("None of the hosts tried for query are available (tried: {0})", String.Join(",", errors.Keys.Select((ip) => ip.ToString())));
+            if (errors.Count == 0)
+            {
+                return "No host is available to be queried (no host tried)";
+            }
+            var builder = new StringBuilder(StartMessage, StartMessage.Length + 128);
+            var first = true;
+            foreach (var kv in errors.Take(MaxTriedInfo))
+            {
+                if (!first)
+                {
+                    builder.Append("; ");   
+                }
+                builder.Append(kv.Key);
+                if (kv.Value != null)
+                {
+                    builder.Append(": ");
+                    builder.Append(kv.Value.GetType().Name);
+                    builder.Append(" '");
+                    builder.Append(kv.Value.Message);
+                    builder.Append("'");   
+                }
+                first = false;
+            }
+            builder.Append(errors.Count <= MaxTriedInfo ? ")" : "; ...), see Errors property for more info");
+            return builder.ToString();
         }
     }
 }

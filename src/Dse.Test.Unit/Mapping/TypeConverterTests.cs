@@ -74,11 +74,10 @@ namespace Dse.Test.Unit.Mapping
             Assert.AreEqual(value.First().Value, result.First().Value);
         }
 
-
         private static TResult TestGetFromDbConverter<TSource, TResult>(TSource value, bool compare = true)
         {
             var converter = new DefaultTypeConverter();
-            var result = (Func<TSource, TResult>) converter.GetFromDbConverter(typeof(TSource), typeof(TResult));
+            var result = (Func<TSource, TResult>) converter.TryGetFromDbConverter(typeof(TSource), typeof(TResult));
             Assert.NotNull(result);
             var convertedValue = result(value);
             if (compare)

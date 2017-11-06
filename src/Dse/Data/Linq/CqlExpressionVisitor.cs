@@ -87,7 +87,8 @@ namespace Dse.Data.Linq
             new StringBuilder(DefaultClauseStringCapacity), new List<object>(DefaultClauseParameterCapacity));
 
         /// <summary>
-        /// Represents a pair composed by cql string and the parameters for the WHERE clause
+        /// Represents a pair composed by cql string and the parameters for the WHERE clause.
+        /// IF EXISTS are represented as text in the string builder item but not parameter. 
         /// </summary>
         private readonly Tuple<StringBuilder, List<object>> _updateIfClause = Tuple.Create(
             new StringBuilder(DefaultClauseStringCapacity), new List<object>(DefaultClauseParameterCapacity));
@@ -201,7 +202,7 @@ namespace Dse.Data.Linq
             {
                 if (ifExists)
                 {
-                    throw new CqlArgumentException("IfExits and DeleteIf are mutually excusive,");
+                    throw new CqlArgumentException("IF EXISTS and IF (condition) are mutually exclusive");
                 }
                 query.Append(" IF ");
                 query.Append(_updateIfClause.Item1);
@@ -289,7 +290,7 @@ namespace Dse.Data.Linq
             {
                 throw new CqlArgumentException("Nothing to update");
             }
-            query.Append(String.Join(", ", setStatements));
+            query.Append(string.Join(", ", setStatements));
 
             if (_whereClause.Item1.Length > 0)
             {
@@ -463,6 +464,12 @@ namespace Dse.Data.Linq
                     {
                         if (_updateIfClause.Item1.Length != 0)
                         {
+                            if (_updateIfClause.Item2.Count == 0)
+                            {
+                                // There was a IF EXISTS condition prior to this one
+                                throw new CqlArgumentException(
+                                    "'IF (NOT) EXISTS' and 'IF condition' are mutually exclusive");
+                            }
                             _updateIfClause.Item1.Append(" AND ");
                         }
                         using (_currentCondition.Set(_updateIfClause))
@@ -470,6 +477,17 @@ namespace Dse.Data.Linq
                             Visit(node.Arguments[1]);
                         }
                     }
+                    return node;
+                case nameof(CqlMthHelps.UpdateIfExists):
+                case nameof(CqlMthHelps.UpdateIfNotExists):
+                    if (_updateIfClause.Item1.Length > 0)
+                    {
+                        throw new CqlArgumentException("'IF (NOT) EXISTS' and 'IF condition' are mutually exclusive");
+                    }
+                    _updateIfClause.Item1.Append(node.Method.Name == nameof(CqlMthHelps.UpdateIfExists)
+                        ? "EXISTS"
+                        : "NOT EXISTS");
+                    Visit(node.Arguments[0]);
                     return node;
                 case "Take":
                     Visit(node.Arguments[0]);
@@ -627,31 +645,7 @@ namespace Dse.Data.Linq
             {
                 case "Contains":
                 {
-                    Expression what;
-                    Expression inp;
-                    if (node.Object == null)
-                    {
-                        what = node.Arguments[1];
-                        inp = node.Arguments[0];
-                    }
-                    else
-                    {
-                        what = node.Arguments[0];
-                        inp = node.Object;
-                    }
-                    Visit(what);
-                    var values = (IEnumerable)Expression.Lambda(inp).Compile().DynamicInvoke();
-                    var placeHolders = new StringBuilder();
-                    foreach (var v in values)
-                    {
-                        placeHolders.Append(placeHolders.Length == 0 ? "?" : ", ?");
-                        parameters.Add(v);
-                    }
-
-                    clause
-                        .Append(" IN (")
-                        .Append(placeHolders)
-                        .Append(")");
+                    EvaluateContainsMethod(node, clause, parameters);
                     return true;
                 }
                 case "StartsWith":
@@ -716,14 +710,76 @@ namespace Dse.Data.Linq
             return false;
         }
 
+        private void EvaluateContainsMethod(MethodCallExpression node, StringBuilder clause, List<Object> parameters)
+        {
+            Expression columnExpression;
+            Expression parameterExpression;
+            if (node.Object == null)
+            {
+                columnExpression = node.Arguments[1];
+                parameterExpression = node.Arguments[0];
+            }
+            else
+            {
+                columnExpression = node.Arguments[0];
+                parameterExpression = node.Object;
+            }
+            if (columnExpression.NodeType != ExpressionType.Call && columnExpression.NodeType != ExpressionType.New)
+            {
+                // Use the expression visitor to extract the column
+                Visit(columnExpression);
+            }
+            else
+            {
+                EvaluateCompositeColumn(columnExpression, clause);
+            }
+            var values = Expression.Lambda(parameterExpression).Compile().DynamicInvoke() as IEnumerable;
+            if (values == null)
+            {
+                throw new InvalidOperationException("Contains parameter must be IEnumerable");
+            }
+            if (values is string)
+            {
+                throw new InvalidOperationException("String.Contains() is not supported for CQL IN clause");
+            }
+            clause.Append(" IN ?");
+            parameters.Add(values);
+        }
+
+        private void EvaluateCompositeColumn(Expression expression, StringBuilder clause)
+        {
+            ICollection<Expression> columnsExpression;
+            switch (expression.NodeType)
+            {
+                case ExpressionType.Call:
+                    columnsExpression = ((MethodCallExpression) expression).Arguments;
+                    break;
+                case ExpressionType.New:
+                    columnsExpression = ((NewExpression) expression).Arguments;
+                    break;
+                default:
+                    throw new CqlLinqNotSupportedException(expression, _parsePhase.Get());
+            }
+            clause.Append("(");
+            var first = true;
+            foreach (var c in columnsExpression)
+            {
+                if (!first)
+                {
+                    clause.Append(", ");
+                }
+                Visit(c);
+                first = false;
+            }
+            clause.Append(")");
+        }
+
         private bool EvaluateOperatorMethod(MethodCallExpression node)
         {
             if (node.Method.DeclaringType != typeof (CqlOperator))
             {
                 return false;
             }
-            var column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
-            object value = Expression.Lambda(node.Arguments[0]).Compile().DynamicInvoke();
             ExpressionType expressionType;
             switch (node.Method.Name)
             {
@@ -739,6 +795,20 @@ namespace Dse.Data.Linq
                 default:
                     return false;
             }
+            var column = _pocoData.GetColumnByMemberName(_currentBindingName.Get());
+            if (expressionType == ExpressionType.SubtractAssign && node.Arguments.Count == 1 &&
+                typeof(IDictionary).GetTypeInfo().IsAssignableFrom(column.ColumnType))
+            {
+                throw new InvalidOperationException("Use dedicated method to substract assign keys only for maps");
+            }
+            if (node.Arguments.Count < 1 || node.Arguments.Count > 2)
+            {
+                throw new InvalidOperationException(
+                    "Only up to 2 arguments are supported for CqlOperator functions");
+            }
+            // Use the last argument (valid for maps and list/sets)
+            var argument = node.Arguments[node.Arguments.Count - 1];
+            var value = Expression.Lambda(argument).Compile().DynamicInvoke();
             _projections.Add(Tuple.Create(column, value, expressionType));
             return true;
         }
@@ -746,7 +816,7 @@ namespace Dse.Data.Linq
         private static Expression DropNullableConversion(Expression node)
         {
             if (node is UnaryExpression && node.NodeType == ExpressionType.Convert && node.Type.GetTypeInfo().IsGenericType &&
-                String.Compare(node.Type.Name, "Nullable`1", StringComparison.Ordinal) == 0)
+                string.Compare(node.Type.Name, "Nullable`1", StringComparison.Ordinal) == 0)
             {
                 return (node as UnaryExpression).Operand;
             }
@@ -759,6 +829,14 @@ namespace Dse.Data.Linq
             {
                 var clause = _currentCondition.Get().Item1;
                 var parameters = _currentCondition.Get().Item2;
+                if (node.NodeType == ExpressionType.Not && node.Operand.NodeType == ExpressionType.MemberAccess)
+                {
+                    // We are evaluating a boolean expression parameter, the value we are trying to match is false
+                    FillBooleanCondition((MemberExpression) node.Operand, clause);
+                    clause.Append("?");
+                    parameters.Add(false);
+                    return node;
+                }
                 if (CqlTags.ContainsKey(node.NodeType))
                 {
                     clause.Append(CqlTags[node.NodeType] + " (");
@@ -800,6 +878,13 @@ namespace Dse.Data.Linq
             throw new CqlLinqNotSupportedException(node, _parsePhase.Get());
         }
 
+        private void FillBooleanCondition(MemberExpression node, StringBuilder clause)
+        {
+            var column = _pocoData.GetColumnByMemberName(node.Member.Name);
+            clause.Append(Escape(column.ColumnName));
+            clause.Append(" = ");
+        }
+
         private static bool IsCompareTo(Expression node)
         {
             if (node.NodeType == ExpressionType.Call)
@@ -830,10 +915,20 @@ namespace Dse.Data.Linq
             return false;
         }
 
+        private bool IsBoolMember(Expression node)
+        {
+            return node.NodeType == ExpressionType.MemberAccess && node.Type == typeof(bool) &&
+                   _pocoData.PocoType.GetTypeInfo().IsAssignableFrom(((MemberExpression) node).Member.DeclaringType);
+        }
+
         protected override Expression VisitBinary(BinaryExpression node)
         {
             if (_parsePhase.Get() == ParsePhase.Condition)
             {
+                var condition = _currentCondition.Get();
+                var clause = condition.Item1;
+                var parameters = condition.Item2;
+                
                 if (CqlTags.ContainsKey(node.NodeType))
                 {
                     if (IsCompareTo(node.Left))
@@ -858,10 +953,24 @@ namespace Dse.Data.Linq
                             return node;
                         }
                     }
+                    else if (node.NodeType == ExpressionType.Equal && IsBoolMember(node.Left))
+                    {
+                        // Handle x.prop == boolValue explicitly
+                        FillBooleanCondition((MemberExpression)node.Left, clause);
+                        Visit(node.Right);
+                        return node;
+                    }
+                    else if (node.NodeType == ExpressionType.Equal && IsBoolMember(node.Right))
+                    {
+                        // Handle boolValue == x.prop explicitly
+                        FillBooleanCondition((MemberExpression)node.Right, clause);
+                        Visit(node.Left);
+                        return node;
+                    }
                     else
                     {
                         Visit(DropNullableConversion(node.Left));
-                        _currentCondition.Get().Item1.Append(" " + CqlTags[node.NodeType] + " ");
+                        clause.Append(" " + CqlTags[node.NodeType] + " ");
                         Visit(DropNullableConversion(node.Right));
                         return node;
                     }
@@ -869,8 +978,8 @@ namespace Dse.Data.Linq
                 else if (!CqlUnsupTags.Contains(node.NodeType))
                 {
                     var val = Expression.Lambda(node).Compile().DynamicInvoke();
-                    _currentCondition.Get().Item2.Add(val);
-                    _currentCondition.Get().Item1.Append("?");
+                    parameters.Add(val);
+                    clause.Append("?");
                     return node;
                 }
             }
@@ -973,13 +1082,19 @@ namespace Dse.Data.Linq
             }
             if (node.Expression.NodeType == ExpressionType.Parameter)
             {
-                var columnName = _pocoData.GetColumnName(node.Member);
-                if (columnName == null)
+                var column = _pocoData.GetColumnByMemberName(node.Member.Name);
+                if (column == null)
                 {
                     throw new InvalidOperationException(
                         "Trying to order by a field or property that is ignored or not part of the mapping definition.");
                 }
-                clause.Append(Escape(columnName));
+                clause.Append(Escape(column.ColumnName));
+                if (column.ColumnType == typeof(bool))
+                {
+                    clause.Append(" = ?");
+                    // We are evaluating a boolean expression parameter, the value we are trying to match is true 
+                    parameters.Add(true);
+                }
                 return node;
             }
             if (node.Expression.NodeType == ExpressionType.Constant)

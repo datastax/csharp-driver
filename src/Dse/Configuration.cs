@@ -197,7 +197,7 @@ namespace Dse
             {
                 return _poolingOptions;
             }
-            _poolingOptions = PoolingOptions.GetDefault(protocolVersion);
+            _poolingOptions = PoolingOptions.Create(protocolVersion);
             return _poolingOptions;
         }
     }

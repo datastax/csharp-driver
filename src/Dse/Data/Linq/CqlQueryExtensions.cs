@@ -255,6 +255,17 @@ namespace Dse.Data.Linq
         }
 
         /// <summary>
+        /// Returns a representation of a UPDATE ... IF EXISTS cql statement, for Lightweight Transactions support.
+        /// </summary>
+        public static CqlConditionalCommand<TSource> UpdateIfExists<TSource>(this CqlQuery<TSource> source)
+        {
+            var update = new CqlUpdate(Expression.Call(null, CqlMthHelps.UpdateIfExistsMi, source.Expression),
+                source.Table, source.StatementFactory, source.PocoData, source.MapperFactory);
+            source.CopyQueryPropertiesTo(update);
+            return new CqlConditionalCommand<TSource>(update, source.MapperFactory);
+        }
+
+        /// <summary>
         /// Returns a CqlQuery which after execution will return IEnumerable&lt;TSource&gt;
         /// with specified number of contiguous elements from the start of a sequence.
         /// To execute this CqlQuery use <c>Execute()</c> method.

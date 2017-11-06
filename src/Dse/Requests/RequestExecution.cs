@@ -14,14 +14,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dse.Responses;
 using Dse.Tasks;
-using System.Reflection;
 
 namespace Dse.Requests
 {
-    internal class RequestExecution<T> where T : class
+    internal class RequestExecution
     {
-        private static readonly Logger Logger = new Logger(typeof(RequestExecution<T>));
-        private readonly RequestHandler<T> _parent;
+        private static readonly Logger Logger = new Logger(typeof(RequestExecution));
+        private readonly RequestHandler _parent;
         private readonly ISession _session;
         private readonly IRequest _request;
         private readonly Dictionary<IPEndPoint, Exception> _triedHosts = new Dictionary<IPEndPoint, Exception>();
@@ -29,7 +28,7 @@ namespace Dse.Requests
         private volatile int _retryCount;
         private volatile OperationState _operation;
 
-        public RequestExecution(RequestHandler<T> parent, ISession session, IRequest request)
+        public RequestExecution(RequestHandler parent, ISession session, IRequest request)
         {
             _parent = parent;
             _session = session;
@@ -60,6 +59,7 @@ namespace Dse.Requests
                 {
                     if (t.Exception != null)
                     {
+                        t.Exception.Handle(_ => true);
                         HandleResponse(t.Exception.InnerException, null);
                         return;
                     }
@@ -116,17 +116,7 @@ namespace Dse.Requests
                     HandleException(ex);
                     return;
                 }
-                if (typeof(T) == typeof(RowSet))
-                {
-                    HandleRowSetResult(response);
-                    return;
-                }
-                if (typeof(T) == typeof(PreparedStatement))
-                {
-                    HandlePreparedResult(response);
-                    return;
-                }
-                throw new DriverInternalError(String.Format("RequestExecution with type {0} is not supported", typeof(T).FullName));
+                HandleRowSetResult(response);
             }
             catch (Exception handlerException)
             {
@@ -182,7 +172,7 @@ namespace Dse.Requests
         /// <summary>
         /// Fills the common properties of the RowSet
         /// </summary>
-        private T FillRowSet(RowSet rs, ResultResponse response)
+        private RowSet FillRowSet(RowSet rs, ResultResponse response)
         {
             if (response != null)
             {
@@ -216,13 +206,13 @@ namespace Dse.Requests
                 rs.Info.SetAchievedConsistency(((ICqlRequest)_request).Consistency);
             }
             SetAutoPage(rs, _session, _parent.Statement);
-            return (T)(object)rs;
+            return rs;
         }
 
         private void SetAutoPage(RowSet rs, ISession session, IStatement statement)
         {
             rs.AutoPage = statement != null && statement.AutoPage;
-            if (rs.AutoPage && rs.PagingState != null && _request is IQueryRequest && typeof(T) == typeof(RowSet))
+            if (rs.AutoPage && rs.PagingState != null && _request is IQueryRequest)
             {
                 //Automatic paging is enabled and there are following result pages
                 //Set the Handler for fetching the next page.
@@ -233,9 +223,9 @@ namespace Dse.Requests
                         Logger.Warning("Trying to page results using a Session already disposed.");
                         return new RowSet();
                     }
-                    var request = (IQueryRequest)RequestHandler<RowSet>.GetRequest(statement, _parent.Serializer, session.Cluster.Configuration);
+                    var request = (IQueryRequest)RequestHandler.GetRequest(statement, _parent.Serializer, session.Cluster.Configuration);
                     request.PagingState = pagingState;
-                    var task = new RequestHandler<RowSet>(session, _parent.Serializer, request, statement).Send();
+                    var task = new RequestHandler(session, _parent.Serializer, request, statement).Send();
                     TaskHelper.WaitToComplete(task, session.Cluster.Configuration.ClientOptions.QueryAbortTimeout);
                     return (RowSet)(object)task.Result;
                 };
@@ -248,7 +238,8 @@ namespace Dse.Requests
         private void HandleException(Exception ex)
         {
             Logger.Info("RequestHandler received exception {0}", ex.ToString());
-            if (ex is PreparedQueryNotFoundException && (_parent.Statement is BoundStatement || _parent.Statement is BatchStatement))
+            if (ex is PreparedQueryNotFoundException &&
+                (_parent.Statement is BoundStatement || _parent.Statement is BatchStatement))
             {
                 PrepareAndRetry(((PreparedQueryNotFoundException)ex).UnknownId);
                 return;
@@ -286,17 +277,8 @@ namespace Dse.Requests
                     _parent.SetCompleted(ex);
                     break;
                 case RetryDecision.RetryDecisionType.Ignore:
-                    //The error was ignored by the RetryPolicy
-                    //Try to give a decent response
-                    if (typeof(T).GetTypeInfo().IsAssignableFrom(typeof(RowSet)))
-                    {
-                        var rs = new RowSet();
-                        _parent.SetCompleted(null, FillRowSet(rs, null));
-                    }
-                    else
-                    {
-                        _parent.SetCompleted(null, default(T));
-                    }
+                    // The error was ignored by the RetryPolicy, return an empty rowset
+                    _parent.SetCompleted(null, FillRowSet(RowSet.Empty(), null));
                     break;
                 case RetryDecision.RetryDecisionType.Retry:
                     //Retry the Request using the new consistency level
@@ -363,8 +345,10 @@ namespace Dse.Requests
             else if (_parent.Statement is BatchStatement)
             {
                 var batch = (BatchStatement)_parent.Statement;
-                Func<Statement, bool> search = s => s is BoundStatement && ((BoundStatement)s).PreparedStatement.Id.SequenceEqual(id);
-                boundStatement = (BoundStatement)batch.Queries.FirstOrDefault(search);
+
+                bool SearchBoundStatement(Statement s) =>
+                    s is BoundStatement && ((BoundStatement) s).PreparedStatement.Id.SequenceEqual(id);
+                boundStatement = (BoundStatement)batch.Queries.FirstOrDefault(SearchBoundStatement);
             }
             if (boundStatement == null)
             {
@@ -414,33 +398,6 @@ namespace Dse.Requests
                 //There was an issue while sending
                 _parent.SetCompleted(exception);
             }
-        }
-        /// <summary>
-        /// Creates the prepared statement and transitions the task to completed
-        /// </summary>
-        private void HandlePreparedResult(Response response)
-        {
-            ValidateResult(response);
-            var output = ((ResultResponse)response).Output;
-            if (!(output is OutputPrepared))
-            {
-                throw new DriverInternalError("Expected prepared response, obtained " + output.GetType().FullName);
-            }
-            if (!(_request is PrepareRequest))
-            {
-                throw new DriverInternalError("Obtained PREPARED response for " + _request.GetType().FullName + " request");
-            }
-            var prepared = (OutputPrepared)output;
-            object statement = new PreparedStatement
-                (prepared.Metadata, 
-                prepared.QueryId, 
-                ((PrepareRequest) _request).Query, 
-                _connection.Keyspace,
-                _parent.Serializer)
-            {
-                IncomingPayload = ((ResultResponse)response).CustomPayload
-            };
-            _parent.SetCompleted(null, (T)statement);
         }
 
         private static void ValidateResult(Response response)

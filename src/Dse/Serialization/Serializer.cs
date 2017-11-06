@@ -120,7 +120,7 @@ namespace Dse.Serialization
             Func<IColumnInfo, Type> clrTypeHandler;
             if (!_defaultTypes.TryGetValue(typeCode, out clrTypeHandler))
             {
-                throw new ArgumentException("No handler defined for type " + typeCode);
+                throw new ArgumentException($"No handler defined for type {typeCode}");
             }
             return clrTypeHandler(typeInfo);
         }
@@ -138,10 +138,10 @@ namespace Dse.Serialization
                 return TypeSerializer.PrimitiveByteArraySerializer.Type;
             }
             var dataType = DataTypeParser.ParseFqTypeName(customTypeInfo.CustomTypeName);
-            var map = _udtSerializer.GetUdtMap(dataType.Keyspace + "." + dataType.Name);
+            var map = _udtSerializer.GetUdtMap($"{dataType.Keyspace}.{dataType.Name}");
             if (map == null)
             {
-                throw new InvalidTypeException("No mapping defined for udt type " + dataType.Keyspace + "." + dataType.Name);
+                throw new InvalidTypeException($"No mapping defined for udt type {dataType.Keyspace}.{dataType.Name}");
             }
             return map.NetType;
         }
@@ -233,6 +233,7 @@ namespace Dse.Serialization
                     return ColumnTypeCode.Tuple;
                 }
             }
+
             //Determine if its a Udt type
             var udtMap = _udtSerializer.GetUdtMap(type);
             if (udtMap != null)
@@ -240,7 +241,7 @@ namespace Dse.Serialization
                 typeInfo = udtMap.Definition;
                 return ColumnTypeCode.Udt;
             }
-            throw new InvalidTypeException("Unknown Cassandra target type for CLR type " + type.FullName);
+            throw new InvalidTypeException($"Unknown Cassandra target type for CLR type {type.FullName}");
         }
 
         private void InitPrimitiveSerializers()
@@ -375,7 +376,7 @@ namespace Dse.Serialization
                 }
                 return _collectionSerializer.Serialize((byte)_protocolVersion, (IEnumerable)value);
             }
-            if (typeof(IStructuralComparable).GetTypeInfo().IsAssignableFrom(type) && type.FullName.StartsWith("System.Tuple"))
+            if (Utils.IsTuple(type))
             {
                 return _tupleSerializer.Serialize((byte)_protocolVersion, (IStructuralEquatable) value);
             }
@@ -403,14 +404,14 @@ namespace Dse.Serialization
                 {
                     //a serializer for a type that was already defined
                     //log a warning and ignore it.
-                    Logger.Warning("A TypeSerializer for {0} has already been defined, ignoring {1}", ts.CqlType, ts.GetType().Name);
+                    Logger.Warning($"A TypeSerializer for {ts.CqlType} has already been defined, ignoring {ts.GetType().Name}");
                     continue;
                 }
                 if (ts.CqlType == ColumnTypeCode.Custom)
                 {
                     _customDeserializers[ts.TypeInfo] = ts;
                     _customSerializers[ts.Type] = ts;
-                    Logger.Info("Using {0} serializer for custom type '{1}'", ts.GetType().Name, ((CustomColumnInfo)ts.TypeInfo).CustomTypeName);
+                    Logger.Info($"Using {ts.GetType().Name} serializer for custom type '{((CustomColumnInfo)ts.TypeInfo).CustomTypeName}'");
                     continue;
                 }
                 //Only one per CQL type, except for Custom.
@@ -418,17 +419,17 @@ namespace Dse.Serialization
                 if (ts.CqlType == ColumnTypeCode.Udt)
                 {
                     _udtSerializer = (UdtSerializer)ts;
-                    Logger.Info("Using {0} serializer for UDT types", ts.GetType().Name);
+                    Logger.Info($"Using {ts.GetType().Name} serializer for UDT types");
                     continue;
                 }
                 if (_primitiveDeserializers.ContainsKey(ts.CqlType))
                 {
-                    Logger.Info("Using {0} serializer for primitive type {1}", ts.GetType().Name, ts.CqlType);
+                    Logger.Info($"Using {ts.GetType().Name} serializer for primitive type {ts.CqlType}");
                     _primitiveDeserializers[ts.CqlType] = ts;
                     _primitiveSerializers[ts.Type] = ts;
                     continue;
                 }
-                throw new DriverInternalError("TypeSerializer defined for unsupported CQL type " + ts.CqlType);
+                throw new DriverInternalError($"TypeSerializer defined for unsupported CQL type {ts.CqlType}");
             }
         }
 

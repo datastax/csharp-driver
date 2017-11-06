@@ -18,26 +18,26 @@ namespace Dse.Test.Integration.Core
     [Category("short")]
     public class TimeUuidSerializationTests : SharedClusterTest
     {
-        private const string Keyspace = "ks_fortimeuuidserializationtests";
         private const string AllTypesTableName = "all_formats_table";
+        private const string MinMaxTimeUuidTable = "min_max_timeuuid";
         private PreparedStatement _insertPrepared;
         private PreparedStatement _selectPrepared;
 
+        protected override string[] SetupQueries => new[]
+        {
+            $"CREATE TABLE {MinMaxTimeUuidTable} (id uuid, timeuuid_sample timeuuid, PRIMARY KEY((id), timeuuid_sample))",
+            String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)
+        };
+        
         public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
-            Session.CreateKeyspaceIfNotExists(Keyspace);
-            try
-            {
-                Session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName));
-            }
-            catch (AlreadyExistsException) { }
-
-            var insertQuery = String.Format("INSERT INTO {0} (id, timeuuid_sample) VALUES (?, ?)", AllTypesTableName);
-            var selectQuery = String.Format("SELECT id, timeuuid_sample, dateOf(timeuuid_sample) FROM {0} WHERE id = ?", AllTypesTableName);
+            var insertQuery = $"INSERT INTO {AllTypesTableName} (id, timeuuid_sample) VALUES (?, ?)";
+            var selectQuery = $"SELECT id, timeuuid_sample, dateOf(timeuuid_sample) FROM {AllTypesTableName} WHERE id = ?";
             if (CassandraVersion >= new Version(2, 2))
             {
-                selectQuery = String.Format("SELECT id, timeuuid_sample, toTimestamp(timeuuid_sample) as timeuuid_date_value FROM {0} WHERE id = ?", AllTypesTableName);
+                selectQuery =
+                    $"SELECT id, timeuuid_sample, toTimestamp(timeuuid_sample) as timeuuid_date_value FROM {AllTypesTableName} WHERE id = ?";
             }
             _insertPrepared = Session.Prepare(insertQuery);
             _selectPrepared = Session.Prepare(selectQuery);
@@ -78,6 +78,22 @@ namespace Dse.Test.Integration.Core
         }
 
         [Test]
+        public void TimeUuid_Should_Execute_TimeUuid_CQL_Functions()
+        {
+            var guid = Guid.NewGuid();
+            var timeuuidSample = TimeUuid.NewId();
+            var dateOffset = timeuuidSample.GetDate();
+
+            var selectMinMaxTimeuuidPrepared = Session.Prepare($"select * from {MinMaxTimeUuidTable} where id = ? " +
+                                                               "and timeuuid_sample < ? and timeuuid_sample > ?");
+            var insertMinMaxTimeuuidPrepared = Session.Prepare($"insert into {MinMaxTimeUuidTable} (id, timeuuid_sample) values (?, ?)");
+
+            Session.Execute(insertMinMaxTimeuuidPrepared.Bind(guid, timeuuidSample));
+            var row = Session.Execute(selectMinMaxTimeuuidPrepared.Bind(guid, TimeUuid.Max(dateOffset), TimeUuid.Min(dateOffset))).FirstOrDefault();
+            Assert.NotNull(row);
+        }
+
+        [Test]
         public void RandomValuesTest()
         {
             var tasks = new List<Task>();
@@ -88,7 +104,7 @@ namespace Dse.Test.Integration.Core
             }
             Assert.DoesNotThrow(() => Task.WaitAll(tasks.ToArray()));
 
-            var selectQuery = String.Format("SELECT id, timeuuid_sample, dateOf(timeuuid_sample) FROM {0} LIMIT 10000", AllTypesTableName);
+            var selectQuery = $"SELECT id, timeuuid_sample, dateOf(timeuuid_sample) FROM {AllTypesTableName} LIMIT 10000";
             Assert.DoesNotThrow(() =>
                 Session.Execute(selectQuery).Select(r => r.GetValue<TimeUuid>("timeuuid_sample")).ToArray());
         }

@@ -7,7 +7,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -21,50 +20,41 @@ namespace Dse.Requests
     /// <summary>
     /// Handles request executions, each execution handles retry and failover.
     /// </summary>
-    internal class RequestHandler<T> where T : class
+    internal class RequestHandler
     {
-        // ReSharper disable once StaticMemberInGenericType
         private static readonly Logger Logger = new Logger(typeof(Session));
         public const long StateInit = 0;
         public const long StateCompleted = 1;
 
         private readonly IRequest _request;
         private readonly ISession _session;
-        private readonly TaskCompletionSource<T> _tcs;
+        private readonly TaskCompletionSource<RowSet> _tcs;
         private long _state;
         private readonly IEnumerator<Host> _queryPlan;
         private readonly object _queryPlanLock = new object();
-        private readonly ICollection<RequestExecution<T>> _running = new CopyOnWriteList<RequestExecution<T>>();
+        private readonly ICollection<RequestExecution> _running = new CopyOnWriteList<RequestExecution>();
         private ISpeculativeExecutionPlan _executionPlan;
         private volatile Host _host;
         private volatile HashedWheelTimer.ITimeout _nextExecutionTimeout;
 
-        public Policies Policies { get; private set; }
-        public IExtendedRetryPolicy RetryPolicy { get; private set; }
-        public Serializer Serializer { get; private set; }
-        public IStatement Statement { get; private set; }
+        public Policies Policies { get; }
+        public IExtendedRetryPolicy RetryPolicy { get; }
+        public Serializer Serializer { get; }
+        public IStatement Statement { get; }
 
         /// <summary>
         /// Creates a new instance using a request and the statement.
         /// </summary>
         public RequestHandler(ISession session, Serializer serializer, IRequest request, IStatement statement)
         {
-            if (session == null)
-            {
-                throw new ArgumentNullException("session");
-            }
-            if (serializer == null)
-            {
-                throw new ArgumentNullException("session");
-            }
-            _tcs = new TaskCompletionSource<T>();
-            _session = session;
+            _tcs = new TaskCompletionSource<RowSet>();
+            _session = session ?? throw new ArgumentNullException(nameof(session));
             _request = request;
-            Serializer = serializer;
+            Serializer = serializer ?? throw new ArgumentNullException(nameof(session));
             Statement = statement;
             Policies = _session.Cluster.Configuration.Policies;
             RetryPolicy = Policies.ExtendedRetryPolicy;
-            if (statement != null && statement.RetryPolicy != null)
+            if (statement?.RetryPolicy != null)
             {
                 RetryPolicy = statement.RetryPolicy.Wrap(Policies.ExtendedRetryPolicy);
             }
@@ -132,7 +122,7 @@ namespace Dse.Requests
                 {
                     consistency = s.ConsistencyLevel.Value;
                 }
-                request = new BatchRequest(serializer.ProtocolVersion, s, consistency);
+                request = new BatchRequest(serializer.ProtocolVersion, s, consistency, config.Policies);
             }
             if (request == null)
             {
@@ -146,7 +136,7 @@ namespace Dse.Requests
         /// <summary>
         /// Marks this instance as completed (if not already) and sets the exception or result
         /// </summary>
-        public bool SetCompleted(Exception ex, T result = null)
+        public bool SetCompleted(Exception ex, RowSet result = null)
         {
             return SetCompleted(ex, result, null);
         }
@@ -154,7 +144,7 @@ namespace Dse.Requests
         /// <summary>
         /// Marks this instance as completed (if not already) and in a new Task using the default scheduler, it invokes the action and sets the result
         /// </summary>
-        public bool SetCompleted(T result, Action action)
+        public bool SetCompleted(RowSet result, Action action)
         {
             return SetCompleted(null, result, action);
         }
@@ -164,7 +154,7 @@ namespace Dse.Requests
         /// If ex is not null, sets the exception.
         /// If action is not null, it invokes it using the default task scheduler.
         /// </summary>
-        private bool SetCompleted(Exception ex, T result, Action action)
+        private bool SetCompleted(Exception ex, RowSet result, Action action)
         {
             var finishedNow = Interlocked.CompareExchange(ref _state, StateCompleted, StateInit) == StateInit;
             if (!finishedNow)
@@ -208,7 +198,7 @@ namespace Dse.Requests
             return true;
         }
 
-        public void SetNoMoreHosts(NoHostAvailableException ex, RequestExecution<T> execution)
+        public void SetNoMoreHosts(NoHostAvailableException ex, RequestExecution execution)
         {
             //An execution ended with a NoHostAvailableException (retrying or starting).
             //If there is a running execution, do not yield it to the user
@@ -250,7 +240,6 @@ namespace Dse.Requests
             Host host;
             // Use the concrete implementation in this method
             var session = (Session) _session;
-            Connection c = null;
             // While there is an available host
             while ((host = GetNextHost()) != null && !session.IsDisposed)
             {
@@ -264,50 +253,70 @@ namespace Dse.Requests
                     // We should not use an ignored host
                     continue;
                 }
-                if (!_host.IsUp)
+                if (!host.IsUp)
                 {
                     // The host is not considered UP by the driver.
                     // We could have filtered earlier by hosts that are considered UP, but we must check the host
                     // distance first.
                     continue;
                 }
-                var hostPool = session.GetOrCreateConnectionPool(host, distance);
-                try
-                {
-                    c = await hostPool.BorrowConnection().ConfigureAwait(false);
-                }
-                catch (UnsupportedProtocolVersionException ex)
-                {
-                    // The version of the protocol is not supported on this host
-                    // Most likely, we are using a higher protocol version than the host supports
-                    Logger.Error("Host {0} does not support protocol version {1}. You should use a fixed protocol " +
-                                 "version during rolling upgrades of the cluster. Setting the host as DOWN to " +
-                                 "avoid hitting this node as part of the query plan for a while", host.Address, ex.ProtocolVersion);
-                    triedHosts[host.Address] = ex;
-                    session.MarkAsDownAndScheduleReconnection(host, hostPool);
-                }
-                catch (Exception ex)
-                {
-                    // Probably a SocketException/AuthenticationException, move along
-                    Logger.Error("Exception while trying borrow a connection from a pool", ex);
-                    triedHosts[host.Address] = ex;
-                }
+                var c = await GetConnectionFromHost(host, distance, session, triedHosts).ConfigureAwait(false);
                 if (c == null)
                 {
                     continue;
                 }
-                await c.SetKeyspace(_session.Keyspace).ConfigureAwait(false);
-                break;
+                return c;
             }
+            throw new NoHostAvailableException(triedHosts);
+        }
 
+        /// <summary>
+        /// Gets a connection from a host or null if its not possible, filling the triedHosts map with the failures.
+        /// </summary>
+        internal static async Task<Connection> GetConnectionFromHost(Host host, HostDistance distance, Session session,
+                                                                     IDictionary<IPEndPoint, Exception> triedHosts)
+        {
+            Connection c = null;
+            var hostPool = session.GetOrCreateConnectionPool(host, distance);
+            try
+            {
+                c = await hostPool.BorrowConnection().ConfigureAwait(false);
+            }
+            catch (UnsupportedProtocolVersionException ex)
+            {
+                // The version of the protocol is not supported on this host
+                // Most likely, we are using a higher protocol version than the host supports
+                Logger.Error("Host {0} does not support protocol version {1}. You should use a fixed protocol " +
+                             "version during rolling upgrades of the cluster. Setting the host as DOWN to " +
+                             "avoid hitting this node as part of the query plan for a while", host.Address, ex.ProtocolVersion);
+                triedHosts[host.Address] = ex;
+                session.MarkAsDownAndScheduleReconnection(host, hostPool);
+            }
+            catch (Exception ex)
+            {
+                // Probably a SocketException/AuthenticationException, move along
+                Logger.Error("Exception while trying borrow a connection from a pool", ex);
+                triedHosts[host.Address] = ex;
+            }
             if (c == null)
             {
-                throw new NoHostAvailableException(triedHosts);
+                return null;
+            }
+            try
+            {
+                await c.SetKeyspace(session.Keyspace).ConfigureAwait(false);
+            }
+            catch (SocketException)
+            {
+                hostPool.Remove(c);
+                // A socket exception on the current connection does not mean that all the pool is closed:
+                // Retry on the same host
+                return await GetConnectionFromHost(host, distance, session, triedHosts).ConfigureAwait(false);
             }
             return c;
         }
 
-        public Task<T> Send()
+        public Task<RowSet> Send()
         {
             if (_request == null)
             {
@@ -325,7 +334,7 @@ namespace Dse.Requests
         {
             try
             {
-                var execution = new RequestExecution<T>(this, _session, _request);
+                var execution = new RequestExecution(this, _session, _request);
                 execution.Start();
                 _running.Add(execution);
                 ScheduleNext();

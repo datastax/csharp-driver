@@ -8,14 +8,19 @@
 namespace Dse
 {
     /// <summary>
-    ///  A Cassandra failure (non-timeout) during a write query.
+    /// Represents a server-side failure (non-timeout) during a write query.
     /// </summary>
     public class WriteFailureException : QueryExecutionException
     {
+        private const string FailureMessage = "Server failure during write query at consistency {0}" +
+            " ({1} responses were required but only {2} replica responded, {3} failed)";
+
         /// <summary>
-        /// Gets the type of the write (SIMPLE / BATCH / ...)
+        /// Gets the type of write operation that timed out.
+        /// <para>Possible values: SIMPLE, BATCH, BATCH_LOG, UNLOGGED_BATCH and COUNTER.</para>
         /// </summary>
-        public string WriteType { get; private set; }
+        public string WriteType { get; }
+
         /// <summary>
         ///  Gets the consistency level of the operation
         /// </summary>
@@ -36,10 +41,12 @@ namespace Dse
         /// </summary>
         public int Failures { get; private set; }
 
-        public WriteFailureException(ConsistencyLevel consistency, int received, int required, string writeType, int failures) :
-                                         base(string.Format(
-                                             "Cassandra timeout during write query at consistency {0} ({1} replica(s) acknowledged the write over {2} required)",
-                                             consistency.ToString().ToUpper(), received, required))
+        /// <summary>
+        /// Creates a new instance of <see cref="WriteFailureException"/>.
+        /// </summary>
+        public WriteFailureException(ConsistencyLevel consistency, int received, int required, string writeType,
+                                     int failures) : base(string.Format(FailureMessage, 
+                                        consistency.ToString().ToUpper(), required, received, failures))
         {
             ConsistencyLevel = consistency;
             ReceivedAcknowledgements = received;

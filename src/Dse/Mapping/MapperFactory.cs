@@ -200,7 +200,6 @@ namespace Dse.Mapping
             {
                 PocoColumn column = columns[idx];
 
-                // Figure out how to get the 
                 Expression getValueFromPoco = GetExpressionToGetValueFromPoco(poco, column);
                 
                 // values[columnIndex] = (object) ... getValueFromPoco ...
@@ -470,7 +469,7 @@ namespace Dse.Mapping
 
             // Check for a converter
             Expression convertedValue;
-            Delegate converter = _typeConverter.GetFromDbConverter(dbColumn.Type, pocoDestType);
+            Delegate converter = _typeConverter.TryGetFromDbConverter(dbColumn.Type, pocoDestType);
             if (converter == null)
             {
                 // No converter is available but the types don't match, so attempt to do:

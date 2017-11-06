@@ -64,7 +64,7 @@ namespace Dse.Mapping.Attributes
             {
                 var columnName = member.Name;
                 var columnAttribute = (ColumnAttribute)member.GetCustomAttributes(typeof(ColumnAttribute), true).FirstOrDefault();
-                if (columnAttribute != null)
+                if (columnAttribute?.Name != null)
                 {
                     columnName = columnAttribute.Name;
                 }

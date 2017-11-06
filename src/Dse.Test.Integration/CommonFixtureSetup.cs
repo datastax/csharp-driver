@@ -24,7 +24,6 @@ namespace Dse.Test.Integration
                 Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
             }
             Trace.TraceInformation("Starting Test Run ...");
-            SimulacronManager.Instance.Start();
         }
 
         [OneTimeTearDown]

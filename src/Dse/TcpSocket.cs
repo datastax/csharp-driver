@@ -6,7 +6,6 @@
 //
 
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Security;
@@ -196,6 +195,7 @@ namespace Dse
                      {
                          if (t.Exception != null)
                          {
+                             t.Exception.Handle(_ => true);
                              // ReSharper disable once AssignNullToNotNullAttribute
                              tcs.TrySetException(t.Exception.InnerException);
                              return;
@@ -302,6 +302,7 @@ namespace Dse
         {
             if (readTask.Exception != null)
             {
+                readTask.Exception.Handle(_ => true);
                 HandleStreamException(readTask.Exception.InnerException);
                 return;
             }
@@ -374,6 +375,7 @@ namespace Dse
         {
             if (writeTask.Exception != null)
             {
+                writeTask.Exception.Handle(_ => true);
                 HandleStreamException(writeTask.Exception.InnerException);
                 return;
             }

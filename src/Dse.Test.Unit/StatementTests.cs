@@ -259,5 +259,18 @@ namespace Dse.Test.Unit
             childStatement.ExecutingAs("bob");
             Assert.Throws<ArgumentException>(() => batch.Add(childStatement));
         }
+
+        [Test]
+        public void BatchStatement_Max_Queries_Test()
+        {
+            var batch = new BatchStatement();
+            var id = Guid.NewGuid();
+            for (int i = 0; i < ushort.MaxValue; i++)
+            {
+                batch.Add(new SimpleStatement("QUERY", id));
+            }
+            // It shouldn't allow more
+            Assert.Throws<ArgumentOutOfRangeException>(() => batch.Add(new SimpleStatement("QUERY", id)));
+        }
     }
 }

@@ -60,5 +60,18 @@ namespace Dse.Test.Unit.Mapping.Linq
             table.Where(t => t.IntValue == 100).Delete().Execute();
             Assert.AreEqual("DELETE FROM ks1.tbl1 WHERE id = ?", query);
         }
+
+        [Test]
+        public void Delete_With_Query_Trace_Defined()
+        {
+            TestQueryTrace(table =>
+            {
+                var linqQuery = table.Where(x => x.IntValue == 1)
+                                     .Delete();
+                linqQuery.EnableTracing();
+                linqQuery.Execute();
+                return linqQuery.QueryTrace;
+            });
+        }
     }
 }

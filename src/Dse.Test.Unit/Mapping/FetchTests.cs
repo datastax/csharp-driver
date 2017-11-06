@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Dse.Mapping;
 using Dse.Tasks;
-using Dse.Test.Unit.Mapping.FluentMappings;
 using Dse.Test.Unit.Mapping.Pocos;
 using Dse.Test.Unit.Mapping.TestData;
 using Moq;
@@ -357,6 +356,66 @@ namespace Dse.Test.Unit.Mapping
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock);
             return mapper.Fetch<T>(new Cql("SELECT title,releasedate FROM songs")).ToArray();
+        }
+
+        [Test]
+        public void Fetch_Poco_With_Enum()
+        {
+            var columns = new []
+            {
+                new CqlColumn { Name = "id", Index = 0, Type = typeof(long), TypeCode = ColumnTypeCode.Bigint },
+                new CqlColumn { Name = "enum1", Index = 1, Type = typeof(int), TypeCode = ColumnTypeCode.Int }
+            };
+            var rs = new RowSet { Columns = columns };
+            rs.AddRow(
+                new Row(new object[] {1L, 3}, columns, columns.ToDictionary(c => c.Name, c => c.Index)));
+            var config = new MappingConfiguration().Define(new Map<PocoWithEnumCollections>()
+                .ExplicitColumns()
+                .Column(x => x.Id, cm => cm.WithName("id"))
+                .Column(x => x.Enum1, cm => cm.WithName("enum1"))
+            );
+            var mapper = GetMappingClient(rs, config);
+            var result = mapper.Fetch<PocoWithEnumCollections>("SELECT * FROM tbl1 WHERE id = ?", 1).First();
+            Assert.NotNull(result);
+            Assert.AreEqual(1L, result.Id);
+            Assert.AreEqual(HairColor.Gray, result.Enum1);
+        }
+
+        [Test]
+        public void Fetch_Poco_With_Enum_Collections()
+        {
+            var columns = PocoWithEnumCollections.DefaultColumns;
+            var rs = new RowSet { Columns = columns };
+            var expectedCollection = new[]{ HairColor.Blonde, HairColor.Gray };
+            var expectedMap = new SortedDictionary<HairColor, TimeUuid>
+            {
+                { HairColor.Brown, TimeUuid.NewId() },
+                { HairColor.Red, TimeUuid.NewId() }
+            };
+            var collectionValues = expectedCollection.Select(x => (int)x).ToArray();
+            var mapValues =
+                new SortedDictionary<int, Guid>(expectedMap.ToDictionary(kv => (int) kv.Key, kv => (Guid) kv.Value));
+            rs.AddRow(
+                new Row(
+                    new object[]
+                    {
+                        1L, collectionValues, collectionValues, collectionValues, collectionValues, collectionValues,
+                        collectionValues, mapValues, mapValues, mapValues
+                    }, columns, columns.ToDictionary(c => c.Name, c => c.Index)));
+            var config = new MappingConfiguration().Define(PocoWithEnumCollections.DefaultMapping);
+            var mapper = GetMappingClient(rs, config);
+            var result = mapper.Fetch<PocoWithEnumCollections>("SELECT * FROM tbl1 WHERE id = ?", 1).First();
+            Assert.NotNull(result);
+            Assert.AreEqual(1L, result.Id);
+            Assert.AreEqual(expectedCollection, result.List1);
+            Assert.AreEqual(expectedCollection, result.List2);
+            Assert.AreEqual(expectedCollection, result.Array1);
+            Assert.AreEqual(expectedCollection, result.Set1);
+            Assert.AreEqual(expectedCollection, result.Set2);
+            Assert.AreEqual(expectedCollection, result.Set3);
+            Assert.AreEqual(expectedMap, result.Dictionary1);
+            Assert.AreEqual(expectedMap, result.Dictionary2);
+            Assert.AreEqual(expectedMap, result.Dictionary3);
         }
     }
 }

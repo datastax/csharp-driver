@@ -6,10 +6,6 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Text;
 using System.Threading.Tasks;
 using Dse.Mapping;
 using Dse.Mapping.Statements;
@@ -62,6 +58,27 @@ namespace Dse.Data.Linq
             var config = GetTable().GetSession().GetConfiguration();
             var task = ExecuteAsync();
             return TaskHelper.WaitToComplete(task, config.ClientOptions.QueryAbortTimeout);
+        }
+
+        /// <summary>
+        /// Sets the time for data in a column to expire (TTL) for INSERT and UPDATE commands.
+        /// </summary>
+        /// <param name="seconds">Amount of seconds.</param>
+        /// <returns>This instance.</returns>
+        public new CqlConditionalCommand<TEntity> SetTTL(int seconds)
+        {
+            _origin.SetTTL(seconds);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the timestamp associated with this statement execution.
+        /// </summary>
+        /// <returns>This instance.</returns>
+        public new CqlConditionalCommand<TEntity> SetTimestamp(DateTimeOffset timestamp)
+        {
+            _origin.SetTimestamp(timestamp);
+            return this;
         }
 
         /// <summary>

@@ -6,9 +6,8 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Dse.Mapping;
 using Dse.Mapping.Statements;
@@ -16,15 +15,19 @@ using Dse.Tasks;
 
 namespace Dse.Data.Linq
 {
+    /// <summary>
+    /// Represents a Linq query (UPDATE/INSERT/DELETE) that gets evaluated as a CQL statement.
+    /// </summary>
     public abstract class CqlCommand : SimpleStatement
     {
         private readonly Expression _expression;
         private readonly StatementFactory _statementFactory;
-        protected DateTimeOffset? _timestamp = null;
-        protected int? _ttl = null;
+        protected DateTimeOffset? _timestamp;
+        protected int? _ttl;
+        private QueryTrace _queryTrace;
 
-        internal PocoData PocoData { get; private set; }
-        internal ITable Table { get; private set; }
+        internal PocoData PocoData { get; }
+        internal ITable Table { get; }
 
         /// <inheritdoc />
         public override string QueryString
@@ -48,17 +51,23 @@ namespace Dse.Data.Linq
             }
         }
 
-        internal StatementFactory StatementFactory
-        {
-            get { return _statementFactory; }
-        }
+        internal StatementFactory StatementFactory => _statementFactory;
 
-        public Expression Expression
-        {
-            get { return _expression; }
-        }
+        public Expression Expression => _expression;
 
-        public QueryTrace QueryTrace { get; private set; }
+        /// <summary>
+        /// After being executed, it retrieves the trace of the CQL query.
+        /// <para>Use <see cref="IStatement.EnableTracing"/> to enable tracing.</para>
+        /// <para>
+        /// Note that enabling query trace introduces server-side overhead by storing request information, so it's
+        /// recommended that you only enable query tracing when trying to identify possible issues / debugging. 
+        /// </para>
+        /// </summary>
+        public QueryTrace QueryTrace
+        {
+            get => Volatile.Read(ref _queryTrace);
+            protected set => Volatile.Write(ref _queryTrace, value);
+        }
 
         internal CqlCommand(Expression expression, ITable table, StatementFactory stmtFactory, PocoData pocoData)
         {
@@ -107,6 +116,10 @@ namespace Dse.Data.Linq
             return this;
         }
 
+        /// <summary>
+        /// Sets the timestamp associated with this statement execution.
+        /// </summary>
+        /// <returns>This instance.</returns>
         public new CqlCommand SetTimestamp(DateTimeOffset timestamp)
         {
             _timestamp = timestamp;
@@ -123,17 +136,23 @@ namespace Dse.Data.Linq
 
         public ITable GetTable()
         {
-            return (Table as ITable);
+            return Table;
         }
 
+        /// <summary>
+        /// Evaluates the Linq command and executes asynchronously the cql statement.
+        /// </summary>
         public async Task<RowSet> ExecuteAsync()
         {
             object[] values;
             var cqlQuery = GetCql(out values);
             var session = GetTable().GetSession();
-            var stmt = await _statementFactory.GetStatementAsync(session, Cql.New(cqlQuery, values)).ConfigureAwait(false);
+            var stmt = await _statementFactory.GetStatementAsync(session, Cql.New(cqlQuery, values))
+                                              .ConfigureAwait(false);
             this.CopyQueryPropertiesTo(stmt);
-            return await session.ExecuteAsync(stmt).ConfigureAwait(false);
+            var rs = await session.ExecuteAsync(stmt).ConfigureAwait(false);
+            QueryTrace = rs.Info.QueryTrace;
+            return rs;
         }
 
         /// <summary>

@@ -93,15 +93,15 @@ namespace Dse.Test.Unit.Mapping.Linq
 
             Assert.AreEqual(
                 (from ent in table where new[] {10, 30, 40}.Contains(ent.ck2) select ent).ToString(),
-                @"SELECT ""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"" FROM ""x_t"" WHERE ""x_ck2"" IN (?, ?, ?) ALLOW FILTERING");
+                @"SELECT ""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"" FROM ""x_t"" WHERE ""x_ck2"" IN ? ALLOW FILTERING");
 
             Assert.AreEqual(
-                @"SELECT ""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"" FROM ""x_t"" WHERE ""x_ck2"" IN () ALLOW FILTERING",
+                @"SELECT ""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"" FROM ""x_t"" WHERE ""x_ck2"" IN ? ALLOW FILTERING",
                 (from ent in table where new int[] {}.Contains(ent.ck2) select ent).ToString());
 
             Assert.AreEqual(
                (from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select ent).Delete().ToString(),
-               @"DELETE FROM ""x_t"" WHERE ""x_ck2"" IN (?, ?, ?)");
+               @"DELETE FROM ""x_t"" WHERE ""x_ck2"" IN ?");
 
             Assert.AreEqual(
                 @"INSERT INTO ""x_t"" (""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES (?, ?, ?, ?)",
@@ -214,8 +214,8 @@ namespace Dse.Test.Unit.Mapping.Linq
             Assert.AreEqual(batch.ToString().Replace("\r", ""),
                 @"BEGIN UNLOGGED BATCH
 INSERT INTO ""x_t"" (""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES (?, ?, ?, ?);
-UPDATE ""x_t"" SET ""x_f1"" = ? WHERE ""x_ck2"" IN (?, ?, ?);
-DELETE FROM ""x_t"" WHERE ""x_ck2"" IN (?, ?, ?);
+UPDATE ""x_t"" SET ""x_f1"" = ? WHERE ""x_ck2"" IN ?;
+DELETE FROM ""x_t"" WHERE ""x_ck2"" IN ?;
 APPLY BATCH".Replace("\r", ""));
         }
 
@@ -230,8 +230,8 @@ APPLY BATCH".Replace("\r", ""));
             Assert.AreEqual(batch.ToString().Replace("\r", ""),
                 @"BEGIN BATCH
 INSERT INTO ""x_t"" (""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES (?, ?, ?, ?);
-UPDATE ""x_t"" SET ""x_f1"" = ? WHERE ""x_ck2"" IN (?, ?, ?);
-DELETE FROM ""x_t"" WHERE ""x_ck2"" IN (?, ?, ?);
+UPDATE ""x_t"" SET ""x_f1"" = ? WHERE ""x_ck2"" IN ?;
+DELETE FROM ""x_t"" WHERE ""x_ck2"" IN ?;
 APPLY BATCH".Replace("\r", ""));
         }
 
@@ -286,13 +286,13 @@ APPLY BATCH".Replace("\r", ""));
                @"INSERT INTO ""x_t"" (""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES (?, ?, ?, ?) IF NOT EXISTS");
 
             Assert.AreEqual((from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select new { f1 = 1223 }).UpdateIf((a) => a.f1 == 123).ToString(),
-                    @"UPDATE ""x_t"" SET ""x_f1"" = ? WHERE ""x_ck2"" IN (?, ?, ?) IF ""x_f1"" = ?");
+                    @"UPDATE ""x_t"" SET ""x_f1"" = ? WHERE ""x_ck2"" IN ? IF ""x_f1"" = ?");
 
             Assert.AreEqual((from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select ent).DeleteIf((a) => a.f1 == 123).ToString(),
-                @"DELETE FROM ""x_t"" WHERE ""x_ck2"" IN (?, ?, ?) IF ""x_f1"" = ?");
+                @"DELETE FROM ""x_t"" WHERE ""x_ck2"" IN ? IF ""x_f1"" = ?");
 
             Assert.AreEqual((from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select ent).Delete().IfExists().ToString(),
-                @"DELETE FROM ""x_t"" WHERE ""x_ck2"" IN (?, ?, ?) IF EXISTS ");
+                @"DELETE FROM ""x_t"" WHERE ""x_ck2"" IN ? IF EXISTS ");
         }
 
         [Test]
@@ -305,11 +305,11 @@ APPLY BATCH".Replace("\r", ""));
                 (table.Insert(new LinqDecoratedEntity() { ck1 = null, ck2 = 2, f1 = 3, pk = "x" })).ToString());
 
             Assert.AreEqual(
-                @"UPDATE ""x_t"" SET ""x_f1"" = ? WHERE ""x_ck1"" IN (?, ?, ?)",
+                @"UPDATE ""x_t"" SET ""x_f1"" = ? WHERE ""x_ck1"" IN ?",
                 (from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new { f1 = 1223 }).Update().ToString());
 
             Assert.AreEqual(
-                @"UPDATE ""x_t"" SET ""x_f1"" = ?, ""x_ck1"" = ? WHERE ""x_ck1"" IN (?, ?, ?)",
+                @"UPDATE ""x_t"" SET ""x_f1"" = ?, ""x_ck1"" = ? WHERE ""x_ck1"" IN ?",
                 (from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new LinqDecoratedEntity() { f1 = 1223, ck1 = null }).Update().ToString());
 
             Assert.AreEqual(
@@ -317,7 +317,7 @@ APPLY BATCH".Replace("\r", ""));
                 (from ent in table where ent.ck1 == 1 select new LinqDecoratedEntity() { f1 = 1223, ck1 = null }).Update().ToString());
 
             Assert.AreEqual(
-                @"UPDATE ""x_t"" SET ""x_f1"" = ?, ""x_ck1"" = ? WHERE ""x_ck1"" IN (?, ?, ?) IF ""x_f1"" = ?",
+                @"UPDATE ""x_t"" SET ""x_f1"" = ?, ""x_ck1"" = ? WHERE ""x_ck1"" IN ? IF ""x_f1"" = ?",
                 (from ent in table where new int?[] { 10, 30, 40 }.Contains(ent.ck1) select new { f1 = 1223, ck1 = (int?)null }).UpdateIf((a) => a.f1 == 123).ToString());
         }
 
@@ -511,129 +511,6 @@ APPLY BATCH".Replace("\r", ""));
             Assert.AreEqual("UPDATE \"CounterTestTable1\" SET \"Value\" = \"Value\" + ? WHERE \"RowKey1\" = ? AND \"RowKey2\" = ?", query);
         }
 
-        private class InsertNullTable
-        {
-            public int Key { get; set; }
-
-            public string Value { get; set; }
-        }
-
-        [Test]
-        public void Insert_With_Nulls_Test()
-        {
-            var table = new Table<InsertNullTable>(null, new MappingConfiguration());
-            var row = new InsertNullTable { Key = 101, Value = null };
-
-            var cqlInsert = table.Insert(row);
-            object[] values;
-            var cql = cqlInsert.GetCqlAndValues(out values);
-
-            Assert.AreEqual("INSERT INTO InsertNullTable (Key, Value) VALUES (?, ?)", cql);
-            Assert.AreEqual(2, values.Length);
-            Assert.AreEqual(101, values[0]);
-            Assert.AreEqual(null, values[1]);
-        }
-
-        [Test]
-        public void Insert_Without_Nulls_Test()
-        {
-            var table = new Table<InsertNullTable>(null, new MappingConfiguration());
-            var row = new InsertNullTable { Key = 102, Value = null };
-
-            var cqlInsert = table.Insert(row, false);
-            object[] values;
-            var cql = cqlInsert.GetCqlAndValues(out values);
-
-            Assert.AreEqual("INSERT INTO InsertNullTable (Key) VALUES (?)", cql);
-            Assert.AreEqual(1, values.Length);
-            Assert.AreEqual(102, values[0]);
-        }
-
-        [Test]
-        public void Insert_Without_Nulls_With_Table_And_Keyspace_Name_Test()
-        {
-            var table = new Table<InsertNullTable>(null, new MappingConfiguration(), "tbl1", "ks100");
-            var row = new InsertNullTable { Key = 102, Value = null };
-
-            var cqlInsert = table.Insert(row, false);
-            object[] values;
-            var cql = cqlInsert.GetCqlAndValues(out values);
-
-            Assert.AreEqual("INSERT INTO ks100.tbl1 (Key) VALUES (?)", cql);
-            Assert.AreEqual(1, values.Length);
-            Assert.AreEqual(102, values[0]);
-        }
-
-        [Test]
-        public void Insert_Without_Nulls_With_Table_Test()
-        {
-            var table = new Table<InsertNullTable>(null, new MappingConfiguration(), "tbl1");
-            var row = new InsertNullTable { Key = 110, Value = null };
-
-            var cqlInsert = table.Insert(row, false);
-            object[] values;
-            var cql = cqlInsert.GetCqlAndValues(out values);
-
-            Assert.AreEqual("INSERT INTO tbl1 (Key) VALUES (?)", cql);
-            Assert.AreEqual(1, values.Length);
-            Assert.AreEqual(110, values[0]);
-        }
-
-        [Test]
-        public void Insert_IfNotExists_Test()
-        {
-            var table = SessionExtensions.GetTable<AllTypesDecorated>(null);
-            var uuid = Guid.NewGuid();
-            var row = new AllTypesDecorated { Int64Value = 202, UuidValue = uuid};
-
-            var cqlInsert = table.Insert(row).IfNotExists();
-            object[] values;
-            var cql = cqlInsert.GetCql(out values);
-
-            StringAssert.EndsWith("IF NOT EXISTS", cql);
-        }
-
-        [Test]
-        public void Insert_IfNotExists_With_Ttl_And_Timestamp_Test()
-        {
-            var table = new Table<InsertNullTable>(null, new MappingConfiguration());
-            var row = new InsertNullTable { Key = 103, Value = null };
-
-            var timestamp = DateTimeOffset.UtcNow;
-            var cqlInsert = table.Insert(row);
-            cqlInsert.IfNotExists();
-            cqlInsert.SetTTL(86401);
-            cqlInsert.SetTimestamp(timestamp);
-            object[] values;
-            var cql = cqlInsert.GetCqlAndValues(out values);
-
-            Assert.AreEqual("INSERT INTO InsertNullTable (Key, Value) VALUES (?, ?) IF NOT EXISTS USING TTL ? AND TIMESTAMP ?", cql);
-            Assert.AreEqual(4, values.Length);
-            Assert.AreEqual(103, values[0]);
-            Assert.AreEqual(null, values[1]);
-            Assert.AreEqual(86401, values[2]);
-            Assert.AreEqual((timestamp - new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero)).Ticks / 10, values[3]);
-        }
-
-        [Test]
-        public void Insert_IfNotExists_Without_Nulls_With_Timestamp_Test()
-        {
-            var table = new Table<InsertNullTable>(null, new MappingConfiguration());
-            var row = new InsertNullTable { Key = 104, Value = null };
-
-            var timestamp = DateTimeOffset.UtcNow;
-            var cqlInsert = table.Insert(row, false);
-            cqlInsert.IfNotExists();
-            cqlInsert.SetTimestamp(timestamp);
-            object[] values;
-            var cql = cqlInsert.GetCqlAndValues(out values);
-
-            Assert.AreEqual("INSERT INTO InsertNullTable (Key) VALUES (?) IF NOT EXISTS USING TIMESTAMP ?", cql);
-            Assert.AreEqual(2, values.Length);
-            Assert.AreEqual(104, values[0]);
-            Assert.AreEqual((timestamp - new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero)).Ticks / 10, values[1]);
-        }
-
         [Test]
         public void EmptyListTest()
         {
@@ -641,7 +518,7 @@ APPLY BATCH".Replace("\r", ""));
             var keys = new string[0];
             var query = table.Where(item => keys.Contains(item.pk));
 
-            Assert.True(query.ToString().Contains("\"x_pk\" IN ()"), "The query must contain an empty IN statement");
+            Assert.True(query.ToString().Contains("\"x_pk\" IN ?"), "The query must contain an empty IN statement");
         }
 
         private class BaseEntity
@@ -708,7 +585,11 @@ APPLY BATCH".Replace("\r", ""));
             var table = SessionExtensions.GetTable<AllTypesDecorated>(null);
             var ids = new []{ 1, 2, 3};
             var query = table.Where(t => ids.Contains(t.IntValue) && t.Int64Value == 10);
-            Assert.AreEqual(@"SELECT ""boolean_VALUE"", ""datetime_VALUE"", ""decimal_VALUE"", ""double_VALUE"", ""int64_VALUE"", ""int_VALUE"", ""string_VALUE"", ""timeuuid_VALUE"", ""uuid_VALUE"" FROM ""atd"" WHERE ""int_VALUE"" IN (?, ?, ?) AND ""int64_VALUE"" = ?", query.ToString());
+            Assert.AreEqual(
+                "SELECT \"boolean_VALUE\", \"datetime_VALUE\", \"decimal_VALUE\", \"double_VALUE\", \"int64_VALUE\"," +
+                " \"int_VALUE\", \"string_VALUE\", \"timeuuid_VALUE\", \"uuid_VALUE\" FROM \"atd\" WHERE" +
+                " \"int_VALUE\" IN ? AND \"int64_VALUE\" = ?",
+                query.ToString());
         }
 
         [Test]

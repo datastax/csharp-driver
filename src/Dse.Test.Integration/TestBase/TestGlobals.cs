@@ -6,11 +6,10 @@
 //
 
 using System;
-using System.Collections;
 using System.Diagnostics;
-using System.Linq;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
@@ -29,10 +28,7 @@ namespace Dse.Test.Integration.TestClusterManagement
         private static bool _clusterManagerIsInitializing;
         private static bool _clusterManagerIsInitalized;
 
-        public Version CassandraVersion
-        {
-            get { return TestClusterManager.CassandraVersion; }
-        }
+        public Version CassandraVersion => TestClusterManager.CassandraVersion;
 
         /// <summary>
         /// Gets the latest protocol version depending on the Cassandra Version running the tests
@@ -87,7 +83,8 @@ namespace Dse.Test.Integration.TestClusterManagement
                     while (_clusterManagerIsInitializing)
                     {
                         int SleepMs = 1000;
-                        Trace.TraceInformation("Shared " + _clusterManagerIsInitializing.GetType().Name + " object is initializing. Sleeping " + SleepMs + " MS ... ");
+                        Trace.TraceInformation(
+                            $"Shared {_clusterManagerIsInitializing.GetType().Name} object is initializing. Sleeping {SleepMs} MS ... ");
                         Thread.Sleep(SleepMs);
                     }
                 }
@@ -106,25 +103,12 @@ namespace Dse.Test.Integration.TestClusterManagement
         public void IndividualTestSetup()
         {
             VerifyAppropriateCassVersion();
-            VerifyLocalCcmOnly();
-        }
-
-        // If any test is designed for another test group, mark as ignored
-        private void VerifyLocalCcmOnly()
-        {
-            //Only Ccm for now
-//            if (((ArrayList) TestContext.CurrentContext.Test.Properties["_CATEGORIES"]).Contains(TestCategories.CcmOnly) && UseCtool)
-//            {
-//                Assert.Ignore("Test Ignored: Requires CCM and tests are currently running using CTool");
-//            }
         }
 
         // If any test is designed for another C* version, mark it as ignored
         private void VerifyAppropriateCassVersion()
         {
             var test = TestContext.CurrentContext.Test;
-            var methodFullName = TestContext.CurrentContext.Test.FullName;
-            //var typeName = methodFullName.Substring(0, methodFullName.Length - test.Name.Length - 1);
             var typeName = TestContext.CurrentContext.Test.ClassName;
             var type = Type.GetType(typeName);
             if (type == null)
@@ -153,7 +137,8 @@ namespace Dse.Test.Integration.TestClusterManagement
             var versionAttr = attr;
             var executingVersion = CassandraVersion;
             if (!VersionMatch(versionAttr, executingVersion))
-                Assert.Ignore(String.Format("Test Ignored: Test suitable to be run against Cassandra {0}.{1}.{2} {3}", versionAttr.Major, versionAttr.Minor, versionAttr.Build, versionAttr.Comparison >= 0 ? "or above" : "or below"));
+                Assert.Ignore(
+                    $"Test Ignored: Test suitable to be run against Cassandra {versionAttr.Major}.{versionAttr.Minor}.{versionAttr.Build} {(versionAttr.Comparison >= 0 ? "or above" : "or below")}");
         }
 
         public static bool VersionMatch(TestCassandraVersion versionAttr, Version executingVersion)
@@ -170,6 +155,30 @@ namespace Dse.Test.Integration.TestClusterManagement
             return comparison == versionAttr.Comparison;
         }
 
+        public static async Task Connect(Cluster cluster, bool asyncConnect, Action<ISession> action)
+        {
+            if (asyncConnect)
+            {
+                try
+                {
+                    var session = await cluster.ConnectAsync();
+                    action(session);
+                }
+                finally
+                {
+                    var shutdownAsync = cluster?.ShutdownAsync();
+                    if (shutdownAsync != null) await shutdownAsync;
+                }
+            }
+            else
+            {
+                using (cluster)
+                {
+                    var session = cluster.Connect();
+                    action(session);
+                }
+            }
+        }
 
     }
 }

@@ -8,12 +8,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Dse.Data.Linq;
 using Dse.Mapping;
 using Dse.Test.Unit.Mapping.Pocos;
 using Dse.Test.Unit.Mapping.TestData;
-using Moq;
 using NUnit.Framework;
 
 namespace Dse.Test.Unit.Mapping.Linq
@@ -51,6 +49,55 @@ namespace Dse.Test.Unit.Mapping.Linq
         }
 
         [Test]
+        public void Select_With_Boolean_Field_Test()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            });
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.UuidValue, cm => cm.WithName("a"))
+                .Column(t => t.BooleanValue, cm => cm.WithName("b"))
+                .Column(t => t.StringValue, cm => cm.WithName("c"))
+                .PartitionKey(t => t.UuidValue)
+                .TableName("tbl1");
+            var id = Guid.NewGuid();
+            var valueTrue = true;
+            var valueFalse = false;
+            const string expectedQuery = "SELECT c FROM tbl1 WHERE a = ? AND b = ?";
+            var table = GetTable<AllTypesEntity>(session, map);
+            
+            // Using equality operator
+            table.Where(x => x.UuidValue == id && x.BooleanValue == valueFalse).Select(x => x.StringValue).Execute();
+            Assert.AreEqual(expectedQuery, query);
+            Assert.AreEqual(new object[] { id, false }, parameters);
+            
+            // Using equality operator, with inverted condition
+            table.Where(x => x.UuidValue == id && valueTrue == x.BooleanValue).Select(x => x.StringValue).Execute();
+            Assert.AreEqual(expectedQuery, query);
+            Assert.AreEqual(new object[] { id, true }, parameters);
+            
+            // Using equality operator, with constant condition
+            table.Where(x => x.UuidValue == id && x.BooleanValue == false).Select(x => x.StringValue).Execute();
+            Assert.AreEqual(expectedQuery, query);
+            Assert.AreEqual(new object[] { id, false }, parameters);
+            
+            // Using false expression
+            table.Where(x => x.UuidValue == id && !x.BooleanValue).Select(x => x.StringValue).Execute();
+            Assert.AreEqual(expectedQuery, query);
+            Assert.AreEqual(new object[] { id, false }, parameters);
+            
+            // Using true expresion
+            table.Where(x => x.UuidValue == id && x.BooleanValue).Select(x => x.StringValue).Execute();
+            Assert.AreEqual(expectedQuery, query);
+            Assert.AreEqual(new object[] { id, true }, parameters);
+        }
+
+        [Test]
         public void Select_With_ConsistencyLevel()
         {
             BoundStatement statement = null;
@@ -68,6 +115,89 @@ namespace Dse.Test.Unit.Mapping.Linq
                  .Execute();
             Assert.NotNull(statement);
             Assert.AreEqual(consistency, statement.ConsistencyLevel);
+        }
+
+        [Test]
+        public void Select_In_With_Composite_Keys()
+        {
+            BoundStatement statement = null;
+            var session = GetSession<BoundStatement>(new RowSet(), stmt => statement = stmt);
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.IntValue, cm => cm.WithName("id3"))
+                .Column(t => t.StringValue, cm => cm.WithName("id2"))
+                .Column(t => t.UuidValue, cm => cm.WithName("id1"))
+                .PartitionKey(t => t.UuidValue)
+                .ClusteringKey(t => t.StringValue, SortOrder.Ascending)
+                .ClusteringKey(t => t.IntValue, SortOrder.Descending)
+                .TableName("tbl1");
+            var table = GetTable<AllTypesEntity>(session, map);
+            const string expectedQuery = "SELECT id3, id2, id1 FROM tbl1 WHERE id1 = ? AND (id2, id3) IN ?";
+            var id = Guid.NewGuid();
+            var list = new List<Tuple<string, int>> {Tuple.Create("z", 1)};
+            // Using Tuple.Create()
+            table.Where(t => t.UuidValue == id && list.Contains(Tuple.Create(t.StringValue, t.IntValue))).Execute();
+            Assert.NotNull(statement);
+            Assert.AreEqual(new object[] {id, list}, statement.QueryValues);
+            Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
+            // Using constructor
+            table.Where(t => t.UuidValue == id && list.Contains(new Tuple<string, int>(t.StringValue, t.IntValue)))
+                 .Execute();
+            Assert.NotNull(statement);
+            Assert.AreEqual(new object[] {id, list}, statement.QueryValues);
+            Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
+        }
+
+        [Test]
+        public void Select_In_Field_And_New()
+        {
+            BoundStatement statement = null;
+            var session = GetSession<BoundStatement>(new RowSet(), stmt => statement = stmt);
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.StringValue, cm => cm.WithName("id2"))
+                .Column(t => t.UuidValue, cm => cm.WithName("id1"))
+                .PartitionKey(t => t.UuidValue)
+                .ClusteringKey(t => t.StringValue, SortOrder.Ascending)
+                .TableName("tbl1");
+            var table = GetTable<AllTypesEntity>(session, map);
+            var id = Guid.NewGuid();
+            const string expectedQuery = "SELECT id2, id1 FROM tbl1 WHERE id1 = ? AND id2 IN ?";
+            var values = new[] {"a", "b"};
+            // Using a field
+            table.Where(t => t.UuidValue == id && values.Contains(t.StringValue)).Execute();
+            Assert.NotNull(statement);
+            Assert.AreEqual(new object[] {id, values}, statement.QueryValues);
+            Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
+            // Using a new expression
+            table.Where(t => t.UuidValue == id && new[] {"a", "b"}.Contains(t.StringValue)).Execute();
+            Assert.NotNull(statement);
+            Assert.AreEqual(new object[] {id, values}, statement.QueryValues);
+            Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
+            // Using a list
+            var list = new List<string>(new[] {"a", "b"});
+            table.Where(t => t.UuidValue == id && list.Contains(t.StringValue)).Execute();
+            Assert.NotNull(statement);
+            Assert.AreEqual(new object[] {id, list}, statement.QueryValues);
+            Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
+        }
+
+        [Test]
+        public void Select_Contains_With_String_Throws()
+        {
+            var session = GetSession<BoundStatement>(new RowSet(), _ => { });
+            var map = new Map<AllTypesEntity>()
+                .ExplicitColumns()
+                .Column(t => t.StringValue, cm => cm.WithName("id2"))
+                .Column(t => t.UuidValue, cm => cm.WithName("id1"))
+                .PartitionKey(t => t.UuidValue)
+                .ClusteringKey(t => t.StringValue, SortOrder.Ascending)
+                .TableName("tbl1");
+            var table = GetTable<AllTypesEntity>(session, map);
+            var id = Guid.NewGuid();
+            var ex = Assert.Throws<InvalidOperationException>(() =>
+                table.Where(t => t.UuidValue == id && "a".Contains(t.StringValue)).Execute());
+            Assert.AreEqual("String.Contains() is not supported for CQL IN clause", ex.Message);
         }
 
         [Test]
@@ -209,9 +339,11 @@ namespace Dse.Test.Unit.Mapping.Linq
                 .TableName("values");
 
             var table = GetTable<AllTypesEntity>(session, map);
-            table.Where(t => new [] {1M, 2M}.Contains(t.DecimalValue)).Select(t => new AllTypesEntity { DateTimeValue = t.DateTimeValue}).Execute();
-            Assert.AreEqual("SELECT d FROM values WHERE val2 IN (?, ?)", query);
-            CollectionAssert.AreEqual(new [] {1M, 2M}, parameters);
+            var values = new[] {1M, 2M};
+            table.Where(t => values.Contains(t.DecimalValue))
+                 .Select(t => new AllTypesEntity { DateTimeValue = t.DateTimeValue}).Execute();
+            Assert.AreEqual("SELECT d FROM values WHERE val2 IN ?", query);
+            CollectionAssert.AreEqual(new[] {values}, parameters);
         }
 
         [Test]
@@ -382,6 +514,18 @@ namespace Dse.Test.Unit.Mapping.Linq
             var table = new Table<AttributeMappingClass>(session, new MappingConfiguration());
             table.Where(x => x.PartitionKey == 1 && x.ClusteringKey0 == 2L).Execute();
             Assert.AreEqual("SELECT partition_key, clustering_key_0, clustering_key_1, clustering_key_2, bool_value_col, float_value_col, decimal_value_col FROM attr_mapping_class_table WHERE partition_key = ? AND clustering_key_0 = ?", query);
+        }
+
+        [Test]
+        public void Select_With_Query_Trace_Defined()
+        {
+            TestQueryTrace(table =>
+            {
+                var linqQuery = table.Where(x => x.IntValue == 1);
+                linqQuery.EnableTracing();
+                linqQuery.Execute();
+                return linqQuery.QueryTrace;
+            });
         }
 
         [Test]

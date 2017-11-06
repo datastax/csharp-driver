@@ -6,7 +6,6 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
@@ -77,20 +76,30 @@ namespace Dse
 
         public event Action<Host, HostConnectionPool> AllConnectionClosed;
 
-        public bool HasConnections
-        {
-            get { return _connections.Count > 0; }
-        }
+        /// <summary>
+        /// Determines whether the connection pool has opened connections using snapshot semantics.
+        /// </summary>
+        public bool HasConnections => _connections.Count > 0;
 
-        public int OpenConnections
-        {
-            get { return _connections.Count; }
-        }
+        /// <summary>
+        /// Gets the total amount of open connections. 
+        /// </summary>
+        public int OpenConnections => _connections.Count;
 
-        public bool IsClosing
-        {
-            get { return Volatile.Read(ref _state) != PoolState.Init; }
-        }
+        /// <summary>
+        /// Gets the total of in-flight requests on all connections. 
+        /// </summary>
+        public int InFlight => _connections.Sum(c => c.InFlight);
+
+        /// <summary>
+        /// Determines whether the pool is not on the initial state.
+        /// </summary>
+        private bool IsClosing => Volatile.Read(ref _state) != PoolState.Init;
+        
+        /// <summary>
+        /// Gets a snapshot of the current state of the pool.
+        /// </summary>
+        public Connection[] ConnectionsSnapshot => _connections.GetSnapshot();
 
         public HostConnectionPool(Host host, Configuration config, Serializer serializer)
         {
@@ -146,7 +155,14 @@ namespace Dse
             }
             Logger.Warning("Connection to {0} considered as unhealthy after {1} timed out operations", 
                 _host.Address, timedOutOps);
-            //Defunct: close it and remove it from the pool
+            Remove(c);
+        }
+
+        /// <summary>
+        /// Closes the connection and removes it from the pool
+        /// </summary>
+        public void Remove(Connection c)
+        {
             OnConnectionClosing(c);
             c.Dispose();
         }
@@ -531,6 +547,7 @@ namespace Dse
                     _host.BringUpIfDown();
                     return;
                 }
+                t.Exception?.Handle(_ => true);
                 // The connection could not be opened
                 if (IsClosing)
                 {

@@ -15,20 +15,21 @@ namespace Dse.Requests
 {
     internal class BatchRequest : ICqlRequest
     {
-        public const byte OpCode = 0x0D;
+        private const byte OpCode = 0x0D;
 
         private FrameHeader.HeaderFlag _headerFlags;
         private readonly QueryProtocolOptions.QueryFlags _batchFlags = 0;
         private readonly ICollection<IQueryRequest> _requests;
         private readonly BatchType _type;
-        private readonly DateTimeOffset? _timestamp;
+        private readonly long? _timestamp;
         private readonly ConsistencyLevel? _serialConsistency;
 
         public ConsistencyLevel Consistency { get; set; }
 
         public IDictionary<string, byte[]> Payload { get; set; }
 
-        public BatchRequest(ProtocolVersion protocolVersion, BatchStatement statement, ConsistencyLevel consistency)
+        public BatchRequest(ProtocolVersion protocolVersion, BatchStatement statement, ConsistencyLevel consistency,
+                            Policies policies)
         {
             if (!protocolVersion.SupportsBatch())
             {
@@ -39,7 +40,6 @@ namespace Dse.Requests
                 .Select(q => q.CreateBatchRequest(protocolVersion))
                 .ToArray();
             Consistency = consistency;
-            _timestamp = statement.Timestamp;
             if (statement.IsTracing)
             {
                 _headerFlags = FrameHeader.HeaderFlag.Tracing;
@@ -57,14 +57,35 @@ namespace Dse.Requests
                 _batchFlags |= QueryProtocolOptions.QueryFlags.WithSerialConsistency;
                 _serialConsistency = statement.SerialConsistencyLevel;
             }
+            _timestamp = GetRequestTimestamp(protocolVersion, statement, policies);
             if (_timestamp != null)
             {
-                if (!protocolVersion.SupportsTimestamp())
-                {
-                    throw new NotSupportedException("Timestamp for BATCH request is supported in Cassandra 2.1 or above.");
-                }
-                _batchFlags |= QueryProtocolOptions.QueryFlags.WithDefaultTimestamp;
+                _batchFlags |= QueryProtocolOptions.QueryFlags.WithDefaultTimestamp;   
             }
+        }
+
+        /// <summary>
+        /// Gets the timestamp of the request or null if not defined.
+        /// </summary>
+        /// <exception cref="NotSupportedException" />
+        private static long? GetRequestTimestamp(ProtocolVersion protocolVersion, BatchStatement statement,
+                                                 Policies policies)
+        {
+            if (!protocolVersion.SupportsTimestamp())
+            {
+                if (statement.Timestamp != null)
+                {
+                    throw new NotSupportedException(
+                        "Timestamp for BATCH request is supported in Cassandra 2.1 or above.");
+                }
+                return null;
+            }
+            if (statement.Timestamp != null)
+            {
+                return TypeSerializer.SinceUnixEpoch(statement.Timestamp.Value).Ticks / 10;
+            }
+            var timestamp = policies.TimestampGenerator.Next();
+            return timestamp != long.MinValue ? (long?) timestamp : null;
         }
 
         public int WriteFrame(short streamId, MemoryStream stream, Serializer serializer)
@@ -84,23 +105,22 @@ namespace Dse.Requests
                 wb.WriteBytesMap(Payload);
             }
             wb.WriteByte((byte) _type);
-            wb.WriteInt16((short) _requests.Count);
+            wb.WriteUInt16((ushort) _requests.Count);
             foreach (var br in _requests)
             {
                 br.WriteToBatch(wb);
             }
-            wb.WriteInt16((short) Consistency);
+            wb.WriteUInt16((ushort) Consistency);
             if (protocolVersion.SupportsTimestamp())
             {
                 wb.WriteByte((byte)_batchFlags);
                 if (_serialConsistency != null)
                 {
-                    wb.WriteInt16((short)_serialConsistency.Value);
+                    wb.WriteUInt16((ushort)_serialConsistency.Value);
                 }
                 if (_timestamp != null)
                 {
-                    //Expressed in microseconds
-                    wb.WriteLong(TypeSerializer.SinceUnixEpoch(_timestamp.Value).Ticks / 10);
+                    wb.WriteLong(_timestamp.Value);
                 }
             }
             return wb.Close();

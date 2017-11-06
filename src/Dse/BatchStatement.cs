@@ -117,7 +117,7 @@ namespace Dse
         /// <exception cref="System.ArgumentOutOfRangeException">Thrown when trying to add more than <c>short.MaxValue</c> Statements</exception>
         public BatchStatement Add(Statement statement)
         {
-            if (_queries.Count > short.MaxValue)
+            if (_queries.Count >= ushort.MaxValue)
             {
                 throw new ArgumentOutOfRangeException(
                     string.Format("Batch statement cannot contain more than {0} statements", short.MaxValue));

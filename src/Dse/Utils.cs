@@ -6,6 +6,7 @@
 //
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -312,6 +313,22 @@ namespace Dse
         }
 
         /// <summary>
+        /// Combines the hash code based on the value of items.
+        /// </summary>
+        internal static int CombineHashCode<T>(IEnumerable<T> items)
+        {
+            unchecked
+            {
+                var hash = 17;
+                foreach (var item in items)
+                {
+                    hash = hash * 23 + item.GetHashCode();
+                }
+                return hash;
+            }
+        }
+
+        /// <summary>
         /// Returns true if the ConsistencyLevel is either <see cref="ConsistencyLevel.Serial"/> or <see cref="ConsistencyLevel.LocalSerial"/>,
         /// otherwise false.
         /// </summary>
@@ -386,6 +403,12 @@ namespace Dse
             keyType = subTypes[0];
             valueType = subTypes[1];
             return true;
+        }
+
+        public static bool IsTuple(Type type)
+        {
+            return typeof(IStructuralComparable).GetTypeInfo().IsAssignableFrom(type) &&
+                type.FullName.StartsWith("System.Tuple");
         }
 
         /// <summary>

@@ -5,7 +5,6 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using System;
 using System.Diagnostics;
 
 namespace Dse.Test.Integration.TestClusterManagement
@@ -48,10 +47,7 @@ namespace Dse.Test.Integration.TestClusterManagement
 
         public void InitClient()
         {
-            if (Cluster != null)
-            {
-                Cluster.Shutdown();   
-            }
+            Cluster?.Shutdown();
             if (Builder == null)
             {
                 Builder = new DseClusterBuilder();   
@@ -67,22 +63,19 @@ namespace Dse.Test.Integration.TestClusterManagement
 
         public void ShutDown()
         {
-            if (Cluster != null)
-            {
-                Cluster.Shutdown();   
-            }
+            Cluster?.Shutdown();
             _ccm.Stop();
         }
 
         public void Remove()
         {
-            Trace.TraceInformation("Removing Cluster with Name: '{0}', InitialContactPoint: {1}, and CcmDir: {2}", Name, InitialContactPoint, _ccm.CcmDir);
+            Trace.TraceInformation($"Removing Cluster with Name: '{Name}', InitialContactPoint: {InitialContactPoint}, and CcmDir: {_ccm.CcmDir}");
             _ccm.Remove();
         }
 
         public void Remove(int nodeId)
         {
-            Trace.TraceInformation("Removing node '{0}' from cluster '{1}'", nodeId, Name);
+            Trace.TraceInformation($"Removing node '{nodeId}' from cluster '{Name}'");
             _ccm.Remove(nodeId);
         }
 
@@ -98,12 +91,12 @@ namespace Dse.Test.Integration.TestClusterManagement
 
         public void PauseNode(int nodeId)
         {
-            _ccm.ExecuteCcm(string.Format("node{0} pause", nodeId));
+            _ccm.ExecuteCcm($"node{nodeId} pause");
         }
 
         public void ResumeNode(int nodeId)
         {
-            _ccm.ExecuteCcm(string.Format("node{0} resume", nodeId));
+            _ccm.ExecuteCcm($"node{nodeId} resume");
         }
 
         public void SwitchToThisCluster()
@@ -151,7 +144,7 @@ namespace Dse.Test.Integration.TestClusterManagement
             if (yamlChanges == null) return;
             foreach (var setting in yamlChanges)
             {
-                _ccm.ExecuteCcm("updateconf \"" + setting + "\"");
+                _ccm.ExecuteCcm($"updateconf \"{setting}\"");
             }
         }
     }

@@ -6,9 +6,12 @@
 //
 
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using System.Xml.Linq;
+using Dse.Tasks;
 using Newtonsoft.Json.Linq;
 
 namespace Dse.Test.Integration.TestClusterManagement.Simulacron
@@ -48,13 +51,10 @@ namespace Dse.Test.Integration.TestClusterManagement.Simulacron
         public static SimulacronCluster CreateNew(SimulacronOptions options)
         {
             var simulacronManager = SimulacronManager.Instance;
-            if (!simulacronManager.IsUp())
-            {
-                simulacronManager.Start();
-            }
+            simulacronManager.Start();
             var path = string.Format(CreateClusterPathFormat, options.Nodes, options.GetCassandraVersion(), options.GetDseVersion(), options.Name, 
                 options.ActivityLog, options.NumberOfTokens);
-            var data = Post(path, null).Result;
+            var data = TaskHelper.WaitToComplete(Post(path, null));
             var cluster = new SimulacronCluster(data["id"].ToString());
             cluster.Data = data;
             cluster.DataCenters = new List<SimulacronDataCenter>();
@@ -98,6 +98,26 @@ namespace Dse.Test.Integration.TestClusterManagement.Simulacron
                 }
             }
             return result;
+        }
+
+        public Task Remove()
+        {
+            return Delete(GetPath("cluster"));
+        }
+
+        public SimulacronNode GetNode(string endpoint)
+        {
+            return DataCenters.SelectMany(dc => dc.Nodes).FirstOrDefault(n => n.ContactPoint == endpoint);
+        }
+
+        public SimulacronNode GetNode(IPEndPoint endpoint)
+        {
+            return GetNode(endpoint.ToString());
+        }
+
+        public IEnumerable<SimulacronNode> GetNodes()
+        {
+            return DataCenters.SelectMany(dc => dc.Nodes);
         }
     }
 }

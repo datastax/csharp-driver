@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using NUnit.Framework;
 
@@ -139,6 +140,37 @@ namespace Dse.Test.Unit
             var actual = (TimeUuid[])arr.Clone();
             Array.Sort(actual);
             CollectionAssert.AreEqual(arr, actual);
+        }
+
+        [Test]
+        public void Parse_Test()
+        {
+            const string stringUuid = "3d555680-9886-11e4-8101-010101010101";
+            var timeuuid = TimeUuid.Parse(stringUuid);
+            Assert.AreEqual(TimeUuid.Parse(stringUuid), timeuuid);
+            Assert.AreEqual(DateTimeOffset.Parse("2015-01-10 5:05:05 +0"), timeuuid.GetDate());
+            Assert.AreEqual(stringUuid, timeuuid.ToString());
+        }
+
+        [Test]
+        public void Min_Test()
+        {
+            var timestamp = DateTimeOffset.Now;
+            var timeuuid = TimeUuid.Min(timestamp);
+            Assert.AreEqual(timestamp, timeuuid.GetDate());
+            Assert.AreEqual(new byte[] {0x80, 0x80}, timeuuid.ToByteArray().Skip(8).Take(2));
+            Assert.AreEqual(new byte[] {0x80, 0x80, 0x80, 0x80, 0x80, 0x80}, timeuuid.ToByteArray().Skip(10).Take(6));
+        }
+
+        [Test]
+        public void Max_Test()
+        {
+            var timestamp = DateTimeOffset.Now;
+            var timeuuid = TimeUuid.Max(timestamp);
+            Assert.AreEqual(timestamp, timeuuid.GetDate());
+            // Variant Byte at index 8: 0x7f is changed into 0xbf
+            Assert.AreEqual(new byte[] {0xbf, 0x7f}, timeuuid.ToByteArray().Skip(8).Take(2));
+            Assert.AreEqual(new byte[] {0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f}, timeuuid.ToByteArray().Skip(10).Take(6));
         }
     }
 }

@@ -117,7 +117,7 @@ namespace Dse.Test.Integration.Core
             }
             return tcs.Task;
         }
-        
+
         [Test]
         public void MarkHostDown_PartialPoolConnection()
         {
@@ -218,6 +218,31 @@ namespace Dse.Test.Integration.Core
                     var session = cluster.Connect();
                     TestHelper.Invoke(() => session.Execute("select * from system.local"), 10);
                 });
+            }
+        }
+
+        [Test]
+        [TestCase(ProtocolVersion.MaxSupported, 1)]
+        [TestCase(ProtocolVersion.V2, 2)]
+        public void PoolingOptions_Create_Based_On_Protocol(ProtocolVersion protocolVersion, int coreConnectionLength)
+        {
+            var sCluster = SimulacronCluster.CreateNew(new SimulacronOptions());
+            var options1 = PoolingOptions.Create(protocolVersion);
+            using(var cluster = Cluster.Builder()
+                                       .AddContactPoint(sCluster.InitialContactPoint)
+                                       .WithPoolingOptions(options1)
+                                       .Build())
+            {
+                var session = (Session) cluster.Connect();
+                var allHosts = cluster.AllHosts();
+                var host = allHosts.First();
+                var pool = session.GetOrCreateConnectionPool(host, HostDistance.Local);
+
+                TestHelper.WaitUntil(() =>
+                    pool.OpenConnections == coreConnectionLength);
+                var ports = sCluster.GetConnectedPorts();
+                //coreConnectionLength + 1 (the control connection) 
+                Assert.AreEqual(coreConnectionLength + 1, ports.Count);
             }
         }
     }

@@ -29,3 +29,20 @@ For older Cassandra versions (1.2 and 2.0), the default amount of connections pe
 - Local datacenter: two core connection per host, with eight connections as maximum if the simultaneous requests
 threshold is reached.
 - Remote datacenter: one core connection per host (being two the maximum).
+
+## Get status of the connection pools
+
+You can use `GetState()` extension method to get a point-in-time information of the state of the connections pools to
+ each host.
+ 
+```c#
+ISessionState state = session.GetState();
+foreach (var host in state.GetConnectedHosts())
+{
+    Console.WriteLine($"Host '{host.Address}': " +
+                      $"open connections = {state.GetOpenConnections(host)}; " +
+                      $"in flight queries = {state.GetInFlightQueries(host)}");
+}
+```
+
+[pooling-options-api]: http://docs.datastax.com/en/latest-csharp-driver-api/html/T_Cassandra_PoolingOptions.htm

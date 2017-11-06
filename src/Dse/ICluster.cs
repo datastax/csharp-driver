@@ -5,9 +5,10 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Net;
+
 namespace Dse
 {
     /// <summary>

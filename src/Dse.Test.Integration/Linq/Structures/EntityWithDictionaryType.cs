@@ -7,8 +7,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Dse.Data.Linq;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Mapping;
@@ -27,12 +25,12 @@ namespace Dse.Test.Integration.Linq.Structures
             // create table
             var config = new MappingConfiguration().Define(
                 new Map<EntityWithDictionaryType>()
-                .TableName("EntityWithDictionaryType_" + Randomm.RandomAlphaNum(12))
+                .TableName($"EntityWithDictionaryType_{Randomm.RandomAlphaNum(12)}")
                 .PartitionKey(u => u.Id));
-            Table<EntityWithDictionaryType> table = new Table<EntityWithDictionaryType>(session, config);
+            var table = new Table<EntityWithDictionaryType>(session, config);
             table.Create();
 
-            List<EntityWithDictionaryType> entityList = GetDefaultEntityList();
+            var entityList = GetDefaultEntityList();
             //Insert some data
             foreach (var singleEntity in entityList)
                 table.Insert(singleEntity).Execute();
@@ -42,8 +40,8 @@ namespace Dse.Test.Integration.Linq.Structures
 
         public static List<EntityWithDictionaryType> GetDefaultEntityList()
         {
-            List<EntityWithDictionaryType> entityList = new List<EntityWithDictionaryType>();
-            for (int i = 0; i < DefaultListLength; i++)
+            var entityList = new List<EntityWithDictionaryType>();
+            for (var i = 0; i < DefaultListLength; i++)
             {
                 entityList.Add(GetRandomInstance(i));
             }
@@ -52,17 +50,21 @@ namespace Dse.Test.Integration.Linq.Structures
 
         public static EntityWithDictionaryType GetRandomInstance(int seed = 1)
         {
-            EntityWithDictionaryType entity = new EntityWithDictionaryType();
-            entity.Id = Guid.NewGuid().ToString();
-            entity.DictionaryType = new Dictionary<string, string>() { {"key_" + seed, "val_" + seed} };
+            var entity = new EntityWithDictionaryType
+            {
+                Id = Guid.NewGuid().ToString(),
+                DictionaryType = new Dictionary<string, string>() {{"key_" + seed, "val_" + seed}}
+            };
             return entity;
         }
 
         public EntityWithDictionaryType Clone()
         {
-            EntityWithDictionaryType entity = new EntityWithDictionaryType();
-            entity.Id = Id;
-            entity.DictionaryType = new Dictionary<string, string>(DictionaryType);
+            var entity = new EntityWithDictionaryType
+            {
+                Id = Id,
+                DictionaryType = new Dictionary<string, string>(DictionaryType)
+            };
             return entity;
         }
 

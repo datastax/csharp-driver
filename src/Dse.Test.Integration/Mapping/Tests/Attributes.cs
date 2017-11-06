@@ -18,6 +18,7 @@ using Dse.Mapping.Attributes;
 using Dse.Test.Unit.Mapping.FluentMappings;
 using Dse.Test.Unit.Mapping.Pocos;
 using NUnit.Framework;
+#pragma warning disable 169
 #pragma warning disable 618
 #pragma warning disable 612
 

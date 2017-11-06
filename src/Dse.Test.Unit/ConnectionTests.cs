@@ -10,11 +10,10 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Dse.Responses;
 using Dse.Serialization;
-using Microsoft.IO;
 using Moq;
 using NUnit.Framework;
 
@@ -259,6 +258,40 @@ namespace Dse.Test.Unit
             buffer = GetResultBuffer(1);
             connection.ReadParse(buffer, buffer.Length);
             CollectionAssert.AreEqual(new short[] { 127, 126, 100, 99, 1 }, streamIds);
+        }
+
+        [Test]
+        public async Task ReadParse_While_Disposing_Faults_Tasks_But_Never_Throws()
+        {
+            var connectionMock = GetConnectionMock();
+            var responses = new ConcurrentBag<object>();
+            connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
+                          .Returns(() => new OperationState((ex, r) => responses.Add((object) ex ?? r)));
+            var connection = connectionMock.Object;
+            var bufferBuilder = Enumerable.Empty<byte>();
+            const int totalFrames = 63;
+            for (var i = 0; i < totalFrames; i++)
+            {
+                bufferBuilder = bufferBuilder.Concat(GetResultBuffer((byte)i));
+            }
+            var buffer = bufferBuilder.ToArray();
+            var schedulerPair = new ConcurrentExclusiveSchedulerPair();
+            var tasks = new List<Task>(buffer.Length);
+            for (var i = 0; i < buffer.Length; i++)
+            {
+                var index = i;
+                tasks.Add(
+                    Task.Factory.StartNew(() => connection.ReadParse(buffer.Skip(index).ToArray(), 1), 
+                        CancellationToken.None, TaskCreationOptions.None, schedulerPair.ExclusiveScheduler));
+            }
+            var random = new Random();
+            // Lets wait for some of the read tasks to be completed
+            await tasks[random.Next(20, 50)].ConfigureAwait(false);
+            await Task.Run(() => connection.Dispose()).ConfigureAwait(false);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+            // We must await for a short while until operation states are callback (on the TaskScheduler)
+            await TestHelper.WaitUntilAsync(() => totalFrames == responses.Count, 100, 30);
+            Assert.AreEqual(totalFrames, responses.Count);
         }
 
         /// <summary>

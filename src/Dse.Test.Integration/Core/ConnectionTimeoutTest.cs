@@ -10,6 +10,7 @@ using System;
 using System.Diagnostics;
 using System.Linq.Expressions;
 using Dse.Test.Integration.TestClusterManagement;
+using System.Threading.Tasks;
 
 namespace Dse.Test.Integration.Core
 {
@@ -17,19 +18,25 @@ namespace Dse.Test.Integration.Core
     public class ConnectionTimeoutTest : TestGlobals
     {
         [Test]
-        public void ConnectionDroppingTimeoutTest()
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task ConnectionDroppingTimeoutTest(bool asyncConnection)
         {
             var originalTraceLevel = Diagnostics.CassandraTraceSwitch.Level;
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
             var sw = Stopwatch.StartNew();
-            Assert.Throws<NoHostAvailableException>(() =>
+            try
             {
                 var builder = new Builder().WithDefaultKeyspace("system")
                                            .AddContactPoints("1.1.1.1") // IP address that drops (not rejects !) the inbound connection
                                            .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(700));
                 var cluster = builder.Build();
-                cluster.Connect();
-            });
+                await Connect(cluster, asyncConnection, session =>{});
+                Assert.Fail();
+            }
+            catch (NoHostAvailableException)
+            {
+            }
             sw.Stop();
             // Consider timer precision ~16ms
             Assert.Greater(sw.Elapsed.TotalMilliseconds, 684, "The connection timeout was not respected");

@@ -5,60 +5,26 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-﻿using System;
-using System.Reflection;
-﻿using System.Threading;
-﻿using System.Threading.Tasks;
+using System;
+using System.Runtime.ExceptionServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Dse.Tasks
 {
     internal static class TaskHelper
     {
-        private static readonly MethodInfo PreserveStackMethod;
-        private static readonly Action<Exception> PreserveStackHandler = ex => { };
-        private static readonly Task<bool> CompletedTask;
-
         static TaskHelper()
         {
-            try
-            {
-                TaskCompletionSource<bool> tcs = new TaskCompletionSource<bool>();
-                tcs.SetResult(false);
-                CompletedTask = tcs.Task;
-                PreserveStackMethod = typeof(Exception).GetTypeInfo().GetMethod("InternalPreserveStackTrace", BindingFlags.Instance | BindingFlags.NonPublic);
-                if (PreserveStackMethod == null)
-                {
-                    return;
-                }
-                //Only under .NET Framework
-                PreserveStackHandler = ex =>
-                {
-                    try
-                    {
-                        //This could result in a MemberAccessException
-                        PreserveStackMethod.Invoke(ex, null);
-                    }
-                    catch
-                    {
-                        //Tried to preserve the stack trace, failed.
-                        //Move on on.
-                    }
-                };
-            }
-            catch
-            {
-                //Do nothing
-                //Do not throw exceptions on static constructors
-            }
+            var tcs = new TaskCompletionSource<bool>();
+            tcs.SetResult(false);
+            Completed = tcs.Task;
         }
 
         /// <summary>
         /// Gets a single completed task
         /// </summary>
-        public static Task<bool> Completed
-        {
-            get { return CompletedTask; }
-        }
+        public static Task<bool> Completed { get; }
 
         /// <summary>
         /// Returns an AsyncResult according to the .net async programming model (Begin)
@@ -149,7 +115,7 @@ namespace Dse.Tasks
                 //throw the actual exception when there was a single exception
                 if (ex.InnerExceptions.Count == 1)
                 {
-                    throw PreserveStackTrace(ex.InnerExceptions[0]);
+                    ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
                 }
                 throw;
             }
@@ -188,7 +154,7 @@ namespace Dse.Tasks
                 //throw the actual exception when there was a single exception
                 if (ex.InnerExceptions.Count == 1)
                 {
-                    throw PreserveStackTrace(ex.InnerExceptions[0]);
+                    ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
                 }
                 throw;
             }
@@ -210,15 +176,6 @@ namespace Dse.Tasks
         }
 
         /// <summary>
-        /// Required when retrowing exceptions to maintain the stack trace of the original exception
-        /// </summary>
-        private static Exception PreserveStackTrace(Exception ex)
-        {
-            PreserveStackHandler(ex);
-            return ex;
-        }
-
-        /// <summary>
         /// Smart ContinueWith that executes the sync delegate once the initial task is completed and returns 
         /// a Task of the result of sync delegate while propagating exceptions
         /// </summary>
@@ -235,24 +192,6 @@ namespace Dse.Tasks
             {
                 DoNextAndHandle(tcs, previousTask, next);
             }, options);
-            return tcs.Task;
-        }
-
-        /// <summary>
-        /// Invokes the next function immediately and assigns the result to a Task
-        /// </summary>
-        private static Task<TOut> DoNext<TIn, TOut>(Task<TIn> task, Func<Task<TIn>, TOut> next)
-        {
-            var tcs = new TaskCompletionSource<TOut>();
-            try
-            {
-                var res = next(task);
-                tcs.TrySetResult(res);
-            }
-            catch (Exception ex)
-            {
-                tcs.TrySetException(ex);
-            }
             return tcs.Task;
         }
 
@@ -346,6 +285,9 @@ namespace Dse.Tasks
 
         private static void SetInnerException<T>(TaskCompletionSource<T> tcs, AggregateException ex)
         {
+            // We are setting the Task from the tcs as faulted
+            // The previous AggregateException is handled
+            ex.Handle(_ => true);
             tcs.TrySetException(ex.InnerException);
         }
 
@@ -424,11 +366,15 @@ namespace Dse.Tasks
         }
 
         /// <summary>
-        /// Designed for Tasks that were started but the result should not be awaited upon (fire and forget)
+        /// Designed for Tasks that were started but the result should not be awaited upon (fire and forget).
         /// </summary>
-        public static void Forget(this Task t)
+        public static void Forget(this Task task)
         {
-            // Avoid compiler warning CS4014
+            // Avoid compiler warning CS4014 and Unobserved exceptions
+            task?.ContinueWith(t =>
+            {
+                t.Exception?.Handle(_ => true);
+            }, TaskContinuationOptions.ExecuteSynchronously);
         }
     }
 }

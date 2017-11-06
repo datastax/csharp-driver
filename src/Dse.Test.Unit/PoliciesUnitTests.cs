@@ -417,23 +417,23 @@ namespace Dse.Test.Unit
             var policy = DowngradingConsistencyRetryPolicy.Instance.Wrap(null);
             var dummyStatement = new SimpleStatement().SetRetryPolicy(policy);
             //Retry if 1 of 2 replicas are alive
-            var decision = RequestExecution<RowSet>.GetRetryDecision(
+            var decision = RequestExecution.GetRetryDecision(
                 new UnavailableException(ConsistencyLevel.Two, 2, 1), policy, dummyStatement, config, 0);
             Assert.True(decision != null && decision.DecisionType == RetryDecision.RetryDecisionType.Retry);
 
             //Retry if 2 of 3 replicas are alive
-            decision = RequestExecution<RowSet>.GetRetryDecision(
+            decision = RequestExecution.GetRetryDecision(
                 new UnavailableException(ConsistencyLevel.Three, 3, 2), policy, dummyStatement, config, 0);
             Assert.True(decision != null && decision.DecisionType == RetryDecision.RetryDecisionType.Retry);
 
             //Throw if 0 replicas are alive
-            decision = RequestExecution<RowSet>.GetRetryDecision(
+            decision = RequestExecution.GetRetryDecision(
                 new UnavailableException(ConsistencyLevel.Three, 3, 0), policy, dummyStatement, config, 0);
             Assert.True(decision != null && decision.DecisionType == RetryDecision.RetryDecisionType.Rethrow);
 
             //Retry if 1 of 3 replicas is alive
             decision =
-                RequestExecution<RowSet>.GetRetryDecision(new ReadTimeoutException(ConsistencyLevel.All, 3, 1, false),
+                RequestExecution.GetRetryDecision(new ReadTimeoutException(ConsistencyLevel.All, 3, 1, false),
                     policy, dummyStatement, config, 0);
             Assert.True(decision != null && decision.DecisionType == RetryDecision.RetryDecisionType.Retry);
         }

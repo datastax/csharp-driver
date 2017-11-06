@@ -80,7 +80,7 @@ namespace Dse.Test.Integration.Core
             Cluster.MaxProtocolVersion = 2;
             try
             {
-                var pooling = new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 1);
+                var pooling = PoolingOptions.Create();
                 var session = GetSession(new ConstantSpeculativeExecutionPolicy(50L, 1), true, null, pooling);
                 const int pauseThreshold = 140 * 2;
                 var tasks = new List<Task<IPAddress>>();

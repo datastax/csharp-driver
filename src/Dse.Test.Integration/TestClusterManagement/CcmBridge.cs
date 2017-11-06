@@ -22,6 +22,7 @@ namespace Dse.Test.Integration.TestClusterManagement
     {
         public DirectoryInfo CcmDir { get; private set; }
         public const int DefaultCmdTimeout = 90 * 1000;
+        public const int StartCmdTimeout = 150 * 1000;
         public string Name { get; private set; }
         public string Version { get; private set; }
         public string IpPrefix { get; private set; }
@@ -101,7 +102,7 @@ namespace Dse.Test.Integration.TestClusterManagement
                     parameters.Add(arg);
                 }
             }
-            ExecuteCcm(string.Join(" ", parameters));
+            ExecuteCcm(string.Join(" ", parameters), StartCmdTimeout);
         }
 
         public void Populate(int dc1NodeLength, int dc2NodeLength, bool useVNodes)

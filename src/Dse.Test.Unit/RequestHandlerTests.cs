@@ -47,7 +47,7 @@ namespace Dse.Test.Unit
             var stmt = new SimpleStatement("DUMMY QUERY");
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
-            var request = (QueryRequest)RequestHandler<RowSet>.GetRequest(stmt, Serializer, GetConfig());
+            var request = (QueryRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
             Assert.AreEqual(DefaultQueryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(DefaultQueryOptions.GetConsistencyLevel(), request.Consistency);
         }
@@ -59,7 +59,7 @@ namespace Dse.Test.Unit
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
             var queryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalQuorum).SetPageSize(100);
-            var request = (QueryRequest)RequestHandler<RowSet>.GetRequest(stmt, Serializer, GetConfig(queryOptions));
+            var request = (QueryRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig(queryOptions));
             Assert.AreEqual(100, request.PageSize);
             Assert.AreEqual(queryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(queryOptions.GetConsistencyLevel(), request.Consistency);
@@ -76,7 +76,7 @@ namespace Dse.Test.Unit
             Assert.AreEqual(350, stmt.PageSize);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, stmt.ConsistencyLevel);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, stmt.SerialConsistencyLevel);
-            var request = (QueryRequest)RequestHandler<RowSet>.GetRequest(stmt, Serializer, GetConfig());
+            var request = (QueryRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
             Assert.AreEqual(350, request.PageSize);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, request.Consistency);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, request.SerialConsistency);
@@ -89,7 +89,7 @@ namespace Dse.Test.Unit
             var stmt = ps.Bind();
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
-            var request = (ExecuteRequest)RequestHandler<RowSet>.GetRequest(stmt, Serializer, GetConfig());
+            var request = (ExecuteRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
             Assert.AreEqual(DefaultQueryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(DefaultQueryOptions.GetConsistencyLevel(), request.Consistency);
         }
@@ -102,7 +102,7 @@ namespace Dse.Test.Unit
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
             var queryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalQuorum).SetPageSize(100);
-            var request = (ExecuteRequest)RequestHandler<RowSet>.GetRequest(stmt, Serializer, GetConfig(queryOptions));
+            var request = (ExecuteRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig(queryOptions));
             Assert.AreEqual(100, request.PageSize);
             Assert.AreEqual(queryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(queryOptions.GetConsistencyLevel(), request.Consistency);
@@ -120,7 +120,7 @@ namespace Dse.Test.Unit
             Assert.AreEqual(350, stmt.PageSize);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, stmt.ConsistencyLevel);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, stmt.SerialConsistencyLevel);
-            var request = (ExecuteRequest)RequestHandler<RowSet>.GetRequest(stmt, Serializer, GetConfig());
+            var request = (ExecuteRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
             Assert.AreEqual(350, request.PageSize);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, request.Consistency);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, request.SerialConsistency);
@@ -131,7 +131,7 @@ namespace Dse.Test.Unit
         {
             var stmt = new BatchStatement();
             Assert.Null(stmt.ConsistencyLevel);
-            var request = (BatchRequest)RequestHandler<RowSet>.GetRequest(stmt, Serializer, GetConfig());
+            var request = (BatchRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
             Assert.AreEqual(DefaultQueryOptions.GetConsistencyLevel(), request.Consistency);
         }
 
@@ -141,7 +141,7 @@ namespace Dse.Test.Unit
             var stmt = new BatchStatement();
             Assert.Null(stmt.ConsistencyLevel);
             var queryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalQuorum);
-            var request = (BatchRequest)RequestHandler<RowSet>.GetRequest(stmt, Serializer, GetConfig(queryOptions));
+            var request = (BatchRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig(queryOptions));
             Assert.AreEqual(queryOptions.GetConsistencyLevel(), request.Consistency);
         }
 
@@ -151,7 +151,7 @@ namespace Dse.Test.Unit
             var stmt = new BatchStatement();
             stmt.SetConsistencyLevel(ConsistencyLevel.EachQuorum);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, stmt.ConsistencyLevel);
-            var request = (BatchRequest)RequestHandler<RowSet>.GetRequest(stmt, Serializer, GetConfig());
+            var request = (BatchRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
             Assert.AreEqual(ConsistencyLevel.EachQuorum, request.Consistency);
         }
 
@@ -163,31 +163,31 @@ namespace Dse.Test.Unit
             var statement = new SimpleStatement("SELECT WILL FAIL");
             //Using default retry policy the decision will always be to rethrow on read/write timeout
             var expected = RetryDecision.RetryDecisionType.Rethrow;
-            var decision = RequestExecution<RowSet>.GetRetryDecision(
+            var decision = RequestExecution.GetRetryDecision(
                 new ReadTimeoutException(ConsistencyLevel.Quorum, 1, 2, true), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
 
-            decision = RequestExecution<RowSet>.GetRetryDecision(
+            decision = RequestExecution.GetRetryDecision(
                 new WriteTimeoutException(ConsistencyLevel.Quorum, 1, 2, "SIMPLE"), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
 
-            decision = RequestExecution<RowSet>.GetRetryDecision(
+            decision = RequestExecution.GetRetryDecision(
                 new UnavailableException(ConsistencyLevel.Quorum, 2, 1), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
 
-            decision = RequestExecution<RowSet>.GetRetryDecision(
+            decision = RequestExecution.GetRetryDecision(
                 new Exception(), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
 
             //Expecting to retry when a Cassandra node is Bootstrapping/overloaded
             expected = RetryDecision.RetryDecisionType.Retry;
-            decision = RequestExecution<RowSet>.GetRetryDecision(
+            decision = RequestExecution.GetRetryDecision(
                 new OverloadedException(null), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
-            decision = RequestExecution<RowSet>.GetRetryDecision(
+            decision = RequestExecution.GetRetryDecision(
                 new IsBootstrappingException(null), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
-            decision = RequestExecution<RowSet>.GetRetryDecision(
+            decision = RequestExecution.GetRetryDecision(
                 new TruncateException(null), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
         }
@@ -198,7 +198,7 @@ namespace Dse.Test.Unit
             // Timestamp generator should be enabled by default
             var statement = new SimpleStatement("QUERY");
             var config = new Configuration();
-            var request = RequestHandler<RowSet>.GetRequest(statement, Serializer, config);
+            var request = RequestHandler.GetRequest(statement, Serializer, config);
             var stream = new MemoryStream();
             request.WriteFrame(1, stream, Serializer);
             var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);
@@ -238,9 +238,9 @@ namespace Dse.Test.Unit
                 Dse.Policies.DefaultRetryPolicy, Dse.Policies.DefaultSpeculativeExecutionPolicy, 
                 new NoTimestampGenerator());
             var config = new Configuration(
-                policies, new ProtocolOptions(), PoolingOptions.GetDefault(ProtocolVersion.MaxSupported), new SocketOptions(), new ClientOptions(),
+                policies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(), new ClientOptions(),
                 NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
-            var request = RequestHandler<RowSet>.GetRequest(statement, Serializer.Default, config);
+            var request = RequestHandler.GetRequest(statement, Serializer.Default, config);
             var stream = new MemoryStream();
             request.WriteFrame(1, stream, Serializer);
             var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);
@@ -277,9 +277,9 @@ namespace Dse.Test.Unit
                 Dse.Policies.DefaultRetryPolicy, Dse.Policies.DefaultSpeculativeExecutionPolicy, 
                 new NoTimestampGenerator());
             var config = new Configuration(
-                policies, new ProtocolOptions(), PoolingOptions.GetDefault(ProtocolVersion.MaxSupported), new SocketOptions(), new ClientOptions(),
+                policies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(), new ClientOptions(),
                 NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
-            var request = RequestHandler<RowSet>.GetRequest(statement, Serializer, config);
+            var request = RequestHandler.GetRequest(statement, Serializer, config);
             var stream = new MemoryStream();
             request.WriteFrame(1, stream, Serializer);
             var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);
@@ -303,6 +303,134 @@ namespace Dse.Test.Unit
             offset += 5;
             var timestamp = BeConverter.ToInt64(bodyBuffer, offset);
             Assert.AreEqual(TypeSerializer.SinceUnixEpoch(expectedTimestamp).Ticks / 10, timestamp);
+        }
+
+        [Test]
+        public void GetRequest_Batch_With_64K_Queries()
+        {
+            var batch = new BatchStatement();
+            for (var i = 0; i < ushort.MaxValue; i++)
+            {
+                batch.Add(new SimpleStatement("QUERY"));
+            }
+            var config = new Configuration(
+                Dse.Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
+                new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
+            var request = RequestHandler.GetRequest(batch, Serializer, config);
+            var stream = new MemoryStream();
+            request.WriteFrame(1, stream, Serializer);
+            var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);
+            var bodyBuffer = new byte[stream.Length - headerSize];
+            stream.Position = headerSize;
+            stream.Read(bodyBuffer, 0, bodyBuffer.Length);
+            // The batch request is composed by:
+            // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
+            CollectionAssert.AreEqual(new byte[] {0xff, 0xff}, bodyBuffer.Skip(1).Take(2));
+        }
+
+        [Test]
+        public void GetRequest_Batch_With_Timestamp_Generator()
+        {
+            var batch = new BatchStatement();
+            batch.Add(new SimpleStatement("QUERY"));
+            var startDate = DateTimeOffset.Now;
+            // To microsecond precision
+            startDate = startDate.Subtract(TimeSpan.FromTicks(startDate.Ticks % 10));
+            var config = new Configuration(
+                Dse.Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
+                new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(),
+                new DefaultAddressTranslator());
+            var request = RequestHandler.GetRequest(batch, Serializer, config);
+            var stream = new MemoryStream();
+            request.WriteFrame(1, stream, Serializer);
+            var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);
+            var bodyBuffer = new byte[stream.Length - headerSize];
+            stream.Position = headerSize;
+            stream.Read(bodyBuffer, 0, bodyBuffer.Length);
+            // The batch request is composed by:
+            // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
+            var offset = 1;
+            // n = 1
+            Assert.AreEqual(1, BeConverter.ToInt16(bodyBuffer, offset));
+            // Query_1 <kind><string><n_params>
+            offset += 2;
+            // kind = 0, not prepared
+            Assert.AreEqual(0, bodyBuffer[offset++]);
+            var queryLength = BeConverter.ToInt32(bodyBuffer, offset);
+            Assert.AreEqual(5, queryLength);
+            // skip query, n_params and consistency
+            offset += 4 + queryLength + 2 + 2;
+            var flags = (QueryFlags)bodyBuffer[offset++];
+            Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
+            var timestamp = TypeSerializer.UnixStart.AddTicks(BeConverter.ToInt64(bodyBuffer, offset) * 10);
+            Assert.GreaterOrEqual(timestamp,  startDate);
+            Assert.LessOrEqual(timestamp, DateTimeOffset.Now.Add(TimeSpan.FromMilliseconds(100)));
+        }
+        
+        [Test]
+        public void GetRequest_Batch_With_Empty_Timestamp_Generator()
+        {
+            var batch = new BatchStatement();
+            batch.Add(new SimpleStatement("QUERY"));
+            var policies = new Dse.Policies(
+                Dse.Policies.DefaultLoadBalancingPolicy, Dse.Policies.DefaultReconnectionPolicy,
+                Dse.Policies.DefaultRetryPolicy, Dse.Policies.DefaultSpeculativeExecutionPolicy,
+                new NoTimestampGenerator());
+            var config = new Configuration(
+                policies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
+                new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(),
+                new DefaultAddressTranslator());
+            var request = RequestHandler.GetRequest(batch, Serializer, config);
+            var stream = new MemoryStream();
+            request.WriteFrame(1, stream, Serializer);
+            var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);
+            var bodyBuffer = new byte[stream.Length - headerSize];
+            stream.Position = headerSize;
+            stream.Read(bodyBuffer, 0, bodyBuffer.Length);
+            // The batch request is composed by:
+            // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
+            var offset = 1 + 2 + 1;
+            var queryLength = BeConverter.ToInt32(bodyBuffer, offset);
+            Assert.AreEqual(5, queryLength);
+            // skip query, n_params and consistency
+            offset += 4 + queryLength + 2 + 2;
+            var flags = (QueryFlags)bodyBuffer[offset++];
+            Assert.False(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
+            // No more data
+            Assert.AreEqual(bodyBuffer.Length, offset);
+        }
+
+        [Test]
+        public void GetRequest_Batch_With_Provided_Timestamp()
+        {
+            var batch = new BatchStatement();
+            batch.Add(new SimpleStatement("QUERY"));
+            var providedTimestamp = DateTimeOffset.Now;
+            // To microsecond precision
+            providedTimestamp = providedTimestamp.Subtract(TimeSpan.FromTicks(providedTimestamp.Ticks % 10));
+            batch.SetTimestamp(providedTimestamp);
+            var config = new Configuration(
+                Dse.Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
+                new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(),
+                new DefaultAddressTranslator());
+            var request = RequestHandler.GetRequest(batch, Serializer, config);
+            var stream = new MemoryStream();
+            request.WriteFrame(1, stream, Serializer);
+            var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);
+            var bodyBuffer = new byte[stream.Length - headerSize];
+            stream.Position = headerSize;
+            stream.Read(bodyBuffer, 0, bodyBuffer.Length);
+            // The batch request is composed by:
+            // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
+            var offset = 1 + 2 + 1;
+            var queryLength = BeConverter.ToInt32(bodyBuffer, offset);
+            Assert.AreEqual(5, queryLength);
+            // skip query, n_params and consistency
+            offset += 4 + queryLength + 2 + 2;
+            var flags = (QueryFlags)bodyBuffer[offset++];
+            Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
+            var timestamp = TypeSerializer.UnixStart.AddTicks(BeConverter.ToInt64(bodyBuffer, offset) * 10);
+            Assert.AreEqual(providedTimestamp, timestamp);
         }
         
         /// <summary>

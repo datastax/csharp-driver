@@ -104,8 +104,8 @@ namespace Dse.Requests
             wb.WriteLongString(_cqlQuery);
             if (_queryOptions.Values == null || _queryOptions.Values.Length == 0)
             {
-                //not values
-                wb.WriteInt16(0);
+                // No values
+                wb.WriteUInt16(0);
             }
             else
             {

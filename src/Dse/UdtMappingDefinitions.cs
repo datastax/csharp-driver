@@ -5,10 +5,9 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-﻿using System;
+using System;
 using System.Collections.Concurrent;
-﻿using Dse.Serialization;
-using System.Threading.Tasks;
+ ﻿using Dse.Serialization;using System.Threading.Tasks;
 using Dse.Tasks;
 
 namespace Dse
@@ -85,7 +84,7 @@ namespace Dse
             var udtDefinition = await _cluster.Metadata.GetUdtDefinitionAsync(keyspace, caseSensitiveUdtName).ConfigureAwait(false);
             if (udtDefinition == null)
             {
-                throw new InvalidTypeException(caseSensitiveUdtName + " UDT not found on keyspace " + keyspace);
+                throw new InvalidTypeException($"{caseSensitiveUdtName} UDT not found on keyspace {keyspace}");
             }
             return udtDefinition;
         }
