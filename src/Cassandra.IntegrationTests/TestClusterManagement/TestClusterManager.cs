@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement
 {
@@ -84,7 +85,15 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             testCluster.Create(nodeLength, options);
             if (startCluster)
             {
-                testCluster.Start(options.JvmArgs);   
+                try
+                {
+                    testCluster.Start(options.JvmArgs);
+                }
+                catch (TestInfrastructureException) when (nodeLength >= 3 && TestHelper.IsWin)
+                {
+                    // On Windows, ccm might timeout with 3 or more nodes, give it another chance
+                    testCluster.Start(options.JvmArgs);
+                }
             }
             LastInstance = testCluster;
             return testCluster;
