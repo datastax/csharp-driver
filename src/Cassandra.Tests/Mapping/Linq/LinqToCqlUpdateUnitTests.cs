@@ -193,15 +193,6 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Execute();
             Assert.AreEqual("UPDATE songs SET title = ? WHERE id = ? IF EXISTS", query);
             CollectionAssert.AreEqual(new object[] { "When The Sun Goes Down", id }, parameters);
-            
-            //IF NOT EXISTS
-            table
-                .Where(t => t.Id == id)
-                .Select(t => new Song { Title = "Cornerstone" })
-                .UpdateIfNotExists()
-                .Execute();
-            Assert.AreEqual("UPDATE songs SET title = ? WHERE id = ? IF NOT EXISTS", query);
-            CollectionAssert.AreEqual(new object[] { "Cornerstone", id }, parameters);
         }
 
         [Test]
