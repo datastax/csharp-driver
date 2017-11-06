@@ -40,8 +40,11 @@ namespace Cassandra
         private const int WriteStateInit = 0;
         private const int WriteStateRunning = 1;
         private const int WriteStateClosed = 2;
+        private const string StreamReadTag = nameof(Connection) + "/Read";
+        private const string StreamWriteTag = nameof(Connection) + "/Write";
 
         private static readonly Logger Logger = new Logger(typeof(Connection));
+        
         private readonly Serializer _serializer;
         private readonly TcpSocket _tcpSocket;
         private long _disposed;
@@ -533,7 +536,7 @@ namespace Cassandra
                     StoreReadState(header, stream, buffer, offset, length, operationCallbacks.Count > 0);
                     break;
                 }
-                stream = stream ?? Configuration.BufferPool.GetStream(typeof (Connection) + "/Read");
+                stream = stream ?? Configuration.BufferPool.GetStream(StreamReadTag);
                 var state = header.Opcode != EventResponse.OpCode
                     ? RemoveFromPending(header.StreamId)
                     : new OperationState(EventHandler);
@@ -598,7 +601,7 @@ namespace Cassandra
             else
             {
                 // Allocate a new stream for store in it
-                nextMessageStream = Configuration.BufferPool.GetStream(typeof(Connection) + "/Read");
+                nextMessageStream = Configuration.BufferPool.GetStream(StreamReadTag);
             }
             nextMessageStream.Write(buffer, offset, length - offset);
             Interlocked.Exchange(ref _readStream, nextMessageStream);
@@ -778,7 +781,7 @@ namespace Cassandra
                 try
                 {
                     //lazy initialize the stream
-                    stream = stream ?? (RecyclableMemoryStream) Configuration.BufferPool.GetStream(GetType().Name + "/SendStream");
+                    stream = stream ?? (RecyclableMemoryStream) Configuration.BufferPool.GetStream(StreamWriteTag);
                     frameLength = state.Request.WriteFrame(streamId, stream, _serializer);
                     if (state.TimeoutMillis > 0)
                     {

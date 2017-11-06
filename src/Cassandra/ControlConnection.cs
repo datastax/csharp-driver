@@ -151,7 +151,7 @@ namespace Cassandra
             {
                 throw new NoHostAvailableException(triedHosts);
             }
-            var host = hostsEnumerator.Current;
+            var host = hostsEnumerator.Current ?? throw new NullReferenceException("Host should not be null");
             var c = new Connection(_serializer, host.Address, _config);
             // Use a task to workaround "no awaiting in catch"
             Task<bool> nextTask;
@@ -260,7 +260,7 @@ namespace Cassandra
             return await tcs.Task.ConfigureAwait(false);
         }
 
-        internal async Task Refresh()
+        private async Task Refresh()
         {
             if (Interlocked.Increment(ref _refreshCounter) != 1)
             {
@@ -514,7 +514,7 @@ namespace Cassandra
         /// <summary>
         /// Uses system.peers values to build the Address translator
         /// </summary>
-        internal static IPEndPoint GetAddressForPeerHost(Row row, IAddressTranslator translator, int port)
+        private static IPEndPoint GetAddressForPeerHost(Row row, IAddressTranslator translator, int port)
         {
             var address = row.GetValue<IPAddress>("rpc_address");
             if (address == null)
@@ -548,8 +548,8 @@ namespace Cassandra
             }
             catch (SocketException ex)
             {
-                const string message = "There was an error while executing on the host {0} the query '{1}'";
-                _logger.Error(string.Format(message, cqlQuery, _connection.Address), ex);
+                _logger.Error(
+                    $"There was an error while executing on the host {cqlQuery} the query '{_connection.Address}'", ex);
                 if (!retry)
                 {
                     throw;
@@ -557,7 +557,7 @@ namespace Cassandra
                 // Try reconnect
                 await Reconnect().ConfigureAwait(false);
                 // Query with retry set to false
-                return await QueryAsync(cqlQuery, false).ConfigureAwait(false);
+                return await QueryAsync(cqlQuery).ConfigureAwait(false);
             }
             return GetRowSet(response);
         }
