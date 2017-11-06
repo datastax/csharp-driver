@@ -588,17 +588,17 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
 
         private class SimplePocoWithPartitionKey
         {
-            public readonly string StringTyp = "someStringValue";
+            public string StringTyp = "someStringValue";
             [Cassandra.Mapping.Attributes.PartitionKey]
-            public readonly string StringType = "someStringValue";
-            public readonly string StringTypeNotPartitionKey = "someStringValueNotPk";
+            public string StringType = "someStringValue";
+            public string StringTypeNotPartitionKey = "someStringValueNotPk";
         }
 
         private class PocoWithIgnoredAttributes
         {
             [Cassandra.Mapping.Attributes.PartitionKey]
             public string SomePartitionKey = "somePartitionKeyDefaultValue";
-            public readonly double SomeNonIgnoredDouble = 123456;
+            public double SomeNonIgnoredDouble = 123456;
             [Cassandra.Mapping.Attributes.Ignore]
             public string IgnoredStringAttribute = "someIgnoredString";
         }
@@ -615,7 +615,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             public string SomePartitionKey = "somePartitionKeyDefaultValue";
 
             [Cassandra.Data.Linq.Column("somenonignoreddouble")]
-            public readonly double SomeNonIgnoredDouble = 123456;
+            public double SomeNonIgnoredDouble = 123456;
 
             [Cassandra.Mapping.Attributes.Ignore]
             [Cassandra.Data.Linq.Column(Attributes.IgnoredStringAttribute)]
@@ -645,7 +645,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// </summary>
         private class PocoWithOnlyPartitionKeyNotLabeled
         {
-            public readonly string SomeString = "somestring_value";
+            public string SomeString = "somestring_value";
         }
 
         /// <summary>
@@ -663,7 +663,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         private class PocoMislabeledClusteringKey
         {
             [Cassandra.Mapping.Attributes.ClusteringKey]
-            public readonly string SomeString = "someStringValue";
+            public string SomeString = "someStringValue";
         }
 
         /// <summary>
@@ -681,8 +681,8 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         private class PocoWithPartitionKeyIncluded
         {
             [Cassandra.Mapping.Attributes.PartitionKey]
-            public readonly string SomeString = "somePartitionKeyDefaultValue";
-            public readonly double SomeDouble = 123456;
+            public string SomeString = "somePartitionKeyDefaultValue";
+            public double SomeDouble = 123456;
             public List<string> SomeList = new List<string>();
         }
 
