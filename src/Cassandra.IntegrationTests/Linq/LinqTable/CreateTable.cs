@@ -15,12 +15,10 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Mapping;
 using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
@@ -53,7 +51,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_CreateIfNotExist()
         {
-            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             table.CreateIfNotExists();
             WriteReadValidate(table);
         }
@@ -64,7 +62,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_Create()
         {
-            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             table.Create();
             WriteReadValidate(table);
         }
@@ -76,8 +74,8 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_Create_NameOverride()
         {
-            string uniqueTableName = TestUtils.GetUniqueTableName();
-            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration(), uniqueTableName);
+            var uniqueTableName = TestUtils.GetUniqueTableName();
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration(), uniqueTableName);
             Assert.AreEqual(uniqueTableName, table.Name);
             table.Create();
             Assert.IsTrue(TestUtils.TableExists(_session, _uniqueKsName, uniqueTableName, true));
@@ -106,12 +104,12 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             // First table name creation works as expected
             const string staticTableName = "staticTableName_1";
             var mappingConfig1 = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(staticTableName).CaseSensitive().PartitionKey(c => c.StringType));
-            Table<AllDataTypesEntity> allDataTypesTable = new Table<AllDataTypesEntity>(_session, mappingConfig1);
+            var allDataTypesTable = new Table<AllDataTypesEntity>(_session, mappingConfig1);
             allDataTypesTable.Create();
 
             // Second creation attempt with same table name should fail
             var mappingConfig2 = new MappingConfiguration().Define(new Map<Movie>().TableName(staticTableName).CaseSensitive().PartitionKey(c => c.Title));
-            Table<Movie> movieTable = new Table<Movie>(_session, mappingConfig2);
+            var movieTable = new Table<Movie>(_session, mappingConfig2);
             Assert.Throws<AlreadyExistsException>(() => movieTable.Create());
         }
 
@@ -126,11 +124,11 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             // First table name creation works as expected
             const string staticTableName = "staticTableName_2";
             var mappingConfig = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(staticTableName).CaseSensitive().PartitionKey(c => c.StringType));
-            Table<AllDataTypesEntity> allDataTypesTable = new Table<AllDataTypesEntity>(_session, mappingConfig);
+            var allDataTypesTable = new Table<AllDataTypesEntity>(_session, mappingConfig);
             allDataTypesTable.Create();
 
             // Second creation attempt with same table name should fail
-            Table<Movie> movieTable = new Table<Movie>(_session, new MappingConfiguration(), staticTableName);
+            var movieTable = new Table<Movie>(_session, new MappingConfiguration(), staticTableName);
             Assert.Throws<AlreadyExistsException>(() => movieTable.Create());
         }
 
@@ -141,9 +139,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_Create_KeyspaceOverride_NoSuchKeyspace()
         {
-            string uniqueTableName = TestUtils.GetUniqueTableName();
-            string uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
+            var uniqueTableName = TestUtils.GetUniqueTableName();
+            var uniqueKsName = TestUtils.GetUniqueKeyspaceName();
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
             Assert.Throws<InvalidConfigurationInQueryException>(() => table.Create());
         }
 
@@ -154,9 +152,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_CreateIfNotExists_KeyspaceOverride_NoSuchKeyspace()
         {
-            string uniqueTableName = TestUtils.GetUniqueTableName();
-            string uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            Table<AllDataTypesEntity> table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
+            var uniqueTableName = TestUtils.GetUniqueTableName();
+            var uniqueKsName = TestUtils.GetUniqueKeyspaceName();
+            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
             Assert.Throws<InvalidConfigurationInQueryException>(() => table.CreateIfNotExists());
         }
 
@@ -168,18 +166,18 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         public void TableCreate_Create_TwoTablesSameName_TwoKeyspacesDifferentNames_KeyspaceOverride()
         {
             // Setup first table
-            string sharedTableName = typeof (AllDataTypesEntity).Name;
+            var sharedTableName = typeof (AllDataTypesEntity).Name;
             var mappingConfig = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(sharedTableName).CaseSensitive().PartitionKey(c => c.StringType));
-            Table<AllDataTypesEntity> table1 = new Table<AllDataTypesEntity>(_session, mappingConfig);
+            var table1 = new Table<AllDataTypesEntity>(_session, mappingConfig);
             table1.Create();
             Assert.IsTrue(TestUtils.TableExists(_session, _uniqueKsName, sharedTableName, true)); 
             WriteReadValidate(table1);
 
             // Create second table with same name in new keyspace
-            string newUniqueKsName = TestUtils.GetUniqueKeyspaceName();
+            var newUniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(newUniqueKsName);
             Assert.AreNotEqual(_uniqueKsName, newUniqueKsName);
-            Table<AllDataTypesEntity> table2 = new Table<AllDataTypesEntity>(_session, mappingConfig, sharedTableName, newUniqueKsName);
+            var table2 = new Table<AllDataTypesEntity>(_session, mappingConfig, sharedTableName, newUniqueKsName);
             table2.Create();
             Assert.IsTrue(TestUtils.TableExists(_session, newUniqueKsName, sharedTableName, true)); 
             WriteReadValidate(table2);
@@ -198,10 +196,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_ClassMissingPartitionKey()
         {
-            MappingConfiguration mappingConfig = new MappingConfiguration();
+            var mappingConfig = new MappingConfiguration();
             mappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(PrivateClassMissingPartitionKey),
                  () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(PrivateClassMissingPartitionKey)));
-            Table<PrivateClassMissingPartitionKey> table = new Table<PrivateClassMissingPartitionKey>(_session, mappingConfig);
+            var table = new Table<PrivateClassMissingPartitionKey>(_session, mappingConfig);
 
             try
             {
@@ -219,10 +217,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_ClassEmpty()
         {
-            MappingConfiguration mappingConfig = new MappingConfiguration();
+            var mappingConfig = new MappingConfiguration();
             mappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(PrivateEmptyClass),
                  () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(PrivateEmptyClass)));
-            Table<PrivateEmptyClass> table = new Table<PrivateEmptyClass>(_session, mappingConfig);
+            var table = new Table<PrivateEmptyClass>(_session, mappingConfig);
 
             try
             {
@@ -315,97 +313,67 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             Assert.AreEqual(ColumnTypeCode.Map, column.TypeCode);
         }
 
+        /// <summary>
+        /// Successfully create a table using the null column name
+        /// </summary>
+        [Test, TestCassandraVersion(2, 0)]
+        public void TableCreate_CreateWithPropertyName()
+        {
+            var table = new Table<TestEmptyClusteringColumnName>(_session, MappingConfiguration.Global);
+            table.CreateIfNotExists();
+            _session.Execute(new SimpleStatement("insert into test_empty_clustering_column_name (id, cluster, value) " +
+                                                 "values (1, 'c1','v1')"));
+        }
+
         ///////////////////////////////////////////////
         // Test Helpers
         //////////////////////////////////////////////
 
         // AllDataTypes
 
-        private AllDataTypesEntity WriteReadValidateUsingTableMethods(Table<AllDataTypesEntity> table)
+        private void WriteReadValidateUsingTableMethods(Table<AllDataTypesEntity> table)
         {
-            AllDataTypesEntity expectedDataTypesEntityRow = AllDataTypesEntity.GetRandomInstance();
-            string uniqueKey = expectedDataTypesEntityRow.StringType;
+            var expectedDataTypesEntityRow = AllDataTypesEntity.GetRandomInstance();
+            var uniqueKey = expectedDataTypesEntityRow.StringType;
 
             // insert record
             _session.Execute(table.Insert(expectedDataTypesEntityRow));
 
             // select record
-            List<AllDataTypesEntity> listOfAllDataTypesObjects = (from x in table where x.StringType.Equals(uniqueKey) select x).Execute().ToList();
+            var listOfAllDataTypesObjects = (from x in table where x.StringType.Equals(uniqueKey) select x).Execute().ToList();
             Assert.NotNull(listOfAllDataTypesObjects);
             Assert.AreEqual(1, listOfAllDataTypesObjects.Count);
-            AllDataTypesEntity actualDataTypesEntityRow = listOfAllDataTypesObjects.First();
+            var actualDataTypesEntityRow = listOfAllDataTypesObjects.First();
             expectedDataTypesEntityRow.AssertEquals(actualDataTypesEntityRow);
-            return expectedDataTypesEntityRow;
         }
 
-        private AllDataTypesEntity WriteReadValidateUsingSessionBatch(Table<AllDataTypesEntity> table)
+        private void WriteReadValidateUsingSessionBatch(Table<AllDataTypesEntity> table)
         {
-            Batch batch = _session.CreateBatch();
-            AllDataTypesEntity expectedDataTypesEntityRow = AllDataTypesEntity.GetRandomInstance();
-            string uniqueKey = expectedDataTypesEntityRow.StringType;
+            var batch = _session.CreateBatch();
+            var expectedDataTypesEntityRow = AllDataTypesEntity.GetRandomInstance();
+            var uniqueKey = expectedDataTypesEntityRow.StringType;
             batch.Append(table.Insert(expectedDataTypesEntityRow));
             batch.Execute();
 
-            List<AllDataTypesEntity> listOfAllDataTypesObjects = (from x in table where x.StringType.Equals(uniqueKey) select x).Execute().ToList();
+            var listOfAllDataTypesObjects = (from x in table where x.StringType.Equals(uniqueKey) select x).Execute().ToList();
             Assert.NotNull(listOfAllDataTypesObjects);
             Assert.AreEqual(1, listOfAllDataTypesObjects.Count);
-            AllDataTypesEntity actualDataTypesEntityRow = listOfAllDataTypesObjects.First();
+            var actualDataTypesEntityRow = listOfAllDataTypesObjects.First();
             expectedDataTypesEntityRow.AssertEquals(actualDataTypesEntityRow);
-            return expectedDataTypesEntityRow;
         }
 
 
-        private AllDataTypesEntity WriteReadValidate(Table<AllDataTypesEntity> table)
+        private void WriteReadValidate(Table<AllDataTypesEntity> table)
         {
             WriteReadValidateUsingSessionBatch(table);
-            return WriteReadValidateUsingTableMethods(table);
-        }
-
-        // AllDataTypesNoColumnMeta
-
-        private AllDataTypesNoColumnMeta WriteReadValidate(Table<AllDataTypesNoColumnMeta> table)
-        {
-            WriteReadValidateUsingSessionBatch(table);
-            return WriteReadValidateUsingTableMethods(table);
-        }
-
-        private AllDataTypesNoColumnMeta WriteReadValidateUsingSessionBatch(Table<AllDataTypesNoColumnMeta> table)
-        {
-            Batch batch = _session.CreateBatch();
-            AllDataTypesNoColumnMeta expectedDataTypesRow = AllDataTypesNoColumnMeta.GetRandomInstance();
-            string uniqueKey = expectedDataTypesRow.StringType;
-            batch.Append(table.Insert(expectedDataTypesRow));
-            batch.Execute();
-
-            List<AllDataTypesNoColumnMeta> listOfAllDataTypesObjects = (from x in table where x.StringType.Equals(uniqueKey) select x).Execute().ToList();
-            Assert.NotNull(listOfAllDataTypesObjects);
-            Assert.AreEqual(1, listOfAllDataTypesObjects.Count);
-            AllDataTypesNoColumnMeta actualDataTypesRow = listOfAllDataTypesObjects.First();
-            expectedDataTypesRow.AssertEquals(actualDataTypesRow);
-            return expectedDataTypesRow;
-        }
-
-        private AllDataTypesNoColumnMeta WriteReadValidateUsingTableMethods(Table<AllDataTypesNoColumnMeta> table)
-        {
-            AllDataTypesNoColumnMeta expectedDataTypesRow = AllDataTypesNoColumnMeta.GetRandomInstance();
-            string uniqueKey = expectedDataTypesRow.StringType;
-
-            // insert record
-            _session.Execute(table.Insert(expectedDataTypesRow));
-
-            // select record
-            List<AllDataTypesNoColumnMeta> listOfAllDataTypesObjects = (from x in table where x.StringType.Equals(uniqueKey) select x).Execute().ToList();
-            Assert.NotNull(listOfAllDataTypesObjects);
-            Assert.AreEqual(1, listOfAllDataTypesObjects.Count);
-            AllDataTypesNoColumnMeta actualDataTypesRow = listOfAllDataTypesObjects.First();
-            expectedDataTypesRow.AssertEquals(actualDataTypesRow);
-            return expectedDataTypesRow;
+            WriteReadValidateUsingTableMethods(table);
         }
 
         private class PrivateClassMissingPartitionKey
         {
             //Is never used, but don't mind
             #pragma warning disable 414, 169
+            // ReSharper disable once InconsistentNaming
             private string StringValue = "someStringValue";
             #pragma warning restore 414, 169
         }
@@ -414,5 +382,25 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         {
         }
 
+        [Table("test_empty_clustering_column_name")]
+        // ReSharper disable once ClassNeverInstantiated.Local
+        private class TestEmptyClusteringColumnName
+        {
+            [PartitionKey]
+            [Column("id")]
+            // ReSharper disable once UnusedMember.Local
+            public int Id { get; set; }
+
+            [ClusteringKey(1)]
+            [Column]
+            // ReSharper disable once InconsistentNaming
+            // ReSharper disable once UnusedMember.Local
+            public string cluster { get; set; }
+            
+            [Column]
+            // ReSharper disable once InconsistentNaming
+            // ReSharper disable once UnusedMember.Local
+            public string value { get; set; }
+        }
     }
 }

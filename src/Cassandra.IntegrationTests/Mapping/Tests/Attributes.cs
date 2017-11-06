@@ -418,6 +418,31 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         /// The Partition key Attribute from the Poco class is used to create a table with a partition key
         /// </summary>
         [Test]
+        public void Attributes_ClusteringKey_NoName()
+        {
+            var table = GetTable<EmptyClusteringColumnName>();
+            table.Create();
+            var definition = new AttributeBasedTypeDefinition(typeof(EmptyClusteringColumnName));
+            var mapper = new Mapper(_session, new MappingConfiguration().Define(definition));
+            var pocoToUpload = new EmptyClusteringColumnName
+            {
+                Id = 1,
+                cluster = "c2",
+                value = "v2"
+            };
+            mapper.Insert(pocoToUpload);
+            var cqlSelect = $"SELECT * from {table.Name} where id={pocoToUpload.Id}";
+            var instancesQueried = mapper.Fetch<EmptyClusteringColumnName>(cqlSelect).ToList();
+            Assert.AreEqual(1, instancesQueried.Count);
+            Assert.AreEqual(pocoToUpload.Id, instancesQueried[0].Id);
+            Assert.AreEqual(pocoToUpload.cluster, instancesQueried[0].cluster);
+            Assert.AreEqual(pocoToUpload.value, instancesQueried[0].value);
+        }
+
+        /// <summary>
+        /// The Partition key Attribute from the Poco class is used to create a table with a partition key
+        /// </summary>
+        [Test]
         public void Attributes_PartitionKey()
         {
             var table = GetTable<SimplePocoWithPartitionKey>();

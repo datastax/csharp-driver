@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Linq.LinqMethods;
 using Cassandra.IntegrationTests.Mapping.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
@@ -14,7 +10,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
     [Category("short")]
     public class CreateTable : SharedClusterTest
     {
-        ISession _session = null;
+        ISession _session;
         string _uniqueKsName;
 
         public override void OneTimeSetUp()
@@ -33,15 +29,15 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void CreateTable_FluentMapping_Success()
         {
             var mappingConfig = new MappingConfiguration().Define(new ManyDataTypesPocoMappingCaseSensitive());
-            var table = new Table<ManyDataTypesPoco>(_session, mappingConfig);
+            var table = new Cassandra.Data.Linq.Table<ManyDataTypesPoco>(_session, mappingConfig);
             table.Create();
 
             var mapper = new Mapper(_session, mappingConfig);
-            ManyDataTypesPoco manyTypesInstance = ManyDataTypesPoco.GetRandomInstance();
+            var manyTypesInstance = ManyDataTypesPoco.GetRandomInstance();
 
             mapper.Insert(manyTypesInstance);
-            string cqlSelect = string.Format("SELECT * from \"{0}\" where \"{1}\"='{2}'", table.Name, "StringType", manyTypesInstance.StringType);
-            List<ManyDataTypesPoco> instancesQueried = mapper.Fetch<ManyDataTypesPoco>(cqlSelect).ToList();
+            var cqlSelect = $"SELECT * from \"{table.Name}\" where \"{"StringType"}\"='{manyTypesInstance.StringType}'";
+            var instancesQueried = mapper.Fetch<ManyDataTypesPoco>(cqlSelect).ToList();
             Assert.AreEqual(1, instancesQueried.Count);
             instancesQueried[0].AssertEquals(manyTypesInstance);
         }
@@ -52,11 +48,11 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void CreateTable_PartitionKeyOmitted()
         {
-            Map<ManyDataTypesPoco> mappingWithoutPk = new Map<ManyDataTypesPoco>();
-            var table = new Table<ManyDataTypesPoco>(_session, new MappingConfiguration().Define(mappingWithoutPk));
+            var mappingWithoutPk = new Map<ManyDataTypesPoco>();
+            var table = new Cassandra.Data.Linq.Table<ManyDataTypesPoco>(_session, new MappingConfiguration().Define(mappingWithoutPk));
 
             var e = Assert.Throws<InvalidOperationException>(() => table.Create());
-            string expectedErrMsg = "Cannot create CREATE statement for POCO of type " + typeof(ManyDataTypesPoco).Name + 
+            var expectedErrMsg = "Cannot create CREATE statement for POCO of type " + typeof(ManyDataTypesPoco).Name + 
                 " because it is missing PK columns id.  Are you missing a property/field on the POCO or did you forget to specify the PK columns in the mapping?";
             Assert.AreEqual(expectedErrMsg, e.Message);
         }
@@ -72,14 +68,14 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 .TableName("tbl_case_sens_once")
                 .CaseSensitive());
 
-            var table = new Table<ManyDataTypesPoco>(_session, config);
+            var table = new Cassandra.Data.Linq.Table<ManyDataTypesPoco>(_session, config);
             table.Create();
 
             var mapper = new Mapper(_session, config);
-            ManyDataTypesPoco manyTypesInstance = ManyDataTypesPoco.GetRandomInstance();
+            var manyTypesInstance = ManyDataTypesPoco.GetRandomInstance();
             mapper.Insert(manyTypesInstance);
-            string cqlSelect = string.Format("SELECT * from \"{0}\" where \"{1}\"='{2}'", table.Name, "StringType", manyTypesInstance.StringType);
-            List<ManyDataTypesPoco> objectsRetrieved = mapper.Fetch<ManyDataTypesPoco>(cqlSelect).ToList();
+            var cqlSelect = $"SELECT * from \"{table.Name}\" where \"{"StringType"}\"='{manyTypesInstance.StringType}'";
+            var objectsRetrieved = mapper.Fetch<ManyDataTypesPoco>(cqlSelect).ToList();
             Assert.AreEqual(1, objectsRetrieved.Count);
             objectsRetrieved[0].AssertEquals(manyTypesInstance);
         }
