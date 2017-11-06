@@ -82,33 +82,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         /// <summary>
-        /// Upsert non existing record
-        /// </summary>
-        [Test, TestCassandraVersion(3, 0)]
-        public void LinqUpdate_IfNotExists()
-        {
-            // Setup
-            var table = new Table<Movie>(_session, new MappingConfiguration());
-            table.CreateIfNotExists();
-
-            var unexistingMovie = new Movie("Unexisting movie title", "Unexisting movie director", "Unexisting movie actor", "Unexisting movie maker", 1212);
-            var cql = table.Where(m => m.Title == unexistingMovie.Title && m.MovieMaker == unexistingMovie.MovieMaker && m.Director == unexistingMovie.Director)
-                           .Select(m => new Movie { Year = unexistingMovie.Year, MainActor = unexistingMovie.MainActor })
-                           .UpdateIfNotExists();
-            var appliedInfo = cql.Execute();
-
-            Assert.IsTrue(appliedInfo.Applied);
-            var actualMovieList = table.Execute().ToList();
-            Assert.AreEqual(_movieList.Count + 1, actualMovieList.Count());
-            Assert.IsTrue(Movie.ListContains(actualMovieList, unexistingMovie));
-            var recentlyAddedMovie = actualMovieList.FirstOrDefault(m => m.Title == unexistingMovie.Title);
-            Assert.NotNull(recentlyAddedMovie);
-            Assert.AreEqual(unexistingMovie.Director, recentlyAddedMovie.Director);
-            Assert.AreEqual(unexistingMovie.MainActor, recentlyAddedMovie.MainActor);
-            Assert.AreEqual(unexistingMovie.Year, recentlyAddedMovie.Year);
-        }
-
-        /// <summary>
         /// Successfully update multiple records using a single (non-batch) update, using async execute
         /// </summary>
         [Test]
