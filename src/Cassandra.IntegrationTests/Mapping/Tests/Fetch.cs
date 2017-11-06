@@ -20,11 +20,11 @@ using System.Linq;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Mapping.Structures;
 using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Mapping;
 using Cassandra.Tests.Mapping.FluentMappings;
 using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
+using HairColor = Cassandra.Tests.Mapping.Pocos.HairColor;
 
 namespace Cassandra.IntegrationTests.Mapping.Tests
 {
@@ -38,14 +38,11 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         {
             base.OneTimeSetUp();
             _session = Session;
-        }
-
-        [SetUp]
-        public void TestSetup()
-        {
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
+            
+            _session.Execute(string.Format(PocoWithEnumCollections.DefaultCreateTableCql, "tbl_with_enum_collections"));
         }
 
         /// <summary>
@@ -505,6 +502,50 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var hashes = inserted.HashSet.OrderBy(x => x);
             var hashesRetrieved = retrieved.HashSet.OrderBy(x => x);
             CollectionAssert.AreEqual(hashes, hashesRetrieved);
+        }
+
+        [Test]
+        public void Fetch_Poco_With_Enum_Collections_Test()
+        {
+            var expectedCollection = new[]{ HairColor.Blonde, HairColor.Gray };
+            var expectedMap = new SortedDictionary<HairColor, TimeUuid>
+            {
+                { HairColor.Brown, TimeUuid.NewId() },
+                { HairColor.Red, TimeUuid.NewId() }
+            };
+            var collectionValues = expectedCollection.Select(x => (int)x).ToArray();
+            var mapValues =
+                new SortedDictionary<int, Guid>(expectedMap.ToDictionary(kv => (int) kv.Key, kv => (Guid) kv.Value));
+
+            const string insertQuery =
+                "INSERT INTO tbl_with_enum_collections (id, list1, list2, array1, set1, set2, set3, map1, map2, map3)" +
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            _session.Execute(new SimpleStatement(insertQuery, 2000L, collectionValues, collectionValues,
+                collectionValues, collectionValues, collectionValues, collectionValues, mapValues, mapValues,
+                mapValues));
+            _session.Execute(new SimpleStatement(insertQuery, 2001L, null, null, null, null, null, null, null, null,
+                null));
+
+            var config =
+                new MappingConfiguration().Define(
+                    PocoWithEnumCollections.DefaultMapping.TableName("tbl_with_enum_collections"));
+            var mapper = new Mapper(_session, config);
+            
+            var result = mapper.Fetch<PocoWithEnumCollections>("WHERE id = ?", 2000L);
+            Assert.NotNull(result);
+            var rows = result.ToArray();
+            Assert.AreEqual(1, rows.Length);
+            var poco = rows[0];
+            Assert.AreEqual(2000L, poco.Id);
+            Assert.AreEqual(expectedCollection, poco.List1);
+            Assert.AreEqual(expectedCollection, poco.List2);
+            Assert.AreEqual(expectedCollection, poco.Array1);
+            Assert.AreEqual(expectedCollection, poco.Set1);
+            Assert.AreEqual(expectedCollection, poco.Set2);
+            Assert.AreEqual(expectedCollection, poco.Set3);
+            Assert.AreEqual(expectedMap, poco.Dictionary1);
+            Assert.AreEqual(expectedMap, poco.Dictionary2);
+            Assert.AreEqual(expectedMap, poco.Dictionary3);
         }
     }
 }

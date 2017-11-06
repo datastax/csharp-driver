@@ -13,7 +13,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
     [Category("short")]
     public class First : SharedClusterTest
     {
-        ISession _session = null;
+        ISession _session;
         private List<Movie> _movieList;
         string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
         private Table<Movie> _movieTable;
@@ -26,7 +26,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             _session = Session;
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
-            
             
             Session.Execute(string.Format(PocoWithEnumCollections.DefaultCreateTableCql, "tbl_with_enum_collections"));
 
@@ -68,13 +67,14 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void First_Async_NoSuchRecord()
         {
-            string cqlToFindNothing = _selectAllDefaultCql + " where moviemaker ='" + Randomm.RandomAlphaNum(20) + "'";
+            string cqlToFindNothing = $"{_selectAllDefaultCql} where moviemaker =\'{Randomm.RandomAlphaNum(20)}\'";
             try
             {
                 _mapper.FirstAsync<Movie>(cqlToFindNothing).Wait();
             }
             catch (AggregateException e)
             {
+                Assert.NotNull(e.InnerException);
                 Assert.AreEqual("Sequence contains no elements", e.InnerException.Message);
             }
         }
