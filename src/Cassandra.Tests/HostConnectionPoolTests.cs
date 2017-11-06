@@ -404,11 +404,11 @@ namespace Cassandra.Tests
             var eventRaised = 0;
             pool.AllConnectionClosed += (_, __) => Interlocked.Increment(ref eventRaised);
             pool.ScheduleReconnection();
-            Thread.Sleep(600);
+            Thread.Sleep(1500);
             Assert.AreEqual(0, pool.OpenConnections);
-            Assert.AreEqual(1, Volatile.Read(ref eventRaised));
+            Assert.AreEqual(1, Interlocked.CompareExchange(ref eventRaised, 0, 0));
             // Should not retry to reconnect, should relay on external consumer
-            Assert.AreEqual(1, Volatile.Read(ref openConnectionsAttempts));
+            Assert.AreEqual(1, Interlocked.CompareExchange(ref openConnectionsAttempts, 0, 0));
         }
 
         [Test]
