@@ -29,10 +29,23 @@ namespace Cassandra.IntegrationTests.Core
     {
         private SimulacronCluster _testCluster;
 
+        private const string Query = "SELECT id FROM dummy_table";
+
         [OneTimeSetUp]
         public void OneTimeSetup()
         {
             _testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3"});
+            _testCluster.Prime(new
+            {
+                when = new {query = Query},
+                then = new
+                {
+                    result = "success",
+                    delay_in_ms = 20,
+                    rows = new[] {new {id = Guid.NewGuid()}},
+                    column_types = new {id = "uuid"}
+                }
+            });
         }
 
         [OneTimeTearDown]
@@ -50,12 +63,11 @@ namespace Cassandra.IntegrationTests.Core
                                         .WithPoolingOptions(poolingOptions)
                                         .Build())
             {
-                const string query = "SELECT * FROM system.local";
                 var session = cluster.Connect();
                 var counter = 0;
                 ISessionState state = null;
                 // Warmup
-                await TestHelper.TimesLimit(() => session.ExecuteAsync(new SimpleStatement(query)), 200, 10);
+                await TestHelper.TimesLimit(() => session.ExecuteAsync(new SimpleStatement(Query)), 64, 32);
                 const int limit = 100;
                 // Perform several queries and get a snapshot somewhere
                 await TestHelper.TimesLimit(async () =>
@@ -66,8 +78,8 @@ namespace Cassandra.IntegrationTests.Core
                         // after some requests
                         state = session.GetState();
                     }
-                    return await session.ExecuteAsync(new SimpleStatement(query)).ConfigureAwait(false);
-                }, 300, 100).ConfigureAwait(false);
+                    return await session.ExecuteAsync(new SimpleStatement(Query)).ConfigureAwait(false);
+                }, 280, 100).ConfigureAwait(false);
                 Assert.NotNull(state);
                 var stringState = state.ToString();
                 CollectionAssert.AreEquivalent(cluster.AllHosts(), state.GetConnectedHosts());
