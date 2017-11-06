@@ -294,6 +294,9 @@ namespace Cassandra.Tasks
 
         private static void SetInnerException<T>(TaskCompletionSource<T> tcs, AggregateException ex)
         {
+            // We are setting the Task from the tcs as faulted
+            // The previous AggregateException is handled
+            ex.Handle(_ => true);
             tcs.TrySetException(ex.InnerException);
         }
 
@@ -372,11 +375,15 @@ namespace Cassandra.Tasks
         }
 
         /// <summary>
-        /// Designed for Tasks that were started but the result should not be awaited upon (fire and forget)
+        /// Designed for Tasks that were started but the result should not be awaited upon (fire and forget).
         /// </summary>
-        public static void Forget(this Task t)
+        public static void Forget(this Task task)
         {
-            // Avoid compiler warning CS4014
+            // Avoid compiler warning CS4014 and Unobserved exceptions
+            task?.ContinueWith(t =>
+            {
+                t.Exception?.Handle(_ => true);
+            }, TaskContinuationOptions.ExecuteSynchronously);
         }
     }
 }

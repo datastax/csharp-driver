@@ -40,8 +40,11 @@ namespace Cassandra
         private const int WriteStateInit = 0;
         private const int WriteStateRunning = 1;
         private const int WriteStateClosed = 2;
+        private const string StreamReadTag = nameof(Connection) + "/Read";
+        private const string StreamWriteTag = nameof(Connection) + "/Write";
 
         private static readonly Logger Logger = new Logger(typeof(Connection));
+        
         private readonly Serializer _serializer;
         private readonly TcpSocket _tcpSocket;
         private long _disposed;
@@ -60,15 +63,16 @@ namespace Cassandra
         private ConcurrentDictionary<short, OperationState> _pendingOperations;
         /// <summary> It contains the requests that could not be written due to streamIds not available</summary>
         private ConcurrentQueue<OperationState> _writeQueue;
+        private volatile string _keyspace;
+        private TaskCompletionSource<bool> _keyspaceSwitchTcs;
         /// <summary>
         /// Small buffer (less than 8 bytes) that is used when the next received message is smaller than 8 bytes, 
         /// and it is not possible to read the header.
         /// </summary>
-        private volatile byte[] _minimalBuffer;
-        private volatile string _keyspace;
-        private TaskCompletionSource<bool> _keyspaceSwitchTcs;
-        private volatile byte _frameHeaderSize;
+        private byte[] _minHeaderBuffer;
+        private byte _frameHeaderSize;
         private MemoryStream _readStream;
+        private FrameHeader _receivingHeader;
         private int _writeState = WriteStateInit;
         private long _inFlight;
         /// <summary>
@@ -119,15 +123,6 @@ namespace Cassandra
         public virtual int TimedOutOperations
         {
             get { return (int)Interlocked.Read(ref _timedOutOperations); }
-        }
-
-        /// <summary>
-        /// Determine if the Connection is closed
-        /// </summary>
-        public bool IsClosed
-        {
-            //if the connection attempted to cancel pending operations
-            get { return _isCanceled; }
         }
 
         /// <summary>
@@ -192,7 +187,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="name">Authenticator name from server.</param>
         /// <exception cref="AuthenticationException" />
-        private Task<Response> StartAuthenticationFlow(string name)
+        private async Task<Response> StartAuthenticationFlow(string name)
         {
             //Determine which authentication flow to use.
             //Check if its using a C* 1.2 with authentication patched version (like DSE 3.1)
@@ -205,23 +200,20 @@ namespace Cassandra
                 if (Configuration.AuthInfoProvider == null)
                 {
                     throw new AuthenticationException(
-                        String.Format("Host {0} requires authentication, but no credentials provided in Cluster configuration", Address),
+                        $"Host {Address} requires authentication, but no credentials provided in Cluster configuration",
                         Address);
                 }
                 var credentialsProvider = Configuration.AuthInfoProvider;
                 var credentials = credentialsProvider.GetAuthInfos(Address);
                 var request = new CredentialsRequest(credentials);
-                return Send(request)
-                    .ContinueSync(response =>
-                    {
-                        if (!(response is ReadyResponse))
-                        {
-                            //If Cassandra replied with a auth response error
-                            //The task already is faulted and the exception was already thrown.
-                            throw new ProtocolErrorException("Expected SASL response, obtained " + response.GetType().Name);
-                        }
-                        return response;
-                    });
+                var response = await Send(request).ConfigureAwait(false);
+                if (!(response is ReadyResponse))
+                {
+                    //If Cassandra replied with a auth response error
+                    //The task already is faulted and the exception was already thrown.
+                    throw new ProtocolErrorException("Expected SASL response, obtained " + response.GetType().Name);
+                }
+                return response;
             }
             //Use protocol v2+ authentication flow
             if (Configuration.AuthProvider is IAuthProviderNamed)
@@ -233,40 +225,38 @@ namespace Cassandra
             var authenticator = Configuration.AuthProvider.NewAuthenticator(Address);
 
             var initialResponse = authenticator.InitialResponse() ?? new byte[0];
-            return Authenticate(initialResponse, authenticator);
+            return await Authenticate(initialResponse, authenticator).ConfigureAwait(false);
         }
 
         /// <exception cref="AuthenticationException" />
-        private Task<Response> Authenticate(byte[] token, IAuthenticator authenticator)
+        private async Task<Response> Authenticate(byte[] token, IAuthenticator authenticator)
         {
             var request = new AuthResponseRequest(token);
-            return Send(request)
-                .Then(response =>
+            var response = await Send(request).ConfigureAwait(false);
+            
+            if (response is AuthSuccessResponse)
+            {
+                // It is now authenticated, dispose Authenticator if it implements IDisposable()
+                // ReSharper disable once SuspiciousTypeConversion.Global
+                var disposableAuthenticator = authenticator as IDisposable;
+                if (disposableAuthenticator != null)
                 {
-                    if (response is AuthSuccessResponse)
-                    {
-                        //It is now authenticated
-                        // ReSharper disable once SuspiciousTypeConversion.Global
-                        var disposableAuthenticator = authenticator as IDisposable;
-                        if (disposableAuthenticator != null)
-                        {
-                            disposableAuthenticator.Dispose();
-                        }
-                        return TaskHelper.ToTask(response);
-                    }
-                    if (response is AuthChallengeResponse)
-                    {
-                        token = authenticator.EvaluateChallenge(((AuthChallengeResponse)response).Token);
-                        if (token == null)
-                        {
-                            // If we get a null response, then authentication has completed
-                            //return without sending a further response back to the server.
-                            return TaskHelper.ToTask(response);
-                        }
-                        return Authenticate(token, authenticator);
-                    }
-                    throw new ProtocolErrorException("Expected SASL response, obtained " + response.GetType().Name);
-                });
+                    disposableAuthenticator.Dispose();
+                }
+                return response;
+            }
+            if (response is AuthChallengeResponse)
+            {
+                token = authenticator.EvaluateChallenge(((AuthChallengeResponse)response).Token);
+                if (token == null)
+                {
+                    // If we get a null response, then authentication has completed
+                    // return without sending a further response back to the server.
+                    return response;
+                }
+                return await Authenticate(token, authenticator).ConfigureAwait(false);
+            }
+            throw new ProtocolErrorException("Expected SASL response, obtained " + response.GetType().Name);
         }
 
         /// <summary>
@@ -400,7 +390,7 @@ namespace Cassandra
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
         /// <exception cref="AuthenticationException" />
         /// <exception cref="UnsupportedProtocolVersionException"></exception>
-        public Task<Response> Open()
+        public async Task<Response> Open()
         {
             _freeOperations = new ConcurrentStack<short>(Enumerable.Range(0, MaxConcurrentRequests).Select(s => (short)s).Reverse());
             _pendingOperations = new ConcurrentDictionary<short, OperationState>();
@@ -415,7 +405,7 @@ namespace Cassandra
 #if !NETCORE
                 Compressor = new LZ4Compressor();
 #else
-                return TaskHelper.FromException<Response>(new NotSupportedException("Lz4 compression not supported under .NETCore"));
+                throw new NotSupportedException("Lz4 compression not supported under .NETCore");
 #endif
             }
             else if (Options.Compression == CompressionType.Snappy)
@@ -431,48 +421,32 @@ namespace Cassandra
             _tcpSocket.Read += ReadHandler;
             _tcpSocket.WriteCompleted += WriteCompletedHandler;
             var protocolVersion = _serializer.ProtocolVersion;
-            return _tcpSocket
-                .Connect()
-                .Then(_ => Startup())
-                .ContinueWith(t =>
+            await _tcpSocket.Connect().ConfigureAwait(false);
+            Response response;
+            try
+            {
+                response = await Startup().ConfigureAwait(false);
+            }
+            catch (ProtocolErrorException ex)
+            {
+                // As we are starting up, check for protocol version errors.
+                // There is no other way than checking the error message from Cassandra
+                if (ex.Message.Contains("Invalid or unsupported protocol version"))
                 {
-                    if (t.IsFaulted && t.Exception != null)
-                    {
-                        //Adapt the inner exception and rethrow
-                        var ex = t.Exception.InnerException;
-                        if (ex is ProtocolErrorException)
-                        {
-                            //As we are starting up, check for protocol version errors
-                            //There is no other way than checking the error message from Cassandra
-                            if (ex.Message.Contains("Invalid or unsupported protocol version"))
-                            {
-                                throw new UnsupportedProtocolVersionException(protocolVersion, ex);
-                            }
-                        }
-                        if (ex is ServerErrorException && protocolVersion.CanStartupResponseErrorBeWrapped() && 
-                            ex.Message.Contains("ProtocolException: Invalid or unsupported protocol version"))
-                        {
-                            //For some versions of Cassandra, the error is wrapped into a server error
-                            //See CASSANDRA-9451
-                            throw new UnsupportedProtocolVersionException(protocolVersion, ex);
-                        }
-                        // ReSharper disable once PossibleNullReferenceException
-                        throw ex;
-                    }
-                    return t.Result;
-                }, TaskContinuationOptions.ExecuteSynchronously)
-                .Then(response =>
-                {
-                    if (response is AuthenticateResponse)
-                    {
-                        return StartAuthenticationFlow(((AuthenticateResponse)response).Authenticator);
-                    }
-                    if (response is ReadyResponse)
-                    {
-                        return TaskHelper.ToTask(response);
-                    }
-                    throw new DriverInternalError("Expected READY or AUTHENTICATE, obtained " + response.GetType().Name);
-                });
+                    throw new UnsupportedProtocolVersionException(protocolVersion, ex);
+                }
+                throw;
+            }
+            if (response is AuthenticateResponse)
+            {
+                return await StartAuthenticationFlow(((AuthenticateResponse)response).Authenticator)
+                    .ConfigureAwait(false);
+            }
+            if (response is ReadyResponse)
+            {
+                return response;
+            }
+            throw new DriverInternalError("Expected READY or AUTHENTICATE, obtained " + response.GetType().Name);
         }
 
         /// <summary>
@@ -502,11 +476,8 @@ namespace Cassandra
             RunWriteQueue();
         }
 
-        private volatile FrameHeader _receivingHeader;
-
         /// <summary>
-        /// Parses the bytes received into a frame. Uses the internal operation state to do the callbacks.
-        /// Returns true if a full operation (streamId) has been processed and there is one available.
+        /// Deserializes each frame header and copies the body bytes into a single buffer.
         /// </summary>
         /// <returns>True if a full operation (streamId) has been processed.</returns>
         internal bool ReadParse(byte[] buffer, int length)
@@ -516,91 +487,59 @@ namespace Cassandra
                 return false;
             }
             ProtocolVersion protocolVersion;
-            if (_frameHeaderSize == 0)
+            var headerLength = Volatile.Read(ref _frameHeaderSize);
+            if (headerLength == 0)
             {
-                //The server replies the first message with the max protocol version supported
+                // The server replies the first message with the max protocol version supported
                 protocolVersion = FrameHeader.GetProtocolVersion(buffer);
                 _serializer.ProtocolVersion = protocolVersion;
-                _frameHeaderSize = FrameHeader.GetSize(protocolVersion);
+                headerLength = FrameHeader.GetSize(protocolVersion);
+                Volatile.Write(ref _frameHeaderSize, headerLength);
             }
             else
             {
                 protocolVersion = _serializer.ProtocolVersion;
             }
-            //Use _readStream to buffer between messages, under low pressure, it should be null most of the times
+            // Use _readStream to buffer between messages, when the body is not contained in a single read call
             var stream = Interlocked.Exchange(ref _readStream, null);
+            var previousHeader = Interlocked.Exchange(ref _receivingHeader, null);
+            if (previousHeader != null && stream == null)
+            {
+                // This connection has been disposed
+                return false;
+            }
             var operationCallbacks = new LinkedList<Action<MemoryStream>>();
             var offset = 0;
-            if (_minimalBuffer != null)
-            {
-                //use a negative offset to identify that there is a previous header buffer
-                offset = -1 * _minimalBuffer.Length;
-            }
             while (offset < length)
             {
-                FrameHeader header;
-                //The remaining body length to read from this buffer
+                var header = previousHeader;
                 int remainingBodyLength;
-                if (_receivingHeader == null)
+                if (header == null)
                 {
-                    if (length - offset < _frameHeaderSize)
+                    header = ReadHeader(buffer, ref offset, length, headerLength, protocolVersion);
+                    if (header == null)
                     {
-                        _minimalBuffer = offset >= 0 ?
-                            Utils.SliceBuffer(buffer, offset, length - offset) :
-                            //it should almost never be the case there isn't enough bytes to read the header more than once
-                            // ReSharper disable once PossibleNullReferenceException
-                            Utils.JoinBuffers(_minimalBuffer, 0, _minimalBuffer.Length, buffer, 0, length);
+                        // There aren't enough bytes to read the header
                         break;
                     }
-                    if (offset >= 0)
-                    {
-                        header = FrameHeader.ParseResponseHeader(protocolVersion, buffer, offset);
-                    }
-                    else
-                    {
-                        header = FrameHeader.ParseResponseHeader(protocolVersion, _minimalBuffer, buffer);
-                        _minimalBuffer = null;
-                    }
                     Logger.Verbose("Received #{0} from {1}", header.StreamId, Address);
-                    offset += _frameHeaderSize;
                     remainingBodyLength = header.BodyLength;
                 }
                 else
                 {
-                    header = _receivingHeader;
+                    previousHeader = null;
                     remainingBodyLength = header.BodyLength - (int) stream.Length;
-                    _receivingHeader = null;
                 }
                 if (remainingBodyLength > length - offset)
                 {
-                    //the buffer does not contains the body for this frame, buffer for later
-                    MemoryStream nextMessageStream;
-                    if (operationCallbacks.Count == 0 && stream != null)
-                    {
-                        //There hasn't been any operations completed with this buffer
-                        //And there is a previous stream: reuse it
-                        nextMessageStream = stream;
-                    }
-                    else
-                    {
-                        nextMessageStream = Configuration.BufferPool.GetStream(typeof(Connection) + "/Read");
-                    }
-                    nextMessageStream.Write(buffer, offset, length - offset);
-                    Interlocked.Exchange(ref _readStream, nextMessageStream);
-                    _receivingHeader = header;
+                    // The buffer does not contains the body for the current frame, store it for later
+                    StoreReadState(header, stream, buffer, offset, length, operationCallbacks.Count > 0);
                     break;
                 }
-                stream = stream ?? Configuration.BufferPool.GetStream(typeof (Connection) + "/Read");
-                OperationState state;
-                if (header.Opcode != EventResponse.OpCode)
-                {
-                    state = RemoveFromPending(header.StreamId);
-                }
-                else
-                {
-                    //Its an event
-                    state = new OperationState(EventHandler);
-                }
+                stream = stream ?? Configuration.BufferPool.GetStream(StreamReadTag);
+                var state = header.Opcode != EventResponse.OpCode
+                    ? RemoveFromPending(header.StreamId)
+                    : new OperationState(EventHandler);
                 stream.Write(buffer, offset, remainingBodyLength);
                 // State can be null when the Connection is being closed concurrently
                 // The original callback is being called with an error, use a Noop here
@@ -612,12 +551,76 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Reads the header from the buffer, using previous 
+        /// </summary>
+        private FrameHeader ReadHeader(byte[] buffer, ref int offset, int length, int headerLength,
+                                       ProtocolVersion version)
+        {
+            if (offset == 0)
+            {
+                var previousHeaderBuffer = Interlocked.Exchange(ref _minHeaderBuffer, null);
+                if (previousHeaderBuffer != null)
+                {
+                    if (previousHeaderBuffer.Length + length < headerLength)
+                    {
+                        // Unlikely scenario where there were a few bytes for a header buffer and the new bytes are
+                        // not enough to complete the header
+                        Volatile.Write(ref _minHeaderBuffer,
+                            Utils.JoinBuffers(previousHeaderBuffer, 0, previousHeaderBuffer.Length, buffer, 0, length));
+                        return null;
+                    }
+                    offset += headerLength - previousHeaderBuffer.Length; 
+                    // Use the previous and the current buffer to build the header
+                    return FrameHeader.ParseResponseHeader(version, previousHeaderBuffer, buffer);
+                }
+            }
+            if (length - offset < headerLength)
+            {
+                // There aren't enough bytes in the current buffer to read the header, store it for later
+                Volatile.Write(ref _minHeaderBuffer, Utils.SliceBuffer(buffer, offset, length - offset));
+                return null;
+            }
+            // The header is contained in the current buffer
+            var header = FrameHeader.ParseResponseHeader(version, buffer, offset);
+            offset += headerLength;
+            return header;
+        }
+
+        /// <summary>
+        /// Saves the current read state (header and body stream) for the next read event. 
+        /// </summary>
+        private void StoreReadState(FrameHeader header, MemoryStream stream, byte[] buffer, int offset, int length,
+                                    bool hasReadFromStream)
+        {
+            MemoryStream nextMessageStream;
+            if (!hasReadFromStream && stream != null)
+            {
+                // There hasn't been any operations completed with this buffer, reuse the current stream
+                nextMessageStream = stream;
+            }
+            else
+            {
+                // Allocate a new stream for store in it
+                nextMessageStream = Configuration.BufferPool.GetStream(StreamReadTag);
+            }
+            nextMessageStream.Write(buffer, offset, length - offset);
+            Interlocked.Exchange(ref _readStream, nextMessageStream);
+            Interlocked.Exchange(ref _receivingHeader, header);
+            if (_isCanceled)
+            {
+                // Connection was disposed since we started to store the buffer, try to dispose the stream
+                Interlocked.Exchange(ref _readStream, null)?.Dispose();
+            }
+        }
+
+        /// <summary>
         /// Returns an action that capture the parameters closure
         /// </summary>
         private Action<MemoryStream> CreateResponseAction(FrameHeader header, Action<Exception, Response> callback)
         {
             var compressor = Compressor;
-            return delegate(MemoryStream stream)
+
+            void DeserializeResponseStream(MemoryStream stream)
             {
                 Response response = null;
                 Exception ex = null;
@@ -645,7 +648,9 @@ namespace Cassandra
                 //We must advance the position of the stream manually in case it was not correctly parsed
                 stream.Position = nextPosition;
                 callback(ex, response);
-            };
+            }
+
+            return DeserializeResponseStream;
         }
 
         /// <summary>
@@ -776,7 +781,7 @@ namespace Cassandra
                 try
                 {
                     //lazy initialize the stream
-                    stream = stream ?? (RecyclableMemoryStream) Configuration.BufferPool.GetStream(GetType().Name + "/SendStream");
+                    stream = stream ?? (RecyclableMemoryStream) Configuration.BufferPool.GetStream(StreamWriteTag);
                     frameLength = state.Request.WriteFrame(streamId, stream, _serializer);
                     if (state.TimeoutMillis > 0)
                     {
