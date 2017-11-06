@@ -38,11 +38,14 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         {
             base.OneTimeSetUp();
             _session = Session;
+        }
+
+        [SetUp]
+        public void TestSetup()
+        {
             _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             _session.CreateKeyspace(_uniqueKsName);
             _session.ChangeKeyspace(_uniqueKsName);
-            
-            _session.Execute(string.Format(PocoWithEnumCollections.DefaultCreateTableCql, "tbl_with_enum_collections"));
         }
 
         /// <summary>
@@ -507,6 +510,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         [Test]
         public void Fetch_Poco_With_Enum_Collections_Test()
         {
+            _session.Execute(string.Format(PocoWithEnumCollections.DefaultCreateTableCql, "tbl_with_enum_collections"));
             var expectedCollection = new[]{ HairColor.Blonde, HairColor.Gray };
             var expectedMap = new SortedDictionary<HairColor, TimeUuid>
             {
