@@ -327,6 +327,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         [Test]
+        [TestCassandraVersion(3,0)]
         public void LinqWhere_Boolean()
         {
             var rs = _manyDataTypesEntitiesTable.Execute();
@@ -362,6 +363,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         [Test]
+        [TestCassandraVersion(3,0)]
         public void LinqWhere_BooleanScopes()
         {
             var rs = _manyDataTypesEntitiesTable.Execute();
