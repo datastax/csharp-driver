@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Mapping.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
@@ -29,14 +30,14 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void CreateTable_FluentMapping_Success()
         {
             var mappingConfig = new MappingConfiguration().Define(new ManyDataTypesPocoMappingCaseSensitive());
-            var table = new Cassandra.Data.Linq.Table<ManyDataTypesPoco>(_session, mappingConfig);
+            var table = new Table<ManyDataTypesPoco>(_session, mappingConfig);
             table.Create();
 
             var mapper = new Mapper(_session, mappingConfig);
             var manyTypesInstance = ManyDataTypesPoco.GetRandomInstance();
 
             mapper.Insert(manyTypesInstance);
-            var cqlSelect = $"SELECT * from \"{table.Name}\" where \"{"StringType"}\"='{manyTypesInstance.StringType}'";
+            var cqlSelect = $"SELECT * from \"{table.Name}\" where \"StringType\"='{manyTypesInstance.StringType}'";
             var instancesQueried = mapper.Fetch<ManyDataTypesPoco>(cqlSelect).ToList();
             Assert.AreEqual(1, instancesQueried.Count);
             instancesQueried[0].AssertEquals(manyTypesInstance);
@@ -49,7 +50,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void CreateTable_PartitionKeyOmitted()
         {
             var mappingWithoutPk = new Map<ManyDataTypesPoco>();
-            var table = new Cassandra.Data.Linq.Table<ManyDataTypesPoco>(_session, new MappingConfiguration().Define(mappingWithoutPk));
+            var table = new Table<ManyDataTypesPoco>(_session, new MappingConfiguration().Define(mappingWithoutPk));
 
             var e = Assert.Throws<InvalidOperationException>(() => table.Create());
             var expectedErrMsg = "Cannot create CREATE statement for POCO of type " + typeof(ManyDataTypesPoco).Name + 
@@ -68,13 +69,13 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 .TableName("tbl_case_sens_once")
                 .CaseSensitive());
 
-            var table = new Cassandra.Data.Linq.Table<ManyDataTypesPoco>(_session, config);
+            var table = new Table<ManyDataTypesPoco>(_session, config);
             table.Create();
 
             var mapper = new Mapper(_session, config);
             var manyTypesInstance = ManyDataTypesPoco.GetRandomInstance();
             mapper.Insert(manyTypesInstance);
-            var cqlSelect = $"SELECT * from \"{table.Name}\" where \"{"StringType"}\"='{manyTypesInstance.StringType}'";
+            var cqlSelect = $"SELECT * from \"{table.Name}\" where \"StringType\"='{manyTypesInstance.StringType}'";
             var objectsRetrieved = mapper.Fetch<ManyDataTypesPoco>(cqlSelect).ToList();
             Assert.AreEqual(1, objectsRetrieved.Count);
             objectsRetrieved[0].AssertEquals(manyTypesInstance);
