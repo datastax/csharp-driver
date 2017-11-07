@@ -20,10 +20,8 @@
     <HtmlHelpName>Documentation</HtmlHelpName>
     <Language>en-US</Language>
     <DocumentationSources>
-      <DocumentationSource sourceFile="..\src\Dse\bin\Release\Cassandra.dll" />
-      <DocumentationSource sourceFile="..\src\Dse\bin\Release\Cassandra.xml" />
-      <DocumentationSource sourceFile="..\src\Dse\bin\Release\Dse.dll" />
-      <DocumentationSource sourceFile="..\src\Dse\bin\Release\Dse.xml" />
+      <DocumentationSource sourceFile="..\src\Dse\bin\Release\net45\Dse.dll" />
+      <DocumentationSource sourceFile="..\src\Dse\bin\Release\net45\Dse.xml" />
     </DocumentationSources>
     <BuildAssemblerVerbosity>OnlyWarningsAndErrors</BuildAssemblerVerbosity>
     <HelpFileFormat>Website</HelpFileFormat>
@@ -67,12 +65,12 @@ This driver is built on top of DataStax C# driver for Apache Cassandra and provi
     </FeedbackEMailLinkText>
     <FeedbackEMailAddress>
     </FeedbackEMailAddress>
-    <CopyrightText>&amp;#169%3b 2016 DataStax, All rights reserved.</CopyrightText>
+    <CopyrightText>&amp;#169%3b 2017 DataStax, All rights reserved.</CopyrightText>
     <WebsiteSdkLinkType>None</WebsiteSdkLinkType>
     <HtmlSdkLinkType>None</HtmlSdkLinkType>
     <IncludeFavorites>False</IncludeFavorites>
     <BinaryTOC>True</BinaryTOC>
-    <FooterText>&amp;lt%3ba target=&amp;quot%3b_blank&amp;quot%3b href=&amp;quot%3bhttps://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user&amp;quot%3b&amp;gt%3bDataStax C# Driver for Apache Cassandra User Mailing List&amp;lt%3b/a&amp;gt%3b</FooterText>
+    <FooterText>&amp;lt%3ba target=&amp;quot%3b_blank&amp;quot%3b href=&amp;quot%3bhttps://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user&amp;quot%3b&amp;gt%3bDataStax C# Drivers User Mailing List&amp;lt%3b/a&amp;gt%3b</FooterText>
     <HelpFileVersion>1.0.0.0</HelpFileVersion>
     <PlugInNamespaces>ms.vsipcc+, ms.vsexpresscc+</PlugInNamespaces>
     <CollectionTocStyle>Flat</CollectionTocStyle>
@@ -80,13 +78,14 @@ This driver is built on top of DataStax C# driver for Apache Cassandra and provi
     <IncludeStopWordList>True</IncludeStopWordList>
     <NamespaceSummaries>
       <NamespaceSummaryItem name="Dse" isDocumented="True">The Dse namespace contains classes for accessing and managing data from DSE clusters.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Dse.Graph" isDocumented="True">The Dse.Graph namespace contains classes for accessing graph data from DSE clusters.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Dse.Auth" isDocumented="True">The Dse.Auth namespace contains classes for authenticating against a DSE clusters.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Dse.Auth.Sspi" isDocumented="True" />
-<NamespaceSummaryItem name="Dse.Geometry" isDocumented="True">The Dse.Geometry namespace contains classes to represent geospatial types.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Dse.Policies" isDocumented="True">The Dse.Policies namespace contains implementation of retry, reconnection or load-balancing policies.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Dse.Mapping" isDocumented="True">The Dse.Mapping namespace contains classes for representing mappings between CLR types and CQL types.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Dse.Search" isDocumented="True">The Dse.Search namespace contains classes to represent DSE Search types.</NamespaceSummaryItem></NamespaceSummaries>
+      <NamespaceSummaryItem name="Dse.Graph" isDocumented="True">The Dse.Graph namespace contains classes for accessing graph data from DSE clusters.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Dse.Auth" isDocumented="True">The Dse.Auth namespace contains classes for authenticating against a DSE clusters.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Dse.Auth.Sspi" isDocumented="True" />
+      <NamespaceSummaryItem name="Dse.Geometry" isDocumented="True">The Dse.Geometry namespace contains classes to represent geospatial types.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Dse.Policies" isDocumented="True">The Dse.Policies namespace contains implementation of retry, reconnection or load-balancing policies.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Dse.Mapping" isDocumented="True">The Dse.Mapping namespace contains classes for representing mappings between CLR types and CQL types.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Dse.Search" isDocumented="True">The Dse.Search namespace contains classes to represent DSE Search types.</NamespaceSummaryItem>
+    </NamespaceSummaries>
   </PropertyGroup>
   <!-- There are no properties for these groups.  AnyCPU needs to appear in
        order for Visual Studio to perform the build.  The others are optional
