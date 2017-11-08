@@ -22,6 +22,23 @@ namespace Cassandra.Tests.Mapping
         }
 
         [Test]
+        public void CheckDynamicKeySpace_Change()
+        {
+            var config = new MappingConfiguration();
+            config.DefineKeySpaceNameCallBack(GetSpace);
+            //Assert.IsNull(config.MapperFactory,"Mapping Factory was null");
+            //config.OnKeySpaceRequested += () =>
+            //{
+            //    return "mydb";
+            //};
+            Assert.AreSame("mydb", config.MapperFactory.PocoDataFactory.OnKeySpaceRequested?.Invoke());
+        }
+
+        public string GetSpace()
+        {
+            return "mydb";
+        }
+        [Test]
         public void Get_Returns_Mapping_IfExists()
         {
             var userMapping = new FluentUserMapping();

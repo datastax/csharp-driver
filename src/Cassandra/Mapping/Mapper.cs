@@ -51,6 +51,10 @@ namespace Cassandra.Mapping
             _mapperFactory = mapperFactory;
             _statementFactory = statementFactory;
             _cqlGenerator = cqlGenerator;
+            if (_mapperFactory.PocoDataFactory.OnKeySpaceRequested == null)
+            {
+                _mapperFactory.PocoDataFactory.OnKeySpaceRequested = MappingConfiguration.Global.OnKeySpaceRequested;
+            }
             if (session.Cluster != null && session.Cluster.Configuration != null)
             {
                 _queryAbortTimeout = session.Cluster.Configuration.ClientOptions.QueryAbortTimeout;

@@ -23,11 +23,12 @@ namespace Cassandra.Mapping
             get { return _onKeySpaceRequested; }
             set
             {
-                _onKeySpaceRequested = value;
-                if (MapperFactory?.PocoDataFactory?.OnKeySpaceRequested != null)
+                this._onKeySpaceRequested = value;
+                if (this.MapperFactory?.PocoDataFactory?.OnKeySpaceRequested != null)
                 {
-                    MapperFactory.PocoDataFactory.OnKeySpaceRequested = value;
+                    this.MapperFactory.PocoDataFactory.OnKeySpaceRequested = value;
                 }
+
             }
         }
 
@@ -75,6 +76,14 @@ namespace Cassandra.Mapping
             StatementFactory = new StatementFactory();
         }
 
+        public void DefineKeySpaceNameCallBack(Func<string> callback)
+        {
+            _onKeySpaceRequested = callback;
+            if (this.MapperFactory?.PocoDataFactory?.OnKeySpaceRequested != null)
+            {
+                this.MapperFactory.PocoDataFactory.OnKeySpaceRequested = callback;
+            }
+        }
         /// <summary>
         /// Configures CqlPoco to use the specified type conversion factory when getting type conversion functions for converting 
         /// between data types in the database and your POCO objects.
