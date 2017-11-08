@@ -14,7 +14,7 @@ namespace Cassandra.Mapping
     internal class PocoDataFactory
     {
         private const BindingFlags PublicInstanceBindingFlags = BindingFlags.Public | BindingFlags.Instance;
-
+        public Func<string> OnKeySpaceRequested { get; set; }
         private readonly LookupKeyedCollection<Type, ITypeDefinition> _predefinedTypeDefinitions;
         private readonly ConcurrentDictionary<Type, PocoData> _cache;
 
@@ -83,7 +83,7 @@ namespace Cassandra.Mapping
                 .ToLookupKeyedCollection(pc => pc.ColumnName, StringComparer.OrdinalIgnoreCase);
 
             var clusteringKeyNames = typeDefinition.ClusteringKeys ?? new Tuple<string, SortOrder>[0];
-            return new PocoData(pocoType, tableName, typeDefinition.KeyspaceName, columns, pkColumnNames, clusteringKeyNames, typeDefinition.CaseSensitive, typeDefinition.CompactStorage, typeDefinition.AllowFiltering);
+            return new PocoData(pocoType, tableName, typeDefinition.KeyspaceName, columns, pkColumnNames, clusteringKeyNames, typeDefinition.CaseSensitive, typeDefinition.CompactStorage, typeDefinition.AllowFiltering,OnKeySpaceRequested);
         }
 
         /// <summary>

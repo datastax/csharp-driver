@@ -16,6 +16,20 @@ namespace Cassandra.Mapping
         private static readonly MappingConfiguration GlobalInstance = new MappingConfiguration();
         private TypeConverter _typeConverter;
         private LookupKeyedCollection<Type, ITypeDefinition> _typeDefinitions;
+        private Func<string> _onKeySpaceRequested;
+
+        public Func<string> OnKeySpaceRequested
+        {
+            get { return _onKeySpaceRequested; }
+            set
+            {
+                _onKeySpaceRequested = value;
+                if (MapperFactory?.PocoDataFactory?.OnKeySpaceRequested != null)
+                {
+                    MapperFactory.PocoDataFactory.OnKeySpaceRequested = value;
+                }
+            }
+        }
 
         static MappingConfiguration()
         {

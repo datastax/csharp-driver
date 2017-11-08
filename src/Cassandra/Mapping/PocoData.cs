@@ -13,6 +13,8 @@ namespace Cassandra.Mapping
     {
         private readonly Dictionary<string, PocoColumn> _columnsByMemberName;
         private readonly HashSet<string> _primaryKeys;
+        private string _keyspaceName;
+        private Func<string> _onKeyspaceRequest;
         /// <summary>
         /// The .NET Type of the POCO this data is for.
         /// </summary>
@@ -26,7 +28,19 @@ namespace Cassandra.Mapping
         /// <summary>
         /// When defined, states that all queries generated should include fully qualified table names (ie: keyspace.table)
         /// </summary>
-        public string KeyspaceName { get; set; }
+        public string KeyspaceName
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(_keyspaceName))
+                {
+                    return _onKeyspaceRequest?.Invoke();
+                }
+                return _keyspaceName;
+                //return _keyspaceName;
+            }
+            set { _keyspaceName = value; }
+        }
 
         /// <summary>
         /// All columns (including PK columns) keyed by their column names and ordered so that the primary key columns are in order last.
@@ -62,7 +76,7 @@ namespace Cassandra.Mapping
         public List<string> MissingPrimaryKeyColumns { get; private set; }
 
         public PocoData(Type pocoType, string tableName, string keyspaceName, LookupKeyedCollection<string, PocoColumn> columns,
-                        string[] partitionkeys, Tuple<string, SortOrder>[] clusteringKeys, bool caseSensitive, bool compact, bool allowFiltering)
+                        string[] partitionkeys, Tuple<string, SortOrder>[] clusteringKeys, bool caseSensitive, bool compact, bool allowFiltering,Func<string> keyspaceCallback=null)
         {
             if (pocoType == null) throw new ArgumentNullException("pocoType");
             if (tableName == null) throw new ArgumentNullException("tableName");
@@ -90,6 +104,7 @@ namespace Cassandra.Mapping
             {
                 MissingPrimaryKeyColumns.AddRange(partitionkeys.Where(k => !columns.Contains(k)));
             }
+            _onKeyspaceRequest = keyspaceCallback;
         }
 
         /// <summary>
