@@ -29,9 +29,12 @@ api_docs:
   1.0: http://docs.datastax.com/en/drivers/csharp-dse/1.0
   1.1: http://docs.datastax.com/en/drivers/csharp-dse/1.1
   2.0: http://docs.datastax.com/en/drivers/csharp-dse/2.0
+  2.1: http://docs.datastax.com/en/drivers/csharp-dse/2.1
 versions:
+  - name: '2.1'
+    ref: 'master'
   - name: '2.0'
-    ref: 'dse'
+    ref: '2.0'
   - name: '1.1'
     ref: '1.1'
   - name: '1.0'
