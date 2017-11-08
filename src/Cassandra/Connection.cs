@@ -604,8 +604,8 @@ namespace Cassandra
                 nextMessageStream = Configuration.BufferPool.GetStream(StreamReadTag);
             }
             nextMessageStream.Write(buffer, offset, length - offset);
-            Interlocked.Exchange(ref _readStream, nextMessageStream);
-            Interlocked.Exchange(ref _receivingHeader, header);
+            Volatile.Write(ref _readStream, nextMessageStream);
+            Volatile.Write(ref _receivingHeader, header);
             if (_isCanceled)
             {
                 // Connection was disposed since we started to store the buffer, try to dispose the stream

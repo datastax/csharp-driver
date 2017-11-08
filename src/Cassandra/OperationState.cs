@@ -60,7 +60,7 @@ namespace Cassandra
         /// </summary>
         public OperationState(Action<Exception, Response> callback)
         {
-            Interlocked.Exchange(ref _callback, callback);
+            Volatile.Write(ref _callback, callback);
         }
 
         /// <summary>
@@ -155,7 +155,7 @@ namespace Cassandra
                 return;
             }
             //Remove the closure
-            Interlocked.Exchange(ref _callback, Noop);
+            Volatile.Write(ref _callback, Noop);
             var timeout = _timeout;
             if (timeout != null)
             {
