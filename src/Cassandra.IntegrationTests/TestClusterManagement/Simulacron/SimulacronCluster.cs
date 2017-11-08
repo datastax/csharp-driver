@@ -1,16 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using Cassandra.Tasks;
 using Newtonsoft.Json.Linq;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 {
-    public class SimulacronCluster : SimulacronBase
+    public class SimulacronCluster : SimulacronBase, IDisposable
     {
         public dynamic Data { get; set; }
         public List<SimulacronDataCenter> DataCenters { get; set; }
@@ -112,6 +110,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
         public IEnumerable<SimulacronNode> GetNodes()
         {
             return DataCenters.SelectMany(dc => dc.Nodes);
+        }
+
+        public void Dispose()
+        {
+            Remove();
         }
     }
 }
