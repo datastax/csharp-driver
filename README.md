@@ -9,7 +9,7 @@ The driver supports .NET Framework 4.5+ and .NET Core 1+.
 [Get it on Nuget][nuget]
 
 ```bash
-PM> Install-Package CassandraCSharpDriver
+PM> Install-Package CassandraCSharpDriver_IWLT
 ```
 
 [![Build status](https://travis-ci.org/datastax/csharp-driver.svg?branch=master)](https://travis-ci.org/datastax/csharp-driver)
@@ -27,6 +27,7 @@ PM> Install-Package CassandraCSharpDriver
 - Configurable [load balancing][policies] and [retry policies][policies]
 - Works with any cluster size
 - [Linq2Cql][linq] and Ado.Net support
+- [*New*] Added Provision to change keyspace at runtime for POCO section.
 
 ## Documentation
 
