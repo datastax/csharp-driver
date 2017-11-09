@@ -29,6 +29,10 @@ api_docs:
   3.2: http://docs.datastax.com/en/drivers/csharp/3.2
   3.3: http://docs.datastax.com/en/drivers/csharp/3.3
   3.4: http://docs.datastax.com/en/drivers/csharp/3.4
+checks:
+  external_links:
+    exclude:
+      - 'https://ci.appveyor.com/api/projects/status/ri1olv8bl7b7yk7y/branch/master?svg=true'
 versions:
   - name: '3.4'
     ref: 'master'
