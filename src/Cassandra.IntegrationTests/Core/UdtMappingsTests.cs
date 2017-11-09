@@ -90,6 +90,32 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public async Task MappingSingleExplicitAsync_AsParameter()
+        {
+            var localSession = GetNewSession(KeyspaceName);
+            await localSession.UserDefinedTypes.DefineAsync(
+                UdtMap.For<Phone>("phone")
+                      .Map(v => v.Alias, "alias")
+                      .Map(v => v.CountryCode, "country_code")
+                      .Map(v => v.Number, "number")
+            );
+            var phone = new Phone
+            {
+                Alias = "home phone",
+                Number = "85 988888888",
+                CountryCode = 55
+            };
+            localSession.Execute(new SimpleStatement("INSERT INTO users (id, main_phone) values (1, ?)", phone));
+            var rs = localSession.Execute("SELECT * FROM users WHERE id = 1");
+            var row = rs.First();
+            var value = row.GetValue<Phone>("main_phone");
+            Assert.NotNull(value);
+            Assert.AreEqual(phone.Alias, value.Alias);
+            Assert.AreEqual(phone.Number, value.Number);
+            Assert.AreEqual(phone.CountryCode, value.CountryCode);
+        }
+
+        [Test]
         public void MappingSingleExplicitNullsTest()
         {
             var localSession = GetNewSession(KeyspaceName);
