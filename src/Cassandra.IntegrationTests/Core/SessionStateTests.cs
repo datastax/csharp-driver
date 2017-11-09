@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -53,7 +54,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             _testCluster.Remove().Wait();
         }
-        
+
         [Test]
         public async Task Session_GetState_Should_Return_A_Snapshot_Of_The_Pools_State()
         {
@@ -91,6 +92,30 @@ namespace Cassandra.IntegrationTests.Core
                 var totalInFlight = cluster.AllHosts().Sum(h => state.GetInFlightQueries(h));
                 Assert.Greater(totalInFlight, 0);
                 Assert.LessOrEqual(totalInFlight, limit);
+            }
+        }
+
+        [Test]
+        public void Session_GetState_Should_Return_Zero_After_Cluster_Disposal()
+        {
+            ISession session;
+            ISessionState state;
+            ICollection<Host> hosts;
+            using (var cluster = Cluster.Builder()
+                                        .AddContactPoint(_testCluster.InitialContactPoint)
+                                        .Build())
+            {
+                session = cluster.Connect();
+                state = session.GetState();
+                Assert.AreNotEqual(SessionState.Empty(), state);
+                hosts = cluster.AllHosts();
+            }
+            state = session.GetState();
+            Assert.NotNull(hosts);
+            foreach (var host in hosts)
+            {
+                Assert.AreEqual(0, state.GetInFlightQueries(host));
+                Assert.AreEqual(0, state.GetOpenConnections(host));
             }
         }
     }
