@@ -5,6 +5,7 @@ using Cassandra.Mapping.Utils;
 
 namespace Cassandra.Mapping
 {
+    public delegate string KeyspaceArg();
     /// <summary>
     /// Stores the mapping definitions to be used by the Mapper and Linq components.
     /// </summary>
@@ -17,10 +18,17 @@ namespace Cassandra.Mapping
         private TypeConverter _typeConverter;
         private LookupKeyedCollection<Type, ITypeDefinition> _typeDefinitions;
         private Func<string> _onKeySpaceRequested;
-
+        public event KeyspaceArg OnKeySpaceRequest;
         public Func<string> OnKeySpaceRequested
         {
-            get { return _onKeySpaceRequested; }
+            get
+            {
+                if (_onKeySpaceRequested == null)
+                {
+                    return () => OnKeySpaceRequest?.Invoke();
+                }
+                return _onKeySpaceRequested;
+            }
             set
             {
                 this._onKeySpaceRequested = value;

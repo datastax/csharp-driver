@@ -21,6 +21,7 @@ using System.Net;
 using System.Threading;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
+using Cassandra.Mapping;
 using Cassandra.Tasks;
 using Cassandra.Requests;
 using Cassandra.Serialization;
@@ -39,7 +40,7 @@ namespace Cassandra
         private readonly Cluster _cluster;
         private int _disposed;
         private volatile string _keyspace;
-
+        private ConcurrentDictionary<string, AsyncLazy<PreparedStatement>> _preparedStatementCache;
         public int BinaryProtocolVersion { get { return (int)_serializer.ProtocolVersion; } }
 
         /// <inheritdoc />
@@ -80,6 +81,7 @@ namespace Cassandra
             Keyspace = keyspace;
             UserDefinedTypes = new UdtMappingDefinitions(this, serializer);
             _connectionPool = new ConcurrentDictionary<IPEndPoint, HostConnectionPool>();
+            _preparedStatementCache=new ConcurrentDictionary<string, AsyncLazy<PreparedStatement>>();
         }
 
         /// <inheritdoc />
@@ -99,15 +101,43 @@ namespace Cassandra
         {
             return PrepareAsync(cqlQuery).ToApm(callback, state);
         }
+        /// <summary>
+        /// Prepare or Get Prepared Statement from Concusrrent Disctionary Usefull when dealling multiple kespace on single Cluster Session.
+        /// for using dynamic keyspace inject feature prefix @db. to table name e.g. <example>SELECT * FROM @db.mytable where mycolumn=?</example>
+        /// </summary>
+        /// <param name="cqlQuery"></param>
+        /// <returns></returns>
+        public async Task<PreparedStatement> PrepareOrGetAsync(string cqlQuery)
+        {
+            var keyspace = MappingConfiguration.Global.OnKeySpaceRequested != null ? $"{MappingConfiguration.Global.OnKeySpaceRequested?.Invoke()}." : "";
+            cqlQuery = cqlQuery.Replace("@db.", keyspace);
+            if (_preparedStatementCache.ContainsKey(cqlQuery))
+            {
+                return await _preparedStatementCache[cqlQuery];
+            }
+            var statement = new AsyncLazy<PreparedStatement>(async () => await PrepareAsync(cqlQuery));
+            _preparedStatementCache.TryAdd(cqlQuery, statement);
+            return await statement;
+        }
 
+        public async Task<PreparedStatement> PrepareOrGetAsync(string cqlQuery, IDictionary<string, byte[]> customPayload)
+        {
+            var keyspace = MappingConfiguration.Global.OnKeySpaceRequested != null ? $"{MappingConfiguration.Global.OnKeySpaceRequested?.Invoke()}." : "";
+            cqlQuery = cqlQuery.Replace("@db.", keyspace);
+            if (_preparedStatementCache.ContainsKey(cqlQuery))
+            {
+                return await _preparedStatementCache[cqlQuery];
+            }
+            var statement = new AsyncLazy<PreparedStatement>(async () => await PrepareAsync(cqlQuery, customPayload));
+            _preparedStatementCache.TryAdd(cqlQuery, statement);
+            return await statement;
+        }
         /// <inheritdoc />
         public void ChangeKeyspace(string keyspace)
         {
-            if (Keyspace != keyspace)
-            {
-                Execute(new SimpleStatement(CqlQueryTools.GetUseKeyspaceCql(keyspace)));
-                Keyspace = keyspace;
-            }
+            if (Keyspace == keyspace) return;
+            Execute(new SimpleStatement(CqlQueryTools.GetUseKeyspaceCql(keyspace)));
+            Keyspace = keyspace;
         }
 
         /// <inheritdoc />
