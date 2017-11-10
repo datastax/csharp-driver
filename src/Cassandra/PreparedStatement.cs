@@ -121,21 +121,32 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Creates a new BoundStatement object and bind its variables to the provided
-        /// values.
         /// <para>
-        /// Specify the parameter values by the position of the markers in the query or by name, 
+        /// Creates a new <see cref="BoundStatement"/> instance with the provided parameter values.
+        /// </para>
+        /// <para>
+        /// You can specify the parameter values by the position of the markers in the query, or by name 
         /// using a single instance of an anonymous type, with property names as parameter names.
         /// </para>
         /// <para>
         /// Note that while no more <c>values</c> than bound variables can be provided, it is allowed to
         /// provide less <c>values</c> that there is variables.
         /// </para>
+        /// <para>
+        /// You can provide a comma-separated variable number of arguments to the <c>Bind()</c> method. When providing
+        /// an array, the reference might be used by the driver making it not safe to modify its content.
+        /// </para>
         /// </summary>
-        /// <param name="values"> the values to bind to the variables of the newly
-        ///  created BoundStatement. </param>
-        /// <returns>the newly created <c>BoundStatement</c> with its variables
-        ///  bound to <c>values</c>. </returns>
+        /// <param name="values">The values to bind to the variables of the newly created BoundStatement.</param>
+        /// <returns>The newly created <see cref="BoundStatement"/> with the query parameters set.</returns>
+        /// <example>
+        /// Binding different parameters:
+        /// <code>
+        /// PreparedStatement ps = session.Prepare("INSERT INTO table (id, name) VALUES (?, ?)");
+        /// BoundStatement statement = ps.Bind(Guid.NewGuid(), "Franz Ferdinand");
+        /// session.Execute(statement);
+        /// </code>
+        /// </example>
         public virtual BoundStatement Bind(params object[] values)
         {
             var bs = new BoundStatement(this, _serializer);
