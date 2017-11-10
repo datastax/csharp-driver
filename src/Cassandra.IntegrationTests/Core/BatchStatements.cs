@@ -29,10 +29,20 @@ namespace Cassandra.IntegrationTests.Core
     {
         private readonly string _tableName = "tbl" + Guid.NewGuid().ToString("N").ToLower();
 
+        /// <summary>
+        /// Use a 3-node cluster to test prepared batches (unprepared flow).
+        /// </summary>
+        public BatchStatements() : base(!IsAppVeyor ? 3 : 1)
+        {
+            
+        }
+
         public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             CreateTable(_tableName);
+            // It should be unprepared on some of the nodes, we use a different table from the rest of the tests 
+            CreateTable("tbl_unprepared_flow");
         }
 
         [Test]
@@ -53,6 +63,33 @@ namespace Cassandra.IntegrationTests.Core
             var rs = Session.Execute($"SELECT * FROM {_tableName} WHERE id IN ({1}, {2}, {3})");
 
             VerifyData(rs, expectedValues);
+        }
+
+        [Test]
+        [TestCassandraVersion(2, 0)]
+        public void Batch_PreparedStatement_With_Unprepared_Flow()
+        {
+            // Use a dedicated cluster and table
+            using (var cluster = Cluster.Builder()
+                                        .AddContactPoint(TestCluster.InitialContactPoint)
+                                        .WithQueryOptions(new QueryOptions().SetPrepareOnAllHosts(false)).Build())
+            {
+                var session = cluster.Connect(KeyspaceName);
+                var ps1 = session.Prepare("INSERT INTO tbl_unprepared_flow (id, label) VALUES (?, ?)");
+                var ps2 = session.Prepare("UPDATE tbl_unprepared_flow SET label = ? WHERE id = ?");
+                session.Execute(new BatchStatement()
+                    .Add(ps1.Bind(1, "label1_u"))
+                    .Add(ps2.Bind("label2_u", 2)));
+                // Execute in multiple nodes
+                session.Execute(new BatchStatement()
+                    .Add(ps1.Bind(3, "label3_u"))
+                    .Add(ps2.Bind("label4_u", 4)));
+                var result = session.Execute("SELECT id, label FROM tbl_unprepared_flow")
+                                    .Select(r => new object[] { r.GetValue<int>(0), r.GetValue<string>(1) })
+                                    .OrderBy(arr => (int)arr[0])
+                                    .ToArray();
+                Assert.AreEqual(Enumerable.Range(1, 4).Select(i => new object[] { i, $"label{i}_u"}), result);
+            }
         }
 
         [Test]

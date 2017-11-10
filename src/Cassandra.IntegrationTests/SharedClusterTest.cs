@@ -60,6 +60,11 @@ namespace Cassandra.IntegrationTests
         /// </summary>
         protected string KeyspaceName { get; set; }
 
+        /// <summary>
+        /// Determines if we are running on AppVeyor.
+        /// </summary>
+        protected static bool IsAppVeyor => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("APPVEYOR"));
+
         protected SharedClusterTest(int amountOfNodes = 1, bool createSession = true, bool reuse = true)
         {
             //only reuse single node clusters
