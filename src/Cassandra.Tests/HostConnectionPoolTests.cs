@@ -300,7 +300,7 @@ namespace Cassandra.Tests
             pool.OnHostUp(null);
             await pool.EnsureCreate();
             Assert.AreEqual(1, pool.OpenConnections);
-            Thread.Sleep(1000);
+            await TestHelper.WaitUntilAsync(() => pool.OpenConnections == 2, 200, 30);
             Assert.AreEqual(2, Volatile.Read(ref creationCounter));
             Assert.AreEqual(2, pool.OpenConnections);
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
@@ -329,7 +329,7 @@ namespace Cassandra.Tests
             await Task.WhenAll(tasks);
             Assert.Greater(pool.OpenConnections, 0);
             Assert.LessOrEqual(pool.OpenConnections, 3);
-            await Task.Delay(400);
+            await TestHelper.WaitUntilAsync(() => Volatile.Read(ref creationCounter) == 3, 200, 20);
             Assert.AreEqual(3, Volatile.Read(ref creationCounter));
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
             Assert.AreEqual(3, pool.OpenConnections);
