@@ -53,7 +53,7 @@ namespace Cassandra.Mapping
             _cqlGenerator = cqlGenerator;
             if (_mapperFactory.PocoDataFactory.OnKeySpaceRequested == null)
             {
-                _mapperFactory.PocoDataFactory.OnKeySpaceRequested = MappingConfiguration.Global.OnKeySpaceRequested;
+                _mapperFactory.PocoDataFactory.OnKeySpaceRequested += MappingConfiguration.Global.OnKeySpaceRequested;
             }
             if (session.Cluster != null && session.Cluster.Configuration != null)
             {

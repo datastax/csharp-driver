@@ -41,7 +41,7 @@ namespace Cassandra.Data.Linq
             #pragma warning disable 612
             MappingConfiguration.Global.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(TEntity),
                 () => new LinqAttributeBasedTypeDefinition(typeof (TEntity), tableName, keyspaceName));
-            #pragma warning restore 612
+#pragma warning restore 612
             var config = MappingConfiguration.Global;
             return new Table<TEntity>(session, config, tableName, keyspaceName);
         }

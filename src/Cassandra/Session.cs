@@ -101,16 +101,15 @@ namespace Cassandra
         {
             return PrepareAsync(cqlQuery).ToApm(callback, state);
         }
-        /// <summary>
-        /// Prepare or Get Prepared Statement from Concusrrent Disctionary Usefull when dealling multiple kespace on single Cluster Session.
-        /// for using dynamic keyspace inject feature prefix @db. to table name e.g. <example>SELECT * FROM @db.mytable where mycolumn=?</example>
-        /// </summary>
-        /// <param name="cqlQuery"></param>
-        /// <returns></returns>
+
         public async Task<PreparedStatement> PrepareOrGetAsync(string cqlQuery)
         {
-            var keyspace = MappingConfiguration.Global.OnKeySpaceRequested != null ? $"{MappingConfiguration.Global.OnKeySpaceRequested?.Invoke()}." : "";
-            cqlQuery = cqlQuery.Replace("@db.", keyspace);
+            return await PrepareOrGetAsync(cqlQuery);
+        }
+        public async Task<PreparedStatement> PrepareOrGetAsync(string cqlQuery,string keyspace)
+        {
+            var db = string.IsNullOrWhiteSpace(keyspace) ? (MappingConfiguration.Global.OnKeySpaceRequested != null ? $"{MappingConfiguration.Global.OnKeySpaceRequested?.Invoke()}." : "") : keyspace;
+            cqlQuery = cqlQuery.Replace("@db.", db);
             if (_preparedStatementCache.ContainsKey(cqlQuery))
             {
                 return await _preparedStatementCache[cqlQuery];
@@ -120,10 +119,15 @@ namespace Cassandra
             return await statement;
         }
 
-        public async Task<PreparedStatement> PrepareOrGetAsync(string cqlQuery, IDictionary<string, byte[]> customPayload)
+        public async Task<PreparedStatement> PrepareOrGetAsync(string cqlQuery,
+            IDictionary<string, byte[]> customPayload)
         {
-            var keyspace = MappingConfiguration.Global.OnKeySpaceRequested != null ? $"{MappingConfiguration.Global.OnKeySpaceRequested?.Invoke()}." : "";
-            cqlQuery = cqlQuery.Replace("@db.", keyspace);
+            return await PrepareOrGetAsync(cqlQuery, customPayload);
+        }
+        public async Task<PreparedStatement> PrepareOrGetAsync(string cqlQuery, IDictionary<string, byte[]> customPayload, string keyspace)
+        {
+            var db =string.IsNullOrWhiteSpace(keyspace)? (MappingConfiguration.Global.OnKeySpaceRequested != null ? $"{MappingConfiguration.Global.OnKeySpaceRequested?.Invoke()}." : ""):keyspace;
+            cqlQuery = cqlQuery.Replace("@db.", db);
             if (_preparedStatementCache.ContainsKey(cqlQuery))
             {
                 return await _preparedStatementCache[cqlQuery];

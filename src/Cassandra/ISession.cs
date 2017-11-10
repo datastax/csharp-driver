@@ -164,6 +164,7 @@ namespace Cassandra
         /// <param name="cqlQuery">cql query to prepare</param>
         /// <param name="customPayload">Custom outgoing payload to send with the prepare request</param>
         Task<PreparedStatement> PrepareAsync(string cqlQuery, IDictionary<string, byte[]> customPayload);
+
         /// <summary>
         /// Prepares the provided query string asynchronously.
         /// Prepare or Get Prepared Statement from Concusrrent Disctionary Usefull when dealling multiple kespace on single Cluster Session.
@@ -172,6 +173,24 @@ namespace Cassandra
         /// <param name="cqlQuery">cql query to prepare</param>
         /// <returns></returns>
         Task<PreparedStatement> PrepareOrGetAsync(string cqlQuery);
+        /// <summary>
+        /// Prepares the provided query string asynchronously.
+        /// Prepare or Get Prepared Statement from Concusrrent Disctionary Usefull when dealling multiple kespace on single Cluster Session.
+        /// for using dynamic keyspace inject feature prefix @db. to table name e.g. <example>SELECT * FROM @db.mytable where mycolumn=?</example>
+        /// </summary>
+        /// <param name="cqlQuery">cql query to prepare</param>
+        /// <param name="keyspace">keyspace name</param>
+        /// <returns></returns>
+        Task<PreparedStatement> PrepareOrGetAsync(string cqlQuery, string keyspace);
+        /// <summary>
+        /// Prepares the provided query string asynchronously, and sending the custom payload request.
+        /// Prepare or Get Prepared Statement from Concusrrent Disctionary Usefull when dealling multiple kespace on single Cluster Session.
+        /// for using dynamic keyspace inject feature prefix @db. to table name e.g. <example>SELECT * FROM @db.mytable where mycolumn=?</example>
+        /// </summary>
+        /// <param name="cqlQuery">cql query to prepare</param>
+        /// <param name="customPayload">Custom outgoing payload to send with the prepare request</param>
+        /// <param name="keyspace">keyspace name</param>
+        Task<PreparedStatement> PrepareOrGetAsync(string cqlQuery, IDictionary<string, byte[]> customPayload, string keyspace);
         /// <summary>
         /// Prepares the provided query string asynchronously, and sending the custom payload request.
         /// Prepare or Get Prepared Statement from Concusrrent Disctionary Usefull when dealling multiple kespace on single Cluster Session.

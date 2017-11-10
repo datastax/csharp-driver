@@ -34,7 +34,7 @@ namespace Cassandra.Mapping
                 this._onKeySpaceRequested = value;
                 if (this.MapperFactory?.PocoDataFactory?.OnKeySpaceRequested != null)
                 {
-                    this.MapperFactory.PocoDataFactory.OnKeySpaceRequested = value;
+                    this.MapperFactory.PocoDataFactory.OnKeySpaceRequested += value;
                 }
 
             }
