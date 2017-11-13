@@ -4,8 +4,8 @@
     <Copyright>Copyright © 2017 by DataStax</Copyright>
     <AssemblyTitle>DataStax C# Driver for Apache Cassandra</AssemblyTitle>
     <AssemblyVersion>3.99.0.0</AssemblyVersion>
-    <FileVersion>3.3.2.0</FileVersion>
-    <VersionPrefix>3.3.2</VersionPrefix>
+    <FileVersion>3.4.0.0</FileVersion>
+    <VersionPrefix>3.4.0</VersionPrefix>
     <Authors>DataStax</Authors>
     <TargetFrameworks>net45;netstandard1.5</TargetFrameworks>
     <NoWarn>$(NoWarn);1591</NoWarn>

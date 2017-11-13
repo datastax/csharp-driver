@@ -235,14 +235,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-  [apidocs]: http://docs.datastax.com/en/drivers/csharp/3.3/
+  [apidocs]: http://docs.datastax.com/en/latest-csharp-driver-api/
   [docindex]: http://docs.datastax.com/en/developer/csharp-driver/latest/
   [features]: http://docs.datastax.com/en/developer/csharp-driver/latest/features/
   [getting-started]: https://academy.datastax.com/resources/getting-started-apache-cassandra-and-c-net
   [nuget]: https://nuget.org/packages/CassandraCSharpDriver/
   [mailinglist]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
   [jira]: https://datastax-oss.atlassian.net/projects/CSHARP/issues
-  [udt]: http://docs.datastax.com/en/cql/3.1/cql/cql_reference/cqlRefUDType.html
+  [udt]: http://docs.datastax.com/en/dse/5.1/cql/cql/cql_using/useInsertUDT.html
   [poco]: http://en.wikipedia.org/wiki/Plain_Old_CLR_Object
   [linq]: http://docs.datastax.com/en/developer/csharp-driver/latest/features/components/linq/
   [mapper]: http://docs.datastax.com/en/developer/csharp-driver/latest/features/components/mapper/
