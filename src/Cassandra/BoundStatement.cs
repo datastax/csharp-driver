@@ -22,17 +22,9 @@ using Cassandra.Serialization;
 namespace Cassandra
 {
     /// <summary>
-    ///  A prepared statement with values bound to the bind variables. <p> Once a
-    ///  BoundStatement has values for all the variables of the
-    ///  <see cref="PreparedStatement"/> it has been created from, it can executed
-    ///  (through <see cref="ISession.Execute(IStatement)"/>). </p><p> The values of a BoundStatement
-    ///  can be set by either index or name. When setting them by name, names follow
-    ///  the case insensitivity rules explained in <link>ColumnDefinitions</link>.
-    ///  Note-worthily, if multiple bind variables correspond to the same column (as
-    ///  would be the case if you prepare <c>SELECT * FROM t WHERE x &gt; ? AND x &lt; ?</c>), 
-    ///  you will have to set values by indexes (or the <c>PreparedStatement.Bind(object[])</c>
-    ///  method) as the methods to set by name only allows to set the first prepared
-    ///  occurrence of the column.</p>
+    /// <para>Represents a prepared statement with the parameter values set, ready for execution.</para>
+    /// A <see cref="BoundStatement"/> can be created from a <see cref="PreparedStatement"/> instance using the
+    /// <c>Bind()</c> method and can be executed using a <see cref="ISession"/> instance.
     /// <seealso cref="Cassandra.PreparedStatement"/>
     /// </summary>
     public class BoundStatement : Statement
