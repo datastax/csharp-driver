@@ -6,12 +6,8 @@
 //
 using System;
 using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
-using Dse;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Graph;
-using NUnit.Framework;
 
 namespace Dse.Test.Integration
 {
@@ -30,7 +26,10 @@ namespace Dse.Test.Integration
             "schema.vertexLabel('person').properties('name', 'age').ifNotExists().create();\n" +
             "schema.vertexLabel('software').properties('name', 'lang').ifNotExists().create();\n" +
             "schema.edgeLabel('created').properties('weight').connection('person', 'software').ifNotExists().create();\n" +
-            "schema.edgeLabel('knows').properties('weight').connection('person', 'person').ifNotExists().create();\n" ;
+            "schema.edgeLabel('knows').properties('weight').connection('person', 'person').ifNotExists().create();\n" +
+            "schema.propertyKey('title').Text().ifNotExists().create();\n" +
+            "schema.propertyKey('tags').Text().multiple().ifNotExists().create();\n" +
+            "schema.vertexLabel('movie').properties('title', 'tags').ifNotExists().create();\n";
 
         /// <summary>
         /// Reference graph: http://www.tinkerpop.com/docs/3.0.0.M1/
@@ -63,7 +62,7 @@ namespace Dse.Test.Integration
         /// </summary>
         public void CreateClassicGraph(IDseSession session, string name)
         {
-            session.ExecuteGraph(new SimpleGraphStatement(string.Format("system.graph('{0}').ifNotExists().create()", name)));
+            session.ExecuteGraph(new SimpleGraphStatement($"system.graph('{name}').ifNotExists().create()"));
             session.ExecuteGraph(new SimpleGraphStatement(MakeStrict).SetGraphName(name));
             session.ExecuteGraph(new SimpleGraphStatement(AllowScans).SetGraphName(name));
             session.ExecuteGraph(new SimpleGraphStatement(ClassicSchemaGremlinQuery).SetGraphName(name));

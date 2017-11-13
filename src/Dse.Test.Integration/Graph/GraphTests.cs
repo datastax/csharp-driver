@@ -11,7 +11,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Numerics;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Dse.Geometry;
@@ -121,6 +120,29 @@ namespace Dse.Test.Integration.Graph
                     Assert.NotNull(edge.GetProperty("weight"));
                 }
                 Assert.NotNull(rs);
+            }
+        }
+
+        [Test]
+        public void Should_Retrieve_Graph_Multiple_Properties()
+        {
+            using (var cluster = DseCluster.Builder()
+                                           .AddContactPoint(TestClusterManager.InitialContactPoint)
+                                           .WithGraphOptions(new GraphOptions().SetName(GraphName))
+                                           .Build())
+            {
+                var session = cluster.Connect();
+                session.ExecuteGraph(new SimpleGraphStatement(
+                    "graph.addVertex(label, 'movie', 'title', 'Star Wars', 'tags', ['science-fiction', 'adventure'])"));
+                var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V().has('title', 'Star Wars')"));
+                Assert.NotNull(rs);
+                var resultArray = rs.ToArray();
+                Assert.AreEqual(1, resultArray.Length);
+                var starWarsVertex = resultArray[0].ToVertex();
+                Assert.AreEqual("Star Wars", starWarsVertex.GetProperty("title").Value.ToString());
+                var tags = starWarsVertex.GetProperties("tags").Select(p => p.Value.ToString());
+                var expectedTags = new List<string>() {"science-fiction", "adventure"};
+                CollectionAssert.AreEquivalent(expectedTags, tags);
             }
         }
 
@@ -302,7 +324,9 @@ namespace Dse.Test.Integration.Graph
                 Assert.AreEqual(markoVertex.Id, byIdMarkoVertex.Id);
                 Assert.AreEqual(markoVertex.Label, byIdMarkoVertex.Label);
                 Assert.AreEqual(markoVertex.GetProperty("name").Value.ToString(),
-                                byIdMarkoVertex.GetProperty("name").Value.ToString());
+                    byIdMarkoVertex.GetProperty("name").Value.ToString());
+                Assert.AreEqual(markoVertex.GetProperties("name").First().Value.ToString(),
+                    byIdMarkoVertex.GetProperties("name").First().Value.ToString());
             }
         }
 
@@ -535,7 +559,7 @@ namespace Dse.Test.Integration.Graph
                 foreach (Path path in rs)
                 {
                     CollectionAssert.AreEqual(
-                        new string[][]
+                        new[]
                         {
                             new [] { "a" }, new [] {"b"}, new[] { "c", "d" }, new[] { "e", "f", "g" }, new [] { "h" }
                         }, path.Labels);
@@ -588,9 +612,9 @@ namespace Dse.Test.Integration.Graph
                 var schemaQuery = $"schema.propertyKey(propertyName).{type}.ifNotExists().create();\n" +
                                   "schema.vertexLabel(vertexLabel).properties(propertyName).ifNotExists().create();";
 
-                session.ExecuteGraph(new SimpleGraphStatement(schemaQuery, new { vertexLabel = vertexLabel, propertyName = propertyName }));
+                session.ExecuteGraph(new SimpleGraphStatement(schemaQuery, new {vertexLabel, propertyName }));
 
-                var parameters = new { vertexLabel = vertexLabel, propertyName = propertyName, val = value };
+                var parameters = new {vertexLabel, propertyName, val = value };
                 session.ExecuteGraph(new SimpleGraphStatement("g.addV(label, vertexLabel, propertyName, val)", parameters));
 
                 var rs =
