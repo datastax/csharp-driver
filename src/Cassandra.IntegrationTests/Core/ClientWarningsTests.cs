@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Text;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
@@ -34,6 +35,30 @@ namespace Cassandra.IntegrationTests.Core
             Session = testCluster.Session;
             Session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, Keyspace, 1));
             Session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, Table));
+        }
+
+        [Test]
+        public void QueryTraceEnabledTest()
+        {
+            var rs = Session.Execute(new SimpleStatement("SELECT * from system.local").EnableTracing());
+            Assert.NotNull(rs.Info.QueryTrace);
+            Assert.AreEqual(Session.Cluster.AllHosts().FirstOrDefault(), rs.Info.QueryTrace.Coordinator);
+            Assert.Greater(rs.Info.QueryTrace.Events.Count, 0);
+            if (Session.BinaryProtocolVersion >= 4)
+            {
+                Assert.NotNull(rs.Info.QueryTrace.ClientAddress);   
+            }
+            else
+            {
+                Assert.Null(rs.Info.QueryTrace.ClientAddress);
+            }
+        }
+
+        [Test]
+        public void QueryTraceDisabledByDefaultTest()
+        {
+            var rs = Session.Execute(new SimpleStatement("SELECT * from system.local"));
+            Assert.Null(rs.Info.QueryTrace);
         }
 
         [Test, TestCassandraVersion(2, 2)]

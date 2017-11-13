@@ -18,408 +18,124 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Numerics;
-using System.Text;
 using System.Threading.Tasks;
-using System.Collections.Concurrent;
-using System.Net;
 using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
 using System.Reflection;
 using NUnit.Framework;
-#pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.Core
 {
+    /// <summary>
+    /// Validates the (de)serialization of CRL types and CQL types.
+    /// Each test will upsert a value on specific CQL type and expect the correspondent CRL type. Should_Get(CRL type)_When_Upsert(CQL data type).
+    /// </summary>
     [Category("short")]
     public class BasicTypeTests : SharedClusterTest
     {
         [Test]
-        [TestCassandraVersion(2, 0)]
-        public void QueryBinding()
-        {
-            string tableName = CreateSimpleTableAndInsert(0);
-            var sst = new SimpleStatement(string.Format("INSERT INTO {0}(id, label) VALUES(?, ?)", tableName));
-            Session.Execute(sst.Bind(new object[] { Guid.NewGuid(), "label" }));
-        }
-
-        /// <summary>
-        /// Validates that the Session.GetRequest (called within ExecuteAsync) method uses the session default paging size
-        /// which was set previously when the Builder was initialized
-        /// </summary>
-        [Test]
-        [TestCassandraVersion(2, 0)]
-        public void PagingOnBoundStatementTest_Async_UsingConfigBasedPagingSetting()
-        {
-            var pageSize = 10;
-            var queryOptions = new QueryOptions().SetPageSize(pageSize);
-            Builder builder = new Builder().WithQueryOptions(queryOptions).WithDefaultKeyspace(KeyspaceName);
-            builder.AddContactPoint(TestCluster.InitialContactPoint);
-
-            using (ISession session = builder.Build().Connect())
-            {
-                var totalRowLength = 1003;
-                Tuple<string, string> tableNameAndStaticKeyVal = CreateTableWithCompositeIndexAndInsert(session, totalRowLength);
-                string statementToBeBound = "SELECT * from " + tableNameAndStaticKeyVal.Item1 + " where label=?";
-                PreparedStatement preparedStatementWithoutPaging = session.Prepare(statementToBeBound);
-                PreparedStatement preparedStatementWithPaging = session.Prepare(statementToBeBound);
-                BoundStatement boundStatemetWithoutPaging = preparedStatementWithoutPaging.Bind(tableNameAndStaticKeyVal.Item2);
-                BoundStatement boundStatemetWithPaging = preparedStatementWithPaging.Bind(tableNameAndStaticKeyVal.Item2);
-
-                var rsWithSessionPagingInherited = session.ExecuteAsync(boundStatemetWithPaging).Result;
-
-                var rsWithoutPagingInherited = Session.Execute(boundStatemetWithoutPaging);
-
-                //Check that the internal list of items count is pageSize
-                Assert.AreEqual(pageSize, rsWithSessionPagingInherited.InnerQueueCount);
-                Assert.AreEqual(totalRowLength, rsWithoutPagingInherited.InnerQueueCount);
-
-                var allTheRowsPaged = rsWithSessionPagingInherited.ToList();
-                Assert.AreEqual(totalRowLength, allTheRowsPaged.Count);
-            }
-        }
-
-        [Test]
-        [TestCassandraVersion(2, 0)]
-        public void PagingOnBoundStatementTest()
-        {
-            var pageSize = 10;
-            var totalRowLength = 1003;
-            Tuple<string, string> tableNameAndStaticKeyVal = CreateTableWithCompositeIndexAndInsert(Session, totalRowLength);
-            string statementToBeBound = "SELECT * from " + tableNameAndStaticKeyVal.Item1 + " where label=?";
-            PreparedStatement preparedStatementWithoutPaging = Session.Prepare(statementToBeBound);
-            PreparedStatement preparedStatementWithPaging = Session.Prepare(statementToBeBound);
-            BoundStatement boundStatemetWithoutPaging = preparedStatementWithoutPaging.Bind(tableNameAndStaticKeyVal.Item2);
-            BoundStatement boundStatemetWithPaging = preparedStatementWithPaging.Bind(tableNameAndStaticKeyVal.Item2);
-
-            boundStatemetWithPaging.SetPageSize(pageSize);
-
-            var rsWithPaging = Session.Execute(boundStatemetWithPaging);
-            var rsWithoutPaging = Session.Execute(boundStatemetWithoutPaging);
-
-            //Check that the internal list of items count is pageSize
-            Assert.AreEqual(pageSize, rsWithPaging.InnerQueueCount);
-            Assert.AreEqual(totalRowLength, rsWithoutPaging.InnerQueueCount);
-
-            var allTheRowsPaged = rsWithPaging.ToList();
-            Assert.AreEqual(totalRowLength, allTheRowsPaged.Count);
-        }
-
-        [Test]
-        [TestCassandraVersion(2, 0)]
-        public void PagingOnBoundStatementTest_PageOverOneRow()
-        {
-            var pageSize = 10;
-            var totalRowLength = 11;
-            string tableName = CreateSimpleTableAndInsert(totalRowLength);
-
-            // insert a guid that we'll keep track of
-            Guid guid = Guid.NewGuid();
-            Session.Execute(string.Format("INSERT INTO {2} (id, label) VALUES({0},'{1}')", guid, "LABEL_12345", tableName));
-
-            string statementToBeBound = "SELECT * from " + tableName + " where id=?";
-            PreparedStatement preparedStatementWithoutPaging = Session.Prepare(statementToBeBound);
-            PreparedStatement preparedStatementWithPaging = Session.Prepare(statementToBeBound);
-            BoundStatement boundStatemetWithoutPaging = preparedStatementWithoutPaging.Bind(guid);
-            BoundStatement boundStatemetWithPaging = preparedStatementWithPaging.Bind(guid);
-
-            boundStatemetWithPaging.SetPageSize(pageSize);
-
-            var rsWithPaging = Session.Execute(boundStatemetWithPaging);
-            var rsWithoutPaging = Session.Execute(boundStatemetWithoutPaging);
-
-            //Check that the internal list of items count is pageSize
-            Assert.AreEqual(1, rsWithPaging.InnerQueueCount);
-            Assert.AreEqual(1, rsWithoutPaging.InnerQueueCount);
-
-            var allTheRowsPaged = rsWithPaging.ToList();
-            Assert.AreEqual(1, allTheRowsPaged.Count);
-        }
-
-        [Test]
-        [TestCassandraVersion(2, 0)]
-        public void PagingOnBoundStatementTest_PageOverZeroRows()
-        {
-            var pageSize = 10;
-            var totalRowLength = 11;
-            string tableName = CreateSimpleTableAndInsert(totalRowLength);
-
-            // insert a guid that we'll keep track of
-            Guid guid = Guid.NewGuid();
-
-            string statementToBeBound = "SELECT * from " + tableName + " where id=?";
-            PreparedStatement preparedStatementWithoutPaging = Session.Prepare(statementToBeBound);
-            PreparedStatement preparedStatementWithPaging = Session.Prepare(statementToBeBound);
-            BoundStatement boundStatemetWithoutPaging = preparedStatementWithoutPaging.Bind(guid);
-            BoundStatement boundStatemetWithPaging = preparedStatementWithPaging.Bind(guid);
-
-            boundStatemetWithPaging.SetPageSize(pageSize);
-
-            var rsWithPaging = Session.Execute(boundStatemetWithPaging);
-            var rsWithoutPaging = Session.Execute(boundStatemetWithoutPaging);
-
-            //Check that the internal list of items count is pageSize
-            Assert.AreEqual(0, rsWithPaging.InnerQueueCount);
-            Assert.AreEqual(0, rsWithoutPaging.InnerQueueCount);
-
-            var allTheRowsPaged = rsWithPaging.ToList();
-            Assert.AreEqual(0, allTheRowsPaged.Count);
-        }
-
-        [Test]
-        [TestCassandraVersion(2, 0)]
-        public void PagingOnSimpleStatementTest()
-        {
-            var pageSize = 10;
-            var totalRowLength = 1003;
-            var table = CreateSimpleTableAndInsert(totalRowLength);
-            var statementWithPaging = new SimpleStatement("SELECT * FROM " + table);
-            var statementWithoutPaging = new SimpleStatement("SELECT * FROM " + table);
-            statementWithoutPaging.SetPageSize(int.MaxValue);
-            statementWithPaging.SetPageSize(pageSize);
-
-            var rsWithPaging = Session.Execute(statementWithPaging);
-            var rsWithoutPaging = Session.Execute(statementWithoutPaging);
-
-            //Check that the internal list of items count is pageSize
-            Assert.True(rsWithPaging.InnerQueueCount == pageSize);
-            Assert.True(rsWithoutPaging.InnerQueueCount == totalRowLength);
-
-            var allTheRowsPaged = rsWithPaging.ToList();
-            Assert.True(allTheRowsPaged.Count == totalRowLength);
-        }
-
-        [Test]
-        [TestCassandraVersion(2, 0)]
-        public void QueryPaging()
-        {
-            var pageSize = 10;
-            var totalRowLength = 1003;
-            var table = CreateSimpleTableAndInsert(totalRowLength);
-            var rsWithoutPaging = Session.Execute("SELECT * FROM " + table, int.MaxValue);
-            //It should have all the rows already in the inner list
-            Assert.AreEqual(totalRowLength, rsWithoutPaging.InnerQueueCount);
-
-            var rs = Session.Execute("SELECT * FROM " + table, pageSize);
-            //Check that the internal list of items count is pageSize
-            Assert.AreEqual(pageSize, rs.InnerQueueCount);
-
-            //Use Linq to iterate through all the rows
-            var allTheRowsPaged = rs.ToList();
-
-            Assert.AreEqual(totalRowLength, allTheRowsPaged.Count);
-        }
-
-        [Test]
-        [TestCassandraVersion(2, 0)]
-        public void QueryPagingParallel()
-        {
-            var pageSize = 25;
-            var totalRowLength = 300;
-            var table = CreateSimpleTableAndInsert(totalRowLength);
-            var query = new SimpleStatement(String.Format("SELECT * FROM {0} LIMIT 10000", table))
-                .SetPageSize(pageSize);
-            var rs = Session.Execute(query);
-            Assert.AreEqual(pageSize, rs.GetAvailableWithoutFetching());
-            var counterList = new ConcurrentBag<int>();
-            Action iterate = () =>
-            {
-                var counter = rs.Count();
-                counterList.Add(counter);
-            };
-
-            //Iterate in parallel the RowSet
-            Parallel.Invoke(iterate, iterate, iterate, iterate);
-
-            //Check that the sum of all rows in different threads is the same as total rows
-            Assert.AreEqual(totalRowLength, counterList.Sum());
-        }
-
-        [Test]
-        [TestCassandraVersion(2, 0)]
-        public void QueryPagingMultipleTimesOverTheSameStatement()
-        {
-            var pageSize = 25;
-            var totalRowLength = 300;
-            var times = 10;
-            var table = CreateSimpleTableAndInsert(totalRowLength);
-
-            var statement = new SimpleStatement(String.Format("SELECT * FROM {0} LIMIT 10000", table))
-                .SetPageSize(pageSize);
-
-            var counter = 0;
-            for (var i = 0; i < times; i++)
-            {
-                var rs = Session.Execute(statement);
-                counter += rs.Count();
-            }
-
-            //Check that the sum of all rows in different threads is the same as total rows
-            Assert.AreEqual(totalRowLength * times, counter);
-        }
-
-        [Test]
-        [TestCassandraVersion(2, 0)]
-        public void QueryPagingManual()
-        {
-            var pageSize = 10;
-            var totalRowLength = 15;
-            var table = CreateSimpleTableAndInsert(totalRowLength);
-            var rs = Session.Execute(new SimpleStatement("SELECT * FROM " + table).SetAutoPage(false).SetPageSize(pageSize));
-            Assert.NotNull(rs.PagingState);
-            //It should have just the first page of rows
-            Assert.AreEqual(pageSize, rs.InnerQueueCount);
-            //Linq iteration should not make it to page
-            Assert.AreEqual(pageSize, rs.Count());
-            rs = Session.Execute(new SimpleStatement("SELECT * FROM " + table).SetAutoPage(false).SetPageSize(pageSize).SetPagingState(rs.PagingState));
-            //It should only contain the following page rows
-            Assert.AreEqual(totalRowLength - pageSize, rs.Count());
-        }
-
-        [Test]
-        public void QueryTraceEnabledTest()
-        {
-            var rs = Session.Execute(new SimpleStatement("SELECT * from system.local").EnableTracing());
-            Assert.NotNull(rs.Info.QueryTrace);
-            Assert.AreEqual(IPAddress.Parse(TestCluster.InitialContactPoint), rs.Info.QueryTrace.Coordinator);
-            Assert.Greater(rs.Info.QueryTrace.Events.Count, 0);
-            if (Session.BinaryProtocolVersion >= 4)
-            {
-                Assert.NotNull(rs.Info.QueryTrace.ClientAddress);   
-            }
-            else
-            {
-                Assert.Null(rs.Info.QueryTrace.ClientAddress);
-            }
-        }
-
-        [Test]
-        public void QueryTraceDisabledByDefaultTest()
-        {
-            var rs = Session.Execute(new SimpleStatement("SELECT * from system.local"));
-            Assert.Null(rs.Info.QueryTrace);
-        }
-
-        /// Tests that the default consistency level for queries is LOCAL_ONE
-        /// 
-        /// LocalOne_Is_Default_Consistency tests that the default consistency level for all queries is LOCAL_ONE. It performs
-        /// a simple select statement and verifies that the result set metadata shows that the achieved consistency level is LOCAL_ONE.
-        /// 
-        /// @since 3.0.0
-        /// @jira_ticket CSHARP-378
-        /// @expected_result The default consistency level should be LOCAL_ONE
-        /// 
-        /// @test_category consistency
-        [Test]
-        public void LocalOne_Is_Default_Consistency()
-        {
-            var rs = Session.Execute(new SimpleStatement("SELECT * from system.local"));
-            Assert.AreEqual(ConsistencyLevel.LocalOne, rs.Info.AchievedConsistency);
-        }
-
-        [Test]
-        public void Counter()
+        public void Should_GetTypeCounter_When_UpsertTypeCounter()
         {
             TestCounters();
         }
 
         [Test]
-        public void TypeBlob()
+        public void Should_GetByte_When_UpsertTypeBlob()
         {
             InsertingSingleValue(typeof(byte));
         }
 
         [Test]
-        public void TypeASCII()
+        public void Should_GetString_When_UpsertTypeASCIIC()
         {
             InsertingSingleValue(typeof(Char));
         }
 
         [Test]
-        public void TypeDecimal()
+        public void Should_getTypeDecimal_When_UpsertDecimal()
         {
             InsertingSingleValue(typeof(Decimal));
         }
 
         [Test]
-        public void TypeVarInt()
+        public void Should_GetBigInteger_When_UpsertVarInt()
         {
             InsertingSingleValue(typeof(BigInteger));
         }
 
         [Test]
-        public void TypeBigInt()
+        public void Should_GetInt64_When_UpsertBigInt()
         {
             InsertingSingleValue(typeof(Int64));
         }
 
         [Test]
-        public void TypeDouble()
+        public void Should_GetDouble_When_UpsertDouble()
         {
             InsertingSingleValue(typeof(Double));
         }
 
         [Test]
-        public void TypeFloat()
+        public void Should_GetFloat_When_UpsertFloat()
         {
             InsertingSingleValue(typeof(Single));
         }
 
         [Test]
-        public void TypeInt()
+        public void Should_GetInt_When_UpsertInt()
         {
             InsertingSingleValue(typeof(Int32));
         }
 
         [Test]
-        public void TypeBoolean()
+        public void Should_GeteBool_When_UpsertBoolean()
         {
             InsertingSingleValue(typeof(Boolean));
         }
 
         [Test]
-        public void TypeUUID()
+        public void Should_GetGuid_When_UpsertUUID()
         {
             InsertingSingleValue(typeof(Guid));
         }
 
         [Test]
-        public void TypeTimestamp()
+        public void Should_GetDateTimeOffset_When_UpsertTimestamp()
         {
             TimestampTest();
         }
 
         [Test]
-        public void TypeInt_Max()
+        public void Should_UpsertAndSelectTypeInt_When_InputHighAndLowLimits()
         {
             ExceedingCassandraType(typeof(Int32), typeof(Int32));
         }
 
         [Test]
-        public void TypeBigInt_Max()
+        public void Should_UpsertAndSelectTypeBigInt_When_InputHighAndLowLimits()
         {
             ExceedingCassandraType(typeof(Int64), typeof(Int64));
         }
 
         [Test]
-        public void TypeFloat_Max()
+        public void Should_UpsertAndSelectTypeFloat_When_InputHighAndLowLimits()
         {
             ExceedingCassandraType(typeof(Single), typeof(Single));
         }
 
         [Test]
-        public void TypeDouble_Max()
+        public void Should_UpsertAndSelectTypeDouble_When_InputHighAndLowLimits()
         {
             ExceedingCassandraType(typeof(Double), typeof(Double));
         }
 
         [Test]
-        public void ExceedingCassandraInt()
+        public void Should_ThrowException_When_ExceedingCQLTypeInt()
         {
             ExceedingCassandraType(typeof(Int32), typeof(Int64), false);
         }
 
         [Test]
-        public void ExceedingCassandraFloat()
+        public void Should_ThrowException_When_ExceedingCQLTypeFloat()
         {
             ExceedingCassandraType(typeof(Single), typeof(Double), false);
         }
@@ -464,81 +180,38 @@ namespace Cassandra.IntegrationTests.Core
         /// Test Helpers
         ////////////////////////////////////
 
-        /// <summary>
-        /// Creates a table and inserts a number of records synchronously.
-        /// </summary>
-        /// <returns>The name of the table</returns>
-        private string CreateSimpleTableAndInsert(int rowsInTable)
-        {
-            string tableName = TestUtils.GetUniqueTableName();
-            QueryTools.ExecuteSyncNonQuery(Session, string.Format(@"
-                CREATE TABLE {0}(
-                id uuid PRIMARY KEY,
-                label text);", tableName));
-            for (int i = 0; i < rowsInTable; i++)
-            {
-                Session.Execute(string.Format("INSERT INTO {2} (id, label) VALUES({0},'{1}')", Guid.NewGuid(), "LABEL" + i, tableName));
-            }
-
-            return tableName;
-        }
-
-        /// <summary>
-        /// Creates a table with a composite index and inserts a number of records synchronously.
-        /// </summary>
-        /// <returns>The name of the table</returns>
-        private Tuple<string, string> CreateTableWithCompositeIndexAndInsert(ISession session, int rowsInTable)
-        {
-            string tableName = TestUtils.GetUniqueTableName();
-            string staticClusterKeyStr = "staticClusterKeyStr";
-            QueryTools.ExecuteSyncNonQuery(session, string.Format(@"
-                CREATE TABLE {0} (
-                id text,
-                label text,
-                PRIMARY KEY (label, id));",
-                tableName));
-            for (int i = 0; i < rowsInTable; i++)
-            {
-                session.Execute(string.Format("INSERT INTO {2} (label, id) VALUES('{0}','{1}')", staticClusterKeyStr, Guid.NewGuid().ToString(), tableName));
-            }
-            Tuple<string, string> infoTuple = new Tuple<string, string>(tableName, staticClusterKeyStr);
-            return infoTuple;
-        }
-
         public void ExceedingCassandraType(Type toExceed, Type toExceedWith, bool sameOutput = true)
         {
-            string cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(toExceed);
-            string tableName = TestUtils.GetUniqueTableName();
-            var query = String.Format("CREATE TABLE {0}(tweet_id uuid PRIMARY KEY, label text, number {1});", tableName, cassandraDataTypeName);
+            var cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(toExceed);
+            var tableName = TestUtils.GetUniqueTableName();
+            var query = $"CREATE TABLE {tableName}(tweet_id uuid PRIMARY KEY, label text, number {cassandraDataTypeName});";
             QueryTools.ExecuteSyncNonQuery(Session, query);
 
-            object Minimum = toExceedWith.GetTypeInfo().GetField("MinValue").GetValue(this);
-            object Maximum = toExceedWith.GetTypeInfo().GetField("MaxValue").GetValue(this);
+            var minimum = toExceedWith.GetTypeInfo().GetField("MinValue").GetValue(this);
+            var maximum = toExceedWith.GetTypeInfo().GetField("MaxValue").GetValue(this);
 
-            var row1 = new object[3] { Guid.NewGuid(), "Minimum", Minimum };
-            var row2 = new object[3] { Guid.NewGuid(), "Maximum", Maximum };
-            var toInsert_and_Check = new List<object[]>(2) { row1, row2 };
+            var row1 = new object[3] { Guid.NewGuid(), "Minimum", minimum };
+            var row2 = new object[3] { Guid.NewGuid(), "Maximum", maximum };
+            var toInsertAndCheck = new List<object[]>(2) { row1, row2 };
 
-            if (toExceedWith == typeof(Double) || toExceedWith == typeof(Single))
+            if (toExceedWith == typeof(double) || toExceedWith == typeof(Single))
             {
-                Minimum = Minimum.GetType().GetTypeInfo().GetMethod("ToString", new[] { typeof(string) }).Invoke(Minimum, new object[1] { "r" });
-                Maximum = Maximum.GetType().GetTypeInfo().GetMethod("ToString", new[] { typeof(string) }).Invoke(Maximum, new object[1] { "r" });
+                minimum = minimum.GetType().GetTypeInfo().GetMethod("ToString", new[] { typeof(string) }).Invoke(minimum, new object[1] { "r" });
+                maximum = maximum.GetType().GetTypeInfo().GetMethod("ToString", new[] { typeof(string) }).Invoke(maximum, new object[1] { "r" });
 
                 if (!sameOutput) //for ExceedingCassandra_FLOAT() test case
                 {
-                    toInsert_and_Check[0][2] = Single.NegativeInfinity;
-                    toInsert_and_Check[1][2] = Single.PositiveInfinity;
+                    toInsertAndCheck[0][2] = Single.NegativeInfinity;
+                    toInsertAndCheck[1][2] = Single.PositiveInfinity;
                 }
             }
 
             try
             {
                 QueryTools.ExecuteSyncNonQuery(Session,
-                                               string.Format("INSERT INTO {0}(tweet_id, label, number) VALUES ({1}, '{2}', {3});", tableName,
-                                                             toInsert_and_Check[0][0], toInsert_and_Check[0][1], Minimum), null);
+                    $"INSERT INTO {tableName}(tweet_id, label, number) VALUES ({toInsertAndCheck[0][0]}, '{toInsertAndCheck[0][1]}', {minimum});", null);
                 QueryTools.ExecuteSyncNonQuery(Session,
-                                               string.Format("INSERT INTO {0}(tweet_id, label, number) VALUES ({1}, '{2}', {3});", tableName,
-                                                             toInsert_and_Check[1][0], toInsert_and_Check[1][1], Maximum), null);
+                    $"INSERT INTO {tableName}(tweet_id, label, number) VALUES ({toInsertAndCheck[1][0]}, '{toInsertAndCheck[1][1]}', {maximum});", null);
             }
             catch (InvalidQueryException)
             {
@@ -548,23 +221,23 @@ namespace Cassandra.IntegrationTests.Core
                 }
             }
 
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), ConsistencyLevel.One, toInsert_and_Check);
+            QueryTools.ExecuteSyncQuery(Session, $"SELECT * FROM {tableName};", ConsistencyLevel.One, toInsertAndCheck);
         }
 
 
         public void TestCounters()
         {
-            string tableName = TestUtils.GetUniqueTableName();
+            var tableName = TestUtils.GetUniqueTableName();
             try
             {
-                var query = string.Format("CREATE TABLE {0}(tweet_id uuid PRIMARY KEY, incdec counter);", tableName);
+                var query = $"CREATE TABLE {tableName}(tweet_id uuid PRIMARY KEY, incdec counter);";
                 QueryTools.ExecuteSyncNonQuery(Session, query);
             }
             catch (AlreadyExistsException)
             {
             }
 
-            Guid tweet_id = Guid.NewGuid();
+            var tweet_id = Guid.NewGuid();
 
             Parallel.For(0, 100,
                          i =>
@@ -574,18 +247,18 @@ namespace Cassandra.IntegrationTests.Core
                                                                           tweet_id, (i % 2 == 0 ? "-" : "+") + i));
                          });
 
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName),
+            QueryTools.ExecuteSyncQuery(Session, $"SELECT * FROM {tableName};",
                                         Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel(),
                                         new List<object[]> { new object[2] { tweet_id, (Int64)50 } });
         }
 
         public void InsertingSingleValue(Type tp)
         {
-            string cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(tp);
-            string tableName = TestUtils.GetUniqueTableName();
+            var cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(tp);
+            var tableName = TestUtils.GetUniqueTableName();
             try
             {
-                var query = string.Format(@"CREATE TABLE {0}(tweet_id uuid PRIMARY KEY, value {1});", tableName, cassandraDataTypeName);
+                var query = $@"CREATE TABLE {tableName}(tweet_id uuid PRIMARY KEY, value {cassandraDataTypeName});";
                 QueryTools.ExecuteSyncNonQuery(Session, query);
             }
             catch (AlreadyExistsException)
@@ -593,54 +266,43 @@ namespace Cassandra.IntegrationTests.Core
             }
 
             var toInsert = new List<object[]>(1);
-            object val = Randomm.RandomVal(tp);
+            var val = Randomm.RandomVal(tp);
             if (tp == typeof(string))
                 val = "'" + val.ToString().Replace("'", "''") + "'";
             var row1 = new object[2] { Guid.NewGuid(), val };
             toInsert.Add(row1);
 
-            bool isFloatingPoint = false;
+            var isFloatingPoint = false;
 
             if (row1[1].GetType() == typeof(string) || row1[1].GetType() == typeof(byte[]))
                 QueryTools.ExecuteSyncNonQuery(Session,
-                                               string.Format("INSERT INTO {0}(tweet_id,value) VALUES ({1}, {2});", tableName, toInsert[0][0],
-                                                             row1[1].GetType() == typeof(byte[])
-                                                                 ? "0x" + CqlQueryTools.ToHex((byte[])toInsert[0][1])
-                                                                 : "'" + toInsert[0][1] + "'"), null);
-            // rndm.GetType().GetMethod("Next" + tp.Name).Invoke(rndm, new object[] { })
+                    $"INSERT INTO {tableName}(tweet_id,value) VALUES ({toInsert[0][0]}, {(row1[1].GetType() == typeof(byte[]) ? "0x" + CqlQueryTools.ToHex((byte[]) toInsert[0][1]) : "'" + toInsert[0][1] + "'")});", null);
             else
             {
                 if (tp == typeof(Single) || tp == typeof(Double))
                     isFloatingPoint = true;
                 QueryTools.ExecuteSyncNonQuery(Session,
-                                               string.Format("INSERT INTO {0}(tweet_id,value) VALUES ({1}, {2});", tableName, toInsert[0][0],
-                                                             !isFloatingPoint
-                                                                 ? toInsert[0][1]
-                                                                 : toInsert[0][1].GetType()
-                                                                                 .GetMethod("ToString", new[] { typeof(string) })
-                                                                                 .Invoke(toInsert[0][1], new object[] { "r" })), null);
+                    $"INSERT INTO {tableName}(tweet_id,value) VALUES ({toInsert[0][0]}, {(!isFloatingPoint ? toInsert[0][1] : toInsert[0][1].GetType().GetMethod("ToString", new[] {typeof(string)}).Invoke(toInsert[0][1], new object[] {"r"}))});", null);
             }
 
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName),
+            QueryTools.ExecuteSyncQuery(Session, $"SELECT * FROM {tableName};",
                                         Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel(), toInsert);
         }
 
         public void TimestampTest()
         {
-            string tableName = TestUtils.GetUniqueTableName();
-            var createQuery = string.Format(@"CREATE TABLE {0}(tweet_id uuid PRIMARY KEY, ts timestamp);", tableName);
+            var tableName = TestUtils.GetUniqueTableName();
+            var createQuery = $@"CREATE TABLE {tableName}(tweet_id uuid PRIMARY KEY, ts timestamp);";
             QueryTools.ExecuteSyncNonQuery(Session, createQuery);
 
             QueryTools.ExecuteSyncNonQuery(Session,
-                                           string.Format("INSERT INTO {0}(tweet_id,ts) VALUES ({1}, '{2}');", tableName, Guid.NewGuid(),
-                                                         "2011-02-03 04:05+0000"), null);
+                $"INSERT INTO {tableName}(tweet_id,ts) VALUES ({Guid.NewGuid()}, '2011-02-03 04:05+0000');", null);
             QueryTools.ExecuteSyncNonQuery(Session,
-                                           string.Format("INSERT INTO {0}(tweet_id,ts) VALUES ({1}, '{2}');", tableName, Guid.NewGuid(),
-                                                         220898707200000), null);
-            QueryTools.ExecuteSyncNonQuery(Session, string.Format("INSERT INTO {0}(tweet_id,ts) VALUES ({1}, '{2}');", tableName, Guid.NewGuid(), 0),
+                $"INSERT INTO {tableName}(tweet_id,ts) VALUES ({Guid.NewGuid()}, '{220898707200000}');", null);
+            QueryTools.ExecuteSyncNonQuery(Session, $"INSERT INTO {tableName}(tweet_id,ts) VALUES ({Guid.NewGuid()}, '{0}');",
                                            null);
 
-            QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName),
+            QueryTools.ExecuteSyncQuery(Session, $"SELECT * FROM {tableName};",
                                         Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel());
         }
     }
