@@ -307,7 +307,7 @@ namespace Dse.Test.Unit
             pool.OnHostUp(null);
             await pool.EnsureCreate();
             Assert.AreEqual(1, pool.OpenConnections);
-            Thread.Sleep(1000);
+            await TestHelper.WaitUntilAsync(() => pool.OpenConnections == 2, 200, 30);
             Assert.AreEqual(2, Volatile.Read(ref creationCounter));
             Assert.AreEqual(2, pool.OpenConnections);
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
@@ -336,7 +336,7 @@ namespace Dse.Test.Unit
             await Task.WhenAll(tasks);
             Assert.Greater(pool.OpenConnections, 0);
             Assert.LessOrEqual(pool.OpenConnections, 3);
-            await Task.Delay(400);
+            await TestHelper.WaitUntilAsync(() => Volatile.Read(ref creationCounter) == 3, 200, 20);
             Assert.AreEqual(3, Volatile.Read(ref creationCounter));
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
             Assert.AreEqual(3, pool.OpenConnections);
@@ -411,11 +411,11 @@ namespace Dse.Test.Unit
             var eventRaised = 0;
             pool.AllConnectionClosed += (_, __) => Interlocked.Increment(ref eventRaised);
             pool.ScheduleReconnection();
-            Thread.Sleep(600);
+            Thread.Sleep(1500);
             Assert.AreEqual(0, pool.OpenConnections);
-            Assert.AreEqual(1, Volatile.Read(ref eventRaised));
+            Assert.AreEqual(1, Interlocked.CompareExchange(ref eventRaised, 0, 0));
             // Should not retry to reconnect, should relay on external consumer
-            Assert.AreEqual(1, Volatile.Read(ref openConnectionsAttempts));
+            Assert.AreEqual(1, Interlocked.CompareExchange(ref openConnectionsAttempts, 0, 0));
         }
 
         [Test]

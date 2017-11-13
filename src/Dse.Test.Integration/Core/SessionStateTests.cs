@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,10 +30,23 @@ namespace Dse.Test.Integration.Core
     {
         private SimulacronCluster _testCluster;
 
+        private const string Query = "SELECT id FROM dummy_table";
+
         [OneTimeSetUp]
         public void OneTimeSetup()
         {
             _testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3"});
+            _testCluster.Prime(new
+            {
+                when = new {query = Query},
+                then = new
+                {
+                    result = "success",
+                    delay_in_ms = 20,
+                    rows = new[] {new {id = Guid.NewGuid()}},
+                    column_types = new {id = "uuid"}
+                }
+            });
         }
 
         [OneTimeTearDown]
@@ -39,7 +54,7 @@ namespace Dse.Test.Integration.Core
         {
             _testCluster.Remove().Wait();
         }
-        
+
         [Test]
         public async Task Session_GetState_Should_Return_A_Snapshot_Of_The_Pools_State()
         {
@@ -49,12 +64,11 @@ namespace Dse.Test.Integration.Core
                                         .WithPoolingOptions(poolingOptions)
                                         .Build())
             {
-                const string query = "SELECT * FROM system.local";
                 var session = cluster.Connect();
                 var counter = 0;
                 ISessionState state = null;
                 // Warmup
-                await TestHelper.TimesLimit(() => session.ExecuteAsync(new SimpleStatement(query)), 200, 10);
+                await TestHelper.TimesLimit(() => session.ExecuteAsync(new SimpleStatement(Query)), 64, 32);
                 const int limit = 100;
                 // Perform several queries and get a snapshot somewhere
                 await TestHelper.TimesLimit(async () =>
@@ -65,8 +79,8 @@ namespace Dse.Test.Integration.Core
                         // after some requests
                         state = session.GetState();
                     }
-                    return await session.ExecuteAsync(new SimpleStatement(query)).ConfigureAwait(false);
-                }, 300, 100).ConfigureAwait(false);
+                    return await session.ExecuteAsync(new SimpleStatement(Query)).ConfigureAwait(false);
+                }, 280, 100).ConfigureAwait(false);
                 Assert.NotNull(state);
                 var stringState = state.ToString();
                 CollectionAssert.AreEquivalent(cluster.AllHosts(), state.GetConnectedHosts());
@@ -78,6 +92,30 @@ namespace Dse.Test.Integration.Core
                 var totalInFlight = cluster.AllHosts().Sum(h => state.GetInFlightQueries(h));
                 Assert.Greater(totalInFlight, 0);
                 Assert.LessOrEqual(totalInFlight, limit);
+            }
+        }
+
+        [Test]
+        public void Session_GetState_Should_Return_Zero_After_Cluster_Disposal()
+        {
+            ISession session;
+            ISessionState state;
+            ICollection<Host> hosts;
+            using (var cluster = Cluster.Builder()
+                                        .AddContactPoint(_testCluster.InitialContactPoint)
+                                        .Build())
+            {
+                session = cluster.Connect();
+                state = session.GetState();
+                Assert.AreNotEqual(SessionState.Empty(), state);
+                hosts = cluster.AllHosts();
+            }
+            state = session.GetState();
+            Assert.NotNull(hosts);
+            foreach (var host in hosts)
+            {
+                Assert.AreEqual(0, state.GetInFlightQueries(host));
+                Assert.AreEqual(0, state.GetOpenConnections(host));
             }
         }
     }

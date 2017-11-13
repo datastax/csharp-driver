@@ -21,10 +21,12 @@ namespace Dse.Test.Integration.Linq.LinqMethods
     [Category("short")]
     public class Where : SharedClusterTest
     {
-        ISession _session = null;
-        private List<Movie> _movieList = Movie.GetDefaultMovieList();
+        private ISession _session;
+        private readonly List<Movie> _movieList = Movie.GetDefaultMovieList();
+        private readonly List<ManyDataTypesEntity> _manyDataTypesEntitiesList = ManyDataTypesEntity.GetDefaultAllDataTypesList();
         readonly string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
         private Table<Movie> _movieTable;
+        private Table<ManyDataTypesEntity> _manyDataTypesEntitiesTable;
         private readonly List<Tuple<int, long>> _tupleList = new List<Tuple<int, long>> {Tuple.Create(0, 0L), Tuple.Create(1, 1L)};
         private static readonly List<Tuple<int, long>> TupleList = new List<Tuple<int, long>> {Tuple.Create(0, 0L), Tuple.Create(1, 1L)};
 
@@ -38,13 +40,21 @@ namespace Dse.Test.Integration.Linq.LinqMethods
             // drop table if exists, re-create
             MappingConfiguration movieMappingConfig = new MappingConfiguration();
             movieMappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(Movie),
-                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(Movie)));
+                () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(Movie)));
+            movieMappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(ManyDataTypesEntity),
+                () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(ManyDataTypesEntity)));
             _movieTable = new Table<Movie>(_session, movieMappingConfig);
             _movieTable.Create();
+
+            _manyDataTypesEntitiesTable = new Table<ManyDataTypesEntity>(_session, movieMappingConfig);
+            _manyDataTypesEntitiesTable.Create();
 
             //Insert some data
             foreach (var movie in _movieList)
                 _movieTable.Insert(movie).Execute();
+
+            foreach (var manyData in _manyDataTypesEntitiesList)
+                _manyDataTypesEntitiesTable.Insert(manyData).Execute();
         }
 
         [Test]
@@ -321,6 +331,61 @@ namespace Dse.Test.Integration.Linq.LinqMethods
             var listOuterStaticScopeResults = table.Where(t => t.UserId == 1 && TupleList.Contains(Tuple.Create(t.Date, t.TimeColumn))).Execute();
             Assert.NotNull(listOuterStaticScopeResults);
             Assert.AreEqual(1, listOuterStaticScopeResults.Count());
+        }
+
+        [Test]
+        [TestCassandraVersion(3,0)]
+        public void LinqWhere_Boolean()
+        {
+            var rs = _manyDataTypesEntitiesTable.Execute();
+            Assert.NotNull(rs);
+            Assert.Greater(rs.Count(), 0);
+            //there are no records with BooleanType == true
+            rs = _manyDataTypesEntitiesTable.Where(m => m.BooleanType).Execute();
+            Assert.NotNull(rs);
+            var rows = rs.ToArray();
+            Assert.AreEqual(0, rows.Length);
+            var guid = Guid.NewGuid();
+            var data = new ManyDataTypesEntity
+            {
+                BooleanType = true,
+                DateTimeOffsetType = DateTimeOffset.Now,
+                DateTimeType = DateTime.Now,
+                DecimalType = 10,
+                DoubleType = 10.0,
+                FloatType = 10.0f,
+                GuidType = guid,
+                IntType = 10,
+                StringType = "Boolean True"
+            };
+            _manyDataTypesEntitiesTable.Insert(data).Execute();
+            rs = _manyDataTypesEntitiesTable.Where(m => m.BooleanType).Execute();
+            Assert.NotNull(rs);
+            rows = rs.ToArray();
+            Assert.AreEqual(1, rows.Length);
+            Assert.AreEqual(guid, rows[0].GuidType);
+            Assert.AreEqual("Boolean True", rows[0].StringType);
+            Assert.IsTrue(rows[0].BooleanType);
+            _manyDataTypesEntitiesTable.Select(m => m).Where(m => m.StringType == data.StringType).Delete().Execute();
+        }
+
+        [Test]
+        [TestCassandraVersion(3,0)]
+        public void LinqWhere_BooleanScopes()
+        {
+            var rs = _manyDataTypesEntitiesTable.Execute();
+            Assert.NotNull(rs);
+            var resultCount = rs.Count();
+            Assert.Greater(resultCount, 0);
+            //Get no records
+            const bool all = true;
+            rs = _manyDataTypesEntitiesTable.Where(m => m.BooleanType == all).Execute();
+            Assert.NotNull(rs);
+            Assert.AreEqual(0, rs.Count());
+            //get all records
+            rs = _manyDataTypesEntitiesTable.Where(m => m.BooleanType == bool.Parse("false")).Execute();
+            Assert.NotNull(rs);
+            Assert.AreEqual(resultCount, rs.Count());
         }
 
         [AllowFiltering]

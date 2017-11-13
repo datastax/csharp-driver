@@ -5,18 +5,17 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
+using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using Dse.Tasks;
 using Newtonsoft.Json.Linq;
 
 namespace Dse.Test.Integration.TestClusterManagement.Simulacron
 {
-    public class SimulacronCluster : SimulacronBase
+    public class SimulacronCluster : SimulacronBase, IDisposable
     {
         public dynamic Data { get; set; }
         public List<SimulacronDataCenter> DataCenters { get; set; }
@@ -118,6 +117,11 @@ namespace Dse.Test.Integration.TestClusterManagement.Simulacron
         public IEnumerable<SimulacronNode> GetNodes()
         {
             return DataCenters.SelectMany(dc => dc.Nodes);
+        }
+
+        public void Dispose()
+        {
+            Remove();
         }
     }
 }
