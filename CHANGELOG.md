@@ -1,5 +1,46 @@
 # ChangeLog - DataStax Enterprise C# Driver
 
+## 2.1.0
+
+2017-11-13
+
+### Notable Changes
+
+- Add user-friendly methods to Graph elements provide to access its properties.
+- Introduced `PrepareOnAllHosts` and `ReprepareOnUp` settings to control driver behaviour when preparing queries.
+- Linq improvements and fixes.
+
+### Features
+
+- [CSHARP-434] - Graph: Support friendly deserialization of properties
+- [CSHARP-604] - UdtMappingDefinitions.Define needs async counterpart
+- [CSHARP-317] - Linq: Support IN with tuple notation for composite clustering keys
+- [CSHARP-326] - Mapper: Enum support in collections.
+- [CSHARP-370] - Add Cluster.ConnectAsync() and Cluster.ShutdownAsync to the API
+- [CSHARP-381] - Support conversion for UDT fields mapping
+- [CSHARP-478] - Provide simple way to override a single setting in PoolingOptions
+- [CSHARP-506] - Allow prepared statements to be prepared on all nodes
+- [CSHARP-524] - UPDATE ... IF EXISTS support for linq
+- [CSHARP-528] - Provide more information in the NoHostAvailableException message
+- [CSHARP-556] - Add max and min uuid methods to TimeUuid structure
+- [CSHARP-590] - Modify the message for batch log write failures
+- [CSHARP-592] - Expose TimeUuid.Parse() method
+- [CSHARP-598] - Use ExceptionDispatchInfo for preserving original stack trace
+- [CSHARP-606] - Expose information on the state of connection pools
+- [CSHARP-607] - Add ConnectAsync() and ShutdownAsync() to DseCluster
+
+###  Bug Fixes
+
+- [CSHARP-364] - FrameWriter.WriteShort() should encode ushorts
+- [CSHARP-512] - Linq: Boolean expressions without equality operators are not generated correctly
+- [CSHARP-515] - Linq: Chained methods after CqlInsert.IfNotExists() are not considered
+- [CSHARP-522] - Linq: using CqlOperator.SubstractAssign to remove an item from a map fails
+- [CSHARP-547] - PreparedStatement instances created from empty constructor can not bind values
+- [CSHARP-558] - Mapper: Table creation error when PartitionKey or ClusteringKey have no Name attribute
+- [CSHARP-574] - UnobservedTaskException in Connection class
+- [CSHARP-578] - Linq: CqlQuery<T>.QueryTrace always null
+- [CSHARP-614] - BatchRequests dont include generated timestamps
+
 ## 2.0.3
 
 2017-07-13
