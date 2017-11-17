@@ -19,6 +19,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Globalization;
+using System.Linq;
+using System.Security.Cryptography;
 
 namespace Cassandra.Data
 {
@@ -69,7 +72,7 @@ namespace Cassandra.Data
             get { return GetValue(ordinal); }
         }
 
-        internal CqlReader(RowSet rows)
+        public CqlReader(RowSet rows)
         {
             popul = rows;
             for (int idx = 0; idx < popul.Columns.Length; idx++)
@@ -86,7 +89,22 @@ namespace Cassandra.Data
 
         public override DataTable GetSchemaTable()
         {
-            throw new NotSupportedException();
+            //throw new NotSupportedException();
+            var dt=new DataTable("schematable");
+
+            foreach (CqlColumn col in popul.Columns.OrderBy(x=>x.Index))
+            {
+                var tc = new DataColumn(col.Name);
+                tc.AllowDBNull = true;
+                tc.Caption = col.Name;
+                tc.DataType = tc.DataType;
+                tc.Namespace = col.Keyspace;
+                //tc.SetOrdinal(col.Index);
+                tc.ReadOnly = true;
+                dt.Columns.Add(tc);
+            }
+            dt.AcceptChanges();
+            return dt;
         }
 #endif
 

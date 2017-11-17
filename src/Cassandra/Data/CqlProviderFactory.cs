@@ -73,10 +73,10 @@ namespace Cassandra.Data
             throw new NotSupportedException();
         }
 
-        public override System.Security.CodeAccessPermission CreatePermission(System.Security.Permissions.PermissionState state)
-        {
-            throw new NotSupportedException();
-        }
+        //public override System.Security.CodeAccessPermission CreatePermission(System.Security.Permissions.PermissionState state)
+        //{
+        //    throw new NotSupportedException();
+        //}
 #endif
     }
 }

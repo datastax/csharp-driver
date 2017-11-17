@@ -104,7 +104,7 @@ namespace Cassandra
 
         public async Task<PreparedStatement> PrepareOrGetAsync(string cqlQuery)
         {
-            return await PrepareOrGetAsync(cqlQuery);
+            return await PrepareOrGetAsync(cqlQuery,"");
         }
         public async Task<PreparedStatement> PrepareOrGetAsync(string cqlQuery,string keyspace)
         {
@@ -122,7 +122,7 @@ namespace Cassandra
         public async Task<PreparedStatement> PrepareOrGetAsync(string cqlQuery,
             IDictionary<string, byte[]> customPayload)
         {
-            return await PrepareOrGetAsync(cqlQuery, customPayload);
+            return await PrepareOrGetAsync(cqlQuery, customPayload,"");
         }
         public async Task<PreparedStatement> PrepareOrGetAsync(string cqlQuery, IDictionary<string, byte[]> customPayload, string keyspace)
         {
