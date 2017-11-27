@@ -10,7 +10,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), TestFixture]
+    [TestFixture, Category("short")]
     public class ClusterTests : TestGlobals
     {
         private ITestCluster _testCluster;
@@ -22,26 +22,6 @@ namespace Cassandra.IntegrationTests.Core
             {
                 _testCluster.Remove();
             }
-        }
-
-        /// Tests that the default consistency level for queries is LOCAL_ONE
-        /// 
-        /// LocalOne_Is_Default_Consistency tests that the default consistency level for all queries is LOCAL_ONE. It performs
-        /// a simple select statement and verifies that the result set metadata shows that the achieved consistency level is LOCAL_ONE.
-        /// 
-        /// @since 3.0.0
-        /// @jira_ticket CSHARP-378
-        /// @expected_result The default consistency level should be LOCAL_ONE
-        /// 
-        /// @test_category consistency
-        [Test]
-        public void LocalOne_Is_Default_Consistency()
-        {
-            //TODO refactor/move this test
-//            _testCluster = TestClusterManager.CreateNew(2);
-//            var session = _testCluster.Cluster.Connect()
-//            var rs = Session.Execute(new SimpleStatement("SELECT * from system.local"));
-//            Assert.AreEqual(ConsistencyLevel.LocalOne, rs.Info.AchievedConsistency);
         }
 
         [Test]
