@@ -172,7 +172,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         private static void VerifyConsistency(SimulacronCluster simulacronCluster, string query, string consistency, 
-                                              string serialConsistency = null, string queryType = null)
+                                              string serialConsistency = null, string queryType = "QUERY")
         {
             var executedQueries = simulacronCluster.GetQueries(query, queryType);
             Assert.NotNull(executedQueries);

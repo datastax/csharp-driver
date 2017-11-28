@@ -42,7 +42,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var rs = Session.Execute(new SimpleStatement("SELECT * from system.local").EnableTracing());
             Assert.NotNull(rs.Info.QueryTrace);
-            Assert.AreEqual(Session.Cluster.AllHosts().FirstOrDefault(), rs.Info.QueryTrace.Coordinator);
+            Assert.AreEqual(Session.Cluster.AllHosts().FirstOrDefault().Address.Address, rs.Info.QueryTrace.Coordinator);
             Assert.Greater(rs.Info.QueryTrace.Events.Count, 0);
             if (Session.BinaryProtocolVersion >= 4)
             {
