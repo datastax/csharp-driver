@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Net;
 using System.Numerics;
 using Dse.Geometry;
@@ -40,7 +41,7 @@ namespace Dse.Serialization.Graph.GraphSON1
             _readers = new Dictionary<Type, ReadDelegate>
             {
                 { typeof(IPAddress), (r, _) => IPAddress.Parse(r.Value.ToString()) },
-                { typeof(BigInteger), (r, _) => BigInteger.Parse(r.Value.ToString()) },
+                { typeof(BigInteger), (r, _) => BigInteger.Parse(r.Value.ToString(), CultureInfo.InvariantCulture) },
                 { typeof(Point), (r, _) => Point.Parse(r.Value.ToString()) },
                 { typeof(LineString), (r, _) => LineString.Parse(r.Value.ToString()) },
                 { typeof(Polygon), (r, _) => Polygon.Parse(r.Value.ToString()) },

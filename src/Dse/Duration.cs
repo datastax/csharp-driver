@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -219,8 +220,8 @@ namespace Dse
                 remainder = Append(builder, remainder, NanosPerMinute, "M");
                 if (remainder > 0L)
                 {
-                    var seconds = Convert.ToDecimal(remainder) / NanosPerSecond;
-                    builder.Append(string.Format("{0:0.#########}", seconds)).Append("S");
+                    var seconds = Convert.ToDecimal(remainder, CultureInfo.InvariantCulture) / NanosPerSecond;
+                    builder.Append(string.Format(CultureInfo.InvariantCulture, "{0:0.#########}", seconds)).Append("S");
                 }
             }
             return builder.ToString();
@@ -261,8 +262,8 @@ namespace Dse
             remainder = Append(builder, remainder, NanosPerMinute, "M");
             if (remainder > 0L)
             {
-                var seconds = Convert.ToDecimal(remainder) / NanosPerSecond;
-                builder.Append(string.Format("{0:0.#########}", seconds)).Append("S");
+                var seconds = Convert.ToDecimal(remainder, CultureInfo.InvariantCulture) / NanosPerSecond;
+                builder.Append(string.Format(CultureInfo.InvariantCulture, "{0:0.#########}", seconds)).Append("S");
             }
             return builder.ToString();
         }
@@ -508,8 +509,8 @@ namespace Dse
             public Builder AddSecondsWithFractional(string textValue)
             {
                 ValidateOrder(7);
-                var limit = (long.MaxValue - _nanoseconds) / Convert.ToDecimal(NanosPerSecond);
-                var value = Convert.ToDecimal(textValue);
+                var limit = (long.MaxValue - _nanoseconds) / Convert.ToDecimal(NanosPerSecond, CultureInfo.InvariantCulture);
+                var value = Convert.ToDecimal(textValue, CultureInfo.InvariantCulture);
                 if (value > limit)
                 {
                     throw new FormatException(
