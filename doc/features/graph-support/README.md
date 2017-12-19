@@ -110,6 +110,13 @@ as a dictionary.
 ```csharp
 dynamic r = session.ExecuteGraph(new SimpleGraphStatement("g.V()")).First();
 ```
+You can get the GraphNode properties using the `GetProperty()` method from the element:
+```csharp
+//Assuming that vertex with properties: name:string, and age:int
+var vertex = session.ExecuteGraph(new SimpleGraphStatement("g.V()")).First().To<IVertex>();
+Console.WriteLine(vertex.GetProperty("name").Value.ToString());
+Console.WriteLine(vertex.GetProperty("age").Value.ToInt32());
+```
 
 ## Parameters
 
