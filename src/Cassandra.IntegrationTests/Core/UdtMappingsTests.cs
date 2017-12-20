@@ -34,7 +34,7 @@ namespace Cassandra.IntegrationTests.Core
             base.OneTimeSetUp();
 
             const string cqlType1 = "CREATE TYPE phone (alias text, number text, country_code int, verified_at timestamp, phone_type text)";
-            const string cqlType2 = "CREATE TYPE contact (first_name text, last_name text, birth_date timestamp, phones set<frozen<phone>>, emails set<text>)";
+            const string cqlType2 = "CREATE TYPE contact (first_name text, last_name text, birth_date timestamp, phones set<frozen<phone>>, emails set<text>, nullable_long bigint)";
             const string cqlTable1 = "CREATE TABLE users (id int PRIMARY KEY, main_phone frozen<phone>)";
             const string cqlTable2 = "CREATE TABLE users_contacts (id int PRIMARY KEY, contacts list<frozen<contact>>)";
 
@@ -178,11 +178,12 @@ namespace Cassandra.IntegrationTests.Core
                         .Map(c => c.FirstName, "first_name")
                         .Map(c => c.LastName, "last_name")
                         .Map(c => c.Birth, "birth_date")
+                        .Map(c => c.NullableLong, "nullable_long")
                 );
             const string contactsJson =
                 "[" +
-                "{first_name: 'Jules', last_name: 'Winnfield', birth_date: '1950-02-03 04:05+0000', phones: {{alias: 'home', number: '123456'}}}," +
-                "{first_name: 'Mia', last_name: 'Wallace', phones: {{alias: 'mobile', number: '789'}, {alias: 'office', number: '123'}}}" +
+                "{first_name: 'Jules', last_name: 'Winnfield', birth_date: '1950-02-03 04:05+0000', phones: {{alias: 'home', number: '123456'}}, nullable_long: null}," +
+                "{first_name: 'Mia', last_name: 'Wallace', phones: {{alias: 'mobile', number: '789'}, {alias: 'office', number: '123'}}, nullable_long: 2}" +
                 "]";
             localSession.Execute(String.Format("INSERT INTO users_contacts (id, contacts) values (1, {0})", contactsJson));
             var rs = localSession.Execute("SELECT * FROM users_contacts WHERE id = 1");
@@ -197,6 +198,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(new DateTimeOffset(1950, 2, 3, 4, 5, 0, 0, TimeSpan.Zero), julesContact.Birth);
             Assert.IsNotNull(julesContact.Phones);
             Assert.AreEqual(1, julesContact.Phones.Count());
+            Assert.IsNull(julesContact.NullableLong);
             var miaContact = contacts[1];
             Assert.AreEqual("Mia", miaContact.FirstName);
             Assert.AreEqual("Wallace", miaContact.LastName);
@@ -205,6 +207,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(2, miaContact.Phones.Count());
             Assert.AreEqual("mobile", miaContact.Phones.First().Alias);
             Assert.AreEqual("office", miaContact.Phones.Skip(1).First().Alias);
+            Assert.AreEqual(2, miaContact.NullableLong);
         }
 
         [Test]
@@ -377,6 +380,8 @@ namespace Cassandra.IntegrationTests.Core
             public IEnumerable<Phone> Phones { get; set; }
 
             public IEnumerable<string> Emails { get; set; }
+
+            public long? NullableLong { get; set; }
 
             public override bool Equals(object obj)
             {
