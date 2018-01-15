@@ -46,7 +46,7 @@ namespace Cassandra.Tests
             // Protocol warnings are [string list]: A [short] n, followed by n [string]
             var warningBuffers = BeConverter.GetBytes((ushort)1).Concat(GetProtocolString("Test warning"));
             var body = warningBuffers.Concat(GetErrorBody(0x2000, "Test syntax error")).ToArray();
-            var header = FrameHeader.ParseResponseHeader(Version, GetHeaderBuffer(body.Length), 0);
+            var header = FrameHeader.ParseResponseHeader(Version, GetHeaderBuffer(body.Length, HeaderFlag.Warning), 0);
             var response = FrameParser.Parse(new Frame(header, new MemoryStream(body), Serializer));
             var ex = IsErrorResponse<SyntaxError>(response);
             Assert.AreEqual("Test syntax error", ex.Message);
@@ -61,7 +61,6 @@ namespace Cassandra.Tests
 
         private static byte[] GetErrorBody(int code, string message)
         {
-            var messageBuffer = Encoding.UTF8.GetBytes(message);
             // error body = [int] [string]
             return BeConverter.GetBytes(code).Concat(GetProtocolString(message)).ToArray();
         }
