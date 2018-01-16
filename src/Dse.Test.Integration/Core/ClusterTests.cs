@@ -17,7 +17,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [Category("short"), TestFixture]
+    [TestFixture, Category("short")]
     public class ClusterTests : TestGlobals
     {
         private ITestCluster _testCluster;

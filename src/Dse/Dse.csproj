@@ -33,7 +33,6 @@
     <PackageReference Include="lz4net" Version="1.0.10.93" />
     <Reference Include="System.Data" />
     <Reference Include="System.Numerics" />
-    <Reference Include="System.Runtime" />
     <Reference Include="System.Xml" />
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />

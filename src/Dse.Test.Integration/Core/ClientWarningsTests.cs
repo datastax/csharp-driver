@@ -1,4 +1,4 @@
-//
+﻿//
 //  Copyright (C) 2017 DataStax, Inc.
 //
 //  Please see the license for details:
@@ -49,14 +49,36 @@ namespace Dse.Test.Integration.Core
             Session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, Table));
         }
 
-        [OneTimeTearDown]
-        public void TearDown()
+        [Test]
+        public void Should_QueryTrace_When_Enabled()
         {
-            _testCluster.Remove();
+            var rs = Session.Execute(new SimpleStatement("SELECT * from system.local").EnableTracing());
+            Assert.NotNull(rs.Info.QueryTrace);
+            var hosts = Session.Cluster.AllHosts();
+            Assert.NotNull(hosts);
+            var coordinator = hosts.FirstOrDefault();
+            Assert.NotNull(coordinator);
+            Assert.AreEqual(coordinator.Address.Address, rs.Info.QueryTrace.Coordinator);
+            Assert.Greater(rs.Info.QueryTrace.Events.Count, 0);
+            if (Session.BinaryProtocolVersion >= 4)
+            {
+                Assert.NotNull(rs.Info.QueryTrace.ClientAddress);   
+            }
+            else
+            {
+                Assert.Null(rs.Info.QueryTrace.ClientAddress);
+            }
+        }
+
+        [Test]
+        public void Should_NotGetQueryTrace_When_NotEnabledXDefaultX()
+        {
+            var rs = Session.Execute(new SimpleStatement("SELECT * from system.local"));
+            Assert.Null(rs.Info.QueryTrace);
         }
 
         [Test, TestCassandraVersion(2, 2)]
-        public void Warnings_Is_Null_Test()
+        public void Should_NotGenerateWarning_When_RegularBehavior()
         {
             var rs = Session.Execute("SELECT * FROM system.local");
             //It should be null for queries that do not generate warnings
@@ -64,7 +86,7 @@ namespace Dse.Test.Integration.Core
         }
 
         [Test, TestCassandraVersion(2, 2)]
-        public void Warnings_Batch_Exceeding_Length_Test()
+        public void Should_Warning_When_BatchExceedsLength()
         {
             var rs = Session.Execute(GetBatchAsSimpleStatement(5*1025));
             Assert.NotNull(rs.Info.Warnings);
@@ -74,7 +96,7 @@ namespace Dse.Test.Integration.Core
         }
 
         [Test, TestCassandraVersion(2, 2)]
-        public void Warnings_With_Tracing_Test()
+        public void Should_WarningWithTrace_When_BatchExceedsLengthAndTraceEnabled()
         {
             var statement = GetBatchAsSimpleStatement(5 * 1025);
             var rs = Session.Execute(statement.EnableTracing());
@@ -86,7 +108,7 @@ namespace Dse.Test.Integration.Core
         }
 
         [Test, TestCassandraVersion(2, 2)]
-        public void Batch_Error_Test()
+        public void Should_ThrowInvalidException_When_BatchIsTooBig()
         {
             const int length = 50 * 1025;
             Assert.Throws<InvalidQueryException>(() => Session.Execute(GetBatchAsSimpleStatement(length)));
@@ -97,7 +119,7 @@ namespace Dse.Test.Integration.Core
         }
 
         [Test, TestCassandraVersion(2, 2)]
-        public void Warnings_With_Custom_Payload_Test()
+        public void Should_WarningAndGetPayload_When_UsingMirrorPayload()
         {
             var statement = GetBatchAsSimpleStatement(5*1025);
             var outgoing = GetPayload();
@@ -111,7 +133,7 @@ namespace Dse.Test.Integration.Core
         }
 
         [Test, TestCassandraVersion(2, 2)]
-        public void Warnings_With_Tracing_And_Custom_Payload_Test()
+        public void Should_WarningAndTracingAndGetPayload_When_UsingMirrorPayloadAndEnableTracing()
         {
             var statement = GetBatchAsSimpleStatement(5*1025);
             var outgoing = new Dictionary<string, byte[]>
