@@ -39,7 +39,7 @@ namespace Cassandra.Responses
         public string[] Warnings { get; }
 
         /// <summary>
-        /// Gets or sets the incoming custom payload.
+        /// Gets the incoming custom payload.
         /// </summary>
         public IDictionary<string, byte[]> CustomPayload { get; }
 
