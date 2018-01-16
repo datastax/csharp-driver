@@ -4,8 +4,8 @@
     <Copyright>Copyright © 2017 by DataStax</Copyright>
     <AssemblyTitle>DataStax Enterprise C# Driver</AssemblyTitle>
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
-    <FileVersion>2.1.0.0</FileVersion>
-    <VersionPrefix>2.1.0</VersionPrefix>
+    <FileVersion>2.1.0.1</FileVersion>
+    <VersionPrefix>2.1.0.1</VersionPrefix>
     <Authors>DataStax</Authors>
     <TargetFrameworks>net45;netstandard1.5</TargetFrameworks>
     <NoWarn>$(NoWarn);1591</NoWarn>
@@ -33,7 +33,6 @@
     <PackageReference Include="lz4net" Version="1.0.10.93" />
     <Reference Include="System.Data" />
     <Reference Include="System.Numerics" />
-    <Reference Include="System.Runtime" />
     <Reference Include="System.Xml" />
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
