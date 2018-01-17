@@ -1,4 +1,6 @@
-# ChangeLog - DataStax Enterprise C# Driver
+# Changelog
+
+Changelog for the DataStax Enterprise C# Driver. 
 
 ## 2.1.0
 

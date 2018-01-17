@@ -9,20 +9,22 @@ sections:
   - title:    Frequently Asked Questions
     prefix:   /faq
     type:     markdown
-    files:    'doc/faq/**/*.md'  
+    files:    'doc/faq/**/*.md'
   - title:    Getting started
     prefix:   /getting-started
     type:     markdown
     files:    'doc/getting-started/**/*.md'
+  - title:    Changelog
+    prefix:   /changelog
+    type:     markdown
+    files:    'doc/changelog/**/*.md'
 links:
-  - title: Code
-    href:  https://github.com/datastax/csharp-dse-driver/
   - title: Issues
     href:  https://datastax-oss.atlassian.net/projects/CSHARP/issues
   - title: Mailing List
     href:  https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
-  - title: IRC Channel
-    href:  irc://irc.freenode.net/datastax-drivers
+  - title: Slack Channel
+    href:  https://academy.datastax.com/slack
   - title: Nuget
     href:  https://www.nuget.org/packages/Dse
 api_docs:

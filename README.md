@@ -22,8 +22,6 @@ The DataStax Enterprise C# Driver can be used solely with DataStax Enterprise. P
 PM> Install-Package Dse
 ```
 
-[![Build status](https://travis-ci.org/datastax/csharp-dse-driver.svg?branch=master)](https://travis-ci.org/datastax/csharp-dse-driver)
-[![Windows Build status](https://ci.appveyor.com/api/projects/status/yuk0p8i8r2l9f6xk/branch/master?svg=true)](https://ci.appveyor.com/project/DataStax/csharp-driver-dse/branch/master)
 [![Latest stable on Nuget.org](https://img.shields.io/nuget/v/Dse.svg)](https://www.nuget.org/packages/Dse)
 
 ## Documentation
@@ -222,7 +220,7 @@ Note: DataStax products do not support big-endian systems.
 
 ## License
 
-Copyright 2016-2017 DataStax
+Copyright 2016-2018 DataStax
 
 http://www.datastax.com/terms/datastax-dse-driver-license-terms
 
