@@ -110,10 +110,12 @@ as a dictionary.
 ```csharp
 dynamic r = session.ExecuteGraph(new SimpleGraphStatement("g.V()")).First();
 ```
+
 You can get the GraphNode properties using the `GetProperty()` method from the element:
+
 ```csharp
-//Assuming that vertex with properties: name:string, and age:int
 var vertex = session.ExecuteGraph(new SimpleGraphStatement("g.V()")).First().To<IVertex>();
+// Assuming that vertex with properties: name:string, and age:int
 Console.WriteLine(vertex.GetProperty("name").Value.ToString());
 Console.WriteLine(vertex.GetProperty("age").Value.ToInt32());
 ```
@@ -135,3 +137,4 @@ Prepared graph statements are not supported by DSE Graph yet (they will be added
 
 [modern-graph]: http://tinkerpop.apache.org/docs/3.1.1-incubating/reference/#_the_graph_structure
 [dynamic]: https://msdn.microsoft.com/en-us/library/dd264736.aspx
+[implicit]: https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/implicit
