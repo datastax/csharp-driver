@@ -135,6 +135,7 @@ foreach (var row in rs)
 You can map your [Cassandra User Defined Types][udt] to your application entities.
 
 For a given udt
+
 ```cql
 CREATE TYPE address (
   street text,
@@ -143,7 +144,9 @@ CREATE TYPE address (
   phones set<text>
 );
 ```
+
 For a given class
+
 ```csharp
 public class Address
 {
@@ -155,13 +158,16 @@ public class Address
 ```
 
 You can either map the properties by name
+
 ```csharp
-//Map the properties by name automatically
+// Map the properties by name automatically
 session.UserDefinedTypes.Define(
   UdtMap.For<Address>()
 );
 ```
+
 Or you can define the properties manually
+
 ```csharp
 session.UserDefinedTypes.Define(
   UdtMap.For<Address>()
