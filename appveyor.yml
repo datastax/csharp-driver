@@ -41,7 +41,13 @@ build_script:
   - ps: dotnet build src\Cassandra.sln -c Release
 
 test_script:
-  - ps: dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --filter "(TestCategory!=long)&(TestCategory!=memory)"  --logger "trx;LogFileName=..\..\..\TestResult.xml"
+  - ps: |
+      If ("$($env:CI_TYPE)" -eq "MEMORY") {
+        .\build\memory_tests.ps1
+      } else {
+        dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --filter "(TestCategory!=long)&(TestCategory!=memory)"  --logger "trx;LogFileName=..\..\..\TestResult.xml"
+      }
+
 on_failure:
   - ps: |
       Write-Host "Build failed"
