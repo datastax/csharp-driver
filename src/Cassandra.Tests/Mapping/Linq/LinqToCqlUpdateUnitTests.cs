@@ -70,7 +70,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Update()
                 .Execute();
             Assert.AreEqual("UPDATE tbl1 SET string_val = ? WHERE id = ? AND val2 > ?", query);
-            CollectionAssert.AreEqual(new object[] { "Billy the Vision", id, 20M }, parameters);
+            CollectionAssert.AreEquivalent(new object[] { "Billy the Vision", id, 20M }, parameters);
         }
 
         [Test]
@@ -95,7 +95,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Update()
                 .Execute();
             Assert.AreEqual("UPDATE tbl1 SET HairColor = ? WHERE UserId = ?", query);
-            CollectionAssert.AreEqual(new object[] { (int)HairColor.Red, id}, parameters);
+            CollectionAssert.AreEquivalent(new object[] { (int)HairColor.Red, id}, parameters);
         }
 
         [Test]
@@ -236,9 +236,9 @@ namespace Cassandra.Tests.Mapping.Linq
                 .UpdateIf(t => t.IntValue == 100)
                 .Execute();
             Assert.AreEqual(
-                @"UPDATE ""atd"" SET ""datetime_VALUE"" = ? WHERE ""boolean_VALUE"" = ? AND ""double_VALUE"" > ? IF ""int_VALUE"" = ?",
+                @"UPDATE ""atd"" SET ""string_VALUE"" = ? WHERE ""boolean_VALUE"" = ? AND ""double_VALUE"" > ? IF ""int_VALUE"" = ?",
                 query);
-            CollectionAssert.AreEqual(new object[] { dateTimeValue, true, 1d, 100 }, parameters);
+            CollectionAssert.AreEqual(new object[] {"updated value", true, 1d, 100}, parameters);
         }
 
         [Test]
@@ -333,7 +333,11 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Update_With_Attribute_Based_Mapping()
         {
             string query = null;
-            var session = GetSession((q, v) => query = q);
+            object[] parameters = null;
+            var session = GetSession((q, v) => {
+                query = q;
+                parameters = v;
+            });
             var table = new Table<AttributeMappingClass>(session, new MappingConfiguration());
             table.Where(x => x.PartitionKey == 1 && x.ClusteringKey0 == 10L).Select(x => new AttributeMappingClass
             {
@@ -364,7 +368,7 @@ namespace Cassandra.Tests.Mapping.Linq
                  .Select(x => new CollectionTypesEntity { Favs = x.Favs.SubstractAssign("a", "b", "c")})
                  .Update().Execute();
             Assert.AreEqual("UPDATE tbl1 SET favs = favs - ? WHERE id = ?", query);
-            Assert.AreEqual(new object[]{ new [] { "a", "b", "c" }, id }, parameters);
+            CollectionAssert.AreEquivalent(new object[]{ new [] { "a", "b", "c" }, id }, parameters);
         }
 
         [Test]
@@ -392,14 +396,14 @@ namespace Cassandra.Tests.Mapping.Linq
                  .Select(t => new AllTypesEntity { Int64Value = value })
                  .Update().Execute();
             Assert.NotNull(statement);
-            Assert.AreEqual(new object[] {value, id, list }, statement.QueryValues);
+            CollectionAssert.AreEquivalent(new object[] {value, id, list }, statement.QueryValues);
             Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
             // Using constructor
             table.Where(t => t.UuidValue == id && list.Contains(new Tuple<string, int>(t.StringValue, t.IntValue)))
                  .Select(t => new AllTypesEntity { Int64Value = value })
                  .Update().Execute();
             Assert.NotNull(statement);
-            Assert.AreEqual(new object[] {value, id, list}, statement.QueryValues);
+            CollectionAssert.AreEquivalent(new object[] {value, id, list}, statement.QueryValues);
             Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
         }
     }

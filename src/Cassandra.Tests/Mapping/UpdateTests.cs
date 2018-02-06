@@ -2,12 +2,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using Cassandra.Mapping;
 using Cassandra.Tasks;
 using Cassandra.Tests.Mapping.Pocos;
 using Cassandra.Tests.Mapping.TestData;
 using Moq;
 using NUnit.Framework;
+using Match = Moq.Match;
 
 namespace Cassandra.Tests.Mapping
 {
@@ -77,15 +79,17 @@ namespace Cassandra.Tests.Mapping
             var mapper = GetMappingClient(sessionMock, new MappingConfiguration()
                 .Define(new Map<Song>().PartitionKey(s => s.Title, s => s.Id)));
             mapper.Update(song);
+            
             Assert.AreEqual("UPDATE Song SET Artist = ?, ReleaseDate = ? WHERE Id = ? AND Title = ?", query);
-            CollectionAssert.AreEqual(new object[] { song.Artist, song.ReleaseDate, song.Id, song.Title }, parameters);
+            
+            CollectionAssert.AreEquivalent(new object[] { song.Artist, song.ReleaseDate, song.Id, song.Title }, parameters);
             
             //Different order in the partition key definitions
             mapper = GetMappingClient(sessionMock, new MappingConfiguration()
                 .Define(new Map<Song>().PartitionKey(s => s.Id, s => s.Title)));
             mapper.Update(song);
             Assert.AreEqual("UPDATE Song SET Artist = ?, ReleaseDate = ? WHERE Id = ? AND Title = ?", query);
-            CollectionAssert.AreEqual(new object[] { song.Artist, song.ReleaseDate, song.Id, song.Title }, parameters);
+            CollectionAssert.AreEquivalent(new object[] { song.Artist, song.ReleaseDate, song.Id, song.Title }, parameters);
             sessionMock.Verify();
         }
 
@@ -119,7 +123,7 @@ namespace Cassandra.Tests.Mapping
                 .Define(new Map<Song>().PartitionKey(s => s.Id).ClusteringKey(s => s.ReleaseDate)));
             mapper.Update(song);
             Assert.AreEqual("UPDATE Song SET Title = ?, Artist = ? WHERE Id = ? AND ReleaseDate = ?", query);
-            CollectionAssert.AreEqual(new object[] { song.Title, song.Artist, song.Id, song.ReleaseDate }, parameters);
+            CollectionAssert.AreEquivalent(new object[] { song.Title, song.Artist, song.Id, song.ReleaseDate }, parameters);
             sessionMock.Verify();
         }
 
@@ -164,7 +168,12 @@ namespace Cassandra.Tests.Mapping
         public void Update_Cql_Prepends()
         {
             string query = null;
-            var session = GetSession((q, args) => query = q, new RowSet());
+            object[] parameters = null;
+            var session = GetSession((q, args) =>
+            {
+                query = q;
+                parameters = args;
+            }, new RowSet());
             var mapper = new Mapper(session, new MappingConfiguration());
             mapper.Update<Song>(Cql.New("SET title = ? WHERE id = ?", "White Room"));
             Assert.AreEqual("UPDATE Song SET title = ? WHERE id = ?", query);
@@ -188,6 +197,7 @@ namespace Cassandra.Tests.Mapping
             const string partialQuery = "SET title = ?, releasedate = ? WHERE id = ? IF artist = ?";
             var appliedInfo = mapper.UpdateIf<Song>(Cql.New(partialQuery, "Ramble On", new DateTime(1969, 1, 1), Guid.NewGuid(), "Led Zeppelin"));
             sessionMock.Verify();
+
             Assert.AreEqual("UPDATE Song " + partialQuery, query);
             Assert.True(appliedInfo.Applied);
             Assert.Null(appliedInfo.Existing);
@@ -202,7 +212,10 @@ namespace Cassandra.Tests.Mapping
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(TestHelper.DelayedTask(TestDataHelper.CreateMultipleValuesRowSet(new [] { "[applied]", "id", "artist" }, new object[] { false, id, "Jimmy Page" })))
-                .Callback<BoundStatement>(b => query = b.PreparedStatement.Cql)
+                .Callback<BoundStatement>(b =>
+                {
+                    query = b.PreparedStatement.Cql;
+                })
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))

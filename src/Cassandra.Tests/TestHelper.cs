@@ -8,6 +8,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Serialization;
@@ -467,7 +468,39 @@ namespace Cassandra.Tests
 
             return null;
         }
-
+        
+        internal static void VerifyInsertCqlColumns(string tableName, string query, string[] columns, object[] expectedValues,
+                                                    object[] values, string complement = null)
+        {
+            var cqlParamCount = query.Count(x => x == '?');
+            var insertColumnsRegex = new Regex($"INSERT INTO {tableName} \\((.*)\\) VALUES \\((.*)\\)\\s?(.*)", RegexOptions.IgnoreCase);
+            var matchInsertColumnsMatch = insertColumnsRegex.Match(query);
+            Assert.IsTrue(matchInsertColumnsMatch.Success);
+            Assert.GreaterOrEqual(matchInsertColumnsMatch.Groups.Count, 3);
+            Assert.AreEqual(columns.Length, matchInsertColumnsMatch.Groups[2].Value.Count(c => c == '?'));
+            if (complement != null)
+            {
+                Assert.AreEqual(4, matchInsertColumnsMatch.Groups.Count);
+                Assert.AreEqual(complement, matchInsertColumnsMatch.Groups[3].Value);
+            }
+            var insertColumnsGroup = matchInsertColumnsMatch.Groups[1].Value;
+            var insertColumns = (from x in insertColumnsGroup.Split(',') select x.Trim()).ToArray();
+            CollectionAssert.AreEquivalent(columns, insertColumns);
+            var queryColumnsOrder = new int[cqlParamCount];
+            //creating array with the order of params (including complement params: ttl etc..
+            for (var i = 0; i < cqlParamCount; i++)
+            {
+                queryColumnsOrder[i] = (i < columns.Length) ? Array.IndexOf(insertColumns, columns[i]) : i;
+            }
+            
+            Assert.AreEqual(expectedValues.Length, cqlParamCount);
+            Assert.AreEqual(expectedValues.Length, values.Length);
+            for (var i = 0; i < expectedValues.Length; i++)
+            {
+                Assert.AreEqual(expectedValues[i], values[queryColumnsOrder[i]]);
+            }
+        }
+        
         private class SendReceiveCounter
         {
             private int _receiveCounter;
