@@ -71,6 +71,25 @@ namespace Cassandra.Tests.Mapping.Linq
         }
 
         [Test]
+        public void Token_Function_Constant_Linq_Test()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            });
+            var table = GetTable<AllTypesEntity>(session, new Map<AllTypesEntity>().TableName("tbl1"));
+            var token = CqlToken.Create("abc1", 200L);
+
+            table.Where(t => CqlToken.Create(t.StringValue, t.Int64Value) > token).Select(t => new {t.IntValue})
+                 .Execute();
+            Assert.AreEqual("SELECT IntValue FROM tbl1 WHERE token(StringValue, Int64Value) > token(?, ?)", query);
+            Assert.AreEqual(token.Values, parameters);
+        }
+
+        [Test]
         public void Append_Operator_Linq_Test()
         {
             string query = null;
