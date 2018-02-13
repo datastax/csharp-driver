@@ -119,7 +119,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         public void LinqWhere_Exception()
         {
             //No translation in CQL
-            Assert.Throws<SyntaxError>(() => _movieTable.Where(m => m.Year is int).Execute());
+            Assert.Throws<CqlLinqNotSupportedException>(() => _movieTable.Where(m => m.Year is int).Execute());
             //No partition key in Query
             Assert.Throws<InvalidQueryException>(() => _movieTable.Where(m => m.Year == 100).Execute());
             Assert.Throws<InvalidQueryException>(() => _movieTable.Where(m => m.MainActor == null).Execute());

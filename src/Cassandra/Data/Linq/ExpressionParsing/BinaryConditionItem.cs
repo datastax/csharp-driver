@@ -198,7 +198,7 @@ namespace Cassandra.Data.Linq.ExpressionParsing
         {
             var columnType = _columns[0].ColumnType;
             var p = _parameters[0];
-            if (columnType != p.GetType() && (columnType == typeof(short) || columnType == typeof(sbyte)) &&
+            if (columnType != p?.GetType() && (columnType == typeof(short) || columnType == typeof(sbyte)) &&
                 p is IConvertible)
             {
                 // Constants for sbyte and short are compiled into Linq Expressions as integers  

@@ -18,6 +18,9 @@ using NUnit.Framework.Constraints;
 
 namespace Cassandra.Tests.Extensions
 {
+    /// <summary>
+    /// A NUnit constraint designed to enforce strict equality (no coersion) on numeric values.
+    /// </summary>
     public class NumericTypeConstraint<T> : Constraint where T: struct
     {
         private readonly T _expected;
