@@ -29,6 +29,33 @@ namespace Cassandra.Data.Linq.ExpressionParsing
     /// </summary>
     internal class BinaryConditionItem : IConditionItem
     {
+        private static readonly Dictionary<ExpressionType, string> CqlTags = new Dictionary<ExpressionType, string>
+        {
+            {ExpressionType.Not, "NOT"},
+            {ExpressionType.And, "AND"},
+            {ExpressionType.AndAlso, "AND"},
+            {ExpressionType.Equal, "="},
+            {ExpressionType.NotEqual, "<>"},
+            {ExpressionType.GreaterThan, ">"},
+            {ExpressionType.GreaterThanOrEqual, ">="},
+            {ExpressionType.LessThan, "<"},
+            {ExpressionType.LessThanOrEqual, "<="}
+        };
+
+        private static readonly Dictionary<ExpressionType, ExpressionType> InvertedOperations =
+            new Dictionary<ExpressionType, ExpressionType>
+            {
+                {ExpressionType.Equal, ExpressionType.Equal},
+                {ExpressionType.NotEqual, ExpressionType.NotEqual},
+                {ExpressionType.GreaterThan, ExpressionType.LessThan},
+                {ExpressionType.GreaterThanOrEqual, ExpressionType.LessThanOrEqual},
+                {ExpressionType.LessThan, ExpressionType.GreaterThan},
+                {ExpressionType.LessThanOrEqual, ExpressionType.GreaterThanOrEqual}
+            };
+
+        // Internally we use Index as a place holder for "IN" CQL operator
+        private const ExpressionType InOperator = ExpressionType.Index;
+
         private readonly List<PocoColumn> _columns = new List<PocoColumn>(1);
         private readonly List<object> _parameters = new List<object>(1);
         private ExpressionType? _operator;
@@ -44,17 +71,6 @@ namespace Cassandra.Data.Linq.ExpressionParsing
         /// </summary>
         private bool _isYoda;
 
-        private static readonly Dictionary<ExpressionType, ExpressionType> InvertedOperations =
-            new Dictionary<ExpressionType, ExpressionType>
-            {
-                {ExpressionType.Equal, ExpressionType.Equal},
-                {ExpressionType.NotEqual, ExpressionType.NotEqual},
-                {ExpressionType.GreaterThan, ExpressionType.LessThan},
-                {ExpressionType.GreaterThanOrEqual, ExpressionType.LessThanOrEqual},
-                {ExpressionType.LessThan, ExpressionType.GreaterThan},
-                {ExpressionType.LessThanOrEqual, ExpressionType.GreaterThanOrEqual}
-            };
-
         /// <summary>
         /// Returns the first column defined or null.
         /// </summary>
@@ -62,7 +78,7 @@ namespace Cassandra.Data.Linq.ExpressionParsing
 
         public void SetInClause(IEnumerable values)
         {
-            _operator = ExpressionType.Index;
+            _operator = InOperator;
             _parameters.Add(values);
         }
 
@@ -72,12 +88,11 @@ namespace Cassandra.Data.Linq.ExpressionParsing
             {
                 throw new ArgumentException("Operator is not defined");
             }
-            // TODO: Fix this tags
-            if (_operator == ExpressionType.Index)
+            if (_operator == InOperator)
             {
                 return "IN";
             }
-            return CqlExpressionVisitor.CqlTags[_operator.Value];
+            return CqlTags[_operator.Value];
         }
 
         public IConditionItem SetOperator(ExpressionType expressionType)
@@ -251,7 +266,7 @@ namespace Cassandra.Data.Linq.ExpressionParsing
             return "\"" + identifier + "\"";
         }
 
-        public void SetAsCompareTo()
+        public IConditionItem SetAsCompareTo()
         {
             _isCompareTo = true;
             if (_parameters.Count == 1&& _operator != null)
@@ -270,6 +285,12 @@ namespace Cassandra.Data.Linq.ExpressionParsing
             }
             _parameters.Clear();
             _columns.Clear();
+            return this;
+        }
+
+        public static bool IsSupported(ExpressionType operatorType)
+        {
+            return CqlTags.ContainsKey(operatorType);
         }
     }
 }

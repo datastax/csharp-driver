@@ -683,11 +683,24 @@ namespace Cassandra.Tests.Mapping.Linq
                       .TableName("table1");
             
             var table = GetTable<PocoWithNumericTypes>(session, map);
+
+            var expectedQuery = "SELECT int_value, long_value FROM table1 WHERE int_value = ? AND long_value = ?";
+            var expectedParameters = new List<object> { 1, 100L };
+
             table.Where(t => t.IntValue == 1 && t.LongValue == 100L).Execute();
-            
-            Assert.AreEqual(query, 
-                "SELECT int_value, long_value FROM table1 WHERE int_value = ? AND long_value = ?");
-            Assert.That(parameters, Is.EqualTo(new object[] { 1, 100L }));
+            Assert.AreEqual(query, expectedQuery);
+            Assert.That(parameters, Is.EqualTo(expectedParameters));
+
+            expectedQuery += " LIMIT ?";
+            expectedParameters.Add(1);
+
+            table.First(t => t.IntValue == 1 && t.LongValue == 100L).Execute();
+            Assert.AreEqual(query, expectedQuery);
+            Assert.That(parameters, Is.EqualTo(expectedParameters));
+
+            table.FirstOrDefault(t => t.IntValue == 1 && t.LongValue == 100L).Execute();
+            Assert.AreEqual(query, expectedQuery);
+            Assert.That(parameters, Is.EqualTo(expectedParameters));
         }
 
         [Test]

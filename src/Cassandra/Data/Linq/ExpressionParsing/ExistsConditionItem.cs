@@ -64,14 +64,14 @@ namespace Cassandra.Data.Linq.ExpressionParsing
             throw new NotSupportedException("Setting function name is not supported on IF EXISTS condition");
         }
 
+        public IConditionItem SetAsCompareTo()
+        {
+            throw new NotSupportedException("Setting function name is not supported on IF EXISTS condition");
+        }
+
         public void ToCql(PocoData pocoData, StringBuilder query, IList<object> parameters)
         {
             query.Append(_positive ? "EXISTS" : "NOT EXISTS");
-        }
-
-        public void SetAsCompareTo()
-        {
-            throw new NotSupportedException("Setting function name is not supported on IF EXISTS condition");
         }
     }
 }

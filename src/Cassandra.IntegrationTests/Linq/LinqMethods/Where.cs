@@ -141,7 +141,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         [Test]
         public void LinqWhere_NoTranslationFromLinqToCql()
         {
-            Assert.Throws<SyntaxError>(() => _movieTable.Where(m => m.Year is int).Execute());
+            Assert.Throws<CqlLinqNotSupportedException>(() => _movieTable.Where(m => m.Year is int).Execute());
         }
 
         [Test]
