@@ -37,8 +37,7 @@ namespace Cassandra.Requests
 
         public IDictionary<string, byte[]> Payload { get; set; }
 
-        public BatchRequest(ProtocolVersion protocolVersion, BatchStatement statement, ConsistencyLevel consistency,
-                            Policies policies)
+        public BatchRequest(ProtocolVersion protocolVersion, BatchStatement statement, ConsistencyLevel consistency, Configuration config)
         {
             if (!protocolVersion.SupportsBatch())
             {
@@ -53,20 +52,14 @@ namespace Cassandra.Requests
             {
                 _headerFlags = FrameHeader.HeaderFlag.Tracing;
             }
-            if (statement.SerialConsistencyLevel != ConsistencyLevel.Any)
+
+            _serialConsistency = GetSerialConsistencyLevel(statement, config.QueryOptions);
+            if (_serialConsistency != null)
             {
-                if (!protocolVersion.SupportsTimestamp())
-                {
-                    throw new NotSupportedException("Serial consistency level for BATCH request is supported in Cassandra 2.1 or above.");
-                }
-                if (statement.SerialConsistencyLevel < ConsistencyLevel.Serial)
-                {
-                    throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
-                }
                 _batchFlags |= QueryProtocolOptions.QueryFlags.WithSerialConsistency;
-                _serialConsistency = statement.SerialConsistencyLevel;
             }
-            _timestamp = GetRequestTimestamp(protocolVersion, statement, policies);
+
+            _timestamp = GetRequestTimestamp(protocolVersion, statement, config.Policies);
             if (_timestamp != null)
             {
                 _batchFlags |= QueryProtocolOptions.QueryFlags.WithDefaultTimestamp;   
@@ -95,6 +88,26 @@ namespace Cassandra.Requests
             }
             var timestamp = policies.TimestampGenerator.Next();
             return timestamp != long.MinValue ? (long?) timestamp : null;
+        }
+
+        /// <summary>
+        /// Gets the serial consistency level of the request or null if not defined.
+        /// </summary>
+        /// <exception cref="NotSupportedException" />
+        private static ConsistencyLevel? GetSerialConsistencyLevel(IStatement statement, QueryOptions queryOptions)
+        {
+            var consistency = queryOptions.GetSerialConsistencyLevel();
+            if (statement.SerialConsistencyLevel != ConsistencyLevel.Any)
+            {
+                consistency = statement.SerialConsistencyLevel;
+            }
+
+            if (!consistency.IsSerialConsistencyLevel())
+            {
+                throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
+            }
+
+            return consistency;
         }
 
         public int WriteFrame(short streamId, MemoryStream stream, Serializer serializer)

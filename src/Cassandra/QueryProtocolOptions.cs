@@ -113,13 +113,20 @@ namespace Cassandra
                     timestamp = null;
                 }
             }
+
+            var serialConsistency = queryOptions.GetSerialConsistencyLevel();
+            if (query.SerialConsistencyLevel != ConsistencyLevel.Any)
+            {
+                serialConsistency = query.SerialConsistencyLevel;
+            }
+
             return new QueryProtocolOptions(
                 consistency,
                 query.QueryValues,
                 query.SkipMetadata,
                 pageSize,
                 query.PagingState,
-                query.SerialConsistencyLevel,
+                serialConsistency,
                 timestamp);
         }
 
