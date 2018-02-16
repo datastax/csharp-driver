@@ -95,5 +95,26 @@ namespace Cassandra.Tests
                 "'No credentials')", 
                 ex.Message);
         }
+
+        [Test]
+        public void ReadFailureException_Message_Includes_Amount_Of_Failures()
+        {
+            const string baseMessage = "Server failure during read query at consistency ";
+            var expectedMessage = baseMessage + "LocalQuorum (3 responses were required but only 2 replicas responded, 1 failed)";
+            var ex = new ReadFailureException(ConsistencyLevel.LocalQuorum, 2, 3, true, 1);
+            Assert.AreEqual(expectedMessage, ex.Message);
+
+            expectedMessage = baseMessage + "LocalQuorum (2 responses were required but only 1 replica responded, 1 failed)";
+            ex = new ReadFailureException(ConsistencyLevel.LocalQuorum, 1, 2, true, 1);
+            Assert.AreEqual(expectedMessage, ex.Message);
+
+            expectedMessage = baseMessage + "LocalOne (the replica queried for data didn't respond)";
+            ex = new ReadFailureException(ConsistencyLevel.LocalOne, 1, 0, false, 1);
+            Assert.AreEqual(expectedMessage, ex.Message);
+
+            expectedMessage = baseMessage + "LocalQuorum (failure while waiting for repair of inconsistent replica)";
+            ex = new ReadFailureException(ConsistencyLevel.LocalQuorum, 3, 3, true, 0);
+            Assert.AreEqual(expectedMessage, ex.Message);
+        }
     }
 }
