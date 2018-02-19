@@ -343,9 +343,10 @@ namespace Cassandra.IntegrationTests.Core
 
                 ccAddress = cluster.GetControlConnection().Address;
                 Assert.True(cluster.GetHost(ccAddress).IsUp);
-                Assert.DoesNotThrowAsync(() => cluster.GetControlConnection().QueryAsync("SELECT * FROM system.local"));
 
-                await testCluster.Remove();
+                // Once all connections are created, the control connection should be usable
+                WaitSimulatorConnections(testCluster, 4);
+                Assert.DoesNotThrowAsync(() => cluster.GetControlConnection().QueryAsync("SELECT * FROM system.local"));
             }
         }
     }
