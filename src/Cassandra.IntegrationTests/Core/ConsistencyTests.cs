@@ -75,6 +75,25 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCase(ConsistencyLevel.Serial, "SERIAL")]
+        [TestCase(ConsistencyLevel.LocalSerial, "LOCAL_SERIAL")]
+        public void Should_UseQueryOptionsSerialCL_When_NotSetAtSimpleStatement(ConsistencyLevel serialConsistency, string serialConsistencyLevelString)
+        {
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" } ))
+            using (var cluster = Cluster.Builder()
+                                        .WithQueryOptions(new QueryOptions().SetSerialConsistencyLevel(serialConsistency))
+                                        .AddContactPoint(simulacronCluster.InitialContactPoint).Build())
+            {
+                const string conditionalQuery = "insert into tbl_serial (id, value) values (1, 2) if not exists";
+                var session = cluster.Connect();
+                var simpleStatement = new SimpleStatement(conditionalQuery);
+                var result = session.Execute(simpleStatement);
+                Assert.AreEqual(ConsistencyLevel.LocalOne, result.Info.AchievedConsistency);
+                VerifyConsistency(simulacronCluster, conditionalQuery, "LOCAL_ONE", serialConsistencyLevelString);
+            }
+        }
+
+        [Test]
         [TestCase(ConsistencyLevel.Quorum, "QUORUM")]
         [TestCase(ConsistencyLevel.All, "ALL")]
         [TestCase(ConsistencyLevel.Any, "ANY")]
@@ -143,6 +162,27 @@ namespace Cassandra.IntegrationTests.Core
                 var result = session.Execute(boundStmt);
                 Assert.AreEqual(consistencyLevel, result.Info.AchievedConsistency);
                 VerifyConsistency(simulacronCluster, prepQuery, consistencyLevelString, null, "EXECUTE");
+            }
+        }
+
+        [Test]
+        [TestCase(ConsistencyLevel.Serial, "SERIAL")]
+        [TestCase(ConsistencyLevel.LocalSerial, "LOCAL_SERIAL")]
+        public void Should_UseQueryOptionsSerialCL_When_NotSetAtPreparedStatement(ConsistencyLevel consistencyLevel, 
+                                                                            string consistencyLevelString)
+        {
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" } ))
+            using (var cluster = Cluster.Builder()
+                                        .WithQueryOptions(new QueryOptions().SetSerialConsistencyLevel(consistencyLevel))
+                                        .AddContactPoint(simulacronCluster.InitialContactPoint).Build())
+            {
+                var session = cluster.Connect();
+                const string prepQuery = "select id, value from tbl_consistency where id=? if exists";
+                var prepStmt = session.Prepare(prepQuery);
+                var boundStmt = prepStmt.Bind(1);
+                var result = session.Execute(boundStmt);
+                Assert.AreEqual(ConsistencyLevel.LocalOne, result.Info.AchievedConsistency);
+                VerifyConsistency(simulacronCluster, prepQuery, "LOCAL_ONE", consistencyLevelString, "EXECUTE");
             }
         }
 
