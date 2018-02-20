@@ -313,7 +313,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             Assert.AreEqual(ColumnTypeCode.Map, column.TypeCode);
         }
 
-        [Test, TestCassandraVersion(2, 1)]
+        [Test, TestCassandraVersion(2, 0, 7)]
         public void CreateTable_With_Counter_Static()
         {
             var config = new MappingConfiguration()
