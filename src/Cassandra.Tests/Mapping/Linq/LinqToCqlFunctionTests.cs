@@ -24,11 +24,14 @@ namespace Cassandra.Tests.Mapping.Linq
             });
             var table = GetTable<AllTypesEntity>(session, new Map<AllTypesEntity>().TableName("tbl100"));
             table.Where(t => t.UuidValue <= CqlFunction.MaxTimeUuid(DateTimeOffset.Parse("1/1/2005"))).Execute();
-            Assert.AreEqual("SELECT BooleanValue, DateTimeValue, DecimalValue, DoubleValue, Int64Value, IntValue, StringValue, UuidValue FROM tbl100 WHERE UuidValue <= maxtimeuuid(?)", query);
+            Assert.AreEqual("SELECT BooleanValue, DateTimeValue, DecimalValue, DoubleValue, Int64Value, IntValue," +
+                            " StringValue, UuidValue FROM tbl100 WHERE UuidValue <= maxtimeuuid(?)", query);
             Assert.AreEqual(DateTimeOffset.Parse("1/1/2005"), parameters[0]);
 
             table.Where(t => CqlFunction.MaxTimeUuid(DateTimeOffset.Parse("1/1/2005")) > t.UuidValue).Execute();
-            Assert.AreEqual("SELECT BooleanValue, DateTimeValue, DecimalValue, DoubleValue, Int64Value, IntValue, StringValue, UuidValue FROM tbl100 WHERE maxtimeuuid(?) > UuidValue", query);
+            Assert.AreEqual("SELECT BooleanValue, DateTimeValue, DecimalValue, DoubleValue, Int64Value, IntValue," +
+                            " StringValue, UuidValue FROM tbl100 WHERE UuidValue < maxtimeuuid(?)", query);
+            Assert.AreEqual(DateTimeOffset.Parse("1/1/2005"), parameters[0]);
         }
 
         [Test]

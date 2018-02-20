@@ -718,12 +718,12 @@ namespace Cassandra.Tests.Mapping.Linq
                       .Column(t => t.IntValue, cm => cm.WithName("int_value"))
                       .Column(t => t.LongValue, cm => cm.WithName("long_value"))
                       .TableName("table1");
-            
+
             var table = GetTable<PocoWithNumericTypes>(session, map);
             table.Where(t => 100 >= t.IntValue && 200L <= t.LongValue).Execute();
-            
-            Assert.AreEqual(query, 
-                "SELECT int_value, long_value FROM table1 WHERE ? >= int_value AND ? <= long_value");
+
+            Assert.AreEqual(query,
+                "SELECT int_value, long_value FROM table1 WHERE int_value <= ? AND long_value >= ?");
             Assert.That(parameters, Is.EqualTo(new object[] { 100, 200L }));
         }
 
@@ -770,17 +770,23 @@ namespace Cassandra.Tests.Mapping.Linq
                  .Execute();
             Assert.AreEqual(new object[] {id, tupleValue}, statement.QueryValues);
             Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
- 
-            expectedQuery = "SELECT id3, id2, id1 FROM tbl1 WHERE id1 = ? AND ? = (id2, id3)";
+
+            expectedQuery = "SELECT id3, id2, id1 FROM tbl1 WHERE id1 = ? AND (id2, id3) = ?";
             // yoda with equals
             table.Where(t => t.UuidValue == id && tupleValue.Equals(Tuple.Create(t.StringValue, t.IntValue))).Execute();
             Assert.AreEqual(new object[] {id, tupleValue}, statement.QueryValues);
             Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
-            
-             
+
             expectedQuery = "SELECT id3, id2, id1 FROM tbl1 WHERE id1 = ? AND (id2, id3) >= ?";
             table.Where(t => t.UuidValue == id &&
                              ((IComparable) Tuple.Create(t.StringValue, t.IntValue)).CompareTo(tupleValue) >= 0)
+                 .Execute();
+            Assert.AreEqual(new object[] {id, tupleValue}, statement.QueryValues);
+            Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
+
+            expectedQuery = "SELECT id3, id2, id1 FROM tbl1 WHERE id1 = ? AND (id2, id3) < ?";
+            table.Where(t => t.UuidValue == id &&
+                             ((IComparable) tupleValue).CompareTo(Tuple.Create(t.StringValue, t.IntValue)) > 0)
                  .Execute();
             Assert.AreEqual(new object[] {id, tupleValue}, statement.QueryValues);
             Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
@@ -830,16 +836,16 @@ namespace Cassandra.Tests.Mapping.Linq
                       .Column(t => t.IntValue, cm => cm.WithName("int_value"))
                       .Column(t => t.DoubleValue, cm => cm.WithName("double_value"))
                       .TableName("table1");
-            
+
             var table = GetTable<PocoWithNumericTypes>(session, map);
 
             var value = 100;
 
             table.Where(t => value.CompareTo(t.IntValue) > 0).Execute();
-            Assert.AreEqual("SELECT int_value, double_value FROM table1 WHERE ? > int_value", query);
+            Assert.AreEqual("SELECT int_value, double_value FROM table1 WHERE int_value < ?", query);
             Assert.AreEqual(new object[] { value }, parameters);
-            
-            
+
+
             table.Where(t => t.IntValue.CompareTo(value) <= 0).Execute();
             Assert.AreEqual("SELECT int_value, double_value FROM table1 WHERE int_value <= ?", query);
             Assert.AreEqual(new object[] { value }, parameters);
@@ -851,7 +857,7 @@ namespace Cassandra.Tests.Mapping.Linq
 
             // yoda combo
             table.Where(t => 0 > value.CompareTo(t.IntValue)).Execute();
-            Assert.AreEqual("SELECT int_value, double_value FROM table1 WHERE ? < int_value", query);
+            Assert.AreEqual("SELECT int_value, double_value FROM table1 WHERE int_value > ?", query);
             Assert.AreEqual(new object[] { value }, parameters);
         }
     }

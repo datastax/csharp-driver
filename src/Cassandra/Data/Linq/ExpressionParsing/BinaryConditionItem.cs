@@ -64,7 +64,7 @@ namespace Cassandra.Data.Linq.ExpressionParsing
         private string _leftFunction;
         private string _rightFunction;
         private bool _isCompareTo;
-        
+
         /// <summary>
         /// Yoda conditions are the ones the literal value of the condition comes first while the variable comes second.
         /// Ie: "? = col1"  
@@ -90,9 +90,30 @@ namespace Cassandra.Data.Linq.ExpressionParsing
             }
             if (_operator == InOperator)
             {
+                if (_isYoda)
+                {
+                    throw new InvalidOperationException(
+                        "Inverted expressions are not supported when using IN operator");
+                }
                 return "IN";
             }
-            return CqlTags[_operator.Value];
+
+            var linqOperator = _operator.Value;
+            if (_isYoda)
+            {
+                if (!InvertedOperations.TryGetValue(linqOperator, out var invertedOperator))
+                {
+                    throw new InvalidOperationException($"Operator {linqOperator} not supported");
+                }
+
+                linqOperator = invertedOperator;
+            }
+
+            if (!CqlTags.TryGetValue(linqOperator, out var cqlOperator))
+            {
+                throw new InvalidOperationException($"Operator {linqOperator} not supported");
+            }
+            return cqlOperator;
         }
 
         public IConditionItem SetOperator(ExpressionType expressionType)
@@ -177,13 +198,17 @@ namespace Cassandra.Data.Linq.ExpressionParsing
             }
             else
             {
-                ToCqlParameters(query, _leftFunction);
-                
+                // Columns where defined after the operator
+                // Use the right function if any
+                ToCqlColumns(pocoData, query, _rightFunction);
+
                 query.Append(" ");
                 query.Append(GetCqlOperator());
                 query.Append(" ");
 
-                ToCqlColumns(pocoData, query, _rightFunction);
+                // Parameters where defined first
+                // Use the left function if any
+                ToCqlParameters(query, _leftFunction);
             }
 
             ChangeParameterType();
