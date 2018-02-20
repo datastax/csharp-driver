@@ -382,10 +382,11 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             Assert.AreEqual(resultCount, rs.Count());
         }
 
-        [Test]
+        [Test, TestCassandraVersion(3, 0)]
         public void LinqWhere_ShortScopes()
         {
             var guid = Guid.NewGuid();
+            const string pk = "Boolean True";
             var data = new ManyDataTypesEntity
             {
                 BooleanType = true,
@@ -397,36 +398,45 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                 GuidType = guid,
                 IntType = 11,
                 Int64Type = 11,
-                StringType = "Boolean True"
+                StringType = pk
             };
             _manyDataTypesEntitiesTable.Insert(data).Execute();
             //Get poco using constant short
             const short expectedShortValue = 11;
-            var rs = _manyDataTypesEntitiesTable.Where(m => m.IntType == expectedShortValue).Execute();
+            var rs = _manyDataTypesEntitiesTable
+                     .Where(m => m.StringType == pk && m.IntType == expectedShortValue).AllowFiltering().Execute();
             Assert.NotNull(rs);
             Assert.AreEqual(1, rs.Count());
-            rs = _manyDataTypesEntitiesTable.Where(m => m.IntType == ExpectedShortValue).Execute();
+            rs = _manyDataTypesEntitiesTable.Where(m => m.StringType == pk && m.IntType == ExpectedShortValue)
+                                            .AllowFiltering().Execute();
             Assert.NotNull(rs);
             Assert.AreEqual(1, rs.Count());
-            rs = _manyDataTypesEntitiesTable.Where(m => ExpectedShortValue == m.IntType).Execute();
+            rs = _manyDataTypesEntitiesTable.Where(m => m.StringType == pk && ExpectedShortValue == m.IntType)
+                                            .AllowFiltering().Execute();
             Assert.NotNull(rs);
             Assert.AreEqual(1, rs.Count());
-            rs = _manyDataTypesEntitiesTable.Where(m => expectedShortValue == m.IntType).Execute();
+            rs = _manyDataTypesEntitiesTable.Where(m => m.StringType == pk && expectedShortValue == m.IntType)
+                                            .AllowFiltering().Execute();
             Assert.NotNull(rs);
             Assert.AreEqual(1, rs.Count());
-            rs = _manyDataTypesEntitiesTable.Where(m => m.Int64Type == expectedShortValue).Execute();
+            rs = _manyDataTypesEntitiesTable.Where(m => m.StringType == pk && m.Int64Type == expectedShortValue)
+                                            .AllowFiltering().Execute();
             Assert.NotNull(rs);
             Assert.AreEqual(1, rs.Count());
-            rs = _manyDataTypesEntitiesTable.Where(m => expectedShortValue == m.Int64Type).Execute();
+            rs = _manyDataTypesEntitiesTable.Where(m => m.StringType == pk && expectedShortValue == m.Int64Type)
+                                            .AllowFiltering().Execute();
             Assert.NotNull(rs);
             Assert.AreEqual(1, rs.Count());
-            rs = _manyDataTypesEntitiesTable.Where(m => m.Int64Type == ExpectedShortValue).Execute();
+            rs = _manyDataTypesEntitiesTable.Where(m => m.StringType == pk && m.Int64Type == ExpectedShortValue)
+                                            .AllowFiltering().Execute();
             Assert.NotNull(rs);
             Assert.AreEqual(1, rs.Count());
-            rs = _manyDataTypesEntitiesTable.Where(m => ExpectedShortValue == m.Int64Type).Execute();
+            rs = _manyDataTypesEntitiesTable.Where(m => m.StringType == pk && ExpectedShortValue == m.Int64Type)
+                                            .AllowFiltering().Execute();
             Assert.NotNull(rs);
             Assert.AreEqual(1, rs.Count());
-            _manyDataTypesEntitiesTable.Where(m => m.IntType == expectedShortValue).Delete();
+            _manyDataTypesEntitiesTable.Where(m => m.StringType == pk && m.IntType == expectedShortValue)
+                                       .AllowFiltering().Delete();
         }
 
         [AllowFiltering]
