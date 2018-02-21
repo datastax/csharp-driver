@@ -456,10 +456,20 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestCassandraVersion(2, 2)]
-        public void ReadFailureExceptionTest()
+        [TestCase(ConsistencyLevel.LocalQuorum, 2, 5, true,
+                  "LocalQuorum (5 response(s) were required but only 2 replica(s) responded, 1 failed)")]
+        [TestCase(ConsistencyLevel.LocalQuorum, 1, 2, true,
+                  "LocalQuorum (2 response(s) were required but only 1 replica(s) responded, 1 failed)")]
+        [TestCase(ConsistencyLevel.LocalOne, 1, 0, false,
+                  "LocalOne (the replica queried for data didn't respond)")]
+        [TestCase(ConsistencyLevel.LocalQuorum, 3, 3, true,
+                  "LocalQuorum (failure while waiting for repair of inconsistent replica)")]
+        public void ReadFailureExceptionTest(ConsistencyLevel consistencyLevel, int received, int required,
+                                             bool dataPresent, string expectedMessageEnd)
         {
-            var cql = string.Format(TestUtils.SELECT_ALL_FORMAT, _table);
+
+            const string baseMessage = "Server failure during read query at consistency ";
+            const string cql = "SELECT * FROM ks1.table_for_read_failure_test";
             var primeQuery = new
             {
                 when = new
@@ -469,23 +479,24 @@ namespace Cassandra.IntegrationTests.Core
                 then = new
                 {
                     result = "read_failure",
-                    consistency_level = 5,
-                    received = 1,
-                    block_for = 2,
+                    consistency_level = (int) consistencyLevel,
+                    received,
+                    block_for = required,
                     delay_in_ms = 0,
-                    data_present = true,
+                    data_present = dataPresent,
                     message = "read_failure",
                     ignore_on_prepare = false,
-                    failure_reasons = new Dictionary<string, int> { { "127.0.0.1", 0 } },
+                    failure_reasons = new Dictionary<string, int> { { "127.0.0.1", 0 } }
                 }
             };
 
             _simulacronCluster.Prime(primeQuery);
             var ex = Assert.Throws<ReadFailureException>(() =>
-                _session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.All)));
-            Assert.AreEqual(ex.ConsistencyLevel, ConsistencyLevel.All);
-            Assert.AreEqual(1, ex.ReceivedAcknowledgements);
-            Assert.AreEqual(2, ex.RequiredAcknowledgements);
+                _session.Execute(new SimpleStatement(cql).SetConsistencyLevel(consistencyLevel)));
+            Assert.AreEqual(consistencyLevel, ex.ConsistencyLevel);
+            Assert.AreEqual(received, ex.ReceivedAcknowledgements);
+            Assert.AreEqual(required, ex.RequiredAcknowledgements);
+            Assert.AreEqual(baseMessage + expectedMessageEnd, ex.Message);
         }
 
         [Test]

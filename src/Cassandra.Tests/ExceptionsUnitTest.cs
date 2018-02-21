@@ -97,23 +97,21 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void ReadFailureException_Message_Includes_Amount_Of_Failures()
+        [TestCase(ConsistencyLevel.LocalQuorum, 2, 3, true,
+            "LocalQuorum (3 response(s) were required but only 2 replica(s) responded, 1 failed)", 1)]
+        [TestCase(ConsistencyLevel.LocalQuorum, 1, 2, true,
+            "LocalQuorum (2 response(s) were required but only 1 replica(s) responded, 1 failed)", 1)]
+        [TestCase(ConsistencyLevel.LocalOne, 1, 1, false, "LocalOne (the replica queried for data didn't respond)", 1)]
+        [TestCase(ConsistencyLevel.LocalQuorum, 3, 3, true,
+            "LocalQuorum (failure while waiting for repair of inconsistent replica)", 0)]
+        public void ReadFailureException_Message_Includes_Amount_Of_Failures(ConsistencyLevel consistencyLevel,
+                                                                             int received, int required,
+                                                                             bool dataPresent,
+                                                                             string expectedMessageEnd, int failures)
         {
             const string baseMessage = "Server failure during read query at consistency ";
-            var expectedMessage = baseMessage + "LocalQuorum (3 responses were required but only 2 replicas responded, 1 failed)";
-            var ex = new ReadFailureException(ConsistencyLevel.LocalQuorum, 2, 3, true, 1);
-            Assert.AreEqual(expectedMessage, ex.Message);
-
-            expectedMessage = baseMessage + "LocalQuorum (2 responses were required but only 1 replica responded, 1 failed)";
-            ex = new ReadFailureException(ConsistencyLevel.LocalQuorum, 1, 2, true, 1);
-            Assert.AreEqual(expectedMessage, ex.Message);
-
-            expectedMessage = baseMessage + "LocalOne (the replica queried for data didn't respond)";
-            ex = new ReadFailureException(ConsistencyLevel.LocalOne, 1, 0, false, 1);
-            Assert.AreEqual(expectedMessage, ex.Message);
-
-            expectedMessage = baseMessage + "LocalQuorum (failure while waiting for repair of inconsistent replica)";
-            ex = new ReadFailureException(ConsistencyLevel.LocalQuorum, 3, 3, true, 0);
+            var expectedMessage = baseMessage + expectedMessageEnd;
+            var ex = new ReadFailureException(consistencyLevel, received, required, dataPresent, failures);
             Assert.AreEqual(expectedMessage, ex.Message);
         }
     }

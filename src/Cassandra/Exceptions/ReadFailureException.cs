@@ -19,7 +19,7 @@ using System.Text;
 namespace Cassandra
 {
     /// <summary>
-    ///  A Cassandra failure (non-timeout) during a read query.
+    ///  A Server failure (non-timeout) during a read query.
     /// </summary>
     public class ReadFailureException : QueryExecutionException
     {
@@ -54,7 +54,8 @@ namespace Cassandra
             Failures = failures;
         }
 
-        private static string FormatMessage(ConsistencyLevel consistency, int received, int required, bool dataPresent, int failures)
+        private static string FormatMessage(ConsistencyLevel consistency, int received, int required, bool dataPresent,
+                                            int failures)
         {
             var message = new StringBuilder(150);
             message.Append("Server failure during read query at consistency ")
@@ -62,19 +63,9 @@ namespace Cassandra
 
             if (received < required)
             {
-                message.Append(required).Append(" response");
-                if (required > 1)
-                {
-                    message.Append("s");
-                }
-
-                message.Append(" were required but only ").Append(received).Append(" replica");
-                if (received != 1)
-                {
-                    message.Append("s");
-                }
-
-                message.Append(" responded, ").Append(failures).Append(" failed");
+                message.Append(required).Append(" response(s) were required but only ")
+                       .Append(received).Append(" replica(s) responded, ")
+                       .Append(failures).Append(" failed");
             }
             else if (!dataPresent)
             {
