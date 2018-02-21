@@ -31,7 +31,7 @@ namespace Cassandra.Requests
         private readonly ICollection<IQueryRequest> _requests;
         private readonly BatchType _type;
         private readonly long? _timestamp;
-        private readonly ConsistencyLevel? _serialConsistency;
+        private readonly ConsistencyLevel _serialConsistency;
 
         public ConsistencyLevel Consistency { get; set; }
 
@@ -53,11 +53,8 @@ namespace Cassandra.Requests
                 _headerFlags = FrameHeader.HeaderFlag.Tracing;
             }
 
-            _serialConsistency = GetSerialConsistencyLevel(statement, config.QueryOptions);
-            if (_serialConsistency != null)
-            {
-                _batchFlags |= QueryProtocolOptions.QueryFlags.WithSerialConsistency;
-            }
+            _serialConsistency = config.QueryOptions.GetSerialConsistencyLevelOrDefault(statement);
+            _batchFlags |= QueryProtocolOptions.QueryFlags.WithSerialConsistency;
 
             _timestamp = GetRequestTimestamp(protocolVersion, statement, config.Policies);
             if (_timestamp != null)
@@ -90,26 +87,6 @@ namespace Cassandra.Requests
             return timestamp != long.MinValue ? (long?) timestamp : null;
         }
 
-        /// <summary>
-        /// Gets the serial consistency level of the request or null if not defined.
-        /// </summary>
-        /// <exception cref="NotSupportedException" />
-        private static ConsistencyLevel? GetSerialConsistencyLevel(IStatement statement, QueryOptions queryOptions)
-        {
-            var consistency = queryOptions.GetSerialConsistencyLevel();
-            if (statement.SerialConsistencyLevel != ConsistencyLevel.Any)
-            {
-                consistency = statement.SerialConsistencyLevel;
-            }
-
-            if (!consistency.IsSerialConsistencyLevel())
-            {
-                throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
-            }
-
-            return consistency;
-        }
-
         public int WriteFrame(short streamId, MemoryStream stream, Serializer serializer)
         {
             //protocol v2: <type><n><query_1>...<query_n><consistency>
@@ -135,11 +112,9 @@ namespace Cassandra.Requests
             wb.WriteUInt16((ushort) Consistency);
             if (protocolVersion.SupportsTimestamp())
             {
-                wb.WriteByte((byte)_batchFlags);
-                if (_serialConsistency != null)
-                {
-                    wb.WriteUInt16((ushort)_serialConsistency.Value);
-                }
+                wb.WriteByte((byte) _batchFlags);
+                wb.WriteUInt16((ushort) _serialConsistency);
+
                 if (_timestamp != null)
                 {
                     wb.WriteLong(_timestamp.Value);

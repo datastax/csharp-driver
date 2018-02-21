@@ -98,6 +98,10 @@ namespace Cassandra
         /// <returns>this QueryOptions instance.</returns>
         public QueryOptions SetSerialConsistencyLevel(ConsistencyLevel serialConsistencyLevel)
         {
+            if (!serialConsistencyLevel.IsSerialConsistencyLevel())
+            {
+                throw new ArgumentException("Serial consistency level can only be set to LocalSerial or Serial");
+            }
             _serialConsistency = serialConsistencyLevel;
             return this;
         }
@@ -110,6 +114,26 @@ namespace Cassandra
         public ConsistencyLevel GetSerialConsistencyLevel()
         {
             return _serialConsistency;
+        }
+
+        /// <summary>
+        /// Gets the serial consistency level of the statement or the default value from the query options.
+        /// </summary>
+        /// <exception cref="ArgumentException" />
+        internal ConsistencyLevel GetSerialConsistencyLevelOrDefault(IStatement statement)
+        {
+            var consistency = GetSerialConsistencyLevel();
+            if (statement.SerialConsistencyLevel != ConsistencyLevel.Any)
+            {
+                consistency = statement.SerialConsistencyLevel;
+            }
+
+            if (!consistency.IsSerialConsistencyLevel())
+            {
+                throw new ArgumentException("Serial consistency level can only be set to LocalSerial or Serial");
+            }
+
+            return consistency;
         }
 
 
