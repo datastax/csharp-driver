@@ -14,10 +14,12 @@
 //   limitations under the License.
 //
 
+using System.Text;
+
 namespace Cassandra
 {
     /// <summary>
-    ///  A Cassandra failure (non-timeout) during a read query.
+    ///  A Server failure (non-timeout) during a read query.
     /// </summary>
     public class ReadFailureException : QueryExecutionException
     {
@@ -43,8 +45,7 @@ namespace Cassandra
         public int Failures { get; private set; }
 
         public ReadFailureException(ConsistencyLevel consistency, int received, int required, bool dataPresent, int failures) :
-                                        base(string.Format("Cassandra failure during read query at consistency {0} ({1})",
-                                                      consistency, FormatDetails(received, required, dataPresent)))
+                                        base(FormatMessage(consistency, received, required, dataPresent, failures))
         {
             ConsistencyLevel = consistency;
             ReceivedAcknowledgements = received;
@@ -53,17 +54,29 @@ namespace Cassandra
             Failures = failures;
         }
 
-        private static string FormatDetails(int received, int required, bool dataPresent)
+        private static string FormatMessage(ConsistencyLevel consistency, int received, int required, bool dataPresent,
+                                            int failures)
         {
+            var message = new StringBuilder(150);
+            message.Append("Server failure during read query at consistency ")
+                   .Append(consistency).Append(" (");
+
             if (received < required)
             {
-                return string.Format("{0} replica(s) responded over {1} required", received, required);
+                message.Append(required).Append(" response(s) were required but only ")
+                       .Append(received).Append(" replica(s) responded, ")
+                       .Append(failures).Append(" failed");
             }
-            if (!dataPresent)
+            else if (!dataPresent)
             {
-                return string.Format("the replica queried for data didn't respond");
+                message.Append("the replica queried for data didn't respond");
             }
-            return string.Format("failure while waiting for repair of inconsistent replica");
+            else
+            {
+                message.Append("failure while waiting for repair of inconsistent replica");
+            }
+
+            return message.Append(")").ToString();
         }
     }
 }

@@ -17,9 +17,9 @@
 namespace Cassandra
 {
     /// <summary>
-    ///  A Cassandra timeout during a query. Such an exception is returned when the
-    ///  query has been tried by Cassandra but cannot be achieved with the requested
-    ///  consistency level within the rpc timeout set for Cassandra.
+    ///  A server timeout during a query. Such an exception is returned when the
+    ///  query has been tried by a server coordinator but cannot be achieved with the requested
+    ///  consistency level within the rpc timeout set at server level.
     /// </summary>
     public abstract class QueryTimeoutException : QueryExecutionException
     {
