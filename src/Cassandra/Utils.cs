@@ -23,7 +23,6 @@ using System.Net;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
-using Cassandra.Tasks;
 
 namespace Cassandra
 {
@@ -75,30 +74,6 @@ namespace Cassandra
                 }
 
             return map;
-        }
-
-        public static IEnumerable<IPAddress> ResolveHostByName(string address)
-        {
-            IPAddress addr;
-            if (IPAddress.TryParse(address, out addr))
-            {
-                return new [] {addr};
-            }
-            return GetHostNameInfo(address);
-        }
-
-        /// <summary>
-        /// Performs a getnameinfo() call
-        /// </summary>
-        public static IEnumerable<IPAddress> GetHostNameInfo(string address)
-        {
-#if !NETCORE
-            var hostEntry = Dns.GetHostEntry(address);
-#else
-            var hostEntryTask = Dns.GetHostEntryAsync(address);
-            var hostEntry = TaskHelper.WaitToComplete(hostEntryTask);
-#endif
-            return hostEntry.AddressList;
         }
         
         /// <summary>

@@ -19,7 +19,6 @@ namespace Cassandra.Tests
             var config = builder.GetConfiguration();
             Assert.IsInstanceOf<NoneAuthProvider>(config.AuthProvider);
             Assert.IsNull(config.AuthInfoProvider);
-            Assert.AreEqual(String.Join(",", builder.ContactPoints.Select(i => i.Address)), contactPoints);
 
             builder = Cluster.Builder().WithConnectionString(String.Format("Contact Points={0};Username=user1", contactPoints));
             config = builder.GetConfiguration();
@@ -31,7 +30,6 @@ namespace Cassandra.Tests
             config = builder.GetConfiguration();
             Assert.IsInstanceOf<PlainTextAuthProvider>(config.AuthProvider);
             Assert.IsInstanceOf<SimpleAuthInfoProvider>(config.AuthInfoProvider);
-            Assert.AreEqual(String.Join(",", builder.ContactPoints.Select(i => i.Address)), contactPoints);
         }
 
         [Test]
@@ -40,12 +38,10 @@ namespace Cassandra.Tests
             const string contactPoints = "127.0.0.1,127.0.0.2,127.0.0.3";
             var builder = Cluster.Builder().WithConnectionString(String.Format("Contact Points={0}", contactPoints));
             var config = builder.GetConfiguration();
-            Assert.AreEqual(String.Join(",", builder.ContactPoints.Select(i => i.Address)), contactPoints);
             Assert.AreEqual(config.ProtocolOptions.Port, ProtocolOptions.DefaultPort);
 
             builder = Cluster.Builder().WithConnectionString(String.Format("Contact Points={0};Port=9000", contactPoints));
             config = builder.GetConfiguration();
-            Assert.AreEqual(String.Join(",", builder.ContactPoints.Select(i => i.Address)), contactPoints);
             Assert.AreEqual(config.ProtocolOptions.Port, 9000);
         }
 
@@ -59,7 +55,6 @@ namespace Cassandra.Tests
 
             builder = Cluster.Builder().WithConnectionString(String.Format("Contact Points={0};Default Keyspace=ks1", contactPoints));
             config = builder.GetConfiguration();
-            Assert.AreEqual(String.Join(",", builder.ContactPoints.Select(i => i.Address)), contactPoints);
             Assert.AreEqual(config.ClientOptions.DefaultKeyspace, "ks1");
         }
 
@@ -71,7 +66,6 @@ namespace Cassandra.Tests
             var config = builder.GetConfiguration();
             Assert.IsInstanceOf<NoneAuthProvider>(config.AuthProvider);
             Assert.IsNull(config.AuthInfoProvider);
-            Assert.AreEqual(String.Join(",", builder.ContactPoints.Select(i => i.Address)), String.Join(",", contactPoints));
 
             builder = Cluster.Builder().AddContactPoints(contactPoints).WithCredentials("user1", "password");
             config = builder.GetConfiguration();
@@ -87,16 +81,6 @@ namespace Cassandra.Tests
             Assert.That(ex.Message, Contains.Substring("username"));
         }
 
-        [Test]
-        public void AddContactPointsThrowsWhenNameCouldNotBeResolved()
-        {
-            const string hostName = "not_existent_host_100003030";
-            var ex = (SocketException) Assert.Throws(
-                Is.InstanceOf<SocketException>(), 
-                () => Cluster.Builder().AddContactPoint(hostName).Build());
-            Assert.AreEqual(ex.SocketErrorCode, SocketError.HostNotFound);
-        }
-        
         [Test]
         public void AddContactPointsWithPortShouldHaveCorrectPort()
         {
@@ -196,6 +180,70 @@ namespace Cassandra.Tests
                                   .Build();
             Assert.AreEqual(coreConnections, cluster1.Configuration.PoolingOptions.GetCoreConnectionsPerHost(HostDistance.Local));
             Assert.AreEqual(maxConnections, cluster1.Configuration.PoolingOptions.GetMaxConnectionPerHost(HostDistance.Local));
+        }
+
+        [Test]
+        public void Cluster_Builder_Should_Throw_When_No_Contact_Points_Have_Been_Defined()
+        {
+            var ex = Assert.Throws<ArgumentException>(() => Cluster.Builder().Build());
+            Assert.That(ex.Message, Is.EqualTo("Cannot build a cluster without contact points"));
+        }
+
+        [Test]
+        public void Builder_Build_Throws_When_Name_Could_Not_Be_Resolved()
+        {
+            const string hostName = "not-a-host";
+            var builder = Cluster.Builder().AddContactPoint(hostName);
+            var ex = Assert.Throws<NoHostAvailableException>(() => builder.Build());
+            Assert.That(ex.Message, Does.StartWith("No host name could be resolved"));
+        }
+
+        [Test]
+        public void Should_Throw_When_All_Contact_Points_Cant_Be_Resolved()
+        {
+            var ex = Assert.Throws<NoHostAvailableException>(() => Cluster.Builder()
+                                                                          .AddContactPoint("not-a-host")
+                                                                          .AddContactPoint("not-a-host2")
+                                                                          .Build());
+            Assert.That(ex.Message, Is.EqualTo("No host name could be resolved, attempted: not-a-host, not-a-host2"));
+        }
+
+        [Test]
+        public void Cluster_Builder_Should_Use_Provided_Port()
+        {
+            const int port = 9099;
+            var endpoint = new IPEndPoint(IPAddress.Parse("127.0.0.2"), port);
+
+            // Provided as string
+            using (var cluster = Cluster.Builder().AddContactPoint(endpoint.Address.ToString()).WithPort(port).Build())
+            {
+                var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
+                Assert.That(ex.Errors.Count, Is.EqualTo(1));
+                Assert.That(ex.Errors.Keys.First(), Is.EqualTo(endpoint));
+            }
+
+            // Provided as an IPAddress
+            using (var cluster = Cluster.Builder().AddContactPoint(endpoint.Address).WithPort(port).Build())
+            {
+                var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
+                Assert.That(ex.Errors.Count, Is.EqualTo(1));
+                Assert.That(ex.Errors.Keys.First(), Is.EqualTo(endpoint));
+            }
+        }
+
+        [Test]
+        public void Cluster_Builder_Returns_Contact_Points_Provided_As_IPEndPoint_Instances()
+        {
+            var endpoint1 = new IPEndPoint(0x7000001L, 9042);
+            var endpoint2 = new IPEndPoint(0x7000002L, 9042);
+            var address = IPAddress.Parse("10.10.10.1");
+            var addressString = "10.10.10.2";
+            var builder = Cluster.Builder().AddContactPoint(endpoint1).AddContactPoint(address)
+                                 .AddContactPoint(addressString).AddContactPoint(endpoint2);
+
+            // Only IPEndPoint instances as IP addresses and host names must be resolved and assigned
+            // the port number, which is performed on Build()
+            Assert.AreEqual(new [] { endpoint1, endpoint2 }, builder.ContactPoints);
         }
     }
 }

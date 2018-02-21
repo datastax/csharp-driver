@@ -76,12 +76,18 @@ namespace Cassandra
         /// <returns>the newly created Cluster instance </returns>
         public static Cluster BuildFrom(IInitializer initializer)
         {
-            if (initializer.ContactPoints.Count == 0)
+            return BuildFrom(initializer, null);
+        }
+
+        internal static Cluster BuildFrom(IInitializer initializer, ICollection<string> hostNames)
+        {
+            hostNames = hostNames ?? new string[0];
+            if (initializer.ContactPoints.Count == 0 && hostNames.Count == 0)
             {
                 throw new ArgumentException("Cannot build a cluster without contact points");
             }
 
-            return new Cluster(initializer.ContactPoints, initializer.GetConfiguration());
+            return new Cluster(initializer.ContactPoints.Cast<object>().Concat(hostNames), initializer.GetConfiguration());
         }
 
         /// <summary>
@@ -133,14 +139,11 @@ namespace Cassandra
             }
         }
 
-        private Cluster(IEnumerable<IPEndPoint> contactPoints, Configuration configuration)
+        private Cluster(IEnumerable<object> contactPoints, Configuration configuration)
         {
             Configuration = configuration;
             _metadata = new Metadata(configuration);
-            foreach (var ep in contactPoints)
-            {
-                _metadata.AddHost(ep);
-            }
+            TaskHelper.WaitToComplete(AddHosts(contactPoints));
             var protocolVersion = _maxProtocolVersion;
             if (Configuration.ProtocolOptions.MaxProtocolVersionValue != null &&
                 Configuration.ProtocolOptions.MaxProtocolVersionValue.Value.IsSupported())
@@ -150,6 +153,58 @@ namespace Cassandra
             _controlConnection = new ControlConnection(protocolVersion, Configuration, _metadata);
             _metadata.ControlConnection = _controlConnection;
             _serializer = _controlConnection.Serializer;
+        }
+
+        /// <summary>
+        /// Adds contact points as hosts and resolving host names if necessary.
+        /// </summary>
+        /// <exception cref="NoHostAvailableException">When no host can be resolved and no other contact point is an address</exception>
+        private async Task AddHosts(IEnumerable<object> contactPoints)
+        {
+            var hostNames = new List<string>();
+            foreach (var contactPoint in contactPoints)
+            {
+                if (contactPoint is IPEndPoint endpoint)
+                {
+                    _metadata.AddHost(endpoint);
+                    continue;
+                }
+
+                if (!(contactPoint is string contactPointText))
+                {
+                    throw new InvalidOperationException("Contact points should be either string or IPEndPoint instances");
+                }
+
+                if (IPAddress.TryParse(contactPointText, out var ipAddress))
+                {
+                    _metadata.AddHost(new IPEndPoint(ipAddress, Configuration.ProtocolOptions.Port));
+                    continue;
+                }
+
+                hostNames.Add(contactPointText);
+                IPHostEntry hostEntry = null;
+                try
+                {
+                    hostEntry = await Dns.GetHostEntryAsync(contactPointText).ConfigureAwait(false);
+                }
+                catch (Exception)
+                {
+                    _logger.Warning($"Host '{contactPointText}' could not be resolved");
+                }
+
+                if (hostEntry != null)
+                {
+                    foreach (var resolvedAddress in hostEntry.AddressList)
+                    {
+                        _metadata.AddHost(new IPEndPoint(resolvedAddress, Configuration.ProtocolOptions.Port));
+                    }                    
+                }
+            }
+
+            if (_metadata.Hosts.Count == 0)
+            {
+                throw new NoHostAvailableException($"No host name could be resolved, attempted: {string.Join(", ", hostNames)}");                
+            }
         }
 
         /// <summary>

@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Tasks;
@@ -26,6 +23,20 @@ namespace Cassandra.IntegrationTests.Core
                     var session = cluster.Connect();
                     session.Execute("select * from system.local");
                 });
+            }
+        }
+
+        [Test]
+        public void Should_Try_To_Resolve_And_Continue_With_The_Next_Contact_Point_If_It_Fails()
+        {
+            using (var cluster = Cluster.Builder()
+                                        .AddContactPoint("not-a-host")
+                                        .AddContactPoint(TestCluster.InitialContactPoint)
+                                        .Build())
+            {
+                var session = cluster.Connect();
+                session.Execute("select * from system.local");
+                Assert.That(cluster.AllHosts().Count, Is.EqualTo(1));
             }
         }
 
