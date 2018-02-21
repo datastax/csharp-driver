@@ -45,9 +45,9 @@ namespace Cassandra.Tests
 
         private static QueryOptions DefaultQueryOptions => new QueryOptions();
 
-        private static PreparedStatement GetPrepared()
+        private static PreparedStatement GetPrepared(byte[] queryId = null)
         {
-            return new PreparedStatement(null, null, "DUMMY QUERY", null, Serializer);
+            return new PreparedStatement(null, queryId, "DUMMY QUERY", null, Serializer);
         }
 
         [Test]
@@ -72,7 +72,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(100, request.PageSize);
             Assert.AreEqual(queryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(queryOptions.GetConsistencyLevel(), request.Consistency);
-            Assert.AreEqual(ConsistencyLevel.Any, request.SerialConsistency);
+            Assert.AreEqual(queryOptions.GetSerialConsistencyLevel(), request.SerialConsistency);
         }
 
         [Test]
@@ -115,7 +115,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(100, request.PageSize);
             Assert.AreEqual(queryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(queryOptions.GetConsistencyLevel(), request.Consistency);
-            Assert.AreEqual(ConsistencyLevel.Any, request.SerialConsistency);
+            Assert.AreEqual(QueryOptions.DefaultSerialConsistencyLevel, request.SerialConsistency);
         }
 
         [Test]
@@ -207,32 +207,29 @@ namespace Cassandra.Tests
             // Timestamp generator should be enabled by default
             var statement = new SimpleStatement("QUERY");
             var config = new Configuration();
+
             var request = RequestHandler.GetRequest(statement, Serializer, config);
-            var stream = new MemoryStream();
-            request.WriteFrame(1, stream, Serializer);
-            var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);
-            var bodyBuffer = new byte[stream.Length - headerSize];
-            stream.Position = headerSize;
-            stream.Read(bodyBuffer, 0, bodyBuffer.Length);
+            var bodyBuffer = GetBodyBuffer(request);
+
             // The query request is composed by:
-            // <query><consistency><flags><result_page_size><timestamp>
+            // <query><consistency><flags><result_page_size><paging_state><serial_consistency><timestamp>
             var queryBuffer = BeConverter.GetBytes(statement.QueryString.Length)
                 .Concat(Encoding.UTF8.GetBytes(statement.QueryString))
                 .ToArray();
             CollectionAssert.AreEqual(queryBuffer, bodyBuffer.Take(queryBuffer.Length));
             // Skip the query and consistency (2)
             var offset = queryBuffer.Length + 2;
-            // The remaining length should be 13 = flags (1) + result_page_size (4) + timestamp (8)
-            Assert.AreEqual(13, bodyBuffer.Length - offset);
+            // The remaining length should be 13 = flags (1) + result_page_size (4) + serial_consistency (2) + timestamp (8)
+            Assert.AreEqual(15, bodyBuffer.Length - offset);
             var flags = (QueryFlags) bodyBuffer[offset];
             Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
             Assert.True(flags.HasFlag(QueryFlags.PageSize));
             Assert.False(flags.HasFlag(QueryFlags.Values));
             Assert.False(flags.HasFlag(QueryFlags.WithPagingState));
             Assert.False(flags.HasFlag(QueryFlags.SkipMetadata));
-            Assert.False(flags.HasFlag(QueryFlags.WithSerialConsistency));
-            // Skip flags (1) + result_page_size (4)
-            offset += 5;
+            Assert.True(flags.HasFlag(QueryFlags.WithSerialConsistency));
+            // Skip flags (1) + result_page_size (4) + serial_consistency (2)
+            offset += 7;
             var timestamp = BeConverter.ToInt64(bodyBuffer, offset);
             var expectedTimestamp = TypeSerializer.SinceUnixEpoch(DateTimeOffset.Now.Subtract(TimeSpan.FromMilliseconds(100))).Ticks / 10;
             Assert.Greater(timestamp, expectedTimestamp);
@@ -248,30 +245,27 @@ namespace Cassandra.Tests
             var config = new Configuration(
                 policies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(), new ClientOptions(),
                 NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
+
             var request = RequestHandler.GetRequest(statement, Serializer.Default, config);
-            var stream = new MemoryStream();
-            request.WriteFrame(1, stream, Serializer);
-            var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);
-            var bodyBuffer = new byte[stream.Length - headerSize];
-            stream.Position = headerSize;
-            stream.Read(bodyBuffer, 0, bodyBuffer.Length);
+            var bodyBuffer = GetBodyBuffer(request);
+
             // The query request is composed by:
-            // <query><consistency><flags><result_page_size>
+            // <query><consistency><flags><result_page_size><paging_state><serial_consistency><timestamp>
             var queryBuffer = BeConverter.GetBytes(statement.QueryString.Length)
                                          .Concat(Encoding.UTF8.GetBytes(statement.QueryString))
                                          .ToArray();
             CollectionAssert.AreEqual(queryBuffer, bodyBuffer.Take(queryBuffer.Length));
             // Skip the query and consistency (2)
             var offset = queryBuffer.Length + 2;
-            // The remaining length should be 13 = flags (1) + result_page_size (4)
-            Assert.AreEqual(5, bodyBuffer.Length - offset);
+            // The remaining length should be = flags (1) + result_page_size (4) + serial_consistency (2)
+            Assert.AreEqual(7, bodyBuffer.Length - offset);
             var flags = (QueryFlags) bodyBuffer[offset];
             Assert.False(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
             Assert.True(flags.HasFlag(QueryFlags.PageSize));
             Assert.False(flags.HasFlag(QueryFlags.Values));
             Assert.False(flags.HasFlag(QueryFlags.WithPagingState));
             Assert.False(flags.HasFlag(QueryFlags.SkipMetadata));
-            Assert.False(flags.HasFlag(QueryFlags.WithSerialConsistency));
+            Assert.True(flags.HasFlag(QueryFlags.WithSerialConsistency));
         }
 
         [Test]
@@ -286,28 +280,25 @@ namespace Cassandra.Tests
             var config = new Configuration(
                 policies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(), new ClientOptions(),
                 NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
+
             var request = RequestHandler.GetRequest(statement, Serializer, config);
-            var stream = new MemoryStream();
-            request.WriteFrame(1, stream, Serializer);
-            var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);
-            var bodyBuffer = new byte[stream.Length - headerSize];
-            stream.Position = headerSize;
-            stream.Read(bodyBuffer, 0, bodyBuffer.Length);
+            var bodyBuffer = GetBodyBuffer(request);
+
             // The query request is composed by:
-            // <query><consistency><flags><result_page_size><timestamp>
+            // <query><consistency><flags><result_page_size><paging_state><serial_consistency><timestamp>
             var queryBuffer = BeConverter.GetBytes(statement.QueryString.Length)
                                          .Concat(Encoding.UTF8.GetBytes(statement.QueryString))
                                          .ToArray();
             CollectionAssert.AreEqual(queryBuffer, bodyBuffer.Take(queryBuffer.Length));
             // Skip the query and consistency (2)
             var offset = queryBuffer.Length + 2;
-            // The remaining length should be 13 = flags (1) + result_page_size (4) + timestamp (8)
-            Assert.AreEqual(13, bodyBuffer.Length - offset);
+            // The remaining length should be = flags (1) + result_page_size (4) + serial_consistency (2) + timestamp (8)
+            Assert.AreEqual(15, bodyBuffer.Length - offset);
             var flags = (QueryFlags) bodyBuffer[offset];
             Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
             Assert.True(flags.HasFlag(QueryFlags.PageSize));
-            // Skip flags (1) + result_page_size (4)
-            offset += 5;
+            // Skip flags (1) + result_page_size (4) + serial_consistency (2)
+            offset += 7;
             var timestamp = BeConverter.ToInt64(bodyBuffer, offset);
             Assert.AreEqual(TypeSerializer.SinceUnixEpoch(expectedTimestamp).Ticks / 10, timestamp);
         }
@@ -323,13 +314,10 @@ namespace Cassandra.Tests
             var config = new Configuration(
                 Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
                 new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
+
             var request = RequestHandler.GetRequest(batch, Serializer, config);
-            var stream = new MemoryStream();
-            request.WriteFrame(1, stream, Serializer);
-            var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);
-            var bodyBuffer = new byte[stream.Length - headerSize];
-            stream.Position = headerSize;
-            stream.Read(bodyBuffer, 0, bodyBuffer.Length);
+            var bodyBuffer = GetBodyBuffer(request);
+
             // The batch request is composed by:
             // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
             CollectionAssert.AreEqual(new byte[] {0xff, 0xff}, bodyBuffer.Skip(1).Take(2));
@@ -347,13 +335,10 @@ namespace Cassandra.Tests
                 Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
                 new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(),
                 new DefaultAddressTranslator());
+
             var request = RequestHandler.GetRequest(batch, Serializer, config);
-            var stream = new MemoryStream();
-            request.WriteFrame(1, stream, Serializer);
-            var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);
-            var bodyBuffer = new byte[stream.Length - headerSize];
-            stream.Position = headerSize;
-            stream.Read(bodyBuffer, 0, bodyBuffer.Length);
+            var bodyBuffer = GetBodyBuffer(request);
+
             // The batch request is composed by:
             // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
             var offset = 1;
@@ -369,6 +354,8 @@ namespace Cassandra.Tests
             offset += 4 + queryLength + 2 + 2;
             var flags = (QueryFlags)bodyBuffer[offset++];
             Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
+            // Skip serial consistency
+            offset += 2;
             var timestamp = TypeSerializer.UnixStart.AddTicks(BeConverter.ToInt64(bodyBuffer, offset) * 10);
             Assert.GreaterOrEqual(timestamp,  startDate);
             Assert.LessOrEqual(timestamp, DateTimeOffset.Now.Add(TimeSpan.FromMilliseconds(100)));
@@ -386,13 +373,10 @@ namespace Cassandra.Tests
                 policies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
                 new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(),
                 new DefaultAddressTranslator());
+
             var request = RequestHandler.GetRequest(batch, Serializer, config);
-            var stream = new MemoryStream();
-            request.WriteFrame(1, stream, Serializer);
-            var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);
-            var bodyBuffer = new byte[stream.Length - headerSize];
-            stream.Position = headerSize;
-            stream.Read(bodyBuffer, 0, bodyBuffer.Length);
+            var bodyBuffer = GetBodyBuffer(request);
+
             // The batch request is composed by:
             // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
             var offset = 1 + 2 + 1;
@@ -402,8 +386,8 @@ namespace Cassandra.Tests
             offset += 4 + queryLength + 2 + 2;
             var flags = (QueryFlags)bodyBuffer[offset++];
             Assert.False(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
-            // No more data
-            Assert.AreEqual(bodyBuffer.Length, offset);
+            // Only serial consistency left
+            Assert.AreEqual(bodyBuffer.Length, offset + 2);
         }
 
         [Test]
@@ -419,13 +403,10 @@ namespace Cassandra.Tests
                 Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
                 new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(),
                 new DefaultAddressTranslator());
+
             var request = RequestHandler.GetRequest(batch, Serializer, config);
-            var stream = new MemoryStream();
-            request.WriteFrame(1, stream, Serializer);
-            var headerSize = FrameHeader.GetSize(ProtocolVersion.MaxSupported);
-            var bodyBuffer = new byte[stream.Length - headerSize];
-            stream.Position = headerSize;
-            stream.Read(bodyBuffer, 0, bodyBuffer.Length);
+            var bodyBuffer = GetBodyBuffer(request);
+
             // The batch request is composed by:
             // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
             var offset = 1 + 2 + 1;
@@ -435,10 +416,194 @@ namespace Cassandra.Tests
             offset += 4 + queryLength + 2 + 2;
             var flags = (QueryFlags)bodyBuffer[offset++];
             Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
+            // Skip serial consistency
+            offset += 2;
             var timestamp = TypeSerializer.UnixStart.AddTicks(BeConverter.ToInt64(bodyBuffer, offset) * 10);
             Assert.AreEqual(providedTimestamp, timestamp);
         }
-        
+
+        [Test]
+        public void GetRequest_Batch_With_SerialConsistency_On_Older_Protocol_Versions_Should_Ignore()
+        {
+            const string query = "QUERY";
+            var batch = new BatchStatement();
+            batch.Add(new SimpleStatement(query))
+                 .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
+            var serializer = new Serializer(ProtocolVersion.V2);
+
+            var request = RequestHandler.GetRequest(batch, serializer, new Configuration());
+            var bodyBuffer = GetBodyBuffer(request, serializer);
+
+            // The batch request on protocol 2 is composed by:
+            // <type><n><query_1>...<query_n><consistency>
+            const int queryOffSet = 1 + 2 + 1;
+            var queryLength = BeConverter.ToInt32(bodyBuffer, queryOffSet);
+            Assert.AreEqual(query.Length, queryLength);
+            // query, n_params and consistency
+            Assert.AreEqual(4 + 4 + queryLength + 2 + 2, bodyBuffer.Length);
+        }
+
+        [Test]
+        public void GetRequest_Batch_Should_Use_Serial_Consistency_From_QueryOptions()
+        {
+            const string query = "QUERY";
+            var batch = new BatchStatement();
+            batch.Add(new SimpleStatement(query));
+
+            const ConsistencyLevel expectedSerialConsistencyLevel = ConsistencyLevel.LocalSerial;
+            var config = new Configuration();
+            config.QueryOptions.SetSerialConsistencyLevel(expectedSerialConsistencyLevel);
+
+            AssertBatchSerialConsistencyLevel(batch, config, query, expectedSerialConsistencyLevel);
+        }
+
+        [Test]
+        public void GetRequest_Batch_Should_Use_Serial_Consistency_From_Statement()
+        {
+            const ConsistencyLevel expectedSerialConsistencyLevel = ConsistencyLevel.LocalSerial;
+
+            const string query = "QUERY";
+            var batch = new BatchStatement();
+            batch.Add(new SimpleStatement(query))
+                 .SetSerialConsistencyLevel(expectedSerialConsistencyLevel);
+
+            var config = new Configuration();
+            config.QueryOptions.SetSerialConsistencyLevel(ConsistencyLevel.Serial);
+
+            AssertBatchSerialConsistencyLevel(batch, config, query, expectedSerialConsistencyLevel);
+        }
+
+        [Test]
+        public void GetRequest_Execute_Should_Use_Serial_Consistency_From_Statement()
+        {
+            const ConsistencyLevel expectedSerialConsistencyLevel = ConsistencyLevel.Serial;
+            var ps = GetPrepared(new byte[16]);
+            var statement = ps.Bind().SetSerialConsistencyLevel(expectedSerialConsistencyLevel);
+            var config = new Configuration();
+            config.QueryOptions.SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
+
+            var request = RequestHandler.GetRequest(statement, Serializer, config);
+            var bodyBuffer = GetBodyBuffer(request);
+
+            // The execute request is composed by:
+            // <query_id><consistency><flags><result_page_size><paging_state><serial_consistency><timestamp>
+            // Skip the queryid and consistency (2)
+            var offset = 2 + ps.Id.Length + 2;
+            var flags = (QueryFlags) bodyBuffer[offset];
+            Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
+            Assert.True(flags.HasFlag(QueryFlags.PageSize));
+            Assert.True(flags.HasFlag(QueryFlags.WithSerialConsistency));
+            // Skip flags (1) + result_page_size (4)
+            offset += 5;
+            Assert.That((ConsistencyLevel) BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
+        }
+
+        [Test]
+        public void GetRequest_Execute_Should_Use_Serial_Consistency_From_QueryOptions()
+        {
+            const ConsistencyLevel expectedSerialConsistencyLevel = ConsistencyLevel.LocalSerial;
+            var ps = GetPrepared(new byte[16]);
+            var statement = ps.Bind();
+            var config = new Configuration();
+            config.QueryOptions.SetSerialConsistencyLevel(expectedSerialConsistencyLevel);
+
+            var request = RequestHandler.GetRequest(statement, Serializer, config);
+            var bodyBuffer = GetBodyBuffer(request);
+
+            // The execute request is composed by:
+            // <query_id><consistency><flags><result_page_size><paging_state><serial_consistency><timestamp>
+            // Skip the queryid and consistency (2)
+            var offset = 2 + ps.Id.Length + 2;
+            var flags = (QueryFlags) bodyBuffer[offset];
+            Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
+            Assert.True(flags.HasFlag(QueryFlags.PageSize));
+            Assert.True(flags.HasFlag(QueryFlags.WithSerialConsistency));
+            // Skip flags (1) + result_page_size (4)
+            offset += 5;
+            Assert.That((ConsistencyLevel) BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
+        }
+
+        [Test]
+        public void GetRequest_Query_Should_Use_Serial_Consistency_From_Statement()
+        {
+            const ConsistencyLevel expectedSerialConsistencyLevel = ConsistencyLevel.LocalSerial;
+            var statement = new SimpleStatement("QUERY");
+            statement.SetSerialConsistencyLevel(expectedSerialConsistencyLevel);
+
+            var config = new Configuration();
+            config.QueryOptions.SetSerialConsistencyLevel(ConsistencyLevel.Serial);
+
+            var request = RequestHandler.GetRequest(statement, Serializer, config);
+            var bodyBuffer = GetBodyBuffer(request);
+
+            // The query request is composed by:
+            // <query><consistency><flags><result_page_size><paging_state><serial_consistency><timestamp>
+            // Skip the query and consistency (2)
+            var offset = 4 + statement.QueryString.Length + 2;
+            var flags = (QueryFlags) bodyBuffer[offset];
+            Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
+            Assert.True(flags.HasFlag(QueryFlags.PageSize));
+            // Skip flags (1) + result_page_size (4)
+            offset += 5;
+            Assert.That((ConsistencyLevel) BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
+        }
+
+        [Test]
+        public void GetRequest_Query_Should_Use_Serial_Consistency_From_QueryOptions()
+        {
+            const ConsistencyLevel expectedSerialConsistencyLevel = ConsistencyLevel.LocalSerial;
+            var statement = new SimpleStatement("QUERY");
+
+            var config = new Configuration();
+            config.QueryOptions.SetSerialConsistencyLevel(expectedSerialConsistencyLevel);
+
+            var request = RequestHandler.GetRequest(statement, Serializer, config);
+            var bodyBuffer = GetBodyBuffer(request);
+
+            // The query request is composed by:
+            // <query><consistency><flags><result_page_size><paging_state><serial_consistency><timestamp>
+            // Skip the query and consistency (2)
+            var offset = 4 + statement.QueryString.Length + 2;
+            var flags = (QueryFlags) bodyBuffer[offset];
+            Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
+            Assert.True(flags.HasFlag(QueryFlags.PageSize));
+            Assert.True(flags.HasFlag(QueryFlags.WithSerialConsistency));
+            // Skip flags (1) + result_page_size (4)
+            offset += 5;
+            Assert.That((ConsistencyLevel) BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
+        }
+
+        private static byte[] GetBodyBuffer(IRequest request, Serializer serializer = null)
+        {
+            if (serializer == null)
+            {
+                serializer = Serializer;
+            }
+
+            var stream = new MemoryStream();
+            request.WriteFrame(1, stream, serializer);
+            var headerSize = FrameHeader.GetSize(serializer.ProtocolVersion);
+            var bodyBuffer = new byte[stream.Length - headerSize];
+            stream.Position = headerSize;
+            stream.Read(bodyBuffer, 0, bodyBuffer.Length);
+            return bodyBuffer;
+        }
+
+        private static void AssertBatchSerialConsistencyLevel(BatchStatement batch, Configuration config, string query,
+                                                              ConsistencyLevel expectedSerialConsistencyLevel)
+        {
+            var request = RequestHandler.GetRequest(batch, Serializer, config);
+            var bodyBuffer = GetBodyBuffer(request);
+
+            // The batch request is composed by:
+            // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
+            // Skip query, n_params and consistency
+            var offset = 1 + 2 + 1 + 4 + query.Length + 2 + 2;
+            var flags = (QueryFlags) bodyBuffer[offset++];
+            Assert.True(flags.HasFlag(QueryFlags.WithSerialConsistency));
+            Assert.That((ConsistencyLevel) BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
+        }
+
         /// <summary>
         /// A timestamp generator that generates empty values 
         /// </summary>
