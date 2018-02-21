@@ -81,10 +81,6 @@ namespace Cassandra.Tests.Mapping.Linq
                 @"SELECT ""x_f1"", ""x_ck2"", ""x_ck1"" FROM ""x_t"" WHERE token(""x_pk"", ""x_ck2"", ""x_ck2"") > token(?, ?) ORDER BY ""x_ck2"", ""x_ck1"" DESC ALLOW FILTERING");
 
             Assert.AreEqual(
-                (from ent in table where ent.ck2 > ent.ck1 select ent).ToString(),
-                @"SELECT ""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"" FROM ""x_t"" WHERE ""x_ck2"" > ""x_ck1"" ALLOW FILTERING");
-
-            Assert.AreEqual(
                 (from ent in table select ent).FirstOrDefault().ToString(),
                 @"SELECT ""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"" FROM ""x_t"" LIMIT ? ALLOW FILTERING");
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
+using Cassandra.Tests.Extensions;
 using Cassandra.Tests.Mapping.Pocos;
 using Cassandra.Tests.Mapping.TestData;
 using NUnit.Framework;
@@ -83,6 +84,16 @@ namespace Cassandra.Tests.Mapping.Linq
             table.Where(x => x.UuidValue == id && !x.BooleanValue).Select(x => x.StringValue).Execute();
             Assert.AreEqual(expectedQuery, query);
             Assert.AreEqual(new object[] { id, false }, parameters);
+            
+            // Using true expresion only
+            table.Where(x => x.BooleanValue).Select(x => x.StringValue).Execute();
+            Assert.AreEqual("SELECT c FROM tbl1 WHERE b = ?", query);
+            Assert.AreEqual(new object[] { true }, parameters);
+            
+            // Using true expresion first
+            table.Where(x => x.BooleanValue && x.UuidValue == id).Select(x => x.StringValue).Execute();
+            Assert.AreEqual("SELECT c FROM tbl1 WHERE b = ? AND a = ?", query);
+            Assert.AreEqual(new object[] { true, id }, parameters);
             
             // Using true expresion
             table.Where(x => x.UuidValue == id && x.BooleanValue).Select(x => x.StringValue).Execute();
@@ -487,7 +498,7 @@ namespace Cassandra.Tests.Mapping.Linq
             var session = GetSession((q, v) => { });
             var table = session.GetTable<LinqDecoratedEntity>();
             var ex = Assert.Throws<InvalidOperationException>(() => (from t in table where t.pk == "pkval" && t.Ignored1 == "aa" select t).Execute());
-            StringAssert.Contains("ignored", ex.Message);
+            StringAssert.Contains("No mapping defined for member", ex.Message);
         }
 
         [Test]
@@ -625,6 +636,229 @@ namespace Cassandra.Tests.Mapping.Linq
 
             table.Where(t => t.StringValue == "hello").AllowFiltering().Count().Execute();
             Assert.AreEqual("SELECT count(*) FROM tbl1 WHERE val = ? ALLOW FILTERING", query);
+        }
+
+        [Test]
+        public void Select_With_Numeric_Constants()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            });
+            var map = new Map<PocoWithNumericTypes>()
+                      .ExplicitColumns()
+                      .Column(t => t.SbyteValue, cm => cm.WithName("sbyte_value"))
+                      .Column(t => t.ShortValue, cm => cm.WithName("short_value"))
+                      .TableName("table1");
+
+            const sbyte sbyteValue = 127;
+            const short shortValue = 0x0133;
+
+            var table = GetTable<PocoWithNumericTypes>(session, map);
+            table.Where(t => t.SbyteValue == sbyteValue && t.ShortValue == shortValue).Execute();
+        
+            Assert.AreEqual(query, 
+                "SELECT short_value, sbyte_value FROM table1 WHERE sbyte_value = ? AND short_value = ?");
+            Assert.That(parameters[0], NumericTypeConstraint.Create(sbyteValue));
+            Assert.That(parameters[1], NumericTypeConstraint.Create(shortValue));
+        }
+
+        [Test]
+        public void Select_Simple_Where()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            });
+            var map = new Map<PocoWithNumericTypes>()
+                      .ExplicitColumns()
+                      .Column(t => t.IntValue, cm => cm.WithName("int_value"))
+                      .Column(t => t.LongValue, cm => cm.WithName("long_value"))
+                      .TableName("table1");
+            
+            var table = GetTable<PocoWithNumericTypes>(session, map);
+
+            var expectedQuery = "SELECT int_value, long_value FROM table1 WHERE int_value = ? AND long_value = ?";
+            var expectedParameters = new List<object> { 1, 100L };
+
+            table.Where(t => t.IntValue == 1 && t.LongValue == 100L).Execute();
+            Assert.AreEqual(query, expectedQuery);
+            Assert.That(parameters, Is.EqualTo(expectedParameters));
+
+            expectedQuery += " LIMIT ?";
+            expectedParameters.Add(1);
+
+            table.First(t => t.IntValue == 1 && t.LongValue == 100L).Execute();
+            Assert.AreEqual(query, expectedQuery);
+            Assert.That(parameters, Is.EqualTo(expectedParameters));
+
+            table.FirstOrDefault(t => t.IntValue == 1 && t.LongValue == 100L).Execute();
+            Assert.AreEqual(query, expectedQuery);
+            Assert.That(parameters, Is.EqualTo(expectedParameters));
+        }
+
+        [Test]
+        public void Select_Yoda_Where()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            });
+            var map = new Map<PocoWithNumericTypes>()
+                      .ExplicitColumns()
+                      .Column(t => t.IntValue, cm => cm.WithName("int_value"))
+                      .Column(t => t.LongValue, cm => cm.WithName("long_value"))
+                      .TableName("table1");
+
+            var table = GetTable<PocoWithNumericTypes>(session, map);
+            table.Where(t => 100 >= t.IntValue && 200L <= t.LongValue).Execute();
+
+            Assert.AreEqual(query,
+                "SELECT int_value, long_value FROM table1 WHERE int_value <= ? AND long_value >= ?");
+            Assert.That(parameters, Is.EqualTo(new object[] { 100, 200L }));
+        }
+
+        [Test]
+        public void Select_Tuple_Expressions()
+        {
+            BoundStatement statement = null;
+            var session = GetSession<BoundStatement>(new RowSet(), stmt => statement = stmt);
+            var map = new Map<AllTypesEntity>()
+                      .ExplicitColumns()
+                      .Column(t => t.IntValue, cm => cm.WithName("id3"))
+                      .Column(t => t.StringValue, cm => cm.WithName("id2"))
+                      .Column(t => t.UuidValue, cm => cm.WithName("id1"))
+                      .PartitionKey(t => t.UuidValue)
+                      .ClusteringKey(t => t.StringValue, SortOrder.Ascending)
+                      .ClusteringKey(t => t.IntValue, SortOrder.Descending)
+                      .TableName("tbl1");
+            var table = GetTable<AllTypesEntity>(session, map);
+            var expectedQuery = "SELECT id3, id2, id1 FROM tbl1 WHERE id1 = ? AND (id2, id3) = ?";
+            var id = Guid.NewGuid();
+            var tupleValue = Tuple.Create("z", 1);
+
+            // Using Tuple.Create()
+            table.Where(t => t.UuidValue == id && Tuple.Create(t.StringValue, t.IntValue) == tupleValue).Execute();
+            Assert.NotNull(statement);
+            Assert.AreEqual(new object[] {id, tupleValue}, statement.QueryValues);
+            Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
+
+            // Using Tuple.Create() and Equals()
+            table.Where(t => t.UuidValue == id && Tuple.Create(t.StringValue, t.IntValue).Equals(tupleValue)).Execute();
+            Assert.AreEqual(new object[] {id, tupleValue}, statement.QueryValues);
+            Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
+
+            // Using linq query expressions
+            var q = from t in table
+                    where t.UuidValue == id && Tuple.Create(t.StringValue, t.IntValue).Equals(tupleValue)
+                    select new {t.IntValue, t.StringValue, t.UuidValue};
+            q.Execute();
+            Assert.AreEqual(new object[] {id, tupleValue}, statement.QueryValues);
+            Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
+
+            // Using constructor
+            table.Where(t => t.UuidValue == id && new Tuple<string, int>(t.StringValue, t.IntValue) == tupleValue)
+                 .Execute();
+            Assert.AreEqual(new object[] {id, tupleValue}, statement.QueryValues);
+            Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
+
+            expectedQuery = "SELECT id3, id2, id1 FROM tbl1 WHERE id1 = ? AND (id2, id3) = ?";
+            // yoda with equals
+            table.Where(t => t.UuidValue == id && tupleValue.Equals(Tuple.Create(t.StringValue, t.IntValue))).Execute();
+            Assert.AreEqual(new object[] {id, tupleValue}, statement.QueryValues);
+            Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
+
+            expectedQuery = "SELECT id3, id2, id1 FROM tbl1 WHERE id1 = ? AND (id2, id3) >= ?";
+            table.Where(t => t.UuidValue == id &&
+                             ((IComparable) Tuple.Create(t.StringValue, t.IntValue)).CompareTo(tupleValue) >= 0)
+                 .Execute();
+            Assert.AreEqual(new object[] {id, tupleValue}, statement.QueryValues);
+            Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
+
+            expectedQuery = "SELECT id3, id2, id1 FROM tbl1 WHERE id1 = ? AND (id2, id3) < ?";
+            table.Where(t => t.UuidValue == id &&
+                             ((IComparable) tupleValue).CompareTo(Tuple.Create(t.StringValue, t.IntValue)) > 0)
+                 .Execute();
+            Assert.AreEqual(new object[] {id, tupleValue}, statement.QueryValues);
+            Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
+        }
+
+        [Test]
+        public void Select_Test_Not_Mapped()
+        {
+            var session = GetSession((q, v) => { });
+            var map = new Map<PocoWithNumericTypes>()
+                      .ExplicitColumns()
+                      .Column(t => t.IntValue, cm => cm.WithName("int_value"))
+                      .Column(t => t.DoubleValue, cm => cm.WithName("double_value"))
+                      .TableName("table1");
+            
+            var table = GetTable<PocoWithNumericTypes>(session, map);
+            var queries = new CqlQueryBase<PocoWithNumericTypes>[]
+            {
+                // Use LongValue member which is not mapped
+                table.Where(t => t.LongValue >= 200L),
+                table.Where(t => t.IntValue == 1 && t.LongValue >= 200L),
+                table.Where(t => t.IntValue == 1 && t.LongValue >= 200L)
+                     .Select(t => new PocoWithNumericTypes { DoubleValue = t.DoubleValue }),
+                table.Where(t => t.IntValue == 1)
+                     .Select(t => new PocoWithNumericTypes { LongValue = t.LongValue })
+            };
+
+            foreach (var query in queries)
+            {
+                var ex = Assert.Throws<InvalidOperationException>(() => query.Execute());
+                StringAssert.Contains("No mapping defined for member: LongValue", ex.Message);
+            }
+        }
+
+        [Test]
+        public void Select_Compare_To_Test()
+        {
+            string query = null;
+            object[] parameters = null;
+            var session = GetSession((q, v) =>
+            {
+                query = q;
+                parameters = v;
+            });
+            var map = new Map<PocoWithNumericTypes>()
+                      .ExplicitColumns()
+                      .Column(t => t.IntValue, cm => cm.WithName("int_value"))
+                      .Column(t => t.DoubleValue, cm => cm.WithName("double_value"))
+                      .TableName("table1");
+
+            var table = GetTable<PocoWithNumericTypes>(session, map);
+
+            var value = 100;
+
+            table.Where(t => value.CompareTo(t.IntValue) > 0).Execute();
+            Assert.AreEqual("SELECT int_value, double_value FROM table1 WHERE int_value < ?", query);
+            Assert.AreEqual(new object[] { value }, parameters);
+
+
+            table.Where(t => t.IntValue.CompareTo(value) <= 0).Execute();
+            Assert.AreEqual("SELECT int_value, double_value FROM table1 WHERE int_value <= ?", query);
+            Assert.AreEqual(new object[] { value }, parameters);
+
+            // yoda
+            table.Where(t => 0 >= t.IntValue.CompareTo(value)).Execute();
+            Assert.AreEqual("SELECT int_value, double_value FROM table1 WHERE int_value <= ?", query);
+            Assert.AreEqual(new object[] { value }, parameters);
+
+            // yoda combo
+            table.Where(t => 0 > value.CompareTo(t.IntValue)).Execute();
+            Assert.AreEqual("SELECT int_value, double_value FROM table1 WHERE int_value > ?", query);
+            Assert.AreEqual(new object[] { value }, parameters);
         }
     }
 }
