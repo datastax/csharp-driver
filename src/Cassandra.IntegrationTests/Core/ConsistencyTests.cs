@@ -139,6 +139,33 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCase(ConsistencyLevel.Quorum, "QUORUM", ConsistencyLevel.Serial, "SERIAL")]
+        [TestCase(ConsistencyLevel.LocalQuorum, "LOCAL_QUORUM", ConsistencyLevel.LocalSerial, "LOCAL_SERIAL")]
+        public void Should_UseSerialConsistencyLevel_From_QueryOptions(ConsistencyLevel consistencyLevel,
+                                                                       string consistencyLevelString,
+                                                                       ConsistencyLevel serialConsistency,
+                                                                       string serialConsistencyLevelString)
+        {
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3,3" } ))
+            using (var cluster = Cluster.Builder()
+                                        .AddContactPoint(simulacronCluster.InitialContactPoint)
+                                        .WithQueryOptions(new QueryOptions()
+                                            .SetConsistencyLevel(consistencyLevel)
+                                            .SetSerialConsistencyLevel(serialConsistency))
+                                        .Build())
+            {
+                const string conditionalQuery = "update tbl_serial set value=3 where id=2 if exists";
+                var session = cluster.Connect();
+                var simpleStatement = new SimpleStatement(conditionalQuery);
+
+                var result = session.Execute(simpleStatement);
+                Assert.AreEqual(consistencyLevel, result.Info.AchievedConsistency);
+                VerifyConsistency(simulacronCluster, conditionalQuery, consistencyLevelString,
+                                  serialConsistencyLevelString);
+            }
+        }
+
+        [Test]
         [TestCase(ConsistencyLevel.Quorum, "QUORUM")]
         [TestCase(ConsistencyLevel.All, "ALL")]
         [TestCase(ConsistencyLevel.Any, "ANY")]
