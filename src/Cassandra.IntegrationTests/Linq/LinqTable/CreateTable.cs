@@ -313,6 +313,26 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             Assert.AreEqual(ColumnTypeCode.Map, column.TypeCode);
         }
 
+        [Test, TestCassandraVersion(2, 0, 7)]
+        public void CreateTable_With_Counter_Static()
+        {
+            var config = new MappingConfiguration()
+                .Define(new Map<AllTypesEntity>().ExplicitColumns()
+                                                 .TableName("tbl_with_counter_static")
+                                                 .PartitionKey(t => t.UuidValue)
+                                                 .ClusteringKey(t => t.StringValue)
+                                                 .Column(t => t.UuidValue, cm => cm.WithName("id1"))
+                                                 .Column(t => t.StringValue, cm => cm.WithName("id2"))
+                                                 .Column(t => t.Int64Value, cm => cm.WithName("counter_col1")
+                                                                                    .AsCounter().AsStatic())
+                                                 .Column(t => t.IntValue, cm => cm.WithName("counter_col2")
+                                                                                  .AsCounter()));
+            var table = new Table<AllTypesEntity>(Session, config);
+            table.Create();
+            var tableMeta = Cluster.Metadata.GetTable(_uniqueKsName, "tbl_with_counter_static");
+            Assert.AreEqual(4, tableMeta.TableColumns.Length);
+        }
+
         /// <summary>
         /// Successfully create a table using the null column name
         /// </summary>
