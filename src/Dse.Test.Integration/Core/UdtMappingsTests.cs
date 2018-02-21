@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Dse.Test.Unit;
 
 namespace Dse.Test.Integration.Core
 {
@@ -25,7 +26,7 @@ namespace Dse.Test.Integration.Core
             base.OneTimeSetUp();
 
             const string cqlType1 = "CREATE TYPE phone (alias text, number text, country_code int, verified_at timestamp, phone_type text)";
-            const string cqlType2 = "CREATE TYPE contact (first_name text, last_name text, birth_date timestamp, phones set<frozen<phone>>, emails set<text>)";
+            const string cqlType2 = "CREATE TYPE contact (first_name text, last_name text, birth_date timestamp, phones set<frozen<phone>>, emails set<text>, nullable_long bigint)";
             const string cqlTable1 = "CREATE TABLE users (id int PRIMARY KEY, main_phone frozen<phone>)";
             const string cqlTable2 = "CREATE TABLE users_contacts (id int PRIMARY KEY, contacts list<frozen<contact>>)";
 
@@ -100,10 +101,7 @@ namespace Dse.Test.Integration.Core
             var rs = localSession.Execute("SELECT * FROM users WHERE id = 1");
             var row = rs.First();
             var value = row.GetValue<Phone>("main_phone");
-            Assert.NotNull(value);
-            Assert.AreEqual(phone.Alias, value.Alias);
-            Assert.AreEqual(phone.Number, value.Number);
-            Assert.AreEqual(phone.CountryCode, value.CountryCode);
+            Assert.AreEqual(phone, value);
         }
 
         [Test]
@@ -169,33 +167,40 @@ namespace Dse.Test.Integration.Core
                         .Map(c => c.FirstName, "first_name")
                         .Map(c => c.LastName, "last_name")
                         .Map(c => c.Birth, "birth_date")
+                        .Map(c => c.NullableLong, "nullable_long")
                 );
-            const string contactsJson =
-                "[" +
-                "{first_name: 'Jules', last_name: 'Winnfield', birth_date: '1950-02-03 04:05+0000', phones: {{alias: 'home', number: '123456'}}}," +
-                "{first_name: 'Mia', last_name: 'Wallace', phones: {{alias: 'mobile', number: '789'}, {alias: 'office', number: '123'}}}" +
-                "]";
-            localSession.Execute(String.Format("INSERT INTO users_contacts (id, contacts) values (1, {0})", contactsJson));
+
+            var insertedContacts = new List<Contact>
+            {
+                new Contact
+                {
+                    FirstName = "Jules", LastName = "Winnfield", 
+                    Birth = new DateTimeOffset(1950, 2, 3, 4, 5, 0, 0, TimeSpan.Zero),
+                    NullableLong = null,
+                    Phones = new HashSet<Phone>{ new Phone { Alias = "home", Number = "123456" }}
+                },
+                new Contact
+                {
+                    FirstName = "Mia", LastName = "Wallace", 
+                    Birth = null,
+                    NullableLong = 2,
+                    Phones = new HashSet<Phone>
+                    {
+                        new Phone { Alias = "mobile", Number = "789" },
+                        new Phone { Alias = "office", Number = "123" }
+                    }
+                }
+            };
+
+            localSession.Execute(new SimpleStatement("INSERT INTO users_contacts (id, contacts) values (?, ?)", 1, insertedContacts));
             var rs = localSession.Execute("SELECT * FROM users_contacts WHERE id = 1");
             var row = rs.First();
 
             var contacts = row.GetValue<List<Contact>>("contacts");
             Assert.NotNull(contacts);
             Assert.AreEqual(2, contacts.Count);
-            var julesContact = contacts[0];
-            Assert.AreEqual("Jules", julesContact.FirstName);
-            Assert.AreEqual("Winnfield", julesContact.LastName);
-            Assert.AreEqual(new DateTimeOffset(1950, 2, 3, 4, 5, 0, 0, TimeSpan.Zero), julesContact.Birth);
-            Assert.IsNotNull(julesContact.Phones);
-            Assert.AreEqual(1, julesContact.Phones.Count());
-            var miaContact = contacts[1];
-            Assert.AreEqual("Mia", miaContact.FirstName);
-            Assert.AreEqual("Wallace", miaContact.LastName);
-            Assert.AreEqual(DateTimeOffset.MinValue, miaContact.Birth);
-            Assert.IsNotNull(miaContact.Phones);
-            Assert.AreEqual(2, miaContact.Phones.Count());
-            Assert.AreEqual("mobile", miaContact.Phones.First().Alias);
-            Assert.AreEqual("office", miaContact.Phones.Skip(1).First().Alias);
+            Assert.AreEqual(insertedContacts[0], contacts[0]);
+            Assert.AreEqual(insertedContacts[1], contacts[1]);
         }
 
         [Test]
@@ -355,13 +360,13 @@ namespace Dse.Test.Integration.Core
             }
         }
 
-        private class Contact
+        private class Contact : IEquatable<Contact>
         {
             public string FirstName { get; set; }
 
             public string LastName { get; set; }
 
-            public DateTimeOffset Birth { get; set; }
+            public DateTimeOffset? Birth { get; set; }
 
             public string NotMappedProp { get; set; }
 
@@ -369,32 +374,37 @@ namespace Dse.Test.Integration.Core
 
             public IEnumerable<string> Emails { get; set; }
 
+            public long? NullableLong { get; set; }
+
             public override bool Equals(object obj)
             {
-                if (!(obj is Contact))
-                {
-                    return false;
-                }
-                var value = (Contact)obj;
-                if (value.FirstName == this.FirstName &&
-                    value.LastName == this.LastName &&
-                    value.Birth == this.Birth &&
-                    value.Birth == this.Birth)
-                {
-                    CollectionAssert.AreEqual(this.Emails, value.Emails);
-                    CollectionAssert.AreEqual(this.Phones, value.Phones);
-                    return true;
-                }
-                return false;
+                return Equals(obj as Contact);
             }
 
             public override int GetHashCode()
             {
+                // We are not looking to use equality based on hashcode
                 return base.GetHashCode();
+            }
+
+            public bool Equals(Contact other)
+            {
+                if (ReferenceEquals(null, other)) return false;
+                if (ReferenceEquals(this, other)) return true;
+                return FirstName == other.FirstName && LastName == other.LastName && Birth == other.Birth && 
+                       NotMappedProp == other.NotMappedProp && TestHelper.SequenceEqual(Phones, other.Phones) &&
+                       TestHelper.SequenceEqual(Emails, other.Emails) && NullableLong == other.NullableLong;
+            }
+
+            public override string ToString()
+            {
+                return $"{nameof(FirstName)}: {FirstName}, {nameof(LastName)}: {LastName}, {nameof(Birth)}: {Birth}, " +
+                       $"{nameof(NotMappedProp)}: {NotMappedProp}, {nameof(Phones)}: {Phones}, " +
+                       $"{nameof(Emails)}: {Emails}, {nameof(NullableLong)}: {NullableLong}";
             }
         }
 
-        private class Phone
+        private class Phone : IEquatable<Phone>
         {
             public string Alias { get; set; }
 
@@ -408,21 +418,30 @@ namespace Dse.Test.Integration.Core
 
             public override bool Equals(object obj)
             {
-                if (!(obj is Phone))
-                {
-                    return false;
-                }
-                var phoneValue = (Phone)obj;
-                return phoneValue.Alias == this.Alias &&
-                       phoneValue.Number == this.Number &&
-                       phoneValue.CountryCode == this.CountryCode &&
-                       phoneValue.VerifiedAt == this.VerifiedAt &&
-                       phoneValue.PhoneType == this.PhoneType;
+                if (ReferenceEquals(null, obj)) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                if (obj.GetType() != GetType()) return false;
+                return Equals(obj as Phone);
             }
 
             public override int GetHashCode()
             {
+                // We are not looking to use equality based on hashcode
                 return base.GetHashCode();
+            }
+
+            public bool Equals(Phone other)
+            {
+                if (ReferenceEquals(null, other)) return false;
+                if (ReferenceEquals(this, other)) return true;
+                return Alias == other.Alias && Number == other.Number && CountryCode == other.CountryCode &&
+                       VerifiedAt.Equals(other.VerifiedAt) && PhoneType == other.PhoneType;
+            }
+
+            public override string ToString()
+            {
+                return $"{nameof(Alias)}: {Alias}, {nameof(Number)}: {Number}, {nameof(CountryCode)}: {CountryCode}, " +
+                       $"{nameof(VerifiedAt)}: {VerifiedAt}, {nameof(PhoneType)}: {PhoneType}";
             }
         }
 

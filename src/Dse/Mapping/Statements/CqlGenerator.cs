@@ -254,17 +254,23 @@ namespace Dse.Mapping.Statements
 
         private static string GetTypeString(Serializer serializer, PocoColumn column)
         {
-            if (column.IsCounter)
+            string typeName;
+
+            if (!column.IsCounter)
             {
-                return "counter";
+                var typeCode = serializer.GetCqlType(column.ColumnType, out var typeInfo);
+                typeName = GetTypeString(column, typeCode, typeInfo);
             }
-            IColumnInfo typeInfo;
-            var typeCode = serializer.GetCqlType(column.ColumnType, out typeInfo);
-            var typeName = GetTypeString(column, typeCode, typeInfo);
+            else
+            {
+                typeName = "counter";
+            }
+
             if (column.IsStatic)
             {
                 return typeName + " static";
             }
+
             return typeName;
         }
 

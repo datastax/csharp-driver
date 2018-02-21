@@ -103,6 +103,15 @@ namespace Dse.Mapping.TypeConversion
         /// </summary>
         internal object ConvertToDbFromUdtFieldValue(Type valueType, Type dbType, object value)
         {
+            if (valueType.GetTypeInfo().IsGenericType && valueType.GetGenericTypeDefinition() == typeof(Nullable<>))
+            {
+                var nullableType = typeof(Nullable<>).MakeGenericType(dbType);
+                if (valueType == nullableType)
+                {
+                    return value;
+                }
+            }
+
             var converter = GetToDbConverter(valueType, dbType);
             if (converter == null)
             {

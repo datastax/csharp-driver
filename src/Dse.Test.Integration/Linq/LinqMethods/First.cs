@@ -88,7 +88,7 @@ namespace Dse.Test.Integration.Linq.LinqMethods
         public void First_NoTranslationFromLinqToCql()
         {
             //No translation in CQL
-            Assert.Throws<SyntaxError>(() => _movieTable.First(m => m.Year is int).Execute());
+            Assert.Throws<CqlLinqNotSupportedException>(() => _movieTable.First(m => m.Year is int).Execute());
         }
 
         [Test]

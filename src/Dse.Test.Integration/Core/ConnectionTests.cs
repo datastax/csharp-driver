@@ -429,14 +429,16 @@ namespace Dse.Test.Integration.Core
                     StringAssert.IsMatch("SSL", ex.InnerException.Message);
                 }
                 else if (ex.InnerException is System.IO.IOException || 
-                         ex.InnerException.GetType().Name.Contains("Mono"))
+                         ex.InnerException.GetType().Name.Contains("Mono") ||
+                         ex.InnerException is System.Security.Authentication.AuthenticationException)
                 {
-                    //Under Mono, it throws a IOException or MonoBtlsException (regression mono 5)
+                    // Under Mono, it throws a IOException
+                    // or MonoBtlsException (regression mono 5.0) System...AuthenticationException (mono 5.4)
                 }
                 else
                 {
-                    throw new AssertionException(string.Format(
-                        "Expected TimeoutException or IOException, obtained {0}", ex.InnerException.GetType()));
+                    throw new AssertionException($"Expected TimeoutException or IOException, obtained" +
+                                                 $" {ex.InnerException.GetType()}: {ex.InnerException.Message}");
                 }
             }
         }

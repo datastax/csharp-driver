@@ -245,5 +245,115 @@ namespace Dse.Test.Integration.Core
                 Assert.AreEqual(coreConnectionLength + 1, ports.Count);
             }
         }
+
+        [Test]
+        public async Task ControlConnection_Should_Reconnect_To_Up_Host()
+        {
+            const int connectionLength = 1;
+            var builder = Cluster.Builder()
+                                 .WithPoolingOptions(new PoolingOptions()
+                                     .SetCoreConnectionsPerHost(HostDistance.Local, connectionLength)
+                                     .SetMaxConnectionsPerHost(HostDistance.Local, connectionLength)
+                                     .SetHeartBeatInterval(1000))
+                                 .WithReconnectionPolicy(new ConstantReconnectionPolicy(100L));
+            using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
+            using (var cluster = builder.AddContactPoint(testCluster.InitialContactPoint).Build())
+            {
+                var session = (Session)cluster.Connect();
+                var allHosts = cluster.AllHosts();
+                Assert.AreEqual(3, allHosts.Count);
+                await TestHelper.TimesLimit(() =>
+                    session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local")), 100, 16);
+
+                // 1 per hosts + control connection
+                WaitSimulatorConnections(testCluster, 4);
+                Assert.AreEqual(4, testCluster.GetConnectedPorts().Count);
+
+                var ccAddress = cluster.GetControlConnection().Address;
+                var simulacronNode = testCluster.GetNode(ccAddress);
+
+                // Disable new connections to the first host
+                await simulacronNode.DisableConnectionListener();
+
+                Assert.NotNull(simulacronNode);
+                var connections = simulacronNode.GetConnections();
+
+                // Drop connections to the host that is being used by the control connection
+                Assert.AreEqual(2, connections.Count);
+                await testCluster.DropConnection(connections[0]);
+                await testCluster.DropConnection(connections[1]);
+
+                TestHelper.WaitUntil(() => !cluster.GetHost(ccAddress).IsUp);
+
+                Assert.False(cluster.GetHost(ccAddress).IsUp);
+
+                TestHelper.WaitUntil(() => !cluster.GetControlConnection().Address.Address.Equals(ccAddress.Address));
+
+                Assert.AreNotEqual(ccAddress.Address, cluster.GetControlConnection().Address.Address);
+
+                // Previous host is still DOWN
+                Assert.False(cluster.GetHost(ccAddress).IsUp);
+
+                // New host is UP
+                ccAddress = cluster.GetControlConnection().Address;
+                Assert.True(cluster.GetHost(ccAddress).IsUp);
+            }
+        }
+
+        [Test]
+        public async Task ControlConnection_Should_Reconnect_After_Failed_Attemps()
+        {
+            const int connectionLength = 1;
+            var builder = Cluster.Builder()
+                                 .WithPoolingOptions(new PoolingOptions()
+                                     .SetCoreConnectionsPerHost(HostDistance.Local, connectionLength)
+                                     .SetMaxConnectionsPerHost(HostDistance.Local, connectionLength)
+                                     .SetHeartBeatInterval(1000))
+                                 .WithReconnectionPolicy(new ConstantReconnectionPolicy(100L));
+            using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
+            using (var cluster = builder.AddContactPoint(testCluster.InitialContactPoint).Build())
+            {
+                var session = (Session)cluster.Connect();
+                var allHosts = cluster.AllHosts();
+                Assert.AreEqual(3, allHosts.Count);
+                await TestHelper.TimesLimit(() =>
+                    session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local")), 100, 16);
+
+                var serverConnections = testCluster.GetConnectedPorts();
+                // 1 per hosts + control connection
+                WaitSimulatorConnections(testCluster, 4);
+                Assert.AreEqual(4, serverConnections.Count);
+
+                // Disable all connections
+                await testCluster.DisableConnectionListener();
+
+                var ccAddress = cluster.GetControlConnection().Address;
+
+                // Drop all connections to hosts
+                foreach (var connection in serverConnections)
+                {
+                    await testCluster.DropConnection(connection);
+                }
+
+                TestHelper.WaitUntil(() => !cluster.GetHost(ccAddress).IsUp);
+
+                // All host should be down by now
+                TestHelper.WaitUntil(() => cluster.AllHosts().All(h => !h.IsUp));
+
+                Assert.False(cluster.GetHost(ccAddress).IsUp);
+
+                // Allow new connections to be created
+                await testCluster.EnableConnectionListener();
+
+                TestHelper.WaitUntil(() => cluster.AllHosts().All(h => h.IsUp));
+
+                ccAddress = cluster.GetControlConnection().Address;
+                Assert.True(cluster.GetHost(ccAddress).IsUp);
+
+                // Once all connections are created, the control connection should be usable
+                WaitSimulatorConnections(testCluster, 4);
+                Assert.DoesNotThrowAsync(() => cluster.GetControlConnection().QueryAsync("SELECT * FROM system.local"));
+            }
+        }
     }
 }

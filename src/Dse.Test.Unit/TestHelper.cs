@@ -391,6 +391,22 @@ namespace Dse.Test.Unit
             return home;
         }
 
+        /// <summary>
+        /// Returns true if the sequence is considered to be equal, allowing null parameters.
+        /// </summary>
+        public static bool SequenceEqual<T>(IEnumerable<T> first, IEnumerable<T> second)
+        {
+            if (Equals(first, second))
+            {
+                return true;
+            }
+            if (first == null || second == null)
+            {
+                return false;
+            }
+            return first.SequenceEqual(second);
+        }
+
         public static bool IsWin
         {
             get

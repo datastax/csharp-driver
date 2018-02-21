@@ -79,6 +79,11 @@ namespace Dse.Test.Integration.TestClusterManagement.Simulacron
             return Delete(GetPath("connection") + "/" + ip + "/" + port);
         }
 
+        public Task DropConnection(IPEndPoint endpoint)
+        {
+            return DropConnection(endpoint.Address.ToString(), endpoint.Port);
+        }
+
         public List<IPEndPoint> GetConnectedPorts()
         {
             var result = new List<IPEndPoint>();
