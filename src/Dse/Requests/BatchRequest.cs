@@ -22,14 +22,13 @@ namespace Dse.Requests
         private readonly ICollection<IQueryRequest> _requests;
         private readonly BatchType _type;
         private readonly long? _timestamp;
-        private readonly ConsistencyLevel? _serialConsistency;
+        private readonly ConsistencyLevel _serialConsistency;
 
         public ConsistencyLevel Consistency { get; set; }
 
         public IDictionary<string, byte[]> Payload { get; set; }
 
-        public BatchRequest(ProtocolVersion protocolVersion, BatchStatement statement, ConsistencyLevel consistency,
-                            Policies policies)
+        public BatchRequest(ProtocolVersion protocolVersion, BatchStatement statement, ConsistencyLevel consistency, Configuration config)
         {
             if (!protocolVersion.SupportsBatch())
             {
@@ -44,20 +43,11 @@ namespace Dse.Requests
             {
                 _headerFlags = FrameHeader.HeaderFlag.Tracing;
             }
-            if (statement.SerialConsistencyLevel != ConsistencyLevel.Any)
-            {
-                if (!protocolVersion.SupportsTimestamp())
-                {
-                    throw new NotSupportedException("Serial consistency level for BATCH request is supported in Cassandra 2.1 or above.");
-                }
-                if (statement.SerialConsistencyLevel < ConsistencyLevel.Serial)
-                {
-                    throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
-                }
-                _batchFlags |= QueryProtocolOptions.QueryFlags.WithSerialConsistency;
-                _serialConsistency = statement.SerialConsistencyLevel;
-            }
-            _timestamp = GetRequestTimestamp(protocolVersion, statement, policies);
+
+            _serialConsistency = config.QueryOptions.GetSerialConsistencyLevelOrDefault(statement);
+            _batchFlags |= QueryProtocolOptions.QueryFlags.WithSerialConsistency;
+
+            _timestamp = GetRequestTimestamp(protocolVersion, statement, config.Policies);
             if (_timestamp != null)
             {
                 _batchFlags |= QueryProtocolOptions.QueryFlags.WithDefaultTimestamp;   
@@ -113,11 +103,9 @@ namespace Dse.Requests
             wb.WriteUInt16((ushort) Consistency);
             if (protocolVersion.SupportsTimestamp())
             {
-                wb.WriteByte((byte)_batchFlags);
-                if (_serialConsistency != null)
-                {
-                    wb.WriteUInt16((ushort)_serialConsistency.Value);
-                }
+                wb.WriteByte((byte) _batchFlags);
+                wb.WriteUInt16((ushort) _serialConsistency);
+
                 if (_timestamp != null)
                 {
                     wb.WriteLong(_timestamp.Value);

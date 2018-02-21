@@ -104,13 +104,14 @@ namespace Dse
                     timestamp = null;
                 }
             }
+
             return new QueryProtocolOptions(
                 consistency,
                 query.QueryValues,
                 query.SkipMetadata,
                 pageSize,
                 query.PagingState,
-                query.SerialConsistencyLevel,
+                queryOptions.GetSerialConsistencyLevelOrDefault(query),
                 timestamp);
         }
 
