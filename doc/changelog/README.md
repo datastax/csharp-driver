@@ -1,6 +1,21 @@
 # Changelog
 
-Changelog for the DataStax Enterprise C# Driver. 
+Changelog for the DataStax Enterprise C# Driver.
+
+## 2.1.1
+
+2018-02-26
+
+###  Bug Fixes
+
+- [CSHARP-498] - Linq: short and sbyte parameters fail for constant on Where expressions
+- [CSHARP-611] - QueryOptions.GetSerialConsistencyLevel() is not being used
+- [CSHARP-633] - Graph types de/serializarion Culture Variant issue
+- [CSHARP-635] - Linq: Table creation containing a static counter column not supported
+- [CSHARP-640] - Exception using nullable long in a UDT
+- [CSHARP-641] - ReadFailureException does not log number of failures
+- [CSHARP-643] - Responses with warnings and/or custom payloads are incorrectly parsed for non-results
+- [CSHARP-650] - Building of Cluster fails when single contact point DNS entry cannot be resolved
 
 ## 2.1.0
 
