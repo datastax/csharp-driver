@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-﻿using System;
+using System;
 ﻿using System.Collections.Generic;
 
 namespace Cassandra
@@ -31,32 +31,45 @@ namespace Cassandra
         /// Determines if the <see cref="RowSet"/> returned when executing this <c>IStatement</c> will automatically fetch the following result pages. Defaults to true.
         /// </summary>
         bool AutoPage { get; }
+
         /// <summary>
         /// Gets the consistency level for this query.
         /// </summary>
         ConsistencyLevel? ConsistencyLevel { get; }
+
         /// <summary>
         ///  Disable tracing for the statement.
         /// </summary>
         IStatement DisableTracing();
+
         /// <summary>
         ///  Enables tracing for the statement
         /// </summary>
         IStatement EnableTracing(bool enable = true);
+
         /// <summary>
         ///  Gets whether tracing is enabled for this query or not.
         /// </summary>
         bool IsTracing { get; }
+
         /// <summary>
         /// Gets query's page size.
         /// </summary>
         int PageSize { get; }
+
+        /// <summary>
+        /// This object represents the next page to be fetched if the query is multi page. It can be saved and reused
+        /// later on a different execution.
+        /// </summary>
         byte[] PagingState { get; }
+
         object[] QueryValues { get; }
+
         /// <summary>
         /// Gets the timestamp associated with this statement execution.
         /// </summary>
         DateTimeOffset? Timestamp { get; }
+
         /// <summary>
         /// Gets the per-host read timeout for this statement.
         /// <para>
@@ -64,10 +77,12 @@ namespace Cassandra
         /// </para>
         /// </summary>
         int ReadTimeoutMillis { get; }
+
         /// <summary>
         ///  Gets the retry policy sets for this query, if any.
         /// </summary>
         IRetryPolicy RetryPolicy { get; }
+
         /// <summary>
         ///  The routing key (in binary raw form) to use for token aware routing of this
         ///  query. <p> The routing key is optional in the sense that implementers are
@@ -80,6 +95,7 @@ namespace Cassandra
         ///  safely ignored.</p>
         /// </summary>
         RoutingKey RoutingKey { get; }
+
         /// <summary>
         /// Gets the serial consistency level for the query.
         /// <para>
@@ -87,12 +103,16 @@ namespace Cassandra
         /// and DELETE with an IF condition).
         /// </para>
         /// </summary>
+
         ConsistencyLevel SerialConsistencyLevel { get; }
+
         bool SkipMetadata { get; }
+
         /// <summary>
         /// Gets custom payload for that will be included when executing this Statement.
         /// </summary>
         IDictionary<string, byte[]> OutgoingPayload { get; }
+
         /// <summary>
         /// Determines if this statement is idempotent, i.e. whether it can be applied multiple times without 
         /// changing the result beyond the initial application.
@@ -103,6 +123,7 @@ namespace Cassandra
         /// When the property is null, the driver will use the default value from the <see cref="QueryOptions.GetDefaultIdempotence()"/>.
         /// </summary>
         bool? IsIdempotent { get; }
+
         /// <summary>
         /// Sets the paging behavior.
         /// When set to true (default), the <see cref="RowSet"/> returned when executing this <c>IStatement</c> will automatically fetch the following result pages.
@@ -110,6 +131,7 @@ namespace Cassandra
         /// </summary>
         /// <returns>this <c>IStatement</c> object.</returns>
         IStatement SetAutoPage(bool autoPage);
+
         /// <summary>
         ///  Sets the consistency level for the query. <p> The default consistency level,
         ///  if this method is not called, is ConsistencyLevel.ONE.</p>
@@ -117,6 +139,7 @@ namespace Cassandra
         /// <param name="consistency"> the consistency level to set. </param>
         /// <returns>this <c>IStatement</c> object.</returns>
         IStatement SetConsistencyLevel(ConsistencyLevel? consistency);
+
         /// <summary>
         /// Sets the page size for this query.
         /// The page size controls how much resulting rows will be retrieved
@@ -135,6 +158,7 @@ namespace Cassandra
         /// <returns>this <c>Query</c> object.</returns>
         /// </summary>
         IStatement SetPageSize(int pageSize);
+
         /// <summary>
         /// Sets the paging state, a token representing the current page state of query used to continue paging by retrieving the following result page.
         /// Setting the paging state will disable automatic paging.
@@ -142,6 +166,7 @@ namespace Cassandra
         /// <param name="pagingState">The page state token</param>
         /// <returns>this <c>IStatement</c> object.</returns>
         IStatement SetPagingState(byte[] pagingState);
+
         /// <summary>
         /// Overrides the default per-host read timeout <see cref="SocketOptions.ReadTimeoutMillis"/> for this statement.
         /// </summary>
@@ -182,18 +207,21 @@ namespace Cassandra
         /// linearizability while ConsistencyLevel.LocalSerial guarantees it only in the local datacenter. </param>
         /// <returns>this <c>IStatement</c> object.</returns>
         IStatement SetSerialConsistencyLevel(ConsistencyLevel serialConsistency);
+
         /// <summary>
         /// Sets the timestamp associated with this statement execution.
         /// If provided, this will replace the server side assigned 
         /// timestamp as default timestamp. Note that a timestamp in the query itself will still override this timestamp.
         /// </summary>
         IStatement SetTimestamp(DateTimeOffset value);
+
         /// <summary>
         /// Sets a custom outgoing payload for this statement.
         /// Each time this statement is executed, this payload will be included in the request.
         /// Once it is set using this method, the payload should not be modified.
         /// </summary>
         IStatement SetOutgoingPayload(IDictionary<string, byte[]> payload);
+
         /// <summary>
         /// Sets whether this statement is idempotent.
         /// <para>

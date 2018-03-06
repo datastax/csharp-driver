@@ -123,7 +123,7 @@ namespace Cassandra.IntegrationTests.Core
                 var prepareOutput = ValidateResult<OutputPrepared>(task.Result);
                 
                 //Execute the prepared query
-                var executeRequest = new ExecuteRequest(GetLatestProtocolVersion(), prepareOutput.QueryId, null, false, QueryProtocolOptions.Default);
+                var executeRequest = new ExecuteRequest(GetProtocolVersion(), prepareOutput.QueryId, null, false, QueryProtocolOptions.Default);
                 task = connection.Send(executeRequest);
                 var output = ValidateResult<OutputRows>(task.Result);
                 var rs = output.RowSet;
@@ -146,7 +146,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 var options = new QueryProtocolOptions(ConsistencyLevel.One, new object[] { "local" }, false, 100, null, ConsistencyLevel.Any);
 
-                var executeRequest = new ExecuteRequest(GetLatestProtocolVersion(), prepareOutput.QueryId, null, false, options);
+                var executeRequest = new ExecuteRequest(GetProtocolVersion(), prepareOutput.QueryId, null, false, options);
                 task = connection.Send(executeRequest);
                 var output = ValidateResult<OutputRows>(task.Result);
 
@@ -428,7 +428,7 @@ namespace Cassandra.IntegrationTests.Core
                  null,
                  new QueryOptions(),
                  new DefaultAddressTranslator());
-            using (var connection = CreateConnection(GetLatestProtocolVersion(), config))
+            using (var connection = CreateConnection(GetProtocolVersion(), config))
             {
                 var ex = Assert.Throws<AggregateException>(() => connection.Open().Wait(10000));
                 if (ex.InnerException is TimeoutException)
@@ -621,12 +621,12 @@ namespace Cassandra.IntegrationTests.Core
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator());
-            using (var connection = new Connection(new Serializer(GetLatestProtocolVersion()), new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042), config))
+            using (var connection = new Connection(new Serializer(GetProtocolVersion()), new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042), config))
             {
                 var ex = Assert.Throws<SocketException>(() => TaskHelper.WaitToComplete(connection.Open()));
                 Assert.AreEqual(SocketError.TimedOut, ex.SocketErrorCode);
             }
-            using (var connection = new Connection(new Serializer(GetLatestProtocolVersion()), new IPEndPoint(new IPAddress(new byte[] { 255, 255, 255, 255 }), 9042), config))
+            using (var connection = new Connection(new Serializer(GetProtocolVersion()), new IPEndPoint(new IPAddress(new byte[] { 255, 255, 255, 255 }), 9042), config))
             {
                 Assert.Throws<SocketException>(() => TaskHelper.WaitToComplete(connection.Open()));
             }
@@ -788,29 +788,7 @@ namespace Cassandra.IntegrationTests.Core
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator());
-            return CreateConnection(GetLatestProtocolVersion(), config);
-        }
-
-        /// <summary>
-        /// Gets the latest protocol depending on the Cassandra Version running the tests
-        /// </summary>
-        private ProtocolVersion GetLatestProtocolVersion()
-        {
-            var cassandraVersion = CassandraVersion;
-            ProtocolVersion protocolVersion = ProtocolVersion.V1;
-            if (cassandraVersion >= Version.Parse("2.2"))
-            {
-                protocolVersion = ProtocolVersion.V4;
-            }
-            else if (cassandraVersion >= Version.Parse("2.1"))
-            {
-                protocolVersion = ProtocolVersion.V3;
-            }
-            else if (cassandraVersion >= Version.Parse("2.0"))
-            {
-                protocolVersion = ProtocolVersion.V2;
-            }
-            return protocolVersion;
+            return CreateConnection(GetProtocolVersion(), config);
         }
 
         private Connection CreateConnection(ProtocolVersion protocolVersion, Configuration config)
@@ -825,7 +803,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 options = QueryProtocolOptions.Default;
             }
-            var request = new QueryRequest(GetLatestProtocolVersion(), query, false, options);
+            var request = new QueryRequest(GetProtocolVersion(), query, false, options);
             return connection.Send(request);
         }
 

@@ -17,7 +17,7 @@ namespace Cassandra
 {
     /// <summary>
     /// Specifies the different protocol versions and provides methods (via extension methods) to check whether a
-    /// feature is supported in an specific version
+    /// feature is supported in an specific version.
     /// </summary>
     public enum ProtocolVersion : byte
     {
@@ -25,27 +25,33 @@ namespace Cassandra
         /// Cassandra protocol v1, supported in Apache Cassandra 1.2-->2.2.
         /// </summary>
         V1 = 0x01,
+
         /// <summary>
         /// Cassandra protocol v2, supported in Apache Cassandra 2.0-->2.2.
         /// </summary>
         V2 = 0x02,
+
         /// <summary>
         /// Cassandra protocol v3, supported in Apache Cassandra 2.1-->3.x.
         /// </summary>
         V3 = 0x03,
+
         /// <summary>
         /// Cassandra protocol v4, supported in Apache Cassandra 2.2-->3.x.
         /// </summary>
         V4 = 0x04,
+
         /// <summary>
         /// Cassandra protocol v5, in beta from Apache Cassandra 3.x+. Currently not supported by the driver.
         /// </summary>
         V5 = 0x05,
+
         /// <summary>
         /// The higher protocol version that is supported by this driver.
         /// <para>When acquiring the first connection, it will use this version to start protocol negotiation.</para>
         /// </summary>
         MaxSupported = V4,
+
         /// <summary>
         /// The lower protocol version that is supported by this driver.
         /// </summary>

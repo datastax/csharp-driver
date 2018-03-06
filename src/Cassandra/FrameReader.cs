@@ -169,6 +169,17 @@ namespace Cassandra
             return buf;
         }
 
+        /// <summary>
+        /// Reads protocol [short bytes].
+        /// </summary>
+        public byte[] ReadShortBytes()
+        {
+            var length = ReadInt16();
+            var buffer = new byte[length];
+            Read(buffer, 0, length);
+            return buffer;
+        }
+
         public void Read(byte[] buffer, int offset, int count)
         {
             _stream.Read(buffer, offset, count);
