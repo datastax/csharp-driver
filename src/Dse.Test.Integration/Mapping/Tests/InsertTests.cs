@@ -580,7 +580,7 @@ namespace Dse.Test.Integration.Mapping.Tests
                 var consistency = ConsistencyLevel.All;
                 batch.WithOptions(o => o.SetConsistencyLevel(consistency));
                 //Timestamp for BATCH request is supported in Cassandra 2.1 or above.
-                if (VersionMatch(new TestCassandraVersion(2, 1), TestClusterManager.CassandraVersion))
+                if (TestClusterManager.CassandraVersion > Version.Parse("2.1"))
                 {
                     var timestamp = DateTimeOffset.UtcNow.Subtract(TimeSpan.FromDays(1));
                     batch.WithOptions(o => o.SetTimestamp(timestamp));

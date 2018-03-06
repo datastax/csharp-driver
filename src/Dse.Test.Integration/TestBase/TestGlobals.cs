@@ -99,62 +99,6 @@ namespace Dse.Test.Integration.TestClusterManagement
             }
         }
 
-        [SetUp]
-        public void IndividualTestSetup()
-        {
-            VerifyAppropriateCassVersion();
-        }
-
-        // If any test is designed for another C* version, mark it as ignored
-        private void VerifyAppropriateCassVersion()
-        {
-            var test = TestContext.CurrentContext.Test;
-            var typeName = TestContext.CurrentContext.Test.ClassName;
-            var type = Type.GetType(typeName);
-            if (type == null)
-            {
-                return;
-            }
-            var testName = test.Name;
-            if (testName.IndexOf('(') > 0)
-            {
-                //The test name could be a TestCase: NameOfTheTest(ParameterValue);
-                //Remove the parenthesis
-                testName = testName.Substring(0, testName.IndexOf('('));
-            }
-            var methodAttr = type.GetMethod(testName)
-                .GetCustomAttribute<TestCassandraVersion>(true);
-            var attr = type.GetTypeInfo().GetCustomAttribute<TestCassandraVersion>();
-            if (attr == null && methodAttr == null)
-            {
-                //It does not contain the attribute, move on.
-                return;
-            }
-            if (methodAttr != null)
-            {
-                attr = methodAttr;
-            }
-            var versionAttr = attr;
-            var executingVersion = CassandraVersion;
-            if (!VersionMatch(versionAttr, executingVersion))
-                Assert.Ignore(
-                    $"Test Ignored: Test suitable to be run against Cassandra {versionAttr.Major}.{versionAttr.Minor}.{versionAttr.Build} {(versionAttr.Comparison >= 0 ? "or above" : "or below")}");
-        }
-
-        public static bool VersionMatch(TestCassandraVersion versionAttr, Version executingVersion)
-        {
-            //Compare them as integers
-            var expectedVersion = versionAttr.Major * 100000000 + versionAttr.Minor * 10000 + versionAttr.Build;
-            var actualVersion = executingVersion.Major * 100000000 + executingVersion.Minor * 10000 + executingVersion.Build;
-            var comparison = (Comparison)actualVersion.CompareTo(expectedVersion);
-
-            if (comparison >= Comparison.Equal && versionAttr.Comparison == Comparison.GreaterThanOrEqualsTo)
-            {
-                return true;
-            }
-            return comparison == versionAttr.Comparison;
-        }
-
         public static async Task Connect(Cluster cluster, bool asyncConnect, Action<ISession> action)
         {
             if (asyncConnect)
