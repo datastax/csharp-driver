@@ -210,17 +210,15 @@ namespace Dse.Test.Unit
             CollectionAssert.AreEqual(queryBuffer, bodyBuffer.Take(queryBuffer.Length));
             // Skip the query and consistency (2)
             var offset = queryBuffer.Length + 2;
-            // The remaining length should be 13 = flags (1) + result_page_size (4) + serial_consistency (2) + timestamp (8)
-            Assert.AreEqual(15, bodyBuffer.Length - offset);
-            var flags = (QueryFlags) bodyBuffer[offset];
+            var flags = GetQueryFlags(bodyBuffer, ref offset);
             Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
             Assert.True(flags.HasFlag(QueryFlags.PageSize));
             Assert.False(flags.HasFlag(QueryFlags.Values));
             Assert.False(flags.HasFlag(QueryFlags.WithPagingState));
             Assert.False(flags.HasFlag(QueryFlags.SkipMetadata));
             Assert.True(flags.HasFlag(QueryFlags.WithSerialConsistency));
-            // Skip flags (1) + result_page_size (4) + serial_consistency (2)
-            offset += 7;
+            // Skip result_page_size (4) + serial_consistency (2)
+            offset += 6;
             var timestamp = BeConverter.ToInt64(bodyBuffer, offset);
             var expectedTimestamp = TypeSerializer.SinceUnixEpoch(DateTimeOffset.Now.Subtract(TimeSpan.FromMilliseconds(100))).Ticks / 10;
             Assert.Greater(timestamp, expectedTimestamp);
@@ -249,9 +247,7 @@ namespace Dse.Test.Unit
             CollectionAssert.AreEqual(queryBuffer, bodyBuffer.Take(queryBuffer.Length));
             // Skip the query and consistency (2)
             var offset = queryBuffer.Length + 2;
-            // The remaining length should be = flags (1) + result_page_size (4) + serial_consistency (2)
-            Assert.AreEqual(7, bodyBuffer.Length - offset);
-            var flags = (QueryFlags) bodyBuffer[offset];
+            var flags = GetQueryFlags(bodyBuffer, ref offset);
             Assert.False(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
             Assert.True(flags.HasFlag(QueryFlags.PageSize));
             Assert.False(flags.HasFlag(QueryFlags.Values));
@@ -287,11 +283,11 @@ namespace Dse.Test.Unit
             var offset = queryBuffer.Length + 2;
             // The remaining length should be = flags (1) + result_page_size (4) + serial_consistency (2) + timestamp (8)
             Assert.AreEqual(15, bodyBuffer.Length - offset);
-            var flags = (QueryFlags) bodyBuffer[offset];
+            var flags = GetQueryFlags(bodyBuffer, ref offset);
             Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
             Assert.True(flags.HasFlag(QueryFlags.PageSize));
-            // Skip flags (1) + result_page_size (4) + serial_consistency (2)
-            offset += 7;
+            // Skip result_page_size (4) + serial_consistency (2)
+            offset += 6;
             var timestamp = BeConverter.ToInt64(bodyBuffer, offset);
             Assert.AreEqual(TypeSerializer.SinceUnixEpoch(expectedTimestamp).Ticks / 10, timestamp);
         }
@@ -345,7 +341,7 @@ namespace Dse.Test.Unit
             Assert.AreEqual(5, queryLength);
             // skip query, n_params and consistency
             offset += 4 + queryLength + 2 + 2;
-            var flags = (QueryFlags)bodyBuffer[offset++];
+            var flags = GetQueryFlags(bodyBuffer, ref offset);
             Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
             // Skip serial consistency
             offset += 2;
@@ -378,7 +374,7 @@ namespace Dse.Test.Unit
             Assert.AreEqual(5, queryLength);
             // skip query, n_params and consistency
             offset += 4 + queryLength + 2 + 2;
-            var flags = (QueryFlags)bodyBuffer[offset++];
+            var flags = GetQueryFlags(bodyBuffer, ref offset);
             Assert.False(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
             // Only serial consistency left
             Assert.AreEqual(bodyBuffer.Length, offset + 2);
@@ -408,7 +404,7 @@ namespace Dse.Test.Unit
             Assert.AreEqual(5, queryLength);
             // skip query, n_params and consistency
             offset += 4 + queryLength + 2 + 2;
-            var flags = (QueryFlags)bodyBuffer[offset++];
+            var flags = GetQueryFlags(bodyBuffer, ref offset);
             Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
             // Skip serial consistency
             offset += 2;
@@ -483,12 +479,12 @@ namespace Dse.Test.Unit
             // <query_id><consistency><flags><result_page_size><paging_state><serial_consistency><timestamp>
             // Skip the queryid and consistency (2)
             var offset = 2 + ps.Id.Length + 2;
-            var flags = (QueryFlags) bodyBuffer[offset];
+            var flags = GetQueryFlags(bodyBuffer, ref offset);
             Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
             Assert.True(flags.HasFlag(QueryFlags.PageSize));
             Assert.True(flags.HasFlag(QueryFlags.WithSerialConsistency));
-            // Skip flags (1) + result_page_size (4)
-            offset += 5;
+            // Skip result_page_size (4)
+            offset += 4;
             Assert.That((ConsistencyLevel) BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
         }
 
@@ -508,12 +504,12 @@ namespace Dse.Test.Unit
             // <query_id><consistency><flags><result_page_size><paging_state><serial_consistency><timestamp>
             // Skip the queryid and consistency (2)
             var offset = 2 + ps.Id.Length + 2;
-            var flags = (QueryFlags) bodyBuffer[offset];
+            var flags = GetQueryFlags(bodyBuffer, ref offset);
             Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
             Assert.True(flags.HasFlag(QueryFlags.PageSize));
             Assert.True(flags.HasFlag(QueryFlags.WithSerialConsistency));
-            // Skip flags (1) + result_page_size (4)
-            offset += 5;
+            // Skip result_page_size (4)
+            offset += 4;
             Assert.That((ConsistencyLevel) BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
         }
 
@@ -534,11 +530,11 @@ namespace Dse.Test.Unit
             // <query><consistency><flags><result_page_size><paging_state><serial_consistency><timestamp>
             // Skip the query and consistency (2)
             var offset = 4 + statement.QueryString.Length + 2;
-            var flags = (QueryFlags) bodyBuffer[offset];
+            var flags = GetQueryFlags(bodyBuffer, ref offset);
             Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
             Assert.True(flags.HasFlag(QueryFlags.PageSize));
-            // Skip flags (1) + result_page_size (4)
-            offset += 5;
+            // Skip result_page_size (4)
+            offset += 4;
             Assert.That((ConsistencyLevel) BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
         }
 
@@ -558,12 +554,12 @@ namespace Dse.Test.Unit
             // <query><consistency><flags><result_page_size><paging_state><serial_consistency><timestamp>
             // Skip the query and consistency (2)
             var offset = 4 + statement.QueryString.Length + 2;
-            var flags = (QueryFlags) bodyBuffer[offset];
+            var flags = GetQueryFlags(bodyBuffer, ref offset);
             Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
             Assert.True(flags.HasFlag(QueryFlags.PageSize));
             Assert.True(flags.HasFlag(QueryFlags.WithSerialConsistency));
-            // Skip flags (1) + result_page_size (4)
-            offset += 5;
+            // Skip result_page_size (4)
+            offset += 4;
             Assert.That((ConsistencyLevel) BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
         }
 
@@ -593,9 +589,29 @@ namespace Dse.Test.Unit
             // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
             // Skip query, n_params and consistency
             var offset = 1 + 2 + 1 + 4 + query.Length + 2 + 2;
-            var flags = (QueryFlags) bodyBuffer[offset++];
+            var flags = GetQueryFlags(bodyBuffer, ref offset);
             Assert.True(flags.HasFlag(QueryFlags.WithSerialConsistency));
             Assert.That((ConsistencyLevel) BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
+        }
+
+        private static QueryFlags GetQueryFlags(byte[] bodyBuffer, ref int offset, Serializer serializer = null)
+        {
+            if (serializer == null)
+            {
+                serializer = Serializer;
+            }
+            QueryFlags flags;
+            if (serializer.ProtocolVersion.Uses4BytesQueryFlags())
+            {
+                flags = (QueryFlags)BeConverter.ToInt32(bodyBuffer, offset);
+                offset += 4;
+            }
+            else
+            {
+                flags = (QueryFlags)bodyBuffer[offset++];
+            }
+
+            return flags;
         }
 
         /// <summary>

@@ -33,7 +33,7 @@ namespace Dse.Test.Integration.Core
         {
             var cc = NewInstance();
             cc.Init().Wait(InitTimeout);
-            Assert.AreEqual(GetExpectedProtocolVersion(), cc.ProtocolVersion);
+            Assert.AreEqual(GetProtocolVersion(), cc.ProtocolVersion);
             cc.Dispose();
         }
 
@@ -56,7 +56,7 @@ namespace Dse.Test.Integration.Core
         public void Should_Downgrade_The_Protocol_Version()
         {
             //Use a higher protocol version
-            var version = (ProtocolVersion)(GetExpectedProtocolVersion() + 1);
+            var version = (ProtocolVersion)(GetProtocolVersion() + 1);
             var cc = NewInstance(version);
             cc.Init().Wait(InitTimeout);
             Assert.AreEqual(version - 1, cc.ProtocolVersion);
@@ -69,7 +69,7 @@ namespace Dse.Test.Integration.Core
             var version = (ProtocolVersion)0x0f;
             var cc = NewInstance(version);
             cc.Init().Wait(InitTimeout);
-            Assert.AreEqual(GetExpectedProtocolVersion(), cc.ProtocolVersion);
+            Assert.AreEqual(GetProtocolVersion(), cc.ProtocolVersion);
         }
 
         private ControlConnection NewInstance(
@@ -86,24 +86,6 @@ namespace Dse.Test.Integration.Core
             var cc = new ControlConnection(version, config, metadata);
             metadata.ControlConnection = cc;
             return cc;
-        }
-
-        private ProtocolVersion GetExpectedProtocolVersion()
-        {
-            var expectedVersion = ProtocolVersion.MaxSupported;
-            if (TestClusterManager.CassandraVersion < Version.Parse("2.2"))
-            {
-                expectedVersion = ProtocolVersion.V3;
-            }
-            if (TestClusterManager.CassandraVersion < Version.Parse("2.1"))
-            {
-                expectedVersion = ProtocolVersion.V2;
-            }
-            if (TestClusterManager.CassandraVersion < Version.Parse("2.0"))
-            {
-                expectedVersion = ProtocolVersion.V1;
-            }
-            return expectedVersion;
         }
     }
 }

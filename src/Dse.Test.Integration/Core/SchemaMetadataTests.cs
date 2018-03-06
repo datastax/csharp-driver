@@ -585,6 +585,10 @@ namespace Dse.Test.Integration.Core
         [Test, TestCassandraVersion(3, 0)]
         public void ColumnClusteringOrderReversedTest()
         {
+            if (CassandraVersion >= Version.Parse("4.0"))
+            {
+                Assert.Ignore("Compact table test designed for C* 3.0");
+            }
             var keyspaceName = TestUtils.GetUniqueKeyspaceName();
             var tableName = TestUtils.GetUniqueTableName().ToLower();
             var cluster = GetNewCluster();

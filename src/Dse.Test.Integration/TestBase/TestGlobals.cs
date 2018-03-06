@@ -37,7 +37,7 @@ namespace Dse.Test.Integration.TestClusterManagement
         {
             var cassandraVersion = CassandraVersion;
             var protocolVersion = ProtocolVersion.V1;
-            if (cassandraVersion >= Version.Parse("3.0"))
+            if (cassandraVersion >= Version.Parse("2.2"))
             {
                 protocolVersion = ProtocolVersion.V4;
             }

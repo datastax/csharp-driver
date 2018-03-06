@@ -10,15 +10,16 @@ namespace Dse
 {
     internal class OutputPrepared : IOutput
     {
-        public RowSetMetadata Metadata { get; private set; }
-        public byte[] QueryId { get; private set; }
+        public RowSetMetadata Metadata { get; }
+
+        public byte[] QueryId { get; }
+
         public System.Guid? TraceId { get; internal set; }
 
         internal OutputPrepared(ProtocolVersion protocolVersion, FrameReader reader)
         {
-            var length = reader.ReadInt16();
-            QueryId = new byte[length];
-            reader.Read(QueryId, 0, length);
+            QueryId = reader.ReadShortBytes();
+
             Metadata = new RowSetMetadata(reader, protocolVersion.SupportsPreparedPartitionKey());
         }
 
