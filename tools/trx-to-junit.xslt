@@ -165,24 +165,6 @@
  </xsl:template>
 
  <xsl:template name="getTotalTime">
-    <xsl:param name="testcase" />
-    <xsl:if test="not($testcase)">
-      <xsl:text>0</xsl:text>
-    </xsl:if>
-    <xsl:if test="$testcase">
-      <xsl:variable name="currentValue">
-        <xsl:call-template name="getDurationSecondsTime">
-          <xsl:with-param name="durationstr" select="$testcase[1]/@duration" />
-        </xsl:call-template>
-      </xsl:variable>
-
-      <xsl:variable name="sumRemainder">
-        <xsl:call-template name="getTotalTime">
-          <xsl:with-param name="testcase" select="$testcase[position() > 1]" />
-        </xsl:call-template>
-      </xsl:variable>
-
-      <xsl:value-of select="$currentValue + $sumRemainder"/>
-    </xsl:if>
-  </xsl:template>
+   <xsl:text>0</xsl:text>
+ </xsl:template>
 </xsl:stylesheet>
