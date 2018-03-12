@@ -16,7 +16,8 @@ namespace Dse
     {
         GlobalTablesSpec = 0x0001,
         HasMorePages = 0x0002,
-        NoMetadata = 0x0004
+        NoMetadata = 0x0004,
+        MetadataChanged = 0x0008
     }
 
     /// <summary>
@@ -245,6 +246,8 @@ namespace Dse
 
         internal byte[] PagingState { get; private set; }
 
+        internal byte[] NewResultMetadataId { get; }
+
         /// <summary>
         /// Returns the keyspace as defined in the metadata response by global tables spec or the first column.
         /// </summary>
@@ -279,6 +282,11 @@ namespace Dse
 
             string gKsname = null;
             string gTablename = null;
+
+            if (flags.HasFlag(RowSetMetadataFlags.MetadataChanged))
+            {
+                NewResultMetadataId = reader.ReadShortBytes();
+            }
 
             if ((flags & RowSetMetadataFlags.HasMorePages) == RowSetMetadataFlags.HasMorePages)
             {

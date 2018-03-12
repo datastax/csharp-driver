@@ -14,11 +14,18 @@ namespace Dse
 
         public byte[] QueryId { get; }
 
+        public byte[] ResultMetadataId { get; }
+
         public System.Guid? TraceId { get; internal set; }
 
         internal OutputPrepared(ProtocolVersion protocolVersion, FrameReader reader)
         {
             QueryId = reader.ReadShortBytes();
+
+            if (protocolVersion.SupportsResultMetadataId())
+            {
+                ResultMetadataId = reader.ReadShortBytes();
+            }
 
             Metadata = new RowSetMetadata(reader, protocolVersion.SupportsPreparedPartitionKey());
         }

@@ -62,14 +62,14 @@ namespace Dse.Test.Integration.Core
             Assert.AreEqual(version - 1, cc.ProtocolVersion);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(3, 0)]
         public void Should_Downgrade_The_Protocol_Version_With_Higher_Version_Than_Supported()
         {
-            // Use a non-existent higher protocol version
+            // Use a non-existent higher cassandra protocol version
             var version = (ProtocolVersion)0x0f;
             var cc = NewInstance(version);
             cc.Init().Wait(InitTimeout);
-            Assert.AreEqual(GetProtocolVersion(), cc.ProtocolVersion);
+            Assert.AreEqual(ProtocolVersion.V4, cc.ProtocolVersion);
         }
 
         private ControlConnection NewInstance(

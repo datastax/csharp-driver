@@ -114,7 +114,8 @@ namespace Dse.Test.Integration.Core
                 var prepareOutput = ValidateResult<OutputPrepared>(task.Result);
                 
                 //Execute the prepared query
-                var executeRequest = new ExecuteRequest(GetProtocolVersion(), prepareOutput.QueryId, null, false, QueryProtocolOptions.Default);
+                var executeRequest = new ExecuteRequest(GetProtocolVersion(), prepareOutput.QueryId, null,
+                    prepareOutput.ResultMetadataId, false, QueryProtocolOptions.Default);
                 task = connection.Send(executeRequest);
                 var output = ValidateResult<OutputRows>(task.Result);
                 var rs = output.RowSet;
@@ -137,7 +138,7 @@ namespace Dse.Test.Integration.Core
 
                 var options = new QueryProtocolOptions(ConsistencyLevel.One, new object[] { "local" }, false, 100, null, ConsistencyLevel.Any);
 
-                var executeRequest = new ExecuteRequest(GetProtocolVersion(), prepareOutput.QueryId, null, false, options);
+                var executeRequest = new ExecuteRequest(GetProtocolVersion(), prepareOutput.QueryId, null, prepareOutput.ResultMetadataId, false, options);
                 task = connection.Send(executeRequest);
                 var output = ValidateResult<OutputRows>(task.Result);
 

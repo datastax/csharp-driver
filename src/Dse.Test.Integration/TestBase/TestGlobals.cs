@@ -30,11 +30,18 @@ namespace Dse.Test.Integration.TestClusterManagement
 
         public Version CassandraVersion => TestClusterManager.CassandraVersion;
 
+        public Version DseVersion => TestClusterManager.DseVersion;
+
         /// <summary>
         /// Gets the latest protocol version depending on the Cassandra Version running the tests
         /// </summary>
         public ProtocolVersion GetProtocolVersion()
         {
+            if (DseVersion >= Version.Parse("6.0"))
+            {
+                return ProtocolVersion.DseV2;
+            }
+
             var cassandraVersion = CassandraVersion;
             var protocolVersion = ProtocolVersion.V1;
             if (cassandraVersion >= Version.Parse("2.2"))

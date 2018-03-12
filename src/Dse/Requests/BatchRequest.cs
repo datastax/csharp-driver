@@ -103,7 +103,15 @@ namespace Dse.Requests
             wb.WriteUInt16((ushort) Consistency);
             if (protocolVersion.SupportsTimestamp())
             {
-                wb.WriteByte((byte) _batchFlags);
+                if (protocolVersion.Uses4BytesQueryFlags())
+                {
+                    wb.WriteInt32((int) _batchFlags);
+                }
+                else
+                {
+                    wb.WriteByte((byte) _batchFlags);
+                }
+
                 wb.WriteUInt16((ushort) _serialConsistency);
 
                 if (_timestamp != null)

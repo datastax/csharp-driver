@@ -16,6 +16,7 @@ namespace Dse.Requests
         public const byte OpCode = 0x09;
         private IDictionary<string, byte[]> _payload;
         private FrameHeader.HeaderFlag _headerFlags;
+
         /// <summary>
         /// The CQL string to be prepared
         /// </summary>
@@ -43,11 +44,19 @@ namespace Dse.Requests
         {
             var wb = new FrameWriter(stream, serializer);
             wb.WriteFrameHeader((byte)_headerFlags, streamId, OpCode);
+            var protocolVersion = serializer.ProtocolVersion;
+
             if (Payload != null)
             {
                 wb.WriteBytesMap(Payload);
             }
+
             wb.WriteLongString(Query);
+
+            if (protocolVersion.SupportsKeyspaceInRequest())
+            {
+                wb.WriteInt32(0);
+            }
             return wb.Close();
         }
     }

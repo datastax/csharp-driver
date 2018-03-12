@@ -111,7 +111,8 @@ namespace Dse.Requests
             {
                 var s = (BoundStatement)statement;
                 var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s, config.QueryOptions, config.Policies);
-                request = new ExecuteRequest(serializer.ProtocolVersion, s.PreparedStatement.Id, null, s.IsTracing, options);
+                request = new ExecuteRequest(serializer.ProtocolVersion, s.PreparedStatement.Id, null,
+                    s.PreparedStatement.ResultMetadataId, s.IsTracing, options);
             }
             if (statement is BatchStatement)
             {

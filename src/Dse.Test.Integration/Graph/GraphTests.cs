@@ -360,10 +360,10 @@ namespace Dse.Test.Integration.Graph
         [TestCase(GraphSON1Language, "g.V().hasLabel('person').has('name', 'marko').as('a')" +
                                      ".outE('knows').as('b').inV().as('c', 'd')" +
                                      ".outE('created').as('e', 'f', 'g').inV().as('h').path()")]
-        [TestCase(GraphSON2Language, "{\"@type\":\"Bytecode\",\"step\":[" +
+        [TestCase(GraphSON2Language, "{\"@type\":\"g:Bytecode\",\"@value\":{\"step\":[" +
                                      "[\"V\"],[\"has\",\"person\",\"name\",\"marko\"],[\"as\",\"a\"]," +
                                      "[\"outE\",\"knows\"],[\"as\",\"b\"],[\"inV\"],[\"as\",\"c\",\"d\"]," +
-                                     "[\"outE\",\"hasLabel\",\"created\"],[\"as\",\"e\",\"f\",\"g\"],[\"inV\"],[\"as\", \"h\"],[\"path\"]]}")]
+                                     "[\"outE\",\"hasLabel\",\"created\"],[\"as\",\"e\",\"f\",\"g\"],[\"inV\"],[\"as\", \"h\"],[\"path\"]]}}")]
         public void Should_Retrieve_Path_With_Labels(string graphsonLanguage, string graphQuery)
         {
             using (var cluster = DseCluster.Builder()
@@ -615,7 +615,7 @@ namespace Dse.Test.Integration.Graph
                 session.ExecuteGraph(new SimpleGraphStatement(schemaQuery, new {vertexLabel, propertyName }));
 
                 var parameters = new {vertexLabel, propertyName, val = value };
-                session.ExecuteGraph(new SimpleGraphStatement("g.addV(label, vertexLabel, propertyName, val)", parameters));
+                session.ExecuteGraph(new SimpleGraphStatement("g.addV(vertexLabel).property(propertyName, val)", parameters));
 
                 var rs =
                     session.ExecuteGraph(
@@ -781,7 +781,7 @@ namespace Dse.Test.Integration.Graph
                 {
 
                     var parameters = new {vertexLabel = "v1", propertyName = "prop1", val = value};
-                    var stmt = new SimpleGraphStatement("g.addV(label, vertexLabel, propertyName, val)", parameters);
+                    var stmt = new SimpleGraphStatement("g.addV(vertexLabel).property(propertyName, val)", parameters);
                     Assert.Throws<ArgumentOutOfRangeException>(() => session.ExecuteGraph(stmt));
                 }
             }
@@ -833,10 +833,10 @@ namespace Dse.Test.Integration.Graph
             deleteStatement.SetGraphLanguage(GraphSON2Language);
             _session.ExecuteGraph(deleteStatement);
 
-            var addStatement = new SimpleGraphStatement("{\"@type\":\"Bytecode\",\"step\":[" +
+            var addStatement = new SimpleGraphStatement("{\"@type\":\"g:Bytecode\", \"@value\": {\"step\":[" +
                                                         "[\"addV\", \"typetests\"],[\"property\",\"name\",\"stephen\"]," +
                                                         "[\"property\",\"localdate\", {\"@type\":\"gx:LocalDate\",\"@value\":\"1981-09-14\"}]," +
-                                                        "[\"property\",\"localtime\", {\"@type\":\"gx:LocalTime\",\"@value\":\"12:50\"}]]}");
+                                                        "[\"property\",\"localtime\", {\"@type\":\"gx:LocalTime\",\"@value\":\"12:50\"}]]}}");
             addStatement.SetGraphLanguage(GraphSON2Language);
             await _session.ExecuteGraphAsync(addStatement).ConfigureAwait(false);
 

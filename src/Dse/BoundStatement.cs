@@ -166,7 +166,8 @@ namespace Dse
         {
             // Use the default query options as the individual options of the query will be ignored
             var options = QueryProtocolOptions.CreateForBatchItem(this);
-            return new ExecuteRequest(protocolVersion, PreparedStatement.Id, PreparedStatement.Metadata, IsTracing, options);
+            return new ExecuteRequest(protocolVersion, PreparedStatement.Id, PreparedStatement.Metadata,
+                PreparedStatement.ResultMetadataId, IsTracing, options);
         }
 
         internal void CalculateRoutingKey(bool useNamedParameters, int[] routingIndexes, string[] routingNames, object[] valuesByPosition, object[] rawValues)

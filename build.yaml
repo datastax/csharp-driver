@@ -4,6 +4,7 @@ cassandra:
   - dse-4.8
   - dse-5.0
   - dse-5.1
+  - dse-6.0
 env:
   CSHARP_VERSION:
     - mono
@@ -19,6 +20,12 @@ build:
       export DSE_BRANCH=$CCM_BRANCH
       export DSE_VERSION=$CCM_VERSION
       export DSE_IN_REMOTE_SERVER="false"
+
+      if [ $DSE_VERSION = '6.0' ]; then
+          echo "Setting DSE 6.0 install-dir"
+          export DSE_PATH=$CCM_INSTALL_DIR
+      fi
+      
       echo $DSE_VERSION
       echo $DSE_PATH
       echo $DSE_INITIAL_IPPREFIX

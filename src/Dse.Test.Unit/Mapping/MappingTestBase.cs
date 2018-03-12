@@ -110,7 +110,7 @@ namespace Dse.Test.Unit.Mapping
         /// </summary>
         protected PreparedStatement GetPrepared(string query = null)
         {
-            return new PreparedStatement(null, null, query, null, new Serializer(ProtocolVersion.MaxSupported));
+            return new PreparedStatement(null, null, null, query, null, new Serializer(ProtocolVersion.MaxSupported));
         }
 
         protected void TestQueryTrace(Func<Table<AllTypesEntity>, QueryTrace> queryExecutor)

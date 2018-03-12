@@ -199,7 +199,8 @@ namespace Dse.Requests
                 throw new DriverInternalError("Expected prepared response, obtained " + output.GetType().FullName);
             }
             var prepared = (OutputPrepared)output;
-            var ps = new PreparedStatement(prepared.Metadata, prepared.QueryId, request.Query, keyspace, _serializer)
+            var ps = new PreparedStatement(prepared.Metadata, prepared.QueryId, prepared.ResultMetadataId,
+                request.Query, keyspace, _serializer)
             {
                 IncomingPayload = resultResponse.CustomPayload
             };

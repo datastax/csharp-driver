@@ -23,7 +23,8 @@ namespace Dse
             WithPagingState = 0x08,
             WithSerialConsistency = 0x10,
             WithDefaultTimestamp = 0x20,
-            WithNameForValues = 0x40
+            WithNameForValues = 0x40,
+            WithKeyspace = 0x80
         }
 
         public static readonly QueryProtocolOptions Default = 
@@ -169,8 +170,16 @@ namespace Dse
             if (protocolVersion != ProtocolVersion.V1)
             {
                 wb.WriteUInt16((ushort)Consistency);
-                wb.WriteByte((byte)flags);
+                if (protocolVersion.Uses4BytesQueryFlags())
+                {
+                    wb.WriteInt32((int) flags);
+                }
+                else
+                {
+                    wb.WriteByte((byte) flags);
+                }
             }
+
             if (flags.HasFlag(QueryFlags.Values))
             {
                 wb.WriteUInt16((ushort)Values.Length);

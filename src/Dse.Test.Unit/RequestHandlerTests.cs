@@ -38,7 +38,7 @@ namespace Dse.Test.Unit
 
         private static PreparedStatement GetPrepared(byte[] queryId = null)
         {
-            return new PreparedStatement(null, queryId, "DUMMY QUERY", null, Serializer);
+            return new PreparedStatement(null, queryId, new byte[16], "DUMMY QUERY", null, Serializer);
         }
 
         [Test]
@@ -281,8 +281,6 @@ namespace Dse.Test.Unit
             CollectionAssert.AreEqual(queryBuffer, bodyBuffer.Take(queryBuffer.Length));
             // Skip the query and consistency (2)
             var offset = queryBuffer.Length + 2;
-            // The remaining length should be = flags (1) + result_page_size (4) + serial_consistency (2) + timestamp (8)
-            Assert.AreEqual(15, bodyBuffer.Length - offset);
             var flags = GetQueryFlags(bodyBuffer, ref offset);
             Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
             Assert.True(flags.HasFlag(QueryFlags.PageSize));
@@ -479,6 +477,11 @@ namespace Dse.Test.Unit
             // <query_id><consistency><flags><result_page_size><paging_state><serial_consistency><timestamp>
             // Skip the queryid and consistency (2)
             var offset = 2 + ps.Id.Length + 2;
+            if (Serializer.ProtocolVersion.SupportsResultMetadataId())
+            {
+                // Short bytes: 2 + 16
+                offset += 18;
+            }
             var flags = GetQueryFlags(bodyBuffer, ref offset);
             Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
             Assert.True(flags.HasFlag(QueryFlags.PageSize));
@@ -504,6 +507,11 @@ namespace Dse.Test.Unit
             // <query_id><consistency><flags><result_page_size><paging_state><serial_consistency><timestamp>
             // Skip the queryid and consistency (2)
             var offset = 2 + ps.Id.Length + 2;
+            if (Serializer.ProtocolVersion.SupportsResultMetadataId())
+            {
+                // Short bytes: 2 + 16
+                offset += 18;
+            }
             var flags = GetQueryFlags(bodyBuffer, ref offset);
             Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
             Assert.True(flags.HasFlag(QueryFlags.PageSize));

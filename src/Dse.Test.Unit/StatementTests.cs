@@ -22,7 +22,8 @@ namespace Dse.Test.Unit
 
         private static PreparedStatement GetPrepared(string query = Query, RowSetMetadata metadata = null)
         {
-            return new PreparedStatement(metadata, new byte[0], query, null, new Serializer(ProtocolVersion.MaxSupported));
+            return new PreparedStatement(metadata, new byte[0], null, query, null,
+                new Serializer(ProtocolVersion.MaxSupported));
         }
 
         [Test]
