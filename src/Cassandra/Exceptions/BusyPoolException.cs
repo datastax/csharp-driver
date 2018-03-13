@@ -40,17 +40,23 @@ namespace Cassandra
         public int ConnectionLength { get; }
 
         private const string MessageFormat =
-            "All connections to host {0} are busy, {1} requests are in-flight on {2} connection(s)";
+            "All connections to host {0} are busy, {1} requests are in-flight on {2}{3} connection(s)";
 
         /// <summary>
         /// Creates a new instance of <see cref="BusyPoolException"/>.
         /// </summary>
-        public BusyPoolException(IPEndPoint address, int maxRequestsPerConnection, int connectionLength) : base(
-            string.Format(MessageFormat, address, maxRequestsPerConnection, connectionLength))
+        public BusyPoolException(IPEndPoint address, int maxRequestsPerConnection, int connectionLength)
+            : base(GetMessage(address, maxRequestsPerConnection, connectionLength))
         {
             Address = address;
             MaxRequestsPerConnection = maxRequestsPerConnection;
             ConnectionLength = connectionLength;
+        }
+
+        private static string GetMessage(IPEndPoint address, int maxRequestsPerConnection, int connectionLength)
+        {
+            return string.Format(MessageFormat, address, maxRequestsPerConnection, connectionLength > 0 ? "each " : "",
+                connectionLength);
         }
     }
 }

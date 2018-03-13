@@ -118,8 +118,9 @@ namespace Cassandra
             _host.Up += OnHostUp;
             _host.Remove += OnHostRemoved;
             _host.DistanceChanged += OnDistanceChanged;
-            _config = config;
-            _maxRequestsPerConnection = config.PoolingOptions.GetMaxRequestsPerConnection();
+            _config = config ?? throw new ArgumentNullException(nameof(config));
+            _maxRequestsPerConnection = config.GetPoolingOptions(serializer.ProtocolVersion)
+                                              .GetMaxRequestsPerConnection();
             _serializer = serializer;
             _timer = config.Timer;
             _reconnectionSchedule = config.Policies.ReconnectionPolicy.NewSchedule();
@@ -147,7 +148,7 @@ namespace Cassandra
 
             if (inFlight >= _maxRequestsPerConnection)
             {
-                throw new BusyPoolException(c.Address, _maxConnectionLength, connections.Length);
+                throw new BusyPoolException(c.Address, _maxRequestsPerConnection, connections.Length);
             }
 
             ConsiderResizingPool(inFlight);

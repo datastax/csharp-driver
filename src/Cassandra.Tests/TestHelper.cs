@@ -452,6 +452,22 @@ namespace Cassandra.Tests
             }, TaskContinuationOptions.ExecuteSynchronously);
         }
 
+        public static async Task<Exception> EatUpException(Task task)
+        {
+            try
+            {
+                await task;
+            }
+            catch (Exception ex)
+            {
+                // The idea is to await for the exception to occur but catch it
+                // and return a completed task (not faulted)
+                return ex;
+            }
+
+            return null;
+        }
+
         private class SendReceiveCounter
         {
             private int _receiveCounter;
@@ -510,6 +526,29 @@ namespace Cassandra.Tests
                 {
                     yield return value;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Policy ONLY suitable for testing, it creates a fixed query plan containing nodes always in the same order.
+        /// </summary>
+        internal class OrderedLoadBalancingPolicy : ILoadBalancingPolicy
+        {
+            private ICollection<Host> _hosts;
+
+            public void Initialize(ICluster cluster)
+            {
+                _hosts = cluster.AllHosts();
+            }
+
+            public HostDistance Distance(Host host)
+            {
+                return HostDistance.Local;
+            }
+
+            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            {
+                return _hosts;
             }
         }
     }
