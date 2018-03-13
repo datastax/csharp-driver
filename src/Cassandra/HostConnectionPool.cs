@@ -73,7 +73,7 @@ namespace Cassandra
         private readonly object _allConnectionClosedEventLock = new object();
         private volatile IReconnectionSchedule _reconnectionSchedule;
         private volatile int _expectedConnectionLength;
-        private volatile int _maxInflightThreshold;
+        private volatile int _maxInflightThresholdToConsiderResizing;
         private volatile int _maxConnectionLength;
         private volatile HashedWheelTimer.ITimeout _resizingEndTimeout;
         private volatile bool _canCreateForeground = true;
@@ -82,6 +82,7 @@ namespace Cassandra
         private HashedWheelTimer.ITimeout _newConnectionTimeout;
         private TaskCompletionSource<Connection> _connectionOpenTcs;
         private int _connectionIndex;
+        private readonly int _maxRequestsPerConnection;
 
         public event Action<Host, HostConnectionPool> AllConnectionClosed;
 
@@ -118,6 +119,7 @@ namespace Cassandra
             _host.Remove += OnHostRemoved;
             _host.DistanceChanged += OnDistanceChanged;
             _config = config;
+            _maxRequestsPerConnection = config.PoolingOptions.GetMaxRequestsPerConnection();
             _serializer = serializer;
             _timer = config.Timer;
             _reconnectionSchedule = config.Policies.ReconnectionPolicy.NewSchedule();
@@ -128,6 +130,11 @@ namespace Cassandra
         /// Gets an open connection from the host pool (creating if necessary).
         /// It returns null if the load balancing policy didn't allow connections to this host.
         /// </summary>
+        /// <exception cref="DriverInternalError" />
+        /// <exception cref="BusyPoolException" />
+        /// <exception cref="UnsupportedProtocolVersionException" />
+        /// <exception cref="SocketException" />
+        /// <exception cref="AuthenticationException" />
         public async Task<Connection> BorrowConnection()
         {
             var connections = await EnsureCreate().ConfigureAwait(false);
@@ -135,8 +142,15 @@ namespace Cassandra
             {
                 throw new DriverInternalError("No connection could be borrowed");
             }
-            var c = MinInFlight(connections, ref _connectionIndex, _maxInflightThreshold);
-            ConsiderResizingPool(c.InFlight);
+
+            var c = MinInFlight(connections, ref _connectionIndex, _maxRequestsPerConnection, out var inFlight);
+
+            if (inFlight >= _maxRequestsPerConnection)
+            {
+                throw new BusyPoolException(c.Address, _maxConnectionLength, connections.Length);
+            }
+
+            ConsiderResizingPool(inFlight);
             return c;
         }
 
@@ -178,7 +192,7 @@ namespace Cassandra
 
         public void ConsiderResizingPool(int inFlight)
         {
-            if (inFlight < _maxInflightThreshold)
+            if (inFlight < _maxInflightThresholdToConsiderResizing)
             {
                 // The requests in-flight are normal
                 return;
@@ -205,7 +219,7 @@ namespace Cassandra
             }
             _expectedConnectionLength++;
             Logger.Info("Increasing pool #{0} size to {1}, as in-flight requests are above threshold ({2})", 
-                GetHashCode(), _expectedConnectionLength, _maxInflightThreshold);
+                GetHashCode(), _expectedConnectionLength, _maxInflightThresholdToConsiderResizing);
             StartCreatingConnection(null);
             _resizingEndTimeout = _timer.NewTimeout(_ => Interlocked.Exchange(ref _poolResizing, 0), null, 
                 BetweenResizeDelay);
@@ -274,10 +288,15 @@ namespace Cassandra
         /// The max amount of in-flight requests that cause this method to continue
         /// iterating until finding the connection with min number of in-flight requests.
         /// </param>
-        public static Connection MinInFlight(Connection[] connections, ref int connectionIndex, int inFlightThreshold)
+        /// <param name="inFlight">
+        /// Out parameter containing the amount of in-flight requests of the selected connection.
+        /// </param>
+        public static Connection MinInFlight(Connection[] connections, ref int connectionIndex, int inFlightThreshold,
+                                             out int inFlight)
         {
             if (connections.Length == 1)
             {
+                inFlight = connections[0].InFlight;
                 return connections[0];
             }
             //It is very likely that the amount of InFlight requests per connection is the same
@@ -288,13 +307,16 @@ namespace Cassandra
                 //Overflow protection, not exactly thread-safe but we can live with it
                 Interlocked.Exchange(ref connectionIndex, 0);
             }
+
             Connection c = null;
+            inFlight = 0;
+
             for (var i = index; i < index + connections.Length; i++)
             {
                 c = connections[i % connections.Length];
                 var previousConnection = connections[(i - 1) % connections.Length];
                 // Avoid multiple volatile reads
-                var inFlight = c.InFlight;
+                inFlight = c.InFlight;
                 var previousInFlight = previousConnection.InFlight;
                 if (previousInFlight < inFlight)
                 {
@@ -308,6 +330,7 @@ namespace Cassandra
                     break;
                 }
             }
+
             return c;
         }
 
@@ -744,7 +767,7 @@ namespace Cassandra
         {
             var poolingOptions = _config.GetPoolingOptions(_serializer.ProtocolVersion);
             _expectedConnectionLength = poolingOptions.GetCoreConnectionsPerHost(distance);
-            _maxInflightThreshold =  poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(distance);
+            _maxInflightThresholdToConsiderResizing =  poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(distance);
             _maxConnectionLength = poolingOptions.GetMaxConnectionPerHost(distance);
         }
     }
