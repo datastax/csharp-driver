@@ -415,6 +415,7 @@ namespace Cassandra.IntegrationTests.Core
                                                    .SetMaxConnectionsPerHost(HostDistance.Local, connectionLength)
                                                    .SetHeartBeatInterval(0)
                                                    .SetMaxRequestsPerConnection(maxRequestsPerConnection))
+                                 .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(0))
                                  .WithLoadBalancingPolicy(new TestHelper.OrderedLoadBalancingPolicy());
             using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = builder.AddContactPoint(testCluster.InitialContactPoint).Build())
@@ -444,6 +445,9 @@ namespace Cassandra.IntegrationTests.Core
                 }
 
                 var results = await Task.WhenAll(tasks);
+
+                // Only successful responses or NoHostAvailableException expected
+                Assert.Null(results.FirstOrDefault(e => e != null && !(e is NoHostAvailableException)));
 
                 // At least the first n (maxRequestsPerConnection * connectionLength * hosts.length) succeeded
                 Assert.That(results.Count(e => e == null),
