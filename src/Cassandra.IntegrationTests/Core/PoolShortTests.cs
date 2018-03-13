@@ -408,6 +408,8 @@ namespace Cassandra.IntegrationTests.Core
         {
             const int connectionLength = 2;
             const int maxRequestsPerConnection = 50;
+            var lbp = new TestHelper.OrderedLoadBalancingPolicy().UseRoundRobin();
+
             var builder = Cluster.Builder()
                                  .WithPoolingOptions(
                                      PoolingOptions.Create()
@@ -416,7 +418,8 @@ namespace Cassandra.IntegrationTests.Core
                                                    .SetHeartBeatInterval(0)
                                                    .SetMaxRequestsPerConnection(maxRequestsPerConnection))
                                  .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(0))
-                                 .WithLoadBalancingPolicy(new TestHelper.OrderedLoadBalancingPolicy());
+                                 .WithLoadBalancingPolicy(lbp);
+
             using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = builder.AddContactPoint(testCluster.InitialContactPoint).Build())
             {
@@ -430,9 +433,17 @@ namespace Cassandra.IntegrationTests.Core
                 var session = await cluster.ConnectAsync();
                 var hosts = cluster.AllHosts().ToArray();
 
-                // Wait until all connections to first host are created
+                await TestHelper.TimesLimit(() =>
+                    session.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local")), 100, 16);
+
+                // Wait until all connections to all host are created
                 await TestHelper.WaitUntilAsync(() =>
-                    session.GetState().GetInFlightQueries(hosts[0]) == connectionLength);
+                {
+                    var state = session.GetState();
+                    return state.GetConnectedHosts().All(h => state.GetInFlightQueries(h) == connectionLength);
+                });
+
+                lbp.UseFixedOrder();
 
                 const int busyExceptions = 10;
                 var length = maxRequestsPerConnection * connectionLength * hosts.Length + Environment.ProcessorCount +

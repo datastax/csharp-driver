@@ -535,20 +535,40 @@ namespace Cassandra.Tests
         internal class OrderedLoadBalancingPolicy : ILoadBalancingPolicy
         {
             private ICollection<Host> _hosts;
+            private readonly ILoadBalancingPolicy _childPolicy;
+            private volatile bool _useRoundRobin;
+
+            public OrderedLoadBalancingPolicy UseRoundRobin()
+            {
+                _useRoundRobin = true;
+                return this;
+            }
+
+            public OrderedLoadBalancingPolicy UseFixedOrder()
+            {
+                _useRoundRobin = false;
+                return this;
+            }
+
+            public OrderedLoadBalancingPolicy()
+            {
+                _childPolicy = new RoundRobinPolicy();
+            }
 
             public void Initialize(ICluster cluster)
             {
                 _hosts = cluster.AllHosts();
+                _childPolicy.Initialize(cluster);
             }
 
             public HostDistance Distance(Host host)
             {
-                return HostDistance.Local;
+                return _childPolicy.Distance(host);
             }
 
             public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
             {
-                return _hosts;
+                return !_useRoundRobin ? _hosts : _childPolicy.NewQueryPlan(keyspace, query);
             }
         }
     }
