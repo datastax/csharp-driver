@@ -18,11 +18,11 @@ environment:
       CI_TYPE: UNIT
       PROJECT: Cassandra.Tests
     - TARGET: net452
-      CASSANDRA_VERSION: 3.10
+      CASSANDRA_VERSION: 3.11.2
       CI_TYPE: INTEGRATION
       PROJECT: Cassandra.IntegrationTests
     - TARGET: netcoreapp1.0
-      CASSANDRA_VERSION: 3.10
+      CASSANDRA_VERSION: 3.11.2
       CI_TYPE: INTEGRATION
       PROJECT: Cassandra.IntegrationTests
     - TARGET: net452
