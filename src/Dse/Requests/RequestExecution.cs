@@ -198,6 +198,14 @@ namespace Dse.Requests
                         Logger.Warning("Received warning ({0} of {1}): \"{2}\" for \"{3}\"", i + 1, response.Warnings.Length, response.Warnings[i], query);
                     }
                 }
+
+                if (response.NewResultMetadataId != null && _parent.Statement is BoundStatement boundStatement)
+                {
+                    // We've sent an EXECUTE request and the server is notifying the client that the result
+                    // metadata changed
+                    boundStatement.PreparedStatement.ResultMetadataId = response.NewResultMetadataId;
+                }
+
                 rs.Info.IncomingPayload = response.CustomPayload;
             }
             rs.Info.SetTriedHosts(_triedHosts.Keys.ToList());
@@ -387,10 +395,19 @@ namespace Dse.Requests
                 }
                 ValidateResult(response);
                 var output = ((ResultResponse)response).Output;
-                if (!(output is OutputPrepared))
+                if (!(output is OutputPrepared outputPrepared))
                 {
-                    throw new DriverInternalError("Expected prepared response, obtained " + output.GetType().FullName);
+                    _parent.SetCompleted(
+                        new DriverInternalError("Expected prepared response, obtained " + output.GetType().FullName));
+                    return;
                 }
+
+                if (_parent.Statement is BoundStatement boundStatement)
+                {
+                    // Use the latest result metadata id
+                    boundStatement.PreparedStatement.ResultMetadataId = outputPrepared.ResultMetadataId;
+                }
+
                 Send(_request, HandleResponse);
             }
             catch (Exception exception)

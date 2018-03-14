@@ -146,6 +146,71 @@ namespace Dse.Test.Integration.Core
             Assert.AreEqual("", row.GetValue<string>("text_sample"));
         }
 
+        [Test]
+        public void PreparedStatement_With_Changing_Schema()
+        {
+            byte[] originalResultMetadataId = null;
+            // Use 2 different clusters as the prepared statement cache should be different
+            using (var cluster1 = Cluster.Builder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
+            using (var cluster2 = Cluster.Builder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
+            {
+                var session1 = cluster1.Connect();
+                var session2 = cluster2.Connect();
+
+                // Create schema and insert data
+                session1.Execute(
+                    "CREATE KEYSPACE ks1 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}");
+                session1.ChangeKeyspace("ks1");
+                session2.ChangeKeyspace("ks1");
+                session1.Execute("CREATE TABLE table1 (id int PRIMARY KEY, a text, c text)");
+                var insertPs = session1.Prepare("INSERT INTO table1 (id, a, c) VALUES (?, ?, ?)");
+                session1.Execute(insertPs.Bind(1, "a value", "c value"));
+
+                // Prepare and execute a few requests
+                var selectPs1 = session1.Prepare("SELECT * FROM table1");
+                var selectPs2 = session2.Prepare("SELECT * FROM table1");
+
+                var protocolVersion = (ProtocolVersion)session1.BinaryProtocolVersion;
+                if (protocolVersion.SupportsResultMetadataId())
+                {
+                    originalResultMetadataId = selectPs1.ResultMetadataId;
+                    Assert.That(selectPs2.ResultMetadataId, Is.EquivalentTo(selectPs1.ResultMetadataId));
+                }
+
+                for (var i = 0; i < 10; i++)
+                {
+                    var rs1 = session1.Execute(selectPs1.Bind());
+                    var rs2 = session2.Execute(selectPs2.Bind());
+                    Assert.That(rs1.Columns.Select(c => c.Name), Does.Contain("a").And.Contain("c"));
+                    Assert.That(rs2.Columns.Select(c => c.Name), Does.Contain("a").And.Contain("c"));
+                }
+
+                // Alter table, adding a new column
+                session1.Execute("ALTER TABLE table1 ADD b text");
+
+                // Execute on all nodes on a single session1, causing UNPREPARE->PREPARE flow
+                for (var i = 0; i < 10; i++)
+                {
+                    var rs1 = session1.Execute(selectPs1.Bind());
+                    Assert.That(rs1.Columns.Select(c => c.Name), Does.Contain("a").And.Contain("b").And.Contain("c"));
+                }
+
+                // Execute on a different session causing metadata change
+                for (var i = 0; i < 10; i++)
+                {
+                    var rs2 = session2.Execute(selectPs2.Bind());
+                    Assert.That(rs2.Columns.Select(c => c.Name), Does.Contain("a").And.Contain("b").And.Contain("c"));
+                }
+
+                if (protocolVersion.SupportsResultMetadataId())
+                {
+                    // The ResultMetadataId changed and it's updated on both PreparedStatement instances
+                    Assert.That(selectPs1.ResultMetadataId, Is.Not.EquivalentTo(originalResultMetadataId));
+                    Assert.That(selectPs2.ResultMetadataId, Is.EquivalentTo(selectPs1.ResultMetadataId));
+                }
+            }
+        }
+
         [Test, TestCassandraVersion(2, 2)]
         public void Bound_Unset_Specified_Tests()
         {

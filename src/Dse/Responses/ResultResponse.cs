@@ -30,6 +30,12 @@ namespace Dse.Responses
         /// </summary>
         public IOutput Output { get; private set; }
 
+        /// <summary>
+        /// When the Output is ROWS, it returns the new_metadata_id.
+        /// It returns null when new_metadata_id is not provided or the output is not ROWS.
+        /// </summary>
+        internal byte[] NewResultMetadataId => (Output as OutputRows)?.NewResultMetadataId;
+
         internal ResultResponse(Frame frame) : base(frame)
         {
             Kind = (ResultResponseKind) Reader.ReadInt32();

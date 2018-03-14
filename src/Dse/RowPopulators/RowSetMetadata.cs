@@ -246,6 +246,9 @@ namespace Dse
 
         internal byte[] PagingState { get; private set; }
 
+        /// <summary>
+        /// Gets the new_metadata_id.
+        /// </summary>
         internal byte[] NewResultMetadataId { get; }
 
         /// <summary>
