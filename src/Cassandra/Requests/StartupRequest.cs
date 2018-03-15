@@ -45,7 +45,7 @@ namespace Cassandra.Requests
 
             if (compressionName != null)
             {
-                _options.Add("COMPRESSION", "lz4");
+                _options.Add("COMPRESSION", compressionName);
             }
 
             if (noCompact)

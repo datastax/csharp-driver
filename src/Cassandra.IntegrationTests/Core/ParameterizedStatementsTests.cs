@@ -53,8 +53,6 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     setupQueries.Add($"CREATE TABLE {TableCompactStorage} (key blob PRIMARY KEY, bar int, baz uuid)" +
                                      $" WITH COMPACT STORAGE");
-                    setupQueries.Add($"INSERT INTO {TableCompactStorage} (key, bar, baz, column1, value) " +
-                                     $"VALUES (0xc0, 10, 33cb65d4-6721-4ca8-854f-1f020c5353cb, 'yak', 0xcafedead)");
                 }
 
                 return setupQueries.ToArray();
@@ -530,7 +528,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = builder.Build())
             {
                 var session = cluster.Connect(KeyspaceName);
-                var rs = session.Execute($"SELECT * FROM {TableCompactStorage} WHERE key = 0xc0");
+                var rs = session.Execute($"SELECT * FROM {TableCompactStorage} LIMIT 1");
                 Assert.AreEqual(5, rs.Columns.Length);
                 Assert.NotNull(rs.Columns.FirstOrDefault(c => c.Name == "column1"));
                 Assert.NotNull(rs.Columns.FirstOrDefault(c => c.Name == "value"));
@@ -550,7 +548,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = builder.Build())
             {
                 var session = cluster.Connect(KeyspaceName);
-                var rs = session.Execute($"SELECT * FROM {TableCompactStorage} WHERE key = 0xc0");
+                var rs = session.Execute($"SELECT * FROM {TableCompactStorage} LIMIT 1");
                 Assert.AreEqual(3, rs.Columns.Length);
                 Assert.Null(rs.Columns.FirstOrDefault(c => c.Name == "column1"));
                 Assert.Null(rs.Columns.FirstOrDefault(c => c.Name == "value"));
