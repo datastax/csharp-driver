@@ -51,6 +51,7 @@ namespace Cassandra
         private ISpeculativeExecutionPolicy _speculativeExecutionPolicy;
         private ProtocolVersion _maxProtocolVersion = ProtocolVersion.MaxSupported;
         private TypeSerializerDefinitions _typeSerializerDefinitions;
+        private bool _noCompact;
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -108,7 +109,8 @@ namespace Cassandra
             var config = new Configuration(policies,
                 new ProtocolOptions(_port, _sslOptions).SetCompression(_compression)
                                                        .SetCustomCompressor(_customCompressor)
-                                                       .SetMaxProtocolVersion(_maxProtocolVersion),
+                                                       .SetMaxProtocolVersion(_maxProtocolVersion)
+                                                       .SetNoCompact(_noCompact),
                 _poolingOptions,
                 _socketOptions,
                 new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace),
@@ -585,6 +587,24 @@ namespace Cassandra
                 throw new ArgumentException("Protocol version 0 does not exist.");
             }
             _maxProtocolVersion = version;
+            return this;
+        }
+
+        /// <summary>
+        /// Enables the NO_COMPACT startup option.
+        /// <para>
+        /// When this option is set, <c>SELECT</c>, <c>UPDATE</c>, <c>DELETE</c>, and <c>BATCH</c> statements
+        /// on <c>COMPACT STORAGE</c> tables function in "compatibility" mode which allows seeing these tables
+        /// as if they were "regular" CQL tables.
+        /// </para>
+        /// <para>
+        /// This option only effects interactions with tables using <c>COMPACT STORAGE</c> and it is only
+        /// supported by C* 3.0.16+, 3.11.2+, 4.0+ and DSE 6.0+.
+        /// </para>
+        /// </summary>
+        public Builder WithNoCompact()
+        {
+            _noCompact = true;
             return this;
         }
 
