@@ -281,7 +281,7 @@ namespace Cassandra
                     Closing(this);
                 }
 
-                Logger.Info("Canceling in Connection {0}, {1} pending operations and write queue {2}", Address,
+                Logger.Info("Cancelling in Connection {0}, {1} pending operations and write queue {2}", Address,
                     InFlight, _writeQueue.Count);
 
                 if (socketError != null)

@@ -39,9 +39,6 @@ namespace Cassandra
         /// </summary>
         public int ConnectionLength { get; }
 
-        private const string MessageFormat =
-            "All connections to host {0} are busy, {1} requests are in-flight on {2}{3} connection(s)";
-
         /// <summary>
         /// Creates a new instance of <see cref="BusyPoolException"/>.
         /// </summary>
@@ -55,8 +52,8 @@ namespace Cassandra
 
         private static string GetMessage(IPEndPoint address, int maxRequestsPerConnection, int connectionLength)
         {
-            return string.Format(MessageFormat, address, maxRequestsPerConnection, connectionLength > 0 ? "each " : "",
-                connectionLength);
+            return $"All connections to host {address} are busy, {maxRequestsPerConnection} requests " +
+                   $"are in-flight on {(connectionLength > 0 ? "each " : "")}{connectionLength} connection(s)";
         }
     }
 }

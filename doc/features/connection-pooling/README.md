@@ -38,7 +38,7 @@ When the limit is reached for all connections to a host, the driver will move to
  plan. When the query plan is exhausted, the driver will yield a `NoHostAvailableException` containing
  `BusyPoolException` instances per each host in the `Errors` property.
 
-You can use the `SetMaxRequestsPerConnection()` on the `PoolingOptions` to set the limit for the request rate.
+You can use `SetMaxRequestsPerConnection()` on `PoolingOptions` to set the limit for the request rate.
 
 ## Get status of the connection pools
 

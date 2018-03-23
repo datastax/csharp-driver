@@ -346,27 +346,27 @@ namespace Cassandra.Tests
                 GetConnectionMock(10),
                 GetConnectionMock(1)
             };
-            var index = 1;
+            var index = 0;
             int inFlight;
             var c = HostConnectionPool.MinInFlight(connections, ref index, 100, out inFlight);
-            Assert.AreEqual(index, 2);
-            Assert.AreSame(connections[2], c);
+            Assert.AreEqual(index, 1);
+            Assert.AreSame(connections[1], c);
             Assert.AreEqual(1, inFlight);
             c = HostConnectionPool.MinInFlight(connections, ref index, 100, out inFlight);
-            Assert.AreEqual(index, 3);
+            Assert.AreEqual(index, 2);
             //previous had less in flight
             Assert.AreSame(connections[2], c);
             Assert.AreEqual(1, inFlight);
             c = HostConnectionPool.MinInFlight(connections, ref index, 100, out inFlight);
-            Assert.AreEqual(index, 4);
+            Assert.AreEqual(index, 3);
             Assert.AreSame(connections[4], c);
             Assert.AreEqual(1, inFlight);
             c = HostConnectionPool.MinInFlight(connections, ref index, 100, out inFlight);
-            Assert.AreEqual(index, 5);
+            Assert.AreEqual(index, 4);
             Assert.AreSame(connections[0], c);
             Assert.AreEqual(0, inFlight);
             c = HostConnectionPool.MinInFlight(connections, ref index, 100, out inFlight);
-            Assert.AreEqual(index, 6);
+            Assert.AreEqual(index, 5);
             Assert.AreSame(connections[0], c);
             Assert.AreEqual(0, inFlight);
             index = 9;
@@ -387,16 +387,16 @@ namespace Cassandra.Tests
                 GetConnectionMock(200),
                 GetConnectionMock(210)
             };
-            var index = 1;
+            var index = 0;
             int inFlight;
 
             var c = HostConnectionPool.MinInFlight(connections, ref index, 100, out inFlight);
-            Assert.AreEqual(index, 2);
+            Assert.AreEqual(index, 1);
             Assert.AreSame(connections[1], c);
             Assert.AreEqual(1, inFlight);
 
             c = HostConnectionPool.MinInFlight(connections, ref index, 100, out inFlight);
-            Assert.AreEqual(index, 3);
+            Assert.AreEqual(index, 2);
             // Should pick the first below the threshold
             Assert.AreSame(connections[0], c);
             Assert.AreEqual(10, inFlight);

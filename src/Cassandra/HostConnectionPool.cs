@@ -305,25 +305,28 @@ namespace Cassandra
             var index = Interlocked.Increment(ref connectionIndex);
             if (index > ConnectionIndexOverflow)
             {
-                //Overflow protection, not exactly thread-safe but we can live with it
+                // Simplified overflow protection: once the threshold is reached, reset the shared reference
+                // but still use the incremented value above threshold.
+                // Multiple threads can reset it to 0 (in practice it would be very few), with the assumable side
+                // effect of unbalancing the load between connections for a few moments.
                 Interlocked.Exchange(ref connectionIndex, 0);
             }
 
-            Connection c = null;
+            var c = connections[index % connections.Length];
             inFlight = 0;
 
-            for (var i = index; i < index + connections.Length; i++)
+            for (var i = 1; i < connections.Length; i++)
             {
-                c = connections[i % connections.Length];
-                var previousConnection = connections[(i - 1) % connections.Length];
-                // Avoid multiple volatile reads
+                var nextConnection = connections[(index + i) % connections.Length];
                 inFlight = c.InFlight;
-                var previousInFlight = previousConnection.InFlight;
-                if (previousInFlight < inFlight)
+                var nextInFlight = nextConnection.InFlight;
+
+                if (inFlight > nextInFlight)
                 {
-                    c = previousConnection;
-                    inFlight = previousInFlight;
+                    c = nextConnection;
+                    inFlight = nextInFlight;
                 }
+
                 if (inFlight < inFlightThreshold)
                 {
                     // We should avoid traversing all the connections
