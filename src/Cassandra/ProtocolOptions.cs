@@ -92,7 +92,7 @@ namespace Cassandra
         /// as if they were "regular" CQL tables.
         /// </para>
         /// <para>
-        /// This option only effects interactions with tables using <c>COMPACT STORAGE</c> and it is only
+        /// This option only affects interactions with tables using <c>COMPACT STORAGE</c> and it is only
         /// supported by C* 3.0.16+, 3.11.2+, 4.0+ and DSE 6.0+.
         /// </para>
         /// </summary>
@@ -207,7 +207,7 @@ namespace Cassandra
         /// as if they were "regular" CQL tables.
         /// </para>
         /// <para>
-        /// This option only effects interactions with tables using <c>COMPACT STORAGE</c> and it is only
+        /// This option only affects interactions with tables using <c>COMPACT STORAGE</c> and it is only
         /// supported by C* 3.0.16+, 3.11.2+, 4.0+ and DSE 6.0+.
         /// </para>
         /// </summary>
