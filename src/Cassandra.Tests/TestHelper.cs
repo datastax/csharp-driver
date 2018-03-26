@@ -452,6 +452,22 @@ namespace Cassandra.Tests
             }, TaskContinuationOptions.ExecuteSynchronously);
         }
 
+        public static async Task<Exception> EatUpException(Task task)
+        {
+            try
+            {
+                await task;
+            }
+            catch (Exception ex)
+            {
+                // The idea is to await for the exception to occur but catch it
+                // and return a completed task (not faulted)
+                return ex;
+            }
+
+            return null;
+        }
+
         private class SendReceiveCounter
         {
             private int _receiveCounter;
@@ -510,6 +526,49 @@ namespace Cassandra.Tests
                 {
                     yield return value;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Policy ONLY suitable for testing, it creates a fixed query plan containing nodes always in the same order.
+        /// </summary>
+        internal class OrderedLoadBalancingPolicy : ILoadBalancingPolicy
+        {
+            private ICollection<Host> _hosts;
+            private readonly ILoadBalancingPolicy _childPolicy;
+            private volatile bool _useRoundRobin;
+
+            public OrderedLoadBalancingPolicy UseRoundRobin()
+            {
+                _useRoundRobin = true;
+                return this;
+            }
+
+            public OrderedLoadBalancingPolicy UseFixedOrder()
+            {
+                _useRoundRobin = false;
+                return this;
+            }
+
+            public OrderedLoadBalancingPolicy()
+            {
+                _childPolicy = new RoundRobinPolicy();
+            }
+
+            public void Initialize(ICluster cluster)
+            {
+                _hosts = cluster.AllHosts();
+                _childPolicy.Initialize(cluster);
+            }
+
+            public HostDistance Distance(Host host)
+            {
+                return _childPolicy.Distance(host);
+            }
+
+            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            {
+                return !_useRoundRobin ? _hosts : _childPolicy.NewQueryPlan(keyspace, query);
             }
         }
     }

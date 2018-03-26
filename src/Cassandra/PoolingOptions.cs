@@ -47,12 +47,14 @@ namespace Cassandra
     /// </para>
     /// <para>For Cassandra 2.1 and above, the default amount of connections per host are:</para>
     /// <list type="bullet">
-    /// <item>Local datacenter: 1 core connection per host, with 2 connections as maximum if the simultaneous requests threshold is reached.</item>
+    /// <item>Local datacenter: 1 core connection per host, with 2 connections as maximum when the simultaneous
+    /// requests threshold is reached.</item>
     /// <item>Remote datacenter: 1 core connection per host (being 1 also max).</item>
     /// </list>
     /// <para>For older Cassandra versions (1.2 and 2.0), the default amount of connections per host are:</para>
     /// <list type="bullet">
-    /// <item>Local datacenter: 2 core connection per host, with 8 connections as maximum if the simultaneous requests threshold is reached.</item>
+    /// <item>Local datacenter: 2 core connection per host, with 8 connections as maximum when the simultaneous
+    /// requests threshold is reached.</item>
     /// <item>Remote datacenter: 1 core connection per host (being 2 the maximum).</item>
     /// </list>
     /// </summary>
@@ -60,11 +62,18 @@ namespace Cassandra
     {
         //the defaults target small number concurrent requests (protocol 1 and 2) and multiple connections to a host
         private const int DefaultMinRequests = 25;
-        private const int DefaultMaxRequests = 128;
+        private const int DefaultMaxRequestsThreshold = 128;
         private const int DefaultCorePoolLocal = 2;
         private const int DefaultCorePoolRemote = 1;
         private const int DefaultMaxPoolLocal = 8;
         private const int DefaultMaxPoolRemote = 2;
+
+        /// <summary>
+        /// Default maximum amount of requests that can be in-flight on a single connection at the same time after
+        /// which the connection will start rejecting requests: 2048.
+        /// </summary>
+        public const int DefaultMaxRequestsPerConnection = 2048;
+
         /// <summary>
         /// The default heartbeat interval in milliseconds: 30000.
         /// </summary>
@@ -75,11 +84,12 @@ namespace Cassandra
 
         private int _maxConnectionsForLocal = DefaultMaxPoolLocal;
         private int _maxConnectionsForRemote = DefaultMaxPoolRemote;
-        private int _maxSimultaneousRequestsForLocal = DefaultMaxRequests;
-        private int _maxSimultaneousRequestsForRemote = DefaultMaxRequests;
+        private int _maxSimultaneousRequestsForLocal = DefaultMaxRequestsThreshold;
+        private int _maxSimultaneousRequestsForRemote = DefaultMaxRequestsThreshold;
         private int _minSimultaneousRequestsForLocal = DefaultMinRequests;
         private int _minSimultaneousRequestsForRemote = DefaultMinRequests;
         private int _heartBeatInterval = DefaultHeartBeatInterval;
+        private int _maxRequestsPerConnection = DefaultMaxRequestsPerConnection;
 
         /// <summary>
         /// DEPRECATED: It will be removed in future versions. Use <see cref="PoolingOptions.Create"/> instead.
@@ -144,14 +154,13 @@ namespace Cassandra
 
         /// <summary>
         /// <para>
-        /// Number of simultaneous requests on all connections to an host after which more
+        /// Number of simultaneous requests on each connections to a host after which more
         /// connections are created.
         /// </para>
         /// <para>
-        /// If all the connections opened to an host at <see cref="HostDistance"/> connection are 
-        /// handling more than this number of simultaneous requests and there is less than
-        /// <see cref="GetMaxConnectionPerHost"/> connections open to this host, a new connection
-        /// is open.
+        /// If all the connections opened to a host are handling more than this number of simultaneous requests
+        /// and there is less than <see cref="GetMaxConnectionPerHost"/> connections open to this host,
+        /// a new connection is open.
         /// </para>
         /// </summary>
         /// <param name="distance"> the <see cref="HostDistance"/> for which to return this threshold.</param>
@@ -314,6 +323,37 @@ namespace Cassandra
         public PoolingOptions SetHeartBeatInterval(int value)
         {
             _heartBeatInterval = value;
+            return this;
+        }
+
+        /// <summary>
+        /// Gets the maximum amount of requests that can be in-flight on a single connection at the same time.
+        /// <para>
+        /// This setting acts as a fixed maximum, once this value is reached for a host the pool will start
+        /// rejecting requests, throwing <see cref="BusyPoolException"/> instances.
+        /// </para>
+        /// <para>
+        /// This setting should not be mistaken with <see cref="GetMaxSimultaneousRequestsPerConnectionTreshold"/>.
+        /// </para>
+        /// </summary>
+        public int GetMaxRequestsPerConnection()
+        {
+            return _maxRequestsPerConnection;
+        }
+
+        /// <summary>
+        /// Sets the maximum amount of requests that can be in-flight on a single connection at the same time.
+        /// <para>
+        /// This setting acts as a fixed maximum, once this value is reached for a host the pool will start
+        /// rejecting requests, throwing <see cref="BusyPoolException"/> instances.
+        /// </para>
+        /// <para>
+        /// This setting should not be mistaken with <see cref="SetMaxSimultaneousRequestsPerConnectionTreshold"/>.
+        /// </para>
+        /// </summary>
+        public PoolingOptions SetMaxRequestsPerConnection(int value)
+        {
+            _maxRequestsPerConnection = value;
             return this;
         }
 
