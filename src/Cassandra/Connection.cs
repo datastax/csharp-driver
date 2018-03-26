@@ -682,18 +682,9 @@ namespace Cassandra
         /// </summary>
         private Task<Response> Startup()
         {
-            var startupOptions = new Dictionary<string, string>();
-            startupOptions.Add("CQL_VERSION", "3.0.0");
-            if (Options.Compression == CompressionType.LZ4)
-            {
-                startupOptions.Add("COMPRESSION", "lz4");
-            }
-            else if (Options.Compression == CompressionType.Snappy)
-            {
-                startupOptions.Add("COMPRESSION", "snappy");
-            }
-            // Use the Connect timeout for the startup request timeout 
-            return Send(new StartupRequest(startupOptions), Configuration.SocketOptions.ConnectTimeoutMillis);
+            var request = new StartupRequest(Options.Compression, Options.NoCompact);
+            // Use the Connect timeout for the startup request timeout
+            return Send(request, Configuration.SocketOptions.ConnectTimeoutMillis);
         }
 
         /// <summary>

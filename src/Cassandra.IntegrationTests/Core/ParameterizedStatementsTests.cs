@@ -31,19 +31,31 @@ namespace Cassandra.IntegrationTests.Core
         private const string AllTypesTableName = "all_types_table_queryparams";
         private const string TableTimestampCollections = "tbl_params_timestamp_collections";
         private const string TableTimeUuidCollections = "tbl_params_timeuuid_collections";
+        private const string TableCompactStorage = "tbl_compact";
+        private static readonly Version Version40 = new Version(4, 0);
 
         protected override string[] SetupQueries
         {
             get
             {
-                return new[]
+                var setupQueries = new List<string>
                 {
-                    string.Format(TestUtils.CreateTableAllTypes, AllTypesTableName),
-                    string.Format("CREATE TABLE {0} (id uuid PRIMARY KEY, list1 list<timeuuid>, set1 set<timeuuid>, " +
-                                  "map1 map<text, timeuuid>)", TableTimeUuidCollections),
-                    string.Format("CREATE TABLE {0} (id uuid PRIMARY KEY, list1 list<timestamp>, set1 set<timestamp>, " +
-                                  "map1 map<text, timestamp>)", TableTimestampCollections)
+                    { string.Format(TestUtils.CreateTableAllTypes, AllTypesTableName) },
+                    { $"CREATE TABLE {TableTimeUuidCollections} (id uuid PRIMARY KEY, list1 list<timeuuid>, " +
+                      $"set1 set<timeuuid>, map1 map<text, timeuuid>)"
+                    },
+                    { $"CREATE TABLE {TableTimestampCollections} (id uuid PRIMARY KEY, list1 list<timestamp>, " +
+                      $"set1 set<timestamp>, map1 map<text, timestamp>)"
+                    }
                 };
+
+                if (CassandraVersion < Version40)
+                {
+                    setupQueries.Add($"CREATE TABLE {TableCompactStorage} (key blob PRIMARY KEY, bar int, baz uuid)" +
+                                     $" WITH COMPACT STORAGE");
+                }
+
+                return setupQueries.ToArray();
             }
         }
 
@@ -501,6 +513,46 @@ namespace Cassandra.IntegrationTests.Core
             var row = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
             Assert.AreEqual(values["my_INT"], row.GetValue<int>("int_sample"));
             Assert.AreEqual(values["MY_text"], row.GetValue<string>("text_sample"));
+        }
+
+        [Test]
+        [TestCassandraVersion(3, 11)]
+        public void SimpleStatement_With_No_Compact_Enabled_Should_Reveal_Non_Schema_Columns()
+        {
+            if (CassandraVersion >= Version40)
+            {
+                Assert.Ignore("COMPACT STORAGE is only supported by C* versions prior to 4.0");
+            }
+
+            var builder = Cluster.Builder().WithNoCompact().AddContactPoint(TestCluster.InitialContactPoint);
+            using (var cluster = builder.Build())
+            {
+                var session = cluster.Connect(KeyspaceName);
+                var rs = session.Execute($"SELECT * FROM {TableCompactStorage} LIMIT 1");
+                Assert.AreEqual(5, rs.Columns.Length);
+                Assert.NotNull(rs.Columns.FirstOrDefault(c => c.Name == "column1"));
+                Assert.NotNull(rs.Columns.FirstOrDefault(c => c.Name == "value"));
+            }
+        }
+
+        [Test]
+        [TestCassandraVersion(3, 11)]
+        public void SimpleStatement_With_No_Compact_Disabled_Should_Not_Reveal_Non_Schema_Columns()
+        {
+            if (CassandraVersion >= Version40)
+            {
+                Assert.Ignore("COMPACT STORAGE is only supported by C* versions prior to 4.0");
+            }
+
+            var builder = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint);
+            using (var cluster = builder.Build())
+            {
+                var session = cluster.Connect(KeyspaceName);
+                var rs = session.Execute($"SELECT * FROM {TableCompactStorage} LIMIT 1");
+                Assert.AreEqual(3, rs.Columns.Length);
+                Assert.Null(rs.Columns.FirstOrDefault(c => c.Name == "column1"));
+                Assert.Null(rs.Columns.FirstOrDefault(c => c.Name == "value"));
+            }
         }
 
         [Test]
