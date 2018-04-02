@@ -293,12 +293,21 @@ namespace Dse.Requests
                 triedHosts[host.Address] = ex;
                 session.MarkAsDownAndScheduleReconnection(host, hostPool);
             }
+            catch (BusyPoolException ex)
+            {
+                Logger.Warning(
+                    "All connections to host {0} are busy ({1} requests are in-flight on {2} connection(s))," +
+                    " consider lowering the pressure or make more nodes available to the client", host.Address,
+                    ex.MaxRequestsPerConnection, ex.ConnectionLength);
+                triedHosts[host.Address] = ex;
+            }
             catch (Exception ex)
             {
                 // Probably a SocketException/AuthenticationException, move along
                 Logger.Error("Exception while trying borrow a connection from a pool", ex);
                 triedHosts[host.Address] = ex;
             }
+
             if (c == null)
             {
                 return null;

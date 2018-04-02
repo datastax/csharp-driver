@@ -11,7 +11,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Linq.LinqMethods
 {
-    [Category("short"), TestCassandraVersion(3, 10)]
+    [Category("short"), TestDseVersion(5, 1)]
     public class GroupByTests : SharedClusterTest
     {
         protected override string[] SetupQueries

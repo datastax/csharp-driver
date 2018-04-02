@@ -451,6 +451,24 @@ namespace Dse
         }
 
         /// <summary>
+        /// Enables the NO_COMPACT startup option.
+        /// <para>
+        /// When this option is set, <c>SELECT</c>, <c>UPDATE</c>, <c>DELETE</c>, and <c>BATCH</c> statements
+        /// on <c>COMPACT STORAGE</c> tables function in "compatibility" mode which allows seeing these tables
+        /// as if they were "regular" CQL tables.
+        /// </para>
+        /// <para>
+        /// This option only affects interactions with tables using <c>COMPACT STORAGE</c> and it is only
+        /// supported by DSE 5.1 and 6.0+.
+        /// </para>
+        /// </summary>
+        public new DseClusterBuilder WithNoCompact()
+        {
+            base.WithNoCompact();
+            return this;
+        }
+
+        /// <summary>
         /// Sets the <see cref="TypeSerializer{T}"/> to be used, replacing the default ones.
         /// </summary>
         /// <returns>this instance</returns>
@@ -471,10 +489,8 @@ namespace Dse
         public new DseCluster Build()
         {
             var dseAssembly = typeof(DseCluster).GetTypeInfo().Assembly;
-            var cassandraAssembly = typeof(ISession).GetTypeInfo().Assembly;
-            Logger.Info("Using DataStax C# DSE driver v{0} (core driver v{1})", 
-                FileVersionInfo.GetVersionInfo(dseAssembly.Location).FileVersion,
-                FileVersionInfo.GetVersionInfo(cassandraAssembly.Location).FileVersion);
+            Logger.Info("Using DataStax C# DSE driver v{0}",
+                FileVersionInfo.GetVersionInfo(dseAssembly.Location).FileVersion);
             var typeSerializerDefinitions = _typeSerializerDefinitions ?? new TypeSerializerDefinitions();
             typeSerializerDefinitions
                 .Define(new DateRangeSerializer())

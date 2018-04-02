@@ -26,7 +26,7 @@ namespace Dse.Test.Integration.TestClusterManagement
         private static readonly Version Version2Dot1 = new Version(2, 1);
         private static readonly Version Version2Dot2 = new Version(2, 2);
         private static readonly Version Version3Dot0 = new Version(3, 0);
-        private static readonly Version Version3Dot10 = new Version(3, 10);
+        private static readonly Version Version3Dot11 = new Version(3, 11);
         private static readonly Version Version4Dot0 = new Version(4, 0);
         private static readonly Version Version4Dot6 = new Version(4, 6);
         private static readonly Version Version4Dot7 = new Version(4, 7);
@@ -60,8 +60,8 @@ namespace Dse.Test.Integration.TestClusterManagement
                 }
                 if (dseVersion < Version6Dot0)
                 {
-                    // C* 3.10
-                    return Version3Dot10;
+                    // C* 3.11
+                    return Version3Dot11;
                 }
                 // C* 4.0
                 return Version4Dot0;
@@ -141,9 +141,9 @@ namespace Dse.Test.Integration.TestClusterManagement
                 // C* 2.1 => DSE 4.8
                 return Version4Dot8;
             }
-            if (cassandraVersion < Version3Dot10)
+            if (cassandraVersion < Version3Dot11)
             {
-                // C* 3.0 => DSE 5.0
+                // C* 3.11 => DSE 5.0
                 return Version5Dot0;
             }
             if (cassandraVersion < Version4Dot0)
