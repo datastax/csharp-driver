@@ -7,9 +7,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Text;
-using System.Threading;
 using Dse.Requests;
 
 namespace Dse
@@ -93,24 +91,8 @@ namespace Dse
             }
         }
 
-        /// <summary>
-        /// Returns the keyspace this query operates on.
-        /// <para>
-        /// Note that not all <see cref="Statement"/> implementations specify on which keyspace they operate on
-        /// so this method can return <c>null</c>.
-        /// </para>
-        /// <para>
-        /// The keyspace returned is used as a hint for token-aware routing.
-        /// </para>
-        /// </summary>
-        /// <remarks>
-        /// Consider using a <see cref="ISession"/> connected to single keyspace using 
-        /// <see cref="ICluster.Connect(string)"/>.
-        /// </remarks>
-        public virtual string Keyspace
-        {
-            get { return null; }
-        }
+        /// <inheritdoc />
+        public abstract string Keyspace { get; }
 
         protected Statement()
         {

@@ -811,6 +811,92 @@ namespace Dse.Test.Integration.Core
             }
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        [TestCassandraVersion(4, 0)]
+        public void Session_Prepare_With_Keyspace_Defined_On_Protocol_Greater_Than_4(bool usePayload)
+        {
+            Assert.AreNotEqual("system", Session.Keyspace);
+            PreparedStatement ps;
+            if (!usePayload)
+            {
+                ps = Session.Prepare("SELECT key FROM local", "system");
+            }
+            else
+            {
+                ps = Session.Prepare("SELECT key FROM local", "system",
+                    new Dictionary<string, byte[]> {{"a", new byte[] {0, 0, 0, 1}}});
+            }
+            Assert.AreEqual("system", ps.Keyspace);
+
+            for (var i = 0; i < Cluster.AllHosts().Count; i++)
+            {
+                var boundStatement = ps.Bind();
+                Assert.AreEqual("system", boundStatement.Keyspace);
+                var row = Session.Execute(boundStatement).First();
+                Assert.NotNull(row.GetValue<string>("key"));
+            }
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        [TestCassandraVersion(4, 0)]
+        public async Task Session_PrepareAsync_With_Keyspace_Defined_On_Protocol_Greater_Than_4(bool usePayload)
+        {
+            Assert.AreNotEqual("system", Session.Keyspace);
+            PreparedStatement ps;
+            if (!usePayload)
+            {
+                ps = await Session.PrepareAsync("SELECT key FROM local", "system");
+            }
+            else
+            {
+                ps = await Session.PrepareAsync("SELECT key FROM local", "system",
+                    new Dictionary<string, byte[]> {{"a", new byte[] {0, 0, 0, 1}}});
+            }
+            Assert.AreEqual("system", ps.Keyspace);
+
+            await TestHelper.TimesLimit(async () =>
+            {
+                var boundStatement = ps.Bind();
+                Assert.AreEqual("system", boundStatement.Keyspace);
+                var rs = await Session.ExecuteAsync(boundStatement);
+                Assert.NotNull(rs.First().GetValue<string>("key"));
+                return rs;
+            }, Cluster.AllHosts().Count, Cluster.AllHosts().Count);
+        }
+
+        [Test]
+        [TestCassandraVersion(4, 0)]
+        public void Session_Prepare_With_Keyspace_Defined_On_Protocol_V4()
+        {
+            TestKeyspaceInPrepareNotSupported(true);
+        }
+
+        [Test]
+        [TestCassandraVersion(4, 0, Comparison.LessThan)]
+        public void Session_Prepare_With_Keyspace_Defined_On_Previuos_Cassandra_Versions()
+        {
+            TestKeyspaceInPrepareNotSupported(false);
+        }
+
+        private void TestKeyspaceInPrepareNotSupported(bool specifyProtocol)
+        {
+            var builder = Cluster.Builder().AddContactPoint(TestClusterManager.InitialContactPoint);
+            if (specifyProtocol)
+            {
+                builder.WithMaxProtocolVersion(ProtocolVersion.V4);
+            }
+
+            using (var cluster = builder.Build())
+            {
+                var session = cluster.Connect(KeyspaceName);
+
+                // Specifying the keyspace on lower protocol versions is explicitly not supported
+                Assert.Throws<NotSupportedException>(() => session.Prepare("SELECT key FROM local", "system"));
+            }
+        }
+
         [Test]
         [TestCassandraVersion(2, 0)]
         public void Prepared_With_Composite_Routing_Key()

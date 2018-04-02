@@ -362,15 +362,19 @@ namespace Dse.Requests
             {
                 throw new DriverInternalError("Expected Bound or batch statement");
             }
-            var request = new PrepareRequest(boundStatement.PreparedStatement.Cql);
-            if (boundStatement.PreparedStatement.Keyspace != null && _session.Keyspace != boundStatement.PreparedStatement.Keyspace)
+
+            var preparedKeyspace = boundStatement.PreparedStatement.Keyspace;
+            var request = new PrepareRequest(boundStatement.PreparedStatement.Cql, preparedKeyspace);
+
+            if (!_parent.Serializer.ProtocolVersion.SupportsKeyspaceInRequest() &&
+                preparedKeyspace != null && _session.Keyspace != preparedKeyspace)
             {
                 Logger.Warning(String.Format("The statement was prepared using another keyspace, changing the keyspace temporarily to" +
                                               " {0} and back to {1}. Use keyspace and table identifiers in your queries and avoid switching keyspaces.",
-                                              boundStatement.PreparedStatement.Keyspace, _session.Keyspace));
+                    preparedKeyspace, _session.Keyspace));
 
                 _connection
-                    .SetKeyspace(boundStatement.PreparedStatement.Keyspace)
+                    .SetKeyspace(preparedKeyspace)
                     .ContinueSync(_ =>
                     {
                         Send(request, ReprepareResponseHandler);

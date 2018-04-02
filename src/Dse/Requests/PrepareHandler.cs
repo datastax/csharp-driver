@@ -88,9 +88,9 @@ namespace Dse.Requests
             var tasks = new List<Task>(preparedQueries.Count);
             using (var semaphore = new SemaphoreSlim(64, 64))
             {
-                foreach (var query in preparedQueries.Select(ps => ps.Cql))
+                foreach (var ps in preparedQueries)
                 {
-                    var request = new PrepareRequest(query);
+                    var request = new PrepareRequest(ps.Cql, ps.Keyspace);
                     await semaphore.WaitAsync().ConfigureAwait(false);
 
                     async Task SendSingle()
@@ -140,8 +140,9 @@ namespace Dse.Requests
                 triedHosts[connection.Address] = ex;
                 return await Prepare(request, session, triedHosts).ConfigureAwait(false);
             }
-            return await GetPreparedStatement(response, request, connection.Keyspace, session.Cluster)
-                .ConfigureAwait(false);
+
+            return await GetPreparedStatement(response, request, request.Keyspace ?? connection.Keyspace,
+                session.Cluster).ConfigureAwait(false);
         }
 
         /// <summary>

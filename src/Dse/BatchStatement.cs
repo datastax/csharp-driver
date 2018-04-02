@@ -23,6 +23,7 @@ namespace Dse
         private BatchType _batchType = BatchType.Logged;
         private RoutingKey _routingKey;
         private object[] _routingValues;
+        private string _keyspace;
 
         /// <summary>
         /// Gets the batch type
@@ -77,6 +78,8 @@ namespace Dse
                     .ToArray());
             }
         }
+
+        public override string Keyspace => _keyspace;
 
         internal Serializer Serializer { get; set; }
 
@@ -144,6 +147,17 @@ namespace Dse
         internal override IQueryRequest CreateBatchRequest(ProtocolVersion protocolVersion)
         {
             throw new InvalidOperationException("Batches cannot be included recursively");
+        }
+
+        /// <summary>
+        /// Sets the keyspace this batch operates on. The keyspace should only be set when the statements in this
+        /// batch apply to a different keyspace to the logged keyspace of the <see cref="ISession"/>.
+        /// </summary>
+        /// <param name="name">The keyspace name.</param>
+        public BatchStatement SetKeyspace(string name)
+        {
+            _keyspace = name;
+            return this;
         }
     }
 }

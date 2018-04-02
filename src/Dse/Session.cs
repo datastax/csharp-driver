@@ -295,7 +295,7 @@ namespace Dse
 
         public PreparedStatement Prepare(string cqlQuery)
         {
-            return Prepare(cqlQuery, null);
+            return Prepare(cqlQuery, null, null);
         }
 
         public PreparedStatement Prepare(string cqlQuery, IDictionary<string, byte[]> customPayload)
@@ -306,18 +306,49 @@ namespace Dse
         }
 
         /// <inheritdoc />
-        public Task<PreparedStatement> PrepareAsync(string query)
+        public PreparedStatement Prepare(string cqlQuery, string keyspace)
         {
-            return PrepareAsync(query, null);
+            return Prepare(cqlQuery, keyspace, null);
         }
 
         /// <inheritdoc />
-        public async Task<PreparedStatement> PrepareAsync(string query, IDictionary<string, byte[]> customPayload)
+        public PreparedStatement Prepare(string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload)
         {
-            var request = new PrepareRequest(query)
+            var task = PrepareAsync(cqlQuery, keyspace, customPayload);
+            TaskHelper.WaitToComplete(task, Configuration.ClientOptions.QueryAbortTimeout);
+            return task.Result;
+        }
+
+        /// <inheritdoc />
+        public Task<PreparedStatement> PrepareAsync(string query)
+        {
+            return PrepareAsync(query, null, null);
+        }
+
+        /// <inheritdoc />
+        public Task<PreparedStatement> PrepareAsync(string query, IDictionary<string, byte[]> customPayload)
+        {
+            return PrepareAsync(query, null, customPayload);
+        }
+
+        /// <inheritdoc />
+        public Task<PreparedStatement> PrepareAsync(string cqlQuery, string keyspace)
+        {
+            return PrepareAsync(cqlQuery, keyspace, null);
+        }
+
+        /// <inheritdoc />
+        public async Task<PreparedStatement> PrepareAsync(string cqlQuery, string keyspace,
+                                                    IDictionary<string, byte[]> customPayload)
+        {
+            if (!_serializer.ProtocolVersion.SupportsKeyspaceInRequest() && keyspace != null)
             {
-                Payload = customPayload
-            };
+                // Validate protocol version here and not at PrepareRequest level, as PrepareRequest can be issued
+                // in the background (prepare and retry, prepare on up, ...)
+                throw new NotSupportedException($"Protocol version {_serializer.ProtocolVersion} does not support" +
+                                                " setting the keyspace as part of the PREPARE request");
+            }
+            var request = new PrepareRequest(cqlQuery, keyspace, customPayload);
             return await PrepareHandler.Prepare(this, _serializer, request).ConfigureAwait(false);
         }
 

@@ -7,7 +7,7 @@
 
 using System.Linq;
 using Dse.Test.Integration.TestClusterManagement;
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -504,6 +504,31 @@ namespace Dse.Test.Integration.Core
             var row = Session.Execute(String.Format("SELECT * FROM {0} WHERE id = {1:D}", AllTypesTableName, id)).First();
             Assert.AreEqual(values["my_INT"], row.GetValue<int>("int_sample"));
             Assert.AreEqual(values["MY_text"], row.GetValue<string>("text_sample"));
+        }
+
+        [Test]
+        [TestCassandraVersion(4, 0)]
+        public void SimpleStatement_With_Keyspace_Defined_On_Protocol_Greater_Than_4()
+        {
+            if (Session.BinaryProtocolVersion <= 4)
+            {
+                Assert.Ignore("Test designed to run against C* 4.0 or above");
+            }
+            // It defaults to null
+            Assert.Null(new SimpleStatement("SELECT key FROM system.local").Keyspace);
+
+            var statement = new SimpleStatement("SELECT key FROM local").SetKeyspace("system");
+            Assert.AreEqual("system", statement.Keyspace);
+            Assert.AreEqual(1, Session.Execute(statement).Count());
+        }
+
+        [Test]
+        [TestCassandraVersion(4, 0, Comparison.LessThan)]
+        public void SimpleStatement_With_Keyspace_Defined_On_Lower_Protocol_Versions()
+        {
+            // It should fail as the keyspace from the session will be used
+            Assert.Throws<InvalidQueryException>(() =>
+                Session.Execute(new SimpleStatement("SELECT key FROM local").SetKeyspace("system")));
         }
 
         [Test]

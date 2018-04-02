@@ -169,6 +169,22 @@ namespace Dse
         PreparedStatement Prepare(string cqlQuery, IDictionary<string, byte[]> customPayload);
 
         /// <summary>
+        /// Prepares the query on the provided keyspace.
+        /// </summary>
+        /// <param name="cqlQuery">Cql query to prepare</param>
+        /// <param name="keyspace">The keyspace to prepare this query with</param>
+        PreparedStatement Prepare(string cqlQuery, string keyspace);
+
+        /// <summary>
+        /// Prepares the provided query string asynchronously on the provided keyspace, sending the custom payload
+        /// as part of the request.
+        /// </summary>
+        /// <param name="cqlQuery">Cql query to prepare</param>
+        /// <param name="keyspace">The keyspace to prepare this query with</param>
+        /// <param name="customPayload">Custom outgoing payload to send with the prepare request</param>
+        PreparedStatement Prepare(string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload);
+
+        /// <summary>
         /// Prepares the provided query string asynchronously.
         /// </summary>
         /// <param name="cqlQuery">cql query to prepare</param>
@@ -180,6 +196,24 @@ namespace Dse
         /// <param name="cqlQuery">cql query to prepare</param>
         /// <param name="customPayload">Custom outgoing payload to send with the prepare request</param>
         Task<PreparedStatement> PrepareAsync(string cqlQuery, IDictionary<string, byte[]> customPayload);
+
+        /// <summary>
+        /// Prepares the query asynchronously on the provided keyspace.
+        /// </summary>
+        /// <param name="cqlQuery">Cql query to prepare</param>
+        /// <param name="keyspace">The keyspace to prepare this query with</param>
+        Task<PreparedStatement> PrepareAsync(string cqlQuery, string keyspace);
+
+        /// <summary>
+        /// Prepares the provided query asynchronously on the provided keyspace, sending the custom payload
+        /// as part of the request.
+        /// </summary>
+        /// <param name="cqlQuery">Cql query to prepare</param>
+        /// <param name="keyspace">The keyspace to prepare this query with</param>
+        /// <param name="customPayload">Custom outgoing payload to send with the prepare request</param>
+        Task<PreparedStatement> PrepareAsync(string cqlQuery, string keyspace,
+                                             IDictionary<string, byte[]> customPayload);
+
         [Obsolete("Method deprecated. The driver internally waits for schema agreement when there is an schema change. See ProtocolOptions.MaxSchemaAgreementWaitSeconds for more info.")]
         void WaitForSchemaAgreement(RowSet rs);
         [Obsolete("Method deprecated. The driver internally waits for schema agreement when there is an schema change. See ProtocolOptions.MaxSchemaAgreementWaitSeconds for more info.")]

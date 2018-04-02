@@ -116,6 +116,13 @@ namespace Dse
         bool? IsIdempotent { get; }
 
         /// <summary>
+        /// Gets the keyspace this query operates on. The returned value should not be <c>null</c> only when the
+        /// <see cref="IStatement"/> applies to a different keyspace to the logged keyspace of the
+        /// <see cref="ISession"/>.
+        /// </summary>
+        string Keyspace { get; }
+
+        /// <summary>
         /// Allows this statement to be executed as a different user/role than the one 
         /// currently authenticated (a.k.a. proxy execution).
         /// </summary>

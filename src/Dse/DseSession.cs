@@ -212,6 +212,16 @@ namespace Dse
             return _coreSession.Prepare(cqlQuery, customPayload);
         }
 
+        public PreparedStatement Prepare(string cqlQuery, string keyspace)
+        {
+            return _coreSession.Prepare(cqlQuery, keyspace);
+        }
+
+        public PreparedStatement Prepare(string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload)
+        {
+            return _coreSession.Prepare(cqlQuery, keyspace, customPayload);
+        }
+
         public Task<PreparedStatement> PrepareAsync(string cqlQuery)
         {
             return _coreSession.PrepareAsync(cqlQuery);
@@ -220,6 +230,17 @@ namespace Dse
         public Task<PreparedStatement> PrepareAsync(string cqlQuery, IDictionary<string, byte[]> customPayload)
         {
             return _coreSession.PrepareAsync(cqlQuery, customPayload);
+        }
+
+        public Task<PreparedStatement> PrepareAsync(string cqlQuery, string keyspace)
+        {
+            return _coreSession.PrepareAsync(cqlQuery, keyspace);
+        }
+
+        public Task<PreparedStatement> PrepareAsync(string cqlQuery, string keyspace,
+                                                    IDictionary<string, byte[]> customPayload)
+        {
+            return _coreSession.PrepareAsync(cqlQuery, keyspace, customPayload);
         }
 
         public void WaitForSchemaAgreement(RowSet rs)

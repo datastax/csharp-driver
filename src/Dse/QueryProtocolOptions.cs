@@ -35,6 +35,7 @@ namespace Dse
         public readonly ConsistencyLevel SerialConsistency;
 
         private readonly long? _timestamp;
+        private readonly string _keyspace;
 
         public byte[] PagingState { get; set; }
         public object[] Values { get; private set; }
@@ -61,7 +62,8 @@ namespace Dse
                                       int pageSize,
                                       byte[] pagingState,
                                       ConsistencyLevel serialConsistency,
-                                      long? timestamp = null)
+                                      long? timestamp = null,
+                                      string keyspace = null)
         {
             Consistency = consistency;
             Values = values;
@@ -81,6 +83,7 @@ namespace Dse
             PagingState = pagingState;
             SerialConsistency = serialConsistency;
             _timestamp = timestamp;
+            _keyspace = keyspace;
         }
 
         internal static QueryProtocolOptions CreateFromQuery(ProtocolVersion protocolVersion, Statement query,
@@ -113,7 +116,8 @@ namespace Dse
                 pageSize,
                 query.PagingState,
                 queryOptions.GetSerialConsistencyLevelOrDefault(query),
-                timestamp);
+                timestamp,
+                query.Keyspace);
         }
 
         /// <summary>
@@ -125,7 +129,7 @@ namespace Dse
                 ConsistencyLevel.One, statement.QueryValues, false, 0, null, ConsistencyLevel.Serial);
         }
 
-        private QueryFlags GetFlags(ProtocolVersion protocolVersion)
+        private QueryFlags GetFlags(ProtocolVersion protocolVersion, bool isPrepared)
         {
             QueryFlags flags = 0;
             if (Values != null && Values.Length > 0)
@@ -156,6 +160,14 @@ namespace Dse
             {
                 flags |= QueryFlags.WithNameForValues;
             }
+
+            if (!isPrepared && protocolVersion.SupportsKeyspaceInRequest() && _keyspace != null)
+            {
+                // Providing keyspace is only useful for QUERY requests.
+                // For EXECUTE requests, the keyspace will be the one from the prepared statement.
+                flags |= QueryFlags.WithKeyspace;
+            }
+
             return flags;
         }
 
@@ -165,7 +177,7 @@ namespace Dse
             //protocol v2: <query><consistency><flags>[<n><value_1>...<value_n>][<result_page_size>][<paging_state>][<serial_consistency>]
             //protocol v3: <query><consistency><flags>[<n>[name_1]<value_1>...[name_n]<value_n>][<result_page_size>][<paging_state>][<serial_consistency>][<timestamp>]
             var protocolVersion = wb.Serializer.ProtocolVersion;
-            var flags = GetFlags(protocolVersion);
+            var flags = GetFlags(protocolVersion, isPrepared);
 
             if (protocolVersion != ProtocolVersion.V1)
             {
@@ -223,6 +235,11 @@ namespace Dse
                 // ReSharper disable once PossibleInvalidOperationException
                 // Null check has been done when setting the flag
                 wb.WriteLong(_timestamp.Value);
+            }
+
+            if (flags.HasFlag(QueryFlags.WithKeyspace))
+            {
+                wb.WriteString(_keyspace);
             }
         }
     }

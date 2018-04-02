@@ -79,10 +79,8 @@ namespace Dse
         {
             _preparedStatement = statement;
             _routingKey = statement.RoutingKey;
-            if (statement.Metadata != null)
-            {
-                _keyspace = statement.Metadata.Keyspace;
-            }
+            _keyspace = statement.Keyspace ?? statement.Metadata?.Keyspace;
+
             SetConsistencyLevel(statement.ConsistencyLevel);
             if (statement.IsIdempotent != null)
             {

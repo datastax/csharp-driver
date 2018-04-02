@@ -298,6 +298,48 @@ namespace Dse.Test.Integration.Core
         }
 
         [Test]
+        [TestCassandraVersion(4, 0)]
+        public void BatchStatement_With_Keyspace_Defined_On_Protocol_Greater_Than_4()
+        {
+            if (Session.BinaryProtocolVersion <= 4)
+            {
+                Assert.Ignore("Test designed to run against C* 4.0 or above");
+            }
+
+            using (var cluster = Cluster.Builder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
+            {
+                var session = cluster.Connect("system");
+                var value = new Random().Next();
+                var query = new SimpleStatement($@"INSERT INTO {_tableName} (id, number) VALUES (?, ?)", -1000, value);
+
+                // Use the keyspace specified in the BatchStatement
+                var batchStatement = new BatchStatement().Add(query).SetKeyspace(KeyspaceName);
+                Assert.AreEqual(KeyspaceName, batchStatement.Keyspace);
+                session.Execute(batchStatement);
+                var selectStatement = new SimpleStatement(
+                    $"SELECT number FROM {KeyspaceName}.{_tableName} WHERE id = ?", -1000);
+                var row = session.Execute(selectStatement).First();
+                Assert.AreEqual(value, row.GetValue<int>("number"));
+            }
+        }
+
+        [Test]
+        [TestCassandraVersion(4, 0, Comparison.LessThan)]
+        public void BatchStatement_With_Keyspace_Defined_On_Lower_Protocol_Versions()
+        {
+            using (var cluster = Cluster.Builder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
+            {
+                var session = cluster.Connect("system");
+                var query = new SimpleStatement(
+                    $@"INSERT INTO {_tableName} (id, label, number) VALUES (?, ?, ?)", -1000, "label", 1);
+
+                // It should fail as the keyspace from the session will be used
+                Assert.Throws<InvalidQueryException>(() =>
+                    session.Execute(new BatchStatement().Add(query).SetKeyspace(KeyspaceName)));
+            }
+        }
+
+        [Test]
         [TestCassandraVersion(2, 0, Comparison.Equal)]
         public void Batch_PreparedStatements_FlagsNotSupportedInC2_0()
         {

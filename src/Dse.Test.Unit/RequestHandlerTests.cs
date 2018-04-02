@@ -13,6 +13,7 @@ using Dse.Requests;
 using Dse.Serialization;
 using NUnit.Framework;
 using QueryFlags = Dse.QueryProtocolOptions.QueryFlags;
+using PrepareFlags = Dse.Requests.PrepareRequest.PrepareFlags;
 
 namespace Dse.Test.Unit
 {
@@ -411,6 +412,56 @@ namespace Dse.Test.Unit
         }
 
         [Test]
+        public void GetRequest_Batch_With_Provided_Keyspace()
+        {
+            const string keyspace = "test_keyspace";
+            var batch = new BatchStatement();
+            batch.Add(new SimpleStatement("QUERY")).SetKeyspace(keyspace);
+
+            var request = RequestHandler.GetRequest(batch, Serializer, new Configuration());
+            var bodyBuffer = GetBodyBuffer(request);
+
+            // The batch request is composed by:
+            // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>][<keyspace>]
+            var offset = 1 + 2 + 1;
+            var queryLength = BeConverter.ToInt32(bodyBuffer, offset);
+            Assert.AreEqual(5, queryLength);
+            // skip query, n_params and consistency
+            offset += 4 + queryLength + 2 + 2;
+            var flags = GetQueryFlags(bodyBuffer, ref offset);
+            Assert.True(flags.HasFlag(QueryFlags.WithKeyspace));
+
+            // Skip serial consistency and timestamp
+            offset +=
+                (flags.HasFlag(QueryFlags.WithSerialConsistency) ? 2 : 0) +
+                (flags.HasFlag(QueryFlags.WithDefaultTimestamp) ? 8 : 0);
+
+            var keyspaceLength = BeConverter.ToInt16(bodyBuffer, offset);
+            offset += 2;
+            Assert.AreEqual(keyspace, Encoding.UTF8.GetString(bodyBuffer, offset, keyspaceLength));
+        }
+
+        [Test]
+        public void GetRequest_Batch_With_Provided_Keyspace_On_Older_Protocol_Versions_Should_Ignore()
+        {
+            var batch = new BatchStatement();
+            batch.Add(new SimpleStatement("QUERY")).SetKeyspace("test_keyspace");
+            var serializer = new Serializer(ProtocolVersion.V3);
+            var request = RequestHandler.GetRequest(batch, serializer, new Configuration());
+            var bodyBuffer = GetBodyBuffer(request, serializer);
+
+            // The batch request is composed by:
+            // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>][<keyspace>]
+            var offset = 1 + 2 + 1;
+            var queryLength = BeConverter.ToInt32(bodyBuffer, offset);
+            Assert.AreEqual(5, queryLength);
+            // skip query, n_params and consistency
+            offset += 4 + queryLength + 2 + 2;
+            var flags = GetQueryFlags(bodyBuffer, ref offset);
+            Assert.False(flags.HasFlag(QueryFlags.WithKeyspace));
+        }
+
+        [Test]
         public void GetRequest_Batch_With_SerialConsistency_On_Older_Protocol_Versions_Should_Ignore()
         {
             const string query = "QUERY";
@@ -547,6 +598,47 @@ namespace Dse.Test.Unit
         }
 
         [Test]
+        public void GetRequest_Query_Should_Use_Provided_Keyspace()
+        {
+            const string keyspace = "my_keyspace";
+            var statement = new SimpleStatement("QUERY").SetKeyspace(keyspace);
+            var request = RequestHandler.GetRequest(statement, Serializer, new Configuration());
+            var bodyBuffer = GetBodyBuffer(request);
+
+            // The query request is composed by:
+            // <consistency><flags>[<n>[name_1]<value_1>...[name_n]<value_n>][<result_page_size>][<paging_state>]
+            //    [<serial_consistency>][<timestamp>][<keyspace>][continuous_paging_options]
+            // Skip the query and consistency (2)
+            var offset = 4 + statement.QueryString.Length + 2;
+            var flags = GetQueryFlags(bodyBuffer, ref offset);
+            offset +=
+                (flags.HasFlag(QueryFlags.WithDefaultTimestamp) ? 8 : 0) +
+                (flags.HasFlag(QueryFlags.PageSize) ? 4 : 0) +
+                (flags.HasFlag(QueryFlags.WithSerialConsistency) ? 2 : 0);
+
+            var keyspaceLength = BeConverter.ToInt16(bodyBuffer, offset);
+            offset += 2;
+            Assert.AreEqual(keyspace, Encoding.UTF8.GetString(bodyBuffer, offset, keyspaceLength));
+        }
+
+        [Test]
+        public void GetRequest_Query_With_Keyspace_On_Lower_Protocol_Version_Should_Ignore_Keyspace()
+        {
+            var statement = new SimpleStatement("QUERY").SetKeyspace("my_keyspace");
+            var serializer = new Serializer(ProtocolVersion.V3);
+            var request = RequestHandler.GetRequest(statement, serializer, new Configuration());
+            var bodyBuffer = GetBodyBuffer(request, serializer);
+
+            // The query request is composed by:
+            // <consistency><flags>[<n>[name_1]<value_1>...[name_n]<value_n>][<result_page_size>][<paging_state>]
+            //    [<serial_consistency>][<timestamp>][<keyspace>][continuous_paging_options]
+            // Skip the query and consistency (2)
+            var offset = 4 + statement.QueryString.Length + 2;
+            var flags = GetQueryFlags(bodyBuffer, ref offset);
+            Assert.False(flags.HasFlag(QueryFlags.WithKeyspace));
+        }
+
+        [Test]
         public void GetRequest_Query_Should_Use_Serial_Consistency_From_QueryOptions()
         {
             const ConsistencyLevel expectedSerialConsistencyLevel = ConsistencyLevel.LocalSerial;
@@ -569,6 +661,42 @@ namespace Dse.Test.Unit
             // Skip result_page_size (4)
             offset += 4;
             Assert.That((ConsistencyLevel) BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
+        }
+
+        [Test]
+        public void Prepare_With_Keyspace_Should_Send_Keyspace_And_Flag()
+        {
+            const string query = "QUERY1";
+            const string keyspace = "ks1";
+            var request = new PrepareRequest(query, keyspace);
+
+            // The request is composed by: <query><flags>[<keyspace>]
+            var buffer = GetBodyBuffer(request);
+
+            var queryLength = BeConverter.ToInt32(buffer);
+            Assert.AreEqual(query.Length, queryLength);
+            var offset = 4 + queryLength;
+            var flags = (PrepareFlags) BeConverter.ToInt32(buffer, offset);
+            offset += 4;
+            Assert.True(flags.HasFlag(PrepareFlags.WithKeyspace));
+            var keyspaceLength = BeConverter.ToInt16(buffer, offset);
+            offset += 2;
+            Assert.AreEqual(keyspace.Length, keyspaceLength);
+            Assert.AreEqual(keyspace, Encoding.UTF8.GetString(buffer.Skip(offset).Take(keyspaceLength).ToArray()));
+        }
+
+        [Test]
+        public void Prepare_With_Keyspace_On_Lower_Protocol_Version_Should_Ignore_Keyspace()
+        {
+            const string query = "SELECT col1, col2 FROM table1";
+            var request = new PrepareRequest(query, "my_keyspace");
+
+            // The request only contains the query
+            var buffer = GetBodyBuffer(request, new Serializer(ProtocolVersion.V2));
+
+            var queryLength = BeConverter.ToInt32(buffer);
+            Assert.AreEqual(query.Length, queryLength);
+            Assert.AreEqual(4 + queryLength, buffer.Length);
         }
 
         private static byte[] GetBodyBuffer(IRequest request, Serializer serializer = null)

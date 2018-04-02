@@ -219,9 +219,11 @@ namespace Dse
         }
 
         /// <summary>
-        /// Sets the keyspace of this <see cref="SimpleStatement"/> to be used as a hint for token-aware routing.
+        /// Sets the keyspace this Statement operates on. The keyspace should only be set when the
+        /// <see cref="IStatement"/> applies to a different keyspace to the logged keyspace of the
+        /// <see cref="ISession"/>.
         /// </summary>
-        /// <param name="name">The keyspace name</param>
+        /// <param name="name">The keyspace name.</param>
         public SimpleStatement SetKeyspace(string name)
         {
             _keyspace = name;

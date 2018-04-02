@@ -23,6 +23,7 @@ namespace Dse.Requests
         private readonly BatchType _type;
         private readonly long? _timestamp;
         private readonly ConsistencyLevel _serialConsistency;
+        private readonly string _keyspace;
 
         public ConsistencyLevel Consistency { get; set; }
 
@@ -51,6 +52,12 @@ namespace Dse.Requests
             if (_timestamp != null)
             {
                 _batchFlags |= QueryProtocolOptions.QueryFlags.WithDefaultTimestamp;   
+            }
+
+            if (protocolVersion.SupportsKeyspaceInRequest() && statement.Keyspace != null)
+            {
+                _batchFlags |= QueryProtocolOptions.QueryFlags.WithKeyspace;
+                _keyspace = statement.Keyspace;
             }
         }
 
@@ -117,6 +124,11 @@ namespace Dse.Requests
                 if (_timestamp != null)
                 {
                     wb.WriteLong(_timestamp.Value);
+                }
+
+                if (_keyspace != null)
+                {
+                    wb.WriteString(_keyspace);
                 }
             }
             return wb.Close();
