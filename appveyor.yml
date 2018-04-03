@@ -1,6 +1,9 @@
 version: "{branch}-{build}"
 skip_tags: true
 shallow_clone: true
+cache:
+  - C:\ProgramData\chocolatey\bin -> appveyor.yml
+  - C:\ProgramData\chocolatey\lib -> appveyor.yml
 image: Visual Studio 2017
 environment:
   appveyor_build_worker_cloud: gce
@@ -13,6 +16,9 @@ environment:
       CI_TYPE: UNIT
       PROJECT: Dse.Test.Unit
 
+install:
+  - ps: choco install -y xmlstarlet
+
 build_script:
   - ps: dotnet restore src
   - ps: dotnet build src\Dse.sln -c Release
@@ -22,3 +28,8 @@ test_script:
 on_failure:
   - ps: |
       Write-Host "Build failed"
+on_finish:
+  - ps: |
+      xml tr tools\trx-to-junit.xslt TestResult.xml > ResultsJUnit.xml
+      $wc = New-Object 'System.Net.WebClient'
+      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\ResultsJUnit.xml))
