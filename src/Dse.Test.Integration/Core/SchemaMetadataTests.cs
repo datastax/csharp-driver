@@ -6,6 +6,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Dse.Test.Integration.TestClusterManagement;
@@ -18,6 +19,28 @@ namespace Dse.Test.Integration.Core
     [TestFixture, Category("short")]
     public class SchemaMetadataTests : SharedClusterTest
     {
+        protected override string[] SetupQueries
+        {
+            get
+            {
+                var queries = new List<string>();
+                queries.Add("CREATE TABLE tbl_default_options (a int PRIMARY KEY, b text)");
+
+                if (DseVersion >= new Version(6, 0))
+                {
+                    queries.Add("CREATE TABLE tbl_nodesync_true (a int PRIMARY KEY, b text) " +
+                                "WITH nodesync={'enabled': 'true', 'deadline_target_sec': '86400'}");
+                    queries.Add("CREATE TABLE tbl_nodesync_false (a int PRIMARY KEY, b text) " +
+                                "WITH nodesync={'enabled': 'false'}");
+                    queries.Add("CREATE MATERIALIZED VIEW view_nodesync AS SELECT b FROM tbl_nodesync_true " +
+                                "WHERE a > 0 AND b IS NOT NULL PRIMARY KEY (b, a) " +
+                                "WITH nodesync = { 'enabled': 'true', 'deadline_target_sec': '86400'}");
+                }
+
+                return queries.ToArray();
+            }
+        }
+
         [Test]
         public void KeyspacesMetadataAvailableAtStartup()
         {
@@ -608,6 +631,40 @@ namespace Dse.Test.Integration.Core
             var tableMeta = cluster.Metadata.GetKeyspace(keyspaceName).GetTableMetadata(tableName);
             Assert.AreEqual(new[] { "description", "price" }, tableMeta.ClusteringKeys.Select(c => c.Item1.Name));
             Assert.AreEqual(new[] { SortOrder.Ascending, SortOrder.Descending }, tableMeta.ClusteringKeys.Select(c => c.Item2));
+        }
+
+        [Test]
+        [TestDseVersion(6, 0)]
+        public void Should_Retrieve_The_Nodesync_Information_Of_A_Table_Metadata()
+        {
+            var items = new[]
+            {
+                Tuple.Create("tbl_nodesync_true", new Dictionary<string, string>
+                {
+                    { "enabled", "true" },
+                    { "deadline_target_sec", "86400" }
+                }),
+                Tuple.Create("tbl_nodesync_false", new Dictionary<string, string> { { "enabled", "false" } }),
+                Tuple.Create("tbl_default_options", (Dictionary<string, string>)null)
+            };
+
+            foreach (var tuple in items)
+            {
+                var table = Cluster.Metadata.GetTable(KeyspaceName, tuple.Item1);
+                Assert.AreEqual(tuple.Item2, table.Options.NodeSync);
+            }
+        }
+
+        [Test]
+        [TestDseVersion(6, 0)]
+        public void Should_Retrieve_The_Nodesync_Information_Of_A_Materialized_View()
+        {
+            var mv = Cluster.Metadata.GetMaterializedView(KeyspaceName, "view_nodesync");
+            Assert.AreEqual(new Dictionary<string, string>
+            {
+                { "enabled", "true" },
+                { "deadline_target_sec", "86400" }
+            }, mv.Options.NodeSync);
         }
     }
 }

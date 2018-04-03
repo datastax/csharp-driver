@@ -139,6 +139,15 @@ namespace Dse
             get { return compressionParams; }
         }
 
+        /// <summary>
+        /// Represents the nodesync options for this table.
+        /// <para>
+        /// For DSE versions prior to 6.0.0, this method always returns <c>null</c>.  If nodesync
+        /// was not explicitly configured for this table this method will also return <c>null</c>.
+        /// </para>
+        /// </summary>
+        public IDictionary<string, string> NodeSync { get; internal set; }
+
         public TableOptions()
         {
         }
