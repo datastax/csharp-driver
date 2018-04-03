@@ -340,21 +340,62 @@ namespace Dse.Test.Unit.Graph
             Assert.That(coreStatement.ReadTimeoutMillis, Is.EqualTo(int.MaxValue));
         }
 
+        [Test]
+        public async Task Should_Consider_Bulk_In_Gremlin_Response_With_GraphSON1()
+        {
+            var rs = GetRowSet(GetGremlin(1, 1), GetGremlin(2, 2), GetGremlin(3, 3), GetGremlin(4));
+            var coreSessionMock = GetCoreSessionMock(stmt => { }, rs);
+            var session = NewInstance(coreSessionMock.Object);
+            var graphStatement = new SimpleGraphStatement("g.V()").SetGraphLanguage(GraphOptions.DefaultLanguage);
+            var result = await session.ExecuteGraphAsync(graphStatement);
+            Assert.That(result.To<int>(), Is.EquivalentTo(new [] { 1, 2, 2, 3, 3, 3, 4 }));
+        }
+
+        [Test]
+        public async Task Should_Consider_Bulk_In_Gremlin_Response_With_GraphSON2()
+        {
+            var rs = GetRowSet(GetGremlin(1),
+                               GetGremlin(2, "{\"@type\": \"g:Int64\", \"@value\": 2}"),
+                               GetGremlin(3, "{\"@type\": \"g:Int64\", \"@value\": 3}"),
+                               GetGremlin(10, "{\"@type\": \"g:Int64\", \"@value\": 1}"));
+            var coreSessionMock = GetCoreSessionMock(stmt => { }, rs);
+            var session = NewInstance(coreSessionMock.Object);
+            var graphStatement = new SimpleGraphStatement("g.V()").SetGraphLanguage(GraphOptions.GraphSON2Language);
+            var result = await session.ExecuteGraphAsync(graphStatement);
+            Assert.That(result.To<int>(), Is.EquivalentTo(new [] { 1, 2, 2, 3, 3, 3, 10 }));
+        }
+
         private static byte[] ToBuffer(long value)
         {
             return Serialization.TypeSerializer.PrimitiveLongSerializer.Serialize(4, value);
         }
 
-        private static Mock<ISession> GetCoreSessionMock(Action<SimpleStatement> executeCallback)
+        private static Mock<ISession> GetCoreSessionMock(Action<SimpleStatement> executeCallback, RowSet rs = null)
         {
             var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
             coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
-                .Returns(TaskOf(new RowSet()))
+                .Returns(TaskOf(rs ?? new RowSet()))
                 .Callback(executeCallback)
                 .Verifiable();
             coreSessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
             return coreSessionMock;
-        } 
+        }
+
+        private static RowSet GetRowSet(params string[] gremlin)
+        {
+            var rows = gremlin.Select(g => new[] {new KeyValuePair<string, object>("gremlin", g)}).ToArray();
+            return TestHelper.CreateRowSet(rows);
+        }
+
+        private static string GetGremlin(object result, object bulk = null)
+        {
+            if (bulk == null)
+            {
+                // Simulate bulk property not present
+                return $"{{\"result\": {result}}}";
+            }
+            return $"{{\"result\": {result}, \"bulk\": {bulk}}}";
+        }
     }
 }
 #endif

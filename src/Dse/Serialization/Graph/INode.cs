@@ -35,6 +35,12 @@ namespace Dse.Serialization.Graph
         bool IsScalar { get; }
 
         /// <summary>
+        /// Gets the number of identical results represented by this instance.
+        /// It represents the number of times it should be repeated. Defaults to 1.
+        /// </summary>
+        long Bulk { get; }
+
+        /// <summary>
         /// Gets the typed value of a property of the result.
         /// </summary>
         T Get<T>(string propertyName, bool throwIfNotFound);

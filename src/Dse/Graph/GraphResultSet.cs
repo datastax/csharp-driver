@@ -21,10 +21,6 @@ namespace Dse.Graph
     /// </summary>
     public class GraphResultSet : IEnumerable<GraphNode>
     {
-        private static readonly JsonSerializer GraphSON1Serializer =
-            JsonSerializer.CreateDefault(GraphSON1ContractResolver.Settings);
-        private static readonly JsonSerializer GraphSON2Serializer =
-            JsonSerializer.CreateDefault(GraphSON2ContractResolver.Settings);
         private readonly RowSet _rs;
         private readonly Func<Row, GraphNode> _factory;
         
@@ -62,7 +58,21 @@ namespace Dse.Graph
         /// </summary>
         public IEnumerator<GraphNode> GetEnumerator()
         {
-            return _rs.Select(_factory).GetEnumerator();
+            return YieldNodes().GetEnumerator();
+        }
+
+        /// <summary>
+        /// Yields the nodes considering "bulk" property, by returning bulked results more than once.
+        /// </summary>
+        private IEnumerable<GraphNode> YieldNodes()
+        {
+            foreach (var node in _rs.Select(_factory))
+            {
+                for (var i = 0; i < node.Bulk; i++)
+                {
+                    yield return node;
+                }
+            }
         }
 
         /// <summary>

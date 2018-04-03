@@ -879,6 +879,25 @@ namespace Dse.Test.Integration.Graph
             Assert.True(results.Any(prop => prop.Label == "name" && prop.Value.ToString() == "marko"));
         }
 
+        [Test]
+        public async Task With_GraphSON2_It_Should_Parse_Bulked_Results()
+        {
+            var statement = new SimpleGraphStatement("{\"@type\": \"g:Bytecode\", \"@value\": {" +
+                                                     "  \"step\": [[\"V\"], [\"hasLabel\", \"person\"]," +
+                                                     "     [\"has\", \"name\", \"marko\"], [\"outE\"], [\"label\"]]}}");
+            statement.SetGraphLanguage(GraphSON2Language);
+            var rs = await _session.ExecuteGraphAsync(statement);
+            Assert.That(rs.To<string>(), Is.EqualTo(new [] {"created", "knows", "knows"}));
+        }
+
+        [Test]
+        public async Task With_GraphSON1_It_Should_Parse_Bulked_Results()
+        {
+            var statement = new SimpleGraphStatement("g.V().hasLabel('person').has('name', 'marko').outE().label()");
+            var rs = await _session.ExecuteGraphAsync(statement);
+            Assert.That(rs.To<string>(), Is.EqualTo(new [] {"created", "knows", "knows"}));
+        }
+
         private static void ValidateVertexResult(IVertex vertex, string vertexLabel, string propertyName,
                                                  string expectedValueString)
         {

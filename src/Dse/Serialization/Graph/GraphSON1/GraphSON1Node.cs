@@ -32,6 +32,8 @@ namespace Dse.Serialization.Graph.GraphSON1
 
         public bool IsScalar => _token is JValue;
 
+        public long Bulk { get; }
+
         internal GraphSON1Node(string json)
         {
             if (json == null)
@@ -40,6 +42,7 @@ namespace Dse.Serialization.Graph.GraphSON1
             }
             var parsedJson = (JObject)JsonConvert.DeserializeObject(json);
             _token = parsedJson["result"];
+            Bulk = parsedJson.Value<long?>("bulk") ?? 1L;
         }
 
         internal GraphSON1Node(JToken parsedGraphItem)

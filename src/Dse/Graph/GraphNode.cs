@@ -47,6 +47,12 @@ namespace Dse.Graph
         public bool IsScalar => _node.IsScalar;
 
         /// <summary>
+        /// Gets the number of identical results represented by this instance.
+        /// Defaults to 1.
+        /// </summary>
+        internal long Bulk => _node.Bulk;
+
+        /// <summary>
         /// Creates a new instance of <see cref="GraphNode"/>.
         /// </summary>
         /// <param name="json">The graph string json with the form: "{\"result\": ...}".</param>
