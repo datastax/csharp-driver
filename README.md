@@ -257,6 +257,6 @@ limitations under the License.
   [upgrade-to-250]: https://github.com/datastax/csharp-driver/blob/master/doc/upgrade-guide-2.5.md
   [upgrade-to-200]: https://github.com/datastax/csharp-driver/blob/master/doc/upgrade-guide-2.0.md
   [survey]: http://goo.gl/forms/3BxcP8nKs6
-  [dse-driver]: https://github.com/datastax/csharp-dse-driver
+  [dse-driver]: https://docs.datastax.com/en/developer/csharp-driver-dse/latest/
   [slack]: https://academy.datastax.com/slack
   [dse]: https://www.datastax.com/products/datastax-enterprise
