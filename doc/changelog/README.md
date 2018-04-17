@@ -2,6 +2,24 @@
 
 Changelog for the DataStax Enterprise C# Driver.
 
+## 2.2.0
+
+2018-04-17
+
+### Notable Changes
+
+- DSE 6.0 Support
+
+### Features
+
+- [CSHARP-620] - Include hash of result set metadata in prepared statement id
+- [CSHARP-621] - Per-query (and per-batch) keyspace support
+- [CSHARP-622] - Handle bulked results in Graph
+- [CSHARP-636] - Add NO_COMPACT startup option
+- [CSHARP-638] - Support new 'nodesync' option in table metadata
+- [CSHARP-649] - Limit the write queue size at connection level
+- [CSHARP-670] - DETERMINISTIC and MONOTONIC Clauses for Function and Aggregate
+
 ## 2.1.1
 
 2018-02-26
