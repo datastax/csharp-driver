@@ -1,5 +1,14 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.5.0
+
+2018-04-17
+
+### Features
+
+- [CSHARP-636] - Add NO_COMPACT startup option
+- [CSHARP-649] - Limit the write queue size at connection level
+
 ## 3.4.1
 
 2018-02-26

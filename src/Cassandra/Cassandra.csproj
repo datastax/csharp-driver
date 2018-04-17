@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>A modern, feature-rich and highly tunable C# client library for Apache Cassandra and DataStax Enterprise</Description>
-    <Copyright>Copyright © 2017 by DataStax</Copyright>
+    <Copyright>Copyright © 2018 by DataStax</Copyright>
     <AssemblyTitle>DataStax C# Driver for Apache Cassandra</AssemblyTitle>
     <AssemblyVersion>3.99.0.0</AssemblyVersion>
-    <FileVersion>3.4.1.0</FileVersion>
-    <VersionPrefix>3.4.1</VersionPrefix>
+    <FileVersion>3.5.0.0</FileVersion>
+    <VersionPrefix>3.5.0</VersionPrefix>
     <Authors>DataStax</Authors>
     <TargetFrameworks>net45;netstandard1.5</TargetFrameworks>
     <NoWarn>$(NoWarn);1591</NoWarn>
