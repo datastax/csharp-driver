@@ -482,7 +482,7 @@ namespace Cassandra.Tests
             var setCQlColumns = (from x in setColumnsGroup.Split(',') select x.Replace('=', ' ').Replace('?', ' ').Trim()).ToArray();
             foreach (var setColumn in setColumns)
             {
-                Assert.IsTrue(setColumnsGroup.Contains(setColumn));
+                Assert.IsTrue(setCQlColumns.Contains(setColumn));
                 queryColumnsOrder[queryColumnsOrderIndex++] = Array.IndexOf(setCQlColumns, setColumn);
             }
 
@@ -506,7 +506,7 @@ namespace Cassandra.Tests
 
             foreach (var whereColumn in whereColumns)
             {
-                Assert.IsTrue(whereColumnsGroup.Contains(whereColumn));
+                Assert.IsTrue(whereCQlColumns.Contains(whereColumn));
                 queryColumnsOrder[queryColumnsOrderIndex++] = setColumns.Length + Array.IndexOf(whereCQlColumns, whereColumn);
             }
 
@@ -518,14 +518,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(expectedValues.Length, values.Length);
             for (var i = 0; i < expectedValues.Length; i++)
             {
-//                if (expectedValues[i].GetType().GetInterface(nameof(ICollection)) != null)
-//                {
-//                    CollectionAssert.AreEquivalent((ICollection) expectedValues[i], (ICollection) values[queryColumnsOrder[i]]);
-//                }
-//                else
-//                {
-                    Assert.AreEqual(expectedValues[i], values[queryColumnsOrder[i]]);
-//                }
+                Assert.AreEqual(expectedValues[i], values[queryColumnsOrder[i]]);
             }
         }
 

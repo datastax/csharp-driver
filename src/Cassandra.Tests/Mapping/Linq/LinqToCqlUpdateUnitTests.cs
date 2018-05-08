@@ -69,8 +69,9 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new AllTypesEntity { StringValue = "Billy the Vision" })
                 .Update()
                 .Execute();
-            Assert.AreEqual("UPDATE tbl1 SET string_val = ? WHERE id = ? AND val2 > ?", query);
-            CollectionAssert.AreEquivalent(new object[] { "Billy the Vision", id, 20M }, parameters);
+            TestHelper.VerifyUpdateCqlColumns(@"tbl1", query, new []{@"string_val"}, 
+                new [] {@"id", @"val2"}, new object[] {"Billy the Vision", id, 20M},
+                parameters);
         }
 
         [Test]
@@ -94,8 +95,9 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new PlainUser { HairColor = HairColor.Red })
                 .Update()
                 .Execute();
-            Assert.AreEqual("UPDATE tbl1 SET HairColor = ? WHERE UserId = ?", query);
-            CollectionAssert.AreEquivalent(new object[] { (int)HairColor.Red, id}, parameters);
+            TestHelper.VerifyUpdateCqlColumns(@"tbl1", query, new []{@"HairColor"}, 
+                new [] {@"UserId"}, new object[] { (int)HairColor.Red, id},
+                parameters);
         }
 
         [Test]
@@ -119,8 +121,9 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new PlainUser { HairColor = HairColor.Red })
                 .Update()
                 .Execute();
-            Assert.AreEqual("UPDATE tbl1 SET HairColor = ? WHERE UserId = ?", query);
-            CollectionAssert.AreEqual(new object[] { HairColor.Red.ToString(), id }, parameters);
+            TestHelper.VerifyUpdateCqlColumns(@"tbl1", query, new []{@"HairColor"}, 
+                new [] {@"UserId"}, new object[] { HairColor.Red.ToString(), id},
+                parameters);
         }
 
         [Test]
@@ -163,8 +166,9 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new AllTypesEntity { StringValue = "Aṣa" })
                 .Update()
                 .Execute();
-            Assert.AreEqual("UPDATE SomeKS.tbl1 SET string_val = ? WHERE id = ?", query);
-            CollectionAssert.AreEqual(new object[] { "Aṣa", id }, parameters);
+            TestHelper.VerifyUpdateCqlColumns(@"SomeKS.tbl1", query, new []{@"string_val"}, 
+                new [] {@"id"}, new object[] { "Aṣa", id },
+                parameters);
         }
 
         [Test]
@@ -191,8 +195,9 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new Song { Title = "When The Sun Goes Down" })
                 .UpdateIfExists()
                 .Execute();
-            Assert.AreEqual("UPDATE songs SET title = ? WHERE id = ? IF EXISTS", query);
-            CollectionAssert.AreEqual(new object[] { "When The Sun Goes Down", id }, parameters);
+            TestHelper.VerifyUpdateCqlColumns(@"songs", query, new []{@"title"}, 
+                new [] {@"id"}, new object[] { "When The Sun Goes Down", id },
+                parameters, "IF EXISTS");
         }
 
         [Test]
@@ -212,10 +217,9 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new AllTypesDecorated { StringValue = "updated value" })
                 .UpdateIf(t => t.IntValue == 100)
                 .Execute();
-            Assert.AreEqual(
-                @"UPDATE ""atd"" SET ""string_VALUE"" = ? WHERE ""boolean_VALUE"" = ? AND ""double_VALUE"" > ? IF ""int_VALUE"" = ?",
-                query);
-            CollectionAssert.AreEqual(new object[] {"updated value", true, 1d, 100}, parameters);
+            TestHelper.VerifyUpdateCqlColumns(@"""atd""", query, new []{@"""string_VALUE"""}, 
+                new [] {@"""boolean_VALUE""", @"""double_VALUE"""}, new object[] {"updated value", true, 1d, 100},
+                parameters, @"IF ""int_VALUE"" = ?");
         }
 
         [Test]
@@ -235,13 +239,9 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new AllTypesDecorated { DateTimeValue = dateTimeValue })
                 .UpdateIf(t => t.IntValue == 100)
                 .Execute();
-            TestHelper.VerifyUpdateCqlColumns("atd", query, new []{@"""string_VALUE"""}, 
-                new [] {@"""boolean_VALUE""", @"""double_VALUE"""}, new object[] {"updated value", true, 1d, 100},
+            TestHelper.VerifyUpdateCqlColumns(@"""atd""", query, new []{@"""datetime_VALUE"""}, 
+                new [] {@"""boolean_VALUE""", @"""double_VALUE"""}, new object[] {dateTimeValue, true, 1d, 100},
                 parameters, @"IF ""int_VALUE"" = ?");
-            Assert.AreEqual(
-                @"UPDATE ""atd"" SET ""string_VALUE"" = ? WHERE ""boolean_VALUE"" = ? AND ""double_VALUE"" > ? IF ""int_VALUE"" = ?",
-                query);
-            CollectionAssert.AreEqual(new object[] {"updated value", true, 1d, 100}, parameters);
         }
 
         [Test]
@@ -267,10 +267,10 @@ namespace Cassandra.Tests.Mapping.Linq
                 })
                 .Update()
                 .Execute();
-            Assert.AreEqual(
-                @"UPDATE ""atd"" SET ""datetime_VALUE"" = ?, ""string_VALUE"" = ?, ""int64_VALUE"" = ? WHERE ""int_VALUE"" = ? AND ""boolean_VALUE"" = ? AND ""double_VALUE"" > ?",
-                query);
-            CollectionAssert.AreEqual(new object[] { dateTimeValue, dateTimeValue.ToString(), anon.Prop1, 100, true, 1d }, parameters);
+            TestHelper.VerifyUpdateCqlColumns(@"""atd""", query, new []{@"""datetime_VALUE""", @"""string_VALUE""", @"""int64_VALUE"""}, 
+                new [] {@"""int_VALUE""", @"""boolean_VALUE""", @"""double_VALUE"""}, 
+                new object[] {dateTimeValue, dateTimeValue.ToString(), anon.Prop1, 100, true, 1d},
+                parameters);
         }
 
         [Test]
@@ -300,10 +300,9 @@ namespace Cassandra.Tests.Mapping.Linq
                 })
                 .Update()
                 .Execute();
-            Assert.AreEqual(
-                @"UPDATE Song SET Title = ?, Artist = ?, ReleaseDate = ? WHERE Id = ?",
-                query);
-            CollectionAssert.AreEqual(new object[] { other.Artist, other.Artist, DateTimeOffset.MinValue, Guid.Empty }, parameters);
+            TestHelper.VerifyUpdateCqlColumns(@"Song", query, new []{@"Title", @"Artist", @"ReleaseDate"}, 
+                new [] {@"Id"}, new object[] {other.Artist, other.Artist, DateTimeOffset.MinValue, Guid.Empty},
+                parameters);
         }
 
         [Test]
@@ -326,10 +325,9 @@ namespace Cassandra.Tests.Mapping.Linq
                 })
                 .Update()
                 .Execute();
-            Assert.AreEqual(
-                @"UPDATE Song SET Artist = ?, ReleaseDate = ? WHERE Id = ?",
-                query);
-            CollectionAssert.AreEqual(new object[] { "The Rolling Stones".ToUpperInvariant(), new DateTimeOffset(new DateTime(1999, 12, 31)), Guid.Empty }, parameters);
+            TestHelper.VerifyUpdateCqlColumns(@"Song", query, new []{@"Artist", @"ReleaseDate"}, 
+                new [] {@"Id"}, new object[] {"The Rolling Stones".ToUpperInvariant(), new DateTimeOffset(new DateTime(1999, 12, 31)), Guid.Empty},
+                parameters);
         }
 
         [Test]
@@ -346,7 +344,8 @@ namespace Cassandra.Tests.Mapping.Linq
             {
                 DecimalValue = 10M        
             }).Update().Execute();
-            Assert.AreEqual("UPDATE attr_mapping_class_table SET decimal_value_col = ? WHERE partition_key = ? AND clustering_key_0 = ?", query);
+            TestHelper.VerifyUpdateCqlColumns(@"attr_mapping_class_table", query, new []{@"decimal_value_col"}, 
+                new [] {@"partition_key", @"clustering_key_0"}, new object[] {10M, 1, 10L}, parameters);
         }
 
         [Test]
