@@ -468,7 +468,75 @@ namespace Cassandra.Tests
 
             return null;
         }
-        
+
+        internal static void VerifyCqlColumns(Regex updateSetColumnsRegex, Regex updateWhereColumnsRegex, 
+                                              string query, string[] setColumns, string[] whereColumns, object[] expectedValues, object[] values)
+        {
+            var cqlParamCount = query.Count(x => x == '?');
+            var queryColumnsOrder = new int[cqlParamCount];
+            var queryColumnsOrderIndex = 0;
+            var matchSetColumnsMatch = updateSetColumnsRegex.Match(query);
+            Assert.IsTrue(matchSetColumnsMatch.Success);
+            Assert.GreaterOrEqual(matchSetColumnsMatch.Groups.Count, 2);
+            var setColumnsGroup = matchSetColumnsMatch.Groups[1].Value;
+            var setCQlColumns = (from x in setColumnsGroup.Split(',') select x.Replace('=', ' ').Replace('?', ' ').Trim()).ToArray();
+            foreach (var setColumn in setColumns)
+            {
+                Assert.IsTrue(setColumnsGroup.Contains(setColumn));
+                queryColumnsOrder[queryColumnsOrderIndex++] = Array.IndexOf(setCQlColumns, setColumn);
+            }
+
+            var matchWhereColumnsMatch = updateWhereColumnsRegex.Match(query);
+            Assert.IsTrue(matchWhereColumnsMatch.Success);
+            Assert.GreaterOrEqual(matchWhereColumnsMatch.Groups.Count, 2);
+            var whereColumnsGroup = matchWhereColumnsMatch.Groups[1].Value;
+            var whereColumnsRegex = new Regex("([\\w\"]+)");
+            
+            var whereColumnsNamesMatchCollection = whereColumnsRegex.Matches(whereColumnsGroup);
+            var whereCQlColumns = new string[whereColumnsGroup.Count(x => x == '?')];
+            var whereCQlColumnsIndex = 0;
+            if (whereColumnsNamesMatchCollection.Count > 0)
+            {
+                foreach (var variableMatchName in whereColumnsNamesMatchCollection)
+                {
+                    if (variableMatchName.ToString().Equals("AND")) continue;
+                    whereCQlColumns[whereCQlColumnsIndex++] = variableMatchName.ToString();
+                }
+            }
+
+            foreach (var whereColumn in whereColumns)
+            {
+                Assert.IsTrue(whereColumnsGroup.Contains(whereColumn));
+                queryColumnsOrder[queryColumnsOrderIndex++] = setColumns.Length + Array.IndexOf(whereCQlColumns, whereColumn);
+            }
+
+            for (; queryColumnsOrderIndex < cqlParamCount; queryColumnsOrderIndex++)
+            {
+                queryColumnsOrder[queryColumnsOrderIndex] = queryColumnsOrderIndex;
+            }
+            Assert.AreEqual(expectedValues.Length, cqlParamCount);
+            Assert.AreEqual(expectedValues.Length, values.Length);
+            for (var i = 0; i < expectedValues.Length; i++)
+            {
+//                if (expectedValues[i].GetType().GetInterface(nameof(ICollection)) != null)
+//                {
+//                    CollectionAssert.AreEquivalent((ICollection) expectedValues[i], (ICollection) values[queryColumnsOrder[i]]);
+//                }
+//                else
+//                {
+                    Assert.AreEqual(expectedValues[i], values[queryColumnsOrder[i]]);
+//                }
+            }
+        }
+
+        internal static void VerifyUpdateCqlColumns(string tableName, string query, string[] setColumns, string[] whereColumns,
+                                                    object[] expectedValues, object[] values, string complement = null)
+        {
+            var updateSetColumnsRegex = new Regex($"UPDATE {tableName} SET (.* = (\\?|(.*\\s?\\-\\s\\?))\\,?)+ WHERE .*");
+            var updateWhereColumnsRegex = new Regex($"UPDATE {tableName} SET .* WHERE ((.* [=\\>\\<] \\?)\\s?(AND)?)+\\s*{complement}");
+            VerifyCqlColumns(updateSetColumnsRegex, updateWhereColumnsRegex, query, setColumns, whereColumns, expectedValues, values);
+        }        
+
         internal static void VerifyInsertCqlColumns(string tableName, string query, string[] columns, object[] expectedValues,
                                                     object[] values, string complement = null)
         {

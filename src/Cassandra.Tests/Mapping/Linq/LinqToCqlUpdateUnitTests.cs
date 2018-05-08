@@ -235,6 +235,9 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new AllTypesDecorated { DateTimeValue = dateTimeValue })
                 .UpdateIf(t => t.IntValue == 100)
                 .Execute();
+            TestHelper.VerifyUpdateCqlColumns("atd", query, new []{@"""string_VALUE"""}, 
+                new [] {@"""boolean_VALUE""", @"""double_VALUE"""}, new object[] {"updated value", true, 1d, 100},
+                parameters, @"IF ""int_VALUE"" = ?");
             Assert.AreEqual(
                 @"UPDATE ""atd"" SET ""string_VALUE"" = ? WHERE ""boolean_VALUE"" = ? AND ""double_VALUE"" > ? IF ""int_VALUE"" = ?",
                 query);
