@@ -15,13 +15,13 @@ namespace Cassandra.Tests
     public class TimestampTests
     {
         [Test]
-        public void AtomicMonotonicTimestampGenerator_Should_Increasing_Monotonic_Values()
+        public void AtomicMonotonicTimestampGenerator_Next_Should_Return_Increasing_Monotonic_Values()
         {
             TimestampGeneratorMonitonicityTest(new AtomicMonotonicTimestampGenerator());
         }
 
         [Test]
-        public void AtomicMonotonicTimestampGenerator_Should_Log_When_Drifting_Above_Threshold()
+        public void AtomicMonotonicTimestampGenerator_Next_Should_Return_Log_When_Drifting_Above_Threshold()
         {
             var loggerHandler = new TestHelper.TestLoggerHandler();
             var generator = new AtomicMonotonicTimestampGenerator(80, 1000, new Logger(loggerHandler));
@@ -29,7 +29,7 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void AtomicMonotonicTimestampGenerator_Should_Log_After_Cooldown()
+        public void AtomicMonotonicTimestampGenerator_Next_Should_Log_After_Cooldown()
         {
             var loggerHandler = new TestHelper.TestLoggerHandler();
             var generator = new AtomicMonotonicTimestampGenerator(80, 1000, new Logger(loggerHandler));
@@ -38,13 +38,13 @@ namespace Cassandra.Tests
 
 #if !NETCORE
         [Test, WinOnly(6, 2)]
-        public void AtomicMonotonicWinApiTimestampGenerator_Should_Increasing_Monotonic_Values()
+        public void AtomicMonotonicWinApiTimestampGenerator_Next_Should_Return_Increasing_Monotonic_Values()
         {
             TimestampGeneratorMonitonicityTest(new AtomicMonotonicWinApiTimestampGenerator());
         }
 
         [Test, WinOnly(6, 2)]
-        public void AtomicMonotonicWinApiTimestampGenerator_Should_Log_When_Drifting_Above_Threshold()
+        public void AtomicMonotonicWinApiTimestampGenerator_Next_Should_Log_When_Drifting_Above_Threshold()
         {
             var loggerHandler = new TestHelper.TestLoggerHandler();
             var generator = new AtomicMonotonicWinApiTimestampGenerator(80, 1000, new Logger(loggerHandler));
@@ -52,7 +52,7 @@ namespace Cassandra.Tests
         }
 
         [Test, WinOnly(6, 2)]
-        public void AtomicMonotonicWinApiTimestampGenerator_Should_Log_After_Cooldown()
+        public void AtomicMonotonicWinApiTimestampGenerator_Next_Should_Log_After_Cooldown()
         {
             var loggerHandler = new TestHelper.TestLoggerHandler();
             var generator = new AtomicMonotonicWinApiTimestampGenerator(80, 1000, new Logger(loggerHandler));
@@ -60,7 +60,7 @@ namespace Cassandra.Tests
         }
 
         [Test, WinOnly(6, 2)]
-        public void AtomicMonotonicWinApiTimestampGenerator_Value_Should_Be_Close_To_Base_Class()
+        public void AtomicMonotonicWinApiTimestampGenerator_Next_Should_Return_A_Value_Close_To_Base_Class()
         {
             // The accuracy of both should be within a 15.6ms range
             var generator1 = new AtomicMonotonicTimestampGenerator();
@@ -114,42 +114,49 @@ namespace Cassandra.Tests
                 // if during this time, we weren't able to generate a lot of values, don't mind
                 Assert.Ignore("It was not able to generate 5M values");
             }
-            Assert.AreEqual(3, loggerHandler.DequeueAllMessages().Count(i => i.Item1 == "warning"));
+
+            Assert.That(loggerHandler.DequeueAllMessages().Count(i => i.Item1 == "warning"),
+                Is.GreaterThanOrEqualTo(3));
         }
 
         private static void TimestampGeneratorLogAfterCooldownTest(ITimestampGenerator generator,
                                                                    TestHelper.TestLoggerHandler loggerHandler)
         {
             // It should generate a warning initially and then 1 more
-            var maxElapsed = TimeSpan.FromSeconds(1.8);
             var counter = 0;
-            Action action = () =>
+
+            void Action(TimeSpan maxElapsed)
             {
                 var stopWatch = new Stopwatch();
                 stopWatch.Start();
-                // ReSharper disable once AccessToModifiedClosure
                 while (stopWatch.Elapsed < maxElapsed)
                 {
                     for (var i = 0; i < 5000; i++)
                     {
                         generator.Next();
+                        // ReSharper disable once AccessToModifiedClosure
                         Interlocked.Increment(ref counter);
                     }
                 }
-            };
-            TestHelper.ParallelInvoke(action, 2);
+            }
+
+            TestHelper.ParallelInvoke(() => Action(TimeSpan.FromSeconds(1.8)), 2);
             if (Volatile.Read(ref counter) < 5000000)
             {
                 // if during this time, we weren't able to generate a lot of values, don't mind
                 Assert.Ignore("It was not able to generate 5M values");
             }
-            Assert.AreEqual(2, loggerHandler.DequeueAllMessages().Count(i => i.Item1 == "warning"));
+
+            Assert.That(loggerHandler.DequeueAllMessages().Count(i => i.Item1 == "warning"),
+                Is.GreaterThanOrEqualTo(2));
+
             // Cooldown: make current time > last generated value
-            Thread.Sleep(3000);
+            Thread.Sleep(4000);
+
             // It should generate a warning initially
-            maxElapsed = TimeSpan.FromSeconds(0.8);
-            TestHelper.ParallelInvoke(action, 2);
-            Assert.AreEqual(1, loggerHandler.DequeueAllMessages().Count(i => i.Item1 == "warning"));
+            TestHelper.ParallelInvoke(() => Action(TimeSpan.FromSeconds(0.8)), 2);
+            Assert.That(loggerHandler.DequeueAllMessages().Count(i => i.Item1 == "warning"),
+                Is.GreaterThanOrEqualTo(1));
         }
     }
 }
