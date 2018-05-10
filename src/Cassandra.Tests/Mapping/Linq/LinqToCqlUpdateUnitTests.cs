@@ -69,8 +69,8 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new AllTypesEntity { StringValue = "Billy the Vision" })
                 .Update()
                 .Execute();
-            TestHelper.VerifyUpdateCqlColumns(@"tbl1", query, new []{@"string_val"}, 
-                new [] {@"id", @"val2"}, new object[] {"Billy the Vision", id, 20M},
+            TestHelper.VerifyUpdateCqlColumns("tbl1", query, new []{"string_val"},
+                new [] {"id", "val2"}, new object[] {"Billy the Vision", id, 20M},
                 parameters);
         }
 
@@ -95,8 +95,8 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new PlainUser { HairColor = HairColor.Red })
                 .Update()
                 .Execute();
-            TestHelper.VerifyUpdateCqlColumns(@"tbl1", query, new []{@"HairColor"}, 
-                new [] {@"UserId"}, new object[] { (int)HairColor.Red, id},
+            TestHelper.VerifyUpdateCqlColumns("tbl1", query, new []{"HairColor"},
+                new [] {"UserId"}, new object[] { (int)HairColor.Red, id},
                 parameters);
         }
 
@@ -121,8 +121,8 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new PlainUser { HairColor = HairColor.Red })
                 .Update()
                 .Execute();
-            TestHelper.VerifyUpdateCqlColumns(@"tbl1", query, new []{@"HairColor"}, 
-                new [] {@"UserId"}, new object[] { HairColor.Red.ToString(), id},
+            TestHelper.VerifyUpdateCqlColumns("tbl1", query, new []{"HairColor"},
+                new [] {"UserId"}, new object[] { HairColor.Red.ToString(), id},
                 parameters);
         }
 
@@ -166,8 +166,8 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new AllTypesEntity { StringValue = "Aṣa" })
                 .Update()
                 .Execute();
-            TestHelper.VerifyUpdateCqlColumns(@"SomeKS.tbl1", query, new []{@"string_val"}, 
-                new [] {@"id"}, new object[] { "Aṣa", id },
+            TestHelper.VerifyUpdateCqlColumns("SomeKS.tbl1", query, new []{"string_val"},
+                new [] {"id"}, new object[] { "Aṣa", id },
                 parameters);
         }
 
@@ -195,8 +195,8 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new Song { Title = "When The Sun Goes Down" })
                 .UpdateIfExists()
                 .Execute();
-            TestHelper.VerifyUpdateCqlColumns(@"songs", query, new []{@"title"}, 
-                new [] {@"id"}, new object[] { "When The Sun Goes Down", id },
+            TestHelper.VerifyUpdateCqlColumns("songs", query, new []{"title"},
+                new [] {"id"}, new object[] { "When The Sun Goes Down", id },
                 parameters, "IF EXISTS");
         }
 
@@ -217,9 +217,9 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new AllTypesDecorated { StringValue = "updated value" })
                 .UpdateIf(t => t.IntValue == 100)
                 .Execute();
-            TestHelper.VerifyUpdateCqlColumns(@"""atd""", query, new []{@"""string_VALUE"""}, 
+            TestHelper.VerifyUpdateCqlColumns(@"""atd""", query, new []{@"""string_VALUE"""},
                 new [] {@"""boolean_VALUE""", @"""double_VALUE"""}, new object[] {"updated value", true, 1d, 100},
-                parameters, @"IF ""int_VALUE"" = ?");
+                parameters, "IF \"int_VALUE\" = ?");
         }
 
         [Test]
@@ -239,9 +239,9 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Select(t => new AllTypesDecorated { DateTimeValue = dateTimeValue })
                 .UpdateIf(t => t.IntValue == 100)
                 .Execute();
-            TestHelper.VerifyUpdateCqlColumns(@"""atd""", query, new []{@"""datetime_VALUE"""}, 
+            TestHelper.VerifyUpdateCqlColumns(@"""atd""", query, new []{@"""datetime_VALUE"""},
                 new [] {@"""boolean_VALUE""", @"""double_VALUE"""}, new object[] {dateTimeValue, true, 1d, 100},
-                parameters, @"IF ""int_VALUE"" = ?");
+                parameters, "IF \"int_VALUE\" = ?");
         }
 
         [Test]
@@ -261,14 +261,14 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Where(t => t.IntValue == 100 && t.BooleanValue == true && t.DoubleValue > 1d)
                 .Select(t => new AllTypesDecorated
                 {
-                    DateTimeValue = dateTimeValue, 
-                    StringValue = dateTimeValue.ToString(), 
+                    DateTimeValue = dateTimeValue,
+                    StringValue = dateTimeValue.ToString(),
                     Int64Value = anon.Prop1
                 })
                 .Update()
                 .Execute();
-            TestHelper.VerifyUpdateCqlColumns(@"""atd""", query, new []{@"""datetime_VALUE""", @"""string_VALUE""", @"""int64_VALUE"""}, 
-                new [] {@"""int_VALUE""", @"""boolean_VALUE""", @"""double_VALUE"""}, 
+            TestHelper.VerifyUpdateCqlColumns(@"""atd""", query, new []{@"""datetime_VALUE""", @"""string_VALUE""", @"""int64_VALUE"""},
+                new [] {@"""int_VALUE""", @"""boolean_VALUE""", @"""double_VALUE"""},
                 new object[] {dateTimeValue, dateTimeValue.ToString(), anon.Prop1, 100, true, 1d},
                 parameters);
         }
@@ -300,8 +300,8 @@ namespace Cassandra.Tests.Mapping.Linq
                 })
                 .Update()
                 .Execute();
-            TestHelper.VerifyUpdateCqlColumns(@"Song", query, new []{@"Title", @"Artist", @"ReleaseDate"}, 
-                new [] {@"Id"}, new object[] {other.Artist, other.Artist, DateTimeOffset.MinValue, Guid.Empty},
+            TestHelper.VerifyUpdateCqlColumns("Song", query, new []{"Title", "Artist", "ReleaseDate"},
+                new [] {"Id"}, new object[] {other.Artist, other.Artist, DateTimeOffset.MinValue, Guid.Empty},
                 parameters);
         }
 
@@ -325,8 +325,8 @@ namespace Cassandra.Tests.Mapping.Linq
                 })
                 .Update()
                 .Execute();
-            TestHelper.VerifyUpdateCqlColumns(@"Song", query, new []{@"Artist", @"ReleaseDate"}, 
-                new [] {@"Id"}, new object[] {"The Rolling Stones".ToUpperInvariant(), new DateTimeOffset(new DateTime(1999, 12, 31)), Guid.Empty},
+            TestHelper.VerifyUpdateCqlColumns("Song", query, new []{"Artist", "ReleaseDate"},
+                new [] {"Id"}, new object[] {"The Rolling Stones".ToUpperInvariant(), new DateTimeOffset(new DateTime(1999, 12, 31)), Guid.Empty},
                 parameters);
         }
 
@@ -344,8 +344,8 @@ namespace Cassandra.Tests.Mapping.Linq
             {
                 DecimalValue = 10M        
             }).Update().Execute();
-            TestHelper.VerifyUpdateCqlColumns(@"attr_mapping_class_table", query, new []{@"decimal_value_col"}, 
-                new [] {@"partition_key", @"clustering_key_0"}, new object[] {10M, 1, 10L}, parameters);
+            TestHelper.VerifyUpdateCqlColumns("attr_mapping_class_table", query, new []{"decimal_value_col"},
+                new [] {"partition_key", "clustering_key_0"}, new object[] {10M, 1, 10L}, parameters);
         }
 
         [Test]

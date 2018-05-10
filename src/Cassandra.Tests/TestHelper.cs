@@ -469,27 +469,26 @@ namespace Cassandra.Tests
             return null;
         }
 
-        internal static void VerifyCqlColumns(Regex updateSetColumnsRegex, Regex updateWhereColumnsRegex, 
-                                              string query, string[] setColumns, string[] whereColumns, object[] expectedValues, object[] values)
+        internal static void VerifyUpdateCqlColumns(string tableName, string query, string[] setColumns, string[] whereColumns,
+                                                    object[] expectedValues, object[] values, string complement = null)
         {
+            var columnsRegex = new Regex(
+                $"UPDATE {tableName} SET (.* = (?:\\?|(?:.*\\s?\\-\\s\\?))\\,?)+ WHERE ((?:.* [=\\>\\<] \\?)\\s?(?:AND)?)+\\s*{complement}");
             var cqlParamCount = query.Count(x => x == '?');
             var queryColumnsOrder = new int[cqlParamCount];
             var queryColumnsOrderIndex = 0;
-            var matchSetColumnsMatch = updateSetColumnsRegex.Match(query);
-            Assert.IsTrue(matchSetColumnsMatch.Success);
-            Assert.GreaterOrEqual(matchSetColumnsMatch.Groups.Count, 2);
-            var setColumnsGroup = matchSetColumnsMatch.Groups[1].Value;
-            var setCQlColumns = (from x in setColumnsGroup.Split(',') select x.Replace('=', ' ').Replace('?', ' ').Trim()).ToArray();
+            var columnsMatch = columnsRegex.Match(query);
+            Assert.IsTrue(columnsMatch.Success);
+            Assert.GreaterOrEqual(columnsMatch.Groups.Count, 3);
+            var setColumnsGroup = columnsMatch.Groups[1].Value;
+            var setCQlColumns = (from x in setColumnsGroup.Split(',') select x.Replace(" = ?", "").Trim()).ToArray();
             foreach (var setColumn in setColumns)
             {
-                Assert.IsTrue(setCQlColumns.Contains(setColumn));
+                Assert.Contains(setColumn, setCQlColumns);
                 queryColumnsOrder[queryColumnsOrderIndex++] = Array.IndexOf(setCQlColumns, setColumn);
             }
 
-            var matchWhereColumnsMatch = updateWhereColumnsRegex.Match(query);
-            Assert.IsTrue(matchWhereColumnsMatch.Success);
-            Assert.GreaterOrEqual(matchWhereColumnsMatch.Groups.Count, 2);
-            var whereColumnsGroup = matchWhereColumnsMatch.Groups[1].Value;
+            var whereColumnsGroup = columnsMatch.Groups[2].Value;
             var whereColumnsRegex = new Regex("([\\w\"]+)");
             
             var whereColumnsNamesMatchCollection = whereColumnsRegex.Matches(whereColumnsGroup);
@@ -506,7 +505,7 @@ namespace Cassandra.Tests
 
             foreach (var whereColumn in whereColumns)
             {
-                Assert.IsTrue(whereCQlColumns.Contains(whereColumn));
+                Assert.Contains(whereColumn, whereCQlColumns);
                 queryColumnsOrder[queryColumnsOrderIndex++] = setColumns.Length + Array.IndexOf(whereCQlColumns, whereColumn);
             }
 
@@ -521,14 +520,6 @@ namespace Cassandra.Tests
                 Assert.AreEqual(expectedValues[i], values[queryColumnsOrder[i]]);
             }
         }
-
-        internal static void VerifyUpdateCqlColumns(string tableName, string query, string[] setColumns, string[] whereColumns,
-                                                    object[] expectedValues, object[] values, string complement = null)
-        {
-            var updateSetColumnsRegex = new Regex($"UPDATE {tableName} SET (.* = (\\?|(.*\\s?\\-\\s\\?))\\,?)+ WHERE .*");
-            var updateWhereColumnsRegex = new Regex($"UPDATE {tableName} SET .* WHERE ((.* [=\\>\\<] \\?)\\s?(AND)?)+\\s*{complement}");
-            VerifyCqlColumns(updateSetColumnsRegex, updateWhereColumnsRegex, query, setColumns, whereColumns, expectedValues, values);
-        }        
 
         internal static void VerifyInsertCqlColumns(string tableName, string query, string[] columns, object[] expectedValues,
                                                     object[] values, string complement = null)

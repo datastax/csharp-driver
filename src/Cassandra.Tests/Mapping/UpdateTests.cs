@@ -42,8 +42,8 @@ namespace Cassandra.Tests.Mapping
             var mapper = GetMappingClient(sessionMock, new MappingConfiguration()
                 .Define(new Map<Song>().PartitionKey(s => s.Id)));
             mapper.Update(song);
-            TestHelper.VerifyUpdateCqlColumns(@"Song", query, new []{@"Title", @"Artist", @"ReleaseDate"},
-                new [] {@"Id"}, new object[] {song.Title, song.Artist, song.ReleaseDate, song.Id},
+            TestHelper.VerifyUpdateCqlColumns("Song", query, new []{"Title", "Artist", "ReleaseDate"},
+                new [] {"Id"}, new object[] {song.Title, song.Artist, song.ReleaseDate, song.Id},
                 parameters);
             sessionMock.Verify();
         }
@@ -78,16 +78,16 @@ namespace Cassandra.Tests.Mapping
                 .Define(new Map<Song>().PartitionKey(s => s.Title, s => s.Id)));
             mapper.Update(song);
             
-            TestHelper.VerifyUpdateCqlColumns(@"Song", query, new []{@"Artist", @"ReleaseDate"},
-                new [] {@"Title", @"Id"}, new object[] {song.Artist, song.ReleaseDate, song.Title, song.Id},
+            TestHelper.VerifyUpdateCqlColumns("Song", query, new []{"Artist", "ReleaseDate"},
+                new [] {"Title", "Id"}, new object[] {song.Artist, song.ReleaseDate, song.Title, song.Id},
                 parameters);
             
             //Different order in the partition key definitions
             mapper = GetMappingClient(sessionMock, new MappingConfiguration()
                 .Define(new Map<Song>().PartitionKey(s => s.Id, s => s.Title)));
             mapper.Update(song);
-            TestHelper.VerifyUpdateCqlColumns(@"Song", query, new []{@"Artist", @"ReleaseDate"},
-                new [] {@"Id", @"Title"}, new object[] {song.Artist, song.ReleaseDate, song.Id, song.Title},
+            TestHelper.VerifyUpdateCqlColumns("Song", query, new []{"Artist", "ReleaseDate"},
+                new [] {"Id", "Title"}, new object[] {song.Artist, song.ReleaseDate, song.Id, song.Title},
                 parameters);
             sessionMock.Verify();
         }
@@ -121,8 +121,8 @@ namespace Cassandra.Tests.Mapping
             var mapper = GetMappingClient(sessionMock, new MappingConfiguration()
                 .Define(new Map<Song>().PartitionKey(s => s.Id).ClusteringKey(s => s.ReleaseDate)));
             mapper.Update(song);
-            TestHelper.VerifyUpdateCqlColumns(@"Song", query, new []{@"Title", @"Artist"},
-                new [] {@"Id", @"ReleaseDate"}, new object[] {song.Title, song.Artist, song.Id, song.ReleaseDate},
+            TestHelper.VerifyUpdateCqlColumns("Song", query, new []{"Title", "Artist"},
+                new [] {"Id", "ReleaseDate"}, new object[] {song.Title, song.Artist, song.Id, song.ReleaseDate},
                 parameters);
             sessionMock.Verify();
         }
@@ -158,7 +158,8 @@ namespace Cassandra.Tests.Mapping
             mapper.Update(song, new CqlQueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalQuorum));
             Assert.AreEqual(ConsistencyLevel.LocalQuorum, consistency);
             Assert.AreEqual(ConsistencyLevel.Any, serialConsistency);
-            mapper.Update(song, new CqlQueryOptions().SetConsistencyLevel(ConsistencyLevel.Two).SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial));
+            mapper.Update(song,
+                new CqlQueryOptions().SetConsistencyLevel(ConsistencyLevel.Two).SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial));
             Assert.AreEqual(ConsistencyLevel.Two, consistency);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, serialConsistency);
             sessionMock.Verify();
@@ -204,9 +205,9 @@ namespace Cassandra.Tests.Mapping
             var appliedInfo = mapper.UpdateIf<Song>(Cql.New(partialQuery, "Ramble On", new DateTime(1969, 1, 1), updateGuid, "Led Zeppelin"));
             sessionMock.Verify();
 
-            TestHelper.VerifyUpdateCqlColumns(@"Song", query, new []{@"title", @"releasedate"},
-                new [] {@"id"}, new object[] {"Ramble On", new DateTime(1969, 1, 1), updateGuid, "Led Zeppelin"},
-                parameters, @"IF artist = ?");
+            TestHelper.VerifyUpdateCqlColumns("Song", query, new []{"title", "releasedate"},
+                new [] {"id"}, new object[] {"Ramble On", new DateTime(1969, 1, 1), updateGuid, "Led Zeppelin"},
+                parameters, "IF artist = ?");
 
             Assert.True(appliedInfo.Applied);
             Assert.Null(appliedInfo.Existing);
@@ -236,9 +237,9 @@ namespace Cassandra.Tests.Mapping
             const string partialQuery = "SET title = ?, releasedate = ? WHERE id = ? IF artist = ?";
             var appliedInfo = mapper.UpdateIf<Song>(Cql.New(partialQuery, "Kashmir", new DateTime(1975, 1, 1), id, "Led Zeppelin"));
             sessionMock.Verify();
-            TestHelper.VerifyUpdateCqlColumns(@"Song", query, new []{@"title", @"releasedate"},
-                new [] {@"id"}, new object[] {"Kashmir", new DateTime(1975, 1, 1), id, "Led Zeppelin"},
-                parameters, @"IF artist = ?");
+            TestHelper.VerifyUpdateCqlColumns("Song", query, new []{"title", "releasedate"},
+                new [] {"id"}, new object[] {"Kashmir", new DateTime(1975, 1, 1), id, "Led Zeppelin"},
+                parameters, "IF artist = ?");
             Assert.False(appliedInfo.Applied);
             Assert.NotNull(appliedInfo.Existing);
             Assert.AreEqual("Jimmy Page", appliedInfo.Existing.Artist);
