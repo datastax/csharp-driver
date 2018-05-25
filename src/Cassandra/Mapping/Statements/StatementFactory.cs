@@ -12,7 +12,7 @@ namespace Cassandra.Mapping.Statements
     /// </summary>
     internal class StatementFactory
     {
-        private readonly ConcurrentDictionary<string, Task<PreparedStatement>> _statementCache;
+        private readonly ConcurrentDictionary<CacheKey, Task<PreparedStatement>> _statementCache;
         private static readonly Logger Logger = new Logger(typeof(StatementFactory));
         private int _statementCacheCount;
 
@@ -21,7 +21,7 @@ namespace Cassandra.Mapping.Statements
         public StatementFactory()
         {
             MaxPreparedStatementsThreshold = 500;
-            _statementCache = new ConcurrentDictionary<string, Task<PreparedStatement>>();
+            _statementCache = new ConcurrentDictionary<CacheKey, Task<PreparedStatement>>();
         }
 
         /// <summary>
@@ -43,7 +43,7 @@ namespace Cassandra.Mapping.Statements
 
             var wasPreviouslyCached = true;
 
-            var psCacheKey = cql.Statement;
+            var psCacheKey = new CacheKey(cql.Statement, session);
             var query = cql.Statement;
 
             var prepareTask = _statementCache.GetOrAdd(psCacheKey, _ =>
@@ -110,6 +110,52 @@ namespace Cassandra.Mapping.Statements
                 statement.Add(stmt);
             }
             return statement;
+        }
+
+        private class CacheKey : IEquatable<CacheKey>
+        {
+            private readonly string _query;
+            private readonly string _keyspace;
+            private readonly int _sessionCode;
+
+            public CacheKey(string query, ISession session)
+            {
+                _query = query;
+                _keyspace = session.Keyspace;
+                _sessionCode = session.GetHashCode();
+            }
+
+            public bool Equals(CacheKey other)
+            {
+                if (ReferenceEquals(null, other))
+                {
+                    return false;
+                }
+
+                if (ReferenceEquals(this, other))
+                {
+                    return true;
+                }
+                return _query == other._query && _keyspace == other._keyspace && _sessionCode == other._sessionCode;
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (ReferenceEquals(null, obj)) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                return obj.GetType() == GetType() && Equals((CacheKey) obj);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    var hashCode = _query?.GetHashCode() ?? 0;
+                    hashCode = (hashCode * 397) ^ _keyspace?.GetHashCode() ?? 0;
+                    hashCode = (hashCode * 397) ^ _sessionCode;
+                    return hashCode;
+                }
+            }
         }
     }
 }

@@ -14,6 +14,7 @@
 //    limitations under the License.
 // 
 
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Mapping;
@@ -31,6 +32,7 @@ namespace Cassandra.Tests.Mapping
         public async Task GetStatementAsync_Should_Prepare_Once_And_Cache()
         {
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
                 .Returns<string>(q => Task.FromResult(GetPrepared(q)));
@@ -52,11 +54,46 @@ namespace Cassandra.Tests.Mapping
         }
 
         [Test]
+        public async Task GetStatementAsync_Should_Cache_Based_On_Query_Keyspace_And_Session_Instance()
+        {
+            var sessionMock1 = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock1.Setup(s => s.Keyspace).Returns("ks1");
+            sessionMock1
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>(q => Task.FromResult(GetPrepared(q)));
+
+            var cql1A = Cql.New("Q1");
+            var cql1B = Cql.New("Q1");
+            var cql2 = Cql.New("Q2");
+            var sf = new StatementFactory();
+
+            var statement = await sf.GetStatementAsync(sessionMock1.Object, cql1A).ConfigureAwait(false);
+            var ps1 = GetPreparedStatement(statement);
+
+            for (var i = 0; i < 10; i++)
+            {
+                var bound1 = await sf.GetStatementAsync(sessionMock1.Object, cql1B)
+                                    .ConfigureAwait(false);
+                Assert.AreSame(ps1, GetPreparedStatement(bound1));
+            }
+
+            var bound2 = await sf.GetStatementAsync(sessionMock1.Object, cql2).ConfigureAwait(false);
+            // Different CQL should be cached differently
+            Assert.AreNotSame(ps1, GetPreparedStatement(bound2));
+
+            sessionMock1.Setup(s => s.Keyspace).Returns("ks2");
+            // Different keyspace, same query
+            var differentKsStatement = await sf.GetStatementAsync(sessionMock1.Object, cql1A).ConfigureAwait(false);
+            Assert.AreNotSame(ps1, GetPreparedStatement(differentKsStatement));
+        }
+
+        [Test]
         public async Task GetStatementAsync_Should_Reprepare_Each_Time_After_Failed_Attempt()
         {
             var preparationFails = 1;
 
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
                 .Returns<string>(q =>
@@ -92,6 +129,12 @@ namespace Cassandra.Tests.Mapping
                 var bound = (BoundStatement) await sf.GetStatementAsync(sessionMock.Object, cql).ConfigureAwait(false);
                 Assert.AreSame(ps, bound.PreparedStatement);
             }
+        }
+
+        private static PreparedStatement GetPreparedStatement(Statement statement)
+        {
+            Assert.IsInstanceOf<BoundStatement>(statement);
+            return ((BoundStatement) statement).PreparedStatement;
         }
     }
 }
