@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Tasks;
 
 namespace Cassandra.Mapping.Statements
 {
@@ -39,25 +40,49 @@ namespace Cassandra.Mapping.Statements
                 SetStatementProperties(statement, cql);
                 return statement;
             }
-            var ps = await _statementCache
-                .GetOrAdd(cql.Statement, query => PrepareNew(query, session))
-                .ConfigureAwait(false);
+
+            var wasPreviouslyCached = true;
+
+            var psCacheKey = cql.Statement;
+            var query = cql.Statement;
+
+            var prepareTask = _statementCache.GetOrAdd(psCacheKey, _ =>
+            {
+                wasPreviouslyCached = false;
+                return session.PrepareAsync(query);
+            });
+
+            PreparedStatement ps;
+            try
+            {
+                ps = await prepareTask.ConfigureAwait(false);
+            }
+            catch (Exception) when (wasPreviouslyCached)
+            {
+                // The exception was caused from awaiting upon a Task that was previously cached
+                // It's possible that the schema or topology changed making this query preparation to succeed
+                // in a new attemp
+                prepareTask = session.PrepareAsync(query);
+                ps = await prepareTask.ConfigureAwait(false);
+                // AddOrUpdate() returns a task which we already waited upon, its safe to call Forget()
+                _statementCache.AddOrUpdate(psCacheKey, prepareTask, (k, v) => prepareTask).Forget();
+            }
+
+            if (!wasPreviouslyCached)
+            {
+                var count = Interlocked.Increment(ref _statementCacheCount);
+                if (count > MaxPreparedStatementsThreshold)
+                {
+                    Logger.Warning("The prepared statement cache contains {0} queries. This issue is probably due " +
+                                   "to misuse of the driver, you should use parameter markers for queries. You can " +
+                                   "configure this warning threshold using " +
+                                   "MappingConfiguration.SetMaxStatementPreparedThreshold() method.", count);
+                }
+            }
+
             var boundStatement = ps.Bind(cql.Arguments);
             SetStatementProperties(boundStatement, cql);
             return boundStatement;
-        }
-
-        private Task<PreparedStatement> PrepareNew(string query, ISession session)
-        {
-            var count = Interlocked.Increment(ref _statementCacheCount);
-            if (count > MaxPreparedStatementsThreshold)
-            {
-                Logger.Warning("The prepared statement cache contains {0} queries. This issue is probably due " +
-                               "to misuse of the driver, you should use parameter markers for queries. You can " +
-                               "configure this warning threshold using " +
-                               "MappingConfiguration.SetMaxStatementPreparedThreshold() method.", count);
-            }
-            return session.PrepareAsync(query);
         }
 
         private void SetStatementProperties(IStatement stmt, Cql cql)
