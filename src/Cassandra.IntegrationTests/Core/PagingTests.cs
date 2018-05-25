@@ -199,7 +199,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestCassandraVersion(2, 0), Repeat(200)]
+        [TestCassandraVersion(2, 0), Repeat(10)]
         public void Should_IteratePaging_When_ParallelClientsReadRowSet()
         {
             const int pageSize = 25;

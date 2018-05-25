@@ -28,28 +28,28 @@ using Cassandra.Tasks;
 namespace Cassandra
 {
     /// <summary>
-    /// Represents a result of a query returned by the server.
+    /// Represents the result of a query returned by the server.
     /// <para>
-    /// The retrieval of the rows of a RowSet is generally paged (a first page
+    /// The retrieval of the rows of a <see cref="RowSet"/> is generally paged (a first page
     /// of result is fetched and the next one is only fetched once all the results
-    /// of the first one has been consumed). The size of the pages can be configured
+    /// of the first page have been consumed). The size of the pages can be configured
     /// either globally through <see cref="QueryOptions.SetPageSize(int)"/> or per-statement
     /// with <see cref="IStatement.SetPageSize(int)"/>. Though new pages are automatically
-    /// (and transparently) fetched when needed, it is possible to force the retrieval
-    /// of the next page early through <see cref="FetchMoreResults()"/>.
+    /// and transparently fetched when needed, it is possible to force the retrieval
+    /// of the next page early through <see cref="FetchMoreResults"/> and  <see cref="FetchMoreResultsAsync"/>.
     /// </para>
     /// <para>
-    /// The RowSet dequeues <see cref="Row"/> items while iterated. Parallel enumerations 
-    /// is supported and thread-safe. After a full enumeration of this instance, following
+    /// The RowSet dequeues <see cref="Row"/> items while iterated. After a full enumeration of this instance, following
     /// enumerations will be empty, as all rows have been dequeued.
     /// </para>
     /// </summary>
     /// <remarks>
-    /// RowSet paging is not available with the version 1 of the native protocol. 
+    /// RowSet paging is not available with the version 1 of the native protocol.
     /// If the protocol version 1 is in use, a RowSet is always fetched in it's entirely and
     /// it's up to the client to make sure that no query can yield ResultSet that won't hold
     /// in memory.
     /// </remarks>
+    /// <remarks>Parallel enumerations are supported and thread-safe.</remarks>
     public class RowSet : IEnumerable<Row>, IDisposable
     {
         private static readonly CqlColumn[] EmptyColumns = new CqlColumn[0];
@@ -180,7 +180,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Force the fetching the next page of results for this result set, if any.
+        /// Forces the fetching the next page of results for this <see cref="RowSet"/>.
         /// </summary>
         public void FetchMoreResults()
         {
@@ -188,7 +188,11 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Force the fetching the next page of results without blocking for this result set, if any.
+        /// Asynchronously retrieves the next page of results for this <see cref="RowSet"/>.
+        /// <para>
+        /// The Task will be completed once the internal queue is filled with the new <see cref="Row"/>
+        /// instances.
+        /// </para>
         /// </summary>
         public async Task FetchMoreResultsAsync()
         {
@@ -211,6 +215,8 @@ namespace Cassandra
                     spin.SpinOnce();
                 }
 
+                // In a race, the task might be old and completed but that's OK as GetEnumerator()
+                // checks the pagingState in a loop.
                 await task.ConfigureAwait(false);
                 return;
             }
@@ -248,7 +254,7 @@ namespace Cassandra
             }
             finally
             {
-                // Set task before
+                // Set task BEFORE allowing other threads to page.
                 tcs.TrySetResult(true);
                 Interlocked.Exchange(ref _isPaging, 0);
             }
@@ -264,14 +270,15 @@ namespace Cassandra
 
         /// <summary>
         /// For backward compatibility: It is possible to iterate using the RowSet as it is enumerable.
+        /// <para>Obsolete: Note that it will be removed in future versions</para>
         /// </summary>
-        /// <returns></returns>
         public IEnumerable<Row> GetRows()
         {
             //legacy: Keep the GetRows method for Compatibility.
             return this;
         }
 
+        /// <inheritdoc />
         public virtual IEnumerator<Row> GetEnumerator()
         {
             if (RowQueue == null)
@@ -286,8 +293,7 @@ namespace Cassandra
                 {
                     yield return row;
                 }
-                var pagingState = _pagingState;
-                hasMoreData = AutoPage && pagingState != null;
+                hasMoreData = AutoPage && _pagingState != null;
                 PageNext();
             }
         }
@@ -298,7 +304,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Gets the next results and add the rows to the current RowSet queue
+        /// Gets the next results and add the rows to the current <see cref="RowSet"/> queue.
         /// </summary>
         protected virtual void PageNext()
         {

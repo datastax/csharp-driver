@@ -217,7 +217,7 @@ namespace Cassandra.Tests
         /// <summary>
         /// Test RowSet fetch next with concurrent calls
         /// </summary>
-        [Test, Repeat(50)]
+        [Test, Repeat(10)]
         public void RowSetIteratingConcurrentlyWithMultiplePages()
         {
             const int pageSize = 10;
@@ -229,7 +229,6 @@ namespace Cassandra.Tests
             sw.Start();
             SetFetchNextMethod(rs, async (pagingState) =>
             {
-                Console.WriteLine("Fetching: " + Volatile.Read(ref fetchCounter) + "; Ms: " + sw.ElapsedMilliseconds);
                 var hasNextPage = Interlocked.Increment(ref fetchCounter) < pages - 1;
                 // Delayed fetch
                 await Task.Delay(20);
@@ -241,7 +240,7 @@ namespace Cassandra.Tests
             var counter = 0;
 
             // Invoke it in parallel
-            Parallel.For(0, 8, _ => Interlocked.Add(ref counter, rs.Count()));
+            Parallel.For(0, Environment.ProcessorCount, _ => Interlocked.Add(ref counter, rs.Count()));
             Interlocked.Add(ref counter, rs.Count());
 
             //Assert that the fetch was called just 1 time
