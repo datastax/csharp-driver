@@ -17,6 +17,7 @@ namespace Cassandra.Tests.Mapping.Linq
         private ISession GetSession(RowSet result)
         {
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
                 .Returns(TestHelper.DelayedTask(result, 200))
@@ -114,6 +115,7 @@ namespace Cassandra.Tests.Mapping.Linq
             var rs = TestDataHelper.GetSingleColumnRowSet("int_val", Enumerable.Repeat(1, pageLength).ToArray());
             BoundStatement stmt = null;
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(TestHelper.DelayedTask(rs))

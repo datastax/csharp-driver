@@ -5,6 +5,7 @@ using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
+using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
 #pragma warning disable 618
 #pragma warning disable 612
@@ -437,6 +438,19 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             Assert.AreEqual(1, rs.Count());
             _manyDataTypesEntitiesTable.Where(m => m.StringType == pk && m.IntType == expectedShortValue)
                                        .AllowFiltering().Delete();
+        }
+
+        [Test]
+        public void LinqWhere_Recovers_From_Invalid_Query_Exception()
+        {
+            var table = new Table<Song>(_session, new MappingConfiguration().Define(
+                new Map<Song>().TableName("tbl_recovers_invalid_test").PartitionKey(x => x.Title)));
+
+            Assert.Throws<InvalidQueryException>(() => table.Where(x => x.Title == "Do I Wanna Know").Execute());
+
+            table.Create();
+
+            Assert.AreEqual(0, table.Where(x => x.Title == "Do I Wanna Know").Execute().Count());
         }
 
         [AllowFiltering]

@@ -20,6 +20,7 @@ namespace Cassandra.Tests.Mapping
             ConsistencyLevel? consistency = null;
             ConsistencyLevel? serialConsistency = null;
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Callback<IStatement>(b =>
@@ -50,6 +51,7 @@ namespace Cassandra.Tests.Mapping
 
             var rowsetReturned = false;
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BatchStatement>()))
                 .Returns(TestHelper.DelayedTask(new RowSet(), 2000).ContinueWith(t =>

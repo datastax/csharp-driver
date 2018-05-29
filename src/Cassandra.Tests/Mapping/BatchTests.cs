@@ -29,6 +29,7 @@ namespace Cassandra.Tests.Mapping
                 statementCallback = _ => { };
             }
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BatchStatement>()))
                 .Returns(getRowSetFunc)
