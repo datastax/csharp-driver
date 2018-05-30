@@ -45,7 +45,7 @@ namespace Cassandra.Serialization
                 var value = DeserializeChild(buffer, offset, valueLength, mapInfo.ValueTypeCode, mapInfo.ValueTypeInfo);
                 offset += valueLength;
 
-                result.Add(key, value);
+                result[key] = value;
             }
             return result;
         }
