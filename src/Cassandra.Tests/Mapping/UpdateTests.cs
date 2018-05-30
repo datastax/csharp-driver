@@ -26,6 +26,7 @@ namespace Cassandra.Tests.Mapping
             string query = null;
             object[] parameters = null;
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Callback<IStatement>(b =>
@@ -61,6 +62,7 @@ namespace Cassandra.Tests.Mapping
             string query = null;
             object[] parameters = null;
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Callback<IStatement>(b =>
@@ -105,6 +107,7 @@ namespace Cassandra.Tests.Mapping
             string query = null;
             object[] parameters = null;
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Callback<IStatement>(b =>
@@ -140,6 +143,7 @@ namespace Cassandra.Tests.Mapping
             ConsistencyLevel? consistency = null;
             ConsistencyLevel? serialConsistency = null;
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Callback<IStatement>(b =>
@@ -185,6 +189,7 @@ namespace Cassandra.Tests.Mapping
         {
             string query = null;
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             object[] parameters = null;
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
@@ -220,6 +225,7 @@ namespace Cassandra.Tests.Mapping
             string query = null;
             object[] parameters = null;
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(TestHelper.DelayedTask(TestDataHelper.CreateMultipleValuesRowSet(new [] { "[applied]", "id", "artist" }, new object[] { false, id, "Jimmy Page" })))
@@ -251,6 +257,7 @@ namespace Cassandra.Tests.Mapping
             BoundStatement statement = null;
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(() => TestHelper.DelayedTask(RowSet.Empty()))
