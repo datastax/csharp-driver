@@ -17,8 +17,10 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Collections;
@@ -230,6 +232,7 @@ namespace Cassandra
                     //There was an exception that is not possible to recover from
                     throw _initException;
                 }
+                _logger.Info("Connecting to cluster using {0}", GetAssemblyInfo());
                 try
                 {
                     // Only abort the async operations when at least twice the time for ConnectTimeout per host passed
@@ -274,6 +277,13 @@ namespace Cassandra
             {
                 _initLock.Release();
             }
+        }
+
+        private static string GetAssemblyInfo()
+        {
+            var assembly = typeof(ISession).GetTypeInfo().Assembly;
+            var info = FileVersionInfo.GetVersionInfo(assembly.Location);
+            return $"{info.ProductName} v{info.FileVersion}";
         }
 
         /// <inheritdoc />

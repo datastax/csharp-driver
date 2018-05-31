@@ -40,6 +40,7 @@
   </PropertyGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.5' ">
     <PackageReference Include="System.Data.Common" Version="4.1.0" />
+    <PackageReference Include="System.Diagnostics.FileVersionInfo" Version="4.0.0" />
     <PackageReference Include="System.Diagnostics.StackTrace" Version="4.0.1" />
     <PackageReference Include="System.Diagnostics.TraceSource" Version="4.0.0" />
     <PackageReference Include="System.Net.NameResolution" Version="4.0.0" />
