@@ -131,9 +131,14 @@ namespace Cassandra
                 tcs.TrySetResult(true);
                 e.Dispose();
             };
+
+            var willCompleteAsync = _socket.ConnectAsync(eventArgs);
+            if (!willCompleteAsync)
+            {
+                tcs.TrySetResult(true);
+            }
             try
             {
-                _socket.ConnectAsync(eventArgs);
                 await socketConnectTask.ConfigureAwait(false);
             }
             finally
