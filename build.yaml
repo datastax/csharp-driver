@@ -26,6 +26,7 @@ build:
       if [ $CSHARP_VERSION = 'mono' ]; then
           echo "========== Starting Mono Build =========="
           mono --version
+          alias nuget="mono /usr/local/bin/nuget.exe"
 
           # Install the required packages
           nuget install NUnit.Runners -Version 3.6.1 -OutputDirectory testrunner
@@ -39,6 +40,7 @@ build:
           saxon-xslt -o TestResult.xml TestResult_nunit3.xml tools/nunit3-xunit.xslt
       else
           echo "========== Starting .NET Core SDK Build =========="
+          export DOTNET_CLI_TELEMETRY_OPTOUT=1
           dotnet --version
 
           # Install the required packages
