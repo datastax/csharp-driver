@@ -51,7 +51,7 @@ build:
           dotnet restore src
 
           # Run the tests
-          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f netcoreapp2.0 -c Release --filter FullyQualifiedName~Core.ConnectionTests --logger "trx;LogFileName=../../../TestResult_trx.xml"
+          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f netcoreapp2.0 -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx.xml"
           # saxon-xslt -o TestResult.xml TestResult_trx.xml tools/trx-to-junit.xslt
       fi
 
