@@ -22,6 +22,11 @@ build:
 
       echo "========== Copying ssl files to $HOME/ssl =========="
       cp -r /home/jenkins/ccm/ssl $HOME/ssl
+
+      # Download and uncompress saxon
+      mkdir saxon
+      curl -L -o saxon/SaxonHE9-8-0-12J.zip https://downloads.sourceforge.net/project/saxon/Saxon-HE/9.8/SaxonHE9-8-0-12J.zip
+      unzip saxon/SaxonHE9-8-0-12J.zip -d saxon
  
       if [ $CSHARP_VERSION = 'mono' ]; then
           echo "========== Starting Mono Build =========="
@@ -41,7 +46,7 @@ build:
 
           # Run the tests
           mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net452/Cassandra.IntegrationTests.dll --where:cat=short --labels=All --result:"TestResult_nunit3.xml"
-          # saxon-xslt -o TestResult.xml TestResult_nunit3.xml tools/nunit3-xunit.xslt
+          java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_nunit3.xml tools/nunit3-xunit.xslt
       else
           echo "========== Starting .NET Core SDK Build =========="
           export DOTNET_CLI_TELEMETRY_OPTOUT=1
@@ -52,7 +57,7 @@ build:
 
           # Run the tests
           dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f netcoreapp2.0 -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx.xml"
-          # saxon-xslt -o TestResult.xml TestResult_trx.xml tools/trx-to-junit.xslt
+          java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_trx.xml tools/trx-to-junit.xslt
       fi
 
   - xunit:
