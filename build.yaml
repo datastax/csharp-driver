@@ -41,7 +41,7 @@ build:
 
           # Run the tests
           mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net452/Cassandra.IntegrationTests.dll --where:cat=short --labels=All --result:"TestResult_nunit3.xml"
-          saxon-xslt -o TestResult.xml TestResult_nunit3.xml tools/nunit3-xunit.xslt
+          # saxon-xslt -o TestResult.xml TestResult_nunit3.xml tools/nunit3-xunit.xslt
       else
           echo "========== Starting .NET Core SDK Build =========="
           export DOTNET_CLI_TELEMETRY_OPTOUT=1
@@ -51,8 +51,8 @@ build:
           dotnet restore src
 
           # Run the tests
-          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f netcoreapp2.0 -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx.xml"
-          saxon-xslt -o TestResult.xml TestResult_trx.xml tools/trx-to-junit.xslt
+          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f netcoreapp2.0 -c Release --filter FullyQualifiedName~Core.ConnectionTests --logger "trx;LogFileName=../../../TestResult_trx.xml"
+          # saxon-xslt -o TestResult.xml TestResult_trx.xml tools/trx-to-junit.xslt
       fi
 
   - xunit:
