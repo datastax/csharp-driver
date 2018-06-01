@@ -17,16 +17,20 @@ build:
       export SIMULACRON_PATH=$HOME/simulacron.jar
 
       # Define Cassandra runtime
-      echo "==========setting cassandra version=========="
+      echo "========== Setting Apache Cassandra Version =========="
       export CASSANDRA_VERSION=$CCM_CASSANDRA_VERSION
 
-      echo "==========copying ssl files to $HOME/ssl=========="
+      echo "========== Copying ssl files to $HOME/ssl =========="
       cp -r /home/jenkins/ccm/ssl $HOME/ssl
  
       if [ $CSHARP_VERSION = 'mono' ]; then
           echo "========== Starting Mono Build =========="
           mono --version
-          alias nuget="mono /usr/local/bin/nuget.exe"
+          # Define alias for Nuget
+          nuget() {
+                mono /usr/local/bin/nuget.exe "$@"
+          }
+          export -f nuget
 
           # Install the required packages
           nuget install NUnit.Runners -Version 3.6.1 -OutputDirectory testrunner
@@ -47,7 +51,7 @@ build:
           dotnet restore src
 
           # Run the tests
-          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f netcoreapp1.0 -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx.xml"
+          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f netcoreapp2.0 -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx.xml"
           saxon-xslt -o TestResult.xml TestResult_trx.xml tools/trx-to-junit.xslt
       fi
 
