@@ -14,14 +14,14 @@ environment:
     - TARGET: net452
       CI_TYPE: UNIT
       PROJECT: Cassandra.Tests
-    - TARGET: netcoreapp1.0
+    - TARGET: netcoreapp2.0
       CI_TYPE: UNIT
       PROJECT: Cassandra.Tests
     - TARGET: net452
       CASSANDRA_VERSION: 3.11.2
       CI_TYPE: INTEGRATION
       PROJECT: Cassandra.IntegrationTests
-    - TARGET: netcoreapp1.0
+    - TARGET: netcoreapp2.0
       CASSANDRA_VERSION: 3.11.2
       CI_TYPE: INTEGRATION
       PROJECT: Cassandra.IntegrationTests
