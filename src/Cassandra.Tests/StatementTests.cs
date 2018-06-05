@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Cassandra.Serialization;
+using Moq;
 using NUnit.Framework;
 #pragma warning disable 618
 
@@ -255,6 +255,37 @@ namespace Cassandra.Tests
             }
             // It shouldn't allow more
             Assert.Throws<ArgumentOutOfRangeException>(() => batch.Add(new SimpleStatement("QUERY", id)));
+        }
+
+        [Test]
+        public void BatchStatement_Should_Use_Routing_Key_Of_First_Statement_With_SimpleStatement_Instances()
+        {
+            var rawRoutingKey = new byte[] {1, 2, 3, 4};
+            var s1 = new SimpleStatement("Q1").SetRoutingKey(new RoutingKey(rawRoutingKey));
+            var s2 = new SimpleStatement("Q2").SetRoutingKey(new RoutingKey(new byte[] { 100, 101, 102 }));
+            var batch = new BatchStatement().Add(s1).Add(s2);
+            Assert.AreEqual(BitConverter.ToString(rawRoutingKey),
+                BitConverter.ToString(batch.RoutingKey.RawRoutingKey));
+        }
+
+        [Test]
+        public void BatchStatement_Should_Use_Routing_Key_Of_First_Statement_With_Statement_Instances()
+        {
+            var rawRoutingKey = new byte[] {1, 2, 3, 4};
+            var s1MockCalled = 0;
+            var s2MockCalled = 0;
+
+            var s1Mock = new Mock<Statement>(MockBehavior.Loose);
+            s1Mock.Setup(s => s.RoutingKey).Returns(new RoutingKey(rawRoutingKey)).Callback(() => s1MockCalled++);
+            var s2Mock = new Mock<Statement>(MockBehavior.Loose);
+            s2Mock.Setup(s => s.RoutingKey).Returns((RoutingKey)null).Callback(() => s2MockCalled++);
+
+            var batch = new BatchStatement().Add(s1Mock.Object).Add(s2Mock.Object);
+            Assert.AreEqual(BitConverter.ToString(rawRoutingKey),
+                BitConverter.ToString(batch.RoutingKey.RawRoutingKey));
+
+            Assert.AreEqual(1, s1MockCalled);
+            Assert.AreEqual(0, s2MockCalled);
         }
     }
 }
