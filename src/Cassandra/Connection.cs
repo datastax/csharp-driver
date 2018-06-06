@@ -376,7 +376,7 @@ namespace Cassandra
                 return;
             }
             Logger.Verbose("Connection idling, issuing a Request to prevent idle disconnects");
-            var request = new QueryRequest(_serializer.ProtocolVersion, IdleQuery, false, QueryProtocolOptions.Default);
+            var request = new OptionsRequest();
             Send(request, (ex, response) =>
             {
                 if (ex == null)
@@ -931,7 +931,7 @@ namespace Cassandra
             //There is no need for synchronization here
             //Only 1 thread can be here at the same time.
             //Set the idle timeout to avoid idle disconnects
-            var heartBeatInterval = Configuration.PoolingOptions != null ? Configuration.PoolingOptions.GetHeartBeatInterval() : null;
+            var heartBeatInterval = Configuration.PoolingOptions?.GetHeartBeatInterval();
             if (heartBeatInterval > 0 && !_isCanceled)
             {
                 try
