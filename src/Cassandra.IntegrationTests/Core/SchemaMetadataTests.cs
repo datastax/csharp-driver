@@ -602,5 +602,15 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(new[] { "description", "price" }, tableMeta.ClusteringKeys.Select(c => c.Item1.Name));
             Assert.AreEqual(new[] { SortOrder.Ascending, SortOrder.Descending }, tableMeta.ClusteringKeys.Select(c => c.Item2));
         }
+
+        [Test, TestCassandraVersion(2, 1)]
+        public void CassandraVersion_Should_Be_Retrieved()
+        {
+            foreach (var host in Cluster.AllHosts())
+            {
+                Assert.NotNull(host.CassandraVersion);
+                Assert.Greater(host.CassandraVersion, new Version(1, 2));
+            }
+        }
     }
 }

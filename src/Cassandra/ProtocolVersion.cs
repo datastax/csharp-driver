@@ -96,6 +96,9 @@ namespace Cassandra
             return version - 1;
         }
 
+        /// <summary>
+        /// Gets the highest supported protocol version collectively by the given hosts.
+        /// </summary>
         public static ProtocolVersion GetHighestCommon(this ProtocolVersion version, IEnumerable<Host> hosts)
         {
             var maxVersion = (byte)version;
@@ -142,7 +145,8 @@ namespace Cassandra
                              $"that require at least version 3. Will not be able to connect to these older hosts");
                 maxVersion = maxVersionWith3OrMore;
             }
-            return (ProtocolVersion)maxVersion;
+
+            return (ProtocolVersion) maxVersion;
         }
 
         /// <summary>
