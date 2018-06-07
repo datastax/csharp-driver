@@ -14,7 +14,7 @@
 //    limitations under the License.
 // 
 
-using System;
+using System.Linq;
 using NUnit.Framework;
 
 namespace Cassandra.Tests
@@ -32,19 +32,7 @@ namespace Cassandra.Tests
         public void GetHighestCommon_Should_Downgrade_To_Protocol_VX_With_Hosts(ProtocolVersion version,
                                                                                 params string[] cassandraVersions)
         {
-            var hosts = new Host[cassandraVersions.Length];
-            for (var i = 0; i < cassandraVersions.Length; i++)
-            {
-                var h = TestHelper.CreateHost($"127.0.0.{i + 1}");
-                var versionText = cassandraVersions[i];
-                if (versionText != null)
-                {
-                    h.CassandraVersion = Version.Parse(versionText);
-                }
-                hosts[i] = h;
-            }
-
-            Assert.AreEqual(version, ProtocolVersion.MaxSupported.GetHighestCommon(hosts));
+            Assert.AreEqual(version, ProtocolVersion.MaxSupported.GetHighestCommon(cassandraVersions.Select(GetHost)));
         }
 
         [TestCase(ProtocolVersion.V4, "3.0.13", "3.0.11", "2.2.9")]
@@ -55,19 +43,12 @@ namespace Cassandra.Tests
         public void GetHighestCommon_Should_Not_Downgrade_Protocol_With_Hosts(ProtocolVersion version,
                                                                               params string[] cassandraVersions)
         {
-            var hosts = new Host[cassandraVersions.Length];
-            for (var i = 0; i < cassandraVersions.Length; i++)
-            {
-                var h = TestHelper.CreateHost($"127.0.0.{i + 1}");
-                var versionText = cassandraVersions[i];
-                if (versionText != null)
-                {
-                    h.CassandraVersion = Version.Parse(versionText);
-                }
-                hosts[i] = h;
-            }
+            Assert.AreEqual(version, version.GetHighestCommon(cassandraVersions.Select(GetHost)));
+        }
 
-            Assert.AreEqual(version, version.GetHighestCommon(hosts));
+        private static Host GetHost(string cassandraVersion, int index)
+        {
+            return TestHelper.CreateHost($"127.0.0.{index + 1}", "dc1", "rack1", null, cassandraVersion);
         }
     }
 }

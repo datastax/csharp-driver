@@ -604,7 +604,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test, TestCassandraVersion(2, 1)]
-        public void CassandraVersion_Should_Be_Retrieved()
+        public void CassandraVersion_Should_Be_Obtained_From_Host_Metadata()
         {
             foreach (var host in Cluster.AllHosts())
             {

@@ -330,7 +330,8 @@ namespace Cassandra
         {
             h.Down -= OnHostDown;
             _logger.Warning("Host {0} used by the ControlConnection DOWN", h.Address);
-            Task.Factory.StartNew(() => Reconnect(), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+            // Queue reconnection to occur in the background
+            Task.Run(Reconnect).Forget();
         }
 
         private void OnConnectionCassandraEvent(object sender, CassandraEventArgs e)
@@ -444,9 +445,7 @@ namespace Cassandra
             {
                 _metadata.ClusterName = clusterName;
             }
-            localhost.SetLocationInfo(row.GetValue<string>("data_center"), row.GetValue<string>("rack"));
-            SetCassandraVersion(localhost, row);
-            localhost.Tokens = row.GetValue<IEnumerable<string>>("tokens") ?? new string[0];
+            localhost.SetInfo(row);
             _metadata.SetCassandraVersion(localhost.CassandraVersion);
         }
 
@@ -462,14 +461,8 @@ namespace Cassandra
                     continue;
                 }
                 foundPeers.Add(address);
-                var host = _metadata.GetHost(address);
-                if (host == null)
-                {
-                    host = _metadata.AddHost(address);
-                }
-                host.SetLocationInfo(row.GetValue<string>("data_center"), row.GetValue<string>("rack"));
-                SetCassandraVersion(host, row);
-                host.Tokens = row.GetValue<IEnumerable<string>>("tokens") ?? new string[0];
+                var host = _metadata.GetHost(address) ?? _metadata.AddHost(address);
+                host.SetInfo(row);
             }
 
             // Removes all those that seems to have been removed (since we lost the control connection or not valid contact point)
@@ -479,22 +472,6 @@ namespace Cassandra
                 {
                     _metadata.RemoveHost(address);
                 }
-            }
-        }
-
-        internal static void SetCassandraVersion(Host host, Row row)
-        {
-            try
-            {
-                var releaseVersion = row.GetValue<string>("release_version");
-                if (releaseVersion != null)
-                {
-                    host.CassandraVersion = Version.Parse(releaseVersion.Split('-')[0]);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("There was an error while trying to retrieve the Cassandra version", ex);
             }
         }
 
