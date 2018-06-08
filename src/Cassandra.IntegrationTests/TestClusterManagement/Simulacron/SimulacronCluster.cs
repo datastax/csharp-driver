@@ -54,7 +54,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
         /// <summary>
         /// Creates a new cluster with POST body parameters.
         /// </summary>
-        public static SimulacronCluster CreateNew(dynamic body)
+        public static SimulacronCluster CreateNewWithPostBody(dynamic body)
         {
             var simulacronManager = SimulacronManager.Instance;
             simulacronManager.Start();

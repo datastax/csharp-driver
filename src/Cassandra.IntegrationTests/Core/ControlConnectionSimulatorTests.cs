@@ -16,8 +16,11 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
@@ -35,7 +38,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_Downgrade_To_Protocol_VX_With_Versions(ProtocolVersion version,
                                                                   params string[] cassandraVersions)
         {
-            using (var testCluster = SimulacronCluster.CreateNew(GetSimulatorBody(cassandraVersions)))
+            using (var testCluster = SimulacronCluster.CreateNewWithPostBody(GetSimulatorBody(cassandraVersions)))
             using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 if (version > ProtocolVersion.V2)
@@ -63,12 +66,71 @@ namespace Cassandra.IntegrationTests.Core
         [TestCase(ProtocolVersion.V4, "3.0.13", "1.2.19")]
         public void Should_Not_Downgrade_Protocol_Version(ProtocolVersion version, params string[] cassandraVersions)
         {
-            using (var testCluster = SimulacronCluster.CreateNew(GetSimulatorBody(cassandraVersions)))
+            using (var testCluster = SimulacronCluster.CreateNewWithPostBody(GetSimulatorBody(cassandraVersions)))
             using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 var session = cluster.Connect();
                 Parallel.For(0, 10, _ => session.Execute("SELECT * FROM system.local"));
                 Assert.AreEqual(cluster.GetControlConnection().ProtocolVersion, version);
+            }
+        }
+
+        [Test]
+        public async Task Should_Failover_With_Connections_Closing()
+        {
+            using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "4" } ))
+            {
+                var initialContactPoint = testCluster.InitialContactPoint.Address.GetAddressBytes();
+                var port = testCluster.InitialContactPoint.Port;
+                var contactPoints = new IPEndPoint[4];
+                for (byte i = 0; i < 4; i++)
+                {
+                    var arr = (byte[]) initialContactPoint.Clone();
+                    arr[3] += i;
+                    contactPoints[i] = new IPEndPoint(new IPAddress(arr), port);
+                }
+                var builder = Cluster.Builder().AddContactPoints(contactPoints);
+                var index = 0;
+                await TestHelper.TimesLimit(async () =>
+                {
+                    var nodeAsDown = -1;
+                    var currentIndex = Interlocked.Increment(ref index);
+                    switch (currentIndex)
+                    {
+                        case 11:
+                            nodeAsDown = 0;
+                            break;
+                        case 18:
+                            nodeAsDown = 1;
+                            break;
+                    }
+
+                    if (nodeAsDown >= 0)
+                    {
+                        await testCluster.GetNodes().Skip(nodeAsDown).First().DisableConnectionListener()
+                                         .ConfigureAwait(false);
+                        var connections = testCluster.GetConnectedPorts();
+                        for (var i = connections.Count - 3; i < connections.Count; i++)
+                        {
+                            try
+                            {
+                                await testCluster.DropConnection(connections.Last());
+                            }
+                            catch
+                            {
+                                // Connection might be already closed
+                            }
+                        }
+                    }
+
+                    using (var cluster = builder.Build())
+                    {
+                        await cluster.ConnectAsync();
+                    }
+
+
+                    return 0;
+                }, 60, 5).ConfigureAwait(false);
             }
         }
 
