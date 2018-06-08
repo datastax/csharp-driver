@@ -106,7 +106,7 @@ namespace Cassandra
         private async Task Connect(bool isInitializing)
         {
             var hosts = !isInitializing ?
-                _config.Policies.LoadBalancingPolicy.NewQueryPlan(null, null) : _metadata.Hosts;
+                _config.Policies.LoadBalancingPolicy.NewQueryPlan(null, null) : GetHostEnumerable();
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
             foreach (var host in hosts)
@@ -134,7 +134,9 @@ namespace Cassandra
                     var commonVersion = ProtocolVersion.GetHighestCommon(_metadata.Hosts);
                     if (commonVersion != _serializer.ProtocolVersion)
                     {
+                        // Current connection will be closed and reopened
                         connection = await ChangeProtocolVersion(commonVersion, connection).ConfigureAwait(false);
+                        _connection = connection;
                     }
 
                     await SubscribeToServerEvents(connection).ConfigureAwait(false);
@@ -146,7 +148,8 @@ namespace Cassandra
                 catch (Exception ex)
                 {
                     // There was a socket or authentication exception or an unexpected error
-                    triedHosts.Add(host.Address, ex);
+                    // NOTE: A host may appear twice iterating by design, see GetHostEnumerable()
+                    triedHosts[host.Address] = ex;
                     connection.Dispose();
                 }
             }
@@ -547,6 +550,26 @@ namespace Cassandra
                 throw new DriverInternalError("Expected rows output, obtained " + result.Output.GetType().FullName);
             }
             return ((OutputRows) result.Output).RowSet;
+        }
+
+        /// <summary>
+        /// An iterator designed for the underlying collection to change
+        /// </summary>
+        private IEnumerable<Host> GetHostEnumerable()
+        {
+            var index = 0;
+            var hosts = _metadata.Hosts.ToArray();
+            while (index < hosts.Length)
+            {
+                yield return hosts[index++];
+                // Check that the collection changed
+                var newHosts = _metadata.Hosts.ToCollection();
+                if (newHosts.Count != hosts.Length)
+                {
+                    index = 0;
+                    hosts = newHosts.ToArray();
+                }
+            }
         }
     }
 

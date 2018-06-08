@@ -76,7 +76,7 @@ namespace Cassandra
         /// <summary>
         /// Tokens assigned to the host
         /// </summary>
-        internal IEnumerable<string> Tokens { get; set; }
+        internal IEnumerable<string> Tokens { get; private set; }
 
         /// <summary>
         ///  Gets the name of the datacenter this host is part of. The returned

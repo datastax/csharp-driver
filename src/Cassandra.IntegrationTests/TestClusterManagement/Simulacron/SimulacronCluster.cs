@@ -14,6 +14,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
         public List<SimulacronDataCenter> DataCenters { get; set; }
         private const string CreateClusterPathFormat = "/cluster?data_centers={0}&cassandra_version={1}&dse_version={2}&name={3}" +
                                                        "&activity_log={4}&num_tokens={5}";
+        private const string CreateClusterPath = "/cluster";
 
         public IPEndPoint InitialContactPoint
         {
@@ -44,12 +45,30 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
         {
             var simulacronManager = SimulacronManager.Instance;
             simulacronManager.Start();
-            var path = string.Format(CreateClusterPathFormat, options.Nodes, options.GetCassandraVersion(), options.GetDseVersion(), options.Name, 
-                options.ActivityLog, options.NumberOfTokens);
+            var path = string.Format(CreateClusterPathFormat, options.Nodes, options.GetCassandraVersion(),
+                options.GetDseVersion(), options.Name, options.ActivityLog, options.NumberOfTokens);
             var data = TaskHelper.WaitToComplete(Post(path, null));
-            var cluster = new SimulacronCluster(data["id"].ToString());
-            cluster.Data = data;
-            cluster.DataCenters = new List<SimulacronDataCenter>();
+            return CreateFromData(data);
+        }
+
+        /// <summary>
+        /// Creates a new cluster with POST body parameters.
+        /// </summary>
+        public static SimulacronCluster CreateNew(dynamic body)
+        {
+            var simulacronManager = SimulacronManager.Instance;
+            simulacronManager.Start();
+            var data = TaskHelper.WaitToComplete(Post(CreateClusterPath, body));
+            return CreateFromData(data);
+        }
+
+        private static SimulacronCluster CreateFromData(dynamic data)
+        {
+            var cluster = new SimulacronCluster(data["id"].ToString())
+            {
+                Data = data,
+                DataCenters = new List<SimulacronDataCenter>()
+            };
             var dcs = (JArray) cluster.Data["data_centers"];
             foreach (var dc in dcs)
             {
@@ -66,7 +85,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             }
             return cluster;
         }
-        
+
         public Task DropConnection(string ip, int port)
         {
             return Delete(GetPath("connection") + "/" + ip + "/" + port);
