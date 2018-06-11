@@ -119,7 +119,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public void Dispose()
         {
-            Remove();
+            TaskHelper.WaitToComplete(Remove());
         }
     }
 }
