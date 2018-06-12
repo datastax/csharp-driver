@@ -173,7 +173,7 @@ namespace Cassandra
         /// </summary>
         internal async Task Init()
         {
-            if (Configuration.PoolingOptions.GetWarmup())
+            if (Configuration.GetPoolingOptions(_serializer.ProtocolVersion).GetWarmup())
             {
                 await Warmup().ConfigureAwait(false);
             }
