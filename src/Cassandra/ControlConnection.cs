@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ namespace Cassandra
 {
     internal class ControlConnection : IMetadataQueryProvider, IDisposable
     {
-        private const string SelectPeers = "SELECT peer, data_center, rack, tokens, rpc_address, release_version FROM system.peers";
+        private const string SelectPeers = "SELECT * FROM system.peers";
         private const string SelectLocal = "SELECT * FROM system.local WHERE key='local'";
         private const CassandraEventType CassandraEventTypes = CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange;
         private static readonly IPAddress BindAllAddress = new IPAddress(new byte[4]);
@@ -45,7 +45,7 @@ namespace Cassandra
         private IReconnectionSchedule _reconnectionSchedule;
         private readonly Timer _reconnectionTimer;
         private long _isShutdown;
-        private int _refreshCounter;
+        private int _refreshFlag;
         private Task<bool> _reconnectTask;
         private readonly Serializer _serializer;
         internal const int MetadataAbortTimeout = 5 * 60000;
@@ -53,33 +53,17 @@ namespace Cassandra
         /// <summary>
         /// Gets the binary protocol version to be used for this cluster.
         /// </summary>
-        public ProtocolVersion ProtocolVersion 
-        {
-            get { return _serializer.ProtocolVersion; }
-        }
+        public ProtocolVersion ProtocolVersion => _serializer.ProtocolVersion;
 
         internal Host Host
         {
-            get { return _host; }
-            set { _host = value; }
+            get => _host;
+            set => _host = value;
         }
 
-        public IPEndPoint Address
-        {
-            get
-            {
-                if (_connection == null)
-                {
-                    return null;
-                }
-                return _connection.Address;
-            }
-        }
+        public IPEndPoint Address => _connection?.Address;
 
-        public Serializer Serializer
-        {
-            get { return _serializer; }
-        }
+        public Serializer Serializer => _serializer;
 
         internal ControlConnection(ProtocolVersion initialProtocolVersion, Configuration config, Metadata metadata)
         {
@@ -97,7 +81,8 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Tries to create a connection to any of the contact points and retrieve cluster metadata for the first time. Not thread-safe.
+        /// Tries to create a connection to any of the contact points and retrieve cluster metadata for the first time.
+        /// Not thread-safe.
         /// </summary>
         /// <exception cref="NoHostAvailableException" />
         /// <exception cref="TimeoutException" />
@@ -106,95 +91,101 @@ namespace Cassandra
         {
             _logger.Info("Trying to connect the ControlConnection");
             await Connect(true).ConfigureAwait(false);
-            SubscribeEventHandlers();
-            var obtainingMetadataFailed = false;
-            try
-            {
-                await RefreshNodeList().ConfigureAwait(false);
-                await _metadata.RefreshKeyspaces(false).ConfigureAwait(false);
-            }
-            catch (SocketException ex)
-            {
-                _logger.Error("An error occurred when trying to retrieve the cluster metadata, retrying.", ex);
-                // Can't be awaited on catch
-                obtainingMetadataFailed = true;
-            }
-            if (obtainingMetadataFailed)
-            {
-                // There was a problem using the connection obtained, it is not usual but can happen
-                // Retry one more time and throw if there is problem
-                await Reconnect().ConfigureAwait(false);
-            }
         }
 
         /// <summary>
-        /// Tries to create the a connection to the cluster
+        /// Iterates through the query plan or hosts and tries to create a connection.
+        /// Once a connection is made, topology metadata is refreshed and the ControlConnection is subscribed to Host
+        /// and Connection events.
         /// </summary>
+        /// <param name="isInitializing">
+        /// Determines whether the ControlConnection is connecting for the first time as part of the initialization.
+        /// </param>
         /// <exception cref="NoHostAvailableException" />
         /// <exception cref="DriverInternalError" />
-        private Task<bool> Connect(bool firstTime)
+        private async Task Connect(bool isInitializing)
         {
-            IEnumerable<Host> hosts = _metadata.Hosts;
-            if (!firstTime)
+            var hosts = !isInitializing ?
+                _config.Policies.LoadBalancingPolicy.NewQueryPlan(null, null) : GetHostEnumerable();
+            var triedHosts = new Dictionary<IPEndPoint, Exception>();
+
+            foreach (var host in hosts)
             {
-                _logger.Info("Trying to reconnect the ControlConnection");
-                //Use the load balancing policy to determine which host to use
-                hosts = _config.Policies.LoadBalancingPolicy.NewQueryPlan(null, null);
+                var connection = new Connection(_serializer, host.Address, _config);
+                try
+                {
+                    try
+                    {
+                        await connection.Open().ConfigureAwait(false);
+                    }
+                    catch (UnsupportedProtocolVersionException ex)
+                    {
+                        var nextVersion = _serializer.ProtocolVersion;
+                        connection = await ChangeProtocolVersion(nextVersion, connection, ex).ConfigureAwait(false);
+                    }
+
+                    _logger.Info($"Connection established to {connection.Address} using protocol " +
+                                 $"version {_serializer.ProtocolVersion:D}");
+                    _connection = connection;
+                    _host = host;
+
+                    await RefreshNodeList().ConfigureAwait(false);
+
+                    var commonVersion = ProtocolVersion.GetHighestCommon(_metadata.Hosts);
+                    if (commonVersion != _serializer.ProtocolVersion)
+                    {
+                        // Current connection will be closed and reopened
+                        connection = await ChangeProtocolVersion(commonVersion, connection).ConfigureAwait(false);
+                        _connection = connection;
+                    }
+
+                    await SubscribeToServerEvents(connection).ConfigureAwait(false);
+                    await _metadata.RefreshKeyspaces().ConfigureAwait(false);
+
+                    host.Down += OnHostDown;
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    // There was a socket or authentication exception or an unexpected error
+                    // NOTE: A host may appear twice iterating by design, see GetHostEnumerable()
+                    triedHosts[host.Address] = ex;
+                    connection.Dispose();
+                }
             }
-            return IterateAndConnect(hosts.GetEnumerator(), new Dictionary<IPEndPoint, Exception>());
+            throw new NoHostAvailableException(triedHosts);
         }
 
-        private async Task<bool> IterateAndConnect(IEnumerator<Host> hostsEnumerator, Dictionary<IPEndPoint, Exception> triedHosts)
+        private async Task<Connection> ChangeProtocolVersion(ProtocolVersion nextVersion, Connection previousConnection,
+                                                 UnsupportedProtocolVersionException ex = null)
         {
-            var available = hostsEnumerator.MoveNext();
-            if (!available)
+            if (!nextVersion.IsSupported())
             {
-                throw new NoHostAvailableException(triedHosts);
+                nextVersion = nextVersion.GetLowerSupported();
             }
-            var host = hostsEnumerator.Current ?? throw new NullReferenceException("Host should not be null");
-            var c = new Connection(_serializer, host.Address, _config);
-            // Use a task to workaround "no awaiting in catch"
-            Task<bool> nextTask;
-            try
+
+            if (nextVersion == 0)
             {
-                await c.Open().ConfigureAwait(false);
-                _connection = c;
-                _host = host;
-                _logger.Info("Connection established to {0}", c.Address);
-                return true;
+                throw new DriverInternalError(
+                    $"Connection was unable to STARTUP using protocol version {ex?.ProtocolVersion}");
             }
-            catch (UnsupportedProtocolVersionException ex)
+
+            if (ex != null)
             {
-                // The server can respond with a message using a lower protocol version supported by the server
-                // or using the same version as the one provided
-                var nextVersion = _serializer.ProtocolVersion;
-                if (nextVersion == ex.ProtocolVersion || !nextVersion.IsSupported())
-                {
-                    nextVersion = nextVersion.GetLowerSupported();
-                }
-                if (nextVersion == 0)
-                {
-                    throw new DriverInternalError("Connection was unable to STARTUP using protocol version " + 
-                        ex.ProtocolVersion);
-                }
-                _serializer.ProtocolVersion = nextVersion;
-                _logger.Info("{0}, trying with version {1:D}", ex.Message, nextVersion);
-                c.Dispose();
-                if (!nextVersion.IsSupported())
-                {
-                    throw new DriverInternalError("Invalid protocol version " + nextVersion);
-                }
-                //Retry using the new protocol version
-                nextTask = Connect(true);
+                _logger.Info($"{ex.Message}, trying with version {nextVersion:D}");
             }
-            catch (Exception ex)
+            else
             {
-                //There was a socket exception or an authentication exception
-                triedHosts.Add(host.Address, ex);
-                c.Dispose();
-                nextTask = IterateAndConnect(hostsEnumerator, triedHosts);
+                _logger.Info($"Changing protocol version to {nextVersion:D}");
             }
-            return await nextTask.ConfigureAwait(false);
+
+            _serializer.ProtocolVersion = nextVersion;
+
+            previousConnection.Dispose();
+
+            var c = new Connection(_serializer, previousConnection.Address, _config);
+            await c.Open().ConfigureAwait(false);
+            return c;
         }
 
         internal async Task<bool> Reconnect()
@@ -209,6 +200,7 @@ namespace Cassandra
             Unsubscribe();
             try
             {
+                _logger.Info("Trying to reconnect the ControlConnection");
                 await Connect(false).ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -236,8 +228,6 @@ namespace Cassandra
             }
             try
             {
-                await RefreshNodeList().ConfigureAwait(false);
-                TaskHelper.WaitToComplete(_metadata.RefreshKeyspaces(false), MetadataAbortTimeout);
                 _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
                 tcs.TrySetResult(true);
                 Interlocked.Exchange(ref _reconnectTask, null).Forget();
@@ -262,17 +252,16 @@ namespace Cassandra
 
         private async Task Refresh()
         {
-            if (Interlocked.Increment(ref _refreshCounter) != 1)
+            if (Interlocked.CompareExchange(ref _refreshFlag, 1, 0) != 0)
             {
-                //Only one refresh at a time
-                Interlocked.Decrement(ref _refreshCounter);
+                // Only one refresh at a time
                 return;
             }
             var reconnect = false;
             try
             {
                 await RefreshNodeList().ConfigureAwait(false);
-                await _metadata.RefreshKeyspaces(false).ConfigureAwait(false);
+                await _metadata.RefreshKeyspaces().ConfigureAwait(false);
                 _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             }
             catch (SocketException ex)
@@ -286,7 +275,7 @@ namespace Cassandra
             }
             finally
             {
-                Interlocked.Decrement(ref _refreshCounter);
+                Interlocked.Exchange(ref _refreshFlag, 0);
             }
             if (reconnect)
             {
@@ -313,29 +302,27 @@ namespace Cassandra
 
         /// <summary>
         /// Gets the next connection and setup the event listener for the host and connection.
-        /// Not thread-safe.
         /// </summary>
-        private void SubscribeEventHandlers()
+        /// <exception cref="SocketException" />
+        /// <exception cref="DriverInternalError" />
+        private async Task SubscribeToServerEvents(Connection connection)
         {
-            _host.Down += OnHostDown;
-            _connection.CassandraEventResponse += OnConnectionCassandraEvent;
-            //Register to events on the connection
-            var registerTask = _connection.Send(new RegisterForEventRequest(CassandraEventTypes));
-            TaskHelper.WaitToComplete(registerTask, 10000);
-            if (!(registerTask.Result is ReadyResponse))
+            connection.CassandraEventResponse += OnConnectionCassandraEvent;
+            // Register to events on the connection
+            var response = await connection.Send(new RegisterForEventRequest(CassandraEventTypes))
+                                            .ConfigureAwait(false);
+            if (!(response is ReadyResponse))
             {
-                throw new DriverInternalError("Expected ReadyResponse, obtained " + registerTask.Result.GetType().Name);
+                throw new DriverInternalError("Expected ReadyResponse, obtained " + response?.GetType().Name);
             }
         }
 
+        /// <summary>
+        /// Unsubscribe from the current host 'Down' event.
+        /// </summary>
         private void Unsubscribe()
         {
-            var c = _connection;
             var h = _host;
-            if (c != null)
-            {
-                c.CassandraEventResponse -= OnConnectionCassandraEvent;
-            }
             if (h != null)
             {
                 h.Down -= OnHostDown;
@@ -346,7 +333,8 @@ namespace Cassandra
         {
             h.Down -= OnHostDown;
             _logger.Warning("Host {0} used by the ControlConnection DOWN", h.Address);
-            Task.Factory.StartNew(() => Reconnect(), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+            // Queue reconnection to occur in the background
+            Task.Run(Reconnect).Forget();
         }
 
         private void OnConnectionCassandraEvent(object sender, CassandraEventArgs e)
@@ -434,14 +422,17 @@ namespace Cassandra
         private async Task RefreshNodeList()
         {
             _logger.Info("Refreshing node list");
-            var rsLocal = await QueryAsync(SelectLocal).ConfigureAwait(false);
-            var localRow = rsLocal.FirstOrDefault();
-            var rsPeers = await QueryAsync(SelectPeers).ConfigureAwait(false);
+            var queriesRs = await Task.WhenAll(QueryAsync(SelectLocal), QueryAsync(SelectPeers))
+                                      .ConfigureAwait(false);
+            var localRow = queriesRs[0].FirstOrDefault();
+            var rsPeers = queriesRs[1];
+
             if (localRow == null)
             {
                 _logger.Error("Local host metadata could not be retrieved");
-                return;
+                throw new DriverInternalError("Local host metadata could not be retrieved");
             }
+
             _metadata.Partitioner = localRow.GetValue<string>("partitioner");
             UpdateLocalInfo(localRow);
             UpdatePeersInfo(rsPeers);
@@ -457,9 +448,7 @@ namespace Cassandra
             {
                 _metadata.ClusterName = clusterName;
             }
-            localhost.SetLocationInfo(row.GetValue<string>("data_center"), row.GetValue<string>("rack"));
-            SetCassandraVersion(localhost, row);
-            localhost.Tokens = row.GetValue<IEnumerable<string>>("tokens") ?? new string[0];
+            localhost.SetInfo(row);
             _metadata.SetCassandraVersion(localhost.CassandraVersion);
         }
 
@@ -475,14 +464,8 @@ namespace Cassandra
                     continue;
                 }
                 foundPeers.Add(address);
-                var host = _metadata.GetHost(address);
-                if (host == null)
-                {
-                    host = _metadata.AddHost(address);
-                }
-                host.SetLocationInfo(row.GetValue<string>("data_center"), row.GetValue<string>("rack"));
-                SetCassandraVersion(host, row);
-                host.Tokens = row.GetValue<IEnumerable<string>>("tokens") ?? new string[0];
+                var host = _metadata.GetHost(address) ?? _metadata.AddHost(address);
+                host.SetInfo(row);
             }
 
             // Removes all those that seems to have been removed (since we lost the control connection or not valid contact point)
@@ -492,22 +475,6 @@ namespace Cassandra
                 {
                     _metadata.RemoveHost(address);
                 }
-            }
-        }
-
-        internal static void SetCassandraVersion(Host host, Row row)
-        {
-            try
-            {
-                var releaseVersion = row.GetValue<string>("release_version");
-                if (releaseVersion != null)
-                {
-                    host.CassandraVersion = Version.Parse(releaseVersion.Split('-')[0]);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error("There was an error while trying to retrieve the Cassandra version", ex);
             }
         }
 
@@ -583,6 +550,26 @@ namespace Cassandra
                 throw new DriverInternalError("Expected rows output, obtained " + result.Output.GetType().FullName);
             }
             return ((OutputRows) result.Output).RowSet;
+        }
+
+        /// <summary>
+        /// An iterator designed for the underlying collection to change
+        /// </summary>
+        private IEnumerable<Host> GetHostEnumerable()
+        {
+            var index = 0;
+            var hosts = _metadata.Hosts.ToArray();
+            while (index < hosts.Length)
+            {
+                yield return hosts[index++];
+                // Check that the collection changed
+                var newHosts = _metadata.Hosts.ToCollection();
+                if (newHosts.Count != hosts.Length)
+                {
+                    index = 0;
+                    hosts = newHosts.ToArray();
+                }
+            }
         }
     }
 

@@ -76,7 +76,7 @@ namespace Cassandra
         /// <summary>
         /// Tokens assigned to the host
         /// </summary>
-        internal IEnumerable<string> Tokens { get; set; }
+        internal IEnumerable<string> Tokens { get; private set; }
 
         /// <summary>
         ///  Gets the name of the datacenter this host is part of. The returned
@@ -100,7 +100,7 @@ namespace Cassandra
         /// The value returned can be null if the information is unavailable.
         /// </remarks>
         /// </summary>
-        public Version CassandraVersion { get; internal set; }
+        public Version CassandraVersion { get; private set; }
 
         /// <summary>
         /// Creates a new instance of <see cref="Host"/>.
@@ -163,10 +163,23 @@ namespace Cassandra
             }
         }
 
-        internal void SetLocationInfo(string datacenter, string rack)
+        /// <summary>
+        /// Sets datacenter, rack and other basic information of a host.
+        /// </summary>
+        internal void SetInfo(IRow row)
         {
-            Datacenter = datacenter;
-            Rack = rack;
+            Datacenter = row.GetValue<string>("data_center");
+            Rack = row.GetValue<string>("rack");
+            Tokens = row.GetValue<IEnumerable<string>>("tokens") ?? new string[0];
+
+            if (row.ContainsColumn("release_version"))
+            {
+                var releaseVersion = row.GetValue<string>("release_version");
+                if (releaseVersion != null)
+                {
+                    CassandraVersion = Version.Parse(releaseVersion.Split('-')[0]);
+                }
+            }
         }
 
         /// <summary>

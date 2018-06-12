@@ -14,10 +14,7 @@
 //   limitations under the License.
 //
 
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System;
 
 namespace Cassandra
 {
@@ -26,7 +23,7 @@ namespace Cassandra
         /// <summary>
         /// The version that was not supported by the server.
         /// </summary>
-        public ProtocolVersion ProtocolVersion { get; private set; }
+        public ProtocolVersion ProtocolVersion { get; }
 
         public UnsupportedProtocolVersionException(ProtocolVersion protocolVersion, Exception innerException) : 
             base(string.Format("Protocol version {0} not supported", protocolVersion), innerException)
