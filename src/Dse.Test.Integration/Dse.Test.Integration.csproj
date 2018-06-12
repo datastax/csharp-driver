@@ -20,7 +20,6 @@
     <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
     <PackageReference Include="NUnit" Version="3.7.1" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.10.0" />
-    <PackageReference Include="SSH.NET" Version="2016.0.0" />
     <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
     <PackageReference Include="System.Runtime.Serialization.Json" Version="4.0.2" />
     <PackageReference Include="System.Runtime.Serialization.Primitives" Version="4.1.1" />
@@ -28,10 +27,15 @@
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
     <PackageReference Include="JetBrains.DotMemoryUnit" Version="2.3.20160517.113140" />
+    <PackageReference Include="SSH.NET" Version="2016.1.0" />
     <Reference Include="System.Data" />
     <Reference Include="System.Numerics" />
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
+    <PackageReference Include="SSH.NET" Version="2016.1.0" />
+    <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />

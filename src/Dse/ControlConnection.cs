@@ -105,6 +105,7 @@ namespace Dse
                 var connection = new Connection(_serializer, host.Address, _config);
                 try
                 {
+                    var version = _serializer.ProtocolVersion;
                     try
                     {
                         await connection.Open().ConfigureAwait(false);
@@ -112,7 +113,8 @@ namespace Dse
                     catch (UnsupportedProtocolVersionException ex)
                     {
                         var nextVersion = _serializer.ProtocolVersion;
-                        connection = await ChangeProtocolVersion(nextVersion, connection, ex).ConfigureAwait(false);
+                        connection = await ChangeProtocolVersion(nextVersion, connection, ex, version)
+                            .ConfigureAwait(false);
                     }
 
                     _logger.Info($"Connection established to {connection.Address} using protocol " +
@@ -148,9 +150,10 @@ namespace Dse
         }
 
         private async Task<Connection> ChangeProtocolVersion(ProtocolVersion nextVersion, Connection previousConnection,
-                                                 UnsupportedProtocolVersionException ex = null)
+                                                 UnsupportedProtocolVersionException ex = null,
+                                                 ProtocolVersion? previousVersion = null)
         {
-            if (!nextVersion.IsSupported())
+            if (!nextVersion.IsSupported() || nextVersion == previousVersion)
             {
                 nextVersion = nextVersion.GetLowerSupported();
             }
