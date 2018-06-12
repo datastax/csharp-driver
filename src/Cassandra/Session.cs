@@ -182,7 +182,7 @@ namespace Cassandra
             {
                 // Borrow a connection, trying to fail fast
                 var handler = new RequestHandler(this, _serializer);
-                await handler.GetNextConnection(new Dictionary<IPEndPoint, Exception>());
+                await handler.GetNextConnection(new Dictionary<IPEndPoint, Exception>()).ConfigureAwait(false);
             }
         }
 
