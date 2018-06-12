@@ -17,16 +17,12 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
     [Category("short")]
     public class FluentMappingPredefined : SharedClusterTest
     {
-        private ISession _session;
-        string _uniqueKsName;
-
         [SetUp]
         public void SetupTest()
         {
-            _session = TestClusterManager.GetTestCluster(1).Session;
-            _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            _session.CreateKeyspace(_uniqueKsName);
-            _session.ChangeKeyspace(_uniqueKsName);
+            var keyspaceName = TestUtils.GetUniqueKeyspaceName();
+            Session.CreateKeyspace(keyspaceName);
+            Session.ChangeKeyspace(keyspaceName);
         }
 
         /// <summary>
@@ -36,10 +32,10 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void Attributes_FluentMapping_CaseSensitive()
         {
             var config = new MappingConfiguration().Define(new ClassWithCamelCaseNameMapping());
-            var table = new Table<ClassWithCamelCaseName>(_session, config);
+            var table = new Table<ClassWithCamelCaseName>(Session, config);
             table.Create();
 
-            var cqlClient = new Mapper(_session, config);
+            var cqlClient = new Mapper(Session, config);
             ClassWithCamelCaseName classWithCamelCaseName = new ClassWithCamelCaseName
             {
                 SomePartitionKey = Guid.NewGuid().ToString(),
@@ -56,7 +52,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.AreEqual(defaultInstance.IgnoredStringAttribute, records[0].IgnoredStringAttribute);
 
             // Query for the column that the Linq table create created, verify no value was uploaded to it
-            List<Row> rows = _session.Execute(cqlSelect).GetRows().ToList();
+            List<Row> rows = Session.Execute(cqlSelect).GetRows().ToList();
             Assert.AreEqual(1, rows.Count);
             Assert.AreEqual(classWithCamelCaseName.SomePartitionKey, rows[0].GetValue<string>("SomePartitionKey"));
             var ex = Assert.Throws<ArgumentException>(() => rows[0].GetValue<string>("IgnoredStringAttribute"));
@@ -72,10 +68,10 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
         public void Attributes_FluentMapping_CaseSensitive_NotSpecifiedForClassName()
         {
             var config = new MappingConfiguration().Define(new ClassWithCamelCaseNameMapping_CaseSensitiveNotSpecifiedForClassName());
-            var table = new Table<ClassWithCamelCaseName>(_session, config);
+            var table = new Table<ClassWithCamelCaseName>(Session, config);
             table.Create();
 
-            var cqlClient = new Mapper(_session, config);
+            var cqlClient = new Mapper(Session, config);
             ClassWithCamelCaseName classWithCamelCaseName = new ClassWithCamelCaseName
             {
                 SomePartitionKey = Guid.NewGuid().ToString(),
@@ -92,7 +88,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.AreEqual(defaultInstance.IgnoredStringAttribute, records[0].IgnoredStringAttribute);
 
             // Query for the column that the Linq table create created, verify no value was uploaded to it
-            List<Row> rows = _session.Execute(cqlSelect).GetRows().ToList();
+            List<Row> rows = Session.Execute(cqlSelect).GetRows().ToList();
             Assert.AreEqual(1, rows.Count);
             Assert.AreEqual(classWithCamelCaseName.SomePartitionKey, rows[0].GetValue<string>("SomePartitionKey"));
             var ex = Assert.Throws<ArgumentException>(() => rows[0].GetValue<string>("IgnoredStringAttribute"));
