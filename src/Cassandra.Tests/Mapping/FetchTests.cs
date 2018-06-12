@@ -173,7 +173,7 @@ namespace Cassandra.Tests.Mapping
             const int totalPages = 4;
             var rs = TestDataHelper.CreateMultipleValuesRowSet(new[] {"title", "artist"}, new[] {"Once in a Livetime", "Dream Theater"}, pageSize);
             rs.PagingState = new byte[] {1};
-            rs.FetchNextPage = state =>
+            SetFetchNextMethod(rs, state =>
             {
                 var pageNumber = state[0];
                 pageNumber++;
@@ -183,7 +183,7 @@ namespace Cassandra.Tests.Mapping
                     nextRs.PagingState = new[] { pageNumber };
                 }
                 return nextRs;
-            };
+            });
             var mappingClient = GetMappingClient(rs);
             var songs = mappingClient.Fetch<Song>("SELECT * FROM songs");
             //Page to all the values
@@ -424,6 +424,11 @@ namespace Cassandra.Tests.Mapping
             Assert.AreEqual(expectedMap, result.Dictionary1);
             Assert.AreEqual(expectedMap, result.Dictionary2);
             Assert.AreEqual(expectedMap, result.Dictionary3);
+        }
+
+        private static void SetFetchNextMethod(RowSet rs, Func<byte[], RowSet> handler)
+        {
+            rs.SetFetchNextPageHandler(pagingState => Task.FromResult(handler(pagingState)), 10000);
         }
     }
 }

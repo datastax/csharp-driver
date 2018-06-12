@@ -17,7 +17,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Collections.Concurrent;
+using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 
@@ -29,6 +29,12 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short")]
     public class PagingTests : SharedClusterTest
     {
+        public override void OneTimeSetUp()
+        {
+            base.OneTimeSetUp();
+            CreateSimpleTableAndInsert(300, "tbl_parallel_paging_read");
+        }
+
         [Test]
         [TestCassandraVersion(2, 0)]
         public void Should_NotUseDefaultPageSize_When_SetOnClusterBulder()
@@ -193,27 +199,28 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestCassandraVersion(2, 0)]
+        [TestCassandraVersion(2, 0), Repeat(10)]
         public void Should_IteratePaging_When_ParallelClientsReadRowSet()
         {
-            var pageSize = 25;
-            var totalRowLength = 300;
-            var table = CreateSimpleTableAndInsert(totalRowLength);
+            const int pageSize = 25;
+            const int totalRowLength = 300;
+            const string table = "tbl_parallel_paging_read";
             var query = new SimpleStatement($"SELECT * FROM {table} LIMIT 10000").SetPageSize(pageSize);
             var rs = Session.Execute(query);
             Assert.AreEqual(pageSize, rs.GetAvailableWithoutFetching());
-            var counterList = new ConcurrentBag<int>();
-            Action iterate = () =>
+
+            var counter = 0;
+
+            void Iterate()
             {
-                var counter = rs.Count();
-                counterList.Add(counter);
-            };
+                Interlocked.Add(ref counter, rs.Count());
+            }
 
             //Iterate in parallel the RowSet
-            Parallel.Invoke(iterate, iterate, iterate, iterate);
+            Parallel.Invoke(Iterate, Iterate, Iterate, Iterate);
 
             //Check that the sum of all rows in different threads is the same as total rows
-            Assert.AreEqual(totalRowLength, counterList.Sum());
+            Assert.AreEqual(totalRowLength, Volatile.Read(ref counter));
         }
 
         [Test]
@@ -265,9 +272,13 @@ namespace Cassandra.IntegrationTests.Core
         /// Creates a table and inserts a number of records synchronously.
         /// </summary>
         /// <returns>The name of the table</returns>
-        private string CreateSimpleTableAndInsert(int rowsInTable)
+        private string CreateSimpleTableAndInsert(int rowsInTable, string tableName = null)
         {
-            var tableName = TestUtils.GetUniqueTableName();
+            if (tableName == null)
+            {
+                tableName = TestUtils.GetUniqueTableName();
+            }
+
             QueryTools.ExecuteSyncNonQuery(Session, $@"
                 CREATE TABLE {tableName}(
                 id uuid PRIMARY KEY,
