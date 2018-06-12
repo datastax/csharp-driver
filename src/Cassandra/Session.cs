@@ -177,6 +177,13 @@ namespace Cassandra
             {
                 await Warmup().ConfigureAwait(false);
             }
+
+            if (Keyspace != null)
+            {
+                // Borrow a connection, trying to fail fast
+                var handler = new RequestHandler(this, _serializer);
+                await handler.GetNextConnection(new Dictionary<IPEndPoint, Exception>());
+            }
         }
 
         /// <summary>
