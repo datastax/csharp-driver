@@ -1,5 +1,5 @@
 os:
-  - ubuntu/trusty64
+  - ubuntu/bionic64/csharp-driver
 cassandra:
   - dse-4.8
   - dse-5.0
@@ -32,37 +32,50 @@ build:
       echo $CSHARP_VERSION
 
       # Define Cassandra runtime
-      echo "==========setting cassandra version=========="
+      echo "========== Setting Server Version =========="
       export CASSANDRA_VERSION=$CCM_CASSANDRA_VERSION
 
-      echo "==========copying ssl files to $HOME/ssl=========="
+      echo "========== Copying ssl files to $HOME/ssl =========="
       cp -r /home/jenkins/ccm/ssl $HOME/ssl
+
+      # Download and uncompress saxon
+      mkdir saxon
+      curl -L -o saxon/SaxonHE9-8-0-12J.zip https://downloads.sourceforge.net/project/saxon/Saxon-HE/9.8/SaxonHE9-8-0-12J.zip
+      unzip saxon/SaxonHE9-8-0-12J.zip -d saxon
  
       if [ $CSHARP_VERSION = 'mono' ]; then
-          echo "==========csharp verion mono=========="
+          echo "========== Starting Mono Build =========="
+          mono --version
           # Define alias for Nuget
           nuget() {
-                mono /home/jenkins/nuget/NuGet.exe "$@"
+                mono /usr/local/bin/nuget.exe "$@"
           }
           export -f nuget
+
           # Install the required packages
           export EnableNuGetPackageRestore=true
           msbuild /t:restore /v:m src/Dse.sln
           nuget install NUnit.Runners -Version 3.6.1 -OutputDirectory testrunner
+
           # Compile the driver and test code
           msbuild /p:Configuration=Release /v:m /p:DynamicConstants=LINUX src/Dse.sln
+
           # Run the tests
           echo "==========RUNNING FULL SUITE OF TESTS=========="
           mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Dse.Test.Integration/bin/Release/net452/Dse.Test.Integration.dll --where:cat=short --labels=All --result:"TestResult_nunit3.xml"
-          saxon-xslt -o TestResult.xml TestResult_nunit3.xml tools/nunit3-xunit.xslt
+          java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_nunit3.xml tools/nunit3-xunit.xslt
       else
+          echo "========== Starting .NET Core SDK Build =========="
+          export DOTNET_CLI_TELEMETRY_OPTOUT=1
+          dotnet --version
+
           # Install the required packages
           dotnet restore src
 
           # Run the tests
           echo "==========RUNNING FULL SUITE OF TESTS=========="
-          dotnet test src/Dse.Test.Integration/Dse.Test.Integration.csproj -f netcoreapp1.0 -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx.xml"
-          saxon-xslt -o TestResult.xml TestResult_trx.xml tools/trx-to-junit.xslt
+          dotnet test src/Dse.Test.Integration/Dse.Test.Integration.csproj -f netcoreapp2.0 -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx.xml"
+          java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_trx.xml tools/trx-to-junit.xslt
       fi
 
   - xunit:

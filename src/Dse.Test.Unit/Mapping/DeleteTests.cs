@@ -83,6 +83,7 @@ namespace Dse.Test.Unit.Mapping
         {
             BoundStatement statement = null;
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))

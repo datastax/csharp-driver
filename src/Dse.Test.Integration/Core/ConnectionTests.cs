@@ -682,34 +682,36 @@ namespace Dse.Test.Integration.Core
         }
 
         [Test]
-        public void With_Heartbeat_Enabled_Should_Send_Request()
+        public async Task With_Heartbeat_Enabled_Should_Send_Request()
         {
-            using (var connection = CreateConnection(null, null, new PoolingOptions().SetHeartBeatInterval(500)))
+            using (var connection = CreateConnection(null, null, new PoolingOptions().SetHeartBeatInterval(80)))
             {
-                connection.Open().Wait();
-                //execute a dummy query
-                TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default));
-                Interlocked.MemoryBarrier();
+                await connection.Open().ConfigureAwait(false);
+                // Execute a dummy query
+                await Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default)
+                    .ConfigureAwait(false);
+
                 var writeCounter = 0;
                 connection.WriteCompleted += () => Interlocked.Increment(ref writeCounter);
-                Thread.Sleep(2450);
-                Assert.GreaterOrEqual(Volatile.Read(ref writeCounter), 4);
+                await TestHelper.WaitUntilAsync(() => Volatile.Read(ref writeCounter) > 2, 200, 5);
+                Assert.Greater(Volatile.Read(ref writeCounter), 2);
             }
         }
 
         [Test]
-        public void With_Heartbeat_Disabled_Should_Not_Send_Request()
+        public async Task With_Heartbeat_Disabled_Should_Not_Send_Request()
         {
             using (var connection = CreateConnection(null, null, new PoolingOptions().SetHeartBeatInterval(0)))
             {
-                connection.Open().Wait();
+                await connection.Open().ConfigureAwait(false);
                 //execute a dummy query
-                TaskHelper.WaitToComplete(Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default));
-
-                Thread.Sleep(500);
+                await Query(connection, "SELECT * FROM system.local", QueryProtocolOptions.Default)
+                    .ConfigureAwait(false);
+                await Task.Delay(500).ConfigureAwait(false);
                 var writeCounter = 0;
                 connection.WriteCompleted += () => writeCounter++;
-                Thread.Sleep(2200);
+                // No write should occur
+                await Task.Delay(2200).ConfigureAwait(false);
                 Assert.AreEqual(0, writeCounter);
             }
         }

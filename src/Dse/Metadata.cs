@@ -321,7 +321,7 @@ namespace Dse
         /// <summary>
         /// Retrieves the keyspaces, stores the information in the internal state and rebuilds the token map
         /// </summary>
-        internal Task<bool> RefreshKeyspaces(bool retry)
+        internal Task<bool> RefreshKeyspaces(bool retry = false)
         {
             Logger.Info("Retrieving keyspaces metadata");
             return _schemaParser

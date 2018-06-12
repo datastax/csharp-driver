@@ -12,7 +12,7 @@ environment:
     - TARGET: net452
       CI_TYPE: UNIT
       PROJECT: Dse.Test.Unit
-    - TARGET: netcoreapp1.0
+    - TARGET: netcoreapp2.0
       CI_TYPE: UNIT
       PROJECT: Dse.Test.Unit
 

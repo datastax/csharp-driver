@@ -222,21 +222,20 @@ namespace Dse.Requests
             rs.AutoPage = statement != null && statement.AutoPage;
             if (rs.AutoPage && rs.PagingState != null && _request is IQueryRequest)
             {
-                //Automatic paging is enabled and there are following result pages
-                //Set the Handler for fetching the next page.
-                rs.FetchNextPage = pagingState =>
+                // Automatic paging is enabled and there are following result pages
+                rs.SetFetchNextPageHandler(pagingState =>
                 {
                     if (_session.IsDisposed)
                     {
                         Logger.Warning("Trying to page results using a Session already disposed.");
-                        return new RowSet();
+                        return Task.FromResult(RowSet.Empty());
                     }
-                    var request = (IQueryRequest)RequestHandler.GetRequest(statement, _parent.Serializer, session.Cluster.Configuration);
+
+                    var request = (IQueryRequest) RequestHandler.GetRequest(statement, _parent.Serializer,
+                        session.Cluster.Configuration);
                     request.PagingState = pagingState;
-                    var task = new RequestHandler(session, _parent.Serializer, request, statement).Send();
-                    TaskHelper.WaitToComplete(task, session.Cluster.Configuration.ClientOptions.QueryAbortTimeout);
-                    return (RowSet)(object)task.Result;
-                };
+                    return new RequestHandler(session, _parent.Serializer, request, statement).Send();
+                }, _session.Cluster.Configuration.ClientOptions.QueryAbortTimeout);
             }
         }
 

@@ -15,7 +15,6 @@
     <Product>DataStax Enterprise C# Driver</Product>
     <AssemblyOriginatorKeyFile>../../build/datastax.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
-    <PublicSign Condition="'$(OS)' != 'Windows_NT'">true</PublicSign>
     <PackageId>Dse</PackageId>
     <Title>DataStax Enterprise C# Driver</Title>
     <PackageTags>cassandra;dse;datastax;driver;client;database;nosql;dotnet;netcore;db</PackageTags>

@@ -666,5 +666,15 @@ namespace Dse.Test.Integration.Core
                 { "deadline_target_sec", "86400" }
             }, mv.Options.NodeSync);
         }
+
+        [Test, TestCassandraVersion(2, 1)]
+        public void CassandraVersion_Should_Be_Obtained_From_Host_Metadata()
+        {
+            foreach (var host in Cluster.AllHosts())
+            {
+                Assert.NotNull(host.CassandraVersion);
+                Assert.Greater(host.CassandraVersion, new Version(1, 2));
+            }
+        }
     }
 }

@@ -44,20 +44,22 @@ namespace Dse
             {
                 if (_routingKey != null)
                 {
-                    return _routingKey;   
+                    return _routingKey;
                 }
                 if (_routingValues == null)
                 {
                     return null;
                 }
+
                 var serializer = Serializer;
                 if (serializer == null)
                 {
                     serializer = Serializer.Default;
-                    Logger.Warning("Calculating routing key before executing is not supporting for SimpleStatements, " +
-                                   "using default serializer.");
+                    Logger.Warning("Calculating routing key before executing is not supported for SimpleStatement " +
+                                   "instances, using default serializer.");
                 }
-                //Calculate the routing key
+
+                // Calculate the routing key
                 return RoutingKey.Compose(
                     _routingValues
                     .Select(value => new RoutingKey(serializer.Serialize(value)))

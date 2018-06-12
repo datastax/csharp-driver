@@ -9,20 +9,9 @@
       <xsl:variable name="numberOfErrors" select="count(//a:UnitTestResult[not(@outcome)]) + count(//b:UnitTestResult[not(@outcome)])" />
       <xsl:variable name="numberSkipped" select="count(//a:UnitTestResult/@outcome[.!='Passed' and .!='Failed']) + count(//b:UnitTestResult/@outcome[.!='Passed' and .!='Failed'])" />
 
-      <xsl:variable name="totalTestTimeA">
-        <xsl:call-template name="getTotalTime">
-          <xsl:with-param name="testcase" select="//a:UnitTestResult" />
-        </xsl:call-template>
-      </xsl:variable>
-      <xsl:variable name="totalTestTimeB">
-        <xsl:call-template name="getTotalTime">
-          <xsl:with-param name="testcase" select="//b:UnitTestResult" />
-        </xsl:call-template>
-      </xsl:variable>
-      <xsl:variable name="totalTestTime" select="$totalTestTimeA + $totalTestTimeB"/>
       <testsuite name="MSTestSuite"
 				tests="{$numberOfTests}"
-				time="{$totalTestTime}"
+				time="0"
 				failures="{$numberOfFailures}"
 				errors="{$numberOfErrors}"
 				skipped="{$numberSkipped}">
