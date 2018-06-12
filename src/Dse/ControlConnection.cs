@@ -160,18 +160,19 @@ namespace Dse
 
             if (nextVersion == 0)
             {
-                throw new DriverInternalError(
-                    $"Connection was unable to STARTUP using protocol version {ex?.ProtocolVersion}");
+                if (ex != null)
+                {
+                    // We have downgraded the version until is 0 and none of those are supported
+                    throw ex;
+                }
+
+                // There was no exception leading to the downgrade, signal internal error
+                throw new DriverInternalError("Connection was unable to STARTUP using protocol version 0");
             }
 
-            if (ex != null)
-            {
-                _logger.Info($"{ex.Message}, trying with version {nextVersion:D}");
-            }
-            else
-            {
-                _logger.Info($"Changing protocol version to {nextVersion:D}");
-            }
+            _logger.Info(ex != null
+                ? $"{ex.Message}, trying with version {nextVersion:D}"
+                : $"Changing protocol version to {nextVersion:D}");
 
             _serializer.ProtocolVersion = nextVersion;
 
