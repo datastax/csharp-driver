@@ -242,6 +242,31 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        public async Task Should_Create_Core_Connections_To_Hosts_In_Local_Dc_When_Warmup_Is_Enabled()
+        {
+            const int nodeLength = 4;
+            var poolingOptions = PoolingOptions.Create().SetCoreConnectionsPerHost(HostDistance.Local, 5);
+
+            // Use multiple DCs: 4 nodes in first DC and 3 nodes in second DC
+            using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = $"{nodeLength},3"}))
+            using (var cluster = Cluster.Builder()
+                                        .AddContactPoint(testCluster.InitialContactPoint)
+                                        .WithPoolingOptions(poolingOptions).Build())
+            {
+                var session = await cluster.ConnectAsync().ConfigureAwait(false);
+                var state = session.GetState();
+                var hosts = state.GetConnectedHosts();
+
+                Assert.AreEqual(nodeLength, hosts.Count);
+                foreach (var host in hosts)
+                {
+                    Assert.AreEqual(poolingOptions.GetCoreConnectionsPerHost(HostDistance.Local),
+                                    state.GetOpenConnections(host));
+                }
+            }
+        }
+
+        [Test]
         public async Task ControlConnection_Should_Reconnect_To_Up_Host()
         {
             const int connectionLength = 1;
@@ -251,7 +276,7 @@ namespace Cassandra.IntegrationTests.Core
                                      .SetMaxConnectionsPerHost(HostDistance.Local, connectionLength)
                                      .SetHeartBeatInterval(1000))
                                  .WithReconnectionPolicy(new ConstantReconnectionPolicy(100L));
-            using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
+            using (var testCluster = SimulacronCluster.CreateNew(3))
             using (var cluster = builder.AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 var session = (Session)cluster.Connect();
