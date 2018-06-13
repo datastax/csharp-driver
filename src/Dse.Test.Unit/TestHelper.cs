@@ -131,7 +131,8 @@ namespace Dse.Test.Unit
         }
 
         public static Host CreateHost(string address, string dc = "dc1", string rack = "rack1",
-                                      IEnumerable<string> tokens = null, string cassandraVersion = null)
+                                      IEnumerable<string> tokens = null, string cassandraVersion = null,
+                                      string dseVersion = null)
         {
             var h = new Host(new IPEndPoint(IPAddress.Parse(address), ProtocolOptions.DefaultPort),
                              new ConstantReconnectionPolicy(1));
@@ -140,7 +141,8 @@ namespace Dse.Test.Unit
                 { "data_center", dc },
                 { "rack", rack },
                 { "tokens", tokens },
-                { "release_version", cassandraVersion }
+                { "release_version", cassandraVersion },
+                { "dse_version", dseVersion }
             }));
             return h;
         }

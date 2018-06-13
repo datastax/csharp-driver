@@ -35,6 +35,14 @@ namespace Dse.Test.Unit
             Assert.AreEqual(version, ProtocolVersion.MaxSupported.GetHighestCommon(cassandraVersions.Select(GetHost)));
         }
 
+        [TestCase(ProtocolVersion.V3, "6.0/3.10.2", "4.8.1/2.1.17", "5.1/3.0.13")]
+        [TestCase(ProtocolVersion.V4, "6.0/3.10.2", "5.1/3.0.13")]
+        public void GetHighestCommon_Should_Downgrade_To_Protocol_VX_With_Dse_Hosts(ProtocolVersion version,
+                                                                                    params string[] cassandraVersions)
+        {
+            Assert.AreEqual(version, ProtocolVersion.MaxSupported.GetHighestCommon(cassandraVersions.Select(GetHost)));
+        }
+
         [TestCase(ProtocolVersion.V4, "3.0.13", "3.0.11", "2.2.9")]
         // can't downgrade because C* 3.0 does not support protocol lower versions than v3.
         [TestCase(ProtocolVersion.V4, "3.0.13", "2.0.17")]
@@ -46,9 +54,26 @@ namespace Dse.Test.Unit
             Assert.AreEqual(version, version.GetHighestCommon(cassandraVersions.Select(GetHost)));
         }
 
+        [TestCase(ProtocolVersion.V4, "5.1.7/3.0.13", "5.0.13/3.0.11", "2.2.9")]
+        [TestCase(ProtocolVersion.DseV2, "6.0/3.0.0", "6.0/3.0.0")]
+        // can't downgrade because C* 3.0 does not support protocol lower versions than v3.
+        [TestCase(ProtocolVersion.DseV2, "6.0/3.0.13", "4.5/2.0.17")]
+        public void GetHighestCommon_Should_Not_Downgrade_Protocol_With_Dse_Hosts(ProtocolVersion version,
+                                                                                  params string[] cassandraVersions)
+        {
+            Assert.AreEqual(version, version.GetHighestCommon(cassandraVersions.Select(GetHost)));
+        }
+
         private static Host GetHost(string cassandraVersion, int index)
         {
-            return TestHelper.CreateHost($"127.0.0.{index + 1}", "dc1", "rack1", null, cassandraVersion);
+            string dseVersion = null;
+            var separatorIndex = cassandraVersion?.IndexOf('/');
+            if (separatorIndex >= 0)
+            {
+                dseVersion = cassandraVersion.Substring(0, separatorIndex.Value);
+                cassandraVersion = cassandraVersion.Substring(separatorIndex.Value + 1);
+            }
+            return TestHelper.CreateHost($"127.0.0.{index + 1}", "dc1", "rack1", null, cassandraVersion, dseVersion);
         }
     }
 }

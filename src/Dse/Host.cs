@@ -111,6 +111,12 @@ namespace Dse
         public IReadOnlyCollection<string> Workloads { get; private set; }
 
         /// <summary>
+        /// Gets the DSE version the server is running.
+        /// This property might be null on older server versions.
+        /// </summary>
+        public Version DseVersion { get; private set; }
+
+        /// <summary>
         /// Creates a new instance of <see cref="Host"/>.
         /// </summary>
         // ReSharper disable once UnusedParameter.Local : Part of the public API
@@ -190,6 +196,11 @@ namespace Dse
                 }
             }
 
+            SetDseInfo(row);
+        }
+
+        private void SetDseInfo(IRow row)
+        {
             if (row.ContainsColumn("workloads"))
             {
                 Workloads = row.GetValue<string[]>("workloads");
@@ -201,6 +212,15 @@ namespace Dse
             else
             {
                 Workloads = WorkloadsDefault;
+            }
+
+            if (row.ContainsColumn("dse_version"))
+            {
+                var dseVersion = row.GetValue<string>("dse_version");
+                if (!string.IsNullOrEmpty(dseVersion))
+                {
+                    DseVersion = Version.Parse(dseVersion.Split('-')[0]);
+                }
             }
         }
 

@@ -60,6 +60,7 @@ namespace Dse
     internal static class ProtocolVersionExtensions
     {
         private static readonly Logger Logger = new Logger(typeof(ProtocolVersion));
+        private static readonly Version Version60 = new Version(6, 0);
         private static readonly Version Version30 = new Version(3, 0);
         private static readonly Version Version22 = new Version(2, 2);
         private static readonly Version Version21 = new Version(2, 1);
@@ -103,6 +104,14 @@ namespace Dse
 
             foreach (var host in hosts)
             {
+                if (host.DseVersion >= Version60)
+                {
+                    v3Requirement = true;
+                    maxVersion = Math.Min((byte)ProtocolVersion.DseV2, maxVersion);
+                    maxVersionWith3OrMore = maxVersion;
+                    continue;
+                }
+
                 var cassandraVersion = host.CassandraVersion;
                 if (cassandraVersion >= Version30)
                 {
