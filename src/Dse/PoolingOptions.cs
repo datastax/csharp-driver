@@ -81,6 +81,7 @@ namespace Dse
         private int _minSimultaneousRequestsForRemote = DefaultMinRequests;
         private int _heartBeatInterval = DefaultHeartBeatInterval;
         private int _maxRequestsPerConnection = DefaultMaxRequestsPerConnection;
+        private bool _warmup = true;
 
         /// <summary>
         /// DEPRECATED: It will be removed in future versions. Use <see cref="PoolingOptions.Create"/> instead.
@@ -219,6 +220,14 @@ namespace Dse
         }
 
         /// <summary>
+        /// Gets whether all connections to hosts in the local datacenter must be opened on connect. Default: true.
+        /// </summary>
+        public bool GetWarmup()
+        {
+            return _warmup;
+        }
+
+        /// <summary>
         ///  Sets the core number of connections per host.
         /// </summary>
         /// <param name="distance"> the <see cref="HostDistance"/> for which to set this threshold.</param>
@@ -345,6 +354,15 @@ namespace Dse
         public PoolingOptions SetMaxRequestsPerConnection(int value)
         {
             _maxRequestsPerConnection = value;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets whether all connections to hosts in the local datacenter must be opened on connect. Default: true.
+        /// </summary>
+        public PoolingOptions SetWarmup(bool doWarmup)
+        {
+            _warmup = doWarmup;
             return this;
         }
 

@@ -1,4 +1,4 @@
-﻿//
+//
 //  Copyright (C) 2017 DataStax, Inc.
 //
 //  Please see the license for details:
@@ -6,11 +6,10 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
-using System.Text;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Dse.Serialization;
@@ -536,6 +535,65 @@ namespace Dse.Test.Unit
             await Task.Delay(400);
             Assert.AreEqual(0, Volatile.Read(ref openConnectionAttempts));
             Assert.AreEqual(0, pool.OpenConnections);
+        }
+
+        [Test]
+        public void Warmup_Should_Throw_When_The_First_Connection_Can_Not_Be_Opened()
+        {
+            var mock = GetPoolMock(null, GetConfig(4, 4, new ConstantReconnectionPolicy(200)));
+            var openConnectionAttempts = 0;
+            mock.Setup(p => p.DoCreateAndOpen()).Returns(() =>
+            {
+                var index = Interlocked.Increment(ref openConnectionAttempts);
+                if (index == 1)
+                {
+                    throw new SocketException();
+                }
+                return TaskHelper.ToTask(CreateConnection());
+            });
+
+            var pool = mock.Object;
+            pool.SetDistance(HostDistance.Local);
+            Assert.ThrowsAsync<SocketException>(async () => await pool.Warmup().ConfigureAwait(false));
+            Assert.AreEqual(1, Volatile.Read(ref openConnectionAttempts));
+        }
+
+        [Test]
+        public void Warmup_Should_Succeed_When_The_Second_Connection_Can_Not_Be_Opened()
+        {
+            var mock = GetPoolMock(null, GetConfig(4, 4, new ConstantReconnectionPolicy(200)));
+            var openConnectionAttempts = 0;
+            mock.Setup(p => p.DoCreateAndOpen()).Returns(() =>
+            {
+                var index = Interlocked.Increment(ref openConnectionAttempts);
+                if (index == 2)
+                {
+                    throw new SocketException();
+                }
+                return TaskHelper.ToTask(CreateConnection());
+            });
+
+            var pool = mock.Object;
+            pool.SetDistance(HostDistance.Local);
+            Assert.DoesNotThrowAsync(async () => await pool.Warmup().ConfigureAwait(false));
+            Assert.AreEqual(2, Volatile.Read(ref openConnectionAttempts));
+        }
+
+        [Test]
+        public void Warmup_Should_Succeed_When_All_Connections_Can_Be_Opened()
+        {
+            var mock = GetPoolMock(null, GetConfig(4, 4, new ConstantReconnectionPolicy(200)));
+            var openConnectionAttempts = 0;
+            mock.Setup(p => p.DoCreateAndOpen()).Returns(() =>
+            {
+                Interlocked.Increment(ref openConnectionAttempts);
+                return TaskHelper.ToTask(CreateConnection());
+            });
+
+            var pool = mock.Object;
+            pool.SetDistance(HostDistance.Local);
+            Assert.DoesNotThrowAsync(async () => await pool.Warmup().ConfigureAwait(false));
+            Assert.AreEqual(4, Volatile.Read(ref openConnectionAttempts));
         }
     }
 }

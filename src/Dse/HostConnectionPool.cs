@@ -96,7 +96,7 @@ namespace Dse
         /// Determines whether the pool is not on the initial state.
         /// </summary>
         private bool IsClosing => Volatile.Read(ref _state) != PoolState.Init;
-        
+
         /// <summary>
         /// Gets a snapshot of the current state of the pool.
         /// </summary>
@@ -600,10 +600,13 @@ namespace Dse
         /// Opens one connection. 
         /// If a connection is being opened it yields the same task, preventing creation in parallel.
         /// </summary>
+        /// <param name="satisfyWithAnOpenConnection">
+        /// Determines whether the Task should be marked as completed when there is a connection already opened.
+        /// </param>
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
         /// <exception cref="AuthenticationException" />
         /// <exception cref="UnsupportedProtocolVersionException" />
-        private async Task<Connection> CreateOpenConnection(bool foreground)
+        private async Task<Connection> CreateOpenConnection(bool satisfyWithAnOpenConnection)
         {
             var concurrentOpenTcs = Volatile.Read(ref _connectionOpenTcs);
             // Try to exit early (cheap) as there could be another thread creating / finishing creating
@@ -620,10 +623,12 @@ namespace Dse
                 // There is another thread opening a new connection
                 return await concurrentOpenTcs.Task.ConfigureAwait(false);
             }
+
             if (IsClosing)
             {
                 return await FinishOpen(tcs, false, GetNotConnectedException()).ConfigureAwait(false);
             }
+
             // Before creating, make sure that its still needed
             // This method is the only one that adds new connections
             // But we don't control the removal, use snapshot
@@ -637,10 +642,10 @@ namespace Dse
                 }
                 return await FinishOpen(tcs, true, null, connectionsSnapshot[0]).ConfigureAwait(false);
             }
-            if (foreground && !_canCreateForeground)
+
+            if (satisfyWithAnOpenConnection && !_canCreateForeground)
             {
-                // Foreground creation only cares about one connection
-                // If its already there, yield it
+                // We only care about a single connection, if its already there, yield it
                 connectionsSnapshot = _connections.GetSnapshot();
                 if (connectionsSnapshot.Length == 0)
                 {
@@ -649,9 +654,9 @@ namespace Dse
                 }
                 return await FinishOpen(tcs, false, null, connectionsSnapshot[0]).ConfigureAwait(false);
             }
+
             Logger.Info("Creating a new connection to {0}", _host.Address);
-            Connection c = null;
-            Exception creationEx = null;
+            Connection c;
             try
             {
                 c = await DoCreateAndOpen().ConfigureAwait(false);
@@ -659,13 +664,9 @@ namespace Dse
             catch (Exception ex)
             {
                 Logger.Info("Connection to {0} could not be created: {1}", _host.Address, ex);
-                // Can not be awaited on catch on C# 5...
-                creationEx = ex;
+                return await FinishOpen(tcs, true, ex).ConfigureAwait(false);
             }
-            if (creationEx != null)
-            {
-                return await FinishOpen(tcs, true, creationEx).ConfigureAwait(false);
-            }
+
             if (IsClosing)
             {
                 Logger.Info("Connection to {0} opened successfully but pool #{1} was being closed", 
@@ -673,9 +674,11 @@ namespace Dse
                 c.Dispose();
                 return await FinishOpen(tcs, false, GetNotConnectedException()).ConfigureAwait(false);
             }
+
             var newLength = _connections.AddNew(c);
-            Logger.Info("Connection to {0} opened successfully, pool #{1} length: {2}", 
+            Logger.Info("Connection to {0} opened successfully, pool #{1} length: {2}",
                 _host.Address, GetHashCode(), newLength);
+
             if (IsClosing)
             {
                 // We haven't use a CAS operation, so it's possible that the pool is being closed while adding a new
@@ -686,6 +689,7 @@ namespace Dse
                 c.Dispose();
                 return await FinishOpen(tcs, false, GetNotConnectedException()).ConfigureAwait(false);
             }
+
             return await FinishOpen(tcs, true, null, c).ConfigureAwait(false);
         }
 
@@ -764,6 +768,33 @@ namespace Dse
             _expectedConnectionLength = poolingOptions.GetCoreConnectionsPerHost(distance);
             _maxInflightThresholdToConsiderResizing =  poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(distance);
             _maxConnectionLength = poolingOptions.GetMaxConnectionPerHost(distance);
+        }
+
+        /// <summary>
+        /// Creates the required connections to the hosts and awaits for all connections to be open.
+        /// The task is completed when at least 1 of the connections is opened successfully.
+        /// Until the task is completed, no other thread is expected to be using this instance.
+        /// </summary>
+        public async Task Warmup()
+        {
+            var length = _expectedConnectionLength;
+            for (var i = 0; i < length; i++)
+            {
+                try
+                {
+                    await CreateOpenConnection(false).ConfigureAwait(false);
+                }
+                catch
+                {
+                    if (i > 0)
+                    {
+                        // There is an opened connection, don't mind
+                        break;
+                    }
+
+                    throw;
+                }
+            }
         }
     }
 }
