@@ -41,6 +41,14 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
         {
         }
 
+        /// <summary>
+        /// Creates a single DC cluster with the amount of nodes provided.
+        /// </summary>
+        public static SimulacronCluster CreateNew(int nodeLength)
+        {
+            return CreateNew(new SimulacronOptions { Nodes = nodeLength.ToString() });
+        }
+
         public static SimulacronCluster CreateNew(SimulacronOptions options)
         {
             var simulacronManager = SimulacronManager.Instance;

@@ -171,11 +171,54 @@ namespace Cassandra
         /// <summary>
         /// Initialize the session
         /// </summary>
-        internal Task Init()
+        internal async Task Init()
         {
-            var handler = new RequestHandler(this, _serializer);
-            //Borrow a connection, trying to fail fast
-            return handler.GetNextConnection(new Dictionary<IPEndPoint, Exception>());
+            if (Configuration.GetPoolingOptions(_serializer.ProtocolVersion).GetWarmup())
+            {
+                await Warmup().ConfigureAwait(false);
+            }
+
+            if (Keyspace != null)
+            {
+                // Borrow a connection, trying to fail fast
+                var handler = new RequestHandler(this, _serializer);
+                await handler.GetNextConnection(new Dictionary<IPEndPoint, Exception>()).ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>
+        /// Creates the required connections on all hosts in the local DC.
+        /// Returns a Task that is marked as completed after all pools were warmed up.
+        /// In case, all the host pool warmup fail, it logs an error.
+        /// </summary>
+        private async Task Warmup()
+        {
+            // Load balancing policy was initialized
+            var lbp = Policies.LoadBalancingPolicy;
+            var hosts = lbp.NewQueryPlan(Keyspace, null).Where(h => lbp.Distance(h) == HostDistance.Local).ToArray();
+            var tasks = new Task[hosts.Length];
+            for (var i = 0; i < hosts.Length; i++)
+            {
+                var host = hosts[i];
+                var pool = GetOrCreateConnectionPool(host, HostDistance.Local);
+                tasks[i] = pool.Warmup();
+            }
+
+            try
+            {
+                await Task.WhenAll(tasks).ConfigureAwait(false);
+            }
+            catch
+            {
+                if (tasks.Any(t => t.Status == TaskStatus.RanToCompletion))
+                {
+                    // At least 1 of the warmup tasks completed
+                    return;
+                }
+
+                // Log and continue as the ControlConnection is connected
+                Logger.Error($"Connection pools for {hosts.Length} host(s) failed to be warmed up");
+            }
         }
 
         /// <inheritdoc />
