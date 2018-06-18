@@ -11,6 +11,7 @@ using System.Linq;
 using Dse.Test.Integration.Policies.Util;
 using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
+#pragma warning disable 618
 
 namespace Dse.Test.Integration.Policies.Tests
 {

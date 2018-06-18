@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Unit;
 using NUnit.Framework;
+#pragma warning disable 618
 
 namespace Dse.Test.Integration.Core
 {

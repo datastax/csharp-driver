@@ -10,6 +10,10 @@ sections:
     prefix:   /faq
     type:     markdown
     files:    'doc/faq/**/*.md'
+  - title:    Upgrade Guide
+    prefix:   /upgrade-guide
+    type:     markdown
+    files:    'doc/upgrade-guide/**/*.md'
   - title:    Getting started
     prefix:   /getting-started
     type:     markdown

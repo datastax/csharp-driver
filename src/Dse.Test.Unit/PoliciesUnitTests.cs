@@ -15,6 +15,7 @@ using Moq;
 using System.Threading.Tasks;
 using System.Threading;
 ﻿using Dse.Requests;
+#pragma warning disable 618
 
 namespace Dse.Test.Unit
 {
