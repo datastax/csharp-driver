@@ -40,11 +40,10 @@ You can use the project [Mailing list][mailinglist] or create a ticket on the [J
 
 ## Upgrading from previous versions
 
-If you are upgrading to [DataStax Enterprise][dse], use the [DSE C# driver][dse-driver] for more features and better compatibility.
+If you are upgrading from previous versions of the driver, [visit the Upgrade Guide][upgrade-guide].
 
-If you are upgrading from the 2.1 branch of the driver, be sure to have a look at the [upgrade guide][upgrade-to-250].
-
-If you are upgrading from the 1.x branch of the driver, follow the [upgrade guide to 2.0][upgrade-to-200], and then the above document.
+If you are upgrading to [DataStax Enterprise][dse], use the [DSE C# driver][dse-driver] for more features and better
+compatibility.
 
 ## Basic Usage
 
@@ -227,7 +226,8 @@ You can use Visual Studio or msbuild to build the solution.
 [Check the documentation for building the driver from source and running the tests](https://github.com/datastax/csharp-driver/wiki/Building-and-running-tests).
 
 ## License
-Copyright 2012-2017, DataStax.
+
+Copyright 2012-2018, DataStax.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -241,22 +241,21 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-  [apidocs]: http://docs.datastax.com/en/latest-csharp-driver-api/
-  [docindex]: http://docs.datastax.com/en/developer/csharp-driver/latest/
-  [features]: http://docs.datastax.com/en/developer/csharp-driver/latest/features/
+  [apidocs]: https://docs.datastax.com/en/latest-csharp-driver-api/
+  [docindex]: https://docs.datastax.com/en/developer/csharp-driver/latest/
+  [features]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/
   [getting-started]: https://academy.datastax.com/resources/getting-started-apache-cassandra-and-c-net
   [nuget]: https://nuget.org/packages/CassandraCSharpDriver/
   [mailinglist]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
   [jira]: https://datastax-oss.atlassian.net/projects/CSHARP/issues
-  [udt]: http://docs.datastax.com/en/dse/5.1/cql/cql/cql_using/useInsertUDT.html
+  [udt]: https://docs.datastax.com/en/dse/6.0/cql/cql/cql_using/useInsertUDT.html
   [poco]: http://en.wikipedia.org/wiki/Plain_Old_CLR_Object
-  [linq]: http://docs.datastax.com/en/developer/csharp-driver/latest/features/components/linq/
-  [mapper]: http://docs.datastax.com/en/developer/csharp-driver/latest/features/components/mapper/
-  [components]: http://docs.datastax.com/en/developer/csharp-driver/latest/features/components/
-  [policies]: http://docs.datastax.com/en/developer/csharp-driver/latest/features/tuning-policies/
-  [upgrade-to-250]: https://github.com/datastax/csharp-driver/blob/master/doc/upgrade-guide-2.5.md
-  [upgrade-to-200]: https://github.com/datastax/csharp-driver/blob/master/doc/upgrade-guide-2.0.md
-  [survey]: http://goo.gl/forms/3BxcP8nKs6
+  [linq]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/components/linq/
+  [mapper]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/components/mapper/
+  [components]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/components/
+  [policies]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/tuning-policies/
+  [upgrade-guide]: https://docs.datastax.com/en/developer/csharp-driver/latest/upgrade-guide/
+  [survey]: https://goo.gl/forms/3BxcP8nKs6
   [dse-driver]: https://docs.datastax.com/en/developer/csharp-driver-dse/latest/
   [slack]: https://academy.datastax.com/slack
   [dse]: https://www.datastax.com/products/datastax-enterprise

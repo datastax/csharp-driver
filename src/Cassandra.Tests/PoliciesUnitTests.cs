@@ -24,6 +24,7 @@ using Moq;
 using System.Threading.Tasks;
 using System.Threading;
 ﻿using Cassandra.Requests;
+#pragma warning disable 618
 
 namespace Cassandra.Tests
 {
