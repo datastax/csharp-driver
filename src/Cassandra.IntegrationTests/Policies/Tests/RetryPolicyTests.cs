@@ -20,6 +20,7 @@ using Cassandra.IntegrationTests.Policies.Util;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
+#pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.Policies.Tests
 {

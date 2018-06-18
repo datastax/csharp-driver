@@ -10,6 +10,10 @@ sections:
     prefix:   /faq
     type:     markdown
     files:    'doc/faq/**/*.md'
+  - title:    Upgrade Guide
+    prefix:   /upgrade-guide
+    type:     markdown
+    files:    'doc/upgrade-guide/**/*.md'
 links:
   - title: Code
     href:  https://github.com/datastax/csharp-driver/
