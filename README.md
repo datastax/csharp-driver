@@ -34,6 +34,10 @@ PM> Install-Package Dse
 
 You can use the [project mailing list][mailing-list] or create a ticket on the [Jira issue tracker][jira].
 
+## Upgrading from previous versions
+
+If you are upgrading from previous versions of the driver, [visit the Upgrade Guide][upgrade-guide].
+
 ## Getting Started
 
 `IDseCluster` and `IDseSession` extend their CQL driver counterparts, so you can use `Dse` instances to execute CQL
@@ -224,16 +228,17 @@ Copyright 2016-2018 DataStax
 
 http://www.datastax.com/terms/datastax-dse-driver-license-terms
 
-[dse]: http://www.datastax.com/products/datastax-enterprise
-[dse-graph]: http://www.datastax.com/products/datastax-enterprise-graph
+[dse]: https://www.datastax.com/products/datastax-enterprise
+[dse-graph]: https://www.datastax.com/products/datastax-enterprise-graph
 [cassandra-driver]: https://github.com/datastax/csharp-driver
-[core-driver-docs]: http://docs.datastax.com/en/developer/csharp-driver-dse/latest/
-[modern]: http://tinkerpop.apache.org/docs/3.1.1-incubating/reference/#_the_graph_structure
+[core-driver-docs]: https://docs.datastax.com/en/developer/csharp-driver-dse/latest/
+[modern]: https://tinkerpop.apache.org/docs/3.2.9/reference/#_the_graph_structure
 [nuget]: https://nuget.org/packages/Dse/
 [dynamic]: https://msdn.microsoft.com/en-us/library/dd264736.aspx
 [jira]: https://datastax-oss.atlassian.net/projects/CSHARP/issues
 [mailing-list]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
-[doc-index]: http://docs.datastax.com/en/developer/csharp-driver-dse/latest/
-[api-docs]: http://docs.datastax.com/en/drivers/csharp-dse/2.1/
-[faq]: http://docs.datastax.com/en/developer/csharp-driver-dse/latest/faq/
+[doc-index]: https://docs.datastax.com/en/developer/csharp-driver-dse/latest/
+[api-docs]: https://docs.datastax.com/en/drivers/csharp-dse/2.1/
+[faq]: https://docs.datastax.com/en/developer/csharp-driver-dse/latest/faq/
+[upgrade-guide]: https://docs.datastax.com/en/developer/csharp-driver-dse/latest/upgrade-guide/
 [implicit]: https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/implicit
