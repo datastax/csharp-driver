@@ -65,7 +65,7 @@ This driver is built on top of DataStax C# driver for Apache Cassandra and provi
     </FeedbackEMailLinkText>
     <FeedbackEMailAddress>
     </FeedbackEMailAddress>
-    <CopyrightText>&amp;#169%3b 2017 DataStax, All rights reserved.</CopyrightText>
+    <CopyrightText>&amp;#169%3b DataStax, All rights reserved.</CopyrightText>
     <WebsiteSdkLinkType>None</WebsiteSdkLinkType>
     <HtmlSdkLinkType>None</HtmlSdkLinkType>
     <IncludeFavorites>False</IncludeFavorites>
