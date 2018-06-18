@@ -1,5 +1,26 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.6.0
+
+2018-06-18
+
+### Features
+
+[CSHARP-591] - EC2 multi-region address resolution policy
+[CSHARP-625] - Mark DowngradingConsistencyRetryPolicy as deprecated
+[CSHARP-634] - Use system.peers in protocol negotiation
+[CSHARP-669] - Support pool warmup on initialization and enable it by default
+[CSHARP-680] - Use OPTIONS message for heartbeats instead of 'select key from system.local'
+[CSHARP-335] - RowSet: Support concurrent asynchronous calls to fetch next page
+[CSHARP-681] - Log driver version on Connect
+
+### Bug Fixes
+
+[CSHARP-631] - BatchStatement: Use routing key from first statement
+[CSHARP-660] - Linq: StatementFactory shouldn't cache failed prepared statements
+[CSHARP-667] - Mapper: Statement factory cache should use keyspace to uniquely identify the query
+[CSHARP-691] - Sync completion of socket.ConnectAsync() is not considered
+
 ## 3.5.0
 
 2018-04-17
