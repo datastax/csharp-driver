@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
-using System.Text;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Serialization;
@@ -346,27 +345,34 @@ namespace Cassandra.Tests
                 GetConnectionMock(10),
                 GetConnectionMock(1)
             };
-            var index = 1;
-            var c = HostConnectionPool.MinInFlight(connections, ref index, 100);
+            var index = 0;
+            int inFlight;
+            var c = HostConnectionPool.MinInFlight(connections, ref index, 100, out inFlight);
+            Assert.AreEqual(index, 1);
+            Assert.AreSame(connections[1], c);
+            Assert.AreEqual(1, inFlight);
+            c = HostConnectionPool.MinInFlight(connections, ref index, 100, out inFlight);
             Assert.AreEqual(index, 2);
-            Assert.AreSame(connections[2], c);
-            c = HostConnectionPool.MinInFlight(connections, ref index, 100);
-            Assert.AreEqual(index, 3);
             //previous had less in flight
             Assert.AreSame(connections[2], c);
-            c = HostConnectionPool.MinInFlight(connections, ref index, 100);
-            Assert.AreEqual(index, 4);
+            Assert.AreEqual(1, inFlight);
+            c = HostConnectionPool.MinInFlight(connections, ref index, 100, out inFlight);
+            Assert.AreEqual(index, 3);
             Assert.AreSame(connections[4], c);
-            c = HostConnectionPool.MinInFlight(connections, ref index, 100);
+            Assert.AreEqual(1, inFlight);
+            c = HostConnectionPool.MinInFlight(connections, ref index, 100, out inFlight);
+            Assert.AreEqual(index, 4);
+            Assert.AreSame(connections[0], c);
+            Assert.AreEqual(0, inFlight);
+            c = HostConnectionPool.MinInFlight(connections, ref index, 100, out inFlight);
             Assert.AreEqual(index, 5);
             Assert.AreSame(connections[0], c);
-            c = HostConnectionPool.MinInFlight(connections, ref index, 100);
-            Assert.AreEqual(index, 6);
-            Assert.AreSame(connections[0], c);
+            Assert.AreEqual(0, inFlight);
             index = 9;
-            c = HostConnectionPool.MinInFlight(connections, ref index, 100);
+            c = HostConnectionPool.MinInFlight(connections, ref index, 100, out inFlight);
             Assert.AreEqual(index, 10);
             Assert.AreSame(connections[0], c);
+            Assert.AreEqual(0, inFlight);
         }
 
         [Test]
@@ -380,14 +386,19 @@ namespace Cassandra.Tests
                 GetConnectionMock(200),
                 GetConnectionMock(210)
             };
-            var index = 1;
-            var c = HostConnectionPool.MinInFlight(connections, ref index, 100);
-            Assert.AreEqual(index, 2);
+            var index = 0;
+            int inFlight;
+
+            var c = HostConnectionPool.MinInFlight(connections, ref index, 100, out inFlight);
+            Assert.AreEqual(index, 1);
             Assert.AreSame(connections[1], c);
-            c = HostConnectionPool.MinInFlight(connections, ref index, 100);
-            Assert.AreEqual(index, 3);
+            Assert.AreEqual(1, inFlight);
+
+            c = HostConnectionPool.MinInFlight(connections, ref index, 100, out inFlight);
+            Assert.AreEqual(index, 2);
             // Should pick the first below the threshold
             Assert.AreSame(connections[0], c);
+            Assert.AreEqual(10, inFlight);
         }
 
         [Test]
@@ -517,6 +528,65 @@ namespace Cassandra.Tests
             await Task.Delay(400);
             Assert.AreEqual(0, Volatile.Read(ref openConnectionAttempts));
             Assert.AreEqual(0, pool.OpenConnections);
+        }
+
+        [Test]
+        public void Warmup_Should_Throw_When_The_First_Connection_Can_Not_Be_Opened()
+        {
+            var mock = GetPoolMock(null, GetConfig(4, 4, new ConstantReconnectionPolicy(200)));
+            var openConnectionAttempts = 0;
+            mock.Setup(p => p.DoCreateAndOpen()).Returns(() =>
+            {
+                var index = Interlocked.Increment(ref openConnectionAttempts);
+                if (index == 1)
+                {
+                    throw new SocketException();
+                }
+                return TaskHelper.ToTask(CreateConnection());
+            });
+
+            var pool = mock.Object;
+            pool.SetDistance(HostDistance.Local);
+            Assert.ThrowsAsync<SocketException>(async () => await pool.Warmup().ConfigureAwait(false));
+            Assert.AreEqual(1, Volatile.Read(ref openConnectionAttempts));
+        }
+
+        [Test]
+        public void Warmup_Should_Succeed_When_The_Second_Connection_Can_Not_Be_Opened()
+        {
+            var mock = GetPoolMock(null, GetConfig(4, 4, new ConstantReconnectionPolicy(200)));
+            var openConnectionAttempts = 0;
+            mock.Setup(p => p.DoCreateAndOpen()).Returns(() =>
+            {
+                var index = Interlocked.Increment(ref openConnectionAttempts);
+                if (index == 2)
+                {
+                    throw new SocketException();
+                }
+                return TaskHelper.ToTask(CreateConnection());
+            });
+
+            var pool = mock.Object;
+            pool.SetDistance(HostDistance.Local);
+            Assert.DoesNotThrowAsync(async () => await pool.Warmup().ConfigureAwait(false));
+            Assert.AreEqual(2, Volatile.Read(ref openConnectionAttempts));
+        }
+
+        [Test]
+        public void Warmup_Should_Succeed_When_All_Connections_Can_Be_Opened()
+        {
+            var mock = GetPoolMock(null, GetConfig(4, 4, new ConstantReconnectionPolicy(200)));
+            var openConnectionAttempts = 0;
+            mock.Setup(p => p.DoCreateAndOpen()).Returns(() =>
+            {
+                Interlocked.Increment(ref openConnectionAttempts);
+                return TaskHelper.ToTask(CreateConnection());
+            });
+
+            var pool = mock.Object;
+            pool.SetDistance(HostDistance.Local);
+            Assert.DoesNotThrowAsync(async () => await pool.Warmup().ConfigureAwait(false));
+            Assert.AreEqual(4, Volatile.Read(ref openConnectionAttempts));
         }
     }
 }

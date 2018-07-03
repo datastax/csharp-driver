@@ -25,9 +25,33 @@ namespace Cassandra.Requests
         public const byte OpCode = 0x01;
         private readonly IDictionary<string, string> _options;
 
-        public StartupRequest(IDictionary<string, string> options)
+        public StartupRequest(CompressionType compression, bool noCompact)
         {
-            _options = options;
+            _options = new Dictionary<string, string>
+            {
+                {"CQL_VERSION", "3.0.0"}
+            };
+
+            string compressionName = null;
+            switch (compression)
+            {
+                case CompressionType.LZ4:
+                    compressionName = "lz4";
+                    break;
+                case CompressionType.Snappy:
+                    compressionName = "snappy";
+                    break;
+            }
+
+            if (compressionName != null)
+            {
+                _options.Add("COMPRESSION", compressionName);
+            }
+
+            if (noCompact)
+            {
+                _options.Add("NO_COMPACT", "true");
+            }
         }
 
         public int WriteFrame(short streamId, MemoryStream stream, Serializer serializer)

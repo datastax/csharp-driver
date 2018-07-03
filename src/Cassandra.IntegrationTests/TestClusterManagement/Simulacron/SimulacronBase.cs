@@ -92,7 +92,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public dynamic GetLogs()
         {
-            return TaskHelper.WaitToComplete(Get(GetPath("log")));
+            return TaskHelper.WaitToComplete(GetLogsAsync());
+        }
+
+        public Task<dynamic> GetLogsAsync()
+        {
+            return Get(GetPath("log"));
         }
 
         public dynamic Prime(dynamic body)
@@ -123,19 +128,25 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public IList<dynamic> GetQueries(string query, string queryType = "QUERY")
         {
-            var response = GetLogs();
+            return TaskHelper.WaitToComplete(GetQueriesAsync(query, queryType));
+        }
+
+        public async Task<IList<dynamic>> GetQueriesAsync(string query, string queryType = "QUERY")
+        {
+            var response = await GetLogsAsync().ConfigureAwait(false);
             IEnumerable<dynamic> dcInfo = response?.data_centers;
             if (dcInfo == null)
             {
                 return new List<dynamic>(0);
             }
             return dcInfo
-                .Select(dc => dc.nodes)
-                .Where(nodes => nodes != null)
-                .SelectMany<dynamic, dynamic>(nodes => nodes)
-                .Where(n => n.queries != null)
-                .SelectMany<dynamic, dynamic>(n => n.queries)
-                .Where(q => q.type == queryType && q.query == query).ToArray();
+                   .Select(dc => dc.nodes)
+                   .Where(nodes => nodes != null)
+                   .SelectMany<dynamic, dynamic>(nodes => nodes)
+                   .Where(n => n.queries != null)
+                   .SelectMany<dynamic, dynamic>(n => n.queries)
+                   .Where(q => (q.type == queryType || queryType == null) && (q.query == query || query == null))
+                   .ToArray();
         }
     }
 }

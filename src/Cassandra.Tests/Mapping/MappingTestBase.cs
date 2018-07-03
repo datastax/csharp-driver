@@ -34,6 +34,7 @@ namespace Cassandra.Tests.Mapping
                 queryCallback = (q, p) => { };
             }
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(getRowSetFunc)
@@ -69,6 +70,7 @@ namespace Cassandra.Tests.Mapping
                 rs = new RowSet();
             }
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<TStatement>()))
@@ -114,6 +116,7 @@ namespace Cassandra.Tests.Mapping
             clusterMock.Setup(c => c.Configuration).Returns(new Configuration());
             
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))

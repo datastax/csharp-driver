@@ -578,6 +578,10 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestCassandraVersion(3, 0)]
         public void ColumnClusteringOrderReversedTest()
         {
+            if (CassandraVersion >= Version.Parse("4.0"))
+            {
+                Assert.Ignore("Compact table test designed for C* 3.0");
+            }
             var keyspaceName = TestUtils.GetUniqueKeyspaceName();
             var tableName = TestUtils.GetUniqueTableName().ToLower();
             var cluster = GetNewCluster();
@@ -597,6 +601,16 @@ namespace Cassandra.IntegrationTests.Core
             var tableMeta = cluster.Metadata.GetKeyspace(keyspaceName).GetTableMetadata(tableName);
             Assert.AreEqual(new[] { "description", "price" }, tableMeta.ClusteringKeys.Select(c => c.Item1.Name));
             Assert.AreEqual(new[] { SortOrder.Ascending, SortOrder.Descending }, tableMeta.ClusteringKeys.Select(c => c.Item2));
+        }
+
+        [Test, TestCassandraVersion(2, 1)]
+        public void CassandraVersion_Should_Be_Obtained_From_Host_Metadata()
+        {
+            foreach (var host in Cluster.AllHosts())
+            {
+                Assert.NotNull(host.CassandraVersion);
+                Assert.Greater(host.CassandraVersion, new Version(1, 2));
+            }
         }
     }
 }

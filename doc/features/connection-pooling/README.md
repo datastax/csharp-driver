@@ -30,6 +30,16 @@ For older Cassandra versions (1.2 and 2.0), the default amount of connections pe
 threshold is reached.
 - Remote datacenter: one core connection per host (being two the maximum).
 
+## Simultaneous requests per connection
+
+The driver limits the amount of concurrent requests per connection to `2048`.
+
+When the limit is reached for all connections to a host, the driver will move to the next host according to the query
+ plan. When the query plan is exhausted, the driver will yield a `NoHostAvailableException` containing
+ `BusyPoolException` instances per each host in the `Errors` property.
+
+You can use `SetMaxRequestsPerConnection()` on `PoolingOptions` to set the limit for the request rate.
+
 ## Get status of the connection pools
 
 You can use `GetState()` extension method to get a point-in-time information of the state of the connections pools to

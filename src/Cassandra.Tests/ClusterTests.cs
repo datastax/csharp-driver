@@ -82,8 +82,8 @@ namespace Cassandra.Tests
                     Assert.AreEqual(1, ex.Errors.Count);
                 }
                 GC.Collect();
-                Assert.Less(GC.GetTotalMemory(true) / initialLength, 1.2M,
-                    "Should not exceed a 20% (1.2) more than was previously allocated");
+                Assert.Less(GC.GetTotalMemory(true) / initialLength, 1.3M,
+                    "Should not exceed a 20% (1.3) more than was previously allocated");
             }
         }
     }

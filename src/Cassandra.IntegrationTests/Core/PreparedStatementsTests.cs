@@ -20,7 +20,6 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 using System.Net;
 using System.Collections;
@@ -842,24 +841,6 @@ namespace Cassandra.IntegrationTests.Core
             InsertingSingleValuePrepared(typeof(IPAddress));
         }
 
-        /// <summary>
-        /// Verify that a prepared statement can be re-bound after a cluster is restarted, using client's "use keyspace" method
-        /// </summary>
-        [Test]
-        public void RePrepareAfterNodeRestart()
-        {
-            ReprepareTest(true);
-        }
-
-        /// <summary>
-        /// Verify that a prepared statement can be re-bound after a cluster is restarted, not using client's "use keyspace" method
-        /// </summary>
-        [Test]
-        public void RePrepareAfterNodeRestart_NoUseKeyspace()
-        {
-            ReprepareTest(false);
-        }
-
         //////////////////////////////
         // Test Helpers
         //////////////////////////////
@@ -876,76 +857,6 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.Fail(assertFailMsg);
             }
         }
-
-        private static void ReprepareTest(bool useKeyspace)
-        {
-            const string keyspace = TestClusterManager.DefaultKeyspaceName;
-            var testCluster = TestClusterManager.CreateNew();
-            using (var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint)
-                .WithPoolingOptions(new PoolingOptions().SetHeartBeatInterval(2000))
-                .WithReconnectionPolicy(new ConstantReconnectionPolicy(1000)).Build())
-            {
-                var session = cluster.Connect();
-
-                var fqKeyspaceName = "";
-
-                session.CreateKeyspaceIfNotExists(keyspace);
-                if (useKeyspace)
-                {
-                    session.ChangeKeyspace(keyspace);
-                }
-                else
-                {
-                    fqKeyspaceName = keyspace + ".";
-                }
-
-                try
-                {
-                    session.Execute("CREATE TABLE " + fqKeyspaceName + "test(k text PRIMARY KEY, i int)");
-                }
-                catch (AlreadyExistsException)
-                {
-                }
-                session.Execute("INSERT INTO " + fqKeyspaceName + "test (k, i) VALUES ('123', 17)");
-                session.Execute("INSERT INTO " + fqKeyspaceName + "test (k, i) VALUES ('124', 18)");
-
-                var ps = session.Prepare("SELECT * FROM " + fqKeyspaceName + "test WHERE k = ?");
-
-                var rs = session.Execute(ps.Bind("123"));
-                Assert.AreEqual(rs.First().GetValue<int>("i"), 17);
-                var downCounter = 0;
-                var upCounter = 0;
-                var host = cluster.AllHosts().First();
-                host.Down += _ =>
-                {
-                    Interlocked.Increment(ref downCounter);
-                };
-                host.Up += h =>
-                {
-                    Interlocked.Increment(ref upCounter);
-                };
-
-                testCluster.Stop(1);
-
-                Thread.Sleep(8000);
-                Assert.AreEqual(1, Volatile.Read(ref downCounter), "Should have raised Host.Down once");
-                Assert.AreEqual(0, Volatile.Read(ref upCounter), "Should not have raised Host.Up");
-
-                testCluster.Start(1);
-
-                Thread.Sleep(8000);
-                TestHelper.WaitUntil(() => Volatile.Read(ref upCounter) == 1, 1000, 20);
-                Assert.AreEqual(1, Volatile.Read(ref downCounter), "Should have raised Host.Down once");
-                Assert.AreEqual(1, Volatile.Read(ref upCounter), "Should have raised Host.Up once");
-                Assert.True(session.Cluster.AllHosts().Select(h => h.IsUp).Any(), "There should be one node up");
-                for (var i = 0; i < 10; i++)
-                {
-                    var rowset = session.Execute(ps.Bind("124"));
-                    Assert.AreEqual(rowset.First().GetValue<int>("i"), 18);
-                }
-            }
-        }
-
 
         public void InsertingSingleValuePrepared(Type tp, object value = null)
         {

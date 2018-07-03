@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Threading.Tasks;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
 using Cassandra.Tasks;
@@ -17,6 +17,7 @@ namespace Cassandra.Tests.Mapping.Linq
         private ISession GetSession(RowSet result)
         {
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
                 .Returns(TestHelper.DelayedTask(result, 200))
@@ -114,6 +115,7 @@ namespace Cassandra.Tests.Mapping.Linq
             var rs = TestDataHelper.GetSingleColumnRowSet("int_val", Enumerable.Repeat(1, pageLength).ToArray());
             BoundStatement stmt = null;
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(TestHelper.DelayedTask(rs))
@@ -124,15 +126,15 @@ namespace Cassandra.Tests.Mapping.Linq
             rs.AutoPage = true;
             rs.PagingState = new byte[] { 0, 0, 0 };
             var counter = 0;
-            rs.FetchNextPage = state =>
+            rs.SetFetchNextPageHandler(state =>
             {
                 var rs2 = TestDataHelper.GetSingleColumnRowSet("int_val", Enumerable.Repeat(1, pageLength).ToArray());
                 if (++counter < 2)
                 {
                     rs2.PagingState = new byte[] {0, 0, (byte) counter};
                 }
-                return rs2;
-            };
+                return Task.FromResult(rs2);
+            }, int.MaxValue);
             var table = new Table<int>(sessionMock.Object);
             IEnumerable<int> results = table.Execute();
             Assert.True(stmt.AutoPage);

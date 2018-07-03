@@ -74,7 +74,7 @@ namespace Cassandra
         private MemoryStream _readStream;
         private FrameHeader _receivingHeader;
         private int _writeState = WriteStateInit;
-        private long _inFlight;
+        private int _inFlight;
         /// <summary>
         /// The event that represents a event RESPONSE from a Cassandra node
         /// </summary>
@@ -104,10 +104,7 @@ namespace Cassandra
         /// <summary>
         /// Determines the amount of operations that are not finished.
         /// </summary>
-        public virtual int InFlight
-        { 
-            get { return (int)Interlocked.Read(ref _inFlight); }
-        }
+        public virtual int InFlight => Volatile.Read(ref _inFlight);
 
         /// <summary>
         /// Determines if there isn't any operations pending to be written or inflight.
@@ -180,6 +177,16 @@ namespace Cassandra
             Configuration = configuration;
             _tcpSocket = new TcpSocket(endpoint, configuration.SocketOptions, configuration.ProtocolOptions.SslOptions);
             _idleTimer = new Timer(IdleTimeoutHandler, null, Timeout.Infinite, Timeout.Infinite);
+        }
+
+        private void IncrementInFlight()
+        {
+            Interlocked.Increment(ref _inFlight);
+        }
+
+        private void DecrementInFlight()
+        {
+            Interlocked.Decrement(ref _inFlight);
         }
 
         /// <summary>
@@ -273,7 +280,10 @@ namespace Cassandra
                 {
                     Closing(this);
                 }
-                Logger.Info("Canceling in Connection {0}, {1} pending operations and write queue {2}", Address, Interlocked.Read(ref _inFlight), _writeQueue.Count);
+
+                Logger.Info("Cancelling in Connection {0}, {1} pending operations and write queue {2}", Address,
+                    InFlight, _writeQueue.Count);
+
                 if (socketError != null)
                 {
                     Logger.Verbose("The socket status received was {0}", socketError.Value);
@@ -366,7 +376,7 @@ namespace Cassandra
                 return;
             }
             Logger.Verbose("Connection idling, issuing a Request to prevent idle disconnects");
-            var request = new QueryRequest(_serializer.ProtocolVersion, IdleQuery, false, QueryProtocolOptions.Default);
+            var request = new OptionsRequest();
             Send(request, (ex, response) =>
             {
                 if (ex == null)
@@ -682,18 +692,9 @@ namespace Cassandra
         /// </summary>
         private Task<Response> Startup()
         {
-            var startupOptions = new Dictionary<string, string>();
-            startupOptions.Add("CQL_VERSION", "3.0.0");
-            if (Options.Compression == CompressionType.LZ4)
-            {
-                startupOptions.Add("COMPRESSION", "lz4");
-            }
-            else if (Options.Compression == CompressionType.Snappy)
-            {
-                startupOptions.Add("COMPRESSION", "snappy");
-            }
-            // Use the Connect timeout for the startup request timeout 
-            return Send(new StartupRequest(startupOptions), Configuration.SocketOptions.ConnectTimeoutMillis);
+            var request = new StartupRequest(Options.Compression, Options.NoCompact);
+            // Use the Connect timeout for the startup request timeout
+            return Send(request, Configuration.SocketOptions.ConnectTimeoutMillis);
         }
 
         /// <summary>
@@ -718,6 +719,9 @@ namespace Cassandra
                     CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
                 return null;
             }
+
+            IncrementInFlight();
+
             var state = new OperationState(callback)
             {
                 Request = request,
@@ -776,7 +780,6 @@ namespace Cassandra
                     break;
                 }
                 _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
-                Interlocked.Increment(ref _inFlight);
                 int frameLength;
                 try
                 {
@@ -837,7 +840,7 @@ namespace Cassandra
             OperationState state;
             if (_pendingOperations.TryRemove(streamId, out state))
             {
-                Interlocked.Decrement(ref _inFlight);
+                DecrementInFlight();
             }
             //Set the streamId as available
             _freeOperations.Push(streamId);
@@ -928,7 +931,7 @@ namespace Cassandra
             //There is no need for synchronization here
             //Only 1 thread can be here at the same time.
             //Set the idle timeout to avoid idle disconnects
-            var heartBeatInterval = Configuration.PoolingOptions != null ? Configuration.PoolingOptions.GetHeartBeatInterval() : null;
+            var heartBeatInterval = Configuration.PoolingOptions?.GetHeartBeatInterval();
             if (heartBeatInterval > 0 && !_isCanceled)
             {
                 try

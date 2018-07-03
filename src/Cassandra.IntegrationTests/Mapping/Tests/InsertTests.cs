@@ -297,8 +297,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
 
             // Validate Error Message
             var e = Assert.Throws<InvalidQueryException>(() => mapper.Insert(manyTypesPoco));
-            string expectedErrMsg = "unconfigured (columnfamily|table) " + typeof(ManyDataTypesPoco).Name.ToLower();
-            StringAssert.IsMatch(expectedErrMsg, e.Message);
+            StringAssert.IsMatch(typeof(ManyDataTypesPoco).Name.ToLower(), e.Message);
         }
 
         /// <summary>

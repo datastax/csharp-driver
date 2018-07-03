@@ -9,20 +9,9 @@
       <xsl:variable name="numberOfErrors" select="count(//a:UnitTestResult[not(@outcome)]) + count(//b:UnitTestResult[not(@outcome)])" />
       <xsl:variable name="numberSkipped" select="count(//a:UnitTestResult/@outcome[.!='Passed' and .!='Failed']) + count(//b:UnitTestResult/@outcome[.!='Passed' and .!='Failed'])" />
 
-      <xsl:variable name="totalTestTimeA">
-        <xsl:call-template name="getTotalTime">
-          <xsl:with-param name="testcase" select="//a:UnitTestResult" />
-        </xsl:call-template>
-      </xsl:variable>
-      <xsl:variable name="totalTestTimeB">
-        <xsl:call-template name="getTotalTime">
-          <xsl:with-param name="testcase" select="//b:UnitTestResult" />
-        </xsl:call-template>
-      </xsl:variable>
-      <xsl:variable name="totalTestTime" select="$totalTestTimeA + $totalTestTimeB"/>
       <testsuite name="MSTestSuite"
 				tests="{$numberOfTests}"
-				time="{$totalTestTime}"
+				time="0"
 				failures="{$numberOfFailures}"
 				errors="{$numberOfErrors}"
 				skipped="{$numberSkipped}">
@@ -163,26 +152,4 @@
   <xsl:variable name="duration_hours" select="substring($durationstr, 1, 2)"/>
   <xsl:value-of select="$duration_hours*3600 + $duration_minutes*60 + $duration_seconds"/>
  </xsl:template>
-
- <xsl:template name="getTotalTime">
-    <xsl:param name="testcase" />
-    <xsl:if test="not($testcase)">
-      <xsl:text>0</xsl:text>
-    </xsl:if>
-    <xsl:if test="$testcase">
-      <xsl:variable name="currentValue">
-        <xsl:call-template name="getDurationSecondsTime">
-          <xsl:with-param name="durationstr" select="$testcase[1]/@duration" />
-        </xsl:call-template>
-      </xsl:variable>
-
-      <xsl:variable name="sumRemainder">
-        <xsl:call-template name="getTotalTime">
-          <xsl:with-param name="testcase" select="$testcase[position() > 1]" />
-        </xsl:call-template>
-      </xsl:variable>
-
-      <xsl:value-of select="$currentValue + $sumRemainder"/>
-    </xsl:if>
-  </xsl:template>
 </xsl:stylesheet>

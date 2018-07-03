@@ -39,6 +39,7 @@ namespace Cassandra.Tests.Mapping
             };
 
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(TaskHelper.ToTask(new RowSet()))
@@ -69,6 +70,7 @@ namespace Cassandra.Tests.Mapping
             };
 
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(TestHelper.DelayedTask(new RowSet()))
@@ -110,6 +112,7 @@ namespace Cassandra.Tests.Mapping
             };
 
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(TaskHelper.ToTask(new RowSet()))
@@ -145,6 +148,7 @@ namespace Cassandra.Tests.Mapping
                 }
             };
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(TaskHelper.ToTask(new RowSet()))
@@ -173,6 +177,7 @@ namespace Cassandra.Tests.Mapping
                 Songs = null
             };
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             string query = null;
             object[] parameters = null;
             sessionMock
@@ -211,6 +216,7 @@ namespace Cassandra.Tests.Mapping
 
             var rowsetReturned = false;
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(TestHelper.DelayedTask(new RowSet(), 2000).ContinueWith(t =>
@@ -242,6 +248,7 @@ namespace Cassandra.Tests.Mapping
             };
             string query = null;
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(TestHelper.DelayedTask(TestDataHelper.CreateMultipleValuesRowSet(new [] {"[applied]"}, new [] { true})))
@@ -272,6 +279,7 @@ namespace Cassandra.Tests.Mapping
             };
             string query = null;
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(TestHelper.DelayedTask(TestDataHelper.CreateMultipleValuesRowSet(new[] { "[applied]", "userid", "name" }, new object[] { false, newUser.Id, "existing-name"})))
@@ -335,6 +343,7 @@ namespace Cassandra.Tests.Mapping
         {
             BoundStatement statement = null;
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))

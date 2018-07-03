@@ -8,6 +8,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Serialization;
@@ -122,12 +123,39 @@ namespace Cassandra.Tests
             return new KeyValuePair<TKey, TValue>(key, value);
         }
 
-        public static Host CreateHost(string address, string dc = "dc1", string rack = "rack1", IEnumerable<string> tokens = null)
+        public static Host CreateHost(string address, string dc = "dc1", string rack = "rack1",
+                                      IEnumerable<string> tokens = null, string cassandraVersion = null)
         {
-            var h = new Host(new IPEndPoint(IPAddress.Parse(address), ProtocolOptions.DefaultPort), new ConstantReconnectionPolicy(1));
-            h.SetLocationInfo(dc, rack);
-            h.Tokens = tokens;
+            var h = new Host(new IPEndPoint(IPAddress.Parse(address), ProtocolOptions.DefaultPort),
+                             new ConstantReconnectionPolicy(1));
+            h.SetInfo(new DictionaryBasedRow(new Dictionary<string, object>
+            {
+                { "data_center", dc },
+                { "rack", rack },
+                { "tokens", tokens },
+                { "release_version", cassandraVersion }
+            }));
             return h;
+        }
+
+        internal class DictionaryBasedRow : IRow
+        {
+            private readonly IDictionary<string, object> _values;
+
+            internal DictionaryBasedRow(IDictionary<string, object> values)
+            {
+                _values = values;
+            }
+
+            public T GetValue<T>(string name)
+            {
+                return (T)_values[name];
+            }
+
+            public bool ContainsColumn(string name)
+            {
+                return _values.ContainsKey(name);
+            }
         }
 
         public static byte GetLastAddressByte(Host h)
@@ -452,6 +480,106 @@ namespace Cassandra.Tests
             }, TaskContinuationOptions.ExecuteSynchronously);
         }
 
+        public static async Task<Exception> EatUpException(Task task)
+        {
+            try
+            {
+                await task;
+            }
+            catch (Exception ex)
+            {
+                // The idea is to await for the exception to occur but catch it
+                // and return a completed task (not faulted)
+                return ex;
+            }
+
+            return null;
+        }
+
+        internal static void VerifyUpdateCqlColumns(string tableName, string query, string[] setColumns, string[] whereColumns,
+                                                    object[] expectedValues, object[] values, string complement = null)
+        {
+            var columnsRegex = new Regex(
+                $"UPDATE {tableName} SET (.* = (?:\\?|(?:.*\\s?\\-\\s\\?))\\,?)+ WHERE ((?:.* [=\\>\\<] \\?)\\s?(?:AND)?)+\\s*{complement}");
+            var cqlParamCount = query.Count(x => x == '?');
+            var queryColumnsOrder = new int[cqlParamCount];
+            var queryColumnsOrderIndex = 0;
+            var columnsMatch = columnsRegex.Match(query);
+            Assert.IsTrue(columnsMatch.Success);
+            Assert.GreaterOrEqual(columnsMatch.Groups.Count, 3);
+            var setColumnsGroup = columnsMatch.Groups[1].Value;
+            var setCQlColumns = (from x in setColumnsGroup.Split(',') select x.Replace(" = ?", "").Trim()).ToArray();
+            foreach (var setColumn in setColumns)
+            {
+                Assert.Contains(setColumn, setCQlColumns);
+                queryColumnsOrder[queryColumnsOrderIndex++] = Array.IndexOf(setCQlColumns, setColumn);
+            }
+
+            var whereColumnsGroup = columnsMatch.Groups[2].Value;
+            var whereColumnsRegex = new Regex("([\\w\"]+)");
+            
+            var whereColumnsNamesMatchCollection = whereColumnsRegex.Matches(whereColumnsGroup);
+            var whereCQlColumns = new string[whereColumnsGroup.Count(x => x == '?')];
+            var whereCQlColumnsIndex = 0;
+            if (whereColumnsNamesMatchCollection.Count > 0)
+            {
+                foreach (var variableMatchName in whereColumnsNamesMatchCollection)
+                {
+                    if (variableMatchName.ToString().Equals("AND")) continue;
+                    whereCQlColumns[whereCQlColumnsIndex++] = variableMatchName.ToString();
+                }
+            }
+
+            foreach (var whereColumn in whereColumns)
+            {
+                Assert.Contains(whereColumn, whereCQlColumns);
+                queryColumnsOrder[queryColumnsOrderIndex++] = setColumns.Length + Array.IndexOf(whereCQlColumns, whereColumn);
+            }
+
+            for (; queryColumnsOrderIndex < cqlParamCount; queryColumnsOrderIndex++)
+            {
+                queryColumnsOrder[queryColumnsOrderIndex] = queryColumnsOrderIndex;
+            }
+            Assert.AreEqual(expectedValues.Length, cqlParamCount);
+            Assert.AreEqual(expectedValues.Length, values.Length);
+            for (var i = 0; i < expectedValues.Length; i++)
+            {
+                Assert.AreEqual(expectedValues[i], values[queryColumnsOrder[i]]);
+            }
+        }
+
+        internal static void VerifyInsertCqlColumns(string tableName, string query, string[] columns, object[] expectedValues,
+                                                    object[] values, string complement = null)
+        {
+            var cqlParamCount = query.Count(x => x == '?');
+            var insertColumnsRegex = new Regex($"INSERT INTO {tableName} \\((.*)\\) VALUES \\((.*)\\)\\s?(.*)", RegexOptions.IgnoreCase);
+            var matchInsertColumnsMatch = insertColumnsRegex.Match(query);
+            Assert.IsTrue(matchInsertColumnsMatch.Success);
+            Assert.GreaterOrEqual(matchInsertColumnsMatch.Groups.Count, 3);
+            Assert.AreEqual(columns.Length, matchInsertColumnsMatch.Groups[2].Value.Count(c => c == '?'));
+            if (complement != null)
+            {
+                Assert.AreEqual(4, matchInsertColumnsMatch.Groups.Count);
+                Assert.AreEqual(complement, matchInsertColumnsMatch.Groups[3].Value);
+            }
+            var insertColumnsGroup = matchInsertColumnsMatch.Groups[1].Value;
+            var insertColumns = (from x in insertColumnsGroup.Split(',') select x.Trim()).ToArray();
+            CollectionAssert.AreEquivalent(columns, insertColumns);
+            var queryColumnsOrder = new int[cqlParamCount];
+            //creating array with the order of params (including complement params: ttl etc..
+            for (var i = 0; i < cqlParamCount; i++)
+            {
+                queryColumnsOrder[i] = (i < columns.Length) ? Array.IndexOf(insertColumns, columns[i]) : i;
+            }
+            
+            Assert.AreEqual(expectedValues.Length, cqlParamCount);
+            Assert.AreEqual(expectedValues.Length, values.Length);
+            for (var i = 0; i < expectedValues.Length; i++)
+            {
+                Assert.AreEqual(expectedValues[i], values[queryColumnsOrder[i]]);
+            }
+        }
+        
         private class SendReceiveCounter
         {
             private int _receiveCounter;
@@ -510,6 +638,49 @@ namespace Cassandra.Tests
                 {
                     yield return value;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Policy ONLY suitable for testing, it creates a fixed query plan containing nodes always in the same order.
+        /// </summary>
+        internal class OrderedLoadBalancingPolicy : ILoadBalancingPolicy
+        {
+            private ICollection<Host> _hosts;
+            private readonly ILoadBalancingPolicy _childPolicy;
+            private volatile bool _useRoundRobin;
+
+            public OrderedLoadBalancingPolicy UseRoundRobin()
+            {
+                _useRoundRobin = true;
+                return this;
+            }
+
+            public OrderedLoadBalancingPolicy UseFixedOrder()
+            {
+                _useRoundRobin = false;
+                return this;
+            }
+
+            public OrderedLoadBalancingPolicy()
+            {
+                _childPolicy = new RoundRobinPolicy();
+            }
+
+            public void Initialize(ICluster cluster)
+            {
+                _hosts = cluster.AllHosts();
+                _childPolicy.Initialize(cluster);
+            }
+
+            public HostDistance Distance(Host host)
+            {
+                return _childPolicy.Distance(host);
+            }
+
+            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            {
+                return !_useRoundRobin ? _hosts : _childPolicy.NewQueryPlan(keyspace, query);
             }
         }
     }

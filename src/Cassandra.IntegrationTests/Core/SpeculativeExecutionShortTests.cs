@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Tests;
 using NUnit.Framework;
+#pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -90,17 +91,20 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void SpeculativeExecution_Should_Not_Execute_On_Next_Node_When_Not_Idempotent()
+        public async Task SpeculativeExecution_Should_Not_Execute_On_Next_Node_When_Not_Idempotent()
         {
-            var lbp = new OrderedLoadBalancingPolicy(2, 1, 3);
+            var lbp = new OrderedLoadBalancingPolicy(2, 1);
             var session = GetSession(new ConstantSpeculativeExecutionPolicy(50L, 1), true, lbp);
             TestCluster.PauseNode(2);
             var t = session.ExecuteAsync(new SimpleStatement(QueryLocal).SetIdempotence(false));
-            Thread.Sleep(200);
+            await Task.Delay(200).ConfigureAwait(false);
             Assert.AreEqual(TaskStatus.WaitingForActivation, t.Status);
+
             TestCluster.ResumeNode(2);
-            Thread.Sleep(200);
-            Assert.AreEqual(TaskStatus.RanToCompletion, t.Status);
+            var rs = await t.ConfigureAwait(false);
+
+            // Used the first host in the query plan
+            Assert.AreEqual(2, TestHelper.GetLastAddressByte(rs.Info.QueriedHost));
         }
 
         [Test]

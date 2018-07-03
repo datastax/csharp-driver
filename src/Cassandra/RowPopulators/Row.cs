@@ -26,7 +26,7 @@ namespace Cassandra
     /// <summary>
     /// Represents an CQL row
     /// </summary>
-    public class Row : IEnumerable<object>
+    public class Row : IEnumerable<object>, IRow
     {
         private readonly object[] _rowValues;
         /// <summary>
@@ -138,6 +138,22 @@ namespace Cassandra
                 return null;
             }
             return Columns[index];
+        }
+
+        /// <summary>
+        /// Returns true if the row contains information of the provided column name.
+        /// </summary>
+        bool IRow.ContainsColumn(string name)
+        {
+            return ContainsColumn(name);
+        }
+
+        /// <summary>
+        /// Returns true if the row contains information of the provided column name.
+        /// </summary>
+        internal bool ContainsColumn(string name)
+        {
+            return GetColumn(name) != null;
         }
 
         /// <summary>
@@ -357,5 +373,14 @@ namespace Cassandra
             }
             return value;
         }
+    }
+
+    /// <summary>
+    /// Internal representation of a Row
+    /// </summary>
+    internal interface IRow
+    {
+        T GetValue<T>(string name);
+        bool ContainsColumn(string name);
     }
 }

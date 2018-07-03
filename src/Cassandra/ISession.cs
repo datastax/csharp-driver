@@ -13,10 +13,12 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+
 namespace Cassandra
 {
     /// <summary>
@@ -39,40 +41,49 @@ namespace Cassandra
         /// Gets the Cassandra native binary protocol version
         /// </summary>
         int BinaryProtocolVersion { get; }
+
         /// <summary>
         /// Gets the cluster information and state
         /// </summary>
         ICluster Cluster { get; }
+
         /// <summary>
         /// Determines if the object has been disposed.
         /// </summary>
         bool IsDisposed { get; }
+
         /// <summary>
         /// Gets name of currently used keyspace. 
         /// </summary>
         string Keyspace { get; }
+
         /// <summary>
         /// Gets the user defined type mappings
         /// </summary>
         UdtMappingDefinitions UserDefinedTypes { get; }
+
         /// <summary>
         /// Begins asynchronous execute operation
         /// </summary>
         IAsyncResult BeginExecute(IStatement statement, AsyncCallback callback, object state);
+
         /// <summary>
         /// Begins asynchronous execute operation
         /// </summary>
         IAsyncResult BeginExecute(string cqlQuery, ConsistencyLevel consistency, AsyncCallback callback, object state);
+
         /// <summary>
         /// Begins asynchronous prepare operation
         /// </summary>
         IAsyncResult BeginPrepare(string cqlQuery, AsyncCallback callback, object state);
+
         /// <summary>
         /// Switches to the specified keyspace.
         /// </summary>
         /// <param name="keyspaceName">Case-sensitive name of keyspace to be used.</param>
         /// <exception cref="InvalidQueryException">When keyspace does not exist</exception>
         void ChangeKeyspace(string keyspaceName);
+
         /// <summary>
         ///  Creates new keyspace in current cluster.        
         /// </summary>
@@ -85,6 +96,7 @@ namespace Cassandra
         /// </param>
         /// <param name="durableWrites">Whether to use the commit log for updates on this keyspace. Default is set to <c>true</c>.</param>
         void CreateKeyspace(string keyspaceName, Dictionary<string, string> replication = null, bool durableWrites = true);
+
         /// <summary>
         ///  Creates new keyspace in current cluster.
         ///  If keyspace with specified name already exists, then this method does nothing.
@@ -98,66 +110,79 @@ namespace Cassandra
         /// </param>
         /// <param name="durableWrites">Whether to use the commit log for updates on this keyspace. Default is set to <c>true</c>.</param>
         void CreateKeyspaceIfNotExists(string keyspaceName, Dictionary<string, string> replication = null, bool durableWrites = true);
+
         /// <summary>
         ///  Deletes specified keyspace from current cluster.
         ///  If keyspace with specified name does not exist, then exception will be thrown.
         /// </summary>
         /// <param name="keyspaceName">Name of keyspace to be deleted.</param>
         void DeleteKeyspace(string keyspaceName);
+
         /// <summary>
         ///  Deletes specified keyspace from current cluster.
         ///  If keyspace with specified name does not exist, then this method does nothing.
         /// </summary>
         /// <param name="keyspaceName">Name of keyspace to be deleted.</param>
         void DeleteKeyspaceIfExists(string keyspaceName);
+
         /// <summary>
         /// Ends asynchronous execute operation
         /// </summary>
         /// <param name="ar"></param>
         /// <returns></returns>
         RowSet EndExecute(IAsyncResult ar);
+
         /// <summary>
         /// Ends asynchronous prepare operation
         /// </summary>
         PreparedStatement EndPrepare(IAsyncResult ar);
+
         /// <summary>
         /// Executes the provided query.
         /// </summary>
         RowSet Execute(IStatement statement);
+
         /// <summary>
         /// Executes the provided query.
         /// </summary>
         RowSet Execute(string cqlQuery);
+
         /// <summary>
         /// Executes the provided query.
         /// </summary>
         RowSet Execute(string cqlQuery, ConsistencyLevel consistency);
+
         /// <summary>
         /// Executes the provided query.
         /// </summary>
         RowSet Execute(string cqlQuery, int pageSize);
+
         /// <summary>
         /// Executes a query asynchronously
         /// </summary>
         /// <param name="statement">The statement to execute (simple, bound or batch statement)</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         Task<RowSet> ExecuteAsync(IStatement statement);
+
         /// <summary>
         /// Prepares the provided query string.
         /// </summary>
         /// <param name="cqlQuery">cql query to prepare</param>
         PreparedStatement Prepare(string cqlQuery);
+
         /// <summary>
         /// Prepares the query string, sending the custom payload request.
         /// </summary>
         /// <param name="cqlQuery">cql query to prepare</param>
         /// <param name="customPayload">Custom outgoing payload to send with the prepare request</param>
         PreparedStatement Prepare(string cqlQuery, IDictionary<string, byte[]> customPayload);
+
         /// <summary>
         /// Prepares the provided query string asynchronously.
         /// </summary>
         /// <param name="cqlQuery">cql query to prepare</param>
         Task<PreparedStatement> PrepareAsync(string cqlQuery);
+
         /// <summary>
         /// Prepares the provided query string asynchronously, and sending the custom payload request.
         /// </summary>

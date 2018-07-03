@@ -73,7 +73,7 @@ namespace Cassandra
         private readonly object _allConnectionClosedEventLock = new object();
         private volatile IReconnectionSchedule _reconnectionSchedule;
         private volatile int _expectedConnectionLength;
-        private volatile int _maxInflightThreshold;
+        private volatile int _maxInflightThresholdToConsiderResizing;
         private volatile int _maxConnectionLength;
         private volatile HashedWheelTimer.ITimeout _resizingEndTimeout;
         private volatile bool _canCreateForeground = true;
@@ -82,6 +82,7 @@ namespace Cassandra
         private HashedWheelTimer.ITimeout _newConnectionTimeout;
         private TaskCompletionSource<Connection> _connectionOpenTcs;
         private int _connectionIndex;
+        private readonly int _maxRequestsPerConnection;
 
         public event Action<Host, HostConnectionPool> AllConnectionClosed;
 
@@ -104,7 +105,7 @@ namespace Cassandra
         /// Determines whether the pool is not on the initial state.
         /// </summary>
         private bool IsClosing => Volatile.Read(ref _state) != PoolState.Init;
-        
+
         /// <summary>
         /// Gets a snapshot of the current state of the pool.
         /// </summary>
@@ -117,7 +118,9 @@ namespace Cassandra
             _host.Up += OnHostUp;
             _host.Remove += OnHostRemoved;
             _host.DistanceChanged += OnDistanceChanged;
-            _config = config;
+            _config = config ?? throw new ArgumentNullException(nameof(config));
+            _maxRequestsPerConnection = config.GetPoolingOptions(serializer.ProtocolVersion)
+                                              .GetMaxRequestsPerConnection();
             _serializer = serializer;
             _timer = config.Timer;
             _reconnectionSchedule = config.Policies.ReconnectionPolicy.NewSchedule();
@@ -128,6 +131,11 @@ namespace Cassandra
         /// Gets an open connection from the host pool (creating if necessary).
         /// It returns null if the load balancing policy didn't allow connections to this host.
         /// </summary>
+        /// <exception cref="DriverInternalError" />
+        /// <exception cref="BusyPoolException" />
+        /// <exception cref="UnsupportedProtocolVersionException" />
+        /// <exception cref="SocketException" />
+        /// <exception cref="AuthenticationException" />
         public async Task<Connection> BorrowConnection()
         {
             var connections = await EnsureCreate().ConfigureAwait(false);
@@ -135,8 +143,15 @@ namespace Cassandra
             {
                 throw new DriverInternalError("No connection could be borrowed");
             }
-            var c = MinInFlight(connections, ref _connectionIndex, _maxInflightThreshold);
-            ConsiderResizingPool(c.InFlight);
+
+            var c = MinInFlight(connections, ref _connectionIndex, _maxRequestsPerConnection, out var inFlight);
+
+            if (inFlight >= _maxRequestsPerConnection)
+            {
+                throw new BusyPoolException(c.Address, _maxRequestsPerConnection, connections.Length);
+            }
+
+            ConsiderResizingPool(inFlight);
             return c;
         }
 
@@ -178,7 +193,7 @@ namespace Cassandra
 
         public void ConsiderResizingPool(int inFlight)
         {
-            if (inFlight < _maxInflightThreshold)
+            if (inFlight < _maxInflightThresholdToConsiderResizing)
             {
                 // The requests in-flight are normal
                 return;
@@ -205,7 +220,7 @@ namespace Cassandra
             }
             _expectedConnectionLength++;
             Logger.Info("Increasing pool #{0} size to {1}, as in-flight requests are above threshold ({2})", 
-                GetHashCode(), _expectedConnectionLength, _maxInflightThreshold);
+                GetHashCode(), _expectedConnectionLength, _maxInflightThresholdToConsiderResizing);
             StartCreatingConnection(null);
             _resizingEndTimeout = _timer.NewTimeout(_ => Interlocked.Exchange(ref _poolResizing, 0), null, 
                 BetweenResizeDelay);
@@ -274,10 +289,15 @@ namespace Cassandra
         /// The max amount of in-flight requests that cause this method to continue
         /// iterating until finding the connection with min number of in-flight requests.
         /// </param>
-        public static Connection MinInFlight(Connection[] connections, ref int connectionIndex, int inFlightThreshold)
+        /// <param name="inFlight">
+        /// Out parameter containing the amount of in-flight requests of the selected connection.
+        /// </param>
+        public static Connection MinInFlight(Connection[] connections, ref int connectionIndex, int inFlightThreshold,
+                                             out int inFlight)
         {
             if (connections.Length == 1)
             {
+                inFlight = connections[0].InFlight;
                 return connections[0];
             }
             //It is very likely that the amount of InFlight requests per connection is the same
@@ -285,22 +305,28 @@ namespace Cassandra
             var index = Interlocked.Increment(ref connectionIndex);
             if (index > ConnectionIndexOverflow)
             {
-                //Overflow protection, not exactly thread-safe but we can live with it
+                // Simplified overflow protection: once the threshold is reached, reset the shared reference
+                // but still use the incremented value above threshold.
+                // Multiple threads can reset it to 0 (in practice it would be very few), with the assumable side
+                // effect of unbalancing the load between connections for a few moments.
                 Interlocked.Exchange(ref connectionIndex, 0);
             }
-            Connection c = null;
-            for (var i = index; i < index + connections.Length; i++)
+
+            var c = connections[index % connections.Length];
+            inFlight = 0;
+
+            for (var i = 1; i < connections.Length; i++)
             {
-                c = connections[i % connections.Length];
-                var previousConnection = connections[(i - 1) % connections.Length];
-                // Avoid multiple volatile reads
-                var inFlight = c.InFlight;
-                var previousInFlight = previousConnection.InFlight;
-                if (previousInFlight < inFlight)
+                var nextConnection = connections[(index + i) % connections.Length];
+                inFlight = c.InFlight;
+                var nextInFlight = nextConnection.InFlight;
+
+                if (inFlight > nextInFlight)
                 {
-                    c = previousConnection;
-                    inFlight = previousInFlight;
+                    c = nextConnection;
+                    inFlight = nextInFlight;
                 }
+
                 if (inFlight < inFlightThreshold)
                 {
                     // We should avoid traversing all the connections
@@ -308,6 +334,7 @@ namespace Cassandra
                     break;
                 }
             }
+
             return c;
         }
 
@@ -582,10 +609,13 @@ namespace Cassandra
         /// Opens one connection. 
         /// If a connection is being opened it yields the same task, preventing creation in parallel.
         /// </summary>
+        /// <param name="satisfyWithAnOpenConnection">
+        /// Determines whether the Task should be marked as completed when there is a connection already opened.
+        /// </param>
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
         /// <exception cref="AuthenticationException" />
         /// <exception cref="UnsupportedProtocolVersionException" />
-        private async Task<Connection> CreateOpenConnection(bool foreground)
+        private async Task<Connection> CreateOpenConnection(bool satisfyWithAnOpenConnection)
         {
             var concurrentOpenTcs = Volatile.Read(ref _connectionOpenTcs);
             // Try to exit early (cheap) as there could be another thread creating / finishing creating
@@ -602,10 +632,12 @@ namespace Cassandra
                 // There is another thread opening a new connection
                 return await concurrentOpenTcs.Task.ConfigureAwait(false);
             }
+
             if (IsClosing)
             {
                 return await FinishOpen(tcs, false, GetNotConnectedException()).ConfigureAwait(false);
             }
+
             // Before creating, make sure that its still needed
             // This method is the only one that adds new connections
             // But we don't control the removal, use snapshot
@@ -619,10 +651,10 @@ namespace Cassandra
                 }
                 return await FinishOpen(tcs, true, null, connectionsSnapshot[0]).ConfigureAwait(false);
             }
-            if (foreground && !_canCreateForeground)
+
+            if (satisfyWithAnOpenConnection && !_canCreateForeground)
             {
-                // Foreground creation only cares about one connection
-                // If its already there, yield it
+                // We only care about a single connection, if its already there, yield it
                 connectionsSnapshot = _connections.GetSnapshot();
                 if (connectionsSnapshot.Length == 0)
                 {
@@ -631,9 +663,9 @@ namespace Cassandra
                 }
                 return await FinishOpen(tcs, false, null, connectionsSnapshot[0]).ConfigureAwait(false);
             }
+
             Logger.Info("Creating a new connection to {0}", _host.Address);
-            Connection c = null;
-            Exception creationEx = null;
+            Connection c;
             try
             {
                 c = await DoCreateAndOpen().ConfigureAwait(false);
@@ -641,13 +673,9 @@ namespace Cassandra
             catch (Exception ex)
             {
                 Logger.Info("Connection to {0} could not be created: {1}", _host.Address, ex);
-                // Can not be awaited on catch on C# 5...
-                creationEx = ex;
+                return await FinishOpen(tcs, true, ex).ConfigureAwait(false);
             }
-            if (creationEx != null)
-            {
-                return await FinishOpen(tcs, true, creationEx).ConfigureAwait(false);
-            }
+
             if (IsClosing)
             {
                 Logger.Info("Connection to {0} opened successfully but pool #{1} was being closed", 
@@ -655,9 +683,11 @@ namespace Cassandra
                 c.Dispose();
                 return await FinishOpen(tcs, false, GetNotConnectedException()).ConfigureAwait(false);
             }
+
             var newLength = _connections.AddNew(c);
-            Logger.Info("Connection to {0} opened successfully, pool #{1} length: {2}", 
+            Logger.Info("Connection to {0} opened successfully, pool #{1} length: {2}",
                 _host.Address, GetHashCode(), newLength);
+
             if (IsClosing)
             {
                 // We haven't use a CAS operation, so it's possible that the pool is being closed while adding a new
@@ -668,6 +698,7 @@ namespace Cassandra
                 c.Dispose();
                 return await FinishOpen(tcs, false, GetNotConnectedException()).ConfigureAwait(false);
             }
+
             return await FinishOpen(tcs, true, null, c).ConfigureAwait(false);
         }
 
@@ -744,8 +775,35 @@ namespace Cassandra
         {
             var poolingOptions = _config.GetPoolingOptions(_serializer.ProtocolVersion);
             _expectedConnectionLength = poolingOptions.GetCoreConnectionsPerHost(distance);
-            _maxInflightThreshold =  poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(distance);
+            _maxInflightThresholdToConsiderResizing =  poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(distance);
             _maxConnectionLength = poolingOptions.GetMaxConnectionPerHost(distance);
+        }
+
+        /// <summary>
+        /// Creates the required connections to the hosts and awaits for all connections to be open.
+        /// The task is completed when at least 1 of the connections is opened successfully.
+        /// Until the task is completed, no other thread is expected to be using this instance.
+        /// </summary>
+        public async Task Warmup()
+        {
+            var length = _expectedConnectionLength;
+            for (var i = 0; i < length; i++)
+            {
+                try
+                {
+                    await CreateOpenConnection(false).ConfigureAwait(false);
+                }
+                catch
+                {
+                    if (i > 0)
+                    {
+                        // There is an opened connection, don't mind
+                        break;
+                    }
+
+                    throw;
+                }
+            }
         }
     }
 }

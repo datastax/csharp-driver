@@ -26,7 +26,7 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short")]
     public class CustomTypeTests : SharedClusterTest
     {
-        [Test]
+        [Test, TestCassandraVersion(4, 0, Comparison.LessThan)]
         public void DynamicCompositeTypeTest()
         {
             string uniqueTableName = TestUtils.GetUniqueTableName();

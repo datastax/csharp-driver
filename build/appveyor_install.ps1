@@ -135,8 +135,9 @@ choco install -y xmlstarlet
 #Download simulacron jar
 $simulacron_path = "$($dep_dir)\simulacron.jar"
 If (!(Test-Path $simulacron_path)) {
-  Write-Host "Downloading simulacron jar"
-  $url = "https://github.com/datastax/simulacron/releases/download/0.6.0/simulacron-standalone-0.6.0.jar"
+  $simulacron_version = "0.8.2"
+  Write-Host "Downloading simulacron jar version $simulacron_version"
+  $url = "https://github.com/datastax/simulacron/releases/download/$($simulacron_version)/simulacron-standalone-$($simulacron_version).jar"
   (new-object System.Net.WebClient).DownloadFile($url, $simulacron_path)
 }
 

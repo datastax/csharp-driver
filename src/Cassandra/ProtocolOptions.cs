@@ -85,6 +85,20 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// Determines whether NO_COMPACT is enabled as startup option.
+        /// <para>
+        /// When this option is set, <c>SELECT</c>, <c>UPDATE</c>, <c>DELETE</c>, and <c>BATCH</c> statements
+        /// on <c>COMPACT STORAGE</c> tables function in "compatibility" mode which allows seeing these tables
+        /// as if they were "regular" CQL tables.
+        /// </para>
+        /// <para>
+        /// This option only affects interactions with tables using <c>COMPACT STORAGE</c> and it is only
+        /// supported by C* 3.0.16+, 3.11.2+, 4.0+ and DSE 6.0+.
+        /// </para>
+        /// </summary>
+        public bool NoCompact { get; private set; }
+
+        /// <summary>
         /// Gets the maximum protocol version to be used.
         /// When set, it limits the maximum protocol version used to connect to the nodes.
         /// Useful for using the driver against a cluster that contains nodes with different major/minor versions of Cassandra.
@@ -182,6 +196,24 @@ namespace Cassandra
         public ProtocolOptions SetMaxProtocolVersion(ProtocolVersion value)
         {
             _maxProtocolVersion = value;
+            return this;
+        }
+
+        /// <summary>
+        /// When set to true, it enables the NO_COMPACT startup option.
+        /// <para>
+        /// When this option is set, <c>SELECT</c>, <c>UPDATE</c>, <c>DELETE</c>, and <c>BATCH</c> statements
+        /// on <c>COMPACT STORAGE</c> tables function in "compatibility" mode which allows seeing these tables
+        /// as if they were "regular" CQL tables.
+        /// </para>
+        /// <para>
+        /// This option only affects interactions with tables using <c>COMPACT STORAGE</c> and it is only
+        /// supported by C* 3.0.16+, 3.11.2+, 4.0+ and DSE 6.0+.
+        /// </para>
+        /// </summary>
+        public ProtocolOptions SetNoCompact(bool value)
+        {
+            NoCompact = value;
             return this;
         }
     }
