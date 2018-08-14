@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Cassandra
@@ -16,7 +17,7 @@ namespace Cassandra
 
         public BlackListedDCLoadBalancingPolicy(IList<string> blacklistedDC, ILoadBalancingPolicy childPolicy)
         {
-            _childPolicy = childPolicy;
+            _childPolicy = childPolicy ?? throw new ArgumentException(string.Format("Base child policy wasn't specified"));
             this.blacklistedDC = blacklistedDC;
         }
 
