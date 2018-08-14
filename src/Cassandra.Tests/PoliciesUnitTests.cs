@@ -668,10 +668,53 @@ namespace Cassandra.Tests
             Assert.AreEqual(0, testPolicy.UnavailableCounter);
         }
 
-        /// <summary>
-        /// Creates a list of host with ips starting at 0.0.0.0 to 0.0.0.(length-1) and the provided datacenter name
-        /// </summary>
-        private static List<Host> GetHostList(byte length, byte thirdPosition = 0, string datacenter = "local")
+        [Test]
+        public void BlacklistedDCPolicy_Ctor_Null_Policy_Throws()
+        {
+            Assert.Throws<ArgumentException>(() => new BlackListedDCLoadBalancingPolicy(new List<string>(), null));
+        }
+
+        [Test]
+        public void BlacklistedDCPolicy_Tests()
+        {
+            var hostList = new List<Host>
+            {
+                //5 local nodes and 4 remote
+                TestHelper.CreateHost("0.0.0.1", "dc1"),
+                TestHelper.CreateHost("0.0.0.2", "dc1"),
+                TestHelper.CreateHost("0.0.0.3", "dc2"),
+                TestHelper.CreateHost("0.0.0.4", "dc2"),
+                TestHelper.CreateHost("0.0.0.5", "dc1"),
+                TestHelper.CreateHost("0.0.0.6", "dc1"),
+                TestHelper.CreateHost("0.0.0.7", "dc2"),
+                TestHelper.CreateHost("0.0.0.8", "dc2"),
+                TestHelper.CreateHost("0.0.0.9", "dc1")
+            };
+            var clusterMock = new Mock<ICluster>(MockBehavior.Strict);
+            clusterMock
+                .Setup(c => c.AllHosts())
+                .Returns(hostList)
+                .Verifiable();
+
+            var policy = new BlackListedDCLoadBalancingPolicy(new List<string>() {"dc1"}, new TokenAwarePolicy(new DCAwareRoundRobinPolicy()));
+            policy.Initialize(clusterMock.Object);
+
+            Assert.False(hostList.Where(x => x.Datacenter == "dc1").Where(x => policy.Distance(x) != HostDistance.Ignored).Any());
+            Assert.False(hostList.Where(x => x.Datacenter == "dc2").Where(x => policy.Distance(x) == HostDistance.Ignored).Any());
+
+            var policy2 = new BlackListedDCLoadBalancingPolicy(null, new TokenAwarePolicy(new DCAwareRoundRobinPolicy()));
+            policy2.Initialize(clusterMock.Object);
+            Assert.False(hostList.Where(x => policy2.Distance(x) == HostDistance.Ignored).Any());
+
+            var policy3 = new BlackListedDCLoadBalancingPolicy(new List<string>() { "dc1", "dc2"}, new TokenAwarePolicy(new DCAwareRoundRobinPolicy()));
+            policy3.Initialize(clusterMock.Object);
+            Assert.False(hostList.Where(x => policy3.Distance(x) != HostDistance.Ignored).Any());
+        }
+
+            /// <summary>
+            /// Creates a list of host with ips starting at 0.0.0.0 to 0.0.0.(length-1) and the provided datacenter name
+            /// </summary>
+            private static List<Host> GetHostList(byte length, byte thirdPosition = 0, string datacenter = "local")
         {
             var list = new List<Host>();
             for (byte i = 0; i < length; i++)

@@ -27,13 +27,7 @@ namespace Cassandra
     public class BlackListedDCLoadBalancingPolicy : ILoadBalancingPolicy
     {
         private ILoadBalancingPolicy _childPolicy;
-
         private readonly IList<string> blacklistedDC;
-
-        public BlackListedDCLoadBalancingPolicy(IList<string> blacklistedDC)
-            : this(blacklistedDC, Policies.DefaultLoadBalancingPolicy)
-        {
-        }
 
         public BlackListedDCLoadBalancingPolicy(IList<string> blacklistedDC, ILoadBalancingPolicy childPolicy)
         {
