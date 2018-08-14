@@ -711,10 +711,10 @@ namespace Cassandra.Tests
             Assert.False(hostList.Where(x => policy3.Distance(x) != HostDistance.Ignored).Any());
         }
 
-            /// <summary>
-            /// Creates a list of host with ips starting at 0.0.0.0 to 0.0.0.(length-1) and the provided datacenter name
-            /// </summary>
-            private static List<Host> GetHostList(byte length, byte thirdPosition = 0, string datacenter = "local")
+        /// <summary>
+        /// Creates a list of host with ips starting at 0.0.0.0 to 0.0.0.(length-1) and the provided datacenter name
+        /// </summary>
+        private static List<Host> GetHostList(byte length, byte thirdPosition = 0, string datacenter = "local")
         {
             var list = new List<Host>();
             for (byte i = 0; i < length; i++)
