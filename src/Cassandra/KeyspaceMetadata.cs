@@ -36,30 +36,35 @@ namespace Cassandra
         ///  Gets the name of this keyspace.
         /// </summary>
         /// <returns>the name of this CQL keyspace.</returns>
-        public string Name { get; private set; }
+        public string Name { get; }
 
         /// <summary>
         ///  Gets a value indicating whether durable writes are set on this keyspace.
         /// </summary>
         /// <returns><c>true</c> if durable writes are set on this keyspace
         ///  , <c>false</c> otherwise.</returns>
-        public bool DurableWrites { get; private set; }
+        public bool DurableWrites { get; }
 
         /// <summary>
         ///  Gets the Strategy Class of this keyspace.
         /// </summary>
         /// <returns>name of StrategyClass of this keyspace.</returns>
-        public string StrategyClass { get; private set; }
+        public string StrategyClass { get; }
 
         /// <summary>
         ///  Returns the replication options for this keyspace.
         /// </summary>
         /// 
         /// <returns>a dictionary containing the keyspace replication strategy options.</returns>
-        public IDictionary<string, int> Replication { get; private set; }
+        public IDictionary<string, int> Replication { get; }
+
+        /// <summary>
+        /// Determines whether the keyspace is a virtual keyspace or not.
+        /// </summary>
+        public bool IsVirtual { get; }
 
         internal KeyspaceMetadata(Metadata parent, string name, bool durableWrites, string strategyClass,
-                                  IDictionary<string, int> replicationOptions)
+                                  IDictionary<string, int> replicationOptions, bool isVirtual = false)
         {
             //Can not directly reference to schemaParser as it might change
             _parent = parent;
@@ -69,9 +74,10 @@ namespace Cassandra
             StrategyClass = strategyClass;
             if (strategyClass != null && strategyClass.StartsWith("org.apache.cassandra.locator."))
             {
-                StrategyClass = strategyClass.Replace("org.apache.cassandra.locator.", "");   
+                StrategyClass = strategyClass.Replace("org.apache.cassandra.locator.", "");
             }
             Replication = replicationOptions;
+            IsVirtual = isVirtual;
         }
 
         /// <summary>
