@@ -512,5 +512,71 @@ namespace Cassandra.IntegrationTests.Core
                 }
             }
         }
+
+        [Test]
+        public async Task Should_Use_Single_Host_When_Configured_At_Statement_Level()
+        {
+            const string query = "SELECT * FROM system.local";
+            var builder = Cluster.Builder().WithLoadBalancingPolicy(new TestHelper.OrderedLoadBalancingPolicy());
+
+            using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
+            using (var cluster = builder.AddContactPoint(testCluster.InitialContactPoint).Build())
+            {
+                var session = await cluster.ConnectAsync();
+                var firstHost = cluster.AllHosts().First();
+                var lastHost = cluster.AllHosts().Last();
+
+                // The test load-balancing policy targets always the first host
+                await TestHelper.TimesLimit(async () =>
+                {
+                    var rs = await session.ExecuteAsync(new SimpleStatement(query));
+                    Assert.AreEqual(rs.Info.QueriedHost, firstHost.Address);
+                    return rs;
+                }, 10, 10);
+
+                // Use a specific host
+                var statement = new SimpleStatement(query).SetHost(lastHost);
+                await TestHelper.TimesLimit(async () =>
+                {
+                    var rs = await session.ExecuteAsync(statement);
+                    // The queried host should be the last one
+                    Assert.AreEqual(rs.Info.QueriedHost, lastHost.Address);
+                    return rs;
+                }, 10, 10);
+            }
+        }
+
+        [Test]
+        public void Should_Throw_NoHostAvailableException_When_Targeting_Single_Ignored_Host()
+        {
+            const string query = "SELECT * FROM system.local";
+            // Mark the last host as ignored
+            var lbp = new TestHelper.CustomLoadBalancingPolicy(
+                (cluster, ks, stmt) => cluster.AllHosts(),
+                (cluster, host) => host.Equals(cluster.AllHosts().Last()) ? HostDistance.Ignored : HostDistance.Local);
+            var builder = Cluster.Builder().WithLoadBalancingPolicy(lbp);
+
+            using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
+            using (var cluster = builder.AddContactPoint(testCluster.InitialContactPoint).Build())
+            {
+                var session = cluster.Connect();
+                var lastHost = cluster.AllHosts().Last();
+
+                // Use the last host
+                var statement = new SimpleStatement(query).SetHost(lastHost);
+                Parallel.For(0, 10, _ =>
+                {
+                    var ex = Assert.ThrowsAsync<NoHostAvailableException>(() => session.ExecuteAsync(statement));
+                    Assert.That(ex.Errors.Count, Is.EqualTo(1));
+                    Assert.That(ex.Errors.First().Key, Is.EqualTo(lastHost.Address));
+                });
+            }
+        }
+
+        [Test]
+        public void Should_Throw_NoHostAvailableException_When_Targeting_Single_Host_With_No_Connections()
+        {
+            //TODO
+        }
     }
 }

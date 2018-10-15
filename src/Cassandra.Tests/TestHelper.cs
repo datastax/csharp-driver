@@ -683,5 +683,39 @@ namespace Cassandra.Tests
                 return !_useRoundRobin ? _hosts : _childPolicy.NewQueryPlan(keyspace, query);
             }
         }
+
+        /// <summary>
+        /// A policy only suitable for testing that lets you specify the handlers for the query plan and distance
+        /// methods.
+        /// </summary>
+        internal class CustomLoadBalancingPolicy : ILoadBalancingPolicy
+        {
+            private ICluster _cluster;
+            private readonly Func<ICluster, Host, HostDistance> _distanceHandler;
+            private readonly Func<ICluster, string, IStatement, IEnumerable<Host>> _queryPlanHandler;
+
+            public CustomLoadBalancingPolicy(
+                Func<ICluster, string, IStatement, IEnumerable<Host>> queryPlanHandler = null,
+                Func<ICluster, Host, HostDistance> distanceHandler = null)
+            {
+                _queryPlanHandler = queryPlanHandler ?? ((cluster, ks, statement) => cluster.AllHosts());
+                _distanceHandler = distanceHandler ?? ((_, __) => HostDistance.Ignored);
+            }
+
+            public void Initialize(ICluster cluster)
+            {
+                _cluster = cluster;
+            }
+
+            public HostDistance Distance(Host host)
+            {
+                return _distanceHandler(_cluster, host);
+            }
+
+            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            {
+                return _queryPlanHandler(_cluster, keyspace, query);
+            }
+        }
     }
 }
