@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
@@ -616,9 +614,11 @@ namespace Cassandra
 
             await Task.WhenAll(getTableTask, getColumnsTask, getIndexesTask).ConfigureAwait(false);
 
-            var indexes = GetIndexes(await getIndexesTask.ConfigureAwait(false));
+            var indexesRs = await getIndexesTask.ConfigureAwait(false);
             var tableRs = await getTableTask.ConfigureAwait(false);
             var columnsRs = await getColumnsTask.ConfigureAwait(false);
+
+            var indexes = GetIndexes(indexesRs);
 
             return await ParseTableOrView(_ => new TableMetadata(tableName, indexes), tableRs, columnsRs)
                 .ConfigureAwait(false);
@@ -745,7 +745,7 @@ namespace Cassandra
             return await ParseTableOrView(
                 viewRow => new MaterializedViewMetadata(viewName, viewRow.GetValue<string>("where_clause")),
                 tableRs,
-                columnsRs);
+                columnsRs).ConfigureAwait(false);
         }
 
         private static void PruneDenseTableColumns(IDictionary<string, TableColumn> columns)
@@ -972,7 +972,7 @@ namespace Cassandra
 
             try
             {
-                var rs = await Cc.QueryAsync(SelectVirtualKeyspaces, retry);
+                var rs = await Cc.QueryAsync(SelectVirtualKeyspaces, retry).ConfigureAwait(false);
                 virtualKeyspaces = rs.Select(ParseVirtualKeyspaceRow);
             }
             catch (InvalidQueryException)
