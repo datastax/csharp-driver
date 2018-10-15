@@ -612,5 +612,34 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.Greater(host.CassandraVersion, new Version(1, 2));
             }
         }
+
+        [Test, TestCassandraVersion(4, 0)]
+        public void Virtual_Table_Metadata_Test()
+        {
+            var cluster = GetNewCluster();
+            var table = cluster.Metadata.GetTable("system_views", "clients");
+            Assert.NotNull(table);
+            Assert.True(table.IsVirtual);
+            Assert.AreEqual(table.PartitionKeys.Select(c => c.Name), new[] { "address" });
+            Assert.AreEqual(table.ClusteringKeys.Select(t => t.Item1.Name), new[] { "port" });
+        }
+
+        [Test, TestCassandraVersion(4, 0)]
+        public void Virtual_Keyspaces_Are_Included()
+        {
+            var cluster = GetNewCluster();
+            var defaultVirtualKeyspaces = new[] {"system_views", "system_virtual_schema"};
+            CollectionAssert.IsSubsetOf(defaultVirtualKeyspaces, cluster.Metadata.GetKeyspaces());
+
+            foreach (var keyspaceName in defaultVirtualKeyspaces)
+            {
+                var ks = cluster.Metadata.GetKeyspace(keyspaceName);
+                Assert.True(ks.IsVirtual);
+                Assert.AreEqual(keyspaceName, ks.Name);
+            }
+
+            // "system" keyspace is still a regular keyspace
+            Assert.False(cluster.Metadata.GetKeyspace("system").IsVirtual);
+        }
     }
 }

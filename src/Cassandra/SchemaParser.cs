@@ -19,12 +19,19 @@ namespace Cassandra
         private const string SelectTraceSessions = "SELECT * FROM system_traces.sessions WHERE session_id = {0}";
         private const string SelectTraceEvents = "SELECT * FROM system_traces.events WHERE session_id = {0}";
         private static readonly Version Version30 = new Version(3, 0);
+        private static readonly Version Version40 = new Version(4, 0);
 
         /// <summary>
         /// Creates a new instance if the currentInstance is not valid for the given Cassandra version
         /// </summary>
-        public static SchemaParser GetInstance(Version cassandraVersion, Metadata parent, Func<string, string, Task<UdtColumnInfo>> udtResolver, SchemaParser currentInstance = null)
+        public static SchemaParser GetInstance(Version cassandraVersion, Metadata parent,
+                                               Func<string, string, Task<UdtColumnInfo>> udtResolver,
+                                               SchemaParser currentInstance = null)
         {
+            if (cassandraVersion >= Version40 && !(currentInstance is SchemaParserV3))
+            {
+                return new SchemaParserV3(parent, udtResolver);
+            }
             if (cassandraVersion >= Version30 && !(currentInstance is SchemaParserV2))
             {
                 return new SchemaParserV2(parent, udtResolver);
@@ -35,7 +42,7 @@ namespace Cassandra
             }
             if (currentInstance == null)
             {
-                throw new ArgumentNullException("currentInstance");
+                throw new ArgumentNullException(nameof(currentInstance));
             }
             return currentInstance;
         }
@@ -560,12 +567,13 @@ namespace Cassandra
             _udtResolver = udtResolver;
         }
 
-        protected KeyspaceMetadata ParseKeyspaceRow(Row row, bool isVirtual)
+        private KeyspaceMetadata ParseKeyspaceRow(Row row)
         {
             var replication = row.GetValue<IDictionary<string, string>>("replication");
             string strategy = null;
             Dictionary<string, int> strategyOptions = null;
-            if (replication != null) 
+
+            if (replication != null)
             {
                 strategy = replication["class"];
                 strategyOptions = new Dictionary<string, int>();
@@ -584,21 +592,20 @@ namespace Cassandra
                 row.GetValue<string>("keyspace_name"),
                 row.GetValue<bool>("durable_writes"),
                 strategy,
-                strategyOptions,
-                isVirtual);
+                strategyOptions);
         }
 
         public override async Task<KeyspaceMetadata> GetKeyspace(string name)
         {
             var rs = await Cc.QueryAsync(string.Format(SelectSingleKeyspace, name), true).ConfigureAwait(false);
             var row = rs.FirstOrDefault();
-            return row != null ? ParseKeyspaceRow(row, false) : null;
+            return row != null ? ParseKeyspaceRow(row) : null;
         }
 
         public override async Task<IEnumerable<KeyspaceMetadata>> GetKeyspaces(bool retry)
         {
-            var rs = await Cc.QueryAsync(SelectKeyspaces, retry);
-            return rs.Select(row => ParseKeyspaceRow(row, false));
+            var rs = await Cc.QueryAsync(SelectKeyspaces, retry).ConfigureAwait(false);
+            return rs.Select(ParseKeyspaceRow);
         }
 
         public override async Task<TableMetadata> GetTable(string keyspaceName, string tableName)
@@ -617,8 +624,8 @@ namespace Cassandra
                 .ConfigureAwait(false);
         }
 
-        private async Task<T> ParseTableOrView<T>(Func<Row, T> newInstance, IEnumerable<Row> tableRs,
-                                                  IEnumerable<Row> columnsRs) where T : DataCollectionMetadata
+        protected async Task<T> ParseTableOrView<T>(Func<Row, T> newInstance, IEnumerable<Row> tableRs,
+                                                    IEnumerable<Row> columnsRs) where T : DataCollectionMetadata
         {
             var tableMetadataRow = tableRs.FirstOrDefault();
             if (tableMetadataRow == null)
@@ -629,21 +636,31 @@ namespace Cassandra
             var columns = new Dictionary<string, TableColumn>();
             var partitionKeys = new List<Tuple<int, TableColumn>>();
             var clusteringKeys = new List<Tuple<int, Tuple<TableColumn, SortOrder>>>();
-            //Read table options
-            var options = new TableOptions
+            TableOptions options;
+
+            if (tableMetadataRow.ContainsColumn("compression"))
             {
-                isCompactStorage = false,
-                bfFpChance = tableMetadataRow.GetValue<double>("bloom_filter_fp_chance"),
-                caching = "{" + string.Join(",", tableMetadataRow.GetValue<IDictionary<string, string>>("caching")
-                    .Select(kv => "\"" + kv.Key + "\":\"" + kv.Value + "\"")) + "}",
-                comment = tableMetadataRow.GetValue<string>("comment"),
-                gcGrace = tableMetadataRow.GetValue<int>("gc_grace_seconds"),
-                localReadRepair = tableMetadataRow.GetValue<double>("dclocal_read_repair_chance"),
-                readRepair = tableMetadataRow.GetValue<double>("read_repair_chance"),
-                compactionOptions = tableMetadataRow.GetValue<SortedDictionary<string, string>>("compaction"),
-                compressionParams =
-                    tableMetadataRow.GetValue<SortedDictionary<string, string>>("compression")
-            };
+                // Options for normal tables and views
+                options = new TableOptions
+                {
+                    isCompactStorage = false,
+                    bfFpChance = tableMetadataRow.GetValue<double>("bloom_filter_fp_chance"),
+                    caching = "{" + string.Join(",", tableMetadataRow.GetValue<IDictionary<string, string>>("caching")
+                                                                     .Select(kv => "\"" + kv.Key + "\":\"" + kv.Value + "\"")) + "}",
+                    comment = tableMetadataRow.GetValue<string>("comment"),
+                    gcGrace = tableMetadataRow.GetValue<int>("gc_grace_seconds"),
+                    localReadRepair = tableMetadataRow.GetValue<double>("dclocal_read_repair_chance"),
+                    readRepair = tableMetadataRow.GetValue<double>("read_repair_chance"),
+                    compactionOptions = tableMetadataRow.GetValue<SortedDictionary<string, string>>("compaction"),
+                    compressionParams =
+                        tableMetadataRow.GetValue<SortedDictionary<string, string>>("compression")
+                };
+            }
+            else
+            {
+                // Options for virtual tables
+                options = new TableOptions { comment = tableMetadataRow.GetValue<string>("comment") };
+            }
 
             var columnTasks = columnsRs
                 .Select(async row =>
@@ -689,8 +706,9 @@ namespace Cassandra
                 columns.Add(col.Name, col);
             }
 
-            if (typeof(T) == typeof(TableMetadata))
+            if (tableMetadataRow.ContainsColumn("flags"))
             {
+                // Normal tables
                 var flags = tableMetadataRow.GetValue<string[]>("flags");
                 var isDense = flags.Contains("dense");
                 var isSuper = flags.Contains("super");
@@ -898,11 +916,11 @@ namespace Cassandra
     {
         private const string SelectVirtualKeyspaces = "SELECT * FROM system_virtual_schema.keyspaces";
         private const string SelectSingleVirtualKeyspace =
-            "SELECT * FROM system_virtual_schema.keyspaces where keyspace_name = '{0}'";
-        private const string SelectVirtualTable = 
-            "SELECT * FROM system_virtual_schema.tables where keyspace_name = '{0}' and table_name='{1}'";
-        private const string SelectVirtualColumns = 
-            "SELECT * FROM system_virtual_schema.columns where keyspace_name = '{0}' and table_name='{1}'";
+            "SELECT * FROM system_virtual_schema.keyspaces WHERE keyspace_name = '{0}'";
+        private const string SelectVirtualTable =
+            "SELECT * FROM system_virtual_schema.tables WHERE keyspace_name = '{0}' AND table_name='{1}'";
+        private const string SelectVirtualColumns =
+            "SELECT * FROM system_virtual_schema.columns WHERE keyspace_name = '{0}' AND table_name='{1}'";
 
         internal SchemaParserV3(Metadata parent, Func<string, string, Task<UdtColumnInfo>> udtResolver)
             : base(parent, udtResolver)
@@ -918,45 +936,82 @@ namespace Cassandra
                 return ks;
             }
 
-            //TODO: Protect for incorrect C* version number
-
             // Maybe its a virtual keyspace
-            var rs = await Cc.QueryAsync(string.Format(SelectSingleVirtualKeyspace, name), true)
+            IEnumerable<Row> rs;
+            try
+            {
+                rs = await Cc.QueryAsync(string.Format(SelectSingleVirtualKeyspace, name), true)
                              .ConfigureAwait(false);
+            }
+            catch (InvalidQueryException)
+            {
+                // Incorrect version reported by the server: virtual keyspaces/tables are not yet supported
+                return null;
+            }
+
             var row = rs.FirstOrDefault();
-            return row != null ? ParseKeyspaceRow(row, true) : null;
+            return row != null ? ParseVirtualKeyspaceRow(row) : null;
+        }
+
+        private KeyspaceMetadata ParseVirtualKeyspaceRow(Row row)
+        {
+            return new KeyspaceMetadata(
+                Parent,
+                row.GetValue<string>("keyspace_name"),
+                true,
+                null,
+                null,
+                true);
         }
 
         public override async Task<IEnumerable<KeyspaceMetadata>> GetKeyspaces(bool retry)
         {
             // Start the task to get the keyspaces in parallel
             var keyspacesTask = base.GetKeyspaces(retry);
-            var rs = await Cc.QueryAsync(SelectVirtualKeyspaces, retry);
+            var virtualKeyspaces = Enumerable.Empty<KeyspaceMetadata>();
+
+            try
+            {
+                var rs = await Cc.QueryAsync(SelectVirtualKeyspaces, retry);
+                virtualKeyspaces = rs.Select(ParseVirtualKeyspaceRow);
+            }
+            catch (InvalidQueryException)
+            {
+                // Incorrect version reported by the server: virtual keyspaces/tables are not yet supported
+            }
+
             var keyspaces = await keyspacesTask.ConfigureAwait(false);
-            var virtualKeyspaces = rs.Select(row => ParseKeyspaceRow(row, true));
 
             // Yield the keyspaces followed by the virtual keyspaces
             return keyspaces.Concat(virtualKeyspaces);
         }
 
-        public override Task<TableMetadata> GetTable(string keyspaceName, string tableName)
+        public override async Task<TableMetadata> GetTable(string keyspaceName, string tableName)
         {
-            throw new NotImplementedException();
-//            var table = await base.GetTable(keyspaceName, tableName).ConfigureAwait(false);
-//            if (table != null)
-//            {
-//                return table;
-//            }
-//
-//            //TODO: Protect for incorrect C* version number
-//
-//            // Maybe its a virtual table
-//            var tableRs = await Cc.QueryAsync(string.Format(SelectVirtualTable, tableName, keyspaceName), true)
-//                                  .ConfigureAwait(false);
-//            var columnsRs = await Cc.QueryAsync(string.Format(SelectVirtualColumns, tableName, keyspaceName), true)
-//                                    .ConfigureAwait(false);
-//
-//            return await ParseTableOrView(_ => new TableMetadata(tableName, null, true), null, null).ConfigureAwait(fa    );
+            var table = await base.GetTable(keyspaceName, tableName).ConfigureAwait(false);
+            if (table != null)
+            {
+                return table;
+            }
+
+            IEnumerable<Row> tableRs;
+            try
+            {
+                // Maybe its a virtual table
+                tableRs = await Cc.QueryAsync(string.Format(SelectVirtualTable, keyspaceName, tableName), true)
+                                  .ConfigureAwait(false);
+            }
+            catch (InvalidQueryException)
+            {
+                // Incorrect version reported by the server: virtual keyspaces/tables are not yet supported
+                return null;
+            }
+
+            var columnsRs = await Cc.QueryAsync(string.Format(SelectVirtualColumns, keyspaceName, tableName), true)
+                                    .ConfigureAwait(false);
+
+            return await ParseTableOrView(_ => new TableMetadata(tableName, null, true), tableRs, columnsRs)
+                .ConfigureAwait(false);
         }
     }
 }
