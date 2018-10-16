@@ -699,7 +699,7 @@ namespace Cassandra.Tests
                 Func<ICluster, Host, HostDistance> distanceHandler = null)
             {
                 _queryPlanHandler = queryPlanHandler ?? ((cluster, ks, statement) => cluster.AllHosts());
-                _distanceHandler = distanceHandler ?? ((_, __) => HostDistance.Ignored);
+                _distanceHandler = distanceHandler ?? ((_, __) => HostDistance.Local);
             }
 
             public void Initialize(ICluster cluster)
