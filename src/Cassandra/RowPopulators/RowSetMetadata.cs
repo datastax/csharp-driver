@@ -237,6 +237,7 @@ namespace Cassandra
         public string Table { get; set; }
         public ColumnTypeCode TypeCode { get; set; }
         public IColumnInfo TypeInfo { get; set; }
+        public bool IsStatic { get; set; }
         internal bool IsReversed { get; set; }
         internal bool IsFrozen { get; set; }
     }

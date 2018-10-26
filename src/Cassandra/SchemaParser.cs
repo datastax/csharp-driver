@@ -285,12 +285,13 @@ namespace Cassandra
                                             col.KeyType = KeyType.Partition;
                                             break;
                                         case "clustering_key":
-                                        {
                                             var sortOrder = dataType.IsReversed ? SortOrder.Descending : SortOrder.Ascending;
                                             clusteringKeys.Add(Tuple.Create(row.GetValue<int?>("component_index") ?? 0, Tuple.Create(col, sortOrder)));
                                             col.KeyType = KeyType.Clustering;
                                                 break;
-                                        }
+                                        case "static":
+                                            col.IsStatic = true;
+                                            break;
                                     }
                                 }
                                 columns.Add(col.Name, col);
@@ -693,6 +694,9 @@ namespace Cassandra
                             clusteringKeys.Add(Tuple.Create(row.GetValue<int?>("position") ?? 0,
                                 Tuple.Create(col, row.GetValue<string>("clustering_order") == "desc" ? SortOrder.Descending : SortOrder.Ascending)));
                             col.KeyType = KeyType.Clustering;
+                            break;
+                        case "static":
+                            col.IsStatic = true;
                             break;
                     }
                     columns.Add(col.Name, col);
