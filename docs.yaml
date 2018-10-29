@@ -1,6 +1,7 @@
 title:    DataStax C# Driver
 summary:  DataStax C# Driver for Apache Cassandra
 theme:    datastax
+swiftype_drivers: csharp
 sections:
   - title:    Features
     prefix:   /features
