@@ -1,6 +1,7 @@
 title:    "DataStax Enterprise C# Driver"
 summary:  "A C# driver built for DataStax Enterprise"
 theme:    datastax
+swiftype_drivers: csharpdrivers
 sections:
   - title:    Features
     prefix:   /features
