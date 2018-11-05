@@ -205,7 +205,7 @@ namespace Cassandra.Requests
         private void SetAutoPage(RowSet rs, ISession session, IStatement statement)
         {
             rs.AutoPage = statement != null && statement.AutoPage;
-            if (rs.AutoPage && rs.PagingState != null && _request is IQueryRequest)
+            if (rs.AutoPage && _request is IQueryRequest)
             {
                 // Automatic paging is enabled and there are following result pages
                 rs.SetFetchNextPageHandler(pagingState =>

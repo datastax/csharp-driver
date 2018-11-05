@@ -103,7 +103,7 @@ namespace Cassandra.Mapping
             return ExecuteAsyncAndAdapt<IPage<T>>(cql, (stmt, rs) =>
             {
                 var mapper = _mapperFactory.GetMapper<T>(cql.Statement, rs);
-                return new Page<T>(rs.Select(mapper), stmt.PagingState, rs.PagingState);
+                return new Page<T>(rs.ToList(mapper, out var pagingState), stmt.PagingState, pagingState);
             });
         }
 

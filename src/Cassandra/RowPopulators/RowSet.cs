@@ -34,9 +34,7 @@ namespace Cassandra
     /// of result is fetched and the next one is only fetched once all the results
     /// of the first page have been consumed). The size of the pages can be configured
     /// either globally through <see cref="QueryOptions.SetPageSize(int)"/> or per-statement
-    /// with <see cref="IStatement.SetPageSize(int)"/>. Though new pages are automatically
-    /// and transparently fetched when needed, it is possible to force the retrieval
-    /// of the next page early through <see cref="FetchMoreResults"/> and  <see cref="FetchMoreResultsAsync"/>.
+    /// with <see cref="IStatement.SetPageSize(int)"/>. 
     /// </para>
     /// <para>
     /// The RowSet dequeues <see cref="Row"/> items while iterated. After a full enumeration of this instance, following
@@ -54,11 +52,34 @@ namespace Cassandra
     {
         private static readonly CqlColumn[] EmptyColumns = new CqlColumn[0];
         private volatile Func<byte[], Task<RowSet>> _fetchNextPage;
-        private volatile byte[] _pagingState;
-        private int _isPaging;
-        private volatile Task _currentFetchNextPageTask;
+        private readonly bool _isVoid;
+        private readonly List<Row> _rows = new List<Row>();
         private volatile int _pageSyncAbortTimeout = Timeout.Infinite;
         private volatile bool _autoPage;
+
+        /// <summary>
+        /// Creates a new instance of RowSet.
+        /// </summary>
+        public RowSet() : this(false)
+        {
+
+        }
+
+        /// <summary>
+        /// Creates a new instance of RowSet.
+        /// </summary>
+        /// <param name="isVoid">Determines if the RowSet instance is created for a VOID result</param>
+        private RowSet(bool isVoid)
+        {
+            _isVoid = isVoid;
+            Info = new ExecutionInfo();
+            Columns = EmptyColumns;
+            AutoPage = true;
+        }
+
+        public RowSetEnumerator GetEnumerator() => new RowSetEnumerator(this);
+        IEnumerator<Row> IEnumerable<Row>.GetEnumerator() => GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         /// <summary>
         /// Determines if when dequeuing, it will automatically fetch the following result pages.
@@ -83,190 +104,10 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Gets or set the internal row list. It contains the rows of the latest query page.
-        /// </summary>
-        protected virtual ConcurrentQueue<Row> RowQueue { get; set; }
-
-        /// <summary>
-        /// Gets the amount of items in the internal queue. For testing purposes.
-        /// </summary>
-        internal int InnerQueueCount => RowQueue.Count;
-
-        /// <summary>
-        /// Gets the execution info of the query
-        /// </summary>
-        public virtual ExecutionInfo Info { get; set; }
-
-        /// <summary>
-        /// Gets or sets the columns in the RowSet
-        /// </summary>
-        public virtual CqlColumn[] Columns { get; set; }
-
-        /// <summary>
         /// Gets or sets the paging state of the query for the RowSet.
         /// When set it states that there are more pages.
         /// </summary>
-        public virtual byte[] PagingState
-        {
-            get => _pagingState;
-            protected internal set => _pagingState = value;
-        }
-
-        /// <summary>
-        /// Returns whether this ResultSet has more results.
-        /// It has side-effects, if the internal queue has been consumed it will page for more results.
-        /// </summary>
-        /// <seealso cref="IsFullyFetched"/>
-        public virtual bool IsExhausted()
-        {
-            if (RowQueue == null)
-            {
-                return true;
-            }
-            if (!RowQueue.IsEmpty)
-            {
-                return false;
-            }
-            PageNext();
-            return RowQueue.IsEmpty;
-        }
-
-        /// <summary>
-        /// Whether all results from this result set has been fetched from the database.
-        /// </summary>
-        public virtual bool IsFullyFetched => PagingState == null || !AutoPage;
-
-        /// <summary>
-        /// Creates a new instance of RowSet.
-        /// </summary>
-        public RowSet() : this(false)
-        {
-
-        }
-
-        /// <summary>
-        /// Creates a new instance of RowSet.
-        /// </summary>
-        /// <param name="isVoid">Determines if the RowSet instance is created for a VOID result</param>
-        private RowSet(bool isVoid)
-        {
-            if (!isVoid)
-            {
-                RowQueue = new ConcurrentQueue<Row>();
-            }
-            Info = new ExecutionInfo();
-            Columns = EmptyColumns;
-            AutoPage = true;
-        }
-
-        /// <summary>
-        /// Returns a new RowSet instance without any columns or rows, designed for VOID results.
-        /// </summary>
-        internal static RowSet Empty()
-        {
-            return new RowSet(true);
-        }
-
-        /// <summary>
-        /// Adds a row to the inner row list
-        /// </summary>
-        internal virtual void AddRow(Row row)
-        {
-            if (RowQueue == null)
-            {
-                throw new InvalidOperationException("Can not append a Row to a RowSet instance created for VOID results");
-            }
-            RowQueue.Enqueue(row);
-        }
-
-        /// <summary>
-        /// Forces the fetching the next page of results for this <see cref="RowSet"/>.
-        /// </summary>
-        public void FetchMoreResults()
-        {
-            PageNext();
-        }
-
-        /// <summary>
-        /// Asynchronously retrieves the next page of results for this <see cref="RowSet"/>.
-        /// <para>
-        /// The Task will be completed once the internal queue is filled with the new <see cref="Row"/>
-        /// instances.
-        /// </para>
-        /// </summary>
-        public async Task FetchMoreResultsAsync()
-        {
-            var pagingState = _pagingState;
-            if (pagingState == null || !AutoPage)
-            {
-                return;
-            }
-
-            // Only one concurrent call to page
-            if (Interlocked.CompareExchange(ref _isPaging, 1, 0) != 0)
-            {
-                // Once isPaging flag is set, task will be set shortly
-                Task task;
-                var spin = new SpinWait();
-                while ((task = _currentFetchNextPageTask) == null)
-                {
-                    // Use busy spin as the task should be set immediately after
-                    // There is no risk on task being null after that
-                    spin.SpinOnce();
-                }
-
-                // In a race, the task might be old and completed but that's OK as GetEnumerator()
-                // checks the pagingState in a loop.
-                await task.ConfigureAwait(false);
-                return;
-            }
-
-            pagingState = _pagingState;
-            if (pagingState == null)
-            {
-                // It finished paging
-                Interlocked.Exchange(ref _isPaging, 0);
-                return;
-            }
-
-            var tcs = new TaskCompletionSource<bool>();
-            // Set the task field as soon as possible
-            _currentFetchNextPageTask = tcs.Task;
-
-            var fetchMethod = _fetchNextPage ??
-                              throw new DriverInternalError("Paging state set but delegate to retrieve is not");
-
-            try
-            {
-                var rs = await fetchMethod(pagingState).ConfigureAwait(false);
-                foreach (var newRow in rs.RowQueue)
-                {
-                    RowQueue.Enqueue(newRow);
-                }
-
-                // PagingState must be set AFTER all rows have been enqueued
-                PagingState = rs.PagingState;
-            }
-            catch (Exception ex)
-            {
-                tcs.SetException(ex);
-                throw;
-            }
-            finally
-            {
-                // Set task BEFORE allowing other threads to page.
-                tcs.TrySetResult(true);
-                Interlocked.Exchange(ref _isPaging, 0);
-            }
-        }
-
-        /// <summary>
-        /// The number of rows available in this row set that can be retrieved without blocking to fetch.
-        /// </summary>
-        public int GetAvailableWithoutFetching()
-        {
-            return RowQueue?.Count ?? 0;
-        }
+        public virtual byte[] PagingState { get; protected internal set; }
 
         /// <summary>
         /// For backward compatibility: It is possible to iterate using the RowSet as it is enumerable.
@@ -278,37 +119,45 @@ namespace Cassandra
             return this;
         }
 
-        /// <inheritdoc />
-        public virtual IEnumerator<Row> GetEnumerator()
-        {
-            if (RowQueue == null)
-            {
-                yield break;
-            }
-
-            var hasMoreData = true;
-            while (hasMoreData)
-            {
-                while (RowQueue.TryDequeue(out var row))
-                {
-                    yield return row;
-                }
-                hasMoreData = AutoPage && _pagingState != null;
-                PageNext();
-            }
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
+        /// <summary>
+        /// Gets the execution info of the query
+        /// </summary>
+        public virtual ExecutionInfo Info { get; set; }
 
         /// <summary>
-        /// Gets the next results and add the rows to the current <see cref="RowSet"/> queue.
+        /// Returns a new RowSet instance without any columns or rows, designed for VOID results.
         /// </summary>
-        protected virtual void PageNext()
+        internal static RowSet Empty() => new RowSet(true);
+
+        /// <summary>
+        /// Gets or sets the columns in the RowSet
+        /// </summary>
+        public virtual CqlColumn[] Columns { get; set; }
+
+        /// <summary>
+        /// Adds a row to the inner row list
+        /// </summary>
+        internal virtual void AddRow(Row row)
         {
-            TaskHelper.WaitToComplete(FetchMoreResultsAsync(), _pageSyncAbortTimeout);
+            if (_isVoid)
+            {
+                throw new InvalidOperationException("Can not append a Row to a RowSet instance created for VOID results");
+            }
+            _rows.Add(row);
+        }
+
+        internal List<U> ToList<U>(Func<Row, U> mapper, out byte[] pagingState)
+        {
+            var list = new List<U>();
+            using (var enumerator = GetEnumerator())
+            {
+                while (enumerator.MoveNext())
+                {
+                    list.Add(mapper(enumerator.Current));
+                }
+                pagingState = enumerator.PagingState;
+            }
+            return list;
         }
 
         /// <summary>
@@ -318,6 +167,215 @@ namespace Cassandra
         public void Dispose()
         {
 
+        }
+
+        /// <summary>
+        /// Though new pages are automatically
+        /// and transparently fetched when needed, it is possible to force the retrieval
+        /// of the next page early through <see cref="FetchMoreResults"/> and  <see cref="FetchMoreResultsAsync"/>.
+        /// </summary>
+        public class RowSetEnumerator : IEnumerator<Row>
+        {
+            private volatile byte[] _pagingState;
+            private int _isPaging;
+            private volatile Task _currentFetchNextPageTask;
+            private readonly RowSet _rowSet;
+            private Row _current;
+
+            /// <summary>
+            /// Gets or set the internal row list. It contains the rows of the latest query page.
+            /// </summary>
+            protected virtual ConcurrentQueue<Row> RowQueue { get; set; }
+
+            /// <summary>
+            /// Gets the amount of items in the internal queue. For testing purposes.
+            /// </summary>
+            internal int InnerQueueCount => RowQueue.Count;
+
+            /// <summary>
+            /// Gets or sets the paging state of the query for the RowSet.
+            /// When set it states that there are more pages.
+            /// </summary>
+            public virtual byte[] PagingState
+            {
+                get => _pagingState;
+                protected internal set => _pagingState = value;
+            }
+
+            /// <summary>
+            /// Returns whether this ResultSet has more results.
+            /// It has side-effects, if the internal queue has been consumed it will page for more results.
+            /// </summary>
+            /// <seealso cref="IsFullyFetched"/>
+            public virtual bool IsExhausted()
+            {
+                if (RowQueue == null)
+                {
+                    return true;
+                }
+                if (!RowQueue.IsEmpty)
+                {
+                    return false;
+                }
+                PageNext();
+                return RowQueue.IsEmpty;
+            }
+
+            /// <summary>
+            /// Whether all results from this result set has been fetched from the database.
+            /// </summary>
+            public virtual bool IsFullyFetched => PagingState == null || !_rowSet.AutoPage;
+
+            /// <summary>
+            /// Creates a new instance of RowSetEnumerator.
+            /// </summary>
+            /// <param name="rowSet">The RowSet this instance will enumerate.</param>
+            public RowSetEnumerator(RowSet rowSet)
+            {
+                _rowSet = rowSet;
+                _pagingState = rowSet.PagingState;
+                if (!rowSet._isVoid)
+                {
+                    RowQueue = new ConcurrentQueue<Row>(_rowSet._rows);
+                }
+            }
+
+            /// <summary>
+            /// Forces the fetching the next page of results for this <see cref="RowSet"/>.
+            /// </summary>
+            public void FetchMoreResults()
+            {
+                PageNext();
+            }
+
+            /// <summary>
+            /// Asynchronously retrieves the next page of results for this <see cref="RowSet"/>.
+            /// <para>
+            /// The Task will be completed once the internal queue is filled with the new <see cref="Row"/>
+            /// instances.
+            /// </para>
+            /// </summary>
+            public async Task FetchMoreResultsAsync()
+            {
+                var pagingState = _pagingState;
+                if (pagingState == null || !_rowSet.AutoPage)
+                {
+                    return;
+                }
+
+                // Only one concurrent call to page
+                if (Interlocked.CompareExchange(ref _isPaging, 1, 0) != 0)
+                {
+                    // Once isPaging flag is set, task will be set shortly
+                    Task task;
+                    var spin = new SpinWait();
+                    while ((task = _currentFetchNextPageTask) == null)
+                    {
+                        // Use busy spin as the task should be set immediately after
+                        // There is no risk on task being null after that
+                        spin.SpinOnce();
+                    }
+
+                    // In a race, the task might be old and completed but that's OK as GetEnumerator()
+                    // checks the pagingState in a loop.
+                    await task.ConfigureAwait(false);
+                    return;
+                }
+
+                pagingState = _pagingState;
+                if (pagingState == null)
+                {
+                    // It finished paging
+                    Interlocked.Exchange(ref _isPaging, 0);
+                    return;
+                }
+
+                var tcs = new TaskCompletionSource<bool>();
+                // Set the task field as soon as possible
+                _currentFetchNextPageTask = tcs.Task;
+
+                var fetchMethod = _rowSet._fetchNextPage ??
+                                throw new DriverInternalError("Paging state set but delegate to retrieve is not");
+
+                try
+                {
+                    var rs = await fetchMethod(pagingState).ConfigureAwait(false);
+                    using (var rse = (RowSetEnumerator)rs.GetEnumerator())
+                    {
+                        foreach (var newRow in rse.RowQueue)
+                        {
+                            RowQueue.Enqueue(newRow);
+                        }
+
+                        // PagingState must be set AFTER all rows have been enqueued
+                        PagingState = rse.PagingState;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    tcs.SetException(ex);
+                    throw;
+                }
+                finally
+                {
+                    // Set task BEFORE allowing other threads to page.
+                    tcs.TrySetResult(true);
+                    Interlocked.Exchange(ref _isPaging, 0);
+                }
+            }
+
+            /// <summary>
+            /// The number of rows available in this row set that can be retrieved without blocking to fetch.
+            /// </summary>
+            public int GetAvailableWithoutFetching()
+            {
+                return RowQueue?.Count ?? 0;
+            }
+
+            public Row Current => _current;
+            object IEnumerator.Current => Current;
+
+            /// <inheritdoc />
+            public virtual bool MoveNext()
+            {
+                if (RowQueue is null)
+                {
+                    return false;
+                }
+
+                var hasMoreData = true;
+                if (hasMoreData)
+                {
+                    if (RowQueue.TryDequeue(out var row))
+                    {
+                        _current = row;
+                        return true;
+                    }
+                    hasMoreData = _rowSet.AutoPage && _pagingState != null;
+                    PageNext();
+                    if (RowQueue.TryDequeue(out row))
+                    {
+                        _current = row;
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            /// <summary>
+            /// Gets the next results and add the rows to the current <see cref="RowSet"/> queue.
+            /// </summary>
+            protected virtual void PageNext()
+            {
+                TaskHelper.WaitToComplete(FetchMoreResultsAsync(), _rowSet._pageSyncAbortTimeout);
+            }
+
+            public void Reset() => throw new NotImplementedException();
+
+            public void Dispose() 
+            {  
+                // nothing to do
+            }
         }
     }
 }

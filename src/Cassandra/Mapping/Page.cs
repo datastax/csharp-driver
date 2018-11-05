@@ -24,9 +24,9 @@ namespace Cassandra.Mapping
             get { return true; }
         }
 
-        internal Page(IEnumerable<T> items, byte[] currentPagingState, byte[] pagingState)
+        internal Page(List<T> list, byte[] currentPagingState, byte[] pagingState)
         {
-            _list = new List<T>(items);
+            _list = new List<T>(list);
             CurrentPagingState = currentPagingState;
             PagingState = pagingState;
         }
