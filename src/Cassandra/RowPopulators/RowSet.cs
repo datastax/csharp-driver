@@ -181,6 +181,8 @@ namespace Cassandra
             private volatile Task _currentFetchNextPageTask;
             private readonly RowSet _rowSet;
             private Row _current;
+            private bool _hasMoreData;
+
 
             /// <summary>
             /// Gets or set the internal row list. It contains the rows of the latest query page.
@@ -238,6 +240,8 @@ namespace Cassandra
                 {
                     RowQueue = new ConcurrentQueue<Row>(_rowSet._rows);
                 }
+                _current = null;
+                _hasMoreData = true;
             }
 
             /// <summary>
@@ -343,15 +347,14 @@ namespace Cassandra
                     return false;
                 }
 
-                var hasMoreData = true;
-                if (hasMoreData)
+                if (_hasMoreData)
                 {
                     if (RowQueue.TryDequeue(out var row))
                     {
                         _current = row;
                         return true;
                     }
-                    hasMoreData = _rowSet.AutoPage && _pagingState != null;
+                    _hasMoreData = _rowSet.AutoPage && _pagingState != null;
                     PageNext();
                     if (RowQueue.TryDequeue(out row))
                     {
