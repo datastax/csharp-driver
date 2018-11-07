@@ -211,7 +211,7 @@ namespace Cassandra.Tests
             //Check that the total amount of rows dequeued are the same as pageSize * number of pages. 
             Assert.AreEqual(pageSize * 2 * 15, totalRows);
         }
-/* 
+
         /// <summary>
         /// Test RowSet fetch next with concurrent calls
         /// </summary>
@@ -245,9 +245,9 @@ namespace Cassandra.Tests
             Assert.AreEqual((pages - 1), fetchCounter);
 
             //Check that the total amount of rows dequeued are the same as pageSize * number of pages. 
-            Assert.AreEqual(pageSize * pages, Volatile.Read(ref counter));
+            Assert.AreEqual(Environment.ProcessorCount * pageSize * pages, Volatile.Read(ref counter));
         }
-*/
+
         [Test]
         public void RowSetFetchNext3Pages()
         {
