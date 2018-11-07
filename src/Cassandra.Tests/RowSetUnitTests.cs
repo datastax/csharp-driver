@@ -203,7 +203,7 @@ namespace Cassandra.Tests
             //Invoke it in parallel 15 times
             Parallel.Invoke(iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration, iteration);
 
-            //Assert that the fetch was called just 15 time5
+            //Assert that the fetch was called just 15 times
             Assert.AreEqual(15, fetchCounter);
 
             //Sum all rows dequeued from the different threads 
