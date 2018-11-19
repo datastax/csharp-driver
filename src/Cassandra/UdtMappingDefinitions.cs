@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Threading.Tasks;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
@@ -89,7 +90,8 @@ namespace Cassandra
             if (map.IgnoreCase)
             {
                 //identifiers are lower cased in Cassandra
-                caseSensitiveUdtName = caseSensitiveUdtName.ToLower();
+                CultureInfo textInfo = new CultureInfo("en-US");
+                caseSensitiveUdtName = textInfo.TextInfo.ToLower(caseSensitiveUdtName);
             }
             var udtDefinition = await _cluster.Metadata.GetUdtDefinitionAsync(keyspace, caseSensitiveUdtName).ConfigureAwait(false);
             if (udtDefinition == null)
