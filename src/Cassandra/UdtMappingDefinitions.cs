@@ -89,7 +89,7 @@ namespace Cassandra
             if (map.IgnoreCase)
             {
                 //identifiers are lower cased in Cassandra
-                caseSensitiveUdtName = caseSensitiveUdtName.ToLower();
+                caseSensitiveUdtName = caseSensitiveUdtName.ToLowerInvariant();
             }
             var udtDefinition = await _cluster.Metadata.GetUdtDefinitionAsync(keyspace, caseSensitiveUdtName).ConfigureAwait(false);
             if (udtDefinition == null)
