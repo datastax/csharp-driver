@@ -201,7 +201,14 @@ namespace Cassandra.Tasks
             TimeoutItem timeout;
             while (_cancelledTimeouts.TryDequeue(out timeout))
             {
-                timeout.Bucket.Remove(timeout);
+                try
+                {
+                    timeout.Bucket.Remove(timeout);
+                }
+                catch (NullReferenceException)
+                {
+                    // The Bucket was already set to null: it was already removed, don't mind
+                }
             }
         }
 
