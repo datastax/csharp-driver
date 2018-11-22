@@ -5,9 +5,8 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-
 using System.Collections.Generic;
-using System.Linq;
+using System.Collections.ObjectModel;
 
 namespace Dse
 {
@@ -16,20 +15,29 @@ namespace Dse
     /// </summary>
     public class TableMetadata: DataCollectionMetadata
     {
+        private static readonly IDictionary<string, IndexMetadata> EmptyIndexes =
+            new ReadOnlyDictionary<string, IndexMetadata>(new Dictionary<string, IndexMetadata>());
+
         /// <summary>
         /// Gets the table indexes by name
         /// </summary>
         public IDictionary<string, IndexMetadata> Indexes { get; protected set; }
+
+        /// <summary>
+        /// Determines whether the table is a virtual table or not.
+        /// </summary>
+        public bool IsVirtual { get; protected set; }
 
         protected TableMetadata()
         {
             
         }
 
-        internal TableMetadata(string name, IDictionary<string, IndexMetadata> indexes)
+        internal TableMetadata(string name, IDictionary<string, IndexMetadata> indexes, bool isVirtual = false)
         {
             Name = name;
-            Indexes = indexes;
+            Indexes = indexes ?? EmptyIndexes;
+            IsVirtual = isVirtual;
         }
     }
 }

@@ -60,6 +60,18 @@ namespace Dse.Data.Linq
             return TaskHelper.WaitToComplete(task, config.ClientOptions.QueryAbortTimeout);
         }
 
+        public new CqlConditionalCommand<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)
+        {
+            base.SetConsistencyLevel(consistencyLevel);
+            return this;
+        }
+
+        public new CqlConditionalCommand<TEntity> SetSerialConsistencyLevel(ConsistencyLevel consistencyLevel)
+        {
+            base.SetSerialConsistencyLevel(consistencyLevel);
+            return this;
+        }
+
         /// <summary>
         /// Sets the time for data in a column to expire (TTL) for INSERT and UPDATE commands.
         /// </summary>

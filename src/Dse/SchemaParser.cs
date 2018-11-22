@@ -9,8 +9,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Dse.Serialization;
 using Dse.Tasks;
@@ -26,12 +24,19 @@ namespace Dse
         private const string SelectTraceSessions = "SELECT * FROM system_traces.sessions WHERE session_id = {0}";
         private const string SelectTraceEvents = "SELECT * FROM system_traces.events WHERE session_id = {0}";
         private static readonly Version Version30 = new Version(3, 0);
+        private static readonly Version Version40 = new Version(4, 0);
 
         /// <summary>
         /// Creates a new instance if the currentInstance is not valid for the given Cassandra version
         /// </summary>
-        public static SchemaParser GetInstance(Version cassandraVersion, Metadata parent, Func<string, string, Task<UdtColumnInfo>> udtResolver, SchemaParser currentInstance = null)
+        public static SchemaParser GetInstance(Version cassandraVersion, Metadata parent,
+                                               Func<string, string, Task<UdtColumnInfo>> udtResolver,
+                                               SchemaParser currentInstance = null)
         {
+            if (cassandraVersion >= Version40 && !(currentInstance is SchemaParserV3))
+            {
+                return new SchemaParserV3(parent, udtResolver);
+            }
             if (cassandraVersion >= Version30 && !(currentInstance is SchemaParserV2))
             {
                 return new SchemaParserV2(parent, udtResolver);
@@ -42,7 +47,7 @@ namespace Dse
             }
             if (currentInstance == null)
             {
-                throw new ArgumentNullException("currentInstance");
+                throw new ArgumentNullException(nameof(currentInstance));
             }
             return currentInstance;
         }
@@ -199,7 +204,8 @@ namespace Dse
                 row.GetValue<string>("keyspace_name"),
                 row.GetValue<bool>("durable_writes"),
                 row.GetValue<string>("strategy_class"),
-                Utils.ConvertStringToMapInt(row.GetValue<string>("strategy_options")));
+                Utils.ConvertStringToMapInt(row.GetValue<string>("strategy_options")),
+                false);
         }
 
         public override Task<KeyspaceMetadata> GetKeyspace(string name)
@@ -292,12 +298,13 @@ namespace Dse
                                             col.KeyType = KeyType.Partition;
                                             break;
                                         case "clustering_key":
-                                        {
                                             var sortOrder = dataType.IsReversed ? SortOrder.Descending : SortOrder.Ascending;
                                             clusteringKeys.Add(Tuple.Create(row.GetValue<int?>("component_index") ?? 0, Tuple.Create(col, sortOrder)));
                                             col.KeyType = KeyType.Clustering;
                                                 break;
-                                        }
+                                        case "static":
+                                            col.IsStatic = true;
+                                            break;
                                     }
                                 }
                                 columns.Add(col.Name, col);
@@ -534,7 +541,7 @@ namespace Dse
 
         private const string SelectColumns = "SELECT * FROM system_schema.columns WHERE table_name='{0}' AND keyspace_name='{1}'";
         private const string SelectIndexes = "SELECT * FROM system_schema.indexes WHERE table_name='{0}' AND keyspace_name='{1}'";
-        private const string SelectKeyspaces = "SELECT * FROM system_schema.keyspaces";
+        protected const string SelectKeyspaces = "SELECT * FROM system_schema.keyspaces";
         private const string SelectSingleKeyspace = "SELECT * FROM system_schema.keyspaces WHERE keyspace_name = '{0}'";
         private const string SelectSingleTable = "SELECT * FROM system_schema.tables WHERE table_name='{0}' AND keyspace_name='{1}'";
         private const string SelectSingleView = "SELECT * FROM system_schema.views WHERE view_name='{0}' AND keyspace_name='{1}'";
@@ -567,14 +574,11 @@ namespace Dse
 
         private KeyspaceMetadata ParseKeyspaceRow(Row row)
         {
-            if (row == null)
-            {
-                return null;
-            }
             var replication = row.GetValue<IDictionary<string, string>>("replication");
             string strategy = null;
             Dictionary<string, int> strategyOptions = null;
-            if (replication != null) 
+
+            if (replication != null)
             {
                 strategy = replication["class"];
                 strategyOptions = new Dictionary<string, int>();
@@ -587,6 +591,7 @@ namespace Dse
                     strategyOptions[kv.Key] = Convert.ToInt32(kv.Value);
                 }
             }
+
             return new KeyspaceMetadata(
                 Parent,
                 row.GetValue<string>("keyspace_name"),
@@ -595,145 +600,163 @@ namespace Dse
                 strategyOptions);
         }
 
-        public override Task<KeyspaceMetadata> GetKeyspace(string name)
+        public override async Task<KeyspaceMetadata> GetKeyspace(string name)
         {
-            return Cc
-                .QueryAsync(string.Format(SelectSingleKeyspace, name), true)
-                .ContinueSync(rs => ParseKeyspaceRow(rs.FirstOrDefault()));
+            var rs = await Cc.QueryAsync(string.Format(SelectSingleKeyspace, name), true).ConfigureAwait(false);
+            var row = rs.FirstOrDefault();
+            return row != null ? ParseKeyspaceRow(row) : null;
         }
 
-        public override Task<IEnumerable<KeyspaceMetadata>> GetKeyspaces(bool retry)
+        public override async Task<IEnumerable<KeyspaceMetadata>> GetKeyspaces(bool retry)
         {
-            return Cc
-                .QueryAsync(SelectKeyspaces, retry)
-                .ContinueSync(rs => rs.Select(ParseKeyspaceRow));
+            var rs = await Cc.QueryAsync(SelectKeyspaces, retry).ConfigureAwait(false);
+            return rs.Select(ParseKeyspaceRow);
         }
 
-        public override Task<TableMetadata> GetTable(string keyspaceName, string tableName)
+        public override async Task<TableMetadata> GetTable(string keyspaceName, string tableName)
         {
             var getTableTask = Cc.QueryAsync(string.Format(SelectSingleTable, tableName, keyspaceName), true);
             var getColumnsTask = Cc.QueryAsync(string.Format(SelectColumns, tableName, keyspaceName), true);
             var getIndexesTask = Cc.QueryAsync(string.Format(SelectIndexes, tableName, keyspaceName), true);
-            return Task.Factory.ContinueWhenAll(new[] {getTableTask, getColumnsTask, getIndexesTask}, tasks =>
-            {
-                var ex = tasks.Select(t => t.Exception).FirstOrDefault(e => e != null);
-                if (ex != null)
-                {
-                    throw ex.InnerException;
-                }
-                return ParseTableOrView(_ => new TableMetadata(tableName, GetIndexes(tasks[2].Result)), tasks[0], tasks[1]);
-            }, TaskContinuationOptions.ExecuteSynchronously).Unwrap();
+
+            await Task.WhenAll(getTableTask, getColumnsTask, getIndexesTask).ConfigureAwait(false);
+
+            var indexesRs = await getIndexesTask.ConfigureAwait(false);
+            var tableRs = await getTableTask.ConfigureAwait(false);
+            var columnsRs = await getColumnsTask.ConfigureAwait(false);
+
+            var indexes = GetIndexes(indexesRs);
+
+            return await ParseTableOrView(_ => new TableMetadata(tableName, indexes), tableRs, columnsRs)
+                .ConfigureAwait(false);
         }
 
-        public override Task<MaterializedViewMetadata> GetView(string keyspaceName, string viewName)
+        protected async Task<T> ParseTableOrView<T>(Func<Row, T> newInstance, IEnumerable<Row> tableRs,
+                                                    IEnumerable<Row> columnsRs) where T : DataCollectionMetadata
         {
-            var getTableTask = Cc.QueryAsync(string.Format(SelectSingleView, viewName, keyspaceName), true);
-            var getColumnsTask = Cc.QueryAsync(string.Format(SelectColumns, viewName, keyspaceName), true);
-            return Task.Factory.ContinueWhenAll(new[] { getTableTask, getColumnsTask }, tasks =>
-            {
-                var ex = tasks.Select(t => t.Exception).FirstOrDefault(e => e != null);
-                if (ex != null)
-                {
-                    throw ex.InnerException;
-                }
-                return ParseTableOrView(viewRow => new MaterializedViewMetadata(viewName, viewRow.GetValue<string>("where_clause")), tasks[0], tasks[1]);
-            }, TaskContinuationOptions.ExecuteSynchronously).Unwrap();
-        }
-
-        private Task<T> ParseTableOrView<T>(Func<Row, T> newInstance, Task<IEnumerable<Row>> getTableTask, Task<IEnumerable<Row>> getColumnsTask)
-            where T : DataCollectionMetadata
-        {
-            var tableMetadataRow = getTableTask.Result.FirstOrDefault();
+            var tableMetadataRow = tableRs.FirstOrDefault();
             if (tableMetadataRow == null)
             {
-                return TaskHelper.ToTask<T>(null);
+                return null;
             }
+
             var columns = new Dictionary<string, TableColumn>();
             var partitionKeys = new List<Tuple<int, TableColumn>>();
             var clusteringKeys = new List<Tuple<int, Tuple<TableColumn, SortOrder>>>();
-            //Read table options
-            var options = new TableOptions
+            TableOptions options;
+
+            if (tableMetadataRow.ContainsColumn("compression"))
             {
-                isCompactStorage = false,
-                bfFpChance = tableMetadataRow.GetValue<double>("bloom_filter_fp_chance"),
-                caching = "{" + string.Join(",", tableMetadataRow.GetValue<IDictionary<string, string>>("caching").Select(kv => "\"" + kv.Key + "\":\"" + kv.Value + "\"")) + "}",
-                comment = tableMetadataRow.GetValue<string>("comment"),
-                gcGrace = tableMetadataRow.GetValue<int>("gc_grace_seconds"),
-                localReadRepair = tableMetadataRow.GetValue<double>("dclocal_read_repair_chance"),
-                readRepair = tableMetadataRow.GetValue<double>("read_repair_chance"),
-                compactionOptions = tableMetadataRow.GetValue<SortedDictionary<string, string>>("compaction"),
-                compressionParams =
-                    tableMetadataRow.GetValue<SortedDictionary<string, string>>("compression")
-            };
+                // Options for normal tables and views
+                options = new TableOptions
+                {
+                    isCompactStorage = false,
+                    bfFpChance = tableMetadataRow.GetValue<double>("bloom_filter_fp_chance"),
+                    caching = "{" + string.Join(",", tableMetadataRow.GetValue<IDictionary<string, string>>("caching")
+                                                                     .Select(kv => "\"" + kv.Key + "\":\"" + kv.Value + "\"")) + "}",
+                    comment = tableMetadataRow.GetValue<string>("comment"),
+                    gcGrace = tableMetadataRow.GetValue<int>("gc_grace_seconds"),
+                    localReadRepair = tableMetadataRow.GetValue<double>("dclocal_read_repair_chance"),
+                    readRepair = tableMetadataRow.GetValue<double>("read_repair_chance"),
+                    compactionOptions = tableMetadataRow.GetValue<SortedDictionary<string, string>>("compaction"),
+                    compressionParams =
+                        tableMetadataRow.GetValue<SortedDictionary<string, string>>("compression")
+                };
+            }
+            else
+            {
+                // Options for virtual tables
+                options = new TableOptions { comment = tableMetadataRow.GetValue<string>("comment") };
+            }
 
             options.NodeSync = tableMetadataRow.GetColumn("nodesync") != null
                 ? tableMetadataRow.GetValue<IDictionary<string, string>>("nodesync")
                 : null;
 
-            var columnsMetadata = getColumnsTask.Result;
-            Task<Tuple<TableColumn, Row>>[] columnTasks = columnsMetadata
-                .Select(row =>
+            var columnTasks = columnsRs
+                .Select(async row =>
                 {
-                    return DataTypeParser.ParseTypeName(_udtResolver, tableMetadataRow.GetValue<string>("keyspace_name"), row.GetValue<string>("type")).
-                        ContinueSync(type => Tuple.Create(new TableColumn
-                        {
-                            Name = row.GetValue<string>("column_name"),
-                            Keyspace = row.GetValue<string>("keyspace_name"),
-                            Table = row.GetValue<string>("table_name"),
-                            TypeCode = type.TypeCode,
-                            TypeInfo = type.TypeInfo
-                        }, row));
-                }).ToArray();
-            return Task.Factory.ContinueWhenAll(columnTasks, tasks =>
+                    var type = await DataTypeParser
+                        .ParseTypeName(
+                             _udtResolver, tableMetadataRow.GetValue<string>("keyspace_name"),
+                             row.GetValue<string>("type"))
+                        .ConfigureAwait(false);
+
+                    return Tuple.Create(new TableColumn
+                    {
+                        Name = row.GetValue<string>("column_name"),
+                        Keyspace = row.GetValue<string>("keyspace_name"),
+                        Table = row.GetValue<string>("table_name"),
+                        TypeCode = type.TypeCode,
+                        TypeInfo = type.TypeInfo
+                    }, row);
+                });
+
+            var columnsTuples = await Task.WhenAll(columnTasks).ConfigureAwait(false);
+
+            foreach (var t in columnsTuples)
             {
-                var ex = tasks.Select(t => t.Exception).FirstOrDefault(e => e != null);
-                if (ex != null)
+                var col = t.Item1;
+                var row = t.Item2;
+
+                switch (row.GetValue<string>("kind"))
                 {
-                    throw ex.InnerException;
+                    case "partition_key":
+                        partitionKeys.Add(Tuple.Create(row.GetValue<int?>("position") ?? 0, col));
+                        col.KeyType = KeyType.Partition;
+                        break;
+                    case "clustering":
+                        clusteringKeys.Add(Tuple.Create(row.GetValue<int?>("position") ?? 0,
+                            Tuple.Create(col, row.GetValue<string>("clustering_order") == "desc" ? SortOrder.Descending : SortOrder.Ascending)));
+                        col.KeyType = KeyType.Clustering;
+                        break;
+                    case "static":
+                        col.IsStatic = true;
+                        break;
                 }
-                foreach (var t in tasks)
+                columns.Add(col.Name, col);
+            }
+
+            if (tableMetadataRow.ContainsColumn("flags"))
+            {
+                // Normal tables
+                var flags = tableMetadataRow.GetValue<string[]>("flags");
+                var isDense = flags.Contains("dense");
+                var isSuper = flags.Contains("super");
+                var isCompound = flags.Contains("compound");
+                options.isCompactStorage = isSuper || isDense || !isCompound;
+                //remove the columns related to Thrift
+                var isStaticCompact = !isSuper && !isDense && !isCompound;
+                if (isStaticCompact)
                 {
-                    var col = t.Result.Item1;
-                    var row = t.Result.Item2;
-                    switch (row.GetValue<string>("kind"))
-                    {
-                        case "partition_key":
-                            partitionKeys.Add(Tuple.Create(row.GetValue<int?>("position") ?? 0, col));
-                            col.KeyType = KeyType.Partition;
-                            break;
-                        case "clustering":
-                            clusteringKeys.Add(Tuple.Create(row.GetValue<int?>("position") ?? 0,
-                                Tuple.Create(col, row.GetValue<string>("clustering_order") == "desc" ? SortOrder.Descending : SortOrder.Ascending)));
-                            col.KeyType = KeyType.Clustering;
-                            break;
-                    }
-                    columns.Add(col.Name, col);
+                    PruneStaticCompactTableColumns(clusteringKeys, columns);
                 }
-                if (typeof(T) == typeof(TableMetadata))
+                else if (isDense)
                 {
-                    var flags = tableMetadataRow.GetValue<string[]>("flags");
-                    var isDense = flags.Contains("dense");
-                    var isSuper = flags.Contains("super");
-                    var isCompound = flags.Contains("compound");
-                    options.isCompactStorage = isSuper || isDense || !isCompound;
-                    //remove the columns related to Thrift
-                    var isStaticCompact = !isSuper && !isDense && !isCompound;
-                    if (isStaticCompact)
-                    {
-                        PruneStaticCompactTableColumns(clusteringKeys, columns);
-                    }
-                    else if (isDense)
-                    {
-                        PruneDenseTableColumns(columns);
-                    }
+                    PruneDenseTableColumns(columns);
                 }
-                var result = newInstance(tableMetadataRow);
-                result.SetValues(columns,
-                    partitionKeys.OrderBy(p => p.Item1).Select(p => p.Item2).ToArray(),
-                    clusteringKeys.OrderBy(p => p.Item1).Select(p => p.Item2).ToArray(),
-                    options);
-                return result;
-            });
+            }
+
+            var result = newInstance(tableMetadataRow);
+            result.SetValues(columns,
+                partitionKeys.OrderBy(p => p.Item1).Select(p => p.Item2).ToArray(),
+                clusteringKeys.OrderBy(p => p.Item1).Select(p => p.Item2).ToArray(),
+                options);
+            return result;
+        }
+
+        public override async Task<MaterializedViewMetadata> GetView(string keyspaceName, string viewName)
+        {
+            var getTableTask = Cc.QueryAsync(string.Format(SelectSingleView, viewName, keyspaceName), true);
+            var getColumnsTask = Cc.QueryAsync(string.Format(SelectColumns, viewName, keyspaceName), true);
+
+            var tableRs = await getTableTask.ConfigureAwait(false);
+            var columnsRs = await getColumnsTask.ConfigureAwait(false); 
+
+            return await ParseTableOrView(
+                viewRow => new MaterializedViewMetadata(viewName, viewRow.GetValue<string>("where_clause")),
+                tableRs,
+                columnsRs).ConfigureAwait(false);
         }
 
         private static void PruneDenseTableColumns(IDictionary<string, TableColumn> columns)
@@ -907,6 +930,112 @@ namespace Dse
                         return result;
                     });
                 });
+        }
+    }
+
+    /// <summary>
+    /// Schema parser for Apache Cassandra version 4.x and above
+    /// </summary>
+    internal class SchemaParserV3 : SchemaParserV2
+    {
+        private const string SelectVirtualKeyspaces = "SELECT * FROM system_virtual_schema.keyspaces";
+        private const string SelectSingleVirtualKeyspace =
+            "SELECT * FROM system_virtual_schema.keyspaces WHERE keyspace_name = '{0}'";
+        private const string SelectVirtualTable =
+            "SELECT * FROM system_virtual_schema.tables WHERE keyspace_name = '{0}' AND table_name='{1}'";
+        private const string SelectVirtualColumns =
+            "SELECT * FROM system_virtual_schema.columns WHERE keyspace_name = '{0}' AND table_name='{1}'";
+
+        internal SchemaParserV3(Metadata parent, Func<string, string, Task<UdtColumnInfo>> udtResolver)
+            : base(parent, udtResolver)
+        {
+
+        }
+
+        public override async Task<KeyspaceMetadata> GetKeyspace(string name)
+        {
+            var ks = await base.GetKeyspace(name).ConfigureAwait(false);
+            if (ks != null)
+            {
+                return ks;
+            }
+
+            // Maybe its a virtual keyspace
+            IEnumerable<Row> rs;
+            try
+            {
+                rs = await Cc.QueryAsync(string.Format(SelectSingleVirtualKeyspace, name), true)
+                             .ConfigureAwait(false);
+            }
+            catch (InvalidQueryException)
+            {
+                // Incorrect version reported by the server: virtual keyspaces/tables are not yet supported
+                return null;
+            }
+
+            var row = rs.FirstOrDefault();
+            return row != null ? ParseVirtualKeyspaceRow(row) : null;
+        }
+
+        private KeyspaceMetadata ParseVirtualKeyspaceRow(Row row)
+        {
+            return new KeyspaceMetadata(
+                Parent,
+                row.GetValue<string>("keyspace_name"),
+                true,
+                null,
+                null,
+                true);
+        }
+
+        public override async Task<IEnumerable<KeyspaceMetadata>> GetKeyspaces(bool retry)
+        {
+            // Start the task to get the keyspaces in parallel
+            var keyspacesTask = base.GetKeyspaces(retry);
+            var virtualKeyspaces = Enumerable.Empty<KeyspaceMetadata>();
+
+            try
+            {
+                var rs = await Cc.QueryAsync(SelectVirtualKeyspaces, retry).ConfigureAwait(false);
+                virtualKeyspaces = rs.Select(ParseVirtualKeyspaceRow);
+            }
+            catch (InvalidQueryException)
+            {
+                // Incorrect version reported by the server: virtual keyspaces/tables are not yet supported
+            }
+
+            var keyspaces = await keyspacesTask.ConfigureAwait(false);
+
+            // Yield the keyspaces followed by the virtual keyspaces
+            return keyspaces.Concat(virtualKeyspaces);
+        }
+
+        public override async Task<TableMetadata> GetTable(string keyspaceName, string tableName)
+        {
+            var table = await base.GetTable(keyspaceName, tableName).ConfigureAwait(false);
+            if (table != null)
+            {
+                return table;
+            }
+
+            IEnumerable<Row> tableRs;
+            try
+            {
+                // Maybe its a virtual table
+                tableRs = await Cc.QueryAsync(string.Format(SelectVirtualTable, keyspaceName, tableName), true)
+                                  .ConfigureAwait(false);
+            }
+            catch (InvalidQueryException)
+            {
+                // Incorrect version reported by the server: virtual keyspaces/tables are not yet supported
+                return null;
+            }
+
+            var columnsRs = await Cc.QueryAsync(string.Format(SelectVirtualColumns, keyspaceName, tableName), true)
+                                    .ConfigureAwait(false);
+
+            return await ParseTableOrView(_ => new TableMetadata(tableName, null, true), tableRs, columnsRs)
+                .ConfigureAwait(false);
         }
     }
 }

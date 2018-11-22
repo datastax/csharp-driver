@@ -22,6 +22,7 @@ namespace Dse
         private object[] _values;
         private bool _autoPage = true;
         private volatile int _isIdempotent = int.MinValue;
+        private volatile Host _host;
         private string _authorizationId;
         private IDictionary<string, byte[]> _outgoingPayload;
 
@@ -93,6 +94,16 @@ namespace Dse
 
         /// <inheritdoc />
         public abstract string Keyspace { get; }
+
+        /// <summary>
+        /// Gets the host configured on this <see cref="Statement"/>, or <c>null</c> if none is configured.
+        /// <para>
+        /// In the general case, the host used to execute this <see cref="Statement"/> will depend on the configured
+        /// <see cref="ILoadBalancingPolicy"/> and this property will return <c>null</c>.
+        /// </para>
+        /// <seealso cref="SetHost"/>
+        /// </summary>
+        public Host Host => _host;
 
         protected Statement()
         {
@@ -253,6 +264,32 @@ namespace Dse
         public IStatement SetOutgoingPayload(IDictionary<string, byte[]> payload)
         {
             OutgoingPayload = payload;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the <see cref="Host"/> that should handle this query.
+        /// <para>
+        /// In the general case, use of this method is <em>heavily discouraged</em> and should only be
+        /// used in the following cases:
+        /// </para>
+        /// <list type="bullet">
+        /// <item><description>Querying node-local tables, such as tables in the <c>system</c> and <c>system_views</c>
+        /// keyspaces.</description></item>
+        /// <item><description>Applying a series of schema changes, where it may be advantageous to execute schema
+        /// changes in sequence on the same node.</description></item>
+        /// </list>
+        /// <para>Configuring a specific host causes the configured <see cref="ILoadBalancingPolicy"/> to be
+        /// completely bypassed. However, if the load balancing policy dictates that the host is at
+        /// distance <see cref="HostDistance.Ignored"/> or there is no active connectivity to the host, the
+        /// request will fail with a <see cref="NoHostAvailableException"/>.</para>
+        /// </summary>
+        /// <param name="host">The host that should be used to handle executions of this statement or null to
+        /// delegate to the configured load balancing policy.</param>
+        /// <returns>this instance</returns>
+        public IStatement SetHost(Host host)
+        {
+            _host = host;
             return this;
         }
     }
