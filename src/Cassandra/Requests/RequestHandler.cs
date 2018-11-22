@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -63,20 +64,13 @@ namespace Cassandra.Requests
             Statement = statement;
             Policies = _session.Cluster.Configuration.Policies;
             RetryPolicy = Policies.ExtendedRetryPolicy;
+
             if (statement?.RetryPolicy != null)
             {
                 RetryPolicy = statement.RetryPolicy.Wrap(Policies.ExtendedRetryPolicy);
             }
-            _queryPlan = Policies.LoadBalancingPolicy.NewQueryPlan(_session.Keyspace, statement).GetEnumerator();
-        }
 
-        /// <summary>
-        /// Creates a new instance using a request with no statement.
-        /// </summary>
-        public RequestHandler(ISession session, Serializer serializer, IRequest request)
-            : this(session, serializer, request, null)
-        {
-
+            _queryPlan = GetQueryPlan(session, statement, Policies).GetEnumerator();
         }
 
         /// <summary>
@@ -96,6 +90,21 @@ namespace Cassandra.Requests
             : this(session, serializer, null, null)
         {
 
+        }
+
+        /// <summary>
+        /// Gets a query plan as determined by the load-balancing policy.
+        /// In the special case when a Host is provided at Statement level, it will return a query plan with a single
+        /// host.
+        /// </summary>
+        private static IEnumerable<Host> GetQueryPlan(ISession session, IStatement statement, Policies policies)
+        {
+            // Single host iteration
+            var host = (statement as Statement)?.Host;
+
+            return host == null
+                ? policies.LoadBalancingPolicy.NewQueryPlan(session.Keyspace, statement)
+                : Enumerable.Repeat(host, 1);
         }
 
         /// <summary>
