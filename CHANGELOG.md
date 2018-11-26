@@ -1,5 +1,18 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.7.0
+
+2018-10-16
+
+### Features
+
+- [CSHARP-705] - Provide a means of sending query to a specific node to facilitate virtual table queries
+- [CSHARP-706] - Parse Virtual Keyspace Metadata
+
+### Bug Fixes
+
+- [CSHARP-709] - Rarely occurring concurrency bug in the HashedWheelTimer class
+
 ## 3.6.0
 
 2018-06-18
