@@ -41,8 +41,10 @@ checks:
     exclude:
       - 'https://ci.appveyor.com/api/projects/status/ri1olv8bl7b7yk7y/branch/master?svg=true'
 versions:
-  - name: '3.6'
+  - name: '3.7'
     ref: 'master'
+  - name: '3.6'
+    ref: '3.6'
   - name: '3.5'
     ref: '3.5'
   - name: '3.4'
