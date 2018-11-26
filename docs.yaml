@@ -36,6 +36,7 @@ api_docs:
   3.4: http://docs.datastax.com/en/drivers/csharp/3.4
   3.5: http://docs.datastax.com/en/drivers/csharp/3.5
   3.6: http://docs.datastax.com/en/drivers/csharp/3.6
+  3.7: http://docs.datastax.com/en/drivers/csharp/3.7
 checks:
   external_links:
     exclude:
