@@ -37,6 +37,7 @@ namespace Cassandra
     public class Cluster : ICluster
     {
         private static ProtocolVersion _maxProtocolVersion = ProtocolVersion.MaxSupported;
+
         // ReSharper disable once InconsistentNaming
         private static readonly Logger _logger = new Logger(typeof(Cluster));
         private readonly CopyOnWriteList<Session> _connectedSessions = new CopyOnWriteList<Session>();
@@ -50,6 +51,7 @@ namespace Cassandra
 
         /// <inheritdoc />
         public event Action<Host> HostAdded;
+
         /// <inheritdoc />
         public event Action<Host> HostRemoved;
 
@@ -60,11 +62,11 @@ namespace Cassandra
         {
             return _controlConnection;
         }
-        
+
         /// <summary>
         /// Gets the the prepared statements cache
         /// </summary>
-        internal ConcurrentDictionary<byte[], PreparedStatement> PreparedQueries { get; } 
+        internal ConcurrentDictionary<byte[], PreparedStatement> PreparedQueries { get; }
             = new ConcurrentDictionary<byte[], PreparedStatement>(new ByteArrayComparer());
 
         /// <summary>
@@ -146,15 +148,10 @@ namespace Cassandra
             Configuration = configuration;
             _metadata = new Metadata(configuration);
             TaskHelper.WaitToComplete(AddHosts(contactPoints));
-            var protocolVersion = _maxProtocolVersion;
-            if (Configuration.ProtocolOptions.MaxProtocolVersionValue != null &&
-                Configuration.ProtocolOptions.MaxProtocolVersionValue.Value.IsSupported())
-            {
-                protocolVersion = Configuration.ProtocolOptions.MaxProtocolVersionValue.Value;
-            }
-            _controlConnection = new ControlConnection(protocolVersion, Configuration, _metadata);
+
+            _serializer = Configuration.Serializer;
+            _controlConnection = new ControlConnection(Configuration, _metadata);
             _metadata.ControlConnection = _controlConnection;
-            _serializer = _controlConnection.Serializer;
         }
 
         /// <summary>
@@ -199,13 +196,13 @@ namespace Cassandra
                     foreach (var resolvedAddress in hostEntry.AddressList)
                     {
                         _metadata.AddHost(new IPEndPoint(resolvedAddress, Configuration.ProtocolOptions.Port));
-                    }                    
+                    }
                 }
             }
 
             if (_metadata.Hosts.Count == 0)
             {
-                throw new NoHostAvailableException($"No host name could be resolved, attempted: {string.Join(", ", hostNames)}");                
+                throw new NoHostAvailableException($"No host name could be resolved, attempted: {string.Join(", ", hostNames)}");
             }
         }
 

@@ -14,8 +14,6 @@
 //   limitations under the License.
 //
 
-using Cassandra.IntegrationTests.TestBase;
-using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -25,13 +23,14 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Tasks;
-using Cassandra.Tests;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
-using Microsoft.IO;
+using Cassandra.Tasks;
+using Cassandra.Tests;
 using Moq;
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -122,7 +121,7 @@ namespace Cassandra.IntegrationTests.Core
                 var prepareRequest = new PrepareRequest(BasicQuery);
                 var task = connection.Send(prepareRequest);
                 var prepareOutput = ValidateResult<OutputPrepared>(task.Result);
-                
+
                 //Execute the prepared query
                 var executeRequest = new ExecuteRequest(GetProtocolVersion(), prepareOutput.QueryId, null, false, QueryProtocolOptions.Default);
                 task = connection.Send(executeRequest);
@@ -297,9 +296,8 @@ namespace Cassandra.IntegrationTests.Core
                 }
                 catch (AggregateException)
                 {
-                    
                 }
-                Assert.True(taskList.All(t => 
+                Assert.True(taskList.All(t =>
                     t.Status == TaskStatus.RanToCompletion ||
                     (t.Exception != null && t.Exception.InnerException is ReadTimeoutException)), "Not all task completed");
             }
@@ -367,7 +365,7 @@ namespace Cassandra.IntegrationTests.Core
                     Assert.IsInstanceOf<SchemaChangeEventArgs>(eventArgs);
                     Assert.AreEqual(SchemaChangeEventArgs.Reason.Created, (eventArgs as SchemaChangeEventArgs).What);
                     Assert.AreEqual("test_events_kp", (eventArgs as SchemaChangeEventArgs).Keyspace);
-                    Assert.AreEqual("test_type", (eventArgs as SchemaChangeEventArgs).Type);   
+                    Assert.AreEqual("test_type", (eventArgs as SchemaChangeEventArgs).Type);
                 }
             }
         }
@@ -379,14 +377,12 @@ namespace Cassandra.IntegrationTests.Core
             {
                 connection.Open().Wait();
                 const string query = "SELECT * FROM system.local";
-                Query(connection, query).
-                    ContinueWith((t) =>
-                    {
-                        //Try to deadlock
-                        Query(connection, query).Wait();
-                    }, TaskContinuationOptions.ExecuteSynchronously).Wait();
+                Query(connection, query).ContinueWith((t) =>
+                {
+                    //Try to deadlock
+                    Query(connection, query).Wait();
+                }, TaskContinuationOptions.ExecuteSynchronously).Wait();
             }
-
         }
 
         [Test]
@@ -420,15 +416,16 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Ssl_Connect_With_Ssl_Disabled_Host()
         {
-            var config = new Configuration(Cassandra.Policies.DefaultPolicies, 
+            var config = new Configuration(Cassandra.Policies.DefaultPolicies,
                 new ProtocolOptions(ProtocolOptions.DefaultPort, new SSLOptions()),
                 new PoolingOptions(),
-                 new SocketOptions().SetConnectTimeoutMillis(200),
-                 new ClientOptions(),
-                 NoneAuthProvider.Instance,
-                 null,
-                 new QueryOptions(),
-                 new DefaultAddressTranslator());
+                new SocketOptions().SetConnectTimeoutMillis(200),
+                new ClientOptions(),
+                NoneAuthProvider.Instance,
+                null,
+                new QueryOptions(),
+                new DefaultAddressTranslator(),
+                null);
             using (var connection = CreateConnection(GetProtocolVersion(), config))
             {
                 var ex = Assert.Throws<AggregateException>(() => connection.Open().Wait(10000));
@@ -438,9 +435,9 @@ namespace Cassandra.IntegrationTests.Core
                     //So we throw a TimeoutException
                     StringAssert.IsMatch("SSL", ex.InnerException.Message);
                 }
-                else if (ex.InnerException is System.IO.IOException || 
-                         ex.InnerException.GetType().Name.Contains("Mono") ||
-                         ex.InnerException is System.Security.Authentication.AuthenticationException)
+                else if (ex.InnerException is IOException ||
+                    ex.InnerException.GetType().Name.Contains("Mono") ||
+                    ex.InnerException is System.Security.Authentication.AuthenticationException)
                 {
                     // Under Mono, it throws a IOException
                     // or MonoBtlsException (regression mono 5.0) System...AuthenticationException (mono 5.4)
@@ -448,11 +445,11 @@ namespace Cassandra.IntegrationTests.Core
                 else
                 {
                     throw new AssertionException($"Expected TimeoutException or IOException, obtained" +
-                                                 $" {ex.InnerException.GetType()}: {ex.InnerException.Message}");
+                        $" {ex.InnerException.GetType()}: {ex.InnerException.Message}");
                 }
             }
         }
-        
+
         [Test]
         public void SetKeyspace_Test()
         {
@@ -487,9 +484,9 @@ namespace Cassandra.IntegrationTests.Core
         public async Task SetKeyspace_Parallel_Calls_Serially_Executes()
         {
             const string queryKs1 = "create keyspace if not exists ks_to_switch_p1 WITH replication = " +
-                                    "{'class': 'SimpleStrategy', 'replication_factor' : 1}";
+                "{'class': 'SimpleStrategy', 'replication_factor' : 1}";
             const string queryKs2 = "create keyspace if not exists ks_to_switch_p2 WITH replication = " +
-                                    "{'class': 'SimpleStrategy', 'replication_factor' : 1}";
+                "{'class': 'SimpleStrategy', 'replication_factor' : 1}";
             // ReSharper disable AccessToDisposedClosure, AccessToModifiedClosure
             using (var connection = CreateConnection())
             {
@@ -613,15 +610,16 @@ namespace Cassandra.IntegrationTests.Core
             var socketOptions = new SocketOptions();
             socketOptions.SetConnectTimeoutMillis(1000);
             var config = new Configuration(
-                new Cassandra.Policies(), 
-                new ProtocolOptions(), 
-                new PoolingOptions(), 
-                socketOptions, 
-                new ClientOptions(), 
+                new Cassandra.Policies(),
+                new ProtocolOptions(),
+                new PoolingOptions(),
+                socketOptions,
+                new ClientOptions(),
                 NoneAuthProvider.Instance,
                 null,
                 new QueryOptions(),
-                new DefaultAddressTranslator());
+                new DefaultAddressTranslator(),
+                null);
             using (var connection = new Connection(new Serializer(GetProtocolVersion()), new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042), config))
             {
                 var ex = Assert.Throws<SocketException>(() => TaskHelper.WaitToComplete(connection.Open()));
@@ -781,7 +779,7 @@ namespace Cassandra.IntegrationTests.Core
             var requestMock = new Mock<IRequest>(MockBehavior.Strict);
             // Create a request that throws an exception when writing the frame
             requestMock.Setup(r => r.WriteFrame(It.IsAny<short>(), It.IsAny<MemoryStream>(), It.IsAny<Serializer>()))
-                       .Throws(ex);
+                .Throws(ex);
 
             using (var connection = CreateConnection())
             {
@@ -823,7 +821,8 @@ namespace Cassandra.IntegrationTests.Core
                 NoneAuthProvider.Instance,
                 null,
                 new QueryOptions(),
-                new DefaultAddressTranslator());
+                new DefaultAddressTranslator(),
+                null);
             return CreateConnection(GetProtocolVersion(), config);
         }
 
@@ -851,8 +850,8 @@ namespace Cassandra.IntegrationTests.Core
         private static T ValidateResult<T>(Response response)
         {
             Assert.IsInstanceOf<ResultResponse>(response);
-            Assert.IsInstanceOf<T>(((ResultResponse)response).Output);
-            return (T)((ResultResponse)response).Output;
+            Assert.IsInstanceOf<T>(((ResultResponse) response).Output);
+            return (T) ((ResultResponse) response).Output;
         }
     }
 }

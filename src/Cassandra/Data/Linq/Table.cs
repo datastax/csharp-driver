@@ -15,13 +15,10 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
-using Cassandra.Mapping.TypeConversion;
 
 namespace Cassandra.Data.Linq
 {
@@ -92,7 +89,6 @@ namespace Cassandra.Data.Linq
         public Table(ISession session, MappingConfiguration config, string tableName)
             : this(session, config, tableName, null)
         {
-
         }
 
         /// <summary>
@@ -107,7 +103,6 @@ namespace Cassandra.Data.Linq
         public Table(ISession session, MappingConfiguration config)
             : this(session, config, null, null)
         {
-
         }
 
         /// <summary>
@@ -152,7 +147,7 @@ namespace Cassandra.Data.Linq
 
         public void Create()
         {
-            var serializer = _session.Cluster.Metadata.ControlConnection.Serializer;
+            var serializer = _session.Cluster.Configuration.Serializer;
             var cqlQueries = CqlGenerator.GetCreate(serializer, PocoData, Name, KeyspaceName, false);
             foreach (var cql in cqlQueries)
             {

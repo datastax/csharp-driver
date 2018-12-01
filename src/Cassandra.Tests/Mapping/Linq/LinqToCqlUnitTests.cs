@@ -15,7 +15,6 @@
 //
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -23,7 +22,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
-using Cassandra.Serialization;
 using Cassandra.Tests.Mapping.Pocos;
 using Moq;
 using NUnit.Framework;
@@ -444,9 +442,10 @@ APPLY BATCH".Replace("\r", ""));
             var config = new Configuration();
             var metadata = new Metadata(config);
             var ccMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
-            ccMock.Setup(cc => cc.Serializer).Returns(new Serializer(ProtocolVersion.MaxSupported));
+            ccMock.Setup(cc => cc.Serializer).Returns(config.Serializer);
             metadata.ControlConnection = ccMock.Object;
             var clusterMock = new Mock<ICluster>();
+            clusterMock.Setup(c => c.Configuration).Returns(config);
             clusterMock.Setup(c => c.Metadata).Returns(metadata);
             sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             sessionMock
@@ -480,10 +479,11 @@ APPLY BATCH".Replace("\r", ""));
             var config = new Configuration();
             var metadata = new Metadata(config);
             var ccMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
-            ccMock.Setup(cc => cc.Serializer).Returns(new Serializer(ProtocolVersion.MaxSupported));
+            ccMock.Setup(cc => cc.Serializer).Returns(config.Serializer);
             metadata.ControlConnection = ccMock.Object;
             var clusterMock = new Mock<ICluster>();
             clusterMock.Setup(c => c.Metadata).Returns(metadata);
+            clusterMock.Setup(c => c.Configuration).Returns(config);
             sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             string createQuery = null;
             sessionMock

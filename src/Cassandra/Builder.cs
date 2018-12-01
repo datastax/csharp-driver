@@ -106,23 +106,24 @@ namespace Cassandra
                 _retryPolicy,
                 _speculativeExecutionPolicy,
                 _timestampGenerator);
-            var config = new Configuration(policies,
-                new ProtocolOptions(_port, _sslOptions).SetCompression(_compression)
-                                                       .SetCustomCompressor(_customCompressor)
-                                                       .SetMaxProtocolVersion(_maxProtocolVersion)
-                                                       .SetNoCompact(_noCompact),
+
+            var protocolOptions = new ProtocolOptions(_port, _sslOptions)
+                .SetCompression(_compression)
+                .SetCustomCompressor(_customCompressor)
+                .SetMaxProtocolVersion(_maxProtocolVersion)
+                .SetNoCompact(_noCompact);
+
+            return new Configuration(
+                policies,
+                protocolOptions,
                 _poolingOptions,
                 _socketOptions,
                 new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace),
                 _authProvider,
                 _authInfoProvider,
                 _queryOptions,
-                _addressTranslator);
-            if (_typeSerializerDefinitions != null)
-            {
-                config.TypeSerializers = _typeSerializerDefinitions.Definitions;
-            }
-            return config;
+                _addressTranslator,
+                _typeSerializerDefinitions?.Definitions);
         }
 
         /// <summary>

@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
-using Cassandra.Serialization;
 using Cassandra.Tests.Mapping.Pocos;
 using Moq;
 using NUnit.Framework;
@@ -394,8 +390,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Frozen_Udt()
         {
             string createQuery = null;
-            var serializer = new Serializer(ProtocolVersion.MaxSupported);
-            var sessionMock = GetSessionMock(serializer);
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -410,6 +405,7 @@ namespace Cassandra.Tests.Mapping.Linq
             udtInfo.Fields.Add(new ColumnDesc { Name = "title", TypeCode = ColumnTypeCode.Ascii });
             udtInfo.Fields.Add(new ColumnDesc { Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp });
             var udtMap = UdtMap.For<Song>().SetIgnoreCase(false);
+            var serializer = sessionMock.Object.Cluster.Configuration.Serializer;
             udtMap.SetSerializer(serializer);
             udtMap.Build(udtInfo);
             serializer.SetUdtMap("song", udtMap);
@@ -442,8 +438,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Frozen_Collection_Key()
         {
             string createQuery = null;
-            var serializer = new Serializer(ProtocolVersion.MaxSupported);
-            var sessionMock = GetSessionMock(serializer);
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -459,6 +454,7 @@ namespace Cassandra.Tests.Mapping.Linq
             udtInfo.Fields.Add(new ColumnDesc { Name = "title", TypeCode = ColumnTypeCode.Ascii });
             udtInfo.Fields.Add(new ColumnDesc { Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp });
             var udtMap = UdtMap.For<Song>();
+            var serializer = sessionMock.Object.Cluster.Configuration.Serializer;
             udtMap.SetSerializer(serializer);
             udtMap.Build(udtInfo);
             serializer.SetUdtMap("song", udtMap);
@@ -471,8 +467,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Frozen_Collection_Value()
         {
             string createQuery = null;
-            var serializer = new Serializer(ProtocolVersion.MaxSupported);
-            var sessionMock = GetSessionMock(serializer);
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -488,6 +483,7 @@ namespace Cassandra.Tests.Mapping.Linq
             udtInfo.Fields.Add(new ColumnDesc { Name = "title", TypeCode = ColumnTypeCode.Ascii });
             udtInfo.Fields.Add(new ColumnDesc { Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp });
             var udtMap = UdtMap.For<Song>();
+            var serializer = sessionMock.Object.Cluster.Configuration.Serializer;
             udtMap.SetSerializer(serializer);
             udtMap.Build(udtInfo);
             serializer.SetUdtMap("song", udtMap);
@@ -500,8 +496,7 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Attribute_Defined_Mappings()
         {
             string createQuery = null;
-            var serializer = new Serializer(ProtocolVersion.MaxSupported);
-            var sessionMock = GetSessionMock(serializer);
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
@@ -515,14 +510,13 @@ namespace Cassandra.Tests.Mapping.Linq
         public void Create_With_Static_Counter()
         {
             string createQuery = null;
-            var serializer = new Serializer(ProtocolVersion.MaxSupported);
-            var sessionMock = GetSessionMock(serializer);
+            var sessionMock = GetSessionMock();
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
                 .Returns(() => new RowSet())
                 .Callback<string>(q => createQuery = q);
 
-            var table = GetTable<AllTypesEntity>(sessionMock.Object, 
+            var table = GetTable<AllTypesEntity>(sessionMock.Object,
                 new Map<AllTypesEntity>().ExplicitColumns()
                                          .TableName("tbl1")
                                          .PartitionKey(t => t.UuidValue)
@@ -540,19 +534,17 @@ namespace Cassandra.Tests.Mapping.Linq
                             " PRIMARY KEY (id1, id2))", createQuery);
         }
 
-        private static Mock<ISession> GetSessionMock(Serializer serializer = null)
+        private static Mock<ISession> GetSessionMock()
         {
-            if (serializer == null)
-            {
-                serializer = new Serializer(ProtocolVersion.MaxSupported);
-            }
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             var config = new Configuration();
             var metadata = new Metadata(config);
             var ccMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
-            ccMock.Setup(cc => cc.Serializer).Returns(serializer);
+            ccMock.Setup(cc => cc.Serializer).Returns(config.Serializer);
             metadata.ControlConnection = ccMock.Object;
+
             var clusterMock = new Mock<ICluster>();
+            clusterMock.Setup(c => c.Configuration).Returns(config);
             clusterMock.Setup(c => c.Metadata).Returns(metadata);
             sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             return sessionMock;

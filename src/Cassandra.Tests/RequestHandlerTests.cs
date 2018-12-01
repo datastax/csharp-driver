@@ -29,7 +29,7 @@ namespace Cassandra.Tests
     public class RequestHandlerTests
     {
         private static readonly Serializer Serializer = new Serializer(ProtocolVersion.MaxSupported);
-        
+
         private static Configuration GetConfig(QueryOptions queryOptions = null)
         {
             return new Configuration(new Policies(),
@@ -40,7 +40,8 @@ namespace Cassandra.Tests
                 NoneAuthProvider.Instance,
                 null,
                 queryOptions ?? DefaultQueryOptions,
-                new DefaultAddressTranslator());
+                new DefaultAddressTranslator(),
+                null);
         }
 
         private static QueryOptions DefaultQueryOptions => new QueryOptions();
@@ -56,7 +57,7 @@ namespace Cassandra.Tests
             var stmt = new SimpleStatement("DUMMY QUERY");
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
-            var request = (QueryRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
+            var request = (QueryRequest) RequestHandler.GetRequest(stmt, Serializer, GetConfig());
             Assert.AreEqual(DefaultQueryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(DefaultQueryOptions.GetConsistencyLevel(), request.Consistency);
         }
@@ -68,7 +69,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
             var queryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalQuorum).SetPageSize(100);
-            var request = (QueryRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig(queryOptions));
+            var request = (QueryRequest) RequestHandler.GetRequest(stmt, Serializer, GetConfig(queryOptions));
             Assert.AreEqual(100, request.PageSize);
             Assert.AreEqual(queryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(queryOptions.GetConsistencyLevel(), request.Consistency);
@@ -85,7 +86,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(350, stmt.PageSize);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, stmt.ConsistencyLevel);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, stmt.SerialConsistencyLevel);
-            var request = (QueryRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
+            var request = (QueryRequest) RequestHandler.GetRequest(stmt, Serializer, GetConfig());
             Assert.AreEqual(350, request.PageSize);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, request.Consistency);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, request.SerialConsistency);
@@ -98,7 +99,7 @@ namespace Cassandra.Tests
             var stmt = ps.Bind();
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
-            var request = (ExecuteRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
+            var request = (ExecuteRequest) RequestHandler.GetRequest(stmt, Serializer, GetConfig());
             Assert.AreEqual(DefaultQueryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(DefaultQueryOptions.GetConsistencyLevel(), request.Consistency);
         }
@@ -111,7 +112,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
             var queryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalQuorum).SetPageSize(100);
-            var request = (ExecuteRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig(queryOptions));
+            var request = (ExecuteRequest) RequestHandler.GetRequest(stmt, Serializer, GetConfig(queryOptions));
             Assert.AreEqual(100, request.PageSize);
             Assert.AreEqual(queryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(queryOptions.GetConsistencyLevel(), request.Consistency);
@@ -129,7 +130,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(350, stmt.PageSize);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, stmt.ConsistencyLevel);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, stmt.SerialConsistencyLevel);
-            var request = (ExecuteRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
+            var request = (ExecuteRequest) RequestHandler.GetRequest(stmt, Serializer, GetConfig());
             Assert.AreEqual(350, request.PageSize);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, request.Consistency);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, request.SerialConsistency);
@@ -140,7 +141,7 @@ namespace Cassandra.Tests
         {
             var stmt = new BatchStatement();
             Assert.Null(stmt.ConsistencyLevel);
-            var request = (BatchRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
+            var request = (BatchRequest) RequestHandler.GetRequest(stmt, Serializer, GetConfig());
             Assert.AreEqual(DefaultQueryOptions.GetConsistencyLevel(), request.Consistency);
         }
 
@@ -150,7 +151,7 @@ namespace Cassandra.Tests
             var stmt = new BatchStatement();
             Assert.Null(stmt.ConsistencyLevel);
             var queryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalQuorum);
-            var request = (BatchRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig(queryOptions));
+            var request = (BatchRequest) RequestHandler.GetRequest(stmt, Serializer, GetConfig(queryOptions));
             Assert.AreEqual(queryOptions.GetConsistencyLevel(), request.Consistency);
         }
 
@@ -160,7 +161,7 @@ namespace Cassandra.Tests
             var stmt = new BatchStatement();
             stmt.SetConsistencyLevel(ConsistencyLevel.EachQuorum);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, stmt.ConsistencyLevel);
-            var request = (BatchRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
+            var request = (BatchRequest) RequestHandler.GetRequest(stmt, Serializer, GetConfig());
             Assert.AreEqual(ConsistencyLevel.EachQuorum, request.Consistency);
         }
 
@@ -200,7 +201,7 @@ namespace Cassandra.Tests
                 new TruncateException(null), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
         }
-        
+
         [Test]
         public void GetRequest_With_Timestamp_Generator()
         {
@@ -242,7 +243,7 @@ namespace Cassandra.Tests
                 Policies.DefaultSpeculativeExecutionPolicy, new NoTimestampGenerator());
             var config = new Configuration(
                 policies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(), new ClientOptions(),
-                NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
+                NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator(), null);
 
             var request = RequestHandler.GetRequest(statement, Serializer.Default, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -250,8 +251,8 @@ namespace Cassandra.Tests
             // The query request is composed by:
             // <query><consistency><flags><result_page_size><paging_state><serial_consistency><timestamp>
             var queryBuffer = BeConverter.GetBytes(statement.QueryString.Length)
-                                         .Concat(Encoding.UTF8.GetBytes(statement.QueryString))
-                                         .ToArray();
+                .Concat(Encoding.UTF8.GetBytes(statement.QueryString))
+                .ToArray();
             CollectionAssert.AreEqual(queryBuffer, bodyBuffer.Take(queryBuffer.Length));
             // Skip the query and consistency (2)
             var offset = queryBuffer.Length + 2;
@@ -275,7 +276,7 @@ namespace Cassandra.Tests
                 Policies.DefaultSpeculativeExecutionPolicy, new NoTimestampGenerator());
             var config = new Configuration(
                 policies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(), new ClientOptions(),
-                NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
+                NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator(), null);
 
             var request = RequestHandler.GetRequest(statement, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -283,8 +284,8 @@ namespace Cassandra.Tests
             // The query request is composed by:
             // <query><consistency><flags><result_page_size><paging_state><serial_consistency><timestamp>
             var queryBuffer = BeConverter.GetBytes(statement.QueryString.Length)
-                                         .Concat(Encoding.UTF8.GetBytes(statement.QueryString))
-                                         .ToArray();
+                .Concat(Encoding.UTF8.GetBytes(statement.QueryString))
+                .ToArray();
             CollectionAssert.AreEqual(queryBuffer, bodyBuffer.Take(queryBuffer.Length));
             // Skip the query and consistency (2)
             var offset = queryBuffer.Length + 2;
@@ -309,14 +310,14 @@ namespace Cassandra.Tests
             }
             var config = new Configuration(
                 Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
-                new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
+                new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator(), null);
 
             var request = RequestHandler.GetRequest(batch, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
 
             // The batch request is composed by:
             // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
-            CollectionAssert.AreEqual(new byte[] {0xff, 0xff}, bodyBuffer.Skip(1).Take(2));
+            CollectionAssert.AreEqual(new byte[] { 0xff, 0xff }, bodyBuffer.Skip(1).Take(2));
         }
 
         [Test]
@@ -330,7 +331,7 @@ namespace Cassandra.Tests
             var config = new Configuration(
                 Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
                 new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(),
-                new DefaultAddressTranslator());
+                new DefaultAddressTranslator(), null);
 
             var request = RequestHandler.GetRequest(batch, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -353,10 +354,10 @@ namespace Cassandra.Tests
             // Skip serial consistency
             offset += 2;
             var timestamp = TypeSerializer.UnixStart.AddTicks(BeConverter.ToInt64(bodyBuffer, offset) * 10);
-            Assert.GreaterOrEqual(timestamp,  startDate);
+            Assert.GreaterOrEqual(timestamp, startDate);
             Assert.LessOrEqual(timestamp, DateTimeOffset.Now.Add(TimeSpan.FromMilliseconds(100)));
         }
-        
+
         [Test]
         public void GetRequest_Batch_With_Empty_Timestamp_Generator()
         {
@@ -368,7 +369,7 @@ namespace Cassandra.Tests
             var config = new Configuration(
                 policies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
                 new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(),
-                new DefaultAddressTranslator());
+                new DefaultAddressTranslator(), null);
 
             var request = RequestHandler.GetRequest(batch, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -398,7 +399,7 @@ namespace Cassandra.Tests
             var config = new Configuration(
                 Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
                 new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(),
-                new DefaultAddressTranslator());
+                new DefaultAddressTranslator(), null);
 
             var request = RequestHandler.GetRequest(batch, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -424,7 +425,7 @@ namespace Cassandra.Tests
             const string query = "QUERY";
             var batch = new BatchStatement();
             batch.Add(new SimpleStatement(query))
-                 .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
+                .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
             var serializer = new Serializer(ProtocolVersion.V2);
 
             var request = RequestHandler.GetRequest(batch, serializer, new Configuration());
@@ -461,7 +462,7 @@ namespace Cassandra.Tests
             const string query = "QUERY";
             var batch = new BatchStatement();
             batch.Add(new SimpleStatement(query))
-                 .SetSerialConsistencyLevel(expectedSerialConsistencyLevel);
+                .SetSerialConsistencyLevel(expectedSerialConsistencyLevel);
 
             var config = new Configuration();
             config.QueryOptions.SetSerialConsistencyLevel(ConsistencyLevel.Serial);
@@ -586,7 +587,7 @@ namespace Cassandra.Tests
         }
 
         private static void AssertBatchSerialConsistencyLevel(BatchStatement batch, Configuration config, string query,
-                                                              ConsistencyLevel expectedSerialConsistencyLevel)
+            ConsistencyLevel expectedSerialConsistencyLevel)
         {
             var request = RequestHandler.GetRequest(batch, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -609,12 +610,12 @@ namespace Cassandra.Tests
             QueryFlags flags;
             if (serializer.ProtocolVersion.Uses4BytesQueryFlags())
             {
-                flags = (QueryFlags)BeConverter.ToInt32(bodyBuffer, offset);
+                flags = (QueryFlags) BeConverter.ToInt32(bodyBuffer, offset);
                 offset += 4;
             }
             else
             {
-                flags = (QueryFlags)bodyBuffer[offset++];
+                flags = (QueryFlags) bodyBuffer[offset++];
             }
 
             return flags;

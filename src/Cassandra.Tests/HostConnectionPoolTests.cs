@@ -9,6 +9,7 @@ using Cassandra.Serialization;
 using Cassandra.Tasks;
 using Moq;
 using NUnit.Framework;
+
 // ReSharper disable AccessToModifiedClosure
 
 namespace Cassandra.Tests
@@ -66,7 +67,8 @@ namespace Cassandra.Tests
                 .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 1500)
                 .SetMaxConnectionsPerHost(HostDistance.Local, maxConnections);
             var policies = new Policies(null, rp, null, null, null);
-            var config = new Configuration(
+
+            return new Configuration(
                 policies,
                 new ProtocolOptions(),
                 pooling,
@@ -75,8 +77,8 @@ namespace Cassandra.Tests
                 NoneAuthProvider.Instance,
                 null,
                 new QueryOptions(),
-                new DefaultAddressTranslator());
-            return config;
+                new DefaultAddressTranslator(),
+                null);
         }
 
         private static Connection GetConnectionMock(int inflight, int timedOutOperations = 0)
@@ -100,7 +102,7 @@ namespace Cassandra.Tests
             var lastByte = 1;
             //use different addresses for same hosts to differentiate connections: for test only
             //different connections to same hosts should use the same address
-            mock.Setup(p => p.DoCreateAndOpen()).Returns(() => TestHelper.DelayedTask(CreateConnection((byte)lastByte++), 200 - lastByte * 50));
+            mock.Setup(p => p.DoCreateAndOpen()).Returns(() => TestHelper.DelayedTask(CreateConnection((byte) lastByte++), 200 - lastByte * 50));
             var pool = mock.Object;
             var creation = pool.EnsureCreate();
             creation.Wait();
@@ -136,7 +138,7 @@ namespace Cassandra.Tests
             var lastByte = 1;
             mock.Setup(p => p.DoCreateAndOpen()).Returns(() =>
             {
-                var c = CreateConnection((byte)lastByte++);
+                var c = CreateConnection((byte) lastByte++);
                 if (lastByte == 2)
                 {
                     return TestHelper.DelayedTask(c, 500);
@@ -163,15 +165,12 @@ namespace Cassandra.Tests
         {
             var mock = GetPoolMock();
             var lastByte = 0;
-            mock.Setup(p => p.DoCreateAndOpen()).Returns(() => TestHelper.DelayedTask(CreateConnection((byte)++lastByte), 100 + (lastByte > 1 ? 10000 : 0)));
+            mock.Setup(p => p.DoCreateAndOpen()).Returns(() => TestHelper.DelayedTask(CreateConnection((byte) ++lastByte), 100 + (lastByte > 1 ? 10000 : 0)));
             var pool = mock.Object;
             var creationTasks = new Task<Connection[]>[10];
             var counter = -1;
             var initialCreate = pool.EnsureCreate();
-            TestHelper.ParallelInvoke(() =>
-            {
-                creationTasks[Interlocked.Increment(ref counter)] = pool.EnsureCreate();
-            }, 10);
+            TestHelper.ParallelInvoke(() => { creationTasks[Interlocked.Increment(ref counter)] = pool.EnsureCreate(); }, 10);
             // ReSharper disable once CoVariantArrayConversion
             Task.WaitAll(creationTasks);
             Assert.AreEqual(1, TaskHelper.WaitToComplete(initialCreate).Length);
@@ -199,10 +198,7 @@ namespace Cassandra.Tests
             var creationTasks = new Task[times];
             var counter = -1;
             var initialCreate = pool.EnsureCreate();
-            TestHelper.ParallelInvoke(() =>
-            {
-                creationTasks[Interlocked.Increment(ref counter)] = pool.EnsureCreate();
-            }, times);
+            TestHelper.ParallelInvoke(() => { creationTasks[Interlocked.Increment(ref counter)] = pool.EnsureCreate(); }, times);
             Assert.Throws<AggregateException>(() => initialCreate.Wait());
 
             var aggregateException = Assert.Throws<AggregateException>(() => Task.WaitAll(creationTasks));
@@ -211,10 +207,7 @@ namespace Cassandra.Tests
 
             // Serially, attempt calls to create
             Interlocked.Exchange(ref counter, -1);
-            TestHelper.ParallelInvoke(() =>
-            {
-                creationTasks[Interlocked.Increment(ref counter)] = pool.EnsureCreate();
-            }, times);
+            TestHelper.ParallelInvoke(() => { creationTasks[Interlocked.Increment(ref counter)] = pool.EnsureCreate(); }, times);
 
             aggregateException = Assert.Throws<AggregateException>(() => Task.WaitAll(creationTasks));
             Assert.AreEqual(times, aggregateException.InnerExceptions.Count);
@@ -226,10 +219,7 @@ namespace Cassandra.Tests
         {
             var mock = GetPoolMock();
             var testException = new Exception("Dummy exception");
-            mock.Setup(p => p.DoCreateAndOpen()).Returns(() => TestHelper.DelayedTask<Connection>(() =>
-            {
-                throw testException;
-            }));
+            mock.Setup(p => p.DoCreateAndOpen()).Returns(() => TestHelper.DelayedTask<Connection>(() => { throw testException; }));
             var pool = mock.Object;
             var task = pool.EnsureCreate();
             var ex = Assert.Throws<Exception>(() => TaskHelper.WaitToComplete(task));
@@ -485,10 +475,7 @@ namespace Cassandra.Tests
             {
                 Assert.Greater(pool.OpenConnections, 1);
             }
-            await Task.Run(() =>
-            {
-                pool.Dispose();
-            });
+            await Task.Run(() => { pool.Dispose(); });
             await Task.Delay(100);
             Assert.AreEqual(0, pool.OpenConnections);
         }

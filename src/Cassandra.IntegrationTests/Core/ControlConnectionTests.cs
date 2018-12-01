@@ -7,6 +7,7 @@ using System.Text;
 using NUnit.Framework;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Serialization;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -50,7 +51,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_Downgrade_The_Protocol_Version()
         {
             //Use a higher protocol version
-            var version = (ProtocolVersion)(GetProtocolVersion() + 1);
+            var version = (ProtocolVersion) (GetProtocolVersion() + 1);
             var cc = NewInstance(version);
             cc.Init().Wait(InitTimeout);
             Assert.AreEqual(version - 1, cc.ProtocolVersion);
@@ -60,15 +61,15 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_Downgrade_The_Protocol_Version_With_Higher_Version_Than_Supported()
         {
             // Use a non-existent higher protocol version
-            var version = (ProtocolVersion)0x0f;
+            var version = (ProtocolVersion) 0x0f;
             var cc = NewInstance(version);
             cc.Init().Wait(InitTimeout);
             Assert.AreEqual(GetProtocolVersion(), cc.ProtocolVersion);
         }
 
         private ControlConnection NewInstance(
-            ProtocolVersion version = ProtocolVersion.MaxSupported, 
-            Configuration config = null, 
+            ProtocolVersion version = ProtocolVersion.MaxSupported,
+            Configuration config = null,
             Metadata metadata = null)
         {
             config = config ?? new Configuration();
@@ -77,7 +78,8 @@ namespace Cassandra.IntegrationTests.Core
                 metadata = new Metadata(config);
                 metadata.AddHost(new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), ProtocolOptions.DefaultPort));
             }
-            var cc = new ControlConnection(version, config, metadata);
+
+            var cc = new ControlConnection(config, metadata);
             metadata.ControlConnection = cc;
             return cc;
         }

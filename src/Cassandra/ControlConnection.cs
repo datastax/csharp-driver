@@ -65,14 +65,14 @@ namespace Cassandra
 
         public Serializer Serializer => _serializer;
 
-        internal ControlConnection(ProtocolVersion initialProtocolVersion, Configuration config, Metadata metadata)
+        internal ControlConnection(Configuration config, Metadata metadata)
         {
             _metadata = metadata;
             _reconnectionPolicy = config.Policies.ReconnectionPolicy;
             _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             _reconnectionTimer = new Timer(_ => Reconnect().Forget(), null, Timeout.Infinite, Timeout.Infinite);
             _config = config;
-            _serializer = new Serializer(initialProtocolVersion, config.TypeSerializers);
+            _serializer = config.Serializer;
         }
 
         public void Dispose()

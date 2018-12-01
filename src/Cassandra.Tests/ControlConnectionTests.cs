@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics;
 using System.Net;
 using Moq;
 using NUnit.Framework;
@@ -12,15 +12,15 @@ namespace Cassandra.Tests
     {
         public ControlConnectionTests()
         {
-            Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Info;
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
         }
 
-        private ControlConnection NewInstance(Configuration config, Metadata metadata)
+        private static ControlConnection NewInstance(Configuration config, Metadata metadata)
         {
-            return new ControlConnection(ProtocolVersion.MaxSupported, config, metadata);
+            return new ControlConnection(config, metadata);
         }
 
-        private ControlConnection NewInstance(Metadata metadata)
+        private static ControlConnection NewInstance(Metadata metadata)
         {
             return NewInstance(new Configuration(), metadata);
         }
@@ -33,7 +33,7 @@ namespace Cassandra.Tests
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             var row = TestHelper.CreateRow(new Dictionary<string, object>
             {
-                { "cluster_name", "ut-cluster" }, { "data_center", "ut-dc" }, { "rack", "ut-rack" }, {"tokens", null}, {"release_version", "2.2.1-SNAPSHOT"}
+                { "cluster_name", "ut-cluster" }, { "data_center", "ut-dc" }, { "rack", "ut-rack" }, { "tokens", null }, { "release_version", "2.2.1-SNAPSHOT" }
             });
             cc.UpdateLocalInfo(row);
             Assert.AreEqual("ut-cluster", metadata.ClusterName);
@@ -53,8 +53,8 @@ namespace Cassandra.Tests
             var hostAddress3 = IPAddress.Parse("127.0.0.3");
             var rows = TestHelper.CreateRows(new List<Dictionary<string, object>>
             {
-                new Dictionary<string, object>{{"rpc_address", hostAddress2}, {"peer", null}, { "data_center", "ut-dc2" }, { "rack", "ut-rack2" }, {"tokens", null}, {"release_version", "2.1.5"}},
-                new Dictionary<string, object>{{"rpc_address", IPAddress.Parse("0.0.0.0")}, {"peer", hostAddress3}, { "data_center", "ut-dc3" }, { "rack", "ut-rack3" }, {"tokens", null}, {"release_version", "2.1.5"}}
+                new Dictionary<string, object> { { "rpc_address", hostAddress2 }, { "peer", null }, { "data_center", "ut-dc2" }, { "rack", "ut-rack2" }, { "tokens", null }, { "release_version", "2.1.5" } },
+                new Dictionary<string, object> { { "rpc_address", IPAddress.Parse("0.0.0.0") }, { "peer", hostAddress3 }, { "data_center", "ut-dc3" }, { "rack", "ut-rack3" }, { "tokens", null }, { "release_version", "2.1.5" } }
             });
             cc.UpdatePeersInfo(rows);
             Assert.AreEqual(3, metadata.AllHosts().Count);
@@ -80,7 +80,7 @@ namespace Cassandra.Tests
             metadata.AddHost(cc.Host.Address);
             var rows = TestHelper.CreateRows(new List<Dictionary<string, object>>
             {
-                new Dictionary<string, object>{{"rpc_address", null}, {"peer", null}, { "data_center", "ut-dc2" }, { "rack", "ut-rack" }, {"tokens", null}, {"release_version", "2.2.1"}}
+                new Dictionary<string, object> { { "rpc_address", null }, { "peer", null }, { "data_center", "ut-dc2" }, { "rack", "ut-rack" }, { "tokens", null }, { "release_version", "2.2.1" } }
             });
             cc.UpdatePeersInfo(rows);
             //Only local host present
@@ -99,14 +99,15 @@ namespace Cassandra.Tests
             const int portNumber = 9999;
             var metadata = new Metadata(new Configuration());
             var config = new Configuration(Policies.DefaultPolicies,
-                 new ProtocolOptions(portNumber),
-                 null,
-                 new SocketOptions(),
-                 new ClientOptions(),
-                 NoneAuthProvider.Instance,
-                 null,
-                 new QueryOptions(),
-                 translatorMock.Object);
+                new ProtocolOptions(portNumber),
+                null,
+                new SocketOptions(),
+                new ClientOptions(),
+                NoneAuthProvider.Instance,
+                null,
+                new QueryOptions(),
+                translatorMock.Object,
+                null);
             var cc = NewInstance(config, metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);
@@ -114,8 +115,8 @@ namespace Cassandra.Tests
             var hostAddress3 = IPAddress.Parse("127.0.0.3");
             var rows = TestHelper.CreateRows(new List<Dictionary<string, object>>
             {
-                new Dictionary<string, object>{{"rpc_address", hostAddress2}, {"peer", null}, { "data_center", "ut-dc2" }, { "rack", "ut-rack2" }, {"tokens", null}},
-                new Dictionary<string, object>{{"rpc_address", IPAddress.Parse("0.0.0.0")}, {"peer", hostAddress3}, { "data_center", "ut-dc3" }, { "rack", "ut-rack3" }, {"tokens", null}}
+                new Dictionary<string, object> { { "rpc_address", hostAddress2 }, { "peer", null }, { "data_center", "ut-dc2" }, { "rack", "ut-rack2" }, { "tokens", null } },
+                new Dictionary<string, object> { { "rpc_address", IPAddress.Parse("0.0.0.0") }, { "peer", hostAddress3 }, { "data_center", "ut-dc3" }, { "rack", "ut-rack3" }, { "tokens", null } }
             });
             cc.UpdatePeersInfo(rows);
             Assert.AreEqual(3, metadata.AllHosts().Count);

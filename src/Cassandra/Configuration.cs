@@ -42,6 +42,7 @@ namespace Cassandra
         private readonly IAddressTranslator _addressTranslator;
         private readonly RecyclableMemoryStreamManager _bufferPool;
         private readonly HashedWheelTimer _timer;
+        private readonly Serializer _serializer;
 
         /// <summary>
         ///  Gets the policies set for the cluster.
@@ -141,10 +142,10 @@ namespace Cassandra
             get { return _bufferPool; }
         }
 
-        /// <summary>
-        /// Gets or sets the list of <see cref="TypeSerializer{T}"/> defined.
-        /// </summary>
-        internal IEnumerable<ITypeSerializer> TypeSerializers { get; set; }
+        internal Serializer Serializer
+        {
+            get { return _serializer; }
+        }
 
         internal Configuration() :
             this(Policies.DefaultPolicies,
@@ -155,7 +156,8 @@ namespace Cassandra
                  NoneAuthProvider.Instance,
                  null,
                  new QueryOptions(),
-                 new DefaultAddressTranslator())
+                 new DefaultAddressTranslator(),
+                 null)
         {
         }
 
@@ -171,7 +173,8 @@ namespace Cassandra
                                IAuthProvider authProvider,
                                IAuthInfoProvider authInfoProvider,
                                QueryOptions queryOptions,
-                               IAddressTranslator addressTranslator)
+                               IAddressTranslator addressTranslator,
+                               IEnumerable<ITypeSerializer> typeSerializers)
         {
             if (addressTranslator == null)
             {
@@ -195,6 +198,15 @@ namespace Cassandra
             // to create the instance.
             _bufferPool = new RecyclableMemoryStreamManager(16 * 1024, 256 * 1024, ProtocolOptions.MaximumFrameLength);
             _timer = new HashedWheelTimer();
+
+            var protocolVersion = ProtocolVersion.MaxSupported;
+            if (protocolOptions.MaxProtocolVersionValue.HasValue &&
+                protocolOptions.MaxProtocolVersionValue.Value.IsSupported())
+            {
+                protocolVersion = protocolOptions.MaxProtocolVersionValue.Value;
+            }
+
+            _serializer = new Serializer(protocolVersion, typeSerializers);
         }
 
         /// <summary>
