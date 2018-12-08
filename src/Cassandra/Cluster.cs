@@ -149,7 +149,7 @@ namespace Cassandra
             _metadata = new Metadata(configuration);
             TaskHelper.WaitToComplete(AddHosts(contactPoints));
 
-            _serializer = Configuration.Serializer;
+            _serializer = Configuration.GetSerializer();
             _controlConnection = new ControlConnection(Configuration, _metadata);
             _metadata.ControlConnection = _controlConnection;
         }

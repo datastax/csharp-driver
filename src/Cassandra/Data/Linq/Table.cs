@@ -147,7 +147,7 @@ namespace Cassandra.Data.Linq
 
         public void Create()
         {
-            var serializer = _session.Cluster.Configuration.Serializer;
+            var serializer = _session.Cluster.Configuration.GetSerializer();
             var cqlQueries = CqlGenerator.GetCreate(serializer, PocoData, Name, KeyspaceName, false);
             foreach (var cql in cqlQueries)
             {

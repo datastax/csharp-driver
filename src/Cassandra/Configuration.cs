@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
 using Microsoft.IO;
@@ -35,14 +36,15 @@ namespace Cassandra
         private readonly ClientOptions _clientOptions;
         private readonly Policies _policies;
 
+        private Serializer _serializer;
         private PoolingOptions _poolingOptions;
+        private readonly IReadOnlyCollection<ITypeSerializer> _typeSerializers;
         private readonly ProtocolOptions _protocolOptions;
         private readonly QueryOptions _queryOptions;
         private readonly SocketOptions _socketOptions;
         private readonly IAddressTranslator _addressTranslator;
         private readonly RecyclableMemoryStreamManager _bufferPool;
         private readonly HashedWheelTimer _timer;
-        private readonly Serializer _serializer;
 
         /// <summary>
         ///  Gets the policies set for the cluster.
@@ -142,11 +144,6 @@ namespace Cassandra
             get { return _bufferPool; }
         }
 
-        internal Serializer Serializer
-        {
-            get { return _serializer; }
-        }
-
         internal Configuration() :
             this(Policies.DefaultPolicies,
                  new ProtocolOptions(),
@@ -199,14 +196,22 @@ namespace Cassandra
             _bufferPool = new RecyclableMemoryStreamManager(16 * 1024, 256 * 1024, ProtocolOptions.MaximumFrameLength);
             _timer = new HashedWheelTimer();
 
-            var protocolVersion = ProtocolVersion.MaxSupported;
-            if (protocolOptions.MaxProtocolVersionValue.HasValue &&
-                protocolOptions.MaxProtocolVersionValue.Value.IsSupported())
+            _typeSerializers = typeSerializers?.ToArray();
+            _serializer = CreateSerializer(protocolOptions, _typeSerializers);
+        }
+
+        /// <summary>
+        /// Get the shared serializer
+        /// </summary>
+        internal Serializer GetSerializer()
+        {
+            if (_protocolOptions.MaxProtocolVersionValue.HasValue &&
+                _protocolOptions.MaxProtocolVersionValue != _serializer.ProtocolVersion)
             {
-                protocolVersion = protocolOptions.MaxProtocolVersionValue.Value;
+                _serializer = CreateSerializer(_protocolOptions, _typeSerializers);
             }
 
-            _serializer = new Serializer(protocolVersion, typeSerializers);
+            return _serializer;
         }
 
         /// <summary>
@@ -220,6 +225,19 @@ namespace Cassandra
             }
             _poolingOptions = PoolingOptions.Create(protocolVersion);
             return _poolingOptions;
+        }
+
+        private static Serializer CreateSerializer(ProtocolOptions protocolOptions, IEnumerable<ITypeSerializer> typeSerializers)
+        {
+            var protocolVersion = ProtocolVersion.MaxSupported;
+            var optionsProtocolVersion = protocolOptions.MaxProtocolVersionValue;
+
+            if (optionsProtocolVersion.HasValue && optionsProtocolVersion.Value.IsSupported())
+            {
+                protocolVersion = optionsProtocolVersion.Value;
+            }
+
+            return new Serializer(protocolVersion, typeSerializers);
         }
     }
 }

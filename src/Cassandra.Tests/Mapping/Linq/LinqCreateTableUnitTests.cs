@@ -405,7 +405,7 @@ namespace Cassandra.Tests.Mapping.Linq
             udtInfo.Fields.Add(new ColumnDesc { Name = "title", TypeCode = ColumnTypeCode.Ascii });
             udtInfo.Fields.Add(new ColumnDesc { Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp });
             var udtMap = UdtMap.For<Song>().SetIgnoreCase(false);
-            var serializer = sessionMock.Object.Cluster.Configuration.Serializer;
+            var serializer = sessionMock.Object.Cluster.Configuration.GetSerializer();
             udtMap.SetSerializer(serializer);
             udtMap.Build(udtInfo);
             serializer.SetUdtMap("song", udtMap);
@@ -454,7 +454,7 @@ namespace Cassandra.Tests.Mapping.Linq
             udtInfo.Fields.Add(new ColumnDesc { Name = "title", TypeCode = ColumnTypeCode.Ascii });
             udtInfo.Fields.Add(new ColumnDesc { Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp });
             var udtMap = UdtMap.For<Song>();
-            var serializer = sessionMock.Object.Cluster.Configuration.Serializer;
+            var serializer = sessionMock.Object.Cluster.Configuration.GetSerializer();
             udtMap.SetSerializer(serializer);
             udtMap.Build(udtInfo);
             serializer.SetUdtMap("song", udtMap);
@@ -483,7 +483,7 @@ namespace Cassandra.Tests.Mapping.Linq
             udtInfo.Fields.Add(new ColumnDesc { Name = "title", TypeCode = ColumnTypeCode.Ascii });
             udtInfo.Fields.Add(new ColumnDesc { Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp });
             var udtMap = UdtMap.For<Song>();
-            var serializer = sessionMock.Object.Cluster.Configuration.Serializer;
+            var serializer = sessionMock.Object.Cluster.Configuration.GetSerializer();
             udtMap.SetSerializer(serializer);
             udtMap.Build(udtInfo);
             serializer.SetUdtMap("song", udtMap);
@@ -540,7 +540,7 @@ namespace Cassandra.Tests.Mapping.Linq
             var config = new Configuration();
             var metadata = new Metadata(config);
             var ccMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
-            ccMock.Setup(cc => cc.Serializer).Returns(config.Serializer);
+            ccMock.Setup(cc => cc.Serializer).Returns(config.GetSerializer());
             metadata.ControlConnection = ccMock.Object;
 
             var clusterMock = new Mock<ICluster>();

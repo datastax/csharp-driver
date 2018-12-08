@@ -72,7 +72,7 @@ namespace Cassandra
             _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             _reconnectionTimer = new Timer(_ => Reconnect().Forget(), null, Timeout.Infinite, Timeout.Infinite);
             _config = config;
-            _serializer = config.Serializer;
+            _serializer = config.GetSerializer();
         }
 
         public void Dispose()

@@ -1,13 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Net;
-using System.Text;
 using NUnit.Framework;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
-using Cassandra.Serialization;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -73,6 +68,7 @@ namespace Cassandra.IntegrationTests.Core
             Metadata metadata = null)
         {
             config = config ?? new Configuration();
+            config.ProtocolOptions.SetMaxProtocolVersion(version);
             if (metadata == null)
             {
                 metadata = new Metadata(config);
