@@ -37,7 +37,8 @@ namespace Cassandra.IntegrationTests.Core
                 result = "success",
                 delay_in_ms = delay,
                 rows = new[] {new {id = Guid.NewGuid()}},
-                column_types = new {id = "uuid"}
+                column_types = new {id = "uuid"},
+                ignore_on_prepare = false
             }
         };
 
