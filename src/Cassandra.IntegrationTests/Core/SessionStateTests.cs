@@ -55,7 +55,7 @@ namespace Cassandra.IntegrationTests.Core
             _testCluster.Remove().Wait();
         }
 
-        [Test]
+        [Test, Category("short")]
         public async Task Session_GetState_Should_Return_A_Snapshot_Of_The_Pools_State()
         {
             var poolingOptions = PoolingOptions.Create().SetCoreConnectionsPerHost(HostDistance.Local, 2);
@@ -95,7 +95,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test]
+        [Test, Category("short")]
         public void Session_GetState_Should_Return_Zero_After_Cluster_Disposal()
         {
             ISession session;

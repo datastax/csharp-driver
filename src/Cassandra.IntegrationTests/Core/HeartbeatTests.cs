@@ -45,8 +45,8 @@ namespace Cassandra.IntegrationTests.Core
             _testCluster.Remove().Wait();
         }
 
-        [TestCase(true)]
-        [TestCase(false)]
+        [TestCase(true), Category("short")]
+        [TestCase(false), Category("short")]
         public async Task Connection_Should_Send_Options_Requests_For_Heartbeats(bool executeQuery)
         {
             var builder = Cluster.Builder()
