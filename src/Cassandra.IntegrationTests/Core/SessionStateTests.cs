@@ -25,7 +25,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture]
+    [TestFixture, Category("short")]
     public class SessionStateTests
     {
         private SimulacronCluster _testCluster;
@@ -55,7 +55,7 @@ namespace Cassandra.IntegrationTests.Core
             _testCluster.Remove().Wait();
         }
 
-        [Test, Category("short")]
+        [Test]
         public async Task Session_GetState_Should_Return_A_Snapshot_Of_The_Pools_State()
         {
             var poolingOptions = PoolingOptions.Create().SetCoreConnectionsPerHost(HostDistance.Local, 2);
@@ -95,7 +95,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test, Category("short")]
+        [Test]
         public void Session_GetState_Should_Return_Zero_After_Cluster_Disposal()
         {
             ISession session;

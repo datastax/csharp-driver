@@ -21,7 +21,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture]
+    [TestFixture, Category("short")]
     public class HeartbeatTests
     {
         private SimulacronCluster _testCluster;
@@ -45,8 +45,8 @@ namespace Cassandra.IntegrationTests.Core
             _testCluster.Remove().Wait();
         }
 
-        [TestCase(true), Category("short")]
-        [TestCase(false), Category("short")]
+        [TestCase(true)]
+        [TestCase(false)]
         public async Task Connection_Should_Send_Options_Requests_For_Heartbeats(bool executeQuery)
         {
             var builder = Cluster.Builder()
