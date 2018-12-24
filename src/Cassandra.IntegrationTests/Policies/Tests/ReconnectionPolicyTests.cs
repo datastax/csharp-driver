@@ -24,7 +24,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Policies.Tests
 {
-    [TestFixture, Category("long")]
+    [TestFixture, Category("long"), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
     public class ReconnectionPolicyTests : TestGlobals
     {
         private PolicyTestTools _policyTestTools = null;

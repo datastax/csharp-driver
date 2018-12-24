@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using Castle.DynamicProxy.Generators.Emitters.SimpleAST;
 using NUnit.Framework;
 // ReSharper disable ObjectCreationAsStatement
 
@@ -120,6 +123,29 @@ namespace Cassandra.Tests
             {
                 var time = LocalTime.Parse(v.Item6);
                 Assert.AreEqual(new LocalTime(v.Item5), time);
+            }
+        }
+        
+        [Test]
+        [TestCase("pt-PT")]
+        [TestCase("es-ES")]
+        [TestCase("it-IT")]
+        [TestCase("en-US")]
+        public void LocalTime_ToString_Output_As_Input_For_Parse_Should_Return_An_Equal_LocalTime(string culture)
+        {
+            var currentCulture = Thread.CurrentThread.CurrentCulture;
+
+            try
+            {
+                Thread.CurrentThread.CurrentCulture = new CultureInfo(culture);
+                var localTime = new LocalTime(15, 21, 50, 1);
+                var localTimeStr = localTime.ToString();
+                var act = LocalTime.Parse(localTimeStr);
+                Assert.AreEqual(localTime, act);
+            }
+            finally
+            {
+                Thread.CurrentThread.CurrentCulture = currentCulture;
             }
         }
 

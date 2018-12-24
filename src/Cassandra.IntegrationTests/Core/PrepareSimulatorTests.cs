@@ -37,7 +37,8 @@ namespace Cassandra.IntegrationTests.Core
                 result = "success",
                 delay_in_ms = delay,
                 rows = new[] {new {id = Guid.NewGuid()}},
-                column_types = new {id = "uuid"}
+                column_types = new {id = "uuid"},
+                ignore_on_prepare = false
             }
         };
 
@@ -157,7 +158,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test, Ignore("Simulacron issue, see: datastax/simulacron#23")]
+        [Test]
         public void Should_Failover_When_First_Node_Timeouts()
         {
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;

@@ -21,7 +21,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture]
+    [TestFixture, Category("short")]
     public class HeartbeatTests
     {
         private SimulacronCluster _testCluster;

@@ -26,7 +26,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.FoundBugs
 {
-    [TestFixture, Category("long")]
+    [TestFixture, Category("long"), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
     public class FoundBugTests : TestGlobals
     {
         [Test]

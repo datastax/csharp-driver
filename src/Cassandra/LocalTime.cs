@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 
 namespace Cassandra
 {
@@ -115,7 +116,7 @@ namespace Cassandra
             var nanos = 0;
             if (parts.Length == 3)
             {
-                var decimalSeconds = Convert.ToDecimal(parts[2]);
+                var decimalSeconds = Convert.ToDecimal(parts[2], CultureInfo.InvariantCulture);
                 var integralPart = Math.Truncate(decimalSeconds);
                 seconds = (int) integralPart;
                 nanos = (int)(NanosInSeconds * (decimalSeconds - integralPart));
