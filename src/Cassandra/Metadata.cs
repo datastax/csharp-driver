@@ -36,7 +36,7 @@ namespace Cassandra
         private const string SelectSchemaVersionLocal = "SELECT schema_version FROM system.local";
         private static readonly Logger Logger = new Logger(typeof(ControlConnection));
         private volatile TokenMap _tokenMap;
-        private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string,KeyspaceMetadata>();
+        private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
         private volatile SchemaParser _schemaParser;
         public event HostsEventHandler HostsEvent;
         public event SchemaChangedEventHandler SchemaChangedEvent;
@@ -98,7 +98,7 @@ namespace Cassandra
         {
             if (SchemaChangedEvent != null)
             {
-                SchemaChangedEvent(sender ?? this, new SchemaChangedEventArgs {Keyspace = keyspace, What = what, Table = table});
+                SchemaChangedEvent(sender ?? this, new SchemaChangedEventArgs { Keyspace = keyspace, What = what, Table = table });
             }
         }
 
@@ -152,7 +152,7 @@ namespace Cassandra
             {
                 return new Host[0];
             }
-            return _tokenMap.GetReplicas(keyspaceName, _tokenMap.Factory.Hash(partitionKey));   
+            return _tokenMap.GetReplicas(keyspaceName, _tokenMap.Factory.Hash(partitionKey));
         }
 
         public ICollection<Host> GetReplicas(byte[] partitionKey)
@@ -423,15 +423,83 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Waits until that the schema version in all nodes is the same or the waiting time passed.
-        /// This method blocks the calling thread.
+        /// Initiates a schema agreement check. This method does not perform retries so
+        /// <see cref="ProtocolOptions.MaxSchemaAgreementWaitSeconds"/> does not apply. 
         /// </summary>
-        internal void WaitForSchemaAgreement(Connection connection)
+        /// <returns>True if schema agreement was successful and false if it was not successful.</returns>
+        /// <exception cref="OperationCanceledException">If operation was canceled due to
+        /// the provided <see cref="CancellationToken"/></exception>
+        public async Task<bool> CheckSchemaAgreementAsync(CancellationToken ct = default(CancellationToken))
         {
             if (Hosts.Count == 1)
             {
                 //If there is just one node, the schema is up to date in all nodes :)
-                return;
+                return true;
+            }
+
+            try
+            {
+                var queries = new[]
+                {
+                    ControlConnection.QueryAsync(SelectSchemaVersionLocal).WithCancellation(ct),
+                    ControlConnection.QueryAsync(SelectSchemaVersionPeers).WithCancellation(ct)
+                };
+
+                await Task.WhenAll(queries).ConfigureAwait(false);
+
+                return CheckSchemaVersionResults(queries[0].Result, queries[1].Result);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Error while checking schema agreement.", ex);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Checks if there is only one schema version between the provided query results.
+        /// </summary>
+        /// <param name="localVersionQuery">
+        /// Results obtained from a query to <code>system.local</code> table.
+        /// Must contain the <code>schema_version</code> column.
+        /// </param>
+        /// <param name="peerVersionsQuery">
+        /// Results obtained from a query to <code>system.peers</code> table.
+        /// Must contain the <code>schema_version</code> column.
+        /// </param>
+        /// <returns><code>True</code> if there is a schema agreement (only 1 schema version). <code>False</code> otherwise.</returns>
+        private bool CheckSchemaVersionResults(
+            IEnumerable<Row> localVersionQuery, IEnumerable<Row> peerVersionsQuery)
+        {
+            var versions = new HashSet<Guid>
+            {
+                localVersionQuery.First().GetValue<Guid>("schema_version")
+            };
+
+            var peerVersions = peerVersionsQuery.Select(r => r.GetValue<Guid>("schema_version"));
+            foreach (var v in peerVersions)
+            {
+                versions.Add(v);
+            }
+
+            return versions.Count == 1;
+        }
+
+        /// <summary>
+        /// Waits until that the schema version in all nodes is the same or the waiting time passed.
+        /// This method blocks the calling thread.
+        /// </summary>
+        internal bool WaitForSchemaAgreement(Connection connection)
+        {
+            if (Hosts.Count == 1)
+            {
+                //If there is just one node, the schema is up to date in all nodes :)
+                return true;
             }
             var start = DateTime.Now;
             var waitSeconds = Configuration.ProtocolOptions.MaxSchemaAgreementWaitSeconds;
@@ -443,23 +511,17 @@ namespace Cassandra
                 {
                     var schemaVersionLocalQuery = new QueryRequest(ControlConnection.ProtocolVersion, SelectSchemaVersionLocal, false, QueryProtocolOptions.Default);
                     var schemaVersionPeersQuery = new QueryRequest(ControlConnection.ProtocolVersion, SelectSchemaVersionPeers, false, QueryProtocolOptions.Default);
-                    var queries = new [] { connection.Send(schemaVersionLocalQuery), connection.Send(schemaVersionPeersQuery) };
+                    var queries = new[] { connection.Send(schemaVersionLocalQuery), connection.Send(schemaVersionPeersQuery) };
                     // ReSharper disable once CoVariantArrayConversion
                     Task.WaitAll(queries, Configuration.ClientOptions.QueryAbortTimeout);
-                    var versions = new HashSet<Guid>
+
+                    if (CheckSchemaVersionResults(
+                        Cassandra.ControlConnection.GetRowSet(queries[0].Result),
+                        Cassandra.ControlConnection.GetRowSet(queries[1].Result)))
                     {
-                        Cassandra.ControlConnection.GetRowSet(queries[0].Result).First().GetValue<Guid>("schema_version")
-                    };
-                    var peerVersions = Cassandra.ControlConnection.GetRowSet(queries[1].Result).Select(r => r.GetValue<Guid>("schema_version"));
-                    foreach (var v in peerVersions)
-                    {
-                        versions.Add(v);
+                        return true;
                     }
-                    totalVersions = versions.Count;
-                    if (versions.Count == 1)
-                    {
-                        return;
-                    }
+
                     Thread.Sleep(500);
                 }
                 Logger.Info(String.Format("Waited for schema agreement, still {0} schema versions in the cluster.", totalVersions));
@@ -469,6 +531,8 @@ namespace Cassandra
                 //Exceptions are not fatal
                 Logger.Error("There was an exception while trying to retrieve schema versions", ex);
             }
+
+            return false;
         }
 
         /// <summary>

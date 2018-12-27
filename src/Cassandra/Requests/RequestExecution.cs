@@ -158,8 +158,18 @@ namespace Cassandra.Requests
         private void HandleSchemaChange(ResultResponse response)
         {
             var result = FillRowSet(new RowSet(), response);
-            //Wait for the schema change before returning the result
-            _parent.SetCompleted(result, () => _session.Cluster.Metadata.WaitForSchemaAgreement(_connection));
+
+            // This is a schema change so initialize schema in agreement as false
+            result.Info.SetSchemaInAgreement(false);
+
+            // Wait for the schema change before returning the result
+            _parent.SetCompleted(
+                result, 
+                () =>
+                {
+                    var schemaAgreed = _session.Cluster.Metadata.WaitForSchemaAgreement(_connection);
+                    result.Info.SetSchemaInAgreement(schemaAgreed);
+                });
         }
 
         /// <summary>

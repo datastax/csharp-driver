@@ -52,6 +52,7 @@ namespace Cassandra
         private ProtocolVersion _maxProtocolVersion = ProtocolVersion.MaxSupported;
         private TypeSerializerDefinitions _typeSerializerDefinitions;
         private bool _noCompact;
+        private int _maxSchemaAgreementWaitSeconds = ProtocolOptions.DefaultMaxSchemaAgreementWaitSeconds;
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -110,7 +111,8 @@ namespace Cassandra
                 new ProtocolOptions(_port, _sslOptions).SetCompression(_compression)
                                                        .SetCustomCompressor(_customCompressor)
                                                        .SetMaxProtocolVersion(_maxProtocolVersion)
-                                                       .SetNoCompact(_noCompact),
+                                                       .SetNoCompact(_noCompact)
+                                                       .SetMaxSchemaAgreementWaitSeconds(_maxSchemaAgreementWaitSeconds),
                 _poolingOptions,
                 _socketOptions,
                 new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace),
@@ -626,6 +628,24 @@ namespace Cassandra
                 throw new InvalidOperationException(message);
             }
             _typeSerializerDefinitions = definitions;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the maximum time to wait for schema agreement before returning from a DDL query.<para/>
+        /// If not set through this method, the default value (10 seconds) will be used.
+        /// </summary>
+        /// <param name="maxSchemaAgreementWaitSeconds">The new value to set.</param>
+        /// <returns>This Builder.</returns>
+        /// <exception cref="ArgumentException">If the provided value is zero or less.</exception>
+        public Builder WithMaxSchemaAgreementWaitSeconds(int maxSchemaAgreementWaitSeconds)
+        {
+            if (maxSchemaAgreementWaitSeconds <= 0)
+            {
+                throw new ArgumentException("Max schema agreement wait must be greater than zero");
+            }
+
+            _maxSchemaAgreementWaitSeconds = maxSchemaAgreementWaitSeconds;
             return this;
         }
 
