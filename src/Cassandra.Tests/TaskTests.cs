@@ -144,6 +144,8 @@ namespace Cassandra.Tests
             Assert.False(called);
         }
 
+        [Ignore("this test is not reliable at all, ReSharper shows there are " +
+                "80+ cases where ConfigureAwait is not being used despite the test running successfully")]
         [Test]
         public void ConfigureAwait_Used_For_Every_Awaited_Task()
         {
