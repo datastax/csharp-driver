@@ -1,8 +1,9 @@
 ﻿namespace Cassandra.IntegrationTests.Core
 {
-    using System.Linq;
     using System.Threading.Tasks;
+
     using Cassandra.IntegrationTests.TestBase;
+
     using NUnit.Framework;
 
     [TestFixture, Category("short")]
@@ -21,72 +22,55 @@
         {
             base.OneTimeSetUp();
             _cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
-                              .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(60000))
-                              .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000))
+                              .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(5000))
+                              .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(15000))
                               .WithMaxSchemaAgreementWaitSeconds(MaxSchemaAgreementWaitSeconds)
                               .Build();
-            _session = (Session) _cluster.Connect();
+            _session = (Session)_cluster.Connect();
             _session.CreateKeyspace(KeyspaceName, null, false);
             _session.ChangeKeyspace(KeyspaceName);
         }
-        
-        [Test]
-        public async Task Should_CheckSchemaAgreementReturnTrue_When_AllNodesUpAndSchemaWasNotChanged()
-        {
-            Assert.IsTrue(_cluster.Metadata.Hosts.All(h => h.IsUp));
-            Assert.IsTrue(await _cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false));
-        }
 
         [Test]
-        public async Task Should_CheckSchemaAgreementReturnFalse_When_OneNodeIsDown()
+        public async Task Should_CheckSchemaAgreementReturnFalse_When_ADdlStatementIsExecutedAndOneNodeIsDown()
         {
+            //// this test can't be done with simulacron because there's no support for schema_changed responses
             try
             {
-                TestCluster.PauseNode(1);
+                TestCluster.PauseNode(2);
+
+                var tableName = TestUtils.GetUniqueTableName().ToLower();
+                var cql = new SimpleStatement(
+                    $"CREATE TABLE {tableName} (id int PRIMARY KEY, description text)");
+                await _session.ExecuteAsync(cql).ConfigureAwait(false);
                 Assert.IsFalse(await _cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false));
             }
             finally
             {
-                TestCluster.ResumeNode(1);
+                TestCluster.ResumeNode(2);
                 TestUtils.WaitForSchemaAgreement(_cluster, false, true);
             }
         }
-        
+
         [Test]
         public async Task Should_SchemaInAgreementReturnTrue_When_ADdlStatementIsExecutedAndAllNodesUp()
         {
+            //// this test can't be done with simulacron because there's no support for schema_changed responses
             var tableName = TestUtils.GetUniqueTableName().ToLower();
-            
+
             var cql = new SimpleStatement(
                 $"CREATE TABLE {tableName} (id int PRIMARY KEY, description text)");
             var rowSet = await _session.ExecuteAsync(cql).ConfigureAwait(false);
             Assert.IsTrue(rowSet.Info.SchemaInAgreement);
         }
-        
-        [Test]
-        public async Task Should_SchemaInAgreementReturnTrue_When_ADmlStatementIsExecutedAlthoughOneNodeIsDown()
-        {
-            try
-            {
-                TestCluster.PauseNode(1);
-                var cql = new SimpleStatement("SELECT count(*) FROM system.peers");
-                var rowSet = await _session.ExecuteAsync(cql).ConfigureAwait(false);
-                Assert.Greater(rowSet.First().GetValue<long>(0), 0);
-                Assert.IsTrue(rowSet.Info.SchemaInAgreement);
-            }
-            finally
-            {
-                TestCluster.ResumeNode(1);
-                TestUtils.WaitForSchemaAgreement(_cluster, false, true);
-            }
-        }
 
         [Test]
-        public async Task Should_SchemaInAgreementReturnFalse_When_OneNodeIsDown()
+        public async Task Should_SchemaInAgreementReturnFalse_When_ADdlStatementIsExecutedAndOneNodeIsDown()
         {
+            //// this test can't be done with simulacron because there's no support for schema_changed responses
             try
             {
-                TestCluster.PauseNode(1);
+                TestCluster.PauseNode(2);
                 var tableName = TestUtils.GetUniqueTableName().ToLower();
 
                 var cql = new SimpleStatement(
@@ -96,7 +80,7 @@
             }
             finally
             {
-                TestCluster.ResumeNode(1);
+                TestCluster.ResumeNode(2);
                 TestUtils.WaitForSchemaAgreement(_cluster, false, true);
             }
         }
