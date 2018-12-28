@@ -7,6 +7,8 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
+    using System.Collections.Generic;
+
     [Category("short")]
     public class ClusterSharedSingleNodeTests : SharedClusterTest
     {
@@ -53,14 +55,28 @@ namespace Cassandra.IntegrationTests.Core
                                         .Build())
             {
                 var session = cluster.Connect();
+                var actions = new List<Task>();
+
                 // Try to be force a race condition
-                Parallel.For(0, 200, _ => session.Execute(new SimpleStatement("SELECT * FROM local")));
-                var actions = new Task[200];
-                for (var i = 0; i < actions.Length; i++)
+                for (var i = 0; i < 200; i++)
                 {
-                    actions[i] = session.ExecuteAsync(new SimpleStatement("SELECT * FROM local"));
+                    actions.Add(Task.Factory.StartNew(
+                        () =>
+                        {
+                            for (var j = 0; j < 100; j++)
+                            {
+                                session.Execute(new SimpleStatement("SELECT * FROM local"));
+                            }
+                        },
+                        TaskCreationOptions.LongRunning));
                 }
-                Task.WaitAll(actions);
+                
+                for (var i = 0; i < 200; i++)
+                {
+                    actions.Add(session.ExecuteAsync(new SimpleStatement("SELECT * FROM local")));
+                }
+
+                Task.WaitAll(actions.ToArray());
                 Assert.That(actions.Count(a => a.Exception != null), Is.EqualTo(0));
             }
         }
