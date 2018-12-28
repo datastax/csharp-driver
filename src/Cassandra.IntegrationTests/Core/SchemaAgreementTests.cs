@@ -61,7 +61,7 @@
             var cql = new SimpleStatement(
                 $"CREATE TABLE {tableName} (id int PRIMARY KEY, description text)");
             var rowSet = await _session.ExecuteAsync(cql).ConfigureAwait(false);
-            Assert.IsTrue(rowSet.Info.SchemaInAgreement);
+            Assert.IsTrue(rowSet.Info.IsSchemaInAgreement);
         }
 
         [Test]
@@ -76,7 +76,7 @@
                 var cql = new SimpleStatement(
                     $"CREATE TABLE {tableName} (id int PRIMARY KEY, description text)");
                 var rowSet = await _session.ExecuteAsync(cql).ConfigureAwait(false);
-                Assert.IsFalse(rowSet.Info.SchemaInAgreement);
+                Assert.IsFalse(rowSet.Info.IsSchemaInAgreement);
             }
             finally
             {

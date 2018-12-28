@@ -36,7 +36,7 @@ namespace Cassandra
         public ExecutionInfo()
         {
             AchievedConsistency = ConsistencyLevel.Any;
-            SchemaInAgreement = true;
+            IsSchemaInAgreement = true;
         }
 
         /// <summary>
@@ -98,7 +98,7 @@ namespace Cassandra
         /// <remarks>Note that the schema agreement check is only performed for schema-altering queries For other
         /// query types, this method will always return <code>true</code>.</remarks>
         /// <value>Whether the cluster had reached schema agreement after the execution of this query.</value>
-        public bool SchemaInAgreement { get; private set; }
+        public bool IsSchemaInAgreement { get; private set; }
 
         /// <summary>
         /// Gets the trace information for the query execution without blocking.
@@ -124,7 +124,7 @@ namespace Cassandra
         }
 
         internal void SetSchemaInAgreement(bool schemaAgreement) {
-            SchemaInAgreement = schemaAgreement;
+            IsSchemaInAgreement = schemaAgreement;
         }
     }
 }

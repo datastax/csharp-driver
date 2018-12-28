@@ -90,7 +90,7 @@
         }
 
         [Test]
-        public async Task Should_SchemaInAgreementReturnTrue_When_ADmlStatementIsExecutedDespiteMultipleSchemaVersionsBeingReturned()
+        public async Task Should_SchemaInAgreementReturnTrue_When_ThereIsNoSchemaChangedResponseDespiteMultipleSchemaVersions()
         {
             var schemaVersion1 = Guid.NewGuid();
             var schemaVersion2 = Guid.NewGuid();
@@ -121,7 +121,7 @@
                     var cql = new SimpleStatement(selectStatement);
                     var rowSet = await session.ExecuteAsync(cql).ConfigureAwait(false);
                     Assert.AreEqual("123", rowSet.First().GetValue<string>("test"));
-                    Assert.IsTrue(rowSet.Info.SchemaInAgreement);
+                    Assert.IsTrue(rowSet.Info.IsSchemaInAgreement);
                     Assert.IsFalse(await cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false));
                 }
             }
