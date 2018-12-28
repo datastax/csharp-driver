@@ -16,14 +16,14 @@
         private Cluster _cluster;
         private Session _session;
 
-        private const int MaxSchemaAgreementWaitSeconds = 10;
+        private const int MaxSchemaAgreementWaitSeconds = 30;
 
         public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             _cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
-                              .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(5000))
-                              .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(15000))
+                              .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(30000))
+                              .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(60000))
                               .WithMaxSchemaAgreementWaitSeconds(MaxSchemaAgreementWaitSeconds)
                               .Build();
             _session = (Session)_cluster.Connect();
@@ -48,7 +48,7 @@
             finally
             {
                 TestCluster.ResumeNode(2);
-                TestUtils.WaitForSchemaAgreement(_cluster, false, true);
+                TestUtils.WaitForSchemaAgreement(_cluster, false, true, 60);
             }
         }
 
@@ -81,7 +81,7 @@
             finally
             {
                 TestCluster.ResumeNode(2);
-                TestUtils.WaitForSchemaAgreement(_cluster, false, true);
+                TestUtils.WaitForSchemaAgreement(_cluster, false, true, 60);
             }
         }
     }

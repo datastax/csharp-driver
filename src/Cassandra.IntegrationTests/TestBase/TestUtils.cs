@@ -607,9 +607,8 @@ namespace Cassandra.IntegrationTests.TestBase
         }
         
         public static void WaitForSchemaAgreement(
-            ICluster cluster, bool ignoreDownNodes = true, bool throwOnMaxRetries = false)
+            ICluster cluster, bool ignoreDownNodes = true, bool throwOnMaxRetries = false, int maxRetries = 20)
         {
-            const int maxRetries = 20;
             var hostsLength = cluster.AllHosts().Count;
             if (hostsLength == 1)
             {
