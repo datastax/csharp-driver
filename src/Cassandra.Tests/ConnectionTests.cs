@@ -283,7 +283,7 @@ namespace Cassandra.Tests
             await Task.Run(() => connection.Dispose()).ConfigureAwait(false);
             await Task.WhenAll(tasks).ConfigureAwait(false);
             // We must await for a short while until operation states are callback (on the TaskScheduler)
-            await TestHelper.WaitUntilAsync(() => totalFrames == responses.Count, 100, 30);
+            await TestHelper.WaitUntilAsync(() => totalFrames == responses.Count, 100, 30).ConfigureAwait(false);
             Assert.AreEqual(totalFrames, responses.Count);
         }
 

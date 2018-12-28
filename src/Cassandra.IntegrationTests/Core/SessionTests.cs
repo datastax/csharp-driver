@@ -323,7 +323,7 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     return localSession.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local"));
                 };
-                await TestHelper.TimesLimit(execute, 200000, 32);
+                await TestHelper.TimesLimit(execute, 200000, 32).ConfigureAwait(false);
                 Assert.That(pool1.OpenConnections, Is.EqualTo(3));
                 Assert.That(pool2.OpenConnections, Is.EqualTo(3));
             }
@@ -380,15 +380,15 @@ namespace Cassandra.IntegrationTests.Core
                 host.Down += _ => Interlocked.Increment(ref isDown);
             }
             const string query = "SELECT * from system.local";
-            await TestHelper.TimesLimit(() => session1.ExecuteAsync(new SimpleStatement(query)), 100, 32);
-            await TestHelper.TimesLimit(() => session2.ExecuteAsync(new SimpleStatement(query)), 100, 32);
+            await TestHelper.TimesLimit(() => session1.ExecuteAsync(new SimpleStatement(query)), 100, 32).ConfigureAwait(false);
+            await TestHelper.TimesLimit(() => session2.ExecuteAsync(new SimpleStatement(query)), 100, 32).ConfigureAwait(false);
             // Dispose the first session
             session1.Dispose();
 
             // All nodes should be up
             Assert.AreEqual(cluster.AllHosts().Count, cluster.AllHosts().Count(h => h.IsUp));
             // And session2 should be queryable
-            await TestHelper.TimesLimit(() => session2.ExecuteAsync(new SimpleStatement(query)), 100, 32);
+            await TestHelper.TimesLimit(() => session2.ExecuteAsync(new SimpleStatement(query)), 100, 32).ConfigureAwait(false);
             Assert.AreEqual(cluster.AllHosts().Count, cluster.AllHosts().Count(h => h.IsUp));
             cluster.Dispose();
             Assert.AreEqual(0, Volatile.Read(ref isDown));

@@ -84,7 +84,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         public void LinqOrderBy_Unrestricted_Async()
         {
             var ex = Assert.ThrowsAsync<InvalidQueryException>(
-                async () => await _movieTable.OrderBy(m => m.MainActor).ExecuteAsync());
+                async () => await _movieTable.OrderBy(m => m.MainActor).ExecuteAsync().ConfigureAwait(false));
             const string expectedException = "ORDER BY is only supported when the partition key is restricted by an EQ or an IN.";
             Assert.AreEqual(expectedException, ex.Message);
         }

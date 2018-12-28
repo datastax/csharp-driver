@@ -27,7 +27,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             using (var client = new HttpClient())
             {
                 client.BaseAddress = SimulacronManager.BaseAddress;
-                var response = await client.PostAsync(url, content);
+                var response = await client.PostAsync(url, content).ConfigureAwait(false);
                 if (!response.IsSuccessStatusCode)
                 {
                     // Get the error message
@@ -57,9 +57,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             using (var client = new HttpClient())
             {
                 client.BaseAddress = SimulacronManager.BaseAddress;
-                var response = await client.PutAsync(url, content);
+                var response = await client.PutAsync(url, content).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
-                var dataStr = await response.Content.ReadAsStringAsync();
+                var dataStr = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 if (string.IsNullOrEmpty(dataStr))
                 {
                     return null;
@@ -73,9 +73,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             using (var client = new HttpClient())
             {
                 client.BaseAddress = SimulacronManager.BaseAddress;
-                var response = await client.GetAsync(url);
+                var response = await client.GetAsync(url).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
-                var dataStr = await response.Content.ReadAsStringAsync();
+                var dataStr = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 return JObject.Parse(dataStr);
             }
         }
@@ -85,7 +85,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             using (var client = new HttpClient())
             {
                 client.BaseAddress = SimulacronManager.BaseAddress;
-                var response = await client.DeleteAsync(url);
+                var response = await client.DeleteAsync(url).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
             }
         }
