@@ -387,7 +387,7 @@ namespace Cassandra.Tasks
         }
 
         /// <summary>
-        /// Designed to await tasks with a cancellation token when the method that returns the task doesn't
+        /// Designed to Await tasks with a cancellation token when the method that returns the task doesn't
         /// accept a token.
         /// </summary>
         /// <param name="task"></param>

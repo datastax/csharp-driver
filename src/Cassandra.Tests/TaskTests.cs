@@ -144,8 +144,6 @@ namespace Cassandra.Tests
             Assert.False(called);
         }
 
-        [Ignore("this test is not reliable at all, ReSharper shows there are " +
-                "80+ cases where ConfigureAwait is not being used despite the test running successfully")]
         [Test]
         public void ConfigureAwait_Used_For_Every_Awaited_Task()
         {
@@ -165,7 +163,7 @@ namespace Cassandra.Tests
             {
                 Assert.Fail("Library source folder could not be determined");
             }
-            var regex = new Regex("await\\b[^;]*?(?<!ConfigureAwait\\(false\\));", 
+            var regex = new Regex("\\bawait\\b(?![^;]*ConfigureAwait\\(false\\))[^;]*;", 
                                   RegexOptions.Multiline | RegexOptions.Compiled);
             foreach (var fileInfo in directory.GetFiles("*.cs", SearchOption.AllDirectories))
             {
