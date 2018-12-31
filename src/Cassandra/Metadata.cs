@@ -423,17 +423,18 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Initiates a schema agreement check. This method does not perform retries so
+        /// Initiates a schema agreement check. <para/>
+        /// Schema changes need to be propagated to all nodes in the cluster.
+        /// Once they have settled on a common version, we say that they are in agreement.<para/>
+        /// This method does not perform retries so
         /// <see cref="ProtocolOptions.MaxSchemaAgreementWaitSeconds"/> does not apply. 
         /// </summary>
         /// <returns>True if schema agreement was successful and false if it was not successful.</returns>
-        /// <exception cref="OperationCanceledException">If operation was canceled due to
-        /// the provided <see cref="CancellationToken"/></exception>
-        public async Task<bool> CheckSchemaAgreementAsync(CancellationToken ct = default(CancellationToken))
+        public async Task<bool> CheckSchemaAgreementAsync()
         {
             if (Hosts.Count == 1)
             {
-                //If there is just one node, the schema is up to date in all nodes :)
+                // If there is just one node, the schema is up to date in all nodes :)
                 return true;
             }
 
@@ -441,17 +442,13 @@ namespace Cassandra
             {
                 var queries = new[]
                 {
-                    ControlConnection.QueryAsync(SelectSchemaVersionLocal).WithCancellation(ct),
-                    ControlConnection.QueryAsync(SelectSchemaVersionPeers).WithCancellation(ct)
+                    ControlConnection.QueryAsync(SelectSchemaVersionLocal),
+                    ControlConnection.QueryAsync(SelectSchemaVersionPeers)
                 };
 
                 await Task.WhenAll(queries).ConfigureAwait(false);
 
                 return CheckSchemaVersionResults(queries[0].Result, queries[1].Result);
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
             }
             catch (Exception ex)
             {
