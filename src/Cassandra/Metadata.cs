@@ -470,21 +470,13 @@ namespace Cassandra
         /// Must contain the <code>schema_version</code> column.
         /// </param>
         /// <returns><code>True</code> if there is a schema agreement (only 1 schema version). <code>False</code> otherwise.</returns>
-        private bool CheckSchemaVersionResults(
+        private static bool CheckSchemaVersionResults(
             IEnumerable<Row> localVersionQuery, IEnumerable<Row> peerVersionsQuery)
         {
-            var versions = new HashSet<Guid>
-            {
-                localVersionQuery.First().GetValue<Guid>("schema_version")
-            };
-
-            var peerVersions = peerVersionsQuery.Select(r => r.GetValue<Guid>("schema_version"));
-            foreach (var v in peerVersions)
-            {
-                versions.Add(v);
-            }
-
-            return versions.Count == 1;
+            return new HashSet<Guid>(
+               peerVersionsQuery
+                   .Concat(localVersionQuery)
+                   .Select(r => r.GetValue<Guid>("schema_version"))).Count == 1;
         }
 
         /// <summary>
@@ -521,7 +513,7 @@ namespace Cassandra
 
                     Thread.Sleep(500);
                 }
-                Logger.Info(String.Format("Waited for schema agreement, still {0} schema versions in the cluster.", totalVersions));
+                Logger.Info($"Waited for schema agreement, still {totalVersions} schema versions in the cluster.");
             }
             catch (Exception ex)
             {
