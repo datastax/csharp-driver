@@ -1,13 +1,14 @@
-﻿using System.Linq;
-using System.Net;
-using System.Threading.Tasks;
-using Cassandra.IntegrationTests.TestClusterManagement;
-using Cassandra.Tasks;
-using NUnit.Framework;
-
-namespace Cassandra.IntegrationTests.Core
+﻿namespace Cassandra.IntegrationTests.Core
 {
     using System.Collections.Generic;
+    using System.Linq;
+    using System.Net;
+    using System.Threading.Tasks;
+
+    using Cassandra.IntegrationTests.TestClusterManagement;
+    using Cassandra.Tasks;
+
+    using NUnit.Framework;
 
     [Category("short")]
     public class ClusterSharedSingleNodeTests : SharedClusterTest
@@ -43,7 +44,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        public void Cluster_Init_Keyspace_Race_Test()
+        public async Task Cluster_Init_Keyspace_Race_Test()
         {
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(TestCluster.InitialContactPoint)
@@ -51,33 +52,30 @@ namespace Cassandra.IntegrationTests.Core
                                         .WithDefaultKeyspace("system")
                                         //lots of connections per host
                                         .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 30))
-                                        .WithQueryTimeout(45000)
                                         .Build())
             {
-                var session = cluster.Connect();
-                var actions = new List<Task>();
+                var session = await cluster.ConnectAsync().ConfigureAwait(false);
+                var actionsBefore = new List<Task>();
+                var actionsAfter = new List<Task>();
 
-                // Try to be force a race condition
-                for (var i = 0; i < 200; i++)
+                // Try to force a race condition
+                for (var i = 0; i < 2000; i++)
                 {
-                    actions.Add(Task.Factory.StartNew(
-                        () =>
-                        {
-                            for (var j = 0; j < 100; j++)
-                            {
-                                session.Execute(new SimpleStatement("SELECT * FROM local"));
-                            }
-                        },
-                        TaskCreationOptions.LongRunning));
-                }
-                
-                for (var i = 0; i < 200; i++)
-                {
-                    actions.Add(session.ExecuteAsync(new SimpleStatement("SELECT * FROM local")));
+                    actionsBefore.Add(session.ExecuteAsync(new SimpleStatement("SELECT * FROM local")));
                 }
 
-                Task.WaitAll(actions.ToArray());
-                Assert.That(actions.Count(a => a.Exception != null), Is.EqualTo(0));
+                await Task.WhenAll(actionsBefore.ToArray()).ConfigureAwait(false);
+                Assert.True(actionsBefore.All(a => a.IsCompleted));
+                Assert.False(actionsBefore.Any(a => a.IsFaulted)); ;
+
+                for (var i = 0; i < 200; i++)
+                {
+                    actionsAfter.Add(session.ExecuteAsync(new SimpleStatement("SELECT * FROM local")));
+                }
+
+                await Task.WhenAll(actionsAfter.ToArray()).ConfigureAwait(false);
+                Assert.True(actionsAfter.All(a => a.IsCompleted));
+                Assert.False(actionsAfter.Any(a => a.IsFaulted));
             }
         }
 
