@@ -177,13 +177,13 @@ namespace Cassandra.IntegrationTests.TestBase
             {
                 try
                 {
-                    var session = await cluster.ConnectAsync();
+                    var session = await cluster.ConnectAsync().ConfigureAwait(false);
                     action(session);
                 }
                 finally
                 {
                     var shutdownAsync = cluster?.ShutdownAsync();
-                    if (shutdownAsync != null) await shutdownAsync;
+                    if (shutdownAsync != null) await shutdownAsync.ConfigureAwait(false);
                 }
             }
             else

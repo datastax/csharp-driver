@@ -68,7 +68,7 @@ namespace Cassandra.IntegrationTests.Core
                 var counter = 0;
                 ISessionState state = null;
                 // Warmup
-                await TestHelper.TimesLimit(() => session.ExecuteAsync(new SimpleStatement(Query)), 64, 32);
+                await TestHelper.TimesLimit(() => session.ExecuteAsync(new SimpleStatement(Query)), 64, 32).ConfigureAwait(false);
                 const int limit = 100;
                 // Perform several queries and get a snapshot somewhere
                 await TestHelper.TimesLimit(async () =>

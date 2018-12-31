@@ -114,7 +114,7 @@ namespace Cassandra.IntegrationTests.Core
                         {
                             try
                             {
-                                await testCluster.DropConnection(connections.Last());
+                                await testCluster.DropConnection(connections.Last()).ConfigureAwait(false);
                             }
                             catch
                             {
@@ -125,7 +125,7 @@ namespace Cassandra.IntegrationTests.Core
 
                     using (var cluster = builder.Build())
                     {
-                        await cluster.ConnectAsync();
+                        await cluster.ConnectAsync().ConfigureAwait(false);
                     }
 
 

@@ -231,7 +231,7 @@ namespace Cassandra.Tests
             {
                 var hasNextPage = Interlocked.Increment(ref fetchCounter) < pages - 1;
                 // Delayed fetch
-                await Task.Delay(20);
+                await Task.Delay(20).ConfigureAwait(false);
                 var result = CreateStringsRowset(10, pageSize);
                 result.PagingState = hasNextPage ? new byte[16] : null;
                 return result;

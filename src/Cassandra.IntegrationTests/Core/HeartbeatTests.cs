@@ -66,7 +66,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
                 var initialCount = logs.Count;
 
-                await Task.Delay(1400);
+                await Task.Delay(1400).ConfigureAwait(false);
 
                 logs = await _testCluster.GetNodes().First()
                                          .GetQueriesAsync(null, OptionsQueryType).ConfigureAwait(false);
