@@ -18,12 +18,14 @@
 
         private const int MaxSchemaAgreementWaitSeconds = 30;
 
+        private const int MaxTestSchemaAgreementRetries = 240;
+
         public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
             _cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
                               .WithSocketOptions(new SocketOptions()
-                                                 .SetReadTimeoutMillis(30000)
+                                                 .SetReadTimeoutMillis(5000)
                                                  .SetConnectTimeoutMillis(60000))
                               .WithMaxSchemaAgreementWaitSeconds(MaxSchemaAgreementWaitSeconds)
                               .Build();
@@ -74,7 +76,7 @@
         public void TearDown()
         {
             TestCluster.ResumeNode(2);
-            TestUtils.WaitForSchemaAgreement(_cluster, false, true, 60);
+            TestUtils.WaitForSchemaAgreement(_cluster, false, true, MaxTestSchemaAgreementRetries);
         }
     }
 }
