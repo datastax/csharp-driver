@@ -621,13 +621,13 @@ namespace Cassandra.IntegrationTests.TestBase
             {
                 Trace.TraceInformation("Waiting for test schema agreement");
                 Thread.Sleep(500);
-                var hosts = new List<Guid>();
+                var schemaVersions = new List<Guid>();
                 //peers
-                hosts.AddRange(cc.Query("SELECT peer, schema_version FROM system.peers").Select(r => r.GetValue<Guid>("schema_version")));
+                schemaVersions.AddRange(cc.Query("SELECT peer, schema_version FROM system.peers").Select(r => r.GetValue<Guid>("schema_version")));
                 //local
-                hosts.Add(cc.Query("SELECT schema_version FROM system.local").Select(r => r.GetValue<Guid>("schema_version")).First());
+                schemaVersions.Add(cc.Query("SELECT schema_version FROM system.local").Select(r => r.GetValue<Guid>("schema_version")).First());
 
-                var differentSchemas = hosts.GroupBy(v => v).Count();
+                var differentSchemas = schemaVersions.Distinct().Count();
                 if (differentSchemas <= 1 + nodesDown)
                 {
                     //There is 1 schema version or 1 + nodes that are considered as down

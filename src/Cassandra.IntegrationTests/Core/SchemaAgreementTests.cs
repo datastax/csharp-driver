@@ -36,21 +36,13 @@
         public async Task Should_CheckSchemaAgreementReturnFalse_When_ADdlStatementIsExecutedAndOneNodeIsDown()
         {
             //// this test can't be done with simulacron because there's no support for schema_changed responses
-            try
-            {
-                TestCluster.PauseNode(2);
+            TestCluster.PauseNode(2);
 
-                var tableName = TestUtils.GetUniqueTableName().ToLower();
-                var cql = new SimpleStatement(
-                    $"CREATE TABLE {tableName} (id int PRIMARY KEY, description text)");
-                await _session.ExecuteAsync(cql).ConfigureAwait(false);
-                Assert.IsFalse(await _cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false));
-            }
-            finally
-            {
-                TestCluster.ResumeNode(2);
-                TestUtils.WaitForSchemaAgreement(_cluster, false, true, 60);
-            }
+            var tableName = TestUtils.GetUniqueTableName().ToLower();
+            var cql = new SimpleStatement(
+                $"CREATE TABLE {tableName} (id int PRIMARY KEY, description text)");
+            await _session.ExecuteAsync(cql).ConfigureAwait(false);
+            Assert.IsFalse(await _cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false));
         }
 
         [Test]
@@ -69,21 +61,20 @@
         public async Task Should_SchemaInAgreementReturnFalse_When_ADdlStatementIsExecutedAndOneNodeIsDown()
         {
             //// this test can't be done with simulacron because there's no support for schema_changed responses
-            try
-            {
-                TestCluster.PauseNode(2);
-                var tableName = TestUtils.GetUniqueTableName().ToLower();
+            TestCluster.PauseNode(2);
+            var tableName = TestUtils.GetUniqueTableName().ToLower();
 
-                var cql = new SimpleStatement(
-                    $"CREATE TABLE {tableName} (id int PRIMARY KEY, description text)");
-                var rowSet = await _session.ExecuteAsync(cql).ConfigureAwait(false);
-                Assert.IsFalse(rowSet.Info.IsSchemaInAgreement);
-            }
-            finally
-            {
-                TestCluster.ResumeNode(2);
-                TestUtils.WaitForSchemaAgreement(_cluster, false, true, 60);
-            }
+            var cql = new SimpleStatement(
+                $"CREATE TABLE {tableName} (id int PRIMARY KEY, description text)");
+            var rowSet = await _session.ExecuteAsync(cql).ConfigureAwait(false);
+            Assert.IsFalse(rowSet.Info.IsSchemaInAgreement);
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            TestCluster.ResumeNode(2);
+            TestUtils.WaitForSchemaAgreement(_cluster, false, true, 60);
         }
     }
 }
