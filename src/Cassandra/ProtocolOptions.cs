@@ -32,7 +32,7 @@ namespace Cassandra
         internal const int MaximumFrameLength = 256*1024*1024;
 
         /// <summary>
-        /// /// The default value for <see cref="get_MaxSchemaAgreementWaitSeconds"/>: 10.
+        /// The default value for <see cref="get_MaxSchemaAgreementWaitSeconds"/>: 10.
         /// </summary>
         public const int DefaultMaxSchemaAgreementWaitSeconds = 10;
 

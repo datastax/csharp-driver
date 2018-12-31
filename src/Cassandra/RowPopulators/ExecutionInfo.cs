@@ -89,8 +89,8 @@ namespace Cassandra
         /// <summary>
         /// After a successful schema-altering query (ex: creating a table), the driver will check if
         /// the cluster's nodes agree on the new schema version. If not, it will keep retrying for a given
-        /// delay (configurable via <see cref="Builder.WithMaxSchemaAgreementWaitSeconds"/>).<para/>
-        /// 
+        /// delay (configurable via <see cref="Builder.WithMaxSchemaAgreementWaitSeconds"/>).
+        /// <para/>
         /// If this method returns <code>false</code>, clients can call <see cref="Metadata.CheckSchemaAgreementAsync"/>
         /// later to perform the check manually.
         /// </summary>

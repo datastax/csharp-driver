@@ -22,8 +22,9 @@
         {
             base.OneTimeSetUp();
             _cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
-                              .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(30000))
-                              .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(60000))
+                              .WithSocketOptions(new SocketOptions()
+                                                 .SetReadTimeoutMillis(30000)
+                                                 .SetConnectTimeoutMillis(60000))
                               .WithMaxSchemaAgreementWaitSeconds(MaxSchemaAgreementWaitSeconds)
                               .Build();
             _session = (Session)_cluster.Connect();

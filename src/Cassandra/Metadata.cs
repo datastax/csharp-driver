@@ -423,9 +423,11 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Initiates a schema agreement check. <para/>
+        /// Initiates a schema agreement check.
+        /// <para/>
         /// Schema changes need to be propagated to all nodes in the cluster.
-        /// Once they have settled on a common version, we say that they are in agreement.<para/>
+        /// Once they have settled on a common version, we say that they are in agreement.
+        /// <para/>
         /// This method does not perform retries so
         /// <see cref="ProtocolOptions.MaxSchemaAgreementWaitSeconds"/> does not apply. 
         /// </summary>

@@ -632,9 +632,11 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Sets the maximum time to wait for schema agreement before returning from a DDL query.<para/>
+        /// Sets the maximum time to wait for schema agreement before returning from a DDL query.
+        /// <para/>
         /// DDL queries introduce schema changes that need to be propagated to all nodes in the cluster.
-        /// Once they have settled on a common version, we say that they are in agreement.<para/>
+        /// Once they have settled on a common version, we say that they are in agreement.
+        /// <para/>
         /// If not set through this method, the default value (10 seconds) will be used.
         /// </summary>
         /// <param name="maxSchemaAgreementWaitSeconds">The new value to set.</param>
