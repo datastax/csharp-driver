@@ -1,27 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
-using Cassandra.Responses;
-using Cassandra.Tasks;
-
-namespace Cassandra.Requests
+﻿namespace Cassandra.Requests
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Net;
+    using System.Net.Sockets;
+    using System.Threading;
+    using System.Threading.Tasks;
+
+    using Cassandra.Responses;
+    using Cassandra.Tasks;
+
     internal class RequestExecution
     {
         private static readonly Logger Logger = new Logger(typeof(RequestExecution));
         private readonly RequestHandler _parent;
-        private readonly ISession _session;
+        private readonly Session _session;
         private readonly IRequest _request;
         private readonly Dictionary<IPEndPoint, Exception> _triedHosts = new Dictionary<IPEndPoint, Exception>();
         private volatile Connection _connection;
         private volatile int _retryCount;
         private volatile OperationState _operation;
 
-        public RequestExecution(RequestHandler parent, ISession session, IRequest request)
+        public RequestExecution(RequestHandler parent, Session session, IRequest request)
         {
             _parent = parent;
             _session = session;
@@ -39,47 +40,60 @@ namespace Cassandra.Requests
             _operation.Cancel();
         }
 
+        ///// <summary>
+        ///// Starts a new execution using the current request
+        ///// </summary>
+        ///// <param name="currentHostRetry"></param>
+        //public void Start(bool currentHostRetry = false)
+        //{
+        //    StartAsync(currentHostRetry).Forget();
+        //}
+
         /// <summary>
         /// Starts a new execution using the current request
         /// </summary>
-        /// <param name="useCurrentHost"></param>
-        public void Start(bool useCurrentHost = false)
+        /// <param name="currentHostRetry"></param>
+        public async Task StartAsync(bool currentHostRetry = false)
         {
-            if (!useCurrentHost)
-            {
-                //Get a new connection from the next host
-                _parent.GetNextConnection(_triedHosts).ContinueWith(t =>
-                {
-                    if (t.Exception != null)
-                    {
-                        t.Exception.Handle(_ => true);
-                        HandleResponse(t.Exception.InnerException, null);
-                        return;
-                    }
-                    _connection = t.Result;
-                    Send(_request, HandleResponse);
-                }, TaskContinuationOptions.ExecuteSynchronously);
-                return;
-            }
-            if (_connection == null)
-            {
-                throw new DriverInternalError("No current connection set");
-            }
+            await GetNextConnectionAsync(currentHostRetry).ConfigureAwait(false);
             Send(_request, HandleResponse);
         }
 
-        private void TryStartNew(bool useCurrentHost)
+        private async Task TryStartNewAsync(bool currentHostRetry)
         {
             try
             {
-                Start(useCurrentHost);
+                await StartAsync(currentHostRetry).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 //There was an Exception before sending (probably no host is available).
                 //This will mark the Task as faulted.
-                HandleException(ex);
+                HandleResponse(ex, null);
             }
+        }
+        
+        private void TryStartNew(bool currentHostRetry)
+        {
+            TryStartNewAsync(currentHostRetry).Forget();
+        }
+
+        private async Task GetNextConnectionAsync(bool currentHostRetry)
+        {
+            if (currentHostRetry)
+            {
+                try
+                {
+                    _connection = await _parent.GetConnectionFromCurrentHostAsync(_triedHosts).ConfigureAwait(false);
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warning("RequestHandler received exception while attempting to retry with the current host: {0}", ex.ToString());
+                }
+            }
+            
+            _connection = await _parent.GetNextConnection(_triedHosts).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -164,7 +178,7 @@ namespace Cassandra.Requests
 
             // Wait for the schema change before returning the result
             _parent.SetCompleted(
-                result, 
+                result,
                 () =>
                 {
                     var schemaAgreed = _session.Cluster.Metadata.WaitForSchemaAgreement(_connection);
@@ -212,7 +226,7 @@ namespace Cassandra.Requests
             return rs;
         }
 
-        private void SetAutoPage(RowSet rs, ISession session, IStatement statement)
+        private void SetAutoPage(RowSet rs, Session session, IStatement statement)
         {
             rs.AutoPage = statement != null && statement.AutoPage;
             if (rs.AutoPage && rs.PagingState != null && _request is IQueryRequest)
@@ -226,10 +240,10 @@ namespace Cassandra.Requests
                         return Task.FromResult(RowSet.Empty());
                     }
 
-                    var request = (IQueryRequest) RequestHandler.GetRequest(statement, _parent.Serializer,
+                    var request = (IQueryRequest)RequestHandler.GetRequest(statement, _parent.Serializer,
                         session.Cluster.Configuration);
                     request.PagingState = pagingState;
-                    return new RequestHandler(session, _parent.Serializer, request, statement).Send();
+                    return new RequestHandler(session, _parent.Serializer, request, statement).SendAsync();
                 }, _session.Cluster.Configuration.ClientOptions.QueryAbortTimeout);
             }
         }
@@ -278,10 +292,12 @@ namespace Cassandra.Requests
                 case RetryDecision.RetryDecisionType.Rethrow:
                     _parent.SetCompleted(ex);
                     break;
+
                 case RetryDecision.RetryDecisionType.Ignore:
                     // The error was ignored by the RetryPolicy, return an empty rowset
                     _parent.SetCompleted(null, FillRowSet(RowSet.Empty(), null));
                     break;
+
                 case RetryDecision.RetryDecisionType.Retry:
                     //Retry the Request using the new consistency level
                     Retry(decision.RetryConsistencyLevel, decision.UseCurrentHost);
@@ -349,7 +365,7 @@ namespace Cassandra.Requests
                 var batch = (BatchStatement)_parent.Statement;
 
                 bool SearchBoundStatement(Statement s) =>
-                    s is BoundStatement && ((BoundStatement) s).PreparedStatement.Id.SequenceEqual(id);
+                    s is BoundStatement && ((BoundStatement)s).PreparedStatement.Id.SequenceEqual(id);
                 boundStatement = (BoundStatement)batch.Queries.FirstOrDefault(SearchBoundStatement);
             }
             if (boundStatement == null)

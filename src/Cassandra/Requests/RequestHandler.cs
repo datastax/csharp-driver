@@ -37,7 +37,7 @@ namespace Cassandra.Requests
         public const long StateCompleted = 1;
 
         private readonly IRequest _request;
-        private readonly ISession _session;
+        private readonly Session _session;
         private readonly TaskCompletionSource<RowSet> _tcs;
         private long _state;
         private readonly IEnumerator<Host> _queryPlan;
@@ -55,7 +55,7 @@ namespace Cassandra.Requests
         /// <summary>
         /// Creates a new instance using a request and the statement.
         /// </summary>
-        public RequestHandler(ISession session, Serializer serializer, IRequest request, IStatement statement)
+        public RequestHandler(Session session, Serializer serializer, IRequest request, IStatement statement)
         {
             _tcs = new TaskCompletionSource<RowSet>();
             _session = session ?? throw new ArgumentNullException(nameof(session));
@@ -77,7 +77,7 @@ namespace Cassandra.Requests
         /// Creates a new instance using the statement to build the request.
         /// Statement can not be null.
         /// </summary>
-        public RequestHandler(ISession session, Serializer serializer, IStatement statement)
+        public RequestHandler(Session session, Serializer serializer, IStatement statement)
             : this(session, serializer, GetRequest(statement, serializer, session.Cluster.Configuration), statement)
         {
 
@@ -86,7 +86,7 @@ namespace Cassandra.Requests
         /// <summary>
         /// Creates a new instance with no request, suitable for getting a connection.
         /// </summary>
-        public RequestHandler(ISession session, Serializer serializer)
+        public RequestHandler(Session session, Serializer serializer)
             : this(session, serializer, null, null)
         {
 
@@ -241,7 +241,8 @@ namespace Cassandra.Requests
             {
                 if (_queryPlan.MoveNext())
                 {
-                    return _queryPlan.Current;
+                    _host = _queryPlan.Current;
+                    return _host;
                 }
             }
             return null;
@@ -256,12 +257,9 @@ namespace Cassandra.Requests
         internal async Task<Connection> GetNextConnection(Dictionary<IPEndPoint, Exception> triedHosts)
         {
             Host host;
-            // Use the concrete implementation in this method
-            var session = (Session) _session;
             // While there is an available host
-            while ((host = GetNextHost()) != null && !session.IsDisposed)
+            while ((host = GetNextHost()) != null && !_session.IsDisposed)
             {
-                _host = host;
                 triedHosts[host.Address] = null;
                 // Retrieve the distance from the load balancing and setting it
                 // at host level
@@ -278,7 +276,7 @@ namespace Cassandra.Requests
                     // distance first.
                     continue;
                 }
-                var c = await GetConnectionFromHost(host, distance, session, triedHosts).ConfigureAwait(false);
+                var c = await GetConnectionFromHost(host, distance, _session, triedHosts).ConfigureAwait(false);
                 if (c == null)
                 {
                     continue;
@@ -288,11 +286,45 @@ namespace Cassandra.Requests
             throw new NoHostAvailableException(triedHosts);
         }
 
+        internal async Task<Connection> GetConnectionFromCurrentHostAsync(
+            Dictionary<IPEndPoint, Exception> triedHosts)
+        {
+            if (_session.IsDisposed)
+            {
+                throw new NoHostAvailableException(triedHosts);
+            }
+
+            var host = _host;
+            triedHosts[host.Address] = null;
+            var distance = Cluster.RetrieveDistance(host, Policies.LoadBalancingPolicy);
+            if (distance == HostDistance.Ignored)
+            {
+                // We should not use an ignored host
+                throw new NoHostAvailableException(triedHosts);
+            }
+            
+            if (!host.IsUp)
+            {
+                // The host is not considered UP by the driver.
+                // We could have filtered earlier by hosts that are considered UP, but we must
+                // check the host distance first.
+                throw new NoHostAvailableException(triedHosts);
+            }
+
+            var c = await GetConnectionFromHost(host, distance, _session, triedHosts).ConfigureAwait(false);
+            if (c == null)
+            {
+                throw new NoHostAvailableException(triedHosts);
+            }
+
+            return c;
+        }
+
         /// <summary>
         /// Gets a connection from a host or null if its not possible, filling the triedHosts map with the failures.
         /// </summary>
-        internal static async Task<Connection> GetConnectionFromHost(Host host, HostDistance distance, Session session,
-                                                                     IDictionary<IPEndPoint, Exception> triedHosts)
+        internal static async Task<Connection> GetConnectionFromHost(
+            Host host, HostDistance distance, Session session, IDictionary<IPEndPoint, Exception> triedHosts)
         {
             Connection c = null;
             var hostPool = session.GetOrCreateConnectionPool(host, distance);
@@ -343,26 +375,26 @@ namespace Cassandra.Requests
             return c;
         }
 
-        public Task<RowSet> Send()
+        public async Task<RowSet> SendAsync()
         {
             if (_request == null)
             {
                 _tcs.TrySetException(new DriverException("request can not be null"));
-                return _tcs.Task;
+                return await _tcs.Task.ConfigureAwait(false);
             }
-            StartNewExecution();
-            return _tcs.Task;
+            await StartNewExecutionAsync().ConfigureAwait(false);
+            return await _tcs.Task.ConfigureAwait(false);
         }
 
         /// <summary>
         /// Starts a new execution and adds it to the executions collection
         /// </summary>
-        private void StartNewExecution()
+        private async Task StartNewExecutionAsync()
         {
             try
             {
                 var execution = new RequestExecution(this, _session, _request);
-                execution.Start();
+                await execution.StartAsync().ConfigureAwait(false);
                 _running.Add(execution);
                 ScheduleNext();
             }
@@ -406,14 +438,14 @@ namespace Cassandra.Requests
             _nextExecutionTimeout = _session.Cluster.Configuration.Timer.NewTimeout(_ =>
             {
                 // Start the speculative execution outside the IO thread
-                Task.Run(() =>
+                Task.Run(async () =>
                 {
                     if (HasCompleted())
                     {
                         return;
                     }
                     Logger.Info("Starting new speculative execution after {0}, last used host {1}", delay, _host.Address);
-                    StartNewExecution();
+                    await StartNewExecutionAsync().ConfigureAwait(false);
                 });
             }, null, delay);
         }

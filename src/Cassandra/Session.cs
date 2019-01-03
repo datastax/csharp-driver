@@ -266,7 +266,7 @@ namespace Cassandra
         /// <inheritdoc />
         public Task<RowSet> ExecuteAsync(IStatement statement)
         {
-            return new RequestHandler(this, _serializer, statement).Send();
+            return new RequestHandler(this, _serializer, statement).SendAsync();
         }
 
         /// <summary>
