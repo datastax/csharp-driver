@@ -163,7 +163,7 @@ namespace Cassandra.Tests
             {
                 Assert.Fail("Library source folder could not be determined");
             }
-            var regex = new Regex("await\\b[^;]*?(?<!ConfigureAwait\\(false\\));", 
+            var regex = new Regex("\\bawait\\b(?![^;]*ConfigureAwait\\(false\\))[^;]*;", 
                                   RegexOptions.Multiline | RegexOptions.Compiled);
             foreach (var fileInfo in directory.GetFiles("*.cs", SearchOption.AllDirectories))
             {

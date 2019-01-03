@@ -36,6 +36,7 @@ namespace Cassandra
         public ExecutionInfo()
         {
             AchievedConsistency = ConsistencyLevel.Any;
+            IsSchemaInAgreement = true;
         }
 
         /// <summary>
@@ -86,6 +87,20 @@ namespace Cassandra
         public ConsistencyLevel AchievedConsistency { get; private set; }
 
         /// <summary>
+        /// After a successful schema-altering query (ex: creating a table), the driver will check if
+        /// the cluster's nodes agree on the new schema version. If not, it will keep retrying for a given
+        /// delay (configurable via <see cref="Builder.WithMaxSchemaAgreementWaitSeconds"/>).
+        /// <para/>
+        /// If this method returns <code>false</code>, clients can call <see cref="Metadata.CheckSchemaAgreementAsync"/>
+        /// later to perform the check manually.
+        /// </summary>
+        /// <returns>Whether the cluster reached schema agreement, or <code>true</code> for a non schema-altering statement.</returns>
+        /// <remarks>Note that the schema agreement check is only performed for schema-altering queries For other
+        /// query types, this method will always return <code>true</code>.</remarks>
+        /// <value>Whether the cluster had reached schema agreement after the execution of this query.</value>
+        public bool IsSchemaInAgreement { get; private set; }
+
+        /// <summary>
         /// Gets the trace information for the query execution without blocking.
         /// </summary>
         public Task<QueryTrace> GetQueryTraceAsync()
@@ -106,6 +121,10 @@ namespace Cassandra
         internal void SetAchievedConsistency(ConsistencyLevel achievedConsistency)
         {
             AchievedConsistency = achievedConsistency;
+        }
+
+        internal void SetSchemaInAgreement(bool schemaAgreement) {
+            IsSchemaInAgreement = schemaAgreement;
         }
     }
 }
