@@ -44,7 +44,6 @@ namespace Cassandra.Requests
         private readonly object _queryPlanLock = new object();
         private readonly ICollection<RequestExecution> _running = new CopyOnWriteList<RequestExecution>();
         private ISpeculativeExecutionPlan _executionPlan;
-        private volatile Host _host;
         private volatile HashedWheelTimer.ITimeout _nextExecutionTimeout;
 
         public Policies Policies { get; }
@@ -241,66 +240,52 @@ namespace Cassandra.Requests
             {
                 if (_queryPlan.MoveNext())
                 {
-                    _host = _queryPlan.Current;
-                    return _host;
+                    return _queryPlan.Current;
                 }
             }
             return null;
         }
 
         /// <summary>
-        /// Gets a connection from the next host according to the load balancing policy
+        /// 
         /// </summary>
-        /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
-        /// <exception cref="UnsupportedProtocolVersionException">When the protocol version is not supported in the host</exception>
-        /// <exception cref="NoHostAvailableException"></exception>
-        internal async Task<Connection> GetNextConnection(Dictionary<IPEndPoint, Exception> triedHosts)
+        /// <param name="triedHosts">Hosts for which there were attempts to connect and send the request.</param>
+        /// <param name="distance">Output parameter that will contain the <see cref="HostDistance"/> associated with the returned Host.
+        /// It is retrieved from the current <see cref="ILoadBalancingPolicy"/>.</param>
+        /// <returns></returns>
+        /// <exception cref="NoHostAvailableException">If every host from the query plan is unavailable.</exception>
+        internal Host GetNextHostForConnection(Dictionary<IPEndPoint, Exception> triedHosts, out HostDistance distance)
         {
             Host host;
-            // While there is an available host
             while ((host = GetNextHost()) != null && !_session.IsDisposed)
             {
                 triedHosts[host.Address] = null;
-                // Retrieve the distance from the load balancing and setting it
-                // at host level
-                var distance = Cluster.RetrieveDistance(host, Policies.LoadBalancingPolicy);
-                if (distance == HostDistance.Ignored)
-                {
-                    // We should not use an ignored host
-                    continue;
-                }
-                if (!host.IsUp)
-                {
-                    // The host is not considered UP by the driver.
-                    // We could have filtered earlier by hosts that are considered UP, but we must check the host
-                    // distance first.
-                    continue;
-                }
-                var c = await GetConnectionFromHost(host, distance, _session, triedHosts).ConfigureAwait(false);
-                if (c == null)
+                if (!TryValidateHostAndGetDistance(host, out distance))
                 {
                     continue;
                 }
-                return c;
+
+                return host;
             }
+
             throw new NoHostAvailableException(triedHosts);
         }
-
-        internal async Task<Connection> GetConnectionFromCurrentHostAsync(
-            Dictionary<IPEndPoint, Exception> triedHosts)
+        
+        /// <summary>
+        /// Checks if the host is a valid candidate for the purpose of obtaining a connection.
+        /// </summary>
+        /// <param name="host">Host to check.</param>
+        /// <param name="distance">Output parameter that will contain the <see cref="HostDistance"/> associated with
+        /// <paramref name="host"/>. It is retrieved from the current <see cref="ILoadBalancingPolicy"/>.</param>
+        /// <returns><code>true</code> if the host is valid and <code>false</code> if not valid
+        /// (e.g. the host is ignored or the driver sees it as <code>Down</code>)</returns>
+        private bool TryValidateHostAndGetDistance(Host host, out HostDistance distance)
         {
-            if (_session.IsDisposed)
-            {
-                throw new NoHostAvailableException(triedHosts);
-            }
-
-            var host = _host;
-            triedHosts[host.Address] = null;
-            var distance = Cluster.RetrieveDistance(host, Policies.LoadBalancingPolicy);
+            distance = Cluster.RetrieveDistance(host, Policies.LoadBalancingPolicy);
             if (distance == HostDistance.Ignored)
             {
                 // We should not use an ignored host
-                throw new NoHostAvailableException(triedHosts);
+                return false;
             }
             
             if (!host.IsUp)
@@ -308,21 +293,95 @@ namespace Cassandra.Requests
                 // The host is not considered UP by the driver.
                 // We could have filtered earlier by hosts that are considered UP, but we must
                 // check the host distance first.
-                throw new NoHostAvailableException(triedHosts);
+                return false;
             }
 
-            var c = await GetConnectionFromHost(host, distance, _session, triedHosts).ConfigureAwait(false);
-            if (c == null)
+            return true;
+        }
+
+        /// <summary>
+        /// Gets a connection from the next host according to the load balancing policy
+        /// </summary>
+        /// <param name="triedHosts">Hosts for which there were attempts to connect and send the request.</param>
+        /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
+        /// <exception cref="NoHostAvailableException"></exception>
+        internal async Task<Connection> GetNextConnection(Dictionary<IPEndPoint, Exception> triedHosts)
+        {
+            Host host;
+            // While there is an available host
+            while ((host = GetNextHost()) != null)
+            {
+                var c = await GetConnectionFromHostAsync(host, triedHosts).ConfigureAwait(false);
+                if (c == null)
+                {
+                    continue;
+                }
+                return c;
+            }
+
+            throw new NoHostAvailableException(triedHosts);
+        }
+
+        /// <summary>
+        /// Obtain a connection to the provided <paramref name="host"/>.
+        /// In practice this is a simple wrapper around the static method <see cref="GetConnectionFromHost"/>
+        /// so refer to that method's documentation for more information.
+        /// </summary>
+        /// <param name="host">Host to which a connection will be obtained.</param>
+        /// <param name="triedHosts">Hosts for which there were attempts to connect and send the request.</param>
+        /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
+        /// <exception cref="NoHostAvailableException"></exception>
+        internal async Task<Connection> GetConnectionFromHostAsync(Host host, Dictionary<IPEndPoint, Exception> triedHosts)
+        {
+            if (_session.IsDisposed)
             {
                 throw new NoHostAvailableException(triedHosts);
             }
 
+            triedHosts[host.Address] = null;
+
+            if (!TryValidateHostAndGetDistance(host, out var distance))
+            {
+                return null;
+            }
+            
+            var c = await GetConnectionFromHost(host, distance, _session, triedHosts).ConfigureAwait(false);
+            return c;
+        }
+        
+        /// <summary>
+        /// Obtain a connection to the provided <paramref name="host"/>.
+        /// In practice this is a simple wrapper around the static method <see cref="GetConnectionFromHost"/>
+        /// so refer to that method's documentation for more information.
+        /// </summary>
+        /// <param name="host">Host to which a connection will be obtained.</param>
+        /// <param name="distance"><see cref="HostDistance"/> associated with <paramref name="host"/>.
+        /// It is usually retrieved through the <see cref="Cluster.RetrieveDistance"/> method.</param>
+        /// <param name="triedHosts">Hosts for which there were attempts to connect and send the request.</param>
+        /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
+        /// <exception cref="NoHostAvailableException"></exception>
+        internal async Task<Connection> GetConnectionFromValidHostAsync(
+            Host host, HostDistance distance, Dictionary<IPEndPoint, Exception> triedHosts)
+        {
+            if (_session.IsDisposed)
+            {
+                throw new NoHostAvailableException(triedHosts);
+            }
+            
+            var c = await GetConnectionFromHost(host, distance, _session, triedHosts).ConfigureAwait(false);
             return c;
         }
 
         /// <summary>
         /// Gets a connection from a host or null if its not possible, filling the triedHosts map with the failures.
         /// </summary>
+        /// <param name="host">Host to which a connection will be obtained.</param>
+        /// <param name="distance">Output parameter that will contain the <see cref="HostDistance"/> associated with
+        /// <paramref name="host"/>. It is retrieved from the current <see cref="ILoadBalancingPolicy"/>.</param>
+        /// <param name="session">Session from where a connection will be obtained (or created).</param>
+        /// <param name="triedHosts">Hosts for which there were attempts to connect and send the request.</param>
+        /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
+        /// <exception cref="NoHostAvailableException"></exception>
         internal static async Task<Connection> GetConnectionFromHost(
             Host host, HostDistance distance, IInternalSession session, IDictionary<IPEndPoint, Exception> triedHosts)
         {
@@ -375,28 +434,29 @@ namespace Cassandra.Requests
             return c;
         }
 
-        public async Task<RowSet> SendAsync()
+        public Task<RowSet> SendAsync()
         {
             if (_request == null)
             {
                 _tcs.TrySetException(new DriverException("request can not be null"));
-                return await _tcs.Task.ConfigureAwait(false);
+                return _tcs.Task;
             }
-            await StartNewExecutionAsync().ConfigureAwait(false);
-            return await _tcs.Task.ConfigureAwait(false);
+
+            StartNewExecution();
+            return _tcs.Task;
         }
 
         /// <summary>
         /// Starts a new execution and adds it to the executions collection
         /// </summary>
-        private async Task StartNewExecutionAsync()
+        private void StartNewExecution()
         {
             try
             {
                 var execution = new RequestExecution(this, _session, _request);
-                await execution.StartAsync().ConfigureAwait(false);
+                var lastHost = execution.Start(false);
                 _running.Add(execution);
-                ScheduleNext();
+                ScheduleNext(lastHost);
             }
             catch (NoHostAvailableException ex)
             {
@@ -418,7 +478,7 @@ namespace Cassandra.Requests
         /// <summary>
         /// Schedules the next delayed execution
         /// </summary>
-        private void ScheduleNext()
+        private void ScheduleNext(Host currentHost)
         {
             if (Statement == null || Statement.IsIdempotent == false)
             {
@@ -429,7 +489,7 @@ namespace Cassandra.Requests
             {
                 _executionPlan = Policies.SpeculativeExecutionPolicy.NewPlan(_session.Keyspace, Statement);
             }
-            var delay = _executionPlan.NextExecution(_host);
+            var delay = _executionPlan.NextExecution(currentHost);
             if (delay <= 0)
             {
                 return;
@@ -438,14 +498,14 @@ namespace Cassandra.Requests
             _nextExecutionTimeout = _session.Cluster.Configuration.Timer.NewTimeout(_ =>
             {
                 // Start the speculative execution outside the IO thread
-                Task.Run(async () =>
+                Task.Run(() =>
                 {
                     if (HasCompleted())
                     {
                         return;
                     }
-                    Logger.Info("Starting new speculative execution after {0}, last used host {1}", delay, _host.Address);
-                    await StartNewExecutionAsync().ConfigureAwait(false);
+                    Logger.Info("Starting new speculative execution after {0}, last used host {1}", delay, currentHost.Address);
+                    StartNewExecution();
                 });
             }, null, delay);
         }

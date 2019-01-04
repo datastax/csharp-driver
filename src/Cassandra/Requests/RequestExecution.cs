@@ -22,11 +22,17 @@
         private volatile int _retryCount;
         private volatile OperationState _operation;
 
+        /// <summary>
+        /// Host that was queried last in this execution. It can be null.
+        /// </summary>
+        private volatile Host _host;
+
         public RequestExecution(RequestHandler parent, IInternalSession session, IRequest request)
         {
             _parent = parent;
             _session = session;
             _request = request;
+            _host = null;
         }
 
         public void Cancel()
@@ -40,30 +46,99 @@
             _operation.Cancel();
         }
 
-        ///// <summary>
-        ///// Starts a new execution using the current request
-        ///// </summary>
-        ///// <param name="currentHostRetry"></param>
-        //public void Start(bool currentHostRetry = false)
-        //{
-        //    StartAsync(currentHostRetry).Forget();
-        //}
-
         /// <summary>
-        /// Starts a new execution using the current request
+        /// Starts a new execution using the current request.
+        /// <para/>
+        /// In some scenarios, some exceptions are thrown before any I/O actually happens in order to fail fast.
         /// </summary>
-        /// <param name="currentHostRetry"></param>
-        public async Task StartAsync(bool currentHostRetry = false)
+        /// <param name="currentHostRetry">Whether this is a retry on the last queried host.
+        /// Usually this is mapped from <see cref="RetryDecision.UseCurrentHost"/></param>
+        /// <returns>Host chosen to which a connection will be obtained first.
+        /// The actual host that will be queried might be different if a connection is not successfully obtained.
+        /// In this scenario, the next host will be chosen according to the query plan.</returns>
+        public Host Start(bool currentHostRetry)
         {
-            await GetNextConnectionAsync(currentHostRetry).ConfigureAwait(false);
-            Send(_request, HandleResponse);
+            if (currentHostRetry && _host != null)
+            {
+                GetNewConnectionFromCurrentHostAndSend().Forget();
+                return _host;
+            }
+
+            // fail fast: try to choose a host before leaving this thread
+            var host = _parent.GetNextHostForConnection(_triedHosts, out var distance);
+
+            GetNextConnectionAndSend(host, distance).Forget();
+            return host;
         }
 
-        private async Task TryStartNewAsync(bool currentHostRetry)
+        /// <summary>
+        /// Send request with a new connection to the current host. Useful for retries on the same host.
+        /// </summary>
+        private async Task GetNewConnectionFromCurrentHostAndSend()
         {
             try
             {
-                await StartAsync(currentHostRetry).ConfigureAwait(false);
+                
+                _connection = await _parent.GetConnectionFromHostAsync(_host, _triedHosts).ConfigureAwait(false);
+                if (_connection != null)
+                {
+                    Send(_request, HandleResponse);
+                    return;
+                }
+
+                Logger.Warning("RequestHandler could not obtain a connection while attempting to retry with the current host.");
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning("RequestHandler received exception while attempting to retry with the current host: {0}", ex.ToString());
+            }
+
+            RetryExecution(false);
+        }
+
+        /// <summary>
+        /// Attempts to obtain a connection to the provided <paramref name="host"/> and send the request with it.
+        /// If no connection could be obtained for the provided host, then attempts to obtain a connection
+        /// for the next host, following the query plan.
+        /// </summary>
+        /// <param name="host">First host to which the method tries to obtain a connection.</param>
+        /// <param name="distance"><see cref="HostDistance"/> associated with <paramref name="host"/>.
+        /// It is usually retrieved through the <see cref="Cluster.RetrieveDistance"/> method.</param>
+        /// <returns></returns>
+        private async Task GetNextConnectionAndSend(Host host, HostDistance distance)
+        {
+            try
+            {
+                do
+                {
+                    _host = host;
+                    _connection = await _parent.GetConnectionFromValidHostAsync(host, distance, _triedHosts).ConfigureAwait(false);
+                    if (_connection != null)
+                    {
+                        break;
+                    }
+                } 
+                while ((host = _parent.GetNextHostForConnection(_triedHosts, out distance)) != null);
+
+                Send(_request, HandleResponse);
+            }
+            catch (Exception ex)
+            {
+                HandleResponse(ex, null);
+            }
+        }
+
+        /// <summary>
+        /// Wrapper around <see cref="Start"/> that catches exceptions and invokes the exception handler.
+        /// Useful method to restart the execution from a different thread other than the main thread
+        /// that is used in <see cref="RequestHandler.SendAsync"/>, which already catches and handles Exceptions.
+        /// </summary>
+        /// <param name="currentHostRetry"></param>
+        private void RetryExecution(bool currentHostRetry)
+        {
+            try
+            {
+                Start(currentHostRetry);
             }
             catch (Exception ex)
             {
@@ -71,29 +146,6 @@
                 //This will mark the Task as faulted.
                 HandleResponse(ex, null);
             }
-        }
-        
-        private void TryStartNew(bool currentHostRetry)
-        {
-            TryStartNewAsync(currentHostRetry).Forget();
-        }
-
-        private async Task GetNextConnectionAsync(bool currentHostRetry)
-        {
-            if (currentHostRetry)
-            {
-                try
-                {
-                    _connection = await _parent.GetConnectionFromCurrentHostAsync(_triedHosts).ConfigureAwait(false);
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    Logger.Warning("RequestHandler received exception while attempting to retry with the current host: {0}", ex.ToString());
-                }
-            }
-            
-            _connection = await _parent.GetNextConnection(_triedHosts).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -140,7 +192,7 @@
                 ((ICqlRequest)_request).Consistency = consistency.Value;
             }
             Logger.Info("Retrying request: {0}", _request.GetType().Name);
-            TryStartNew(useCurrentHost);
+            RetryExecution(useCurrentHost);
         }
 
         private void HandleRowSetResult(Response response)

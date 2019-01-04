@@ -102,7 +102,8 @@ namespace Cassandra.IntegrationTests.Core
         ///
         /// @test_category connection:reconnection
         [Test]
-        public void Reconnection_Attempted_Multiple_Times_On_Multiple_Nodes([Range(1, 3)] int repeating)
+        [Repeat(3)]
+        public void Reconnection_Attempted_Multiple_Times_On_Multiple_Nodes()
         {
             var testCluster = TestClusterManager.CreateNew(2);
 
