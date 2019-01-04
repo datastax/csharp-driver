@@ -27,11 +27,8 @@ using Cassandra.Serialization;
 
 namespace Cassandra
 {
-    /// <summary>
-    /// Implementation of <see cref="ISession"/>.
-    /// </summary>
     /// <inheritdoc cref="Cassandra.ISession" />
-    public class Session : ISession
+    public class Session : IInternalSession
     {
         private readonly Serializer _serializer;
         private static readonly Logger Logger = new Logger(typeof(Session));
@@ -40,10 +37,12 @@ namespace Cassandra
         private int _disposed;
         private volatile string _keyspace;
 
-        public int BinaryProtocolVersion { get { return (int)_serializer.ProtocolVersion; } }
+        internal IInternalSession InternalRef => this;
+
+        public int BinaryProtocolVersion => (int)_serializer.ProtocolVersion;
 
         /// <inheritdoc />
-        public ICluster Cluster { get { return _cluster; } }
+        public ICluster Cluster => _cluster;
 
         /// <summary>
         /// Gets the cluster configuration
@@ -53,24 +52,30 @@ namespace Cassandra
         /// <summary>
         /// Determines if the session is already disposed
         /// </summary>
-        public bool IsDisposed
-        {
-            get { return Volatile.Read(ref _disposed) > 0; }
-        }
+        public bool IsDisposed => Volatile.Read(ref _disposed) > 0;
 
         /// <summary>
         /// Gets or sets the keyspace
         /// </summary>
         public string Keyspace
         {
-            get { return _keyspace; }
-            internal set { _keyspace = value; }
+            get => InternalRef.Keyspace;
+            private set => InternalRef.Keyspace = value;
+        }
+
+        /// <summary>
+        /// Gets or sets the keyspace
+        /// </summary>
+        string IInternalSession.Keyspace
+        {
+            get => _keyspace;
+            set => _keyspace = value;
         }
 
         /// <inheritdoc />
         public UdtMappingDefinitions UserDefinedTypes { get; private set; }
 
-        public Policies Policies { get { return Configuration.Policies; } }
+        public Policies Policies => Configuration.Policies;
 
         internal Session(Cluster cluster, Configuration configuration, string keyspace, Serializer serializer)
         {
@@ -168,10 +173,8 @@ namespace Cassandra
             }
         }
 
-        /// <summary>
-        /// Initialize the session
-        /// </summary>
-        internal async Task Init()
+        /// <inheritdoc />
+        async Task IInternalSession.Init()
         {
             if (Configuration.GetPoolingOptions(_serializer.ProtocolVersion).GetWarmup())
             {
@@ -200,7 +203,7 @@ namespace Cassandra
             for (var i = 0; i < hosts.Length; i++)
             {
                 var host = hosts[i];
-                var pool = GetOrCreateConnectionPool(host, HostDistance.Local);
+                var pool = InternalRef.GetOrCreateConnectionPool(host, HostDistance.Local);
                 tasks[i] = pool.Warmup();
             }
 
@@ -268,31 +271,27 @@ namespace Cassandra
         {
             return new RequestHandler(this, _serializer, statement).SendAsync();
         }
-
-        /// <summary>
-        /// Gets or creates the connection pool for a given host
-        /// </summary>
-        internal HostConnectionPool GetOrCreateConnectionPool(Host host, HostDistance distance)
+        
+        /// <inheritdoc />
+        HostConnectionPool IInternalSession.GetOrCreateConnectionPool(Host host, HostDistance distance)
         {
             var hostPool = _connectionPool.GetOrAdd(host.Address, address =>
             {
                 var newPool = new HostConnectionPool(host, Configuration, _serializer);
-                newPool.AllConnectionClosed += OnAllConnectionClosed;
+                newPool.AllConnectionClosed += InternalRef.OnAllConnectionClosed;
                 newPool.SetDistance(distance);
                 return newPool;
             });
             return hostPool;
         }
 
-        /// <summary>
-        /// Gets a snapshot of the connection pools
-        /// </summary>
-        internal KeyValuePair<IPEndPoint, HostConnectionPool>[] GetPools()
+        /// <inheritdoc />
+        KeyValuePair<IPEndPoint, HostConnectionPool>[] IInternalSession.GetPools()
         {
             return _connectionPool.ToArray();
         }
 
-        internal void OnAllConnectionClosed(Host host, HostConnectionPool pool)
+        void IInternalSession.OnAllConnectionClosed(Host host, HostConnectionPool pool)
         {
             if (_cluster.AnyOpenConnections(host))
             {
@@ -300,10 +299,10 @@ namespace Cassandra
                 return;
             }
             // There isn't any open connection to this host in any of the pools
-            MarkAsDownAndScheduleReconnection(host, pool);
+            InternalRef.MarkAsDownAndScheduleReconnection(host, pool);
         }
 
-        internal void MarkAsDownAndScheduleReconnection(Host host, HostConnectionPool pool)
+        void IInternalSession.MarkAsDownAndScheduleReconnection(Host host, HostConnectionPool pool)
         {
             // By setting the host as down, all pools should cancel any outstanding reconnection attempt
             if (host.SetDown())
@@ -313,7 +312,7 @@ namespace Cassandra
             }
         }
 
-        internal bool HasConnections(Host host)
+        bool IInternalSession.HasConnections(Host host)
         {
             HostConnectionPool pool;
             if (_connectionPool.TryGetValue(host.Address, out pool))
@@ -323,17 +322,15 @@ namespace Cassandra
             return false;
         }
 
-        /// <summary>
-        /// Gets the existing connection pool for this host and session or null when it does not exists
-        /// </summary>
-        internal HostConnectionPool GetExistingPool(IPEndPoint address)
+        /// <inheritdoc />
+        HostConnectionPool IInternalSession.GetExistingPool(IPEndPoint address)
         {
             HostConnectionPool pool;
             _connectionPool.TryGetValue(address, out pool);
             return pool;
         }
 
-        internal void CheckHealth(Connection connection)
+        void IInternalSession.CheckHealth(Connection connection)
         {
             HostConnectionPool pool;
             if (!_connectionPool.TryGetValue(connection.Address, out pool))

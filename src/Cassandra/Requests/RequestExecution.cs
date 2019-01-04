@@ -15,14 +15,14 @@
     {
         private static readonly Logger Logger = new Logger(typeof(RequestExecution));
         private readonly RequestHandler _parent;
-        private readonly Session _session;
+        private readonly IInternalSession _session;
         private readonly IRequest _request;
         private readonly Dictionary<IPEndPoint, Exception> _triedHosts = new Dictionary<IPEndPoint, Exception>();
         private volatile Connection _connection;
         private volatile int _retryCount;
         private volatile OperationState _operation;
 
-        public RequestExecution(RequestHandler parent, Session session, IRequest request)
+        public RequestExecution(RequestHandler parent, IInternalSession session, IRequest request)
         {
             _parent = parent;
             _session = session;
@@ -162,7 +162,7 @@
             {
                 if (resultResponse.Output is OutputSetKeyspace)
                 {
-                    ((Session)_session).Keyspace = ((OutputSetKeyspace)resultResponse.Output).Value;
+                    _session.Keyspace = ((OutputSetKeyspace)resultResponse.Output).Value;
                 }
                 rs = RowSet.Empty();
             }
@@ -226,7 +226,7 @@
             return rs;
         }
 
-        private void SetAutoPage(RowSet rs, Session session, IStatement statement)
+        private void SetAutoPage(RowSet rs, IInternalSession session, IStatement statement)
         {
             rs.AutoPage = statement != null && statement.AutoPage;
             if (rs.AutoPage && rs.PagingState != null && _request is IQueryRequest)
@@ -282,7 +282,7 @@
                 else
                 {
                     // Checks how many timed out operations are in the connection
-                    ((Session)_session).CheckHealth(connection);
+                    _session.CheckHealth(connection);
                 }
             }
             var decision = GetRetryDecision(

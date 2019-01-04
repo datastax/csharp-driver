@@ -62,7 +62,7 @@ namespace Cassandra
             return builder.ToString();
         }
 
-        internal static SessionState From(Session session)
+        internal static SessionState From(IInternalSession session)
         {
             var pools = session.GetPools();
             var result = new Dictionary<Host, HostStateInfo>(pools.Length);
