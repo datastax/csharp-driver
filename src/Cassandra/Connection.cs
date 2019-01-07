@@ -943,7 +943,7 @@ namespace Cassandra
                 }
             }
             Interlocked.CompareExchange(ref _writeState, WriteStateInit, WriteStateRunning);
-            //SendAsync the next request, if exists
+            //Send the next request, if exists
             //It will use a new thread
             RunWriteQueue();
         }
