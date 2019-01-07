@@ -249,7 +249,7 @@ namespace Cassandra.Requests
             }
         }
 
-        private async Task<Connection> GetNextConnection(IInternalSession session, Dictionary<IPEndPoint, Exception> triedHosts)
+        private async Task<IConnection> GetNextConnection(IInternalSession session, Dictionary<IPEndPoint, Exception> triedHosts)
         {
             Host host;
             HostDistance distance;

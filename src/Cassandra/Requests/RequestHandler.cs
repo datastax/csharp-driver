@@ -274,7 +274,7 @@ namespace Cassandra.Requests
         }
 
         /// <inheritdoc />
-        public async Task<Connection> GetNextConnectionAsync(Dictionary<IPEndPoint, Exception> triedHosts)
+        public async Task<IConnection> GetNextConnectionAsync(Dictionary<IPEndPoint, Exception> triedHosts)
         {
             Host host;
             // While there is an available host
@@ -292,7 +292,7 @@ namespace Cassandra.Requests
         }
 
         /// <inheritdoc />
-        public async Task<Connection> ValidateHostAndGetConnectionAsync(Host host, Dictionary<IPEndPoint, Exception> triedHosts)
+        public async Task<IConnection> ValidateHostAndGetConnectionAsync(Host host, Dictionary<IPEndPoint, Exception> triedHosts)
         {
             if (_session.IsDisposed)
             {
@@ -310,7 +310,7 @@ namespace Cassandra.Requests
         }
 
         /// <inheritdoc />
-        public Task<Connection> GetConnectionToValidHostAsync(ValidHost validHost, IDictionary<IPEndPoint, Exception> triedHosts)
+        public Task<IConnection> GetConnectionToValidHostAsync(ValidHost validHost, IDictionary<IPEndPoint, Exception> triedHosts)
         {
             return RequestHandler.GetConnectionFromHostAsync(validHost.Host, validHost.Distance, _session, triedHosts);
         }
@@ -325,10 +325,10 @@ namespace Cassandra.Requests
         /// <param name="triedHosts">Hosts for which there were attempts to connect and send the request.</param>
         /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
         /// <exception cref="NoHostAvailableException"></exception>
-        internal static async Task<Connection> GetConnectionFromHostAsync(
+        internal static async Task<IConnection> GetConnectionFromHostAsync(
             Host host, HostDistance distance, IInternalSession session, IDictionary<IPEndPoint, Exception> triedHosts)
         {
-            Connection c = null;
+            IConnection c = null;
             var hostPool = session.GetOrCreateConnectionPool(host, distance);
             try
             {

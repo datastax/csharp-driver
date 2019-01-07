@@ -330,7 +330,7 @@ namespace Cassandra
             return pool;
         }
 
-        void IInternalSession.CheckHealth(Connection connection)
+        void IInternalSession.CheckHealth(IConnection connection)
         {
             HostConnectionPool pool;
             if (!_connectionPool.TryGetValue(connection.Address, out pool))

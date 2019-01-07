@@ -62,7 +62,7 @@ namespace Cassandra.Requests
         /// <param name="triedHosts">Hosts for which there were attempts to connect and send the request.</param>
         /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
         /// <exception cref="NoHostAvailableException">If every host from the query plan is unavailable.</exception>
-        Task<Connection> GetNextConnectionAsync(Dictionary<IPEndPoint, Exception> triedHosts);
+        Task<IConnection> GetNextConnectionAsync(Dictionary<IPEndPoint, Exception> triedHosts);
 
         /// <summary>
         /// Gets a connection to a provided host or <code>null</code> if its not possible, filling the <paramref name="triedHosts"/> map with the failures.
@@ -73,7 +73,7 @@ namespace Cassandra.Requests
         /// <param name="triedHosts">Hosts for which there were attempts to connect and send the request.</param>
         /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
         /// <exception cref="NoHostAvailableException">If every host from the query plan is unavailable.</exception>
-        Task<Connection> GetConnectionToValidHostAsync(ValidHost validHost, IDictionary<IPEndPoint, Exception> triedHosts);
+        Task<IConnection> GetConnectionToValidHostAsync(ValidHost validHost, IDictionary<IPEndPoint, Exception> triedHosts);
 
         /// <summary>
         /// Obtain a connection to the provided <paramref name="host"/>.
@@ -83,7 +83,7 @@ namespace Cassandra.Requests
         /// <param name="triedHosts">Hosts for which there were attempts to connect and send the request.</param>
         /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
         /// <exception cref="NoHostAvailableException">If every host from the query plan is unavailable.</exception>
-        Task<Connection> ValidateHostAndGetConnectionAsync(Host host, Dictionary<IPEndPoint, Exception> triedHosts);
+        Task<IConnection> ValidateHostAndGetConnectionAsync(Host host, Dictionary<IPEndPoint, Exception> triedHosts);
 
         Task<RowSet> SendAsync();
 

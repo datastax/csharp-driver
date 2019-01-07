@@ -35,7 +35,7 @@ namespace Cassandra.Requests
         private readonly IInternalSession _session;
         private readonly IRequest _request;
         private readonly Dictionary<IPEndPoint, Exception> _triedHosts = new Dictionary<IPEndPoint, Exception>();
-        private volatile Connection _connection;
+        private volatile IConnection _connection;
         private volatile int _retryCount;
         private volatile OperationState _operation;
 
@@ -367,8 +367,8 @@ namespace Cassandra.Requests
         /// <summary>
         /// Gets the retry decision based on the exception from Cassandra
         /// </summary>
-        internal static RetryDecision GetRetryDecision(Exception ex, IExtendedRetryPolicy policy, IStatement statement,
-                                                     Configuration config, int retryCount)
+        internal static RetryDecision GetRetryDecision(
+            Exception ex, IExtendedRetryPolicy policy, IStatement statement, Configuration config, int retryCount)
         {
             if (ex is SocketException exception)
             {

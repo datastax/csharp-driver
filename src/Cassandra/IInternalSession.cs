@@ -45,7 +45,7 @@ namespace Cassandra
         /// </summary>
         HostConnectionPool GetExistingPool(IPEndPoint address);
 
-        void CheckHealth(Connection connection);
+        void CheckHealth(IConnection connection);
 
         bool HasConnections(Host host);
 

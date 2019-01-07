@@ -19,7 +19,9 @@ using System.Collections.Generic;
 using System.Net;
 
 using Cassandra.Requests;
+using Cassandra.Responses;
 using Cassandra.Serialization;
+
 using Moq;
 
 using NUnit.Framework;
@@ -29,8 +31,8 @@ namespace Cassandra.Tests
     [TestFixture]
     public class RequestExecutionTests
     {
-        [Test]
-        public void Should_ThrowException_WhenNoValidHosts()
+        [Test, TestCase(true), TestCase(false)]
+        public void Should_ThrowException_When_NoValidHosts(bool currentHostRetry)
         {
             var mockSession = Mock.Of<IInternalSession>();
             var mockRequest = Mock.Of<IRequest>();
@@ -40,11 +42,11 @@ namespace Cassandra.Tests
                 .Throws(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>()));
             var sut = new ProxyRequestExecution(mockRequestExecution, mockSession, mockRequest);
 
-            Assert.Throws<NoHostAvailableException>(() => sut.Start(false));
+            Assert.Throws<NoHostAvailableException>(() => sut.Start(currentHostRetry));
         }
-        
-        [Test]
-        public void Should_NotThrowException_WhenAValidHostIsObtained()
+
+        [Test, TestCase(true), TestCase(false)]
+        public void Should_NotThrowException_When_AValidHostIsObtained(bool currentHostRetry)
         {
             var mockSession = Mock.Of<IInternalSession>();
             var mockRequest = Mock.Of<IRequest>();
@@ -52,7 +54,6 @@ namespace Cassandra.Tests
             var host = new Host(
                 new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9047),
                 new ConstantReconnectionPolicy(1));
-            host.BringUpIfDown();
             var validHost = ValidHost.New(
                 host,
                 HostDistance.Local);
@@ -62,9 +63,112 @@ namespace Cassandra.Tests
                 .Returns(null);
             var sut = new ProxyRequestExecution(mockRequestExecution, mockSession, mockRequest);
 
-            sut.Start(false);
+            sut.Start(currentHostRetry);
         }
-        
+
+        [Test, TestCase(true), TestCase(false)]
+        public void Should_SendRequest_When_AConnectionIsObtained(bool currentHostRetry)
+        {
+            var mockSession = Mock.Of<IInternalSession>();
+            var mockRequest = Mock.Of<IRequest>();
+            var mockRequestExecution = Mock.Of<IRequestHandler>();
+            var connection = Mock.Of<IConnection>();
+            var host = new Host(
+                new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9047),
+                new ConstantReconnectionPolicy(1));
+            var validHost = ValidHost.New(
+                host,
+                HostDistance.Local);
+            Mock.Get(mockRequestExecution)
+                .Setup(m => m.GetConnectionToValidHostAsync(validHost, It.IsAny<Dictionary<IPEndPoint, Exception>>()))
+                .ReturnsAsync(connection);
+            Mock.Get(mockRequestExecution)
+                .Setup(m => m.GetNextValidHost(It.IsAny<Dictionary<IPEndPoint, Exception>>()))
+                .Returns(validHost);
+            var sut = new ProxyRequestExecution(mockRequestExecution, mockSession, mockRequest);
+
+            sut.Start(currentHostRetry);
+            TestHelper.RetryAssert(
+                () =>
+                {
+                    Mock.Get(connection)
+                        .Verify(
+                            c => c.Send(mockRequest, It.IsAny<Action<Exception, Response>>(), It.IsAny<int>()),
+                            Times.Once);
+                });
+        }
+
+        [Test]
+        public void Should_RetryRequestToSameHost_When_ConnectionFailsAndRetryDecisionIsRetrySameHost()
+        {
+            var mockSession = Mock.Of<IInternalSession>();
+            var config = new Configuration();
+            Mock.Get(mockSession).SetupGet(m => m.Cluster.Configuration).Returns(config);
+            var mockRequest = Mock.Of<IRequest>();
+            var mockParent = Mock.Of<IRequestHandler>();
+            var connection = Mock.Of<IConnection>();
+
+            // Setup hosts
+            var host = new Host(
+                new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9047),
+                new ConstantReconnectionPolicy(1));
+            var validHost = ValidHost.New(
+                host,
+                HostDistance.Local);
+            var secondHost = new Host(
+                new IPEndPoint(IPAddress.Parse("127.0.0.2"), 9047),
+                new ConstantReconnectionPolicy(1)); // second host should never be used if test passes
+            var secondValidHost = ValidHost.New(
+                secondHost,
+                HostDistance.Local);
+
+            // Setup query plan
+            Mock.Get(mockParent)
+                .SetupSequence(m => m.GetNextValidHost(It.IsAny<Dictionary<IPEndPoint, Exception>>()))
+                .Returns(validHost)
+                .Returns(secondValidHost);
+
+            // Setup retry policy
+            var exception = new OverloadedException(string.Empty);
+            Mock.Get(mockParent)
+                .SetupGet(m => m.RetryPolicy)
+                .Returns(() =>
+                    Mock.Of<IExtendedRetryPolicy>(a =>
+                        a.OnRequestError(
+                            It.IsAny<IStatement>(), config, exception, 0) 
+                        == RetryDecision.Retry(null, true)));
+
+            // Setup connection failure
+            Mock.Get(mockParent)
+                .Setup(m => m.GetConnectionToValidHostAsync(validHost, It.IsAny<Dictionary<IPEndPoint, Exception>>()))
+                .ThrowsAsync(exception);
+
+            // Setup successful second connection on the same host retry (different method call - ValidateHostAndGetConnectionAsync)
+            Mock.Get(mockParent)
+                .Setup(m => m.ValidateHostAndGetConnectionAsync(validHost.Host, It.IsAny<Dictionary<IPEndPoint, Exception>>()))
+                .ReturnsAsync(connection);
+
+            var sut = new ProxyRequestExecution(mockParent, mockSession, mockRequest);
+            sut.Start(false);
+
+            // Validate request is sent
+            TestHelper.RetryAssert(
+                () =>
+                {
+                    Mock.Get(connection).Verify(
+                        c => c.Send(mockRequest, It.IsAny<Action<Exception, Response>>(), It.IsAny<int>()),
+                        Times.Once);
+                });
+
+            // Validate that there were 2 connection attempts (1 with each method)
+            Mock.Get(mockParent).Verify(
+                m => m.GetConnectionToValidHostAsync(validHost, It.IsAny<Dictionary<IPEndPoint, Exception>>()),
+                Times.Once);
+            Mock.Get(mockParent).Verify(
+                m => m.ValidateHostAndGetConnectionAsync(validHost.Host, It.IsAny<Dictionary<IPEndPoint, Exception>>()),
+                Times.Once);
+        }
+
         private class ProxyRequestExecution : RequestExecution
         {
             public ProxyRequestExecution(IRequestHandler parent, IInternalSession session, IRequest request) : base(parent, session, request)

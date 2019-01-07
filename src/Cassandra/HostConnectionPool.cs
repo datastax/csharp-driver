@@ -68,7 +68,7 @@ namespace Cassandra
         private readonly Host _host;
         private readonly Configuration _config;
         private readonly Serializer _serializer;
-        private readonly CopyOnWriteList<Connection> _connections = new CopyOnWriteList<Connection>();
+        private readonly CopyOnWriteList<IConnection> _connections = new CopyOnWriteList<IConnection>();
         private readonly HashedWheelTimer _timer;
         private readonly object _allConnectionClosedEventLock = new object();
         private volatile IReconnectionSchedule _reconnectionSchedule;
@@ -80,7 +80,7 @@ namespace Cassandra
         private int _poolResizing;
         private int _state = PoolState.Init;
         private HashedWheelTimer.ITimeout _newConnectionTimeout;
-        private TaskCompletionSource<Connection> _connectionOpenTcs;
+        private TaskCompletionSource<IConnection> _connectionOpenTcs;
         private int _connectionIndex;
         private readonly int _maxRequestsPerConnection;
 
@@ -109,7 +109,7 @@ namespace Cassandra
         /// <summary>
         /// Gets a snapshot of the current state of the pool.
         /// </summary>
-        public Connection[] ConnectionsSnapshot => _connections.GetSnapshot();
+        public IConnection[] ConnectionsSnapshot => _connections.GetSnapshot();
 
         public HostConnectionPool(Host host, Configuration config, Serializer serializer)
         {
@@ -136,7 +136,7 @@ namespace Cassandra
         /// <exception cref="UnsupportedProtocolVersionException" />
         /// <exception cref="SocketException" />
         /// <exception cref="AuthenticationException" />
-        public async Task<Connection> BorrowConnection()
+        public async Task<IConnection> BorrowConnection()
         {
             var connections = await EnsureCreate().ConfigureAwait(false);
             if (connections.Length == 0)
@@ -170,7 +170,7 @@ namespace Cassandra
             }
         }
 
-        public void CheckHealth(Connection c)
+        public void CheckHealth(IConnection c)
         {
             var timedOutOps = c.TimedOutOperations;
             if (timedOutOps < _config.SocketOptions.DefunctReadTimeoutThreshold)
@@ -185,7 +185,7 @@ namespace Cassandra
         /// <summary>
         /// Closes the connection and removes it from the pool
         /// </summary>
-        public void Remove(Connection c)
+        public void Remove(IConnection c)
         {
             OnConnectionClosing(c);
             c.Dispose();
@@ -259,7 +259,7 @@ namespace Cassandra
             Interlocked.Exchange(ref _state, PoolState.Shutdown);
         }
 
-        public virtual async Task<Connection> DoCreateAndOpen()
+        public virtual async Task<IConnection> DoCreateAndOpen()
         {
             var c = new Connection(_serializer, _host.Address, _config);
             try
@@ -292,7 +292,7 @@ namespace Cassandra
         /// <param name="inFlight">
         /// Out parameter containing the amount of in-flight requests of the selected connection.
         /// </param>
-        public static Connection MinInFlight(Connection[] connections, ref int connectionIndex, int inFlightThreshold,
+        public static IConnection MinInFlight(IConnection[] connections, ref int connectionIndex, int inFlightThreshold,
                                              out int inFlight)
         {
             if (connections.Length == 1)
@@ -338,7 +338,7 @@ namespace Cassandra
             return c;
         }
 
-        private void OnConnectionClosing(Connection c = null)
+        private void OnConnectionClosing(IConnection c = null)
         {
             int currentLength;
             if (c != null)
@@ -463,7 +463,7 @@ namespace Cassandra
             DrainConnectionsTimer(connections, afterDrainHandler, delay/1000);
         }
 
-        private void DrainConnectionsTimer(Connection[] connections, Action afterDrainHandler, int steps)
+        private void DrainConnectionsTimer(IConnection[] connections, Action afterDrainHandler, int steps)
         {
             _timer.NewTimeout(_ =>
             {
@@ -515,7 +515,7 @@ namespace Cassandra
         /// <summary>
         /// Handler that gets invoked when if there is a socket exception when making a heartbeat/idle request
         /// </summary>
-        private void OnIdleRequestException(Connection c, Exception ex)
+        private void OnIdleRequestException(IConnection c, Exception ex)
         {
             Logger.Warning("Connection to {0} considered as unhealthy after idle timeout exception: {1}",
                 _host.Address, ex);
@@ -615,7 +615,7 @@ namespace Cassandra
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
         /// <exception cref="AuthenticationException" />
         /// <exception cref="UnsupportedProtocolVersionException" />
-        private async Task<Connection> CreateOpenConnection(bool satisfyWithAnOpenConnection)
+        private async Task<IConnection> CreateOpenConnection(bool satisfyWithAnOpenConnection)
         {
             var concurrentOpenTcs = Volatile.Read(ref _connectionOpenTcs);
             // Try to exit early (cheap) as there could be another thread creating / finishing creating
@@ -624,7 +624,7 @@ namespace Cassandra
                 // There is another thread opening a new connection
                 return await concurrentOpenTcs.Task.ConfigureAwait(false);
             }
-            var tcs = new TaskCompletionSource<Connection>();
+            var tcs = new TaskCompletionSource<IConnection>();
             // Try to set the creation task source
             concurrentOpenTcs = Interlocked.CompareExchange(ref _connectionOpenTcs, tcs, null);
             if (concurrentOpenTcs != null)
@@ -665,7 +665,7 @@ namespace Cassandra
             }
 
             Logger.Info("Creating a new connection to {0}", _host.Address);
-            Connection c;
+            IConnection c;
             try
             {
                 c = await DoCreateAndOpen().ConfigureAwait(false);
@@ -702,11 +702,11 @@ namespace Cassandra
             return await FinishOpen(tcs, true, null, c).ConfigureAwait(false);
         }
 
-        private Task<Connection> FinishOpen(
-            TaskCompletionSource<Connection> tcs,
+        private Task<IConnection> FinishOpen(
+            TaskCompletionSource<IConnection> tcs,
             bool preventForeground, 
             Exception ex, 
-            Connection c = null)
+            IConnection c = null)
         {
             // Instruction ordering: canCreateForeground flag must be set before resetting of the tcs
             if (preventForeground)
@@ -730,7 +730,7 @@ namespace Cassandra
         /// <exception cref="SocketException" />
         /// <exception cref="AuthenticationException" />
         /// <exception cref="UnsupportedProtocolVersionException" />
-        public async Task<Connection[]> EnsureCreate()
+        public async Task<IConnection[]> EnsureCreate()
         {
             var connections = _connections.GetSnapshot();
             if (connections.Length > 0)
@@ -754,7 +754,7 @@ namespace Cassandra
                 // It's not considered as connected
                 throw GetNotConnectedException();
             }
-            Connection c;
+            IConnection c;
             try
             {
                 // It should only await for the creation of the connection in few selected occasions:
