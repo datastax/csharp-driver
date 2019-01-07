@@ -123,7 +123,8 @@ namespace Cassandra
             AchievedConsistency = achievedConsistency;
         }
 
-        internal void SetSchemaInAgreement(bool schemaAgreement) {
+        internal void SetSchemaInAgreement(bool schemaAgreement) 
+        {
             IsSchemaInAgreement = schemaAgreement;
         }
     }

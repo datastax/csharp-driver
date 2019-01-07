@@ -27,10 +27,8 @@ using Cassandra.Tasks;
 
 namespace Cassandra.Requests
 {
-    /// <summary>
-    /// Handles request executions, each execution handles retry and failover.
-    /// </summary>
-    internal class RequestHandler
+    /// <inheritdoc />
+    internal class RequestHandler : IRequestHandler
     {
         private static readonly Logger Logger = new Logger(typeof(Session));
         public const long StateInit = 0;
@@ -42,7 +40,7 @@ namespace Cassandra.Requests
         private long _state;
         private readonly IEnumerator<Host> _queryPlan;
         private readonly object _queryPlanLock = new object();
-        private readonly ICollection<RequestExecution> _running = new CopyOnWriteList<RequestExecution>();
+        private readonly ICollection<IRequestExecution> _running = new CopyOnWriteList<IRequestExecution>();
         private ISpeculativeExecutionPlan _executionPlan;
         private volatile HashedWheelTimer.ITimeout _nextExecutionTimeout;
 
@@ -69,7 +67,7 @@ namespace Cassandra.Requests
                 RetryPolicy = statement.RetryPolicy.Wrap(Policies.ExtendedRetryPolicy);
             }
 
-            _queryPlan = GetQueryPlan(session, statement, Policies).GetEnumerator();
+            _queryPlan = RequestHandler.GetQueryPlan(session, statement, Policies).GetEnumerator();
         }
 
         /// <summary>
@@ -77,7 +75,7 @@ namespace Cassandra.Requests
         /// Statement can not be null.
         /// </summary>
         public RequestHandler(IInternalSession session, Serializer serializer, IStatement statement)
-            : this(session, serializer, GetRequest(statement, serializer, session.Cluster.Configuration), statement)
+            : this(session, serializer, RequestHandler.GetRequest(statement, serializer, session.Cluster.Configuration), statement)
         {
 
         }
@@ -105,6 +103,12 @@ namespace Cassandra.Requests
                 ? policies.LoadBalancingPolicy.NewQueryPlan(session.Keyspace, statement)
                 : Enumerable.Repeat(host, 1);
         }
+        
+        /// <inheritdoc />
+        public IRequest BuildRequest(IStatement statement, Serializer serializer, Configuration config)
+        {
+            return RequestHandler.GetRequest(statement, serializer, config);
+        }
 
         /// <summary>
         /// Gets the Request to send to a cassandra node based on the statement type
@@ -116,23 +120,20 @@ namespace Cassandra.Requests
             {
                 statement.SetIdempotence(config.QueryOptions.GetDefaultIdempotence());
             }
-            if (statement is RegularStatement)
+            if (statement is RegularStatement s1)
             {
-                var s = (RegularStatement)statement;
-                s.Serializer = serializer;
-                var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s, config.QueryOptions, config.Policies);
-                options.ValueNames = s.QueryValueNames;
-                request = new QueryRequest(serializer.ProtocolVersion, s.QueryString, s.IsTracing, options);
+                s1.Serializer = serializer;
+                var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s1, config.QueryOptions, config.Policies);
+                options.ValueNames = s1.QueryValueNames;
+                request = new QueryRequest(serializer.ProtocolVersion, s1.QueryString, s1.IsTracing, options);
             }
-            if (statement is BoundStatement)
+            if (statement is BoundStatement s2)
             {
-                var s = (BoundStatement)statement;
-                var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s, config.QueryOptions, config.Policies);
-                request = new ExecuteRequest(serializer.ProtocolVersion, s.PreparedStatement.Id, null, s.IsTracing, options);
+                var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s2, config.QueryOptions, config.Policies);
+                request = new ExecuteRequest(serializer.ProtocolVersion, s2.PreparedStatement.Id, null, s2.IsTracing, options);
             }
-            if (statement is BatchStatement)
+            if (statement is BatchStatement s)
             {
-                var s = (BatchStatement)statement;
                 s.Serializer = serializer;
                 var consistency = config.QueryOptions.GetConsistencyLevel();
                 if (s.ConsistencyLevel != null)
@@ -150,17 +151,13 @@ namespace Cassandra.Requests
             return request;
         }
 
-        /// <summary>
-        /// Marks this instance as completed (if not already) and sets the exception or result
-        /// </summary>
+        /// <inheritdoc />
         public bool SetCompleted(Exception ex, RowSet result = null)
         {
             return SetCompleted(ex, result, null);
         }
 
-        /// <summary>
-        /// Marks this instance as completed (if not already) and in a new Task using the default scheduler, it invokes the action and sets the result
-        /// </summary>
+        /// <inheritdoc />
         public bool SetCompleted(RowSet result, Action action)
         {
             return SetCompleted(null, result, action);
@@ -173,7 +170,7 @@ namespace Cassandra.Requests
         /// </summary>
         private bool SetCompleted(Exception ex, RowSet result, Action action)
         {
-            var finishedNow = Interlocked.CompareExchange(ref _state, StateCompleted, StateInit) == StateInit;
+            var finishedNow = Interlocked.CompareExchange(ref _state, RequestHandler.StateCompleted, RequestHandler.StateInit) == RequestHandler.StateInit;
             if (!finishedNow)
             {
                 return false;
@@ -181,10 +178,7 @@ namespace Cassandra.Requests
             //Cancel the current timer
             //When the next execution timer is being scheduled at the *same time*
             //the timer is not going to be cancelled, in that case, this instance is going to stay alive a little longer
-            if (_nextExecutionTimeout != null)
-            {
-                _nextExecutionTimeout.Cancel();
-            }
+            _nextExecutionTimeout?.Cancel();
             foreach (var execution in _running)
             {
                 execution.Cancel();
@@ -215,14 +209,14 @@ namespace Cassandra.Requests
             return true;
         }
 
-        public void SetNoMoreHosts(NoHostAvailableException ex, RequestExecution execution)
+        public void SetNoMoreHosts(NoHostAvailableException ex, IRequestExecution execution)
         {
             //An execution ended with a NoHostAvailableException (retrying or starting).
             //If there is a running execution, do not yield it to the user
             _running.Remove(execution);
             if (_running.Count > 0)
             {
-                Logger.Info("Could not obtain an available host for speculative execution");
+                RequestHandler.Logger.Info("Could not obtain an available host for speculative execution");
                 return;
             }
             SetCompleted(ex);
@@ -230,7 +224,7 @@ namespace Cassandra.Requests
 
         public bool HasCompleted()
         {
-            return Interlocked.Read(ref _state) == StateCompleted;
+            return Interlocked.Read(ref _state) == RequestHandler.StateCompleted;
         }
 
         private Host GetNextHost()
@@ -246,26 +240,19 @@ namespace Cassandra.Requests
             return null;
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="triedHosts">Hosts for which there were attempts to connect and send the request.</param>
-        /// <param name="distance">Output parameter that will contain the <see cref="HostDistance"/> associated with the returned Host.
-        /// It is retrieved from the current <see cref="ILoadBalancingPolicy"/>.</param>
-        /// <returns></returns>
-        /// <exception cref="NoHostAvailableException">If every host from the query plan is unavailable.</exception>
-        internal Host GetNextHostForConnection(Dictionary<IPEndPoint, Exception> triedHosts, out HostDistance distance)
+        /// <inheritdoc />
+        public ValidHost GetNextValidHost(Dictionary<IPEndPoint, Exception> triedHosts)
         {
             Host host;
             while ((host = GetNextHost()) != null && !_session.IsDisposed)
             {
                 triedHosts[host.Address] = null;
-                if (!TryValidateHostAndGetDistance(host, out distance))
+                if (!TryValidateHost(host, out var validHost))
                 {
                     continue;
                 }
 
-                return host;
+                return validHost;
             }
 
             throw new NoHostAvailableException(triedHosts);
@@ -273,45 +260,27 @@ namespace Cassandra.Requests
         
         /// <summary>
         /// Checks if the host is a valid candidate for the purpose of obtaining a connection.
+        /// This method obtains the <see cref="HostDistance"/> from the load balancing policy.
         /// </summary>
         /// <param name="host">Host to check.</param>
-        /// <param name="distance">Output parameter that will contain the <see cref="HostDistance"/> associated with
-        /// <paramref name="host"/>. It is retrieved from the current <see cref="ILoadBalancingPolicy"/>.</param>
+        /// <param name="validHost">Output parameter that will contain the <see cref="ValidHost"/> instance.</param>
         /// <returns><code>true</code> if the host is valid and <code>false</code> if not valid
-        /// (e.g. the host is ignored or the driver sees it as <code>Down</code>)</returns>
-        private bool TryValidateHostAndGetDistance(Host host, out HostDistance distance)
+        /// (see documentation of <see cref="ValidHost.New"/>)</returns>
+        private bool TryValidateHost(Host host, out ValidHost validHost)
         {
-            distance = Cluster.RetrieveDistance(host, Policies.LoadBalancingPolicy);
-            if (distance == HostDistance.Ignored)
-            {
-                // We should not use an ignored host
-                return false;
-            }
-            
-            if (!host.IsUp)
-            {
-                // The host is not considered UP by the driver.
-                // We could have filtered earlier by hosts that are considered UP, but we must
-                // check the host distance first.
-                return false;
-            }
-
-            return true;
+            var distance = Cluster.RetrieveDistance(host, Policies.LoadBalancingPolicy);
+            validHost = ValidHost.New(host, distance);
+            return validHost != null;
         }
 
-        /// <summary>
-        /// Gets a connection from the next host according to the load balancing policy
-        /// </summary>
-        /// <param name="triedHosts">Hosts for which there were attempts to connect and send the request.</param>
-        /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
-        /// <exception cref="NoHostAvailableException"></exception>
-        internal async Task<Connection> GetNextConnection(Dictionary<IPEndPoint, Exception> triedHosts)
+        /// <inheritdoc />
+        public async Task<Connection> GetNextConnectionAsync(Dictionary<IPEndPoint, Exception> triedHosts)
         {
             Host host;
             // While there is an available host
             while ((host = GetNextHost()) != null)
             {
-                var c = await GetConnectionFromHostAsync(host, triedHosts).ConfigureAwait(false);
+                var c = await ValidateHostAndGetConnectionAsync(host, triedHosts).ConfigureAwait(false);
                 if (c == null)
                 {
                     continue;
@@ -322,16 +291,8 @@ namespace Cassandra.Requests
             throw new NoHostAvailableException(triedHosts);
         }
 
-        /// <summary>
-        /// Obtain a connection to the provided <paramref name="host"/>.
-        /// In practice this is a simple wrapper around the static method <see cref="GetConnectionFromHost"/>
-        /// so refer to that method's documentation for more information.
-        /// </summary>
-        /// <param name="host">Host to which a connection will be obtained.</param>
-        /// <param name="triedHosts">Hosts for which there were attempts to connect and send the request.</param>
-        /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
-        /// <exception cref="NoHostAvailableException"></exception>
-        internal async Task<Connection> GetConnectionFromHostAsync(Host host, Dictionary<IPEndPoint, Exception> triedHosts)
+        /// <inheritdoc />
+        public async Task<Connection> ValidateHostAndGetConnectionAsync(Host host, Dictionary<IPEndPoint, Exception> triedHosts)
         {
             if (_session.IsDisposed)
             {
@@ -339,37 +300,19 @@ namespace Cassandra.Requests
             }
 
             triedHosts[host.Address] = null;
-
-            if (!TryValidateHostAndGetDistance(host, out var distance))
+            if (!TryValidateHost(host, out var validHost))
             {
                 return null;
             }
             
-            var c = await GetConnectionFromHost(host, distance, _session, triedHosts).ConfigureAwait(false);
+            var c = await GetConnectionToValidHostAsync(validHost, triedHosts).ConfigureAwait(false);
             return c;
         }
-        
-        /// <summary>
-        /// Obtain a connection to the provided <paramref name="host"/>.
-        /// In practice this is a simple wrapper around the static method <see cref="GetConnectionFromHost"/>
-        /// so refer to that method's documentation for more information.
-        /// </summary>
-        /// <param name="host">Host to which a connection will be obtained.</param>
-        /// <param name="distance"><see cref="HostDistance"/> associated with <paramref name="host"/>.
-        /// It is usually retrieved through the <see cref="Cluster.RetrieveDistance"/> method.</param>
-        /// <param name="triedHosts">Hosts for which there were attempts to connect and send the request.</param>
-        /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
-        /// <exception cref="NoHostAvailableException"></exception>
-        internal async Task<Connection> GetConnectionFromValidHostAsync(
-            Host host, HostDistance distance, Dictionary<IPEndPoint, Exception> triedHosts)
+
+        /// <inheritdoc />
+        public Task<Connection> GetConnectionToValidHostAsync(ValidHost validHost, IDictionary<IPEndPoint, Exception> triedHosts)
         {
-            if (_session.IsDisposed)
-            {
-                throw new NoHostAvailableException(triedHosts);
-            }
-            
-            var c = await GetConnectionFromHost(host, distance, _session, triedHosts).ConfigureAwait(false);
-            return c;
+            return RequestHandler.GetConnectionFromHostAsync(validHost.Host, validHost.Distance, _session, triedHosts);
         }
 
         /// <summary>
@@ -382,7 +325,7 @@ namespace Cassandra.Requests
         /// <param name="triedHosts">Hosts for which there were attempts to connect and send the request.</param>
         /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
         /// <exception cref="NoHostAvailableException"></exception>
-        internal static async Task<Connection> GetConnectionFromHost(
+        internal static async Task<Connection> GetConnectionFromHostAsync(
             Host host, HostDistance distance, IInternalSession session, IDictionary<IPEndPoint, Exception> triedHosts)
         {
             Connection c = null;
@@ -395,7 +338,7 @@ namespace Cassandra.Requests
             {
                 // The version of the protocol is not supported on this host
                 // Most likely, we are using a higher protocol version than the host supports
-                Logger.Error("Host {0} does not support protocol version {1}. You should use a fixed protocol " +
+                RequestHandler.Logger.Error("Host {0} does not support protocol version {1}. You should use a fixed protocol " +
                              "version during rolling upgrades of the cluster. Setting the host as DOWN to " +
                              "avoid hitting this node as part of the query plan for a while", host.Address, ex.ProtocolVersion);
                 triedHosts[host.Address] = ex;
@@ -403,7 +346,7 @@ namespace Cassandra.Requests
             }
             catch (BusyPoolException ex)
             {
-                Logger.Warning(
+                RequestHandler.Logger.Warning(
                     "All connections to host {0} are busy ({1} requests are in-flight on {2} connection(s))," +
                     " consider lowering the pressure or make more nodes available to the client", host.Address,
                     ex.MaxRequestsPerConnection, ex.ConnectionLength);
@@ -412,7 +355,7 @@ namespace Cassandra.Requests
             catch (Exception ex)
             {
                 // Probably a SocketException/AuthenticationException, move along
-                Logger.Error("Exception while trying borrow a connection from a pool", ex);
+                RequestHandler.Logger.Error("Exception while trying borrow a connection from a pool", ex);
                 triedHosts[host.Address] = ex;
             }
 
@@ -429,7 +372,7 @@ namespace Cassandra.Requests
                 hostPool.Remove(c);
                 // A socket exception on the current connection does not mean that all the pool is closed:
                 // Retry on the same host
-                return await GetConnectionFromHost(host, distance, session, triedHosts).ConfigureAwait(false);
+                return await RequestHandler.GetConnectionFromHostAsync(host, distance, session, triedHosts).ConfigureAwait(false);
             }
             return c;
         }
@@ -453,7 +396,7 @@ namespace Cassandra.Requests
         {
             try
             {
-                var execution = new RequestExecution(this, _session, _request);
+                var execution = NewExecution(_session, _request);
                 var lastHost = execution.Start(false);
                 _running.Add(execution);
                 ScheduleNext(lastHost);
@@ -473,6 +416,11 @@ namespace Cassandra.Requests
                 //There was an Exception before sending: a protocol error or the keyspace does not exists
                 SetCompleted(ex);
             }
+        }
+
+        protected virtual IRequestExecution NewExecution(IInternalSession session, IRequest request)
+        {
+            return new RequestExecution(this, _session, _request);
         }
 
         /// <summary>
@@ -504,7 +452,7 @@ namespace Cassandra.Requests
                     {
                         return;
                     }
-                    Logger.Info("Starting new speculative execution after {0}, last used host {1}", delay, currentHost.Address);
+                    RequestHandler.Logger.Info("Starting new speculative execution after {0}, last used host {1}", delay, currentHost.Address);
                     StartNewExecution();
                 });
             }, null, delay);

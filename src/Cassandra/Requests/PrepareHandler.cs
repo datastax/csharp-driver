@@ -163,7 +163,7 @@ namespace Cassandra.Requests
             while ((host = GetNextHost(lbp, out distance)) != null)
             {
                 var connection = await RequestHandler
-                    .GetConnectionFromHost(host, distance, session, triedHosts).ConfigureAwait(false);
+                    .GetConnectionFromHostAsync(host, distance, session, triedHosts).ConfigureAwait(false);
                 if (connection == null)
                 {
                     continue;
@@ -257,7 +257,7 @@ namespace Cassandra.Requests
             while ((host = GetNextHost(lbp, out distance)) != null)
             {
                 var connection = await RequestHandler
-                    .GetConnectionFromHost(host, distance, session, triedHosts).ConfigureAwait(false);
+                    .GetConnectionFromHostAsync(host, distance, session, triedHosts).ConfigureAwait(false);
                 if (connection != null)
                 {
                     return connection;

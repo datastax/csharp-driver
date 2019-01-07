@@ -184,8 +184,8 @@ namespace Cassandra
             if (Keyspace != null)
             {
                 // Borrow a connection, trying to fail fast
-                var handler = new RequestHandler(this, _serializer);
-                await handler.GetNextConnection(new Dictionary<IPEndPoint, Exception>()).ConfigureAwait(false);
+                IRequestHandler handler = new RequestHandler(this, _serializer);
+                await handler.GetNextConnectionAsync(new Dictionary<IPEndPoint, Exception>()).ConfigureAwait(false);
             }
         }
 
