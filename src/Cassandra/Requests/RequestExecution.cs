@@ -110,30 +110,32 @@ namespace Cassandra.Requests
         {
             try
             {
-                do
+                IConnection connection = null;
+                while (connection == null)
                 {
-                    _host = validHost.Host;
-                    _connection = await _parent.GetConnectionToValidHostAsync(validHost, _triedHosts).ConfigureAwait(false);
-                    if (_connection != null)
+                    connection = await _parent.GetConnectionToValidHostAsync(validHost, _triedHosts).ConfigureAwait(false);
+                    if (connection == null)
                     {
-                        break;
+                        validHost = _parent.GetNextValidHost(_triedHosts);
                     }
-                } 
-                while ((validHost = _parent.GetNextValidHost(_triedHosts)) != null);
+                }
+                
+                _connection = connection;
+                _host = validHost.Host;
                 Send(_request, HandleResponse);
             }
             catch (Exception ex)
             {
+                _host = validHost.Host;
                 HandleResponse(ex, null);
             }
         }
 
         /// <summary>
-        /// Wrapper around <see cref="Start"/> that catches exceptions and invokes the exception handler.
-        /// Useful method to restart the execution from a different thread other than the main thread
-        /// that is used in <see cref="RequestHandler.SendAsync"/>, which already catches and handles Exceptions.
+        /// Useful method to retry the execution safely. While <see cref="Start"/> throws exceptions,
+        /// this method catches them and marks the <see cref="_parent"/> request as complete,
+        /// making it suitable to be called in a fire and forget manner.
         /// </summary>
-        /// <param name="currentHostRetry"></param>
         private void RetryExecution(bool currentHostRetry)
         {
             try
