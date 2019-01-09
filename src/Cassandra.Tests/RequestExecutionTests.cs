@@ -60,7 +60,7 @@ namespace Cassandra.Tests
             Mock.Get(mockRequestExecution)
                 .SetupSequence(m => m.GetNextValidHost(It.IsAny<Dictionary<IPEndPoint, Exception>>()))
                 .Returns(validHost)
-                .Returns(null);
+                .Throws(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>()));
             var sut = new ProxyRequestExecution(mockRequestExecution, mockSession, mockRequest);
 
             sut.Start(currentHostRetry);

@@ -54,6 +54,7 @@ namespace Cassandra.Requests
         /// </summary>
         /// <param name="triedHosts">Hosts for which there were attempts to connect and send the request.</param>
         /// <exception cref="NoHostAvailableException">If every host from the query plan is unavailable.</exception>
+        /// <returns>This method always returns non-null <code>ValidHost</code></returns>
         ValidHost GetNextValidHost(Dictionary<IPEndPoint, Exception> triedHosts);
 
         /// <summary>
