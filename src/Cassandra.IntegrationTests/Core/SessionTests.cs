@@ -221,7 +221,7 @@ namespace Cassandra.IntegrationTests.Core
             Cluster localCluster2 = null;
             try
             {
-                var localSession1 = (Session)localCluster1.Connect();
+                var localSession1 = (IInternalSession)localCluster1.Connect();
                 var hosts1 = localCluster1.AllHosts().ToList();
                 Assert.AreEqual(2, hosts1.Count);
                 //Execute multiple times a query on the newly created keyspace
@@ -239,7 +239,7 @@ namespace Cassandra.IntegrationTests.Core
                     .AddContactPoint(TestCluster.InitialContactPoint)
                     .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 1))
                     .Build();
-                var localSession2 = (Session)localCluster2.Connect();
+                var localSession2 = (IInternalSession)localCluster2.Connect();
                 var hosts2 = localCluster2.AllHosts().ToList();
                 Assert.AreEqual(2, hosts2.Count);
                 //Execute multiple times a query on the newly created keyspace
@@ -283,7 +283,7 @@ namespace Cassandra.IntegrationTests.Core
             var counter = 0;
             using (var localCluster = builder.Build())
             {
-                var localSession = (Session)localCluster.Connect();
+                var localSession = (IInternalSession)localCluster.Connect();
                 var remoteHost = localCluster.AllHosts().First(h => TestHelper.GetLastAddressByte(h) == 2);
                 var stopWatch = new Stopwatch();
                 var distanceReset = 0;

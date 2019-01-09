@@ -485,7 +485,7 @@ namespace Cassandra
         /// Waits until that the schema version in all nodes is the same or the waiting time passed.
         /// This method blocks the calling thread.
         /// </summary>
-        internal bool WaitForSchemaAgreement(Connection connection)
+        internal bool WaitForSchemaAgreement(IConnection connection)
         {
             if (Hosts.Count == 1)
             {
@@ -494,19 +494,19 @@ namespace Cassandra
             }
             var start = DateTime.Now;
             var waitSeconds = Configuration.ProtocolOptions.MaxSchemaAgreementWaitSeconds;
-            Logger.Info("Waiting for schema agreement");
+            Metadata.Logger.Info("Waiting for schema agreement");
             try
             {
                 var totalVersions = 0;
                 while (DateTime.Now.Subtract(start).TotalSeconds < waitSeconds)
                 {
-                    var schemaVersionLocalQuery = new QueryRequest(ControlConnection.ProtocolVersion, SelectSchemaVersionLocal, false, QueryProtocolOptions.Default);
-                    var schemaVersionPeersQuery = new QueryRequest(ControlConnection.ProtocolVersion, SelectSchemaVersionPeers, false, QueryProtocolOptions.Default);
+                    var schemaVersionLocalQuery = new QueryRequest(ControlConnection.ProtocolVersion, Metadata.SelectSchemaVersionLocal, false, QueryProtocolOptions.Default);
+                    var schemaVersionPeersQuery = new QueryRequest(ControlConnection.ProtocolVersion, Metadata.SelectSchemaVersionPeers, false, QueryProtocolOptions.Default);
                     var queries = new[] { connection.Send(schemaVersionLocalQuery), connection.Send(schemaVersionPeersQuery) };
                     // ReSharper disable once CoVariantArrayConversion
                     Task.WaitAll(queries, Configuration.ClientOptions.QueryAbortTimeout);
 
-                    if (CheckSchemaVersionResults(
+                    if (Metadata.CheckSchemaVersionResults(
                         Cassandra.ControlConnection.GetRowSet(queries[0].Result),
                         Cassandra.ControlConnection.GetRowSet(queries[1].Result)))
                     {
@@ -515,12 +515,12 @@ namespace Cassandra
 
                     Thread.Sleep(500);
                 }
-                Logger.Info($"Waited for schema agreement, still {totalVersions} schema versions in the cluster.");
+                Metadata.Logger.Info($"Waited for schema agreement, still {totalVersions} schema versions in the cluster.");
             }
             catch (Exception ex)
             {
                 //Exceptions are not fatal
-                Logger.Error("There was an exception while trying to retrieve schema versions", ex);
+                Metadata.Logger.Error("There was an exception while trying to retrieve schema versions", ex);
             }
 
             return false;

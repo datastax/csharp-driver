@@ -38,7 +38,7 @@ namespace Cassandra.IntegrationTests.Core
                 .WithLoadBalancingPolicy(new RoundRobinPolicy());
             using (var cluster = builder.Build())
             {
-                var session = (Session)cluster.Connect();
+                var session = (IInternalSession)cluster.Connect();
                 session.Execute(string.Format(TestUtils.CreateKeyspaceSimpleFormat, "ks1", 2));
                 session.Execute("CREATE TABLE ks1.table1 (id1 int, id2 int, PRIMARY KEY (id1, id2))");
                 var ps = session.Prepare("INSERT INTO ks1.table1 (id1, id2) VALUES (?, ?)");
@@ -60,7 +60,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        private Task<string[]> ExecuteMultiple(ITestCluster testCluster, Session session, PreparedStatement ps, bool stopNode, int maxConcurrency, int repeatLength)
+        private Task<string[]> ExecuteMultiple(ITestCluster testCluster, IInternalSession session, PreparedStatement ps, bool stopNode, int maxConcurrency, int repeatLength)
         {
             var hosts = new ConcurrentDictionary<string, bool>();
             var tcs = new TaskCompletionSource<string[]>();
@@ -127,7 +127,7 @@ namespace Cassandra.IntegrationTests.Core
                                  .WithReconnectionPolicy(new ConstantReconnectionPolicy(long.MaxValue));
             using (var cluster = builder.Build())
             {
-                var session = (Session)cluster.Connect();
+                var session = (IInternalSession)cluster.Connect();
                 var allHosts = cluster.AllHosts();
 
                 TestHelper.WaitUntil(() =>
@@ -228,7 +228,7 @@ namespace Cassandra.IntegrationTests.Core
                                        .WithPoolingOptions(options1)
                                        .Build())
             {
-                var session = (Session) cluster.Connect();
+                var session = (IInternalSession) cluster.Connect();
                 var allHosts = cluster.AllHosts();
                 var host = allHosts.First();
                 var pool = session.GetOrCreateConnectionPool(host, HostDistance.Local);

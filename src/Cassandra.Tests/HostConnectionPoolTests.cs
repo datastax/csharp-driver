@@ -37,7 +37,7 @@ namespace Cassandra.Tests
             return new IPEndPoint(IPAddress.Parse("127.0.0." + lastByte), 9042);
         }
 
-        private static Connection CreateConnection(byte lastIpByte = 1, Configuration config = null)
+        private static IConnection CreateConnection(byte lastIpByte = 1, Configuration config = null)
         {
             if (config == null)
             {
@@ -79,7 +79,7 @@ namespace Cassandra.Tests
             return config;
         }
 
-        private static Connection GetConnectionMock(int inflight, int timedOutOperations = 0)
+        private static IConnection GetConnectionMock(int inflight, int timedOutOperations = 0)
         {
             var connectionMock = new Mock<Connection>(
                 MockBehavior.Loose, new Serializer(ProtocolVersion.MaxSupported), Address, new Configuration());
@@ -120,7 +120,7 @@ namespace Cassandra.Tests
             {
                 if (++counter == 2)
                 {
-                    return TaskHelper.FromException<Connection>(new Exception("Dummy exception"));
+                    return TaskHelper.FromException<IConnection>(new Exception("Dummy exception"));
                 }
                 return TaskHelper.ToTask(CreateConnection());
             });
@@ -144,7 +144,7 @@ namespace Cassandra.Tests
                 return TaskHelper.ToTask(c);
             });
             var pool = mock.Object;
-            var creationTasks = new Task<Connection[]>[4];
+            var creationTasks = new Task<IConnection[]>[4];
             creationTasks[0] = pool.EnsureCreate();
             creationTasks[1] = pool.EnsureCreate();
             creationTasks[2] = pool.EnsureCreate();
@@ -165,7 +165,7 @@ namespace Cassandra.Tests
             var lastByte = 0;
             mock.Setup(p => p.DoCreateAndOpen()).Returns(() => TestHelper.DelayedTask(CreateConnection((byte)++lastByte), 100 + (lastByte > 1 ? 10000 : 0)));
             var pool = mock.Object;
-            var creationTasks = new Task<Connection[]>[10];
+            var creationTasks = new Task<IConnection[]>[10];
             var counter = -1;
             var initialCreate = pool.EnsureCreate();
             TestHelper.ParallelInvoke(() =>
@@ -192,7 +192,7 @@ namespace Cassandra.Tests
             mock.Setup(p => p.DoCreateAndOpen()).Returns(() =>
             {
                 Interlocked.Increment(ref openConnectionAttempts);
-                return TaskHelper.FromException<Connection>(new Exception("Test Exception"));
+                return TaskHelper.FromException<IConnection>(new Exception("Test Exception"));
             });
             var pool = mock.Object;
             const int times = 5;
@@ -226,7 +226,7 @@ namespace Cassandra.Tests
         {
             var mock = GetPoolMock();
             var testException = new Exception("Dummy exception");
-            mock.Setup(p => p.DoCreateAndOpen()).Returns(() => TestHelper.DelayedTask<Connection>(() =>
+            mock.Setup(p => p.DoCreateAndOpen()).Returns(() => TestHelper.DelayedTask<IConnection>(() =>
             {
                 throw testException;
             }));
@@ -409,7 +409,7 @@ namespace Cassandra.Tests
             mock.Setup(p => p.DoCreateAndOpen()).Returns(() =>
             {
                 Interlocked.Increment(ref openConnectionsAttempts);
-                return TaskHelper.FromException<Connection>(new Exception("Test Exception"));
+                return TaskHelper.FromException<IConnection>(new Exception("Test Exception"));
             });
             var pool = mock.Object;
             var eventRaised = 0;
@@ -432,7 +432,7 @@ namespace Cassandra.Tests
             mock.Setup(p => p.DoCreateAndOpen()).Returns(() =>
             {
                 Interlocked.Increment(ref openConnectionsAttempts);
-                return TaskHelper.FromException<Connection>(new Exception("Test Exception"));
+                return TaskHelper.FromException<IConnection>(new Exception("Test Exception"));
             });
             var pool = mock.Object;
             var eventRaised = 0;

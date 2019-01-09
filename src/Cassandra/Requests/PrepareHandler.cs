@@ -44,7 +44,7 @@ namespace Cassandra.Requests
         /// When <see cref="QueryOptions.IsPrepareOnAllHosts"/> is enabled, it prepares on the rest of the hosts in
         /// parallel.
         /// </summary>
-        internal static async Task<PreparedStatement> Prepare(Session session, Serializer serializer, 
+        internal static async Task<PreparedStatement> Prepare(IInternalSession session, Serializer serializer, 
                                                            PrepareRequest request)
         {
             // The cast to Cluster class is safe as we are using the Session concrete implementation as parameter
@@ -69,7 +69,7 @@ namespace Cassandra.Requests
         }
 
         internal static async Task PrepareAllQueries(Host host, ICollection<PreparedStatement> preparedQueries,
-                                                     IEnumerable<Session> sessions)
+                                                     IEnumerable<IInternalSession> sessions)
         {
             if (preparedQueries.Count == 0)
             {
@@ -120,7 +120,7 @@ namespace Cassandra.Requests
             }
         }
 
-        private async Task<PreparedStatement> Prepare(PrepareRequest request, Session session,
+        private async Task<PreparedStatement> Prepare(PrepareRequest request, IInternalSession session,
                                                       Dictionary<IPEndPoint, Exception> triedHosts)
         {
             if (triedHosts == null)
@@ -153,7 +153,7 @@ namespace Cassandra.Requests
                    ex is OverloadedException || ex is QueryExecutionException;
         }
 
-        private async Task PrepareOnTheRestOfTheNodes(PrepareRequest request, Session session)
+        private async Task PrepareOnTheRestOfTheNodes(PrepareRequest request, IInternalSession session)
         {
             Host host;
             HostDistance distance;
@@ -163,7 +163,7 @@ namespace Cassandra.Requests
             while ((host = GetNextHost(lbp, out distance)) != null)
             {
                 var connection = await RequestHandler
-                    .GetConnectionFromHost(host, distance, session, triedHosts).ConfigureAwait(false);
+                    .GetConnectionFromHostAsync(host, distance, session, triedHosts).ConfigureAwait(false);
                 if (connection == null)
                 {
                     continue;
@@ -249,7 +249,7 @@ namespace Cassandra.Requests
             }
         }
 
-        private async Task<Connection> GetNextConnection(Session session, Dictionary<IPEndPoint, Exception> triedHosts)
+        private async Task<IConnection> GetNextConnection(IInternalSession session, Dictionary<IPEndPoint, Exception> triedHosts)
         {
             Host host;
             HostDistance distance;
@@ -257,7 +257,7 @@ namespace Cassandra.Requests
             while ((host = GetNextHost(lbp, out distance)) != null)
             {
                 var connection = await RequestHandler
-                    .GetConnectionFromHost(host, distance, session, triedHosts).ConfigureAwait(false);
+                    .GetConnectionFromHostAsync(host, distance, session, triedHosts).ConfigureAwait(false);
                 if (connection != null)
                 {
                     return connection;
