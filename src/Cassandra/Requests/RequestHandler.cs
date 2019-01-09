@@ -324,7 +324,6 @@ namespace Cassandra.Requests
         /// <param name="session">Session from where a connection will be obtained (or created).</param>
         /// <param name="triedHosts">Hosts for which there were attempts to connect and send the request.</param>
         /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
-        /// <exception cref="NoHostAvailableException"></exception>
         internal static async Task<IConnection> GetConnectionFromHostAsync(
             Host host, HostDistance distance, IInternalSession session, IDictionary<IPEndPoint, Exception> triedHosts)
         {
