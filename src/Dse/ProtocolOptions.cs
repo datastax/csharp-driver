@@ -22,11 +22,16 @@ namespace Dse
         /// </summary>
         internal const int MaximumFrameLength = 256*1024*1024;
 
+        /// <summary>
+        /// The default value for <see cref="get_MaxSchemaAgreementWaitSeconds"/>: 10.
+        /// </summary>
+        public const int DefaultMaxSchemaAgreementWaitSeconds = 10;
+
         private readonly int _port;
         private readonly SSLOptions _sslOptions;
         private CompressionType _compression = CompressionType.NoCompression;
         private IFrameCompressor _compressor;
-        private int _maxSchemaAgreementWaitSeconds = 10;
+        private int _maxSchemaAgreementWaitSeconds = ProtocolOptions.DefaultMaxSchemaAgreementWaitSeconds;
         private ProtocolVersion? _maxProtocolVersion;
 
         /// <summary>

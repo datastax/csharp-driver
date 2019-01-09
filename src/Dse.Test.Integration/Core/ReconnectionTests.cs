@@ -108,7 +108,8 @@ namespace Dse.Test.Integration.Core
         ///
         /// @test_category connection:reconnection
         [Test]
-        public void Reconnection_Attempted_Multiple_Times_On_Multiple_Nodes([Range(1, 3)] int repeating)
+        [Repeat(3)]
+        public void Reconnection_Attempted_Multiple_Times_On_Multiple_Nodes()
         {
             var testCluster = TestClusterManager.CreateNew(2);
 
@@ -191,8 +192,8 @@ namespace Dse.Test.Integration.Core
                                         .WithReconnectionPolicy(new ConstantReconnectionPolicy(1000))
                                         .Build())
             {
-                var session1 = (Session)cluster.Connect();
-                var session2 = (Session)cluster.Connect();
+                var session1 = (IInternalSession)cluster.Connect();
+                var session2 = (IInternalSession)cluster.Connect();
                 TestHelper.Invoke(() => session1.Execute("SELECT * FROM system.local"), 10);
                 TestHelper.Invoke(() => session2.Execute("SELECT * FROM system.local"), 10);
                 var host1 = cluster.AllHosts().First(h => TestHelper.GetLastAddressByte(h) == 1);

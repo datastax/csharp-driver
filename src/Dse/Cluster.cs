@@ -30,7 +30,7 @@ namespace Dse
         private static ProtocolVersion _maxProtocolVersion = ProtocolVersion.MaxSupported;
         // ReSharper disable once InconsistentNaming
         private static readonly Logger _logger = new Logger(typeof(Cluster));
-        private readonly CopyOnWriteList<Session> _connectedSessions = new CopyOnWriteList<Session>();
+        private readonly CopyOnWriteList<IInternalSession> _connectedSessions = new CopyOnWriteList<IInternalSession>();
         private readonly ControlConnection _controlConnection;
         private volatile bool _initialized;
         private volatile Exception _initException;
@@ -317,7 +317,7 @@ namespace Dse
         {
             await Init().ConfigureAwait(false);
             var session = new Session(this, Configuration, keyspace, _serializer);
-            await session.Init().ConfigureAwait(false);
+            await session.InternalRef.Init().ConfigureAwait(false);
             _connectedSessions.Add(session);
             _logger.Info("Session connected ({0})", session.GetHashCode());
             return session;

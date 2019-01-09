@@ -27,7 +27,7 @@ namespace Dse
         private const string SelectSchemaVersionLocal = "SELECT schema_version FROM system.local";
         private static readonly Logger Logger = new Logger(typeof(ControlConnection));
         private volatile TokenMap _tokenMap;
-        private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string,KeyspaceMetadata>();
+        private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
         private volatile SchemaParser _schemaParser;
         public event HostsEventHandler HostsEvent;
         public event SchemaChangedEventHandler SchemaChangedEvent;
@@ -89,7 +89,7 @@ namespace Dse
         {
             if (SchemaChangedEvent != null)
             {
-                SchemaChangedEvent(sender ?? this, new SchemaChangedEventArgs {Keyspace = keyspace, What = what, Table = table});
+                SchemaChangedEvent(sender ?? this, new SchemaChangedEventArgs { Keyspace = keyspace, What = what, Table = table });
             }
         }
 
@@ -143,7 +143,7 @@ namespace Dse
             {
                 return new Host[0];
             }
-            return _tokenMap.GetReplicas(keyspaceName, _tokenMap.Factory.Hash(partitionKey));   
+            return _tokenMap.GetReplicas(keyspaceName, _tokenMap.Factory.Hash(partitionKey));
         }
 
         public ICollection<Host> GetReplicas(byte[] partitionKey)
@@ -414,52 +414,107 @@ namespace Dse
         }
 
         /// <summary>
+        /// Initiates a schema agreement check.
+        /// <para/>
+        /// Schema changes need to be propagated to all nodes in the cluster.
+        /// Once they have settled on a common version, we say that they are in agreement.
+        /// <para/>
+        /// This method does not perform retries so
+        /// <see cref="ProtocolOptions.MaxSchemaAgreementWaitSeconds"/> does not apply. 
+        /// </summary>
+        /// <returns>True if schema agreement was successful and false if it was not successful.</returns>
+        public async Task<bool> CheckSchemaAgreementAsync()
+        {
+            if (Hosts.Count == 1)
+            {
+                // If there is just one node, the schema is up to date in all nodes :)
+                return true;
+            }
+
+            try
+            {
+                var queries = new[]
+                {
+                    ControlConnection.QueryAsync(SelectSchemaVersionLocal),
+                    ControlConnection.QueryAsync(SelectSchemaVersionPeers)
+                };
+
+                await Task.WhenAll(queries).ConfigureAwait(false);
+
+                return CheckSchemaVersionResults(queries[0].Result, queries[1].Result);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Error while checking schema agreement.", ex);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Checks if there is only one schema version between the provided query results.
+        /// </summary>
+        /// <param name="localVersionQuery">
+        /// Results obtained from a query to <code>system.local</code> table.
+        /// Must contain the <code>schema_version</code> column.
+        /// </param>
+        /// <param name="peerVersionsQuery">
+        /// Results obtained from a query to <code>system.peers</code> table.
+        /// Must contain the <code>schema_version</code> column.
+        /// </param>
+        /// <returns><code>True</code> if there is a schema agreement (only 1 schema version). <code>False</code> otherwise.</returns>
+        private static bool CheckSchemaVersionResults(
+            IEnumerable<Row> localVersionQuery, IEnumerable<Row> peerVersionsQuery)
+        {
+            return new HashSet<Guid>(
+               peerVersionsQuery
+                   .Concat(localVersionQuery)
+                   .Select(r => r.GetValue<Guid>("schema_version"))).Count == 1;
+        }
+
+        /// <summary>
         /// Waits until that the schema version in all nodes is the same or the waiting time passed.
         /// This method blocks the calling thread.
         /// </summary>
-        internal void WaitForSchemaAgreement(Connection connection)
+        internal bool WaitForSchemaAgreement(IConnection connection)
         {
             if (Hosts.Count == 1)
             {
                 //If there is just one node, the schema is up to date in all nodes :)
-                return;
+                return true;
             }
             var start = DateTime.Now;
             var waitSeconds = Configuration.ProtocolOptions.MaxSchemaAgreementWaitSeconds;
-            Logger.Info("Waiting for schema agreement");
+            Metadata.Logger.Info("Waiting for schema agreement");
             try
             {
                 var totalVersions = 0;
                 while (DateTime.Now.Subtract(start).TotalSeconds < waitSeconds)
                 {
-                    var schemaVersionLocalQuery = new QueryRequest(ControlConnection.ProtocolVersion, SelectSchemaVersionLocal, false, QueryProtocolOptions.Default);
-                    var schemaVersionPeersQuery = new QueryRequest(ControlConnection.ProtocolVersion, SelectSchemaVersionPeers, false, QueryProtocolOptions.Default);
-                    var queries = new [] { connection.Send(schemaVersionLocalQuery), connection.Send(schemaVersionPeersQuery) };
+                    var schemaVersionLocalQuery = new QueryRequest(ControlConnection.ProtocolVersion, Metadata.SelectSchemaVersionLocal, false, QueryProtocolOptions.Default);
+                    var schemaVersionPeersQuery = new QueryRequest(ControlConnection.ProtocolVersion, Metadata.SelectSchemaVersionPeers, false, QueryProtocolOptions.Default);
+                    var queries = new[] { connection.Send(schemaVersionLocalQuery), connection.Send(schemaVersionPeersQuery) };
                     // ReSharper disable once CoVariantArrayConversion
                     Task.WaitAll(queries, Configuration.ClientOptions.QueryAbortTimeout);
-                    var versions = new HashSet<Guid>
+
+                    if (Metadata.CheckSchemaVersionResults(
+                        Dse.ControlConnection.GetRowSet(queries[0].Result),
+                        Dse.ControlConnection.GetRowSet(queries[1].Result)))
                     {
-                        Dse.ControlConnection.GetRowSet(queries[0].Result).First().GetValue<Guid>("schema_version")
-                    };
-                    var peerVersions = Dse.ControlConnection.GetRowSet(queries[1].Result).Select(r => r.GetValue<Guid>("schema_version"));
-                    foreach (var v in peerVersions)
-                    {
-                        versions.Add(v);
+                        return true;
                     }
-                    totalVersions = versions.Count;
-                    if (versions.Count == 1)
-                    {
-                        return;
-                    }
+
                     Thread.Sleep(500);
                 }
-                Logger.Info(String.Format("Waited for schema agreement, still {0} schema versions in the cluster.", totalVersions));
+                Metadata.Logger.Info($"Waited for schema agreement, still {totalVersions} schema versions in the cluster.");
             }
             catch (Exception ex)
             {
                 //Exceptions are not fatal
-                Logger.Error("There was an exception while trying to retrieve schema versions", ex);
+                Metadata.Logger.Error("There was an exception while trying to retrieve schema versions", ex);
             }
+
+            return false;
         }
 
         /// <summary>

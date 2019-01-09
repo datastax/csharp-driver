@@ -210,7 +210,7 @@ namespace Dse.Test.Integration.Core
             Cluster localCluster2 = null;
             try
             {
-                var localSession1 = (Session)localCluster1.Connect();
+                var localSession1 = (IInternalSession)localCluster1.Connect();
                 var hosts1 = localCluster1.AllHosts().ToList();
                 Assert.AreEqual(2, hosts1.Count);
                 //Execute multiple times a query on the newly created keyspace
@@ -228,7 +228,7 @@ namespace Dse.Test.Integration.Core
                     .AddContactPoint(TestCluster.InitialContactPoint)
                     .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 1))
                     .Build();
-                var localSession2 = (Session)localCluster2.Connect();
+                var localSession2 = (IInternalSession)localCluster2.Connect();
                 var hosts2 = localCluster2.AllHosts().ToList();
                 Assert.AreEqual(2, hosts2.Count);
                 //Execute multiple times a query on the newly created keyspace
@@ -272,7 +272,7 @@ namespace Dse.Test.Integration.Core
             var counter = 0;
             using (var localCluster = builder.Build())
             {
-                var localSession = (Session)localCluster.Connect();
+                var localSession = (IInternalSession)localCluster.Connect();
                 var remoteHost = localCluster.AllHosts().First(h => TestHelper.GetLastAddressByte(h) == 2);
                 var stopWatch = new Stopwatch();
                 var distanceReset = 0;
@@ -312,7 +312,7 @@ namespace Dse.Test.Integration.Core
                     }
                     return localSession.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local"));
                 };
-                await TestHelper.TimesLimit(execute, 200000, 32);
+                await TestHelper.TimesLimit(execute, 200000, 32).ConfigureAwait(false);
                 Assert.That(pool1.OpenConnections, Is.EqualTo(3));
                 Assert.That(pool2.OpenConnections, Is.EqualTo(3));
             }
@@ -369,15 +369,15 @@ namespace Dse.Test.Integration.Core
                 host.Down += _ => Interlocked.Increment(ref isDown);
             }
             const string query = "SELECT * from system.local";
-            await TestHelper.TimesLimit(() => session1.ExecuteAsync(new SimpleStatement(query)), 100, 32);
-            await TestHelper.TimesLimit(() => session2.ExecuteAsync(new SimpleStatement(query)), 100, 32);
+            await TestHelper.TimesLimit(() => session1.ExecuteAsync(new SimpleStatement(query)), 100, 32).ConfigureAwait(false);
+            await TestHelper.TimesLimit(() => session2.ExecuteAsync(new SimpleStatement(query)), 100, 32).ConfigureAwait(false);
             // Dispose the first session
             session1.Dispose();
 
             // All nodes should be up
             Assert.AreEqual(cluster.AllHosts().Count, cluster.AllHosts().Count(h => h.IsUp));
             // And session2 should be queryable
-            await TestHelper.TimesLimit(() => session2.ExecuteAsync(new SimpleStatement(query)), 100, 32);
+            await TestHelper.TimesLimit(() => session2.ExecuteAsync(new SimpleStatement(query)), 100, 32).ConfigureAwait(false);
             Assert.AreEqual(cluster.AllHosts().Count, cluster.AllHosts().Count(h => h.IsUp));
             cluster.Dispose();
             Assert.AreEqual(0, Volatile.Read(ref isDown));

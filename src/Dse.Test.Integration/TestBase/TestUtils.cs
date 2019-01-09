@@ -596,10 +596,10 @@ namespace Dse.Test.Integration.TestClusterManagement
                 }
             }
         }
-
-        public static void WaitForSchemaAgreement(ICluster cluster)
+        
+        public static void WaitForSchemaAgreement(
+            ICluster cluster, bool ignoreDownNodes = true, bool throwOnMaxRetries = false, int maxRetries = 20)
         {
-            const int maxRetries = 20;
             var hostsLength = cluster.AllHosts().Count;
             if (hostsLength == 1)
             {
@@ -607,23 +607,28 @@ namespace Dse.Test.Integration.TestClusterManagement
             }
             var cc = cluster.Metadata.ControlConnection;
             var counter = 0;
-            var nodesDown = cluster.AllHosts().Count(h => !h.IsConsiderablyUp);
+            var nodesDown = ignoreDownNodes ? cluster.AllHosts().Count(h => !h.IsConsiderablyUp) : 0;
             while (counter++ < maxRetries)
             {
                 Trace.TraceInformation("Waiting for test schema agreement");
                 Thread.Sleep(500);
-                var hosts = new List<Guid>();
+                var schemaVersions = new List<Guid>();
                 //peers
-                hosts.AddRange(cc.Query("SELECT peer, schema_version FROM system.peers").Select(r => r.GetValue<Guid>("schema_version")));
+                schemaVersions.AddRange(cc.Query("SELECT peer, schema_version FROM system.peers").Select(r => r.GetValue<Guid>("schema_version")));
                 //local
-                hosts.Add(cc.Query("SELECT schema_version FROM system.local").Select(r => r.GetValue<Guid>("schema_version")).First());
+                schemaVersions.Add(cc.Query("SELECT schema_version FROM system.local").Select(r => r.GetValue<Guid>("schema_version")).First());
 
-                var differentSchemas = hosts.GroupBy(v => v).Count();
+                var differentSchemas = schemaVersions.Distinct().Count();
                 if (differentSchemas <= 1 + nodesDown)
                 {
                     //There is 1 schema version or 1 + nodes that are considered as down
-                    break;
+                    return;
                 }
+            }
+
+            if (throwOnMaxRetries)
+            {
+                throw new Exception("Reached max attempts for obtaining a single schema version from all nodes.");
             }
         }
 

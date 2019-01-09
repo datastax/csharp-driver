@@ -18,24 +18,21 @@ using Dse.Tasks;
 
 namespace Dse.Requests
 {
-    /// <summary>
-    /// Handles request executions, each execution handles retry and failover.
-    /// </summary>
-    internal class RequestHandler
+    /// <inheritdoc />
+    internal class RequestHandler : IRequestHandler
     {
         private static readonly Logger Logger = new Logger(typeof(Session));
         public const long StateInit = 0;
         public const long StateCompleted = 1;
 
         private readonly IRequest _request;
-        private readonly ISession _session;
+        private readonly IInternalSession _session;
         private readonly TaskCompletionSource<RowSet> _tcs;
         private long _state;
         private readonly IEnumerator<Host> _queryPlan;
         private readonly object _queryPlanLock = new object();
-        private readonly ICollection<RequestExecution> _running = new CopyOnWriteList<RequestExecution>();
+        private readonly ICollection<IRequestExecution> _running = new CopyOnWriteList<IRequestExecution>();
         private ISpeculativeExecutionPlan _executionPlan;
-        private volatile Host _host;
         private volatile HashedWheelTimer.ITimeout _nextExecutionTimeout;
 
         public Policies Policies { get; }
@@ -46,7 +43,7 @@ namespace Dse.Requests
         /// <summary>
         /// Creates a new instance using a request and the statement.
         /// </summary>
-        public RequestHandler(ISession session, Serializer serializer, IRequest request, IStatement statement)
+        public RequestHandler(IInternalSession session, Serializer serializer, IRequest request, IStatement statement)
         {
             _tcs = new TaskCompletionSource<RowSet>();
             _session = session ?? throw new ArgumentNullException(nameof(session));
@@ -61,15 +58,15 @@ namespace Dse.Requests
                 RetryPolicy = statement.RetryPolicy.Wrap(Policies.ExtendedRetryPolicy);
             }
 
-            _queryPlan = GetQueryPlan(session, statement, Policies).GetEnumerator();
+            _queryPlan = RequestHandler.GetQueryPlan(session, statement, Policies).GetEnumerator();
         }
 
         /// <summary>
         /// Creates a new instance using the statement to build the request.
         /// Statement can not be null.
         /// </summary>
-        public RequestHandler(ISession session, Serializer serializer, IStatement statement)
-            : this(session, serializer, GetRequest(statement, serializer, session.Cluster.Configuration), statement)
+        public RequestHandler(IInternalSession session, Serializer serializer, IStatement statement)
+            : this(session, serializer, RequestHandler.GetRequest(statement, serializer, session.Cluster.Configuration), statement)
         {
 
         }
@@ -77,7 +74,7 @@ namespace Dse.Requests
         /// <summary>
         /// Creates a new instance with no request, suitable for getting a connection.
         /// </summary>
-        public RequestHandler(ISession session, Serializer serializer)
+        public RequestHandler(IInternalSession session, Serializer serializer)
             : this(session, serializer, null, null)
         {
 
@@ -97,6 +94,12 @@ namespace Dse.Requests
                 ? policies.LoadBalancingPolicy.NewQueryPlan(session.Keyspace, statement)
                 : Enumerable.Repeat(host, 1);
         }
+        
+        /// <inheritdoc />
+        public IRequest BuildRequest(IStatement statement, Serializer serializer, Configuration config)
+        {
+            return RequestHandler.GetRequest(statement, serializer, config);
+        }
 
         /// <summary>
         /// Gets the Request to send to a cassandra node based on the statement type
@@ -108,24 +111,21 @@ namespace Dse.Requests
             {
                 statement.SetIdempotence(config.QueryOptions.GetDefaultIdempotence());
             }
-            if (statement is RegularStatement)
+            if (statement is RegularStatement s1)
             {
-                var s = (RegularStatement)statement;
-                s.Serializer = serializer;
-                var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s, config.QueryOptions, config.Policies);
-                options.ValueNames = s.QueryValueNames;
-                request = new QueryRequest(serializer.ProtocolVersion, s.QueryString, s.IsTracing, options);
+                s1.Serializer = serializer;
+                var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s1, config.QueryOptions, config.Policies);
+                options.ValueNames = s1.QueryValueNames;
+                request = new QueryRequest(serializer.ProtocolVersion, s1.QueryString, s1.IsTracing, options);
             }
-            if (statement is BoundStatement)
+            if (statement is BoundStatement s2)
             {
-                var s = (BoundStatement)statement;
-                var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s, config.QueryOptions, config.Policies);
-                request = new ExecuteRequest(serializer.ProtocolVersion, s.PreparedStatement.Id, null,
-                    s.PreparedStatement.ResultMetadataId, s.IsTracing, options);
+                var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s2, config.QueryOptions, config.Policies);
+                request = new ExecuteRequest(serializer.ProtocolVersion, s2.PreparedStatement.Id, null,
+                    s2.PreparedStatement.ResultMetadataId, s2.IsTracing, options);
             }
-            if (statement is BatchStatement)
+            if (statement is BatchStatement s)
             {
-                var s = (BatchStatement)statement;
                 s.Serializer = serializer;
                 var consistency = config.QueryOptions.GetConsistencyLevel();
                 if (s.ConsistencyLevel != null)
@@ -143,17 +143,13 @@ namespace Dse.Requests
             return request;
         }
 
-        /// <summary>
-        /// Marks this instance as completed (if not already) and sets the exception or result
-        /// </summary>
+        /// <inheritdoc />
         public bool SetCompleted(Exception ex, RowSet result = null)
         {
             return SetCompleted(ex, result, null);
         }
 
-        /// <summary>
-        /// Marks this instance as completed (if not already) and in a new Task using the default scheduler, it invokes the action and sets the result
-        /// </summary>
+        /// <inheritdoc />
         public bool SetCompleted(RowSet result, Action action)
         {
             return SetCompleted(null, result, action);
@@ -166,7 +162,7 @@ namespace Dse.Requests
         /// </summary>
         private bool SetCompleted(Exception ex, RowSet result, Action action)
         {
-            var finishedNow = Interlocked.CompareExchange(ref _state, StateCompleted, StateInit) == StateInit;
+            var finishedNow = Interlocked.CompareExchange(ref _state, RequestHandler.StateCompleted, RequestHandler.StateInit) == RequestHandler.StateInit;
             if (!finishedNow)
             {
                 return false;
@@ -174,10 +170,7 @@ namespace Dse.Requests
             //Cancel the current timer
             //When the next execution timer is being scheduled at the *same time*
             //the timer is not going to be cancelled, in that case, this instance is going to stay alive a little longer
-            if (_nextExecutionTimeout != null)
-            {
-                _nextExecutionTimeout.Cancel();
-            }
+            _nextExecutionTimeout?.Cancel();
             foreach (var execution in _running)
             {
                 execution.Cancel();
@@ -208,14 +201,14 @@ namespace Dse.Requests
             return true;
         }
 
-        public void SetNoMoreHosts(NoHostAvailableException ex, RequestExecution execution)
+        public void SetNoMoreHosts(NoHostAvailableException ex, IRequestExecution execution)
         {
             //An execution ended with a NoHostAvailableException (retrying or starting).
             //If there is a running execution, do not yield it to the user
             _running.Remove(execution);
             if (_running.Count > 0)
             {
-                Logger.Info("Could not obtain an available host for speculative execution");
+                RequestHandler.Logger.Info("Could not obtain an available host for speculative execution");
                 return;
             }
             SetCompleted(ex);
@@ -223,7 +216,7 @@ namespace Dse.Requests
 
         public bool HasCompleted()
         {
-            return Interlocked.Read(ref _state) == StateCompleted;
+            return Interlocked.Read(ref _state) == RequestHandler.StateCompleted;
         }
 
         private Host GetNextHost()
@@ -239,54 +232,94 @@ namespace Dse.Requests
             return null;
         }
 
-        /// <summary>
-        /// Gets a connection from the next host according to the load balancing policy
-        /// </summary>
-        /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
-        /// <exception cref="UnsupportedProtocolVersionException">When the protocol version is not supported in the host</exception>
-        /// <exception cref="NoHostAvailableException"></exception>
-        internal async Task<Connection> GetNextConnection(Dictionary<IPEndPoint, Exception> triedHosts)
+        /// <inheritdoc />
+        public ValidHost GetNextValidHost(Dictionary<IPEndPoint, Exception> triedHosts)
         {
             Host host;
-            // Use the concrete implementation in this method
-            var session = (Session) _session;
-            // While there is an available host
-            while ((host = GetNextHost()) != null && !session.IsDisposed)
+            while ((host = GetNextHost()) != null && !_session.IsDisposed)
             {
-                _host = host;
                 triedHosts[host.Address] = null;
-                // Retrieve the distance from the load balancing and setting it
-                // at host level
-                var distance = Cluster.RetrieveDistance(host, Policies.LoadBalancingPolicy);
-                if (distance == HostDistance.Ignored)
+                if (!TryValidateHost(host, out var validHost))
                 {
-                    // We should not use an ignored host
                     continue;
                 }
-                if (!host.IsUp)
-                {
-                    // The host is not considered UP by the driver.
-                    // We could have filtered earlier by hosts that are considered UP, but we must check the host
-                    // distance first.
-                    continue;
-                }
-                var c = await GetConnectionFromHost(host, distance, session, triedHosts).ConfigureAwait(false);
+
+                return validHost;
+            }
+
+            throw new NoHostAvailableException(triedHosts);
+        }
+        
+        /// <summary>
+        /// Checks if the host is a valid candidate for the purpose of obtaining a connection.
+        /// This method obtains the <see cref="HostDistance"/> from the load balancing policy.
+        /// </summary>
+        /// <param name="host">Host to check.</param>
+        /// <param name="validHost">Output parameter that will contain the <see cref="ValidHost"/> instance.</param>
+        /// <returns><code>true</code> if the host is valid and <code>false</code> if not valid
+        /// (see documentation of <see cref="ValidHost.New"/>)</returns>
+        private bool TryValidateHost(Host host, out ValidHost validHost)
+        {
+            var distance = Cluster.RetrieveDistance(host, Policies.LoadBalancingPolicy);
+            validHost = ValidHost.New(host, distance);
+            return validHost != null;
+        }
+
+        /// <inheritdoc />
+        public async Task<IConnection> GetNextConnectionAsync(Dictionary<IPEndPoint, Exception> triedHosts)
+        {
+            Host host;
+            // While there is an available host
+            while ((host = GetNextHost()) != null)
+            {
+                var c = await ValidateHostAndGetConnectionAsync(host, triedHosts).ConfigureAwait(false);
                 if (c == null)
                 {
                     continue;
                 }
                 return c;
             }
+
             throw new NoHostAvailableException(triedHosts);
+        }
+
+        /// <inheritdoc />
+        public async Task<IConnection> ValidateHostAndGetConnectionAsync(Host host, Dictionary<IPEndPoint, Exception> triedHosts)
+        {
+            if (_session.IsDisposed)
+            {
+                throw new NoHostAvailableException(triedHosts);
+            }
+
+            triedHosts[host.Address] = null;
+            if (!TryValidateHost(host, out var validHost))
+            {
+                return null;
+            }
+            
+            var c = await GetConnectionToValidHostAsync(validHost, triedHosts).ConfigureAwait(false);
+            return c;
+        }
+
+        /// <inheritdoc />
+        public Task<IConnection> GetConnectionToValidHostAsync(ValidHost validHost, IDictionary<IPEndPoint, Exception> triedHosts)
+        {
+            return RequestHandler.GetConnectionFromHostAsync(validHost.Host, validHost.Distance, _session, triedHosts);
         }
 
         /// <summary>
         /// Gets a connection from a host or null if its not possible, filling the triedHosts map with the failures.
         /// </summary>
-        internal static async Task<Connection> GetConnectionFromHost(Host host, HostDistance distance, Session session,
-                                                                     IDictionary<IPEndPoint, Exception> triedHosts)
+        /// <param name="host">Host to which a connection will be obtained.</param>
+        /// <param name="distance">Output parameter that will contain the <see cref="HostDistance"/> associated with
+        /// <paramref name="host"/>. It is retrieved from the current <see cref="ILoadBalancingPolicy"/>.</param>
+        /// <param name="session">Session from where a connection will be obtained (or created).</param>
+        /// <param name="triedHosts">Hosts for which there were attempts to connect and send the request.</param>
+        /// <exception cref="InvalidQueryException">When the keyspace is not valid</exception>
+        internal static async Task<IConnection> GetConnectionFromHostAsync(
+            Host host, HostDistance distance, IInternalSession session, IDictionary<IPEndPoint, Exception> triedHosts)
         {
-            Connection c = null;
+            IConnection c = null;
             var hostPool = session.GetOrCreateConnectionPool(host, distance);
             try
             {
@@ -296,7 +329,7 @@ namespace Dse.Requests
             {
                 // The version of the protocol is not supported on this host
                 // Most likely, we are using a higher protocol version than the host supports
-                Logger.Error("Host {0} does not support protocol version {1}. You should use a fixed protocol " +
+                RequestHandler.Logger.Error("Host {0} does not support protocol version {1}. You should use a fixed protocol " +
                              "version during rolling upgrades of the cluster. Setting the host as DOWN to " +
                              "avoid hitting this node as part of the query plan for a while", host.Address, ex.ProtocolVersion);
                 triedHosts[host.Address] = ex;
@@ -304,7 +337,7 @@ namespace Dse.Requests
             }
             catch (BusyPoolException ex)
             {
-                Logger.Warning(
+                RequestHandler.Logger.Warning(
                     "All connections to host {0} are busy ({1} requests are in-flight on {2} connection(s))," +
                     " consider lowering the pressure or make more nodes available to the client", host.Address,
                     ex.MaxRequestsPerConnection, ex.ConnectionLength);
@@ -313,7 +346,7 @@ namespace Dse.Requests
             catch (Exception ex)
             {
                 // Probably a SocketException/AuthenticationException, move along
-                Logger.Error("Exception while trying borrow a connection from a pool", ex);
+                RequestHandler.Logger.Error("Exception while trying borrow a connection from a pool", ex);
                 triedHosts[host.Address] = ex;
             }
 
@@ -330,18 +363,19 @@ namespace Dse.Requests
                 hostPool.Remove(c);
                 // A socket exception on the current connection does not mean that all the pool is closed:
                 // Retry on the same host
-                return await GetConnectionFromHost(host, distance, session, triedHosts).ConfigureAwait(false);
+                return await RequestHandler.GetConnectionFromHostAsync(host, distance, session, triedHosts).ConfigureAwait(false);
             }
             return c;
         }
 
-        public Task<RowSet> Send()
+        public Task<RowSet> SendAsync()
         {
             if (_request == null)
             {
                 _tcs.TrySetException(new DriverException("request can not be null"));
                 return _tcs.Task;
             }
+
             StartNewExecution();
             return _tcs.Task;
         }
@@ -353,10 +387,10 @@ namespace Dse.Requests
         {
             try
             {
-                var execution = new RequestExecution(this, _session, _request);
-                execution.Start();
+                var execution = NewExecution(_session, _request);
+                var lastHost = execution.Start(false);
                 _running.Add(execution);
-                ScheduleNext();
+                ScheduleNext(lastHost);
             }
             catch (NoHostAvailableException ex)
             {
@@ -375,10 +409,15 @@ namespace Dse.Requests
             }
         }
 
+        protected virtual IRequestExecution NewExecution(IInternalSession session, IRequest request)
+        {
+            return new RequestExecution(this, _session, _request);
+        }
+
         /// <summary>
         /// Schedules the next delayed execution
         /// </summary>
-        private void ScheduleNext()
+        private void ScheduleNext(Host currentHost)
         {
             if (Statement == null || Statement.IsIdempotent == false)
             {
@@ -389,7 +428,7 @@ namespace Dse.Requests
             {
                 _executionPlan = Policies.SpeculativeExecutionPolicy.NewPlan(_session.Keyspace, Statement);
             }
-            var delay = _executionPlan.NextExecution(_host);
+            var delay = _executionPlan.NextExecution(currentHost);
             if (delay <= 0)
             {
                 return;
@@ -404,7 +443,7 @@ namespace Dse.Requests
                     {
                         return;
                     }
-                    Logger.Info("Starting new speculative execution after {0}, last used host {1}", delay, _host.Address);
+                    RequestHandler.Logger.Info("Starting new speculative execution after {0}, last used host {1}", delay, currentHost.Address);
                     StartNewExecution();
                 });
             }, null, delay);

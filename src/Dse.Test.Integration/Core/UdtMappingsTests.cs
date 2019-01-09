@@ -70,7 +70,7 @@ namespace Dse.Test.Integration.Core
                       .Map(v => v.Alias, "alias")
                       .Map(v => v.CountryCode, "country_code")
                       .Map(v => v.Number, "number")
-            );
+            ).ConfigureAwait(false);
             localSession.Execute("INSERT INTO users (id, main_phone) values (1, {alias: 'home phone', number: '123', country_code: 34})");
             var rs = localSession.Execute("SELECT * FROM users WHERE id = 1");
             var row = rs.First();
@@ -90,7 +90,7 @@ namespace Dse.Test.Integration.Core
                       .Map(v => v.Alias, "alias")
                       .Map(v => v.CountryCode, "country_code")
                       .Map(v => v.Number, "number")
-            );
+            ).ConfigureAwait(false);
             var phone = new Phone
             {
                 Alias = "home phone",

@@ -13,79 +13,130 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Dse.Responses;
+using Dse.Serialization;
 using Dse.Tasks;
 
 namespace Dse.Requests
 {
-    internal class RequestExecution
+    internal class RequestExecution : IRequestExecution
     {
         private static readonly Logger Logger = new Logger(typeof(RequestExecution));
-        private readonly RequestHandler _parent;
-        private readonly ISession _session;
+        private readonly IRequestHandler _parent;
+        private readonly IInternalSession _session;
         private readonly IRequest _request;
         private readonly Dictionary<IPEndPoint, Exception> _triedHosts = new Dictionary<IPEndPoint, Exception>();
-        private volatile Connection _connection;
+        private volatile IConnection _connection;
         private volatile int _retryCount;
         private volatile OperationState _operation;
 
-        public RequestExecution(RequestHandler parent, ISession session, IRequest request)
+        /// <summary>
+        /// Host that was queried last in this execution. It can be null in case there was no attempt to send the request yet.
+        /// </summary>
+        private volatile Host _host;
+
+        public RequestExecution(IRequestHandler parent, IInternalSession session, IRequest request)
         {
             _parent = parent;
             _session = session;
             _request = request;
+            _host = null;
         }
 
         public void Cancel()
         {
-            if (_operation == null)
+            // if null then the request has not been sent yet
+            _operation?.Cancel();
+        }
+
+        /// <inheritdoc />
+        public Host Start(bool currentHostRetry)
+        {
+            if (currentHostRetry && _host != null)
             {
-                //The request has not been sent yet
-                return;
+                SendToCurrentHostAsync().Forget();
+                return _host;
             }
-            //_operation can not be assigned to null, so it is safe to use the reference
-            _operation.Cancel();
+
+            // fail fast: try to choose a host before leaving this thread
+            var validHost = _parent.GetNextValidHost(_triedHosts);
+
+            SendToNextHostAsync(validHost).Forget();
+            return validHost.Host;
         }
 
         /// <summary>
-        /// Starts a new execution using the current request
+        /// Gets a new connection to the current host and send the request with it. Useful for retries on the same host.
         /// </summary>
-        /// <param name="useCurrentHost"></param>
-        public void Start(bool useCurrentHost = false)
-        {
-            if (!useCurrentHost)
-            {
-                //Get a new connection from the next host
-                _parent.GetNextConnection(_triedHosts).ContinueWith(t =>
-                {
-                    if (t.Exception != null)
-                    {
-                        t.Exception.Handle(_ => true);
-                        HandleResponse(t.Exception.InnerException, null);
-                        return;
-                    }
-                    _connection = t.Result;
-                    Send(_request, HandleResponse);
-                }, TaskContinuationOptions.ExecuteSynchronously);
-                return;
-            }
-            if (_connection == null)
-            {
-                throw new DriverInternalError("No current connection set");
-            }
-            Send(_request, HandleResponse);
-        }
-
-        private void TryStartNew(bool useCurrentHost)
+        private async Task SendToCurrentHostAsync()
         {
             try
             {
-                Start(useCurrentHost);
+                // host needs to be re-validated using the load balancing policy
+                _connection = await _parent.ValidateHostAndGetConnectionAsync(_host, _triedHosts).ConfigureAwait(false);
+                if (_connection != null)
+                {
+                    Send(_request, HandleResponse);
+                    return;
+                }
+
+                RequestExecution.Logger.Warning("RequestHandler could not obtain a connection while attempting to retry with the current host.");
+            }
+            catch (Exception ex)
+            {
+                RequestExecution.Logger.Warning("RequestHandler received exception while attempting to retry with the current host: {0}", ex.ToString());
+            }
+
+            RetryExecution(false);
+        }
+
+        /// <summary>
+        /// Attempts to obtain a connection to the provided <paramref name="validHost"/> and send the request with it.
+        /// If no connection could be obtained for the provided host, then attempts to obtain a connection
+        /// for the next host, following the query plan.
+        /// </summary>
+        /// <param name="validHost">First host to which the method tries to obtain a connection.</param>
+        /// <returns></returns>
+        private async Task SendToNextHostAsync(ValidHost validHost)
+        {
+            try
+            {
+                IConnection connection = null;
+                while (connection == null)
+                {
+                    connection = await _parent.GetConnectionToValidHostAsync(validHost, _triedHosts).ConfigureAwait(false);
+                    if (connection == null)
+                    {
+                        validHost = _parent.GetNextValidHost(_triedHosts);
+                    }
+                }
+                
+                _connection = connection;
+                _host = validHost.Host;
+                Send(_request, HandleResponse);
+            }
+            catch (Exception ex)
+            {
+                _host = validHost.Host;
+                HandleResponse(ex, null);
+            }
+        }
+
+        /// <summary>
+        /// Useful method to retry the execution safely. While <see cref="Start"/> throws exceptions,
+        /// this method catches them and marks the <see cref="_parent"/> request as complete,
+        /// making it suitable to be called in a fire and forget manner.
+        /// </summary>
+        private void RetryExecution(bool currentHostRetry)
+        {
+            try
+            {
+                Start(currentHostRetry);
             }
             catch (Exception ex)
             {
                 //There was an Exception before sending (probably no host is available).
                 //This will mark the Task as faulted.
-                HandleException(ex);
+                HandleResponse(ex, null);
             }
         }
 
@@ -102,7 +153,7 @@ namespace Dse.Requests
             _operation = _connection.Send(request, callback, timeoutMillis);
         }
 
-        public void HandleResponse(Exception ex, Response response)
+        private void HandleResponse(Exception ex, Response response)
         {
             if (_parent.HasCompleted())
             {
@@ -124,21 +175,21 @@ namespace Dse.Requests
             }
         }
 
-        public void Retry(ConsistencyLevel? consistency, bool useCurrentHost)
+        private void Retry(ConsistencyLevel? consistency, bool useCurrentHost)
         {
             _retryCount++;
-            if (consistency != null && _request is ICqlRequest)
+            if (consistency != null && _request is ICqlRequest request)
             {
                 //Set the new consistency to be used for the new request
-                ((ICqlRequest)_request).Consistency = consistency.Value;
+                request.Consistency = consistency.Value;
             }
-            Logger.Info("Retrying request: {0}", _request.GetType().Name);
-            TryStartNew(useCurrentHost);
+            RequestExecution.Logger.Info("Retrying request: {0}", _request.GetType().Name);
+            RetryExecution(useCurrentHost);
         }
 
         private void HandleRowSetResult(Response response)
         {
-            ValidateResult(response);
+            RequestExecution.ValidateResult(response);
             var resultResponse = (ResultResponse)response;
             if (resultResponse.Output is OutputSchemaChange)
             {
@@ -147,15 +198,15 @@ namespace Dse.Requests
                 return;
             }
             RowSet rs;
-            if (resultResponse.Output is OutputRows)
+            if (resultResponse.Output is OutputRows rows)
             {
-                rs = ((OutputRows)resultResponse.Output).RowSet;
+                rs = rows.RowSet;
             }
             else
             {
-                if (resultResponse.Output is OutputSetKeyspace)
+                if (resultResponse.Output is OutputSetKeyspace keyspace)
                 {
-                    ((Session)_session).Keyspace = ((OutputSetKeyspace)resultResponse.Output).Value;
+                    _session.Keyspace = keyspace.Value;
                 }
                 rs = RowSet.Empty();
             }
@@ -165,8 +216,18 @@ namespace Dse.Requests
         private void HandleSchemaChange(ResultResponse response)
         {
             var result = FillRowSet(new RowSet(), response);
-            //Wait for the schema change before returning the result
-            _parent.SetCompleted(result, () => _session.Cluster.Metadata.WaitForSchemaAgreement(_connection));
+
+            // This is a schema change so initialize schema in agreement as false
+            result.Info.SetSchemaInAgreement(false);
+
+            // Wait for the schema change before returning the result
+            _parent.SetCompleted(
+                result,
+                () =>
+                {
+                    var schemaAgreed = _session.Cluster.Metadata.WaitForSchemaAgreement(_connection);
+                    result.Info.SetSchemaInAgreement(schemaAgreed);
+                });
         }
 
         /// <summary>
@@ -187,15 +248,16 @@ namespace Dse.Requests
                     for (var i = 0; i < response.Warnings.Length; i++)
                     {
                         var query = "BATCH";
-                        if (_request is QueryRequest)
+                        if (_request is QueryRequest queryRequest)
                         {
-                            query = ((QueryRequest)_request).Query;
+                            query = queryRequest.Query;
                         }
-                        else if (_parent.Statement is BoundStatement)
+                        else if (_parent.Statement is BoundStatement statement)
                         {
-                            query = ((BoundStatement)_parent.Statement).PreparedStatement.Cql;
+                            query = statement.PreparedStatement.Cql;
                         }
-                        Logger.Warning("Received warning ({0} of {1}): \"{2}\" for \"{3}\"", i + 1, response.Warnings.Length, response.Warnings[i], query);
+                        RequestExecution.Logger.Warning(
+                            "Received warning ({0} of {1}): \"{2}\" for \"{3}\"", i + 1, response.Warnings.Length, response.Warnings[i], query);
                     }
                 }
 
@@ -209,15 +271,15 @@ namespace Dse.Requests
                 rs.Info.IncomingPayload = response.CustomPayload;
             }
             rs.Info.SetTriedHosts(_triedHosts.Keys.ToList());
-            if (_request is ICqlRequest)
+            if (_request is ICqlRequest request)
             {
-                rs.Info.SetAchievedConsistency(((ICqlRequest)_request).Consistency);
+                rs.Info.SetAchievedConsistency(request.Consistency);
             }
             SetAutoPage(rs, _session, _parent.Statement);
             return rs;
         }
 
-        private void SetAutoPage(RowSet rs, ISession session, IStatement statement)
+        private void SetAutoPage(RowSet rs, IInternalSession session, IStatement statement)
         {
             rs.AutoPage = statement != null && statement.AutoPage;
             if (rs.AutoPage && rs.PagingState != null && _request is IQueryRequest)
@@ -227,16 +289,22 @@ namespace Dse.Requests
                 {
                     if (_session.IsDisposed)
                     {
-                        Logger.Warning("Trying to page results using a Session already disposed.");
+                        RequestExecution.Logger.Warning("Trying to page results using a Session already disposed.");
                         return Task.FromResult(RowSet.Empty());
                     }
 
-                    var request = (IQueryRequest) RequestHandler.GetRequest(statement, _parent.Serializer,
+                    var request = (IQueryRequest)_parent.BuildRequest(statement, _parent.Serializer,
                         session.Cluster.Configuration);
                     request.PagingState = pagingState;
-                    return new RequestHandler(session, _parent.Serializer, request, statement).Send();
+                    return NewRequestHandler(session, _parent.Serializer, request, statement).SendAsync();
                 }, _session.Cluster.Configuration.ClientOptions.QueryAbortTimeout);
             }
+        }
+
+        protected virtual IRequestHandler NewRequestHandler(
+            IInternalSession session, Serializer serializer, IRequest request, IStatement statement)
+        {
+            return new RequestHandler(session, _parent.Serializer, request, statement);
         }
 
         /// <summary>
@@ -244,17 +312,17 @@ namespace Dse.Requests
         /// </summary>
         private void HandleException(Exception ex)
         {
-            Logger.Info("RequestHandler received exception {0}", ex.ToString());
-            if (ex is PreparedQueryNotFoundException &&
+            RequestExecution.Logger.Info("RequestHandler received exception {0}", ex.ToString());
+            if (ex is PreparedQueryNotFoundException foundException &&
                 (_parent.Statement is BoundStatement || _parent.Statement is BatchStatement))
             {
-                PrepareAndRetry(((PreparedQueryNotFoundException)ex).UnknownId);
+                PrepareAndRetry(foundException.UnknownId);
                 return;
             }
-            if (ex is NoHostAvailableException)
+            if (ex is NoHostAvailableException exception)
             {
                 //A NoHostAvailableException when trying to retrieve
-                _parent.SetNoMoreHosts((NoHostAvailableException)ex, this);
+                _parent.SetNoMoreHosts(exception, this);
                 return;
             }
             var c = _connection;
@@ -264,29 +332,31 @@ namespace Dse.Requests
             }
             if (ex is OperationTimedOutException)
             {
-                Logger.Warning(ex.Message);
+                RequestExecution.Logger.Warning(ex.Message);
                 var connection = _connection;
                 if (connection == null)
                 {
-                    Logger.Error("Host and Connection must not be null");
+                    RequestExecution.Logger.Error("Host and Connection must not be null");
                 }
                 else
                 {
                     // Checks how many timed out operations are in the connection
-                    ((Session)_session).CheckHealth(connection);
+                    _session.CheckHealth(connection);
                 }
             }
-            var decision = GetRetryDecision(
+            var decision = RequestExecution.GetRetryDecision(
                 ex, _parent.RetryPolicy, _parent.Statement, _session.Cluster.Configuration, _retryCount);
             switch (decision.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.Rethrow:
                     _parent.SetCompleted(ex);
                     break;
+
                 case RetryDecision.RetryDecisionType.Ignore:
                     // The error was ignored by the RetryPolicy, return an empty rowset
                     _parent.SetCompleted(null, FillRowSet(RowSet.Empty(), null));
                     break;
+
                 case RetryDecision.RetryDecisionType.Retry:
                     //Retry the Request using the new consistency level
                     Retry(decision.RetryConsistencyLevel, decision.UseCurrentHost);
@@ -297,32 +367,29 @@ namespace Dse.Requests
         /// <summary>
         /// Gets the retry decision based on the exception from Cassandra
         /// </summary>
-        public static RetryDecision GetRetryDecision(Exception ex, IExtendedRetryPolicy policy, IStatement statement,
-                                                     Configuration config, int retryCount)
+        internal static RetryDecision GetRetryDecision(
+            Exception ex, IExtendedRetryPolicy policy, IStatement statement, Configuration config, int retryCount)
         {
-            if (ex is SocketException)
+            if (ex is SocketException exception)
             {
-                Logger.Verbose("Socket error " + ((SocketException)ex).SocketErrorCode);
-                return policy.OnRequestError(statement, config, ex, retryCount);
+                RequestExecution.Logger.Verbose("Socket error " + exception.SocketErrorCode);
+                return policy.OnRequestError(statement, config, exception, retryCount);
             }
             if (ex is OverloadedException || ex is IsBootstrappingException || ex is TruncateException)
             {
                 return policy.OnRequestError(statement, config, ex, retryCount);
             }
-            if (ex is ReadTimeoutException)
+            if (ex is ReadTimeoutException e)
             {
-                var e = (ReadTimeoutException)ex;
                 return policy.OnReadTimeout(statement, e.ConsistencyLevel, e.RequiredAcknowledgements, e.ReceivedAcknowledgements, e.WasDataRetrieved, retryCount);
             }
-            if (ex is WriteTimeoutException)
+            if (ex is WriteTimeoutException e1)
             {
-                var e = (WriteTimeoutException)ex;
-                return policy.OnWriteTimeout(statement, e.ConsistencyLevel, e.WriteType, e.RequiredAcknowledgements, e.ReceivedAcknowledgements, retryCount);
+                return policy.OnWriteTimeout(statement, e1.ConsistencyLevel, e1.WriteType, e1.RequiredAcknowledgements, e1.ReceivedAcknowledgements, retryCount);
             }
-            if (ex is UnavailableException)
+            if (ex is UnavailableException e2)
             {
-                var e = (UnavailableException)ex;
-                return policy.OnUnavailable(statement, e.Consistency, e.RequiredReplicas, e.AliveReplicas, retryCount);
+                return policy.OnUnavailable(statement, e2.Consistency, e2.RequiredReplicas, e2.AliveReplicas, retryCount);
             }
             if (ex is OperationTimedOutException)
             {
@@ -343,18 +410,17 @@ namespace Dse.Requests
         /// </summary>
         private void PrepareAndRetry(byte[] id)
         {
-            Logger.Info(String.Format("Query {0} is not prepared on {1}, preparing before retrying executing.", BitConverter.ToString(id), _connection.Address));
+            RequestExecution.Logger.Info(
+                $"Query {BitConverter.ToString(id)} is not prepared on {_connection.Address}, preparing before retrying executing.");
             BoundStatement boundStatement = null;
-            if (_parent.Statement is BoundStatement)
+            if (_parent.Statement is BoundStatement statement1)
             {
-                boundStatement = (BoundStatement)_parent.Statement;
+                boundStatement = statement1;
             }
-            else if (_parent.Statement is BatchStatement)
+            else if (_parent.Statement is BatchStatement batch)
             {
-                var batch = (BatchStatement)_parent.Statement;
-
                 bool SearchBoundStatement(Statement s) =>
-                    s is BoundStatement && ((BoundStatement) s).PreparedStatement.Id.SequenceEqual(id);
+                    s is BoundStatement statement && statement.PreparedStatement.Id.SequenceEqual(id);
                 boundStatement = (BoundStatement)batch.Queries.FirstOrDefault(SearchBoundStatement);
             }
             if (boundStatement == null)
@@ -396,7 +462,7 @@ namespace Dse.Requests
                     HandleException(ex);
                     return;
                 }
-                ValidateResult(response);
+                RequestExecution.ValidateResult(response);
                 var output = ((ResultResponse)response).Output;
                 if (!(output is OutputPrepared outputPrepared))
                 {

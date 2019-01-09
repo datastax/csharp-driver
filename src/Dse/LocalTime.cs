@@ -6,6 +6,7 @@
 //
 
 using System;
+using System.Globalization;
 
 namespace Dse
 {
@@ -122,7 +123,7 @@ namespace Dse
             var nanos = 0;
             if (parts.Length == 3)
             {
-                var decimalSeconds = Convert.ToDecimal(parts[2]);
+                var decimalSeconds = Convert.ToDecimal(parts[2], CultureInfo.InvariantCulture);
                 var integralPart = Math.Truncate(decimalSeconds);
                 seconds = (int) integralPart;
                 nanos = (int)(NanosInSeconds * (decimalSeconds - integralPart));

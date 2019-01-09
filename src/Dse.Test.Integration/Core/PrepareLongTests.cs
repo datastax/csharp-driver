@@ -21,7 +21,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [TestFixture, Category("long")]
+    [TestFixture, Category("long"), Ignore("tests that are not marked with 'short' need to be refactored/deleted")]
     public class PrepareLongTests : TestGlobals
     {
         [Test]

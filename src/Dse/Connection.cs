@@ -23,10 +23,8 @@ using Microsoft.IO;
 
 namespace Dse
 {
-    /// <summary>
-    /// Represents a TCP connection to a Cassandra Node
-    /// </summary>
-    internal class Connection : IDisposable
+    /// <inheritdoc />
+    internal class Connection : IConnection
     {
         private const int WriteStateInit = 0;
         private const int WriteStateRunning = 1;
@@ -81,7 +79,7 @@ namespace Dse
         /// <summary>
         /// Event that gets raised the connection is being closed.
         /// </summary>
-        public event Action<Connection> Closing;
+        public event Action<IConnection> Closing;
         private const string IdleQuery = "SELECT key from system.local";
         private const long CoalescingThreshold = 8000;
 

@@ -44,7 +44,7 @@ namespace Dse.Test.Integration.Core
                 .WithLoadBalancingPolicy(new RoundRobinPolicy());
             using (var cluster = builder.Build())
             {
-                var session = (Session)cluster.Connect();
+                var session = (IInternalSession)cluster.Connect();
                 session.Execute(string.Format(TestUtils.CreateKeyspaceSimpleFormat, "ks1", 2));
                 session.Execute("CREATE TABLE ks1.table1 (id1 int, id2 int, PRIMARY KEY (id1, id2))");
                 var ps = session.Prepare("INSERT INTO ks1.table1 (id1, id2) VALUES (?, ?)");
@@ -66,7 +66,7 @@ namespace Dse.Test.Integration.Core
             }
         }
 
-        private Task<string[]> ExecuteMultiple(ITestCluster testCluster, Session session, PreparedStatement ps, bool stopNode, int maxConcurrency, int repeatLength)
+        private Task<string[]> ExecuteMultiple(ITestCluster testCluster, IInternalSession session, PreparedStatement ps, bool stopNode, int maxConcurrency, int repeatLength)
         {
             var hosts = new ConcurrentDictionary<string, bool>();
             var tcs = new TaskCompletionSource<string[]>();
@@ -133,7 +133,7 @@ namespace Dse.Test.Integration.Core
                                  .WithReconnectionPolicy(new ConstantReconnectionPolicy(long.MaxValue));
             using (var cluster = builder.Build())
             {
-                var session = (Session)cluster.Connect();
+                var session = (IInternalSession)cluster.Connect();
                 var allHosts = cluster.AllHosts();
 
                 TestHelper.WaitUntil(() =>
@@ -234,7 +234,7 @@ namespace Dse.Test.Integration.Core
                                        .WithPoolingOptions(options1)
                                        .Build())
             {
-                var session = (Session) cluster.Connect();
+                var session = (IInternalSession) cluster.Connect();
                 var allHosts = cluster.AllHosts();
                 var host = allHosts.First();
                 var pool = session.GetOrCreateConnectionPool(host, HostDistance.Local);
@@ -289,7 +289,7 @@ namespace Dse.Test.Integration.Core
                 var allHosts = cluster.AllHosts();
                 Assert.AreEqual(3, allHosts.Count);
                 await TestHelper.TimesLimit(() =>
-                    session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local")), 100, 16);
+                    session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local")), 100, 16).ConfigureAwait(false);
 
                 // 1 per hosts + control connection
                 WaitSimulatorConnections(testCluster, 4);
@@ -299,15 +299,15 @@ namespace Dse.Test.Integration.Core
                 var simulacronNode = testCluster.GetNode(ccAddress);
 
                 // Disable new connections to the first host
-                await simulacronNode.DisableConnectionListener();
+                await simulacronNode.DisableConnectionListener().ConfigureAwait(false);
 
                 Assert.NotNull(simulacronNode);
                 var connections = simulacronNode.GetConnections();
 
                 // Drop connections to the host that is being used by the control connection
                 Assert.AreEqual(2, connections.Count);
-                await testCluster.DropConnection(connections[0]);
-                await testCluster.DropConnection(connections[1]);
+                await testCluster.DropConnection(connections[0]).ConfigureAwait(false);
+                await testCluster.DropConnection(connections[1]).ConfigureAwait(false);
 
                 TestHelper.WaitUntil(() => !cluster.GetHost(ccAddress).IsUp);
 
@@ -343,7 +343,7 @@ namespace Dse.Test.Integration.Core
                 var allHosts = cluster.AllHosts();
                 Assert.AreEqual(3, allHosts.Count);
                 await TestHelper.TimesLimit(() =>
-                    session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local")), 100, 16);
+                    session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local")), 100, 16).ConfigureAwait(false);
 
                 var serverConnections = testCluster.GetConnectedPorts();
                 // 1 per hosts + control connection
@@ -351,14 +351,14 @@ namespace Dse.Test.Integration.Core
                 Assert.AreEqual(4, serverConnections.Count);
 
                 // Disable all connections
-                await testCluster.DisableConnectionListener();
+                await testCluster.DisableConnectionListener().ConfigureAwait(false);
 
                 var ccAddress = cluster.GetControlConnection().Address;
 
                 // Drop all connections to hosts
                 foreach (var connection in serverConnections)
                 {
-                    await testCluster.DropConnection(connection);
+                    await testCluster.DropConnection(connection).ConfigureAwait(false);
                 }
 
                 TestHelper.WaitUntil(() => !cluster.GetHost(ccAddress).IsUp);
@@ -369,7 +369,7 @@ namespace Dse.Test.Integration.Core
                 Assert.False(cluster.GetHost(ccAddress).IsUp);
 
                 // Allow new connections to be created
-                await testCluster.EnableConnectionListener();
+                await testCluster.EnableConnectionListener().ConfigureAwait(false);
 
                 TestHelper.WaitUntil(() => cluster.AllHosts().All(h => h.IsUp));
 
@@ -405,12 +405,12 @@ namespace Dse.Test.Integration.Core
                     then = new { result = "success", delay_in_ms = 3000 }
                 });
 
-                var session = await cluster.ConnectAsync();
+                var session = await cluster.ConnectAsync().ConfigureAwait(false);
                 var hosts = cluster.AllHosts().ToArray();
 
                 // Wait until all connections to first host are created
                 await TestHelper.WaitUntilAsync(() =>
-                    session.GetState().GetInFlightQueries(hosts[0]) == connectionLength);
+                    session.GetState().GetInFlightQueries(hosts[0]) == connectionLength).ConfigureAwait(false);
 
                 const int overflowToNextHost = 10;
                 var length = maxRequestsPerConnection * connectionLength + Environment.ProcessorCount +
@@ -422,7 +422,7 @@ namespace Dse.Test.Integration.Core
                     tasks.Add(session.ExecuteAsync(new SimpleStatement(query)));
                 }
 
-                var results = await Task.WhenAll(tasks);
+                var results = await Task.WhenAll(tasks).ConfigureAwait(false);
 
                 // At least the first n (maxRequestsPerConnection * connectionLength) went to the first host
                 Assert.That(results.Count(r => r.Info.QueriedHost.Equals(hosts[0].Address)),
@@ -461,18 +461,18 @@ namespace Dse.Test.Integration.Core
                     then = new { result = "success", delay_in_ms = 3000 }
                 });
 
-                var session = await cluster.ConnectAsync();
+                var session = await cluster.ConnectAsync().ConfigureAwait(false);
                 var hosts = cluster.AllHosts().ToArray();
 
                 await TestHelper.TimesLimit(() =>
-                    session.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local")), 100, 16);
+                    session.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local")), 100, 16).ConfigureAwait(false);
 
                 // Wait until all connections to all host are created
                 await TestHelper.WaitUntilAsync(() =>
                 {
                     var state = session.GetState();
                     return state.GetConnectedHosts().All(h => state.GetInFlightQueries(h) == connectionLength);
-                });
+                }).ConfigureAwait(false);
 
                 lbp.UseFixedOrder();
 
@@ -486,7 +486,7 @@ namespace Dse.Test.Integration.Core
                     tasks.Add(TestHelper.EatUpException(session.ExecuteAsync(new SimpleStatement(query))));
                 }
 
-                var results = await Task.WhenAll(tasks);
+                var results = await Task.WhenAll(tasks).ConfigureAwait(false);
 
                 // Only successful responses or NoHostAvailableException expected
                 Assert.Null(results.FirstOrDefault(e => e != null && !(e is NoHostAvailableException)));
@@ -528,27 +528,27 @@ namespace Dse.Test.Integration.Core
             using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = builder.AddContactPoint(testCluster.InitialContactPoint).Build())
             {
-                var session = await cluster.ConnectAsync();
+                var session = await cluster.ConnectAsync().ConfigureAwait(false);
                 var firstHost = cluster.AllHosts().First();
                 var lastHost = cluster.AllHosts().Last();
 
                 // The test load-balancing policy targets always the first host
                 await TestHelper.TimesLimit(async () =>
                 {
-                    var rs = await session.ExecuteAsync(new SimpleStatement(query));
+                    var rs = await session.ExecuteAsync(new SimpleStatement(query)).ConfigureAwait(false);
                     Assert.AreEqual(rs.Info.QueriedHost, firstHost.Address);
                     return rs;
-                }, 10, 10);
+                }, 10, 10).ConfigureAwait(false);
 
                 // Use a specific host
                 var statement = new SimpleStatement(query).SetHost(lastHost);
                 await TestHelper.TimesLimit(async () =>
                 {
-                    var rs = await session.ExecuteAsync(statement);
+                    var rs = await session.ExecuteAsync(statement).ConfigureAwait(false);
                     // The queried host should be the last one
                     Assert.AreEqual(rs.Info.QueriedHost, lastHost.Address);
                     return rs;
-                }, 10, 10);
+                }, 10, 10).ConfigureAwait(false);
             }
         }
 
@@ -586,7 +586,7 @@ namespace Dse.Test.Integration.Core
             using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = builder.AddContactPoint(testCluster.InitialContactPoint).Build())
             {
-                var session = await cluster.ConnectAsync();
+                var session = await cluster.ConnectAsync().ConfigureAwait(false);
                 var lastHost = cluster.AllHosts().Last();
 
                 // 1 for the control connection and 1 connection per each host 
@@ -595,11 +595,11 @@ namespace Dse.Test.Integration.Core
                 var simulacronNode = testCluster.GetNode(lastHost.Address);
 
                 // Disable new connections to the first host
-                await simulacronNode.DisableConnectionListener();
+                await simulacronNode.DisableConnectionListener().ConfigureAwait(false);
                 var connections = simulacronNode.GetConnections();
 
                 Assert.AreEqual(1, connections.Count);
-                await testCluster.DropConnection(connections[0]);
+                await testCluster.DropConnection(connections[0]).ConfigureAwait(false);
 
                 // Drop connections to the host last host
                 WaitSimulatorConnections(testCluster, 3);
@@ -660,7 +660,7 @@ namespace Dse.Test.Integration.Core
             using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = builder.AddContactPoint(testCluster.InitialContactPoint).Build())
             {
-                var session = await cluster.ConnectAsync();
+                var session = await cluster.ConnectAsync().ConfigureAwait(false);
                 var host = cluster.AllHosts().Last();
                 Interlocked.Exchange(ref queryPlanCounter, 0);
 
@@ -668,7 +668,7 @@ namespace Dse.Test.Integration.Core
                 {
                     var statement = new SimpleStatement("SELECT * FROM system.local").SetHost(host);
                     return session.ExecuteAsync(statement);
-                }, 1, 1);
+                }, 1, 1).ConfigureAwait(false);
 
                 Assert.Zero(Volatile.Read(ref queryPlanCounter));
             }

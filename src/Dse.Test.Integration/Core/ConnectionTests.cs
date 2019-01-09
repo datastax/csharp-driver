@@ -485,11 +485,11 @@ namespace Dse.Test.Integration.Core
             // ReSharper disable AccessToDisposedClosure, AccessToModifiedClosure
             using (var connection = CreateConnection())
             {
-                await connection.Open();
+                await connection.Open().ConfigureAwait(false);
                 Assert.Null(connection.Keyspace);
-                await Query(connection, queryKs1);
-                await Query(connection, queryKs2);
-                await Task.Delay(100);
+                await Query(connection, queryKs1).ConfigureAwait(false);
+                await Query(connection, queryKs2).ConfigureAwait(false);
+                await Task.Delay(100).ConfigureAwait(false);
                 var counter = 0;
                 connection.WriteCompleted += () => Interlocked.Increment(ref counter);
                 TestHelper.ParallelInvoke(new Action[]
@@ -499,7 +499,7 @@ namespace Dse.Test.Integration.Core
                     () => connection.SetKeyspace("system").Wait()
                 });
                 CollectionAssert.Contains(new[] { "ks_to_switch_p1", "ks_to_switch_p2", "system" }, connection.Keyspace);
-                await Task.Delay(200);
+                await Task.Delay(200).ConfigureAwait(false);
                 Assert.AreEqual(3, Volatile.Read(ref counter));
             }
             // ReSharper enable AccessToDisposedClosure, AccessToModifiedClosure
@@ -510,17 +510,17 @@ namespace Dse.Test.Integration.Core
         {
             using (var connection = CreateConnection(null, null, new PoolingOptions().SetHeartBeatInterval(0)))
             {
-                await connection.Open();
+                await connection.Open().ConfigureAwait(false);
                 Assert.Null(connection.Keyspace);
                 var actions = new Action[100]
                     .Select<Action, Action>(_ => () => connection.SetKeyspace("system").Wait())
                     .ToArray();
-                await Task.Delay(100);
+                await Task.Delay(100).ConfigureAwait(false);
                 var counter = 0;
                 connection.WriteCompleted += () => Interlocked.Increment(ref counter);
                 TestHelper.ParallelInvoke(actions);
                 Assert.AreEqual("system", connection.Keyspace);
-                await Task.Delay(200);
+                await Task.Delay(200).ConfigureAwait(false);
                 Assert.AreEqual(1, Volatile.Read(ref counter));
             }
         }
@@ -629,7 +629,7 @@ namespace Dse.Test.Integration.Core
         public async Task Connection_Close_Faults_AllPending_Tasks()
         {
             var connection = CreateConnection();
-            await connection.Open();
+            await connection.Open().ConfigureAwait(false);
             //Queue a lot of read and writes
             var taskList = new List<Task<Response>>();
             for (var i = 0; i < 1024; i++)
@@ -644,13 +644,13 @@ namespace Dse.Test.Integration.Core
                     break;
                 }
                 //Wait until there is an operation in flight
-                await Task.Delay(30);
+                await Task.Delay(30).ConfigureAwait(false);
             }
             //Close the socket, this would trigger all pending ops to be called back
             connection.Dispose();
             try
             {
-                await Task.WhenAll(taskList.ToArray());
+                await Task.WhenAll(taskList.ToArray()).ConfigureAwait(false);
             }
             catch (SocketException)
             {
@@ -659,10 +659,10 @@ namespace Dse.Test.Integration.Core
 
             Assert.True(!taskList.Any(t => t.Status != TaskStatus.RanToCompletion && t.Status != TaskStatus.Faulted), "Must be only completed and faulted task");
 
-            await Task.Delay(1000);
+            await Task.Delay(1000).ConfigureAwait(false);
 
             //A new call to write will be called back immediately with an exception
-            Assert.ThrowsAsync<SocketException>(async () => await Query(connection, "SELECT * FROM system.local"));
+            Assert.ThrowsAsync<SocketException>(async () => await Query(connection, "SELECT * FROM system.local").ConfigureAwait(false));
         }
 
         /// <summary>
@@ -693,7 +693,7 @@ namespace Dse.Test.Integration.Core
 
                 var writeCounter = 0;
                 connection.WriteCompleted += () => Interlocked.Increment(ref writeCounter);
-                await TestHelper.WaitUntilAsync(() => Volatile.Read(ref writeCounter) > 2, 200, 5);
+                await TestHelper.WaitUntilAsync(() => Volatile.Read(ref writeCounter) > 2, 200, 5).ConfigureAwait(false);
                 Assert.Greater(Volatile.Read(ref writeCounter), 2);
             }
         }
@@ -777,7 +777,7 @@ namespace Dse.Test.Integration.Core
 
             using (var connection = CreateConnection())
             {
-                await connection.Open();
+                await connection.Open().ConfigureAwait(false);
                 var tasks = new List<Task>();
                 for (var i = 0; i < 100; i++)
                 {
@@ -786,12 +786,12 @@ namespace Dse.Test.Integration.Core
 
                 Assert.That(connection.InFlight, Is.GreaterThan(5));
 
-                var thrownException = await TestHelper.EatUpException(connection.Send(requestMock.Object));
+                var thrownException = await TestHelper.EatUpException(connection.Send(requestMock.Object)).ConfigureAwait(false);
                 Assert.AreSame(ex, thrownException);
 
-                await Task.WhenAll(tasks);
+                await Task.WhenAll(tasks).ConfigureAwait(false);
 
-                await TestHelper.WaitUntilAsync(() => connection.InFlight == 0);
+                await TestHelper.WaitUntilAsync(() => connection.InFlight == 0).ConfigureAwait(false);
                 Assert.That(connection.InFlight, Is.Zero);
             }
         }

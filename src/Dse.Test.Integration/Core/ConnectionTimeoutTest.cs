@@ -31,7 +31,7 @@ namespace Dse.Test.Integration.Core
                                            .AddContactPoints("1.1.1.1") // IP address that drops (not rejects !) the inbound connection
                                            .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(700));
                 var cluster = builder.Build();
-                await Connect(cluster, asyncConnection, session =>{});
+                await Connect(cluster, asyncConnection, session =>{}).ConfigureAwait(false);
                 Assert.Fail();
             }
             catch (NoHostAvailableException)

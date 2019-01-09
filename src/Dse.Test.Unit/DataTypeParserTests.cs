@@ -261,7 +261,7 @@ namespace Dse.Test.Unit
             };
             foreach (var typeName in typeNames)
             {
-                var type = await DataTypeParser.ParseTypeName(null, null, string.Format("'{0}'", typeName));
+                var type = await DataTypeParser.ParseTypeName(null, null, string.Format("'{0}'", typeName)).ConfigureAwait(false);
                 Assert.AreEqual(ColumnTypeCode.Custom, type.TypeCode);
                 var info = (CustomColumnInfo)type.TypeInfo;
                 Assert.AreEqual(typeName, info.CustomTypeName);

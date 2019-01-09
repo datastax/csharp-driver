@@ -21,7 +21,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [TestFixture]
+    [TestFixture, Category("short")]
     public class HeartbeatTests
     {
         private SimulacronCluster _testCluster;
@@ -66,7 +66,7 @@ namespace Dse.Test.Integration.Core
                 }
                 var initialCount = logs.Count;
 
-                await Task.Delay(1400);
+                await Task.Delay(1400).ConfigureAwait(false);
 
                 logs = await _testCluster.GetNodes().First()
                                          .GetQueriesAsync(null, OptionsQueryType).ConfigureAwait(false);

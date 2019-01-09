@@ -21,6 +21,7 @@ using System.Threading.Tasks;
 using Dse.Serialization;
 using IgnoreAttribute = Dse.Mapping.Attributes.IgnoreAttribute;
 using Microsoft.DotNet.InternalAbstractions;
+using Moq;
 
 namespace Dse.Test.Unit
 {
@@ -493,7 +494,7 @@ namespace Dse.Test.Unit
         {
             try
             {
-                await task;
+                await task.ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -587,6 +588,44 @@ namespace Dse.Test.Unit
             {
                 Assert.AreEqual(expectedValues[i], values[queryColumnsOrder[i]]);
             }
+        }
+
+        internal static void RetryAssert(Action act, int msPerRetry = 5, int maxRetries = 100)
+        {
+            TestHelper.RetryAssertAsync(
+                () =>
+                {
+                    act();
+                    return Task.FromResult(true);
+                },
+                msPerRetry,
+                maxRetries).GetAwaiter().GetResult();
+        }
+
+        internal static async Task RetryAssertAsync(Func<Task> func, int msPerRetry = 2, int maxRetries = 100)
+        {
+            Exception lastException;
+            var i = 0;
+            do
+            {
+                try
+                {
+                    await func().ConfigureAwait(false);
+                    return;
+                }
+                catch (MockException ex1)
+                {
+                    lastException = ex1;
+                }
+                catch (AssertionException ex2)
+                {
+                    lastException = ex2;
+                }
+
+                await Task.Delay(msPerRetry).ConfigureAwait(false);
+            } while (i++ < maxRetries);
+
+            throw lastException;
         }
         
         private class SendReceiveCounter

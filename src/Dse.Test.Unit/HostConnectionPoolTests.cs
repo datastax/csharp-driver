@@ -44,7 +44,7 @@ namespace Dse.Test.Unit
             return new IPEndPoint(IPAddress.Parse("127.0.0." + lastByte), 9042);
         }
 
-        private static Connection CreateConnection(byte lastIpByte = 1, Configuration config = null)
+        private static IConnection CreateConnection(byte lastIpByte = 1, Configuration config = null)
         {
             if (config == null)
             {
@@ -86,7 +86,7 @@ namespace Dse.Test.Unit
             return config;
         }
 
-        private static Connection GetConnectionMock(int inflight, int timedOutOperations = 0)
+        private static IConnection GetConnectionMock(int inflight, int timedOutOperations = 0)
         {
             var connectionMock = new Mock<Connection>(
                 MockBehavior.Loose, new Serializer(ProtocolVersion.MaxSupported), Address, new Configuration());
@@ -127,12 +127,12 @@ namespace Dse.Test.Unit
             {
                 if (++counter == 2)
                 {
-                    return TaskHelper.FromException<Connection>(new Exception("Dummy exception"));
+                    return TaskHelper.FromException<IConnection>(new Exception("Dummy exception"));
                 }
                 return TaskHelper.ToTask(CreateConnection());
             });
             var pool = mock.Object;
-            var connections = await pool.EnsureCreate();
+            var connections = await pool.EnsureCreate().ConfigureAwait(false);
             Assert.AreEqual(connections.Length, 1);
         }
 
@@ -151,7 +151,7 @@ namespace Dse.Test.Unit
                 return TaskHelper.ToTask(c);
             });
             var pool = mock.Object;
-            var creationTasks = new Task<Connection[]>[4];
+            var creationTasks = new Task<IConnection[]>[4];
             creationTasks[0] = pool.EnsureCreate();
             creationTasks[1] = pool.EnsureCreate();
             creationTasks[2] = pool.EnsureCreate();
@@ -172,7 +172,7 @@ namespace Dse.Test.Unit
             var lastByte = 0;
             mock.Setup(p => p.DoCreateAndOpen()).Returns(() => TestHelper.DelayedTask(CreateConnection((byte)++lastByte), 100 + (lastByte > 1 ? 10000 : 0)));
             var pool = mock.Object;
-            var creationTasks = new Task<Connection[]>[10];
+            var creationTasks = new Task<IConnection[]>[10];
             var counter = -1;
             var initialCreate = pool.EnsureCreate();
             TestHelper.ParallelInvoke(() =>
@@ -199,7 +199,7 @@ namespace Dse.Test.Unit
             mock.Setup(p => p.DoCreateAndOpen()).Returns(() =>
             {
                 Interlocked.Increment(ref openConnectionAttempts);
-                return TaskHelper.FromException<Connection>(new Exception("Test Exception"));
+                return TaskHelper.FromException<IConnection>(new Exception("Test Exception"));
             });
             var pool = mock.Object;
             const int times = 5;
@@ -233,7 +233,7 @@ namespace Dse.Test.Unit
         {
             var mock = GetPoolMock();
             var testException = new Exception("Dummy exception");
-            mock.Setup(p => p.DoCreateAndOpen()).Returns(() => TestHelper.DelayedTask<Connection>(() =>
+            mock.Setup(p => p.DoCreateAndOpen()).Returns(() => TestHelper.DelayedTask<IConnection>(() =>
             {
                 throw testException;
             }));
@@ -261,7 +261,7 @@ namespace Dse.Test.Unit
             Assert.AreEqual(0, Volatile.Read(ref creationCounter));
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
             pool.OnHostUp(null);
-            await TestHelper.WaitUntilAsync(() => pool.OpenConnections == 2);
+            await TestHelper.WaitUntilAsync(() => pool.OpenConnections == 2).ConfigureAwait(false);
             Assert.AreEqual(2, pool.OpenConnections);
             Assert.AreEqual(2, Volatile.Read(ref creationCounter));
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
@@ -304,9 +304,9 @@ namespace Dse.Test.Unit
             Assert.AreEqual(0, pool.OpenConnections);
             Thread.Sleep(100);
             pool.OnHostUp(null);
-            await pool.EnsureCreate();
+            await pool.EnsureCreate().ConfigureAwait(false);
             Assert.AreEqual(1, pool.OpenConnections);
-            await TestHelper.WaitUntilAsync(() => pool.OpenConnections == 2, 200, 30);
+            await TestHelper.WaitUntilAsync(() => pool.OpenConnections == 2, 200, 30).ConfigureAwait(false);
             Assert.AreEqual(2, Volatile.Read(ref creationCounter));
             Assert.AreEqual(2, pool.OpenConnections);
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
@@ -330,12 +330,12 @@ namespace Dse.Test.Unit
             var tasks = new Task[100];
             for (var i = 0; i < 100; i++)
             {
-                tasks[i] = Task.Run(async () => await pool.EnsureCreate());
+                tasks[i] = Task.Run(async () => await pool.EnsureCreate().ConfigureAwait(false));
             }
-            await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
             Assert.Greater(pool.OpenConnections, 0);
             Assert.LessOrEqual(pool.OpenConnections, 3);
-            await TestHelper.WaitUntilAsync(() => Volatile.Read(ref creationCounter) == 3, 200, 20);
+            await TestHelper.WaitUntilAsync(() => Volatile.Read(ref creationCounter) == 3, 200, 20).ConfigureAwait(false);
             Assert.AreEqual(3, Volatile.Read(ref creationCounter));
             Assert.AreEqual(0, Volatile.Read(ref isCreating));
             Assert.AreEqual(3, pool.OpenConnections);
@@ -416,7 +416,7 @@ namespace Dse.Test.Unit
             mock.Setup(p => p.DoCreateAndOpen()).Returns(() =>
             {
                 Interlocked.Increment(ref openConnectionsAttempts);
-                return TaskHelper.FromException<Connection>(new Exception("Test Exception"));
+                return TaskHelper.FromException<IConnection>(new Exception("Test Exception"));
             });
             var pool = mock.Object;
             var eventRaised = 0;
@@ -439,7 +439,7 @@ namespace Dse.Test.Unit
             mock.Setup(p => p.DoCreateAndOpen()).Returns(() =>
             {
                 Interlocked.Increment(ref openConnectionsAttempts);
-                return TaskHelper.FromException<Connection>(new Exception("Test Exception"));
+                return TaskHelper.FromException<IConnection>(new Exception("Test Exception"));
             });
             var pool = mock.Object;
             var eventRaised = 0;
@@ -461,11 +461,11 @@ namespace Dse.Test.Unit
             var pool = mock.Object;
             pool.SetDistance(HostDistance.Local);
             Assert.AreEqual(0, pool.OpenConnections);
-            await pool.EnsureCreate();
+            await pool.EnsureCreate().ConfigureAwait(false);
             // Wait for the pool to be created
-            await Task.Delay(100);
+            await Task.Delay(100).ConfigureAwait(false);
             Assert.AreEqual(3, pool.OpenConnections);
-            var c = await pool.BorrowConnection();
+            var c = await pool.BorrowConnection().ConfigureAwait(false);
             pool.CheckHealth(c);
             Assert.AreEqual(2, pool.OpenConnections);
         }
@@ -479,15 +479,15 @@ namespace Dse.Test.Unit
                 await Task.Yield();
                 var spinWait = new SpinWait();
                 spinWait.SpinOnce();
-                return await Task.Run(() => CreateConnection());
+                return await Task.Run(() => CreateConnection()).ConfigureAwait(false);
             });
             var pool = mock.Object;
             Assert.AreEqual(0, pool.OpenConnections);
             pool.SetDistance(HostDistance.Local);
-            await pool.EnsureCreate();
+            await pool.EnsureCreate().ConfigureAwait(false);
             Assert.Greater(pool.OpenConnections, 0);
             // Wait for the pool to be gaining size
-            await Task.Delay(delay);
+            await Task.Delay(delay).ConfigureAwait(false);
             if (delay > 20)
             {
                 Assert.Greater(pool.OpenConnections, 1);
@@ -495,8 +495,8 @@ namespace Dse.Test.Unit
             await Task.Run(() =>
             {
                 pool.Dispose();
-            });
-            await Task.Delay(100);
+            }).ConfigureAwait(false);
+            await Task.Delay(100).ConfigureAwait(false);
             Assert.AreEqual(0, pool.OpenConnections);
         }
 
@@ -510,10 +510,10 @@ namespace Dse.Test.Unit
             pool.SetDistance(HostDistance.Local);
             var eventRaised = 0;
             pool.AllConnectionClosed += (_, __) => Interlocked.Increment(ref eventRaised);
-            await pool.EnsureCreate();
+            await pool.EnsureCreate().ConfigureAwait(false);
             Assert.Greater(pool.OpenConnections, 0);
             pool.Dispose();
-            await Task.Delay(20);
+            await Task.Delay(20).ConfigureAwait(false);
             Assert.AreEqual(0, Volatile.Read(ref eventRaised));
         }
 
@@ -532,7 +532,7 @@ namespace Dse.Test.Unit
             pool.SetDistance(HostDistance.Local);
             pool.ScheduleReconnection();
             pool.Dispose();
-            await Task.Delay(400);
+            await Task.Delay(400).ConfigureAwait(false);
             Assert.AreEqual(0, Volatile.Read(ref openConnectionAttempts));
             Assert.AreEqual(0, pool.OpenConnections);
         }

@@ -187,7 +187,7 @@ namespace Dse.Test.Integration.Linq.LinqMethods
             Assert.AreEqual(0, updatedCounter.Counter);
         }
 
-        [Test]
+        [Test, Category("short")]
         public void LinqCounter_BatchTest()
         {
             var mappingConfig = new MappingConfiguration();

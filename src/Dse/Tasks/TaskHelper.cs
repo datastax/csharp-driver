@@ -376,5 +376,41 @@ namespace Dse.Tasks
                 t.Exception?.Handle(_ => true);
             }, TaskContinuationOptions.ExecuteSynchronously);
         }
+
+        /// <summary>
+        /// Designed to Await tasks with a cancellation token when the method that returns the task doesn't
+        /// accept a token.
+        /// </summary>
+        /// <param name="task"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public static async Task<T> WithCancellation<T>(
+            this Task<T> task, CancellationToken cancellationToken)
+        {
+            var cancellationCompletionSource = new TaskCompletionSource<bool>();
+
+            using (cancellationToken.Register(() => cancellationCompletionSource.TrySetResult(true)))
+            {
+                if (task != await Task.WhenAny(task, cancellationCompletionSource.Task).ConfigureAwait(false))
+                {
+                    throw new OperationCanceledException(cancellationToken);
+                }
+            }
+
+            return await task.ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Simple helper to create a CancellationToken that is cancelled after
+        /// the provided <paramref name="timespan"/>.
+        /// </summary>
+        /// <param name="timespan">Timespan after which the returned <see cref="CancellationToken"/>
+        /// is canceled.</param>
+        /// <returns>A newly created <see cref="CancellationToken"/> that will be canceled
+        /// after the specified <paramref name="timespan"/>.</returns>
+        public static CancellationToken CancelTokenAfterDelay(TimeSpan timespan)
+        {
+            return new CancellationTokenSource(timespan).Token;
+        }
     }
 }

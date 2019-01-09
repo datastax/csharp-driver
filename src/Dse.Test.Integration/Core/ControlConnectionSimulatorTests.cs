@@ -114,7 +114,7 @@ namespace Dse.Test.Integration.Core
                         {
                             try
                             {
-                                await testCluster.DropConnection(connections.Last());
+                                await testCluster.DropConnection(connections.Last()).ConfigureAwait(false);
                             }
                             catch
                             {
@@ -125,7 +125,7 @@ namespace Dse.Test.Integration.Core
 
                     using (var cluster = builder.Build())
                     {
-                        await cluster.ConnectAsync();
+                        await cluster.ConnectAsync().ConfigureAwait(false);
                     }
 
 

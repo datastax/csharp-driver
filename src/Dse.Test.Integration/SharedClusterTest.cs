@@ -5,12 +5,13 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
+using System.Globalization;
+using System.Threading;
+
 using Dse.Test.Integration.TestClusterManagement;
+
 using NUnit.Framework;
 
 namespace Dse.Test.Integration
@@ -79,6 +80,12 @@ namespace Dse.Test.Integration
         [OneTimeSetUp]
         public virtual void OneTimeSetUp()
         {
+            CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+            CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
+            Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+
             if (_reuse && _reusableInstance != null && ReferenceEquals(_reusableInstance, TestClusterManager.LastInstance))
             {
                 Trace.WriteLine("Reusing single node ccm instance");
@@ -130,7 +137,7 @@ namespace Dse.Test.Integration
         {
             if (Cluster != null)
             {
-                Cluster.Shutdown(1000);   
+                Cluster.Shutdown(1000);
             }
             //Shutdown the other instances created by helper methods
             foreach (var c in ClusterInstances)

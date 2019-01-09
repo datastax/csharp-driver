@@ -115,7 +115,7 @@ namespace Dse.Test.Integration.Core
                     Assert.AreEqual(2, session.BinaryProtocolVersion);
                 else
                     Assert.AreEqual(3, session.BinaryProtocolVersion);
-            });
+            }).ConfigureAwait(false);
             
             // Arbitary MaxProtocolVersion set, will negotiate down upon connect
             var clusterNegotiate = Cluster.Builder()
@@ -126,7 +126,7 @@ namespace Dse.Test.Integration.Core
             await Connect(clusterNegotiate, asyncConnect, session =>
             {
                 Assert.LessOrEqual(4, clusterNegotiate.Configuration.ProtocolOptions.MaxProtocolVersion);
-            });
+            }).ConfigureAwait(false);
 
             // ProtocolVersion 0 does not exist
             Assert.Throws<ArgumentException>(
@@ -165,7 +165,7 @@ namespace Dse.Test.Integration.Core
                     }
                 }
                 Assert.True(queried, "Newly bootstrapped node should be queried");
-            });
+            }).ConfigureAwait(false);
         }
 
         [Test]
@@ -206,7 +206,7 @@ namespace Dse.Test.Integration.Core
                     }
                 }
                 Assert.False(queried, "Removed node should be queried");
-            });
+            }).ConfigureAwait(false);
         }
 
         private class TestLoadBalancingPolicy : ILoadBalancingPolicy
