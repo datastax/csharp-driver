@@ -150,7 +150,7 @@ namespace Dse.Test.Integration.Core
                 Assert.AreEqual(TaskStatus.WaitingForActivation, task.Status);
                 testCluster.ResumeNode(1);
                 Thread.Sleep(2000);
-                Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
+                Assert.AreEqual(TaskStatus.RanToCompletion, task.Status, task.Exception?.ToString() ?? "no exception");
             }
         }
 
