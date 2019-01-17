@@ -1,7 +1,6 @@
 language: csharp
 sudo: required
 mono: none
-dotnet: 2.1.300
 dist: trusty
 
 branches:
@@ -10,8 +9,15 @@ branches:
     - 2.0
     - 2.1
     - dse_3.1
+    
+matrix:
+  include:
+    - dotnet: 2.1.300
+      env: TARGETF=netcore21
+    - dotnet: 2.1.101
+      env: TARGETF=netcore20
 
 script:
   - dotnet restore src
-  - dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj -c Release -f netcoreapp2.0
-  - dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj -c Release -f netcoreapp2.1
+  - if [ "$TARGETF" = "netcore20" ]; then dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj -c Release -f netcoreapp2.0; fi
+  - if [ "$TARGETF" = "netcore21" ]; then dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj -c Release -f netcoreapp2.1; fi
