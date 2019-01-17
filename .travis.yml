@@ -2,6 +2,7 @@ language: csharp
 sudo: required
 mono: none
 dist: trusty
+dotnet: 2.1.300
 
 branches:
   except:
@@ -12,10 +13,8 @@ branches:
     
 matrix:
   include:
-    - dotnet: 2.1.300
-      env: TARGETF=netcore21
-    - dotnet: 2.1.101
-      env: TARGETF=netcore20
+    - env: TARGETF=netcore21
+    - env: TARGETF=netcore20
 
 script:
   - dotnet restore src
