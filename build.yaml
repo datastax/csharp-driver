@@ -58,8 +58,12 @@ build:
           # Run the tests
           dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f netcoreapp2.0 -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx.xml"
           java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_trx.xml tools/trx-to-junit.xslt
+          
+          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f netcoreapp2.1 -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx2.xml"
+          java -jar saxon/saxon9he.jar -o:TestResult2.xml TestResult_trx2.xml tools/trx-to-junit.xslt
       fi
 
   - xunit:
     - "TestResult.xml"
+    - "TestResult2.xml"
 

@@ -14,3 +14,4 @@ branches:
 script:
   - dotnet restore src
   - dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj -c Release -f netcoreapp2.0
+  - dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj -c Release -f netcoreapp2.1
