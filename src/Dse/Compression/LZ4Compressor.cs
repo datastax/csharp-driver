@@ -5,7 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-#if !NETCORE
+#if NET45
 using System;
 using System.Collections.Generic;
 using System.IO;

@@ -6,7 +6,7 @@
 //
 
 
-#if !NETCORE
+#if NET452
 using System;
 using System.Linq;
 using System.Threading.Tasks;

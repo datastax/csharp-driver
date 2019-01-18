@@ -11,6 +11,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using Dse;
+using Dse.Helpers;
 
 namespace Dse.Auth
 {
@@ -35,6 +36,11 @@ namespace Dse.Auth
         /// </param>
         public DseGssapiAuthProvider(string service = "dse", Func<IPEndPoint, string> hostNameResolver = null)
         {
+            if (!PlatformHelper.IsKerberosSupported())
+            {
+                throw new NotImplementedException();
+            }
+
             _service = service;
             _hostNameResolver = hostNameResolver ?? ReverseDnsResolver;
         }

@@ -383,7 +383,7 @@ namespace Dse.Test.Integration.Core
             Assert.AreEqual(0, Volatile.Read(ref isDown));
         }
 
-#if !NETCORE
+#if NET452
         [Test, Apartment(ApartmentState.STA)]
         public void Session_Connect_And_ShutDown_SupportsSTA()
         {

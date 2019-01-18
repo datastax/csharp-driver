@@ -231,15 +231,12 @@ namespace Dse.Auth.Sspi.Contexts
         /// <returns>The original plaintext message.</returns>
         public byte[] Decrypt( byte[] input )
         {
-            SecPkgContext_Sizes sizes;
-
             SecureBuffer trailerBuffer;
             SecureBuffer dataBuffer;
             SecureBuffer paddingBuffer;
             SecureBufferAdapter adapter;
 
             SecurityStatus status;
-            int remaining;
             int position;
 
             int trailerLength;
@@ -247,15 +244,7 @@ namespace Dse.Auth.Sspi.Contexts
             int paddingLength;
 
             CheckLifecycle();
-
-            sizes = QueryBufferSizes();
-
-            // This check is required, but not sufficient. We could be stricter.
-            if (input.Length < sizes.SecurityTrailer)
-            {
-                throw new ArgumentException("Buffer is too small to possibly contain an encrypted message");
-            }
-
+            
             position = 0;
 
             trailerLength = input.Length;
@@ -264,45 +253,11 @@ namespace Dse.Auth.Sspi.Contexts
 
             paddingLength = 0;
 
-            if (trailerLength + dataLength + paddingLength > input.Length)
-            {
-                throw new ArgumentException( "The buffer contains invalid data - the embedded length data does not add up." );
-            }
-
             trailerBuffer = new SecureBuffer( new byte[trailerLength], BufferType.Stream );
             dataBuffer = new SecureBuffer( new byte[dataLength], BufferType.Data );
             paddingBuffer = new SecureBuffer( new byte[paddingLength], BufferType.Padding );
-
-            remaining = input.Length - position;
-
-            if( trailerBuffer.Length <= remaining )
-            {
-                Array.Copy( input, position, trailerBuffer.Buffer, 0, trailerBuffer.Length );
-                position += trailerBuffer.Length;
-                remaining -= trailerBuffer.Length;
-            }
-            else
-            {
-                throw new ArgumentException( "Input is missing data - it is not long enough to contain a fully encrypted message" );
-            }
-
-            if( dataBuffer.Length <= remaining )
-            {
-                Array.Copy( input, position, dataBuffer.Buffer, 0, dataBuffer.Length );
-                position += dataBuffer.Length;
-                remaining -= dataBuffer.Length;
-            }
-            else
-            {
-                throw new ArgumentException("Input is missing data - it is not long enough to contain a fully encrypted message");
-            }
-
-            if( paddingBuffer.Length <= remaining )
-            {
-                Array.Copy(input, position, paddingBuffer.Buffer, 0, paddingBuffer.Length);
-            }
-            // else there was no padding.
-
+           
+            Array.Copy( input, position, trailerBuffer.Buffer, 0, trailerBuffer.Length );
 
             using ( adapter = new SecureBufferAdapter( new[] { trailerBuffer, dataBuffer, paddingBuffer } ) )
             {
@@ -318,16 +273,8 @@ namespace Dse.Auth.Sspi.Contexts
             {
                 throw new SspiException( "Failed to encrypt message", status );
             }
-            if (dataBuffer.Buffer.Length == 0)
-            {
-                // No data expected
-                return null;
-            }
 
-            var result = new byte[dataBuffer.Length];
-            Array.Copy(dataBuffer.Buffer, 0, result, 0, dataBuffer.Length);
-
-            return result;
+            return null;
         }
 
         /// <summary>
