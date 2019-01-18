@@ -8,7 +8,7 @@ using NUnit.Framework;
 namespace Dse.Test.Unit.Auth
 {
     [TestFixture]
-    internal class DseGssapiAuthProviderTests
+    public class DseGssapiAuthProviderTests
     {
 #if NETCOREAPP2_1
         [WinOnly]
