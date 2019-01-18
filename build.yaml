@@ -8,7 +8,8 @@ cassandra:
 env:
   CSHARP_VERSION:
     - mono
-    - netcore
+    - netcoreapp2.0
+    - netcoreapp2.1
 build:
   - script: |
       # Set the Java paths (for CCM)
@@ -56,7 +57,7 @@ build:
           dotnet restore src
 
           # Run the tests
-          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f netcoreapp2.0 -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx.xml"
+          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f $CSHARP_VERSION -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx.xml"
           java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_trx.xml tools/trx-to-junit.xslt
       fi
 
