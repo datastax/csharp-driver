@@ -8,8 +8,8 @@ cassandra:
 env:
   CSHARP_VERSION:
     - mono
-    - netcore20
-    - netcore21
+    - netcoreapp2.0
+    - netcoreapp2.1
 build:
   - script: |
       # Set the Java paths (for CCM)
@@ -57,13 +57,8 @@ build:
           dotnet restore src
 
           # Run the tests
-          if [ $CSHARP_VERSION = 'netcore20' ]; then
-              dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f netcoreapp2.0 -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx.xml"
-              java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_trx.xml tools/trx-to-junit.xslt
-          else
-              dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f netcoreapp2.1 -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx.xml"
-              java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_trx.xml tools/trx-to-junit.xslt
-          fi
+          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f $CSHARP_VERSION -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx.xml"
+          java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_trx.xml tools/trx-to-junit.xslt
       fi
 
   - xunit:

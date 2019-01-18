@@ -13,10 +13,9 @@ branches:
     
 matrix:
   include:
-    - env: TARGETF=netcore21
-    - env: TARGETF=netcore20
+    - env: TARGETF=netcoreapp2.1
+    - env: TARGETF=netcoreapp2.0
 
 script:
   - dotnet restore src
-  - if [ "$TARGETF" = "netcore20" ]; then dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj -c Release -f netcoreapp2.0; fi
-  - if [ "$TARGETF" = "netcore21" ]; then dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj -c Release -f netcoreapp2.1; fi
+  - dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj -c Release -f $TARGETF
