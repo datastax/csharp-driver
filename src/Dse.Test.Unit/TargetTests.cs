@@ -2,7 +2,7 @@
 using System.Runtime.Versioning;
 using NUnit.Framework;
 
-namespace Cassandra.Tests
+namespace Dse.Test.Unit
 {
     [TestFixture]
     public class TargetTests

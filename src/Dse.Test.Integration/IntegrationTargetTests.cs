@@ -1,6 +1,6 @@
-﻿using Cassandra.Tests;
+﻿using Dse.Test.Unit;
 
-namespace Cassandra.IntegrationTests
+namespace Dse.Test.Integration
 {
     public class IntegrationTargetTests : TargetTests
     {
