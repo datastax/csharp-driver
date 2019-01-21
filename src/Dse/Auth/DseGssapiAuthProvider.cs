@@ -38,7 +38,9 @@ namespace Dse.Auth
         {
             if (!PlatformHelper.IsKerberosSupported())
             {
-                throw new NotImplementedException();
+                throw new NotSupportedException(
+                    "DseGssapiAuthProvider is only supported on Windows and " +
+                    ".NET Framework / .NET Standard 2.0+");
             }
 
             _service = service;

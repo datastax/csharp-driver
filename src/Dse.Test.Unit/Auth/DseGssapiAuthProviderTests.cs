@@ -22,7 +22,7 @@ namespace Dse.Test.Unit.Auth
         [Test]
         public void When_NetStandard20AndNotWindows_Should_ThrowException()
         {
-            Assert.Throws<NotImplementedException>(() =>
+            Assert.Throws<NotSupportedException>(() =>
             {
                 var provider = new DseGssapiAuthProvider();
             });
@@ -42,7 +42,7 @@ namespace Dse.Test.Unit.Auth
         [Test]
         public void When_Net452AndNotWindows_Should_NotThrowException()
         {
-            Assert.Throws<NotImplementedException>(() =>
+            Assert.Throws<NotSupportedException>(() =>
             {
                 var provider = new DseGssapiAuthProvider();
             });
