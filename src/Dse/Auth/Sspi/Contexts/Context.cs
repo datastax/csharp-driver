@@ -25,7 +25,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Dse.Auth.Sspi.Buffers;
 using Dse.Auth.Sspi.Credentials;
 
@@ -77,31 +76,7 @@ namespace Dse.Auth.Sspi.Contexts
         /// A reference to the security context's handle.
         /// </summary>
         public SafeContextHandle ContextHandle { get; private set; }
-
-        /// <summary>
-        /// The name of the authenticating authority for the context.
-        /// </summary>
-        public string AuthorityName
-        {
-            get
-            {
-                CheckLifecycle();
-                return QueryContextString( ContextQueryAttrib.Authority );
-            }
-        }
-
-        /// <summary>
-        /// The logon username that the context represents.
-        /// </summary>
-        public string ContextUserName
-        {
-            get
-            {
-                CheckLifecycle();
-                return QueryContextString( ContextQueryAttrib.Names );
-            }
-        }
-
+        
         /// <summary>
         /// The UTC time when the context expires.
         /// </summary>
@@ -217,49 +192,30 @@ namespace Dse.Auth.Sspi.Contexts
 
         /// <summary>
         /// Decrypts a previously encrypted message.
+        /// Assumes that the message only contains the "hash" integrity validation.
         /// </summary>
         /// <remarks>
-        /// The expected format of the buffer is as follows:
-        ///  - 2 bytes, an unsigned big-endian integer indicating the length of the trailer buffer size
-        ///  - 4 bytes, an unsigned big-endian integer indicating the length of the message buffer size.
-        ///  - 2 bytes, an unsigned big-endian integer indicating the length of the encryption padding buffer size.
+        /// The expected format of the buffer is as follows (order is not important):
         ///  - The trailer buffer
         ///  - The message buffer
-        ///  - The padding buffer.
         /// </remarks>
         /// <param name="input">The packed and encrypted data.</param>
-        /// <returns>The original plaintext message.</returns>
+        /// <returns>Null</returns>
+        /// <exception cref="SspiException">Exception thrown when hash validation fails.</exception>
         public byte[] Decrypt( byte[] input )
         {
-            SecureBuffer trailerBuffer;
-            SecureBuffer dataBuffer;
-            SecureBuffer paddingBuffer;
-            SecureBufferAdapter adapter;
-
             SecurityStatus status;
-            int position;
-
-            int trailerLength;
-            int dataLength;
-            int paddingLength;
 
             CheckLifecycle();
-            
-            position = 0;
 
-            trailerLength = input.Length;
+            var trailerLength = input.Length;
 
-            dataLength = 0;
+            var dataBuffer = new SecureBuffer( new byte[0], BufferType.Data );
+            var trailerBuffer = new SecureBuffer( new byte[trailerLength], BufferType.Stream );
 
-            paddingLength = 0;
+            Array.Copy( input, 0, trailerBuffer.Buffer, 0, trailerBuffer.Length );
 
-            trailerBuffer = new SecureBuffer( new byte[trailerLength], BufferType.Stream );
-            dataBuffer = new SecureBuffer( new byte[dataLength], BufferType.Data );
-            paddingBuffer = new SecureBuffer( new byte[paddingLength], BufferType.Padding );
-           
-            Array.Copy( input, position, trailerBuffer.Buffer, 0, trailerBuffer.Length );
-
-            using ( adapter = new SecureBufferAdapter( new[] { trailerBuffer, dataBuffer, paddingBuffer } ) )
+            using (var adapter = new SecureBufferAdapter( new[] { dataBuffer, trailerBuffer } ) )
             {
                 status = ContextNativeMethods.SafeDecryptMessage(
                     this.ContextHandle,
@@ -271,166 +227,14 @@ namespace Dse.Auth.Sspi.Contexts
 
             if( status != SecurityStatus.OK )
             {
-                throw new SspiException( "Failed to encrypt message", status );
+                throw new SspiException( "Failed to decrypt message", status );
             }
 
             return null;
         }
 
         /// <summary>
-        /// Signs the message using the context's session key.
-        /// </summary>
-        /// <remarks>
-        /// The structure of the returned buffer is as follows:
-        ///  - 4 bytes, unsigned big-endian integer indicating the length of the plaintext message
-        ///  - 2 bytes, unsigned big-endian integer indicating the length of the signture
-        ///  - The plaintext message
-        ///  - The message's signature.
-        /// </remarks>
-        /// <param name="message"></param>
-        /// <returns></returns>
-        public byte[] MakeSignature( byte[] message )
-        {
-            SecurityStatus status = SecurityStatus.InternalError;
-
-            SecPkgContext_Sizes sizes;
-            SecureBuffer dataBuffer;
-            SecureBuffer signatureBuffer;
-            SecureBufferAdapter adapter;
-
-            CheckLifecycle();
-
-            sizes = QueryBufferSizes();
-
-            dataBuffer = new SecureBuffer( new byte[message.Length], BufferType.Data );
-            signatureBuffer = new SecureBuffer( new byte[sizes.MaxSignature], BufferType.Token );
-
-            Array.Copy( message, dataBuffer.Buffer, message.Length );
-
-            using ( adapter = new SecureBufferAdapter( new[] { dataBuffer, signatureBuffer } ) )
-            {
-                status = ContextNativeMethods.SafeMakeSignature(
-                    this.ContextHandle,
-                    0,
-                    adapter,
-                    0
-                );
-            }
-
-            if ( status != SecurityStatus.OK )
-            {
-                throw new SspiException( "Failed to create message signature.", status );
-            }
-
-            byte[] outMessage;
-            int position = 0;
-
-            // Enough room for 
-            //  - original message length (4 bytes)
-            //  - signature length        (2 bytes)
-            //  - original message
-            //  - signature
-
-            outMessage = new byte[4 + 2 + dataBuffer.Length + signatureBuffer.Length];
-
-            ByteWriter.WriteInt32_BE( dataBuffer.Length, outMessage, position );
-            position += 4;
-
-            ByteWriter.WriteInt16_BE( (Int16)signatureBuffer.Length, outMessage, position );
-            position += 2;
-
-            Array.Copy( dataBuffer.Buffer, 0, outMessage, position, dataBuffer.Length );
-            position += dataBuffer.Length;
-
-            Array.Copy( signatureBuffer.Buffer, 0, outMessage, position, signatureBuffer.Length );
-            position += signatureBuffer.Length;
-
-            return outMessage;
-        }
-
-        /// <summary>
-        /// Verifies the signature of a signed message
-        /// </summary>
-        /// <remarks>
-        /// The expected structure of the signed message buffer is as follows:
-        ///  - 4 bytes, unsigned integer in big endian format indicating the length of the plaintext message
-        ///  - 2 bytes, unsigned integer in big endian format indicating the length of the signture
-        ///  - The plaintext message
-        ///  - The message's signature.
-        /// </remarks>
-        /// <param name="signedMessage">The packed signed message.</param>
-        /// <param name="origMessage">The extracted original message.</param>
-        /// <returns>True if the message has a valid signature, false otherwise.</returns>
-        public bool VerifySignature( byte[] signedMessage, out byte[] origMessage )
-        {
-            SecurityStatus status = SecurityStatus.InternalError;
-
-            SecPkgContext_Sizes sizes;
-            SecureBuffer dataBuffer;
-            SecureBuffer signatureBuffer;
-            SecureBufferAdapter adapter;
-
-            CheckLifecycle();
-
-            sizes = QueryBufferSizes();
-            
-            if ( signedMessage.Length < 2 + 4 + sizes.MaxSignature )
-            {
-                throw new ArgumentException( "Input message is too small to possibly fit a valid message" );
-            }
-
-            int position = 0;
-            int messageLen;
-            int sigLen;
-
-            messageLen = ByteWriter.ReadInt32_BE( signedMessage, 0 );
-            position += 4;
-
-            sigLen = ByteWriter.ReadInt16_BE( signedMessage, position );
-            position += 2;
-
-            if ( messageLen + sigLen + 2 + 4 > signedMessage.Length )
-            {
-                throw new ArgumentException( "The buffer contains invalid data - the embedded length data does not add up." );
-            }
-
-            dataBuffer = new SecureBuffer( new byte[messageLen], BufferType.Data );
-            Array.Copy( signedMessage, position, dataBuffer.Buffer, 0, messageLen );
-            position += messageLen;
-
-            signatureBuffer = new SecureBuffer( new byte[sigLen], BufferType.Token );
-            Array.Copy( signedMessage, position, signatureBuffer.Buffer, 0, sigLen );
-            position += sigLen;
-
-            using ( adapter = new SecureBufferAdapter( new[] { dataBuffer, signatureBuffer } ) )
-            {
-                status = ContextNativeMethods.SafeVerifySignature(
-                    this.ContextHandle,
-                    0,
-                    adapter,
-                    0
-                );
-            }
-
-            if ( status == SecurityStatus.OK )
-            {
-                origMessage = dataBuffer.Buffer;
-                return true;
-            }
-            else if ( status == SecurityStatus.MessageAltered ||
-                      status == SecurityStatus.OutOfSequence )
-            {
-                origMessage = null;
-                return false;
-            }
-            else
-            {
-                throw new SspiException( "Failed to determine the veracity of a signed message.", status );
-            }
-        }
-
-        /// <summary>
-        /// Queries the security package's expections regarding message/token/signature/padding buffer sizes.
+        /// Queries the security package's expectations regarding message/token/signature/padding buffer sizes.
         /// </summary>
         /// <returns></returns>
         private SecPkgContext_Sizes QueryBufferSizes()
@@ -473,71 +277,6 @@ namespace Dse.Auth.Sspi.Contexts
             }
 
             return sizes;
-        }
-
-        /// <summary>
-        /// Queries a string-valued context attribute by the named attribute.
-        /// </summary>
-        /// <param name="attrib">The string-valued attribute to query.</param>
-        /// <returns></returns>
-        private string QueryContextString(ContextQueryAttrib attrib)
-        {
-            SecPkgContext_String stringAttrib;
-            SecurityStatus status = SecurityStatus.InternalError;
-            string result = null;
-            bool gotRef = false;
-
-            if( attrib != ContextQueryAttrib.Names && attrib != ContextQueryAttrib.Authority )
-            {
-                throw new InvalidOperationException( "QueryContextString can only be used to query context Name and Authority attributes" );
-            }
-
-            stringAttrib = new SecPkgContext_String();
-
-            RuntimeHelpers.PrepareConstrainedRegions();
-            try
-            {
-                this.ContextHandle.DangerousAddRef( ref gotRef );
-            }
-            catch ( Exception )
-            {
-                if ( gotRef )
-                {
-                    this.ContextHandle.DangerousRelease();
-                    gotRef = false;
-                }
-                throw;
-            }
-            finally
-            {
-                if ( gotRef )
-                {
-                    status = ContextNativeMethods.QueryContextAttributes_String(
-                        ref this.ContextHandle.rawHandle,
-                        attrib,
-                        ref stringAttrib
-                    );
-
-                    this.ContextHandle.DangerousRelease();
-
-                    if ( status == SecurityStatus.OK )
-                    {
-                        result = Marshal.PtrToStringUni( stringAttrib.StringResult );
-                        ContextNativeMethods.FreeContextBuffer( stringAttrib.StringResult );
-                    }
-                }
-            }
-            
-            if( status == SecurityStatus.Unsupported )
-            {
-                return null;
-            }
-            else if( status != SecurityStatus.OK )
-            {
-                throw new SspiException( "Failed to query the context's associated user name", status );
-            }
-
-            return result;
         }
 
         /// <summary>
