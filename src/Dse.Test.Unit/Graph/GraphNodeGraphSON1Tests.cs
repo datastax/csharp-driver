@@ -305,7 +305,7 @@ namespace Dse.Test.Unit.Graph
         }
 
         [Test, TestCase(true)]
-#if !NETCORE
+#if NET452
         [TestCase(false)]
 #endif
         public void GraphNode_Should_Be_Serializable(bool useConverter)
@@ -563,7 +563,7 @@ namespace Dse.Test.Unit.Graph
             Assert.AreEqual(path.Objects.Count, path4.Objects.Count);
         }
 
-#if !NETCORE
+#if NET452
         [Test]
         public void Should_Be_Serializable()
         {

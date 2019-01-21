@@ -183,7 +183,7 @@ namespace Dse.Serialization.Graph.GraphSON2
             return Comparer.GetHashCode(_token);
         }
 
-#if !NETCORE
+#if NET45
         /// <inheritdoc />
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
