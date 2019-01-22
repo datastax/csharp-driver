@@ -12,7 +12,7 @@ namespace Dse.Test.Unit
 {
     [AttributeUsage(AttributeTargets.Assembly | AttributeTargets.Class | AttributeTargets.Method, Inherited = false)]
     public class TestTimeoutAttribute : 
-#if !NETCORE
+#if NET452
         TimeoutAttribute
 #else
         Attribute 
@@ -23,7 +23,7 @@ namespace Dse.Test.Unit
         /// </summary>
         /// <param name="timeout">The timeout value in milliseconds</param>
         public TestTimeoutAttribute(int timeout)
-#if !NETCORE
+#if NET452
             : base(timeout)
 #endif
         {

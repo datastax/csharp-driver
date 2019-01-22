@@ -18,7 +18,7 @@ namespace Dse.Geometry
     /// Represents a zero-dimensional object that represents a specific (X,Y) location in a two-dimensional XY-Plane.
     /// In case of Geographic Coordinate Systems, the X coordinate is the longitude and the Y is the latitude.
     /// </summary>
-#if !NETCORE
+#if NET45
     [Serializable]
 #endif
     public class Point : GeometryBase
@@ -53,7 +53,7 @@ namespace Dse.Geometry
             Y = y;
         }
 
-#if !NETCORE
+#if NET45
         /// <summary>
         /// Creates a new instance of <see cref="Point"/>.
         /// </summary>

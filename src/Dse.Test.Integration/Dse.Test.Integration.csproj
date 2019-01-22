@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net452;netcoreapp2.0</TargetFrameworks>
+    <TargetFrameworks>net452;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <PublicSign>false</PublicSign>
     <AssemblyName>Dse.Test.Integration</AssemblyName>
@@ -9,21 +9,41 @@
     <PackageId>Dse.Test.Integration</PackageId>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
   </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Dse\Dse.csproj" />
-    <ProjectReference Include="..\Dse.Test.Unit\Dse.Test.Unit.csproj" />
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
+    <ProjectReference Include="..\Dse.Test.Unit\Dse.Test.Unit.csproj">
+      <SetTargetFramework>TargetFramework=net452</SetTargetFramework>
+    </ProjectReference>
+    <ProjectReference Include="..\Dse\Dse.csproj">
+      <SetTargetFramework>TargetFramework=net45</SetTargetFramework>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
+    <ProjectReference Include="..\Dse.Test.Unit\Dse.Test.Unit.csproj">
+      <SetTargetFramework>TargetFramework=netcoreapp2.1</SetTargetFramework>
+    </ProjectReference>
+    <ProjectReference Include="..\Dse\Dse.csproj">
+      <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
+    <ProjectReference Include="..\Dse.Test.Unit\Dse.Test.Unit.csproj">
+      <SetTargetFramework>TargetFramework=netcoreapp2.0</SetTargetFramework>
+    </ProjectReference>
+    <ProjectReference Include="..\Dse\Dse.csproj">
+      <SetTargetFramework>TargetFramework=netstandard1.5</SetTargetFramework>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.DotNet.InternalAbstractions" Version="1.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.7.2" />
     <PackageReference Include="Moq" Version="4.7.99" />
-    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
     <PackageReference Include="NUnit" Version="3.7.1" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.10.0" />
     <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
     <PackageReference Include="System.Runtime.Serialization.Json" Version="4.0.2" />
     <PackageReference Include="System.Runtime.Serialization.Primitives" Version="4.1.1" />
-    <PackageReference Include="System.Net.Http" Version="4.3.0" />
+    <PackageReference Include="System.Net.Http" Version="4.3.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
     <PackageReference Include="JetBrains.DotMemoryUnit" Version="2.3.20160517.113140" />
@@ -33,6 +53,11 @@
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
+    <PackageReference Include="SSH.NET" Version="2016.1.0" />
+    <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
+  </ItemGroup>
+  
   <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
     <PackageReference Include="SSH.NET" Version="2016.1.0" />
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />

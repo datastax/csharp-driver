@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net452;netcoreapp2.0</TargetFrameworks>
+    <TargetFrameworks>net452;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <PublicSign>false</PublicSign>
     <AssemblyName>Dse.Test.Unit</AssemblyName>
@@ -9,8 +9,20 @@
     <PackageId>Dse.Test.Unit</PackageId>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
   </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Dse\Dse.csproj" />
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
+    <ProjectReference Include="..\Dse\Dse.csproj">
+      <SetTargetFramework>TargetFramework=net45</SetTargetFramework>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
+    <ProjectReference Include="..\Dse\Dse.csproj">
+      <SetTargetFramework>TargetFramework=netstandard2.0</SetTargetFramework>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
+    <ProjectReference Include="..\Dse\Dse.csproj">
+      <SetTargetFramework>TargetFramework=netstandard1.5</SetTargetFramework>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.DotNet.InternalAbstractions" Version="1.0.0" />
@@ -19,12 +31,21 @@
     <PackageReference Include="NUnit" Version="3.7.1" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.10.0" />
     <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
     <Reference Include="System.Data" />
     <Reference Include="System.Numerics" />
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
+    <PackageReference Include="System.Threading.Thread" Version="4.3.0" />
+    <PackageReference Include="System.Threading.Tasks.Parallel" Version="4.3.0" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
+    <PackageReference Include="System.Threading.Thread" Version="4.3.0" />
+    <PackageReference Include="System.Threading.Tasks.Parallel" Version="4.3.0" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />

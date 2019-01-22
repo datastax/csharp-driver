@@ -31,7 +31,9 @@ namespace Dse.Auth.Sspi
     /// <summary>
     /// The exception that is thrown when a problem occurs hwen using the SSPI system.
     /// </summary>
+#if NET45
     [Serializable]
+#endif
     public class SspiException : Exception
     {
         private SecurityStatus errorCode;
@@ -56,6 +58,7 @@ namespace Dse.Auth.Sspi
             
         }
         
+#if NET45
         /// <summary>
         /// Initializes a new instance of the SSPIException class from serialization data.
         /// </summary>
@@ -80,6 +83,7 @@ namespace Dse.Auth.Sspi
             info.AddValue( "message", this.message );
             info.AddValue( "errorCode", this.errorCode );
         }
+#endif
 
         /// <summary>
         /// The error code that was observed during the SSPI call.

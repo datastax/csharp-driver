@@ -15,6 +15,9 @@ environment:
     - TARGET: netcoreapp2.0
       CI_TYPE: UNIT
       PROJECT: Dse.Test.Unit
+    - TARGET: netcoreapp2.1
+      CI_TYPE: UNIT
+      PROJECT: Dse.Test.Unit
 
 install:
   - ps: choco install -y xmlstarlet
