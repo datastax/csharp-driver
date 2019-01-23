@@ -19,7 +19,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
-﻿using NUnit.Framework;
+ using Cassandra.MetadataHelpers;
+ using NUnit.Framework;
 using DatacenterInfo = Cassandra.TokenMap.DatacenterInfo;
 
 namespace Cassandra.Tests
@@ -386,7 +387,7 @@ namespace Cassandra.Tests
                 {"dc1", new DatacenterInfo { HostLength = 10 } },
                 {"dc2", new DatacenterInfo { HostLength = 10 } }
             };
-            Assert.True(TokenMap.IsDoneForToken(ksReplicationFactor, replicasByDc, datacenters));
+            Assert.True(NetworkTopologyStrategy.IsDoneForToken(ksReplicationFactor, replicasByDc, datacenters));
         }
 
         [Test]
@@ -409,7 +410,7 @@ namespace Cassandra.Tests
                 {"dc1", new DatacenterInfo { HostLength = 10 } },
                 {"dc2", new DatacenterInfo { HostLength = 10 } }
             };
-            Assert.False(TokenMap.IsDoneForToken(ksReplicationFactor, replicasByDc, datacenters));
+            Assert.False(NetworkTopologyStrategy.IsDoneForToken(ksReplicationFactor, replicasByDc, datacenters));
         }
 
         private static KeyspaceMetadata CreateKeyspace(string name, string strategy, int replicationFactor)
