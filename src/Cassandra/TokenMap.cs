@@ -78,7 +78,7 @@ namespace Cassandra
                     }
                     catch
                     {
-                        Logger.Error(string.Format("Token {0} could not be parsed using {1} partitioner implementation", tokenStr, partitioner));
+                        TokenMap.Logger.Error($"Token {tokenStr} could not be parsed using {partitioner} partitioner implementation");
                     }
                 }
             }
@@ -100,25 +100,6 @@ namespace Cassandra
                     replicas = ks.Strategy.ComputeTokenToReplicaMap(ks.Replication, ring, primaryReplicas, hostsWithTokens, datacenters);
                     ksTokensCache.Add(ks.Strategy, replicas);
                 }
-                
-                //if (ks.StrategyClass == ReplicationStrategies.SimpleStrategy)
-                //{
-                //    replicas = ComputeTokenToReplicaSimple(ks.Replication["replication_factor"], hostCount, ring, primaryReplicas);
-                //}
-                //else if (ks.StrategyClass == ReplicationStrategies.NetworkTopologyStrategy)
-                //{
-                //    var key = GetReplicationKey(ks.Replication);
-                //    if (!ksTokensCache.TryGetValue(key, out replicas))
-                //    {
-                //        replicas = ComputeTokenToReplicaNetwork(ks.Replication, ring, primaryReplicas, datacenters);
-                //        ksTokensCache.Add(key, replicas);
-                //    }
-                //}
-                //else
-                //{
-                //    //No replication information, use primary replicas
-                //    replicas = primaryReplicas.ToDictionary(kv => kv.Key, kv => (ISet<Host>)new HashSet<Host>(new [] { kv.Value }));   
-                //}
 
                 tokenToHosts[ks.Name] = replicas;
             }

@@ -1,24 +1,22 @@
-﻿// 
+﻿//
 //       Copyright DataStax, Inc.
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //       http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-// 
+//
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace Cassandra.MetadataHelpers
 {
@@ -28,13 +26,13 @@ namespace Cassandra.MetadataHelpers
 
         public NetworkTopologyStrategy(IDictionary<string, int> replicationFactors)
         {
-            this._replicationFactors = new HashSet<DatacenterReplicationFactor>(
+            _replicationFactors = new HashSet<DatacenterReplicationFactor>(
                 replicationFactors.Select(rf => new DatacenterReplicationFactor(rf.Key, rf.Value)));
         }
 
         public Dictionary<IToken, ISet<Host>> ComputeTokenToReplicaMap(
-            IDictionary<string, int> replicationFactors, 
-            IList<IToken> ring, 
+            IDictionary<string, int> replicationFactors,
+            IList<IToken> ring,
             IDictionary<IToken, Host> primaryReplicas,
             ICollection<Host> hosts,
             IDictionary<string, TokenMap.DatacenterInfo> datacenters)
@@ -72,83 +70,134 @@ namespace Cassandra.MetadataHelpers
 
         private Dictionary<IToken, ISet<Host>> ComputeTokenToReplicaNetwork(
             IDictionary<string, int> replicationFactors,
-            IList<IToken> ring, 
-            IDictionary<IToken, Host> primaryReplicas, 
+            IList<IToken> ring,
+            IDictionary<IToken, Host> primaryReplicas,
             IDictionary<string, TokenMap.DatacenterInfo> datacenters)
         {
             var replicas = new Dictionary<IToken, ISet<Host>>();
             for (var i = 0; i < ring.Count; i++)
             {
                 var token = ring[i];
-                var replicasByDc = new Dictionary<string, int>();
-                var tokenReplicas = new OrderedHashSet<Host>();
-                var racksPlaced = new Dictionary<string, HashSet<string>>();
-                var skippedHosts = new List<Host>();
+                var context = new NetworkTopologyTokenMapContext(replicationFactors, ring, primaryReplicas, datacenters);
                 for (var j = 0; j < ring.Count; j++)
                 {
-                    //circle back
+                    // wrap around if necessary
                     var replicaIndex = (i + j) % ring.Count;
-                    var h = primaryReplicas[ring[replicaIndex]];
-                    var dc = h.Datacenter;
-                    int dcRf;
-                    if (!replicationFactors.TryGetValue(dc, out dcRf))
+
+                    var replica = primaryReplicas[ring[replicaIndex]];
+                    var dc = replica.Datacenter;
+                    if (!replicationFactors.TryGetValue(dc, out var dcRf))
                     {
                         continue;
                     }
+
                     dcRf = Math.Min(dcRf, datacenters[dc].HostLength);
-                    int dcReplicas;
-                    replicasByDc.TryGetValue(dc, out dcReplicas);
-                    //Amount of replicas per dc is equals to the rf or the amount of host in the datacenter
-                    if (dcReplicas >= dcRf)
+                    context.ReplicasByDc.TryGetValue(dc, out var dcAddedReplicas);
+                    if (dcAddedReplicas >= dcRf)
                     {
+                        // replication factor for the datacenter has already been satisfied
                         continue;
                     }
-                    HashSet<string> racksPlacedInDc;
-                    if (!racksPlaced.TryGetValue(dc, out racksPlacedInDc))
+
+                    var racksAddedInDc = NetworkTopologyStrategy.GetAddedRacksInDatacenter(context, dc);
+                    if (NetworkTopologyStrategy.ShouldSkipHost(context, replica, racksAddedInDc))
                     {
-                        racksPlaced[dc] = racksPlacedInDc = new HashSet<string>();
-                    }
-                    if (h.Rack != null && racksPlacedInDc.Contains(h.Rack) && racksPlacedInDc.Count < datacenters[dc].Racks.Count)
-                    {
-                        // We already selected a replica for this rack
-                        // Skip until replicas in other racks are added
-                        if (skippedHosts.Count < dcRf - dcReplicas)
-                        {
-                            skippedHosts.Add(h);
-                        }
+                        NetworkTopologyStrategy.TryAddToSkippedHostsCollection(context, replica, dcRf, dcAddedReplicas);
                         continue;
                     }
-                    dcReplicas += tokenReplicas.Add(h) ? 1 : 0;
-                    replicasByDc[dc] = dcReplicas;
-                    if (h.Rack != null && racksPlacedInDc.Add(h.Rack) && racksPlacedInDc.Count == datacenters[dc].Racks.Count)
-                    {
-                        // We finished placing all replicas for all racks in this dc
-                        // Add the skipped hosts
-                        replicasByDc[dc] += AddSkippedHosts(dc, dcRf, dcReplicas, tokenReplicas, skippedHosts);
-                    }
-                    if (IsDoneForToken(replicationFactors, replicasByDc, datacenters))
+
+                    NetworkTopologyStrategy.AddReplica(context, replica, dcRf, dcAddedReplicas, racksAddedInDc);
+
+                    if (NetworkTopologyStrategy.AreReplicationFactorsSatisfied(replicationFactors, context.ReplicasByDc, datacenters))
                     {
                         break;
                     }
                 }
-                replicas[token] = tokenReplicas;
+
+                replicas[token] = context.TokenReplicas;
             }
+
             return replicas;
         }
 
-        internal static bool IsDoneForToken(
+        /// <summary>
+        /// Get collection that contains the already added racks in the provided datacenter (<paramref name="dc"/>).
+        /// If there's no such collection for the specified datacenter, then create one.
+        /// </summary>
+        private static HashSet<string> GetAddedRacksInDatacenter(NetworkTopologyTokenMapContext context, string dc)
+        {
+            if (!context.RacksAdded.TryGetValue(dc, out var racksAddedInDc))
+            {
+                context.RacksAdded[dc] = racksAddedInDc = new HashSet<string>();
+            }
+
+            return racksAddedInDc;
+        }
+
+        /// <summary>
+        /// Checks whether the host <paramref name="h"/> should be skipped.
+        /// </summary>
+        private static bool ShouldSkipHost(NetworkTopologyTokenMapContext context, Host h, HashSet<string> racksPlacedInDc)
+        {
+            var replicaForRackAlreadySelected = h.Rack != null && racksPlacedInDc.Contains(h.Rack);
+            var racksMissing = racksPlacedInDc.Count < context.Datacenters[h.Datacenter].Racks.Count;
+
+            return replicaForRackAlreadySelected && racksMissing;
+        }
+
+        /// <summary>
+        /// This method doesn't guarantee that the host will be added to the skipped hosts collection.
+        /// It will depend on whether the collection already has enough hosts to satisfy the replication factor for the host's datacenter.
+        /// </summary>
+        private static void TryAddToSkippedHostsCollection(NetworkTopologyTokenMapContext context, Host h, int dcRf, int dcAddedReplicas)
+        {
+            // We already added a replica for this rack, skip until replicas in other racks are added
+            var remainingReplicasNeededToSatisfyRf = dcRf - dcAddedReplicas;
+            if (context.SkippedHosts.Count < remainingReplicasNeededToSatisfyRf)
+            {
+                // these replicas will be added in the end after a replica has been selected for every rack
+                context.SkippedHosts.Add(h);
+            }
+        }
+
+        /// <summary>
+        /// Adds replica (<paramref name="host"/>) to <see cref="NetworkTopologyTokenMapContext.TokenReplicas"/> of <paramref name="context"/>
+        /// and adds skipped hosts if a replica has been added to every rack in datacenter the host's datacenter.
+        /// </summary>
+        private static void AddReplica(NetworkTopologyTokenMapContext context, Host host, int dcRf, int dcAddedReplicas, HashSet<string> racksPlacedInDc)
+        {
+            var dc = host.Datacenter;
+            if (context.TokenReplicas.Add(host))
+            {
+                dcAddedReplicas++;
+            }
+            context.ReplicasByDc[dc] = dcAddedReplicas;
+
+            var rackAdded = host.Rack != null && racksPlacedInDc.Add(host.Rack);
+            var allRacksPlacedInDc = racksPlacedInDc.Count == context.Datacenters[dc].Racks.Count;
+            if (rackAdded && allRacksPlacedInDc)
+            {
+                // We finished placing all replicas for all racks in this dc, add the skipped hosts
+                context.ReplicasByDc[dc] += NetworkTopologyStrategy.AddSkippedHosts(context, dc, dcRf, dcAddedReplicas);
+            }
+        }
+
+        /// <summary>
+        /// Checks if <paramref name="replicasByDc"/> has enough replicas for each datacenter considering the datacenter's replication factor.
+        /// </summary>
+        internal static bool AreReplicationFactorsSatisfied(
             IDictionary<string, int> replicationFactors,
             IDictionary<string, int> replicasByDc,
             IDictionary<string, TokenMap.DatacenterInfo> datacenters)
         {
             foreach (var dcName in replicationFactors.Keys)
             {
-                TokenMap.DatacenterInfo dc;
-                if (!datacenters.TryGetValue(dcName, out dc))
+                if (!datacenters.TryGetValue(dcName, out var dc))
                 {
                     // A DC is included in the RF but the DC does not exist in the topology
                     continue;
                 }
+
                 var rf = Math.Min(replicationFactors[dcName], dc.HostLength);
                 if (rf > 0 && (!replicasByDc.ContainsKey(dcName) || replicasByDc[dcName] < rf))
                 {
@@ -157,138 +206,24 @@ namespace Cassandra.MetadataHelpers
             }
             return true;
         }
-        
-        private static int AddSkippedHosts(string dc, int dcRf, int dcReplicas, ISet<Host> tokenReplicas, IList<Host> skippedHosts)
+
+        /// <summary>
+        /// Add replicas that were skipped before to satisfy replication factor
+        /// </summary>
+        /// <returns>Number of replicas added to <see cref="NetworkTopologyTokenMapContext.TokenReplicas"/> of <paramref name="context"/></returns>
+        private static int AddSkippedHosts(NetworkTopologyTokenMapContext context, string dc, int dcRf, int dcReplicas)
         {
             var counter = 0;
             var length = dcRf - dcReplicas;
-            foreach (var h in skippedHosts.Where(h => h.Datacenter == dc))
+            foreach (var h in context.SkippedHosts.Where(h => h.Datacenter == dc))
             {
-                tokenReplicas.Add(h);
+                context.TokenReplicas.Add(h);
                 if (++counter == length)
                 {
                     break;
                 }
             }
             return counter;
-        }
-        
-
-        private class OrderedHashSet<T> : ISet<T>
-        {
-            private readonly HashSet<T> _set;
-            private readonly LinkedList<T> _list;
-
-            public int Count { get { return _set.Count; } }
-
-            public bool IsReadOnly { get { return false; } }
-
-            public OrderedHashSet()
-            {
-                _set = new HashSet<T>();
-                _list = new LinkedList<T>();
-            }
-
-            public IEnumerator<T> GetEnumerator()
-            {
-                return _list.GetEnumerator();
-            }
-
-            IEnumerator IEnumerable.GetEnumerator()
-            {
-                return GetEnumerator();
-            }
-
-            void ICollection<T>.Add(T item)
-            {
-                Add(item);
-            }
-
-            public void UnionWith(IEnumerable<T> other)
-            {
-                _set.UnionWith(other);
-            }
-
-            public void IntersectWith(IEnumerable<T> other)
-            {
-                _set.IntersectWith(other);
-            }
-
-            public void ExceptWith(IEnumerable<T> other)
-            {
-                _set.ExceptWith(other);
-            }
-
-            public void SymmetricExceptWith(IEnumerable<T> other)
-            {
-                _set.SymmetricExceptWith(other);
-            }
-
-            public bool IsSubsetOf(IEnumerable<T> other)
-            {
-                return _set.IsSubsetOf(other);
-            }
-
-            public bool IsSupersetOf(IEnumerable<T> other)
-            {
-                return _set.IsSupersetOf(other);
-            }
-
-            public bool IsProperSupersetOf(IEnumerable<T> other)
-            {
-                return _set.IsProperSupersetOf(other);
-            }
-
-            public bool IsProperSubsetOf(IEnumerable<T> other)
-            {
-                return _set.IsProperSubsetOf(other);
-            }
-
-            public bool Overlaps(IEnumerable<T> other)
-            {
-                return _set.Overlaps(other);
-            }
-
-            public bool SetEquals(IEnumerable<T> other)
-            {
-                return _set.SetEquals(other);
-            }
-
-            public bool Add(T item)
-            {
-                var added = _set.Add(item);
-                if (added)
-                {
-                    _list.AddLast(item);
-                }
-                return added;
-            }
-
-            public void Clear()
-            {
-                _set.Clear();
-                _list.Clear();
-            }
-
-            public bool Contains(T item)
-            {
-                return _set.Contains(item);
-            }
-
-            public void CopyTo(T[] array, int arrayIndex)
-            {
-                _set.CopyTo(array, arrayIndex);
-            }
-
-            public bool Remove(T item)
-            {
-                var removed = _set.Remove(item);
-                if (removed)
-                {
-                    _list.Remove(item);
-                }
-                return removed;
-            }
         }
     }
 }

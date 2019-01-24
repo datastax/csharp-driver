@@ -45,7 +45,7 @@ namespace Cassandra.Tests.MetadataHelpers
                 {"dc1", new TokenMap.DatacenterInfo { HostLength = 10 } },
                 {"dc2", new TokenMap.DatacenterInfo { HostLength = 10 } }
             };
-            Assert.True(NetworkTopologyStrategy.IsDoneForToken(ksReplicationFactor, replicasByDc, datacenters));
+            Assert.True(NetworkTopologyStrategy.AreReplicationFactorsSatisfied(ksReplicationFactor, replicasByDc, datacenters));
         }
 
         [Test]
@@ -68,7 +68,7 @@ namespace Cassandra.Tests.MetadataHelpers
                 {"dc1", new TokenMap.DatacenterInfo { HostLength = 10 } },
                 {"dc2", new TokenMap.DatacenterInfo { HostLength = 10 } }
             };
-            Assert.False(NetworkTopologyStrategy.IsDoneForToken(ksReplicationFactor, replicasByDc, datacenters));
+            Assert.False(NetworkTopologyStrategy.AreReplicationFactorsSatisfied(ksReplicationFactor, replicasByDc, datacenters));
         }
     }
 }

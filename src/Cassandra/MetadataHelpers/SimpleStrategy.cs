@@ -74,11 +74,14 @@ namespace Cassandra.MetadataHelpers
             {
                 var token = ring[i];
                 var replicas = new HashSet<Host>();
-                for (var j = 0; j < rf; j++)
+                for (var j = 0; replicas.Count < rf && j < ring.Count; j++)
                 {
-                    //circle back if necessary
+                    // circle back if necessary
                     var nextReplicaIndex = (i + j) % ring.Count;
                     var nextReplica = primaryReplicas[ring[nextReplicaIndex]];
+                    
+                    // not necessary to check if already added this replica,
+                    // because it's an HashSet and Equals + GetHashCode are overriden in Host class
                     replicas.Add(nextReplica);
                 }
                

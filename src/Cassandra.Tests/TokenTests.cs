@@ -387,7 +387,7 @@ namespace Cassandra.Tests
                 {"dc1", new DatacenterInfo { HostLength = 10 } },
                 {"dc2", new DatacenterInfo { HostLength = 10 } }
             };
-            Assert.True(NetworkTopologyStrategy.IsDoneForToken(ksReplicationFactor, replicasByDc, datacenters));
+            Assert.True(NetworkTopologyStrategy.AreReplicationFactorsSatisfied(ksReplicationFactor, replicasByDc, datacenters));
         }
 
         [Test]
@@ -410,7 +410,7 @@ namespace Cassandra.Tests
                 {"dc1", new DatacenterInfo { HostLength = 10 } },
                 {"dc2", new DatacenterInfo { HostLength = 10 } }
             };
-            Assert.False(NetworkTopologyStrategy.IsDoneForToken(ksReplicationFactor, replicasByDc, datacenters));
+            Assert.False(NetworkTopologyStrategy.AreReplicationFactorsSatisfied(ksReplicationFactor, replicasByDc, datacenters));
         }
 
         private static KeyspaceMetadata CreateKeyspace(string name, string strategy, int replicationFactor)
