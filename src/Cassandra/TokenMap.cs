@@ -14,12 +14,9 @@
 //   limitations under the License.
 //
 
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Net;
 using System.Linq;
-using System.Text;
+
 using Cassandra.MetadataHelpers;
 
 namespace Cassandra
@@ -39,7 +36,7 @@ namespace Cassandra
             _ring = ring;
             _primaryReplicas = primaryReplicas;
         }
-        
+
         internal IDictionary<IToken, ISet<Host>> GetByKeyspace(string keyspaceName)
         {
             return _tokenToHostsByKeyspace[keyspaceName];
@@ -50,7 +47,7 @@ namespace Cassandra
             var factory = TokenFactory.GetFactory(partitioner);
             if (factory == null)
             {
-                return null;   
+                return null;
             }
 
             var primaryReplicas = new Dictionary<IToken, Host>();
@@ -60,8 +57,7 @@ namespace Cassandra
             {
                 if (host.Datacenter != null)
                 {
-                    DatacenterInfo dc;
-                    if (!datacenters.TryGetValue(host.Datacenter, out dc))
+                    if (!datacenters.TryGetValue(host.Datacenter, out var dc))
                     {
                         datacenters[host.Datacenter] = dc = new DatacenterInfo();
                     }
@@ -93,11 +89,11 @@ namespace Cassandra
 
                 if (ks.Strategy == null)
                 {
-                    replicas = primaryReplicas.ToDictionary(kv => kv.Key, kv => (ISet<Host>) new HashSet<Host>(new[] {kv.Value}));
+                    replicas = primaryReplicas.ToDictionary(kv => kv.Key, kv => (ISet<Host>)new HashSet<Host>(new[] { kv.Value }));
                 }
                 else if (!ksTokensCache.TryGetValue(ks.Strategy, out replicas))
                 {
-                    replicas = ks.Strategy.ComputeTokenToReplicaMap(ks.Replication, ring, primaryReplicas, hostsWithTokens, datacenters);
+                    replicas = ks.Strategy.ComputeTokenToReplicaMap(ring, primaryReplicas, hostsWithTokens, datacenters);
                     ksTokensCache.Add(ks.Strategy, replicas);
                 }
 
@@ -125,29 +121,6 @@ namespace Cassandra
                 return _tokenToHostsByKeyspace[keyspaceName][closestToken];
             }
             return new Host[] { _primaryReplicas[closestToken] };
-        }
-
-        internal class DatacenterInfo
-        {
-            private readonly HashSet<string> _racks;
-
-            public DatacenterInfo()
-            {
-                _racks = new HashSet<string>();
-            }
-
-            public int HostLength { get; set; }
-
-            public ISet<string> Racks { get { return _racks; } }
-
-            public void AddRack(string name)
-            {
-                if (name == null)
-                {
-                    return;
-                }
-                _racks.Add(name);
-            }
         }
     }
 }

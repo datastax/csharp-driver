@@ -86,14 +86,15 @@ namespace Cassandra
             Name = name;
             DurableWrites = durableWrites;
 
-            StrategyClass = strategyClass;
             if (strategyClass != null && strategyClass.StartsWith("org.apache.cassandra.locator."))
             {
-                StrategyClass = strategyClass.Replace("org.apache.cassandra.locator.", "");
+                strategyClass = strategyClass.Replace("org.apache.cassandra.locator.", "");
             }
+
+            StrategyClass = strategyClass;
             Replication = replicationOptions;
             IsVirtual = isVirtual;
-            Strategy = replicationStrategyFactory.Create(strategyClass, replicationOptions);
+            Strategy = replicationStrategyFactory.Create(StrategyClass, replicationOptions);
         }
 
         /// <summary>

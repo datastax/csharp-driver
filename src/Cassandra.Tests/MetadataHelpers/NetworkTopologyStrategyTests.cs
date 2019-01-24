@@ -26,7 +26,7 @@ namespace Cassandra.Tests.MetadataHelpers
     public class NetworkTopologyStrategyTests
     {
         [Test]
-        public void TokenMap_IsDoneForToken_Should_Return_True_When_No_Host_In_Dc()
+        public void AreReplicationFactorsSatisfied_Should_ReturnTrue_When_NoHostInDc()
         {
             var ksReplicationFactor = new Dictionary<string, int>
             {
@@ -40,16 +40,16 @@ namespace Cassandra.Tests.MetadataHelpers
                 {"dc2", 3}
             };
             //no host in DC 3
-            var datacenters = new Dictionary<string, TokenMap.DatacenterInfo>
+            var datacenters = new Dictionary<string, DatacenterInfo>
             {
-                {"dc1", new TokenMap.DatacenterInfo { HostLength = 10 } },
-                {"dc2", new TokenMap.DatacenterInfo { HostLength = 10 } }
+                {"dc1", new DatacenterInfo { HostLength = 10 } },
+                {"dc2", new DatacenterInfo { HostLength = 10 } }
             };
             Assert.True(NetworkTopologyStrategy.AreReplicationFactorsSatisfied(ksReplicationFactor, replicasByDc, datacenters));
         }
 
         [Test]
-        public void TokenMap_IsDoneForToken_Should_Return_False_When_Not_Satisfied()
+        public void AreReplicationFactorsSatisfied_Should_ReturnFalse_When_LessReplicasThanReplicationFactorInOneDc()
         {
             var ksReplicationFactor = new Dictionary<string, int>
             {
@@ -63,10 +63,10 @@ namespace Cassandra.Tests.MetadataHelpers
                 {"dc2", 1}
             };
             //no host in DC 3
-            var datacenters = new Dictionary<string, TokenMap.DatacenterInfo>
+            var datacenters = new Dictionary<string, DatacenterInfo>
             {
-                {"dc1", new TokenMap.DatacenterInfo { HostLength = 10 } },
-                {"dc2", new TokenMap.DatacenterInfo { HostLength = 10 } }
+                {"dc1", new DatacenterInfo { HostLength = 10 } },
+                {"dc2", new DatacenterInfo { HostLength = 10 } }
             };
             Assert.False(NetworkTopologyStrategy.AreReplicationFactorsSatisfied(ksReplicationFactor, replicasByDc, datacenters));
         }

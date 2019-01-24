@@ -22,22 +22,23 @@ namespace Cassandra.MetadataHelpers
 {
     internal class NetworkTopologyStrategy : IReplicationStrategy, IEquatable<NetworkTopologyStrategy>
     {
-        private readonly HashSet<DatacenterReplicationFactor> _replicationFactors;
+        private readonly HashSet<DatacenterReplicationFactor> _replicationFactorsSet;
+        private readonly IDictionary<string, int> _replicationFactorsMap;
 
         public NetworkTopologyStrategy(IDictionary<string, int> replicationFactors)
         {
-            _replicationFactors = new HashSet<DatacenterReplicationFactor>(
+            _replicationFactorsSet = new HashSet<DatacenterReplicationFactor>(
                 replicationFactors.Select(rf => new DatacenterReplicationFactor(rf.Key, rf.Value)));
+            _replicationFactorsMap = replicationFactors;
         }
 
         public Dictionary<IToken, ISet<Host>> ComputeTokenToReplicaMap(
-            IDictionary<string, int> replicationFactors,
             IList<IToken> ring,
             IDictionary<IToken, Host> primaryReplicas,
             ICollection<Host> hosts,
-            IDictionary<string, TokenMap.DatacenterInfo> datacenters)
+            IDictionary<string, DatacenterInfo> datacenters)
         {
-            return ComputeTokenToReplicaNetwork(replicationFactors, ring, primaryReplicas, datacenters);
+            return ComputeTokenToReplicaNetwork(ring, primaryReplicas, datacenters);
         }
 
         public override bool Equals(object obj)
@@ -52,7 +53,7 @@ namespace Cassandra.MetadataHelpers
 
         public bool Equals(NetworkTopologyStrategy other)
         {
-            return other != null && _replicationFactors.SetEquals(other._replicationFactors);
+            return other != null && _replicationFactorsSet.SetEquals(other._replicationFactorsSet);
         }
 
         public override int GetHashCode()
@@ -60,7 +61,7 @@ namespace Cassandra.MetadataHelpers
             unchecked
             {
                 var hash = 0;
-                foreach (var item in _replicationFactors)
+                foreach (var item in _replicationFactorsSet)
                 {
                     hash += item.GetHashCode();
                 }
@@ -69,55 +70,62 @@ namespace Cassandra.MetadataHelpers
         }
 
         private Dictionary<IToken, ISet<Host>> ComputeTokenToReplicaNetwork(
-            IDictionary<string, int> replicationFactors,
             IList<IToken> ring,
             IDictionary<IToken, Host> primaryReplicas,
-            IDictionary<string, TokenMap.DatacenterInfo> datacenters)
+            IDictionary<string, DatacenterInfo> datacenters)
         {
             var replicas = new Dictionary<IToken, ISet<Host>>();
             for (var i = 0; i < ring.Count; i++)
             {
                 var token = ring[i];
-                var context = new NetworkTopologyTokenMapContext(replicationFactors, ring, primaryReplicas, datacenters);
-                for (var j = 0; j < ring.Count; j++)
-                {
-                    // wrap around if necessary
-                    var replicaIndex = (i + j) % ring.Count;
-
-                    var replica = primaryReplicas[ring[replicaIndex]];
-                    var dc = replica.Datacenter;
-                    if (!replicationFactors.TryGetValue(dc, out var dcRf))
-                    {
-                        continue;
-                    }
-
-                    dcRf = Math.Min(dcRf, datacenters[dc].HostLength);
-                    context.ReplicasByDc.TryGetValue(dc, out var dcAddedReplicas);
-                    if (dcAddedReplicas >= dcRf)
-                    {
-                        // replication factor for the datacenter has already been satisfied
-                        continue;
-                    }
-
-                    var racksAddedInDc = NetworkTopologyStrategy.GetAddedRacksInDatacenter(context, dc);
-                    if (NetworkTopologyStrategy.ShouldSkipHost(context, replica, racksAddedInDc))
-                    {
-                        NetworkTopologyStrategy.TryAddToSkippedHostsCollection(context, replica, dcRf, dcAddedReplicas);
-                        continue;
-                    }
-
-                    NetworkTopologyStrategy.AddReplica(context, replica, dcRf, dcAddedReplicas, racksAddedInDc);
-
-                    if (NetworkTopologyStrategy.AreReplicationFactorsSatisfied(replicationFactors, context.ReplicasByDc, datacenters))
-                    {
-                        break;
-                    }
-                }
+                var context = ComputeReplicasForToken(ring, primaryReplicas, datacenters, i);
 
                 replicas[token] = context.TokenReplicas;
             }
 
             return replicas;
+        }
+
+        private NetworkTopologyTokenMapContext ComputeReplicasForToken(
+            IList<IToken> ring, IDictionary<IToken, Host> primaryReplicas, IDictionary<string, DatacenterInfo> datacenters, int i)
+        {
+            var context = new NetworkTopologyTokenMapContext(ring, primaryReplicas, datacenters);
+            for (var j = 0; j < ring.Count; j++)
+            {
+                // wrap around if necessary
+                var replicaIndex = (i + j) % ring.Count;
+
+                var replica = primaryReplicas[ring[replicaIndex]];
+                var dc = replica.Datacenter;
+                if (!_replicationFactorsMap.TryGetValue(dc, out var dcRf))
+                {
+                    continue;
+                }
+
+                dcRf = Math.Min(dcRf, datacenters[dc].HostLength);
+                context.ReplicasByDc.TryGetValue(dc, out var dcAddedReplicas);
+                if (dcAddedReplicas >= dcRf)
+                {
+                    // replication factor for the datacenter has already been satisfied
+                    continue;
+                }
+
+                var racksAddedInDc = NetworkTopologyStrategy.GetAddedRacksInDatacenter(context, dc);
+                if (NetworkTopologyStrategy.ShouldSkipHost(context, replica, racksAddedInDc))
+                {
+                    NetworkTopologyStrategy.TryAddToSkippedHostsCollection(context, replica, dcRf, dcAddedReplicas);
+                    continue;
+                }
+
+                NetworkTopologyStrategy.AddReplica(context, replica, dcRf, dcAddedReplicas, racksAddedInDc);
+
+                if (NetworkTopologyStrategy.AreReplicationFactorsSatisfied(_replicationFactorsMap, context.ReplicasByDc, datacenters))
+                {
+                    break;
+                }
+            }
+
+            return context;
         }
 
         /// <summary>
@@ -188,7 +196,7 @@ namespace Cassandra.MetadataHelpers
         internal static bool AreReplicationFactorsSatisfied(
             IDictionary<string, int> replicationFactors,
             IDictionary<string, int> replicasByDc,
-            IDictionary<string, TokenMap.DatacenterInfo> datacenters)
+            IDictionary<string, DatacenterInfo> datacenters)
         {
             foreach (var dcName in replicationFactors.Keys)
             {

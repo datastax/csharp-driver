@@ -22,10 +22,9 @@ namespace Cassandra.MetadataHelpers
     internal interface IReplicationStrategy : IEquatable<IReplicationStrategy>
     {
         Dictionary<IToken, ISet<Host>> ComputeTokenToReplicaMap(
-            IDictionary<string, int> replicationFactors, 
             IList<IToken> ring, 
             IDictionary<IToken, Host> primaryReplicas,
             ICollection<Host> hostsWithTokens,
-            IDictionary<string, TokenMap.DatacenterInfo> datacenters);
+            IDictionary<string, DatacenterInfo> datacenters);
     }
 }
