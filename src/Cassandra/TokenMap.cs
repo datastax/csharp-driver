@@ -15,6 +15,7 @@
 //
 
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 using Cassandra.MetadataHelpers;
@@ -44,6 +45,8 @@ namespace Cassandra
 
         public static TokenMap Build(string partitioner, ICollection<Host> hosts, ICollection<KeyspaceMetadata> keyspaces)
         {
+            var sw = new Stopwatch();
+            sw.Start();
             var factory = TokenFactory.GetFactory(partitioner);
             if (factory == null)
             {
@@ -86,7 +89,6 @@ namespace Cassandra
             foreach (var ks in keyspaces)
             {
                 Dictionary<IToken, ISet<Host>> replicas;
-
                 if (ks.Strategy == null)
                 {
                     replicas = primaryReplicas.ToDictionary(kv => kv.Key, kv => (ISet<Host>)new HashSet<Host>(new[] { kv.Value }));
@@ -99,6 +101,13 @@ namespace Cassandra
 
                 tokenToHosts[ks.Name] = replicas;
             }
+
+            sw.Stop();
+            TokenMap.Logger.Info(
+                "Finished building TokenMap for {0} keyspaces and {1} hosts. It took {2} milliseconds.", 
+                keyspaces.Count, 
+                hosts.Count, 
+                sw.Elapsed.TotalMilliseconds);
             return new TokenMap(factory, tokenToHosts, ring, primaryReplicas);
         }
 

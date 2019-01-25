@@ -54,7 +54,7 @@ namespace Cassandra.MetadataHelpers
 
         public override int GetHashCode()
         {
-            return -1194751085 + _replicationFactor.GetHashCode();
+            return _replicationFactor.GetHashCode();
         }
 
         /// <summary>
