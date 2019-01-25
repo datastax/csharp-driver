@@ -124,5 +124,27 @@ namespace Cassandra.Benchmarks
         {
             var map = TokenMap.Build("Murmur3Partitioner", _hosts, _keyspaces);
         }
+        
+        [GlobalSetup(Target = nameof(TokenMapBuildBenchmark.TwentyHosts_TwoDatacenters_OneRack_OneHundredKeyspaces_FiveNetworkTopologyReplicationConfigurations))]
+        public void Setup_SixteenHosts_FourDatacenters_OneRack_OneHundredKeyspaces_FiveNetworkTopologyReplicationConfigurations()
+        {
+            _hosts = TokenMapBenchmarkHelpers.GenerateHosts(4, 1, 4, 256);
+            _keyspaces = TokenMapBenchmarkHelpers.GenerateKeyspaces(100, new IDictionary<string, int>[]
+            {
+                new Dictionary<string, int> {{"dc0", 3}, {"dc1", 3}, {"dc2", 3}, {"dc3", 3}},
+                new Dictionary<string, int> {{"dc0", 3}, {"dc1", 3}},
+                new Dictionary<string, int> {{"dc0", 3}},
+                new Dictionary<string, int> {{"dc1", 3}},
+                new Dictionary<string, int> {{"dc2", 3}, {"dc3", 3}}
+            });
+            var rnd = new Random(TokenMapBuildBenchmark.Seed);
+            _hosts = _hosts.OrderBy(x => rnd.Next()).ToArray(); 
+        }
+
+        [Benchmark]
+        public void TwentyHosts_TwoDatacenters_OneRack_OneHundredKeyspaces_FiveNetworkTopologyReplicationConfigurations()
+        {
+            var map = TokenMap.Build("Murmur3Partitioner", _hosts, _keyspaces);
+        }
     }
 }
