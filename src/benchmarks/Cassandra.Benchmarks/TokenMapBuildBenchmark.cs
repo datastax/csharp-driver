@@ -33,47 +33,47 @@ namespace Cassandra.Benchmarks
         // multiple targets
         // [GlobalSetup(Target = nameof(BenchmarkA) + "," + nameof(BenchmarkC))]
 
-        //[GlobalSetup(Target = nameof(TokenMapBuildBenchmark.NineHosts_ThreeDatacenters_ThreeRacks_OneKeyspace_OneReplicationConfiguration))]
-        //public void Setup_NineHosts_ThreeDatacenters_ThreeRacks_OneKeyspace_OneReplicationConfiguration()
-        //{
-        //    _hosts = TokenMapBenchmarkHelpers.GenerateHosts(3, 3, 1, 256);
-        //    _keyspaces = TokenMapBenchmarkHelpers.GenerateKeyspaces(1, new IDictionary<string, int>[]
-        //    {
-        //        new Dictionary<string, int>
-        //        {
-        //            {"dc0", 2},
-        //            {"dc1", 2},
-        //            {"dc2", 2}
-        //        }
-        //    });
-        //}
+        [GlobalSetup(Target = nameof(TokenMapBuildBenchmark.NineHosts_ThreeDatacenters_ThreeRacks_OneKeyspace_OneReplicationConfiguration))]
+        public void Setup_NineHosts_ThreeDatacenters_ThreeRacks_OneKeyspace_OneReplicationConfiguration()
+        {
+            _hosts = TokenMapBenchmarkHelpers.GenerateHosts(3, 3, 1, 256);
+            _keyspaces = TokenMapBenchmarkHelpers.GenerateKeyspaces(1, new IDictionary<string, int>[]
+            {
+                new Dictionary<string, int>
+                {
+                    {"dc0", 2},
+                    {"dc1", 2},
+                    {"dc2", 2}
+                }
+            });
+        }
 
-        //[Benchmark]
-        //public void NineHosts_ThreeDatacenters_ThreeRacks_OneKeyspace_OneReplicationConfiguration()
-        //{
-        //    var map = TokenMap.Build("Murmur3Partitioner", _hosts, _keyspaces);
-        //}
+        [Benchmark]
+        public void NineHosts_ThreeDatacenters_ThreeRacks_OneKeyspace_OneReplicationConfiguration()
+        {
+            var map = TokenMap.Build("Murmur3Partitioner", _hosts, _keyspaces);
+        }
 
-        //[GlobalSetup(Target = nameof(TokenMapBuildBenchmark.NineHosts_ThreeDatacenters_ThreeRacks_OneThousandKeyspaces_OneReplicationConfiguration))]
-        //public void Setup_NineHosts_ThreeDatacenters_ThreeRacks_OneThousandKeyspaces_OneReplicationConfiguration()
-        //{
-        //    _hosts = TokenMapBenchmarkHelpers.GenerateHosts(3, 3, 1, 256);
-        //    _keyspaces = TokenMapBenchmarkHelpers.GenerateKeyspaces(1000, new IDictionary<string, int>[]
-        //    {
-        //        new Dictionary<string, int>
-        //        {
-        //            {"dc0", 2},
-        //            {"dc1", 2},
-        //            {"dc2", 2}
-        //        }
-        //    });
-        //}
+        [GlobalSetup(Target = nameof(TokenMapBuildBenchmark.NineHosts_ThreeDatacenters_ThreeRacks_OneThousandKeyspaces_OneReplicationConfiguration))]
+        public void Setup_NineHosts_ThreeDatacenters_ThreeRacks_OneThousandKeyspaces_OneReplicationConfiguration()
+        {
+            _hosts = TokenMapBenchmarkHelpers.GenerateHosts(3, 3, 1, 256);
+            _keyspaces = TokenMapBenchmarkHelpers.GenerateKeyspaces(1000, new IDictionary<string, int>[]
+            {
+                new Dictionary<string, int>
+                {
+                    {"dc0", 2},
+                    {"dc1", 2},
+                    {"dc2", 2}
+                }
+            });
+        }
 
-        //[Benchmark]
-        //public void NineHosts_ThreeDatacenters_ThreeRacks_OneThousandKeyspaces_OneReplicationConfiguration()
-        //{
-        //    var map = TokenMap.Build("Murmur3Partitioner", _hosts, _keyspaces);
-        //}
+        [Benchmark]
+        public void NineHosts_ThreeDatacenters_ThreeRacks_OneThousandKeyspaces_OneReplicationConfiguration()
+        {
+            var map = TokenMap.Build("Murmur3Partitioner", _hosts, _keyspaces);
+        }
 
         [GlobalSetup(Target = nameof(TokenMapBuildBenchmark.TwentyHosts_TwoDatacenters_OneRack_OneKeyspace_OneReplicationConfiguration))]
         public void Setup_TwentyHosts_TwoDatacenters_OneRack_OneKeyspace_OneReplicationConfiguration()
@@ -88,11 +88,39 @@ namespace Cassandra.Benchmarks
                 }
             });
             var rnd = new Random(TokenMapBuildBenchmark.Seed);
-            _hosts = _hosts.OrderBy(x => rnd.Next()).ToArray(); 
+            _hosts = _hosts.OrderBy(x => rnd.Next()).ToArray();
         }
 
         [Benchmark]
         public void TwentyHosts_TwoDatacenters_OneRack_OneKeyspace_OneReplicationConfiguration()
+        {
+            var map = TokenMap.Build("Murmur3Partitioner", _hosts, _keyspaces);
+        }
+
+
+        [GlobalSetup(Target = nameof(TokenMapBuildBenchmark.TwentyHosts_TwoDatacenters_OneRack_OneHundredKeyspaces_TenReplicationConfigurations))]
+        public void Setup_TwentyHosts_TwoDatacenters_OneRack_OneHundredKeyspaces_TenReplicationConfigurations()
+        {
+            _hosts = TokenMapBenchmarkHelpers.GenerateHosts(2, 1, 10, 256);
+            _keyspaces = TokenMapBenchmarkHelpers.GenerateKeyspaces(100, new IDictionary<string, int>[]
+            {
+                new Dictionary<string, int> {{"dc0", 3}, {"dc1", 3}}, 
+                new Dictionary<string, int> {{"dc0", 3}},
+                new Dictionary<string, int> {{"dc1", 2}, {"dc0", 1}},
+                new Dictionary<string, int> {{"dc0", 1}, {"dc1", 2}},
+                new Dictionary<string, int> {{"dc0", 2}, {"dc1", 2}}, 
+                new Dictionary<string, int> {{"dc1", 3}},
+                new Dictionary<string, int> {{"dc1", 1}, {"dc0", 1}},
+                new Dictionary<string, int> {{"dc0", 1}, {"dc1", 1}},
+                new Dictionary<string, int> {{"dc0", 1}, {"dc1", 3}},
+                new Dictionary<string, int> {{"replication_factor", 3}}
+            });
+            var rnd = new Random(TokenMapBuildBenchmark.Seed);
+            _hosts = _hosts.OrderBy(x => rnd.Next()).ToArray(); 
+        }
+
+        [Benchmark]
+        public void TwentyHosts_TwoDatacenters_OneRack_OneHundredKeyspaces_TenReplicationConfigurations()
         {
             var map = TokenMap.Build("Murmur3Partitioner", _hosts, _keyspaces);
         }
