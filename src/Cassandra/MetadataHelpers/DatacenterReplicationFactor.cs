@@ -18,35 +18,40 @@ using System;
 
 namespace Cassandra.MetadataHelpers
 {
-    internal class DatacenterReplicationFactor : IEquatable<DatacenterReplicationFactor>
+    internal struct DatacenterReplicationFactor : IEquatable<DatacenterReplicationFactor>
     {
-        public string Datacenter { get; }
-        public int ReplicationFactor { get; }
+        private readonly int _hashCode;
 
         public DatacenterReplicationFactor(string datacenter, int replicationFactor)
         {
-            Datacenter = datacenter;
+            Datacenter = datacenter ?? throw new ArgumentNullException(nameof(datacenter));
             ReplicationFactor = replicationFactor;
+            _hashCode = DatacenterReplicationFactor.ComputeHashCode(Datacenter, ReplicationFactor);
         }
+
+        public string Datacenter { get; }
+
+        public int ReplicationFactor { get; }
         
         public override bool Equals(object obj)
         {
-            return Equals(obj as DatacenterReplicationFactor);
+            return obj.GetType() == GetType() && Equals((DatacenterReplicationFactor)obj);
         }
 
         public bool Equals(DatacenterReplicationFactor other)
         {
-            return other != null &&
-                   Datacenter == other.Datacenter &&
+            return Datacenter == other.Datacenter &&
                    ReplicationFactor == other.ReplicationFactor;
         }
 
         public override int GetHashCode()
         {
-            var hashCode = -1601459050;
-            hashCode = hashCode * -1521134295 + Datacenter?.GetHashCode() ?? string.Empty.GetHashCode();
-            hashCode = hashCode * -1521134295 + ReplicationFactor.GetHashCode();
-            return hashCode;
+            return _hashCode;
+        }
+
+        private static int ComputeHashCode(string datacenter, int replicationFactor)
+        {
+            return Utils.CombineHashCode(new object[] { datacenter, replicationFactor });
         }
     }
 }

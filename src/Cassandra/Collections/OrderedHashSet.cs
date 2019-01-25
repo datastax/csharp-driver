@@ -16,8 +16,9 @@
 
 using System.Collections;
 using System.Collections.Generic;
+using Cassandra.MetadataHelpers;
 
-namespace Cassandra.MetadataHelpers
+namespace Cassandra.Collections
 {
     /// <summary>
     /// Ordered hash set designed for building token to replica maps (specifically for keyspaces configured with <see cref="NetworkTopologyStrategy"/>)
@@ -29,9 +30,9 @@ namespace Cassandra.MetadataHelpers
         private readonly HashSet<T> _set;
         private readonly LinkedList<T> _list;
 
-        public int Count { get { return _set.Count; } }
+        public int Count => _set.Count;
 
-        public bool IsReadOnly { get { return false; } }
+        public bool IsReadOnly => false;
 
         public OrderedHashSet()
         {

@@ -22,14 +22,17 @@ namespace Cassandra.MetadataHelpers
 {
     internal class NetworkTopologyStrategy : IReplicationStrategy, IEquatable<NetworkTopologyStrategy>
     {
-        private readonly HashSet<DatacenterReplicationFactor> _replicationFactorsSet;
+        private readonly SortedSet<DatacenterReplicationFactor> _replicationFactorsSet;
         private readonly IDictionary<string, int> _replicationFactorsMap;
+        private readonly int _hashCode;
 
         public NetworkTopologyStrategy(IDictionary<string, int> replicationFactors)
         {
-            _replicationFactorsSet = new HashSet<DatacenterReplicationFactor>(
-                replicationFactors.Select(rf => new DatacenterReplicationFactor(rf.Key, rf.Value)));
+            _replicationFactorsSet = new SortedSet<DatacenterReplicationFactor>(
+                replicationFactors.Select(rf => new DatacenterReplicationFactor(rf.Key, rf.Value)), DatacenterReplicationFactorComparer.Instance);
+
             _replicationFactorsMap = replicationFactors;
+            _hashCode = NetworkTopologyStrategy.ComputeHashCode(_replicationFactorsSet);
         }
 
         public Dictionary<IToken, ISet<Host>> ComputeTokenToReplicaMap(
@@ -56,17 +59,14 @@ namespace Cassandra.MetadataHelpers
             return other != null && _replicationFactorsSet.SetEquals(other._replicationFactorsSet);
         }
 
+        private static int ComputeHashCode(IEnumerable<DatacenterReplicationFactor> replicationFactorsSet)
+        {
+            return Utils.CombineHashCode(replicationFactorsSet);
+        }
+
         public override int GetHashCode()
         {
-            unchecked
-            {
-                var hash = 0;
-                foreach (var item in _replicationFactorsSet)
-                {
-                    hash += item.GetHashCode();
-                }
-                return 2102697912 * hash;
-            }
+            return _hashCode;
         }
 
         private Dictionary<IToken, ISet<Host>> ComputeTokenToReplicaNetwork(
@@ -78,15 +78,13 @@ namespace Cassandra.MetadataHelpers
             for (var i = 0; i < ring.Count; i++)
             {
                 var token = ring[i];
-                var context = ComputeReplicasForToken(ring, primaryReplicas, datacenters, i);
-
-                replicas[token] = context.TokenReplicas;
+                replicas[token] = ComputeReplicasForToken(ring, primaryReplicas, datacenters, i);
             }
 
             return replicas;
         }
 
-        private NetworkTopologyTokenMapContext ComputeReplicasForToken(
+        private ISet<Host> ComputeReplicasForToken(
             IList<IToken> ring, IDictionary<IToken, Host> primaryReplicas, IDictionary<string, DatacenterInfo> datacenters, int i)
         {
             var context = new NetworkTopologyTokenMapContext(ring, primaryReplicas, datacenters);
@@ -125,7 +123,7 @@ namespace Cassandra.MetadataHelpers
                 }
             }
 
-            return context;
+            return context.TokenReplicas;
         }
 
         /// <summary>

@@ -15,10 +15,11 @@
 // 
 
 using System.Collections.Generic;
+using Cassandra.Collections;
 
 namespace Cassandra.MetadataHelpers
 {
-    internal class NetworkTopologyTokenMapContext
+    internal struct NetworkTopologyTokenMapContext
     {
         public NetworkTopologyTokenMapContext(
             IList<IToken> ring, 
