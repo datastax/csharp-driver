@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>netcoreapp2.1;net46</TargetFrameworks>
+    <AssemblyName>Cassandra.Benchmarks</AssemblyName>
+    <RootNamespace>Cassandra.Benchmarks</RootNamespace>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>../../../build/datastax.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.11.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Cassandra.Tests\Cassandra.Tests.csproj" />
+    <ProjectReference Include="..\..\Cassandra\Cassandra.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -414,7 +414,7 @@ namespace Cassandra.Tests
             Assert.AreEqual(sameStrategies.Count - 1, sameStrategies.Count(strategy => strategy.Calls == 0));
         }
 
-        private static KeyspaceMetadata CreateSimpleKeyspace(string name, int replicationFactor, IReplicationStrategyFactory factory = null)
+        internal static KeyspaceMetadata CreateSimpleKeyspace(string name, int replicationFactor, IReplicationStrategyFactory factory = null)
         {
             return new KeyspaceMetadata(
                 null,
@@ -425,7 +425,7 @@ namespace Cassandra.Tests
                 factory ?? new ReplicationStrategyFactory());
         }
 
-        private static KeyspaceMetadata CreateNetworkTopologyKeyspace(string name, IDictionary<string, int> replicationFactors, IReplicationStrategyFactory factory = null)
+        internal static KeyspaceMetadata CreateNetworkTopologyKeyspace(string name, IDictionary<string, int> replicationFactors, IReplicationStrategyFactory factory = null)
         {
             return new KeyspaceMetadata(
                 null,

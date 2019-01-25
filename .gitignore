@@ -47,3 +47,6 @@ src/packages/*/
 
 # Visual Studio for Mac
 *.userprefs
+
+# BenchmarkDotnet artifacts
+src/benchmarks/Cassandra.Benchmarks/BenchmarkDotNet.Artifacts
