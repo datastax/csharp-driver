@@ -22,9 +22,9 @@ namespace Cassandra.MetadataHelpers
     internal struct NetworkTopologyTokenMapContext
     {
         public NetworkTopologyTokenMapContext(
-            IList<IToken> ring, 
-            IDictionary<IToken, Host> primaryReplicas, 
-            IDictionary<string, DatacenterInfo> datacenters)
+            IReadOnlyList<IToken> ring, 
+            IReadOnlyDictionary<IToken, Host> primaryReplicas, 
+            IReadOnlyDictionary<string, DatacenterInfo> datacenters)
         {
             Ring = ring;
             PrimaryReplicas = primaryReplicas;
@@ -43,10 +43,10 @@ namespace Cassandra.MetadataHelpers
 
         public IDictionary<string, int> ReplicasByDc { get; }
 
-        public IList<IToken> Ring { get; }
+        public IReadOnlyList<IToken> Ring { get; }
 
-        public IDictionary<IToken, Host> PrimaryReplicas { get; }
+        public IReadOnlyDictionary<IToken, Host> PrimaryReplicas { get; }
 
-        public IDictionary<string, DatacenterInfo> Datacenters { get; }
+        public IReadOnlyDictionary<string, DatacenterInfo> Datacenters { get; }
     }
 }

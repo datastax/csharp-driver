@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -22,25 +23,79 @@ using Cassandra.MetadataHelpers;
 
 namespace Cassandra
 {
-    internal class TokenMap
+    internal class TokenMap : IReadOnlyTokenMap
     {
         internal readonly TokenFactory Factory;
+
+        // should be IReadOnly but BinarySearch method is not exposed in the interface
         private readonly List<IToken> _ring;
-        private readonly Dictionary<string, Dictionary<IToken, ISet<Host>>> _tokenToHostsByKeyspace;
-        private readonly Dictionary<IToken, Host> _primaryReplicas;
+
+        private readonly IReadOnlyDictionary<IToken, Host> _primaryReplicas;
+        private readonly IReadOnlyDictionary<string, DatacenterInfo> _datacenters;
+        private readonly int _numberOfHostsWithTokens;
+        private readonly ConcurrentDictionary<string, IReadOnlyDictionary<IToken, ISet<Host>>> _tokenToHostsByKeyspace;
+        private readonly ConcurrentDictionary<IReplicationStrategy, IReadOnlyDictionary<IToken, ISet<Host>>> _keyspaceTokensCache;
         private static readonly Logger Logger = new Logger(typeof(ControlConnection));
 
-        internal TokenMap(TokenFactory factory, Dictionary<string, Dictionary<IToken, ISet<Host>>> tokenToHostsByKeyspace, List<IToken> ring, Dictionary<IToken, Host> primaryReplicas)
+        internal TokenMap(
+            TokenFactory factory, 
+            IReadOnlyDictionary<string, IReadOnlyDictionary<IToken, ISet<Host>>> tokenToHostsByKeyspace, 
+            List<IToken> ring, 
+            IReadOnlyDictionary<IToken, Host> primaryReplicas, 
+            IReadOnlyDictionary<IReplicationStrategy, IReadOnlyDictionary<IToken, ISet<Host>>> keyspaceTokensCache, 
+            IReadOnlyDictionary<string, DatacenterInfo> datacenters, 
+            int numberOfHostsWithTokens)
         {
             Factory = factory;
-            _tokenToHostsByKeyspace = tokenToHostsByKeyspace;
+            _tokenToHostsByKeyspace = new ConcurrentDictionary<string, IReadOnlyDictionary<IToken, ISet<Host>>>(tokenToHostsByKeyspace);
             _ring = ring;
             _primaryReplicas = primaryReplicas;
+            _keyspaceTokensCache = new ConcurrentDictionary<IReplicationStrategy, IReadOnlyDictionary<IToken, ISet<Host>>>(keyspaceTokensCache);
+            _datacenters = datacenters;
+            _numberOfHostsWithTokens = numberOfHostsWithTokens;
         }
 
-        internal IDictionary<IToken, ISet<Host>> GetByKeyspace(string keyspaceName)
+        public IReadOnlyDictionary<IToken, ISet<Host>> GetByKeyspace(string keyspaceName)
         {
             return _tokenToHostsByKeyspace[keyspaceName];
+        }
+
+        public void UpdateKeyspace(KeyspaceMetadata ks)
+        {
+            var sw = new Stopwatch();
+            sw.Start();
+
+            TokenMap.UpdateKeyspace(
+                ks, _tokenToHostsByKeyspace, _ring, _primaryReplicas, _keyspaceTokensCache, _datacenters, _numberOfHostsWithTokens);
+
+            sw.Stop();
+            TokenMap.Logger.Info(
+                "Finished updating TokenMap for the '{0}' keyspace. It took {1:0} milliseconds.", 
+                ks.Name,
+                sw.Elapsed.TotalMilliseconds);
+        }
+
+        public ICollection<Host> GetReplicas(string keyspaceName, IToken token)
+        {
+            IReadOnlyList<IToken> readOnlyRing = _ring;
+
+            // Find the primary replica
+            var i = _ring.BinarySearch(token);
+            if (i < 0)
+            {
+                //no exact match, use closest index
+                i = ~i;
+                if (i >= readOnlyRing.Count)
+                {
+                    i = 0;
+                }
+            }
+            var closestToken = readOnlyRing[i];
+            if (keyspaceName != null && _tokenToHostsByKeyspace.ContainsKey(keyspaceName))
+            {
+                return _tokenToHostsByKeyspace[keyspaceName][closestToken];
+            }
+            return new Host[] { _primaryReplicas[closestToken] };
         }
 
         public static TokenMap Build(string partitioner, ICollection<Host> hosts, ICollection<KeyspaceMetadata> keyspaces)
@@ -82,20 +137,21 @@ namespace Cassandra
                 }
             }
             var ring = new List<IToken>(allSorted);
-            var tokenToHosts = new Dictionary<string, Dictionary<IToken, ISet<Host>>>(keyspaces.Count);
-            var ksTokensCache = new Dictionary<IReplicationStrategy, Dictionary<IToken, ISet<Host>>>();
+            var tokenToHosts = new Dictionary<string, IReadOnlyDictionary<IToken, ISet<Host>>>(keyspaces.Count);
+            var ksTokensCache = new Dictionary<IReplicationStrategy, IReadOnlyDictionary<IToken, ISet<Host>>>();
             //Only consider nodes that have tokens
-            var hostsWithTokens = hosts.Where(h => h.Tokens.Any()).ToList();
+            var numberOfHostsWithTokens = hosts.Count(h => h.Tokens.Any());
             foreach (var ks in keyspaces)
             {
-                Dictionary<IToken, ISet<Host>> replicas;
+                TokenMap.UpdateKeyspace(ks, tokenToHosts, ring, primaryReplicas, ksTokensCache, datacenters, numberOfHostsWithTokens);
+                IReadOnlyDictionary<IToken, ISet<Host>> replicas;
                 if (ks.Strategy == null)
                 {
                     replicas = primaryReplicas.ToDictionary(kv => kv.Key, kv => (ISet<Host>)new HashSet<Host>(new[] { kv.Value }));
                 }
                 else if (!ksTokensCache.TryGetValue(ks.Strategy, out replicas))
                 {
-                    replicas = ks.Strategy.ComputeTokenToReplicaMap(ring, primaryReplicas, hostsWithTokens, datacenters);
+                    replicas = ks.Strategy.ComputeTokenToReplicaMap(ring, primaryReplicas, numberOfHostsWithTokens, datacenters);
                     ksTokensCache.Add(ks.Strategy, replicas);
                 }
 
@@ -108,28 +164,35 @@ namespace Cassandra
                 keyspaces.Count, 
                 hosts.Count, 
                 sw.Elapsed.TotalMilliseconds);
-            return new TokenMap(factory, tokenToHosts, ring, primaryReplicas);
+            return new TokenMap(factory, tokenToHosts, ring, primaryReplicas, ksTokensCache, datacenters, numberOfHostsWithTokens);
         }
 
-        public ICollection<Host> GetReplicas(string keyspaceName, IToken token)
+        private static void UpdateKeyspace(
+            KeyspaceMetadata ks,
+            IDictionary<string, IReadOnlyDictionary<IToken, ISet<Host>>> tokenToHostsByKeyspace, 
+            IReadOnlyList<IToken> ring, 
+            IReadOnlyDictionary<IToken, Host> primaryReplicas, 
+            IDictionary<IReplicationStrategy, IReadOnlyDictionary<IToken, ISet<Host>>> keyspaceTokensCache, 
+            IReadOnlyDictionary<string, DatacenterInfo> datacenters, 
+            int numberOfHostsWithTokens)
         {
-            // Find the primary replica
-            var i = _ring.BinarySearch(token);
-            if (i < 0)
+            IReadOnlyDictionary<IToken, ISet<Host>> replicas;
+            if (ks.Strategy == null)
             {
-                //no exact match, use closest index
-                i = ~i;
-                if (i >= _ring.Count)
-                {
-                    i = 0;
-                }
+                replicas = primaryReplicas.ToDictionary(kv => kv.Key, kv => (ISet<Host>)new HashSet<Host>(new[] { kv.Value }));
             }
-            var closestToken = _ring[i];
-            if (keyspaceName != null && _tokenToHostsByKeyspace.ContainsKey(keyspaceName))
+            else if (!keyspaceTokensCache.TryGetValue(ks.Strategy, out replicas))
             {
-                return _tokenToHostsByKeyspace[keyspaceName][closestToken];
+                replicas = ks.Strategy.ComputeTokenToReplicaMap(ring, primaryReplicas, numberOfHostsWithTokens, datacenters);
+                keyspaceTokensCache[ks.Strategy] = replicas;
             }
-            return new Host[] { _primaryReplicas[closestToken] };
+
+            tokenToHostsByKeyspace[ks.Name] = replicas;
+        }
+
+        public void RemoveKeyspace(KeyspaceMetadata keyspaceMetadata)
+        {
+            _tokenToHostsByKeyspace.TryRemove(keyspaceMetadata.Name, out _);
         }
     }
 }

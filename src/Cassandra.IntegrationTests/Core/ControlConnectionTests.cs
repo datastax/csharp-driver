@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Net;
-using System.Text;
-using NUnit.Framework;
+
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -67,8 +65,8 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         private ControlConnection NewInstance(
-            ProtocolVersion version = ProtocolVersion.MaxSupported, 
-            Configuration config = null, 
+            ProtocolVersion version = ProtocolVersion.MaxSupported,
+            Configuration config = null,
             Metadata metadata = null)
         {
             config = config ?? new Configuration();

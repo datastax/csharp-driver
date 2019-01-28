@@ -29,12 +29,12 @@ namespace Cassandra.MetadataHelpers
         }
 
         public Dictionary<IToken, ISet<Host>> ComputeTokenToReplicaMap(
-            IList<IToken> ring, 
-            IDictionary<IToken, Host> primaryReplicas,
-            ICollection<Host> hostsWithTokens,
-            IDictionary<string, DatacenterInfo> datacenters)
+            IReadOnlyList<IToken> ring, 
+            IReadOnlyDictionary<IToken, Host> primaryReplicas,
+            int numberOfHostsWithTokens,
+            IReadOnlyDictionary<string, DatacenterInfo> datacenters)
         {
-            return ComputeTokenToReplicaSimple(hostsWithTokens, ring, primaryReplicas);
+            return ComputeTokenToReplicaSimple(numberOfHostsWithTokens, ring, primaryReplicas);
         }
 
         public bool Equals(IReplicationStrategy other)
@@ -61,11 +61,11 @@ namespace Cassandra.MetadataHelpers
         /// Converts token-primary to token-replicas
         /// </summary>
         private Dictionary<IToken, ISet<Host>> ComputeTokenToReplicaSimple(
-            ICollection<Host> hostsWithTokens, 
-            IList<IToken> ring, 
-            IDictionary<IToken, Host> primaryReplicas)
+            int numberOfHostsWithTokens, 
+            IReadOnlyList<IToken> ring, 
+            IReadOnlyDictionary<IToken, Host> primaryReplicas)
         {
-            var rf = Math.Min(_replicationFactor, hostsWithTokens.Count);
+            var rf = Math.Min(_replicationFactor, numberOfHostsWithTokens);
             var tokenToReplicas = new Dictionary<IToken, ISet<Host>>(ring.Count);
             for (var i = 0; i < ring.Count; i++)
             {

@@ -15,15 +15,11 @@
 //
 
 using System.Collections.Generic;
-using Cassandra.MetadataHelpers;
 
-namespace Cassandra.Tests.MetadataHelpers.TestHelpers
+namespace Cassandra.MetadataHelpers
 {
-    internal class ProxyReplicationStrategyFactory : IReplicationStrategyFactory
+    internal interface IReadOnlyTokenMap
     {
-        public IReplicationStrategy Create(string strategyClass, IReadOnlyDictionary<string, int> replicationOptions)
-        {
-            return new ProxyReplicationStrategy(new ReplicationStrategyFactory().Create(strategyClass, replicationOptions));
-        }
+        IReadOnlyDictionary<IToken, ISet<Host>> GetByKeyspace(string keyspaceName);
     }
 }

@@ -17,10 +17,12 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.MetadataHelpers;
 using Cassandra.Requests;
 using Cassandra.Tasks;
 
@@ -38,6 +40,9 @@ namespace Cassandra
         private volatile TokenMap _tokenMap;
         private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string,KeyspaceMetadata>();
         private volatile SchemaParser _schemaParser;
+        private readonly TaskFactory _myTaskFactory = new TaskFactory(
+            CancellationToken.None, TaskCreationOptions.DenyChildAttach | TaskCreationOptions.LongRunning,
+            TaskContinuationOptions.ExecuteSynchronously, new OrderedTaskScheduler());
         public event HostsEventHandler HostsEvent;
         public event SchemaChangedEventHandler SchemaChangedEvent;
 
@@ -63,12 +68,19 @@ namespace Cassandra
 
         internal Hosts Hosts { get; private set; }
 
+        internal IReadOnlyTokenMap TokenToReplicasMap => _tokenMap;
+
         internal Metadata(Configuration configuration)
         {
             Configuration = configuration;
             Hosts = new Hosts();
             Hosts.Down += OnHostDown;
             Hosts.Up += OnHostUp;
+        }
+
+        internal Metadata(Configuration configuration, SchemaParser schemaParser) : this(configuration)
+        {
+            _schemaParser = schemaParser;
         }
 
         public void Dispose()
@@ -133,14 +145,76 @@ namespace Cassandra
             return Hosts.AllEndPointsToCollection();
         }
 
-        internal void RebuildTokenMap()
+        internal Task<bool> RebuildTokenMapAsync(bool retry)
         {
-            Logger.Info("Rebuilding token map");
-            if (Partitioner == null)
+            return _myTaskFactory.StartNew(() =>
             {
-                throw new DriverInternalError("Partitioner can not be null");
+                Metadata.Logger.Info("Retrieving keyspaces metadata");
+                var ksList = _schemaParser.GetKeyspaces(retry).GetAwaiter().GetResult();
+                var ksMap = ksList.Select(ks => new KeyValuePair<string, KeyspaceMetadata>(ks.Name, ks));
+                _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>(ksMap);
+                Metadata.Logger.Info("Rebuilding token map");
+                if (Partitioner == null)
+                {
+                    throw new DriverInternalError("Partitioner can not be null");
+                }
+                _tokenMap = TokenMap.Build(Partitioner, Hosts.ToCollection(), _keyspaces.Values);
+                return true;
+            });
+        }
+        
+        internal Task<bool> RemoveKeyspaceFromTokenMap(string name)
+        {
+            return _myTaskFactory.StartNew(
+                () =>
+                {
+                    Metadata.Logger.Verbose("Removing keyspace metadata: " + name);
+                    if (!_keyspaces.TryRemove(name, out var ks))
+                    {
+                        //The keyspace didn't exist
+                        return false;
+                    }
+                    _tokenMap?.RemoveKeyspace(ks);
+                    return true;
+                });
+        }
+        
+        internal async Task<KeyspaceMetadata> UpdateTokenMapForKeyspace(string name)
+        {
+            KeyspaceMetadata keyspaceMetadata = null;
+            var task = _myTaskFactory.StartNew(
+                () =>
+                {
+                    if (_tokenMap == null)
+                    {
+                        return false;
+                    }
+                    
+                    Metadata.Logger.Verbose("Updating keyspace metadata: " + name);
+                    keyspaceMetadata = _schemaParser.GetKeyspace(name).GetAwaiter().GetResult();
+                    if (keyspaceMetadata == null)
+                    {
+                        return (bool?)null;
+                    }
+
+                    _keyspaces.AddOrUpdate(keyspaceMetadata.Name, keyspaceMetadata, (k, v) => keyspaceMetadata);
+                    Metadata.Logger.Info("Rebuilding token map for keyspace {0}", keyspaceMetadata.Name);
+                    if (Partitioner == null)
+                    {
+                        throw new DriverInternalError("Partitioner can not be null");
+                    }
+
+                    _tokenMap.UpdateKeyspace(keyspaceMetadata);
+                    return true;
+                });
+
+            var existsTokenMap = await task.ConfigureAwait(false);
+            if (existsTokenMap.HasValue && !existsTokenMap.Value)
+            {
+                await RefreshKeyspaces().ConfigureAwait(false);
             }
-            _tokenMap = TokenMap.Build(Partitioner, Hosts.ToCollection(), _keyspaces.Values);
+
+            return keyspaceMetadata;
         }
 
         /// <summary>
@@ -332,20 +406,7 @@ namespace Cassandra
         /// </summary>
         internal Task<bool> RefreshKeyspaces(bool retry = false)
         {
-            Logger.Info("Retrieving keyspaces metadata");
-            return _schemaParser
-                .GetKeyspaces(retry)
-                .ContinueSync(ksList =>
-                {
-                    var ksMap = new ConcurrentDictionary<string, KeyspaceMetadata>();
-                    foreach (var ks in ksList)
-                    {
-                        ksMap.AddOrUpdate(ks.Name, ks, (k, v) => v);
-                    }
-                    _keyspaces = ksMap;
-                    RebuildTokenMap();
-                    return true;
-                });
+            return RebuildTokenMapAsync(retry);
         }
 
         public void ShutDown(int timeoutMs = Timeout.Infinite)
@@ -355,35 +416,27 @@ namespace Cassandra
             ControlConnection = null;
         }
 
-        internal bool RemoveKeyspace(string name)
+        internal async Task<bool> RemoveKeyspace(string name)
         {
-            Logger.Verbose("Removing keyspace metadata: " + name);
-            KeyspaceMetadata ks;
-            if (!_keyspaces.TryRemove(name, out ks))
+            if (!await RemoveKeyspaceFromTokenMap(name).ConfigureAwait(false))
             {
-                //The keyspace didn't exist
                 return false;
             }
-            RebuildTokenMap();
+
             FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Dropped, name, null, this);
             return true;
         }
 
-        internal Task<KeyspaceMetadata> RefreshSingleKeyspace(bool added, string name)
+        internal async Task<KeyspaceMetadata> RefreshSingleKeyspace(bool added, string name)
         {
-            Logger.Verbose("Updating keyspace metadata: " + name);
-            return _schemaParser.GetKeyspace(name).ContinueSync(ks =>
+            var ks = await UpdateTokenMapForKeyspace(name).ConfigureAwait(false);
+            if (ks == null)
             {
-                if (ks == null)
-                {
-                    return null;
-                }
-                _keyspaces.AddOrUpdate(name, ks, (k, v) => ks);
-                RebuildTokenMap();
-                var eventKind = added ? SchemaChangedEventArgs.Kind.Created : SchemaChangedEventArgs.Kind.Updated;
-                FireSchemaChangedEvent(eventKind, name, null, this);
-                return ks;
-            });
+                return null;
+            }
+            var eventKind = added ? SchemaChangedEventArgs.Kind.Created : SchemaChangedEventArgs.Kind.Updated;
+            FireSchemaChangedEvent(eventKind, name, null, this);
+            return ks;
         }
 
         internal void RefreshTable(string keyspaceName, string tableName)

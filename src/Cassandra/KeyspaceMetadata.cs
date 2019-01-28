@@ -94,7 +94,7 @@ namespace Cassandra
             StrategyClass = strategyClass;
             Replication = replicationOptions;
             IsVirtual = isVirtual;
-            Strategy = replicationStrategyFactory.Create(StrategyClass, replicationOptions);
+            Strategy = replicationStrategyFactory.Create(StrategyClass, new Dictionary<string, int>(replicationOptions));
         }
 
         /// <summary>

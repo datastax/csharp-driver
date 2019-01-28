@@ -15,11 +15,16 @@
 //
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-
+using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 using Cassandra.MetadataHelpers;
 using Cassandra.Tests.MetadataHelpers.TestHelpers;
+using Moq;
 using NUnit.Framework;
 
 namespace Cassandra.Tests
@@ -407,11 +412,172 @@ namespace Cassandra.Tests
             AssertOnlyOneStrategyIsCalled(proxyStrategies, 5, 7);
         }
 
+        [Test]
+        public void TokenMapUpdates_Should_FunctionCorrectly_When_MultipleThreadsCallingRebuildAndUpdateKeyspace()
+        {
+            var keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
+
+            // unique configurations
+            keyspaces.AddOrUpdate("ks1", TokenTests.CreateSimpleKeyspace("ks1", 2), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks2", TokenTests.CreateSimpleKeyspace("ks2", 10), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks3", TokenTests.CreateSimpleKeyspace("ks3", 5), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks4", TokenTests.CreateNetworkTopologyKeyspace("ks4", new Dictionary<string, int> { { "dc1", 2 }, { "dc2", 2 } }), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks5", TokenTests.CreateNetworkTopologyKeyspace("ks5", new Dictionary<string, int> { { "dc1", 1 }, { "dc2", 2 } }), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks6", TokenTests.CreateNetworkTopologyKeyspace("ks6", new Dictionary<string, int> { { "dc1", 1 } }), (s, keyspaceMetadata) => keyspaceMetadata);
+
+            // duplicate configurations
+            keyspaces.AddOrUpdate("ks7", TokenTests.CreateNetworkTopologyKeyspace("ks7", new Dictionary<string, int> { { "dc1", 2 }, { "dc2", 2 } }), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks8", TokenTests.CreateNetworkTopologyKeyspace("ks8", new Dictionary<string, int> { { "dc1", 1 } }), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks9", TokenTests.CreateNetworkTopologyKeyspace("ks9", new Dictionary<string, int> { { "dc1", 1 }, { "dc2", 2 } }), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks10", TokenTests.CreateSimpleKeyspace("ks10", 10), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks11", TokenTests.CreateSimpleKeyspace("ks11", 2), (s, keyspaceMetadata) => keyspaceMetadata);
+
+            var schemaParser = new FakeSchemaParser(keyspaces);
+            var metadata = new Metadata(new Configuration(), schemaParser) {Partitioner = "Murmur3Partitioner"};
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.1"), 9042));
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.2"), 9042));
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.3"), 9042));
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.4"), 9042));
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.5"), 9042));
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.6"), 9042));
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.7"), 9042));
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.8"), 9042));
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.9"), 9042));
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.10"), 9042));
+            var initialToken = 1;
+            foreach (var h in metadata.Hosts)
+            {
+                h.SetInfo(new TestHelper.DictionaryBasedRow(new Dictionary<string, object>
+                {
+                    { "data_center", initialToken % 2 == 0 ? "dc1" : "dc2"},
+                    { "rack", "rack1" },
+                    { "tokens", GenerateTokens(initialToken, 256) },
+                    { "release_version", "3.11.1" }
+                }));
+                initialToken++;
+            }
+            metadata.RefreshKeyspaces().GetAwaiter().GetResult();
+            var expectedTokenMap = metadata.TokenToReplicasMap;
+            Assert.NotNull(expectedTokenMap);
+            var bag = new ConcurrentBag<string>();
+            var tasks = new List<Task>();
+            for (var i = 0; i < 50; i++)
+            {
+                var index = i;
+                tasks.Add(Task.Factory.StartNew(
+                    () =>
+                    {
+
+                        for (var j = 0; j < 300; j++)
+                        {
+                            Trace.Flush();
+                            if (j % 100 == 0)
+                            {
+                                metadata.RefreshKeyspaces().GetAwaiter().GetResult();
+                            }
+                            else if (j % 3 == 0)
+                            {
+                                if (bag.TryTake(out var ksName))
+                                {
+                                    if (keyspaces.TryRemove(ksName, out var ks))
+                                    {
+                                        if (!metadata.RemoveKeyspace(ks.Name).GetAwaiter().GetResult())
+                                        {
+                                            // one rebuild finished between keyspace remove and metadata removekeyspace
+                                        }
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                var keyspaceName = $"ks_____{index}_____{j}";
+                                var ks = TokenTests.CreateSimpleKeyspace(keyspaceName, (index * j) % 10);
+                                keyspaces.AddOrUpdate(
+                                    keyspaceName, 
+                                    ks, 
+                                    (s, keyspaceMetadata) => ks);
+                                ks = metadata.RefreshSingleKeyspace(true, keyspaceName).GetAwaiter().GetResult();
+                                if (ks == null)
+                                {
+                                    throw new Exception($"refresh for {keyspaceName} returned null.");
+                                }
+                                bag.Add(keyspaceName);
+                            }
+                        }
+                    },
+                    TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach));
+            }
+            Task.WaitAll(tasks.ToArray());
+            AssertSameReplicas(keyspaces.Values, expectedTokenMap, metadata.TokenToReplicasMap);
+        }
+
+        [Test]
+        public void RefreshSingleKeyspace_Should_BuildTokenMap_When_TokenMapIsNull()
+        {
+            var keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
+            keyspaces.GetOrAdd("ks1", TokenTests.CreateSimpleKeyspace("ks1", 1));
+            var schemaParser = new FakeSchemaParser(keyspaces);
+            var metadata = new Metadata(new Configuration(), schemaParser) {Partitioner = "Murmur3Partitioner"};
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.1"), 9042));;
+            metadata.Hosts.First().SetInfo(new TestHelper.DictionaryBasedRow(new Dictionary<string, object>
+            {
+                { "data_center", "dc1"},
+                { "rack", "rack1" },
+                { "tokens", GenerateTokens(1, 256) },
+                { "release_version", "3.11.1" }
+            }));
+
+            Assert.IsNull(metadata.TokenToReplicasMap);
+            metadata.RefreshSingleKeyspace(true, "ks1").GetAwaiter().GetResult();
+            Assert.NotNull(metadata.TokenToReplicasMap);
+        }
+
+        private void AssertSameReplicas(IEnumerable<KeyspaceMetadata> keyspaces, IReadOnlyTokenMap expectedTokenMap, IReadOnlyTokenMap actualTokenMap)
+        {
+            foreach (var k in keyspaces)
+            {
+                var actual = actualTokenMap.GetByKeyspace(k.Name);
+                try
+                {
+                    var expected = expectedTokenMap.GetByKeyspace(k.Name);
+                    CollectionAssert.AreEqual(expected.Keys, actual.Keys);
+                    foreach (var kvp in expected)
+                    {
+                        Assert.IsTrue(
+                            expected[kvp.Key].SetEquals(actual[kvp.Key]),
+                            $"mismatch in keyspace '{k}' and token '{kvp.Key}': " +
+                            $"'{string.Join(",", expected[kvp.Key].Select(h => h.Address.ToString()))}' vs " +
+                            $"'{string.Join(",", actual[kvp.Key].Select(h => h.Address.ToString()))}'");
+                    }
+                }
+                catch (KeyNotFoundException)
+                {
+                    var rf = k.Replication["replication_factor"];
+                    Assert.AreEqual(10*256, actual.Count);
+                    foreach (var kvp in actual)
+                    {
+                        Assert.AreEqual(rf, kvp.Value.Count);
+                    }
+                }
+            }
+        }
+
         private void AssertOnlyOneStrategyIsCalled(IList<ProxyReplicationStrategy> strategies, params int[] equalStrategiesIndexes)
         {
             var sameStrategies = equalStrategiesIndexes.Select(t => strategies[t]).ToList();
             Assert.AreEqual(1, sameStrategies.Count(strategy => strategy.Calls == 1));
             Assert.AreEqual(sameStrategies.Count - 1, sameStrategies.Count(strategy => strategy.Calls == 0));
+        }
+
+        private IEnumerable<string> GenerateTokens(int initialToken, int numTokens)
+        {
+            var output = new List<string>();
+            for (var i = 0; i < numTokens; i++)
+            {
+                output.Add(initialToken.ToString());
+                initialToken += 1000;
+            }
+            return output;
         }
 
         private static KeyspaceMetadata CreateSimpleKeyspace(string name, int replicationFactor, IReplicationStrategyFactory factory = null)
@@ -434,6 +600,19 @@ namespace Cassandra.Tests
                 ReplicationStrategies.NetworkTopologyStrategy,
                 replicationFactors,
                 factory ?? new ReplicationStrategyFactory());
+        }
+    }
+
+    public class ConsoleTraceListener : TraceListener
+    {
+        public override void Write(string message)
+        {
+            Console.Write(message);
+        }
+
+        public override void WriteLine(string message)
+        {
+            Console.WriteLine(message);
         }
     }
 }

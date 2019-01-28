@@ -23,10 +23,10 @@ namespace Cassandra.MetadataHelpers
     internal class NetworkTopologyStrategy : IReplicationStrategy, IEquatable<NetworkTopologyStrategy>
     {
         private readonly SortedSet<DatacenterReplicationFactor> _replicationFactorsSet;
-        private readonly IDictionary<string, int> _replicationFactorsMap;
+        private readonly IReadOnlyDictionary<string, int> _replicationFactorsMap;
         private readonly int _hashCode;
 
-        public NetworkTopologyStrategy(IDictionary<string, int> replicationFactors)
+        public NetworkTopologyStrategy(IReadOnlyDictionary<string, int> replicationFactors)
         {
             _replicationFactorsSet = new SortedSet<DatacenterReplicationFactor>(
                 replicationFactors.Select(rf => new DatacenterReplicationFactor(rf.Key, rf.Value)), DatacenterReplicationFactorComparer.Instance);
@@ -36,10 +36,10 @@ namespace Cassandra.MetadataHelpers
         }
 
         public Dictionary<IToken, ISet<Host>> ComputeTokenToReplicaMap(
-            IList<IToken> ring,
-            IDictionary<IToken, Host> primaryReplicas,
-            ICollection<Host> hosts,
-            IDictionary<string, DatacenterInfo> datacenters)
+            IReadOnlyList<IToken> ring,
+            IReadOnlyDictionary<IToken, Host> primaryReplicas,
+            int numberOfHostsWithTokens,
+            IReadOnlyDictionary<string, DatacenterInfo> datacenters)
         {
             return ComputeTokenToReplicaNetwork(ring, primaryReplicas, datacenters);
         }
@@ -70,9 +70,9 @@ namespace Cassandra.MetadataHelpers
         }
 
         private Dictionary<IToken, ISet<Host>> ComputeTokenToReplicaNetwork(
-            IList<IToken> ring,
-            IDictionary<IToken, Host> primaryReplicas,
-            IDictionary<string, DatacenterInfo> datacenters)
+            IReadOnlyList<IToken> ring,
+            IReadOnlyDictionary<IToken, Host> primaryReplicas,
+            IReadOnlyDictionary<string, DatacenterInfo> datacenters)
         {
             var replicas = new Dictionary<IToken, ISet<Host>>();
             for (var i = 0; i < ring.Count; i++)
@@ -85,7 +85,7 @@ namespace Cassandra.MetadataHelpers
         }
 
         private ISet<Host> ComputeReplicasForToken(
-            IList<IToken> ring, IDictionary<IToken, Host> primaryReplicas, IDictionary<string, DatacenterInfo> datacenters, int i)
+            IReadOnlyList<IToken> ring, IReadOnlyDictionary<IToken, Host> primaryReplicas, IReadOnlyDictionary<string, DatacenterInfo> datacenters, int i)
         {
             var context = new NetworkTopologyTokenMapContext(ring, primaryReplicas, datacenters);
             for (var j = 0; j < ring.Count; j++)
@@ -192,9 +192,9 @@ namespace Cassandra.MetadataHelpers
         /// Checks if <paramref name="replicasByDc"/> has enough replicas for each datacenter considering the datacenter's replication factor.
         /// </summary>
         internal static bool AreReplicationFactorsSatisfied(
-            IDictionary<string, int> replicationFactors,
+            IReadOnlyDictionary<string, int> replicationFactors,
             IDictionary<string, int> replicasByDc,
-            IDictionary<string, DatacenterInfo> datacenters)
+            IReadOnlyDictionary<string, DatacenterInfo> datacenters)
         {
             foreach (var dcName in replicationFactors.Keys)
             {

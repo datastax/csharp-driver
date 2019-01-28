@@ -23,7 +23,7 @@ namespace Cassandra.MetadataHelpers
     {
         private static readonly Logger Logger = new Logger(typeof(ReplicationStrategyFactory));
 
-        public IReplicationStrategy Create(string strategyClass, IDictionary<string, int> replicationOptions)
+        public IReplicationStrategy Create(string strategyClass, IReadOnlyDictionary<string, int> replicationOptions)
         {
             if (strategyClass.Equals(ReplicationStrategies.SimpleStrategy, StringComparison.OrdinalIgnoreCase))
             {
@@ -37,7 +37,7 @@ namespace Cassandra.MetadataHelpers
                 return new NetworkTopologyStrategy(replicationOptions);
             }
 
-            ReplicationStrategyFactory.Logger.Warning($"Replication Strategy class name not recognized: {strategyClass}");
+            ReplicationStrategyFactory.Logger.Info($"Replication Strategy class name not recognized: {strategyClass}");
 
             return null;
         }

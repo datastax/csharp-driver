@@ -32,10 +32,10 @@ namespace Cassandra.Tests.MetadataHelpers.TestHelpers
         public int Calls { get; private set; } = 0;
 
         public Dictionary<IToken, ISet<Host>> ComputeTokenToReplicaMap(
-            IList<IToken> ring,
-            IDictionary<IToken, Host> primaryReplicas,
-            ICollection<Host> hostsWithTokens,
-            IDictionary<string, DatacenterInfo> datacenters)
+            IReadOnlyList<IToken> ring,
+            IReadOnlyDictionary<IToken, Host> primaryReplicas,
+            int hostsWithTokens,
+            IReadOnlyDictionary<string, DatacenterInfo> datacenters)
         {
             Calls++;
             return _strategy.ComputeTokenToReplicaMap(ring, primaryReplicas, hostsWithTokens, datacenters);
