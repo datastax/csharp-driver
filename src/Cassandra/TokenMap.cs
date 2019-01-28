@@ -104,7 +104,7 @@ namespace Cassandra
 
             sw.Stop();
             TokenMap.Logger.Info(
-                "Finished building TokenMap for {0} keyspaces and {1} hosts. It took {2} milliseconds.", 
+                "Finished building TokenMap for {0} keyspaces and {1} hosts. It took {2:0} milliseconds.", 
                 keyspaces.Count, 
                 hosts.Count, 
                 sw.Elapsed.TotalMilliseconds);
