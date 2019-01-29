@@ -44,7 +44,7 @@ namespace Cassandra
         private volatile ConcurrentDictionary<string, long> _keyspacesLastUpdateTicks = new ConcurrentDictionary<string, long>();
         private long _lastRebuildTicks = 0;
         private readonly TaskFactory _tokenMapTaskFactory = new TaskFactory(
-            CancellationToken.None, TaskCreationOptions.DenyChildAttach | TaskCreationOptions.LongRunning,
+            CancellationToken.None, TaskCreationOptions.DenyChildAttach,
             TaskContinuationOptions.ExecuteSynchronously, new ConcurrentExclusiveSchedulerPair().ExclusiveScheduler);
         public event HostsEventHandler HostsEvent;
         public event SchemaChangedEventHandler SchemaChangedEvent;
@@ -151,7 +151,8 @@ namespace Cassandra
         internal async Task<bool> RebuildTokenMapAsync(bool retry)
         {
             var currentTicks = DateTime.UtcNow.Ticks;
-            
+
+            Metadata.Logger.Info("Retrieving keyspaces metadata");
             // running this statement synchronously inside the exclusive scheduler deadlocks
             var ksList = await _schemaParser.GetKeyspaces(retry).ConfigureAwait(false);
 
@@ -164,7 +165,7 @@ namespace Cassandra
                 }
                 Interlocked.Exchange(ref _lastRebuildTicks, currentTicks);
                 
-                Metadata.Logger.Info("Retrieving keyspaces metadata");
+                Metadata.Logger.Info("Updating keyspaces metadata");
                 var ksMap = ksList.Select(ks => new KeyValuePair<string, KeyspaceMetadata>(ks.Name, ks));
                 _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>(ksMap);
                 Metadata.Logger.Info("Rebuilding token map");
