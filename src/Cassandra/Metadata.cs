@@ -39,7 +39,7 @@ namespace Cassandra
         private const string SelectSchemaVersionLocal = "SELECT schema_version FROM system.local";
         private static readonly Logger Logger = new Logger(typeof(ControlConnection));
         private volatile TokenMap _tokenMap;
-        private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string,KeyspaceMetadata>();
+        private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
         private volatile SchemaParser _schemaParser;
         private volatile ConcurrentDictionary<string, long> _keyspacesLastUpdateTicks = new ConcurrentDictionary<string, long>();
         private long _lastRebuildTicks = 0;
@@ -113,7 +113,7 @@ namespace Cassandra
         {
             if (SchemaChangedEvent != null)
             {
-                SchemaChangedEvent(sender ?? this, new SchemaChangedEventArgs {Keyspace = keyspace, What = what, Table = table});
+                SchemaChangedEvent(sender ?? this, new SchemaChangedEventArgs { Keyspace = keyspace, What = what, Table = table });
             }
         }
 
@@ -151,11 +151,11 @@ namespace Cassandra
         internal async Task<bool> RebuildTokenMapAsync(bool retry)
         {
             var currentTicks = DateTime.UtcNow.Ticks;
-
+            
             // running this statement synchronously inside the exclusive scheduler deadlocks
             var ksList = await _schemaParser.GetKeyspaces(retry).ConfigureAwait(false);
 
-            return await _tokenMapTaskFactory.StartNew(() =>
+            var task = _tokenMapTaskFactory.StartNew(() =>
             {
                 var lastRebuildTicks = Interlocked.Read(ref _lastRebuildTicks);
                 if (lastRebuildTicks > currentTicks)
@@ -163,7 +163,7 @@ namespace Cassandra
                     return true;
                 }
                 Interlocked.Exchange(ref _lastRebuildTicks, currentTicks);
-
+                
                 Metadata.Logger.Info("Retrieving keyspaces metadata");
                 var ksMap = ksList.Select(ks => new KeyValuePair<string, KeyspaceMetadata>(ks.Name, ks));
                 _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>(ksMap);
@@ -172,12 +172,14 @@ namespace Cassandra
                 {
                     throw new DriverInternalError("Partitioner can not be null");
                 }
-
+                
                 _tokenMap = TokenMap.Build(Partitioner, Hosts.ToCollection(), _keyspaces.Values);
                 return true;
-            }).ConfigureAwait(false);
+            });
+
+            return await task.ConfigureAwait(false);
         }
-        
+
         internal Task<bool> RemoveKeyspaceFromTokenMap(string name)
         {
             var currentTicks = DateTime.UtcNow.Ticks;
@@ -196,7 +198,7 @@ namespace Cassandra
                     }
 
                     _keyspacesLastUpdateTicks[name] = currentTicks;
-
+                    
                     Metadata.Logger.Verbose("Removing keyspace metadata: " + name);
                     if (!_keyspaces.TryRemove(name, out var ks))
                     {
@@ -207,11 +209,11 @@ namespace Cassandra
                     return true;
                 });
         }
-        
+
         internal async Task<KeyspaceMetadata> UpdateTokenMapForKeyspace(string name)
         {
             var currentTicks = DateTime.UtcNow.Ticks;
-
+            
             // running this statement synchronously inside the exclusive scheduler deadlocks
             var keyspaceMetadata = await _schemaParser.GetKeyspace(name).ConfigureAwait(false);
 
@@ -223,14 +225,14 @@ namespace Cassandra
                     {
                         return true;
                     }
-
+                    
                     if (_keyspacesLastUpdateTicks.TryGetValue(name, out var lastUpdateTicks) && lastUpdateTicks > currentTicks)
                     {
                         return true;
                     }
 
                     _keyspacesLastUpdateTicks[name] = currentTicks;
-
+                    
                     if (_tokenMap == null)
                     {
                         return false;
@@ -241,14 +243,14 @@ namespace Cassandra
                     {
                         return (bool?)null;
                     }
-
+                    
                     _keyspaces.AddOrUpdate(keyspaceMetadata.Name, keyspaceMetadata, (k, v) => keyspaceMetadata);
                     Metadata.Logger.Info("Rebuilding token map for keyspace {0}", keyspaceMetadata.Name);
                     if (Partitioner == null)
                     {
                         throw new DriverInternalError("Partitioner can not be null");
                     }
-
+                    
                     _tokenMap.UpdateKeyspace(keyspaceMetadata);
                     return true;
                 });
@@ -271,7 +273,7 @@ namespace Cassandra
             {
                 return new Host[0];
             }
-            return _tokenMap.GetReplicas(keyspaceName, _tokenMap.Factory.Hash(partitionKey));   
+            return _tokenMap.GetReplicas(keyspaceName, _tokenMap.Factory.Hash(partitionKey));
         }
 
         public ICollection<Host> GetReplicas(byte[] partitionKey)
@@ -542,7 +544,7 @@ namespace Cassandra
                 {
                     var schemaVersionLocalQuery = new QueryRequest(ControlConnection.ProtocolVersion, SelectSchemaVersionLocal, false, QueryProtocolOptions.Default);
                     var schemaVersionPeersQuery = new QueryRequest(ControlConnection.ProtocolVersion, SelectSchemaVersionPeers, false, QueryProtocolOptions.Default);
-                    var queries = new [] { connection.Send(schemaVersionLocalQuery), connection.Send(schemaVersionPeersQuery) };
+                    var queries = new[] { connection.Send(schemaVersionLocalQuery), connection.Send(schemaVersionPeersQuery) };
                     // ReSharper disable once CoVariantArrayConversion
                     Task.WaitAll(queries, Configuration.ClientOptions.QueryAbortTimeout);
                     var versions = new HashSet<Guid>

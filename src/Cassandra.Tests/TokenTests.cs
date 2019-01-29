@@ -461,20 +461,19 @@ namespace Cassandra.Tests
             Assert.NotNull(expectedTokenMap);
             var bag = new ConcurrentBag<string>();
             var tasks = new List<Task>();
-            for (var i = 0; i < 50; i++)
+            for (var i = 0; i < 100; i++)
             {
                 var index = i;
                 tasks.Add(Task.Factory.StartNew(
                     () =>
                     {
-
-                        for (var j = 0; j < 300; j++)
+                        for (var j = 0; j < 11; j++)
                         {
-                            if (j % 100 == 0)
+                            if (j % 5 == 0)
                             {
                                 metadata.RefreshKeyspaces().GetAwaiter().GetResult();
                             }
-                            else if (j % 3 == 0)
+                            else if (j % 2 == 1)
                             {
                                 if (bag.TryTake(out var ksName))
                                 {

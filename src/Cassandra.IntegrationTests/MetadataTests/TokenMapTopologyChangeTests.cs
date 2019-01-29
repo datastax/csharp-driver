@@ -54,7 +54,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
                 Assert.AreEqual(2, ClusterObj.Metadata.Hosts.Count);
                 replicas = ClusterObj.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123"));
                 Assert.AreEqual(2, replicas.Count);
-            });
+            }, 10, 500);
             Assert.IsFalse(object.ReferenceEquals(ClusterObj.Metadata.TokenToReplicasMap, oldTokenMap));
         }
         
@@ -82,7 +82,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
                 Assert.AreEqual(3, ClusterObj.Metadata.Hosts.Count);
                 replicas = ClusterObj.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123"));
                 Assert.AreEqual(3, replicas.Count);
-            });
+            }, 10, 500);
             Assert.IsFalse(object.ReferenceEquals(ClusterObj.Metadata.TokenToReplicasMap, oldTokenMap));
         }
 
