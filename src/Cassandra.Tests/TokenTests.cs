@@ -470,7 +470,6 @@ namespace Cassandra.Tests
 
                         for (var j = 0; j < 300; j++)
                         {
-                            Trace.Flush();
                             if (j % 100 == 0)
                             {
                                 metadata.RefreshKeyspaces().GetAwaiter().GetResult();
@@ -600,19 +599,6 @@ namespace Cassandra.Tests
                 ReplicationStrategies.NetworkTopologyStrategy,
                 replicationFactors,
                 factory ?? new ReplicationStrategyFactory());
-        }
-    }
-
-    public class ConsoleTraceListener : TraceListener
-    {
-        public override void Write(string message)
-        {
-            Console.Write(message);
-        }
-
-        public override void WriteLine(string message)
-        {
-            Console.WriteLine(message);
         }
     }
 }

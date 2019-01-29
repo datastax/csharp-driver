@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.MetadataHelpers;
@@ -40,9 +41,11 @@ namespace Cassandra
         private volatile TokenMap _tokenMap;
         private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string,KeyspaceMetadata>();
         private volatile SchemaParser _schemaParser;
-        private readonly TaskFactory _myTaskFactory = new TaskFactory(
+        private volatile ConcurrentDictionary<string, long> _keyspacesLastUpdateTicks = new ConcurrentDictionary<string, long>();
+        private long _lastRebuildTicks = 0;
+        private readonly TaskFactory _tokenMapTaskFactory = new TaskFactory(
             CancellationToken.None, TaskCreationOptions.DenyChildAttach | TaskCreationOptions.LongRunning,
-            TaskContinuationOptions.ExecuteSynchronously, new OrderedTaskScheduler());
+            TaskContinuationOptions.ExecuteSynchronously, new ConcurrentExclusiveSchedulerPair().ExclusiveScheduler);
         public event HostsEventHandler HostsEvent;
         public event SchemaChangedEventHandler SchemaChangedEvent;
 
@@ -145,12 +148,23 @@ namespace Cassandra
             return Hosts.AllEndPointsToCollection();
         }
 
-        internal Task<bool> RebuildTokenMapAsync(bool retry)
+        internal async Task<bool> RebuildTokenMapAsync(bool retry)
         {
-            return _myTaskFactory.StartNew(() =>
+            var currentTicks = DateTime.UtcNow.Ticks;
+
+            // running this statement synchronously inside the exclusive scheduler deadlocks
+            var ksList = await _schemaParser.GetKeyspaces(retry).ConfigureAwait(false);
+
+            return await _tokenMapTaskFactory.StartNew(() =>
             {
+                var lastRebuildTicks = Interlocked.Read(ref _lastRebuildTicks);
+                if (lastRebuildTicks > currentTicks)
+                {
+                    return true;
+                }
+                Interlocked.Exchange(ref _lastRebuildTicks, currentTicks);
+
                 Metadata.Logger.Info("Retrieving keyspaces metadata");
-                var ksList = _schemaParser.GetKeyspaces(retry).GetAwaiter().GetResult();
                 var ksMap = ksList.Select(ks => new KeyValuePair<string, KeyspaceMetadata>(ks.Name, ks));
                 _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>(ksMap);
                 Metadata.Logger.Info("Rebuilding token map");
@@ -158,16 +172,31 @@ namespace Cassandra
                 {
                     throw new DriverInternalError("Partitioner can not be null");
                 }
+
                 _tokenMap = TokenMap.Build(Partitioner, Hosts.ToCollection(), _keyspaces.Values);
                 return true;
-            });
+            }).ConfigureAwait(false);
         }
         
         internal Task<bool> RemoveKeyspaceFromTokenMap(string name)
         {
-            return _myTaskFactory.StartNew(
+            var currentTicks = DateTime.UtcNow.Ticks;
+            return _tokenMapTaskFactory.StartNew(
                 () =>
                 {
+                    var lastRebuildTicks = Interlocked.Read(ref _lastRebuildTicks);
+                    if (lastRebuildTicks > currentTicks)
+                    {
+                        return true;
+                    }
+                    
+                    if (_keyspacesLastUpdateTicks.TryGetValue(name, out var lastUpdateTicks) && lastUpdateTicks > currentTicks)
+                    {
+                        return true;
+                    }
+
+                    _keyspacesLastUpdateTicks[name] = currentTicks;
+
                     Metadata.Logger.Verbose("Removing keyspace metadata: " + name);
                     if (!_keyspaces.TryRemove(name, out var ks))
                     {
@@ -181,17 +210,33 @@ namespace Cassandra
         
         internal async Task<KeyspaceMetadata> UpdateTokenMapForKeyspace(string name)
         {
-            KeyspaceMetadata keyspaceMetadata = null;
-            var task = _myTaskFactory.StartNew(
+            var currentTicks = DateTime.UtcNow.Ticks;
+
+            // running this statement synchronously inside the exclusive scheduler deadlocks
+            var keyspaceMetadata = await _schemaParser.GetKeyspace(name).ConfigureAwait(false);
+
+            var task = _tokenMapTaskFactory.StartNew(
                 () =>
                 {
+                    var lastRebuildTicks = Interlocked.Read(ref _lastRebuildTicks);
+                    if (lastRebuildTicks > currentTicks)
+                    {
+                        return true;
+                    }
+
+                    if (_keyspacesLastUpdateTicks.TryGetValue(name, out var lastUpdateTicks) && lastUpdateTicks > currentTicks)
+                    {
+                        return true;
+                    }
+
+                    _keyspacesLastUpdateTicks[name] = currentTicks;
+
                     if (_tokenMap == null)
                     {
                         return false;
                     }
                     
                     Metadata.Logger.Verbose("Updating keyspace metadata: " + name);
-                    keyspaceMetadata = _schemaParser.GetKeyspace(name).GetAwaiter().GetResult();
                     if (keyspaceMetadata == null)
                     {
                         return (bool?)null;
@@ -418,7 +463,8 @@ namespace Cassandra
 
         internal async Task<bool> RemoveKeyspace(string name)
         {
-            if (!await RemoveKeyspaceFromTokenMap(name).ConfigureAwait(false))
+            var existed = await RemoveKeyspaceFromTokenMap(name).ConfigureAwait(false);
+            if (!existed)
             {
                 return false;
             }
