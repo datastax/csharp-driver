@@ -1,4 +1,8 @@
-﻿namespace Cassandra.IntegrationTests.TestClusterManagement
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace Cassandra.IntegrationTests.TestClusterManagement
 {
     public interface ITestCluster
     {
@@ -90,7 +94,7 @@
         void ResumeNode(int nodeId);
     }
 
-    public class TestClusterOptions
+    public class TestClusterOptions : IEquatable<TestClusterOptions>
     {
         public static readonly TestClusterOptions Default = new TestClusterOptions();
 
@@ -103,5 +107,31 @@
         public int Dc2NodeLength { get; set; }
 
         public string[] JvmArgs { get; set; }
+
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as TestClusterOptions);
+        }
+
+        public bool Equals(TestClusterOptions other)
+        {
+            return other != null &&
+                   UseVNodes == other.UseVNodes &&
+                   UseSsl == other.UseSsl &&
+                   CassandraYaml.OrderBy(i => i).SequenceEqual(other.CassandraYaml.OrderBy(i => i)) &&
+                   Dc2NodeLength == other.Dc2NodeLength &&
+                   JvmArgs.OrderBy(i => i).SequenceEqual(other.JvmArgs.OrderBy(i => i));
+        }
+
+        public override int GetHashCode()
+        {
+            var hashCode = 651983754;
+            hashCode = hashCode * -1521134295 + UseVNodes.GetHashCode();
+            hashCode = hashCode * -1521134295 + UseSsl.GetHashCode();
+            hashCode = hashCode * -1521134295 + EqualityComparer<string[]>.Default.GetHashCode(CassandraYaml);
+            hashCode = hashCode * -1521134295 + Dc2NodeLength.GetHashCode();
+            hashCode = hashCode * -1521134295 + EqualityComparer<string[]>.Default.GetHashCode(JvmArgs);
+            return hashCode;
+        }
     }
 }

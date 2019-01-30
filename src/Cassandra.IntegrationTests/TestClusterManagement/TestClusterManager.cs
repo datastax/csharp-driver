@@ -14,6 +14,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
     public class TestClusterManager
     {
         public static ITestCluster LastInstance { get; private set; }
+
+        public static TestClusterOptions LastOptions { get; private set; }
+
+        public static int LastAmountOfNodes { get; private set; }
+
         public const string DefaultKeyspaceName = "test_cluster_keyspace";
         private static string _cassandraVersionText;
         private static Version _cassandraVersion;
@@ -96,6 +101,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 }
             }
             LastInstance = testCluster;
+            LastAmountOfNodes = nodeLength;
+            LastOptions = options;
             return testCluster;
         }
 
