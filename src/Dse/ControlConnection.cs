@@ -376,10 +376,10 @@ namespace Dse
                 }
                 if (ssc.What == SchemaChangeEventArgs.Reason.Dropped)
                 {
-                    _metadata.RemoveKeyspace(ssc.Keyspace);
+                    _metadata.RemoveKeyspace(ssc.Keyspace).Forget();
                     return;
                 }
-                _metadata.RefreshSingleKeyspace(ssc.What == SchemaChangeEventArgs.Reason.Created, ssc.Keyspace);
+                _metadata.RefreshSingleKeyspace(ssc.What == SchemaChangeEventArgs.Reason.Created, ssc.Keyspace).Forget();
             }
         }
 

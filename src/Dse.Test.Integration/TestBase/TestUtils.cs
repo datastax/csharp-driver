@@ -605,11 +605,11 @@ namespace Dse.Test.Integration.TestClusterManagement
             {
                 return;
             }
-            var cc = cluster.Metadata.ControlConnection;
             var counter = 0;
-            var nodesDown = cluster.AllHosts().Count(h => !h.IsConsiderablyUp);
             while (counter++ < maxRetries)
             {
+                var cc = cluster.Metadata.ControlConnection;
+                var nodesDown = cluster.AllHosts().Count(h => !h.IsUp);
                 Trace.TraceInformation("Waiting for test schema agreement");
                 Thread.Sleep(500);
                 var hosts = new List<Guid>();

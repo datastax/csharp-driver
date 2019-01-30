@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Dse.MetadataHelpers;
 using Dse.Tasks;
 
 namespace Dse
@@ -54,21 +55,37 @@ namespace Dse
         /// </summary>
         public bool IsVirtual { get; }
 
+        internal IReplicationStrategy Strategy { get; }
+
         internal KeyspaceMetadata(Metadata parent, string name, bool durableWrites, string strategyClass,
-                                  IDictionary<string, int> replicationOptions, bool isVirtual = false)
+                                  IDictionary<string, int> replicationOptions, bool isVirtual = false) 
+            : this(parent, name, durableWrites, strategyClass, replicationOptions, new ReplicationStrategyFactory(), isVirtual)
+        {
+        }
+
+        internal KeyspaceMetadata(
+            Metadata parent, 
+            string name, 
+            bool durableWrites, 
+            string strategyClass,
+            IDictionary<string, int> replicationOptions,
+            IReplicationStrategyFactory replicationStrategyFactory,
+            bool isVirtual = false)
         {
             //Can not directly reference to schemaParser as it might change
             _parent = parent;
             Name = name;
             DurableWrites = durableWrites;
 
-            StrategyClass = strategyClass;
             if (strategyClass != null && strategyClass.StartsWith("org.apache.cassandra.locator."))
             {
-                StrategyClass = strategyClass.Replace("org.apache.cassandra.locator.", "");
+                strategyClass = strategyClass.Replace("org.apache.cassandra.locator.", "");
             }
+
+            StrategyClass = strategyClass;
             Replication = replicationOptions;
             IsVirtual = isVirtual;
+            Strategy = replicationStrategyFactory.Create(StrategyClass, new Dictionary<string, int>(replicationOptions));
         }
 
         /// <summary>

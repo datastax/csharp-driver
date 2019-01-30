@@ -19,6 +19,9 @@ namespace Dse.Test.Integration.TestClusterManagement
     public class TestClusterManager
     {
         public static ITestCluster LastInstance { get; private set; }
+        public static TestClusterOptions LastOptions { get; private set; }
+
+        public static int LastAmountOfNodes { get; private set; }
         public const string DefaultKeyspaceName = "test_cluster_keyspace";
         private static ICcmProcessExecuter _executor;
 
@@ -175,6 +178,8 @@ namespace Dse.Test.Integration.TestClusterManagement
                 testCluster.Start(options.JvmArgs);   
             }
             LastInstance = testCluster;
+            LastAmountOfNodes = nodeLength;
+            LastOptions = options;
             return testCluster;
         }
 

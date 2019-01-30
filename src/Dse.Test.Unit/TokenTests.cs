@@ -1,17 +1,21 @@
-//
+﻿//
 //  Copyright (C) 2017 DataStax, Inc.
 //
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-﻿using System;
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Text;
-﻿using NUnit.Framework;
-using DatacenterInfo = Dse.TokenMap.DatacenterInfo;
+using System.Threading.Tasks;
+
+using Dse.MetadataHelpers;
+using Dse.Test.Unit.MetadataHelpers.TestHelpers;
+
+using NUnit.Framework;
 
 namespace Dse.Test.Unit
 {
@@ -85,11 +89,10 @@ namespace Dse.Test.Unit
                 { TestHelper.CreateHost("192.168.0.1", "dc1", "rack", new HashSet<string>{"10"})},
                 { TestHelper.CreateHost("192.168.0.2", "dc1", "rack", new HashSet<string>{"20"})}
             };
-            const string strategy = ReplicationStrategies.SimpleStrategy;
             var keyspaces = new List<KeyspaceMetadata>
             {
-                CreateKeyspace("ks1", strategy, 2),
-                CreateKeyspace("ks2", strategy, 10)
+                TokenTests.CreateSimpleKeyspace("ks1", 2),
+                TokenTests.CreateSimpleKeyspace("ks2", 10)
             };
             var tokenMap = TokenMap.Build("Murmur3Partitioner", hosts, keyspaces);
 
@@ -134,27 +137,26 @@ namespace Dse.Test.Unit
                 { TestHelper.CreateHost("192.168.0.1", "dc1", "rack", new string[0])},
                 { TestHelper.CreateHost("192.168.0.2", "dc1", "rack", new HashSet<string>{"20"})}
             };
-            const string strategy = ReplicationStrategies.SimpleStrategy;
             var keyspaces = new List<KeyspaceMetadata>
             {
-                CreateKeyspace("ks1", strategy, 10),
-                CreateKeyspace("ks2", strategy, 2)
+                TokenTests.CreateSimpleKeyspace("ks1", 10),
+                TokenTests.CreateSimpleKeyspace("ks2", 2)
             };
             var tokenMap = TokenMap.Build("Murmur3Partitioner", hosts, keyspaces);
 
             //the primary replica and the next
             var replicas = tokenMap.GetReplicas("ks1", new M3PToken(0));
             //The node without tokens should not be considered
-            CollectionAssert.AreEqual(new byte[] { 0, 2}, replicas.Select(TestHelper.GetLastAddressByte));
+            CollectionAssert.AreEqual(new byte[] { 0, 2 }, replicas.Select(TestHelper.GetLastAddressByte));
             replicas = tokenMap.GetReplicas("ks1", new M3PToken(-100));
-            CollectionAssert.AreEqual(new byte[] { 0, 2}, replicas.Select(TestHelper.GetLastAddressByte));
+            CollectionAssert.AreEqual(new byte[] { 0, 2 }, replicas.Select(TestHelper.GetLastAddressByte));
             //Greater than the greatest token
             replicas = tokenMap.GetReplicas("ks1", new M3PToken(500000));
             CollectionAssert.AreEqual(new byte[] { 0, 2 }, replicas.Select(TestHelper.GetLastAddressByte));
 
             //The next replica should be the first
             replicas = tokenMap.GetReplicas("ks1", new M3PToken(20));
-            CollectionAssert.AreEqual(new byte[] { 2, 0}, replicas.Select(TestHelper.GetLastAddressByte));
+            CollectionAssert.AreEqual(new byte[] { 2, 0 }, replicas.Select(TestHelper.GetLastAddressByte));
         }
 
         [Test]
@@ -172,7 +174,7 @@ namespace Dse.Test.Unit
             const string strategy = ReplicationStrategies.NetworkTopologyStrategy;
             var keyspaces = new List<KeyspaceMetadata>
             {
-                //network strategy with rf 2 per dc 
+                //network strategy with rf 2 per dc
                 new KeyspaceMetadata(null, "ks1", true, strategy, new Dictionary<string, int> {{"dc1", 2}, {"dc2", 2}}),
                 //Testing simple (even it is not supposed to be)
                 new KeyspaceMetadata(null, "ks2", true, ReplicationStrategies.SimpleStrategy, new Dictionary<string, int> {{"replication_factor", 3}}),
@@ -224,12 +226,12 @@ namespace Dse.Test.Unit
             var map = TokenMap.Build("Murmur3Partitioner", hosts, new[] { ks });
             var replicas = map.GetReplicas("ks1", new M3PToken(0));
             Assert.AreEqual(2, replicas.Count);
-            //It should contain the first host and the second, even though the first host contains adjacent 
+            //It should contain the first host and the second, even though the first host contains adjacent
             CollectionAssert.AreEqual(new byte[] { 1, 2 }, replicas.Select(TestHelper.GetLastAddressByte));
         }
 
         [Test]
-        public void TokenMap_Build_Should_Memoize_Tokens_Per_Replication_Test()
+        public void TokenMap_Build_Should_Memorize_Tokens_Per_Replication_Test()
         {
             const string strategy = ReplicationStrategies.NetworkTopologyStrategy;
             var hosts = new[]
@@ -341,7 +343,6 @@ namespace Dse.Test.Unit
         [Test]
         public void TokenMap_Build_SimpleStrategy_Adjacent_Ranges_Test()
         {
-            const string strategy = ReplicationStrategies.SimpleStrategy;
             var hosts = new[]
             {
                 //0 and 100 are adjacent
@@ -349,63 +350,244 @@ namespace Dse.Test.Unit
                 TestHelper.CreateHost("192.168.0.2", "dc1", "rack1", new HashSet<string> {"200", "2000", "20000"}),
                 TestHelper.CreateHost("192.168.0.3", "dc1", "rack1", new HashSet<string> {"300", "3000", "30000"})
             };
-            var ks = CreateKeyspace("ks1", strategy, 2);
+            var ks = TokenTests.CreateSimpleKeyspace("ks1", 2);
             var map = TokenMap.Build("Murmur3Partitioner", hosts, new[] { ks });
             var replicas = map.GetReplicas("ks1", new M3PToken(0));
             Assert.AreEqual(2, replicas.Count);
-            //It should contain the first host and the second, even though the first host contains adjacent 
+            //It should contain the first host and the second, even though the first host contains adjacent
             CollectionAssert.AreEqual(new byte[] { 1, 2 }, replicas.Select(TestHelper.GetLastAddressByte));
         }
 
         [Test]
-        public void TokenMap_IsDoneForToken_Should_Return_True_When_No_Host_In_Dc()
+        public void Build_Should_OnlyCallOncePerReplicationConfiguration_When_MultipleKeyspacesWithSameReplicationOptions()
         {
-            var ksReplicationFactor = new Dictionary<string, int>
+            var hosts = new List<Host>
             {
-                {"dc1", 1},
-                {"dc2", 3},
-                {"dc3", 1}
+                { TestHelper.CreateHost("192.168.0.0", "dc1", "rack", new HashSet<string>{"0"})},
+                { TestHelper.CreateHost("192.168.0.1", "dc1", "rack", new HashSet<string>{"10"})},
+                { TestHelper.CreateHost("192.168.0.2", "dc1", "rack", new HashSet<string>{"20"})},
+                { TestHelper.CreateHost("192.168.0.3", "dc2", "rack", new HashSet<string>{"30"})},
+                { TestHelper.CreateHost("192.168.0.4", "dc2", "rack", new HashSet<string>{"40"})}
             };
-            var replicasByDc = new Dictionary<string, int>
+
+            var factory = new ProxyReplicationStrategyFactory();
+            var keyspaces = new List<KeyspaceMetadata>
             {
-                {"dc1", 1},
-                {"dc2", 3}
+                // unique configurations
+                TokenTests.CreateSimpleKeyspace("ks1", 2, factory),
+                TokenTests.CreateSimpleKeyspace("ks2", 10, factory),
+                TokenTests.CreateSimpleKeyspace("ks3", 5, factory),
+                TokenTests.CreateNetworkTopologyKeyspace("ks4", new Dictionary<string, int> {{"dc1", 2}, {"dc2", 2}}, factory),
+                TokenTests.CreateNetworkTopologyKeyspace("ks5", new Dictionary<string, int> {{"dc1", 1}, {"dc2", 2}}, factory),
+                TokenTests.CreateNetworkTopologyKeyspace("ks6", new Dictionary<string, int> {{"dc1", 1}}, factory),
+
+                // duplicate configurations
+                TokenTests.CreateNetworkTopologyKeyspace("ks7", new Dictionary<string, int> {{"dc1", 2}, {"dc2", 2}}, factory),
+                TokenTests.CreateNetworkTopologyKeyspace("ks8", new Dictionary<string, int> {{"dc1", 1}}, factory),
+                TokenTests.CreateNetworkTopologyKeyspace("ks9", new Dictionary<string, int> {{"dc1", 1}, {"dc2", 2}}, factory),
+                TokenTests.CreateSimpleKeyspace("ks10", 10, factory),
+                TokenTests.CreateSimpleKeyspace("ks11", 2, factory)
             };
-            //no host in DC 3
-            var datacenters = new Dictionary<string, DatacenterInfo>
-            {
-                {"dc1", new DatacenterInfo { HostLength = 10 } },
-                {"dc2", new DatacenterInfo { HostLength = 10 } }
-            };
-            Assert.True(TokenMap.IsDoneForToken(ksReplicationFactor, replicasByDc, datacenters));
+            var tokenMap = TokenMap.Build("Murmur3Partitioner", hosts, keyspaces);
+
+            var proxyStrategies = keyspaces.Select(k => (ProxyReplicationStrategy)k.Strategy).ToList();
+
+            Assert.AreEqual(6, proxyStrategies.Count(strategy => strategy.Calls > 0));
+
+            AssertOnlyOneStrategyIsCalled(proxyStrategies, 0, 10);
+            AssertOnlyOneStrategyIsCalled(proxyStrategies, 1, 9);
+            AssertOnlyOneStrategyIsCalled(proxyStrategies, 2);
+            AssertOnlyOneStrategyIsCalled(proxyStrategies, 3, 6);
+            AssertOnlyOneStrategyIsCalled(proxyStrategies, 4, 8);
+            AssertOnlyOneStrategyIsCalled(proxyStrategies, 5, 7);
         }
 
         [Test]
-        public void TokenMap_IsDoneForToken_Should_Return_False_When_Not_Satisfied()
+        public void TokenMapUpdates_Should_FunctionCorrectly_When_MultipleThreadsCallingRebuildAndUpdateKeyspace()
         {
-            var ksReplicationFactor = new Dictionary<string, int>
+            var keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
+
+            // unique configurations
+            keyspaces.AddOrUpdate("ks1", TokenTests.CreateSimpleKeyspace("ks1", 2), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks2", TokenTests.CreateSimpleKeyspace("ks2", 10), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks3", TokenTests.CreateSimpleKeyspace("ks3", 5), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks4", TokenTests.CreateNetworkTopologyKeyspace("ks4", new Dictionary<string, int> { { "dc1", 2 }, { "dc2", 2 } }), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks5", TokenTests.CreateNetworkTopologyKeyspace("ks5", new Dictionary<string, int> { { "dc1", 1 }, { "dc2", 2 } }), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks6", TokenTests.CreateNetworkTopologyKeyspace("ks6", new Dictionary<string, int> { { "dc1", 1 } }), (s, keyspaceMetadata) => keyspaceMetadata);
+
+            // duplicate configurations
+            keyspaces.AddOrUpdate("ks7", TokenTests.CreateNetworkTopologyKeyspace("ks7", new Dictionary<string, int> { { "dc1", 2 }, { "dc2", 2 } }), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks8", TokenTests.CreateNetworkTopologyKeyspace("ks8", new Dictionary<string, int> { { "dc1", 1 } }), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks9", TokenTests.CreateNetworkTopologyKeyspace("ks9", new Dictionary<string, int> { { "dc1", 1 }, { "dc2", 2 } }), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks10", TokenTests.CreateSimpleKeyspace("ks10", 10), (s, keyspaceMetadata) => keyspaceMetadata);
+            keyspaces.AddOrUpdate("ks11", TokenTests.CreateSimpleKeyspace("ks11", 2), (s, keyspaceMetadata) => keyspaceMetadata);
+
+            var schemaParser = new FakeSchemaParser(keyspaces);
+            var metadata = new Metadata(new Configuration(), schemaParser) { Partitioner = "Murmur3Partitioner" };
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.1"), 9042));
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.2"), 9042));
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.3"), 9042));
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.4"), 9042));
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.5"), 9042));
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.6"), 9042));
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.7"), 9042));
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.8"), 9042));
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.9"), 9042));
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.10"), 9042));
+            var initialToken = 1;
+            foreach (var h in metadata.Hosts)
             {
-                {"dc1", 1},
-                {"dc2", 3},
-                {"dc3", 1}
-            };
-            var replicasByDc = new Dictionary<string, int>
+                h.SetInfo(new TestHelper.DictionaryBasedRow(new Dictionary<string, object>
+                {
+                    { "data_center", initialToken % 2 == 0 ? "dc1" : "dc2"},
+                    { "rack", "rack1" },
+                    { "tokens", GenerateTokens(initialToken, 256) },
+                    { "release_version", "3.11.1" }
+                }));
+                initialToken++;
+            }
+            metadata.RefreshKeyspaces().GetAwaiter().GetResult();
+            var expectedTokenMap = metadata.TokenToReplicasMap;
+            Assert.NotNull(expectedTokenMap);
+            var bag = new ConcurrentBag<string>();
+            var tasks = new List<Task>();
+            for (var i = 0; i < 100; i++)
             {
-                {"dc1", 1},
-                {"dc2", 1}
-            };
-            //no host in DC 3
-            var datacenters = new Dictionary<string, DatacenterInfo>
-            {
-                {"dc1", new DatacenterInfo { HostLength = 10 } },
-                {"dc2", new DatacenterInfo { HostLength = 10 } }
-            };
-            Assert.False(TokenMap.IsDoneForToken(ksReplicationFactor, replicasByDc, datacenters));
+                var index = i;
+                tasks.Add(Task.Factory.StartNew(
+                    () =>
+                    {
+                        for (var j = 0; j < 11; j++)
+                        {
+                            if (j % 5 == 0)
+                            {
+                                metadata.RefreshKeyspaces().GetAwaiter().GetResult();
+                            }
+                            else if (j % 2 == 1)
+                            {
+                                if (bag.TryTake(out var ksName))
+                                {
+                                    if (keyspaces.TryRemove(ksName, out var ks))
+                                    {
+                                        if (!metadata.RemoveKeyspace(ks.Name).GetAwaiter().GetResult())
+                                        {
+                                            // one rebuild finished between keyspace remove and metadata removekeyspace
+                                        }
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                var keyspaceName = $"ks_____{index}_____{j}";
+                                var ks = TokenTests.CreateSimpleKeyspace(keyspaceName, (index * j) % 10);
+                                keyspaces.AddOrUpdate(
+                                    keyspaceName,
+                                    ks,
+                                    (s, keyspaceMetadata) => ks);
+                                ks = metadata.RefreshSingleKeyspace(true, keyspaceName).GetAwaiter().GetResult();
+                                if (ks == null)
+                                {
+                                    throw new Exception($"refresh for {keyspaceName} returned null.");
+                                }
+                                bag.Add(keyspaceName);
+                            }
+                        }
+                    },
+                    TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach));
+            }
+            Task.WaitAll(tasks.ToArray());
+            AssertSameReplicas(keyspaces.Values, expectedTokenMap, metadata.TokenToReplicasMap);
         }
 
-        private static KeyspaceMetadata CreateKeyspace(string name, string strategy, int replicationFactor)
+        [Test]
+        public void RefreshSingleKeyspace_Should_BuildTokenMap_When_TokenMapIsNull()
         {
-            return new KeyspaceMetadata(null, name, true, strategy, new Dictionary<string, int> { { "replication_factor", replicationFactor } });
+            var keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
+            keyspaces.GetOrAdd("ks1", TokenTests.CreateSimpleKeyspace("ks1", 1));
+            var schemaParser = new FakeSchemaParser(keyspaces);
+            var metadata = new Metadata(new Configuration(), schemaParser) { Partitioner = "Murmur3Partitioner" };
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.1"), 9042)); ;
+            metadata.Hosts.First().SetInfo(new TestHelper.DictionaryBasedRow(new Dictionary<string, object>
+            {
+                { "data_center", "dc1"},
+                { "rack", "rack1" },
+                { "tokens", GenerateTokens(1, 256) },
+                { "release_version", "3.11.1" }
+            }));
+
+            Assert.IsNull(metadata.TokenToReplicasMap);
+            metadata.RefreshSingleKeyspace(true, "ks1").GetAwaiter().GetResult();
+            Assert.NotNull(metadata.TokenToReplicasMap);
+        }
+
+        private void AssertSameReplicas(IEnumerable<KeyspaceMetadata> keyspaces, IReadOnlyTokenMap expectedTokenMap, IReadOnlyTokenMap actualTokenMap)
+        {
+            foreach (var k in keyspaces)
+            {
+                var actual = actualTokenMap.GetByKeyspace(k.Name);
+                try
+                {
+                    var expected = expectedTokenMap.GetByKeyspace(k.Name);
+                    CollectionAssert.AreEqual(expected.Keys, actual.Keys);
+                    foreach (var kvp in expected)
+                    {
+                        Assert.IsTrue(
+                            expected[kvp.Key].SetEquals(actual[kvp.Key]),
+                            $"mismatch in keyspace '{k}' and token '{kvp.Key}': " +
+                            $"'{string.Join(",", expected[kvp.Key].Select(h => h.Address.ToString()))}' vs " +
+                            $"'{string.Join(",", actual[kvp.Key].Select(h => h.Address.ToString()))}'");
+                    }
+                }
+                catch (KeyNotFoundException)
+                {
+                    var rf = k.Replication["replication_factor"];
+                    Assert.AreEqual(10 * 256, actual.Count);
+                    foreach (var kvp in actual)
+                    {
+                        Assert.AreEqual(rf, kvp.Value.Count);
+                    }
+                }
+            }
+        }
+
+        private void AssertOnlyOneStrategyIsCalled(IList<ProxyReplicationStrategy> strategies, params int[] equalStrategiesIndexes)
+        {
+            var sameStrategies = equalStrategiesIndexes.Select(t => strategies[t]).ToList();
+            Assert.AreEqual(1, sameStrategies.Count(strategy => strategy.Calls == 1));
+            Assert.AreEqual(sameStrategies.Count - 1, sameStrategies.Count(strategy => strategy.Calls == 0));
+        }
+
+        private IEnumerable<string> GenerateTokens(int initialToken, int numTokens)
+        {
+            var output = new List<string>();
+            for (var i = 0; i < numTokens; i++)
+            {
+                output.Add(initialToken.ToString());
+                initialToken += 1000;
+            }
+            return output;
+        }
+
+        private static KeyspaceMetadata CreateSimpleKeyspace(string name, int replicationFactor, IReplicationStrategyFactory factory = null)
+        {
+            return new KeyspaceMetadata(
+                null,
+                name,
+                true,
+                ReplicationStrategies.SimpleStrategy,
+                new Dictionary<string, int> { { "replication_factor", replicationFactor } },
+                factory ?? new ReplicationStrategyFactory());
+        }
+
+        private static KeyspaceMetadata CreateNetworkTopologyKeyspace(string name, IDictionary<string, int> replicationFactors, IReplicationStrategyFactory factory = null)
+        {
+            return new KeyspaceMetadata(
+                null,
+                name,
+                true,
+                ReplicationStrategies.NetworkTopologyStrategy,
+                replicationFactors,
+                factory ?? new ReplicationStrategyFactory());
         }
     }
 }

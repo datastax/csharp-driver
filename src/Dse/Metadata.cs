@@ -12,6 +12,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Dse.MetadataHelpers;
 using Dse.Requests;
 using Dse.Tasks;
 
@@ -27,9 +28,17 @@ namespace Dse
         private const string SelectSchemaVersionLocal = "SELECT schema_version FROM system.local";
         private static readonly Logger Logger = new Logger(typeof(ControlConnection));
         private volatile TokenMap _tokenMap;
-        private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string,KeyspaceMetadata>();
+        private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
         private volatile SchemaParser _schemaParser;
+        private readonly ConcurrentDictionary<string, long> _keyspacesUpdateCounters = new ConcurrentDictionary<string, long>();
+        private long _counterRebuild = 0;
+
+        private readonly TaskFactory _tokenMapTaskFactory = new TaskFactory(
+            CancellationToken.None, TaskCreationOptions.DenyChildAttach,
+            TaskContinuationOptions.ExecuteSynchronously, new ConcurrentExclusiveSchedulerPair().ExclusiveScheduler);
+
         public event HostsEventHandler HostsEvent;
+
         public event SchemaChangedEventHandler SchemaChangedEvent;
 
         /// <summary>
@@ -54,12 +63,19 @@ namespace Dse
 
         internal Hosts Hosts { get; private set; }
 
+        internal IReadOnlyTokenMap TokenToReplicasMap => _tokenMap;
+
         internal Metadata(Configuration configuration)
         {
             Configuration = configuration;
             Hosts = new Hosts();
             Hosts.Down += OnHostDown;
             Hosts.Up += OnHostUp;
+        }
+
+        internal Metadata(Configuration configuration, SchemaParser schemaParser) : this(configuration)
+        {
+            _schemaParser = schemaParser;
         }
 
         public void Dispose()
@@ -89,7 +105,7 @@ namespace Dse
         {
             if (SchemaChangedEvent != null)
             {
-                SchemaChangedEvent(sender ?? this, new SchemaChangedEventArgs {Keyspace = keyspace, What = what, Table = table});
+                SchemaChangedEvent(sender ?? this, new SchemaChangedEventArgs { Keyspace = keyspace, What = what, Table = table });
             }
         }
 
@@ -118,20 +134,137 @@ namespace Dse
             return Hosts.ToCollection();
         }
 
-
         public IEnumerable<IPEndPoint> AllReplicas()
         {
             return Hosts.AllEndPointsToCollection();
         }
 
-        internal void RebuildTokenMap()
+        private bool AnotherRebuildCompleted(long currentCounter)
         {
-            Logger.Info("Rebuilding token map");
-            if (Partitioner == null)
+            return Interlocked.Read(ref _counterRebuild) != currentCounter;
+        }
+
+        private bool RebuildNecessary(long currentCounter)
+        {
+            var newCounter = currentCounter == long.MaxValue ? 0 : currentCounter + 1;
+            return Interlocked.CompareExchange(ref _counterRebuild, newCounter, currentCounter) == currentCounter;
+        }
+
+        private bool UpdateKeyspaceNecessary(string name, long currentKeyspaceCounter)
+        {
+            var newCounter = currentKeyspaceCounter == long.MaxValue ? 0 : currentKeyspaceCounter + 1;
+            return _keyspacesUpdateCounters.TryUpdate(name, newCounter, currentKeyspaceCounter);
+        }
+
+        internal async Task<bool> RebuildTokenMapAsync(bool retry)
+        {
+            var currentCounter = Interlocked.Read(ref _counterRebuild);
+
+            Metadata.Logger.Info("Retrieving keyspaces metadata");
+            // running this statement synchronously inside the exclusive scheduler deadlocks
+            var ksList = await _schemaParser.GetKeyspaces(retry).ConfigureAwait(false);
+
+            var task = _tokenMapTaskFactory.StartNew(() =>
             {
-                throw new DriverInternalError("Partitioner can not be null");
+                if (!RebuildNecessary(currentCounter))
+                {
+                    return true;
+                }
+
+                Metadata.Logger.Info("Updating keyspaces metadata");
+                var ksMap = ksList.Select(ks => new KeyValuePair<string, KeyspaceMetadata>(ks.Name, ks));
+                _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>(ksMap);
+                Metadata.Logger.Info("Rebuilding token map");
+                if (Partitioner == null)
+                {
+                    throw new DriverInternalError("Partitioner can not be null");
+                }
+
+                _tokenMap = TokenMap.Build(Partitioner, Hosts.ToCollection(), _keyspaces.Values);
+                return true;
+            });
+
+            return await task.ConfigureAwait(false);
+        }
+
+        internal Task<bool> RemoveKeyspaceFromTokenMap(string name)
+        {
+            var currentCounter = Interlocked.Read(ref _counterRebuild);
+            var currentKeyspaceCounter = _keyspacesUpdateCounters.GetOrAdd(name, s => 0);
+            return _tokenMapTaskFactory.StartNew(
+                () =>
+                {
+                    if (AnotherRebuildCompleted(currentCounter))
+                    {
+                        return true;
+                    }
+                    
+                    if (!UpdateKeyspaceNecessary(name, currentKeyspaceCounter))
+                    {
+                        return true;
+                    }
+
+                    Metadata.Logger.Verbose("Removing keyspace metadata: " + name);
+                    if (!_keyspaces.TryRemove(name, out var ks))
+                    {
+                        //The keyspace didn't exist
+                        return false;
+                    }
+                    _tokenMap?.RemoveKeyspace(ks);
+                    return true;
+                });
+        }
+
+        internal async Task<KeyspaceMetadata> UpdateTokenMapForKeyspace(string name)
+        {
+            var currentCounter = Interlocked.Read(ref _counterRebuild);
+            var currentKeyspaceCounter = _keyspacesUpdateCounters.GetOrAdd(name, s => 0);
+
+            // running this statement synchronously inside the exclusive scheduler deadlocks
+            var keyspaceMetadata = await _schemaParser.GetKeyspace(name).ConfigureAwait(false);
+
+            var task = _tokenMapTaskFactory.StartNew(
+                () =>
+                {
+                    if (AnotherRebuildCompleted(currentCounter))
+                    {
+                        return true;
+                    }
+
+                    if (!UpdateKeyspaceNecessary(name, currentKeyspaceCounter))
+                    {
+                        return true;
+                    }
+
+                    if (_tokenMap == null)
+                    {
+                        return false;
+                    }
+
+                    Metadata.Logger.Verbose("Updating keyspace metadata: " + name);
+                    if (keyspaceMetadata == null)
+                    {
+                        return (bool?)null;
+                    }
+
+                    _keyspaces.AddOrUpdate(keyspaceMetadata.Name, keyspaceMetadata, (k, v) => keyspaceMetadata);
+                    Metadata.Logger.Info("Rebuilding token map for keyspace {0}", keyspaceMetadata.Name);
+                    if (Partitioner == null)
+                    {
+                        throw new DriverInternalError("Partitioner can not be null");
+                    }
+
+                    _tokenMap.UpdateKeyspace(keyspaceMetadata);
+                    return true;
+                });
+
+            var existsTokenMap = await task.ConfigureAwait(false);
+            if (existsTokenMap.HasValue && !existsTokenMap.Value)
+            {
+                await RefreshKeyspaces().ConfigureAwait(false);
             }
-            _tokenMap = TokenMap.Build(Partitioner, Hosts.ToCollection(), _keyspaces.Values);
+
+            return keyspaceMetadata;
         }
 
         /// <summary>
@@ -143,7 +276,7 @@ namespace Dse
             {
                 return new Host[0];
             }
-            return _tokenMap.GetReplicas(keyspaceName, _tokenMap.Factory.Hash(partitionKey));   
+            return _tokenMap.GetReplicas(keyspaceName, _tokenMap.Factory.Hash(partitionKey));
         }
 
         public ICollection<Host> GetReplicas(byte[] partitionKey)
@@ -323,20 +456,7 @@ namespace Dse
         /// </summary>
         internal Task<bool> RefreshKeyspaces(bool retry = false)
         {
-            Logger.Info("Retrieving keyspaces metadata");
-            return _schemaParser
-                .GetKeyspaces(retry)
-                .ContinueSync(ksList =>
-                {
-                    var ksMap = new ConcurrentDictionary<string, KeyspaceMetadata>();
-                    foreach (var ks in ksList)
-                    {
-                        ksMap.AddOrUpdate(ks.Name, ks, (k, v) => v);
-                    }
-                    _keyspaces = ksMap;
-                    RebuildTokenMap();
-                    return true;
-                });
+            return RebuildTokenMapAsync(retry);
         }
 
         public void ShutDown(int timeoutMs = Timeout.Infinite)
@@ -346,35 +466,28 @@ namespace Dse
             ControlConnection = null;
         }
 
-        internal bool RemoveKeyspace(string name)
+        internal async Task<bool> RemoveKeyspace(string name)
         {
-            Logger.Verbose("Removing keyspace metadata: " + name);
-            KeyspaceMetadata ks;
-            if (!_keyspaces.TryRemove(name, out ks))
+            var existed = await RemoveKeyspaceFromTokenMap(name).ConfigureAwait(false);
+            if (!existed)
             {
-                //The keyspace didn't exist
                 return false;
             }
-            RebuildTokenMap();
+
             FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Dropped, name, null, this);
             return true;
         }
 
-        internal Task<KeyspaceMetadata> RefreshSingleKeyspace(bool added, string name)
+        internal async Task<KeyspaceMetadata> RefreshSingleKeyspace(bool added, string name)
         {
-            Logger.Verbose("Updating keyspace metadata: " + name);
-            return _schemaParser.GetKeyspace(name).ContinueSync(ks =>
+            var ks = await UpdateTokenMapForKeyspace(name).ConfigureAwait(false);
+            if (ks == null)
             {
-                if (ks == null)
-                {
-                    return null;
-                }
-                _keyspaces.AddOrUpdate(name, ks, (k, v) => ks);
-                RebuildTokenMap();
-                var eventKind = added ? SchemaChangedEventArgs.Kind.Created : SchemaChangedEventArgs.Kind.Updated;
-                FireSchemaChangedEvent(eventKind, name, null, this);
-                return ks;
-            });
+                return null;
+            }
+            var eventKind = added ? SchemaChangedEventArgs.Kind.Created : SchemaChangedEventArgs.Kind.Updated;
+            FireSchemaChangedEvent(eventKind, name, null, this);
+            return ks;
         }
 
         internal void RefreshTable(string keyspaceName, string tableName)
@@ -434,7 +547,7 @@ namespace Dse
                 {
                     var schemaVersionLocalQuery = new QueryRequest(ControlConnection.ProtocolVersion, SelectSchemaVersionLocal, false, QueryProtocolOptions.Default);
                     var schemaVersionPeersQuery = new QueryRequest(ControlConnection.ProtocolVersion, SelectSchemaVersionPeers, false, QueryProtocolOptions.Default);
-                    var queries = new [] { connection.Send(schemaVersionLocalQuery), connection.Send(schemaVersionPeersQuery) };
+                    var queries = new[] { connection.Send(schemaVersionLocalQuery), connection.Send(schemaVersionPeersQuery) };
                     // ReSharper disable once CoVariantArrayConversion
                     Task.WaitAll(queries, Configuration.ClientOptions.QueryAbortTimeout);
                     var versions = new HashSet<Guid>
