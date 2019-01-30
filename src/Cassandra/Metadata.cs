@@ -40,7 +40,7 @@ namespace Cassandra
         private volatile TokenMap _tokenMap;
         private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
         private volatile SchemaParser _schemaParser;
-        private volatile ConcurrentDictionary<string, long> _keyspacesUpdateCounters = new ConcurrentDictionary<string, long>();
+        private readonly ConcurrentDictionary<string, long> _keyspacesUpdateCounters = new ConcurrentDictionary<string, long>();
         private long _counterRebuild = 0;
 
         private readonly TaskFactory _tokenMapTaskFactory = new TaskFactory(
@@ -151,25 +151,19 @@ namespace Cassandra
 
         private bool AnotherRebuildCompleted(long currentCounter)
         {
-            var lastCounter = Interlocked.Read(ref _counterRebuild);
-            if (lastCounter != currentCounter)
-            {
-                return true;
-            }
-
-            return false;
+            return Interlocked.Read(ref _counterRebuild) != currentCounter;
         }
 
         private bool RebuildNecessary(long currentCounter)
         {
-            if (AnotherRebuildCompleted(currentCounter))
-            {
-                return false;
-            }
-            
             var newCounter = currentCounter == long.MaxValue ? 0 : currentCounter + 1;
-            Interlocked.Exchange(ref _counterRebuild, newCounter);
-            return true;
+            return Interlocked.CompareExchange(ref _counterRebuild, newCounter, currentCounter) == currentCounter;
+        }
+
+        private bool UpdateKeyspaceNecessary(string name, long currentKeyspaceCounter)
+        {
+            var newCounter = currentKeyspaceCounter == long.MaxValue ? 0 : currentKeyspaceCounter + 1;
+            return _keyspacesUpdateCounters.TryUpdate(name, newCounter, currentKeyspaceCounter);
         }
 
         internal async Task<bool> RebuildTokenMapAsync(bool retry)
@@ -215,8 +209,7 @@ namespace Cassandra
                         return true;
                     }
                     
-                    var newCounter = currentKeyspaceCounter == long.MaxValue ? 0 : currentKeyspaceCounter + 1;
-                    if (!_keyspacesUpdateCounters.TryUpdate(name, newCounter, currentKeyspaceCounter))
+                    if (!UpdateKeyspaceNecessary(name, currentKeyspaceCounter))
                     {
                         return true;
                     }
@@ -248,8 +241,7 @@ namespace Cassandra
                         return true;
                     }
 
-                    var newCounter = currentKeyspaceCounter == long.MaxValue ? 0 : currentKeyspaceCounter + 1;
-                    if (!_keyspacesUpdateCounters.TryUpdate(name, newCounter, currentKeyspaceCounter))
+                    if (!UpdateKeyspaceNecessary(name, currentKeyspaceCounter))
                     {
                         return true;
                     }

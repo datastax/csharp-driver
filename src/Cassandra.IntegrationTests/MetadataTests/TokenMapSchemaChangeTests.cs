@@ -15,7 +15,6 @@
 //
 
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -81,7 +80,6 @@ namespace Cassandra.IntegrationTests.MetadataTests
             {
                 Assert.Throws<KeyNotFoundException>(() => newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName));
             });
-            var asd = Stopwatch.GetTimestamp();
             Assert.IsTrue(object.ReferenceEquals(newCluster.Metadata.TokenToReplicasMap, oldTokenMap));
         }
 
@@ -92,7 +90,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
             var createKeyspaceCql = $"CREATE KEYSPACE {keyspaceName} WITH replication = {{'class': 'SimpleStrategy', 'replication_factor' : 3}}";
             Session.Execute(createKeyspaceCql);
             TestUtils.WaitForSchemaAgreement(Cluster);
-            
+
             var newSession = GetNewSession(keyspaceName);
             var newCluster = newSession.Cluster;
             TestHelper.RetryAssert(() =>
@@ -101,7 +99,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
                 Assert.AreEqual(newCluster.Metadata.Hosts.Sum(h => h.Tokens.Count()), replicas.Count);
                 Assert.AreEqual(3, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
             });
-            
+
             Assert.AreEqual(3, newCluster.Metadata.Hosts.Count(h => h.IsUp));
             var oldTokenMap = newCluster.Metadata.TokenToReplicasMap;
             var alterKeyspaceCql = $"ALTER KEYSPACE {keyspaceName} WITH replication = {{'class': 'SimpleStrategy', 'replication_factor' : 2}}";
@@ -113,7 +111,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
                 Assert.AreEqual(newCluster.Metadata.Hosts.Sum(h => h.Tokens.Count()), replicas.Count);
                 Assert.AreEqual(2, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
             });
-            
+
             Assert.AreEqual(3, newCluster.Metadata.Hosts.Count(h => h.IsUp));
             Assert.IsTrue(object.ReferenceEquals(newCluster.Metadata.TokenToReplicasMap, oldTokenMap));
         }
