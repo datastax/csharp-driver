@@ -14,6 +14,7 @@
 //    limitations under the License.
 // 
 
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using NUnit.Framework;
 
@@ -70,6 +71,77 @@ namespace Cassandra.Tests
 
             Assert.IsNull(ks.Strategy);
             Assert.AreEqual("random", ks.StrategyClass);
+        }
+        /// <summary>
+        /// This scenario happens when it's a virtual keyspace.
+        /// </summary>
+        [Test]
+        public void Ctor_Should_InitializeStrategyWithNull_When_NullReplicationOptionsAndStrategyClassArePassed()
+        {
+            var sut = new KeyspaceMetadata(null, "name", false, null, null, true);
+            Assert.IsNull(sut.Strategy);
+        }
+
+        /// <summary>
+        /// This scenario happens when it's a virtual keyspace.
+        /// </summary>
+        [Test]
+        public void Ctor_Should_InitializeStrategyClassWithNull_When_NullReplicationOptionsAndStrategyClassArePassed()
+        {
+            var sut = new KeyspaceMetadata(null, "name", false, null, null, true);
+            Assert.IsNull(sut.StrategyClass);
+        }
+
+        /// <summary>
+        /// This scenario happens when it's a virtual keyspace.
+        /// </summary>
+        [Test]
+        public void Ctor_Should_InitializeReplicationsWithNull_When_NullReplicationOptionsAndStrategyClassArePassed()
+        {
+            var sut = new KeyspaceMetadata(null, "name", false, null, null, true);
+            Assert.IsNull(sut.Replication);
+        }
+
+        [Test]
+        public void Ctor_Should_InitializeStrategyWithNull_When_NullReplicationOptionsArePassedButNonNullStrategyClassIsPassed()
+        {
+            var sut = new KeyspaceMetadata(null, "name", true, "SimpleStrategy", null, true);
+            Assert.IsNull(sut.Strategy);
+        }
+
+        [Test]
+        public void Ctor_Should_InitializeReplicationWithNull_When_NullReplicationOptionsArePassedButNonNullStrategyClassIsPassed()
+        {
+            var sut = new KeyspaceMetadata(null, "name", true, "SimpleStrategy", null, true);
+            Assert.IsNull(sut.Replication);
+        }
+
+        [Test]
+        public void Ctor_Should_InitializeStrategyClassWithNonNull_When_NullReplicationOptionsArePassedButNonNullStrategyClassIsPassed()
+        {
+            var sut = new KeyspaceMetadata(null, "name", true, "SimpleStrategy", null, true);
+            Assert.IsNotNull(sut.StrategyClass);
+        }
+        
+        [Test]
+        public void Ctor_Should_InitializeStrategyWithNull_When_NonNullReplicationOptionsArePassedButNullStrategyClassIsPassed()
+        {
+            var sut = new KeyspaceMetadata(null, "name", true, null, new ConcurrentDictionary<string, int>(), true);
+            Assert.IsNull(sut.Strategy);
+        }
+
+        [Test]
+        public void Ctor_Should_InitializeReplicationWithNonNull_When_NonNullReplicationOptionsArePassedButNullStrategyClassIsPassed()
+        {
+            var sut = new KeyspaceMetadata(null, "name", true, null, new ConcurrentDictionary<string, int>(), true);
+            Assert.IsNotNull(sut.Replication);
+        }
+
+        [Test]
+        public void Ctor_Should_InitializeStrategyClassWithNull_When_NonNullReplicationOptionsArePassedButNullStrategyClassIsPassed()
+        {
+            var sut = new KeyspaceMetadata(null, "name", true, null, new ConcurrentDictionary<string, int>(), true);
+            Assert.IsNull(sut.StrategyClass);
         }
     }
 }
