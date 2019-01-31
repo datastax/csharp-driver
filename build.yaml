@@ -57,8 +57,15 @@ build:
           dotnet restore src
 
           # Run the tests
-          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f $CSHARP_VERSION -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx.xml"
+          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f $CSHARP_VERSION -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx.xml" || error=true
+          
           java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_trx.xml tools/trx-to-junit.xslt
+          
+          #Fail the build if there was an error
+          if [ $error ]
+          then 
+              exit -1
+          fi
       fi
 
   - xunit:
