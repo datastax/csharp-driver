@@ -14,6 +14,7 @@
 //    limitations under the License.
 // 
 
+using System;
 using System.Text;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Unit;
@@ -45,7 +46,14 @@ namespace Dse.Test.Integration.MetadataTests
             Assert.AreEqual(3, replicas.Count);
             Assert.AreEqual(3, ClusterObj.Metadata.Hosts.Count);
             var oldTokenMap = ClusterObj.Metadata.TokenToReplicasMap;
-            this.TestCluster.DecommissionNode(1);
+            if (TestClusterManager.DseVersion >= Version.Parse("5.1.0"))
+            {
+                this.TestCluster.DecommissionNodeForcefully(1);
+            }
+            else
+            {
+                this.TestCluster.DecommissionNode(1);
+            }
             TestHelper.RetryAssert(() =>
             {
                 Assert.AreEqual(2, ClusterObj.Metadata.Hosts.Count);
