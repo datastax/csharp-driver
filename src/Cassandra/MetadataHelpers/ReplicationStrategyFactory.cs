@@ -25,6 +25,16 @@ namespace Cassandra.MetadataHelpers
 
         public IReplicationStrategy Create(string strategyClass, IReadOnlyDictionary<string, int> replicationOptions)
         {
+            if (strategyClass == null)
+            {
+                throw new ArgumentNullException(nameof(strategyClass));
+            }
+
+            if (replicationOptions == null)
+            {
+                throw new ArgumentNullException(nameof(replicationOptions));
+            }
+
             if (strategyClass.Equals(ReplicationStrategies.SimpleStrategy, StringComparison.OrdinalIgnoreCase))
             {
                 return replicationOptions.TryGetValue("replication_factor", out var replicationFactorValue)
