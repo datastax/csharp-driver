@@ -68,7 +68,7 @@ build:
       curl -L -o saxon/SaxonHE9-8-0-12J.zip https://downloads.sourceforge.net/project/saxon/Saxon-HE/9.8/SaxonHE9-8-0-12J.zip
       unzip saxon/SaxonHE9-8-0-12J.zip -d saxon
  
-      if [ $CSHARP_VERSION = 'mono' ]; then
+      if [ $DOTNET_VERSION = 'mono' ]; then
           echo "========== Starting Mono Build =========="
           mono --version
           # Define alias for Nuget
@@ -87,10 +87,17 @@ build:
 
           # Run the tests
           echo "==========RUNNING FULL SUITE OF TESTS=========="
-          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Dse.Test.Integration/bin/Release/net452/Dse.Test.Integration.dll --where:cat=short --labels=All --result:"TestResult_nunit3.xml"
+          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Dse.Test.Integration/bin/Release/net452/Dse.Test.Integration.dll --where:cat=short --labels=All --result:"TestResult_nunit3.xml" || error=true
+
           java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_nunit3.xml tools/nunit3-xunit.xslt
+          
+          #Fail the build if there was an error
+          if [ $error ]
+          then 
+              exit -1
+          fi
       else
-          echo "========== Starting .NET Core SDK Build =========="
+          echo "========== Starting .NET Core Build =========="
           export DOTNET_CLI_TELEMETRY_OPTOUT=1
           dotnet --version
 
@@ -99,7 +106,7 @@ build:
 
           # Run the tests
           echo "==========RUNNING FULL SUITE OF TESTS=========="
-          dotnet test src/Dse.Test.Integration/Dse.Test.Integration.csproj -f $CSHARP_VERSION -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx.xml" || error=true
+          dotnet test src/Dse.Test.Integration/Dse.Test.Integration.csproj -f $DOTNET_VERSION -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx.xml" || error=true
 
           java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_trx.xml tools/trx-to-junit.xslt
           
