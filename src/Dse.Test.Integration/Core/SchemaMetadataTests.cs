@@ -681,7 +681,7 @@ namespace Dse.Test.Integration.Core
         public void Virtual_Table_Metadata_Test()
         {
             var cluster = GetNewCluster();
-            var table = cluster.Metadata.GetTable("system_views", "clients");
+            var table = cluster.Metadata.GetTable("system_views", "sstable_tasks");
             Assert.NotNull(table);
             Assert.True(table.IsVirtual);
             Assert.AreEqual(table.PartitionKeys.Select(c => c.Name), new[] { "address" });
