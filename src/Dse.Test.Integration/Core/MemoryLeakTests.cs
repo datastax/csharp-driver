@@ -1,4 +1,4 @@
-﻿#if !(NETCORE || LINUX)
+﻿#if NET452 && !LINUX
 using System;
 using System.Net.Sockets;
 using System.Threading;

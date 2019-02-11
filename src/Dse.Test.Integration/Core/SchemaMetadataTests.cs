@@ -681,11 +681,11 @@ namespace Dse.Test.Integration.Core
         public void Virtual_Table_Metadata_Test()
         {
             var cluster = GetNewCluster();
-            var table = cluster.Metadata.GetTable("system_views", "clients");
+            var table = cluster.Metadata.GetTable("system_views", "sstable_tasks");
             Assert.NotNull(table);
             Assert.True(table.IsVirtual);
-            Assert.AreEqual(table.PartitionKeys.Select(c => c.Name), new[] { "address" });
-            Assert.AreEqual(table.ClusteringKeys.Select(t => t.Item1.Name), new[] { "port" });
+            Assert.AreEqual(table.PartitionKeys.Select(c => c.Name), new[] { "keyspace_name" });
+            Assert.AreEqual(table.ClusteringKeys.Select(t => t.Item1.Name), new[] { "table_name", "task_id" });
         }
 
         [Test, TestDseVersion(6, 7)]

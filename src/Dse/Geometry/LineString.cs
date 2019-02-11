@@ -18,7 +18,7 @@ namespace Dse.Geometry
     /// <summary>
     /// Represents a one-dimensional object representing a sequence of points and the line segments connecting them.
     /// </summary>
-#if !NETCORE
+#if NET45
     [Serializable]
 #endif
     public class LineString : GeometryBase
@@ -45,7 +45,7 @@ namespace Dse.Geometry
 
         }
 
-#if !NETCORE
+#if NET45
         /// <summary>
         /// Creates a new instance of <see cref="LineString"/> using a serialization information.
         /// </summary>

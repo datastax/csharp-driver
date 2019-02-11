@@ -5,42 +5,97 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using System;
-using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Net;
+using System.Diagnostics;
 using System.Linq;
-using System.Text;
+using Dse.MetadataHelpers;
 
 namespace Dse
 {
-    internal class TokenMap
+    internal class TokenMap : IReadOnlyTokenMap
     {
         internal readonly TokenFactory Factory;
+
+        // should be IReadOnly but BinarySearch method is not exposed in the interface
         private readonly List<IToken> _ring;
-        private readonly Dictionary<string, Dictionary<IToken, ISet<Host>>> _tokenToHostsByKeyspace;
-        private readonly Dictionary<IToken, Host> _primaryReplicas;
+
+        private readonly IReadOnlyDictionary<IToken, Host> _primaryReplicas;
+        private readonly IReadOnlyDictionary<string, DatacenterInfo> _datacenters;
+        private readonly int _numberOfHostsWithTokens;
+        private readonly ConcurrentDictionary<string, IReadOnlyDictionary<IToken, ISet<Host>>> _tokenToHostsByKeyspace;
+        private readonly ConcurrentDictionary<IReplicationStrategy, IReadOnlyDictionary<IToken, ISet<Host>>> _keyspaceTokensCache;
         private static readonly Logger Logger = new Logger(typeof(ControlConnection));
 
-        internal TokenMap(TokenFactory factory, Dictionary<string, Dictionary<IToken, ISet<Host>>> tokenToHostsByKeyspace, List<IToken> ring, Dictionary<IToken, Host> primaryReplicas)
+        internal TokenMap(
+            TokenFactory factory, 
+            IReadOnlyDictionary<string, IReadOnlyDictionary<IToken, ISet<Host>>> tokenToHostsByKeyspace, 
+            List<IToken> ring, 
+            IReadOnlyDictionary<IToken, Host> primaryReplicas, 
+            IReadOnlyDictionary<IReplicationStrategy, IReadOnlyDictionary<IToken, ISet<Host>>> keyspaceTokensCache, 
+            IReadOnlyDictionary<string, DatacenterInfo> datacenters, 
+            int numberOfHostsWithTokens)
         {
             Factory = factory;
-            _tokenToHostsByKeyspace = tokenToHostsByKeyspace;
+            _tokenToHostsByKeyspace = new ConcurrentDictionary<string, IReadOnlyDictionary<IToken, ISet<Host>>>(tokenToHostsByKeyspace);
             _ring = ring;
             _primaryReplicas = primaryReplicas;
+            _keyspaceTokensCache = new ConcurrentDictionary<IReplicationStrategy, IReadOnlyDictionary<IToken, ISet<Host>>>(keyspaceTokensCache);
+            _datacenters = datacenters;
+            _numberOfHostsWithTokens = numberOfHostsWithTokens;
         }
-        
-        internal IDictionary<IToken, ISet<Host>> GetByKeyspace(string keyspaceName)
+
+        public IReadOnlyDictionary<IToken, ISet<Host>> GetByKeyspace(string keyspaceName)
         {
             return _tokenToHostsByKeyspace[keyspaceName];
         }
 
+        public void UpdateKeyspace(KeyspaceMetadata ks)
+        {
+            var sw = new Stopwatch();
+            sw.Start();
+
+            TokenMap.UpdateKeyspace(
+                ks, _tokenToHostsByKeyspace, _ring, _primaryReplicas, _keyspaceTokensCache, _datacenters, _numberOfHostsWithTokens);
+
+            sw.Stop();
+            TokenMap.Logger.Info(
+                "Finished updating TokenMap for the '{0}' keyspace. It took {1:0} milliseconds.", 
+                ks.Name,
+                sw.Elapsed.TotalMilliseconds);
+        }
+
+        public ICollection<Host> GetReplicas(string keyspaceName, IToken token)
+        {
+            IReadOnlyList<IToken> readOnlyRing = _ring;
+
+            // Find the primary replica
+            var i = _ring.BinarySearch(token);
+            if (i < 0)
+            {
+                //no exact match, use closest index
+                i = ~i;
+                if (i >= readOnlyRing.Count)
+                {
+                    i = 0;
+                }
+            }
+            var closestToken = readOnlyRing[i];
+            if (keyspaceName != null && _tokenToHostsByKeyspace.ContainsKey(keyspaceName))
+            {
+                return _tokenToHostsByKeyspace[keyspaceName][closestToken];
+            }
+            return new Host[] { _primaryReplicas[closestToken] };
+        }
+
         public static TokenMap Build(string partitioner, ICollection<Host> hosts, ICollection<KeyspaceMetadata> keyspaces)
         {
+            var sw = new Stopwatch();
+            sw.Start();
             var factory = TokenFactory.GetFactory(partitioner);
             if (factory == null)
             {
-                return null;   
+                return null;
             }
 
             var primaryReplicas = new Dictionary<IToken, Host>();
@@ -50,8 +105,7 @@ namespace Dse
             {
                 if (host.Datacenter != null)
                 {
-                    DatacenterInfo dc;
-                    if (!datacenters.TryGetValue(host.Datacenter, out dc))
+                    if (!datacenters.TryGetValue(host.Datacenter, out var dc))
                     {
                         datacenters[host.Datacenter] = dc = new DatacenterInfo();
                     }
@@ -68,348 +122,67 @@ namespace Dse
                     }
                     catch
                     {
-                        Logger.Error(string.Format("Token {0} could not be parsed using {1} partitioner implementation", tokenStr, partitioner));
+                        TokenMap.Logger.Error($"Token {tokenStr} could not be parsed using {partitioner} partitioner implementation");
                     }
                 }
             }
             var ring = new List<IToken>(allSorted);
-            var tokenToHosts = new Dictionary<string, Dictionary<IToken, ISet<Host>>>(keyspaces.Count);
-            var ksTokensCache = new Dictionary<string, Dictionary<IToken, ISet<Host>>>();
+            var tokenToHosts = new Dictionary<string, IReadOnlyDictionary<IToken, ISet<Host>>>(keyspaces.Count);
+            var ksTokensCache = new Dictionary<IReplicationStrategy, IReadOnlyDictionary<IToken, ISet<Host>>>();
             //Only consider nodes that have tokens
-            var hostCount = hosts.Count(h => h.Tokens.Any());
+            var numberOfHostsWithTokens = hosts.Count(h => h.Tokens.Any());
             foreach (var ks in keyspaces)
             {
-                Dictionary<IToken, ISet<Host>> replicas;
-                if (ks.StrategyClass == ReplicationStrategies.SimpleStrategy)
+                TokenMap.UpdateKeyspace(ks, tokenToHosts, ring, primaryReplicas, ksTokensCache, datacenters, numberOfHostsWithTokens);
+                IReadOnlyDictionary<IToken, ISet<Host>> replicas;
+                if (ks.Strategy == null)
                 {
-                    replicas = ComputeTokenToReplicaSimple(ks.Replication["replication_factor"], hostCount, ring, primaryReplicas);
+                    replicas = primaryReplicas.ToDictionary(kv => kv.Key, kv => (ISet<Host>)new HashSet<Host>(new[] { kv.Value }));
                 }
-                else if (ks.StrategyClass == ReplicationStrategies.NetworkTopologyStrategy)
+                else if (!ksTokensCache.TryGetValue(ks.Strategy, out replicas))
                 {
-                    var key = GetReplicationKey(ks.Replication);
-                    if (!ksTokensCache.TryGetValue(key, out replicas))
-                    {
-                        replicas = ComputeTokenToReplicaNetwork(ks.Replication, ring, primaryReplicas, datacenters);
-                        ksTokensCache.Add(key, replicas);
-                    }
+                    replicas = ks.Strategy.ComputeTokenToReplicaMap(ring, primaryReplicas, numberOfHostsWithTokens, datacenters);
+                    ksTokensCache.Add(ks.Strategy, replicas);
                 }
-                else
-                {
-                    //No replication information, use primary replicas
-                    replicas = primaryReplicas.ToDictionary(kv => kv.Key, kv => (ISet<Host>)new HashSet<Host>(new [] { kv.Value }));   
-                }
+
                 tokenToHosts[ks.Name] = replicas;
             }
-            return new TokenMap(factory, tokenToHosts, ring, primaryReplicas);
+
+            sw.Stop();
+            TokenMap.Logger.Info(
+                "Finished building TokenMap for {0} keyspaces and {1} hosts. It took {2:0} milliseconds.", 
+                keyspaces.Count, 
+                hosts.Count, 
+                sw.Elapsed.TotalMilliseconds);
+            return new TokenMap(factory, tokenToHosts, ring, primaryReplicas, ksTokensCache, datacenters, numberOfHostsWithTokens);
         }
 
-        private static string GetReplicationKey(IDictionary<string, int> replication)
+        private static void UpdateKeyspace(
+            KeyspaceMetadata ks,
+            IDictionary<string, IReadOnlyDictionary<IToken, ISet<Host>>> tokenToHostsByKeyspace, 
+            IReadOnlyList<IToken> ring, 
+            IReadOnlyDictionary<IToken, Host> primaryReplicas, 
+            IDictionary<IReplicationStrategy, IReadOnlyDictionary<IToken, ISet<Host>>> keyspaceTokensCache, 
+            IReadOnlyDictionary<string, DatacenterInfo> datacenters, 
+            int numberOfHostsWithTokens)
         {
-            var key = new StringBuilder();
-            foreach (var kv in replication)
+            IReadOnlyDictionary<IToken, ISet<Host>> replicas;
+            if (ks.Strategy == null)
             {
-                key.Append(kv.Key);
-                key.Append(":");
-                key.Append(kv.Value);
-                key.Append(",");
+                replicas = primaryReplicas.ToDictionary(kv => kv.Key, kv => (ISet<Host>)new HashSet<Host>(new[] { kv.Value }));
             }
-            return key.ToString();
+            else if (!keyspaceTokensCache.TryGetValue(ks.Strategy, out replicas))
+            {
+                replicas = ks.Strategy.ComputeTokenToReplicaMap(ring, primaryReplicas, numberOfHostsWithTokens, datacenters);
+                keyspaceTokensCache[ks.Strategy] = replicas;
+            }
+
+            tokenToHostsByKeyspace[ks.Name] = replicas;
         }
 
-        private static Dictionary<IToken, ISet<Host>> ComputeTokenToReplicaNetwork(IDictionary<string, int> replicationFactors,
-                                                                                      IList<IToken> ring, 
-                                                                                      IDictionary<IToken, Host> primaryReplicas, 
-                                                                                      IDictionary<string, DatacenterInfo> datacenters)
+        public void RemoveKeyspace(KeyspaceMetadata keyspaceMetadata)
         {
-            var replicas = new Dictionary<IToken, ISet<Host>>();
-            for (var i = 0; i < ring.Count; i++)
-            {
-                var token = ring[i];
-                var replicasByDc = new Dictionary<string, int>();
-                var tokenReplicas = new OrderedHashSet<Host>();
-                var racksPlaced = new Dictionary<string, HashSet<string>>();
-                var skippedHosts = new List<Host>();
-                for (var j = 0; j < ring.Count; j++)
-                {
-                    var replicaIndex = i + j;
-                    if (replicaIndex >= ring.Count)
-                    {
-                        //circle back
-                        replicaIndex = replicaIndex % ring.Count;
-                    }
-                    var h = primaryReplicas[ring[replicaIndex]];
-                    var dc = h.Datacenter;
-                    int dcRf;
-                    if (!replicationFactors.TryGetValue(dc, out dcRf))
-                    {
-                        continue;
-                    }
-                    dcRf = Math.Min(dcRf, datacenters[dc].HostLength);
-                    int dcReplicas;
-                    replicasByDc.TryGetValue(dc, out dcReplicas);
-                    //Amount of replicas per dc is equals to the rf or the amount of host in the datacenter
-                    if (dcReplicas >= dcRf)
-                    {
-                        continue;
-                    }
-                    HashSet<string> racksPlacedInDc;
-                    if (!racksPlaced.TryGetValue(dc, out racksPlacedInDc))
-                    {
-                        racksPlaced[dc] = racksPlacedInDc = new HashSet<string>();
-                    }
-                    if (h.Rack != null && racksPlacedInDc.Contains(h.Rack) && racksPlacedInDc.Count < datacenters[dc].Racks.Count)
-                    {
-                        // We already selected a replica for this rack
-                        // Skip until replicas in other racks are added
-                        if (skippedHosts.Count < dcRf - dcReplicas)
-                        {
-                            skippedHosts.Add(h);
-                        }
-                        continue;
-                    }
-                    dcReplicas += tokenReplicas.Add(h) ? 1 : 0;
-                    replicasByDc[dc] = dcReplicas;
-                    if (h.Rack != null && racksPlacedInDc.Add(h.Rack) && racksPlacedInDc.Count == datacenters[dc].Racks.Count)
-                    {
-                        // We finished placing all replicas for all racks in this dc
-                        // Add the skipped hosts
-                        replicasByDc[dc] += AddSkippedHosts(dc, dcRf, dcReplicas, tokenReplicas, skippedHosts);
-                    }
-                    if (IsDoneForToken(replicationFactors, replicasByDc, datacenters))
-                    {
-                        break;
-                    }
-                }
-                replicas[token] = tokenReplicas;
-            }
-            return replicas;
-        }
-
-        internal static int AddSkippedHosts(string dc, int dcRf, int dcReplicas, ISet<Host> tokenReplicas, IList<Host> skippedHosts)
-        {
-            var counter = 0;
-            var length = dcRf - dcReplicas;
-            foreach (var h in skippedHosts.Where(h => h.Datacenter == dc))
-            {
-                tokenReplicas.Add(h);
-                if (++counter == length)
-                {
-                    break;
-                }
-            }
-            return counter;
-        }
-
-        internal static bool IsDoneForToken(IDictionary<string, int> replicationFactors,
-                                            IDictionary<string, int> replicasByDc,
-                                            IDictionary<string, DatacenterInfo> datacenters)
-        {
-            foreach (var dcName in replicationFactors.Keys)
-            {
-                DatacenterInfo dc;
-                if (!datacenters.TryGetValue(dcName, out dc))
-                {
-                    // A DC is included in the RF but the DC does not exist in the topology
-                    continue;
-                }
-                var rf = Math.Min(replicationFactors[dcName], dc.HostLength);
-                if (rf > 0 && (!replicasByDc.ContainsKey(dcName) || replicasByDc[dcName] < rf))
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        /// <summary>
-        /// Converts token-primary to token-replicas
-        /// </summary>
-        private static Dictionary<IToken, ISet<Host>> ComputeTokenToReplicaSimple(int replicationFactor, int hostCount, List<IToken> ring, Dictionary<IToken, Host> primaryReplicas)
-        {
-            var rf = Math.Min(replicationFactor, hostCount);
-            var tokenToReplicas = new Dictionary<IToken, ISet<Host>>(ring.Count);
-            for (var i = 0; i < ring.Count; i++)
-            {
-                var token = ring[i];
-                var replicas = new HashSet<Host>();
-                replicas.Add(primaryReplicas[token]);
-                var j = 1;
-                while (replicas.Count < rf)
-                {
-                    var nextReplicaIndex = i + j;
-                    if (nextReplicaIndex >= ring.Count)
-                    {
-                        //circle back
-                        nextReplicaIndex = nextReplicaIndex % ring.Count;
-                    }
-                    var nextReplica = primaryReplicas[ring[nextReplicaIndex]];
-                    replicas.Add(nextReplica);
-                    j++;
-                }
-                tokenToReplicas.Add(token, replicas);
-            }
-            return tokenToReplicas;
-        }
-
-        public ICollection<Host> GetReplicas(string keyspaceName, IToken token)
-        {
-            // Find the primary replica
-            var i = _ring.BinarySearch(token);
-            if (i < 0)
-            {
-                //no exact match, use closest index
-                i = ~i;
-                if (i >= _ring.Count)
-                {
-                    i = 0;
-                }
-            }
-            var closestToken = _ring[i];
-            if (keyspaceName != null && _tokenToHostsByKeyspace.ContainsKey(keyspaceName))
-            {
-                return _tokenToHostsByKeyspace[keyspaceName][closestToken];
-            }
-            return new Host[] { _primaryReplicas[closestToken] };
-        }
-
-        internal class DatacenterInfo
-        {
-            private readonly HashSet<string> _racks;
-
-            public DatacenterInfo()
-            {
-                _racks = new HashSet<string>();
-            }
-
-            public int HostLength { get; set; }
-
-            public ISet<string> Racks { get { return _racks; } }
-
-            public void AddRack(string name)
-            {
-                if (name == null)
-                {
-                    return;
-                }
-                _racks.Add(name);
-            }
-        }
-
-        private class OrderedHashSet<T> : ISet<T>
-        {
-            private readonly HashSet<T> _set;
-            private readonly LinkedList<T> _list;
-
-            public int Count { get { return _set.Count; } }
-
-            public bool IsReadOnly { get { return false; } }
-
-            public OrderedHashSet()
-            {
-                _set = new HashSet<T>();
-                _list = new LinkedList<T>();
-            }
-
-            public IEnumerator<T> GetEnumerator()
-            {
-                return _list.GetEnumerator();
-            }
-
-            IEnumerator IEnumerable.GetEnumerator()
-            {
-                return GetEnumerator();
-            }
-
-            void ICollection<T>.Add(T item)
-            {
-                Add(item);
-            }
-
-            public void UnionWith(IEnumerable<T> other)
-            {
-                _set.UnionWith(other);
-            }
-
-            public void IntersectWith(IEnumerable<T> other)
-            {
-                _set.IntersectWith(other);
-            }
-
-            public void ExceptWith(IEnumerable<T> other)
-            {
-                _set.ExceptWith(other);
-            }
-
-            public void SymmetricExceptWith(IEnumerable<T> other)
-            {
-                _set.SymmetricExceptWith(other);
-            }
-
-            public bool IsSubsetOf(IEnumerable<T> other)
-            {
-                return _set.IsSubsetOf(other);
-            }
-
-            public bool IsSupersetOf(IEnumerable<T> other)
-            {
-                return _set.IsSupersetOf(other);
-            }
-
-            public bool IsProperSupersetOf(IEnumerable<T> other)
-            {
-                return _set.IsProperSupersetOf(other);
-            }
-
-            public bool IsProperSubsetOf(IEnumerable<T> other)
-            {
-                return _set.IsProperSubsetOf(other);
-            }
-
-            public bool Overlaps(IEnumerable<T> other)
-            {
-                return _set.Overlaps(other);
-            }
-
-            public bool SetEquals(IEnumerable<T> other)
-            {
-                return _set.SetEquals(other);
-            }
-
-            public bool Add(T item)
-            {
-                var added = _set.Add(item);
-                if (added)
-                {
-                    _list.AddLast(item);
-                }
-                return added;
-            }
-
-            public void Clear()
-            {
-                _set.Clear();
-                _list.Clear();
-            }
-
-            public bool Contains(T item)
-            {
-                return _set.Contains(item);
-            }
-
-            public void CopyTo(T[] array, int arrayIndex)
-            {
-                _set.CopyTo(array, arrayIndex);
-            }
-
-            public bool Remove(T item)
-            {
-                var removed = _set.Remove(item);
-                if (removed)
-                {
-                    _list.Remove(item);
-                }
-                return removed;
-            }
+            _tokenToHostsByKeyspace.TryRemove(keyspaceMetadata.Name, out _);
         }
     }
 }

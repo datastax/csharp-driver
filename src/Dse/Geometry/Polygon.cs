@@ -18,7 +18,7 @@ namespace Dse.Geometry
     /// Represents is a plane geometry figure that is bounded by a finite chain of straight line segments closing in a
     /// loop to form a closed chain or circuit.
     /// </summary>
-#if !NETCORE
+#if NET45
     [Serializable]
 #endif
     public class Polygon : GeometryBase
@@ -78,7 +78,7 @@ namespace Dse.Geometry
             Rings = AsReadOnlyCollection(rings, r => AsReadOnlyCollection(r));
         }
 
-#if !NETCORE
+#if NET45
         /// <summary>
         /// Creates a new instance of <see cref="Polygon"/> using serialization information.
         /// </summary>

@@ -31,7 +31,7 @@ namespace Dse.Test.Unit.Geometry
             {
                 var expected = string.Format("{{\"type\":\"LineString\",\"coordinates\":[{0}]}}",
                     string.Join(",", line.Points.Select(p => "[" + p.X + "," + p.Y + "]")));
-#if !NETCORE
+#if NET452
                 // Default serialization to JSON is GeoJson
                 var json = JsonConvert.SerializeObject(line);
                 Assert.AreEqual(expected, json);

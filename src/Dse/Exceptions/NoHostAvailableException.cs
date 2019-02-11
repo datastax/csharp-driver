@@ -9,7 +9,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Net;
-#if !NETCORE
+#if NET45
 using System.Runtime.Serialization;
 #endif
 using System.Text;
@@ -24,7 +24,7 @@ namespace Dse
     ///  purpose, the list of hosts that have been tried along with the failure cause
     ///  can be retrieved using the <link>#errors</link> method.
     /// </summary>
-#if !NETCORE
+#if NET45
     [Serializable]
 #endif
     public class NoHostAvailableException : DriverException
@@ -51,7 +51,7 @@ namespace Dse
             Errors = new Dictionary<IPEndPoint, Exception>(0);
         }
 
-#if !NETCORE
+#if NET45
         protected NoHostAvailableException(SerializationInfo info, StreamingContext context) :
             base(info, context)
         {

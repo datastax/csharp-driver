@@ -21,11 +21,11 @@ namespace Dse.Geometry
     /// <summary>
     /// The driver-side representation for a DSE geospatial type.
     /// </summary>
-#if !NETCORE
+#if NET45
     [Serializable]
 #endif
     public abstract class GeometryBase
-#if !NETCORE
+#if NET45
         : ISerializable
 #endif
     {
@@ -91,7 +91,7 @@ namespace Dse.Geometry
             return stringWriter.ToString();
         }
 
-#if !NETCORE
+#if NET45
         /// <inheritdoc />
         public virtual void GetObjectData(SerializationInfo info, StreamingContext context)
         {

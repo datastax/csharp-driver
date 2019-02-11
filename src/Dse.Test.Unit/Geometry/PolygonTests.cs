@@ -34,7 +34,7 @@ namespace Dse.Test.Unit.Geometry
                 var expected = string.Format("{{\"type\":\"Polygon\",\"coordinates\":[{0}]}}",
                     string.Join(",", polygon.Rings.Select(r =>
                         "[" + string.Join(",", r.Select(p => "[" + p.X + "," + p.Y + "]")) + "]")));
-#if !NETCORE
+#if NET452
                 // Default serialization to Json is GeoJson
                 var json = JsonConvert.SerializeObject(polygon);
                 Assert.AreEqual(expected, json);

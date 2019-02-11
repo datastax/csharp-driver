@@ -5,6 +5,10 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
 namespace Dse.Test.Integration.TestClusterManagement
 {
     public interface ITestCluster
@@ -113,7 +117,7 @@ namespace Dse.Test.Integration.TestClusterManagement
         void ResumeNode(int nodeId);
     }
 
-    public class TestClusterOptions
+    public class TestClusterOptions : IEquatable<TestClusterOptions>
     {
         public static readonly TestClusterOptions Default = new TestClusterOptions();
 
@@ -136,5 +140,35 @@ namespace Dse.Test.Integration.TestClusterManagement
         /// DSE Nodes workloads
         /// </summary>
         public string[] Workloads { get; set; }
+
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as TestClusterOptions);
+        }
+
+        public bool Equals(TestClusterOptions other)
+        {
+            return other != null &&
+                   UseVNodes == other.UseVNodes &&
+                   UseSsl == other.UseSsl &&
+                   CassandraYaml.OrderBy(i => i).SequenceEqual(other.CassandraYaml.OrderBy(i => i)) &&
+                   Dc2NodeLength == other.Dc2NodeLength &&
+                   JvmArgs.OrderBy(i => i).SequenceEqual(other.JvmArgs.OrderBy(i => i)) &&
+                   DseYaml.OrderBy(i => i).SequenceEqual(other.DseYaml.OrderBy(i => i)) &&
+                   Workloads.OrderBy(i => i).SequenceEqual(other.Workloads.OrderBy(i => i));
+        }
+
+        public override int GetHashCode()
+        {
+            var hashCode = 651983754;
+            hashCode = hashCode * -1521134295 + UseVNodes.GetHashCode();
+            hashCode = hashCode * -1521134295 + UseSsl.GetHashCode();
+            hashCode = hashCode * -1521134295 + EqualityComparer<string[]>.Default.GetHashCode(CassandraYaml);
+            hashCode = hashCode * -1521134295 + Dc2NodeLength.GetHashCode();
+            hashCode = hashCode * -1521134295 + EqualityComparer<string[]>.Default.GetHashCode(JvmArgs);
+            hashCode = hashCode * -1521134295 + EqualityComparer<string[]>.Default.GetHashCode(DseYaml);
+            hashCode = hashCode * -1521134295 + EqualityComparer<string[]>.Default.GetHashCode(Workloads);
+            return hashCode;
+        }
     }
 }

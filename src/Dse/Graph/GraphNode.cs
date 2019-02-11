@@ -21,11 +21,11 @@ namespace Dse.Graph
     /// <summary>
     /// Represents an item of a graph query result, it can be a vertex, an edge, a path or an scalar value.
     /// </summary>
-#if !NETCORE
+#if NET45
     [Serializable]
 #endif
     public class GraphNode : DynamicObject, IEquatable<GraphNode>, IGraphNode
-#if !NETCORE
+#if NET45
         , ISerializable
 #endif
     {
@@ -67,7 +67,7 @@ namespace Dse.Graph
             _node = node;
         }
 
-#if !NETCORE
+#if NET45
         /// <summary>
         /// Creates a new instance of <see cref="GraphNode"/> using a serialization information.
         /// </summary>
@@ -191,7 +191,7 @@ namespace Dse.Graph
         /// </summary>
         public override int GetHashCode() => _node.GetHashCode();
 
-#if !NETCORE
+#if NET45
         /// <inheritdoc />
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {

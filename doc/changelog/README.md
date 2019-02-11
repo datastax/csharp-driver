@@ -2,6 +2,23 @@
 
 Changelog for the DataStax Enterprise C# Driver.
 
+## 2.5.0
+
+2019-02-11
+
+### Features
+
+- [CSHARP-731] - Add .NET Standard 2.0 Windows only support for Kerberos authentication
+- [CSHARP-726] - Improvements to token map building process
+
+## 2.5.0-alpha1
+
+2019-01-22
+
+### Features
+
+- [CSHARP-731] - Add .NET Standard 2.0 Windows only support for Kerberos authentication
+
 ## 2.4.0
 
 2018-11-26

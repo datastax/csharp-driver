@@ -5,23 +5,25 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using NUnit.Framework;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Net.Sockets;
 using System.Reflection;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Dse.Serialization;
-using IgnoreAttribute = Dse.Mapping.Attributes.IgnoreAttribute;
+
 using Microsoft.DotNet.InternalAbstractions;
 using Moq;
+
+using NUnit.Framework;
+
+using IgnoreAttribute = Dse.Mapping.Attributes.IgnoreAttribute;
 
 namespace Dse.Test.Unit
 {
@@ -78,8 +80,11 @@ namespace Dse.Test.Unit
                     var typeCode = serializer.GetCqlType(kv.Value.GetType(), out typeInfo);
                     c = new CqlColumn
                     {
-                        Name = kv.Key, TypeCode = typeCode, TypeInfo = typeInfo,
-                        Type = kv.Value.GetType(), Index = index
+                        Name = kv.Key,
+                        TypeCode = typeCode,
+                        TypeInfo = typeInfo,
+                        Type = kv.Value.GetType(),
+                        Index = index
                     };
                 }
                 else
@@ -87,7 +92,10 @@ namespace Dse.Test.Unit
                     // Default to type Text
                     c = new CqlColumn
                     {
-                        Name = kv.Key, TypeCode = ColumnTypeCode.Text, Type = typeof(string), Index = index
+                        Name = kv.Key,
+                        TypeCode = ColumnTypeCode.Text,
+                        Type = typeof(string),
+                        Index = index
                     };
                 }
                 columns[index++] = c;
@@ -190,7 +198,7 @@ namespace Dse.Test.Unit
         {
             var parallelOptions = new ParallelOptions
             {
-                TaskScheduler = new ThreadPerTaskScheduler(), 
+                TaskScheduler = new ThreadPerTaskScheduler(),
                 MaxDegreeOfParallelism = 1000
             };
             Parallel.Invoke(parallelOptions, actions.ToArray());
@@ -270,7 +278,7 @@ namespace Dse.Test.Unit
 
                 if (actualValue is IList)
                 {
-                    CollectionAssert.AreEqual((IList) expectedValue, (IList) actualValue, new SimplifiedComparer(), "Values from property {0} do not match", property.Name);
+                    CollectionAssert.AreEqual((IList)expectedValue, (IList)actualValue, new SimplifiedComparer(), "Values from property {0} do not match", property.Name);
                     continue;
                 }
                 SimplifyValues(ref actualValue, ref expectedValue);
@@ -316,7 +324,7 @@ namespace Dse.Test.Unit
         }
 
         /// <summary>
-        /// Uses the precision 
+        /// Uses the precision
         /// </summary>
         internal static void SimplifyValues(ref object actualValue, ref object expectedValue)
         {
@@ -527,7 +535,7 @@ namespace Dse.Test.Unit
 
             var whereColumnsGroup = columnsMatch.Groups[2].Value;
             var whereColumnsRegex = new Regex("([\\w\"]+)");
-            
+
             var whereColumnsNamesMatchCollection = whereColumnsRegex.Matches(whereColumnsGroup);
             var whereCQlColumns = new string[whereColumnsGroup.Count(x => x == '?')];
             var whereCQlColumnsIndex = 0;
@@ -581,7 +589,7 @@ namespace Dse.Test.Unit
             {
                 queryColumnsOrder[i] = (i < columns.Length) ? Array.IndexOf(insertColumns, columns[i]) : i;
             }
-            
+
             Assert.AreEqual(expectedValues.Length, cqlParamCount);
             Assert.AreEqual(expectedValues.Length, values.Length);
             for (var i = 0; i < expectedValues.Length; i++)
@@ -627,7 +635,7 @@ namespace Dse.Test.Unit
 
             throw lastException;
         }
-        
+
         private class SendReceiveCounter
         {
             private int _receiveCounter;

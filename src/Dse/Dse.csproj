@@ -4,10 +4,10 @@
     <Copyright>Copyright © 2018 by DataStax</Copyright>
     <AssemblyTitle>DataStax Enterprise C# Driver</AssemblyTitle>
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
-    <FileVersion>2.4.0.0</FileVersion>
-    <VersionPrefix>2.4.0</VersionPrefix>
+    <FileVersion>2.5.0.0</FileVersion>
+    <VersionPrefix>2.5.0</VersionPrefix>
     <Authors>DataStax</Authors>
-    <TargetFrameworks>net45;netstandard1.5</TargetFrameworks>
+    <TargetFrameworks>net45;netstandard1.5;netstandard2.0</TargetFrameworks>
     <NoWarn>$(NoWarn);1591</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -20,6 +20,13 @@
     <PackageTags>cassandra;dse;datastax;driver;client;database;nosql;dotnet;netcore;db</PackageTags>
     <PackageLicenseUrl>http://www.datastax.com/terms/datastax-dse-driver-license-terms</PackageLicenseUrl>
     <PackageProjectUrl>http://docs.datastax.com/en/developer/csharp-driver-dse/latest/</PackageProjectUrl>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard1.5' ">
+    <DefineConstants>$(DefineConstants);NETCORE</DefineConstants>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Auth/Sspi/**</DefaultItemExcludes>
+    <NetStandardImplicitPackageVersion>1.6.0</NetStandardImplicitPackageVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net45' ">
     <NetStandardImplicitPackageVersion>1.6.0</NetStandardImplicitPackageVersion>
   </PropertyGroup>
   <ItemGroup>
@@ -35,10 +42,6 @@
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard1.5' ">
-    <DefineConstants>$(DefineConstants);NETCORE</DefineConstants>
-    <DefaultItemExcludes>$(DefaultItemExcludes);Auth/Sspi/**</DefaultItemExcludes>
-  </PropertyGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.5' ">
     <PackageReference Include="System.Data.Common" Version="4.1.0" />
     <PackageReference Include="System.Diagnostics.FileVersionInfo" Version="4.0.0" />

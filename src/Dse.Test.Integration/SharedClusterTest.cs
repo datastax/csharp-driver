@@ -68,13 +68,16 @@ namespace Dse.Test.Integration
         /// </summary>
         protected string KeyspaceName { get; set; }
 
-        protected SharedClusterTest(int amountOfNodes = 1, bool createSession = true, bool reuse = true)
+        protected TestClusterOptions Options { get; set; }
+
+        protected SharedClusterTest(int amountOfNodes = 1, bool createSession = true, bool reuse = true, TestClusterOptions options = null)
         {
             //only reuse single node clusters
             _reuse = reuse && amountOfNodes == 1;
             AmountOfNodes = amountOfNodes;
             KeyspaceName = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
             CreateSession = createSession;
+            Options = options;
         }
 
         [OneTimeSetUp]
@@ -86,14 +89,17 @@ namespace Dse.Test.Integration
             Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
 
-            if (_reuse && _reusableInstance != null && ReferenceEquals(_reusableInstance, TestClusterManager.LastInstance))
+            if (_reuse && _reusableInstance != null 
+                       && ReferenceEquals(_reusableInstance, TestClusterManager.LastInstance)
+                       && ((Options != null && Options.Equals(TestClusterManager.LastOptions)) || (Options == null && TestClusterManager.LastOptions == null))
+                       && AmountOfNodes == TestClusterManager.LastAmountOfNodes)
             {
-                Trace.WriteLine("Reusing single node ccm instance");
+                Trace.WriteLine("Reusing ccm instance");
                 TestCluster = _reusableInstance;
             }
             else
             {
-                TestCluster = TestClusterManager.CreateNew(AmountOfNodes);
+                TestCluster = TestClusterManager.CreateNew(AmountOfNodes, Options);
                 if (_reuse)
                 {
                     _reusableInstance = TestCluster;
