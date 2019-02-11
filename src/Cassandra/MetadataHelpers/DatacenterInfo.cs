@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,35 +14,31 @@
 //   limitations under the License.
 //
 
-using System;
-using System.Runtime.Serialization;
+using System.Collections.Generic;
 
-namespace Cassandra
+namespace Cassandra.MetadataHelpers
 {
-    /// <summary>
-    /// Top level class for exceptions thrown by the driver.
-    /// </summary>
-#if NET45
-    [Serializable]
-#endif
-    public class DriverException : Exception
+    internal class DatacenterInfo
     {
-        public DriverException(string message)
-            : base(message)
+        private readonly HashSet<string> _racks;
+
+        public DatacenterInfo()
         {
+            _racks = new HashSet<string>();
         }
 
-        public DriverException(string message, Exception innerException)
-            : base(message, innerException)
-        {
-        }
+        public int HostLength { get; set; }
 
-#if NET45
-        protected DriverException(SerializationInfo info, StreamingContext context) :
-            base(info, context)
+        public ISet<string> Racks { get { return _racks; } }
+
+        public void AddRack(string name)
         {
-            
+            if (name == null)
+            {
+                return;
+            }
+            _racks.Add(name);
         }
-#endif    
     }
+
 }

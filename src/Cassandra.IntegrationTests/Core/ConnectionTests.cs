@@ -157,7 +157,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-#if !NETCORE
+#if NET452
         [Test]
         [TestCassandraVersion(2, 0)]
         public void Query_Compression_LZ4_Test()

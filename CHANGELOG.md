@@ -1,5 +1,13 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.8.0
+
+2019-02-11
+
+### Features
+
+- [CSHARP-726] - Improvements to token map building process
+
 ## 3.7.0
 
 2018-11-26

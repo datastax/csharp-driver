@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) 2012-2014 DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,35 +14,16 @@
 //   limitations under the License.
 //
 
-using System;
-using System.Runtime.Serialization;
+using System.Collections.Generic;
+using Cassandra.MetadataHelpers;
 
-namespace Cassandra
+namespace Cassandra.Tests.MetadataHelpers.TestHelpers
 {
-    /// <summary>
-    /// Top level class for exceptions thrown by the driver.
-    /// </summary>
-#if NET45
-    [Serializable]
-#endif
-    public class DriverException : Exception
+    internal class ProxyReplicationStrategyFactory : IReplicationStrategyFactory
     {
-        public DriverException(string message)
-            : base(message)
+        public IReplicationStrategy Create(string strategyClass, IReadOnlyDictionary<string, int> replicationOptions)
         {
+            return new ProxyReplicationStrategy(new ReplicationStrategyFactory().Create(strategyClass, replicationOptions));
         }
-
-        public DriverException(string message, Exception innerException)
-            : base(message, innerException)
-        {
-        }
-
-#if NET45
-        protected DriverException(SerializationInfo info, StreamingContext context) :
-            base(info, context)
-        {
-            
-        }
-#endif    
     }
 }

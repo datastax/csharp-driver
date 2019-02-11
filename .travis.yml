@@ -1,8 +1,8 @@
 language: csharp
 sudo: required
 mono: none
-dotnet: 2.1.101
 dist: trusty
+dotnet: 2.1.300
 
 branches:
   except:
@@ -10,7 +10,12 @@ branches:
     - 2.0
     - 2.1
     - dse_3.1
+    
+matrix:
+  include:
+    - env: TARGETF=netcoreapp2.1
+    - env: TARGETF=netcoreapp2.0
 
 script:
   - dotnet restore src
-  - dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj -c Release -f netcoreapp2.0
+  - dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj -c Release -f $TARGETF
