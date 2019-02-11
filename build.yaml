@@ -6,10 +6,10 @@ schedules:
       exclude:      
         # Only build with latest for mono and netstandard 2.0
         - dotnet: ['mono', 'netcoreapp2.1']
-          cassandra: ['dse-4.8', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8']
+          cassandra: ['dse-4.8', 'dse-5.0', 'dse-5.1', 'dse-6.0']
         # Only build with 4.8, 5.0, 5.1 and latest for netstandard 1.5
         - dotnet: 'netcoreapp2.0'
-          cassandra: ['dse-6.0', 'dse-6.8']
+          cassandra: ['dse-6.0']
   nightly:
     # Run full suite nightly on change for all primary branches if they have changes.
     schedule: nightly
@@ -29,7 +29,6 @@ cassandra:
   - dse-5.1
   - dse-6.0
   - dse-6.7
-  - dse-6.8
 dotnet:
   - 'mono'
   - 'netcoreapp2.0'
