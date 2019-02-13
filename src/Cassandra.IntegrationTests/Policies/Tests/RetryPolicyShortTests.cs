@@ -20,7 +20,7 @@ using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
-
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Policies.Tests
@@ -157,11 +157,17 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                     {
                         session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.One));
                     }
+                    
+                    var queriesFirstNode = await queryPlan[0].GetQueriesAsync(cql).ConfigureAwait(false);
+                    var queriesSecondNode = await queryPlan[1].GetQueriesAsync(cql).ConfigureAwait(false);
+                    var queriesThirdNode = await queryPlan[2].GetQueriesAsync(cql).ConfigureAwait(false);
+                    var allQueries = new {First = queriesFirstNode, Second = queriesSecondNode, Third = queriesThirdNode};
+                    var allQueriesString = JsonConvert.SerializeObject(allQueries);
 
-                    Assert.AreEqual(1, currentHostRetryPolicy.RequestErrorCounter);
-                    Assert.AreEqual(1, (await queryPlan[0].GetQueriesAsync(cql).ConfigureAwait(false)).Count);
-                    Assert.AreEqual(1, (await queryPlan[1].GetQueriesAsync(cql).ConfigureAwait(false)).Count);
-                    Assert.AreEqual(0, (await queryPlan[2].GetQueriesAsync(cql).ConfigureAwait(false)).Count);
+                    Assert.AreEqual(1, currentHostRetryPolicy.RequestErrorCounter, allQueriesString);
+                    Assert.AreEqual(1, queriesFirstNode.Count, allQueriesString);
+                    Assert.AreEqual(1, queriesSecondNode.Count, allQueriesString);
+                    Assert.AreEqual(0, queriesThirdNode.Count, allQueriesString);
                 }
             }
         }
