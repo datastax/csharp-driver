@@ -105,7 +105,8 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                     nodes[2],
                     nodes[0]
                 };
-                var currentHostRetryPolicy = new CurrentHostRetryPolicy(10, i => queryPlan[0].Stop());
+                await queryPlan[0].Stop().ConfigureAwait(false);
+                var currentHostRetryPolicy = new CurrentHostRetryPolicy(10, null);
                 var loadBalancingPolicy = new CustomLoadBalancingPolicy(
                     queryPlan.Select(n => n.ContactPoint).ToArray());
                 var builder = Cluster.Builder()
@@ -119,19 +120,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                 {
                     var session = (Session)cluster.Connect();
                     const string cql = "select * from table2";
-
-                    var primeQueryFirstNode = new
-                    {
-                        when = new { query = cql },
-                        then = new
-                        {
-                            result = "overloaded",
-                            delay_in_ms = 0,
-                            message = "overloaded",
-                            ignore_on_prepare = false
-                        }
-                    };
-
+                    
                     var primeQuerySecondNode = new
                     {
                         when = new { query = cql },
@@ -145,7 +134,6 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                         }
                     };
 
-                    queryPlan[0].Prime(primeQueryFirstNode);
                     queryPlan[1].Prime(primeQuerySecondNode);
 
                     if (async)
@@ -159,13 +147,16 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                     }
                     
                     var queriesFirstNode = await queryPlan[0].GetQueriesAsync(cql).ConfigureAwait(false);
+                    var queriesFirstNodeString = string.Join(Environment.NewLine, queriesFirstNode.Select<dynamic, string>(obj => JsonConvert.SerializeObject(obj)));
                     var queriesSecondNode = await queryPlan[1].GetQueriesAsync(cql).ConfigureAwait(false);
+                    var queriesSecondNodeString = string.Join(Environment.NewLine, queriesSecondNode.Select<dynamic, string>(obj => JsonConvert.SerializeObject(obj)));
                     var queriesThirdNode = await queryPlan[2].GetQueriesAsync(cql).ConfigureAwait(false);
-                    var allQueries = new {First = queriesFirstNode, Second = queriesSecondNode, Third = queriesThirdNode};
+                    var queriesThirdNodeString = string.Join(Environment.NewLine, queriesThirdNode.Select<dynamic, string>(obj => JsonConvert.SerializeObject(obj)));
+                    var allQueries = new {First = queriesFirstNodeString, Second = queriesSecondNodeString, Third = queriesThirdNodeString};
                     var allQueriesString = JsonConvert.SerializeObject(allQueries);
 
-                    Assert.AreEqual(1, currentHostRetryPolicy.RequestErrorCounter, allQueriesString);
-                    Assert.AreEqual(1, queriesFirstNode.Count, allQueriesString);
+                    Assert.AreEqual(0, currentHostRetryPolicy.RequestErrorCounter, allQueriesString);
+                    Assert.AreEqual(0, queriesFirstNode.Count, allQueriesString);
                     Assert.AreEqual(1, queriesSecondNode.Count, allQueriesString);
                     Assert.AreEqual(0, queriesThirdNode.Count, allQueriesString);
                 }

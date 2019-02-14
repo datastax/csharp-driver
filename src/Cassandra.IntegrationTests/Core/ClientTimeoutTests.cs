@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Tests;
 using NUnit.Framework;
 
@@ -125,26 +126,36 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_Wait_When_ReadTimeout_Is_Zero()
         {
-            var testCluster = TestClusterManager.GetNonShareableTestCluster(1, 1, true, false);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(0);
-            var builder = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).WithSocketOptions(socketOptions);
-            using (var cluster = builder.Build())
+            using (var simulacronCluster = SimulacronCluster.CreateNew(3))
             {
-                var session = cluster.Connect();
-                var query = new SimpleStatement("SELECT key FROM system.local");
-                //warmup
-                TestHelper.Invoke(() => session.Execute(query), 5);
-                var task = session.ExecuteAsync(query);
-                Thread.Sleep(2000);
-                Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
-                //Pause execute and nothing should happen until resume
-                testCluster.PauseNode(1);
-                task = session.ExecuteAsync(query);
-                Thread.Sleep(15000);
-                Assert.AreEqual(TaskStatus.WaitingForActivation, task.Status);
-                testCluster.ResumeNode(1);
-                Thread.Sleep(2000);
-                Assert.AreEqual(TaskStatus.RanToCompletion, task.Status, task.Exception?.ToString() ?? "no exception");
+                const string cql = "SELECT key FROM system.local";
+                simulacronCluster.Prime(new
+                {
+                    when = new { query = cql },
+                    then = new
+                    {
+                        result = "success",
+                        delay_in_ms = 30000,
+                        rows = new [] { new { key = "123" } },
+                        column_types = new { key = "ascii" },
+                        ignore_on_prepare = false
+                    }
+                });
+                
+                using (var cluster = Cluster.Builder().AddContactPoint(simulacronCluster.InitialContactPoint).WithSocketOptions(socketOptions).Build())
+                {
+                    var session = cluster.Connect();
+                    var query = new SimpleStatement(cql);
+                    var task = session.ExecuteAsync(query);
+                    Thread.Sleep(15000);
+                    Assert.AreEqual(TaskStatus.WaitingForActivation, task.Status);
+                    Thread.Sleep(15000);
+                    TestHelper.RetryAssert(
+                        () => { Assert.AreEqual(TaskStatus.RanToCompletion, task.Status, task.Exception?.ToString() ?? "no exception"); },
+                        100,
+                        50);
+                }
             }
         }
 
