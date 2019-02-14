@@ -8,11 +8,14 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
+
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Unit;
-using System.Threading.Tasks;
+
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
@@ -148,23 +151,34 @@ namespace Dse.Test.Integration.Core
             {
                 Assert.AreEqual(1, cluster.AllHosts().Count);
                 _testCluster.BootstrapNode(2);
-                var queried = false;
                 Trace.TraceInformation("Node bootstrapped");
-                Thread.Sleep(10000);
                 var newNodeAddress = _testCluster.ClusterIpPrefix + 2;
-                Assert.True(TestUtils.IsNodeReachable(IPAddress.Parse(newNodeAddress)));
-                //New node should be part of the metadata
-                Assert.AreEqual(2, cluster.AllHosts().Count);
-                for (var i = 0; i < 10; i++)
-                {
-                    var rs = session.Execute("SELECT key FROM system.local");
-                    if (rs.Info.QueriedHost.Address.ToString() == newNodeAddress)
+                var newNodeIpAddress = IPAddress.Parse(newNodeAddress);
+                TestHelper.RetryAssert(() =>
                     {
-                        queried = true;
-                        break;
-                    }
-                }
-                Assert.True(queried, "Newly bootstrapped node should be queried");
+                        Assert.True(TestUtils.IsNodeReachable(newNodeIpAddress));
+                        //New node should be part of the metadata
+                        Assert.AreEqual(2, cluster.AllHosts().Count);
+                    },
+                    2000, 
+                    30);
+
+                TestHelper.RetryAssert(() =>
+                {
+                    var host = cluster.AllHosts().FirstOrDefault(h => h.Address.Address.Equals(newNodeIpAddress));
+                    Assert.IsNotNull(host);
+                    var count = host.Tokens?.Count();
+                    Assert.IsTrue(count.HasValue);
+                    Assert.IsTrue(count.Value > 0, "Tokens Count: " + count);
+                });
+                
+                TestHelper.RetryAssert(() =>
+                    {
+                        var rs = session.Execute("SELECT key FROM system.local");
+                        Assert.True(rs.Info.QueriedHost.Address.ToString() == newNodeAddress, "Newly bootstrapped node should be queried");
+                    },
+                    1, 
+                    100);
             }).ConfigureAwait(false);
         }
 
