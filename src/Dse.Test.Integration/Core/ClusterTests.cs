@@ -159,18 +159,11 @@ namespace Dse.Test.Integration.Core
                         Assert.True(TestUtils.IsNodeReachable(newNodeIpAddress));
                         //New node should be part of the metadata
                         Assert.AreEqual(2, cluster.AllHosts().Count);
+                        var host = cluster.AllHosts().FirstOrDefault(h => h.Address.Address.Equals(newNodeIpAddress));
+                        Assert.IsNotNull(host);
                     },
                     2000, 
-                    30);
-
-                TestHelper.RetryAssert(() =>
-                {
-                    var host = cluster.AllHosts().FirstOrDefault(h => h.Address.Address.Equals(newNodeIpAddress));
-                    Assert.IsNotNull(host);
-                    var count = host.Tokens?.Count();
-                    Assert.IsTrue(count.HasValue);
-                    Assert.IsTrue(count.Value > 0, "Tokens Count: " + count);
-                });
+                    90);
                 
                 TestHelper.RetryAssert(() =>
                     {

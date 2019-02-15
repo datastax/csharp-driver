@@ -87,7 +87,7 @@ namespace Dse.Test.Integration.MetadataTests
                 Assert.AreEqual(3, ClusterObj.Metadata.Hosts.Count);
                 replicas = ClusterObj.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123"));
                 Assert.AreEqual(3, replicas.Count);
-            }, 10, 500);
+            }, 500, 360);
             Assert.IsFalse(object.ReferenceEquals(ClusterObj.Metadata.TokenToReplicasMap, oldTokenMap));
         }
 
