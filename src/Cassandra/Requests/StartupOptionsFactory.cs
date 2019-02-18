@@ -21,29 +21,32 @@ namespace Cassandra.Requests
 {
     internal class StartupOptionsFactory : IStartupOptionsFactory
     {
-        private const string CqlVersionOption = "CQL_VERSION";
-        private const string CompressionOption = "COMPRESSION";
-        private const string NoCompactOption = "NO_COMPACT";
-        private const string DriverNameOption = "DRIVER_NAME";
-        private const string DriverVersionOption = "DRIVER_VERSION";
+        public const string CqlVersionOption = "CQL_VERSION";
+        public const string CompressionOption = "COMPRESSION";
+        public const string NoCompactOption = "NO_COMPACT";
+        public const string DriverNameOption = "DRIVER_NAME";
+        public const string DriverVersionOption = "DRIVER_VERSION";
 
-        private const string DriverName = "DataStax C# Driver for Apache Cassandra";
+        public const string DriverName = "DataStax C# Driver";
+        public const string CqlVersion = "3.0.0";
+        public const string SnappyCompression = "snappy";
+        public const string Lz4Compression = "lz4";
 
         public IReadOnlyDictionary<string, string> CreateStartupOptions(ProtocolOptions options)
         {
             var startupOptions = new Dictionary<string, string>
             {
-                { StartupOptionsFactory.CqlVersionOption, "3.0.0" }
+                { StartupOptionsFactory.CqlVersionOption, StartupOptionsFactory.CqlVersion }
             };
 
             string compressionName = null;
             switch (options.Compression)
             {
                 case CompressionType.LZ4:
-                    compressionName = "lz4";
+                    compressionName = StartupOptionsFactory.Lz4Compression;
                     break;
                 case CompressionType.Snappy:
-                    compressionName = "snappy";
+                    compressionName = StartupOptionsFactory.SnappyCompression;
                     break;
             }
 
