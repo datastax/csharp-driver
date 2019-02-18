@@ -37,7 +37,7 @@ namespace Cassandra.Tests.Requests
             Assert.AreEqual(5, options.Count);
             Assert.AreEqual("snappy", options["COMPRESSION"]);
             Assert.AreEqual("true", options["NO_COMPACT"]);
-            Assert.AreEqual("DataStax C# Driver for Apache Cassandra", options["DRIVER_NAME"]);
+            Assert.AreEqual("DataStax C# Driver", options["DRIVER_NAME"]);
             Assert.AreEqual("3.0.0", options["CQL_VERSION"]);
             var assemblyVersion = MultiTargetHelpers.GetAssembly(typeof(Cluster)).GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
             Assert.AreEqual(assemblyVersion, options["DRIVER_VERSION"]);
@@ -53,8 +53,8 @@ namespace Cassandra.Tests.Requests
 
             //// commented this so it doesn't break when version is bumped, tested this with and without suffix
             //// with suffix
-            // Assert.AreEqual("3.8.0", versionPrefix);
-            // Assert.AreEqual("3.8.0-alpha2", assemblyVersion);
+            //Assert.AreEqual("3.8.0", versionPrefix);
+            //Assert.AreEqual("3.8.0-alpha2", assemblyVersion);
             ////
             //// without suffix
             // Assert.AreEqual("3.8.0", versionPrefix);

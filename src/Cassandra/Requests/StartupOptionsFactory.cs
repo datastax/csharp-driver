@@ -62,7 +62,7 @@ namespace Cassandra.Requests
 
             startupOptions.Add(StartupOptionsFactory.DriverNameOption, StartupOptionsFactory.DriverName);
             startupOptions.Add(
-                StartupOptionsFactory.DriverVersionOption, MultiTargetHelpers.GetAssemblyFileVersionString(typeof(StartupOptionsFactory)));
+                StartupOptionsFactory.DriverVersionOption, MultiTargetHelpers.GetAssemblyInformationalVersion(typeof(StartupOptionsFactory)));
 
             return startupOptions;
         }
