@@ -27,7 +27,6 @@ namespace Cassandra.Requests
         public const string DriverNameOption = "DRIVER_NAME";
         public const string DriverVersionOption = "DRIVER_VERSION";
 
-        public const string DriverName = "DataStax C# Driver";
         public const string CqlVersion = "3.0.0";
         public const string SnappyCompression = "snappy";
         public const string Lz4Compression = "lz4";
@@ -60,9 +59,9 @@ namespace Cassandra.Requests
                 startupOptions.Add(StartupOptionsFactory.NoCompactOption, "true");
             }
 
-            startupOptions.Add(StartupOptionsFactory.DriverNameOption, StartupOptionsFactory.DriverName);
+            startupOptions.Add(StartupOptionsFactory.DriverNameOption, AssemblyHelpers.GetAssemblyTitle(typeof(StartupOptionsFactory)));
             startupOptions.Add(
-                StartupOptionsFactory.DriverVersionOption, MultiTargetHelpers.GetAssemblyInformationalVersion(typeof(StartupOptionsFactory)));
+                StartupOptionsFactory.DriverVersionOption, AssemblyHelpers.GetAssemblyInformationalVersion(typeof(StartupOptionsFactory)));
 
             return startupOptions;
         }

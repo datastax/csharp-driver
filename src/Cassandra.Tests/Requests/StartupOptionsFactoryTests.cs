@@ -37,19 +37,16 @@ namespace Cassandra.Tests.Requests
             Assert.AreEqual(5, options.Count);
             Assert.AreEqual("snappy", options["COMPRESSION"]);
             Assert.AreEqual("true", options["NO_COMPACT"]);
-            Assert.AreEqual("DataStax C# Driver", options["DRIVER_NAME"]);
+            var driverName = options["DRIVER_NAME"];
+            Assert.True(driverName.Contains("DataStax") && driverName.Contains("C# Driver"), driverName);
             Assert.AreEqual("3.0.0", options["CQL_VERSION"]);
-            var assemblyVersion = MultiTargetHelpers.GetAssembly(typeof(Cluster)).GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
+
+            var assemblyVersion = AssemblyHelpers.GetAssembly(typeof(Cluster)).GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
             Assert.AreEqual(assemblyVersion, options["DRIVER_VERSION"]);
             var indexOfVersionSuffix = assemblyVersion.IndexOf('-');
             var versionPrefix = indexOfVersionSuffix == -1 ? assemblyVersion : assemblyVersion.Substring(0, indexOfVersionSuffix);
             var version = Version.Parse(versionPrefix);
-            Assert.LessOrEqual(version.Major, 4);
-            Assert.GreaterOrEqual(version.Major, 3);
-            Assert.Less(version.Minor, 99);
-            Assert.GreaterOrEqual(version.Minor, 0);
-            Assert.AreEqual(99, MultiTargetHelpers.GetAssembly(typeof(Cluster)).GetName().Version.Minor);
-            Assert.AreNotEqual(99, version.Minor);
+            Assert.Greater(version, new Version(1, 0));
 
             //// commented this so it doesn't break when version is bumped, tested this with and without suffix
             //// with suffix

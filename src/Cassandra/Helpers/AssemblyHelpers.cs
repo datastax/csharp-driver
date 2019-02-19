@@ -19,25 +19,21 @@ using System.Reflection;
 
 namespace Cassandra.Helpers
 {
-    internal static class MultiTargetHelpers
+    internal static class AssemblyHelpers
     {
         public static Assembly GetAssembly(Type type)
         {
-#if NETSTANDARD1_5
             return type.GetTypeInfo().Assembly;
-#else
-            return type.Assembly;
-#endif
         }
 
         public static Version GetVersionPrefix(Type type)
         {
-            return MultiTargetHelpers.GetVersionPrefix(MultiTargetHelpers.GetAssembly(type));
+            return AssemblyHelpers.GetVersionPrefix(AssemblyHelpers.GetAssembly(type));
         }
 
         public static Version GetVersionPrefix(Assembly assembly)
         {
-            var assemblyVersion = MultiTargetHelpers.GetAssemblyInformationalVersion(assembly);
+            var assemblyVersion = AssemblyHelpers.GetAssemblyInformationalVersion(assembly);
             var indexOfVersionSuffix = assemblyVersion.IndexOf('-');
             var versionPrefix = indexOfVersionSuffix == -1 ? assemblyVersion : assemblyVersion.Substring(0, indexOfVersionSuffix);
             return Version.Parse(versionPrefix);
@@ -53,7 +49,12 @@ namespace Cassandra.Helpers
 
         public static string GetAssemblyInformationalVersion(Type type)
         {
-            return MultiTargetHelpers.GetAssemblyInformationalVersion(MultiTargetHelpers.GetAssembly(type));
+            return AssemblyHelpers.GetAssemblyInformationalVersion(AssemblyHelpers.GetAssembly(type));
+        }
+
+        public static string GetAssemblyTitle(Type type)
+        {
+            return AssemblyHelpers.GetAssembly(type).GetCustomAttribute<AssemblyTitleAttribute>().Title;
         }
     }
 }
