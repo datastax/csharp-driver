@@ -65,13 +65,9 @@ namespace Cassandra.Data.Linq
             Configuration config = null;
             if (session is Session)
             {
-                config = ((Session) session).Configuration;
+                config = ((Session)session).Configuration;
             }
-            else
-            {
-                //Get the default options
-                config = new Configuration();
-            }
+
             return config;
         }
     }

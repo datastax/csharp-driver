@@ -178,7 +178,7 @@ namespace Cassandra
         public Configuration Configuration { get; set; }
 
         public Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration) :
-            this(serializer, endpoint, configuration, new StartupRequestFactory(new StartupOptionsFactory()))
+            this(serializer, endpoint, configuration, new StartupRequestFactory(configuration.StartupOptionsFactory))
         {
         }
 

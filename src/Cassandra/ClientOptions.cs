@@ -24,8 +24,10 @@ namespace Cassandra
     /// </summary>
     public class ClientOptions
     {
+        public const int DefaultQueryAbortTimeout = 60000;
+
         private readonly string _defaultKeyspace;
-        private readonly int _queryAbortTimeout = 60000;
+        private readonly int _queryAbortTimeout = ClientOptions.DefaultQueryAbortTimeout;
         private readonly bool _withoutRowSetBuffering;
 
         public bool WithoutRowSetBuffering

@@ -5,10 +5,15 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+
+using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
+
 using Moq;
+
 using NUnit.Framework;
+
 // ReSharper disable AccessToModifiedClosure
 
 namespace Cassandra.Tests
@@ -75,7 +80,8 @@ namespace Cassandra.Tests
                 NoneAuthProvider.Instance,
                 null,
                 new QueryOptions(),
-                new DefaultAddressTranslator());
+                new DefaultAddressTranslator(),
+                Mock.Of<IStartupOptionsFactory>());
             return config;
         }
 

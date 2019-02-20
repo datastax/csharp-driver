@@ -47,9 +47,9 @@ namespace Cassandra.Data.Linq
         /// <returns>An instance of AppliedInfo{TEntity}</returns>
         public new AppliedInfo<TEntity> Execute()
         {
-            var config = GetTable().GetSession().GetConfiguration();
+            var queryAbortTimeout = GetTable().GetSession().GetConfiguration()?.ClientOptions.QueryAbortTimeout ?? ClientOptions.DefaultQueryAbortTimeout;
             var task = ExecuteAsync();
-            return TaskHelper.WaitToComplete(task, config.ClientOptions.QueryAbortTimeout);
+            return TaskHelper.WaitToComplete(task, queryAbortTimeout);
         }
 
         public new CqlConditionalCommand<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)

@@ -93,9 +93,9 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public void Execute()
         {
-            var config = GetTable().GetSession().GetConfiguration();
+            var queryAbortTimeout = GetTable().GetSession().GetConfiguration()?.ClientOptions.QueryAbortTimeout ?? ClientOptions.DefaultQueryAbortTimeout;
             var task = ExecuteAsync();
-            TaskHelper.WaitToComplete(task, config.ClientOptions.QueryAbortTimeout);
+            TaskHelper.WaitToComplete(task, queryAbortTimeout);
         }
 
         public void SetQueryTrace(QueryTrace trace)

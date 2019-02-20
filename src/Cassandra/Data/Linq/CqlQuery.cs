@@ -123,9 +123,9 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public IPage<TEntity> ExecutePaged()
         {
-            var config = GetTable().GetSession().GetConfiguration();
+            var queryAbortTimeout = GetTable().GetSession().GetConfiguration()?.ClientOptions.QueryAbortTimeout ?? ClientOptions.DefaultQueryAbortTimeout;
             var task = ExecutePagedAsync();
-            return TaskHelper.WaitToComplete(task, config.ClientOptions.QueryAbortTimeout);
+            return TaskHelper.WaitToComplete(task, queryAbortTimeout);
         }
 
         /// <summary>

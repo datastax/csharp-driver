@@ -18,9 +18,14 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+
 using Cassandra.Requests;
 using Cassandra.Serialization;
+
+using Moq;
+
 using NUnit.Framework;
+
 using QueryFlags = Cassandra.QueryProtocolOptions.QueryFlags;
 
 namespace Cassandra.Tests
@@ -29,7 +34,7 @@ namespace Cassandra.Tests
     public class RequestHandlerTests
     {
         private static readonly Serializer Serializer = new Serializer(ProtocolVersion.MaxSupported);
-        
+
         private static Configuration GetConfig(QueryOptions queryOptions = null)
         {
             return new Configuration(new Policies(),
@@ -40,7 +45,8 @@ namespace Cassandra.Tests
                 NoneAuthProvider.Instance,
                 null,
                 queryOptions ?? DefaultQueryOptions,
-                new DefaultAddressTranslator());
+                new DefaultAddressTranslator(),
+                Mock.Of<IStartupOptionsFactory>());
         }
 
         private static QueryOptions DefaultQueryOptions => new QueryOptions();
@@ -200,7 +206,7 @@ namespace Cassandra.Tests
                 new TruncateException(null), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
         }
-        
+
         [Test]
         public void GetRequest_With_Timestamp_Generator()
         {
@@ -241,8 +247,16 @@ namespace Cassandra.Tests
                 Policies.DefaultLoadBalancingPolicy, Policies.DefaultReconnectionPolicy, Policies.DefaultRetryPolicy,
                 Policies.DefaultSpeculativeExecutionPolicy, new NoTimestampGenerator());
             var config = new Configuration(
-                policies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(), new ClientOptions(),
-                NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
+                policies,
+                new ProtocolOptions(),
+                PoolingOptions.Create(),
+                new SocketOptions(),
+                new ClientOptions(),
+                NoneAuthProvider.Instance,
+                null,
+                new QueryOptions(),
+                new DefaultAddressTranslator(),
+                Mock.Of<IStartupOptionsFactory>());
 
             var request = RequestHandler.GetRequest(statement, Serializer.Default, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -274,8 +288,16 @@ namespace Cassandra.Tests
                 Policies.DefaultLoadBalancingPolicy, Policies.DefaultReconnectionPolicy, Policies.DefaultRetryPolicy,
                 Policies.DefaultSpeculativeExecutionPolicy, new NoTimestampGenerator());
             var config = new Configuration(
-                policies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(), new ClientOptions(),
-                NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
+                policies,
+                new ProtocolOptions(),
+                PoolingOptions.Create(),
+                new SocketOptions(),
+                new ClientOptions(),
+                NoneAuthProvider.Instance,
+                null,
+                new QueryOptions(),
+                new DefaultAddressTranslator(),
+                Mock.Of<IStartupOptionsFactory>());
 
             var request = RequestHandler.GetRequest(statement, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -308,15 +330,23 @@ namespace Cassandra.Tests
                 batch.Add(new SimpleStatement("QUERY"));
             }
             var config = new Configuration(
-                Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
-                new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
+                Policies.DefaultPolicies,
+                new ProtocolOptions(),
+                PoolingOptions.Create(),
+                new SocketOptions(),
+                new ClientOptions(),
+                NoneAuthProvider.Instance,
+                null,
+                new QueryOptions(),
+                new DefaultAddressTranslator(),
+                Mock.Of<IStartupOptionsFactory>());
 
             var request = RequestHandler.GetRequest(batch, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
 
             // The batch request is composed by:
             // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
-            CollectionAssert.AreEqual(new byte[] {0xff, 0xff}, bodyBuffer.Skip(1).Take(2));
+            CollectionAssert.AreEqual(new byte[] { 0xff, 0xff }, bodyBuffer.Skip(1).Take(2));
         }
 
         [Test]
@@ -328,9 +358,16 @@ namespace Cassandra.Tests
             // To microsecond precision
             startDate = startDate.Subtract(TimeSpan.FromTicks(startDate.Ticks % 10));
             var config = new Configuration(
-                Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
-                new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(),
-                new DefaultAddressTranslator());
+                Policies.DefaultPolicies,
+                new ProtocolOptions(),
+                PoolingOptions.Create(),
+                new SocketOptions(),
+                new ClientOptions(),
+                NoneAuthProvider.Instance,
+                null,
+                new QueryOptions(),
+                new DefaultAddressTranslator(),
+                Mock.Of<IStartupOptionsFactory>());
 
             var request = RequestHandler.GetRequest(batch, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -353,10 +390,10 @@ namespace Cassandra.Tests
             // Skip serial consistency
             offset += 2;
             var timestamp = TypeSerializer.UnixStart.AddTicks(BeConverter.ToInt64(bodyBuffer, offset) * 10);
-            Assert.GreaterOrEqual(timestamp,  startDate);
+            Assert.GreaterOrEqual(timestamp, startDate);
             Assert.LessOrEqual(timestamp, DateTimeOffset.Now.Add(TimeSpan.FromMilliseconds(100)));
         }
-        
+
         [Test]
         public void GetRequest_Batch_With_Empty_Timestamp_Generator()
         {
@@ -366,9 +403,16 @@ namespace Cassandra.Tests
                 Policies.DefaultLoadBalancingPolicy, Policies.DefaultReconnectionPolicy, Policies.DefaultRetryPolicy,
                 Policies.DefaultSpeculativeExecutionPolicy, new NoTimestampGenerator());
             var config = new Configuration(
-                policies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
-                new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(),
-                new DefaultAddressTranslator());
+                policies,
+                new ProtocolOptions(),
+                PoolingOptions.Create(),
+                new SocketOptions(),
+                new ClientOptions(),
+                NoneAuthProvider.Instance,
+                null,
+                new QueryOptions(),
+                new DefaultAddressTranslator(),
+                Mock.Of<IStartupOptionsFactory>());
 
             var request = RequestHandler.GetRequest(batch, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -396,9 +440,16 @@ namespace Cassandra.Tests
             providedTimestamp = providedTimestamp.Subtract(TimeSpan.FromTicks(providedTimestamp.Ticks % 10));
             batch.SetTimestamp(providedTimestamp);
             var config = new Configuration(
-                Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
-                new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(),
-                new DefaultAddressTranslator());
+                Policies.DefaultPolicies,
+                new ProtocolOptions(),
+                PoolingOptions.Create(),
+                new SocketOptions(),
+                new ClientOptions(),
+                NoneAuthProvider.Instance,
+                null,
+                new QueryOptions(),
+                new DefaultAddressTranslator(),
+                Mock.Of<IStartupOptionsFactory>());
 
             var request = RequestHandler.GetRequest(batch, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -491,7 +542,7 @@ namespace Cassandra.Tests
             Assert.True(flags.HasFlag(QueryFlags.WithSerialConsistency));
             // Skip result_page_size (4)
             offset += 4;
-            Assert.That((ConsistencyLevel) BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
+            Assert.That((ConsistencyLevel)BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
         }
 
         [Test]
@@ -516,7 +567,7 @@ namespace Cassandra.Tests
             Assert.True(flags.HasFlag(QueryFlags.WithSerialConsistency));
             // Skip result_page_size (4)
             offset += 4;
-            Assert.That((ConsistencyLevel) BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
+            Assert.That((ConsistencyLevel)BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
         }
 
         [Test]
@@ -541,7 +592,7 @@ namespace Cassandra.Tests
             Assert.True(flags.HasFlag(QueryFlags.PageSize));
             // Skip result_page_size (4)
             offset += 4;
-            Assert.That((ConsistencyLevel) BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
+            Assert.That((ConsistencyLevel)BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
         }
 
         [Test]
@@ -566,7 +617,7 @@ namespace Cassandra.Tests
             Assert.True(flags.HasFlag(QueryFlags.WithSerialConsistency));
             // Skip result_page_size (4)
             offset += 4;
-            Assert.That((ConsistencyLevel) BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
+            Assert.That((ConsistencyLevel)BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
         }
 
         private static byte[] GetBodyBuffer(IRequest request, Serializer serializer = null)
@@ -597,7 +648,7 @@ namespace Cassandra.Tests
             var offset = 1 + 2 + 1 + 4 + query.Length + 2 + 2;
             var flags = GetQueryFlags(bodyBuffer, ref offset);
             Assert.True(flags.HasFlag(QueryFlags.WithSerialConsistency));
-            Assert.That((ConsistencyLevel) BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
+            Assert.That((ConsistencyLevel)BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
         }
 
         private static QueryFlags GetQueryFlags(byte[] bodyBuffer, ref int offset, Serializer serializer = null)
@@ -621,7 +672,7 @@ namespace Cassandra.Tests
         }
 
         /// <summary>
-        /// A timestamp generator that generates empty values 
+        /// A timestamp generator that generates empty values
         /// </summary>
         private class NoTimestampGenerator : ITimestampGenerator
         {
