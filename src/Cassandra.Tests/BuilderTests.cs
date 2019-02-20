@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 
@@ -142,13 +143,9 @@ namespace Cassandra.Tests
             CollectionAssert.AreEqual(
                 new[] { new IPEndPoint(IPAddress.Parse(host2), ProtocolOptions.DefaultPort) }, 
                 cluster.GetResolvedEndpoints()[host2]);
-            CollectionAssert.AreEquivalent(
-                new[]
-                {
-                    new IPEndPoint(IPAddress.Parse("127.0.0.1"), ProtocolOptions.DefaultPort), 
-                    new IPEndPoint(IPAddress.Parse("::1"), ProtocolOptions.DefaultPort)
-                }, 
-                cluster.GetResolvedEndpoints()[host3]);
+
+            var localhostAddress = new IPEndPoint(IPAddress.Parse("127.0.0.1"), ProtocolOptions.DefaultPort);
+            Assert.Contains(localhostAddress, cluster.GetResolvedEndpoints()[host3].ToList());
         }
 
         [Test]
