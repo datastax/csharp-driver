@@ -5,6 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using Dse.Serialization;
@@ -18,7 +19,7 @@ namespace Dse.Requests
 
         public StartupRequest(IReadOnlyDictionary<string, string> startupOptions)
         {
-            _options = startupOptions;
+            _options = startupOptions ?? throw new ArgumentNullException(nameof(startupOptions));
         }
 
         public int WriteFrame(short streamId, MemoryStream stream, Serializer serializer)

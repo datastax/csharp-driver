@@ -7,9 +7,12 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
+
+using Dse.Requests;
+
 using Moq;
+
 using NUnit.Framework;
 
 namespace Dse.Test.Unit
@@ -113,7 +116,8 @@ namespace Dse.Test.Unit
                  NoneAuthProvider.Instance,
                  null,
                  new QueryOptions(),
-                 translatorMock.Object);
+                 translatorMock.Object,
+                 Mock.Of<IStartupOptionsFactory>());
             var cc = NewInstance(config, metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);

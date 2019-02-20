@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using Dse.Requests;
 using Dse.Serialization;
 
 namespace Dse
@@ -32,7 +33,7 @@ namespace Dse
         private ILoadBalancingPolicy _loadBalancingPolicy;
         private ITimestampGenerator _timestampGenerator;
         private int _port = ProtocolOptions.DefaultPort;
-        private int _queryAbortTimeout = DefaultQueryAbortTimeout;
+        private int _queryAbortTimeout = Builder.DefaultQueryAbortTimeout;
         private QueryOptions _queryOptions = new QueryOptions();
         private IReconnectionPolicy _reconnectionPolicy;
         private IRetryPolicy _retryPolicy;
@@ -44,6 +45,7 @@ namespace Dse
         private TypeSerializerDefinitions _typeSerializerDefinitions;
         private bool _noCompact;
         private int _maxSchemaAgreementWaitSeconds = ProtocolOptions.DefaultMaxSchemaAgreementWaitSeconds;
+        private IStartupOptionsFactory _startupOptionsFactory = new StartupOptionsFactory();
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -110,7 +112,8 @@ namespace Dse
                 _authProvider,
                 _authInfoProvider,
                 _queryOptions,
-                _addressTranslator);
+                _addressTranslator,
+                _startupOptionsFactory);
             if (_typeSerializerDefinitions != null)
             {
                 config.TypeSerializers = _typeSerializerDefinitions.Definitions;
@@ -619,6 +622,12 @@ namespace Dse
                 throw new InvalidOperationException(message);
             }
             _typeSerializerDefinitions = definitions;
+            return this;
+        }
+
+        internal Builder WithStartupOptionsFactory(IStartupOptionsFactory startupOptionsFactory)
+        {
+            _startupOptionsFactory = startupOptionsFactory ?? throw new ArgumentNullException(nameof(startupOptionsFactory));
             return this;
         }
 

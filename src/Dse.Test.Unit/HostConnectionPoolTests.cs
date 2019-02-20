@@ -12,10 +12,15 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+
+using Dse.Requests;
 using Dse.Serialization;
 using Dse.Tasks;
+
 using Moq;
+
 using NUnit.Framework;
+
 // ReSharper disable AccessToModifiedClosure
 
 namespace Dse.Test.Unit
@@ -82,7 +87,8 @@ namespace Dse.Test.Unit
                 NoneAuthProvider.Instance,
                 null,
                 new QueryOptions(),
-                new DefaultAddressTranslator());
+                new DefaultAddressTranslator(),
+                Mock.Of<IStartupOptionsFactory>());
             return config;
         }
 

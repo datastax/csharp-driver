@@ -39,7 +39,8 @@ namespace Dse.Test.Unit
                 NoneAuthProvider.Instance,
                 null,
                 new QueryOptions(),
-                new DefaultAddressTranslator());
+                new DefaultAddressTranslator(),
+                Mock.Of<IStartupOptionsFactory>());
         }
 
         [Test]

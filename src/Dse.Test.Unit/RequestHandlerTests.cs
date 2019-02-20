@@ -9,11 +9,16 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+
 using Dse.Requests;
 using Dse.Serialization;
+
+using Moq;
+
 using NUnit.Framework;
-using QueryFlags = Dse.QueryProtocolOptions.QueryFlags;
+
 using PrepareFlags = Dse.Requests.PrepareRequest.PrepareFlags;
+using QueryFlags = Dse.QueryProtocolOptions.QueryFlags;
 
 namespace Dse.Test.Unit
 {
@@ -21,7 +26,7 @@ namespace Dse.Test.Unit
     public class RequestHandlerTests
     {
         private static readonly Serializer Serializer = new Serializer(ProtocolVersion.MaxSupported);
-        
+
         private static Configuration GetConfig(QueryOptions queryOptions = null)
         {
             return new Configuration(new Dse.Policies(),
@@ -32,7 +37,8 @@ namespace Dse.Test.Unit
                 NoneAuthProvider.Instance,
                 null,
                 queryOptions ?? DefaultQueryOptions,
-                new DefaultAddressTranslator());
+                new DefaultAddressTranslator(),
+                Mock.Of<IStartupOptionsFactory>());
         }
 
         private static QueryOptions DefaultQueryOptions => new QueryOptions();
@@ -192,7 +198,7 @@ namespace Dse.Test.Unit
                 new TruncateException(null), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
         }
-        
+
         [Test]
         public void GetRequest_With_Timestamp_Generator()
         {
@@ -230,12 +236,20 @@ namespace Dse.Test.Unit
         {
             var statement = new SimpleStatement("QUERY");
             var policies = new Dse.Policies(
-                Dse.Policies.DefaultLoadBalancingPolicy, Dse.Policies.DefaultReconnectionPolicy, 
-                Dse.Policies.DefaultRetryPolicy, Dse.Policies.DefaultSpeculativeExecutionPolicy, 
+                Dse.Policies.DefaultLoadBalancingPolicy, Dse.Policies.DefaultReconnectionPolicy,
+                Dse.Policies.DefaultRetryPolicy, Dse.Policies.DefaultSpeculativeExecutionPolicy,
                 new NoTimestampGenerator());
             var config = new Configuration(
-                policies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(), new ClientOptions(),
-                NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
+                policies,
+                new ProtocolOptions(),
+                PoolingOptions.Create(),
+                new SocketOptions(),
+                new ClientOptions(),
+                NoneAuthProvider.Instance,
+                null,
+                new QueryOptions(),
+                new DefaultAddressTranslator(),
+                Mock.Of<IStartupOptionsFactory>());
 
             var request = RequestHandler.GetRequest(statement, Serializer.Default, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -264,12 +278,20 @@ namespace Dse.Test.Unit
             var expectedTimestamp = new DateTimeOffset(2010, 04, 29, 1, 2, 3, 4, TimeSpan.Zero).AddTicks(20);
             statement.SetTimestamp(expectedTimestamp);
             var policies = new Dse.Policies(
-                Dse.Policies.DefaultLoadBalancingPolicy, Dse.Policies.DefaultReconnectionPolicy, 
-                Dse.Policies.DefaultRetryPolicy, Dse.Policies.DefaultSpeculativeExecutionPolicy, 
+                Dse.Policies.DefaultLoadBalancingPolicy, Dse.Policies.DefaultReconnectionPolicy,
+                Dse.Policies.DefaultRetryPolicy, Dse.Policies.DefaultSpeculativeExecutionPolicy,
                 new NoTimestampGenerator());
             var config = new Configuration(
-                policies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(), new ClientOptions(),
-                NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
+                policies,
+                new ProtocolOptions(),
+                PoolingOptions.Create(),
+                new SocketOptions(),
+                new ClientOptions(),
+                NoneAuthProvider.Instance,
+                null,
+                new QueryOptions(),
+                new DefaultAddressTranslator(),
+                Mock.Of<IStartupOptionsFactory>());
 
             var request = RequestHandler.GetRequest(statement, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -300,15 +322,23 @@ namespace Dse.Test.Unit
                 batch.Add(new SimpleStatement("QUERY"));
             }
             var config = new Configuration(
-                Dse.Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
-                new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(), new DefaultAddressTranslator());
+                Dse.Policies.DefaultPolicies,
+                new ProtocolOptions(),
+                PoolingOptions.Create(),
+                new SocketOptions(),
+                new ClientOptions(),
+                NoneAuthProvider.Instance,
+                null,
+                new QueryOptions(),
+                new DefaultAddressTranslator(),
+                Mock.Of<IStartupOptionsFactory>());
 
             var request = RequestHandler.GetRequest(batch, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
 
             // The batch request is composed by:
             // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]
-            CollectionAssert.AreEqual(new byte[] {0xff, 0xff}, bodyBuffer.Skip(1).Take(2));
+            CollectionAssert.AreEqual(new byte[] { 0xff, 0xff }, bodyBuffer.Skip(1).Take(2));
         }
 
         [Test]
@@ -320,9 +350,16 @@ namespace Dse.Test.Unit
             // To microsecond precision
             startDate = startDate.Subtract(TimeSpan.FromTicks(startDate.Ticks % 10));
             var config = new Configuration(
-                Dse.Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
-                new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(),
-                new DefaultAddressTranslator());
+                Dse.Policies.DefaultPolicies,
+                new ProtocolOptions(),
+                PoolingOptions.Create(),
+                new SocketOptions(),
+                new ClientOptions(),
+                NoneAuthProvider.Instance,
+                null,
+                new QueryOptions(),
+                new DefaultAddressTranslator(),
+                Mock.Of<IStartupOptionsFactory>());
 
             var request = RequestHandler.GetRequest(batch, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -345,10 +382,10 @@ namespace Dse.Test.Unit
             // Skip serial consistency
             offset += 2;
             var timestamp = TypeSerializer.UnixStart.AddTicks(BeConverter.ToInt64(bodyBuffer, offset) * 10);
-            Assert.GreaterOrEqual(timestamp,  startDate);
+            Assert.GreaterOrEqual(timestamp, startDate);
             Assert.LessOrEqual(timestamp, DateTimeOffset.Now.Add(TimeSpan.FromMilliseconds(100)));
         }
-        
+
         [Test]
         public void GetRequest_Batch_With_Empty_Timestamp_Generator()
         {
@@ -359,9 +396,16 @@ namespace Dse.Test.Unit
                 Dse.Policies.DefaultRetryPolicy, Dse.Policies.DefaultSpeculativeExecutionPolicy,
                 new NoTimestampGenerator());
             var config = new Configuration(
-                policies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
-                new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(),
-                new DefaultAddressTranslator());
+                policies,
+                new ProtocolOptions(),
+                PoolingOptions.Create(),
+                new SocketOptions(),
+                new ClientOptions(),
+                NoneAuthProvider.Instance,
+                null,
+                new QueryOptions(),
+                new DefaultAddressTranslator(),
+                Mock.Of<IStartupOptionsFactory>());
 
             var request = RequestHandler.GetRequest(batch, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -389,9 +433,16 @@ namespace Dse.Test.Unit
             providedTimestamp = providedTimestamp.Subtract(TimeSpan.FromTicks(providedTimestamp.Ticks % 10));
             batch.SetTimestamp(providedTimestamp);
             var config = new Configuration(
-                Dse.Policies.DefaultPolicies, new ProtocolOptions(), PoolingOptions.Create(), new SocketOptions(),
-                new ClientOptions(), NoneAuthProvider.Instance, null, new QueryOptions(),
-                new DefaultAddressTranslator());
+                Dse.Policies.DefaultPolicies,
+                new ProtocolOptions(),
+                PoolingOptions.Create(),
+                new SocketOptions(),
+                new ClientOptions(),
+                NoneAuthProvider.Instance,
+                null,
+                new QueryOptions(),
+                new DefaultAddressTranslator(),
+                Mock.Of<IStartupOptionsFactory>());
 
             var request = RequestHandler.GetRequest(batch, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -539,7 +590,7 @@ namespace Dse.Test.Unit
             Assert.True(flags.HasFlag(QueryFlags.WithSerialConsistency));
             // Skip result_page_size (4)
             offset += 4;
-            Assert.That((ConsistencyLevel) BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
+            Assert.That((ConsistencyLevel)BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
         }
 
         [Test]
@@ -569,7 +620,7 @@ namespace Dse.Test.Unit
             Assert.True(flags.HasFlag(QueryFlags.WithSerialConsistency));
             // Skip result_page_size (4)
             offset += 4;
-            Assert.That((ConsistencyLevel) BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
+            Assert.That((ConsistencyLevel)BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
         }
 
         [Test]
@@ -594,7 +645,7 @@ namespace Dse.Test.Unit
             Assert.True(flags.HasFlag(QueryFlags.PageSize));
             // Skip result_page_size (4)
             offset += 4;
-            Assert.That((ConsistencyLevel) BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
+            Assert.That((ConsistencyLevel)BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
         }
 
         [Test]
@@ -660,7 +711,7 @@ namespace Dse.Test.Unit
             Assert.True(flags.HasFlag(QueryFlags.WithSerialConsistency));
             // Skip result_page_size (4)
             offset += 4;
-            Assert.That((ConsistencyLevel) BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
+            Assert.That((ConsistencyLevel)BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
         }
 
         [Test]
@@ -676,7 +727,7 @@ namespace Dse.Test.Unit
             var queryLength = BeConverter.ToInt32(buffer);
             Assert.AreEqual(query.Length, queryLength);
             var offset = 4 + queryLength;
-            var flags = (PrepareFlags) BeConverter.ToInt32(buffer, offset);
+            var flags = (PrepareFlags)BeConverter.ToInt32(buffer, offset);
             offset += 4;
             Assert.True(flags.HasFlag(PrepareFlags.WithKeyspace));
             var keyspaceLength = BeConverter.ToInt16(buffer, offset);
@@ -727,7 +778,7 @@ namespace Dse.Test.Unit
             var offset = 1 + 2 + 1 + 4 + query.Length + 2 + 2;
             var flags = GetQueryFlags(bodyBuffer, ref offset);
             Assert.True(flags.HasFlag(QueryFlags.WithSerialConsistency));
-            Assert.That((ConsistencyLevel) BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
+            Assert.That((ConsistencyLevel)BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
         }
 
         private static QueryFlags GetQueryFlags(byte[] bodyBuffer, ref int offset, Serializer serializer = null)
@@ -751,7 +802,7 @@ namespace Dse.Test.Unit
         }
 
         /// <summary>
-        /// A timestamp generator that generates empty values 
+        /// A timestamp generator that generates empty values
         /// </summary>
         private class NoTimestampGenerator : ITimestampGenerator
         {

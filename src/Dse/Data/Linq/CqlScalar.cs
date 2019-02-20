@@ -30,9 +30,9 @@ namespace Dse.Data.Linq
 
         public new TEntity Execute()
         {
-            var config = GetTable().GetSession().GetConfiguration();
+            var queryAbortTimeout = GetTable().GetSession().GetConfiguration()?.ClientOptions.QueryAbortTimeout ?? ClientOptions.DefaultQueryAbortTimeout;
             var task = ExecuteAsync();
-            return TaskHelper.WaitToComplete(task, config.ClientOptions.QueryAbortTimeout);
+            return TaskHelper.WaitToComplete(task, queryAbortTimeout);
         }
 
         public new CqlScalar<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)

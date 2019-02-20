@@ -122,9 +122,9 @@ namespace Dse.Data.Linq
         /// </summary>
         public IEnumerable<TEntity> Execute()
         {
-            var config = GetTable().GetSession().GetConfiguration();
+            var queryAbortTimeout = GetTable().GetSession().GetConfiguration()?.ClientOptions.QueryAbortTimeout ?? ClientOptions.DefaultQueryAbortTimeout;
             var task = ExecuteAsync();
-            return TaskHelper.WaitToComplete(task, config.ClientOptions.QueryAbortTimeout);
+            return TaskHelper.WaitToComplete(task, queryAbortTimeout);
         }
 
         public IAsyncResult BeginExecute(AsyncCallback callback, object state)

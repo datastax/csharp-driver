@@ -30,12 +30,13 @@ namespace Dse.Test.Integration.Core
     public class ConnectionTests : TestGlobals
     {
         private const string BasicQuery = "SELECT key FROM system.local";
+        private ITestCluster _testCluster;
 
         [OneTimeSetUp]
         public void SetupFixture()
         {
             // we just need to make sure that there is a query-able cluster
-            TestClusterManager.GetTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
+            _testCluster = TestClusterManager.GetTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
         }
 
         public ConnectionTests()
@@ -113,7 +114,7 @@ namespace Dse.Test.Integration.Core
                 var prepareRequest = new PrepareRequest(BasicQuery);
                 var task = connection.Send(prepareRequest);
                 var prepareOutput = ValidateResult<OutputPrepared>(task.Result);
-                
+
                 //Execute the prepared query
                 var executeRequest = new ExecuteRequest(GetProtocolVersion(), prepareOutput.QueryId, null,
                     prepareOutput.ResultMetadataId, false, QueryProtocolOptions.Default);
@@ -150,6 +151,7 @@ namespace Dse.Test.Integration.Core
         }
 
 #if NET452
+
         [Test]
         [TestCassandraVersion(2, 0)]
         public void Query_Compression_LZ4_Test()
@@ -198,6 +200,7 @@ namespace Dse.Test.Integration.Core
                 }
             }
         }
+
 #endif
 
         [Test]
@@ -289,9 +292,8 @@ namespace Dse.Test.Integration.Core
                 }
                 catch (AggregateException)
                 {
-                    
                 }
-                Assert.True(taskList.All(t => 
+                Assert.True(taskList.All(t =>
                     t.Status == TaskStatus.RanToCompletion ||
                     (t.Exception != null && t.Exception.InnerException is ReadTimeoutException)), "Not all task completed");
             }
@@ -359,7 +361,7 @@ namespace Dse.Test.Integration.Core
                     Assert.IsInstanceOf<SchemaChangeEventArgs>(eventArgs);
                     Assert.AreEqual(SchemaChangeEventArgs.Reason.Created, (eventArgs as SchemaChangeEventArgs).What);
                     Assert.AreEqual("test_events_kp", (eventArgs as SchemaChangeEventArgs).Keyspace);
-                    Assert.AreEqual("test_type", (eventArgs as SchemaChangeEventArgs).Type);   
+                    Assert.AreEqual("test_type", (eventArgs as SchemaChangeEventArgs).Type);
                 }
             }
         }
@@ -378,7 +380,6 @@ namespace Dse.Test.Integration.Core
                         Query(connection, query).Wait();
                     }, TaskContinuationOptions.ExecuteSynchronously).Wait();
             }
-
         }
 
         [Test]
@@ -404,10 +405,10 @@ namespace Dse.Test.Integration.Core
         }
 
         /// Tests that a ssl connection to a host with ssl disabled fails (not hangs)
-        /// 
+        ///
         /// @since 3.0.0
         /// @jira_ticket CSHARP-336
-        /// 
+        ///
         /// @test_category conection:ssl
         [Test]
         public void Ssl_Connect_With_Ssl_Disabled_Host()
@@ -420,7 +421,8 @@ namespace Dse.Test.Integration.Core
                  NoneAuthProvider.Instance,
                  null,
                  new QueryOptions(),
-                 new DefaultAddressTranslator());
+                new DefaultAddressTranslator(),
+                new StartupOptionsFactory());
             using (var connection = CreateConnection(GetProtocolVersion(), config))
             {
                 var ex = Assert.Throws<AggregateException>(() => connection.Open().Wait(10000));
@@ -430,7 +432,7 @@ namespace Dse.Test.Integration.Core
                     //So we throw a TimeoutException
                     StringAssert.IsMatch("SSL", ex.InnerException.Message);
                 }
-                else if (ex.InnerException is System.IO.IOException || 
+                else if (ex.InnerException is System.IO.IOException ||
                          ex.InnerException.GetType().Name.Contains("Mono") ||
                          ex.InnerException is System.Security.Authentication.AuthenticationException)
                 {
@@ -444,7 +446,7 @@ namespace Dse.Test.Integration.Core
                 }
             }
         }
-        
+
         [Test]
         public void SetKeyspace_Test()
         {
@@ -613,7 +615,8 @@ namespace Dse.Test.Integration.Core
                 NoneAuthProvider.Instance,
                 null,
                 new QueryOptions(),
-                new DefaultAddressTranslator());
+                new DefaultAddressTranslator(),
+                new StartupOptionsFactory());
             using (var connection = new Connection(new Serializer(GetProtocolVersion()), new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042), config))
             {
                 var ex = Assert.Throws<SocketException>(() => TaskHelper.WaitToComplete(connection.Open()));
@@ -815,14 +818,15 @@ namespace Dse.Test.Integration.Core
                 NoneAuthProvider.Instance,
                 null,
                 new QueryOptions(),
-                new DefaultAddressTranslator());
+                new DefaultAddressTranslator(),
+                new StartupOptionsFactory());
             return CreateConnection(GetProtocolVersion(), config);
         }
 
         private Connection CreateConnection(ProtocolVersion protocolVersion, Configuration config)
         {
             Trace.TraceInformation("Creating test connection using protocol v{0}", protocolVersion);
-            return new Connection(new Serializer(protocolVersion), new IPEndPoint(new IPAddress(new byte[] { 127, 0, 0, 1 }), 9042), config);
+            return new Connection(new Serializer(protocolVersion), new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), 9042), config);
         }
 
         private Task<Response> Query(Connection connection, string query, QueryProtocolOptions options = null)
