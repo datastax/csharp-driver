@@ -7,14 +7,13 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Net;
 using System.Reflection;
-using System.Text;
-using Dse;
-using Dse.Serialization;
-using Dse.Geometry;
+
 using Dse.Graph;
+using Dse.Helpers;
+using Dse.Requests;
+using Dse.Serialization;
 using Dse.Serialization.Geometry;
 using Dse.Serialization.Search;
 
@@ -25,9 +24,26 @@ namespace Dse
     /// </summary>
     public class DseClusterBuilder : Builder
     {
+        public const string DefaultApplicationName = "Default .NET Application";
+
         private static readonly Logger Logger = new Logger(typeof(DseClusterBuilder));
         private TypeSerializerDefinitions _typeSerializerDefinitions;
         private IAddressTranslator _addressTranslator = new IdentityAddressTranslator();
+
+        /// <summary>
+        /// The version of the application using the created cluster instance.
+        /// </summary>
+        public string ApplicationVersion { get; private set; }
+
+        /// <summary>
+        /// The name of the application using the created cluster instance.
+        /// </summary>
+        public string ApplicationName { get; private set; }
+
+        /// <summary>
+        /// A unique identifier for the created cluster instance.
+        /// </summary>
+        public Guid? ClusterId { get; private set; }
 
         /// <summary>
         /// Gets the DSE Graph options.
@@ -44,6 +60,51 @@ namespace Dse
         }
 
         /// <summary>
+        /// <para>
+        /// An optional configuration for providing a unique identifier for the created cluster instance.
+        /// </para>
+        /// If not provided, an id will generated.
+        /// <para>
+        /// This value is passed to DSE and is useful as metadata for describing a client connection.
+        /// </para>
+        /// </summary>
+        /// <param name="id">The id to assign to this cluster instance.</param>
+        /// <returns>this instance</returns>
+        public DseClusterBuilder WithClusterId(Guid id)
+        {
+            ClusterId = id;
+            return this;
+        }
+
+        /// <summary>
+        /// <para>
+        /// An optional configuration identifying the name of the application using this cluster instance.
+        /// </para>
+        /// This value is passed to DSE and is useful as metadata for describing a client connection.
+        /// </summary>
+        /// <param name="name">The name of the application using this cluster.</param>
+        /// <returns>this instance</returns>
+        public DseClusterBuilder WithApplicationName(string name)
+        {
+            ApplicationName = name ?? throw new ArgumentNullException(nameof(name));
+            return this;
+        }
+
+        /// <summary>
+        /// <para>
+        /// An optional configuration identifying the version of the application using this cluster instance.
+        /// </para>
+        /// This value is passed to DSE and is useful as metadata for describing a client connection.
+        /// </summary>
+        /// <param name="version">The version of the application using this cluster.</param>
+        /// <returns>this instance</returns>
+        public DseClusterBuilder WithApplicationVersion(string version)
+        {
+            ApplicationVersion = version ?? throw new ArgumentNullException(nameof(version));
+            return this;
+        }
+
+        /// <summary>
         /// Sets the DSE Graph options.
         /// </summary>
         /// <returns>this instance</returns>
@@ -52,7 +113,6 @@ namespace Dse
             GraphOptions = options;
             return this;
         }
-
 
         /// <summary>
         ///  The port to use to connect to all Cassandra hosts. If not set through this
@@ -66,10 +126,9 @@ namespace Dse
             return this;
         }
 
-
         /// <summary>
         /// Sets the QueryOptions to use for the newly created Cluster.
-        /// 
+        ///
         /// If no query options are set through this method, default query
         /// options will be used.
         /// </summary>
@@ -113,16 +172,16 @@ namespace Dse
         ///  won't be able to initialize itself correctly.
         /// </summary>
         /// <remarks>
-        ///  However, this can be useful if the Cassandra nodes are behind a router and 
-        ///  are not accessed directly. Note that if you are in this situation 
-        ///  (Cassandra nodes are behind a router, not directly accessible), you almost 
-        ///  surely want to provide a specific <c>IAddressTranslator</c> 
-        ///  (through <link>Builder.WithAddressTranslater</link>) to translate actual 
-        ///  Cassandra node addresses to the addresses the driver should use, otherwise 
-        ///  the driver will not be able to auto-detect new nodes (and will generally not 
+        ///  However, this can be useful if the Cassandra nodes are behind a router and
+        ///  are not accessed directly. Note that if you are in this situation
+        ///  (Cassandra nodes are behind a router, not directly accessible), you almost
+        ///  surely want to provide a specific <c>IAddressTranslator</c>
+        ///  (through <link>Builder.WithAddressTranslater</link>) to translate actual
+        ///  Cassandra node addresses to the addresses the driver should use, otherwise
+        ///  the driver will not be able to auto-detect new nodes (and will generally not
         ///  function optimally).
         /// </remarks>
-        /// <param name="address">the address of the node to connect to</param> 
+        /// <param name="address">the address of the node to connect to</param>
         /// <returns>this Builder</returns>
         public new DseClusterBuilder AddContactPoint(string address)
         {
@@ -134,7 +193,7 @@ namespace Dse
         ///  Add contact point. See <see cref="Builder.AddContactPoint(string)"/> for more details
         ///  on contact points.
         /// </summary>
-        /// <param name="address"> address of the node to add as contact point</param> 
+        /// <param name="address"> address of the node to add as contact point</param>
         /// <returns>this Builder</returns>
         public new DseClusterBuilder AddContactPoint(IPAddress address)
         {
@@ -146,7 +205,7 @@ namespace Dse
         ///  Add contact point. See <see cref="Builder.AddContactPoint(string)"/> for more details
         ///  on contact points.
         /// </summary>
-        /// <param name="address"> address of the node to add as contact point</param> 
+        /// <param name="address"> address of the node to add as contact point</param>
         /// <returns>this Builder</returns>
         public new DseClusterBuilder AddContactPoint(IPEndPoint address)
         {
@@ -158,7 +217,7 @@ namespace Dse
         ///  Add contact points. See <see cref="Builder.AddContactPoint(string)"/> for more details
         ///  on contact points.
         /// </summary>
-        /// <param name="addresses"> addresses of the nodes to add as contact point</param> 
+        /// <param name="addresses"> addresses of the nodes to add as contact point</param>
         /// <returns>this Builder </returns>
         public new DseClusterBuilder AddContactPoints(params string[] addresses)
         {
@@ -229,7 +288,7 @@ namespace Dse
 
         /// <summary>
         /// Configures the load balancing policy to use for the new cluster.
-        /// <para> 
+        /// <para>
         /// If no load balancing policy is set through this method, <see cref="DseLoadBalancingPolicy"/>
         /// will be used instead.
         /// </para>
@@ -271,8 +330,8 @@ namespace Dse
         }
 
         /// <summary>
-        ///  Configure the speculative execution to use for the new cluster. 
-        /// <para> 
+        ///  Configure the speculative execution to use for the new cluster.
+        /// <para>
         /// If no speculative execution policy is set through this method, <see cref="Dse.Policies.DefaultSpeculativeExecutionPolicy"/> will be used instead.
         /// </para>
         /// </summary>
@@ -285,10 +344,10 @@ namespace Dse
         }
 
         /// <summary>
-        ///  Configure the cluster by applying settings from ConnectionString. 
+        ///  Configure the cluster by applying settings from ConnectionString.
         /// </summary>
         /// <param name="connectionString"> the ConnectionString to use </param>
-        /// 
+        ///
         /// <returns>this Builder</returns>
         public new DseClusterBuilder WithConnectionString(string connectionString)
         {
@@ -311,7 +370,6 @@ namespace Dse
             return this;
         }
 
-
         /// <summary>
         ///  Use the specified AuthProvider when connecting to Cassandra hosts. <p> Use
         ///  this method when a custom authentication scheme is in place. You shouldn't
@@ -329,7 +387,7 @@ namespace Dse
         /// <summary>
         /// Specifies the number of milliseconds that the driver should wait for the response before the query times out in a synchronous operation.
         /// <para>
-        /// This will cause that synchronous operations like <see cref="ISession.Execute(string)"/> to throw a <see cref="System.TimeoutException"/> 
+        /// This will cause that synchronous operations like <see cref="ISession.Execute(string)"/> to throw a <see cref="System.TimeoutException"/>
         /// after the specified number of milliseconds.
         /// </para>
         /// Default timeout value is set to <code>20,000</code> (20 seconds).
@@ -376,7 +434,7 @@ namespace Dse
         }
 
         /// <summary>
-        ///  Enables the use of SSL for the created Cluster. Calling this method will use default SSL options. 
+        ///  Enables the use of SSL for the created Cluster. Calling this method will use default SSL options.
         /// </summary>
         /// <remarks>
         /// If SSL is enabled, the driver will not connect to any
@@ -393,7 +451,7 @@ namespace Dse
         }
 
         /// <summary>
-        ///  Enables the use of SSL for the created Cluster using the provided options. 
+        ///  Enables the use of SSL for the created Cluster using the provided options.
         /// </summary>
         /// <remarks>
         /// If SSL is enabled, the driver will not connect to any
@@ -402,7 +460,7 @@ namespace Dse
         /// SSL in the driver. Note that SSL certificate common name(CN) on Cassandra node must match Cassandra node hostname.
         /// </remarks>
         /// <param name="sslOptions">SSL options to use.</param>
-        /// <returns>this builder</returns>        
+        /// <returns>this builder</returns>
         // ReSharper disable once InconsistentNaming
         public new DseClusterBuilder WithSSL(SSLOptions sslOptions)
         {
@@ -429,9 +487,9 @@ namespace Dse
 
         /// <summary>
         /// <para>Limits the maximum protocol version used to connect to the nodes, when it is not set
-        /// protocol version used between the driver and the Cassandra cluster is negotiated upon establishing 
+        /// protocol version used between the driver and the Cassandra cluster is negotiated upon establishing
         /// the first connection.</para>
-        /// <para>Useful for using the driver against a cluster that contains nodes with different major/minor versions 
+        /// <para>Useful for using the driver against a cluster that contains nodes with different major/minor versions
         /// of Cassandra. For example, preparing for a rolling upgrade of the Cluster.</para>
         /// </summary>
         /// <param name="version">
@@ -489,8 +547,17 @@ namespace Dse
         public new DseCluster Build()
         {
             var dseAssembly = typeof(DseCluster).GetTypeInfo().Assembly;
-            Logger.Info("Using DataStax C# DSE driver v{0}",
+            DseClusterBuilder.Logger.Info(
+                "Using DataStax C# DSE driver v{0}",
                 FileVersionInfo.GetVersionInfo(dseAssembly.Location).FileVersion);
+
+            var appNameWasGenerated = ApplicationName == null;
+            var entryAssemblyName = AssemblyHelpers.GetEntryAssembly()?.GetName().Name ?? DseClusterBuilder.DefaultApplicationName;
+            var appName = ApplicationName ?? entryAssemblyName;
+            var appVersion = ApplicationVersion ?? string.Empty;
+            var clusterId = ClusterId ?? Guid.NewGuid();
+            var internalClusterId = Guid.NewGuid();
+
             var typeSerializerDefinitions = _typeSerializerDefinitions ?? new TypeSerializerDefinitions();
             typeSerializerDefinitions
                 .Define(new DateRangeSerializer())
@@ -500,12 +567,24 @@ namespace Dse
                 .Define(new PolygonSerializer());
 
             base.WithTypeSerializers(typeSerializerDefinitions);
+            base.WithStartupOptionsFactory(new DseStartupOptionsFactory(clusterId, appVersion, appName));
             var coreCluster = base.Build();
-            var config = new DseConfiguration(coreCluster.Configuration, GraphOptions ?? new GraphOptions());
+
+            var config = new DseConfiguration(
+                coreCluster.Configuration,
+                GraphOptions ?? new GraphOptions(), 
+                clusterId, 
+                appVersion, 
+                appName,
+                internalClusterId,
+                appNameWasGenerated)
+            {
+                AddressTranslator = _addressTranslator
+            };
+
             // To be replaced after CSHARP-444.
-            config.AddressTranslator = _addressTranslator;
             return new DseCluster(
-                coreCluster, 
+                coreCluster,
                 config);
         }
     }

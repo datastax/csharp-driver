@@ -15,7 +15,10 @@
 //
 
 using System;
+using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace Dse.Helpers
 {
@@ -56,5 +59,84 @@ namespace Dse.Helpers
         {
             return AssemblyHelpers.GetAssembly(type).GetCustomAttribute<AssemblyTitleAttribute>().Title;
         }
+
+        public static Assembly GetEntryAssembly()
+        {
+            var assembly = Assembly.GetEntryAssembly();
+
+#if !NETSTANDARD1_5
+            if (assembly == null)
+            {
+                assembly = AssemblyHelpers.GetEntryAssemblyByMainModule();
+            }
+
+            if (assembly == null)
+            {
+                assembly = AssemblyHelpers.GetEntryAssemblyByStacktrace();
+            }
+#endif
+
+            return assembly;
+        }
+
+#if !NETSTANDARD1_5
+        private static Assembly GetEntryAssemblyByStacktrace()
+        {
+            try
+            {
+                var methodFrames = new StackTrace().GetFrames().Select(t => t.GetMethod()).ToArray();
+                MethodBase entryMethod = null;
+                int firstInvokeMethod = 0;
+                for (int i = 0; i < methodFrames.Length; i++)
+                {
+                    var method = methodFrames[i] as MethodInfo;
+                    if (method == null)
+                        continue;
+                    if (method.IsStatic &&
+                        method.Name == "Main" &&
+                        (
+                            method.ReturnType == typeof(void) ||
+                            method.ReturnType == typeof(int) ||
+                            method.ReturnType == typeof(Task) ||
+                            method.ReturnType == typeof(Task<int>)
+                        ))
+                    {
+                        entryMethod = method;
+                    }
+                    else if (firstInvokeMethod == 0 &&
+                             method.IsStatic &&
+                             method.Name == "InvokeMethod" &&
+                             method.DeclaringType == typeof(RuntimeMethodHandle))
+                    {
+                        firstInvokeMethod = i;
+                    }
+                }
+
+                if (entryMethod == null)
+                    entryMethod = firstInvokeMethod != 0 ? methodFrames[firstInvokeMethod - 1] : methodFrames.Last();
+
+                return entryMethod.Module.Assembly;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static Assembly GetEntryAssemblyByMainModule()
+        {
+            try
+            {
+                ProcessModule mainModule = Process.GetCurrentProcess().MainModule;
+                Assembly entryAssembly = AppDomain.CurrentDomain.GetAssemblies()
+                                                  .SingleOrDefault(assembly => assembly.Location == mainModule.FileName);
+                return entryAssembly;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+#endif
     }
 }
