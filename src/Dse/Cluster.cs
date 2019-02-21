@@ -15,6 +15,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Dse.Collections;
+using Dse.Helpers;
 using Dse.Requests;
 using Dse.Serialization;
 using Dse.Tasks;
@@ -154,11 +155,13 @@ namespace Dse
         /// <exception cref="NoHostAvailableException">When no host can be resolved and no other contact point is an address</exception>
         private async Task AddHosts(IEnumerable<object> contactPoints)
         {
+            var resolvedContactPoints = new Dictionary<string, ICollection<IPEndPoint>>();
             var hostNames = new List<string>();
             foreach (var contactPoint in contactPoints)
             {
                 if (contactPoint is IPEndPoint endpoint)
                 {
+                    resolvedContactPoints.CreateOrAdd(endpoint.ToString(), endpoint);
                     _metadata.AddHost(endpoint);
                     continue;
                 }
@@ -170,7 +173,9 @@ namespace Dse
 
                 if (IPAddress.TryParse(contactPointText, out var ipAddress))
                 {
-                    _metadata.AddHost(new IPEndPoint(ipAddress, Configuration.ProtocolOptions.Port));
+                    var ipEndpoint = new IPEndPoint(ipAddress, Configuration.ProtocolOptions.Port);
+                    resolvedContactPoints.CreateOrAdd(contactPointText, ipEndpoint);
+                    _metadata.AddHost(ipEndpoint);
                     continue;
                 }
 
@@ -185,14 +190,22 @@ namespace Dse
                     _logger.Warning($"Host '{contactPointText}' could not be resolved");
                 }
 
-                if (hostEntry != null)
+                if (hostEntry != null && hostEntry.AddressList.Length > 0)
                 {
                     foreach (var resolvedAddress in hostEntry.AddressList)
                     {
-                        _metadata.AddHost(new IPEndPoint(resolvedAddress, Configuration.ProtocolOptions.Port));
+                        var ipEndpoint = new IPEndPoint(resolvedAddress, Configuration.ProtocolOptions.Port);
+                        _metadata.AddHost(ipEndpoint);
+                        resolvedContactPoints.CreateOrAdd(contactPointText, ipEndpoint);
                     }                    
                 }
+                else
+                {
+                    resolvedContactPoints.CreateIfDoesNotExist(contactPointText);
+                }
             }
+
+            _metadata.SetResolvedContactPoints(resolvedContactPoints.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.AsEnumerable()));
 
             if (_metadata.Hosts.Count == 0)
             {
@@ -275,6 +288,11 @@ namespace Dse
             var assembly = typeof(ISession).GetTypeInfo().Assembly;
             var info = FileVersionInfo.GetVersionInfo(assembly.Location);
             return $"{info.ProductName} v{info.FileVersion}";
+        }
+
+        internal IReadOnlyDictionary<string, IEnumerable<IPEndPoint>> GetResolvedEndpoints()
+        {
+            return _metadata.ResolvedContactPoints;
         }
 
         /// <inheritdoc />

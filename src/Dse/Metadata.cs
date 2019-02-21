@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -63,6 +64,9 @@ namespace Dse
 
         internal Hosts Hosts { get; private set; }
 
+        internal IReadOnlyDictionary<string, IEnumerable<IPEndPoint>> ResolvedContactPoints { get; private set; } = 
+            new Dictionary<string, IEnumerable<IPEndPoint>>();
+
         internal IReadOnlyTokenMap TokenToReplicasMap => _tokenMap;
 
         internal Metadata(Configuration configuration)
@@ -81,6 +85,11 @@ namespace Dse
         public void Dispose()
         {
             ShutDown();
+        }
+
+        internal void SetResolvedContactPoints(IReadOnlyDictionary<string, IEnumerable<IPEndPoint>> resolvedContactPoints)
+        {
+            ResolvedContactPoints = resolvedContactPoints;
         }
 
         public Host GetHost(IPEndPoint address)

@@ -6,6 +6,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 
@@ -131,6 +132,27 @@ namespace Dse.Test.Unit
             builder = Cluster.Builder().WithPort(port).AddContactPoints(host1, host2);
             cluster = builder.Build();
             Assert.True(cluster.AllHosts().All(h => h.Address.Port == port));
+        }
+        
+        [Test]
+        public void Should_SetResolvedContactPoints_When_ClusterIsBuilt()
+        {
+            const string host1 = "127.0.0.1";
+            const string host2 = "127.0.0.2";
+            const string host3 = "localhost";
+            
+            var builder = Cluster.Builder().AddContactPoints(host1, host2, host3);
+            var cluster = builder.Build();
+            Assert.AreEqual(3, cluster.GetResolvedEndpoints().Count);
+            CollectionAssert.AreEqual(
+                new[] { new IPEndPoint(IPAddress.Parse(host1), ProtocolOptions.DefaultPort) }, 
+                cluster.GetResolvedEndpoints()[host1]);
+            CollectionAssert.AreEqual(
+                new[] { new IPEndPoint(IPAddress.Parse(host2), ProtocolOptions.DefaultPort) }, 
+                cluster.GetResolvedEndpoints()[host2]);
+
+            var localhostAddress = new IPEndPoint(IPAddress.Parse("127.0.0.1"), ProtocolOptions.DefaultPort);
+            Assert.Contains(localhostAddress, cluster.GetResolvedEndpoints()[host3].ToList());
         }
 
         [Test]
