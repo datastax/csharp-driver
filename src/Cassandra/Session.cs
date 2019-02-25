@@ -31,6 +31,7 @@ namespace Cassandra
     public class Session : IInternalSession
     {
         private readonly Serializer _serializer;
+        private readonly ISessionManager _sessionManager;
         private static readonly Logger Logger = new Logger(typeof(Session));
         private readonly ConcurrentDictionary<IPEndPoint, HostConnectionPool> _connectionPool;
         private readonly Cluster _cluster;
@@ -77,9 +78,15 @@ namespace Cassandra
 
         public Policies Policies => Configuration.Policies;
 
-        internal Session(Cluster cluster, Configuration configuration, string keyspace, Serializer serializer)
+        internal Session(
+            Cluster cluster,
+            Configuration configuration,
+            string keyspace,
+            Serializer serializer,
+            ISessionManager sessionManager)
         {
             _serializer = serializer;
+            _sessionManager = sessionManager;
             _cluster = cluster;
             Configuration = configuration;
             Keyspace = keyspace;
@@ -162,6 +169,9 @@ namespace Cassandra
             {
                 return;
             }
+
+            _sessionManager?.OnShutdownAsync().GetAwaiter().GetResult();
+
             var hosts = Cluster.AllHosts().ToArray();
             foreach (var host in hosts)
             {
@@ -186,6 +196,11 @@ namespace Cassandra
                 // Borrow a connection, trying to fail fast
                 IRequestHandler handler = new RequestHandler(this, _serializer);
                 await handler.GetNextConnectionAsync(new Dictionary<IPEndPoint, Exception>()).ConfigureAwait(false);
+            }
+
+            if (_sessionManager != null)
+            {
+                await _sessionManager.OnInitializationAsync().ConfigureAwait(false);
             }
         }
 

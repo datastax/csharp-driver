@@ -76,38 +76,39 @@ namespace Cassandra
         /// A policy that delegates to the user provided retry policy for all <see cref="IRetryPolicy"/> method calls and
         /// to the default <see cref="IExtendedRetryPolicy"/> for the rest.
         /// </summary>
-        private class WrappedExtendedRetryPolicy : IExtendedRetryPolicy
+        internal class WrappedExtendedRetryPolicy : IExtendedRetryPolicy
         {
-            private readonly IExtendedRetryPolicy _defaultPolicy;
-            private readonly IRetryPolicy _policy;
-
             public WrappedExtendedRetryPolicy(IRetryPolicy policy, IExtendedRetryPolicy defaultPolicy)
             {
-                _policy = policy;
-                _defaultPolicy = defaultPolicy;
+                Policy = policy;
+                DefaultPolicy = defaultPolicy;
             }
+
+            public IRetryPolicy Policy { get; }
+
+            public IExtendedRetryPolicy DefaultPolicy { get; }
 
             public RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses, 
                                                int receivedResponses, bool dataRetrieved, int nbRetry)
             {
-                return _policy.OnReadTimeout(query, cl, requiredResponses, receivedResponses, dataRetrieved, nbRetry);
+                return Policy.OnReadTimeout(query, cl, requiredResponses, receivedResponses, dataRetrieved, nbRetry);
             }
 
             public RetryDecision OnWriteTimeout(IStatement query, ConsistencyLevel cl, string writeType,
                                                 int requiredAcks, int receivedAcks, int nbRetry)
             {
-                return _policy.OnWriteTimeout(query, cl, writeType, requiredAcks, receivedAcks, nbRetry);
+                return Policy.OnWriteTimeout(query, cl, writeType, requiredAcks, receivedAcks, nbRetry);
             }
 
             public RetryDecision OnUnavailable(IStatement query, ConsistencyLevel cl, int requiredReplica,
                                                int aliveReplica, int nbRetry)
             {
-                return _policy.OnUnavailable(query, cl, requiredReplica, aliveReplica, nbRetry);
+                return Policy.OnUnavailable(query, cl, requiredReplica, aliveReplica, nbRetry);
             }
 
             public RetryDecision OnRequestError(IStatement statement, Configuration config, Exception ex, int nbRetry)
             {
-                return _defaultPolicy.OnRequestError(statement, config, ex, nbRetry);
+                return DefaultPolicy.OnRequestError(statement, config, ex, nbRetry);
             }
         }
     }

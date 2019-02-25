@@ -28,7 +28,6 @@ namespace Cassandra
     /// </summary>
     public class IdempotenceAwareRetryPolicy : IExtendedRetryPolicy
     {
-        private readonly IRetryPolicy _childPolicy;
         private readonly IExtendedRetryPolicy _extendedChildPolicy;
 
         /// <summary>
@@ -37,18 +36,16 @@ namespace Cassandra
         /// <param name="childPolicy">The retry policy to wrap.</param>
         public IdempotenceAwareRetryPolicy(IRetryPolicy childPolicy)
         {
-            if (childPolicy == null)
-            {
-                throw new ArgumentNullException("childPolicy");
-            }
-            _childPolicy = childPolicy;
+            ChildPolicy = childPolicy ?? throw new ArgumentNullException("childPolicy");
             _extendedChildPolicy = childPolicy as IExtendedRetryPolicy;
         }
+
+        public IRetryPolicy ChildPolicy { get; }
 
         /// <inheritdoc />
         public RetryDecision OnReadTimeout(IStatement stmt, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved, int nbRetry)
         {
-            return _childPolicy.OnReadTimeout(stmt, cl, requiredResponses, receivedResponses, dataRetrieved, nbRetry);
+            return ChildPolicy.OnReadTimeout(stmt, cl, requiredResponses, receivedResponses, dataRetrieved, nbRetry);
         }
 
         /// <inheritdoc />
@@ -56,7 +53,7 @@ namespace Cassandra
         {
             if (stmt != null && stmt.IsIdempotent == true)
             {
-                return _childPolicy.OnWriteTimeout(stmt, cl, writeType, requiredAcks, receivedAcks, nbRetry);
+                return ChildPolicy.OnWriteTimeout(stmt, cl, writeType, requiredAcks, receivedAcks, nbRetry);
             }
             return RetryDecision.Rethrow();
         }
@@ -64,7 +61,7 @@ namespace Cassandra
         /// <inheritdoc />
         public RetryDecision OnUnavailable(IStatement stmt, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
-            return _childPolicy.OnUnavailable(stmt, cl, requiredReplica, aliveReplica, nbRetry);
+            return ChildPolicy.OnUnavailable(stmt, cl, requiredReplica, aliveReplica, nbRetry);
         }
 
         /// <inheritdoc />
