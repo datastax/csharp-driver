@@ -425,11 +425,11 @@ namespace Cassandra.IntegrationTests.Core
             var config = new Configuration(Cassandra.Policies.DefaultPolicies,
                 new ProtocolOptions(ProtocolOptions.DefaultPort, new SSLOptions()),
                 new PoolingOptions(),
-                 new SocketOptions().SetConnectTimeoutMillis(200),
-                 new ClientOptions(),
-                 NoneAuthProvider.Instance,
-                 null,
-                 new QueryOptions(),
+                new SocketOptions().SetConnectTimeoutMillis(200),
+                new ClientOptions(),
+                NoneAuthProvider.Instance,
+                null,
+                new QueryOptions(),
                 new DefaultAddressTranslator(),
                 new StartupOptionsFactory());
             using (var connection = CreateConnection(GetProtocolVersion(), config))

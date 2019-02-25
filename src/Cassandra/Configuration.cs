@@ -16,9 +16,11 @@
 
 using System;
 using System.Collections.Generic;
+
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
+
 using Microsoft.IO;
 
 namespace Cassandra
@@ -44,7 +46,7 @@ namespace Cassandra
         /// <summary>
         ///  The Cassandra binary protocol level configuration (compression).
         /// </summary>
-        /// 
+        ///
         /// <returns>the protocol options.</returns>
         public ProtocolOptions ProtocolOptions { get; private set; }
 
@@ -78,7 +80,7 @@ namespace Cassandra
 
         /// <summary>
         ///  The address translator used to translate Cassandra node address.
-        /// </summary> 
+        /// </summary>
         /// <returns>the address translator in use.</returns>
         public IAddressTranslator AddressTranslator { get; private set; }
 

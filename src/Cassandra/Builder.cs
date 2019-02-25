@@ -109,15 +109,23 @@ namespace Cassandra
                 _retryPolicy,
                 _speculativeExecutionPolicy,
                 _timestampGenerator);
-            var config = new Configuration(policies,
-                new ProtocolOptions(_port, _sslOptions).SetCompression(_compression)
-                                                       .SetCustomCompressor(_customCompressor)
-                                                       .SetMaxProtocolVersion(_maxProtocolVersion)
-                                                       .SetNoCompact(_noCompact)
-                                                       .SetMaxSchemaAgreementWaitSeconds(_maxSchemaAgreementWaitSeconds),
+
+            var protocolOptions = 
+                new ProtocolOptions(_port, _sslOptions)
+                    .SetCompression(_compression)
+                    .SetCustomCompressor(_customCompressor)
+                    .SetMaxProtocolVersion(_maxProtocolVersion)
+                    .SetNoCompact(_noCompact)
+                    .SetMaxSchemaAgreementWaitSeconds(_maxSchemaAgreementWaitSeconds);
+
+            var clientOptions = new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace);
+            
+            var config = new Configuration(
+                policies,
+                protocolOptions,
                 _poolingOptions,
                 _socketOptions,
-                new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace),
+                clientOptions,
                 _authProvider,
                 _authInfoProvider,
                 _queryOptions,
@@ -127,6 +135,7 @@ namespace Cassandra
             {
                 config.TypeSerializers = _typeSerializerDefinitions.Definitions;
             }
+
             return config;
         }
 

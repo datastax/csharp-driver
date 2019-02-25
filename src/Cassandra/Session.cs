@@ -15,15 +15,16 @@
 //
 
 using System;
-using System.Linq;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading;
-using System.Collections.Concurrent;
 using System.Threading.Tasks;
-using Cassandra.Tasks;
+
 using Cassandra.Requests;
 using Cassandra.Serialization;
+using Cassandra.Tasks;
 
 namespace Cassandra
 {
@@ -271,7 +272,7 @@ namespace Cassandra
         {
             return new RequestHandler(this, _serializer, statement).SendAsync();
         }
-        
+
         /// <inheritdoc />
         HostConnectionPool IInternalSession.GetOrCreateConnectionPool(Host host, HostDistance distance)
         {
@@ -371,7 +372,6 @@ namespace Cassandra
 
         public void WaitForSchemaAgreement(RowSet rs)
         {
-            
         }
 
         public bool WaitForSchemaAgreement(IPEndPoint hostAddress)
