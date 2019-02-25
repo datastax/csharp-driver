@@ -38,6 +38,7 @@ namespace Cassandra
     {
         private string _localDc;
         private readonly int _usedHostsPerRemoteDc;
+
         private readonly int _maxIndex = Int32.MaxValue - 10000;
         private volatile Tuple<List<Host>, List<Host>> _hosts;
         private readonly object _hostCreationLock = new object();
@@ -95,6 +96,9 @@ namespace Cassandra
             _usedHostsPerRemoteDc = usedHostsPerRemoteDc;
         }
 
+        public string LocalDc => _localDc;
+
+        public int UsedHostsPerRemoteDc => _usedHostsPerRemoteDc;
 
         public void Initialize(ICluster cluster)
         {

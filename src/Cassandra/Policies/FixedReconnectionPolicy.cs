@@ -45,6 +45,11 @@ namespace Cassandra
             _delays = delays;
         }
 
+        /// <summary>
+        /// Gets a copy of the provided <see cref="_delays"/> array.
+        /// </summary>
+        public long[] Delays => (long[])_delays.Clone();
+
         public IReconnectionSchedule NewSchedule()
         {
             return new FixedReconnectionSchedule(_delays);
