@@ -37,6 +37,8 @@ namespace Dse
 
         IPEndPoint Address { get; }
 
+        IPEndPoint LocalAddress { get; }
+
         /// <summary>
         /// Determines the amount of operations that are not finished.
         /// </summary>

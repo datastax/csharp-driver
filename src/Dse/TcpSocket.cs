@@ -68,6 +68,25 @@ namespace Dse
         }
 
         /// <summary>
+        /// Get this socket's local address.
+        /// </summary>
+        /// <returns>The socket's local address.</returns>
+        public IPEndPoint GetLocalIpEndPoint()
+        {
+            try
+            {
+                var s = _socket;
+
+                return (IPEndPoint) s?.LocalEndPoint;
+            }
+            catch (Exception ex)
+            {
+                TcpSocket._logger.Warning("Exception thrown when trying to get LocalIpEndpoint: {0}", ex.ToString());
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Initializes the socket options
         /// </summary>
         public void Init()

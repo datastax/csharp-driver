@@ -54,6 +54,8 @@ namespace Dse
 
         public IPEndPoint Address => _connection?.Address;
 
+        public IPEndPoint LocalAddress => _connection?.LocalAddress;
+
         public Serializer Serializer => _serializer;
 
         internal ControlConnection(ProtocolVersion initialProtocolVersion, Configuration config, Metadata metadata)
@@ -499,9 +501,14 @@ namespace Dse
             return TaskHelper.WaitToComplete(QueryAsync(cqlQuery, retry), MetadataAbortTimeout);
         }
 
-        public async Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry = false)
+        public Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry = false)
         {
-            var request = new QueryRequest(ProtocolVersion, cqlQuery, false, QueryProtocolOptions.Default);
+            return QueryAsync(cqlQuery, retry, QueryProtocolOptions.Default);
+        }
+
+        public async Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry, QueryProtocolOptions queryProtocolOptions)
+        {
+            var request = new QueryRequest(ProtocolVersion, cqlQuery, false, queryProtocolOptions);
             Response response;
             try
             {
@@ -578,10 +585,17 @@ namespace Dse
         /// The address of the endpoint used by the ControlConnection
         /// </summary>
         IPEndPoint Address { get; }
+        
+        /// <summary>
+        /// The local address of the socket used by the ControlConnection
+        /// </summary>
+        IPEndPoint LocalAddress { get; }
 
         Serializer Serializer { get; }
 
         Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry = false);
+
+        Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry, QueryProtocolOptions queryProtocolOptions);
 
         IEnumerable<Row> Query(string cqlQuery, bool retry = false);
     }

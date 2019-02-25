@@ -25,8 +25,6 @@ namespace Dse
     /// </summary>
     public class TokenAwarePolicy : ILoadBalancingPolicy
     {
-
-        private readonly ILoadBalancingPolicy _childPolicy;
         private ICluster _cluster;
         private readonly ThreadLocal<Random> _prng = new ThreadLocal<Random>(() => new Random(
             // Predictable random numbers are OK
@@ -40,13 +38,15 @@ namespace Dse
         ///  awareness.</param>
         public TokenAwarePolicy(ILoadBalancingPolicy childPolicy)
         {
-            _childPolicy = childPolicy;
+            ChildPolicy = childPolicy;
         }
+
+        public ILoadBalancingPolicy ChildPolicy { get; }
 
         public void Initialize(ICluster cluster)
         {
             _cluster = cluster;
-            _childPolicy.Initialize(cluster);
+            ChildPolicy.Initialize(cluster);
         }
 
         /// <summary>
@@ -58,7 +58,7 @@ namespace Dse
         ///  policy.</returns>
         public HostDistance Distance(Host host)
         {
-            return _childPolicy.Distance(host);
+            return ChildPolicy.Distance(host);
         }
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace Dse
             IEnumerable<Host> childIterator;
             if (routingKey == null)
             {
-                childIterator = _childPolicy.NewQueryPlan(loggedKeyspace, query);
+                childIterator = ChildPolicy.NewQueryPlan(loggedKeyspace, query);
                 foreach (var h in childIterator)
                 {
                     yield return h;
@@ -91,7 +91,7 @@ namespace Dse
             var localReplicaSet = new HashSet<Host>();
             var localReplicaList = new List<Host>(replicas.Count);
             // We can't do it lazily as we need to balance the load between local replicas
-            foreach (var localReplica in replicas.Where(h => _childPolicy.Distance(h) == HostDistance.Local))
+            foreach (var localReplica in replicas.Where(h => ChildPolicy.Distance(h) == HostDistance.Local))
             {
                 localReplicaSet.Add(localReplica);
                 localReplicaList.Add(localReplica);
@@ -108,7 +108,7 @@ namespace Dse
             }
 
             // Then, return the rest of child policy hosts
-            childIterator = _childPolicy.NewQueryPlan(loggedKeyspace, query);
+            childIterator = ChildPolicy.NewQueryPlan(loggedKeyspace, query);
             foreach (var h in childIterator)
             {
                 if (localReplicaSet.Contains(h))

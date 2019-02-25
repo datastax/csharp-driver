@@ -19,7 +19,7 @@ namespace Dse
     public class LoggingRetryPolicy : IExtendedRetryPolicy
     {
         private readonly Logger _logger = new Logger(typeof (LoggingRetryPolicy));
-        private readonly IRetryPolicy _policy;
+
         private readonly IExtendedRetryPolicy _extendedPolicy;
 
         /// <summary>
@@ -29,16 +29,18 @@ namespace Dse
         ///  constructor will return the same decision than <c>policy</c> but will log them.</param>
         public LoggingRetryPolicy(IRetryPolicy policy)
         {
-            _policy = policy;
+            ChildPolicy = policy;
             // Use the provided policy for extended policy methods.
             // If the provided policy is not IExtendedRetryPolicy, use the default.
             _extendedPolicy = (policy as IExtendedRetryPolicy) ?? new DefaultRetryPolicy();
         }
 
+        public IRetryPolicy ChildPolicy { get; }
+
         public RetryDecision OnReadTimeout(IStatement query, ConsistencyLevel cl, int requiredResponses, int receivedResponses, bool dataRetrieved,
                                            int nbRetry)
         {
-            RetryDecision decision = _policy.OnReadTimeout(query, cl, requiredResponses, receivedResponses, dataRetrieved, nbRetry);
+            RetryDecision decision = ChildPolicy.OnReadTimeout(query, cl, requiredResponses, receivedResponses, dataRetrieved, nbRetry);
             switch (decision.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.Ignore:
@@ -59,7 +61,7 @@ namespace Dse
 
         public RetryDecision OnWriteTimeout(IStatement query, ConsistencyLevel cl, string writeType, int requiredAcks, int receivedAcks, int nbRetry)
         {
-            RetryDecision decision = _policy.OnWriteTimeout(query, cl, writeType, requiredAcks, receivedAcks, nbRetry);
+            RetryDecision decision = ChildPolicy.OnWriteTimeout(query, cl, writeType, requiredAcks, receivedAcks, nbRetry);
             switch (decision.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.Ignore:
@@ -80,7 +82,7 @@ namespace Dse
 
         public RetryDecision OnUnavailable(IStatement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
         {
-            RetryDecision decision = _policy.OnUnavailable(query, cl, requiredReplica, aliveReplica, nbRetry);
+            RetryDecision decision = ChildPolicy.OnUnavailable(query, cl, requiredReplica, aliveReplica, nbRetry);
             switch (decision.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.Ignore:

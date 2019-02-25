@@ -99,10 +99,9 @@ namespace Dse
 
         public IFrameCompressor Compressor { get; set; }
 
-        public IPEndPoint Address
-        {
-            get { return _tcpSocket.IPEndPoint; }
-        }
+        public IPEndPoint Address => _tcpSocket.IPEndPoint;
+
+        public IPEndPoint LocalAddress => _tcpSocket.GetLocalIpEndPoint();
 
         /// <summary>
         /// Determines the amount of operations that are not finished.
@@ -924,19 +923,17 @@ namespace Dse
         {
             //This handler is invoked by IO threads
             //Make it quick
-            if (WriteCompleted != null)
-            {
-                WriteCompleted();
-            }
+            WriteCompleted?.Invoke();
+
             //There is no need for synchronization here
             //Only 1 thread can be here at the same time.
             //Set the idle timeout to avoid idle disconnects
-            var heartBeatInterval = Configuration.PoolingOptions?.GetHeartBeatInterval();
+            var heartBeatInterval = Configuration.GetPoolingOptions(_serializer.ProtocolVersion).GetHeartBeatInterval() ?? 0;
             if (heartBeatInterval > 0 && !_isCanceled)
             {
                 try
                 {
-                    _idleTimer.Change(heartBeatInterval.Value, Timeout.Infinite);
+                    _idleTimer.Change(heartBeatInterval, Timeout.Infinite);
                 }
                 catch (ObjectDisposedException)
                 {

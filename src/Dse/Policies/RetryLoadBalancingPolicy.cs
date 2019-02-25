@@ -13,32 +13,34 @@ namespace Dse
 {
     public class RetryLoadBalancingPolicy : ILoadBalancingPolicy
     {
-        private readonly ILoadBalancingPolicy _loadBalancingPolicy;
-        private readonly IReconnectionPolicy _reconnectionPolicy;
         public EventHandler<RetryLoadBalancingPolicyEventArgs> ReconnectionEvent;
 
         public RetryLoadBalancingPolicy(ILoadBalancingPolicy loadBalancingPolicy, IReconnectionPolicy reconnectionPolicy)
         {
-            _reconnectionPolicy = reconnectionPolicy;
-            _loadBalancingPolicy = loadBalancingPolicy;
+            ReconnectionPolicy = reconnectionPolicy;
+            LoadBalancingPolicy = loadBalancingPolicy;
         }
+
+        public IReconnectionPolicy ReconnectionPolicy { get; }
+
+        public ILoadBalancingPolicy LoadBalancingPolicy { get; }
 
         public void Initialize(ICluster cluster)
         {
-            _loadBalancingPolicy.Initialize(cluster);
+            LoadBalancingPolicy.Initialize(cluster);
         }
 
         public HostDistance Distance(Host host)
         {
-            return _loadBalancingPolicy.Distance(host);
+            return LoadBalancingPolicy.Distance(host);
         }
 
         public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
         {
-            IReconnectionSchedule schedule = _reconnectionPolicy.NewSchedule();
+            IReconnectionSchedule schedule = ReconnectionPolicy.NewSchedule();
             while (true)
             {
-                IEnumerable<Host> childQueryPlan = _loadBalancingPolicy.NewQueryPlan(keyspace, query);
+                IEnumerable<Host> childQueryPlan = LoadBalancingPolicy.NewQueryPlan(keyspace, query);
                 foreach (Host host in childQueryPlan)
                     yield return host;
 

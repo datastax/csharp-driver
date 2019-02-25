@@ -39,11 +39,17 @@ namespace Dse
 
         private readonly Metadata _metadata;
         private readonly Serializer _serializer;
+        private ISessionManagerFactory _sessionManagerFactory = null;
 
         /// <inheritdoc />
         public event Action<Host> HostAdded;
         /// <inheritdoc />
         public event Action<Host> HostRemoved;
+
+        internal void SetSessionManagerFactory(ISessionManagerFactory sessionManagerFactory)
+        {
+            _sessionManagerFactory = sessionManagerFactory;
+        }
 
         /// <summary>
         /// Gets the control connection used by the cluster
@@ -334,7 +340,7 @@ namespace Dse
         public async Task<ISession> ConnectAsync(string keyspace)
         {
             await Init().ConfigureAwait(false);
-            var session = new Session(this, Configuration, keyspace, _serializer);
+            var session = new Session(this, Configuration, keyspace, _serializer, _sessionManagerFactory?.Create());
             await session.InternalRef.Init().ConfigureAwait(false);
             _connectedSessions.Add(session);
             _logger.Info("Session connected ({0})", session.GetHashCode());
