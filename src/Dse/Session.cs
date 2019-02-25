@@ -7,11 +7,11 @@
 
 
 using System;
-using System.Linq;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading;
-using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Dse.Tasks;
 using Dse.Requests;
@@ -263,7 +263,7 @@ namespace Dse
         {
             return new RequestHandler(this, _serializer, statement).SendAsync();
         }
-        
+
         /// <inheritdoc />
         HostConnectionPool IInternalSession.GetOrCreateConnectionPool(Host host, HostDistance distance)
         {
@@ -394,7 +394,6 @@ namespace Dse
 
         public void WaitForSchemaAgreement(RowSet rs)
         {
-            
         }
 
         public bool WaitForSchemaAgreement(IPEndPoint hostAddress)
