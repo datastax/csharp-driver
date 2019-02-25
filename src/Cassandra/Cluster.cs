@@ -349,7 +349,7 @@ namespace Cassandra
         public async Task<ISession> ConnectAsync(string keyspace)
         {
             await Init().ConfigureAwait(false);
-            var session = new Session(this, Configuration, keyspace, _serializer, _sessionManagerFactory.Create());
+            var session = new Session(this, Configuration, keyspace, _serializer, _sessionManagerFactory?.Create());
             await session.InternalRef.Init().ConfigureAwait(false);
             _connectedSessions.Add(session);
             _logger.Info("Session connected ({0})", session.GetHashCode());
