@@ -501,12 +501,12 @@ namespace Dse
             return TaskHelper.WaitToComplete(QueryAsync(cqlQuery, retry), MetadataAbortTimeout);
         }
 
-        public Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry = false)
+        public async Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry = false)
         {
-            return QueryAsync(cqlQuery, retry, QueryProtocolOptions.Default);
+            return ControlConnection.GetRowSet(await SendQueryRequestAsync(cqlQuery, retry, QueryProtocolOptions.Default).ConfigureAwait(false));
         }
 
-        public async Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry, QueryProtocolOptions queryProtocolOptions)
+        public async Task<Response> SendQueryRequestAsync(string cqlQuery, bool retry, QueryProtocolOptions queryProtocolOptions)
         {
             var request = new QueryRequest(ProtocolVersion, cqlQuery, false, queryProtocolOptions);
             Response response;
@@ -525,9 +525,9 @@ namespace Dse
                 // Try reconnect
                 await Reconnect().ConfigureAwait(false);
                 // Query with retry set to false
-                return await QueryAsync(cqlQuery).ConfigureAwait(false);
+                return await SendQueryRequestAsync(cqlQuery, false, queryProtocolOptions).ConfigureAwait(false);
             }
-            return GetRowSet(response);
+            return response;
         }
 
         /// <summary>
@@ -595,7 +595,7 @@ namespace Dse
 
         Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry = false);
 
-        Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry, QueryProtocolOptions queryProtocolOptions);
+        Task<Response> SendQueryRequestAsync(string cqlQuery, bool retry, QueryProtocolOptions queryProtocolOptions);
 
         IEnumerable<Row> Query(string cqlQuery, bool retry = false);
     }
