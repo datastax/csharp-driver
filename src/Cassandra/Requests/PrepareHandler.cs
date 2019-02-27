@@ -23,6 +23,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Responses;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
 
 namespace Cassandra.Requests
 {

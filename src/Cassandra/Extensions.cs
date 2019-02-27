@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using Cassandra.SessionManagement;
+
 namespace Cassandra
 {
     /// <summary>

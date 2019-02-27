@@ -14,14 +14,13 @@
 //   limitations under the License.
 //
 
-using System.Threading.Tasks;
-
-namespace Cassandra
+namespace Cassandra.SessionManagement
 {
-    internal interface ISessionManager
+    internal class SessionFactoryBuilder : ISessionFactoryBuilder<IInternalCluster, IInternalSession>
     {
-        Task OnShutdownAsync();
-
-        Task OnInitializationAsync();
+        public ISessionFactory<IInternalSession> BuildWithCluster(IInternalCluster cluster)
+        {
+            return new SessionFactory(cluster);
+        }
     }
 }

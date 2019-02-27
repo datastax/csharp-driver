@@ -20,6 +20,7 @@ using System.Linq;
 using System.Net;
 using Cassandra.Requests;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
 
 namespace Cassandra
 {

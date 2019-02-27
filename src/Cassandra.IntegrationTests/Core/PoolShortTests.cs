@@ -9,6 +9,7 @@ using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
+using Cassandra.SessionManagement;
 using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core

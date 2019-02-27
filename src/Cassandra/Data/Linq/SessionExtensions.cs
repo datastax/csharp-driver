@@ -16,6 +16,7 @@
 
 using System;
 using Cassandra.Mapping;
+using Cassandra.SessionManagement;
 
 namespace Cassandra.Data.Linq
 {

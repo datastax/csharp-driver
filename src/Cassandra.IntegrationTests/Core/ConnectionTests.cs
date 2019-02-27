@@ -28,6 +28,7 @@ using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 using Cassandra.Tests;
 

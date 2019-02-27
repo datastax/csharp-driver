@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 using Cassandra.Requests;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
 using Moq;

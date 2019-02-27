@@ -27,6 +27,7 @@ using Cassandra.Collections;
 using Cassandra.Helpers;
 using Cassandra.Requests;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
 namespace Cassandra

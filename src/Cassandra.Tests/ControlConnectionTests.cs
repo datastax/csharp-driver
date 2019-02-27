@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 
 using Cassandra.Requests;
-
+using Cassandra.SessionManagement;
 using Moq;
 
 using NUnit.Framework;

@@ -19,6 +19,7 @@ using System.Collections.Generic;
 
 using Cassandra.Requests;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
 using Microsoft.IO;

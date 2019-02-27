@@ -20,6 +20,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using Cassandra.Requests;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
 using Moq;
 using NUnit.Framework;
 
