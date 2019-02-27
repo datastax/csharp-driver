@@ -63,9 +63,9 @@ namespace Cassandra.Data.Linq
         internal static Configuration GetConfiguration(this ISession session)
         {
             Configuration config = null;
-            if (session is Session)
+            if (session is IInternalSession internalSession)
             {
-                config = ((Session)session).Configuration;
+                config = internalSession.Configuration;
             }
 
             return config;

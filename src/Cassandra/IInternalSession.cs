@@ -28,6 +28,11 @@ namespace Cassandra
         /// <summary>
         /// Initialize the session
         /// </summary>
+        Task Init(ISessionManager sessionManager);
+        
+        /// <summary>
+        /// Initialize the session without a session manager
+        /// </summary>
         Task Init();
 
         /// <summary>
@@ -57,5 +62,7 @@ namespace Cassandra
         /// Gets or sets the keyspace
         /// </summary>
         new string Keyspace { get; set; }
+
+        Configuration Configuration { get; }
     }
 }

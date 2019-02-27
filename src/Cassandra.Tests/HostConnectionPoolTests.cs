@@ -81,7 +81,8 @@ namespace Cassandra.Tests
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>());
+                Mock.Of<IStartupOptionsFactory>(),
+                new SessionFactoryBuilder());
             return config;
         }
 

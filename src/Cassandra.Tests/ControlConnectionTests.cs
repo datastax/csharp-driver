@@ -110,7 +110,8 @@ namespace Cassandra.Tests
                  null,
                  new QueryOptions(),
                  translatorMock.Object,
-                 Mock.Of<IStartupOptionsFactory>());
+                 Mock.Of<IStartupOptionsFactory>(),
+                 new SessionFactoryBuilder());
             var cc = NewInstance(config, metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);
