@@ -14,11 +14,23 @@
 //   limitations under the License.
 //
 
+using System.Collections.Concurrent;
+
 namespace Cassandra.SessionManagement
 {
     /// <inheritdoc />
     internal interface IInternalCluster : ICluster
     {
         bool AnyOpenConnections(Host host);
+        
+        /// <summary>
+        /// Gets the control connection used by the cluster
+        /// </summary>
+        ControlConnection GetControlConnection();
+        
+        /// <summary>
+        /// Gets the the prepared statements cache
+        /// </summary>
+        ConcurrentDictionary<byte[], PreparedStatement> PreparedQueries { get; }
     }
 }

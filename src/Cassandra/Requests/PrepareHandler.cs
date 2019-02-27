@@ -48,8 +48,7 @@ namespace Cassandra.Requests
         internal static async Task<PreparedStatement> Prepare(IInternalSession session, Serializer serializer, 
                                                            PrepareRequest request)
         {
-            // The cast to Cluster class is safe as we are using the Session concrete implementation as parameter
-            var cluster = (Cluster) session.Cluster;
+            var cluster = session.InternalCluster;
             var lbp = cluster.Configuration.Policies.LoadBalancingPolicy;
             var handler = new PrepareHandler(serializer, lbp.NewQueryPlan(session.Keyspace, null).GetEnumerator());
             var ps = await handler.Prepare(request, session, null).ConfigureAwait(false);

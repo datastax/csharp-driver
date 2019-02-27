@@ -58,18 +58,14 @@ namespace Cassandra
         
         internal IInternalCluster InternalRef => this;
 
-        /// <summary>
-        /// Gets the control connection used by the cluster
-        /// </summary>
-        internal ControlConnection GetControlConnection()
+        /// <inheritdoc />
+        ControlConnection IInternalCluster.GetControlConnection()
         {
             return _controlConnection;
         }
-        
-        /// <summary>
-        /// Gets the the prepared statements cache
-        /// </summary>
-        internal ConcurrentDictionary<byte[], PreparedStatement> PreparedQueries { get; } 
+
+        /// <inheritdoc />
+        ConcurrentDictionary<byte[], PreparedStatement> IInternalCluster.PreparedQueries { get; } 
             = new ConcurrentDictionary<byte[], PreparedStatement>(new ByteArrayComparer());
 
         /// <summary>
@@ -430,7 +426,7 @@ namespace Cassandra
                 return;
             }
             // We should prepare all current queries on the host
-            PrepareHandler.PrepareAllQueries(h, PreparedQueries.Values, _connectedSessions).Forget();
+            PrepareHandler.PrepareAllQueries(h, InternalRef.PreparedQueries.Values, _connectedSessions).Forget();
         }
 
         /// <summary>

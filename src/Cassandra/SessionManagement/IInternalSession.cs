@@ -43,7 +43,7 @@ namespace Cassandra.SessionManagement
         /// <summary>
         /// Gets a snapshot of the connection pools
         /// </summary>
-        KeyValuePair<IPEndPoint, HostConnectionPool>[] GetPools();
+        IEnumerable<KeyValuePair<IPEndPoint, IHostConnectionPool>>  GetPools();
 
         /// <summary>
         /// Gets the existing connection pool for this host and session or null when it does not exists
@@ -64,5 +64,7 @@ namespace Cassandra.SessionManagement
         new string Keyspace { get; set; }
 
         Configuration Configuration { get; }
+
+        IInternalCluster InternalCluster { get; }
     }
 }

@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.SessionManagement;
 using Cassandra.Tests;
 using NUnit.Framework;
 
@@ -213,7 +214,7 @@ namespace Cassandra.IntegrationTests.Core
             public void Initialize(ICluster cluster)
             {
                 _cluster = cluster;
-                ControlConnectionHost = ((Cluster)cluster).GetControlConnection().Host;
+                ControlConnectionHost = ((IInternalCluster)cluster).GetControlConnection().Host;
             }
 
             public HostDistance Distance(Host host)

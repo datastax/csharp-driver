@@ -40,5 +40,10 @@ namespace Cassandra
             var session = instance as IInternalSession;
             return session == null ? SessionState.Empty() : SessionState.From(session);
         }
+
+        internal static ISessionState GetState(this IInternalSession instance)
+        {
+            return SessionState.From(instance);
+        }
     }
 }

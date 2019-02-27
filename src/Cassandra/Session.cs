@@ -47,6 +47,8 @@ namespace Cassandra
         /// <inheritdoc />
         public ICluster Cluster => _cluster;
 
+        IInternalCluster IInternalSession.InternalCluster => _cluster;
+
         /// <summary>
         /// Gets the cluster configuration
         /// </summary>
@@ -309,9 +311,9 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        KeyValuePair<IPEndPoint, HostConnectionPool>[] IInternalSession.GetPools()
+        IEnumerable<KeyValuePair<IPEndPoint, IHostConnectionPool>> IInternalSession.GetPools()
         {
-            return _connectionPool.ToArray();
+            return _connectionPool.ToArray().Select(kvp => new KeyValuePair<IPEndPoint, IHostConnectionPool>(kvp.Key, kvp.Value));
         }
 
         void IInternalSession.OnAllConnectionClosed(Host host, HostConnectionPool pool)
