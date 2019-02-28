@@ -30,11 +30,6 @@ namespace Cassandra
     /// but this functionality will be removed in the next major version of the driver.
     /// See the comments on <see cref="DCAwareRoundRobinPolicy(string, int)"/> for more information.
     /// </para>
-    /// <para>
-    /// If used with a single datacenter, this policy is equivalent to the <see cref="RoundRobinPolicy"/> policy,
-    /// but its GetDatacenter awareness  incurs a slight overhead so the <see cref="RoundRobinPolicy"/>
-    /// policy could be preferred to this policy in that case.
-    /// </para>
     /// </summary>
     public class DCAwareRoundRobinPolicy : ILoadBalancingPolicy
     {
