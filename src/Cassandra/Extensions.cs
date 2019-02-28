@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using Cassandra.SessionManagement;
+
 namespace Cassandra
 {
     /// <summary>
@@ -35,8 +37,13 @@ namespace Cassandra
         /// <returns></returns>
         public static ISessionState GetState(this ISession instance)
         {
-            var session = instance as Session;
+            var session = instance as IInternalSession;
             return session == null ? SessionState.Empty() : SessionState.From(session);
+        }
+
+        internal static ISessionState GetState(this IInternalSession instance)
+        {
+            return SessionState.From(instance);
         }
     }
 }

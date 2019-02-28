@@ -17,6 +17,7 @@
 using System.Collections.Generic;
 using System.Text;
 using Cassandra.Collections;
+using Cassandra.SessionManagement;
 
 namespace Cassandra
 {
@@ -65,7 +66,7 @@ namespace Cassandra
         internal static SessionState From(IInternalSession session)
         {
             var pools = session.GetPools();
-            var result = new Dictionary<Host, HostStateInfo>(pools.Length);
+            var result = new Dictionary<Host, HostStateInfo>();
             foreach (var kv in pools)
             {
                 var host = session.Cluster.GetHost(kv.Key);
@@ -89,7 +90,7 @@ namespace Cassandra
 
             public int InFlightQueries { get; }
             
-            public HostStateInfo(HostConnectionPool pool)
+            public HostStateInfo(IHostConnectionPool pool)
             {
                 OpenConnections = pool.OpenConnections;
                 InFlightQueries = pool.InFlight;

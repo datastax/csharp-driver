@@ -24,6 +24,7 @@ using System.Threading.Tasks;
 
 using Cassandra.Responses;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
 namespace Cassandra.Requests

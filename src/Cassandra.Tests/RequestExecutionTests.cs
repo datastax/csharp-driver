@@ -21,7 +21,7 @@ using System.Net;
 using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
-
+using Cassandra.SessionManagement;
 using Moq;
 
 using NUnit.Framework;

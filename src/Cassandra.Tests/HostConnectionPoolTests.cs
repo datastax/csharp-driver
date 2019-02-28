@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 using Cassandra.Requests;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
 using Moq;
@@ -81,7 +82,8 @@ namespace Cassandra.Tests
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>());
+                Mock.Of<IStartupOptionsFactory>(),
+                new SessionFactoryBuilder());
             return config;
         }
 

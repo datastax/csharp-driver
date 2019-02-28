@@ -14,12 +14,12 @@
 //   limitations under the License.
 //
 
-namespace Cassandra
-{
-    using System.Collections.Generic;
-    using System.Net;
-    using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Net;
+using System.Threading.Tasks;
 
+namespace Cassandra.SessionManagement
+{
     /// <inheritdoc />
     /// <remarks>This is an internal interface designed to declare the internal methods that are called
     /// across multiple locations of the driver's source code.</remarks>
@@ -27,6 +27,11 @@ namespace Cassandra
     {
         /// <summary>
         /// Initialize the session
+        /// </summary>
+        Task Init(ISessionManager sessionManager);
+        
+        /// <summary>
+        /// Initialize the session without a session manager
         /// </summary>
         Task Init();
 
@@ -38,7 +43,7 @@ namespace Cassandra
         /// <summary>
         /// Gets a snapshot of the connection pools
         /// </summary>
-        KeyValuePair<IPEndPoint, HostConnectionPool>[] GetPools();
+        IEnumerable<KeyValuePair<IPEndPoint, IHostConnectionPool>>  GetPools();
 
         /// <summary>
         /// Gets the existing connection pool for this host and session or null when it does not exists
@@ -57,5 +62,9 @@ namespace Cassandra
         /// Gets or sets the keyspace
         /// </summary>
         new string Keyspace { get; set; }
+
+        Configuration Configuration { get; }
+
+        IInternalCluster InternalCluster { get; }
     }
 }

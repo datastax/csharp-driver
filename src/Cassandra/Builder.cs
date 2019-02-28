@@ -20,6 +20,7 @@ using System.Linq;
 using System.Net;
 using Cassandra.Requests;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
 
 namespace Cassandra
 {
@@ -55,6 +56,7 @@ namespace Cassandra
         private bool _noCompact;
         private int _maxSchemaAgreementWaitSeconds = ProtocolOptions.DefaultMaxSchemaAgreementWaitSeconds;
         private IStartupOptionsFactory _startupOptionsFactory = new StartupOptionsFactory();
+        private ISessionFactoryBuilder<IInternalCluster, IInternalSession> _sessionFactoryBuilder = new SessionFactoryBuilder();
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -130,7 +132,8 @@ namespace Cassandra
                 _authInfoProvider,
                 _queryOptions,
                 _addressTranslator,
-                _startupOptionsFactory);
+                _startupOptionsFactory,
+                _sessionFactoryBuilder);
             if (_typeSerializerDefinitions != null)
             {
                 config.TypeSerializers = _typeSerializerDefinitions.Definitions;

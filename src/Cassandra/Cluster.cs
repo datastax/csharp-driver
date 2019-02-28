@@ -27,6 +27,7 @@ using Cassandra.Collections;
 using Cassandra.Helpers;
 using Cassandra.Requests;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
 namespace Cassandra
@@ -35,7 +36,7 @@ namespace Cassandra
     /// Implementation of <see cref="ICluster"/>
     /// </summary>
     /// <inheritdoc />
-    public class Cluster : ICluster
+    public class Cluster : IInternalCluster
     {
         private static ProtocolVersion _maxProtocolVersion = ProtocolVersion.MaxSupported;
         // ReSharper disable once InconsistentNaming
@@ -48,30 +49,23 @@ namespace Cassandra
 
         private readonly Metadata _metadata;
         private readonly Serializer _serializer;
-        private ISessionManagerFactory _sessionManagerFactory = null;
+        private readonly ISessionFactory<IInternalSession> _sessionFactory;
 
         /// <inheritdoc />
         public event Action<Host> HostAdded;
         /// <inheritdoc />
         public event Action<Host> HostRemoved;
+        
+        internal IInternalCluster InternalRef => this;
 
-        internal void SetSessionManagerFactory(ISessionManagerFactory sessionManagerFactory)
-        {
-            _sessionManagerFactory = sessionManagerFactory;
-        }
-
-        /// <summary>
-        /// Gets the control connection used by the cluster
-        /// </summary>
-        internal ControlConnection GetControlConnection()
+        /// <inheritdoc />
+        ControlConnection IInternalCluster.GetControlConnection()
         {
             return _controlConnection;
         }
-        
-        /// <summary>
-        /// Gets the the prepared statements cache
-        /// </summary>
-        internal ConcurrentDictionary<byte[], PreparedStatement> PreparedQueries { get; } 
+
+        /// <inheritdoc />
+        ConcurrentDictionary<byte[], PreparedStatement> IInternalCluster.PreparedQueries { get; } 
             = new ConcurrentDictionary<byte[], PreparedStatement>(new ByteArrayComparer());
 
         /// <summary>
@@ -162,6 +156,7 @@ namespace Cassandra
             _controlConnection = new ControlConnection(protocolVersion, Configuration, _metadata);
             _metadata.ControlConnection = _controlConnection;
             _serializer = _controlConnection.Serializer;
+            _sessionFactory = configuration.SessionFactoryBuilder.BuildWithCluster(this);
         }
 
         /// <summary>
@@ -348,9 +343,15 @@ namespace Cassandra
         /// <param name="keyspace">Case-sensitive keyspace name to use</param>
         public async Task<ISession> ConnectAsync(string keyspace)
         {
+            return await ConnectAsync(_sessionFactory, keyspace).ConfigureAwait(false);
+        }
+
+        internal async Task<TSession> ConnectAsync<TSession>(ISessionFactory<TSession> sessionFactory, string keyspace) 
+            where TSession : IInternalSession
+        {
             await Init().ConfigureAwait(false);
-            var session = new Session(this, Configuration, keyspace, _serializer, _sessionManagerFactory?.Create());
-            await session.InternalRef.Init().ConfigureAwait(false);
+            var session = await sessionFactory.CreateSessionAsync(keyspace, _serializer).ConfigureAwait(false);
+            await session.Init().ConfigureAwait(false);
             _connectedSessions.Add(session);
             _logger.Info("Session connected ({0})", session.GetHashCode());
             return session;
@@ -374,7 +375,7 @@ namespace Cassandra
             return session;
         }
 
-        internal bool AnyOpenConnections(Host host)
+        bool IInternalCluster.AnyOpenConnections(Host host)
         {
             return _connectedSessions.Any(session => session.HasConnections(host));
         }
@@ -425,7 +426,7 @@ namespace Cassandra
                 return;
             }
             // We should prepare all current queries on the host
-            PrepareHandler.PrepareAllQueries(h, PreparedQueries.Values, _connectedSessions).Forget();
+            PrepareHandler.PrepareAllQueries(h, InternalRef.PreparedQueries.Values, _connectedSessions).Forget();
         }
 
         /// <summary>

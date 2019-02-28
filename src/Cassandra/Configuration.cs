@@ -19,6 +19,7 @@ using System.Collections.Generic;
 
 using Cassandra.Requests;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
 using Microsoft.IO;
@@ -101,6 +102,8 @@ namespace Cassandra
 
         internal IStartupOptionsFactory StartupOptionsFactory { get; }
 
+        internal ISessionFactoryBuilder<IInternalCluster, IInternalSession> SessionFactoryBuilder { get; }
+
         internal Configuration() :
             this(Policies.DefaultPolicies,
                  new ProtocolOptions(),
@@ -111,7 +114,8 @@ namespace Cassandra
                  null,
                  new QueryOptions(),
                  new DefaultAddressTranslator(),
-                 new StartupOptionsFactory())
+                 new StartupOptionsFactory(),
+                 new SessionFactoryBuilder())
         {
         }
 
@@ -128,7 +132,8 @@ namespace Cassandra
                                IAuthInfoProvider authInfoProvider,
                                QueryOptions queryOptions,
                                IAddressTranslator addressTranslator,
-                               IStartupOptionsFactory startupOptionsFactory)
+                               IStartupOptionsFactory startupOptionsFactory,
+                               ISessionFactoryBuilder<IInternalCluster, IInternalSession> sessionFactoryBuilder)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -140,6 +145,7 @@ namespace Cassandra
             AuthProvider = authProvider;
             AuthInfoProvider = authInfoProvider;
             StartupOptionsFactory = startupOptionsFactory;
+            SessionFactoryBuilder = sessionFactoryBuilder;
             // Create the buffer pool with 16KB for small buffers and 256Kb for large buffers.
             // The pool does not eagerly reserve the buffers, so it doesn't take unnecessary memory
             // to create the instance.

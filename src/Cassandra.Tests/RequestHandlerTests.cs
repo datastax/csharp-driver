@@ -21,7 +21,7 @@ using System.Text;
 
 using Cassandra.Requests;
 using Cassandra.Serialization;
-
+using Cassandra.SessionManagement;
 using Moq;
 
 using NUnit.Framework;
@@ -46,7 +46,8 @@ namespace Cassandra.Tests
                 null,
                 queryOptions ?? DefaultQueryOptions,
                 new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>());
+                Mock.Of<IStartupOptionsFactory>(),
+                new SessionFactoryBuilder());
         }
 
         private static QueryOptions DefaultQueryOptions => new QueryOptions();
@@ -256,7 +257,8 @@ namespace Cassandra.Tests
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>());
+                Mock.Of<IStartupOptionsFactory>(),
+                new SessionFactoryBuilder());
 
             var request = RequestHandler.GetRequest(statement, Serializer.Default, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -297,7 +299,8 @@ namespace Cassandra.Tests
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>());
+                Mock.Of<IStartupOptionsFactory>(),
+                new SessionFactoryBuilder());
 
             var request = RequestHandler.GetRequest(statement, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -339,7 +342,8 @@ namespace Cassandra.Tests
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>());
+                Mock.Of<IStartupOptionsFactory>(),
+                new SessionFactoryBuilder());
 
             var request = RequestHandler.GetRequest(batch, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -367,7 +371,8 @@ namespace Cassandra.Tests
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>());
+                Mock.Of<IStartupOptionsFactory>(),
+                new SessionFactoryBuilder());
 
             var request = RequestHandler.GetRequest(batch, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -412,7 +417,8 @@ namespace Cassandra.Tests
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>());
+                Mock.Of<IStartupOptionsFactory>(),
+                new SessionFactoryBuilder());
 
             var request = RequestHandler.GetRequest(batch, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -449,7 +455,8 @@ namespace Cassandra.Tests
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>());
+                Mock.Of<IStartupOptionsFactory>(),
+                new SessionFactoryBuilder());
 
             var request = RequestHandler.GetRequest(batch, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);

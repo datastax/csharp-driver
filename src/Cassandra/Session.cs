@@ -24,6 +24,7 @@ using System.Threading.Tasks;
 
 using Cassandra.Requests;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
 namespace Cassandra
@@ -32,10 +33,10 @@ namespace Cassandra
     public class Session : IInternalSession
     {
         private readonly Serializer _serializer;
-        private readonly ISessionManager _sessionManager;
+        private ISessionManager _sessionManager;
         private static readonly Logger Logger = new Logger(typeof(Session));
         private readonly ConcurrentDictionary<IPEndPoint, HostConnectionPool> _connectionPool;
-        private readonly Cluster _cluster;
+        private readonly IInternalCluster _cluster;
         private int _disposed;
         private volatile string _keyspace;
 
@@ -45,6 +46,8 @@ namespace Cassandra
 
         /// <inheritdoc />
         public ICluster Cluster => _cluster;
+
+        IInternalCluster IInternalSession.InternalCluster => _cluster;
 
         /// <summary>
         /// Gets the cluster configuration
@@ -80,14 +83,12 @@ namespace Cassandra
         public Policies Policies => Configuration.Policies;
 
         internal Session(
-            Cluster cluster,
+            IInternalCluster cluster,
             Configuration configuration,
             string keyspace,
-            Serializer serializer,
-            ISessionManager sessionManager)
+            Serializer serializer)
         {
             _serializer = serializer;
-            _sessionManager = sessionManager;
             _cluster = cluster;
             Configuration = configuration;
             Keyspace = keyspace;
@@ -183,10 +184,18 @@ namespace Cassandra
                 }
             }
         }
+        
+        /// <inheritdoc />
+        Task IInternalSession.Init()
+        {
+            return InternalRef.Init(null);
+        }
 
         /// <inheritdoc />
-        async Task IInternalSession.Init()
+        async Task IInternalSession.Init(ISessionManager sessionManager)
         {
+            _sessionManager = sessionManager;
+
             if (Configuration.GetPoolingOptions(_serializer.ProtocolVersion).GetWarmup())
             {
                 await Warmup().ConfigureAwait(false);
@@ -302,9 +311,9 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        KeyValuePair<IPEndPoint, HostConnectionPool>[] IInternalSession.GetPools()
+        IEnumerable<KeyValuePair<IPEndPoint, IHostConnectionPool>> IInternalSession.GetPools()
         {
-            return _connectionPool.ToArray();
+            return _connectionPool.ToArray().Select(kvp => new KeyValuePair<IPEndPoint, IHostConnectionPool>(kvp.Key, kvp.Value));
         }
 
         void IInternalSession.OnAllConnectionClosed(Host host, HostConnectionPool pool)

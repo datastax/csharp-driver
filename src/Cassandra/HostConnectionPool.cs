@@ -28,7 +28,7 @@ namespace Cassandra
     /// <summary>
     /// Represents a pool of connections to a host
     /// </summary>
-    internal class HostConnectionPool : IDisposable
+    internal class HostConnectionPool : IHostConnectionPool, IDisposable
     {
         private static readonly Logger Logger = new Logger(typeof(HostConnectionPool));
         private const int ConnectionIndexOverflow = int.MaxValue - 1000000;
@@ -91,14 +91,10 @@ namespace Cassandra
         /// </summary>
         public bool HasConnections => _connections.Count > 0;
 
-        /// <summary>
-        /// Gets the total amount of open connections. 
-        /// </summary>
+        /// <inheritdoc />
         public int OpenConnections => _connections.Count;
 
-        /// <summary>
-        /// Gets the total of in-flight requests on all connections. 
-        /// </summary>
+        /// <inheritdoc />
         public int InFlight => _connections.Sum(c => c.InFlight);
 
         /// <summary>

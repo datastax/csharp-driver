@@ -20,6 +20,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using Cassandra.Requests;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
 using Moq;
 using NUnit.Framework;
 
@@ -40,7 +41,8 @@ namespace Cassandra.Tests
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>());
+                Mock.Of<IStartupOptionsFactory>(),
+                new SessionFactoryBuilder());
         }
 
         [Test]
