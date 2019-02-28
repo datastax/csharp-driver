@@ -23,19 +23,26 @@ using System.Net;
 namespace Cassandra
 {
     /// <summary>
-    ///  A data-center aware Round-robin load balancing policy. <p> This policy
-    ///  provides round-robin queries over the node of the local datacenter. It also
-    ///  includes in the query plans returned a configurable number of hosts in the
-    ///  remote datacenters, but those are always tried after the local nodes. In
-    ///  other words, this policy guarantees that no host in a remote datacenter will
-    ///  be queried unless no host in the local datacenter can be reached. </p><p> If used
-    ///  with a single datacenter, this policy is equivalent to the
-    ///  <see cref="RoundRobinPolicy"/> policy, but its GetDatacenter awareness
-    ///  incurs a slight overhead so the <see cref="RoundRobinPolicy"/>
-    ///  policy could be preferred to this policy in that case.</p>
+    /// A data-center aware Round-robin load balancing policy.
+    /// <para>
+    /// This policy provides round-robin queries over the node of the local datacenter. Currently, it also includes in the query plans
+    /// returned a configurable number of hosts in the remote datacenters (which are always tried after the local nodes)
+    /// but this functionality will be removed in the next major version of the driver.
+    /// See the comments on <see cref="DCAwareRoundRobinPolicy(string, int)"/> for more information.
+    /// </para>
+    /// <para>
+    /// If used with a single datacenter, this policy is equivalent to the <see cref="RoundRobinPolicy"/> policy,
+    /// but its GetDatacenter awareness  incurs a slight overhead so the <see cref="RoundRobinPolicy"/>
+    /// policy could be preferred to this policy in that case.
+    /// </para>
     /// </summary>
     public class DCAwareRoundRobinPolicy : ILoadBalancingPolicy
     {
+        private const string UsedHostsPerRemoteDcObsoleteMessage =
+            "The usedHostsPerRemoteDc parameter will be removed in the next major release of the driver. " +
+            "DC failover should not be done in the driver, which does not have the necessary context to know " +
+            "what makes sense considering application semantics. See https://datastax-oss.atlassian.net/browse/CSHARP-722";
+
         private string _localDc;
         private readonly int _usedHostsPerRemoteDc;
 
@@ -56,9 +63,10 @@ namespace Cassandra
         /// constructor of this class.
         /// </para>
         /// </summary>
+#pragma warning disable 618
         public DCAwareRoundRobinPolicy() : this(null, 0)
+#pragma warning restore 618
         {
-            
         }
 
         /// <summary>
@@ -69,7 +77,9 @@ namespace Cassandra
         ///  <c>new DCAwareRoundRobinPolicy(localDc, 0)</c>.</p>
         /// </summary>
         /// <param name="localDc"> the name of the local datacenter (as known by Cassandra).</param>
+#pragma warning disable 618
         public DCAwareRoundRobinPolicy(string localDc) : this(localDc, 0)
+#pragma warning restore 618
         {
         }
 
@@ -81,23 +91,32 @@ namespace Cassandra
         /// The name of the local datacenter provided must be the local
         /// datacenter name as known by Cassandra.</p>
         ///</summary>
-        /// <param name="localDc"> the name of the local datacenter (as known by
+        /// <param name="localDc">The name of the local datacenter (as known by
         /// Cassandra).</param>
-        /// <param name="usedHostsPerRemoteDc"> the number of host per remote
+        /// <param name="usedHostsPerRemoteDc">The number of host per remote
         /// datacenter that policies created by the returned factory should
         /// consider. Created policies <c>distance</c> method will return a
-        /// <c>HostDistance.Remote</c> distance for only <c>
-        /// usedHostsPerRemoteDc</c> hosts per remote datacenter. Other hosts
-        /// of the remote datacenters will be ignored (and thus no
-        /// connections to them will be maintained).</param>
+        /// <c>HostDistance.Remote</c> distance for only <c>usedHostsPerRemoteDc</c>
+        /// hosts per remote datacenter. Other hosts of the remote datacenters will be ignored
+        /// (and thus no connections to them will be maintained).
+        /// <para>Note that this parameter will be removed in the next major release of
+        /// the driver.</para></param>
+        [Obsolete(DCAwareRoundRobinPolicy.UsedHostsPerRemoteDcObsoleteMessage)]
         public DCAwareRoundRobinPolicy(string localDc, int usedHostsPerRemoteDc)
         {
             _localDc = localDc;
             _usedHostsPerRemoteDc = usedHostsPerRemoteDc;
         }
 
+        /// <summary>
+        /// Gets the Local Datacenter. This value is provided in the constructor.
+        /// </summary>
         public string LocalDc => _localDc;
 
+        /// <summary>
+        /// Gets the number of hosts per remote datacenter that should be considered. This value is provided in the constructor.
+        /// </summary>
+        [Obsolete(DCAwareRoundRobinPolicy.UsedHostsPerRemoteDcObsoleteMessage)]
         public int UsedHostsPerRemoteDc => _usedHostsPerRemoteDc;
 
         public void Initialize(ICluster cluster)
