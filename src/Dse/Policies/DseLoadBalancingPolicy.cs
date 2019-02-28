@@ -20,6 +20,11 @@ namespace Dse
     /// </summary>
     public class DseLoadBalancingPolicy : ILoadBalancingPolicy
     {
+        private const string UsedHostsPerRemoteDcObsoleteMessage =
+            "The usedHostsPerRemoteDc parameter will be removed in the next major release of the driver. " +
+            "DC failover should not be done in the driver, which does not have the necessary context to know " +
+            "what makes sense considering application semantics. See https://datastax-oss.atlassian.net/browse/CSHARP-722";
+
         private readonly ILoadBalancingPolicy _childPolicy;
         private volatile Host _lastPreferredHost;
 
@@ -42,11 +47,23 @@ namespace Dse
         /// <param name="localDc">The name of the local datacenter (case-sensitive)</param>
         /// <param name="usedHostsPerRemoteDc">
         /// The amount of host per remote datacenter that the policy should yield in a new query plan after the local
-        /// nodes.
+        /// nodes. Note that this parameter will be removed in the next major version of the driver.
         /// </param>
-        public DseLoadBalancingPolicy(string localDc, int usedHostsPerRemoteDc = 0)
+        [Obsolete(DseLoadBalancingPolicy.UsedHostsPerRemoteDcObsoleteMessage)]
+        public DseLoadBalancingPolicy(string localDc, int usedHostsPerRemoteDc)
         {
+#pragma warning disable 618
             _childPolicy = new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc, usedHostsPerRemoteDc));
+#pragma warning restore 618
+        }
+
+        /// <summary>
+        /// Creates a new instance of <see cref="DseLoadBalancingPolicy"/> given the name of the local datacenter.
+        /// </summary>
+        /// <param name="localDc">The name of the local datacenter (case-sensitive)</param>
+        public DseLoadBalancingPolicy(string localDc)
+        {
+            _childPolicy = new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc));
         }
 
         /// <summary>

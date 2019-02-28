@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 
 using Dse.Requests;
 using Dse.Serialization;
+using Dse.SessionManagement;
 using Dse.Tasks;
 
 using Moq;
@@ -88,7 +89,8 @@ namespace Dse.Test.Unit
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>());
+                Mock.Of<IStartupOptionsFactory>(),
+                new SessionFactoryBuilder());
             return config;
         }
 

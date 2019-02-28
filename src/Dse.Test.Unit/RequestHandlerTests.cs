@@ -12,7 +12,7 @@ using System.Text;
 
 using Dse.Requests;
 using Dse.Serialization;
-
+using Dse.SessionManagement;
 using Moq;
 
 using NUnit.Framework;
@@ -38,7 +38,8 @@ namespace Dse.Test.Unit
                 null,
                 queryOptions ?? DefaultQueryOptions,
                 new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>());
+                Mock.Of<IStartupOptionsFactory>(),
+                new SessionFactoryBuilder());
         }
 
         private static QueryOptions DefaultQueryOptions => new QueryOptions();
@@ -249,7 +250,8 @@ namespace Dse.Test.Unit
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>());
+                Mock.Of<IStartupOptionsFactory>(),
+                new SessionFactoryBuilder());
 
             var request = RequestHandler.GetRequest(statement, Serializer.Default, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -291,7 +293,8 @@ namespace Dse.Test.Unit
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>());
+                Mock.Of<IStartupOptionsFactory>(),
+                new SessionFactoryBuilder());
 
             var request = RequestHandler.GetRequest(statement, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -331,7 +334,8 @@ namespace Dse.Test.Unit
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>());
+                Mock.Of<IStartupOptionsFactory>(),
+                new SessionFactoryBuilder());
 
             var request = RequestHandler.GetRequest(batch, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -359,7 +363,8 @@ namespace Dse.Test.Unit
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>());
+                Mock.Of<IStartupOptionsFactory>(),
+                new SessionFactoryBuilder());
 
             var request = RequestHandler.GetRequest(batch, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -405,7 +410,8 @@ namespace Dse.Test.Unit
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>());
+                Mock.Of<IStartupOptionsFactory>(),
+                new SessionFactoryBuilder());
 
             var request = RequestHandler.GetRequest(batch, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);
@@ -442,7 +448,8 @@ namespace Dse.Test.Unit
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>());
+                Mock.Of<IStartupOptionsFactory>(),
+                new SessionFactoryBuilder());
 
             var request = RequestHandler.GetRequest(batch, Serializer, config);
             var bodyBuffer = GetBodyBuffer(request);

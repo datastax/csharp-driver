@@ -20,6 +20,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using Dse.Requests;
 using Dse.Serialization;
+using Dse.SessionManagement;
 using Moq;
 using NUnit.Framework;
 
@@ -40,7 +41,8 @@ namespace Dse.Test.Unit
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>());
+                Mock.Of<IStartupOptionsFactory>(),
+                new SessionFactoryBuilder());
         }
 
         [Test]

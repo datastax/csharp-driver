@@ -15,13 +15,23 @@
 //
 
 using System.Threading.Tasks;
+using Dse.Serialization;
 
-namespace Dse
+namespace Dse.SessionManagement
 {
-    internal interface ISessionManager
+    internal class SessionFactory : ISessionFactory<IInternalSession>
     {
-        Task OnShutdownAsync();
+        private readonly IInternalCluster _cluster;
 
-        Task OnInitializationAsync();
+        public SessionFactory(IInternalCluster cluster)
+        {
+            _cluster = cluster;
+        }
+
+        public Task<IInternalSession> CreateSessionAsync(string keyspace, Serializer serializer)
+        {
+            return Task.FromResult(
+                new Session(_cluster, _cluster.Configuration, keyspace, serializer).InternalRef);
+        }
     }
 }

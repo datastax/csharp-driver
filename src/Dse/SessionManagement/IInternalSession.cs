@@ -18,7 +18,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
 
-namespace Dse
+namespace Dse.SessionManagement
 {
     /// <inheritdoc />
     /// <remarks>This is an internal interface designed to declare the internal methods that are called
@@ -27,6 +27,11 @@ namespace Dse
     {
         /// <summary>
         /// Initialize the session
+        /// </summary>
+        Task Init(ISessionManager sessionManager);
+        
+        /// <summary>
+        /// Initialize the session without a session manager
         /// </summary>
         Task Init();
 
@@ -38,7 +43,7 @@ namespace Dse
         /// <summary>
         /// Gets a snapshot of the connection pools
         /// </summary>
-        KeyValuePair<IPEndPoint, HostConnectionPool>[] GetPools();
+        IEnumerable<KeyValuePair<IPEndPoint, IHostConnectionPool>>  GetPools();
 
         /// <summary>
         /// Gets the existing connection pool for this host and session or null when it does not exists
@@ -57,5 +62,9 @@ namespace Dse
         /// Gets or sets the keyspace
         /// </summary>
         new string Keyspace { get; set; }
+
+        Configuration Configuration { get; }
+
+        IInternalCluster InternalCluster { get; }
     }
 }

@@ -21,6 +21,7 @@ using Dse.Test.Unit;
 using Dse.Requests;
 using Dse.Responses;
 using Dse.Serialization;
+using Dse.SessionManagement;
 using Microsoft.IO;
 using Moq;
 
@@ -422,7 +423,8 @@ namespace Dse.Test.Integration.Core
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
-                new StartupOptionsFactory());
+                new StartupOptionsFactory(),
+                new SessionFactoryBuilder());
             using (var connection = CreateConnection(GetProtocolVersion(), config))
             {
                 var ex = Assert.Throws<AggregateException>(() => connection.Open().Wait(10000));
@@ -616,7 +618,8 @@ namespace Dse.Test.Integration.Core
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
-                new StartupOptionsFactory());
+                new StartupOptionsFactory(),
+                new SessionFactoryBuilder());
             using (var connection = new Connection(new Serializer(GetProtocolVersion()), new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042), config))
             {
                 var ex = Assert.Throws<SocketException>(() => TaskHelper.WaitToComplete(connection.Open()));
@@ -819,7 +822,8 @@ namespace Dse.Test.Integration.Core
                 null,
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
-                new StartupOptionsFactory());
+                new StartupOptionsFactory(),
+                new SessionFactoryBuilder());
             return CreateConnection(GetProtocolVersion(), config);
         }
 

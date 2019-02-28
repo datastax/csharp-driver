@@ -20,6 +20,7 @@ using System.Net;
 using Dse.Requests;
 using Dse.Responses;
 using Dse.Serialization;
+using Dse.SessionManagement;
 using Moq;
 using NUnit.Framework;
 

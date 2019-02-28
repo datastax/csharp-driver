@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Net;
 
 using Dse.Requests;
-
+using Dse.SessionManagement;
 using Moq;
 
 using NUnit.Framework;
@@ -117,7 +117,8 @@ namespace Dse.Test.Unit
                  null,
                  new QueryOptions(),
                  translatorMock.Object,
-                 Mock.Of<IStartupOptionsFactory>());
+                 Mock.Of<IStartupOptionsFactory>(),
+                 new SessionFactoryBuilder());
             var cc = NewInstance(config, metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);

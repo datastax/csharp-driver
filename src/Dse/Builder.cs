@@ -11,6 +11,7 @@ using System.Linq;
 using System.Net;
 using Dse.Requests;
 using Dse.Serialization;
+using Dse.SessionManagement;
 
 namespace Dse
 {
@@ -46,6 +47,7 @@ namespace Dse
         private bool _noCompact;
         private int _maxSchemaAgreementWaitSeconds = ProtocolOptions.DefaultMaxSchemaAgreementWaitSeconds;
         private IStartupOptionsFactory _startupOptionsFactory = new StartupOptionsFactory();
+        private ISessionFactoryBuilder<IInternalCluster, IInternalSession> _sessionFactoryBuilder = new SessionFactoryBuilder();
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -121,7 +123,8 @@ namespace Dse
                 _authInfoProvider,
                 _queryOptions,
                 _addressTranslator,
-                _startupOptionsFactory);
+                _startupOptionsFactory,
+                _sessionFactoryBuilder);
             if (_typeSerializerDefinitions != null)
             {
                 config.TypeSerializers = _typeSerializerDefinitions.Definitions;

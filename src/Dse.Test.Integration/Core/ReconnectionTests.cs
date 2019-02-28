@@ -13,6 +13,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
+using Dse.SessionManagement;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Unit;
 using NUnit.Framework;

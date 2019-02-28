@@ -14,10 +14,23 @@
 //   limitations under the License.
 //
 
-namespace Dse
+using System.Collections.Concurrent;
+
+namespace Dse.SessionManagement
 {
-    internal interface ISessionManagerFactory
+    /// <inheritdoc />
+    internal interface IInternalCluster : ICluster
     {
-        ISessionManager Create();
+        bool AnyOpenConnections(Host host);
+        
+        /// <summary>
+        /// Gets the control connection used by the cluster
+        /// </summary>
+        ControlConnection GetControlConnection();
+        
+        /// <summary>
+        /// Gets the the prepared statements cache
+        /// </summary>
+        ConcurrentDictionary<byte[], PreparedStatement> PreparedQueries { get; }
     }
 }

@@ -5,15 +5,17 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using Dse.Test.Integration.TestClusterManagement;
-using System.Diagnostics;
-using Dse.Test.Unit;
-using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Dse.SessionManagement;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Unit;
+
+using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
@@ -22,7 +24,6 @@ namespace Dse.Test.Integration.Core
     {
         public SessionTests() : base(2)
         {
-            
         }
 
         [Test]
@@ -223,7 +224,7 @@ namespace Dse.Test.Integration.Core
                 var pool12 = localSession1.GetOrCreateConnectionPool(hosts1[1], HostDistance.Local);
                 Assert.That(pool11.OpenConnections, Is.EqualTo(3));
                 Assert.That(pool12.OpenConnections, Is.EqualTo(3));
-                
+
                 localCluster2 = Cluster.Builder()
                     .AddContactPoint(TestCluster.InitialContactPoint)
                     .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 1))
@@ -353,7 +354,6 @@ namespace Dse.Test.Integration.Core
             }
         }
 
-
         /// <summary>
         /// Checks that having a disposed Session created by the cluster does not affects other sessions
         /// </summary>
@@ -384,6 +384,7 @@ namespace Dse.Test.Integration.Core
         }
 
 #if NET452
+
         [Test, Apartment(ApartmentState.STA)]
         public void Session_Connect_And_ShutDown_SupportsSTA()
         {
@@ -397,6 +398,7 @@ namespace Dse.Test.Integration.Core
                 }
             });
         }
+
 #endif
 
         [Test]

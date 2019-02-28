@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dse.Collections;
 using Dse.Serialization;
+using Dse.SessionManagement;
 using Dse.Tasks;
 
 namespace Dse.Requests

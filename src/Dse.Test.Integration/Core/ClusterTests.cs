@@ -12,7 +12,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-
+using Dse.SessionManagement;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Unit;
 
@@ -224,7 +224,7 @@ namespace Dse.Test.Integration.Core
             public void Initialize(ICluster cluster)
             {
                 _cluster = cluster;
-                ControlConnectionHost = ((Cluster)cluster).GetControlConnection().Host;
+                ControlConnectionHost = ((IInternalCluster)cluster).GetControlConnection().Host;
             }
 
             public HostDistance Distance(Host host)

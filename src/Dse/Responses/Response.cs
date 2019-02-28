@@ -65,5 +65,12 @@ namespace Dse.Responses
                 CustomPayload = Reader.ReadBytesMap();
             }
         }
+
+        /// <summary>
+        /// Testing purposes only
+        /// </summary>
+        protected Response()
+        {
+        }
     }
 }

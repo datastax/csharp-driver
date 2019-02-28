@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using Dse.SessionManagement;
+
 namespace Dse
 {
     /// <summary>
@@ -35,8 +37,13 @@ namespace Dse
         /// <returns></returns>
         public static ISessionState GetState(this ISession instance)
         {
-            var session = instance as Session;
+            var session = instance as IInternalSession;
             return session == null ? SessionState.Empty() : SessionState.From(session);
+        }
+
+        internal static ISessionState GetState(this IInternalSession instance)
+        {
+            return SessionState.From(instance);
         }
     }
 }

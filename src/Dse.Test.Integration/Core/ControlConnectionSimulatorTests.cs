@@ -45,7 +45,7 @@ namespace Dse.Test.Integration.Core
                 {
                     var session = cluster.Connect();
                     Parallel.For(0, 10, _ => session.Execute("SELECT * FROM system.local"));
-                    Assert.AreEqual(cluster.GetControlConnection().ProtocolVersion, version);
+                    Assert.AreEqual(cluster.InternalRef.GetControlConnection().ProtocolVersion, version);
                 }
                 else
                 {
@@ -71,7 +71,7 @@ namespace Dse.Test.Integration.Core
             {
                 var session = cluster.Connect();
                 Parallel.For(0, 10, _ => session.Execute("SELECT * FROM system.local"));
-                Assert.AreEqual(cluster.GetControlConnection().ProtocolVersion, version);
+                Assert.AreEqual(cluster.InternalRef.GetControlConnection().ProtocolVersion, version);
             }
         }
 

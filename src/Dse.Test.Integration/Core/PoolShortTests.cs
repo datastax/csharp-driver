@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Dse.SessionManagement;
 using Dse.Test.Integration.Policies.Util;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
@@ -295,7 +296,7 @@ namespace Dse.Test.Integration.Core
                 WaitSimulatorConnections(testCluster, 4);
                 Assert.AreEqual(4, testCluster.GetConnectedPorts().Count);
 
-                var ccAddress = cluster.GetControlConnection().Address;
+                var ccAddress = cluster.InternalRef.GetControlConnection().Address;
                 var simulacronNode = testCluster.GetNode(ccAddress);
 
                 // Disable new connections to the first host
@@ -313,15 +314,15 @@ namespace Dse.Test.Integration.Core
 
                 Assert.False(cluster.GetHost(ccAddress).IsUp);
 
-                TestHelper.WaitUntil(() => !cluster.GetControlConnection().Address.Address.Equals(ccAddress.Address));
+                TestHelper.WaitUntil(() => !cluster.InternalRef.GetControlConnection().Address.Address.Equals(ccAddress.Address));
 
-                Assert.AreNotEqual(ccAddress.Address, cluster.GetControlConnection().Address.Address);
+                Assert.AreNotEqual(ccAddress.Address, cluster.InternalRef.GetControlConnection().Address.Address);
 
                 // Previous host is still DOWN
                 Assert.False(cluster.GetHost(ccAddress).IsUp);
 
                 // New host is UP
-                ccAddress = cluster.GetControlConnection().Address;
+                ccAddress = cluster.InternalRef.GetControlConnection().Address;
                 Assert.True(cluster.GetHost(ccAddress).IsUp);
             }
         }
@@ -353,7 +354,7 @@ namespace Dse.Test.Integration.Core
                 // Disable all connections
                 await testCluster.DisableConnectionListener().ConfigureAwait(false);
 
-                var ccAddress = cluster.GetControlConnection().Address;
+                var ccAddress = cluster.InternalRef.GetControlConnection().Address;
 
                 // Drop all connections to hosts
                 foreach (var connection in serverConnections)
@@ -373,12 +374,12 @@ namespace Dse.Test.Integration.Core
 
                 TestHelper.WaitUntil(() => cluster.AllHosts().All(h => h.IsUp));
 
-                ccAddress = cluster.GetControlConnection().Address;
+                ccAddress = cluster.InternalRef.GetControlConnection().Address;
                 Assert.True(cluster.GetHost(ccAddress).IsUp);
 
                 // Once all connections are created, the control connection should be usable
                 WaitSimulatorConnections(testCluster, 4);
-                Assert.DoesNotThrowAsync(() => cluster.GetControlConnection().QueryAsync("SELECT * FROM system.local"));
+                Assert.DoesNotThrowAsync(() => cluster.InternalRef.GetControlConnection().QueryAsync("SELECT * FROM system.local"));
             }
         }
 

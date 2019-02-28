@@ -61,6 +61,11 @@ namespace Dse.Responses
             }
         }
 
+        protected ResultResponse(ResultResponseKind kind)
+        {
+            Kind = kind;
+        }
+
         internal static ResultResponse Create(Frame frame)
         {
             return new ResultResponse(frame);
