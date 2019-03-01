@@ -12,15 +12,17 @@ using System.Text;
 using System.Threading.Tasks;
 using Dse;
 using Dse.Graph;
+using Dse.SessionManagement;
 using Dse.Tasks;
 
 namespace Dse
 {
-    internal class DseSession : IDseSession
+    internal class DseSession : IInternalDseSession
     {
         private static readonly Logger Logger = new Logger(typeof(IDseSession));
-        private readonly ISession _coreSession;
+        private readonly IInternalSession _coreSession;
         private readonly DseConfiguration _config;
+        private readonly ISessionManager _dseSessionManager;
         private readonly ICluster _cluster;
 
         public int BinaryProtocolVersion
@@ -38,6 +40,61 @@ namespace Dse
             get { return _coreSession.IsDisposed; }
         }
 
+        public Task Init(ISessionManager sessionManager)
+        {
+            return _coreSession.Init(sessionManager);
+        }
+
+        public Task Init()
+        {
+            return _coreSession.Init(_dseSessionManager);
+        }
+
+        public HostConnectionPool GetOrCreateConnectionPool(Host host, HostDistance distance)
+        {
+            return _coreSession.GetOrCreateConnectionPool(host, distance);
+        }
+
+        IEnumerable<KeyValuePair<IPEndPoint, IHostConnectionPool>> IInternalSession.GetPools()
+        {
+            return _coreSession.GetPools();
+        }
+
+        public HostConnectionPool GetExistingPool(IPEndPoint address)
+        {
+            return _coreSession.GetExistingPool(address);
+        }
+
+        public void CheckHealth(IConnection connection)
+        {
+            _coreSession.CheckHealth(connection);
+        }
+
+        public bool HasConnections(Host host)
+        {
+            return _coreSession.HasConnections(host);
+        }
+
+        public void MarkAsDownAndScheduleReconnection(Host host, HostConnectionPool pool)
+        {
+            _coreSession.MarkAsDownAndScheduleReconnection(host, pool);
+        }
+
+        public void OnAllConnectionClosed(Host host, HostConnectionPool pool)
+        {
+            _coreSession.OnAllConnectionClosed(host, pool);
+        }
+
+        string IInternalSession.Keyspace
+        {
+            get => _coreSession.Keyspace;
+            set => _coreSession.Keyspace = value;
+        }
+
+        public Configuration Configuration => _coreSession.Configuration;
+
+        public IInternalCluster InternalCluster => _coreSession.InternalCluster;
+
         public string Keyspace
         {
             get { return _coreSession.Keyspace; }
@@ -47,26 +104,13 @@ namespace Dse
         {
             get { return _coreSession.UserDefinedTypes; }
         }
-
-        internal DseSession(ISession coreSession, DseConfiguration config) : this(coreSession, coreSession.Cluster, config)
+        
+        public DseSession(IInternalSession coreSession, IInternalDseCluster cluster)
         {
-            
-        }
-
-        public DseSession(ISession coreSession, ICluster cluster, DseConfiguration config)
-        {
-            if (coreSession == null)
-            {
-                throw new ArgumentNullException("coreSession");
-            }
-            if (config == null)
-            {
-                throw new ArgumentNullException("config");
-            }
-
-            _cluster = cluster;
-            _coreSession = coreSession;
-            _config = config;
+            _cluster = cluster ?? throw new ArgumentNullException(nameof(cluster));
+            _coreSession = coreSession ?? throw new ArgumentNullException(nameof(coreSession));
+            _config = cluster.Configuration ?? throw new ArgumentNullException(nameof(cluster.Configuration));
+            _dseSessionManager = cluster.Configuration.DseSessionManagerFactory.Create(cluster, this);
         }
 
         public GraphResultSet ExecuteGraph(IGraphStatement statement)

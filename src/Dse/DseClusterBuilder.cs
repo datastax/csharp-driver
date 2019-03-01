@@ -537,7 +537,7 @@ namespace Dse
             _typeSerializerDefinitions = definitions;
             return this;
         }
-
+        
         /// <summary>
         /// Builds the cluster with the configured set of initial contact points and policies.
         /// </summary>
@@ -551,13 +551,6 @@ namespace Dse
                 "Using DataStax C# DSE driver v{0}",
                 FileVersionInfo.GetVersionInfo(dseAssembly.Location).FileVersion);
 
-            var appNameWasGenerated = ApplicationName == null;
-            var entryAssemblyName = AssemblyHelpers.GetEntryAssembly()?.GetName().Name ?? DseClusterBuilder.DefaultApplicationName;
-            var appName = ApplicationName ?? entryAssemblyName;
-            var appVersion = ApplicationVersion ?? string.Empty;
-            var clusterId = ClusterId ?? Guid.NewGuid();
-            var internalClusterId = Guid.NewGuid();
-
             var typeSerializerDefinitions = _typeSerializerDefinitions ?? new TypeSerializerDefinitions();
             typeSerializerDefinitions
                 .Define(new DateRangeSerializer())
@@ -566,26 +559,30 @@ namespace Dse
                 .Define(new PointSerializer())
                 .Define(new PolygonSerializer());
 
+            var clusterId = ClusterId ?? Guid.NewGuid();
+            var appVersion = ApplicationVersion ?? DseConfiguration.DefaultApplicationVersion;
+            var appName = ApplicationName ?? DseConfiguration.FallbackApplicationName;
+
             base.WithTypeSerializers(typeSerializerDefinitions);
             base.WithStartupOptionsFactory(new DseStartupOptionsFactory(clusterId, appVersion, appName));
             var coreCluster = base.Build();
 
             var config = new DseConfiguration(
                 coreCluster.Configuration,
-                GraphOptions ?? new GraphOptions(), 
-                clusterId, 
-                appVersion, 
+                GraphOptions ?? new GraphOptions(),
+                clusterId,
+                appVersion,
                 appName,
-                internalClusterId,
-                appNameWasGenerated)
-            {
-                AddressTranslator = _addressTranslator
-            };
+                Guid.NewGuid(),
+                _addressTranslator,
+                DseConfiguration.DefaultDseSessionManagerFactory,
+                DseConfiguration.GetDefaultDseSessionFactoryBuilder(coreCluster.Configuration.SessionFactoryBuilder));
 
-            // To be replaced after CSHARP-444.
-            return new DseCluster(
+            var dseCluster = new DseCluster(
                 coreCluster,
                 config);
+
+            return dseCluster;
         }
     }
 }

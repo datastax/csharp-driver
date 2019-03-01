@@ -6,10 +6,13 @@
 //
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Dse.SessionManagement;
+using Dse.Tasks;
 
 namespace Dse
 {
@@ -30,10 +33,11 @@ namespace Dse
     /// }
     /// </code>
     /// </example>
-    public class DseCluster : IDseCluster
+    public class DseCluster : IInternalDseCluster
     {
         private readonly Cluster _coreCluster;
         private readonly DseConfiguration _config;
+        private readonly ISessionFactory<IInternalDseSession> _dseSessionFactory;
 
         /// <summary>
         /// Represents an event that is triggered when a new host is added to the cluster.
@@ -62,7 +66,7 @@ namespace Dse
         {
             get { return _config.CassandraConfiguration; }
         }
-
+        
         /// <summary>
         /// Creates a new <see cref="DseClusterBuilder"/> instance.
         /// </summary>
@@ -77,6 +81,7 @@ namespace Dse
             _config = config;
             _coreCluster.HostAdded += OnCoreHostAdded;
             _coreCluster.HostRemoved += OnCoreHostRemoved;
+            _dseSessionFactory = config.DseSessionFactoryBuilder.BuildWithCluster(this);
         }
 
         /// <summary>
@@ -111,7 +116,7 @@ namespace Dse
         /// </summary>
         public IDseSession Connect()
         {
-            return new DseSession(_coreCluster.Connect(), this, _config);
+            return Connect(_config.CassandraConfiguration.ClientOptions.DefaultKeyspace);
         }
 
         /// <summary>
@@ -119,7 +124,7 @@ namespace Dse
         /// </summary>
         public IDseSession Connect(string keyspace)
         {
-            return new DseSession(_coreCluster.Connect(keyspace), this, _config);
+            return TaskHelper.WaitToComplete(ConnectAsync(keyspace));
         }
 
         /// <summary>
@@ -136,10 +141,9 @@ namespace Dse
         /// <param name="keyspace">Case-sensitive keyspace name to use</param>
         public async Task<IDseSession> ConnectAsync(string keyspace)
         {
-            var coreSession = await _coreCluster.ConnectAsync(keyspace).ConfigureAwait(false);
-            return new DseSession(coreSession, this, _config);
+            return await _coreCluster.ConnectAsync(_dseSessionFactory, keyspace).ConfigureAwait(false);
         }
-
+        
         /// <summary>
         /// Get a host instance for a given endpoint.
         /// </summary>
@@ -189,6 +193,20 @@ namespace Dse
         {
             _coreCluster.Shutdown(timeoutMs);
         }
+
+        public bool AnyOpenConnections(Host host)
+        {
+            return _coreCluster.InternalRef.AnyOpenConnections(host);
+        }
+
+        /// <inheritdoc />
+        ControlConnection IInternalCluster.GetControlConnection()
+        {
+            return _coreCluster.InternalRef.GetControlConnection();
+        }
+
+        /// <inheritdoc />
+        ConcurrentDictionary<byte[], PreparedStatement> IInternalCluster.PreparedQueries => _coreCluster.InternalRef.PreparedQueries;
 
         /// <summary>
         /// Shutdown this cluster instance. This closes all connections from all the sessions of this instance and

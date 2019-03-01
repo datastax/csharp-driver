@@ -17,6 +17,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dse;
 using Dse.Graph;
+using Dse.SessionManagement;
 using Moq;
 using NUnit.Framework;
 
@@ -24,14 +25,14 @@ namespace Dse.Test.Unit.Graph
 {
     public class ExecuteGraphTests : BaseUnitTest
     {
-        private static DseSession NewInstance(ISession coreSession, GraphOptions graphOptions = null)
+        private static DseSession NewInstance(IInternalSession coreSession, GraphOptions graphOptions = null)
         {
             //Cassandra Configuration does not have a public constructor
             //Create a dummy Cluster instance
             using (var cluster = DseCluster.Builder().AddContactPoint("127.0.0.1")
                 .WithGraphOptions(graphOptions ?? new GraphOptions()).Build())
             {
-                return new DseSession(coreSession, cluster.Configuration);   
+                return new DseSession(coreSession, cluster);   
             }
         }
 
@@ -145,7 +146,7 @@ namespace Dse.Test.Unit.Graph
             var rsMock = new Mock<RowSet>();
             rsMock.Setup(r => r.GetEnumerator()).Returns(() => rows.GetEnumerator());
 
-            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
+            var coreSessionMock = new Mock<IInternalSession>(MockBehavior.Strict);
             coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
                 .Returns(TaskOf(rsMock.Object))
                 .Verifiable();
@@ -257,7 +258,7 @@ namespace Dse.Test.Unit.Graph
         public void ExecuteGraph_Should_Allow_IpAddress_As_Parameters()
         {
             SimpleStatement coreStatement = null;
-            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
+            var coreSessionMock = new Mock<IInternalSession>(MockBehavior.Strict);
             coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
                 .Returns(TaskOf(new RowSet()))
                 .Callback<SimpleStatement>(stmt => coreStatement = stmt);
@@ -277,7 +278,7 @@ namespace Dse.Test.Unit.Graph
             var coreClusterMock = new Mock<ICluster>(MockBehavior.Strict);
             coreClusterMock.Setup(c => c.GetHost(It.IsAny<IPEndPoint>()))
                 .Returns<IPEndPoint>(address => new Host(address, ReconnectionPolicy));
-            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
+            var coreSessionMock = new Mock<IInternalSession>(MockBehavior.Strict);
             coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<SimpleStatement>()))
                 .Returns<SimpleStatement>(stmt =>
                 {
@@ -370,9 +371,9 @@ namespace Dse.Test.Unit.Graph
             return Serialization.TypeSerializer.PrimitiveLongSerializer.Serialize(4, value);
         }
 
-        private static Mock<ISession> GetCoreSessionMock(Action<SimpleStatement> executeCallback, RowSet rs = null)
+        private static Mock<IInternalSession> GetCoreSessionMock(Action<SimpleStatement> executeCallback, RowSet rs = null)
         {
-            var coreSessionMock = new Mock<ISession>(MockBehavior.Strict);
+            var coreSessionMock = new Mock<IInternalSession>(MockBehavior.Strict);
             coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
                 .Returns(TaskOf(rs ?? new RowSet()))
                 .Callback(executeCallback)

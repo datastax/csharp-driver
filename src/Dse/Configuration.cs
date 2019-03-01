@@ -7,10 +7,12 @@
 
 using System;
 using System.Collections.Generic;
+
 using Dse.Requests;
 using Dse.Serialization;
 using Dse.SessionManagement;
 using Dse.Tasks;
+
 using Microsoft.IO;
 
 namespace Dse
@@ -50,7 +52,7 @@ namespace Dse
         ///  The .net client additional options configuration.
         /// </summary>
         public ClientOptions ClientOptions { get; private set; }
-
+        
         /// <summary>
         ///  The query configuration.
         /// </summary>
