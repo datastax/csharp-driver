@@ -4,13 +4,13 @@
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading.Tasks;
-using Dse;
+
 using Dse.Graph;
 using Dse.SessionManagement;
 using Dse.Tasks;
@@ -104,13 +104,14 @@ namespace Dse
         {
             get { return _coreSession.UserDefinedTypes; }
         }
-        
+
         public DseSession(IInternalSession coreSession, IInternalDseCluster cluster)
         {
             _cluster = cluster ?? throw new ArgumentNullException(nameof(cluster));
             _coreSession = coreSession ?? throw new ArgumentNullException(nameof(coreSession));
             _config = cluster.Configuration ?? throw new ArgumentNullException(nameof(cluster.Configuration));
             _dseSessionManager = cluster.Configuration.DseSessionManagerFactory.Create(cluster, this);
+            InternalSessionId = Guid.NewGuid();
         }
 
         public GraphResultSet ExecuteGraph(IGraphStatement statement)
@@ -132,7 +133,7 @@ namespace Dse
             {
                 return TaskHelper.ToTask(statement);
             }
-            var targettedSimpleStatement = (TargettedSimpleStatement) statement;
+            var targettedSimpleStatement = (TargettedSimpleStatement)statement;
             return _coreSession
                 .ExecuteAsync(new SimpleStatement("CALL DseClientTool.getAnalyticsGraphServer()"))
                 .ContinueWith(t => AdaptRpcMasterResult(t, targettedSimpleStatement), TaskContinuationOptions.ExecuteSynchronously);
@@ -160,7 +161,7 @@ namespace Dse
             var location = resultField["location"];
             var hostName = location.Substring(0, location.LastIndexOf(':'));
             var address = _config.AddressTranslator.Translate(
-                new IPEndPoint(IPAddress.Parse(hostName),_config.CassandraConfiguration.ProtocolOptions.Port));
+                new IPEndPoint(IPAddress.Parse(hostName), _config.CassandraConfiguration.ProtocolOptions.Port));
             var host = _coreSession.Cluster.GetHost(address);
             statement.PreferredHost = host;
             return statement;
@@ -289,16 +290,19 @@ namespace Dse
 
         public void WaitForSchemaAgreement(RowSet rs)
         {
-            #pragma warning disable 618
+#pragma warning disable 618
             _coreSession.WaitForSchemaAgreement(rs);
-            #pragma warning restore 618
+#pragma warning restore 618
         }
 
         public bool WaitForSchemaAgreement(IPEndPoint forHost)
         {
-            #pragma warning disable 618
+#pragma warning disable 618
             return _coreSession.WaitForSchemaAgreement(forHost);
-            #pragma warning restore 618
+#pragma warning restore 618
         }
+
+        /// <inheritdoc />
+        public Guid InternalSessionId { get; }
     }
 }

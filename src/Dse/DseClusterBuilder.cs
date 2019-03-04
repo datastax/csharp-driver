@@ -573,7 +573,6 @@ namespace Dse
                 clusterId,
                 appVersion,
                 appName,
-                Guid.NewGuid(),
                 _addressTranslator,
                 DseConfiguration.DefaultDseSessionManagerFactory,
                 DseConfiguration.GetDefaultDseSessionFactoryBuilder(coreCluster.Configuration.SessionFactoryBuilder));

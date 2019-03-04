@@ -42,11 +42,6 @@ namespace Dse
         /// A unique identifier for the created cluster instance.
         /// </summary>
         public Guid ClusterId { get; }
-
-        /// <summary>
-        /// A unique identifier for the created cluster instance generated and used by the driver.
-        /// </summary>
-        internal Guid InternalClusterId { get; }
         
         /// <summary>
         /// To be replaced with CassandraConfiguration.AddressTranslator after CSHARP-444.
@@ -85,8 +80,7 @@ namespace Dse
                 graphOptions, 
                 Guid.NewGuid(), 
                 null, 
-                null, 
-                Guid.NewGuid(), 
+                null,
                 null, 
                 null,
                 null)
@@ -94,7 +88,6 @@ namespace Dse
             ApplicationName = DseConfiguration.FallbackApplicationName;
             ApplicationNameWasGenerated = true;
             ClusterId = Guid.NewGuid();
-            InternalClusterId = Guid.NewGuid();
             ApplicationVersion = DseConfiguration.DefaultApplicationVersion;
             
             AddressTranslator = new IdentityAddressTranslator();
@@ -106,7 +99,6 @@ namespace Dse
             Guid clusterId,
             string appVersion,
             string appName,
-            Guid internalClusterId,
             IAddressTranslator addressTranslator,
             IDseSessionManagerFactory sessionManagerFactory,
             ISessionFactoryBuilder<IInternalDseCluster, IInternalDseSession> dseSessionFactoryBuilder)
@@ -118,7 +110,6 @@ namespace Dse
             ApplicationVersion = appVersion ?? DseConfiguration.DefaultApplicationVersion;
             ApplicationName = appName ?? DseConfiguration.FallbackApplicationName;
             ApplicationNameWasGenerated = appName == null;
-            InternalClusterId = internalClusterId;
 
             AddressTranslator = addressTranslator ?? new IdentityAddressTranslator();
             DseSessionFactoryBuilder = dseSessionFactoryBuilder ?? DseConfiguration.GetDefaultDseSessionFactoryBuilder(cassandraConfiguration.SessionFactoryBuilder);
