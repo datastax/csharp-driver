@@ -85,6 +85,12 @@ namespace Cassandra
         void ChangeKeyspace(string keyspaceName);
 
         /// <summary>
+        /// Switches to the specified keyspace asynchronously.
+        /// </summary>
+        /// <param name="keyspaceName">Case-sensitive name of keyspace to be used.</param>
+        /// <exception cref="InvalidQueryException">When keyspace does not exist</exception>
+        Task ChangeKeyspaceAsync(string keyspaceName);
+        /// <summary>
         ///  Creates new keyspace in current cluster.        
         /// </summary>
         /// <param name="keyspaceName">Case-sensitive name of keyspace to be created.</param>
