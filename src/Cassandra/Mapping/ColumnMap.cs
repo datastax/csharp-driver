@@ -107,7 +107,7 @@ namespace Cassandra.Mapping
         /// </summary>
         public ColumnMap WithName(string columnName)
         {
-            if (string.IsNullOrWhiteSpace(columnName)) throw new ArgumentNullException("columnName");
+            if (columnName == null) throw new ArgumentNullException("columnName");
 
             _columnName = columnName;
             return this;
