@@ -68,7 +68,7 @@ build:
           msbuild /p:Configuration=Release /v:m /p:DynamicConstants=LINUX src/Cassandra.sln
 
           # Run the tests
-          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net452/Cassandra.IntegrationTests.dll /exclude:long,memory --labels=All --result:"TestResult_nunit3.xml" || error=true
+          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net452/Cassandra.IntegrationTests.dll --where "cat != long && cat != memory" --labels=All --result:"TestResult_nunit3.xml" || error=true
           
           java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_nunit3.xml tools/nunit3-xunit.xslt
           
