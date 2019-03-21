@@ -9,6 +9,13 @@ using System.Net;
 
 using Dse.Graph;
 using Dse.Helpers;
+using Dse.Insights;
+using Dse.Insights.InfoProviders;
+using Dse.Insights.InfoProviders.StartupMessage;
+using Dse.Insights.InfoProviders.StatusMessage;
+using Dse.Insights.MessageFactories;
+using Dse.Insights.Schema.StartupMessage;
+using Dse.Insights.Schema.StatusMessage;
 using Dse.SessionManagement;
 
 namespace Dse
@@ -61,15 +68,59 @@ namespace Dse
         internal ISessionFactoryBuilder<IInternalDseCluster, IInternalDseSession> DseSessionFactoryBuilder { get; }
 
         internal IDseSessionManagerFactory DseSessionManagerFactory { get; }
+
+        /// <summary>
+        /// Configuration options for monitor reporting
+        /// </summary>
+        public MonitorReportingOptions MonitorReportingOptions { get; }
         
+        internal IInsightsSupportVerifier InsightsSupportVerifier { get; }
+
         internal static IDseSessionManagerFactory DefaultDseSessionManagerFactory => 
-            new DseSessionManagerFactory();
+            new DseSessionManagerFactory(DseConfiguration.DefaultInsightsClientFactory);
 
         internal static ISessionFactoryBuilder<IInternalDseCluster, IInternalDseSession> GetDefaultDseSessionFactoryBuilder(
             ISessionFactoryBuilder<IInternalCluster, IInternalSession> sessionFactoryBuilder)
         {
             return new DseSessionFactoryBuilder(sessionFactoryBuilder);
         }
+
+        internal static IInsightsSupportVerifier DefaultInsightsSupportVerifier => new InsightsSupportVerifier();
+        
+        internal static IInsightsClientFactory DefaultInsightsClientFactory => 
+            new InsightsClientFactory(
+                DseConfiguration.DefaultInsightsStartupMessageFactory, DseConfiguration.DefaultInsightsStatusMessageFactory);
+
+        internal static IInsightsMessageFactory<InsightsStartupData> DefaultInsightsStartupMessageFactory => 
+            new InsightsStartupMessageFactory(
+                DseConfiguration.DefaultInsightsMetadataFactory,
+                DseConfiguration.DefaultInsightsInfoProvidersCollection
+            );
+
+        internal static IInsightsMessageFactory<InsightsStatusData> DefaultInsightsStatusMessageFactory => 
+            new InsightsStatusMessageFactory(
+                DseConfiguration.DefaultInsightsMetadataFactory,
+                new NodeStatusInfoProvider()
+            );
+
+        internal static IInsightsMetadataFactory DefaultInsightsMetadataFactory =>
+            new InsightsMetadataFactory(new InsightsMetadataTimestampGenerator());
+
+        internal static InsightsInfoProvidersCollection DefaultInsightsInfoProvidersCollection =>
+            new InsightsInfoProvidersCollection(
+                new PlatformInfoProvider(),
+                new ExecutionProfileInfoProvider(
+                    new LoadBalancingPolicyInfoProvider(new ReconnectionPolicyInfoProvider()),
+                    new SpeculativeExecutionPolicyInfoProvider(),
+                    new RetryPolicyInfoProvider()),
+                new PoolSizeByHostDistanceInfoProvider(),
+                new AuthProviderInfoProvider(),
+                new DataCentersInfoProvider(),
+                new OtherOptionsInfoProvider(),
+                new ConfigAntiPatternsInfoProvider(),
+                new ReconnectionPolicyInfoProvider(),
+                new DriverInfoProvider(), 
+                new HostnameInfoProvider());
 
         /// <summary>
         /// Creates a new instance of <see cref="DseConfiguration"/>.
@@ -83,12 +134,15 @@ namespace Dse
                 null,
                 null, 
                 null,
+                null,
+                null,
                 null)
         {
             ApplicationName = DseConfiguration.FallbackApplicationName;
             ApplicationNameWasGenerated = true;
             ClusterId = Guid.NewGuid();
             ApplicationVersion = DseConfiguration.DefaultApplicationVersion;
+            MonitorReportingOptions = new MonitorReportingOptions();
             
             AddressTranslator = new IdentityAddressTranslator();
         }
@@ -99,7 +153,9 @@ namespace Dse
             Guid clusterId,
             string appVersion,
             string appName,
+            MonitorReportingOptions monitorReportingOptions,
             IAddressTranslator addressTranslator,
+            IInsightsSupportVerifier insightsSupportVerifier,
             IDseSessionManagerFactory sessionManagerFactory,
             ISessionFactoryBuilder<IInternalDseCluster, IInternalDseSession> dseSessionFactoryBuilder)
         {
@@ -112,6 +168,9 @@ namespace Dse
             ApplicationNameWasGenerated = appName == null;
 
             AddressTranslator = addressTranslator ?? new IdentityAddressTranslator();
+
+            MonitorReportingOptions = monitorReportingOptions ?? new MonitorReportingOptions();
+            InsightsSupportVerifier = insightsSupportVerifier ?? DseConfiguration.DefaultInsightsSupportVerifier;
             DseSessionFactoryBuilder = dseSessionFactoryBuilder ?? DseConfiguration.GetDefaultDseSessionFactoryBuilder(cassandraConfiguration.SessionFactoryBuilder);
             DseSessionManagerFactory = sessionManagerFactory ?? DseConfiguration.DefaultDseSessionManagerFactory;
         }

@@ -66,6 +66,8 @@ namespace Dse
             _childPolicy = new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc));
         }
 
+        internal ILoadBalancingPolicy ChildPolicy => _childPolicy;
+
         /// <summary>
         /// Creates the default load balancing policy, using 
         /// <see cref="Policies.DefaultLoadBalancingPolicy"/> as child policy.

@@ -412,5 +412,22 @@ namespace Dse.Tasks
         {
             return new CancellationTokenSource(timespan).Token;
         }
+
+        /// <summary>
+        /// Calls <code>Task.Delay</code> with a cancellation token.
+        /// </summary>
+        /// <returns><code>true</code> if delay ran to completion; <code>false</code> if delay was canceled.</returns>
+        public static async Task<bool> DelayWithCancellation(TimeSpan delayTimeSpan, CancellationToken token)
+        {
+            try
+            {
+                await Task.Delay(delayTimeSpan, token).ConfigureAwait(false);
+                return true;
+            }
+            catch (TaskCanceledException)
+            {
+                return false;
+            }
+        }
     }
 }

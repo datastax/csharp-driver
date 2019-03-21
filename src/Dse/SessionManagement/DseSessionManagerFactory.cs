@@ -5,16 +5,22 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using Dse.SessionManagement;
+using Dse.Insights;
 
 namespace Dse.SessionManagement
 {
     internal class DseSessionManagerFactory : IDseSessionManagerFactory
     {
+        private readonly IInsightsClientFactory _insightsClientFactory;
+
+        public DseSessionManagerFactory(IInsightsClientFactory insightsClientFactory)
+        {
+            _insightsClientFactory = insightsClientFactory;
+        }
 
         public ISessionManager Create(IInternalDseCluster dseCluster, IInternalDseSession dseSession)
         {
-            return new DseSessionManager();
+            return new DseSessionManager(_insightsClientFactory.Create(dseCluster, dseSession));
         }
     }
 }

@@ -4,10 +4,6 @@
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Dse.Graph;
 using NUnit.Framework;
 
@@ -58,6 +54,29 @@ namespace Dse.Test.Unit
                 .Build();
             Assert.NotNull(cluster.Configuration);
             Assert.AreSame(lbp, cluster.Configuration.CassandraConfiguration.Policies.LoadBalancingPolicy);
+        }
+
+        [Test]
+        public void Should_ReturnDefaultInsightsMonitoringEnabled_When_NotProvidedToBuilder()
+        {
+            const bool expected = MonitorReportingOptions.DefaultMonitorReportingEnabled;
+            var cluster = DseCluster.Builder()
+                                .AddContactPoint("192.168.1.10")
+                                .Build();
+            Assert.AreEqual(expected, cluster.Configuration.MonitorReportingOptions.MonitorReportingEnabled);
+            Assert.AreEqual(MonitorReportingOptions.DefaultStatusEventDelayMilliseconds, cluster.Configuration.MonitorReportingOptions.StatusEventDelayMilliseconds);
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void Should_ReturnProvidedInsightsMonitoringEnabledFlag_When_ProvidedToBuilder(bool enabled)
+        {
+            var cluster = DseCluster.Builder()
+                                .AddContactPoint("192.168.1.10")
+                                .WithMonitorReporting(enabled)
+                                .Build();
+            Assert.AreEqual(enabled, cluster.Configuration.MonitorReportingOptions.MonitorReportingEnabled);
         }
     }
 }

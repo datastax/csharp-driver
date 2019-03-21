@@ -10,7 +10,7 @@ using System.Net;
 namespace Dse
 {
     /// <summary>
-    ///     Translates IP addresses received from Cassandra nodes into locally queriable addresses.
+    ///     Translates IP addresses received from Cassandra nodes into locally queryable addresses.
     /// </summary>
     /// <remarks>
     ///     The driver auto-detect new Cassandra nodes added to the cluster through server side
@@ -43,7 +43,7 @@ namespace Dse
         /// <returns>
         ///     the address the driver should actually use to connect to the node. If the return is
         ///     <c>null</c>, then address will be used by the driver (it is thus equivalent to
-        ///     returing address directly).
+        ///     returning address directly).
         /// </returns>
         IPEndPoint Translate(IPEndPoint address);
     }

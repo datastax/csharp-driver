@@ -13,6 +13,8 @@ namespace Dse.Test.Integration.TestClusterManagement.Simulacron
 
         public string Version { get; set; }
 
+        public string DseVersion { get; set; }
+
         public string Name { get; set; }
 
         public bool ActivityLog { get; set; }
@@ -25,6 +27,7 @@ namespace Dse.Test.Integration.TestClusterManagement.Simulacron
         {
             Nodes = "1";
             Version = TestClusterManager.CassandraVersion.ToString();
+            DseVersion = TestClusterManager.DseVersion?.ToString();
             Name = TestUtils.GetTestClusterNameBasedOnTime();
             ActivityLog = true;
             NumberOfTokens = 1;
@@ -33,12 +36,12 @@ namespace Dse.Test.Integration.TestClusterManagement.Simulacron
 
         public string GetCassandraVersion()
         {
-            return IsDse ? string.Empty : Version;
+            return Version;
         }
 
         public string GetDseVersion()
         {
-            return !IsDse ? string.Empty : Version;
+            return !IsDse || DseVersion == null ? string.Empty : DseVersion;
         }
     }
 }

@@ -9,7 +9,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-
 using NUnit.Framework;
 
 namespace Dse.Test.Unit

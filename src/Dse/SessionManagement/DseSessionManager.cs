@@ -6,21 +6,29 @@
 //
 
 using System.Threading.Tasks;
-using Dse.SessionManagement;
+using Dse.Insights;
 using Dse.Tasks;
 
 namespace Dse.SessionManagement
 {
     internal class DseSessionManager : ISessionManager
     {
+        private readonly IInsightsClient _insightsClient;
+
+        public DseSessionManager(IInsightsClient insightsClient)
+        {
+            _insightsClient = insightsClient;
+        }
+        
         public Task OnInitializationAsync()
         {
+            _insightsClient.Init();
             return TaskHelper.Completed;
         }
 
-        public Task OnShutdownAsync()
+        public async Task OnShutdownAsync()
         {
-            return TaskHelper.Completed;
+            await _insightsClient.ShutdownAsync().ConfigureAwait(false);
         }
     }
 }

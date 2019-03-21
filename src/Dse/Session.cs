@@ -13,10 +13,10 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
-using Dse.Tasks;
 using Dse.Requests;
 using Dse.Serialization;
 using Dse.SessionManagement;
+using Dse.Tasks;
 
 namespace Dse
 {

@@ -11,7 +11,6 @@ using System.Net;
 using System.Reflection;
 
 using Dse.Graph;
-using Dse.Helpers;
 using Dse.Requests;
 using Dse.Serialization;
 using Dse.Serialization.Geometry;
@@ -29,6 +28,7 @@ namespace Dse
         private static readonly Logger Logger = new Logger(typeof(DseClusterBuilder));
         private TypeSerializerDefinitions _typeSerializerDefinitions;
         private IAddressTranslator _addressTranslator = new IdentityAddressTranslator();
+        private MonitorReportingOptions _monitorReportingOptions = new MonitorReportingOptions();
 
         /// <summary>
         /// The version of the application using the created cluster instance.
@@ -539,6 +539,27 @@ namespace Dse
         }
         
         /// <summary>
+        /// Configures options related to Monitor Reporting for the new cluster.
+        /// By default, Monitor Reporting is enabled.
+        /// </summary>
+        /// <returns>This Builder.</returns>
+        public DseClusterBuilder WithMonitorReporting(bool enabled)
+        {
+            return WithMonitorReporting(_monitorReportingOptions.SetMonitorReportingEnabled(enabled));
+        }
+
+        /// <summary>
+        /// Configures options related to Monitor Reporting for the new cluster.
+        /// By default, Monitor Reporting is enabled.
+        /// </summary>
+        /// <returns>This Builder.</returns>
+        internal DseClusterBuilder WithMonitorReporting(MonitorReportingOptions options)
+        {
+            _monitorReportingOptions = options;
+            return this;
+        }
+
+        /// <summary>
         /// Builds the cluster with the configured set of initial contact points and policies.
         /// </summary>
         /// <returns>
@@ -573,7 +594,9 @@ namespace Dse
                 clusterId,
                 appVersion,
                 appName,
+                _monitorReportingOptions, 
                 _addressTranslator,
+                DseConfiguration.DefaultInsightsSupportVerifier,
                 DseConfiguration.DefaultDseSessionManagerFactory,
                 DseConfiguration.GetDefaultDseSessionFactoryBuilder(coreCluster.Configuration.SessionFactoryBuilder));
 

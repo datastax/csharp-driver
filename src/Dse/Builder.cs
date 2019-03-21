@@ -534,14 +534,14 @@ namespace Dse
         }
 
         /// <summary>
-        ///  Configures the address translater to use for the new cluster.
+        ///  Configures the address translator to use for the new cluster.
         /// </summary>
         /// <remarks>
-        /// See <c>IAddressTranslater</c> for more detail on address translation,
-        /// but the default tanslater, <c>DefaultAddressTranslator</c>, should be
+        /// See <see cref="IAddressTranslator"/> for more detail on address translation,
+        /// but the default translator, <see cref="DefaultAddressTranslator"/>, should be
         /// correct in most cases. If unsure, stick to the default.
         /// </remarks>
-        /// <param name="addressTranslator">the translater to use.</param>
+        /// <param name="addressTranslator">the translator to use.</param>
         /// <returns>this Builder</returns>
         public Builder WithAddressTranslator(IAddressTranslator addressTranslator)
         {
