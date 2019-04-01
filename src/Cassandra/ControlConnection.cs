@@ -204,6 +204,7 @@ namespace Cassandra
                 return await currentTask.ConfigureAwait(false);
             }
             Unsubscribe();
+            var oldConnection = _connection;
             try
             {
                 _logger.Info("Trying to reconnect the ControlConnection");
@@ -218,14 +219,22 @@ namespace Cassandra
                 _logger.Error("ControlConnection was not able to reconnect: " + ex);
                 try
                 {
-                    _reconnectionTimer.Change((int)delay, Timeout.Infinite);
+                    _reconnectionTimer.Change((int) delay, Timeout.Infinite);
                 }
                 catch (ObjectDisposedException)
                 {
                     //Control connection is being disposed
                 }
+
                 // It will throw the same exception that it was set in the TCS
                 throw;
+            }
+            finally
+            {
+                if (_connection != oldConnection)
+                {
+                    oldConnection.Dispose();
+                }
             }
 
             if (Interlocked.Read(ref _isShutdown) > 0L)
