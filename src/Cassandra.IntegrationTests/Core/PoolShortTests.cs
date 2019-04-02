@@ -291,25 +291,18 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(4, testCluster.GetConnectedPorts().Count);
 
                 var ccAddress = cluster.InternalRef.GetControlConnection().Address;
+                Assert.NotNull(ccAddress);
                 var simulacronNode = testCluster.GetNode(ccAddress);
 
                 // Disable new connections to the first host
-                await simulacronNode.DisableConnectionListener().ConfigureAwait(false);
-
-                Assert.NotNull(simulacronNode);
-                var connections = simulacronNode.GetConnections();
-
-                // Drop connections to the host that is being used by the control connection
-                Assert.AreEqual(2, connections.Count);
-                await testCluster.DropConnection(connections[0]).ConfigureAwait(false);
-                await testCluster.DropConnection(connections[1]).ConfigureAwait(false);
+                await simulacronNode.Stop().ConfigureAwait(false);
 
                 TestHelper.WaitUntil(() => !cluster.GetHost(ccAddress).IsUp);
 
                 Assert.False(cluster.GetHost(ccAddress).IsUp);
 
                 TestHelper.WaitUntil(() => !cluster.InternalRef.GetControlConnection().Address.Address.Equals(ccAddress.Address));
-
+                Assert.NotNull(cluster.InternalRef.GetControlConnection().Address);
                 Assert.AreNotEqual(ccAddress.Address, cluster.InternalRef.GetControlConnection().Address.Address);
 
                 // Previous host is still DOWN
