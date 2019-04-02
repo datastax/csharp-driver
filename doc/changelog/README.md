@@ -2,6 +2,24 @@
 
 Changelog for the DataStax Enterprise C# Driver.
 
+## 2.6.0
+
+2019-04-02
+
+### Features
+
+- [CSHARP-538] - Expose Metadata.CheckSchemaAgreement() and ExecutionInfo.IsSchemaInAgreement()
+- [CSHARP-618] - Add client configuration information to STARTUP message
+- [CSHARP-725] - Deprecate usedHostsPerRemoteDc in DCAwareRoundRobinPolicy
+- [CSHARP-727] - Send startup message and invoke Insights RPCs periodically
+- [CSHARP-734] - Add DSE specific client configuration information to STARTUP message
+
+### Bug Fixes
+
+- [CSHARP-708] - Retry on current host should be made on a different connection
+- [CSHARP-715] - LocalTime Parse fails for valid LocalTime strings on certain cultures
+- [CSHARP-752] - Memory leak in ControlConnection
+
 ## 2.5.0
 
 2019-02-11
