@@ -284,7 +284,7 @@ namespace Cassandra.Data.Linq.ExpressionParsing
 
         private string Escape(PocoData pocoData, string identifier)
         {
-            if (!pocoData.CaseSensitive)
+            if (!pocoData.CaseSensitive && !string.IsNullOrWhiteSpace(identifier))
             {
                 return identifier;
             }

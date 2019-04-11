@@ -68,7 +68,7 @@ build:
           msbuild /p:Configuration=Release /v:m /p:DynamicConstants=LINUX src/Cassandra.sln
 
           # Run the tests
-          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net452/Cassandra.IntegrationTests.dll --where:cat=short --labels=All --result:"TestResult_nunit3.xml" || error=true
+          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net452/Cassandra.IntegrationTests.dll --where "cat != long && cat != memory" --labels=All --result:"TestResult_nunit3.xml" || error=true
           
           java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_nunit3.xml tools/nunit3-xunit.xslt
           
@@ -86,7 +86,7 @@ build:
           dotnet restore src
 
           # Run the tests
-          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f $DOTNET_VERSION -c Release --filter TestCategory=short --logger "trx;LogFileName=../../../TestResult_trx.xml" || error=true
+          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f $DOTNET_VERSION -c Release --filter "(TestCategory!=long)&(TestCategory!=memory)" --logger "trx;LogFileName=../../../TestResult_trx.xml" || error=true
           
           java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_trx.xml tools/trx-to-junit.xslt
           
