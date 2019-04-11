@@ -35,7 +35,7 @@ namespace Cassandra.Requests
         private static readonly Logger Logger = new Logger(typeof(Session));
         public const long StateInit = 0;
         public const long StateCompleted = 1;
-
+        
         private readonly IRequest _request;
         private readonly IInternalSession _session;
         private readonly TaskCompletionSource<RowSet> _tcs;
@@ -45,39 +45,39 @@ namespace Cassandra.Requests
         private readonly ICollection<IRequestExecution> _running = new CopyOnWriteList<IRequestExecution>();
         private ISpeculativeExecutionPlan _executionPlan;
         private volatile HashedWheelTimer.ITimeout _nextExecutionTimeout;
-
-        public Policies Policies { get; }
         public IExtendedRetryPolicy RetryPolicy { get; }
         public Serializer Serializer { get; }
         public IStatement Statement { get; }
+        public ExecutionProfile ExecutionProfile { get; }
 
         /// <summary>
-        /// Creates a new instance using a request and the statement.
+        /// Creates a new instance using a request, the statement and the execution profile.
         /// </summary>
-        public RequestHandler(IInternalSession session, Serializer serializer, IRequest request, IStatement statement)
+        public RequestHandler(IInternalSession session, Serializer serializer, IRequest request, IStatement statement, ExecutionProfile executionProfile)
         {
             _tcs = new TaskCompletionSource<RowSet>();
             _session = session ?? throw new ArgumentNullException(nameof(session));
             _request = request;
             Serializer = serializer ?? throw new ArgumentNullException(nameof(session));
             Statement = statement;
-            Policies = _session.Cluster.Configuration.Policies;
-            RetryPolicy = Policies.ExtendedRetryPolicy;
+            ExecutionProfile = executionProfile ?? throw new ArgumentNullException(nameof(executionProfile));
+
+            RetryPolicy = ExecutionProfile.RetryPolicy;
 
             if (statement?.RetryPolicy != null)
             {
-                RetryPolicy = statement.RetryPolicy.Wrap(Policies.ExtendedRetryPolicy);
+                RetryPolicy = statement.RetryPolicy.Wrap(RetryPolicy);
             }
 
-            _queryPlan = RequestHandler.GetQueryPlan(session, statement, Policies).GetEnumerator();
+            _queryPlan = RequestHandler.GetQueryPlan(session, statement, ExecutionProfile.LoadBalancingPolicy).GetEnumerator();
         }
 
         /// <summary>
         /// Creates a new instance using the statement to build the request.
         /// Statement can not be null.
         /// </summary>
-        public RequestHandler(IInternalSession session, Serializer serializer, IStatement statement)
-            : this(session, serializer, RequestHandler.GetRequest(statement, serializer, session.Cluster.Configuration), statement)
+        public RequestHandler(IInternalSession session, Serializer serializer, IStatement statement, ExecutionProfile executionProfile)
+            : this(session, serializer, RequestHandler.GetRequest(statement, serializer, session.Cluster.Configuration), statement, executionProfile)
         {
 
         }
@@ -85,8 +85,8 @@ namespace Cassandra.Requests
         /// <summary>
         /// Creates a new instance with no request, suitable for getting a connection.
         /// </summary>
-        public RequestHandler(IInternalSession session, Serializer serializer)
-            : this(session, serializer, null, null)
+        public RequestHandler(IInternalSession session, Serializer serializer, ExecutionProfile executionProfile)
+            : this(session, serializer, null, null, executionProfile)
         {
 
         }
@@ -96,13 +96,13 @@ namespace Cassandra.Requests
         /// In the special case when a Host is provided at Statement level, it will return a query plan with a single
         /// host.
         /// </summary>
-        private static IEnumerable<Host> GetQueryPlan(ISession session, IStatement statement, Policies policies)
+        private static IEnumerable<Host> GetQueryPlan(ISession session, IStatement statement, ILoadBalancingPolicy lbp)
         {
             // Single host iteration
             var host = (statement as Statement)?.Host;
 
             return host == null
-                ? policies.LoadBalancingPolicy.NewQueryPlan(session.Keyspace, statement)
+                ? lbp.NewQueryPlan(session.Keyspace, statement)
                 : Enumerable.Repeat(host, 1);
         }
         
@@ -270,7 +270,7 @@ namespace Cassandra.Requests
         /// (see documentation of <see cref="ValidHost.New"/>)</returns>
         private bool TryValidateHost(Host host, out ValidHost validHost)
         {
-            var distance = Cluster.RetrieveDistance(host, Policies.LoadBalancingPolicy);
+            var distance = Cluster.RetrieveDistance(host, ExecutionProfile.LoadBalancingPolicy);
             validHost = ValidHost.New(host, distance);
             return validHost != null;
         }
@@ -431,7 +431,7 @@ namespace Cassandra.Requests
             }
             if (_executionPlan == null)
             {
-                _executionPlan = Policies.SpeculativeExecutionPolicy.NewPlan(_session.Keyspace, Statement);
+                _executionPlan = ExecutionProfile.SpeculativeExecutionPolicy.NewPlan(_session.Keyspace, Statement);
             }
             var delay = _executionPlan.NextExecution(currentHost);
             if (delay <= 0)

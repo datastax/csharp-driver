@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using Cassandra.ExecutionProfiles;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -57,6 +58,7 @@ namespace Cassandra
         private int _maxSchemaAgreementWaitSeconds = ProtocolOptions.DefaultMaxSchemaAgreementWaitSeconds;
         private IStartupOptionsFactory _startupOptionsFactory = new StartupOptionsFactory();
         private ISessionFactoryBuilder<IInternalCluster, IInternalSession> _sessionFactoryBuilder = new SessionFactoryBuilder();
+        private IReadOnlyDictionary<string, ExecutionProfile> _profiles = new Dictionary<string, ExecutionProfile>();
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -133,7 +135,8 @@ namespace Cassandra
                 _queryOptions,
                 _addressTranslator,
                 _startupOptionsFactory,
-                _sessionFactoryBuilder);
+                _sessionFactoryBuilder,
+                _profiles);
             if (_typeSerializerDefinitions != null)
             {
                 config.TypeSerializers = _typeSerializerDefinitions.Definitions;
@@ -671,6 +674,14 @@ namespace Cassandra
             }
 
             _maxSchemaAgreementWaitSeconds = maxSchemaAgreementWaitSeconds;
+            return this;
+        }
+
+        public Builder WithExecutionProfiles(Action<IExecutionProfileOptions> profileOptionsBuilder)
+        {
+            var profileOptions = new ExecutionProfileOptions();
+            profileOptionsBuilder(profileOptions);
+            _profiles = profileOptions.GetProfiles();
             return this;
         }
 

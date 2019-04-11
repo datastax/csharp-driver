@@ -28,7 +28,7 @@ namespace Cassandra.Requests
     /// </summary>
     internal interface IRequestHandler
     {
-        Policies Policies { get; }
+        ExecutionProfile ExecutionProfile { get; }
 
         IExtendedRetryPolicy RetryPolicy { get; }
 

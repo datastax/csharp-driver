@@ -259,7 +259,6 @@ namespace Cassandra
                     // Initialize policies
                     Configuration.Policies.LoadBalancingPolicy.Initialize(this);
                     Configuration.Policies.SpeculativeExecutionPolicy.Initialize(this);
-                    Configuration.Policies.InitializeRetryPolicy(this);
                 }
                 catch (NoHostAvailableException)
                 {
