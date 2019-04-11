@@ -63,7 +63,7 @@ namespace Cassandra
         UdtMappingDefinitions UserDefinedTypes { get; }
 
         /// <summary>
-        /// Begins asynchronous execute operation
+        /// Begins asynchronous execute operation.
         /// </summary>
         IAsyncResult BeginExecute(IStatement statement, AsyncCallback callback, object state);
 
@@ -136,6 +136,13 @@ namespace Cassandra
         /// Ends asynchronous prepare operation
         /// </summary>
         PreparedStatement EndPrepare(IAsyncResult ar);
+        
+        /// <summary>
+        /// Executes the provided statement with the provided execution profile.
+        /// </summary>
+        /// <param name="statement">Statement to execute.</param>
+        /// <param name="executionProfileName">ExecutionProfile name to be used while executing the statement.</param>
+        RowSet Execute(IStatement statement, string executionProfileName);
 
         /// <summary>
         /// Executes the provided query.
@@ -146,7 +153,14 @@ namespace Cassandra
         /// Executes the provided query.
         /// </summary>
         RowSet Execute(string cqlQuery);
-
+        
+        /// <summary>
+        /// Executes the provided query with the provided execution profile.
+        /// </summary>
+        /// <param name="cqlQuery">Query to execute.</param>
+        /// <param name="executionProfileName">ExecutionProfile name to be used while executing the statement.</param>
+        RowSet Execute(string cqlQuery, string executionProfileName);
+        
         /// <summary>
         /// Executes the provided query.
         /// </summary>
@@ -163,6 +177,14 @@ namespace Cassandra
         /// <param name="statement">The statement to execute (simple, bound or batch statement)</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         Task<RowSet> ExecuteAsync(IStatement statement);
+
+        /// <summary>
+        /// Executes a query asynchronously with the provided execution profile.
+        /// </summary>
+        /// <param name="statement">The statement to execute (simple, bound or batch statement)</param>
+        /// <param name="executionProfileName">ExecutionProfile name to be used while executing the statement.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        Task<RowSet> ExecuteAsync(IStatement statement, string executionProfileName);
 
         /// <summary>
         /// Prepares the provided query string.

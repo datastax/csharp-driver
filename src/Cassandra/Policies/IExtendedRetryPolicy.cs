@@ -66,7 +66,7 @@ namespace Cassandra
             if (resultPolicy == null)
             {
                 // Wrap the user provided policy
-                return new WrappedExtendedRetryPolicy(policy, defaultPolicy ?? new DefaultRetryPolicy());
+                return new WrappedExtendedRetryPolicy(policy, defaultPolicy);
             }
             // Return the user-provided policy casted to IExtendedRetryPolicy
             return resultPolicy;
@@ -80,8 +80,8 @@ namespace Cassandra
         {
             public WrappedExtendedRetryPolicy(IRetryPolicy policy, IExtendedRetryPolicy defaultPolicy)
             {
-                Policy = policy;
-                DefaultPolicy = defaultPolicy;
+                Policy = policy ?? throw new ArgumentNullException(nameof(policy));
+                DefaultPolicy = defaultPolicy ?? throw new ArgumentNullException(nameof(defaultPolicy));
             }
 
             public IRetryPolicy Policy { get; }

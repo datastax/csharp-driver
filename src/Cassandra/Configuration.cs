@@ -115,6 +115,10 @@ namespace Cassandra
         
         internal IControlConnectionFactory ControlConnectionFactory { get; }
 
+        internal IReadOnlyDictionary<string, ExecutionProfile> ExecutionProfiles { get; }
+
+        internal ExecutionProfile DefaultExecutionProfile { get; }
+
         internal Configuration() :
             this(Policies.DefaultPolicies,
                  new ProtocolOptions(),
@@ -126,7 +130,8 @@ namespace Cassandra
                  new QueryOptions(),
                  new DefaultAddressTranslator(),
                  new StartupOptionsFactory(),
-                 new SessionFactoryBuilder())
+                 new SessionFactoryBuilder(),
+                 new Dictionary<string, ExecutionProfile>())
         {
         }
 
@@ -149,7 +154,8 @@ namespace Cassandra
                                IHostConnectionPoolFactory hostConnectionPoolFactory = null,
                                IRequestExecutionFactory requestExecutionFactory = null,
                                IConnectionFactory connectionFactory = null,
-                               IControlConnectionFactory controlConnectionFactory = null)
+                               IControlConnectionFactory controlConnectionFactory = null,
+                               IReadOnlyDictionary<string, ExecutionProfile> executionProfiles)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -168,6 +174,16 @@ namespace Cassandra
             RequestExecutionFactory = requestExecutionFactory ?? new RequestExecutionFactory();
             ConnectionFactory = connectionFactory ?? new ConnectionFactory();
             ControlConnectionFactory = controlConnectionFactory ?? new ControlConnectionFactory();
+
+            ExecutionProfiles = executionProfiles;
+
+            DefaultExecutionProfile = new ExecutionProfile(
+                QueryOptions.GetConsistencyLevel(),
+                QueryOptions.GetSerialConsistencyLevel(),
+                SocketOptions.ReadTimeoutMillis,
+                Policies.LoadBalancingPolicy,
+                Policies.SpeculativeExecutionPolicy,
+                Policies.ExtendedRetryPolicy);
 
             // Create the buffer pool with 16KB for small buffers and 256Kb for large buffers.
             // The pool does not eagerly reserve the buffers, so it doesn't take unnecessary memory
