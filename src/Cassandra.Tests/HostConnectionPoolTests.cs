@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
@@ -83,7 +84,8 @@ namespace Cassandra.Tests
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
                 Mock.Of<IStartupOptionsFactory>(),
-                new SessionFactoryBuilder());
+                new SessionFactoryBuilder(),
+                new Dictionary<string, ExecutionProfile>());
             return config;
         }
 

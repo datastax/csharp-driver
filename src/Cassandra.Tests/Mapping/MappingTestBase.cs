@@ -53,7 +53,9 @@ namespace Cassandra.Tests.Mapping
             {
                 config = new MappingConfiguration().Define(new FluentUserMapping());
             }
-            sessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
+            var clusterMock = new Mock<ICluster>();
+            clusterMock.Setup(c => c.Configuration).Returns(new Configuration());
+            sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             return new Mapper(sessionMock.Object, config);
         }
 
@@ -71,7 +73,9 @@ namespace Cassandra.Tests.Mapping
             }
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
-            sessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
+            var clusterMock = new Mock<ICluster>();
+            clusterMock.Setup(c => c.Configuration).Returns(new Configuration());
+            sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<TStatement>()))
                 .Returns(() => TaskHelper.ToTask(rs))

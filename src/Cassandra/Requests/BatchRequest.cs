@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Cassandra.ExecutionProfiles;
 using Cassandra.Serialization;
 
 namespace Cassandra.Requests
@@ -37,7 +38,7 @@ namespace Cassandra.Requests
 
         public IDictionary<string, byte[]> Payload { get; set; }
 
-        public BatchRequest(ProtocolVersion protocolVersion, BatchStatement statement, ConsistencyLevel consistency, Configuration config)
+        public BatchRequest(ProtocolVersion protocolVersion, BatchStatement statement, ConsistencyLevel consistency, IRequestOptions requestOptions)
         {
             if (!protocolVersion.SupportsBatch())
             {
@@ -53,10 +54,10 @@ namespace Cassandra.Requests
                 _headerFlags = FrameHeader.HeaderFlag.Tracing;
             }
 
-            _serialConsistency = config.QueryOptions.GetSerialConsistencyLevelOrDefault(statement);
+            _serialConsistency = requestOptions.GetSerialConsistencyLevelOrDefault(statement);
             _batchFlags |= QueryProtocolOptions.QueryFlags.WithSerialConsistency;
 
-            _timestamp = GetRequestTimestamp(protocolVersion, statement, config.Policies);
+            _timestamp = BatchRequest.GetRequestTimestamp(protocolVersion, statement, requestOptions.TimestampGenerator);
             if (_timestamp != null)
             {
                 _batchFlags |= QueryProtocolOptions.QueryFlags.WithDefaultTimestamp;   
@@ -67,8 +68,7 @@ namespace Cassandra.Requests
         /// Gets the timestamp of the request or null if not defined.
         /// </summary>
         /// <exception cref="NotSupportedException" />
-        private static long? GetRequestTimestamp(ProtocolVersion protocolVersion, BatchStatement statement,
-                                                 Policies policies)
+        private static long? GetRequestTimestamp(ProtocolVersion protocolVersion, BatchStatement statement, ITimestampGenerator timestampGenerator)
         {
             if (!protocolVersion.SupportsTimestamp())
             {
@@ -83,7 +83,7 @@ namespace Cassandra.Requests
             {
                 return TypeSerializer.SinceUnixEpoch(statement.Timestamp.Value).Ticks / 10;
             }
-            var timestamp = policies.TimestampGenerator.Next();
+            var timestamp = timestampGenerator.Next();
             return timestamp != long.MinValue ? (long?) timestamp : null;
         }
 

@@ -14,6 +14,7 @@
 //    limitations under the License.
 // 
 
+using Cassandra.ExecutionProfiles;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 
@@ -21,10 +22,10 @@ namespace Cassandra.Requests
 {
     internal interface IRequestHandlerFactory
     {
-        IRequestHandler Create(IInternalSession session, Serializer serializer, IRequest request, IStatement statement);
+        IRequestHandler Create(IInternalSession session, Serializer serializer, IRequest request, IStatement statement, IRequestOptions options);
 
-        IRequestHandler Create(IInternalSession session, Serializer serializer, IStatement statement);
+        IRequestHandler Create(IInternalSession session, Serializer serializer, IStatement statement, IRequestOptions options);
 
-        IRequestHandler Create(IInternalSession session, Serializer serializer);
+        IRequestHandler Create(IInternalSession session, Serializer serializer, IRequestOptions options);
     }
 }

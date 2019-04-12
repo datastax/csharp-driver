@@ -331,7 +331,10 @@ APPLY BATCH".Replace("\r", ""));
         [Test]
         public void LinqSelectWhereTest()
         {
+            var clusterMock = new Mock<ICluster>();
+            clusterMock.Setup(c => c.Configuration).Returns(new Configuration());
             var sessionMock = new Mock<ISession>();
+            sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             var session = sessionMock.Object;
 
             var table = session.GetTable<AllTypesEntity>();

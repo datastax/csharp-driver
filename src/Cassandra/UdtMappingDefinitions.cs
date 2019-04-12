@@ -18,6 +18,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Cassandra.Serialization;
+using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
 namespace Cassandra
@@ -28,14 +29,14 @@ namespace Cassandra
     public class UdtMappingDefinitions
     {
         private readonly ConcurrentDictionary<Type, UdtMap> _udtByNetType;
-        private readonly ICluster _cluster;
-        private readonly ISession _session;
+        private readonly IInternalCluster _cluster;
+        private readonly IInternalSession _session;
         private readonly Serializer _serializer;
 
-        internal UdtMappingDefinitions(ISession session, Serializer serializer)
+        internal UdtMappingDefinitions(IInternalSession session, Serializer serializer)
         {
             _udtByNetType = new ConcurrentDictionary<Type, UdtMap>();
-            _cluster = session.Cluster;
+            _cluster = session.InternalCluster;
             _session = session;
             _serializer = serializer;
         }
@@ -46,7 +47,7 @@ namespace Cassandra
         /// <exception cref="ArgumentException" />
         public void Define(params UdtMap[] udtMaps)
         {
-            TaskHelper.WaitToComplete(DefineAsync(udtMaps), _cluster.Configuration.ClientOptions.QueryAbortTimeout);
+            TaskHelper.WaitToComplete(DefineAsync(udtMaps), _cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout);
         }
 
         /// <summary>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cassandra.Mapping.Statements;
+using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
 namespace Cassandra.Mapping
@@ -42,19 +43,11 @@ namespace Cassandra.Mapping
 
         internal Mapper(ISession session, MapperFactory mapperFactory, StatementFactory statementFactory, CqlGenerator cqlGenerator)
         {
-            if (session == null) throw new ArgumentNullException("session");
-            if (mapperFactory == null) throw new ArgumentNullException("mapperFactory");
-            if (statementFactory == null) throw new ArgumentNullException("statementFactory");
-            if (cqlGenerator == null) throw new ArgumentNullException("cqlGenerator");
-
-            _session = session;
-            _mapperFactory = mapperFactory;
-            _statementFactory = statementFactory;
-            _cqlGenerator = cqlGenerator;
-            if (session.Cluster != null && session.Cluster.Configuration != null)
-            {
-                _queryAbortTimeout = session.Cluster.Configuration.ClientOptions.QueryAbortTimeout;
-            }
+            _session = session ?? throw new ArgumentNullException(nameof(session));
+            _mapperFactory = mapperFactory ?? throw new ArgumentNullException(nameof(mapperFactory));
+            _statementFactory = statementFactory ?? throw new ArgumentNullException(nameof(statementFactory));
+            _cqlGenerator = cqlGenerator ?? throw new ArgumentNullException(nameof(cqlGenerator));
+            _queryAbortTimeout = session.Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
         }
 
         /// <summary>

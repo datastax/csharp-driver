@@ -43,7 +43,8 @@ namespace Cassandra.Tests
                     It.IsAny<IRequest>()))
                 .Returns(Mock.Of<IRequestExecution>());
 
-            return new Configuration(new Policies(lbp, null, null),
+            return new Configuration(
+                new Policies(lbp, null, null),
                 new ProtocolOptions(),
                 null,
                 new SocketOptions(),
@@ -54,6 +55,7 @@ namespace Cassandra.Tests
                 new DefaultAddressTranslator(),
                 Mock.Of<IStartupOptionsFactory>(),
                 new SessionFactoryBuilder(),
+                new Dictionary<string, ExecutionProfile>(),
                 requestExecutionFactory: requestExecutionFactory);
         }
 
@@ -73,7 +75,7 @@ namespace Cassandra.Tests
                 .Returns(enumerable);
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
-            var sut = new RequestHandler(sessionMock, new Serializer(ProtocolVersion.V4));
+            var sut = new RequestHandler(sessionMock, new Serializer(ProtocolVersion.V4), sessionMock.Cluster.Configuration.DefaultRequestOptions);
             Assert.Throws<NoHostAvailableException>(() => sut.GetNextValidHost(triedHosts));
         }
 
@@ -94,7 +96,7 @@ namespace Cassandra.Tests
                 .Returns(enumerable);
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
-            var sut = new RequestHandler(sessionMock, new Serializer(ProtocolVersion.V4));
+            var sut = new RequestHandler(sessionMock, new Serializer(ProtocolVersion.V4), sessionMock.Cluster.Configuration.DefaultRequestOptions);
             Assert.Throws<NoHostAvailableException>(() => sut.GetNextValidHost(triedHosts));
         }
 
@@ -117,7 +119,7 @@ namespace Cassandra.Tests
             Mock.Get(lbpMock).Setup(m => m.Distance(host)).Returns(HostDistance.Local);
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
-            var sut = new RequestHandler(sessionMock, new Serializer(ProtocolVersion.V4));
+            var sut = new RequestHandler(sessionMock, new Serializer(ProtocolVersion.V4), sessionMock.Cluster.Configuration.DefaultRequestOptions);
             var validHost = sut.GetNextValidHost(triedHosts);
             Assert.NotNull(validHost);
             Assert.AreEqual(host, validHost.Host);

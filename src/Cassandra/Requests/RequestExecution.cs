@@ -22,6 +22,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
+using Cassandra.ExecutionProfiles;
 using Cassandra.Responses;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;
@@ -155,7 +156,8 @@ namespace Cassandra.Requests
         /// </summary>
         private void Send(IRequest request, Action<Exception, Response> callback)
         {
-            var timeoutMillis = Timeout.Infinite;
+            var timeoutMillis = _parent.RequestOptions.ReadTimeoutMillis;
+
             if (_parent.Statement != null)
             {
                 timeoutMillis = _parent.Statement.ReadTimeoutMillis;
@@ -296,11 +298,10 @@ namespace Cassandra.Requests
                         return Task.FromResult(RowSet.Empty());
                     }
 
-                    var request = (IQueryRequest)_parent.BuildRequest(statement, _parent.Serializer,
-                        session.Cluster.Configuration);
+                    var request = (IQueryRequest)_parent.BuildRequest();
                     request.PagingState = pagingState;
-                    return _session.Configuration.RequestHandlerFactory.Create(session, _parent.Serializer, request, statement, _parent.ExecutionProfile).SendAsync();
-                }, _session.Cluster.Configuration.ClientOptions.QueryAbortTimeout);
+                    return _session.Cluster.Configuration.RequestHandlerFactory.Create(session, _parent.Serializer, request, statement, _parent.RequestOptions).SendAsync();
+                }, _parent.RequestOptions.QueryAbortTimeout);
             }
         }
 
