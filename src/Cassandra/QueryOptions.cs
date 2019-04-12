@@ -117,27 +117,6 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Gets the serial consistency level of the statement or the default value from the query options.
-        /// </summary>
-        /// <exception cref="ArgumentException" />
-        internal ConsistencyLevel GetSerialConsistencyLevelOrDefault(IStatement statement)
-        {
-            var consistency = GetSerialConsistencyLevel();
-            if (statement.SerialConsistencyLevel != ConsistencyLevel.Any)
-            {
-                consistency = statement.SerialConsistencyLevel;
-            }
-
-            if (!consistency.IsSerialConsistencyLevel())
-            {
-                throw new ArgumentException("Serial consistency level can only be set to LocalSerial or Serial");
-            }
-
-            return consistency;
-        }
-
-
-        /// <summary>
         /// Sets the default page size to use for SELECT queries.
         /// The page size set through this method will be use for queries
         /// that don't explicitely have a page size.

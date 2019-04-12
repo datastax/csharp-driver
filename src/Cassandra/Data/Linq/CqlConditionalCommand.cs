@@ -47,7 +47,7 @@ namespace Cassandra.Data.Linq
         /// <returns>An instance of AppliedInfo{TEntity}</returns>
         public new AppliedInfo<TEntity> Execute()
         {
-            var queryAbortTimeout = GetTable().GetSession().GetConfiguration()?.ClientOptions.QueryAbortTimeout ?? ClientOptions.DefaultQueryAbortTimeout;
+            var queryAbortTimeout = GetTable().GetSession().Cluster.Configuration.ClientOptions.QueryAbortTimeout;
             var task = ExecuteAsync();
             return TaskHelper.WaitToComplete(task, queryAbortTimeout);
         }

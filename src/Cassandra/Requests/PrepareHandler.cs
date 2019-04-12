@@ -46,11 +46,10 @@ namespace Cassandra.Requests
         /// When <see cref="QueryOptions.IsPrepareOnAllHosts"/> is enabled, it prepares on the rest of the hosts in
         /// parallel.
         /// </summary>
-        internal static async Task<PreparedStatement> Prepare(IInternalSession session, Serializer serializer, 
-                                                           PrepareRequest request)
+        internal static async Task<PreparedStatement> Prepare(IInternalSession session, Serializer serializer, PrepareRequest request)
         {
             var cluster = session.InternalCluster;
-            var lbp = cluster.Configuration.Policies.LoadBalancingPolicy;
+            var lbp = cluster.Configuration.DefaultRequestOptions.LoadBalancingPolicy;
             var handler = new PrepareHandler(serializer, lbp.NewQueryPlan(session.Keyspace, null).GetEnumerator());
             var ps = await handler.Prepare(request, session, null).ConfigureAwait(false);
             var psAdded = cluster.PreparedQueries.GetOrAdd(ps.Id, ps);
@@ -60,7 +59,7 @@ namespace Cassandra.Requests
                                "affect performance. Consider preparing the statement only once. Query='{0}'", ps.Cql);
                 ps = psAdded;
             }
-            var prepareOnAllHosts = cluster.Configuration.QueryOptions.IsPrepareOnAllHosts();
+            var prepareOnAllHosts = cluster.Configuration.DefaultRequestOptions.PrepareOnAllHosts;
             if (!prepareOnAllHosts)
             {
                 return ps;
@@ -158,7 +157,7 @@ namespace Cassandra.Requests
         {
             Host host;
             HostDistance distance;
-            var lbp = session.Cluster.Configuration.Policies.LoadBalancingPolicy;
+            var lbp = session.Cluster.Configuration.DefaultRequestOptions.LoadBalancingPolicy;
             var tasks = new List<Task>();
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
             while ((host = GetNextHost(lbp, out distance)) != null)
@@ -254,7 +253,7 @@ namespace Cassandra.Requests
         {
             Host host;
             HostDistance distance;
-            var lbp = session.Cluster.Configuration.Policies.LoadBalancingPolicy;
+            var lbp = session.Cluster.Configuration.DefaultRequestOptions.LoadBalancingPolicy;
             while ((host = GetNextHost(lbp, out distance)) != null)
             {
                 var connection = await RequestHandler

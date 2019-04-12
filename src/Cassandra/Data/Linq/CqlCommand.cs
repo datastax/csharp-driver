@@ -93,7 +93,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public void Execute()
         {
-            var queryAbortTimeout = GetTable().GetSession().GetConfiguration()?.ClientOptions.QueryAbortTimeout ?? ClientOptions.DefaultQueryAbortTimeout;
+            var queryAbortTimeout = GetTable().GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
             var task = ExecuteAsync();
             TaskHelper.WaitToComplete(task, queryAbortTimeout);
         }

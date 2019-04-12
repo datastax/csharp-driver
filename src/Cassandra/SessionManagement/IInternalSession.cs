@@ -64,8 +64,6 @@ namespace Cassandra.SessionManagement
         /// </summary>
         new string Keyspace { get; set; }
 
-        Configuration Configuration { get; }
-
         IInternalCluster InternalCluster { get; }
     }
 }

@@ -45,6 +45,8 @@ namespace Cassandra.Tests
 
         public ISessionFactoryBuilder<IInternalCluster, IInternalSession> SessionFactoryBuilder { get; set; } = new SessionFactoryBuilder();
 
+        public IReadOnlyDictionary<string, ExecutionProfile> ExecutionProfiles { get; set; } = new Dictionary<string, ExecutionProfile>();
+
         public IRequestHandlerFactory RequestHandlerFactory { get; set; } = new RequestHandlerFactory();
 
         public IHostConnectionPoolFactory HostConnectionPoolFactory { get; set; } = new HostConnectionPoolFactory();
@@ -67,6 +69,7 @@ namespace Cassandra.Tests
                 AddressTranslator,
                 StartupOptionsFactory,
                 SessionFactoryBuilder,
+                ExecutionProfiles,
                 RequestHandlerFactory,
                 HostConnectionPoolFactory,
                 RequestExecutionFactory,
