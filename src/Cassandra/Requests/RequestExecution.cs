@@ -157,11 +157,11 @@ namespace Cassandra.Requests
         private void Send(IRequest request, Action<Exception, Response> callback)
         {
             var timeoutMillis = _parent.RequestOptions.ReadTimeoutMillis;
-
-            if (_parent.Statement != null)
+            if (_parent.Statement != null && _parent.Statement.ReadTimeoutMillis > 0)
             {
                 timeoutMillis = _parent.Statement.ReadTimeoutMillis;
             }
+
             _operation = _connection.Send(request, callback, timeoutMillis);
         }
 
