@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-namespace Cassandra
+namespace Cassandra.Connections
 {
     internal interface IHostConnectionPool
     {

@@ -17,6 +17,7 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+using Cassandra.Connections;
 
 namespace Cassandra.SessionManagement
 {
