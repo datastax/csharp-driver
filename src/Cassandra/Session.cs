@@ -293,9 +293,11 @@ namespace Cassandra
         /// <inheritdoc />
         public Task<RowSet> ExecuteAsync(IStatement statement)
         {
-            return new RequestHandler(this, _serializer, statement).SendAsync();
+            return Configuration.RequestHandlerFactory
+                                .Create(this, _serializer, statement)
+                                .SendAsync();
         }
-
+        
         /// <inheritdoc />
         IHostConnectionPool IInternalSession.GetOrCreateConnectionPool(Host host, HostDistance distance)
         {
