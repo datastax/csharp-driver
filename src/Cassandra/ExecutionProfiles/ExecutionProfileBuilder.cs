@@ -28,37 +28,37 @@ namespace Cassandra.ExecutionProfiles
         private IExtendedRetryPolicy _retryPolicy;
         private ExecutionProfile _baseProfile;
         
-        public IExecutionProfileBuilder LoadBalancingPolicy(ILoadBalancingPolicy loadBalancingPolicy)
+        public IExecutionProfileBuilder WithLoadBalancingPolicy(ILoadBalancingPolicy loadBalancingPolicy)
         {
             _loadBalancingPolicy = loadBalancingPolicy ?? throw new ArgumentNullException(nameof(loadBalancingPolicy));
             return this;
         }
 
-        public IExecutionProfileBuilder RetryPolicy(IExtendedRetryPolicy retryPolicy)
+        public IExecutionProfileBuilder WithRetryPolicy(IExtendedRetryPolicy retryPolicy)
         {
             _retryPolicy = retryPolicy ?? throw new ArgumentNullException(nameof(retryPolicy));
             return this;
         }
 
-        public IExecutionProfileBuilder SpeculativeExecutionPolicy(ISpeculativeExecutionPolicy speculativeExecutionPolicy)
+        public IExecutionProfileBuilder WithSpeculativeExecutionPolicy(ISpeculativeExecutionPolicy speculativeExecutionPolicy)
         {
             _speculativeExecutionPolicy = speculativeExecutionPolicy ?? throw new ArgumentNullException(nameof(speculativeExecutionPolicy));
             return this;
         }
 
-        public IExecutionProfileBuilder ConsistencyLevel(ConsistencyLevel consistencyLevel)
+        public IExecutionProfileBuilder WithConsistencyLevel(ConsistencyLevel consistencyLevel)
         {
             _consistencyLevel = consistencyLevel;
             return this;
         }
         
-        public IExecutionProfileBuilder SerialConsistencyLevel(ConsistencyLevel serialConsistencyLevel)
+        public IExecutionProfileBuilder WithSerialConsistencyLevel(ConsistencyLevel serialConsistencyLevel)
         {
             _serialConsistencyLevel = serialConsistencyLevel;
             return this;
         }
         
-        public IExecutionProfileBuilder ReadTimeoutMillis(int readTimeoutMillis)
+        public IExecutionProfileBuilder WithReadTimeoutMillis(int readTimeoutMillis)
         {
             _readTimeoutMillis = readTimeoutMillis;
             return this;

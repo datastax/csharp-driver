@@ -49,8 +49,8 @@ namespace Cassandra.Tests.ExecutionProfiles
                 {
                     { "testE", ExecutionProfile
                                .Builder()
-                               .ConsistencyLevel(ConsistencyLevel.EachQuorum)
-                               .ReadTimeoutMillis(1)
+                               .WithConsistencyLevel(ConsistencyLevel.EachQuorum)
+                               .WithReadTimeoutMillis(1)
                                .Build() },
                     { "testE2", ExecutionProfile.Builder().Build() }
                 },
@@ -75,6 +75,52 @@ namespace Cassandra.Tests.ExecutionProfiles
             }
 
             Mock.Get(requestHandlerFactoryMock).Verify(m => m.Create(session, serializer, It.IsAny<IStatement>(), config.RequestOptions["testE"]), Times.Once);
+        }
+        
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Should_CreateRequestHandlerWithDefaultRequestOptions_When_ExecutionProfileIsNotProvided(bool async)
+        {
+            var requestHandlerFactoryMock = Mock.Of<IRequestHandlerFactory>();
+            var requestHandlerMock = Mock.Of<IRequestHandler>();
+            var hostConnectionPoolFactoryMock = Mock.Of<IHostConnectionPoolFactory>();
+            var clusterMock = Mock.Of<IInternalCluster>();
+            var serializer = Serializer.Default;
+            var config = new TestConfigurationBuilder
+            {
+                RequestHandlerFactory = requestHandlerFactoryMock,
+                HostConnectionPoolFactory = hostConnectionPoolFactoryMock,
+                ExecutionProfiles = new Dictionary<string, ExecutionProfile>
+                {
+                    { "testE", ExecutionProfile
+                               .Builder()
+                               .WithConsistencyLevel(ConsistencyLevel.EachQuorum)
+                               .WithReadTimeoutMillis(1)
+                               .Build() },
+                    { "testE2", ExecutionProfile.Builder().Build() }
+                },
+                QueryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalSerial),
+                SocketOptions = new SocketOptions().SetReadTimeoutMillis(60000)
+            }.Build();
+            Mock.Get(requestHandlerMock).Setup(r => r.SendAsync()).Returns(Task.FromResult(new RowSet()));
+
+            var session = new Session(clusterMock, config, null, serializer);
+
+            Mock.Get(requestHandlerFactoryMock)
+                .Setup(m => m.Create(session, serializer, It.IsAny<IStatement>(), config.DefaultRequestOptions))
+                .Returns(requestHandlerMock);
+
+            if (async)
+            {
+                await session.ExecuteAsync(new SimpleStatement("test query")).ConfigureAwait(false);
+            }
+            else
+            {
+                session.Execute(new SimpleStatement("test query"));
+            }
+
+            Mock.Get(requestHandlerFactoryMock).Verify(m => m.Create(session, serializer, It.IsAny<IStatement>(), config.DefaultRequestOptions), Times.Once);
         }
     }
 }

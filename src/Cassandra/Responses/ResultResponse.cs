@@ -64,9 +64,10 @@ namespace Cassandra.Responses
             }
         }
 
-        protected ResultResponse(ResultResponseKind kind)
+        protected ResultResponse(ResultResponseKind kind, IOutput output)
         {
             Kind = kind;
+            Output = output;
         }
 
         internal static ResultResponse Create(Frame frame)
