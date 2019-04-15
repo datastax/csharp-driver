@@ -18,17 +18,17 @@ namespace Cassandra
 {
     public interface IExecutionProfileBuilder
     {
-        IExecutionProfileBuilder LoadBalancingPolicy(ILoadBalancingPolicy loadBalancingPolicy);
+        IExecutionProfileBuilder WithLoadBalancingPolicy(ILoadBalancingPolicy loadBalancingPolicy);
 
-        IExecutionProfileBuilder RetryPolicy(IExtendedRetryPolicy retryPolicy);
+        IExecutionProfileBuilder WithRetryPolicy(IExtendedRetryPolicy retryPolicy);
 
-        IExecutionProfileBuilder SpeculativeExecutionPolicy(ISpeculativeExecutionPolicy speculativeExecutionPolicy);
+        IExecutionProfileBuilder WithSpeculativeExecutionPolicy(ISpeculativeExecutionPolicy speculativeExecutionPolicy);
 
-        IExecutionProfileBuilder ConsistencyLevel(ConsistencyLevel consistencyLevel);
+        IExecutionProfileBuilder WithConsistencyLevel(ConsistencyLevel consistencyLevel);
 
-        IExecutionProfileBuilder SerialConsistencyLevel(ConsistencyLevel serialConsistencyLevel);
+        IExecutionProfileBuilder WithSerialConsistencyLevel(ConsistencyLevel serialConsistencyLevel);
 
-        IExecutionProfileBuilder ReadTimeoutMillis(int readTimeoutMillis);
+        IExecutionProfileBuilder WithReadTimeoutMillis(int readTimeoutMillis);
 
         IExecutionProfileBuilder DeriveFrom(ExecutionProfile baseProfile);
 
