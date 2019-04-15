@@ -204,7 +204,7 @@ namespace Cassandra
             if (Keyspace != null)
             {
                 // Borrow a connection, trying to fail fast
-                var handler = Configuration.RequestHandlerFactory.Create(this, _serializer, Configuration.DefaultRequestOptions);
+                var handler = Configuration.RequestHandlerFactory.Create(this, _serializer);
                 await handler.GetNextConnectionAsync(new Dictionary<IPEndPoint, Exception>()).ConfigureAwait(false);
             }
 

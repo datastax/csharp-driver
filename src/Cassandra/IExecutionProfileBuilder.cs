@@ -28,7 +28,7 @@ namespace Cassandra
 
         IExecutionProfileBuilder SerialConsistencyLevel(ConsistencyLevel serialConsistencyLevel);
 
-        IExecutionProfileBuilder SerialConsistencyLevel(int readTimeoutMillis);
+        IExecutionProfileBuilder ReadTimeoutMillis(int readTimeoutMillis);
 
         IExecutionProfileBuilder DeriveFrom(ExecutionProfile baseProfile);
 

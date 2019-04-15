@@ -15,17 +15,27 @@
 // 
 
 using Cassandra.ExecutionProfiles;
+using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
+using Moq;
+using NUnit.Framework;
 
-namespace Cassandra.Requests
+namespace Cassandra.Tests.ExecutionProfiles
 {
-    internal interface IRequestHandlerFactory
+    [TestFixture]
+    public class RequestHandlerTests
     {
-        IRequestHandler Create(IInternalSession session, Serializer serializer, IRequest request, IStatement statement, IRequestOptions options);
-
-        IRequestHandler Create(IInternalSession session, Serializer serializer, IStatement statement, IRequestOptions options);
-
-        IRequestHandler Create(IInternalSession session, Serializer serializer);
+        [Test]
+        public void task()
+        {
+            var config = new TestConfigurationBuilder().Build();
+            var sessionMock = Mock.Of<IInternalSession>();
+            var requestHandler = new RequestHandler(
+                sessionMock, 
+                Serializer.Default, 
+                new SimpleStatement("test query"), 
+                new RequestOptions(null, config.Policies, config.SocketOptions, config.QueryOptions, config.ClientOptions));
+        }
     }
 }

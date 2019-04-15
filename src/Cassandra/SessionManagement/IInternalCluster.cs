@@ -24,7 +24,7 @@ namespace Cassandra.SessionManagement
     internal interface IInternalCluster : ICluster
     {
         bool AnyOpenConnections(Host host);
-        
+
         /// <summary>
         /// Gets the control connection used by the cluster
         /// </summary>

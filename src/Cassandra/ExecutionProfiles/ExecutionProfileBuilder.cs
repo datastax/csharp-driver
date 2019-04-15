@@ -58,7 +58,7 @@ namespace Cassandra.ExecutionProfiles
             return this;
         }
         
-        public IExecutionProfileBuilder SerialConsistencyLevel(int readTimeoutMillis)
+        public IExecutionProfileBuilder ReadTimeoutMillis(int readTimeoutMillis)
         {
             _readTimeoutMillis = readTimeoutMillis;
             return this;
