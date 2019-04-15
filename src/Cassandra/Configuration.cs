@@ -103,6 +103,8 @@ namespace Cassandra
         internal IStartupOptionsFactory StartupOptionsFactory { get; }
 
         internal ISessionFactoryBuilder<IInternalCluster, IInternalSession> SessionFactoryBuilder { get; }
+        
+        internal IRequestHandlerFactory RequestHandlerFactory { get; }
 
         internal Configuration() :
             this(Policies.DefaultPolicies,
@@ -133,7 +135,8 @@ namespace Cassandra
                                QueryOptions queryOptions,
                                IAddressTranslator addressTranslator,
                                IStartupOptionsFactory startupOptionsFactory,
-                               ISessionFactoryBuilder<IInternalCluster, IInternalSession> sessionFactoryBuilder)
+                               ISessionFactoryBuilder<IInternalCluster, IInternalSession> sessionFactoryBuilder,
+                               IRequestHandlerFactory requestHandlerFactory = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -146,6 +149,9 @@ namespace Cassandra
             AuthInfoProvider = authInfoProvider;
             StartupOptionsFactory = startupOptionsFactory;
             SessionFactoryBuilder = sessionFactoryBuilder;
+
+            RequestHandlerFactory = requestHandlerFactory ?? new RequestHandlerFactory();
+
             // Create the buffer pool with 16KB for small buffers and 256Kb for large buffers.
             // The pool does not eagerly reserve the buffers, so it doesn't take unnecessary memory
             // to create the instance.
