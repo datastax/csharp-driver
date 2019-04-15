@@ -28,7 +28,7 @@ namespace Cassandra.Connections
     /// <summary>
     /// Represents a pool of connections to a host
     /// </summary>
-    internal class HostConnectionPool : IHostConnectionPool, IDisposable
+    internal class HostConnectionPool : IHostConnectionPool
     {
         private static readonly Logger Logger = new Logger(typeof(HostConnectionPool));
         private const int ConnectionIndexOverflow = int.MaxValue - 1000000;
@@ -86,9 +86,7 @@ namespace Cassandra.Connections
 
         public event Action<Host, HostConnectionPool> AllConnectionClosed;
 
-        /// <summary>
-        /// Determines whether the connection pool has opened connections using snapshot semantics.
-        /// </summary>
+        /// <inheritdoc />
         public bool HasConnections => _connections.Count > 0;
 
         /// <inheritdoc />
@@ -102,9 +100,7 @@ namespace Cassandra.Connections
         /// </summary>
         private bool IsClosing => Volatile.Read(ref _state) != PoolState.Init;
 
-        /// <summary>
-        /// Gets a snapshot of the current state of the pool.
-        /// </summary>
+        /// <inheritdoc />
         public IConnection[] ConnectionsSnapshot => _connections.GetSnapshot();
 
         public HostConnectionPool(Host host, Configuration config, Serializer serializer)
@@ -123,15 +119,7 @@ namespace Cassandra.Connections
             _expectedConnectionLength = 1;
         }
 
-        /// <summary>
-        /// Gets an open connection from the host pool (creating if necessary).
-        /// It returns null if the load balancing policy didn't allow connections to this host.
-        /// </summary>
-        /// <exception cref="DriverInternalError" />
-        /// <exception cref="BusyPoolException" />
-        /// <exception cref="UnsupportedProtocolVersionException" />
-        /// <exception cref="SocketException" />
-        /// <exception cref="AuthenticationException" />
+        /// <inheritdoc />
         public async Task<IConnection> BorrowConnection()
         {
             var connections = await EnsureCreate().ConfigureAwait(false);
@@ -178,9 +166,7 @@ namespace Cassandra.Connections
             Remove(c);
         }
 
-        /// <summary>
-        /// Closes the connection and removes it from the pool
-        /// </summary>
+        /// <inheritdoc />
         public void Remove(IConnection c)
         {
             OnConnectionClosing(c);
@@ -519,10 +505,7 @@ namespace Cassandra.Connections
             c.Dispose();
         }
 
-        /// <summary>
-        /// Adds a new reconnection timeout using a new schedule.
-        /// Resets the status of the pool to allow further reconnections.
-        /// </summary>
+        /// <inheritdoc />
         public void ScheduleReconnection(bool immediate = false)
         {
             var schedule = _config.Policies.ReconnectionPolicy.NewSchedule();

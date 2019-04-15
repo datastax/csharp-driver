@@ -39,7 +39,7 @@ namespace Cassandra.SessionManagement
         /// <summary>
         /// Gets or creates the connection pool for a given host
         /// </summary>
-        HostConnectionPool GetOrCreateConnectionPool(Host host, HostDistance distance);
+        IHostConnectionPool GetOrCreateConnectionPool(Host host, HostDistance distance);
 
         /// <summary>
         /// Gets a snapshot of the connection pools
@@ -49,15 +49,15 @@ namespace Cassandra.SessionManagement
         /// <summary>
         /// Gets the existing connection pool for this host and session or null when it does not exists
         /// </summary>
-        HostConnectionPool GetExistingPool(IPEndPoint address);
+        IHostConnectionPool GetExistingPool(IPEndPoint address);
 
         void CheckHealth(IConnection connection);
 
         bool HasConnections(Host host);
 
-        void MarkAsDownAndScheduleReconnection(Host host, HostConnectionPool pool);
+        void MarkAsDownAndScheduleReconnection(Host host, IHostConnectionPool pool);
 
-        void OnAllConnectionClosed(Host host, HostConnectionPool pool);
+        void OnAllConnectionClosed(Host host, IHostConnectionPool pool);
 
         /// <summary>
         /// Gets or sets the keyspace

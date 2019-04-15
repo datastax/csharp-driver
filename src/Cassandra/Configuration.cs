@@ -16,7 +16,8 @@
 
 using System;
 using System.Collections.Generic;
-
+using System.Linq;
+using Cassandra.Connections;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -106,6 +107,8 @@ namespace Cassandra
         
         internal IRequestHandlerFactory RequestHandlerFactory { get; }
 
+        internal IHostConnectionPoolFactory HostConnectionPoolFactory { get; }
+
         internal Configuration() :
             this(Policies.DefaultPolicies,
                  new ProtocolOptions(),
@@ -136,7 +139,8 @@ namespace Cassandra
                                IAddressTranslator addressTranslator,
                                IStartupOptionsFactory startupOptionsFactory,
                                ISessionFactoryBuilder<IInternalCluster, IInternalSession> sessionFactoryBuilder,
-                               IRequestHandlerFactory requestHandlerFactory = null)
+                               IRequestHandlerFactory requestHandlerFactory = null,
+                               IHostConnectionPoolFactory hostConnectionPoolFactory = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -151,6 +155,7 @@ namespace Cassandra
             SessionFactoryBuilder = sessionFactoryBuilder;
 
             RequestHandlerFactory = requestHandlerFactory ?? new RequestHandlerFactory();
+            HostConnectionPoolFactory = hostConnectionPoolFactory ?? new HostConnectionPoolFactory();
 
             // Create the buffer pool with 16KB for small buffers and 256Kb for large buffers.
             // The pool does not eagerly reserve the buffers, so it doesn't take unnecessary memory

@@ -14,9 +14,13 @@
 //   limitations under the License.
 //
 
+using System;
+using System.Net.Sockets;
+using System.Threading.Tasks;
+
 namespace Cassandra.Connections
 {
-    internal interface IHostConnectionPool
+    internal interface IHostConnectionPool : IDisposable
     {
         /// <summary>
         /// Gets the total amount of open connections. 
@@ -27,5 +31,50 @@ namespace Cassandra.Connections
         /// Gets the total of in-flight requests on all connections. 
         /// </summary>
         int InFlight { get; }
+
+        /// <summary>
+        /// Determines whether the connection pool has opened connections using snapshot semantics.
+        /// </summary>
+        bool HasConnections { get; }
+
+        event Action<Host, HostConnectionPool> AllConnectionClosed;
+        
+        /// <summary>
+        /// Gets a snapshot of the current state of the pool.
+        /// </summary>
+        IConnection[] ConnectionsSnapshot { get; }
+
+        /// <summary>
+        /// Gets an open connection from the host pool (creating if necessary).
+        /// It returns null if the load balancing policy didn't allow connections to this host.
+        /// </summary>
+        /// <exception cref="DriverInternalError" />
+        /// <exception cref="BusyPoolException" />
+        /// <exception cref="UnsupportedProtocolVersionException" />
+        /// <exception cref="SocketException" />
+        /// <exception cref="AuthenticationException" />
+        Task<IConnection> BorrowConnection();
+
+        void SetDistance(HostDistance distance);
+
+        void CheckHealth(IConnection c);
+
+        /// <summary>
+        /// Closes the connection and removes it from the pool
+        /// </summary>
+        void Remove(IConnection c);
+
+        /// <summary>
+        /// Adds a new reconnection timeout using a new schedule.
+        /// Resets the status of the pool to allow further reconnections.
+        /// </summary>
+        void ScheduleReconnection(bool immediate = false);
+
+        /// <summary>
+        /// Creates the required connections to the hosts and awaits for all connections to be open.
+        /// The task is completed when at least 1 of the connections is opened successfully.
+        /// Until the task is completed, no other thread is expected to be using this instance.
+        /// </summary>
+        Task Warmup();
     }
 }
