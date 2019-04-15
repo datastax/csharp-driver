@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+using Cassandra.Connections;
 using Cassandra.Serialization;
 
 namespace Cassandra.Requests

@@ -14,17 +14,16 @@
 //    limitations under the License.
 // 
 
+using System.Net;
 using Cassandra.Serialization;
-using Cassandra.SessionManagement;
 
-namespace Cassandra.Requests
+namespace Cassandra.Connections
 {
-    internal interface IRequestHandlerFactory
+    internal class ConnectionFactory : IConnectionFactory
     {
-        IRequestHandler Create(IInternalSession session, Serializer serializer, IRequest request, IStatement statement);
-
-        IRequestHandler Create(IInternalSession session, Serializer serializer, IStatement statement);
-
-        IRequestHandler Create(IInternalSession session, Serializer serializer);
+        public IConnection Create(Serializer serializer, IPEndPoint endpoint, Configuration configuration)
+        {
+            return new Connection(serializer, endpoint, configuration);
+        }
     }
 }

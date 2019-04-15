@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Cassandra.Requests;
 using Cassandra.Responses;
 
-namespace Cassandra
+namespace Cassandra.Connections
 {
     /// <summary>
     /// Represents a TCP connection to a Cassandra Node

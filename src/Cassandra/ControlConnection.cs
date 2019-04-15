@@ -21,6 +21,7 @@ using System.Net;
 using System.Threading;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using Cassandra.Connections;
 using Cassandra.Tasks;
 using Cassandra.Requests;
 using Cassandra.Responses;
@@ -113,7 +114,7 @@ namespace Cassandra
 
             foreach (var host in hosts)
             {
-                IConnection connection = new Connection(_serializer, host.Address, _config);
+                var connection = _config.ConnectionFactory.Create(_serializer, host.Address, _config);
                 try
                 {
                     var version = _serializer.ProtocolVersion;
@@ -189,7 +190,7 @@ namespace Cassandra
 
             previousConnection.Dispose();
 
-            var c = new Connection(_serializer, previousConnection.Address, _config);
+            var c = _config.ConnectionFactory.Create(_serializer, previousConnection.Address, _config);
             await c.Open().ConfigureAwait(false);
             return c;
         }

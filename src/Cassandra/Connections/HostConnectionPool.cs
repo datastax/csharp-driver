@@ -241,9 +241,9 @@ namespace Cassandra.Connections
             Interlocked.Exchange(ref _state, PoolState.Shutdown);
         }
 
-        public virtual async Task<IConnection> DoCreateAndOpen()
+        public async Task<IConnection> DoCreateAndOpen()
         {
-            var c = new Connection(_serializer, _host.Address, _config);
+            var c = _config.ConnectionFactory.Create(_serializer, _host.Address, _config);
             try
             {
                 await c.Open().ConfigureAwait(false);

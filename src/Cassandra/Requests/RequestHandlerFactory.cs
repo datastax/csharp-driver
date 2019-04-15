@@ -21,6 +21,11 @@ namespace Cassandra.Requests
 {
     internal class RequestHandlerFactory : IRequestHandlerFactory
     {
+        public IRequestHandler Create(IInternalSession session, Serializer serializer, IRequest request, IStatement statement)
+        {
+            return new RequestHandler(session, serializer, request, statement);
+        }
+
         public IRequestHandler Create(
             IInternalSession session, Serializer serializer, IStatement statement)
         {
