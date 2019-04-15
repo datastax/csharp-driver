@@ -65,6 +65,7 @@ namespace Cassandra.Tests
             var sessionMock = Mock.Of<IInternalSession>();
             var lbpMock = Mock.Of<ILoadBalancingPolicy>();
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
+            Mock.Get(sessionMock).SetupGet(m => m.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
             var enumerable = Mock.Of<IEnumerable<Host>>();
             var enumerator = Mock.Of<IEnumerator<Host>>();
 
@@ -85,6 +86,7 @@ namespace Cassandra.Tests
             var sessionMock = Mock.Of<IInternalSession>();
             var lbpMock = Mock.Of<ILoadBalancingPolicy>();
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
+            Mock.Get(sessionMock).SetupGet(m => m.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
             var enumerable = Mock.Of<IEnumerable<Host>>();
             var enumerator = Mock.Of<IEnumerator<Host>>();
 
@@ -106,6 +108,7 @@ namespace Cassandra.Tests
             var sessionMock = Mock.Of<IInternalSession>();
             var lbpMock = Mock.Of<ILoadBalancingPolicy>();
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
+            Mock.Get(sessionMock).SetupGet(m => m.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
             var enumerable = Mock.Of<IEnumerable<Host>>();
             var enumerator = Mock.Of<IEnumerator<Host>>();
 
