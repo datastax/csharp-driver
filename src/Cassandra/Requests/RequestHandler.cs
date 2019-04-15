@@ -80,16 +80,14 @@ namespace Cassandra.Requests
         public RequestHandler(IInternalSession session, Serializer serializer, IStatement statement, IRequestOptions requestOptions)
             : this(session, serializer, RequestHandler.GetRequest(statement, serializer, requestOptions), statement, requestOptions)
         {
-
         }
 
         /// <summary>
         /// Creates a new instance with no request, suitable for getting a connection.
         /// </summary>
-        public RequestHandler(IInternalSession session, Serializer serializer, IRequestOptions requestOptions)
-            : this(session, serializer, null, null, requestOptions)
+        public RequestHandler(IInternalSession session, Serializer serializer)
+            : this(session, serializer, null, null, session.Cluster.Configuration.DefaultRequestOptions)
         {
-
         }
 
         /// <summary>

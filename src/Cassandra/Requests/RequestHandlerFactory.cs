@@ -33,9 +33,9 @@ namespace Cassandra.Requests
             return new RequestHandler(session, serializer, statement, options);
         }
 
-        public IRequestHandler Create(IInternalSession session, Serializer serializer, IRequestOptions options)
+        public IRequestHandler Create(IInternalSession session, Serializer serializer)
         {
-            return new RequestHandler(session, serializer, options);
+            return new RequestHandler(session, serializer);
         }
     }
 }
