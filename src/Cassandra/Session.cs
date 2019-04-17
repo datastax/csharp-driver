@@ -423,7 +423,7 @@ namespace Cassandra
 
         private IStatement GetDefaultStatement(string cqlQuery)
         {
-            return new SimpleStatement(cqlQuery).SetConsistencyLevel(Configuration.DefaultRequestOptions.ConsistencyLevel).SetPageSize(Configuration.DefaultRequestOptions.PageSize);
+            return new SimpleStatement(cqlQuery);
         }
 
         private IRequestOptions GetRequestOptions(string executionProfileName)

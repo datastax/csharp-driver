@@ -257,8 +257,23 @@ namespace Cassandra
                     await _controlConnection.Init().WaitToCompleteAsync(initialAbortTimeout).ConfigureAwait(false);
 
                     // Initialize policies
-                    Configuration.DefaultRequestOptions.LoadBalancingPolicy.Initialize(this);
-                    Configuration.DefaultRequestOptions.SpeculativeExecutionPolicy.Initialize(this);
+                    var initializedPolicies = new List<object>();
+                    var optionsWithPoliciesToInitialize =
+                        Configuration.RequestOptions.Values.Concat(new List<IRequestOptions> { Configuration.DefaultRequestOptions });
+                    foreach (var options in optionsWithPoliciesToInitialize)
+                    {
+                        if (initializedPolicies.All(policy => !ReferenceEquals(options.LoadBalancingPolicy, policy)))
+                        {
+                            initializedPolicies.Add(options.LoadBalancingPolicy);
+                            options.LoadBalancingPolicy.Initialize(this);
+                        }
+                        
+                        if (initializedPolicies.All(policy => !ReferenceEquals(options.SpeculativeExecutionPolicy, policy)))
+                        {
+                            initializedPolicies.Add(options.SpeculativeExecutionPolicy);
+                            options.SpeculativeExecutionPolicy.Initialize(this);
+                        }
+                    }
                 }
                 catch (NoHostAvailableException)
                 {

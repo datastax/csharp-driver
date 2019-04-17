@@ -14,31 +14,21 @@
 //    limitations under the License.
 // 
 
-using System;
-using System.Net;
 using Cassandra.Connections;
 using Cassandra.Serialization;
+using Cassandra.Tasks;
 using Moq;
 
 namespace Cassandra.Tests.Connections
 {
-    internal class FakeConnectionFactory : IConnectionFactory
+    internal class FakeControlConnectionFactory : IControlConnectionFactory
     {
-        private readonly Func<IConnection> _func;
-        
-        public FakeConnectionFactory()
+        public IControlConnection Create(ProtocolVersion initialProtocolVersion, Configuration config, Metadata metadata)
         {
-            _func = Mock.Of<IConnection>;
-        }
-
-        public FakeConnectionFactory(Func<IConnection> func)
-        {
-            _func = func;
-        }
-
-        public IConnection Create(Serializer serializer, IPEndPoint endpoint, Configuration configuration)
-        {
-            return _func();
+            var cc = Mock.Of<IControlConnection>();
+            Mock.Get(cc).Setup(c => c.Init()).Returns(TaskHelper.Completed);
+            Mock.Get(cc).Setup(c => c.Serializer).Returns(new Serializer(ProtocolVersion.V3));
+            return cc;
         }
     }
 }

@@ -32,7 +32,8 @@ namespace Cassandra.Requests
         private readonly ICollection<IQueryRequest> _requests;
         private readonly BatchType _type;
         private readonly long? _timestamp;
-        private readonly ConsistencyLevel _serialConsistency;
+
+        internal ConsistencyLevel SerialConsistency { get; }
 
         public ConsistencyLevel Consistency { get; set; }
 
@@ -54,7 +55,7 @@ namespace Cassandra.Requests
                 _headerFlags = FrameHeader.HeaderFlag.Tracing;
             }
 
-            _serialConsistency = requestOptions.GetSerialConsistencyLevelOrDefault(statement);
+            SerialConsistency = requestOptions.GetSerialConsistencyLevelOrDefault(statement);
             _batchFlags |= QueryProtocolOptions.QueryFlags.WithSerialConsistency;
 
             _timestamp = BatchRequest.GetRequestTimestamp(protocolVersion, statement, requestOptions.TimestampGenerator);
@@ -113,7 +114,7 @@ namespace Cassandra.Requests
             if (protocolVersion.SupportsTimestamp())
             {
                 wb.WriteByte((byte) _batchFlags);
-                wb.WriteUInt16((ushort) _serialConsistency);
+                wb.WriteUInt16((ushort) SerialConsistency);
 
                 if (_timestamp != null)
                 {
