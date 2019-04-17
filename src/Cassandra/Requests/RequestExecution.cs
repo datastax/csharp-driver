@@ -21,7 +21,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using Cassandra.Connections;
-using Cassandra.ExecutionProfiles;
 using Cassandra.Responses;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;
