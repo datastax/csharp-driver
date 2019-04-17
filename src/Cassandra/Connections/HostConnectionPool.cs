@@ -241,7 +241,7 @@ namespace Cassandra.Connections
             Interlocked.Exchange(ref _state, PoolState.Shutdown);
         }
 
-        public async Task<IConnection> DoCreateAndOpen()
+        public virtual async Task<IConnection> DoCreateAndOpen()
         {
             var c = _config.ConnectionFactory.Create(_serializer, _host.Address, _config);
             try
