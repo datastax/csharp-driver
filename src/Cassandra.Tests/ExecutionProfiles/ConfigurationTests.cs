@@ -189,7 +189,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                           .WithTimestampGenerator(tg)
                           .Build();
 
-            Assert.AreEqual(1, cluster.Configuration.RequestOptions.Count);
+            Assert.AreEqual(2, cluster.Configuration.RequestOptions.Count);
             var options = cluster.Configuration.RequestOptions["test1"];
             Assert.AreEqual(ConsistencyLevel.All, options.ConsistencyLevel);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, options.SerialConsistencyLevel);
