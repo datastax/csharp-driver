@@ -14,6 +14,7 @@
 //    limitations under the License.
 // 
 
+using System;
 using Cassandra.ExecutionProfiles;
 
 namespace Cassandra
@@ -34,6 +35,26 @@ namespace Cassandra
             LoadBalancingPolicy = loadBalancingPolicy;
             SpeculativeExecutionPolicy = speculativeExecutionPolicy;
             RetryPolicy = retryPolicy;
+        }
+
+        internal ExecutionProfile(ExecutionProfile baseProfile, ExecutionProfile profile)
+        {
+            if (baseProfile == null)
+            {
+                throw new ArgumentNullException(nameof(baseProfile));
+            }
+            
+            if (profile == null)
+            {
+                throw new ArgumentNullException(nameof(profile));
+            }
+
+            ConsistencyLevel = profile.ConsistencyLevel ?? baseProfile.ConsistencyLevel;
+            SerialConsistencyLevel = profile.SerialConsistencyLevel ?? baseProfile.SerialConsistencyLevel;
+            ReadTimeoutMillis = profile.ReadTimeoutMillis ?? baseProfile.ReadTimeoutMillis;
+            LoadBalancingPolicy = profile.LoadBalancingPolicy ?? baseProfile.LoadBalancingPolicy;
+            SpeculativeExecutionPolicy = profile.SpeculativeExecutionPolicy ?? baseProfile.SpeculativeExecutionPolicy;
+            RetryPolicy = profile.RetryPolicy ?? baseProfile.RetryPolicy;
         }
 
         public ConsistencyLevel? ConsistencyLevel { get; }

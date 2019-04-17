@@ -36,9 +36,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                                               .WithRetryPolicy(rp)
                                               .Build();
 
-            var profile = ExecutionProfile.Builder()
-                                          .DeriveFrom(baseProfile)
-                                          .Build();
+            var profile = new ExecutionProfile(baseProfile, ExecutionProfile.Builder().Build());
 
             Assert.AreSame(lbp, profile.LoadBalancingPolicy);
             Assert.AreSame(sep, profile.SpeculativeExecutionPolicy);
@@ -66,8 +64,8 @@ namespace Cassandra.Tests.ExecutionProfiles
                                               .WithRetryPolicy(rp)
                                               .Build();
 
-            var profile = ExecutionProfile.Builder()
-                                          .DeriveFrom(baseProfile)
+            
+            var derivedProfile = ExecutionProfile.Builder()
                                           .WithLoadBalancingPolicy(lbpProfile)
                                           .WithSpeculativeExecutionPolicy(sepProfile)
                                           .WithSerialConsistencyLevel(ConsistencyLevel.Serial)
@@ -75,6 +73,8 @@ namespace Cassandra.Tests.ExecutionProfiles
                                           .WithReadTimeoutMillis(5000)
                                           .WithRetryPolicy(rpProfile)
                                           .Build();
+            
+            var profile = new ExecutionProfile(baseProfile, derivedProfile);
 
             Assert.AreSame(lbpProfile, profile.LoadBalancingPolicy);
             Assert.AreSame(sepProfile, profile.SpeculativeExecutionPolicy);

@@ -677,6 +677,28 @@ namespace Cassandra
             return this;
         }
 
+        /// <summary>
+        /// Adds Execution Profiles to the Cluster instance.
+        /// </summary>
+        /// <example>
+        /// <code> 
+        ///  Cluster.Builder()
+        ///         .WithExecutionProfiles(options => options
+        ///             .WithProfile(
+        ///                 "profile1",
+        ///                 profileBuilder => profileBuilder
+        ///                     .WithReadTimeoutMillis(2000)
+        ///                     .WithConsistencyLevel(ConsistencyLevel.LocalQuorum))
+        ///             .WithDerivedProfile(
+        ///                 "profile2",
+        ///                 "profile1",                 
+        ///                 profileBuilder => profileBuilder
+        ///                     .WithConsistencyLevel(ConsistencyLevel.LocalOne)))
+        ///         .Build();
+        /// </code>
+        /// </example>
+        /// <param name="profileOptionsBuilder"></param>
+        /// <returns></returns>
         public Builder WithExecutionProfiles(Action<IExecutionProfileOptions> profileOptionsBuilder)
         {
             var profileOptions = new ExecutionProfileOptions();

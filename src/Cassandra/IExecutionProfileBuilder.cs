@@ -30,8 +30,6 @@ namespace Cassandra
 
         IExecutionProfileBuilder WithReadTimeoutMillis(int readTimeoutMillis);
 
-        IExecutionProfileBuilder DeriveFrom(ExecutionProfile baseProfile);
-
         ExecutionProfile Build();
     }
 }

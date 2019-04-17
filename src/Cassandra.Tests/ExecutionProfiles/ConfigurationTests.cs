@@ -29,7 +29,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             var rp = new LoggingRetryPolicy(new DefaultRetryPolicy());
             var cluster = Cluster.Builder().AddContactPoint("127.0.0.1").WithExecutionProfiles(opts =>
             {
-                opts.AddProfile(
+                opts.WithProfile(
                     "test1",
                     ExecutionProfile
                         .Builder()
@@ -74,7 +74,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                           .WithLoadBalancingPolicy(lbp)
                           .WithSpeculativeExecutionPolicy(sep)
                           .WithRetryPolicy(rp)
-                          .WithExecutionProfiles(opts => { opts.AddProfile("test1", ExecutionProfile.Builder().Build()); })
+                          .WithExecutionProfiles(opts => { opts.WithProfile("test1", ExecutionProfile.Builder().Build()); })
                           .WithQueryTimeout(30)
                           .WithTimestampGenerator(tg)
                           .Build();
@@ -121,7 +121,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                           .WithRetryPolicy(rp)
                           .WithExecutionProfiles(opts =>
                           {
-                              opts.AddProfile(
+                              opts.WithProfile(
                                   "test1",
                                   ExecutionProfile
                                       .Builder()
@@ -180,17 +180,11 @@ namespace Cassandra.Tests.ExecutionProfiles
                           .WithLoadBalancingPolicy(lbp)
                           .WithSpeculativeExecutionPolicy(sep)
                           .WithRetryPolicy(rp)
-                          .WithExecutionProfiles(opts =>
-                          {
-                              opts.AddProfile(
-                                  "test1",
-                                  ExecutionProfile
-                                      .Builder()
-                                      .DeriveFrom(baseProfile)
+                          .WithExecutionProfiles(opts => opts
+                              .WithProfile("baseProfile", baseProfile)
+                              .WithDerivedProfile("test1", "baseProfile", profileBuilder => profileBuilder
                                       .WithConsistencyLevel(ConsistencyLevel.All)
-                                      .WithSerialConsistencyLevel(ConsistencyLevel.LocalSerial)
-                                      .Build());
-                          })
+                                      .WithSerialConsistencyLevel(ConsistencyLevel.LocalSerial)))
                           .WithQueryTimeout(30)
                           .WithTimestampGenerator(tg)
                           .Build();
