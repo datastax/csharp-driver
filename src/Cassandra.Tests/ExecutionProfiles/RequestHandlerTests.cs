@@ -40,7 +40,10 @@ namespace Cassandra.Tests.ExecutionProfiles
     public class RequestHandlerTests
     {
         [Test]
-        public async Task Should_NotUseAnyClusterSettings_When_ExecutionProfileIsProvided()
+        [TestCase(RequestTypeTestCase.Batch)]
+        [TestCase(RequestTypeTestCase.Simple)]
+        [TestCase(RequestTypeTestCase.Bound)]
+        public async Task Should_UseStatementSettings_When_StatementSettingsAreSet(RequestTypeTestCase requestType)
         {
             var lbpCluster = new FakeLoadBalancingPolicy();
             var sepCluster = new FakeSpeculativeExecutionPolicy();
@@ -48,6 +51,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             var lbp = new FakeLoadBalancingPolicy();
             var sep = new FakeSpeculativeExecutionPolicy();
             var rp = new FakeRetryPolicy();
+            var rpStatement = new FakeRetryPolicy();
             var profile = ExecutionProfile.Builder()
                                           .WithConsistencyLevel(ConsistencyLevel.All)
                                           .WithSerialConsistencyLevel(ConsistencyLevel.Serial)
@@ -58,7 +62,12 @@ namespace Cassandra.Tests.ExecutionProfiles
                                           .Build();
 
             var mockResult = BuildRequestHandler(
-                new SimpleStatement("select").SetIdempotence(true),
+                BuildStatement(requestType)
+                    .SetIdempotence(true)
+                    .SetConsistencyLevel(ConsistencyLevel.EachQuorum)
+                    .SetReadTimeoutMillis(400)
+                    .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial)
+                    .SetRetryPolicy(rpStatement),
                 builder =>
                 {
                     builder.QueryOptions =
@@ -76,11 +85,65 @@ namespace Cassandra.Tests.ExecutionProfiles
             
             var results = mockResult.SendResults.ToArray();
             Assert.GreaterOrEqual(results.Length, 1);
-            var requests = results.Select(r => r.Request as QueryRequest).ToList();
             var timeouts = results.Select(r => r.TimeoutMillis).ToList();
-            Assert.Greater(requests.Count, 0);
-            Assert.AreEqual(ConsistencyLevel.All, requests.Select(r => r.Consistency).Distinct().Single());
-            Assert.AreEqual(ConsistencyLevel.Serial, requests.Select(r => r.SerialConsistency).Distinct().Single());
+            Assert.Greater(results.Length, 0);
+            Assert.AreEqual(ConsistencyLevel.EachQuorum, GetConsistencyLevels(requestType, results).Distinct().Single());
+            Assert.AreEqual(ConsistencyLevel.LocalSerial, GetSerialConsistencyLevels(requestType, results).Distinct().Single());
+            Assert.AreEqual(400, timeouts.Distinct().Single());
+
+            Assert.Greater(Interlocked.Read(ref lbp.Count), 0);
+            Assert.Greater(Interlocked.Read(ref sep.Count), 0);
+            Assert.Greater(Interlocked.Read(ref rpStatement.Count), 0);
+            Assert.AreEqual(0, Interlocked.Read(ref lbpCluster.Count));
+            Assert.AreEqual(0, Interlocked.Read(ref sepCluster.Count));
+            Assert.AreEqual(0, Interlocked.Read(ref rpCluster.Count));
+            Assert.AreEqual(0, Interlocked.Read(ref rp.Count));
+        }
+
+        [Test]
+        [TestCase(RequestTypeTestCase.Batch)]
+        [TestCase(RequestTypeTestCase.Simple)]
+        [TestCase(RequestTypeTestCase.Bound)]
+        public async Task Should_NotUseAnyClusterSettings_When_ExecutionProfileIsProvided(RequestTypeTestCase requestType)
+        {
+            var lbpCluster = new FakeLoadBalancingPolicy();
+            var sepCluster = new FakeSpeculativeExecutionPolicy();
+            var rpCluster = new FakeRetryPolicy();
+            var lbp = new FakeLoadBalancingPolicy();
+            var sep = new FakeSpeculativeExecutionPolicy();
+            var rp = new FakeRetryPolicy();
+            var profile = ExecutionProfile.Builder()
+                                          .WithConsistencyLevel(ConsistencyLevel.All)
+                                          .WithSerialConsistencyLevel(ConsistencyLevel.Serial)
+                                          .WithReadTimeoutMillis(50)
+                                          .WithLoadBalancingPolicy(lbp)
+                                          .WithSpeculativeExecutionPolicy(sep)
+                                          .WithRetryPolicy(rp)
+                                          .Build();
+
+            var mockResult = BuildRequestHandler(
+                BuildStatement(requestType).SetIdempotence(true),
+                builder =>
+                {
+                    builder.QueryOptions =
+                        new QueryOptions()
+                            .SetConsistencyLevel(ConsistencyLevel.LocalOne)
+                            .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
+                    builder.SocketOptions =
+                        new SocketOptions().SetReadTimeoutMillis(10);
+                    builder.Policies = new Policies(
+                        lbpCluster, new ConstantReconnectionPolicy(5), rpCluster, sepCluster, new AtomicMonotonicTimestampGenerator());
+                },
+                profile);
+
+            await mockResult.RequestHandler.SendAsync().ConfigureAwait(false);
+            
+            var results = mockResult.SendResults.ToArray();
+            Assert.GreaterOrEqual(results.Length, 1);
+            var timeouts = results.Select(r => r.TimeoutMillis).ToList();
+            Assert.Greater(results.Length, 0);
+            Assert.AreEqual(ConsistencyLevel.All, GetConsistencyLevels(requestType, results).Distinct().Single());
+            Assert.AreEqual(ConsistencyLevel.Serial, GetSerialConsistencyLevels(requestType, results).Distinct().Single());
             Assert.AreEqual(50, timeouts.Distinct().Single());
 
             Assert.Greater(Interlocked.Read(ref lbp.Count), 0);
@@ -92,7 +155,10 @@ namespace Cassandra.Tests.ExecutionProfiles
         }
         
         [Test]
-        public async Task Should_UseClusterSettings_When_ProfileIsNotProvided()
+        [TestCase(RequestTypeTestCase.Batch)]
+        [TestCase(RequestTypeTestCase.Simple)]
+        [TestCase(RequestTypeTestCase.Bound)]
+        public async Task Should_UseClusterSettings_When_ProfileIsNotProvided(RequestTypeTestCase requestType)
         {
             var lbpCluster = new FakeLoadBalancingPolicy();
             var sepCluster = new FakeSpeculativeExecutionPolicy();
@@ -102,7 +168,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             var rp = new FakeRetryPolicy();
 
             var mockResult = BuildRequestHandler(
-                new SimpleStatement("select").SetIdempotence(true),
+                BuildStatement(requestType).SetIdempotence(true),
                 builder =>
                 {
                     builder.QueryOptions =
@@ -120,11 +186,10 @@ namespace Cassandra.Tests.ExecutionProfiles
 
             var results = mockResult.SendResults.ToArray();
             Assert.GreaterOrEqual(results.Length, 1);
-            var requests = results.Select(r => r.Request as QueryRequest).ToList();
             var timeouts = results.Select(r => r.TimeoutMillis).ToList();
-            Assert.Greater(requests.Count, 0);
-            Assert.AreEqual(ConsistencyLevel.LocalOne, requests.Select(r => r.Consistency).Distinct().Single());
-            Assert.AreEqual(ConsistencyLevel.LocalSerial, requests.Select(r => r.SerialConsistency).Distinct().Single());
+            Assert.Greater(results.Length, 0);
+            Assert.AreEqual(ConsistencyLevel.LocalOne, GetConsistencyLevels(requestType, results).Distinct().Single());
+            Assert.AreEqual(ConsistencyLevel.LocalSerial, GetSerialConsistencyLevels(requestType, results).Distinct().Single());
             Assert.AreEqual(10, timeouts.Distinct().Single());
             Assert.Greater(Interlocked.Read(ref lbpCluster.Count), 0);
             Assert.Greater(Interlocked.Read(ref sepCluster.Count), 0);
@@ -132,6 +197,93 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreEqual(0, Interlocked.Read(ref lbp.Count));
             Assert.AreEqual(0, Interlocked.Read(ref sep.Count));
             Assert.AreEqual(0, Interlocked.Read(ref rp.Count));
+        }
+
+        private IEnumerable<ConsistencyLevel> GetConsistencyLevels(RequestTypeTestCase testCase, ConnectionSendResult[] results)
+        {
+            switch (testCase)
+            {
+                case RequestTypeTestCase.Batch:
+                    return results.Select(r => ((BatchRequest) r.Request).Consistency);
+                case RequestTypeTestCase.Bound:
+                    return results.Select(r => ((ExecuteRequest) r.Request).Consistency);
+                case RequestTypeTestCase.Simple:
+                    return results.Select(r => ((QueryRequest) r.Request).Consistency);
+                default:
+                    throw new InvalidOperationException();
+            }
+        }
+        
+        private IEnumerable<ConsistencyLevel> GetSerialConsistencyLevels(RequestTypeTestCase testCase, ConnectionSendResult[] results)
+        {
+            switch (testCase)
+            {
+                case RequestTypeTestCase.Batch:
+                    return results.Select(r => ((BatchRequest) r.Request).SerialConsistency);
+                case RequestTypeTestCase.Bound:
+                    return results.Select(r => ((ExecuteRequest) r.Request).SerialConsistency);
+                case RequestTypeTestCase.Simple:
+                    return results.Select(r => ((QueryRequest) r.Request).SerialConsistency);
+                default:
+                    throw new InvalidOperationException();
+            }
+        }
+
+        private IStatement BuildStatement(
+            RequestTypeTestCase testCase, 
+            ConsistencyLevel cl, 
+            ConsistencyLevel serialCl, 
+            int timeout, 
+            IExtendedRetryPolicy retryPolicy)
+        {
+            switch (testCase)
+            {
+                case RequestTypeTestCase.Batch:
+                    var batch = new BatchStatement();
+                    batch.Add(new SimpleStatement("insert"));
+                    batch
+                        .SetIdempotence(true)
+                        .SetConsistencyLevel(ConsistencyLevel.EachQuorum)
+                        .SetReadTimeoutMillis(400)
+                        .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial)
+                        .SetRetryPolicy(retryPolicy);
+                    return batch;
+                case RequestTypeTestCase.Bound:
+                    var mockPs = Mock.Of<PreparedStatement>();
+                    var bs = new BoundStatement(mockPs);
+                    bs.SetSerialConsistencyLevel(serialCl);
+                    bs.SetConsistencyLevel(cl);
+                    bs.SetIdempotence(true);
+                    bs.SetReadTimeoutMillis(timeout);
+                    bs.SetRetryPolicy(retryPolicy);
+                    return bs;
+                case RequestTypeTestCase.Simple:
+                    return new SimpleStatement("select")
+                           .SetIdempotence(true)
+                           .SetConsistencyLevel(ConsistencyLevel.EachQuorum)
+                           .SetReadTimeoutMillis(400)
+                           .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial)
+                           .SetRetryPolicy(retryPolicy);
+                default:
+                    throw new InvalidOperationException();
+            }
+        }
+        
+        private IStatement BuildStatement(RequestTypeTestCase testCase)
+        {
+            switch (testCase)
+            {
+                case RequestTypeTestCase.Batch:
+                    return new BatchStatement();
+                case RequestTypeTestCase.Bound:
+                    var mockPs = Mock.Of<PreparedStatement>();
+                    var bs = new BoundStatement(mockPs);
+                    return bs;
+                case RequestTypeTestCase.Simple:
+                    return new SimpleStatement("select");
+                default:
+                    throw new InvalidOperationException();
+            }
         }
 
         private RequestHandlerMockResult BuildRequestHandler(
@@ -172,7 +324,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                 : config.DefaultRequestOptions;
             var requestHandler = new RequestHandler(
                 session,
-                Serializer.Default,
+                new Serializer(ProtocolVersion.V3),
                 statement,
                 options);
 
@@ -187,7 +339,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                     mockResult.SendResults.Enqueue(new ConnectionSendResult { Request = req, TimeoutMillis = timeout });
                     Task.Run(async () =>
                     {
-                        var rp = (FakeRetryPolicy) options.RetryPolicy;
+                        var rp = (FakeRetryPolicy) (statement.RetryPolicy ?? options.RetryPolicy);
                         var sep = (FakeSpeculativeExecutionPolicy) options.SpeculativeExecutionPolicy;
                         if (Interlocked.Read(ref rp.Count) > 0 && Interlocked.Read(ref sep.Count) > 0)
                         {
@@ -218,6 +370,13 @@ namespace Cassandra.Tests.ExecutionProfiles
                 .Returns(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042));
 
             return mockResult;
+        }
+
+        public enum RequestTypeTestCase
+        {
+            Simple,
+            Batch,
+            Bound
         }
 
         private class ConnectionSendResult
