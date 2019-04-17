@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Net;
-
+using Cassandra.Connections;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 

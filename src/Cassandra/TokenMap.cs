@@ -18,7 +18,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-
+using Cassandra.Connections;
 using Cassandra.MetadataHelpers;
 
 namespace Cassandra

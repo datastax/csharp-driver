@@ -24,6 +24,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Collections;
+using Cassandra.Connections;
 using Cassandra.Helpers;
 using Cassandra.Requests;
 using Cassandra.Serialization;
@@ -42,7 +43,7 @@ namespace Cassandra
         // ReSharper disable once InconsistentNaming
         private static readonly Logger _logger = new Logger(typeof(Cluster));
         private readonly CopyOnWriteList<IInternalSession> _connectedSessions = new CopyOnWriteList<IInternalSession>();
-        private readonly ControlConnection _controlConnection;
+        private readonly IControlConnection _controlConnection;
         private volatile bool _initialized;
         private volatile Exception _initException;
         private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
@@ -59,7 +60,7 @@ namespace Cassandra
         internal IInternalCluster InternalRef => this;
 
         /// <inheritdoc />
-        ControlConnection IInternalCluster.GetControlConnection()
+        IControlConnection IInternalCluster.GetControlConnection()
         {
             return _controlConnection;
         }
@@ -153,7 +154,7 @@ namespace Cassandra
             {
                 protocolVersion = Configuration.ProtocolOptions.MaxProtocolVersionValue.Value;
             }
-            _controlConnection = new ControlConnection(protocolVersion, Configuration, _metadata);
+            _controlConnection = configuration.ControlConnectionFactory.Create(protocolVersion, Configuration, _metadata);
             _metadata.ControlConnection = _controlConnection;
             _serializer = _controlConnection.Serializer;
             _sessionFactory = configuration.SessionFactoryBuilder.BuildWithCluster(this);

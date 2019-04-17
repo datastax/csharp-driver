@@ -630,8 +630,8 @@ namespace Cassandra
                     Task.WaitAll(queries, Configuration.ClientOptions.QueryAbortTimeout);
 
                     if (Metadata.CheckSchemaVersionResults(
-                        Cassandra.ControlConnection.GetRowSet(queries[0].Result),
-                        Cassandra.ControlConnection.GetRowSet(queries[1].Result)))
+                        Connections.ControlConnection.GetRowSet(queries[0].Result),
+                        Connections.ControlConnection.GetRowSet(queries[1].Result)))
                     {
                         return true;
                     }
