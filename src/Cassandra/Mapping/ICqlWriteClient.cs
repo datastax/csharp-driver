@@ -29,8 +29,7 @@
         /// <param name="queryOptions">Optional query options</param>
         /// <returns></returns>
         void Insert<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null);
-
-
+        
         /// <summary>
         /// Inserts the specified POCO in Cassandra.
         /// </summary>

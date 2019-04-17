@@ -28,7 +28,8 @@ namespace Cassandra
         /// <para>
         /// Adds an execution profile to this ExecutionProfileOptions instance. The name
         /// that is provided here is the name that must be provided to the several driver
-        /// APIs that support execution profiles like <see cref="ISession.ExecuteAsync(IStatement, string)"/>.
+        /// APIs that support execution profiles like <see cref="ISession.ExecuteAsync(IStatement, string)"/>
+        /// or <see cref="Cql.WithExecutionProfile(string)"/>.
         /// </para>
         /// </summary>
         /// <param name="name">Name of the execution profile.</param>
