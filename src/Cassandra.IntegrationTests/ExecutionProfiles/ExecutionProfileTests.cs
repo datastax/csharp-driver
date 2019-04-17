@@ -52,7 +52,6 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                                 .Build();
             var readProfile =
                 ExecutionProfile.Builder()
-                                .DeriveFrom(writeProfile)
                                 .WithConsistencyLevel(ConsistencyLevel.Two)
                                 .Build();
             var cluster =
@@ -60,8 +59,8 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                        .AddContactPoint(_simulacron.InitialContactPoint)
                        .WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.One))
                        .WithExecutionProfiles(opts => opts
-                           .AddProfile("write", writeProfile)
-                           .AddProfile("read", readProfile))
+                           .WithProfile("write", writeProfile)
+                           .WithDerivedProfile("read", "write", readProfile))
                        .Build();
             var session = cluster.Connect();
             var primeQuery = new
@@ -97,7 +96,6 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                                 .Build();
             var readProfile =
                 ExecutionProfile.Builder()
-                                .DeriveFrom(writeProfile)
                                 .WithConsistencyLevel(ConsistencyLevel.Two)
                                 .Build();
             var cluster =
@@ -105,8 +103,8 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                        .AddContactPoint(_simulacron.InitialContactPoint)
                        .WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.One))
                        .WithExecutionProfiles(opts => opts
-                           .AddProfile("write", writeProfile)
-                           .AddProfile("read", readProfile))
+                           .WithProfile("write", writeProfile)
+                           .WithDerivedProfile("read", "write", readProfile))
                        .Build();
             var session = cluster.Connect();
             var primeQuery = new
@@ -144,7 +142,6 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                                 .Build();
             var readProfile =
                 ExecutionProfile.Builder()
-                                .DeriveFrom(writeProfile)
                                 .WithConsistencyLevel(ConsistencyLevel.Two)
                                 .Build();
             var cluster =
@@ -152,8 +149,8 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                        .AddContactPoint(_simulacron.InitialContactPoint)
                        .WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.One))
                        .WithExecutionProfiles(opts => opts
-                           .AddProfile("write", writeProfile)
-                           .AddProfile("read", readProfile))
+                           .WithProfile("write", writeProfile)
+                           .WithDerivedProfile("read", "write", readProfile))
                        .Build();
             var session = cluster.Connect();
 

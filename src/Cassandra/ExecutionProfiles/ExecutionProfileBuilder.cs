@@ -26,7 +26,6 @@ namespace Cassandra.ExecutionProfiles
         private ILoadBalancingPolicy _loadBalancingPolicy;
         private ISpeculativeExecutionPolicy _speculativeExecutionPolicy;
         private IExtendedRetryPolicy _retryPolicy;
-        private ExecutionProfile _baseProfile;
         
         public IExecutionProfileBuilder WithLoadBalancingPolicy(ILoadBalancingPolicy loadBalancingPolicy)
         {
@@ -64,26 +63,15 @@ namespace Cassandra.ExecutionProfiles
             return this;
         }
 
-        public IExecutionProfileBuilder DeriveFrom(ExecutionProfile baseProfile)
-        {
-            if (_baseProfile != null)
-            {
-                throw new InvalidOperationException("A base profile is already set.");
-            }
-
-            _baseProfile = baseProfile ?? throw new ArgumentNullException(nameof(baseProfile));
-            return this;
-        }
-
         public ExecutionProfile Build()
         {
             return new ExecutionProfile(
-                _consistencyLevel ?? _baseProfile?.ConsistencyLevel,
-                _serialConsistencyLevel ?? _baseProfile?.SerialConsistencyLevel,
-                _readTimeoutMillis ?? _baseProfile?.ReadTimeoutMillis,
-                _loadBalancingPolicy ?? _baseProfile?.LoadBalancingPolicy,
-                _speculativeExecutionPolicy ?? _baseProfile?.SpeculativeExecutionPolicy,
-                _retryPolicy ?? _baseProfile?.RetryPolicy);
+                _consistencyLevel,
+                _serialConsistencyLevel,
+                _readTimeoutMillis,
+                _loadBalancingPolicy,
+                _speculativeExecutionPolicy,
+                _retryPolicy);
         }
     }
 }

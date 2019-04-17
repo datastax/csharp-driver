@@ -68,9 +68,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                     },
                     {
                         "profile5",
-                        ExecutionProfile.Builder()
-                                        .DeriveFrom(profile1)
-                                        .Build()
+                        new ExecutionProfile(profile1, ExecutionProfile.Builder().Build())
                     }
                 }
             }.Build();
