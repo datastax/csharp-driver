@@ -39,9 +39,12 @@ namespace Cassandra.Data.Linq
 
         public new TEntity Execute()
         {
-            var queryAbortTimeout = GetTable().GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
-            var task = ExecuteAsync();
-            return TaskHelper.WaitToComplete(task, queryAbortTimeout);
+            return Execute(Configuration.DefaultExecutionProfileName);
+        }
+        
+        public new TEntity Execute(string executionProfile)
+        {
+            return TaskHelper.WaitToComplete(ExecuteAsync(executionProfile), QueryAbortTimeout);
         }
 
         public new CqlScalar<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)
@@ -62,17 +65,28 @@ namespace Cassandra.Data.Linq
             return GetCql(out _);
         }
 
-        public new async Task<TEntity> ExecuteAsync()
+        public new Task<TEntity> ExecuteAsync()
         {
+            return ExecuteAsync(Configuration.DefaultExecutionProfileName);
+        }
+        
+        public new async Task<TEntity> ExecuteAsync(string executionProfile)
+        {
+            if (executionProfile == null)
+            {
+                throw new ArgumentNullException(nameof(executionProfile));
+            }
+            
             object[] values;
             string cql = GetCql(out values);
-            var rs = await InternalExecuteAsync(cql, values).ConfigureAwait(false);
+            var rs = await InternalExecuteWithProfileAsync(executionProfile, cql, values).ConfigureAwait(false);
             var result = default(TEntity);
             var row = rs.FirstOrDefault();
             if (row != null)
             {
                 result = (TEntity)row[0];
             }
+
             return result;
         }
 

@@ -244,7 +244,7 @@ namespace Cassandra.Mapping.Statements
         public void PrependDelete<T>(Cql cql)
         {
             PocoData pocoData = _pocoDataFactory.GetPocoData<T>();
-            cql.SetStatement(string.Format("DELETE FROM {0} {1}", pocoData.TableName, cql.Statement));
+            cql.SetStatement(string.Format("DELETE FROM {0} {1}", GetEscapedTableName(pocoData), cql.Statement));
         }
 
         private static string GetTypeString(Serializer serializer, PocoColumn column)

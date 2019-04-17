@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
-using System.Threading.Tasks;
+
 using Cassandra.Mapping;
 using Cassandra.Tasks;
-using Cassandra.Tests.Mapping.FluentMappings;
 using Cassandra.Tests.Mapping.Pocos;
 using Cassandra.Tests.Mapping.TestData;
+
 using Moq;
+
 using NUnit.Framework;
 
 namespace Cassandra.Tests.Mapping
@@ -41,7 +40,7 @@ namespace Cassandra.Tests.Mapping
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
-                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
                 .Returns(TaskHelper.ToTask(new RowSet()))
                 .Verifiable();
             sessionMock
@@ -51,10 +50,10 @@ namespace Cassandra.Tests.Mapping
             var mappingClient = GetMappingClient(sessionMock);
             //Execute Insert and wait
             mappingClient.InsertAsync(newUser).Wait(3000);
-            sessionMock.Verify(s => s.ExecuteAsync(It.Is<BoundStatement>(stmt => 
+            sessionMock.Verify(s => s.ExecuteAsync(It.Is<BoundStatement>(stmt =>
                 stmt.QueryValues.Length == TestHelper.ToDictionary(newUser).Count &&
                 stmt.PreparedStatement.Cql.StartsWith("INSERT INTO users (")
-                )), Times.Exactly(1));
+                ), It.IsAny<string>()), Times.Exactly(1));
             sessionMock.Verify();
         }
 
@@ -72,8 +71,8 @@ namespace Cassandra.Tests.Mapping
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
-                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
-                .Returns(TestHelper.DelayedTask(new RowSet()))
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
+                .Returns(TaskHelper.ToTask(new RowSet()))
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
@@ -85,7 +84,7 @@ namespace Cassandra.Tests.Mapping
             sessionMock.Verify(s => s.ExecuteAsync(It.Is<BoundStatement>(stmt =>
                 stmt.QueryValues.Length == TestHelper.ToDictionary(newUser).Count &&
                 stmt.PreparedStatement.Cql.StartsWith("INSERT INTO users (")
-                )), Times.Exactly(1));
+                ), It.IsAny<string>()), Times.Exactly(1));
             sessionMock.Verify();
         }
 
@@ -104,7 +103,7 @@ namespace Cassandra.Tests.Mapping
                 LastLoginDate = user.LastLoginDate,
                 LoginHistory = user.LoginHistory,
                 LuckyNumbers = user.LuckyNumbers,
-                ChildrenAges = new Dictionary<string,int>(user.ChildrenAges),
+                ChildrenAges = new Dictionary<string, int>(user.ChildrenAges),
                 FavoriteColor = user.FavoriteColor,
                 TypeOfUser = user.TypeOfUser,
                 PreferredContact = user.PreferredContactMethod,
@@ -114,12 +113,12 @@ namespace Cassandra.Tests.Mapping
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
-                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
                 .Returns(TaskHelper.ToTask(new RowSet()))
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(cql => TestHelper.DelayedTask(GetPrepared(cql)))
+                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
                 .Verifiable();
 
             // Insert the new user
@@ -129,7 +128,7 @@ namespace Cassandra.Tests.Mapping
             sessionMock.Verify(s => s.ExecuteAsync(It.Is<BoundStatement>(stmt =>
                 stmt.QueryValues.Length > 0 &&
                 stmt.PreparedStatement.Cql.StartsWith("INSERT INTO")
-                )), Times.Exactly(1));
+                ), It.IsAny<string>()), Times.Exactly(1));
             sessionMock.Verify();
         }
 
@@ -150,19 +149,19 @@ namespace Cassandra.Tests.Mapping
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
-                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
                 .Returns(TaskHelper.ToTask(new RowSet()))
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
+                .Returns<string>((cql) => TaskHelper.ToTask(GetPrepared(cql)))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock);
             mapper.Insert(album);
             sessionMock.Verify(s => s.ExecuteAsync(It.Is<BoundStatement>(stmt =>
                 stmt.QueryValues.Length > 0 &&
                 stmt.PreparedStatement.Cql == "INSERT INTO Album (Id, Name, PublishingDate, Songs) VALUES (?, ?, ?, ?)"
-                )), Times.Exactly(1));
+                ), It.IsAny<string>()), Times.Exactly(1));
             sessionMock.Verify();
         }
 
@@ -181,9 +180,9 @@ namespace Cassandra.Tests.Mapping
             string query = null;
             object[] parameters = null;
             sessionMock
-                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
                 .Returns(TaskHelper.ToTask(new RowSet()))
-                .Callback<BoundStatement>(stmt =>
+                .Callback<BoundStatement, string>((stmt, profile) =>
                 {
                     query = stmt.PreparedStatement.Cql;
                     parameters = stmt.QueryValues;
@@ -191,13 +190,13 @@ namespace Cassandra.Tests.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
+                .Returns<string>((cql) => TaskHelper.ToTask(GetPrepared(cql)))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock);
             //with nulls by default
             mapper.Insert(album);
             Assert.AreEqual("INSERT INTO Album (Id, Name, PublishingDate, Songs) VALUES (?, ?, ?, ?)", query);
-            CollectionAssert.AreEqual(new object[] { album.Id, null, album.PublishingDate, null}, parameters);
+            CollectionAssert.AreEqual(new object[] { album.Id, null, album.PublishingDate, null }, parameters);
             //Without nulls
             mapper.Insert(album, false);
             Assert.AreEqual("INSERT INTO Album (Id, PublishingDate) VALUES (?, ?)", query);
@@ -218,7 +217,7 @@ namespace Cassandra.Tests.Mapping
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
-                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
                 .Returns(TestHelper.DelayedTask(new RowSet(), 2000).ContinueWith(t =>
                 {
                     rowsetReturned = true;
@@ -250,13 +249,13 @@ namespace Cassandra.Tests.Mapping
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
-                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
-                .Returns(TestHelper.DelayedTask(TestDataHelper.CreateMultipleValuesRowSet(new [] {"[applied]"}, new [] { true})))
-                .Callback<BoundStatement>(b => query = b.PreparedStatement.Cql)
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
+                .Returns(TestHelper.DelayedTask(TestDataHelper.CreateMultipleValuesRowSet(new[] { "[applied]" }, new[] { true })))
+                .Callback<BoundStatement, string>((b, profile) => query = b.PreparedStatement.Cql)
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(cql => TestHelper.DelayedTask(GetPrepared(cql)))
+                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
                 .Verifiable();
             var mappingClient = GetMappingClient(sessionMock);
             //Execute
@@ -281,13 +280,13 @@ namespace Cassandra.Tests.Mapping
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
-                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
-                .Returns(TestHelper.DelayedTask(TestDataHelper.CreateMultipleValuesRowSet(new[] { "[applied]", "userid", "name" }, new object[] { false, newUser.Id, "existing-name"})))
-                .Callback<BoundStatement>(b => query = b.PreparedStatement.Cql)
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
+                .Returns(TestHelper.DelayedTask(TestDataHelper.CreateMultipleValuesRowSet(new[] { "[applied]", "userid", "name" }, new object[] { false, newUser.Id, "existing-name" })))
+                .Callback<BoundStatement, string>((b, profile) => query = b.PreparedStatement.Cql)
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(cql => TestHelper.DelayedTask(GetPrepared(cql)))
+                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
                 .Verifiable();
             var mappingClient = GetMappingClient(sessionMock);
             //Execute
@@ -346,13 +345,13 @@ namespace Cassandra.Tests.Mapping
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
             sessionMock
-                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
-                .Returns(() => TestHelper.DelayedTask(RowSet.Empty()))
-                .Callback<BoundStatement>(stmt => statement = stmt)
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
+                .Returns(TaskHelper.ToTask(new RowSet()))
+                .Callback<BoundStatement, string>((stmt, profile) => statement = stmt)
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(query => TaskHelper.ToTask(GetPrepared(query)))
+                .Returns<string>((cql) => TaskHelper.ToTask(GetPrepared(cql)))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock);
             var song = new Song { Id = Guid.NewGuid(), Title = "t2", ReleaseDate = DateTimeOffset.Now };
@@ -377,14 +376,14 @@ namespace Cassandra.Tests.Mapping
                 query = q;
                 parameters = p;
             }, config);
-            var collectionValues = new[]{ HairColor.Blonde, HairColor.Gray };
+            var collectionValues = new[] { HairColor.Blonde, HairColor.Gray };
             var mapValues = new SortedDictionary<HairColor, TimeUuid>
             {
                 { HairColor.Brown, TimeUuid.NewId() },
                 { HairColor.Red, TimeUuid.NewId() }
             };
-            var expectedCollection = collectionValues.Select(x => (int) x).ToArray();
-            var expectedMap = mapValues.ToDictionary(kv => (int) kv.Key, kv => (Guid) kv.Value);
+            var expectedCollection = collectionValues.Select(x => (int)x).ToArray();
+            var expectedMap = mapValues.ToDictionary(kv => (int)kv.Key, kv => (Guid)kv.Value);
             var poco = new PocoWithEnumCollections
             {
                 Id = 2L,

@@ -39,6 +39,16 @@ namespace Cassandra.Mapping
         void Execute(ICqlBatch batch);
 
         /// <summary>
+        /// Executes the batch specified synchronously with the provided execution profile.
+        /// </summary>
+        /// <remarks>
+        /// To set the consistency level, timestamp and other batch options, use
+        /// <see cref="ICqlBatch.WithOptions(System.Action{CqlQueryOptions})"/>. Individual options for each
+        /// query within the batch will be ignored.
+        /// </remarks>
+        void Execute(ICqlBatch batch, string executionProfile);
+
+        /// <summary>
         /// Executes the batch specified asynchronously.
         /// </summary>
         /// <remarks>
@@ -47,6 +57,16 @@ namespace Cassandra.Mapping
         /// query within the batch will be ignored.
         /// </remarks>
         Task ExecuteAsync(ICqlBatch batch);
+
+        /// <summary>
+        /// Executes the batch specified asynchronously with the provided execution profile.
+        /// </summary>
+        /// <remarks>
+        /// To set the consistency level, timestamp and other batch options, use
+        /// <see cref="ICqlBatch.WithOptions(System.Action{CqlQueryOptions})"/>. Individual options for each
+        /// query within the batch will be ignored.
+        /// </remarks>
+        Task ExecuteAsync(ICqlBatch batch, string executionProfile);
 
         /// <summary>
         /// Allows you to convert an argument/bind variable value being used in a CQL statement using the same converters that are being used by the client
@@ -59,8 +79,127 @@ namespace Cassandra.Mapping
         /// <returns>The converted value.</returns>
         TDatabase ConvertCqlArgument<TValue, TDatabase>(TValue value);
 
-        //Lightweight transaction support methods must be included at IMapper level as 
-        //  conditional queries are not supported in batches
+        ////Execution Profiles should be included at IMapper level as they are not supported in individual statements within batches.
+
+        /// <summary>
+        /// Inserts the specified POCO in Cassandra using the provided execution profile.
+        /// </summary>
+        void Insert<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null);
+        
+        /// <summary>
+        /// Inserts the specified POCO in Cassandra using the provided execution profile.
+        /// </summary>
+        /// <param name="poco">The POCO instance</param>
+        /// <param name="executionProfile">The execution profile to use when executing the request.</param>
+        /// <param name="insertNulls">
+        /// Determines if the query must be generated using <c>NULL</c> values for <c>null</c> POCO
+        /// members. 
+        /// <para>
+        /// Use <c>false</c> if you don't want to consider <c>null</c> values for the INSERT 
+        /// operation (recommended).
+        /// </para> 
+        /// <para>
+        /// Use <c>true</c> if you want to override all the values in the table,
+        /// generating tombstones for null values.
+        /// </para>
+        /// </param>
+        /// <param name="queryOptions">Optional query options</param>
+        /// <returns></returns>
+        void Insert<T>(T poco, string executionProfile, bool insertNulls, CqlQueryOptions queryOptions = null);
+        
+        /// <summary>
+        /// Inserts the specified POCO in Cassandra using the provided execution profile.
+        /// </summary>
+        /// <param name="poco">The POCO instance</param>
+        /// <param name="executionProfile">The execution profile to use when executing the request.</param>
+        /// <param name="insertNulls">
+        /// Determines if the query must be generated using <c>NULL</c> values for <c>null</c> POCO
+        /// members. 
+        /// <para>
+        /// Use <c>false</c> if you don't want to consider <c>null</c> values for the INSERT 
+        /// operation (recommended).
+        /// </para> 
+        /// <para>
+        /// Use <c>true</c> if you want to override all the values in the table,
+        /// generating tombstones for null values.
+        /// </para>
+        /// </param>
+        /// <param name="queryOptions">Optional query options</param>
+        /// <param name="ttl">Time to live (in seconds) for the inserted values. If set, the inserted values are automatically removed
+        /// from the database after the specified time.</param>
+        /// <returns></returns>
+        void Insert<T>(T poco, string executionProfile, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null);
+        
+        /// <summary>
+        /// Inserts the specified POCO in Cassandra using the provided execution profile.
+        /// </summary>
+        Task InsertAsync<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null);
+
+        /// <summary>
+        /// Inserts the specified POCO in Cassandra using the provided execution profile.
+        /// </summary>
+        /// <param name="poco">The POCO instance</param>
+        /// <param name="executionProfile">The execution profile to use when executing the request.</param>
+        /// <param name="insertNulls">
+        /// Determines if the query must be generated using <c>NULL</c> values for <c>null</c> POCO
+        /// members. 
+        /// <para>
+        /// Use <c>false</c> if you don't want to consider <c>null</c> values for the INSERT 
+        /// operation (recommended).
+        /// </para> 
+        /// <para>
+        /// Use <c>true</c> if you want to override all the values in the table,
+        /// generating tombstones for null values.
+        /// </para>
+        /// </param>
+        /// <param name="ttl">Time to live (in seconds) for the inserted values. If set, the inserted values are automatically removed
+        /// from the database after the specified time.</param>
+        /// <param name="queryOptions">Optional query options</param>
+        /// <returns></returns>
+        Task InsertAsync<T>(T poco, string executionProfile, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null);
+
+        /// <summary>
+        /// Inserts the specified POCO in Cassandra using the provided execution profile.
+        /// </summary>
+        /// <param name="poco">The POCO instance</param>
+        /// <param name="executionProfile">The execution profile to use when executing the request.</param>
+        /// <param name="insertNulls">
+        /// Determines if the query must be generated using <c>NULL</c> values for <c>null</c> POCO
+        /// members. 
+        /// <para>
+        /// Use <c>false</c> if you don't want to consider <c>null</c> values for the INSERT 
+        /// operation (recommended).
+        /// </para> 
+        /// <para>
+        /// Use <c>true</c> if you want to override all the values in the table,
+        /// generating tombstones for null values.
+        /// </para>
+        /// </param>
+        /// <param name="queryOptions">Optional query options</param>
+        /// <returns></returns>
+        Task InsertAsync<T>(T poco, string executionProfile, bool insertNulls, CqlQueryOptions queryOptions = null);
+        
+        /// <summary>
+        /// Updates the POCO specified in Cassandra using the provided execution profile.
+        /// </summary>
+        void Update<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null);
+        
+        /// <summary>
+        /// Updates the POCO specified in Cassandra using the provided execution profile.
+        /// </summary>
+        Task UpdateAsync<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null);
+
+        /// <summary>
+        /// Deletes the specified POCO from Cassandra using the provided execution profile.
+        /// </summary>
+        void Delete<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null);
+        
+        /// <summary>
+        /// Deletes the specified POCO from Cassandra using the provided execution profile.
+        /// </summary>
+        Task DeleteAsync<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null);
+
+        ////Lightweight transaction support methods must be included at IMapper level as conditional queries are not supported in batches
 
         /// <summary>
         /// Deletes from the table for the POCO type specified (T) using the CQL string specified and query parameters specified.  
@@ -105,6 +244,14 @@ namespace Cassandra.Mapping
         /// </para>
         /// </summary>
         Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, CqlQueryOptions queryOptions = null);
+        
+        /// <summary>
+        /// Inserts the specified POCO in Cassandra, if not exists, with the provided execution profile.
+        /// <para>
+        /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
+        /// </para>
+        /// </summary>
+        Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null);
 
         /// <summary>
         /// Inserts the specified POCO in Cassandra, if not exists.
@@ -125,6 +272,27 @@ namespace Cassandra.Mapping
         /// <param name="queryOptions">Optional query options</param>
         /// <returns></returns>
         Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null);
+        
+        /// <summary>
+        /// Inserts the specified POCO in Cassandra, if not exists, with the provided execution profile.
+        /// </summary>
+        /// <param name="poco">The POCO instance</param>
+        /// <param name="executionProfile">The execution profile to use when executing the request.</param>
+        /// <param name="insertNulls">
+        /// Determines if the query must be generated using <c>NULL</c> values for <c>null</c> POCO
+        /// members. 
+        /// <para>
+        /// Use <c>false</c> if you don't want to consider <c>null</c> values for the INSERT
+        /// operation (recommended).
+        /// </para> 
+        /// <para>
+        /// Use <c>true</c> if you want to override all the values in the table,
+        /// generating tombstones for null values.
+        /// </para>
+        /// </param>
+        /// <param name="queryOptions">Optional query options</param>
+        /// <returns></returns>
+        Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, string executionProfile, bool insertNulls, CqlQueryOptions queryOptions = null);
 
         /// <summary>
         /// Inserts the specified POCO in Cassandra, if not exists.
@@ -149,12 +317,43 @@ namespace Cassandra.Mapping
         Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null);
 
         /// <summary>
+        /// Inserts the specified POCO in Cassandra, if not exists, with the provided execution profile.
+        /// </summary>
+        /// <param name="poco">The POCO instance</param>
+        /// <param name="executionProfile">The execution profile to use when executing the request.</param>
+        /// <param name="insertNulls">
+        /// Determines if the query must be generated using <c>NULL</c> values for <c>null</c> POCO
+        /// members. 
+        /// <para>
+        /// Use <c>false</c> if you don't want to consider <c>null</c> values for the INSERT
+        /// operation (recommended).
+        /// </para> 
+        /// <para>
+        /// Use <c>true</c> if you want to override all the values in the table,
+        /// generating tombstones for null values.
+        /// </para>
+        /// </param>
+        /// <param name="ttl">Time to live (in seconds) for the inserted values. If set, the inserted values are automatically removed
+        /// from the database after the specified time.</param>
+        /// <param name="queryOptions">Optional query options</param>
+        /// <returns></returns>
+        Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, string executionProfile, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null);
+
+        /// <summary>
         /// Inserts the specified POCO in Cassandra, if not exists.
         /// <para>
         /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
         /// </para>
         /// </summary>
         AppliedInfo<T> InsertIfNotExists<T>(T poco, CqlQueryOptions queryOptions = null);
+        
+        /// <summary>
+        /// Inserts the specified POCO in Cassandra, if not exists, with the provided execution profile.
+        /// <para>
+        /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
+        /// </para>
+        /// </summary>
+        AppliedInfo<T> InsertIfNotExists<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null);
 
         /// <summary>
         /// Inserts the specified POCO in Cassandra, if not exists.
@@ -175,6 +374,27 @@ namespace Cassandra.Mapping
         /// <param name="queryOptions">Optional query options</param>
         /// <returns></returns>
         AppliedInfo<T> InsertIfNotExists<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null);
+        
+        /// <summary>
+        /// Inserts the specified POCO in Cassandra, if not exists, with the provided execution profile.
+        /// </summary>
+        /// <param name="poco">The POCO instance</param>
+        /// <param name="executionProfile">The execution profile to use when executing the request.</param>
+        /// <param name="insertNulls">
+        /// Determines if the query must be generated using <c>NULL</c> values for <c>null</c> POCO
+        /// members. 
+        /// <para>
+        /// Use <c>false</c> if you don't want to consider <c>null</c> values for the INSERT
+        /// operation (recommended).
+        /// </para> 
+        /// <para>
+        /// Use <c>true</c> if you want to override all the values in the table,
+        /// generating tombstones for null values.
+        /// </para>
+        /// </param>
+        /// <param name="queryOptions">Optional query options</param>
+        /// <returns></returns>
+        AppliedInfo<T> InsertIfNotExists<T>(T poco, string executionProfile, bool insertNulls, CqlQueryOptions queryOptions = null);
 
         /// <summary>
         /// Inserts the specified POCO in Cassandra, if not exists.
@@ -197,6 +417,29 @@ namespace Cassandra.Mapping
         /// <param name="queryOptions">Optional query options</param>
         /// <returns></returns>
         AppliedInfo<T> InsertIfNotExists<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null);
+        
+        /// <summary>
+        /// Inserts the specified POCO in Cassandra, if not exists, with the provided execution profile.
+        /// </summary>
+        /// <param name="poco">The POCO instance</param>
+        /// <param name="executionProfile">The execution profile to use when executing the request.</param>
+        /// <param name="insertNulls">
+        /// Determines if the query must be generated using <c>NULL</c> values for <c>null</c> POCO
+        /// members. 
+        /// <para>
+        /// Use <c>false</c> if you don't want to consider <c>null</c> values for the INSERT
+        /// operation (recommended).
+        /// </para> 
+        /// <para>
+        /// Use <c>true</c> if you want to override all the values in the table,
+        /// generating tombstones for null values.
+        /// </para>
+        /// </param>
+        /// <param name="ttl">Time to live (in seconds) for the inserted values. If set, the inserted values are automatically removed
+        /// from the database after the specified time.</param>
+        /// <param name="queryOptions">Optional query options</param>
+        /// <returns></returns>
+        AppliedInfo<T> InsertIfNotExists<T>(T poco, string executionProfile, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null);
 
         /// <summary>
         /// Updates the table for the poco type specified (T) using the CQL statement specified, using lightweight transactions.
@@ -248,6 +491,19 @@ namespace Cassandra.Mapping
         Task<AppliedInfo<T>> ExecuteConditionalAsync<T>(ICqlBatch batch);
 
         /// <summary>
+        /// Executes a batch that contains a Lightweight transaction with the provided execution profile.
+        /// </summary>
+        /// <para>
+        /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
+        /// </para>
+        /// <remarks>
+        /// To set the consistency level, timestamp and other batch options, use
+        /// <see cref="ICqlBatch.WithOptions(System.Action{CqlQueryOptions})"/>. Individual options for each
+        /// query within the batch will be ignored.
+        /// </remarks>
+        Task<AppliedInfo<T>> ExecuteConditionalAsync<T>(ICqlBatch batch, string executionProfile);
+
+        /// <summary>
         /// Executes a batch that contains a Lightweight transaction. 
         /// </summary>
         /// <para>
@@ -259,5 +515,18 @@ namespace Cassandra.Mapping
         /// query within the batch will be ignored.
         /// </remarks>
         AppliedInfo<T> ExecuteConditional<T>(ICqlBatch batch);
+        
+        /// <summary>
+        /// Executes a batch that contains a Lightweight transaction. 
+        /// </summary>
+        /// <para>
+        /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
+        /// </para>
+        /// <remarks>
+        /// To set the consistency level, timestamp and other batch options, use
+        /// <see cref="ICqlBatch.WithOptions(System.Action{CqlQueryOptions})"/>. Individual options for each
+        /// query within the batch will be ignored.
+        /// </remarks>
+        AppliedInfo<T> ExecuteConditional<T>(ICqlBatch batch, string executionProfile);
     }
 }

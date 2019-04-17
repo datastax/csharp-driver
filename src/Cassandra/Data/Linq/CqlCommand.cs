@@ -34,6 +34,8 @@ namespace Cassandra.Data.Linq
         protected DateTimeOffset? _timestamp;
         protected int? _ttl;
         private QueryTrace _queryTrace;
+        
+        protected int QueryAbortTimeout { get; private set; }
 
         internal PocoData PocoData { get; }
         internal ITable Table { get; }
@@ -84,6 +86,7 @@ namespace Cassandra.Data.Linq
             Table = table;
             _statementFactory = stmtFactory;
             PocoData = pocoData;
+            QueryAbortTimeout = table.GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
         }
 
         protected internal abstract string GetCql(out object[] values);
@@ -93,9 +96,19 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public void Execute()
         {
-            var queryAbortTimeout = GetTable().GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
-            var task = ExecuteAsync();
-            TaskHelper.WaitToComplete(task, queryAbortTimeout);
+            Execute(Configuration.DefaultExecutionProfileName);
+        }
+        
+        /// <summary>
+        /// Executes the command using the <see cref="ISession"/> with the provided execution profile.
+        /// </summary>
+        public RowSet Execute(string executionProfile)
+        {
+            if (executionProfile == null)
+            {
+                throw new ArgumentNullException(nameof(executionProfile));
+            }
+            return TaskHelper.WaitToComplete(ExecuteAsync(executionProfile), QueryAbortTimeout);
         }
 
         public void SetQueryTrace(QueryTrace trace)
@@ -151,15 +164,28 @@ namespace Cassandra.Data.Linq
         /// <summary>
         /// Evaluates the Linq command and executes asynchronously the cql statement.
         /// </summary>
-        public async Task<RowSet> ExecuteAsync()
+        public Task<RowSet> ExecuteAsync()
         {
-            object[] values;
-            var cqlQuery = GetCql(out values);
+            return ExecuteAsync(Configuration.DefaultExecutionProfileName);
+        }
+        
+        /// <summary>
+        /// Evaluates the Linq command and executes asynchronously the cql statement with the provided execution profile.
+        /// </summary>
+        public async Task<RowSet> ExecuteAsync(string executionProfile)
+        {
+            if (executionProfile == null)
+            {
+                throw new ArgumentNullException(executionProfile);
+            }
+            
+            var cqlQuery = GetCql(out var values);
             var session = GetTable().GetSession();
-            var stmt = await _statementFactory.GetStatementAsync(session, Cql.New(cqlQuery, values))
-                                              .ConfigureAwait(false);
+            var stmt = await _statementFactory.GetStatementAsync(
+                session, 
+                Cql.New(cqlQuery, values).WithExecutionProfile(executionProfile)).ConfigureAwait(false);
             this.CopyQueryPropertiesTo(stmt);
-            var rs = await session.ExecuteAsync(stmt).ConfigureAwait(false);
+            var rs = await session.ExecuteAsync(stmt, executionProfile).ConfigureAwait(false);
             QueryTrace = rs.Info.QueryTrace;
             return rs;
         }

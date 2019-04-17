@@ -28,6 +28,10 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
                 .Returns(TestHelper.DelayedTask(result, 200))
                 .Verifiable();
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<IStatement>(), It.IsAny<string>()))
+                .Returns(TestHelper.DelayedTask(result, 200))
+                .Verifiable();
             sessionMock.Setup(s => s.PrepareAsync(It.IsAny<string>())).Returns(TaskHelper.ToTask(GetPrepared("Mock query")));
             sessionMock.Setup(s => s.BinaryProtocolVersion).Returns(2);
             sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
@@ -130,6 +134,11 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(TestHelper.DelayedTask(rs))
                 .Callback<IStatement>(s => stmt = (BoundStatement)s)
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
+                .Returns(TestHelper.DelayedTask(rs))
+                .Callback<IStatement, string>((s, profile) => stmt = (BoundStatement)s)
                 .Verifiable();
             sessionMock.Setup(s => s.PrepareAsync(It.IsAny<string>())).Returns(TaskHelper.ToTask(GetPrepared("Mock query")));
             sessionMock.Setup(s => s.BinaryProtocolVersion).Returns(2);

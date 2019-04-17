@@ -11,7 +11,7 @@ namespace Cassandra.Mapping
         /// Inserts the specified POCO in Cassandra.
         /// </summary>
         Task InsertAsync<T>(T poco, CqlQueryOptions queryOptions = null);
-
+        
         /// <summary>
         /// Inserts the specified POCO in Cassandra.
         /// </summary>
@@ -31,7 +31,7 @@ namespace Cassandra.Mapping
         /// <param name="queryOptions">Optional query options</param>
         /// <returns></returns>
         Task InsertAsync<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null);
-
+        
         /// <summary>
         /// Inserts the specified POCO in Cassandra.
         /// </summary>

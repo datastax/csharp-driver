@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+
 using Cassandra.Mapping;
 using Cassandra.Tasks;
 using Cassandra.Tests.Mapping.Pocos;
-using Cassandra.Tests.Mapping.TestData;
+
 using Moq;
+
 using NUnit.Framework;
 
 namespace Cassandra.Tests.Mapping
@@ -24,6 +23,19 @@ namespace Cassandra.Tests.Mapping
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Callback<IStatement>(b =>
+                {
+                    consistency = b.ConsistencyLevel;
+                    serialConsistency = b.SerialConsistencyLevel;
+                })
+                .Returns(() => TaskHelper.ToTask(new RowSet()))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns(TaskHelper.ToTask(GetPrepared()))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
+                .Callback<IStatement, string>((b, profile) =>
                 {
                     consistency = b.ConsistencyLevel;
                     serialConsistency = b.SerialConsistencyLevel;
@@ -53,7 +65,7 @@ namespace Cassandra.Tests.Mapping
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
-                .Setup(s => s.ExecuteAsync(It.IsAny<BatchStatement>()))
+                .Setup(s => s.ExecuteAsync(It.IsAny<BatchStatement>(), It.IsAny<string>()))
                 .Returns(TestHelper.DelayedTask(new RowSet(), 2000).ContinueWith(t =>
                 {
                     rowsetReturned = true;
@@ -62,7 +74,7 @@ namespace Cassandra.Tests.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
+                .Returns<string>((cql) => TaskHelper.ToTask(GetPrepared(cql)))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock);
             var batch = mapper.CreateBatch();
