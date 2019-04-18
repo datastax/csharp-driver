@@ -89,12 +89,7 @@ namespace Cassandra.Data.Linq
         }
 
         protected abstract string GetCql(out object[] values);
-
-        protected Task<RowSet> InternalExecuteAsync(string cqlQuery, object[] values)
-        {
-            return InternalExecuteWithProfileAsync(null, cqlQuery, values);
-        }
-
+        
         protected async Task<RowSet> InternalExecuteWithProfileAsync(string executionProfile, string cqlQuery, object[] values)
         {
             var session = GetTable().GetSession();

@@ -68,7 +68,14 @@ namespace Cassandra.Data.Linq
 
         public void Execute()
         {
-            EndExecute(BeginExecute(null, null));
+            var queryAbortTimeout = _session.Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
+            TaskHelper.WaitToComplete(InternalExecuteAsync(), queryAbortTimeout);
+        }
+        
+        public void Execute(string executionProfile)
+        {
+            var queryAbortTimeout = _session.Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
+            TaskHelper.WaitToComplete(InternalExecuteAsync(executionProfile), queryAbortTimeout);
         }
 
         protected abstract Task<RowSet> InternalExecuteAsync();

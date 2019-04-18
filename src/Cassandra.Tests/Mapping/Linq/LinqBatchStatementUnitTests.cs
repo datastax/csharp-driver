@@ -91,6 +91,5 @@ namespace Cassandra.Tests.Mapping.Linq
                 Assert.AreEqual("UPDATE tbl1 SET val = ? WHERE id = ?", updateStatement.QueryString);
             }
         }
-
     }
 }

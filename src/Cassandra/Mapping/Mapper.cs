@@ -220,11 +220,21 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public Task InsertAsync<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null)
         {
-            return InsertAsync(poco, null, insertNulls, ttl, queryOptions);
+            return InsertWithProfileAsync(poco, null, insertNulls, ttl, queryOptions);
         }
 
         /// <inheritdoc />
         public Task InsertAsync<T>(T poco, string executionProfile, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null)
+        {
+            if (executionProfile == null)
+            {
+                throw new ArgumentNullException(nameof(executionProfile));
+            }
+
+            return InsertWithProfileAsync(poco, executionProfile, insertNulls, ttl, queryOptions);
+        }
+
+        private Task InsertWithProfileAsync<T>(T poco, string executionProfile, bool insertNulls, int? ttl, CqlQueryOptions queryOptions)
         {
             var pocoData = _mapperFactory.PocoDataFactory.GetPocoData<T>();
             var queryIdentifier = $"INSERT ID {pocoData.KeyspaceName}/{pocoData.TableName}";
@@ -269,10 +279,21 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null)
         {
-            return InsertIfNotExistsAsync(poco, null, insertNulls, ttl, queryOptions);
+            return InsertIfNotExistsWithProfileAsync(poco, null, insertNulls, ttl, queryOptions);
         }
 
+        /// <inheritdoc />
         public Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, string executionProfile, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null)
+        {
+            if (executionProfile == null)
+            {
+                throw new ArgumentNullException(nameof(executionProfile));
+            }
+
+            return InsertIfNotExistsWithProfileAsync(poco, executionProfile, insertNulls, ttl, queryOptions);
+        }
+
+        private Task<AppliedInfo<T>> InsertIfNotExistsWithProfileAsync<T>(T poco, string executionProfile, bool insertNulls, int? ttl, CqlQueryOptions queryOptions)
         {
             var pocoData = _mapperFactory.PocoDataFactory.GetPocoData<T>();
             var queryIdentifier = $"INSERT ID {pocoData.KeyspaceName}/{pocoData.TableName}";
@@ -281,20 +302,40 @@ namespace Cassandra.Mapping
             var values = getBindValues(poco);
             //generate INSERT query based on null values (if insertNulls set)
             var cql = _cqlGenerator.GenerateInsert<T>(insertNulls, values, out var queryParameters, true, ttl);
+            var cqlInstance = Cql.New(cql, queryParameters, queryOptions ?? CqlQueryOptions.None);
+            if (executionProfile != null)
+            {
+                cqlInstance = cqlInstance.WithExecutionProfile(executionProfile);
+            }
             return ExecuteAsyncAndAdapt(
-                Cql.New(cql, queryParameters, queryOptions ?? CqlQueryOptions.None),
+                cqlInstance,
                 (stmt, rs) => AppliedInfo<T>.FromRowSet(_mapperFactory, cql, rs));
         }
 
         /// <inheritdoc />
         public Task UpdateAsync<T>(T poco, CqlQueryOptions queryOptions = null)
         {
+            return UpdateWithProfileAsync(poco, null, queryOptions);
+        }
+
+        /// <inheritdoc />
+        public Task UpdateAsync<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null)
+        {
+            return UpdateWithProfileAsync(poco, executionProfile, queryOptions);
+        }
+
+        private Task UpdateWithProfileAsync<T>(T poco, string executionProfile, CqlQueryOptions queryOptions)
+        {
             // Get statement and bind values from POCO
             string cql = _cqlGenerator.GenerateUpdate<T>();
             Func<T, object[]> getBindValues = _mapperFactory.GetValueCollector<T>(cql, primaryKeyValuesLast: true);
             object[] values = getBindValues(poco);
-
-            return ExecuteAsync(Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None));
+            var cqlInstance = Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None);
+            if (executionProfile != null)
+            {
+                cqlInstance = cqlInstance.WithExecutionProfile(executionProfile);
+            }
+            return ExecuteAsync(cqlInstance);
         }
 
         /// <inheritdoc />
@@ -326,12 +367,28 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public Task DeleteAsync<T>(T poco, CqlQueryOptions queryOptions = null)
         {
+            return DeleteWithProfileAsync(poco, null, queryOptions);
+        }
+
+        /// <inheritdoc />
+        public Task DeleteAsync<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null)
+        {
+            return DeleteWithProfileAsync(poco, executionProfile, queryOptions);
+        }
+
+        private Task DeleteWithProfileAsync<T>(T poco, string executionProfile, CqlQueryOptions queryOptions)
+        {
             // Get the statement and bind values from POCO
             string cql = _cqlGenerator.GenerateDelete<T>();
             Func<T, object[]> getBindValues = _mapperFactory.GetValueCollector<T>(cql, primaryKeyValuesOnly: true);
             object[] values = getBindValues(poco);
 
-            return ExecuteAsync(Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None));
+            var cqlInstance = Cql.New(cql, values, queryOptions ?? CqlQueryOptions.None);
+            if (executionProfile != null)
+            {
+                cqlInstance = cqlInstance.WithExecutionProfile(executionProfile);
+            }
+            return ExecuteAsync(cqlInstance);
         }
 
         /// <inheritdoc />
@@ -612,6 +669,13 @@ namespace Cassandra.Mapping
         }
 
         /// <inheritdoc />
+        public void Update<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null)
+        {
+            //Wait async method to be completed or throw
+            TaskHelper.WaitToComplete(UpdateAsync(poco, executionProfile, queryOptions), _queryAbortTimeout);
+        }
+
+        /// <inheritdoc />
         public void Update<T>(string cql, params object[] args)
         {
             Update<T>(Cql.New(cql, args, CqlQueryOptions.None));
@@ -642,6 +706,13 @@ namespace Cassandra.Mapping
         {
             //Wait async method to be completed or throw
             TaskHelper.WaitToComplete(DeleteAsync(poco, queryOptions), _queryAbortTimeout);
+        }
+
+        /// <inheritdoc />
+        public void Delete<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null)
+        {
+            //Wait async method to be completed or throw
+            TaskHelper.WaitToComplete(DeleteAsync(poco, executionProfile, queryOptions), _queryAbortTimeout);
         }
 
         /// <inheritdoc />

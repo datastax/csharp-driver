@@ -158,6 +158,26 @@ namespace Cassandra.Mapping
         /// <param name="queryOptions">Optional query options</param>
         /// <returns></returns>
         Task InsertAsync<T>(T poco, string executionProfile, bool insertNulls, CqlQueryOptions queryOptions = null);
+        
+        /// <summary>
+        /// Updates the POCO specified in Cassandra using the provided execution profile.
+        /// </summary>
+        void Update<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null);
+        
+        /// <summary>
+        /// Updates the POCO specified in Cassandra using the provided execution profile.
+        /// </summary>
+        Task UpdateAsync<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null);
+
+        /// <summary>
+        /// Deletes the specified POCO from Cassandra using the provided execution profile.
+        /// </summary>
+        void Delete<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null);
+        
+        /// <summary>
+        /// Deletes the specified POCO from Cassandra using the provided execution profile.
+        /// </summary>
+        Task DeleteAsync<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null);
 
         ////Lightweight transaction support methods must be included at IMapper level as conditional queries are not supported in batches
 

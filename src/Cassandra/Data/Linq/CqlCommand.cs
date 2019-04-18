@@ -215,8 +215,7 @@ namespace Cassandra.Data.Linq
         private RowSet ExecuteWithProfile(string executionProfile)
         {
             var queryAbortTimeout = GetTable().GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
-            var task = executionProfile != null ? ExecuteAsync(executionProfile) : ExecuteAsync();
-            return TaskHelper.WaitToComplete(task, queryAbortTimeout);
+            return TaskHelper.WaitToComplete(ExecuteWithProfileAsync(executionProfile), queryAbortTimeout);
         }
     }
 }

@@ -24,6 +24,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.ExecutionProfiles
 {
     [TestFixture]
+    [Category("short")]
     public class ExecutionProfileTests
     {
         private SimulacronCluster _simulacron;

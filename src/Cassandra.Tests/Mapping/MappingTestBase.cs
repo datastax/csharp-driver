@@ -28,6 +28,21 @@ namespace Cassandra.Tests.Mapping
 
         protected IMapper GetMappingClient(Func<Task<RowSet>> getRowSetFunc, Action<string, object[]> queryCallback, MappingConfiguration config = null)
         {
+            return GetMappingClientAndSession(getRowSetFunc, queryCallback, config).Mapper;
+        }
+
+        protected MapperAndSessionTuple GetMappingClientAndSession(RowSet rowset, MappingConfiguration config = null)
+        {
+            return GetMappingClientAndSession(() => TaskHelper.ToTask(rowset), config);
+        }
+
+        protected MapperAndSessionTuple GetMappingClientAndSession(Func<Task<RowSet>> getRowSetFunc, MappingConfiguration config = null)
+        {
+            return GetMappingClientAndSession(getRowSetFunc, null, config);
+        }
+        
+        protected MapperAndSessionTuple GetMappingClientAndSession(Func<Task<RowSet>> getRowSetFunc, Action<string, object[]> queryCallback, MappingConfiguration config = null)
+        {
             if (queryCallback == null)
             {
                 //noop
@@ -41,10 +56,19 @@ namespace Cassandra.Tests.Mapping
                 .Callback<BoundStatement>(s => queryCallback(s.PreparedStatement.Cql, s.QueryValues))
                 .Verifiable();
             sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
+                .Returns(getRowSetFunc)
+                .Callback<BoundStatement, string>((s, profile) => queryCallback(s.PreparedStatement.Cql, s.QueryValues))
+                .Verifiable();
+            sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
                 .Returns<string>(q => TaskHelper.ToTask(GetPrepared(q)))
                 .Verifiable();
-            return GetMappingClient(sessionMock, config);
+            return new MapperAndSessionTuple
+            {
+                Mapper = GetMappingClient(sessionMock, config),
+                Session = sessionMock.Object
+            };
         }
 
         protected IMapper GetMappingClient(Mock<ISession> sessionMock, MappingConfiguration config = null)
@@ -64,7 +88,7 @@ namespace Cassandra.Tests.Mapping
             return GetSession<BoundStatement>(rs, stmt => callback(stmt.PreparedStatement.Cql, stmt.QueryValues));
         }
 
-        protected ISession GetSession<TStatement>(RowSet rs, Action<TStatement> callback)
+        protected ISession GetSession<TStatement>(RowSet rs, Action<TStatement> callback, ProtocolVersion protocolVersion = ProtocolVersion.MaxSupported)
             where TStatement : IStatement
         {
             if (rs == null)
@@ -77,9 +101,16 @@ namespace Cassandra.Tests.Mapping
             clusterMock.Setup(c => c.Configuration).Returns(new Configuration());
             sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             sessionMock
-                .Setup(s => s.ExecuteAsync(It.IsAny<TStatement>()))
+                .Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
                 .Returns(() => TaskHelper.ToTask(rs))
                 .Callback(callback)
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<IStatement>(), It.IsAny<string>()))
+                .Returns(() => TaskHelper.ToTask(rs))
+                .Callback<IStatement, string>(
+                    (stmt, execProfile) => 
+                        callback((TStatement)stmt))
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
@@ -87,7 +118,7 @@ namespace Cassandra.Tests.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.BinaryProtocolVersion)
-                .Returns((int)ProtocolVersion.MaxSupported);
+                .Returns((int)protocolVersion);
             return sessionMock.Object;
         }
 
@@ -151,6 +182,13 @@ namespace Cassandra.Tests.Mapping
         {
             //Clear the global mapping between tests
             MappingConfiguration.Global.Clear();
+        }
+
+        protected class MapperAndSessionTuple
+        {
+            public IMapper Mapper { get; set; }
+
+            public ISession Session { get; set; }
         }
     }
 }

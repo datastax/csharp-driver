@@ -23,6 +23,7 @@ namespace Cassandra.Tests.Mapping
             mapper.Delete<Song>(Cql.New("WHERE id = ?", Guid.NewGuid()));
             Assert.AreEqual("DELETE FROM Song WHERE id = ?", query);
         }
+
         [Test]
         public void Delete_Poco_Generates_Test()
         {

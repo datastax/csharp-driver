@@ -62,12 +62,12 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         /// Checks that while retrieving all the following pages it will get the full original list (unique ids).
         /// </summary>
         [Test]
-        public void ExecutePaged_Fetches_Following_Pages()
+        public async Task ExecutePaged_Fetches_Following_Pages()
         {
             const int pageSize = 5;
             var table = GetTable();
             var fullList = new HashSet<Guid>();
-            var page = table.SetPageSize(pageSize).ExecutePaged();
+            var page = await table.SetPageSize(pageSize).ExecutePagedAsync().ConfigureAwait(false);
             Assert.AreEqual(pageSize, page.Count);
             foreach (var s in page)
             {

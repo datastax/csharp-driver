@@ -87,8 +87,7 @@ namespace Cassandra.Data.Linq
         private AppliedInfo<TEntity> ExecuteWithProfile(string executionProfile)
         {
             var queryAbortTimeout = GetTable().GetSession().Cluster.Configuration.ClientOptions.QueryAbortTimeout;
-            var task = ExecuteWithProfileAsync(executionProfile);
-            return TaskHelper.WaitToComplete(task, queryAbortTimeout);
+            return TaskHelper.WaitToComplete(ExecuteWithProfileAsync(executionProfile), queryAbortTimeout);
         }
 
         public new CqlConditionalCommand<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)
