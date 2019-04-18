@@ -44,6 +44,11 @@ namespace Cassandra.Data.Linq
 
         protected override Task<RowSet> InternalExecuteAsync()
         {
+            return InternalExecuteAsync(null);
+        }
+        
+        protected override Task<RowSet> InternalExecuteAsync(string executionProfile)
+        {
             if (_batchScript.Length == 0)
             {
                 return TaskHelper.FromException<RowSet>(new RequestInvalidException("The Batch must contain queries to execute"));
@@ -51,7 +56,7 @@ namespace Cassandra.Data.Linq
             string cqlQuery = GetCql();
             var stmt = new SimpleStatement(cqlQuery);
             this.CopyQueryPropertiesTo(stmt);
-            return _session.ExecuteAsync(stmt);
+            return ExecuteStatementAsync(stmt, executionProfile);
         }
 
         private string GetCql()

@@ -42,8 +42,13 @@ namespace Cassandra.Data.Linq
             }
             _batchScript.Add(cqlCommand);
         }
-
+        
         protected override Task<RowSet> InternalExecuteAsync()
+        {
+            return InternalExecuteAsync(null);
+        }
+
+        protected override Task<RowSet> InternalExecuteAsync(string executionProfile)
         {
             if (_batchScript.IsEmpty)
             {
@@ -51,8 +56,7 @@ namespace Cassandra.Data.Linq
             }
             _batchScript.SetBatchType(_batchType);
             this.CopyQueryPropertiesTo(_batchScript);
-            return _session.ExecuteAsync(_batchScript);
-
+            return ExecuteStatementAsync(_batchScript, executionProfile);
         }
 
         public override string ToString()
