@@ -175,7 +175,7 @@ namespace Cassandra.Data.Linq
         private IEnumerable<TEntity> ExecuteCqlQuery(string executionProfile)
         {
             var queryAbortTimeout = GetTable().GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
-            var task = ExecuteAsync(executionProfile);
+            var task = ExecuteCqlQueryAsync(executionProfile);
             return TaskHelper.WaitToComplete(task, queryAbortTimeout);
         }
         

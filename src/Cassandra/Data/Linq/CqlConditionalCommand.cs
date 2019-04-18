@@ -87,7 +87,7 @@ namespace Cassandra.Data.Linq
         private AppliedInfo<TEntity> ExecuteWithProfile(string executionProfile)
         {
             var queryAbortTimeout = GetTable().GetSession().Cluster.Configuration.ClientOptions.QueryAbortTimeout;
-            var task = ExecuteAsync(executionProfile);
+            var task = ExecuteWithProfileAsync(executionProfile);
             return TaskHelper.WaitToComplete(task, queryAbortTimeout);
         }
 
