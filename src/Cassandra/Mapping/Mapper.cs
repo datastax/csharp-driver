@@ -618,14 +618,24 @@ namespace Cassandra.Mapping
         /// <inheritdoc />
         public void Insert<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null)
         {
-            Insert(poco, null, insertNulls, ttl, queryOptions);
+            InsertWithProfile(poco, null, insertNulls, ttl, queryOptions);
         }
 
         /// <inheritdoc />
         public void Insert<T>(T poco, string executionProfile, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null)
         {
+            if (executionProfile == null)
+            {
+                throw new ArgumentNullException(nameof(executionProfile));
+            }
+
+            InsertWithProfile(poco, executionProfile, insertNulls, ttl, queryOptions);
+        }
+
+        private void InsertWithProfile<T>(T poco, string executionProfile, bool insertNulls, int? ttl, CqlQueryOptions queryOptions)
+        {
             //Wait async method to be completed or throw
-            TaskHelper.WaitToComplete(InsertAsync(poco, executionProfile, insertNulls, ttl, queryOptions), _queryAbortTimeout);
+            TaskHelper.WaitToComplete(InsertWithProfileAsync(poco, executionProfile, insertNulls, ttl, queryOptions), _queryAbortTimeout);
         }
 
         /// <inheritdoc />

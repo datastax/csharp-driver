@@ -123,14 +123,14 @@ namespace Cassandra.Data.Linq
         /// <summary>
         /// Asynchronously executes the query with the provided execution profile and returns a task of a page of results
         /// </summary>
-        public async Task<IPage<TEntity>> ExecutePagedAsync(string executionProfile)
+        public Task<IPage<TEntity>> ExecutePagedAsync(string executionProfile)
         {
             if (executionProfile == null)
             {
                 throw new ArgumentNullException(nameof(executionProfile));
             }
 
-            return await ExecutePagedWithProfileAsync(executionProfile);
+            return ExecutePagedWithProfileAsync(executionProfile);
         }
 
         /// <summary>
