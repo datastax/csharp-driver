@@ -23,7 +23,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-
+using Cassandra.Connections;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Requests;
 using Cassandra.Responses;

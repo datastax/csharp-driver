@@ -23,16 +23,14 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-
 using Cassandra.Compression;
 using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
-
 using Microsoft.IO;
 
-namespace Cassandra
+namespace Cassandra.Connections
 {
     /// <inheritdoc />
     internal class Connection : IConnection
@@ -82,7 +80,7 @@ namespace Cassandra
         private byte _frameHeaderSize;
         private MemoryStream _readStream;
         private FrameHeader _receivingHeader;
-        private int _writeState = WriteStateInit;
+        private int _writeState = Connection.WriteStateInit;
         private int _inFlight;
 
         /// <summary>
@@ -284,7 +282,7 @@ namespace Cassandra
         internal void CancelPending(Exception ex, SocketError? socketError = null)
         {
             _isCanceled = true;
-            var wasClosed = Interlocked.Exchange(ref _writeState, WriteStateClosed) == WriteStateClosed;
+            var wasClosed = Interlocked.Exchange(ref _writeState, Connection.WriteStateClosed) == Connection.WriteStateClosed;
             if (!wasClosed)
             {
                 if (Closing != null)
@@ -292,12 +290,12 @@ namespace Cassandra
                     Closing(this);
                 }
 
-                Logger.Info("Cancelling in Connection {0}, {1} pending operations and write queue {2}", Address,
+                Connection.Logger.Info("Cancelling in Connection {0}, {1} pending operations and write queue {2}", Address,
                     InFlight, _writeQueue.Count);
 
                 if (socketError != null)
                 {
-                    Logger.Verbose("The socket status received was {0}", socketError.Value);
+                    Connection.Logger.Verbose("The socket status received was {0}", socketError.Value);
                 }
             }
             if (ex == null || ex is ObjectDisposedException)
@@ -358,7 +356,7 @@ namespace Cassandra
         {
             if (!(response is EventResponse))
             {
-                Logger.Error("Unexpected response type for event: " + response.GetType().Name);
+                Connection.Logger.Error("Unexpected response type for event: " + response.GetType().Name);
                 return;
             }
             if (CassandraEventResponse != null)
@@ -378,7 +376,7 @@ namespace Cassandra
                 if (!IsDisposed)
                 {
                     //If it was not manually disposed
-                    Logger.Warning("Can not issue an heartbeat request as connection is closed");
+                    Connection.Logger.Warning("Can not issue an heartbeat request as connection is closed");
                     if (OnIdleRequestException != null)
                     {
                         OnIdleRequestException(new SocketException((int)SocketError.NotConnected));
@@ -386,7 +384,7 @@ namespace Cassandra
                 }
                 return;
             }
-            Logger.Verbose("Connection idling, issuing a Request to prevent idle disconnects");
+            Connection.Logger.Verbose("Connection idling, issuing a Request to prevent idle disconnects");
             var request = new OptionsRequest();
             Send(request, (ex, response) =>
             {
@@ -396,7 +394,7 @@ namespace Cassandra
                     //There is a valid response but we don't care about the response
                     return;
                 }
-                Logger.Warning("Received heartbeat request exception " + ex.ToString());
+                Connection.Logger.Warning("Received heartbeat request exception " + ex.ToString());
                 if (ex is SocketException && OnIdleRequestException != null)
                 {
                     OnIdleRequestException(ex);
@@ -542,7 +540,7 @@ namespace Cassandra
                         // There aren't enough bytes to read the header
                         break;
                     }
-                    Logger.Verbose("Received #{0} from {1}", header.StreamId, Address);
+                    Connection.Logger.Verbose("Received #{0} from {1}", header.StreamId, Address);
                     remainingBodyLength = header.BodyLength;
                 }
                 else
@@ -556,7 +554,7 @@ namespace Cassandra
                     StoreReadState(header, stream, buffer, offset, length, operationCallbacks.Count > 0);
                     break;
                 }
-                stream = stream ?? Configuration.BufferPool.GetStream(StreamReadTag);
+                stream = stream ?? Configuration.BufferPool.GetStream(Connection.StreamReadTag);
                 var state = header.Opcode != EventResponse.OpCode
                     ? RemoveFromPending(header.StreamId)
                     : new OperationState(EventHandler);
@@ -567,7 +565,7 @@ namespace Cassandra
                 operationCallbacks.AddLast(CreateResponseAction(header, callback));
                 offset += remainingBodyLength;
             }
-            return InvokeReadCallbacks(stream, operationCallbacks);
+            return Connection.InvokeReadCallbacks(stream, operationCallbacks);
         }
 
         /// <summary>
@@ -621,7 +619,7 @@ namespace Cassandra
             else
             {
                 // Allocate a new stream for store in it
-                nextMessageStream = Configuration.BufferPool.GetStream(StreamReadTag);
+                nextMessageStream = Configuration.BufferPool.GetStream(Connection.StreamReadTag);
             }
             nextMessageStream.Write(buffer, offset, length - offset);
             Volatile.Write(ref _readStream, nextMessageStream);
@@ -744,13 +742,13 @@ namespace Cassandra
 
         private void RunWriteQueue()
         {
-            var previousState = Interlocked.CompareExchange(ref _writeState, WriteStateRunning, WriteStateInit);
-            if (previousState == WriteStateRunning)
+            var previousState = Interlocked.CompareExchange(ref _writeState, Connection.WriteStateRunning, Connection.WriteStateInit);
+            if (previousState == Connection.WriteStateRunning)
             {
                 // There is another thread writing to the wire
                 return;
             }
-            if (previousState == WriteStateClosed)
+            if (previousState == Connection.WriteStateClosed)
             {
                 // Probably there is an item in the write queue, we should cancel pending
                 // Avoid canceling in the user thread
@@ -766,7 +764,7 @@ namespace Cassandra
             //Dequeue all items until threshold is passed
             long totalLength = 0;
             RecyclableMemoryStream stream = null;
-            while (totalLength < CoalescingThreshold)
+            while (totalLength < Connection.CoalescingThreshold)
             {
                 OperationState state;
                 if (!_writeQueue.TryDequeue(out state))
@@ -780,10 +778,10 @@ namespace Cassandra
                     //Queue it up for later.
                     _writeQueue.Enqueue(state);
                     //When receiving the next complete message, we can process it.
-                    Logger.Info("Enqueued, no streamIds available. If this message is recurrent consider configuring more connections per host or lower the pressure");
+                    Connection.Logger.Info("Enqueued, no streamIds available. If this message is recurrent consider configuring more connections per host or lower the pressure");
                     break;
                 }
-                Logger.Verbose("Sending #{0} for {1} to {2}", streamId, state.Request.GetType().Name, Address);
+                Connection.Logger.Verbose("Sending #{0} for {1} to {2}", streamId, state.Request.GetType().Name, Address);
                 if (_isCanceled)
                 {
                     state.InvokeCallback(new SocketException((int)SocketError.NotConnected));
@@ -794,7 +792,7 @@ namespace Cassandra
                 try
                 {
                     //lazy initialize the stream
-                    stream = stream ?? (RecyclableMemoryStream)Configuration.BufferPool.GetStream(StreamWriteTag);
+                    stream = stream ?? (RecyclableMemoryStream)Configuration.BufferPool.GetStream(Connection.StreamWriteTag);
                     frameLength = state.Request.WriteFrame(streamId, stream, _serializer);
                     if (state.TimeoutMillis > 0)
                     {
@@ -805,7 +803,7 @@ namespace Cassandra
                 catch (Exception ex)
                 {
                     //There was an error while serializing or begin sending
-                    Logger.Error(ex);
+                    Connection.Logger.Error(ex);
                     //The request was not written, clear it from pending operations
                     RemoveFromPending(streamId);
                     //Callback with the Exception
@@ -819,7 +817,7 @@ namespace Cassandra
             if (totalLength == 0L)
             {
                 // Nothing to write, set the queue as not running
-                Interlocked.CompareExchange(ref _writeState, WriteStateInit, WriteStateRunning);
+                Interlocked.CompareExchange(ref _writeState, Connection.WriteStateInit, Connection.WriteStateRunning);
                 // Until now, we were preventing other threads to running the queue.
                 // Check if we can now write:
                 // a read could have finished (freeing streamIds) or new request could have been added to the queue
@@ -885,7 +883,7 @@ namespace Cassandra
                     continue;
                 }
                 // CAS operation won, this is the only thread changing the keyspace
-                Logger.Info("Connection to host {0} switching to keyspace {1}", Address, value);
+                Connection.Logger.Info("Connection to host {0} switching to keyspace {1}", Address, value);
                 var request = new QueryRequest(_serializer.ProtocolVersion, string.Format("USE \"{0}\"", value), false, QueryProtocolOptions.Default);
                 Exception sendException = null;
                 try
@@ -952,7 +950,7 @@ namespace Cassandra
                     //Don't mind
                 }
             }
-            Interlocked.CompareExchange(ref _writeState, WriteStateInit, WriteStateRunning);
+            Interlocked.CompareExchange(ref _writeState, Connection.WriteStateInit, Connection.WriteStateRunning);
             //Send the next request, if exists
             //It will use a new thread
             RunWriteQueue();

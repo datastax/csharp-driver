@@ -17,6 +17,7 @@
 using System.Collections.Generic;
 using System.Text;
 using Cassandra.Collections;
+using Cassandra.Connections;
 using Cassandra.SessionManagement;
 
 namespace Cassandra

@@ -16,7 +16,8 @@
 
 using System;
 using System.Collections.Generic;
-
+using System.Linq;
+using Cassandra.Connections;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -103,6 +104,16 @@ namespace Cassandra
         internal IStartupOptionsFactory StartupOptionsFactory { get; }
 
         internal ISessionFactoryBuilder<IInternalCluster, IInternalSession> SessionFactoryBuilder { get; }
+        
+        internal IRequestHandlerFactory RequestHandlerFactory { get; }
+
+        internal IHostConnectionPoolFactory HostConnectionPoolFactory { get; }
+
+        internal IRequestExecutionFactory RequestExecutionFactory { get; }
+
+        internal IConnectionFactory ConnectionFactory { get; }
+        
+        internal IControlConnectionFactory ControlConnectionFactory { get; }
 
         internal Configuration() :
             this(Policies.DefaultPolicies,
@@ -133,7 +144,12 @@ namespace Cassandra
                                QueryOptions queryOptions,
                                IAddressTranslator addressTranslator,
                                IStartupOptionsFactory startupOptionsFactory,
-                               ISessionFactoryBuilder<IInternalCluster, IInternalSession> sessionFactoryBuilder)
+                               ISessionFactoryBuilder<IInternalCluster, IInternalSession> sessionFactoryBuilder,
+                               IRequestHandlerFactory requestHandlerFactory = null,
+                               IHostConnectionPoolFactory hostConnectionPoolFactory = null,
+                               IRequestExecutionFactory requestExecutionFactory = null,
+                               IConnectionFactory connectionFactory = null,
+                               IControlConnectionFactory controlConnectionFactory = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -146,6 +162,13 @@ namespace Cassandra
             AuthInfoProvider = authInfoProvider;
             StartupOptionsFactory = startupOptionsFactory;
             SessionFactoryBuilder = sessionFactoryBuilder;
+
+            RequestHandlerFactory = requestHandlerFactory ?? new RequestHandlerFactory();
+            HostConnectionPoolFactory = hostConnectionPoolFactory ?? new HostConnectionPoolFactory();
+            RequestExecutionFactory = requestExecutionFactory ?? new RequestExecutionFactory();
+            ConnectionFactory = connectionFactory ?? new ConnectionFactory();
+            ControlConnectionFactory = controlConnectionFactory ?? new ControlConnectionFactory();
+
             // Create the buffer pool with 16KB for small buffers and 256Kb for large buffers.
             // The pool does not eagerly reserve the buffers, so it doesn't take unnecessary memory
             // to create the instance.
