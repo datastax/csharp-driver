@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
 using Cassandra.Connections;
+using Cassandra.ExecutionProfiles;
 using Cassandra.Serialization;
 
 namespace Cassandra.Requests
@@ -28,7 +29,7 @@ namespace Cassandra.Requests
     /// </summary>
     internal interface IRequestHandler
     {
-        Policies Policies { get; }
+        IRequestOptions RequestOptions { get; }
 
         IExtendedRetryPolicy RetryPolicy { get; }
 
@@ -92,6 +93,6 @@ namespace Cassandra.Requests
         /// <summary>
         /// Builds the Request to send to a cassandra node based on the statement type
         /// </summary>
-        IRequest BuildRequest(IStatement statement, Serializer serializer, Configuration config);
+        IRequest BuildRequest();
     }
 }

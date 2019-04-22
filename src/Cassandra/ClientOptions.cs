@@ -61,21 +61,5 @@ namespace Cassandra
             _queryAbortTimeout = queryAbortTimeout;
             _defaultKeyspace = defaultKeyspace;
         }
-
-        /// <summary>
-        /// Returns the timeout in milliseconds based on the amount of queries.
-        /// </summary>
-        internal int GetQueryAbortTimeout(int amountOfQueries)
-        {
-            if (amountOfQueries <= 0)
-            {
-                throw new ArgumentException("The amount of queries must be a positive number");
-            }
-            if (_queryAbortTimeout == Timeout.Infinite)
-            {
-                return _queryAbortTimeout;
-            }
-            return _queryAbortTimeout*amountOfQueries;
-        }
     }
 }

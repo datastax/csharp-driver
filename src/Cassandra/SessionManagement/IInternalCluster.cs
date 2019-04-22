@@ -15,7 +15,11 @@
 //
 
 using System.Collections.Concurrent;
+using System.Threading.Tasks;
 using Cassandra.Connections;
+using Cassandra.ExecutionProfiles;
+using Cassandra.Requests;
+using Cassandra.Serialization;
 
 namespace Cassandra.SessionManagement
 {
@@ -23,7 +27,7 @@ namespace Cassandra.SessionManagement
     internal interface IInternalCluster : ICluster
     {
         bool AnyOpenConnections(Host host);
-        
+
         /// <summary>
         /// Gets the control connection used by the cluster
         /// </summary>
@@ -33,5 +37,13 @@ namespace Cassandra.SessionManagement
         /// Gets the the prepared statements cache
         /// </summary>
         ConcurrentDictionary<byte[], PreparedStatement> PreparedQueries { get; }
+
+        /// <summary>
+        /// Executes the prepare request on the first host selected by the load balancing policy.
+        /// When <see cref="QueryOptions.IsPrepareOnAllHosts"/> is enabled, it prepares on the rest of the hosts in
+        /// parallel.
+        /// In case the statement was already in the prepared statements cache, logs an warning but prepares it anyway.
+        /// </summary>
+        Task<PreparedStatement> Prepare(IInternalSession session, Serializer serializer, InternalPrepareRequest request);
     }
 }

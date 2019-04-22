@@ -43,7 +43,8 @@ namespace Cassandra.Tests
                     It.IsAny<IRequest>()))
                 .Returns(Mock.Of<IRequestExecution>());
 
-            return new Configuration(new Policies(lbp, null, null),
+            return new Configuration(
+                new Policies(lbp, null, null),
                 new ProtocolOptions(),
                 null,
                 new SocketOptions(),
@@ -54,6 +55,7 @@ namespace Cassandra.Tests
                 new DefaultAddressTranslator(),
                 Mock.Of<IStartupOptionsFactory>(),
                 new SessionFactoryBuilder(),
+                new Dictionary<string, IExecutionProfile>(),
                 requestExecutionFactory: requestExecutionFactory);
         }
 

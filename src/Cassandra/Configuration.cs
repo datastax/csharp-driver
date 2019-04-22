@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Connections;
+using Cassandra.ExecutionProfiles;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -35,6 +36,8 @@ namespace Cassandra
     /// </summary>
     public class Configuration
     {
+        internal const string DefaultExecutionProfileName = "default";
+
         /// <summary>
         ///  Gets the policies set for the cluster.
         /// </summary>
@@ -85,6 +88,13 @@ namespace Cassandra
         /// </summary>
         /// <returns>the address translator in use.</returns>
         public IAddressTranslator AddressTranslator { get; private set; }
+        
+        /// <summary>
+        /// Gets a read only key value map of execution profiles that were configured with
+        /// <see cref="Builder.WithExecutionProfiles"/>. The keys are execution profile names and the values
+        /// are <see cref="IExecutionProfile"/> instances.
+        /// </summary>
+        public IReadOnlyDictionary<string, IExecutionProfile> ExecutionProfiles { get; }
 
         /// <summary>
         /// Shared reusable timer
@@ -115,6 +125,16 @@ namespace Cassandra
         
         internal IControlConnectionFactory ControlConnectionFactory { get; }
 
+        internal IPrepareHandlerFactory PrepareHandlerFactory { get; }
+        
+        /// <summary>
+        /// The key is the execution profile name and the value is the IRequestOptions instance
+        /// built from the execution profile with that key.
+        /// </summary>
+        internal IReadOnlyDictionary<string, IRequestOptions> RequestOptions { get; }
+
+        internal IRequestOptions DefaultRequestOptions => RequestOptions[Configuration.DefaultExecutionProfileName];
+
         internal Configuration() :
             this(Policies.DefaultPolicies,
                  new ProtocolOptions(),
@@ -126,7 +146,8 @@ namespace Cassandra
                  new QueryOptions(),
                  new DefaultAddressTranslator(),
                  new StartupOptionsFactory(),
-                 new SessionFactoryBuilder())
+                 new SessionFactoryBuilder(),
+                 new Dictionary<string, IExecutionProfile>())
         {
         }
 
@@ -145,11 +166,13 @@ namespace Cassandra
                                IAddressTranslator addressTranslator,
                                IStartupOptionsFactory startupOptionsFactory,
                                ISessionFactoryBuilder<IInternalCluster, IInternalSession> sessionFactoryBuilder,
+                               IReadOnlyDictionary<string, IExecutionProfile> executionProfiles,
                                IRequestHandlerFactory requestHandlerFactory = null,
                                IHostConnectionPoolFactory hostConnectionPoolFactory = null,
                                IRequestExecutionFactory requestExecutionFactory = null,
                                IConnectionFactory connectionFactory = null,
-                               IControlConnectionFactory controlConnectionFactory = null)
+                               IControlConnectionFactory controlConnectionFactory = null,
+                               IPrepareHandlerFactory prepareHandlerFactory = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -168,12 +191,54 @@ namespace Cassandra
             RequestExecutionFactory = requestExecutionFactory ?? new RequestExecutionFactory();
             ConnectionFactory = connectionFactory ?? new ConnectionFactory();
             ControlConnectionFactory = controlConnectionFactory ?? new ControlConnectionFactory();
+            PrepareHandlerFactory = prepareHandlerFactory ?? new PrepareHandlerFactory();
+            
+            RequestOptions = BuildRequestOptionsDictionary(executionProfiles, policies, socketOptions, clientOptions, queryOptions);
+            ExecutionProfiles = BuildExecutionProfilesDictionary(executionProfiles, RequestOptions);
 
             // Create the buffer pool with 16KB for small buffers and 256Kb for large buffers.
             // The pool does not eagerly reserve the buffers, so it doesn't take unnecessary memory
             // to create the instance.
             BufferPool = new RecyclableMemoryStreamManager(16 * 1024, 256 * 1024, ProtocolOptions.MaximumFrameLength);
             Timer = new HashedWheelTimer();
+        }
+
+        /// <summary>
+        /// Converts execution profile instances to RequestOptions which handle the fallback logic
+        /// therefore guaranteeing that the settings are non null.
+        /// </summary>
+        private IReadOnlyDictionary<string, IRequestOptions> BuildRequestOptionsDictionary(
+            IReadOnlyDictionary<string, IExecutionProfile> executionProfiles,
+            Policies policies,
+            SocketOptions socketOptions,
+            ClientOptions clientOptions,
+            QueryOptions queryOptions)
+        {
+            executionProfiles.TryGetValue(Configuration.DefaultExecutionProfileName, out var defaultProfile);
+            var requestOptions =
+                executionProfiles
+                    .Where(kvp => kvp.Key != Configuration.DefaultExecutionProfileName)
+                    .ToDictionary<KeyValuePair<string, IExecutionProfile>, string, IRequestOptions>(
+                        kvp => kvp.Key,
+                        kvp => new RequestOptions(kvp.Value, defaultProfile, policies, socketOptions, queryOptions, clientOptions));
+
+            requestOptions.Add(
+                Configuration.DefaultExecutionProfileName, 
+                new RequestOptions(null, defaultProfile, policies, socketOptions, queryOptions, clientOptions));
+            return requestOptions;
+        }
+
+        /// <summary>
+        /// Clones (shallow) the provided execution profile dictionary and add the default profile if not there yet.
+        /// </summary>
+        private IReadOnlyDictionary<string, IExecutionProfile> BuildExecutionProfilesDictionary(
+            IReadOnlyDictionary<string, IExecutionProfile> executionProfiles,
+            IReadOnlyDictionary<string, IRequestOptions> requestOptions)
+        {
+            var executionProfilesDictionary = executionProfiles.ToDictionary(profileKvp => profileKvp.Key, profileKvp => profileKvp.Value);
+            var defaultOptions = requestOptions[Configuration.DefaultExecutionProfileName];
+            executionProfilesDictionary[Configuration.DefaultExecutionProfileName] = new ExecutionProfile(defaultOptions);
+            return executionProfilesDictionary;
         }
 
         /// <summary>

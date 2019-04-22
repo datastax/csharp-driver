@@ -19,7 +19,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.Responses;
@@ -155,11 +154,12 @@ namespace Cassandra.Requests
         /// </summary>
         private void Send(IRequest request, Action<Exception, Response> callback)
         {
-            var timeoutMillis = Timeout.Infinite;
-            if (_parent.Statement != null)
+            var timeoutMillis = _parent.RequestOptions.ReadTimeoutMillis;
+            if (_parent.Statement != null && _parent.Statement.ReadTimeoutMillis > 0)
             {
                 timeoutMillis = _parent.Statement.ReadTimeoutMillis;
             }
+
             _operation = _connection.Send(request, callback, timeoutMillis);
         }
 
@@ -277,12 +277,13 @@ namespace Cassandra.Requests
             {
                 rs.Info.SetAchievedConsistency(request.Consistency);
             }
-            SetAutoPage(rs, _session, _parent.Statement);
+            SetAutoPage(rs, _session);
             return rs;
         }
 
-        private void SetAutoPage(RowSet rs, IInternalSession session, IStatement statement)
+        private void SetAutoPage(RowSet rs, IInternalSession session)
         {
+            var statement = _parent.Statement;
             rs.AutoPage = statement != null && statement.AutoPage;
             if (rs.AutoPage && rs.PagingState != null && _request is IQueryRequest)
             {
@@ -295,11 +296,10 @@ namespace Cassandra.Requests
                         return Task.FromResult(RowSet.Empty());
                     }
 
-                    var request = (IQueryRequest)_parent.BuildRequest(statement, _parent.Serializer,
-                        session.Cluster.Configuration);
+                    var request = (IQueryRequest)_parent.BuildRequest();
                     request.PagingState = pagingState;
-                    return _session.Configuration.RequestHandlerFactory.Create(session, _parent.Serializer, request, statement).SendAsync();
-                }, _session.Cluster.Configuration.ClientOptions.QueryAbortTimeout);
+                    return _session.Cluster.Configuration.RequestHandlerFactory.Create(session, _parent.Serializer, request, statement, _parent.RequestOptions).SendAsync();
+                }, _parent.RequestOptions.QueryAbortTimeout);
             }
         }
 
@@ -423,7 +423,7 @@ namespace Cassandra.Requests
             {
                 throw new DriverInternalError("Expected Bound or batch statement");
             }
-            var request = new PrepareRequest(boundStatement.PreparedStatement.Cql);
+            var request = new InternalPrepareRequest(boundStatement.PreparedStatement.Cql);
             if (boundStatement.PreparedStatement.Keyspace != null && _session.Keyspace != boundStatement.PreparedStatement.Keyspace)
             {
                 RequestExecution.Logger.Warning("The statement was prepared using another keyspace, changing the keyspace temporarily to" +

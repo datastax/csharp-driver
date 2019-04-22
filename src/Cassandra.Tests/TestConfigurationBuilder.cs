@@ -45,6 +45,8 @@ namespace Cassandra.Tests
 
         public ISessionFactoryBuilder<IInternalCluster, IInternalSession> SessionFactoryBuilder { get; set; } = new SessionFactoryBuilder();
 
+        public IReadOnlyDictionary<string, IExecutionProfile> ExecutionProfiles { get; set; } = new Dictionary<string, IExecutionProfile>();
+
         public IRequestHandlerFactory RequestHandlerFactory { get; set; } = new RequestHandlerFactory();
 
         public IHostConnectionPoolFactory HostConnectionPoolFactory { get; set; } = new HostConnectionPoolFactory();
@@ -52,6 +54,10 @@ namespace Cassandra.Tests
         public IRequestExecutionFactory RequestExecutionFactory { get; set; } = new RequestExecutionFactory();
 
         public IConnectionFactory ConnectionFactory { get; set; } = new ConnectionFactory();
+
+        public IControlConnectionFactory ControlConnectionFactory { get; set; } = new ControlConnectionFactory();
+
+        public IPrepareHandlerFactory PrepareHandlerFactory { get; set; } = new PrepareHandlerFactory();
 
         public Configuration Build()
         {
@@ -67,10 +73,13 @@ namespace Cassandra.Tests
                 AddressTranslator,
                 StartupOptionsFactory,
                 SessionFactoryBuilder,
+                ExecutionProfiles,
                 RequestHandlerFactory,
                 HostConnectionPoolFactory,
                 RequestExecutionFactory,
-                ConnectionFactory);
+                ConnectionFactory,
+                ControlConnectionFactory,
+                PrepareHandlerFactory);
         }
     }
 }

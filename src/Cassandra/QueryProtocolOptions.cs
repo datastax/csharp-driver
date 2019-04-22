@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using Cassandra.ExecutionProfiles;
 using Cassandra.Serialization;
 
 namespace Cassandra
@@ -91,15 +92,15 @@ namespace Cassandra
             _timestamp = timestamp;
         }
 
-        internal static QueryProtocolOptions CreateFromQuery(ProtocolVersion protocolVersion, Statement query,
-                                                             QueryOptions queryOptions, Policies policies)
+        internal static QueryProtocolOptions CreateFromQuery(
+            ProtocolVersion protocolVersion, Statement query, IRequestOptions requestOptions)
         {
             if (query == null)
             {
                 return Default;
             }
-            var consistency = query.ConsistencyLevel ?? queryOptions.GetConsistencyLevel();
-            var pageSize = query.PageSize != 0 ? query.PageSize : queryOptions.GetPageSize();
+            var consistency = query.ConsistencyLevel ?? requestOptions.ConsistencyLevel;
+            var pageSize = query.PageSize != 0 ? query.PageSize : requestOptions.PageSize;
             long? timestamp = null;
             if (query.Timestamp != null)
             {
@@ -107,7 +108,7 @@ namespace Cassandra
             }
             else if (protocolVersion.SupportsTimestamp())
             {
-                timestamp = policies.TimestampGenerator.Next();
+                timestamp = requestOptions.TimestampGenerator.Next();
                 if (timestamp == long.MinValue)
                 {
                     timestamp = null;
@@ -120,7 +121,7 @@ namespace Cassandra
                 query.SkipMetadata,
                 pageSize,
                 query.PagingState,
-                queryOptions.GetSerialConsistencyLevelOrDefault(query),
+                requestOptions.GetSerialConsistencyLevelOrDefault(query),
                 timestamp);
         }
 

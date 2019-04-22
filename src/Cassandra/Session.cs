@@ -22,6 +22,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
+using Cassandra.ExecutionProfiles;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -221,7 +222,7 @@ namespace Cassandra
         private async Task Warmup()
         {
             // Load balancing policy was initialized
-            var lbp = Policies.LoadBalancingPolicy;
+            var lbp = Configuration.DefaultRequestOptions.LoadBalancingPolicy;
             var hosts = lbp.NewQueryPlan(Keyspace, null).Where(h => lbp.Distance(h) == HostDistance.Local).ToArray();
             var tasks = new Task[hosts.Length];
             for (var i = 0; i < hosts.Length; i++)
@@ -252,7 +253,7 @@ namespace Cassandra
         public RowSet EndExecute(IAsyncResult ar)
         {
             var task = (Task<RowSet>)ar;
-            TaskHelper.WaitToComplete(task, Configuration.ClientOptions.QueryAbortTimeout);
+            TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
             return task.Result;
         }
 
@@ -260,7 +261,15 @@ namespace Cassandra
         public PreparedStatement EndPrepare(IAsyncResult ar)
         {
             var task = (Task<PreparedStatement>)ar;
-            TaskHelper.WaitToComplete(task, Configuration.ClientOptions.QueryAbortTimeout);
+            TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
+            return task.Result;
+        }
+
+        /// <inheritdoc />
+        public RowSet Execute(IStatement statement, string executionProfileName)
+        {
+            var task = ExecuteAsync(statement, executionProfileName);
+            TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
             return task.Result;
         }
 
@@ -268,33 +277,45 @@ namespace Cassandra
         public RowSet Execute(IStatement statement)
         {
             var task = ExecuteAsync(statement);
-            TaskHelper.WaitToComplete(task, Configuration.ClientOptions.QueryAbortTimeout);
+            TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
             return task.Result;
         }
 
         /// <inheritdoc />
         public RowSet Execute(string cqlQuery)
         {
-            return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(Configuration.QueryOptions.GetConsistencyLevel()).SetPageSize(Configuration.QueryOptions.GetPageSize()));
+            return Execute(GetDefaultStatement(cqlQuery));
+        }
+
+        /// <inheritdoc />
+        public RowSet Execute(string cqlQuery, string executionProfileName)
+        {
+            return Execute(GetDefaultStatement(cqlQuery), executionProfileName);
         }
 
         /// <inheritdoc />
         public RowSet Execute(string cqlQuery, ConsistencyLevel consistency)
         {
-            return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(consistency).SetPageSize(Configuration.QueryOptions.GetPageSize()));
+            return Execute(GetDefaultStatement(cqlQuery).SetConsistencyLevel(consistency));
         }
 
         /// <inheritdoc />
         public RowSet Execute(string cqlQuery, int pageSize)
         {
-            return Execute(new SimpleStatement(cqlQuery).SetConsistencyLevel(Configuration.QueryOptions.GetConsistencyLevel()).SetPageSize(pageSize));
+            return Execute(GetDefaultStatement(cqlQuery).SetPageSize(pageSize));
         }
 
         /// <inheritdoc />
         public Task<RowSet> ExecuteAsync(IStatement statement)
         {
+            return ExecuteAsync(statement, Configuration.DefaultExecutionProfileName);
+        }
+
+        /// <inheritdoc />
+        public Task<RowSet> ExecuteAsync(IStatement statement, string executionProfileName)
+        {
             return Configuration.RequestHandlerFactory
-                                .Create(this, _serializer, statement)
+                                .Create(this, _serializer, statement, GetRequestOptions(executionProfileName))
                                 .SendAsync();
         }
         
@@ -364,34 +385,37 @@ namespace Cassandra
             pool.CheckHealth(connection);
         }
 
+        /// <inheritdoc />
         public PreparedStatement Prepare(string cqlQuery)
         {
             return Prepare(cqlQuery, null);
         }
-
+        
+        /// <inheritdoc />
         public PreparedStatement Prepare(string cqlQuery, IDictionary<string, byte[]> customPayload)
         {
             var task = PrepareAsync(cqlQuery, customPayload);
-            TaskHelper.WaitToComplete(task, Configuration.ClientOptions.QueryAbortTimeout);
+            TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
             return task.Result;
         }
-
+        
         /// <inheritdoc />
         public Task<PreparedStatement> PrepareAsync(string query)
         {
             return PrepareAsync(query, null);
         }
-
+        
         /// <inheritdoc />
         public async Task<PreparedStatement> PrepareAsync(string query, IDictionary<string, byte[]> customPayload)
         {
-            var request = new PrepareRequest(query)
+            var request = new InternalPrepareRequest(query)
             {
                 Payload = customPayload
             };
-            return await PrepareHandler.Prepare(this, _serializer, request).ConfigureAwait(false);
-        }
 
+            return await _cluster.Prepare(this, _serializer, request).ConfigureAwait(false);
+        }
+        
         public void WaitForSchemaAgreement(RowSet rs)
         {
         }
@@ -399,6 +423,21 @@ namespace Cassandra
         public bool WaitForSchemaAgreement(IPEndPoint hostAddress)
         {
             return false;
+        }
+
+        private IStatement GetDefaultStatement(string cqlQuery)
+        {
+            return new SimpleStatement(cqlQuery);
+        }
+
+        private IRequestOptions GetRequestOptions(string executionProfileName)
+        {
+            if (!Configuration.RequestOptions.TryGetValue(executionProfileName, out var profile))
+            {
+                throw new ArgumentException("The provided execution profile name does not exist. It must be added through the Cluster Builder.");
+            }
+
+            return profile;
         }
     }
 }
