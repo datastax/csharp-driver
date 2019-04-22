@@ -24,11 +24,6 @@ namespace Cassandra.Mapping
         CqlQueryOptions Options { get; }
 
         /// <summary>
-        /// The execution profile to use.
-        /// </summary>
-        string ExecutionProfile { get; }
-
-        /// <summary>
         /// Configures any individual option for this instance.
         /// </summary>
         ICqlBatch WithOptions(Action<CqlQueryOptions> action);
@@ -58,10 +53,5 @@ namespace Cassandra.Mapping
         /// Inserts the specified POCO in Cassandra if not exists.
         /// </summary>
         void InsertIfNotExists<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null);
-        
-        /// <summary>
-        /// Configures the execution profile for this instance.
-        /// </summary>
-        ICqlBatch WithExecutionProfile(string executionProfile);
     }
 }

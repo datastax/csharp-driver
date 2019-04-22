@@ -39,6 +39,16 @@ namespace Cassandra.Mapping
         void Execute(ICqlBatch batch);
 
         /// <summary>
+        /// Executes the batch specified synchronously with the provided execution profile.
+        /// </summary>
+        /// <remarks>
+        /// To set the consistency level, timestamp and other batch options, use
+        /// <see cref="ICqlBatch.WithOptions(System.Action{CqlQueryOptions})"/>. Individual options for each
+        /// query within the batch will be ignored.
+        /// </remarks>
+        void Execute(ICqlBatch batch, string executionProfile);
+
+        /// <summary>
         /// Executes the batch specified asynchronously.
         /// </summary>
         /// <remarks>
@@ -47,6 +57,16 @@ namespace Cassandra.Mapping
         /// query within the batch will be ignored.
         /// </remarks>
         Task ExecuteAsync(ICqlBatch batch);
+
+        /// <summary>
+        /// Executes the batch specified asynchronously with the provided execution profile.
+        /// </summary>
+        /// <remarks>
+        /// To set the consistency level, timestamp and other batch options, use
+        /// <see cref="ICqlBatch.WithOptions(System.Action{CqlQueryOptions})"/>. Individual options for each
+        /// query within the batch will be ignored.
+        /// </remarks>
+        Task ExecuteAsync(ICqlBatch batch, string executionProfile);
 
         /// <summary>
         /// Allows you to convert an argument/bind variable value being used in a CQL statement using the same converters that are being used by the client
@@ -471,6 +491,19 @@ namespace Cassandra.Mapping
         Task<AppliedInfo<T>> ExecuteConditionalAsync<T>(ICqlBatch batch);
 
         /// <summary>
+        /// Executes a batch that contains a Lightweight transaction with the provided execution profile.
+        /// </summary>
+        /// <para>
+        /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
+        /// </para>
+        /// <remarks>
+        /// To set the consistency level, timestamp and other batch options, use
+        /// <see cref="ICqlBatch.WithOptions(System.Action{CqlQueryOptions})"/>. Individual options for each
+        /// query within the batch will be ignored.
+        /// </remarks>
+        Task<AppliedInfo<T>> ExecuteConditionalAsync<T>(ICqlBatch batch, string executionProfile);
+
+        /// <summary>
         /// Executes a batch that contains a Lightweight transaction. 
         /// </summary>
         /// <para>
@@ -482,5 +515,18 @@ namespace Cassandra.Mapping
         /// query within the batch will be ignored.
         /// </remarks>
         AppliedInfo<T> ExecuteConditional<T>(ICqlBatch batch);
+        
+        /// <summary>
+        /// Executes a batch that contains a Lightweight transaction. 
+        /// </summary>
+        /// <para>
+        /// Returns information whether it was applied or not. If it was not applied, it returns details of the existing values.
+        /// </para>
+        /// <remarks>
+        /// To set the consistency level, timestamp and other batch options, use
+        /// <see cref="ICqlBatch.WithOptions(System.Action{CqlQueryOptions})"/>. Individual options for each
+        /// query within the batch will be ignored.
+        /// </remarks>
+        AppliedInfo<T> ExecuteConditional<T>(ICqlBatch batch, string executionProfile);
     }
 }

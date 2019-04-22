@@ -438,18 +438,41 @@ namespace Cassandra.Mapping
         }
 
         /// <inheritdoc />
-        public async Task ExecuteAsync(ICqlBatch batch)
+        public void Execute(ICqlBatch batch, string executionProfile)
+        {
+            //Wait async method to be completed or throw
+            TaskHelper.WaitToComplete(ExecuteAsync(batch, executionProfile), _queryAbortTimeout);
+        }
+
+        /// <inheritdoc />
+        public Task ExecuteAsync(ICqlBatch batch)
+        {
+            return ExecuteWithProfileAsync(batch, null);
+        }
+
+        /// <inheritdoc />
+        public Task ExecuteAsync(ICqlBatch batch, string executionProfile)
+        {
+            if (executionProfile == null)
+            {
+                throw new ArgumentNullException(nameof(executionProfile));
+            }
+
+            return ExecuteWithProfileAsync(batch, executionProfile);
+        }
+
+        private async Task ExecuteWithProfileAsync(ICqlBatch batch, string executionProfile)
         {
             if (batch == null)
             {
-                throw new ArgumentNullException("batch");
+                throw new ArgumentNullException(nameof(batch));
             }
 
             var batchStatement = await _statementFactory
-                .GetBatchStatementAsync(_session, batch)
-                .ConfigureAwait(false);
+                                       .GetBatchStatementAsync(_session, batch)
+                                       .ConfigureAwait(false);
 
-            await ExecuteStatementAsync(batchStatement, batch.ExecutionProfile).ConfigureAwait(false);
+            await ExecuteStatementAsync(batchStatement, executionProfile).ConfigureAwait(false);
         }
 
         public TDatabase ConvertCqlArgument<TValue, TDatabase>(TValue value)
@@ -752,16 +775,36 @@ namespace Cassandra.Mapping
         }
 
         /// <inheritdoc />
-        public async Task<AppliedInfo<T>> ExecuteConditionalAsync<T>(ICqlBatch batch)
+        public Task<AppliedInfo<T>> ExecuteConditionalAsync<T>(ICqlBatch batch)
         {
-            if (batch == null) throw new ArgumentNullException("batch");
-            var batchStatement =  await _statementFactory
-                .GetBatchStatementAsync(_session, batch)
-                .ConfigureAwait(false);
+            return ExecuteConditionalWithProfileAsync<T>(batch, null);
+        }
+
+        /// <inheritdoc />
+        public Task<AppliedInfo<T>> ExecuteConditionalAsync<T>(ICqlBatch batch, string executionProfile)
+        {
+            if (executionProfile == null)
+            {
+                throw new ArgumentNullException(nameof(executionProfile));
+            }
+
+            return ExecuteConditionalWithProfileAsync<T>(batch, executionProfile);
+        }
+
+        private async Task<AppliedInfo<T>> ExecuteConditionalWithProfileAsync<T>(ICqlBatch batch, string executionProfile)
+        {
+            if (batch == null)
+            {
+                throw new ArgumentNullException(nameof(batch));
+            }
+
+            var batchStatement = await _statementFactory
+                                       .GetBatchStatementAsync(_session, batch)
+                                       .ConfigureAwait(false);
 
             //Use the concatenation of cql strings as hash for the mapper
             var cqlString = string.Join(";", batch.Statements.Select(s => s.Statement));
-            var rs = await ExecuteStatementAsync(batchStatement, batch.ExecutionProfile).ConfigureAwait(false);
+            var rs = await ExecuteStatementAsync(batchStatement, executionProfile).ConfigureAwait(false);
             return AppliedInfo<T>.FromRowSet(_mapperFactory, cqlString, rs);
         }
 
@@ -769,6 +812,12 @@ namespace Cassandra.Mapping
         public AppliedInfo<T> ExecuteConditional<T>(ICqlBatch batch)
         {
             return TaskHelper.WaitToComplete(ExecuteConditionalAsync<T>(batch), _queryAbortTimeout);
+        }
+
+        /// <inheritdoc />
+        public AppliedInfo<T> ExecuteConditional<T>(ICqlBatch batch, string executionProfile)
+        {
+            return TaskHelper.WaitToComplete(ExecuteConditionalAsync<T>(batch, executionProfile), _queryAbortTimeout);
         }
 
         private Task<RowSet> ExecuteStatementAsync(IStatement statement, string executionProfile)

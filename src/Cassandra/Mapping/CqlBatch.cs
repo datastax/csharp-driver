@@ -23,8 +23,6 @@ namespace Cassandra.Mapping
 
         public CqlQueryOptions Options { get; private set; }
 
-        public string ExecutionProfile { get; private set; }
-
         public CqlBatch(MapperFactory mapperFactory, CqlGenerator cqlGenerator)
             :this(mapperFactory, cqlGenerator, BatchType.Logged)
         {
@@ -141,12 +139,6 @@ namespace Cassandra.Mapping
                 throw new ArgumentNullException("action");
             }
             action(Options);
-            return this;
-        }
-
-        public ICqlBatch WithExecutionProfile(string executionProfile)
-        {
-            ExecutionProfile = executionProfile ?? throw new ArgumentNullException(nameof(executionProfile));
             return this;
         }
 
