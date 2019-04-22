@@ -1,8 +1,8 @@
 language: csharp
 sudo: required
 mono: none
-dist: trusty
-dotnet: 2.1.300
+dist: xenial
+dotnet: 2.2
 
 branches:
   except:
