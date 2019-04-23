@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
-
+using Dse.Connections;
 using Dse.Graph;
 using Dse.SessionManagement;
 using Dse.Tasks;
@@ -50,7 +50,7 @@ namespace Dse
             return _coreSession.Init(_dseSessionManager);
         }
 
-        public HostConnectionPool GetOrCreateConnectionPool(Host host, HostDistance distance)
+        public IHostConnectionPool GetOrCreateConnectionPool(Host host, HostDistance distance)
         {
             return _coreSession.GetOrCreateConnectionPool(host, distance);
         }
@@ -60,7 +60,7 @@ namespace Dse
             return _coreSession.GetPools();
         }
 
-        public HostConnectionPool GetExistingPool(IPEndPoint address)
+        public IHostConnectionPool GetExistingPool(IPEndPoint address)
         {
             return _coreSession.GetExistingPool(address);
         }
@@ -73,6 +73,16 @@ namespace Dse
         public bool HasConnections(Host host)
         {
             return _coreSession.HasConnections(host);
+        }
+
+        public void MarkAsDownAndScheduleReconnection(Host host, IHostConnectionPool pool)
+        {
+            _coreSession.MarkAsDownAndScheduleReconnection(host, pool);
+        }
+
+        public void OnAllConnectionClosed(Host host, IHostConnectionPool pool)
+        {
+            _coreSession.OnAllConnectionClosed(host, pool);
         }
 
         public void MarkAsDownAndScheduleReconnection(Host host, HostConnectionPool pool)

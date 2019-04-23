@@ -8,7 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
-
+using Dse.Connections;
 using Dse.Requests;
 using Dse.SessionManagement;
 using Moq;

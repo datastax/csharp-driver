@@ -15,6 +15,7 @@
 //
 
 using System.Collections.Concurrent;
+using Dse.Connections;
 
 namespace Dse.SessionManagement
 {
@@ -26,8 +27,8 @@ namespace Dse.SessionManagement
         /// <summary>
         /// Gets the control connection used by the cluster
         /// </summary>
-        ControlConnection GetControlConnection();
-        
+        IControlConnection GetControlConnection();
+
         /// <summary>
         /// Gets the the prepared statements cache
         /// </summary>

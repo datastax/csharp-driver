@@ -8,6 +8,7 @@
 using System;
 using System.Net;
 using System.Text;
+using Dse.Connections;
 using NUnit.Framework;
 using Dse.Test.Integration.TestClusterManagement;
 

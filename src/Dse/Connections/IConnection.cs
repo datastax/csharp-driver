@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Dse.Requests;
 using Dse.Responses;
 
-namespace Dse
+namespace Dse.Connections
 {
     /// <summary>
     /// Represents a TCP connection to a Cassandra Node

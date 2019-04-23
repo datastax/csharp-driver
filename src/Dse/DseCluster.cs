@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Dse.Connections;
 using Dse.SessionManagement;
 using Dse.Tasks;
 
@@ -200,7 +201,7 @@ namespace Dse
         }
 
         /// <inheritdoc />
-        ControlConnection IInternalCluster.GetControlConnection()
+        IControlConnection IInternalCluster.GetControlConnection()
         {
             return _coreCluster.InternalRef.GetControlConnection();
         }

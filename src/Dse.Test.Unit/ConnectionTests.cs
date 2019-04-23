@@ -12,6 +12,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Dse.Connections;
 using Dse.Responses;
 using Dse.Serialization;
 using Moq;

@@ -13,6 +13,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Dse.Collections;
+using Dse.Connections;
 using Dse.Serialization;
 using Dse.SessionManagement;
 using Dse.Tasks;
@@ -388,7 +389,7 @@ namespace Dse.Requests
         {
             try
             {
-                var execution = NewExecution(_session, _request);
+                var execution = _session.Configuration.RequestExecutionFactory.Create(this, _session, _request);
                 var lastHost = execution.Start(false);
                 _running.Add(execution);
                 ScheduleNext(lastHost);
@@ -408,11 +409,6 @@ namespace Dse.Requests
                 //There was an Exception before sending: a protocol error or the keyspace does not exists
                 SetCompleted(ex);
             }
-        }
-
-        protected virtual IRequestExecution NewExecution(IInternalSession session, IRequest request)
-        {
-            return new RequestExecution(this, _session, _request);
         }
 
         /// <summary>

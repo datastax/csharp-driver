@@ -1,8 +1,17 @@
 //
-//  Copyright (C) 2017 DataStax, Inc.
+//       Copyright DataStax, Inc.
 //
-//  Please see the license for details:
-//  http://www.datastax.com/terms/datastax-dse-driver-license-terms
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//       http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
 //
 
 using System;
@@ -12,8 +21,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Dse.Connections;
 using Dse.Responses;
-using Dse.Serialization;
 using Dse.SessionManagement;
 using Dse.Tasks;
 
@@ -110,7 +119,7 @@ namespace Dse.Requests
                         validHost = _parent.GetNextValidHost(_triedHosts);
                     }
                 }
-                
+
                 _connection = connection;
                 _host = validHost.Host;
                 Send(_request, HandleResponse);
@@ -297,15 +306,9 @@ namespace Dse.Requests
                     var request = (IQueryRequest)_parent.BuildRequest(statement, _parent.Serializer,
                         session.Cluster.Configuration);
                     request.PagingState = pagingState;
-                    return NewRequestHandler(session, _parent.Serializer, request, statement).SendAsync();
+                    return _session.Configuration.RequestHandlerFactory.Create(session, _parent.Serializer, request, statement).SendAsync();
                 }, _session.Cluster.Configuration.ClientOptions.QueryAbortTimeout);
             }
-        }
-
-        protected virtual IRequestHandler NewRequestHandler(
-            IInternalSession session, Serializer serializer, IRequest request, IStatement statement)
-        {
-            return new RequestHandler(session, _parent.Serializer, request, statement);
         }
 
         /// <summary>

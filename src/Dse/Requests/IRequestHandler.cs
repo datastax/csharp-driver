@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+using Dse.Connections;
 using Dse.Serialization;
 
 namespace Dse.Requests

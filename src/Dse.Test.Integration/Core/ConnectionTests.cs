@@ -16,6 +16,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Dse.Connections;
 using Dse.Tasks;
 using Dse.Test.Unit;
 using Dse.Requests;

@@ -27,12 +27,7 @@ build_script:
   - ps: dotnet build src\Dse.sln -c Release
 
 test_script:
-  - ps: dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --logger "trx;LogFileName=..\..\..\TestResult.xml"
+  - ps: dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --logger:Appveyor
 on_failure:
   - ps: |
       Write-Host "Build failed"
-on_finish:
-  - ps: |
-      xml tr tools\trx-to-junit.xslt TestResult.xml > ResultsJUnit.xml
-      $wc = New-Object 'System.Net.WebClient'
-      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\ResultsJUnit.xml))

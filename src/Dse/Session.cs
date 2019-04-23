@@ -12,7 +12,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-
+using Dse.Connections;
 using Dse.Requests;
 using Dse.Serialization;
 using Dse.SessionManagement;
@@ -26,7 +26,7 @@ namespace Dse
         private readonly Serializer _serializer;
         private ISessionManager _sessionManager;
         private static readonly Logger Logger = new Logger(typeof(Session));
-        private readonly ConcurrentDictionary<IPEndPoint, HostConnectionPool> _connectionPool;
+        private readonly ConcurrentDictionary<IPEndPoint, IHostConnectionPool> _connectionPool;
         private readonly IInternalCluster _cluster;
         private int _disposed;
         private volatile string _keyspace;
@@ -84,7 +84,7 @@ namespace Dse
             Configuration = configuration;
             Keyspace = keyspace;
             UserDefinedTypes = new UdtMappingDefinitions(this, serializer);
-            _connectionPool = new ConcurrentDictionary<IPEndPoint, HostConnectionPool>();
+            _connectionPool = new ConcurrentDictionary<IPEndPoint, IHostConnectionPool>();
         }
 
         /// <inheritdoc />
@@ -168,8 +168,7 @@ namespace Dse
             var hosts = Cluster.AllHosts().ToArray();
             foreach (var host in hosts)
             {
-                HostConnectionPool pool;
-                if (_connectionPool.TryGetValue(host.Address, out pool))
+                if (_connectionPool.TryGetValue(host.Address, out var pool))
                 {
                     pool.Dispose();
                 }
@@ -195,7 +194,7 @@ namespace Dse
             if (Keyspace != null)
             {
                 // Borrow a connection, trying to fail fast
-                IRequestHandler handler = new RequestHandler(this, _serializer);
+                var handler = Configuration.RequestHandlerFactory.Create(this, _serializer);
                 await handler.GetNextConnectionAsync(new Dictionary<IPEndPoint, Exception>()).ConfigureAwait(false);
             }
 
@@ -285,15 +284,17 @@ namespace Dse
         /// <inheritdoc />
         public Task<RowSet> ExecuteAsync(IStatement statement)
         {
-            return new RequestHandler(this, _serializer, statement).SendAsync();
+            return Configuration.RequestHandlerFactory
+                                .Create(this, _serializer, statement)
+                                .SendAsync();
         }
-
+        
         /// <inheritdoc />
-        HostConnectionPool IInternalSession.GetOrCreateConnectionPool(Host host, HostDistance distance)
+        IHostConnectionPool IInternalSession.GetOrCreateConnectionPool(Host host, HostDistance distance)
         {
             var hostPool = _connectionPool.GetOrAdd(host.Address, address =>
             {
-                var newPool = new HostConnectionPool(host, Configuration, _serializer);
+                var newPool = Configuration.HostConnectionPoolFactory.Create(host, Configuration, _serializer);
                 newPool.AllConnectionClosed += InternalRef.OnAllConnectionClosed;
                 newPool.SetDistance(distance);
                 return newPool;
@@ -307,7 +308,7 @@ namespace Dse
             return _connectionPool.ToArray().Select(kvp => new KeyValuePair<IPEndPoint, IHostConnectionPool>(kvp.Key, kvp.Value));
         }
 
-        void IInternalSession.OnAllConnectionClosed(Host host, HostConnectionPool pool)
+        void IInternalSession.OnAllConnectionClosed(Host host, IHostConnectionPool pool)
         {
             if (_cluster.AnyOpenConnections(host))
             {
@@ -318,7 +319,7 @@ namespace Dse
             InternalRef.MarkAsDownAndScheduleReconnection(host, pool);
         }
 
-        void IInternalSession.MarkAsDownAndScheduleReconnection(Host host, HostConnectionPool pool)
+        void IInternalSession.MarkAsDownAndScheduleReconnection(Host host, IHostConnectionPool pool)
         {
             // By setting the host as down, all pools should cancel any outstanding reconnection attempt
             if (host.SetDown())
@@ -330,8 +331,7 @@ namespace Dse
 
         bool IInternalSession.HasConnections(Host host)
         {
-            HostConnectionPool pool;
-            if (_connectionPool.TryGetValue(host.Address, out pool))
+            if (_connectionPool.TryGetValue(host.Address, out var pool))
             {
                 return pool.HasConnections;
             }
@@ -339,17 +339,15 @@ namespace Dse
         }
 
         /// <inheritdoc />
-        HostConnectionPool IInternalSession.GetExistingPool(IPEndPoint address)
+        IHostConnectionPool IInternalSession.GetExistingPool(IPEndPoint address)
         {
-            HostConnectionPool pool;
-            _connectionPool.TryGetValue(address, out pool);
+            _connectionPool.TryGetValue(address, out var pool);
             return pool;
         }
 
         void IInternalSession.CheckHealth(IConnection connection)
         {
-            HostConnectionPool pool;
-            if (!_connectionPool.TryGetValue(connection.Address, out pool))
+            if (!_connectionPool.TryGetValue(connection.Address, out var pool))
             {
                 Logger.Error("Internal error: No host connection pool found");
                 return;

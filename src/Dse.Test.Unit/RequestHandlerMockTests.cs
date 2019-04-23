@@ -1,18 +1,18 @@
-﻿// 
+﻿//
 //       Copyright DataStax, Inc.
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //       http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-// 
+//
 
 using System;
 using System.Collections.Generic;
@@ -22,6 +22,7 @@ using Dse.Requests;
 using Dse.Serialization;
 using Dse.SessionManagement;
 using Moq;
+
 using NUnit.Framework;
 
 namespace Dse.Test.Unit
@@ -32,6 +33,14 @@ namespace Dse.Test.Unit
     {
         private static Configuration GetConfig(ILoadBalancingPolicy lbp)
         {
+            var requestExecutionFactory = Mock.Of<IRequestExecutionFactory>();
+            Mock.Get(requestExecutionFactory)
+                .Setup(m => m.Create(
+                    It.IsAny<IRequestHandler>(),
+                    It.IsAny<IInternalSession>(),
+                    It.IsAny<IRequest>()))
+                .Returns(Mock.Of<IRequestExecution>());
+
             return new Configuration(new Dse.Policies(lbp, null, null),
                 new ProtocolOptions(),
                 null,
@@ -42,7 +51,8 @@ namespace Dse.Test.Unit
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
                 Mock.Of<IStartupOptionsFactory>(),
-                new SessionFactoryBuilder());
+                new SessionFactoryBuilder(),
+                requestExecutionFactory: requestExecutionFactory);
         }
 
         [Test]
@@ -53,7 +63,7 @@ namespace Dse.Test.Unit
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
             var enumerable = Mock.Of<IEnumerable<Host>>();
             var enumerator = Mock.Of<IEnumerator<Host>>();
-            
+
             Mock.Get(enumerator).Setup(m => m.MoveNext()).Returns(false);
             Mock.Get(enumerable).Setup(m => m.GetEnumerator()).Returns(enumerator);
             Mock.Get(lbpMock)
@@ -61,10 +71,10 @@ namespace Dse.Test.Unit
                 .Returns(enumerable);
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
-            var sut = new ProxyRequestHandler(sessionMock, new Serializer(ProtocolVersion.V4));
+            var sut = new RequestHandler(sessionMock, new Serializer(ProtocolVersion.V4));
             Assert.Throws<NoHostAvailableException>(() => sut.GetNextValidHost(triedHosts));
         }
-        
+
         [Test]
         public void Should_ThrowNoHostAvailableException_When_QueryPlanMoveNextReturnsTrueButCurrentReturnsNull()
         {
@@ -73,7 +83,7 @@ namespace Dse.Test.Unit
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
             var enumerable = Mock.Of<IEnumerable<Host>>();
             var enumerator = Mock.Of<IEnumerator<Host>>();
-            
+
             Mock.Get(enumerator).Setup(m => m.MoveNext()).Returns(true);
             Mock.Get(enumerator).SetupGet(m => m.Current).Returns((Host)null);
             Mock.Get(enumerable).Setup(m => m.GetEnumerator()).Returns(enumerator);
@@ -82,10 +92,10 @@ namespace Dse.Test.Unit
                 .Returns(enumerable);
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
-            var sut = new ProxyRequestHandler(sessionMock, new Serializer(ProtocolVersion.V4));
+            var sut = new RequestHandler(sessionMock, new Serializer(ProtocolVersion.V4));
             Assert.Throws<NoHostAvailableException>(() => sut.GetNextValidHost(triedHosts));
         }
-        
+
         [Test]
         public void Should_ReturnHost_When_QueryPlanMoveNextReturnsTrueAndCurrentReturnsHost()
         {
@@ -94,7 +104,7 @@ namespace Dse.Test.Unit
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
             var enumerable = Mock.Of<IEnumerable<Host>>();
             var enumerator = Mock.Of<IEnumerator<Host>>();
-            
+
             var host = new Host(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9047));
             Mock.Get(enumerator).Setup(m => m.MoveNext()).Returns(true);
             Mock.Get(enumerator).SetupGet(m => m.Current).Returns(host);
@@ -105,22 +115,10 @@ namespace Dse.Test.Unit
             Mock.Get(lbpMock).Setup(m => m.Distance(host)).Returns(HostDistance.Local);
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
-            var sut = new ProxyRequestHandler(sessionMock, new Serializer(ProtocolVersion.V4));
+            var sut = new RequestHandler(sessionMock, new Serializer(ProtocolVersion.V4));
             var validHost = sut.GetNextValidHost(triedHosts);
             Assert.NotNull(validHost);
             Assert.AreEqual(host, validHost.Host);
-        }
-
-        private class ProxyRequestHandler : RequestHandler
-        {
-            public ProxyRequestHandler(IInternalSession session, Serializer serializer) : base(session, serializer)
-            {
-            }
-
-            protected override IRequestExecution NewExecution(IInternalSession session, IRequest request)
-            {
-                return Mock.Of<IRequestExecution>();
-            }
         }
     }
 }

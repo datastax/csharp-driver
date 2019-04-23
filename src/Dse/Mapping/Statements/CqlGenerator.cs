@@ -52,10 +52,12 @@ namespace Dse.Mapping.Statements
             var pocoData = _pocoDataFactory.GetPocoData<T>();
             var allColumns = pocoData.Columns.Select(Escape(pocoData)).ToCommaDelimitedString();
 
+            var suffix = cql.Statement == string.Empty ? string.Empty : " " + cql.Statement;
+
             // If it's got the from clause, leave FROM intact, otherwise add it
             cql.SetStatement(FromRegex.IsMatch(cql.Statement)
-                                 ? string.Format("SELECT {0} {1}", allColumns, cql.Statement)
-                                 : string.Format("SELECT {0} FROM {1} {2}", allColumns, GetEscapedTableName(pocoData), cql.Statement));
+                                 ? string.Format("SELECT {0}{1}", allColumns, suffix)
+                                 : string.Format("SELECT {0} FROM {1}{2}", allColumns, GetEscapedTableName(pocoData), suffix));
         }
 
         private static string GetEscapedTableName(PocoData pocoData)
@@ -74,7 +76,7 @@ namespace Dse.Mapping.Statements
         /// </summary>
         private static string Escape(string identifier, PocoData pocoData)
         {
-            if (!pocoData.CaseSensitive)
+            if (!pocoData.CaseSensitive && !string.IsNullOrWhiteSpace(identifier))
             {
                 return identifier;
             }

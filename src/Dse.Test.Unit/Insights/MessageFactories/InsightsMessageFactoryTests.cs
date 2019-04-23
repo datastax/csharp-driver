@@ -11,7 +11,7 @@ using System.Linq;
 using System.Management;
 using System.Net;
 using System.Runtime.InteropServices;
-
+using Dse.Connections;
 using Dse.Graph;
 using Dse.Insights;
 using Dse.Insights.Schema;

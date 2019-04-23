@@ -13,7 +13,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Net;
 using System.Threading.Tasks;
-
+using Dse.Connections;
 using Dse.Graph;
 using Dse.Insights;
 using Dse.Insights.InfoProviders;

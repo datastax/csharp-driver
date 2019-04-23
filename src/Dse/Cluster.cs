@@ -15,6 +15,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Dse.Collections;
+using Dse.Connections;
 using Dse.Helpers;
 using Dse.Requests;
 using Dse.Serialization;
@@ -33,7 +34,7 @@ namespace Dse
         // ReSharper disable once InconsistentNaming
         private static readonly Logger _logger = new Logger(typeof(Cluster));
         private readonly CopyOnWriteList<IInternalSession> _connectedSessions = new CopyOnWriteList<IInternalSession>();
-        private readonly ControlConnection _controlConnection;
+        private readonly IControlConnection _controlConnection;
         private volatile bool _initialized;
         private volatile Exception _initException;
         private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
@@ -50,7 +51,7 @@ namespace Dse
         internal IInternalCluster InternalRef => this;
 
         /// <inheritdoc />
-        ControlConnection IInternalCluster.GetControlConnection()
+        IControlConnection IInternalCluster.GetControlConnection()
         {
             return _controlConnection;
         }
@@ -144,7 +145,7 @@ namespace Dse
             {
                 protocolVersion = Configuration.ProtocolOptions.MaxProtocolVersionValue.Value;
             }
-            _controlConnection = new ControlConnection(protocolVersion, Configuration, _metadata);
+            _controlConnection = configuration.ControlConnectionFactory.Create(protocolVersion, Configuration, _metadata);
             _metadata.ControlConnection = _controlConnection;
             _serializer = _controlConnection.Serializer;
             _sessionFactory = configuration.SessionFactoryBuilder.BuildWithCluster(this);

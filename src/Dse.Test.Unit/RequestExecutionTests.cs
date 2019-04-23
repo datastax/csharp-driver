@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using Dse.Connections;
 using Dse.Requests;
 using Dse.Responses;
 using Dse.Serialization;
@@ -33,12 +34,26 @@ namespace Dse.Test.Unit
         public void Should_ThrowException_When_NoValidHosts(bool currentHostRetry)
         {
             var mockSession = Mock.Of<IInternalSession>();
+            var requestHandlerFactory = Mock.Of<IRequestHandlerFactory>();
+            Mock.Get(requestHandlerFactory)
+                .Setup(r => r.Create(
+                    It.IsAny<IInternalSession>(), 
+                    It.IsAny<Serializer>(), 
+                    It.IsAny<IRequest>(),
+                    It.IsAny<IStatement>()))
+                .Returns(Mock.Of<IRequestHandler>());
+            var config = new TestConfigurationBuilder
+            {
+                RequestHandlerFactory = requestHandlerFactory
+            }.Build();
+            Mock.Get(mockSession).SetupGet(m => m.Cluster.Configuration).Returns(config);
+            Mock.Get(mockSession).SetupGet(m => m.Configuration).Returns(config);
             var mockRequest = Mock.Of<IRequest>();
             var mockRequestExecution = Mock.Of<IRequestHandler>();
             Mock.Get(mockRequestExecution)
                 .Setup(m => m.GetNextValidHost(It.IsAny<Dictionary<IPEndPoint, Exception>>()))
                 .Throws(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>()));
-            var sut = new ProxyRequestExecution(mockRequestExecution, mockSession, mockRequest);
+            var sut = new RequestExecution(mockRequestExecution, mockSession, mockRequest);
 
             Assert.Throws<NoHostAvailableException>(() => sut.Start(currentHostRetry));
         }
@@ -47,6 +62,20 @@ namespace Dse.Test.Unit
         public void Should_NotThrowException_When_AValidHostIsObtained(bool currentHostRetry)
         {
             var mockSession = Mock.Of<IInternalSession>();
+            var requestHandlerFactory = Mock.Of<IRequestHandlerFactory>();
+            Mock.Get(requestHandlerFactory)
+                .Setup(r => r.Create(
+                    It.IsAny<IInternalSession>(), 
+                    It.IsAny<Serializer>(), 
+                    It.IsAny<IRequest>(),
+                    It.IsAny<IStatement>()))
+                .Returns(Mock.Of<IRequestHandler>());
+            var config = new TestConfigurationBuilder
+            {
+                RequestHandlerFactory = requestHandlerFactory
+            }.Build();
+            Mock.Get(mockSession).SetupGet(m => m.Cluster.Configuration).Returns(config);
+            Mock.Get(mockSession).SetupGet(m => m.Configuration).Returns(config);
             var mockRequest = Mock.Of<IRequest>();
             var mockRequestExecution = Mock.Of<IRequestHandler>();
             var host = new Host(
@@ -59,7 +88,7 @@ namespace Dse.Test.Unit
                 .SetupSequence(m => m.GetNextValidHost(It.IsAny<Dictionary<IPEndPoint, Exception>>()))
                 .Returns(validHost)
                 .Throws(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>()));
-            var sut = new ProxyRequestExecution(mockRequestExecution, mockSession, mockRequest);
+            var sut = new RequestExecution(mockRequestExecution, mockSession, mockRequest);
 
             sut.Start(currentHostRetry);
         }
@@ -68,6 +97,20 @@ namespace Dse.Test.Unit
         public void Should_SendRequest_When_AConnectionIsObtained(bool currentHostRetry)
         {
             var mockSession = Mock.Of<IInternalSession>();
+            var requestHandlerFactory = Mock.Of<IRequestHandlerFactory>();
+            Mock.Get(requestHandlerFactory)
+                .Setup(r => r.Create(
+                    It.IsAny<IInternalSession>(), 
+                    It.IsAny<Serializer>(), 
+                    It.IsAny<IRequest>(),
+                    It.IsAny<IStatement>()))
+                .Returns(Mock.Of<IRequestHandler>());
+            var config = new TestConfigurationBuilder
+            {
+                RequestHandlerFactory = requestHandlerFactory
+            }.Build();
+            Mock.Get(mockSession).SetupGet(m => m.Cluster.Configuration).Returns(config);
+            Mock.Get(mockSession).SetupGet(m => m.Configuration).Returns(config);
             var mockRequest = Mock.Of<IRequest>();
             var mockRequestExecution = Mock.Of<IRequestHandler>();
             var connection = Mock.Of<IConnection>();
@@ -83,7 +126,7 @@ namespace Dse.Test.Unit
             Mock.Get(mockRequestExecution)
                 .Setup(m => m.GetNextValidHost(It.IsAny<Dictionary<IPEndPoint, Exception>>()))
                 .Returns(validHost);
-            var sut = new ProxyRequestExecution(mockRequestExecution, mockSession, mockRequest);
+            var sut = new RequestExecution(mockRequestExecution, mockSession, mockRequest);
 
             sut.Start(currentHostRetry);
             TestHelper.RetryAssert(
@@ -100,8 +143,20 @@ namespace Dse.Test.Unit
         public void Should_RetryRequestToSameHost_When_ConnectionFailsAndRetryDecisionIsRetrySameHost()
         {
             var mockSession = Mock.Of<IInternalSession>();
-            var config = new Configuration();
+            var requestHandlerFactory = Mock.Of<IRequestHandlerFactory>();
+            Mock.Get(requestHandlerFactory)
+                .Setup(r => r.Create(
+                    It.IsAny<IInternalSession>(), 
+                    It.IsAny<Serializer>(), 
+                    It.IsAny<IRequest>(),
+                    It.IsAny<IStatement>()))
+                .Returns(Mock.Of<IRequestHandler>());
+            var config = new TestConfigurationBuilder
+            {
+                RequestHandlerFactory = requestHandlerFactory
+            }.Build();
             Mock.Get(mockSession).SetupGet(m => m.Cluster.Configuration).Returns(config);
+            Mock.Get(mockSession).SetupGet(m => m.Configuration).Returns(config);
             var mockRequest = Mock.Of<IRequest>();
             var mockParent = Mock.Of<IRequestHandler>();
             var connection = Mock.Of<IConnection>();
@@ -145,8 +200,8 @@ namespace Dse.Test.Unit
             Mock.Get(mockParent)
                 .Setup(m => m.ValidateHostAndGetConnectionAsync(validHost.Host, It.IsAny<Dictionary<IPEndPoint, Exception>>()))
                 .ReturnsAsync(connection);
-
-            var sut = new ProxyRequestExecution(mockParent, mockSession, mockRequest);
+            
+            var sut = new RequestExecution(mockParent, mockSession, mockRequest);
             sut.Start(false);
 
             // Validate request is sent
@@ -165,18 +220,6 @@ namespace Dse.Test.Unit
             Mock.Get(mockParent).Verify(
                 m => m.ValidateHostAndGetConnectionAsync(validHost.Host, It.IsAny<Dictionary<IPEndPoint, Exception>>()),
                 Times.Once);
-        }
-
-        private class ProxyRequestExecution : RequestExecution
-        {
-            public ProxyRequestExecution(IRequestHandler parent, IInternalSession session, IRequest request) : base(parent, session, request)
-            {
-            }
-
-            protected override IRequestHandler NewRequestHandler(IInternalSession session, Serializer serializer, IRequest request, IStatement statement)
-            {
-                return Mock.Of<IRequestHandler>();
-            }
         }
     }
 }

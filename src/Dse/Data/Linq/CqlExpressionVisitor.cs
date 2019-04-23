@@ -150,7 +150,7 @@ namespace Dse.Data.Linq
         /// </summary>
         private string Escape(string identifier)
         {
-            if (!_pocoData.CaseSensitive)
+            if (!_pocoData.CaseSensitive && !string.IsNullOrWhiteSpace(identifier))
             {
                 return identifier;
             }

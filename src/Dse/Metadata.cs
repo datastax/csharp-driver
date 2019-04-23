@@ -13,6 +13,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Dse.Connections;
 using Dse.MetadataHelpers;
 using Dse.Requests;
 using Dse.Tasks;
@@ -620,8 +621,8 @@ namespace Dse
                     Task.WaitAll(queries, Configuration.ClientOptions.QueryAbortTimeout);
 
                     if (Metadata.CheckSchemaVersionResults(
-                        Dse.ControlConnection.GetRowSet(queries[0].Result),
-                        Dse.ControlConnection.GetRowSet(queries[1].Result)))
+                        Dse.Connections.ControlConnection.GetRowSet(queries[0].Result),
+                        Dse.Connections.ControlConnection.GetRowSet(queries[1].Result)))
                     {
                         return true;
                     }

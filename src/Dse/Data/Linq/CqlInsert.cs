@@ -65,7 +65,7 @@ namespace Dse.Data.Linq
 
         private static string Escape(string identifier, PocoData pocoData)
         {
-            if (!pocoData.CaseSensitive)
+            if (!pocoData.CaseSensitive && !string.IsNullOrWhiteSpace(identifier))
             {
                 return identifier;
             }

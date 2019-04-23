@@ -1,25 +1,34 @@
 //
-//  Copyright DataStax, Inc.
+//      Copyright DataStax Inc.
 //
-//  Please see the license for details:
-//  http://www.datastax.com/terms/datastax-dse-driver-license-terms
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
 //
 
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
-using System.Threading;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
-using Dse.Tasks;
 using Dse.Requests;
 using Dse.Responses;
 using Dse.Serialization;
+using Dse.Tasks;
 
-namespace Dse
+namespace Dse.Connections
 {
-    internal class ControlConnection : IMetadataQueryProvider, IDisposable
+    internal class ControlConnection : IControlConnection
     {
         private const string SelectPeers = "SELECT * FROM system.peers";
         private const string SelectLocal = "SELECT * FROM system.local WHERE key='local'";
@@ -29,8 +38,10 @@ namespace Dse
         private readonly Metadata _metadata;
         private volatile Host _host;
         private volatile IConnection _connection;
+
         // ReSharper disable once InconsistentNaming
-        private static readonly Logger _logger = new Logger(typeof (ControlConnection));
+        private static readonly Logger _logger = new Logger(typeof(ControlConnection));
+
         private readonly Configuration _config;
         private readonly IReconnectionPolicy _reconnectionPolicy;
         private IReconnectionSchedule _reconnectionSchedule;
@@ -46,7 +57,7 @@ namespace Dse
         /// </summary>
         public ProtocolVersion ProtocolVersion => _serializer.ProtocolVersion;
 
-        internal Host Host
+        public Host Host
         {
             get => _host;
             set => _host = value;
@@ -80,9 +91,9 @@ namespace Dse
         /// <exception cref="NoHostAvailableException" />
         /// <exception cref="TimeoutException" />
         /// <exception cref="DriverInternalError" />
-        internal async Task Init()
+        public async Task Init()
         {
-            _logger.Info("Trying to connect the ControlConnection");
+            ControlConnection._logger.Info("Trying to connect the ControlConnection");
             await Connect(true).ConfigureAwait(false);
         }
 
@@ -104,7 +115,7 @@ namespace Dse
 
             foreach (var host in hosts)
             {
-                IConnection connection = new Connection(_serializer, host.Address, _config);
+                var connection = _config.ConnectionFactory.Create(_serializer, host.Address, _config);
                 try
                 {
                     var version = _serializer.ProtocolVersion;
@@ -119,7 +130,7 @@ namespace Dse
                             .ConfigureAwait(false);
                     }
 
-                    _logger.Info($"Connection established to {connection.Address} using protocol " +
+                    ControlConnection._logger.Info($"Connection established to {connection.Address} using protocol " +
                                  $"version {_serializer.ProtocolVersion:D}");
                     _connection = connection;
                     _host = host;
@@ -172,7 +183,7 @@ namespace Dse
                 throw new DriverInternalError("Connection was unable to STARTUP using protocol version 0");
             }
 
-            _logger.Info(ex != null
+            ControlConnection._logger.Info(ex != null
                 ? $"{ex.Message}, trying with version {nextVersion:D}"
                 : $"Changing protocol version to {nextVersion:D}");
 
@@ -180,7 +191,7 @@ namespace Dse
 
             previousConnection.Dispose();
 
-            var c = new Connection(_serializer, previousConnection.Address, _config);
+            var c = _config.ConnectionFactory.Create(_serializer, previousConnection.Address, _config);
             await c.Open().ConfigureAwait(false);
             return c;
         }
@@ -198,7 +209,7 @@ namespace Dse
             var oldConnection = _connection;
             try
             {
-                _logger.Info("Trying to reconnect the ControlConnection");
+                ControlConnection._logger.Info("Trying to reconnect the ControlConnection");
                 await Connect(false).ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -207,10 +218,10 @@ namespace Dse
                 Interlocked.Exchange(ref _reconnectTask, null).Forget();
                 tcs.TrySetException(ex);
                 var delay = _reconnectionSchedule.NextDelayMs();
-                _logger.Error("ControlConnection was not able to reconnect: " + ex);
+                ControlConnection._logger.Error("ControlConnection was not able to reconnect: " + ex);
                 try
                 {
-                    _reconnectionTimer.Change((int) delay, Timeout.Infinite);
+                    _reconnectionTimer.Change((int)delay, Timeout.Infinite);
                 }
                 catch (ObjectDisposedException)
                 {
@@ -237,12 +248,12 @@ namespace Dse
                 _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
                 tcs.TrySetResult(true);
                 Interlocked.Exchange(ref _reconnectTask, null).Forget();
-                _logger.Info("ControlConnection reconnected to host {0}", _host.Address);
+                ControlConnection._logger.Info("ControlConnection reconnected to host {0}", _host.Address);
             }
             catch (Exception ex)
             {
                 Interlocked.Exchange(ref _reconnectTask, null).Forget();
-                _logger.Error("There was an error when trying to refresh the ControlConnection", ex);
+                ControlConnection._logger.Error("There was an error when trying to refresh the ControlConnection", ex);
                 tcs.TrySetException(ex);
                 try
                 {
@@ -272,12 +283,12 @@ namespace Dse
             }
             catch (SocketException ex)
             {
-                _logger.Error("There was a SocketException when trying to refresh the ControlConnection", ex);
+                ControlConnection._logger.Error("There was a SocketException when trying to refresh the ControlConnection", ex);
                 reconnect = true;
             }
             catch (Exception ex)
             {
-                _logger.Error("There was an error when trying to refresh the ControlConnection", ex);
+                ControlConnection._logger.Error("There was an error when trying to refresh the ControlConnection", ex);
             }
             finally
             {
@@ -299,7 +310,7 @@ namespace Dse
             var c = _connection;
             if (c != null)
             {
-                _logger.Info("Shutting down control connection to {0}", c.Address);
+                ControlConnection._logger.Info("Shutting down control connection to {0}", c.Address);
                 c.Dispose();
             }
             _reconnectionTimer.Change(Timeout.Infinite, Timeout.Infinite);
@@ -315,7 +326,7 @@ namespace Dse
         {
             connection.CassandraEventResponse += OnConnectionCassandraEvent;
             // Register to events on the connection
-            var response = await connection.Send(new RegisterForEventRequest(CassandraEventTypes))
+            var response = await connection.Send(new RegisterForEventRequest(ControlConnection.CassandraEventTypes))
                                             .ConfigureAwait(false);
             if (!(response is ReadyResponse))
             {
@@ -338,7 +349,7 @@ namespace Dse
         private void OnHostDown(Host h)
         {
             h.Down -= OnHostDown;
-            _logger.Warning("Host {0} used by the ControlConnection DOWN", h.Address);
+            ControlConnection._logger.Warning("Host {0} used by the ControlConnection DOWN", h.Address);
             // Queue reconnection to occur in the background
             Task.Run(Reconnect).Forget();
         }
@@ -358,7 +369,7 @@ namespace Dse
             }
             if (e is StatusChangeEventArgs)
             {
-                HandleStatusChangeEvent((StatusChangeEventArgs) e);
+                HandleStatusChangeEvent((StatusChangeEventArgs)e);
                 return;
             }
             if (e is SchemaChangeEventArgs)
@@ -398,11 +409,11 @@ namespace Dse
         {
             //The address in the Cassandra event message needs to be translated
             var address = TranslateAddress(e.Address);
-            _logger.Info("Received Node status change event: host {0} is {1}", address, e.What.ToString().ToUpper());
+            ControlConnection._logger.Info("Received Node status change event: host {0} is {1}", address, e.What.ToString().ToUpper());
             Host host;
             if (!_metadata.Hosts.TryGet(address, out host))
             {
-                _logger.Info("Received status change event for host {0} but it was not found", address);
+                ControlConnection._logger.Info("Received status change event for host {0} but it was not found", address);
                 return;
             }
             var distance = Cluster.RetrieveDistance(host, _config.Policies.LoadBalancingPolicy);
@@ -427,21 +438,22 @@ namespace Dse
 
         private async Task RefreshNodeList()
         {
-            _logger.Info("Refreshing node list");
-            var queriesRs = await Task.WhenAll(QueryAsync(SelectLocal), QueryAsync(SelectPeers)).ConfigureAwait(false);
+            ControlConnection._logger.Info("Refreshing node list");
+            var queriesRs = await Task.WhenAll(QueryAsync(ControlConnection.SelectLocal), QueryAsync(ControlConnection.SelectPeers))
+                                      .ConfigureAwait(false);
             var localRow = queriesRs[0].FirstOrDefault();
             var rsPeers = queriesRs[1];
 
             if (localRow == null)
             {
-                _logger.Error("Local host metadata could not be retrieved");
+                ControlConnection._logger.Error("Local host metadata could not be retrieved");
                 throw new DriverInternalError("Local host metadata could not be retrieved");
             }
 
             _metadata.Partitioner = localRow.GetValue<string>("partitioner");
             UpdateLocalInfo(localRow);
             UpdatePeersInfo(rsPeers);
-            _logger.Info("Node list retrieved successfully");
+            ControlConnection._logger.Info("Node list retrieved successfully");
         }
 
         internal void UpdateLocalInfo(Row row)
@@ -462,10 +474,10 @@ namespace Dse
             var foundPeers = new HashSet<IPEndPoint>();
             foreach (var row in rs)
             {
-                var address = GetAddressForPeerHost(row, _config.AddressTranslator, _config.ProtocolOptions.Port);
+                var address = ControlConnection.GetAddressForPeerHost(row, _config.AddressTranslator, _config.ProtocolOptions.Port);
                 if (address == null)
                 {
-                    _logger.Error("No address found for host, ignoring it.");
+                    ControlConnection._logger.Error("No address found for host, ignoring it.");
                     continue;
                 }
                 foundPeers.Add(address);
@@ -493,10 +505,10 @@ namespace Dse
             {
                 return null;
             }
-            if (BindAllAddress.Equals(address) && !row.IsNull("peer"))
+            if (ControlConnection.BindAllAddress.Equals(address) && !row.IsNull("peer"))
             {
                 address = row.GetValue<IPAddress>("peer");
-                _logger.Warning(String.Format("Found host with 0.0.0.0 as rpc_address, using listen_address ({0}) to contact it instead. If this is incorrect you should avoid the use of 0.0.0.0 server side.", address));
+                ControlConnection._logger.Warning(String.Format("Found host with 0.0.0.0 as rpc_address, using listen_address ({0}) to contact it instead. If this is incorrect you should avoid the use of 0.0.0.0 server side.", address));
             }
 
             return translator.Translate(new IPEndPoint(address, port));
@@ -507,7 +519,7 @@ namespace Dse
         /// </summary>
         public IEnumerable<Row> Query(string cqlQuery, bool retry = false)
         {
-            return TaskHelper.WaitToComplete(QueryAsync(cqlQuery, retry), MetadataAbortTimeout);
+            return TaskHelper.WaitToComplete(QueryAsync(cqlQuery, retry), ControlConnection.MetadataAbortTimeout);
         }
 
         public async Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry = false)
@@ -525,7 +537,7 @@ namespace Dse
             }
             catch (SocketException ex)
             {
-                _logger.Error(
+                ControlConnection._logger.Error(
                     $"There was an error while executing on the host {cqlQuery} the query '{_connection.Address}'", ex);
                 if (!retry)
                 {
@@ -554,12 +566,12 @@ namespace Dse
             {
                 throw new DriverInternalError("Expected rows, obtained " + response.GetType().FullName);
             }
-            var result = (ResultResponse) response;
+            var result = (ResultResponse)response;
             if (!(result.Output is OutputRows))
             {
                 throw new DriverInternalError("Expected rows output, obtained " + result.Output.GetType().FullName);
             }
-            return ((OutputRows) result.Output).RowSet;
+            return ((OutputRows)result.Output).RowSet;
         }
 
         /// <summary>
@@ -581,31 +593,5 @@ namespace Dse
                 }
             }
         }
-    }
-
-    /// <summary>
-    /// Represents an object that can execute metadata queries
-    /// </summary>
-    internal interface IMetadataQueryProvider
-    {
-        ProtocolVersion ProtocolVersion { get; }
-
-        /// <summary>
-        /// The address of the endpoint used by the ControlConnection
-        /// </summary>
-        IPEndPoint Address { get; }
-        
-        /// <summary>
-        /// The local address of the socket used by the ControlConnection
-        /// </summary>
-        IPEndPoint LocalAddress { get; }
-
-        Serializer Serializer { get; }
-
-        Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry = false);
-
-        Task<Response> SendQueryRequestAsync(string cqlQuery, bool retry, QueryProtocolOptions queryProtocolOptions);
-
-        IEnumerable<Row> Query(string cqlQuery, bool retry = false);
     }
 }

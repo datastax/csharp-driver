@@ -1,8 +1,17 @@
 //
-//  Copyright (C) 2017 DataStax, Inc.
+//      Copyright (C) 2012-2016 DataStax Inc.
 //
-//  Please see the license for details:
-//  http://www.datastax.com/terms/datastax-dse-driver-license-terms
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
 //
 
 using System;
@@ -14,12 +23,12 @@ using Dse.Collections;
 using Dse.Serialization;
 using Dse.Tasks;
 
-namespace Dse
+namespace Dse.Connections
 {
     /// <summary>
     /// Represents a pool of connections to a host
     /// </summary>
-    internal class HostConnectionPool : IHostConnectionPool, IDisposable
+    internal class HostConnectionPool : IHostConnectionPool
     {
         private static readonly Logger Logger = new Logger(typeof(HostConnectionPool));
         private const int ConnectionIndexOverflow = int.MaxValue - 1000000;
@@ -77,9 +86,7 @@ namespace Dse
 
         public event Action<Host, HostConnectionPool> AllConnectionClosed;
 
-        /// <summary>
-        /// Determines whether the connection pool has opened connections using snapshot semantics.
-        /// </summary>
+        /// <inheritdoc />
         public bool HasConnections => _connections.Count > 0;
 
         /// <inheritdoc />
@@ -93,9 +100,7 @@ namespace Dse
         /// </summary>
         private bool IsClosing => Volatile.Read(ref _state) != PoolState.Init;
 
-        /// <summary>
-        /// Gets a snapshot of the current state of the pool.
-        /// </summary>
+        /// <inheritdoc />
         public IConnection[] ConnectionsSnapshot => _connections.GetSnapshot();
 
         public HostConnectionPool(Host host, Configuration config, Serializer serializer)
@@ -114,15 +119,7 @@ namespace Dse
             _expectedConnectionLength = 1;
         }
 
-        /// <summary>
-        /// Gets an open connection from the host pool (creating if necessary).
-        /// It returns null if the load balancing policy didn't allow connections to this host.
-        /// </summary>
-        /// <exception cref="DriverInternalError" />
-        /// <exception cref="BusyPoolException" />
-        /// <exception cref="UnsupportedProtocolVersionException" />
-        /// <exception cref="SocketException" />
-        /// <exception cref="AuthenticationException" />
+        /// <inheritdoc />
         public async Task<IConnection> BorrowConnection()
         {
             var connections = await EnsureCreate().ConfigureAwait(false);
@@ -131,7 +128,7 @@ namespace Dse
                 throw new DriverInternalError("No connection could be borrowed");
             }
 
-            var c = MinInFlight(connections, ref _connectionIndex, _maxRequestsPerConnection, out var inFlight);
+            var c = HostConnectionPool.MinInFlight(connections, ref _connectionIndex, _maxRequestsPerConnection, out var inFlight);
 
             if (inFlight >= _maxRequestsPerConnection)
             {
@@ -164,14 +161,12 @@ namespace Dse
             {
                 return;
             }
-            Logger.Warning("Connection to {0} considered as unhealthy after {1} timed out operations", 
+            HostConnectionPool.Logger.Warning("Connection to {0} considered as unhealthy after {1} timed out operations", 
                 _host.Address, timedOutOps);
             Remove(c);
         }
 
-        /// <summary>
-        /// Closes the connection and removes it from the pool
-        /// </summary>
+        /// <inheritdoc />
         public void Remove(IConnection c)
         {
             OnConnectionClosing(c);
@@ -206,11 +201,11 @@ namespace Dse
                 return;
             }
             _expectedConnectionLength++;
-            Logger.Info("Increasing pool #{0} size to {1}, as in-flight requests are above threshold ({2})", 
+            HostConnectionPool.Logger.Info("Increasing pool #{0} size to {1}, as in-flight requests are above threshold ({2})", 
                 GetHashCode(), _expectedConnectionLength, _maxInflightThresholdToConsiderResizing);
             StartCreatingConnection(null);
             _resizingEndTimeout = _timer.NewTimeout(_ => Interlocked.Exchange(ref _poolResizing, 0), null, 
-                BetweenResizeDelay);
+                HostConnectionPool.BetweenResizeDelay);
         }
 
         /// <summary>
@@ -227,7 +222,7 @@ namespace Dse
                 // The pool is already being shutdown, never mind
                 return;
             }
-            Logger.Info("Disposing connection pool #{0} to {1}", GetHashCode(), _host.Address);
+            HostConnectionPool.Logger.Info("Disposing connection pool #{0} to {1}", GetHashCode(), _host.Address);
             var connections = _connections.ClearAndGet();
             foreach (var c in connections)
             {
@@ -248,7 +243,7 @@ namespace Dse
 
         public virtual async Task<IConnection> DoCreateAndOpen()
         {
-            var c = new Connection(_serializer, _host.Address, _config);
+            var c = _config.ConnectionFactory.Create(_serializer, _host.Address, _config);
             try
             {
                 await c.Open().ConfigureAwait(false);
@@ -290,7 +285,7 @@ namespace Dse
             //It is very likely that the amount of InFlight requests per connection is the same
             //Do round robin between connections, skipping connections that have more in flight requests
             var index = Interlocked.Increment(ref connectionIndex);
-            if (index > ConnectionIndexOverflow)
+            if (index > HostConnectionPool.ConnectionIndexOverflow)
             {
                 // Simplified overflow protection: once the threshold is reached, reset the shared reference
                 // but still use the incremented value above threshold.
@@ -340,7 +335,7 @@ namespace Dse
                     // No point in doing them again
                     return;
                 }
-                Logger.Info("Pool #{0} for host {1} removed a connection, new length: {2}",
+                HostConnectionPool.Logger.Info("Pool #{0} for host {1} removed a connection, new length: {2}",
                     GetHashCode(), _host.Address, currentLength);
             }
             else
@@ -396,7 +391,7 @@ namespace Dse
                 // Is already shutting down or shutdown, don't mind
                 return;
             }
-            Logger.Info("Host ignored. Closing pool #{0} to {1}", GetHashCode(), _host.Address);
+            HostConnectionPool.Logger.Info("Host ignored. Closing pool #{0} to {1}", GetHashCode(), _host.Address);
             DrainConnections(() =>
             {
                 // After draining, set the pool back to init state
@@ -414,7 +409,7 @@ namespace Dse
                 Interlocked.Exchange(ref _state, PoolState.Shutdown);
                 return;
             }
-            Logger.Info("Host decommissioned. Closing pool #{0} to {1}", GetHashCode(), _host.Address);
+            HostConnectionPool.Logger.Info("Host decommissioned. Closing pool #{0} to {1}", GetHashCode(), _host.Address);
 
             DrainConnections(() => Interlocked.Exchange(ref _state, PoolState.Shutdown));
 
@@ -435,7 +430,7 @@ namespace Dse
             var connections = _connections.ClearAndGet();
             if (connections.Length == 0)
             {
-                Logger.Info("Pool #{0} to {1} had no connections", GetHashCode(), _host.Address);
+                HostConnectionPool.Logger.Info("Pool #{0} to {1} had no connections", GetHashCode(), _host.Address);
                 return;
             }
             // The request handler might execute up to 2 queries with a single connection:
@@ -459,12 +454,12 @@ namespace Dse
                     var drained = !connections.Any(c => c.HasPendingOperations);
                     if (!drained && --steps >= 0)
                     {
-                        Logger.Info("Pool #{0} to {1} can not be closed yet",
+                        HostConnectionPool.Logger.Info("Pool #{0} to {1} can not be closed yet",
                             GetHashCode(), _host.Address);
                         DrainConnectionsTimer(connections, afterDrainHandler, steps);
                         return;
                     }
-                    Logger.Info("Pool #{0} to {1} closing {2} connections to after {3} draining",
+                    HostConnectionPool.Logger.Info("Pool #{0} to {1} closing {2} connections to after {3} draining",
                         GetHashCode(), _host.Address, connections.Length, drained ? "successful" : "unsuccessful");
                     foreach (var c in connections)
                     {
@@ -487,7 +482,7 @@ namespace Dse
                 // This was the pool that was reconnecting, the pool is already getting the appropriate size
                 return;
             }
-            Logger.Info("Pool #{0} for host {1} attempting to reconnect as host is UP", GetHashCode(), _host.Address);
+            HostConnectionPool.Logger.Info("Pool #{0} for host {1} attempting to reconnect as host is UP", GetHashCode(), _host.Address);
             // Schedule an immediate reconnection
             ScheduleReconnection(true);
         }
@@ -504,16 +499,13 @@ namespace Dse
         /// </summary>
         private void OnIdleRequestException(IConnection c, Exception ex)
         {
-            Logger.Warning("Connection to {0} considered as unhealthy after idle timeout exception: {1}",
+            HostConnectionPool.Logger.Warning("Connection to {0} considered as unhealthy after idle timeout exception: {1}",
                 _host.Address, ex);
             OnConnectionClosing(c);
             c.Dispose();
         }
 
-        /// <summary>
-        /// Adds a new reconnection timeout using a new schedule.
-        /// Resets the status of the pool to allow further reconnections.
-        /// </summary>
+        /// <inheritdoc />
         public void ScheduleReconnection(bool immediate = false)
         {
             var schedule = _config.Policies.ReconnectionPolicy.NewSchedule();
@@ -533,14 +525,14 @@ namespace Dse
             {
                 // Schedule the creation
                 var delay = schedule.NextDelayMs();
-                Logger.Info("Scheduling reconnection from #{0} to {1} in {2}ms", GetHashCode(), _host.Address, delay);
+                HostConnectionPool.Logger.Info("Scheduling reconnection from #{0} to {1} in {2}ms", GetHashCode(), _host.Address, delay);
                 timeout = _timer.NewTimeout(_ => Task.Run(() => StartCreatingConnection(schedule)), null, delay);
             }
             CancelNewConnectionTimeout(timeout);
             if (schedule == null)
             {
                 // Start creating immediately after de-scheduling the timer
-                Logger.Info("Starting reconnection from pool #{0} to {1}", GetHashCode(), _host.Address);
+                HostConnectionPool.Logger.Info("Starting reconnection from pool #{0} to {1}", GetHashCode(), _host.Address);
                 StartCreatingConnection(null);
             }
         }
@@ -622,7 +614,7 @@ namespace Dse
 
             if (IsClosing)
             {
-                return await FinishOpen(tcs, false, GetNotConnectedException()).ConfigureAwait(false);
+                return await FinishOpen(tcs, false, HostConnectionPool.GetNotConnectedException()).ConfigureAwait(false);
             }
 
             // Before creating, make sure that its still needed
@@ -634,7 +626,7 @@ namespace Dse
                 if (connectionsSnapshot.Length == 0)
                 {
                     // Avoid race condition while removing
-                    return await FinishOpen(tcs, false, GetNotConnectedException()).ConfigureAwait(false);
+                    return await FinishOpen(tcs, false, HostConnectionPool.GetNotConnectedException()).ConfigureAwait(false);
                 }
                 return await FinishOpen(tcs, true, null, connectionsSnapshot[0]).ConfigureAwait(false);
             }
@@ -646,12 +638,12 @@ namespace Dse
                 if (connectionsSnapshot.Length == 0)
                 {
                     // When creating in foreground, it failed
-                    return await FinishOpen(tcs, false, GetNotConnectedException()).ConfigureAwait(false);
+                    return await FinishOpen(tcs, false, HostConnectionPool.GetNotConnectedException()).ConfigureAwait(false);
                 }
                 return await FinishOpen(tcs, false, null, connectionsSnapshot[0]).ConfigureAwait(false);
             }
 
-            Logger.Info("Creating a new connection to {0}", _host.Address);
+            HostConnectionPool.Logger.Info("Creating a new connection to {0}", _host.Address);
             IConnection c;
             try
             {
@@ -659,31 +651,31 @@ namespace Dse
             }
             catch (Exception ex)
             {
-                Logger.Info("Connection to {0} could not be created: {1}", _host.Address, ex);
+                HostConnectionPool.Logger.Info("Connection to {0} could not be created: {1}", _host.Address, ex);
                 return await FinishOpen(tcs, true, ex).ConfigureAwait(false);
             }
 
             if (IsClosing)
             {
-                Logger.Info("Connection to {0} opened successfully but pool #{1} was being closed", 
+                HostConnectionPool.Logger.Info("Connection to {0} opened successfully but pool #{1} was being closed", 
                     _host.Address, GetHashCode());
                 c.Dispose();
-                return await FinishOpen(tcs, false, GetNotConnectedException()).ConfigureAwait(false);
+                return await FinishOpen(tcs, false, HostConnectionPool.GetNotConnectedException()).ConfigureAwait(false);
             }
 
             var newLength = _connections.AddNew(c);
-            Logger.Info("Connection to {0} opened successfully, pool #{1} length: {2}",
+            HostConnectionPool.Logger.Info("Connection to {0} opened successfully, pool #{1} length: {2}",
                 _host.Address, GetHashCode(), newLength);
 
             if (IsClosing)
             {
                 // We haven't use a CAS operation, so it's possible that the pool is being closed while adding a new
                 // connection, we should remove it.
-                Logger.Info("Connection to {0} opened successfully and added to the pool #{1} but it was being closed",
+                HostConnectionPool.Logger.Info("Connection to {0} opened successfully and added to the pool #{1} but it was being closed",
                     _host.Address, GetHashCode());
                 _connections.Remove(c);
                 c.Dispose();
-                return await FinishOpen(tcs, false, GetNotConnectedException()).ConfigureAwait(false);
+                return await FinishOpen(tcs, false, HostConnectionPool.GetNotConnectedException()).ConfigureAwait(false);
             }
 
             return await FinishOpen(tcs, true, null, c).ConfigureAwait(false);
@@ -728,7 +720,7 @@ namespace Dse
             if (IsClosing || !_host.IsUp)
             {
                 // Should have not been considered as UP
-                throw GetNotConnectedException();
+                throw HostConnectionPool.GetNotConnectedException();
             }
             if (!_canCreateForeground)
             {
@@ -739,7 +731,7 @@ namespace Dse
                     return connections;
                 }
                 // It's not considered as connected
-                throw GetNotConnectedException();
+                throw HostConnectionPool.GetNotConnectedException();
             }
             IConnection c;
             try
