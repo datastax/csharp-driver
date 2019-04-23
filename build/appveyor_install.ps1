@@ -130,8 +130,6 @@ If (!(Test-Path C:\Users\appveyor\.ccm\repository\$env:cassandra_version)) {
   Write-Host "Cassandra $env:cassandra_version was already preloaded"
 }
 
-choco install -y xmlstarlet
-
 #Download simulacron jar
 $simulacron_path = "$($dep_dir)\simulacron.jar"
 If (!(Test-Path $simulacron_path)) {

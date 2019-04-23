@@ -79,7 +79,7 @@ build:
           dotnet restore src
 
           # Run the tests
-          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f $DOTNET_VERSION -c Release --filter "(TestCategory!=long)&(TestCategory!=memory)&(TestCategory=schema_tests)" --logger "nunit;LogFilePath=../../../TestResult.xml" || error=true
+          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f $DOTNET_VERSION -c Release --filter "(TestCategory!=long)&(TestCategory!=memory)&(TestCategory=schema_tests)" --logger "nunit;LogFilePath=../../TestResult.xml" || error=true
                     
           #Fail the build if there was an error
           if [ $error ]
