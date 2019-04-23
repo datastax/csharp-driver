@@ -82,7 +82,7 @@ build:
           # Run the tests
           echo "==========RUNNING FULL SUITE OF TESTS=========="
           mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Dse.Test.Integration/bin/Release/net452/Dse.Test.Integration.dll --where "cat != long && cat != memory" --labels=All --result:"TestResult.xml" || error=true
-		            
+          
           #Fail the build if there was an error
           if [ $error ]
           then 
@@ -99,7 +99,7 @@ build:
           # Run the tests
           echo "==========RUNNING FULL SUITE OF TESTS=========="
           dotnet test src/Dse.Test.Integration/Dse.Test.Integration.csproj -f $DOTNET_VERSION -c Release --filter "(TestCategory!=long)&(TestCategory!=memory)" --logger "nunit;LogFilePath=../../TestResult.xml"  || error=true
-		            
+          
           #Fail the build if there was an error
           if [ $error ]
           then 

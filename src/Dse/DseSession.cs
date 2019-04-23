@@ -85,16 +85,6 @@ namespace Dse
             _coreSession.OnAllConnectionClosed(host, pool);
         }
 
-        public void MarkAsDownAndScheduleReconnection(Host host, HostConnectionPool pool)
-        {
-            _coreSession.MarkAsDownAndScheduleReconnection(host, pool);
-        }
-
-        public void OnAllConnectionClosed(Host host, HostConnectionPool pool)
-        {
-            _coreSession.OnAllConnectionClosed(host, pool);
-        }
-
         string IInternalSession.Keyspace
         {
             get => _coreSession.Keyspace;
