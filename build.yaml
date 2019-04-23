@@ -45,13 +45,8 @@ build:
 
       echo "========== Copying ssl files to $HOME/ssl =========="
       cp -r /home/jenkins/ccm/ssl $HOME/ssl
-
-      # Download and uncompress saxon
-      mkdir saxon
-      curl -L -o saxon/SaxonHE9-8-0-12J.zip https://downloads.sourceforge.net/project/saxon/Saxon-HE/9.8/SaxonHE9-8-0-12J.zip
-      unzip saxon/SaxonHE9-8-0-12J.zip -d saxon
  
-      if [ $DOTNET_VERSION = 'mono' ]; then
+      if [ $DOTNET_VERSION = 'mono' ]; then      
           echo "========== Starting Mono Build =========="
           mono --version
           # Define alias for Nuget
@@ -68,10 +63,8 @@ build:
           msbuild /p:Configuration=Release /v:m /p:DynamicConstants=LINUX src/Cassandra.sln
 
           # Run the tests
-          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net452/Cassandra.IntegrationTests.dll --where "cat != long && cat != memory" --labels=All --result:"TestResult_nunit3.xml" || error=true
-          
-          java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_nunit3.xml tools/nunit3-xunit.xslt
-          
+          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net452/Cassandra.IntegrationTests.dll --where "cat != long && cat != memory" --labels=All --result:"TestResult.xml" || error=true
+                    
           #Fail the build if there was an error
           if [ $error ]
           then 
@@ -86,10 +79,8 @@ build:
           dotnet restore src
 
           # Run the tests
-          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f $DOTNET_VERSION -c Release --filter "(TestCategory!=long)&(TestCategory!=memory)" --logger "trx;LogFileName=../../../TestResult_trx.xml" || error=true
-          
-          java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_trx.xml tools/trx-to-junit.xslt
-          
+          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -f $DOTNET_VERSION -c Release --filter "(TestCategory!=long)&(TestCategory!=memory)" --logger "nunit;LogFilePath=../../TestResult.xml" || error=true
+                    
           #Fail the build if there was an error
           if [ $error ]
           then 
@@ -97,6 +88,6 @@ build:
           fi
       fi
 
-  - xunit:
+  - nunit:
     - "TestResult.xml"
 

@@ -10,7 +10,7 @@
 
     using NUnit.Framework;
 
-    [TestFixture, Category("short")]
+    [TestFixture, Category("short"), Category("schema_tests")]
     public class SchemaAgreementSimulacronTests
     {
         private const int MaxSchemaAgreementWaitSeconds = 10;
