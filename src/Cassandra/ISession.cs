@@ -139,6 +139,7 @@ namespace Cassandra
         
         /// <summary>
         /// Executes the provided statement with the provided execution profile.
+        /// The execution profile must have been added previously to the Cluster using <see cref="Builder.WithExecutionProfiles"/>.
         /// </summary>
         /// <param name="statement">Statement to execute.</param>
         /// <param name="executionProfileName">ExecutionProfile name to be used while executing the statement.</param>
@@ -156,6 +157,7 @@ namespace Cassandra
         
         /// <summary>
         /// Executes the provided query with the provided execution profile.
+        /// The execution profile must have been added previously to the Cluster using <see cref="Builder.WithExecutionProfiles"/>.
         /// </summary>
         /// <param name="cqlQuery">Query to execute.</param>
         /// <param name="executionProfileName">ExecutionProfile name to be used while executing the statement.</param>
@@ -180,6 +182,7 @@ namespace Cassandra
 
         /// <summary>
         /// Executes a query asynchronously with the provided execution profile.
+        /// The execution profile must have been added previously to the Cluster using <see cref="Builder.WithExecutionProfiles"/>.
         /// </summary>
         /// <param name="statement">The statement to execute (simple, bound or batch statement)</param>
         /// <param name="executionProfileName">ExecutionProfile name to be used while executing the statement.</param>
