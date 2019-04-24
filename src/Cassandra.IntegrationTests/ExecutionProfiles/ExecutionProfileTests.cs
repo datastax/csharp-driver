@@ -45,27 +45,21 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         [TestCase(false)]
         public void Should_UseDerivedProfileConsistency_When_DerivedProfileIsProvided(bool async)
         {
-            var writeProfile =
-                Builder.ExecutionProfileBuilder()
-                                .WithLoadBalancingPolicy(new RoundRobinPolicy())
-                                .WithConsistencyLevel(ConsistencyLevel.All)
-                                .Build();
-            var readProfile =
-                Builder.ExecutionProfileBuilder()
-                                .WithConsistencyLevel(ConsistencyLevel.Two)
-                                .Build();
             var cluster =
                 Cluster.Builder()
                        .AddContactPoint(_simulacron.InitialContactPoint)
                        .WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.One))
                        .WithExecutionProfiles(opts => opts
-                           .WithProfile("write", writeProfile)
-                           .WithDerivedProfile("read", "write", readProfile))
+                          .WithProfile("write", profile => profile
+                            .WithLoadBalancingPolicy(new RoundRobinPolicy())
+                            .WithConsistencyLevel(ConsistencyLevel.All))
+                          .WithDerivedProfile("read", "write", derivedProfile => derivedProfile
+                            .WithConsistencyLevel(ConsistencyLevel.Two)))
                        .Build();
             var session = cluster.Connect();
             var primeQuery = new
             {
-                when = new { query = "SELECT * from test.test", consistency_level = new[] { "ALL" } },
+                when = new { query = "SELECT * from test.test", consistency_level = new[] { "TWO" } },
                 then = new
                 {
                     result = "unavailable",
@@ -80,8 +74,8 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
             _simulacron.Prime(primeQuery);
 
             var exception = async
-                ? Assert.ThrowsAsync<UnavailableException>(() => session.ExecuteAsync(new SimpleStatement("SELECT * from test.test"), "write"))
-                : Assert.Throws<UnavailableException>(() => session.Execute("SELECT * from test.test", "write"));
+                ? Assert.ThrowsAsync<UnavailableException>(() => session.ExecuteAsync(new SimpleStatement("SELECT * from test.test"), "read"))
+                : Assert.Throws<UnavailableException>(() => session.Execute("SELECT * from test.test", "read"));
         }
 
         [Test]
@@ -89,22 +83,16 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         [TestCase(false)]
         public async Task Should_UseProfileConsistency_When_ProfileIsProvided(bool async)
         {
-            var writeProfile =
-                Builder.ExecutionProfileBuilder()
-                                .WithLoadBalancingPolicy(new RoundRobinPolicy())
-                                .WithConsistencyLevel(ConsistencyLevel.All)
-                                .Build();
-            var readProfile =
-                Builder.ExecutionProfileBuilder()
-                                .WithConsistencyLevel(ConsistencyLevel.Two)
-                                .Build();
             var cluster =
                 Cluster.Builder()
                        .AddContactPoint(_simulacron.InitialContactPoint)
                        .WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.One))
                        .WithExecutionProfiles(opts => opts
-                           .WithProfile("write", writeProfile)
-                           .WithDerivedProfile("read", "write", readProfile))
+                           .WithProfile("write", profile => profile
+                                .WithLoadBalancingPolicy(new RoundRobinPolicy())
+                                .WithConsistencyLevel(ConsistencyLevel.All))
+                           .WithDerivedProfile("read", "write", derivedProfile => derivedProfile
+                                .WithConsistencyLevel(ConsistencyLevel.Two)))
                        .Build();
             var session = cluster.Connect();
             var primeQuery = new
@@ -135,22 +123,16 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         [TestCase(false)]
         public async Task Should_UseClusterConsistency_When_ProfileIsNotProvided(bool async)
         {
-            var writeProfile =
-                Builder.ExecutionProfileBuilder()
-                                .WithLoadBalancingPolicy(new RoundRobinPolicy())
-                                .WithConsistencyLevel(ConsistencyLevel.All)
-                                .Build();
-            var readProfile =
-                Builder.ExecutionProfileBuilder()
-                                .WithConsistencyLevel(ConsistencyLevel.Two)
-                                .Build();
             var cluster =
                 Cluster.Builder()
                        .AddContactPoint(_simulacron.InitialContactPoint)
                        .WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.One))
                        .WithExecutionProfiles(opts => opts
-                           .WithProfile("write", writeProfile)
-                           .WithDerivedProfile("read", "write", readProfile))
+                          .WithProfile("write", profile => profile
+                                .WithLoadBalancingPolicy(new RoundRobinPolicy())
+                                .WithConsistencyLevel(ConsistencyLevel.All))
+                          .WithDerivedProfile("read", "write", derivedProfile => derivedProfile
+                                .WithConsistencyLevel(ConsistencyLevel.Two)))
                        .Build();
             var session = cluster.Connect();
 

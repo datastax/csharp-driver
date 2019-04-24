@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 
 using Cassandra.Connections;
+using Cassandra.ExecutionProfiles;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -47,12 +48,11 @@ namespace Cassandra.Tests.ExecutionProfiles
                 HostConnectionPoolFactory = hostConnectionPoolFactoryMock,
                 ExecutionProfiles = new Dictionary<string, IExecutionProfile>
                 {
-                    { "testE", Builder
-                               .ExecutionProfileBuilder()
+                    { "testE", new ExecutionProfileBuilder()
                                .WithConsistencyLevel(ConsistencyLevel.EachQuorum)
                                .WithReadTimeoutMillis(1)
                                .Build() },
-                    { "testE2", Builder.ExecutionProfileBuilder().Build() }
+                    { "testE2", new ExecutionProfileBuilder().Build() }
                 },
                 QueryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalSerial),
                 SocketOptions = new SocketOptions().SetReadTimeoutMillis(60000)
@@ -93,12 +93,11 @@ namespace Cassandra.Tests.ExecutionProfiles
                 HostConnectionPoolFactory = hostConnectionPoolFactoryMock,
                 ExecutionProfiles = new Dictionary<string, IExecutionProfile>
                 {
-                    { "testE", Builder
-                               .ExecutionProfileBuilder()
+                    { "testE", new ExecutionProfileBuilder()
                                .WithConsistencyLevel(ConsistencyLevel.EachQuorum)
                                .WithReadTimeoutMillis(1)
                                .Build() },
-                    { "testE2", Builder.ExecutionProfileBuilder().Build() }
+                    { "testE2", new ExecutionProfileBuilder().Build() }
                 },
                 QueryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalSerial),
                 SocketOptions = new SocketOptions().SetReadTimeoutMillis(60000)

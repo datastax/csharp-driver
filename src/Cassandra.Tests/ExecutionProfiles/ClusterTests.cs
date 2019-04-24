@@ -33,7 +33,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             var lbps = Enumerable.Range(1, 3).Select(i => new FakeLoadBalancingPolicy()).ToArray();
             var seps = Enumerable.Range(1, 3).Select(i => new FakeSpeculativeExecutionPolicy()).ToArray();
             var profile1 =
-                Builder.ExecutionProfileBuilder()
+                new ExecutionProfileBuilder()
                                 .WithSpeculativeExecutionPolicy(seps[1])
                                 .WithLoadBalancingPolicy(lbps[1])
                                 .Build();
@@ -52,24 +52,24 @@ namespace Cassandra.Tests.ExecutionProfiles
                     { "profile1", profile1 },
                     {
                         "profile2",
-                        Builder.ExecutionProfileBuilder()
+                        new ExecutionProfileBuilder()
                                         .WithSpeculativeExecutionPolicy(seps[2])
                                         .Build()
                     },
                     {
                         "profile3",
-                        Builder.ExecutionProfileBuilder()
+                        new ExecutionProfileBuilder()
                                         .WithLoadBalancingPolicy(lbps[2])
                                         .Build()
                     },
                     {
                         "profile4",
-                        Builder.ExecutionProfileBuilder()
+                        new ExecutionProfileBuilder()
                                         .Build()
                     },
                     {
                         "profile5",
-                        new ExecutionProfile(profile1, Builder.ExecutionProfileBuilder().Build())
+                        new ExecutionProfile(profile1, new ExecutionProfileBuilder().Build())
                     }
                 }
             }.Build();
@@ -125,7 +125,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             var lbps = Enumerable.Range(1, 2).Select(i => new FakeLoadBalancingPolicy()).ToArray();
             var seps = Enumerable.Range(1, 2).Select(i => new FakeSpeculativeExecutionPolicy()).ToArray();
             var profile1 =
-                Builder.ExecutionProfileBuilder()
+                new ExecutionProfileBuilder()
                                 .WithSpeculativeExecutionPolicy(seps[1])
                                 .WithLoadBalancingPolicy(lbps[1])
                                 .Build();
@@ -144,18 +144,18 @@ namespace Cassandra.Tests.ExecutionProfiles
                     { "profile1", profile1 },
                     {
                         "profile2",
-                        Builder.ExecutionProfileBuilder()
+                        new ExecutionProfileBuilder()
                                         .WithSpeculativeExecutionPolicy(seps[1])
                                         .Build()
                     },
                     {
                         "profile4",
-                        Builder.ExecutionProfileBuilder()
+                        new ExecutionProfileBuilder()
                                         .Build()
                     },
                     {
                         "profile5",
-                        new ExecutionProfile(profile1, Builder.ExecutionProfileBuilder().Build())
+                        new ExecutionProfile(profile1, new ExecutionProfileBuilder().Build())
                     }
                 }
             }.Build();
