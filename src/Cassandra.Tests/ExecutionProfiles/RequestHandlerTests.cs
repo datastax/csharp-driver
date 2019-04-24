@@ -52,7 +52,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             var sep = new FakeSpeculativeExecutionPolicy();
             var rp = new FakeRetryPolicy();
             var rpStatement = new FakeRetryPolicy();
-            var profile = ExecutionProfile.Builder()
+            var profile = Builder.ExecutionProfileBuilder()
                                           .WithConsistencyLevel(ConsistencyLevel.All)
                                           .WithSerialConsistencyLevel(ConsistencyLevel.Serial)
                                           .WithReadTimeoutMillis(50)
@@ -112,7 +112,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             var lbp = new FakeLoadBalancingPolicy();
             var sep = new FakeSpeculativeExecutionPolicy();
             var rp = new FakeRetryPolicy();
-            var profile = ExecutionProfile.Builder()
+            var profile = Builder.ExecutionProfileBuilder()
                                           .WithConsistencyLevel(ConsistencyLevel.All)
                                           .WithSerialConsistencyLevel(ConsistencyLevel.Serial)
                                           .WithReadTimeoutMillis(50)
@@ -289,7 +289,7 @@ namespace Cassandra.Tests.ExecutionProfiles
         private RequestHandlerMockResult BuildRequestHandler(
             IStatement statement,
             Action<TestConfigurationBuilder> configBuilderAct,
-            ExecutionProfile profile)
+            IExecutionProfile profile)
         {
             var cts = new CancellationTokenSource();
             var connection = Mock.Of<IConnection>();

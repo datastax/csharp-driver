@@ -434,7 +434,7 @@ namespace Cassandra.IntegrationTests.Core
                 new DefaultAddressTranslator(),
                 new StartupOptionsFactory(),
                 new SessionFactoryBuilder(),
-                new Dictionary<string, ExecutionProfile>());
+                new Dictionary<string, IExecutionProfile>());
             using (var connection = CreateConnection(GetProtocolVersion(), config))
             {
                 var ex = Assert.Throws<AggregateException>(() => connection.Open().Wait(10000));
@@ -630,7 +630,7 @@ namespace Cassandra.IntegrationTests.Core
                 new DefaultAddressTranslator(),
                 new StartupOptionsFactory(),
                 new SessionFactoryBuilder(),
-                new Dictionary<string, ExecutionProfile>());
+                new Dictionary<string, IExecutionProfile>());
             using (var connection = new Connection(new Serializer(GetProtocolVersion()), new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042), config))
             {
                 var ex = Assert.Throws<SocketException>(() => TaskHelper.WaitToComplete(connection.Open()));
@@ -835,7 +835,7 @@ namespace Cassandra.IntegrationTests.Core
                 new DefaultAddressTranslator(),
                 new StartupOptionsFactory(),
                 new SessionFactoryBuilder(),
-                new Dictionary<string, ExecutionProfile>());
+                new Dictionary<string, IExecutionProfile>());
             return CreateConnection(GetProtocolVersion(), config);
         }
 

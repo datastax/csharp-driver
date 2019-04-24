@@ -116,6 +116,10 @@ namespace Cassandra
         
         internal IControlConnectionFactory ControlConnectionFactory { get; }
         
+        /// <summary>
+        /// The key is the execution profile name and the value is the IRequestOptions instance
+        /// built from the execution profile with that key.
+        /// </summary>
         internal IReadOnlyDictionary<string, IRequestOptions> RequestOptions { get; }
 
         internal IRequestOptions DefaultRequestOptions { get; }
@@ -132,7 +136,7 @@ namespace Cassandra
                  new DefaultAddressTranslator(),
                  new StartupOptionsFactory(),
                  new SessionFactoryBuilder(),
-                 new Dictionary<string, ExecutionProfile>())
+                 new Dictionary<string, IExecutionProfile>())
         {
         }
 
@@ -151,7 +155,7 @@ namespace Cassandra
                                IAddressTranslator addressTranslator,
                                IStartupOptionsFactory startupOptionsFactory,
                                ISessionFactoryBuilder<IInternalCluster, IInternalSession> sessionFactoryBuilder,
-                               IReadOnlyDictionary<string, ExecutionProfile> executionProfiles,
+                               IReadOnlyDictionary<string, IExecutionProfile> executionProfiles,
                                IRequestHandlerFactory requestHandlerFactory = null,
                                IHostConnectionPoolFactory hostConnectionPoolFactory = null,
                                IRequestExecutionFactory requestExecutionFactory = null,
@@ -178,7 +182,7 @@ namespace Cassandra
 
 
             RequestOptions = 
-                executionProfiles.ToDictionary<KeyValuePair<string, ExecutionProfile>, string, IRequestOptions>(
+                executionProfiles.ToDictionary<KeyValuePair<string, IExecutionProfile>, string, IRequestOptions>(
                     kvp => kvp.Key, 
                     kvp => new RequestOptions(kvp.Value, policies, socketOptions, queryOptions, clientOptions));
             DefaultRequestOptions = new RequestOptions(null, policies, socketOptions, queryOptions, clientOptions);

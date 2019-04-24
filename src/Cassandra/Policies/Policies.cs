@@ -62,7 +62,7 @@ namespace Cassandra
         /// <summary>
         ///  The default extended retry policy.The default extended retry policy is <see cref="Cassandra.DefaultRetryPolicy"/>
         /// </summary>
-        public static IExtendedRetryPolicy DefaultExtendedRetryPolicy
+        internal static IExtendedRetryPolicy DefaultExtendedRetryPolicy
         {
             get
             {

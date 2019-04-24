@@ -16,20 +16,64 @@
 
 namespace Cassandra
 {
+    /// <summary>
+    /// Builder class that offers a fluent API to build execution profile instances.
+    /// The driver provides a default implementation of this interface with the method <see cref="Builder.ExecutionProfileBuilder"/>.
+    /// </summary>
     public interface IExecutionProfileBuilder
     {
+        /// <summary>
+        /// Sets the load balancing policy.
+        /// See <see cref="Builder.WithLoadBalancingPolicy"/> and <see cref="ILoadBalancingPolicy"/>
+        /// for additional context on this setting.
+        /// </summary>
+        /// <returns>This builder.</returns>
         IExecutionProfileBuilder WithLoadBalancingPolicy(ILoadBalancingPolicy loadBalancingPolicy);
-
+        
+        /// <summary>
+        /// Sets the retry policy.
+        /// See <see cref="Builder.WithRetryPolicy"/>, <see cref="IRetryPolicy"/> and <see cref="IRetryPolicy"/>
+        /// for additional context on this setting.
+        /// </summary>
+        /// <returns>This builder.</returns>
         IExecutionProfileBuilder WithRetryPolicy(IExtendedRetryPolicy retryPolicy);
-
+        
+        /// <summary>
+        /// Sets the speculative execution policy. 
+        /// See <see cref="Builder.WithSpeculativeExecutionPolicy"/> and <see cref="ISpeculativeExecutionPolicy"/>
+        /// for additional context on this setting.
+        /// </summary>
+        /// <returns>This builder.</returns>
         IExecutionProfileBuilder WithSpeculativeExecutionPolicy(ISpeculativeExecutionPolicy speculativeExecutionPolicy);
-
+        
+        /// <summary>
+        /// Sets the <code>SerialConsistencyLevel</code> setting.
+        /// See <see cref="QueryOptions.SetConsistencyLevel"/>, <see cref="QueryOptions.GetConsistencyLevel"/> and
+        /// <see cref="ConsistencyLevel"/> for additional context on this setting.
+        /// </summary>
+        /// <returns>This builder.</returns>
         IExecutionProfileBuilder WithConsistencyLevel(ConsistencyLevel consistencyLevel);
-
+        
+        /// <summary>
+        /// Sets the <code>SerialConsistencyLevel</code> setting.
+        /// See <see cref="QueryOptions.SetSerialConsistencyLevel"/> and <see cref="QueryOptions.GetSerialConsistencyLevel"/> and
+        /// <see cref="ConsistencyLevel"/> for additional context on this setting.
+        /// </summary>
+        /// <returns>This builder.</returns>
         IExecutionProfileBuilder WithSerialConsistencyLevel(ConsistencyLevel serialConsistencyLevel);
-
+        
+        /// <summary>
+        /// Sets the <code>ReadTimeoutMillis</code> setting.
+        /// See <see cref="SocketOptions.SetReadTimeoutMillis"/> and <see cref="SocketOptions.ReadTimeoutMillis"/>
+        /// for a description of this setting.
+        /// </summary>
+        /// <returns>This builder.</returns>
         IExecutionProfileBuilder WithReadTimeoutMillis(int readTimeoutMillis);
-
-        ExecutionProfile Build();
+        
+        /// <summary>
+        /// Build a new execution profile instance that is configured with the options that were set with this builder.
+        /// </summary>
+        /// <returns>The new execution profile instance.</returns>
+        IExecutionProfile Build();
     }
 }

@@ -58,7 +58,7 @@ namespace Cassandra
         private int _maxSchemaAgreementWaitSeconds = ProtocolOptions.DefaultMaxSchemaAgreementWaitSeconds;
         private IStartupOptionsFactory _startupOptionsFactory = new StartupOptionsFactory();
         private ISessionFactoryBuilder<IInternalCluster, IInternalSession> _sessionFactoryBuilder = new SessionFactoryBuilder();
-        private IReadOnlyDictionary<string, ExecutionProfile> _profiles = new Dictionary<string, ExecutionProfile>();
+        private IReadOnlyDictionary<string, IExecutionProfile> _profiles = new Dictionary<string, IExecutionProfile>();
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -678,25 +678,50 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Adds Execution Profiles to the Cluster instance.
-        /// </summary>
-        /// <example>
-        /// <code> 
-        ///  Cluster.Builder()
-        ///         .WithExecutionProfiles(options => options
-        ///             .WithProfile(
-        ///                 "profile1",
-        ///                 profileBuilder => profileBuilder
-        ///                     .WithReadTimeoutMillis(2000)
-        ///                     .WithConsistencyLevel(ConsistencyLevel.LocalQuorum))
-        ///             .WithDerivedProfile(
-        ///                 "profile2",
-        ///                 "profile1",                 
-        ///                 profileBuilder => profileBuilder
-        ///                     .WithConsistencyLevel(ConsistencyLevel.LocalOne)))
-        ///         .Build();
+        /// <para>
+        /// Adds Execution Profiles to the Cluster instance. 
+        /// </para>
+        /// <para>
+        /// Execution profiles are like configuration presets, multiple methods
+        /// of the driver accept an execution profile name which is like telling the driver which settings to use for that particular request.
+        /// This makes it easier to change settings like ConsistencyLevel and ReadTimeoutMillis on a per request basis.
+        /// </para>
+        /// <para>
+        /// Note that subsequent calls to this method will override the previously provided profiles.
+        /// </para>
+        /// <para>
+        /// You can manually create Execution Profile instances and add them to this Cluster Builder with
+        /// <see cref="IExecutionProfileOptions.WithProfile(string,IExecutionProfile)"/>:
+        /// </para>
+        /// <para>
+        /// <code>
+        ///         var profile1 =
+        ///             Cluster.Builder.ExecutionProfileBuilder()
+        ///                 .WithReadTimeoutMillis(10000)
+        ///                 .WithConsistencyLevel(ConsistencyLevel.LocalQuorum)
+        ///                 .Build(); 
+        ///         Cluster.Builder()
+        ///                 .WithExecutionProfiles(options => options
+        ///                     .WithProfile("profile1", profile1))
+        ///                 .Build()
         /// </code>
-        /// </example>
+        /// </para>
+        /// <para>
+        /// Alternatively you can use
+        /// <see cref="IExecutionProfileOptions.WithProfile(string,Action{IExecutionProfileBuilder})"/> to interact with a driver provided
+        /// builder in a fluent manner and avoid managing execution profile instances:
+        /// </para>
+        /// <para>
+        /// <code>
+        ///         Cluster.Builder()
+        ///                 .WithExecutionProfiles(options => options
+        ///                     .WithProfile("profile1", profileBuilder => profileBuilder
+        ///                         .WithReadTimeoutMillis(10000)
+        ///                         .WithConsistencyLevel(ConsistencyLevel.LocalQuorum)))
+        ///                 .Build()
+        /// </code>
+        /// </para>
+        /// </summary>
         /// <param name="profileOptionsBuilder"></param>
         /// <returns></returns>
         public Builder WithExecutionProfiles(Action<IExecutionProfileOptions> profileOptionsBuilder)
@@ -706,7 +731,7 @@ namespace Cassandra
             _profiles = profileOptions.GetProfiles();
             return this;
         }
-
+        
         /// <summary>
         ///  Build the cluster with the configured set of initial contact points and policies.
         /// </summary>
@@ -716,6 +741,20 @@ namespace Cassandra
         public Cluster Build()
         {
             return Cluster.BuildFrom(this, _hostNames);
+        }
+        
+        /// <summary>
+        /// <para>
+        /// Get a new fluent builder instance to build execution profiles. See <see cref="IExecutionProfileBuilder"/>
+        /// for more information.
+        /// </para>
+        /// <para>
+        /// Also see the documentation of <see cref="WithExecutionProfiles"/> for an example of how to create and add execution profiles.
+        /// </para>
+        /// </summary>
+        public static IExecutionProfileBuilder ExecutionProfileBuilder()
+        {
+            return new ExecutionProfileBuilder();
         }
     }
 }

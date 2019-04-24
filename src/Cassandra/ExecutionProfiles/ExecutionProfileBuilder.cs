@@ -63,7 +63,7 @@ namespace Cassandra.ExecutionProfiles
             return this;
         }
 
-        public ExecutionProfile Build()
+        public IExecutionProfile Build()
         {
             return new ExecutionProfile(
                 _consistencyLevel,

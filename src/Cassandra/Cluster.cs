@@ -436,7 +436,7 @@ namespace Cassandra
 
         private void OnHostUp(Host h)
         {
-            if (!Configuration.DefaultRequestOptions.ReprepareOnUp)
+            if (!Configuration.QueryOptions.IsReprepareOnUp())
             {
                 return;
             }
@@ -488,7 +488,19 @@ namespace Cassandra
             _metadata.ShutDown(timeoutMs);
             _controlConnection.Dispose();
             Configuration.Timer.Dispose();
-            Configuration.DefaultRequestOptions.SpeculativeExecutionPolicy.Dispose();
+            
+            var disposedPolicies = new List<object>();
+            var optionsWithPoliciesToDispose =
+                Configuration.RequestOptions.Values.Concat(new List<IRequestOptions> { Configuration.DefaultRequestOptions });
+            foreach (var options in optionsWithPoliciesToDispose)
+            {
+                if (disposedPolicies.All(policy => !ReferenceEquals(options.SpeculativeExecutionPolicy, policy)))
+                {
+                    disposedPolicies.Add(options.SpeculativeExecutionPolicy);
+                    options.SpeculativeExecutionPolicy.Dispose();
+                }
+            }
+
             _logger.Info("Cluster [" + _metadata.ClusterName + "] has been shut down.");
         }
 

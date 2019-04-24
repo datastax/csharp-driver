@@ -14,6 +14,7 @@
 //    limitations under the License.
 // 
 
+using Cassandra.ExecutionProfiles;
 using NUnit.Framework;
 
 namespace Cassandra.Tests.ExecutionProfiles
@@ -27,7 +28,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             var lbp = new RoundRobinPolicy();
             var sep = new ConstantSpeculativeExecutionPolicy(1000, 1);
             var rp = new LoggingRetryPolicy(new DefaultRetryPolicy());
-            var baseProfile = ExecutionProfile.Builder()
+            var baseProfile = Builder.ExecutionProfileBuilder()
                                               .WithLoadBalancingPolicy(lbp)
                                               .WithSpeculativeExecutionPolicy(sep)
                                               .WithSerialConsistencyLevel(ConsistencyLevel.LocalSerial)
@@ -36,7 +37,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                                               .WithRetryPolicy(rp)
                                               .Build();
 
-            var profile = new ExecutionProfile(baseProfile, ExecutionProfile.Builder().Build());
+            var profile = new ExecutionProfile(baseProfile, Builder.ExecutionProfileBuilder().Build());
 
             Assert.AreSame(lbp, profile.LoadBalancingPolicy);
             Assert.AreSame(sep, profile.SpeculativeExecutionPolicy);
@@ -55,7 +56,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             var sepProfile = new ConstantSpeculativeExecutionPolicy(200, 50);
             var lbpProfile = new TokenAwarePolicy(new DCAwareRoundRobinPolicy());
             var rpProfile = new LoggingRetryPolicy(new IdempotenceAwareRetryPolicy(new DefaultRetryPolicy()));
-            var baseProfile = ExecutionProfile.Builder()
+            var baseProfile = Builder.ExecutionProfileBuilder()
                                               .WithLoadBalancingPolicy(lbp)
                                               .WithSpeculativeExecutionPolicy(sep)
                                               .WithSerialConsistencyLevel(ConsistencyLevel.LocalSerial)
@@ -65,7 +66,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                                               .Build();
 
             
-            var derivedProfile = ExecutionProfile.Builder()
+            var derivedProfile = Builder.ExecutionProfileBuilder()
                                           .WithLoadBalancingPolicy(lbpProfile)
                                           .WithSpeculativeExecutionPolicy(sepProfile)
                                           .WithSerialConsistencyLevel(ConsistencyLevel.Serial)

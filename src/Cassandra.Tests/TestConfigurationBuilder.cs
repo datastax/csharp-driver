@@ -45,7 +45,7 @@ namespace Cassandra.Tests
 
         public ISessionFactoryBuilder<IInternalCluster, IInternalSession> SessionFactoryBuilder { get; set; } = new SessionFactoryBuilder();
 
-        public IReadOnlyDictionary<string, ExecutionProfile> ExecutionProfiles { get; set; } = new Dictionary<string, ExecutionProfile>();
+        public IReadOnlyDictionary<string, IExecutionProfile> ExecutionProfiles { get; set; } = new Dictionary<string, IExecutionProfile>();
 
         public IRequestHandlerFactory RequestHandlerFactory { get; set; } = new RequestHandlerFactory();
 

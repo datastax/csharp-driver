@@ -26,7 +26,7 @@ namespace Cassandra.ExecutionProfiles
     /// </summary>
     internal class RequestOptions : IRequestOptions
     {
-        private readonly ExecutionProfile _profile;
+        private readonly IExecutionProfile _profile;
         private readonly Policies _policies;
         private readonly SocketOptions _socketOptions;
         private readonly QueryOptions _queryOptions;
@@ -40,7 +40,7 @@ namespace Cassandra.ExecutionProfiles
         /// <param name="socketOptions">Must not be null.</param>
         /// <param name="queryOptions">Must not be null.</param>
         /// <param name="clientOptions">Must not be null.</param>
-        public RequestOptions(ExecutionProfile profile, Policies policies, SocketOptions socketOptions, QueryOptions queryOptions, ClientOptions clientOptions)
+        public RequestOptions(IExecutionProfile profile, Policies policies, SocketOptions socketOptions, QueryOptions queryOptions, ClientOptions clientOptions)
         {
             _profile = profile;
             _policies = policies ?? throw new ArgumentNullException(nameof(policies));
@@ -85,10 +85,6 @@ namespace Cassandra.ExecutionProfiles
         public bool DefaultIdempotence => _queryOptions.GetDefaultIdempotence();
 
         public int QueryAbortTimeout => _clientOptions.QueryAbortTimeout;
-
-        public bool PrepareOnAllHosts => _queryOptions.IsPrepareOnAllHosts();
-
-        public bool ReprepareOnUp => _queryOptions.IsReprepareOnUp();
 
         /// <inheritdoc />
         public ConsistencyLevel GetSerialConsistencyLevelOrDefault(IStatement statement)

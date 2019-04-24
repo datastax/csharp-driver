@@ -46,12 +46,12 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         public void Should_UseDerivedProfileConsistency_When_DerivedProfileIsProvided(bool async)
         {
             var writeProfile =
-                ExecutionProfile.Builder()
+                Builder.ExecutionProfileBuilder()
                                 .WithLoadBalancingPolicy(new RoundRobinPolicy())
                                 .WithConsistencyLevel(ConsistencyLevel.All)
                                 .Build();
             var readProfile =
-                ExecutionProfile.Builder()
+                Builder.ExecutionProfileBuilder()
                                 .WithConsistencyLevel(ConsistencyLevel.Two)
                                 .Build();
             var cluster =
@@ -90,12 +90,12 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         public async Task Should_UseProfileConsistency_When_ProfileIsProvided(bool async)
         {
             var writeProfile =
-                ExecutionProfile.Builder()
+                Builder.ExecutionProfileBuilder()
                                 .WithLoadBalancingPolicy(new RoundRobinPolicy())
                                 .WithConsistencyLevel(ConsistencyLevel.All)
                                 .Build();
             var readProfile =
-                ExecutionProfile.Builder()
+                Builder.ExecutionProfileBuilder()
                                 .WithConsistencyLevel(ConsistencyLevel.Two)
                                 .Build();
             var cluster =
@@ -136,12 +136,12 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         public async Task Should_UseClusterConsistency_When_ProfileIsNotProvided(bool async)
         {
             var writeProfile =
-                ExecutionProfile.Builder()
+                Builder.ExecutionProfileBuilder()
                                 .WithLoadBalancingPolicy(new RoundRobinPolicy())
                                 .WithConsistencyLevel(ConsistencyLevel.All)
                                 .Build();
             var readProfile =
-                ExecutionProfile.Builder()
+                Builder.ExecutionProfileBuilder()
                                 .WithConsistencyLevel(ConsistencyLevel.Two)
                                 .Build();
             var cluster =
