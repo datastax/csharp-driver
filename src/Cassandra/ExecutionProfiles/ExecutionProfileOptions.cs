@@ -36,22 +36,32 @@ namespace Cassandra.ExecutionProfiles
             return WithDerivedProfile(name, baseProfile, BuildProfile(profileBuildAction));
         }
 
-        public IExecutionProfileOptions WithProfile(string name, IExecutionProfile profile)
+        private IExecutionProfileOptions WithProfile(string name, IExecutionProfile profile)
         {
             if (name == null)
             {
                 throw new ArgumentNullException(nameof(name));
+            }
+            
+            if (_profiles.ContainsKey(name))
+            {
+                throw new ArgumentException("There is already an execution profile with that name.");
             }
 
             _profiles[name] = profile ?? throw new ArgumentNullException(nameof(profile));
             return this;
         }
 
-        public IExecutionProfileOptions WithDerivedProfile(string name, string baseProfile, IExecutionProfile profile)
+        private IExecutionProfileOptions WithDerivedProfile(string name, string baseProfile, IExecutionProfile profile)
         {
             if (name == null)
             {
                 throw new ArgumentNullException(nameof(name));
+            }
+            
+            if (_profiles.ContainsKey(name))
+            {
+                throw new ArgumentException("There is already an execution profile with that name.");
             }
             
             if (profile == null)
@@ -66,7 +76,7 @@ namespace Cassandra.ExecutionProfiles
 
             if (!_profiles.TryGetValue(baseProfile, out var baseProfileInstance))
             {
-                throw new ArgumentException("Base Execution Profile must be added before the derived profile.");
+                throw new ArgumentException("The base Execution Profile must be added before the derived Execution Profile.");
             }
             
             _profiles[name] = new ExecutionProfile(baseProfileInstance, profile);

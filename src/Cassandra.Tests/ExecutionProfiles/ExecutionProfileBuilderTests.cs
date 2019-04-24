@@ -28,7 +28,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             var lbp = new RoundRobinPolicy();
             var sep = new ConstantSpeculativeExecutionPolicy(1000, 1);
             var rp = new LoggingRetryPolicy(new DefaultRetryPolicy());
-            var baseProfile = Builder.ExecutionProfileBuilder()
+            var baseProfile = new ExecutionProfileBuilder()
                                               .WithLoadBalancingPolicy(lbp)
                                               .WithSpeculativeExecutionPolicy(sep)
                                               .WithSerialConsistencyLevel(ConsistencyLevel.LocalSerial)
@@ -37,7 +37,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                                               .WithRetryPolicy(rp)
                                               .Build();
 
-            var profile = new ExecutionProfile(baseProfile, Builder.ExecutionProfileBuilder().Build());
+            var profile = new ExecutionProfile(baseProfile, new ExecutionProfileBuilder().Build());
 
             Assert.AreSame(lbp, profile.LoadBalancingPolicy);
             Assert.AreSame(sep, profile.SpeculativeExecutionPolicy);
@@ -56,7 +56,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             var sepProfile = new ConstantSpeculativeExecutionPolicy(200, 50);
             var lbpProfile = new TokenAwarePolicy(new DCAwareRoundRobinPolicy());
             var rpProfile = new LoggingRetryPolicy(new IdempotenceAwareRetryPolicy(new DefaultRetryPolicy()));
-            var baseProfile = Builder.ExecutionProfileBuilder()
+            var baseProfile = new ExecutionProfileBuilder()
                                               .WithLoadBalancingPolicy(lbp)
                                               .WithSpeculativeExecutionPolicy(sep)
                                               .WithSerialConsistencyLevel(ConsistencyLevel.LocalSerial)
@@ -66,7 +66,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                                               .Build();
 
             
-            var derivedProfile = Builder.ExecutionProfileBuilder()
+            var derivedProfile = new ExecutionProfileBuilder()
                                           .WithLoadBalancingPolicy(lbpProfile)
                                           .WithSpeculativeExecutionPolicy(sepProfile)
                                           .WithSerialConsistencyLevel(ConsistencyLevel.Serial)

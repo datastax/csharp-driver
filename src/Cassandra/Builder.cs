@@ -690,26 +690,8 @@ namespace Cassandra
         /// Note that subsequent calls to this method will override the previously provided profiles.
         /// </para>
         /// <para>
-        /// You can manually create Execution Profile instances and add them to this Cluster Builder with
-        /// <see cref="IExecutionProfileOptions.WithProfile(string,IExecutionProfile)"/>:
-        /// </para>
-        /// <para>
-        /// <code>
-        ///         var profile1 =
-        ///             Cluster.Builder.ExecutionProfileBuilder()
-        ///                 .WithReadTimeoutMillis(10000)
-        ///                 .WithConsistencyLevel(ConsistencyLevel.LocalQuorum)
-        ///                 .Build(); 
-        ///         Cluster.Builder()
-        ///                 .WithExecutionProfiles(options => options
-        ///                     .WithProfile("profile1", profile1))
-        ///                 .Build()
-        /// </code>
-        /// </para>
-        /// <para>
-        /// Alternatively you can use
-        /// <see cref="IExecutionProfileOptions.WithProfile(string,Action{IExecutionProfileBuilder})"/> to interact with a driver provided
-        /// builder in a fluent manner and avoid managing execution profile instances:
+        /// To add execution profiles you can use
+        /// <see cref="IExecutionProfileOptions.WithProfile(string,Action{IExecutionProfileBuilder})"/>:
         /// </para>
         /// <para>
         /// <code>
@@ -723,7 +705,7 @@ namespace Cassandra
         /// </para>
         /// </summary>
         /// <param name="profileOptionsBuilder"></param>
-        /// <returns></returns>
+        /// <returns>This builder</returns>
         public Builder WithExecutionProfiles(Action<IExecutionProfileOptions> profileOptionsBuilder)
         {
             var profileOptions = new ExecutionProfileOptions();
@@ -741,20 +723,6 @@ namespace Cassandra
         public Cluster Build()
         {
             return Cluster.BuildFrom(this, _hostNames);
-        }
-        
-        /// <summary>
-        /// <para>
-        /// Get a new fluent builder instance to build execution profiles. See <see cref="IExecutionProfileBuilder"/>
-        /// for more information.
-        /// </para>
-        /// <para>
-        /// Also see the documentation of <see cref="WithExecutionProfiles"/> for an example of how to create and add execution profiles.
-        /// </para>
-        /// </summary>
-        public static IExecutionProfileBuilder ExecutionProfileBuilder()
-        {
-            return new ExecutionProfileBuilder();
         }
     }
 }

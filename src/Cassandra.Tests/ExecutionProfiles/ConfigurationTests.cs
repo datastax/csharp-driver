@@ -29,17 +29,13 @@ namespace Cassandra.Tests.ExecutionProfiles
             var rp = new LoggingRetryPolicy(new DefaultRetryPolicy());
             var cluster = Cluster.Builder().AddContactPoint("127.0.0.1").WithExecutionProfiles(opts =>
             {
-                opts.WithProfile(
-                    "test1",
-                    Builder
-                        .ExecutionProfileBuilder()
+                opts.WithProfile("test1", profile => profile
                         .WithConsistencyLevel(ConsistencyLevel.EachQuorum)
                         .WithSerialConsistencyLevel(ConsistencyLevel.LocalSerial)
                         .WithReadTimeoutMillis(9999)
                         .WithLoadBalancingPolicy(lbp)
                         .WithSpeculativeExecutionPolicy(sep)
-                        .WithRetryPolicy(rp)
-                        .Build());
+                        .WithRetryPolicy(rp));
             }).Build();
 
             Assert.AreEqual(1, cluster.Configuration.RequestOptions.Count);
@@ -74,7 +70,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                           .WithLoadBalancingPolicy(lbp)
                           .WithSpeculativeExecutionPolicy(sep)
                           .WithRetryPolicy(rp)
-                          .WithExecutionProfiles(opts => { opts.WithProfile("test1", Builder.ExecutionProfileBuilder().Build()); })
+                          .WithExecutionProfiles(opts => { opts.WithProfile("test1", profile => {}); })
                           .WithQueryTimeout(30)
                           .WithTimestampGenerator(tg)
                           .Build();
@@ -117,17 +113,11 @@ namespace Cassandra.Tests.ExecutionProfiles
                           .WithLoadBalancingPolicy(lbp)
                           .WithSpeculativeExecutionPolicy(sep)
                           .WithRetryPolicy(rp)
-                          .WithExecutionProfiles(opts =>
-                          {
-                              opts.WithProfile(
-                                  "test1",
-                                  Builder
-                                      .ExecutionProfileBuilder()
-                                      .WithConsistencyLevel(ConsistencyLevel.Quorum)
-                                      .WithSpeculativeExecutionPolicy(sepProfile)
-                                      .WithRetryPolicy(rpProfile)
-                                      .Build());
-                          })
+                          .WithExecutionProfiles(opts => opts
+                              .WithProfile("test1", profile => profile
+                                    .WithConsistencyLevel(ConsistencyLevel.Quorum)
+                                    .WithSpeculativeExecutionPolicy(sepProfile)
+                                    .WithRetryPolicy(rpProfile)))
                           .WithQueryTimeout(30)
                           .WithTimestampGenerator(tg)
                           .Build();
@@ -155,12 +145,6 @@ namespace Cassandra.Tests.ExecutionProfiles
             var rp = new LoggingRetryPolicy(new DefaultRetryPolicy());
             var rpProfile = new LoggingRetryPolicy(new IdempotenceAwareRetryPolicy(new DefaultRetryPolicy()));
             var tg = new AtomicMonotonicTimestampGenerator();
-            var baseProfile = Builder
-                              .ExecutionProfileBuilder()
-                              .WithConsistencyLevel(ConsistencyLevel.Quorum)
-                              .WithSpeculativeExecutionPolicy(sepProfile)
-                              .WithRetryPolicy(rpProfile)
-                              .Build();
             var cluster = Cluster
                           .Builder()
                           .AddContactPoint("127.0.0.1")
@@ -177,7 +161,10 @@ namespace Cassandra.Tests.ExecutionProfiles
                           .WithSpeculativeExecutionPolicy(sep)
                           .WithRetryPolicy(rp)
                           .WithExecutionProfiles(opts => opts
-                              .WithProfile("baseProfile", baseProfile)
+                              .WithProfile("baseProfile", baseProfile => baseProfile
+                                      .WithConsistencyLevel(ConsistencyLevel.Quorum)
+                                      .WithSpeculativeExecutionPolicy(sepProfile)
+                                      .WithRetryPolicy(rpProfile))
                               .WithDerivedProfile("test1", "baseProfile", profileBuilder => profileBuilder
                                       .WithConsistencyLevel(ConsistencyLevel.All)
                                       .WithSerialConsistencyLevel(ConsistencyLevel.LocalSerial)))
