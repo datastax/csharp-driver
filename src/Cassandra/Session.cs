@@ -265,6 +265,7 @@ namespace Cassandra
             return task.Result;
         }
 
+        /// <inheritdoc />
         public RowSet Execute(IStatement statement, string executionProfileName)
         {
             var task = ExecuteAsync(statement, executionProfileName);
@@ -286,6 +287,7 @@ namespace Cassandra
             return Execute(GetDefaultStatement(cqlQuery));
         }
 
+        /// <inheritdoc />
         public RowSet Execute(string cqlQuery, string executionProfileName)
         {
             return Execute(GetDefaultStatement(cqlQuery), executionProfileName);
@@ -311,6 +313,7 @@ namespace Cassandra
                                 .SendAsync();
         }
 
+        /// <inheritdoc />
         public Task<RowSet> ExecuteAsync(IStatement statement, string executionProfileName)
         {
             return Configuration.RequestHandlerFactory

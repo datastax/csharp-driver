@@ -15,11 +15,10 @@
 // 
 
 using System;
-using Cassandra.ExecutionProfiles;
 
-namespace Cassandra
+namespace Cassandra.ExecutionProfiles
 {
-    public class ExecutionProfile
+    internal class ExecutionProfile : IExecutionProfile
     {
         internal ExecutionProfile(
             ConsistencyLevel? consistencyLevel, 
@@ -37,7 +36,7 @@ namespace Cassandra
             RetryPolicy = retryPolicy;
         }
 
-        internal ExecutionProfile(ExecutionProfile baseProfile, ExecutionProfile profile)
+        internal ExecutionProfile(IExecutionProfile baseProfile, IExecutionProfile profile)
         {
             if (baseProfile == null)
             {
@@ -68,10 +67,5 @@ namespace Cassandra
         public ISpeculativeExecutionPolicy SpeculativeExecutionPolicy { get; }
 
         public IExtendedRetryPolicy RetryPolicy { get; }
-
-        public static IExecutionProfileBuilder Builder()
-        {
-            return new ExecutionProfileBuilder();
-        }
     }
 }

@@ -31,8 +31,8 @@ namespace Cassandra.Tests.ExecutionProfiles
             {
                 opts.WithProfile(
                     "test1",
-                    ExecutionProfile
-                        .Builder()
+                    Builder
+                        .ExecutionProfileBuilder()
                         .WithConsistencyLevel(ConsistencyLevel.EachQuorum)
                         .WithSerialConsistencyLevel(ConsistencyLevel.LocalSerial)
                         .WithReadTimeoutMillis(9999)
@@ -74,7 +74,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                           .WithLoadBalancingPolicy(lbp)
                           .WithSpeculativeExecutionPolicy(sep)
                           .WithRetryPolicy(rp)
-                          .WithExecutionProfiles(opts => { opts.WithProfile("test1", ExecutionProfile.Builder().Build()); })
+                          .WithExecutionProfiles(opts => { opts.WithProfile("test1", Builder.ExecutionProfileBuilder().Build()); })
                           .WithQueryTimeout(30)
                           .WithTimestampGenerator(tg)
                           .Build();
@@ -89,9 +89,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreSame(rp, options.RetryPolicy);
             Assert.AreEqual(true, options.DefaultIdempotence);
             Assert.AreEqual(5, options.PageSize);
-            Assert.AreEqual(false, options.PrepareOnAllHosts);
             Assert.AreEqual(30, options.QueryAbortTimeout);
-            Assert.AreEqual(false, options.ReprepareOnUp);
             Assert.AreSame(tg, options.TimestampGenerator);
         }
 
@@ -123,8 +121,8 @@ namespace Cassandra.Tests.ExecutionProfiles
                           {
                               opts.WithProfile(
                                   "test1",
-                                  ExecutionProfile
-                                      .Builder()
+                                  Builder
+                                      .ExecutionProfileBuilder()
                                       .WithConsistencyLevel(ConsistencyLevel.Quorum)
                                       .WithSpeculativeExecutionPolicy(sepProfile)
                                       .WithRetryPolicy(rpProfile)
@@ -144,9 +142,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreSame(rpProfile, options.RetryPolicy);
             Assert.AreEqual(true, options.DefaultIdempotence);
             Assert.AreEqual(5, options.PageSize);
-            Assert.AreEqual(false, options.PrepareOnAllHosts);
             Assert.AreEqual(30, options.QueryAbortTimeout);
-            Assert.AreEqual(false, options.ReprepareOnUp);
             Assert.AreSame(tg, options.TimestampGenerator);
         }
 
@@ -159,8 +155,8 @@ namespace Cassandra.Tests.ExecutionProfiles
             var rp = new LoggingRetryPolicy(new DefaultRetryPolicy());
             var rpProfile = new LoggingRetryPolicy(new IdempotenceAwareRetryPolicy(new DefaultRetryPolicy()));
             var tg = new AtomicMonotonicTimestampGenerator();
-            var baseProfile = ExecutionProfile
-                              .Builder()
+            var baseProfile = Builder
+                              .ExecutionProfileBuilder()
                               .WithConsistencyLevel(ConsistencyLevel.Quorum)
                               .WithSpeculativeExecutionPolicy(sepProfile)
                               .WithRetryPolicy(rpProfile)
@@ -199,9 +195,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreSame(rpProfile, options.RetryPolicy);
             Assert.AreEqual(true, options.DefaultIdempotence);
             Assert.AreEqual(5, options.PageSize);
-            Assert.AreEqual(false, options.PrepareOnAllHosts);
             Assert.AreEqual(30, options.QueryAbortTimeout);
-            Assert.AreEqual(false, options.ReprepareOnUp);
             Assert.AreSame(tg, options.TimestampGenerator);
         }
     }

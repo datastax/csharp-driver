@@ -22,7 +22,7 @@ namespace Cassandra.ExecutionProfiles
     /// <inheritdoc />
     internal class ExecutionProfileOptions : IExecutionProfileOptions
     {
-        private readonly Dictionary<string, ExecutionProfile> _profiles = new Dictionary<string, ExecutionProfile>();
+        private readonly Dictionary<string, IExecutionProfile> _profiles = new Dictionary<string, IExecutionProfile>();
 
         /// <inheritdoc />
         public IExecutionProfileOptions WithProfile(string name, Action<IExecutionProfileBuilder> profileBuildAction)
@@ -36,7 +36,7 @@ namespace Cassandra.ExecutionProfiles
             return WithDerivedProfile(name, baseProfile, BuildProfile(profileBuildAction));
         }
 
-        public IExecutionProfileOptions WithProfile(string name, ExecutionProfile profile)
+        public IExecutionProfileOptions WithProfile(string name, IExecutionProfile profile)
         {
             if (name == null)
             {
@@ -47,7 +47,7 @@ namespace Cassandra.ExecutionProfiles
             return this;
         }
 
-        public IExecutionProfileOptions WithDerivedProfile(string name, string baseProfile, ExecutionProfile profile)
+        public IExecutionProfileOptions WithDerivedProfile(string name, string baseProfile, IExecutionProfile profile)
         {
             if (name == null)
             {
@@ -73,12 +73,12 @@ namespace Cassandra.ExecutionProfiles
             return this;
         }
 
-        public IReadOnlyDictionary<string, ExecutionProfile> GetProfiles()
+        public IReadOnlyDictionary<string, IExecutionProfile> GetProfiles()
         {
             return _profiles;
         }
 
-        private ExecutionProfile BuildProfile(Action<IExecutionProfileBuilder> profileBuildAction)
+        private IExecutionProfile BuildProfile(Action<IExecutionProfileBuilder> profileBuildAction)
         {
             if (profileBuildAction == null)
             {

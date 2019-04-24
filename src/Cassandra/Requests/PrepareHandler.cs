@@ -59,7 +59,7 @@ namespace Cassandra.Requests
                                "affect performance. Consider preparing the statement only once. Query='{0}'", ps.Cql);
                 ps = psAdded;
             }
-            var prepareOnAllHosts = cluster.Configuration.DefaultRequestOptions.PrepareOnAllHosts;
+            var prepareOnAllHosts = cluster.Configuration.QueryOptions.IsPrepareOnAllHosts();
             if (!prepareOnAllHosts)
             {
                 return ps;

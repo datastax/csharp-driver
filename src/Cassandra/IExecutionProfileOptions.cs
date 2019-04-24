@@ -32,7 +32,7 @@ namespace Cassandra
         /// APIs that support execution profiles like <see cref="ISession.ExecuteAsync(IStatement, string)"/>.
         /// </para>
         /// <para>
-        /// The ExecutionProfile instance can be built with with <see cref="ExecutionProfile.Builder"/>.
+        /// The ExecutionProfile instance can be built with with <see cref="Builder.ExecutionProfileBuilder"/>.
         /// </para>
         /// </summary>
         /// <param name="name">Name of the execution profile.</param>
@@ -60,17 +60,17 @@ namespace Cassandra
         /// APIs that support execution profiles like <see cref="ISession.ExecuteAsync(IStatement, string)"/>.
         /// </para>
         /// <para>
-        /// The ExecutionProfile instance can be built with with <see cref="ExecutionProfile.Builder"/>.
+        /// The ExecutionProfile instance can be built with with <see cref="Builder.ExecutionProfileBuilder"/>.
         /// </para>
         /// </summary>
         /// <param name="name">Name of the execution profile.</param>
         /// <param name="profile">Execution Profile builder.</param>
         /// <returns></returns>
-        IExecutionProfileOptions WithProfile(string name, ExecutionProfile profile);
+        IExecutionProfileOptions WithProfile(string name, IExecutionProfile profile);
         
         /// <summary>
         /// <para>
-        /// The behavior of this method is the same as <see cref="WithProfile(string, ExecutionProfile)"/> but
+        /// The behavior of this method is the same as <see cref="WithProfile(string, IExecutionProfile)"/> but
         /// instead of adding a normal execution profile, this method can be used to add a derived execution profile
         /// which is a profile that will inherit any unset settings from the base execution profile specified by <paramref name="baseProfile"/>.
         /// </para>
@@ -79,6 +79,6 @@ namespace Cassandra
         /// <param name="baseProfile">Base Execution Profile's name from which the derived profile will inherit unset settings.</param>
         /// <param name="profile">Execution Profile builder.</param>
         /// <returns></returns>
-        IExecutionProfileOptions WithDerivedProfile(string name, string baseProfile, ExecutionProfile profile);
+        IExecutionProfileOptions WithDerivedProfile(string name, string baseProfile, IExecutionProfile profile);
     }
 }
