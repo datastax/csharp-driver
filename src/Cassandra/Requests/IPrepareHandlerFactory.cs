@@ -14,19 +14,14 @@
 //    limitations under the License.
 // 
 
-using Cassandra.Responses;
-using Moq;
+using System.Collections.Generic;
+using Cassandra.ExecutionProfiles;
+using Cassandra.Serialization;
 
-namespace Cassandra.Tests.Requests
+namespace Cassandra.Requests
 {
-    internal class ProxyResultResponse : ResultResponse
+    internal interface IPrepareHandlerFactory
     {
-        public ProxyResultResponse(ResultResponseKind kind) : base(kind, Mock.Of<IOutput>())
-        {
-        }
-
-        public ProxyResultResponse(ResultResponseKind kind, IOutput output) : base(kind, output)
-        {
-        }
+        IPrepareHandler Create(Serializer serializer, IEnumerator<Host> queryPlan, IRequestOptions requestOptions);
     }
 }

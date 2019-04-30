@@ -57,6 +57,8 @@ namespace Cassandra.Tests
 
         public IControlConnectionFactory ControlConnectionFactory { get; set; } = new ControlConnectionFactory();
 
+        public IPrepareHandlerFactory PrepareHandlerFactory { get; set; } = new PrepareHandlerFactory();
+
         public Configuration Build()
         {
             return new Configuration(
@@ -76,7 +78,8 @@ namespace Cassandra.Tests
                 HostConnectionPoolFactory,
                 RequestExecutionFactory,
                 ConnectionFactory,
-                ControlConnectionFactory);
+                ControlConnectionFactory,
+                PrepareHandlerFactory);
         }
     }
 }

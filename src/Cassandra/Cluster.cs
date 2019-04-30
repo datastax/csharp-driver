@@ -61,6 +61,9 @@ namespace Cassandra
         internal IInternalCluster InternalRef => this;
 
         /// <inheritdoc />
+        public IReadOnlyDictionary<string, IExecutionProfile> ExecutionProfiles => Configuration.ExecutionProfiles;
+
+        /// <inheritdoc />
         IControlConnection IInternalCluster.GetControlConnection()
         {
             return _controlConnection;
@@ -258,9 +261,7 @@ namespace Cassandra
 
                     // Initialize policies
                     var initializedPolicies = new List<object>();
-                    var optionsWithPoliciesToInitialize =
-                        Configuration.RequestOptions.Values.Concat(new List<IRequestOptions> { Configuration.DefaultRequestOptions });
-                    foreach (var options in optionsWithPoliciesToInitialize)
+                    foreach (var options in Configuration.RequestOptions.Values)
                     {
                         if (initializedPolicies.All(policy => !ReferenceEquals(options.LoadBalancingPolicy, policy)))
                         {
@@ -273,6 +274,18 @@ namespace Cassandra
                             initializedPolicies.Add(options.SpeculativeExecutionPolicy);
                             options.SpeculativeExecutionPolicy.Initialize(this);
                         }
+                    }
+                    
+                    if (initializedPolicies.All(policy => !ReferenceEquals(Configuration.Policies.LoadBalancingPolicy, policy)))
+                    {
+                        initializedPolicies.Add(Configuration.Policies.LoadBalancingPolicy);
+                        Configuration.Policies.LoadBalancingPolicy.Initialize(this);
+                    }
+                        
+                    if (initializedPolicies.All(policy => !ReferenceEquals(Configuration.Policies.SpeculativeExecutionPolicy, policy)))
+                    {
+                        initializedPolicies.Add(Configuration.Policies.SpeculativeExecutionPolicy);
+                        Configuration.Policies.SpeculativeExecutionPolicy.Initialize(this);
                     }
                 }
                 catch (NoHostAvailableException)
@@ -440,8 +453,9 @@ namespace Cassandra
             {
                 return;
             }
+
             // We should prepare all current queries on the host
-            PrepareHandler.PrepareAllQueries(h, InternalRef.PreparedQueries.Values, _connectedSessions).Forget();
+            PrepareAllQueries(h).Forget();
         }
 
         /// <summary>
@@ -490,15 +504,19 @@ namespace Cassandra
             Configuration.Timer.Dispose();
             
             var disposedPolicies = new List<object>();
-            var optionsWithPoliciesToDispose =
-                Configuration.RequestOptions.Values.Concat(new List<IRequestOptions> { Configuration.DefaultRequestOptions });
-            foreach (var options in optionsWithPoliciesToDispose)
+            foreach (var options in Configuration.RequestOptions.Values)
             {
                 if (disposedPolicies.All(policy => !ReferenceEquals(options.SpeculativeExecutionPolicy, policy)))
                 {
                     disposedPolicies.Add(options.SpeculativeExecutionPolicy);
                     options.SpeculativeExecutionPolicy.Dispose();
                 }
+            }
+            
+            if (disposedPolicies.All(policy => !ReferenceEquals(Configuration.Policies.SpeculativeExecutionPolicy, policy)))
+            {
+                disposedPolicies.Add(Configuration.Policies.SpeculativeExecutionPolicy);
+                Configuration.Policies.SpeculativeExecutionPolicy.Dispose();
             }
 
             _logger.Info("Cluster [" + _metadata.ClusterName + "] has been shut down.");
@@ -513,6 +531,84 @@ namespace Cassandra
             var distance = lbp.Distance(host);
             host.SetDistance(distance);
             return distance;
+        }
+
+        /// <inheritdoc />
+        async Task<PreparedStatement> IInternalCluster.Prepare(
+            IInternalSession session, Serializer serializer, PrepareRequest request, IRequestOptions requestOptions)
+        {
+            var lbp = requestOptions.LoadBalancingPolicy;
+            var handler = InternalRef.Configuration.PrepareHandlerFactory.Create(
+                serializer, lbp.NewQueryPlan(session.Keyspace, null).GetEnumerator(), requestOptions);
+            var ps = await handler.Prepare(request, session, null).ConfigureAwait(false);
+            var psAdded = InternalRef.PreparedQueries.GetOrAdd(ps.Id, ps);
+            if (ps != psAdded)
+            {
+                PrepareHandler.Logger.Warning("Re-preparing already prepared query is generally an anti-pattern and will likely " +
+                               "affect performance. Consider preparing the statement only once. Query='{0}'", ps.Cql);
+                ps = psAdded;
+            }
+            var prepareOnAllHosts = InternalRef.Configuration.QueryOptions.IsPrepareOnAllHosts();
+            if (!prepareOnAllHosts)
+            {
+                return ps;
+            }
+            await handler.PrepareOnTheRestOfTheNodes(request, session).ConfigureAwait(false);
+            return ps;
+        }
+        
+        private async Task PrepareAllQueries(Host host)
+        {
+            ICollection<PreparedStatement> preparedQueries = InternalRef.PreparedQueries.Values;
+            IEnumerable<IInternalSession> sessions = _connectedSessions;
+
+            if (preparedQueries.Count == 0)
+            {
+                return;
+            }
+            // Get the first connection for that host, in any of the existings connection pool
+            var connection = sessions.SelectMany(s => s.GetExistingPool(host.Address)?.ConnectionsSnapshot)
+                                     .FirstOrDefault();
+            if (connection == null)
+            {
+                PrepareHandler.Logger.Info($"Could not re-prepare queries on {host.Address} as there wasn't an open connection to" +
+                            " the node");
+                return;
+            }
+            PrepareHandler.Logger.Info($"Re-preparing {preparedQueries.Count} queries on {host.Address}");
+            var tasks = new List<Task>(preparedQueries.Count);
+            using (var semaphore = new SemaphoreSlim(64, 64))
+            {
+                foreach (var query in preparedQueries.Select(ps => ps.Cql))
+                {
+                    var request = new PrepareRequest(query);
+                    await semaphore.WaitAsync().ConfigureAwait(false);
+
+                    async Task SendSingle()
+                    {
+                        try
+                        {
+                            await connection.Send(request).ConfigureAwait(false);
+                        }
+                        finally
+                        {
+                            // ReSharper disable once AccessToDisposedClosure
+                            // There is no risk of being disposed as the list of tasks is awaited upon below
+                            semaphore.Release();
+                        }
+                    }
+
+                    tasks.Add(Task.Run(SendSingle));
+                }
+                try
+                {
+                    await Task.WhenAll(tasks).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    PrepareHandler.Logger.Error($"There was an error when re-preparing queries on {host.Address}", ex);
+                }
+            }
         }
     }
 }

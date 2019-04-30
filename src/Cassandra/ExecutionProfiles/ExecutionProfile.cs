@@ -28,12 +28,13 @@ namespace Cassandra.ExecutionProfiles
             ISpeculativeExecutionPolicy speculativeExecutionPolicy, 
             IExtendedRetryPolicy retryPolicy)
         {
-            ConsistencyLevel = consistencyLevel;
-            SerialConsistencyLevel = serialConsistencyLevel;
-            ReadTimeoutMillis = readTimeoutMillis;
-            LoadBalancingPolicy = loadBalancingPolicy;
-            SpeculativeExecutionPolicy = speculativeExecutionPolicy;
-            RetryPolicy = retryPolicy;
+            Initialize(
+                consistencyLevel, 
+                serialConsistencyLevel, 
+                readTimeoutMillis, 
+                loadBalancingPolicy, 
+                speculativeExecutionPolicy, 
+                retryPolicy);
         }
 
         internal ExecutionProfile(IExecutionProfile baseProfile, IExecutionProfile profile)
@@ -47,25 +48,58 @@ namespace Cassandra.ExecutionProfiles
             {
                 throw new ArgumentNullException(nameof(profile));
             }
-
-            ConsistencyLevel = profile.ConsistencyLevel ?? baseProfile.ConsistencyLevel;
-            SerialConsistencyLevel = profile.SerialConsistencyLevel ?? baseProfile.SerialConsistencyLevel;
-            ReadTimeoutMillis = profile.ReadTimeoutMillis ?? baseProfile.ReadTimeoutMillis;
-            LoadBalancingPolicy = profile.LoadBalancingPolicy ?? baseProfile.LoadBalancingPolicy;
-            SpeculativeExecutionPolicy = profile.SpeculativeExecutionPolicy ?? baseProfile.SpeculativeExecutionPolicy;
-            RetryPolicy = profile.RetryPolicy ?? baseProfile.RetryPolicy;
+            
+            Initialize(
+                profile.ConsistencyLevel ?? baseProfile.ConsistencyLevel, 
+                profile.SerialConsistencyLevel ?? baseProfile.SerialConsistencyLevel, 
+                profile.ReadTimeoutMillis ?? baseProfile.ReadTimeoutMillis, 
+                profile.LoadBalancingPolicy ?? baseProfile.LoadBalancingPolicy, 
+                profile.SpeculativeExecutionPolicy ?? baseProfile.SpeculativeExecutionPolicy, 
+                profile.RetryPolicy ?? baseProfile.RetryPolicy);
         }
 
-        public ConsistencyLevel? ConsistencyLevel { get; }
+        internal ExecutionProfile(IRequestOptions requestOptions)
+        {
+            if (requestOptions == null)
+            {
+                throw new ArgumentNullException(nameof(requestOptions));
+            }
 
-        public ConsistencyLevel? SerialConsistencyLevel { get; }
+            Initialize(
+                requestOptions.ConsistencyLevel, 
+                requestOptions.SerialConsistencyLevel, 
+                requestOptions.ReadTimeoutMillis, 
+                requestOptions.LoadBalancingPolicy, 
+                requestOptions.SpeculativeExecutionPolicy, 
+                requestOptions.RetryPolicy);
+        }
 
-        public int? ReadTimeoutMillis { get; }
+        public ConsistencyLevel? ConsistencyLevel { get; private set; }
 
-        public ILoadBalancingPolicy LoadBalancingPolicy { get; }
+        public ConsistencyLevel? SerialConsistencyLevel { get; private set; }
 
-        public ISpeculativeExecutionPolicy SpeculativeExecutionPolicy { get; }
+        public int? ReadTimeoutMillis { get; private set; }
 
-        public IExtendedRetryPolicy RetryPolicy { get; }
+        public ILoadBalancingPolicy LoadBalancingPolicy { get; private set; }
+
+        public ISpeculativeExecutionPolicy SpeculativeExecutionPolicy { get; private set; }
+
+        public IExtendedRetryPolicy RetryPolicy { get; private set; }
+
+        private void Initialize(
+            ConsistencyLevel? consistencyLevel,
+            ConsistencyLevel? serialConsistencyLevel,
+            int? readTimeoutMillis,
+            ILoadBalancingPolicy loadBalancingPolicy,
+            ISpeculativeExecutionPolicy speculativeExecutionPolicy,
+            IExtendedRetryPolicy retryPolicy)
+        {
+            ConsistencyLevel = consistencyLevel;
+            SerialConsistencyLevel = serialConsistencyLevel;
+            ReadTimeoutMillis = readTimeoutMillis;
+            LoadBalancingPolicy = loadBalancingPolicy;
+            SpeculativeExecutionPolicy = speculativeExecutionPolicy;
+            RetryPolicy = retryPolicy;
+        }
     }
 }
