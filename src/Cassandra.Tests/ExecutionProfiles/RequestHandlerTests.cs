@@ -228,46 +228,6 @@ namespace Cassandra.Tests.ExecutionProfiles
                     throw new InvalidOperationException();
             }
         }
-
-        private IStatement BuildStatement(
-            RequestTypeTestCase testCase, 
-            ConsistencyLevel cl, 
-            ConsistencyLevel serialCl, 
-            int timeout, 
-            IExtendedRetryPolicy retryPolicy)
-        {
-            switch (testCase)
-            {
-                case RequestTypeTestCase.Batch:
-                    var batch = new BatchStatement();
-                    batch.Add(new SimpleStatement("insert"));
-                    batch
-                        .SetIdempotence(true)
-                        .SetConsistencyLevel(ConsistencyLevel.EachQuorum)
-                        .SetReadTimeoutMillis(400)
-                        .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial)
-                        .SetRetryPolicy(retryPolicy);
-                    return batch;
-                case RequestTypeTestCase.Bound:
-                    var mockPs = Mock.Of<PreparedStatement>();
-                    var bs = new BoundStatement(mockPs);
-                    bs.SetSerialConsistencyLevel(serialCl);
-                    bs.SetConsistencyLevel(cl);
-                    bs.SetIdempotence(true);
-                    bs.SetReadTimeoutMillis(timeout);
-                    bs.SetRetryPolicy(retryPolicy);
-                    return bs;
-                case RequestTypeTestCase.Simple:
-                    return new SimpleStatement("select")
-                           .SetIdempotence(true)
-                           .SetConsistencyLevel(ConsistencyLevel.EachQuorum)
-                           .SetReadTimeoutMillis(400)
-                           .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial)
-                           .SetRetryPolicy(retryPolicy);
-                default:
-                    throw new InvalidOperationException();
-            }
-        }
         
         private IStatement BuildStatement(RequestTypeTestCase testCase)
         {
@@ -320,7 +280,7 @@ namespace Cassandra.Tests.ExecutionProfiles
 
             // create request handler
             var options = profile != null
-                ? new RequestOptions(profile, config.Policies, config.SocketOptions, config.QueryOptions, config.ClientOptions)
+                ? new RequestOptions(profile, null, config.Policies, config.SocketOptions, config.QueryOptions, config.ClientOptions)
                 : config.DefaultRequestOptions;
             var requestHandler = new RequestHandler(
                 session,

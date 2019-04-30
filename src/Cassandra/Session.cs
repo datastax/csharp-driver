@@ -308,9 +308,7 @@ namespace Cassandra
         /// <inheritdoc />
         public Task<RowSet> ExecuteAsync(IStatement statement)
         {
-            return Configuration.RequestHandlerFactory
-                                .Create(this, _serializer, statement, Configuration.DefaultRequestOptions)
-                                .SendAsync();
+            return ExecuteAsync(statement, Configuration.DefaultExecutionProfileName);
         }
 
         /// <inheritdoc />
@@ -387,14 +385,28 @@ namespace Cassandra
             pool.CheckHealth(connection);
         }
 
+        /// <inheritdoc />
         public PreparedStatement Prepare(string cqlQuery)
         {
-            return Prepare(cqlQuery, null);
+            return Prepare(cqlQuery, (IDictionary<string, byte[]>) null);
         }
 
+        /// <inheritdoc />
+        public PreparedStatement Prepare(string cqlQuery, string executionProfileName)
+        {
+            return Prepare(cqlQuery, null, executionProfileName);
+        }
+
+        /// <inheritdoc />
         public PreparedStatement Prepare(string cqlQuery, IDictionary<string, byte[]> customPayload)
         {
-            var task = PrepareAsync(cqlQuery, customPayload);
+            return Prepare(cqlQuery, customPayload, Configuration.DefaultExecutionProfileName);
+        }
+
+        /// <inheritdoc />
+        public PreparedStatement Prepare(string cqlQuery, IDictionary<string, byte[]> customPayload, string executionProfileName)
+        {
+            var task = PrepareAsync(cqlQuery, customPayload, executionProfileName);
             TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
             return task.Result;
         }
@@ -402,17 +414,30 @@ namespace Cassandra
         /// <inheritdoc />
         public Task<PreparedStatement> PrepareAsync(string query)
         {
-            return PrepareAsync(query, null);
+            return PrepareAsync(query, (IDictionary<string, byte[]>) null);
         }
 
         /// <inheritdoc />
-        public async Task<PreparedStatement> PrepareAsync(string query, IDictionary<string, byte[]> customPayload)
+        public Task<PreparedStatement> PrepareAsync(string cqlQuery, string executionProfileName)
         {
-            var request = new PrepareRequest(query)
+            return PrepareAsync(cqlQuery, null, executionProfileName);
+        }
+
+        /// <inheritdoc />
+        public Task<PreparedStatement> PrepareAsync(string query, IDictionary<string, byte[]> customPayload)
+        {
+            return PrepareAsync(query, customPayload, Configuration.DefaultExecutionProfileName);
+        }
+
+        /// <inheritdoc />
+        public async Task<PreparedStatement> PrepareAsync(string cqlQuery, IDictionary<string, byte[]> customPayload, string executionProfileName)
+        {
+            var request = new PrepareRequest(cqlQuery)
             {
                 Payload = customPayload
             };
-            return await PrepareHandler.Prepare(this, _serializer, request).ConfigureAwait(false);
+
+            return await _cluster.Prepare(this, _serializer, request, GetRequestOptions(executionProfileName)).ConfigureAwait(false);
         }
 
         public void WaitForSchemaAgreement(RowSet rs)

@@ -30,8 +30,8 @@ namespace Cassandra.Tests.ExecutionProfiles
         [Test]
         public void Should_OnlyInitializePoliciesOnce_When_MultiplePoliciesAreProvidedWithExecutionProfiles()
         {
-            var lbps = Enumerable.Range(1, 3).Select(i => new FakeLoadBalancingPolicy()).ToArray();
-            var seps = Enumerable.Range(1, 3).Select(i => new FakeSpeculativeExecutionPolicy()).ToArray();
+            var lbps = Enumerable.Range(1, 4).Select(i => new FakeLoadBalancingPolicy()).ToArray();
+            var seps = Enumerable.Range(1, 4).Select(i => new FakeSpeculativeExecutionPolicy()).ToArray();
             var profile1 =
                 new ExecutionProfileBuilder()
                                 .WithSpeculativeExecutionPolicy(seps[1])
@@ -70,6 +70,13 @@ namespace Cassandra.Tests.ExecutionProfiles
                     {
                         "profile5",
                         new ExecutionProfile(profile1, new ExecutionProfileBuilder().Build())
+                    },
+                    {
+                        "default",
+                        new ExecutionProfileBuilder()
+                            .WithLoadBalancingPolicy(lbps[3])
+                            .WithSpeculativeExecutionPolicy(seps[3])
+                            .Build()
                     }
                 }
             }.Build();
@@ -83,7 +90,7 @@ namespace Cassandra.Tests.ExecutionProfiles
 
             var cluster = Cluster.BuildFrom(initializerMock, new List<string>());
             cluster.Connect();
-
+            
             Assert.IsTrue(lbps.All(lbp => lbp.InitializeCount == 1));
             Assert.IsTrue(seps.All(sep => sep.InitializeCount == 1));
         }
@@ -123,7 +130,7 @@ namespace Cassandra.Tests.ExecutionProfiles
         public void Should_OnlyDisposePoliciesOnce_When_MultiplePoliciesAreProvidedWithExecutionProfiles()
         {
             var lbps = Enumerable.Range(1, 2).Select(i => new FakeLoadBalancingPolicy()).ToArray();
-            var seps = Enumerable.Range(1, 2).Select(i => new FakeSpeculativeExecutionPolicy()).ToArray();
+            var seps = Enumerable.Range(1, 3).Select(i => new FakeSpeculativeExecutionPolicy()).ToArray();
             var profile1 =
                 new ExecutionProfileBuilder()
                                 .WithSpeculativeExecutionPolicy(seps[1])
@@ -156,6 +163,11 @@ namespace Cassandra.Tests.ExecutionProfiles
                     {
                         "profile5",
                         new ExecutionProfile(profile1, new ExecutionProfileBuilder().Build())
+                    },
+                    {
+                        "default",
+                        new ExecutionProfileBuilder()
+                            .WithSpeculativeExecutionPolicy(seps[2]).Build()
                     }
                 }
             }.Build();
@@ -226,7 +238,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             }
         }
 
-        private class FakeLoadBalancingPolicy : ILoadBalancingPolicy
+        internal class FakeLoadBalancingPolicy : ILoadBalancingPolicy
         {
             public volatile int InitializeCount;
             private ICluster _cluster;

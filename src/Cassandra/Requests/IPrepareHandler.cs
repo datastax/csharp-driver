@@ -14,19 +14,19 @@
 //    limitations under the License.
 // 
 
-using Cassandra.Responses;
-using Moq;
+using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Threading.Tasks;
+using Cassandra.SessionManagement;
 
-namespace Cassandra.Tests.Requests
+namespace Cassandra.Requests
 {
-    internal class ProxyResultResponse : ResultResponse
+    internal interface IPrepareHandler
     {
-        public ProxyResultResponse(ResultResponseKind kind) : base(kind, Mock.Of<IOutput>())
-        {
-        }
+        Task<PreparedStatement> Prepare(
+            PrepareRequest request, IInternalSession session, Dictionary<IPEndPoint, Exception> triedHosts);
 
-        public ProxyResultResponse(ResultResponseKind kind, IOutput output) : base(kind, output)
-        {
-        }
+        Task PrepareOnTheRestOfTheNodes(PrepareRequest request, IInternalSession session);
     }
 }

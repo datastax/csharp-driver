@@ -27,6 +27,7 @@ namespace Cassandra.ExecutionProfiles
     internal class RequestOptions : IRequestOptions
     {
         private readonly IExecutionProfile _profile;
+        private readonly IExecutionProfile _defaultProfile;
         private readonly Policies _policies;
         private readonly SocketOptions _socketOptions;
         private readonly QueryOptions _queryOptions;
@@ -35,14 +36,22 @@ namespace Cassandra.ExecutionProfiles
         /// <summary>
         /// Builds a request options object without any null settings.
         /// </summary>
-        /// <param name="profile">Can be null.</param>
+        /// <param name="profile">Execution profile that was mapped into this instance. Can be null if it's the default profile.</param>
+        /// <param name="defaultProfile">Default execution profile. Can be null.</param>
         /// <param name="policies">Must not be null and the inner policy settings must not be null either.</param>
         /// <param name="socketOptions">Must not be null.</param>
         /// <param name="queryOptions">Must not be null.</param>
         /// <param name="clientOptions">Must not be null.</param>
-        public RequestOptions(IExecutionProfile profile, Policies policies, SocketOptions socketOptions, QueryOptions queryOptions, ClientOptions clientOptions)
+        public RequestOptions(
+            IExecutionProfile profile, 
+            IExecutionProfile defaultProfile, 
+            Policies policies, 
+            SocketOptions socketOptions, 
+            QueryOptions queryOptions, 
+            ClientOptions clientOptions)
         {
             _profile = profile;
+            _defaultProfile = defaultProfile;
             _policies = policies ?? throw new ArgumentNullException(nameof(policies));
             _socketOptions = socketOptions ?? throw new ArgumentNullException(nameof(socketOptions));
             _queryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -64,17 +73,17 @@ namespace Cassandra.ExecutionProfiles
             }
         }
 
-        public ConsistencyLevel ConsistencyLevel => _profile?.ConsistencyLevel ?? _queryOptions.GetConsistencyLevel();
+        public ConsistencyLevel ConsistencyLevel => _profile?.ConsistencyLevel ?? _defaultProfile?.ConsistencyLevel ?? _queryOptions.GetConsistencyLevel();
 
-        public ConsistencyLevel SerialConsistencyLevel => _profile?.SerialConsistencyLevel ?? _queryOptions.GetSerialConsistencyLevel();
+        public ConsistencyLevel SerialConsistencyLevel => _profile?.SerialConsistencyLevel ?? _defaultProfile?.SerialConsistencyLevel ?? _queryOptions.GetSerialConsistencyLevel();
 
-        public int ReadTimeoutMillis => _profile?.ReadTimeoutMillis ?? _socketOptions.ReadTimeoutMillis;
+        public int ReadTimeoutMillis => _profile?.ReadTimeoutMillis ?? _defaultProfile?.ReadTimeoutMillis ?? _socketOptions.ReadTimeoutMillis;
 
-        public ILoadBalancingPolicy LoadBalancingPolicy => _profile?.LoadBalancingPolicy ?? _policies.LoadBalancingPolicy;
+        public ILoadBalancingPolicy LoadBalancingPolicy => _profile?.LoadBalancingPolicy ?? _defaultProfile?.LoadBalancingPolicy ?? _policies.LoadBalancingPolicy;
 
-        public ISpeculativeExecutionPolicy SpeculativeExecutionPolicy => _profile?.SpeculativeExecutionPolicy ?? _policies.SpeculativeExecutionPolicy;
+        public ISpeculativeExecutionPolicy SpeculativeExecutionPolicy => _profile?.SpeculativeExecutionPolicy ?? _defaultProfile?.SpeculativeExecutionPolicy ?? _policies.SpeculativeExecutionPolicy;
 
-        public IExtendedRetryPolicy RetryPolicy => _profile?.RetryPolicy ?? _policies.ExtendedRetryPolicy;
+        public IExtendedRetryPolicy RetryPolicy => _profile?.RetryPolicy ?? _defaultProfile?.RetryPolicy ?? _policies.ExtendedRetryPolicy;
 
         //// next settings don't exist in execution profiles
 

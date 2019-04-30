@@ -32,6 +32,13 @@ namespace Cassandra
             Metadata = new RowSetMetadata(reader, protocolVersion.SupportsPreparedPartitionKey());
         }
 
+        // for testing
+        internal OutputPrepared(byte[] queryId, RowSetMetadata rowSetMetadata)
+        {
+            QueryId = queryId;
+            Metadata = rowSetMetadata;
+        }
+
         public void Dispose()
         {
         }

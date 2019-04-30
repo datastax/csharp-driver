@@ -267,6 +267,11 @@ namespace Cassandra
         /// </summary>
         internal int[] PartitionKeys { get; private set; }
 
+        // for testing
+        internal RowSetMetadata()
+        {
+        }
+
         internal RowSetMetadata(FrameReader reader, bool parsePartitionKeys = false)
         {
             if (reader == null)
