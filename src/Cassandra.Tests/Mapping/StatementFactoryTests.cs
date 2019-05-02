@@ -33,8 +33,8 @@ namespace Cassandra.Tests.Mapping
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(q => Task.FromResult(GetPrepared(q)));
+                .Setup(s => s.PrepareAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .Returns<string, string>((q, profile) => Task.FromResult(GetPrepared(q)));
 
             var cql = Cql.New("Q");
             var sf = new StatementFactory();
@@ -58,14 +58,14 @@ namespace Cassandra.Tests.Mapping
             var sessionMock1 = new Mock<ISession>(MockBehavior.Strict);
             sessionMock1.Setup(s => s.Keyspace).Returns("ks1");
             sessionMock1
-                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(q => Task.FromResult(GetPrepared(q)));
+                .Setup(s => s.PrepareAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .Returns<string, string>((q, profile) => Task.FromResult(GetPrepared(q)));
 
             var sessionMock2 = new Mock<ISession>(MockBehavior.Strict);
             sessionMock2.Setup(s => s.Keyspace).Returns("ks2");
             sessionMock2
-                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(q => Task.FromResult(GetPrepared(q)));
+                .Setup(s => s.PrepareAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .Returns<string, string>((q, profile) => Task.FromResult(GetPrepared(q)));
 
             var cql1A = Cql.New("Q1");
             var cql1B = Cql.New("Q1");
@@ -111,8 +111,8 @@ namespace Cassandra.Tests.Mapping
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(q =>
+                .Setup(s => s.PrepareAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .Returns<string, string>((q, profile) =>
                 {
                     if (Volatile.Read(ref preparationFails) == 1)
                     {
