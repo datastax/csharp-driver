@@ -115,10 +115,5 @@ namespace Cassandra.Data.Linq
                     throw new ArgumentException();
             }
         }
-
-        protected Task<RowSet> ExecuteStatementAsync(IStatement statement, string executionProfile)
-        {
-            return executionProfile != null ? _session.ExecuteAsync(statement, executionProfile) : _session.ExecuteAsync(statement);
-        }
     }
 }

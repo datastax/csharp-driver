@@ -45,7 +45,7 @@ namespace Cassandra.Data.Linq
         
         protected override Task<RowSet> InternalExecuteAsync()
         {
-            return InternalExecuteAsync(null);
+            return InternalExecuteAsync(Configuration.DefaultExecutionProfileName);
         }
 
         protected override Task<RowSet> InternalExecuteAsync(string executionProfile)
@@ -56,7 +56,7 @@ namespace Cassandra.Data.Linq
             }
             _batchScript.SetBatchType(_batchType);
             this.CopyQueryPropertiesTo(_batchScript);
-            return ExecuteStatementAsync(_batchScript, executionProfile);
+            return _session.ExecuteAsync(_batchScript, executionProfile);
         }
 
         public override string ToString()

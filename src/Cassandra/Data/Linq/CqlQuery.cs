@@ -109,7 +109,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public Task<IPage<TEntity>> ExecutePagedAsync()
         {
-            return ExecutePagedWithProfileAsync(null);
+            return ExecutePagedAsync(Configuration.DefaultExecutionProfileName);
         }
 
         /// <summary>
@@ -117,20 +117,26 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public IPage<TEntity> ExecutePaged()
         {
-            return ExecutePagedWithProfile(null);
+            return ExecutePaged(Configuration.DefaultExecutionProfileName);
         }
         
         /// <summary>
         /// Asynchronously executes the query with the provided execution profile and returns a task of a page of results
         /// </summary>
-        public Task<IPage<TEntity>> ExecutePagedAsync(string executionProfile)
+        public async Task<IPage<TEntity>> ExecutePagedAsync(string executionProfile)
         {
             if (executionProfile == null)
             {
                 throw new ArgumentNullException(nameof(executionProfile));
             }
-
-            return ExecutePagedWithProfileAsync(executionProfile);
+            
+            SetAutoPage(false);
+            var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
+            object[] values;
+            var cql = visitor.GetSelect(Expression, out values);
+            var rs = await InternalExecuteWithProfileAsync(executionProfile, cql, values).ConfigureAwait(false);
+            var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
+            return new Page<TEntity>(rs.Select(mapper), PagingState, rs.PagingState);
         }
 
         /// <summary>
@@ -142,28 +148,12 @@ namespace Cassandra.Data.Linq
             {
                 throw new ArgumentNullException(nameof(executionProfile));
             }
-
-            return ExecutePagedWithProfile(executionProfile);
-        }
-
-        private async Task<IPage<TEntity>> ExecutePagedWithProfileAsync(string executionProfile)
-        {
-            SetAutoPage(false);
-            var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
-            object[] values;
-            var cql = visitor.GetSelect(Expression, out values);
-            var rs = await InternalExecuteWithProfileAsync(executionProfile, cql, values).ConfigureAwait(false);
-            var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
-            return new Page<TEntity>(rs.Select(mapper), PagingState, rs.PagingState);
-        }
-
-        private IPage<TEntity> ExecutePagedWithProfile(string executionProfile)
-        {
+            
             var queryAbortTimeout = GetTable().GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
-            var task = ExecutePagedWithProfileAsync(executionProfile);
+            var task = ExecutePagedAsync(executionProfile);
             return TaskHelper.WaitToComplete(task, queryAbortTimeout);
         }
-
+        
         /// <summary>
         /// Generates and returns cql query for this instance 
         /// </summary>

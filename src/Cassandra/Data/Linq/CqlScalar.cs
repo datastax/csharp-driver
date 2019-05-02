@@ -71,21 +71,16 @@ namespace Cassandra.Data.Linq
 
         public new Task<TEntity> ExecuteAsync()
         {
-            return ExecuteWithProfileAsync(null);
+            return ExecuteAsync(Configuration.DefaultExecutionProfileName);
         }
         
-        public new Task<TEntity> ExecuteAsync(string executionProfile)
+        public new async Task<TEntity> ExecuteAsync(string executionProfile)
         {
             if (executionProfile == null)
             {
                 throw new ArgumentNullException(nameof(executionProfile));
             }
-
-            return ExecuteWithProfileAsync(executionProfile);
-        }
-
-        private async Task<TEntity> ExecuteWithProfileAsync(string executionProfile)
-        {
+            
             object[] values;
             string cql = GetCql(out values);
             var rs = await InternalExecuteWithProfileAsync(executionProfile, cql, values).ConfigureAwait(false);

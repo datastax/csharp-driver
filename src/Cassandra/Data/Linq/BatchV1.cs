@@ -44,7 +44,7 @@ namespace Cassandra.Data.Linq
 
         protected override Task<RowSet> InternalExecuteAsync()
         {
-            return InternalExecuteAsync(null);
+            return InternalExecuteAsync(Configuration.DefaultExecutionProfileName);
         }
         
         protected override Task<RowSet> InternalExecuteAsync(string executionProfile)
@@ -56,7 +56,7 @@ namespace Cassandra.Data.Linq
             string cqlQuery = GetCql();
             var stmt = new SimpleStatement(cqlQuery);
             this.CopyQueryPropertiesTo(stmt);
-            return ExecuteStatementAsync(stmt, executionProfile);
+            return _session.ExecuteAsync(stmt, executionProfile);
         }
 
         private string GetCql()

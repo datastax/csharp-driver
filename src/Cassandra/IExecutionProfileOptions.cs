@@ -15,6 +15,7 @@
 //
 
 using System;
+using Cassandra.Mapping;
 
 namespace Cassandra
 {

@@ -93,7 +93,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public void Execute()
         {
-            ExecuteWithProfile(null);
+            Execute(Configuration.DefaultExecutionProfileName);
         }
         
         /// <summary>
@@ -105,8 +105,9 @@ namespace Cassandra.Data.Linq
             {
                 throw new ArgumentNullException(nameof(executionProfile));
             }
-
-            return ExecuteWithProfile(executionProfile);
+            
+            var queryAbortTimeout = GetTable().GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
+            return TaskHelper.WaitToComplete(ExecuteAsync(executionProfile), queryAbortTimeout);
         }
 
         public void SetQueryTrace(QueryTrace trace)
@@ -164,20 +165,28 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public Task<RowSet> ExecuteAsync()
         {
-            return ExecuteWithProfileAsync(null);
+            return ExecuteAsync(Configuration.DefaultExecutionProfileName);
         }
         
         /// <summary>
         /// Evaluates the Linq command and executes asynchronously the cql statement with the provided execution profile.
         /// </summary>
-        public Task<RowSet> ExecuteAsync(string executionProfile)
+        public async Task<RowSet> ExecuteAsync(string executionProfile)
         {
             if (executionProfile == null)
             {
                 throw new ArgumentNullException(executionProfile);
             }
-
-            return ExecuteWithProfileAsync(executionProfile);
+            
+            var cqlQuery = GetCql(out var values);
+            var session = GetTable().GetSession();
+            var stmt = await _statementFactory.GetStatementAsync(
+                session, 
+                Cql.New(cqlQuery, values).WithExecutionProfile(executionProfile)).ConfigureAwait(false);
+            this.CopyQueryPropertiesTo(stmt);
+            var rs = await session.ExecuteAsync(stmt, executionProfile).ConfigureAwait(false);
+            QueryTrace = rs.Info.QueryTrace;
+            return rs;
         }
 
         /// <summary>
@@ -195,27 +204,6 @@ namespace Cassandra.Data.Linq
         {
             var task = (Task<RowSet>)ar;
             task.Wait();
-        }
-
-        private async Task<RowSet> ExecuteWithProfileAsync(string executionProfile)
-        {
-            object[] values;
-            var cqlQuery = GetCql(out values);
-            var session = GetTable().GetSession();
-            var stmt = await _statementFactory.GetStatementAsync(session, Cql.New(cqlQuery, values))
-                                              .ConfigureAwait(false);
-            this.CopyQueryPropertiesTo(stmt);
-            var rs = executionProfile != null
-                ? await session.ExecuteAsync(stmt, executionProfile).ConfigureAwait(false)
-                : await session.ExecuteAsync(stmt).ConfigureAwait(false);
-            QueryTrace = rs.Info.QueryTrace;
-            return rs;
-        }
-
-        private RowSet ExecuteWithProfile(string executionProfile)
-        {
-            var queryAbortTimeout = GetTable().GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
-            return TaskHelper.WaitToComplete(ExecuteWithProfileAsync(executionProfile), queryAbortTimeout);
         }
     }
 }

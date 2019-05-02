@@ -93,13 +93,12 @@ namespace Cassandra.Data.Linq
         protected async Task<RowSet> InternalExecuteWithProfileAsync(string executionProfile, string cqlQuery, object[] values)
         {
             var session = GetTable().GetSession();
-            var statement = await StatementFactory.GetStatementAsync(session, Cql.New(cqlQuery, values))
-                                                  .ConfigureAwait(false);
+            var statement = await StatementFactory.GetStatementAsync(
+                session,
+                Cql.New(cqlQuery, values).WithExecutionProfile(executionProfile)).ConfigureAwait(false);
             
             this.CopyQueryPropertiesTo(statement);
-            var rs = executionProfile != null
-                ? await session.ExecuteAsync(statement, executionProfile).ConfigureAwait(false)
-                : await session.ExecuteAsync(statement).ConfigureAwait(false);
+            var rs = await session.ExecuteAsync(statement, executionProfile).ConfigureAwait(false);
             QueryTrace = rs.Info.QueryTrace;
             return rs;
         }
@@ -118,7 +117,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public Task<IEnumerable<TEntity>> ExecuteAsync()
         {
-            return ExecuteCqlQueryAsync(null);
+            return ExecuteCqlQueryAsync(Configuration.DefaultExecutionProfileName);
         }
 
         /// <summary>
@@ -126,7 +125,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public IEnumerable<TEntity> Execute()
         {
-            return ExecuteCqlQuery(null);
+            return ExecuteCqlQuery(Configuration.DefaultExecutionProfileName);
         }
         
         /// <summary>
