@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Threading.Tasks;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
@@ -59,10 +60,12 @@ namespace Cassandra
             {
                 throw new ArgumentNullException("udtMaps");
             }
-            var keyspace = _session.Keyspace;
-            if (String.IsNullOrEmpty(keyspace))
+            var sessionKeyspace = _session.Keyspace;
+            if (string.IsNullOrEmpty(sessionKeyspace) && udtMaps.Any(map => map.Keyspace == null))
             {
-                throw new ArgumentException("It is not possible to define a mapping when no keyspace is specified.");
+                throw new ArgumentException("It is not possible to define a mapping when no keyspace is specified. " +
+                                            "You can specify it while creating the UdtMap, while creating the Session and" +
+                                            " while creating the Cluster (default keyspace config setting).");
             }
             if (_session.BinaryProtocolVersion < 3)
             {
@@ -71,7 +74,7 @@ namespace Cassandra
             // Add types to both indexes
             foreach (var map in udtMaps)
             {
-                var udtDefition = await GetDefinitionAsync(keyspace, map).ConfigureAwait(false);
+                var udtDefition = await GetDefinitionAsync(map.Keyspace ?? sessionKeyspace, map).ConfigureAwait(false);
                 map.SetSerializer(_serializer);
                 map.Build(udtDefition);
                 _serializer.SetUdtMap(udtDefition.Name, map);
