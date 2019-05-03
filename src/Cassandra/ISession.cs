@@ -203,10 +203,11 @@ namespace Cassandra
         PreparedStatement Prepare(string cqlQuery, IDictionary<string, byte[]> customPayload);
         
         /// <summary>
-        /// Prepares a request that is configured with the provided Action.
+        /// Prepares the provided request.
+        /// You can use <see cref="PrepareRequestBuilder.FromQuery(string)"/> to create a <see cref="IPrepareRequest"/>.
         /// </summary>
-        /// <param name="prepareRequestBuilder">Action to configure the request to execute.</param>
-        PreparedStatement Prepare(Action<IPrepareRequestBuilder> prepareRequestBuilder);
+        /// <param name="request">Request to execute.</param>
+        PreparedStatement Prepare(IPrepareRequest request);
         
         /// <summary>
         /// Prepares the provided query string asynchronously.
@@ -220,12 +221,13 @@ namespace Cassandra
         /// <param name="cqlQuery">cql query to prepare</param>
         /// <param name="customPayload">Custom outgoing payload to send with the prepare request</param>
         Task<PreparedStatement> PrepareAsync(string cqlQuery, IDictionary<string, byte[]> customPayload);
-
+        
         /// <summary>
-        /// Prepares a request that is configured with the provided Action asynchronously.
+        /// Prepares the provided request asynchronously.
+        /// You can use <see cref="PrepareRequestBuilder.FromQuery(string)"/> to create a <see cref="IPrepareRequest"/>.
         /// </summary>
-        /// <param name="prepareRequestBuilder">Action to configure the request to execute.</param>
-        Task<PreparedStatement> PrepareAsync(Action<IPrepareRequestBuilder> prepareRequestBuilder);
+        /// <param name="request">Request to execute.</param>
+        Task<PreparedStatement> PrepareAsync(IPrepareRequest request);
 
         [Obsolete("Method deprecated. The driver internally waits for schema agreement when there is an schema change. See ProtocolOptions.MaxSchemaAgreementWaitSeconds for more info.")]
         void WaitForSchemaAgreement(RowSet rs);

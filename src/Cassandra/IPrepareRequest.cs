@@ -16,14 +16,26 @@
 
 using System.Collections.Generic;
 
-namespace Cassandra.Requests
+namespace Cassandra
 {
-    internal interface IPrepareRequest
+    /// <summary>
+    /// Represents a request to prepare a query. See <see cref="PrepareRequestBuilder.FromQuery"/> to build a <see cref="IPrepareRequest"/>.
+    /// </summary>
+    public interface IPrepareRequest
     {
+        /// <summary>
+        /// Custom payload to use in the prepare request.
+        /// </summary>
         IDictionary<string, byte[]> CustomPayload { get; }
 
+        /// <summary>
+        /// Execution profile to use in the prepare request.
+        /// </summary>
         string ExecutionProfileName { get; }
 
+        /// <summary>
+        /// Query to be prepared with this request.
+        /// </summary>
         string Query { get; }
     }
 }

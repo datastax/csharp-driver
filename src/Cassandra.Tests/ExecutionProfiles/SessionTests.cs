@@ -177,15 +177,23 @@ namespace Cassandra.Tests.ExecutionProfiles
 
             if (async)
             {
-                await session.PrepareAsync(prepare => prepare.WithQuery("test query").WithExecutionProfile("testE")).ConfigureAwait(false);
+                await session.PrepareAsync(PrepareRequestBuilder.FromQuery("test query").WithExecutionProfile("testE").Build()).ConfigureAwait(false);
                 await session.PrepareAsync(
-                    prepare => prepare.WithQuery("test query").WithCustomPayload(new Dictionary<string, byte[]>()).WithExecutionProfile("testE")).ConfigureAwait(false);
+                    PrepareRequestBuilder
+                        .FromQuery("test query")
+                        .WithCustomPayload(new Dictionary<string, byte[]>())
+                        .WithExecutionProfile("testE")
+                        .Build()).ConfigureAwait(false);
             }
             else
             {
-                session.Prepare(prepare => prepare.WithQuery("test query").WithExecutionProfile("testE"));
+                session.Prepare(PrepareRequestBuilder.FromQuery("test query").WithExecutionProfile("testE").Build());
                 session.Prepare(
-                    prepare => prepare.WithQuery("test query").WithCustomPayload(new Dictionary<string, byte[]>()).WithExecutionProfile("testE"));
+                    PrepareRequestBuilder
+                        .FromQuery("test query")
+                        .WithCustomPayload(new Dictionary<string, byte[]>())
+                        .WithExecutionProfile("testE")
+                        .Build());
             }
 
             Mock.Get(prepareHandlerFactory)
