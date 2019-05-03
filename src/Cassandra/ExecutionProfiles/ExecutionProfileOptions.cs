@@ -38,7 +38,7 @@ namespace Cassandra.ExecutionProfiles
 
         private IExecutionProfileOptions WithProfile(string name, IExecutionProfile profile)
         {
-            if (name == null)
+            if (string.IsNullOrWhiteSpace(name))
             {
                 throw new ArgumentNullException(nameof(name));
             }
@@ -54,7 +54,7 @@ namespace Cassandra.ExecutionProfiles
 
         private IExecutionProfileOptions WithDerivedProfile(string name, string baseProfile, IExecutionProfile profile)
         {
-            if (name == null)
+            if (string.IsNullOrWhiteSpace(name))
             {
                 throw new ArgumentNullException(nameof(name));
             }

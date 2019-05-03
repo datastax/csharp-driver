@@ -20,7 +20,7 @@ using Cassandra.Serialization;
 
 namespace Cassandra.Requests
 {
-    internal class PrepareRequest : IRequest
+    internal class InternalPrepareRequest : IRequest
     {
         public const byte OpCode = 0x09;
         private IDictionary<string, byte[]> _payload;
@@ -43,7 +43,7 @@ namespace Cassandra.Requests
             }
         }
 
-        public PrepareRequest(string cqlQuery)
+        public InternalPrepareRequest(string cqlQuery)
         {
             Query = cqlQuery;
         }

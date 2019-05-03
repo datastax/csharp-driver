@@ -71,7 +71,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                 profile);
             
             await mockResult.PrepareHandler.Prepare(
-                new PrepareRequest("TEST"), mockResult.Session, new Dictionary<IPEndPoint, Exception>()).ConfigureAwait(false);
+                new InternalPrepareRequest("TEST"), mockResult.Session, new Dictionary<IPEndPoint, Exception>()).ConfigureAwait(false);
 
             var results = mockResult.SendResults.ToArray();
             Assert.AreEqual(1, results.Length);
@@ -107,7 +107,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                 null);
 
             await mockResult.PrepareHandler.Prepare(
-                new PrepareRequest("TEST"), mockResult.Session, new Dictionary<IPEndPoint, Exception>()).ConfigureAwait(false);
+                new InternalPrepareRequest("TEST"), mockResult.Session, new Dictionary<IPEndPoint, Exception>()).ConfigureAwait(false);
 
             var results = mockResult.SendResults.ToArray();
             Assert.AreEqual(1, results.Length);

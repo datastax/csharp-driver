@@ -423,7 +423,7 @@ namespace Cassandra.Requests
             {
                 throw new DriverInternalError("Expected Bound or batch statement");
             }
-            var request = new PrepareRequest(boundStatement.PreparedStatement.Cql);
+            var request = new InternalPrepareRequest(boundStatement.PreparedStatement.Cql);
             if (boundStatement.PreparedStatement.Keyspace != null && _session.Keyspace != boundStatement.PreparedStatement.Keyspace)
             {
                 RequestExecution.Logger.Warning("The statement was prepared using another keyspace, changing the keyspace temporarily to" +
