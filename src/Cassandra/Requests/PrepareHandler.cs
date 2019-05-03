@@ -44,7 +44,7 @@ namespace Cassandra.Requests
         }
         
         public async Task<PreparedStatement> Prepare(
-            PrepareRequest request, IInternalSession session, Dictionary<IPEndPoint, Exception> triedHosts)
+            InternalPrepareRequest request, IInternalSession session, Dictionary<IPEndPoint, Exception> triedHosts)
         {
             if (triedHosts == null)
             {
@@ -74,7 +74,7 @@ namespace Cassandra.Requests
                    ex is OverloadedException || ex is QueryExecutionException;
         }
 
-        public async Task PrepareOnTheRestOfTheNodes(PrepareRequest request, IInternalSession session)
+        public async Task PrepareOnTheRestOfTheNodes(InternalPrepareRequest request, IInternalSession session)
         {
             Host host;
             HostDistance distance;
@@ -102,7 +102,7 @@ namespace Cassandra.Requests
             }
         }
         
-        private async Task<PreparedStatement> GetPreparedStatement(Response response, PrepareRequest request,
+        private async Task<PreparedStatement> GetPreparedStatement(Response response, InternalPrepareRequest request,
                                                                    string keyspace, ICluster cluster)
         {
             if (response == null)

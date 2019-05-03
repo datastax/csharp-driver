@@ -16,7 +16,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
@@ -134,10 +133,10 @@ namespace Cassandra.Tests.ExecutionProfiles
             var prepareHandlerFactory = Mock.Of<IPrepareHandlerFactory>();
             var prepareHandlerMock = Mock.Of<IPrepareHandler>();
             Mock.Get(prepareHandlerMock)
-                .Setup(m => m.Prepare(It.IsAny<PrepareRequest>(), It.IsAny<IInternalSession>(), It.IsAny<Dictionary<IPEndPoint, Exception>>()))
+                .Setup(m => m.Prepare(It.IsAny<InternalPrepareRequest>(), It.IsAny<IInternalSession>(), It.IsAny<Dictionary<IPEndPoint, Exception>>()))
                 .ReturnsAsync(new PreparedStatement(null, new byte[0], string.Empty, string.Empty, Serializer.Default));
             Mock.Get(prepareHandlerMock)
-                .Setup(m => m.PrepareOnTheRestOfTheNodes(It.IsAny<PrepareRequest>(), It.IsAny<IInternalSession>()))
+                .Setup(m => m.PrepareOnTheRestOfTheNodes(It.IsAny<Cassandra.Requests.InternalPrepareRequest>(), It.IsAny<IInternalSession>()))
                 .Returns(TaskHelper.Completed);
             var lbpMock = Mock.Of<ILoadBalancingPolicy>();
             Mock.Get(lbpMock)
@@ -178,13 +177,15 @@ namespace Cassandra.Tests.ExecutionProfiles
 
             if (async)
             {
-                await session.PrepareAsync("test query", "testE").ConfigureAwait(false);
-                await session.PrepareAsync("test query", new Dictionary<string, byte[]>(), "testE").ConfigureAwait(false);
+                await session.PrepareAsync(prepare => prepare.WithQuery("test query").WithExecutionProfile("testE")).ConfigureAwait(false);
+                await session.PrepareAsync(
+                    prepare => prepare.WithQuery("test query").WithCustomPayload(new Dictionary<string, byte[]>()).WithExecutionProfile("testE")).ConfigureAwait(false);
             }
             else
             {
-                session.Prepare("test query", "testE");
-                session.Prepare("test query", new Dictionary<string, byte[]>(), "testE");
+                session.Prepare(prepare => prepare.WithQuery("test query").WithExecutionProfile("testE"));
+                session.Prepare(
+                    prepare => prepare.WithQuery("test query").WithCustomPayload(new Dictionary<string, byte[]>()).WithExecutionProfile("testE"));
             }
 
             Mock.Get(prepareHandlerFactory)
@@ -205,10 +206,10 @@ namespace Cassandra.Tests.ExecutionProfiles
             var prepareHandlerFactory = Mock.Of<IPrepareHandlerFactory>();
             var prepareHandlerMock = Mock.Of<IPrepareHandler>();
             Mock.Get(prepareHandlerMock)
-                .Setup(m => m.Prepare(It.IsAny<PrepareRequest>(), It.IsAny<IInternalSession>(), It.IsAny<Dictionary<IPEndPoint, Exception>>()))
+                .Setup(m => m.Prepare(It.IsAny<InternalPrepareRequest>(), It.IsAny<IInternalSession>(), It.IsAny<Dictionary<IPEndPoint, Exception>>()))
                 .ReturnsAsync(new PreparedStatement(null, new byte[0], string.Empty, string.Empty, Serializer.Default));
             Mock.Get(prepareHandlerMock)
-                .Setup(m => m.PrepareOnTheRestOfTheNodes(It.IsAny<PrepareRequest>(), It.IsAny<IInternalSession>()))
+                .Setup(m => m.PrepareOnTheRestOfTheNodes(It.IsAny<Cassandra.Requests.InternalPrepareRequest>(), It.IsAny<IInternalSession>()))
                 .Returns(TaskHelper.Completed);
             var lbpMock = Mock.Of<ILoadBalancingPolicy>();
             Mock.Get(lbpMock)

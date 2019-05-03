@@ -535,7 +535,7 @@ namespace Cassandra
 
         /// <inheritdoc />
         async Task<PreparedStatement> IInternalCluster.Prepare(
-            IInternalSession session, Serializer serializer, PrepareRequest request, IRequestOptions requestOptions)
+            IInternalSession session, Serializer serializer, InternalPrepareRequest request, IRequestOptions requestOptions)
         {
             var lbp = requestOptions.LoadBalancingPolicy;
             var handler = InternalRef.Configuration.PrepareHandlerFactory.Create(
@@ -581,7 +581,7 @@ namespace Cassandra
             {
                 foreach (var query in preparedQueries.Select(ps => ps.Cql))
                 {
-                    var request = new PrepareRequest(query);
+                    var request = new InternalPrepareRequest(query);
                     await semaphore.WaitAsync().ConfigureAwait(false);
 
                     async Task SendSingle()

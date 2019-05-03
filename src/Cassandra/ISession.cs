@@ -196,40 +196,24 @@ namespace Cassandra
         PreparedStatement Prepare(string cqlQuery);
         
         /// <summary>
-        /// Prepares the provided query string with the provided execution profile.
-        /// </summary>
-        /// <param name="cqlQuery">cql query to prepare</param>
-        /// <param name="executionProfileName">Execution profile to use in this prepare request.</param>
-        PreparedStatement Prepare(string cqlQuery, string executionProfileName);
-
-        /// <summary>
         /// Prepares the query string, sending the custom payload request.
         /// </summary>
         /// <param name="cqlQuery">cql query to prepare</param>
         /// <param name="customPayload">Custom outgoing payload to send with the prepare request</param>
         PreparedStatement Prepare(string cqlQuery, IDictionary<string, byte[]> customPayload);
-
+        
         /// <summary>
-        /// Prepares the query string with the provided execution profile, sending the custom payload request.
+        /// Prepares a request that is configured with the provided Action.
         /// </summary>
-        /// <param name="cqlQuery">cql query to prepare</param>
-        /// <param name="customPayload">Custom outgoing payload to send with the prepare request</param>
-        /// <param name="executionProfileName">Execution profile to use in this prepare request.</param>
-        PreparedStatement Prepare(string cqlQuery, IDictionary<string, byte[]> customPayload, string executionProfileName);
-
+        /// <param name="prepareRequestBuilder">Action to configure the request to execute.</param>
+        PreparedStatement Prepare(Action<IPrepareRequestBuilder> prepareRequestBuilder);
+        
         /// <summary>
         /// Prepares the provided query string asynchronously.
         /// </summary>
         /// <param name="cqlQuery">cql query to prepare</param>
         Task<PreparedStatement> PrepareAsync(string cqlQuery);
-
-        /// <summary>
-        /// Prepares the provided query string asynchronously with the provided execution profile.
-        /// </summary>
-        /// <param name="cqlQuery">cql query to prepare</param>
-        /// <param name="executionProfileName">Execution profile to use in this prepare request.</param>
-        Task<PreparedStatement> PrepareAsync(string cqlQuery, string executionProfileName);
-
+        
         /// <summary>
         /// Prepares the provided query string asynchronously, and sending the custom payload request.
         /// </summary>
@@ -238,12 +222,10 @@ namespace Cassandra
         Task<PreparedStatement> PrepareAsync(string cqlQuery, IDictionary<string, byte[]> customPayload);
 
         /// <summary>
-        /// Prepares the provided query string asynchronously with the provided execution profile, and sending the custom payload request.
+        /// Prepares a request that is configured with the provided Action asynchronously.
         /// </summary>
-        /// <param name="cqlQuery">cql query to prepare</param>
-        /// <param name="customPayload">Custom outgoing payload to send with the prepare request</param>
-        /// <param name="executionProfileName">Execution profile to use in this prepare request.</param>
-        Task<PreparedStatement> PrepareAsync(string cqlQuery, IDictionary<string, byte[]> customPayload, string executionProfileName);
+        /// <param name="prepareRequestBuilder">Action to configure the request to execute.</param>
+        Task<PreparedStatement> PrepareAsync(Action<IPrepareRequestBuilder> prepareRequestBuilder);
 
         [Obsolete("Method deprecated. The driver internally waits for schema agreement when there is an schema change. See ProtocolOptions.MaxSchemaAgreementWaitSeconds for more info.")]
         void WaitForSchemaAgreement(RowSet rs);

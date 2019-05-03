@@ -14,19 +14,23 @@
 //    limitations under the License.
 // 
 
-using System;
 using System.Collections.Generic;
-using System.Net;
-using System.Threading.Tasks;
-using Cassandra.SessionManagement;
 
 namespace Cassandra.Requests
 {
-    internal interface IPrepareHandler
+    internal class DefaultPrepareRequest : IPrepareRequest
     {
-        Task<PreparedStatement> Prepare(
-            InternalPrepareRequest request, IInternalSession session, Dictionary<IPEndPoint, Exception> triedHosts);
+        public DefaultPrepareRequest(string query, IDictionary<string, byte[]> customPayload, string executionProfileName)
+        {
+            Query = query;
+            CustomPayload = customPayload;
+            ExecutionProfileName = executionProfileName;
+        }
 
-        Task PrepareOnTheRestOfTheNodes(InternalPrepareRequest request, IInternalSession session);
+        public IDictionary<string, byte[]> CustomPayload { get; }
+
+        public string ExecutionProfileName { get; }
+
+        public string Query { get; }
     }
 }
