@@ -44,7 +44,7 @@ namespace Cassandra.Tests.Mapping
                 .Returns(() => TaskHelper.ToTask(new RowSet()))
                 .Verifiable();
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
                 .Returns(TaskHelper.ToTask(GetPrepared()))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock);
@@ -74,8 +74,8 @@ namespace Cassandra.Tests.Mapping
                 }))
                 .Verifiable();
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<string>(), It.IsAny<string>()))
-                .Returns<string, string>((cql, profile) => TaskHelper.ToTask(GetPrepared(cql)))
+                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
+                .Returns<IPrepareRequest>(req => TaskHelper.ToTask(GetPrepared(req.Query)))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock);
             var batch = mapper.CreateBatch();

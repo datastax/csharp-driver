@@ -94,8 +94,8 @@ namespace Cassandra.Tests.Mapping
                 .Callback<BoundStatement, string>((stmt, profile) => statement = stmt)
                 .Verifiable();
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<string>(), It.IsAny<string>()))
-                .Returns<string, string>((query, profile) => TaskHelper.ToTask(GetPrepared(query)))
+                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
+                .Returns<IPrepareRequest>(request => TaskHelper.ToTask(GetPrepared(request.Query)))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock);
             var song = new Song { Id = Guid.NewGuid(), Title = "t2", ReleaseDate = DateTimeOffset.Now };

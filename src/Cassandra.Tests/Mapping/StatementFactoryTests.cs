@@ -33,8 +33,8 @@ namespace Cassandra.Tests.Mapping
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<string>(), It.IsAny<string>()))
-                .Returns<string, string>((q, profile) => Task.FromResult(GetPrepared(q)));
+                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
+                .Returns<IPrepareRequest>(req => Task.FromResult(GetPrepared(req.Query)));
 
             var cql = Cql.New("Q");
             var sf = new StatementFactory();
@@ -58,14 +58,14 @@ namespace Cassandra.Tests.Mapping
             var sessionMock1 = new Mock<ISession>(MockBehavior.Strict);
             sessionMock1.Setup(s => s.Keyspace).Returns("ks1");
             sessionMock1
-                .Setup(s => s.PrepareAsync(It.IsAny<string>(), It.IsAny<string>()))
-                .Returns<string, string>((q, profile) => Task.FromResult(GetPrepared(q)));
+                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
+                .Returns<IPrepareRequest>(req => Task.FromResult(GetPrepared(req.Query)));
 
             var sessionMock2 = new Mock<ISession>(MockBehavior.Strict);
             sessionMock2.Setup(s => s.Keyspace).Returns("ks2");
             sessionMock2
-                .Setup(s => s.PrepareAsync(It.IsAny<string>(), It.IsAny<string>()))
-                .Returns<string, string>((q, profile) => Task.FromResult(GetPrepared(q)));
+                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
+                .Returns<IPrepareRequest>(req => Task.FromResult(GetPrepared(req.Query)));
 
             var cql1A = Cql.New("Q1");
             var cql1B = Cql.New("Q1");
@@ -111,15 +111,15 @@ namespace Cassandra.Tests.Mapping
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<string>(), It.IsAny<string>()))
-                .Returns<string, string>((q, profile) =>
+                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
+                .Returns<IPrepareRequest>(req =>
                 {
                     if (Volatile.Read(ref preparationFails) == 1)
                     {
                         throw new InvalidQueryException("Test temporal invalid query");
                     }
 
-                    return Task.FromResult(GetPrepared(q));
+                    return Task.FromResult(GetPrepared(req.Query));
                 });
 
             var sf = new StatementFactory();

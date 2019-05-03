@@ -49,7 +49,7 @@ namespace Cassandra.Tests.Mapping
                 .Returns(() => TaskHelper.ToTask(TestDataHelper.GetUsersRowSet(users)))
                 .Verifiable();
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
                 .Returns(TaskHelper.ToTask(GetPrepared()))
                 .Verifiable();
             var mappingClient = GetMappingClient(sessionMock);
@@ -65,7 +65,7 @@ namespace Cassandra.Tests.Mapping
             sessionMock.Verify();
             //Prepare should be called just once
             sessionMock
-                .Verify(s => s.PrepareAsync(It.IsAny<string>(), "default"), Times.Once());
+                .Verify(s => s.PrepareAsync(It.Is<IPrepareRequest>(req => req.ExecutionProfileName == "default")), Times.Once());
             //ExecuteAsync should be called the exact number of times
             sessionMock
                 .Verify(s => s.ExecuteAsync(It.IsAny<BoundStatement>()), Times.Exactly(times));
@@ -82,7 +82,7 @@ namespace Cassandra.Tests.Mapping
                 .Returns(() => TaskHelper.FromException<RowSet>(new InvalidQueryException("Mocked Exception")))
                 .Verifiable();
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
                 .Returns(TaskHelper.ToTask(GetPrepared()))
                 .Verifiable();
             var mappingClient = GetMappingClient(sessionMock);
@@ -97,7 +97,7 @@ namespace Cassandra.Tests.Mapping
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
                 .Returns(() => TaskHelper.FromException<PreparedStatement>(new SyntaxError("Mocked Exception 2")))
                 .Verifiable();
             var mappingClient = GetMappingClient(sessionMock);
@@ -206,7 +206,7 @@ namespace Cassandra.Tests.Mapping
                 .Returns(() => TestHelper.DelayedTask(rs))
                 .Verifiable();
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
                 .Returns(TaskHelper.ToTask(GetPrepared()))
                 .Verifiable();
             var mappingClient = GetMappingClient(sessionMock);
@@ -236,7 +236,7 @@ namespace Cassandra.Tests.Mapping
                 .Returns(() => TestHelper.DelayedTask(rs, 50))
                 .Verifiable();
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
                 .Returns(TaskHelper.ToTask(GetPrepared()))
                 .Verifiable();
             var mappingClient = GetMappingClient(sessionMock);
@@ -285,7 +285,7 @@ namespace Cassandra.Tests.Mapping
                 .Returns(() => TaskHelper.ToTask(TestDataHelper.GetUsersRowSet(TestDataHelper.GetUserList())))
                 .Verifiable();
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
                 .Returns(TaskHelper.ToTask(GetPrepared()))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock);
@@ -316,7 +316,7 @@ namespace Cassandra.Tests.Mapping
                 .Returns(TestHelper.DelayedTask(rs, 100))
                 .Verifiable();
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
                 .Returns(TaskHelper.ToTask(GetPrepared()))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock);
@@ -359,7 +359,7 @@ namespace Cassandra.Tests.Mapping
                 .Returns(TestHelper.DelayedTask(rs, 100))
                 .Verifiable();
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
                 .Returns(TaskHelper.ToTask(GetPrepared()))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock);
