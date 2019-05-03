@@ -16,19 +16,26 @@
 
 using System;
 using System.Collections.Generic;
+using Cassandra.Requests;
 
-namespace Cassandra.Requests
+namespace Cassandra
 {
-    internal class PrepareRequestBuilder : IPrepareRequestBuilder
+    /// <inheritdoc />
+    public sealed class PrepareRequestBuilder : IPrepareRequestBuilder
     {
-        internal IDictionary<string, byte[]> CustomPayload { get; private set; }
+        private IDictionary<string, byte[]> CustomPayload { get; set; }
 
-        internal string ExecutionProfileName { get; private set; } = Configuration.DefaultExecutionProfileName;
+        private string ExecutionProfileName { get; set; } = Configuration.DefaultExecutionProfileName;
 
-        internal string Query { get; private set; }
+        private string Query { get; }
+
+        private PrepareRequestBuilder(string query)
+        {
+            Query = query;
+        }
 
         /// <inheritdoc />
-        public IPrepareRequestBuilder WithExecutionProfile(string executionProfileName)
+        IPrepareRequestBuilder IPrepareRequestBuilder.WithExecutionProfile(string executionProfileName)
         {
             if (string.IsNullOrWhiteSpace(executionProfileName))
             {
@@ -38,22 +45,24 @@ namespace Cassandra.Requests
             ExecutionProfileName = executionProfileName;
             return this;
         }
-
-        /// <inheritdoc />
-        public IPrepareRequestBuilder WithQuery(string query)
-        {
-            Query = query;
-            return this;
-        }
         
         /// <inheritdoc />
-        public IPrepareRequestBuilder WithCustomPayload(IDictionary<string, byte[]> customPayload)
+        IPrepareRequestBuilder IPrepareRequestBuilder.WithCustomPayload(IDictionary<string, byte[]> customPayload)
         {
             CustomPayload = customPayload ?? throw new ArgumentNullException(nameof(customPayload));
             return this;
         }
 
-        internal IPrepareRequest Build()
+        /// <summary>
+        /// Creates a prepare request builder from a cql query.
+        /// </summary>
+        public static IPrepareRequestBuilder FromQuery(string query)
+        {
+            return new PrepareRequestBuilder(query);
+        }
+        
+        /// <inheritdoc />
+        IPrepareRequest IPrepareRequestBuilder.Build()
         {
             return new DefaultPrepareRequest(Query, CustomPayload, ExecutionProfileName);
         }

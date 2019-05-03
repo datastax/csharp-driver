@@ -388,19 +388,19 @@ namespace Cassandra
         /// <inheritdoc />
         public PreparedStatement Prepare(string cqlQuery)
         {
-            return Prepare(prepare => prepare.WithQuery(cqlQuery));
+            return Prepare(PrepareRequestBuilder.FromQuery(cqlQuery).Build());
         }
         
         /// <inheritdoc />
         public PreparedStatement Prepare(string cqlQuery, IDictionary<string, byte[]> customPayload)
         {
-            return Prepare(prepare => prepare.WithQuery(cqlQuery).WithCustomPayload(customPayload));
+            return Prepare(PrepareRequestBuilder.FromQuery(cqlQuery).WithCustomPayload(customPayload).Build());
         }
 
         /// <inheritdoc />
-        public PreparedStatement Prepare(Action<IPrepareRequestBuilder> prepareRequestBuilder)
+        public PreparedStatement Prepare(IPrepareRequest prepareRequest)
         {
-            var task = PrepareAsync(prepareRequestBuilder);
+            var task = PrepareAsync(prepareRequest);
             TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
             return task.Result;
         }
@@ -408,21 +408,18 @@ namespace Cassandra
         /// <inheritdoc />
         public Task<PreparedStatement> PrepareAsync(string query)
         {
-            return PrepareAsync(prepare => prepare.WithQuery(query));
+            return PrepareAsync(PrepareRequestBuilder.FromQuery(query).Build());
         }
         
         /// <inheritdoc />
         public Task<PreparedStatement> PrepareAsync(string query, IDictionary<string, byte[]> customPayload)
         {
-            return PrepareAsync(prepare => prepare.WithQuery(query).WithCustomPayload(customPayload));
+            return PrepareAsync(PrepareRequestBuilder.FromQuery(query).WithCustomPayload(customPayload).Build());
         }
 
         /// <inheritdoc />
-        public async Task<PreparedStatement> PrepareAsync(Action<IPrepareRequestBuilder> prepareRequestBuilder)
+        public async Task<PreparedStatement> PrepareAsync(IPrepareRequest prepareRequest)
         {
-            var builder = new PrepareRequestBuilder();
-            prepareRequestBuilder(builder);
-            var prepareRequest = builder.Build();
             var request = new InternalPrepareRequest(prepareRequest.Query)
             {
                 Payload = prepareRequest.CustomPayload

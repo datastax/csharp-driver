@@ -14,14 +14,13 @@
 //    limitations under the License.
 // 
 
-using System;
 using System.Collections.Generic;
 
 namespace Cassandra
 {
     /// <summary>
     /// Builder that allows the client application to specify the query and options related to a Prepare request.
-    /// See <see cref="ISession.PrepareAsync(Action&lt;IPrepareRequestBuilder&gt;)"/>;
+    /// See <see cref="ISession.PrepareAsync(IPrepareRequest)"/>;
     /// </summary>
     public interface IPrepareRequestBuilder
     {
@@ -34,10 +33,10 @@ namespace Cassandra
         /// Specifies the execution profile to use in the Prepare request.
         /// </summary>
         IPrepareRequestBuilder WithExecutionProfile(string executionProfileName);
-        
+
         /// <summary>
-        /// Specifies the query that is to be prepared.
+        /// Builds a prepare request with the options and query provided to this builder.
         /// </summary>
-        IPrepareRequestBuilder WithQuery(string query);
+        IPrepareRequest Build();
     }
 }
