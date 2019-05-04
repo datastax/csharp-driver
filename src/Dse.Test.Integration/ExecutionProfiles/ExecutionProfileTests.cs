@@ -17,11 +17,11 @@
 using System.Linq;
 using System.Threading.Tasks;
 
-using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
+using Dse.Test.Integration.TestClusterManagement.Simulacron;
 
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.ExecutionProfiles
+namespace Dse.Test.Integration.ExecutionProfiles
 {
     [TestFixture]
     [Category("short")]

@@ -17,7 +17,7 @@
 using System;
 using System.Threading;
 
-namespace Cassandra.ExecutionProfiles
+namespace Dse.ExecutionProfiles
 {
     /// <summary>
     /// This class differs from <see cref="ExecutionProfile"/> in the sense that there are no nullable properties and it contains

@@ -17,9 +17,9 @@
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Dse.Connections;
-using Cassandra.ExecutionProfiles;
-using Cassandra.Requests;
-using Cassandra.Serialization;
+using Dse.ExecutionProfiles;
+using Dse.Requests;
+using Dse.Serialization;
 
 namespace Dse.SessionManagement
 {

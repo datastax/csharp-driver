@@ -18,7 +18,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Cassandra.IntegrationTests.Linq.Structures
+namespace Dse.Test.Integration.Linq.Structures
 {
     public class MovieComparer : IComparer, IComparer<Movie>
     {

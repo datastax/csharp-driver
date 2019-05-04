@@ -14,12 +14,12 @@
 //    limitations under the License.
 // 
 
-using Cassandra.Connections;
-using Cassandra.Serialization;
-using Cassandra.Tasks;
+using Dse.Connections;
+using Dse.Serialization;
+using Dse.Tasks;
 using Moq;
 
-namespace Cassandra.Tests.Connections
+namespace Dse.Test.Unit.Connections
 {
     internal class FakeControlConnectionFactory : IControlConnectionFactory
     {

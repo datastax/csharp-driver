@@ -40,7 +40,7 @@ namespace Dse
         }
         
         /// <summary>
-        ///  The default retry policy.The default retry policy is <see cref="Cassandra.DefaultRetryPolicy"/>
+        ///  The default retry policy.The default retry policy is <see cref="Dse.DefaultRetryPolicy"/>
         /// </summary>
         public static IRetryPolicy DefaultRetryPolicy
         {
@@ -51,7 +51,7 @@ namespace Dse
         }
         
         /// <summary>
-        ///  The default extended retry policy.The default extended retry policy is <see cref="Cassandra.DefaultRetryPolicy"/>
+        ///  The default extended retry policy.The default extended retry policy is <see cref="Dse.DefaultRetryPolicy"/>
         /// </summary>
         internal static IExtendedRetryPolicy DefaultExtendedRetryPolicy
         {

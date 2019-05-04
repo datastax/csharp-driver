@@ -433,7 +433,7 @@ namespace Dse.Requests
             }
 
             var preparedKeyspace = boundStatement.PreparedStatement.Keyspace;
-            var request = new PrepareRequest(boundStatement.PreparedStatement.Cql, preparedKeyspace);
+            var request = new InternalPrepareRequest(boundStatement.PreparedStatement.Cql, preparedKeyspace);
 
             if (!_parent.Serializer.ProtocolVersion.SupportsKeyspaceInRequest() &&
                 preparedKeyspace != null && _session.Keyspace != preparedKeyspace)

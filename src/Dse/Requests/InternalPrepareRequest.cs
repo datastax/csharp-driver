@@ -12,7 +12,7 @@ using Dse.Serialization;
 
 namespace Dse.Requests
 {
-    internal class PrepareRequest : IRequest
+    internal class InternalPrepareRequest : IRequest
     {
         public const byte OpCode = 0x09;
         private readonly IDictionary<string, byte[]> _payload;
@@ -35,7 +35,7 @@ namespace Dse.Requests
         /// </summary>
         public string Query { get; set; }
 
-        public PrepareRequest(string cqlQuery, string keyspace = null, IDictionary<string, byte[]> payload = null)
+        public InternalPrepareRequest(string cqlQuery, string keyspace = null, IDictionary<string, byte[]> payload = null)
         {
             Query = cqlQuery;
             Keyspace = keyspace;

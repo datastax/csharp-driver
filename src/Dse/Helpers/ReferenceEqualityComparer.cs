@@ -16,7 +16,7 @@
 
 using System.Collections.Generic;
 
-namespace Cassandra.Helpers
+namespace Dse.Helpers
 {
     internal class ReferenceEqualityComparer<T> : IEqualityComparer<T> where T : class
     {

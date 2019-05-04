@@ -17,13 +17,13 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Cassandra.Data.Linq;
-using Cassandra.Mapping;
-using Cassandra.Tests.Mapping.Pocos;
+using Dse.Data.Linq;
+using Dse.Mapping;
+using Dse.Test.Unit.Mapping.Pocos;
 using Moq;
 using NUnit.Framework;
 
-namespace Cassandra.Tests.Mapping.Linq
+namespace Dse.Test.Unit.Mapping.Linq
 {
     [TestFixture]
     public class LinqExecutionProfileTests : MappingTestBase

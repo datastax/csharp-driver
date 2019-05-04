@@ -551,9 +551,9 @@ namespace Dse
             var tasks = new List<Task>(preparedQueries.Count);
             using (var semaphore = new SemaphoreSlim(64, 64))
             {
-                foreach (var query in preparedQueries.Select(ps => ps.Cql))
+                foreach (var ps in preparedQueries)
                 {
-                    var request = new InternalPrepareRequest(query);
+                    var request = new InternalPrepareRequest(ps.Cql, ps.Keyspace);
                     await semaphore.WaitAsync().ConfigureAwait(false);
 
                     async Task SendSingle()

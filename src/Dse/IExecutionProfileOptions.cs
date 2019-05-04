@@ -15,9 +15,9 @@
 //
 
 using System;
-using Cassandra.Mapping;
+using Dse.Mapping;
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Utility builder that is used to add Execution Profiles to a Cluster instance.

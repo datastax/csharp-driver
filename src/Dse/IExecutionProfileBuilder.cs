@@ -14,7 +14,7 @@
 //    limitations under the License.
 // 
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// Builder that offers a fluent API to build execution profile instances.

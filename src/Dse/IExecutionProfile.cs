@@ -14,7 +14,7 @@
 //    limitations under the License.
 //
 
-namespace Cassandra
+namespace Dse
 {
     /// <summary>
     /// <para>
@@ -35,7 +35,7 @@ namespace Cassandra
     {
         /// <summary>
         /// <para>Retrieves the ConsistencyLevel set on this profile. It's <code>null</code> if not set.</para>
-        /// <para>See <see cref="Cassandra.ConsistencyLevel"/> for additional context on this setting.</para>
+        /// <para>See <see cref="Dse.ConsistencyLevel"/> for additional context on this setting.</para>
         /// </summary>
         ConsistencyLevel? ConsistencyLevel { get; }
         
@@ -63,7 +63,7 @@ namespace Cassandra
         
         /// <summary>
         /// <para>Retrieves the SerialConsistencyLevel set on this profile. It's <code>null</code> if not set.</para>
-        /// <para>See <see cref="Cassandra.ConsistencyLevel"/> for additional context on this setting.</para>
+        /// <para>See <see cref="Dse.ConsistencyLevel"/> for additional context on this setting.</para>
         /// </summary>
         ConsistencyLevel? SerialConsistencyLevel { get; }
         

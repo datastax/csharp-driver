@@ -121,7 +121,7 @@ namespace Dse.Requests
             }
             if (statement is BoundStatement s2)
             {
-                var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s2, config.QueryOptions, config.Policies);
+                var options = QueryProtocolOptions.CreateFromQuery(serializer.ProtocolVersion, s2, requestOptions);
                 request = new ExecuteRequest(serializer.ProtocolVersion, s2.PreparedStatement.Id, null,
                     s2.PreparedStatement.ResultMetadataId, s2.IsTracing, options);
             }

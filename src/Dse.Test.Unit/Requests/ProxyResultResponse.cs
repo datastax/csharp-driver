@@ -14,10 +14,10 @@
 //    limitations under the License.
 // 
 
-using Cassandra.Responses;
+using Dse.Responses;
 using Moq;
 
-namespace Cassandra.Tests.Requests
+namespace Dse.Test.Unit.Requests
 {
     internal class ProxyResultResponse : ResultResponse
     {

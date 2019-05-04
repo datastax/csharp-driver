@@ -18,7 +18,7 @@ using Moq;
 
 using NUnit.Framework;
 
-using PrepareFlags = Dse.Requests.PrepareRequest.PrepareFlags;
+using PrepareFlags = Dse.Requests.InternalPrepareRequest.PrepareFlags;
 using QueryFlags = Dse.QueryProtocolOptions.QueryFlags;
 
 namespace Dse.Test.Unit
@@ -28,9 +28,9 @@ namespace Dse.Test.Unit
     {
         private static readonly Serializer Serializer = new Serializer(ProtocolVersion.MaxSupported);
 
-        private static Configuration GetConfig(QueryOptions queryOptions = null, Policies policies = null, PoolingOptions poolingOptions = null)
+        private static Configuration GetConfig(QueryOptions queryOptions = null, Dse.Policies policies = null, PoolingOptions poolingOptions = null)
         {
-            return new Configuration(new Dse.Policies(),
+            return new Configuration(policies ?? new Dse.Policies(),
                 new ProtocolOptions(),
                 poolingOptions,
                 new SocketOptions(),
@@ -44,7 +44,7 @@ namespace Dse.Test.Unit
                 new Dictionary<string, IExecutionProfile>());
         }
 
-        private static IRequestOptions GetRequestOptions(QueryOptions queryOptions = null, Policies policies = null)
+        private static IRequestOptions GetRequestOptions(QueryOptions queryOptions = null, Dse.Policies policies = null)
         {
             return RequestHandlerTests.GetConfig(queryOptions, policies).DefaultRequestOptions;
         }
@@ -309,8 +309,8 @@ namespace Dse.Test.Unit
             {
                 batch.Add(new SimpleStatement("QUERY"));
             }
-            
-            var config = RequestHandlerTests.GetConfig(new QueryOptions(), Policies.DefaultPolicies, PoolingOptions.Create());
+
+            var config = RequestHandlerTests.GetConfig(new QueryOptions(), Dse.Policies.DefaultPolicies, PoolingOptions.Create());
             var request = RequestHandler.GetRequest(batch, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
@@ -327,8 +327,8 @@ namespace Dse.Test.Unit
             var startDate = DateTimeOffset.Now;
             // To microsecond precision
             startDate = startDate.Subtract(TimeSpan.FromTicks(startDate.Ticks % 10));
-            
-            var config = RequestHandlerTests.GetConfig(new QueryOptions(), Policies.DefaultPolicies, PoolingOptions.Create());
+
+            var config = RequestHandlerTests.GetConfig(new QueryOptions(), Dse.Policies.DefaultPolicies, PoolingOptions.Create());
             var request = RequestHandler.GetRequest(batch, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
@@ -391,7 +391,7 @@ namespace Dse.Test.Unit
             providedTimestamp = providedTimestamp.Subtract(TimeSpan.FromTicks(providedTimestamp.Ticks % 10));
             batch.SetTimestamp(providedTimestamp);
 
-            var config = RequestHandlerTests.GetConfig(new QueryOptions(), Policies.DefaultPolicies, PoolingOptions.Create());
+            var config = RequestHandlerTests.GetConfig(new QueryOptions(), Dse.Policies.DefaultPolicies, PoolingOptions.Create());
             var request = RequestHandler.GetRequest(batch, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
@@ -417,7 +417,7 @@ namespace Dse.Test.Unit
             var batch = new BatchStatement();
             batch.Add(new SimpleStatement("QUERY")).SetKeyspace(keyspace);
 
-            var request = RequestHandler.GetRequest(batch, Serializer, new Configuration());
+            var request = RequestHandler.GetRequest(batch, Serializer, new Configuration().DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
             // The batch request is composed by:
@@ -446,7 +446,7 @@ namespace Dse.Test.Unit
             var batch = new BatchStatement();
             batch.Add(new SimpleStatement("QUERY")).SetKeyspace("test_keyspace");
             var serializer = new Serializer(ProtocolVersion.V3);
-            var request = RequestHandler.GetRequest(batch, serializer, new Configuration());
+            var request = RequestHandler.GetRequest(batch, serializer, new Configuration().DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request, serializer);
 
             // The batch request is composed by:
@@ -601,7 +601,7 @@ namespace Dse.Test.Unit
         {
             const string keyspace = "my_keyspace";
             var statement = new SimpleStatement("QUERY").SetKeyspace(keyspace);
-            var request = RequestHandler.GetRequest(statement, Serializer, new Configuration());
+            var request = RequestHandler.GetRequest(statement, Serializer, new Configuration().DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
             // The query request is composed by:
@@ -625,7 +625,7 @@ namespace Dse.Test.Unit
         {
             var statement = new SimpleStatement("QUERY").SetKeyspace("my_keyspace");
             var serializer = new Serializer(ProtocolVersion.V3);
-            var request = RequestHandler.GetRequest(statement, serializer, new Configuration());
+            var request = RequestHandler.GetRequest(statement, serializer, new Configuration().DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request, serializer);
 
             // The query request is composed by:
@@ -667,7 +667,7 @@ namespace Dse.Test.Unit
         {
             const string query = "QUERY1";
             const string keyspace = "ks1";
-            var request = new PrepareRequest(query, keyspace);
+            var request = new InternalPrepareRequest(query, keyspace);
 
             // The request is composed by: <query><flags>[<keyspace>]
             var buffer = GetBodyBuffer(request);
@@ -688,7 +688,7 @@ namespace Dse.Test.Unit
         public void Prepare_With_Keyspace_On_Lower_Protocol_Version_Should_Ignore_Keyspace()
         {
             const string query = "SELECT col1, col2 FROM table1";
-            var request = new PrepareRequest(query, "my_keyspace");
+            var request = new InternalPrepareRequest(query, "my_keyspace");
 
             // The request only contains the query
             var buffer = GetBodyBuffer(request, new Serializer(ProtocolVersion.V2));

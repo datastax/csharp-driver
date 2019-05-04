@@ -22,18 +22,18 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
-using Cassandra.Connections;
-using Cassandra.Requests;
-using Cassandra.Responses;
-using Cassandra.Serialization;
-using Cassandra.SessionManagement;
-using Cassandra.Tests.Connections;
+using Dse.Connections;
+using Dse.Requests;
+using Dse.Responses;
+using Dse.Serialization;
+using Dse.SessionManagement;
+using Dse.Test.Unit.Connections;
 
 using Moq;
 
 using NUnit.Framework;
 
-namespace Cassandra.Tests.Requests
+namespace Dse.Test.Unit.Requests
 {
     [TestFixture]
     public class PrepareHandlerTests
@@ -51,7 +51,7 @@ namespace Cassandra.Tests.Requests
                             .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
-                    builder.Policies = new Policies(
+                    builder.Policies = new Dse.Policies(
                         lbpCluster, 
                         new ConstantReconnectionPolicy(5), 
                         new DefaultRetryPolicy(), 
@@ -116,7 +116,7 @@ namespace Cassandra.Tests.Requests
                             .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
-                    builder.Policies = new Policies(
+                    builder.Policies = new Dse.Policies(
                         lbpCluster, 
                         new ConstantReconnectionPolicy(5), 
                         new DefaultRetryPolicy(), 
@@ -182,7 +182,7 @@ namespace Cassandra.Tests.Requests
                             .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
-                    builder.Policies = new Policies(
+                    builder.Policies = new Dse.Policies(
                         lbpCluster, 
                         new ConstantReconnectionPolicy(5), 
                         new DefaultRetryPolicy(), 
@@ -249,7 +249,7 @@ namespace Cassandra.Tests.Requests
                             .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
-                    builder.Policies = new Policies(
+                    builder.Policies = new Dse.Policies(
                         lbpCluster, 
                         new ConstantReconnectionPolicy(5), 
                         new DefaultRetryPolicy(), 
@@ -315,7 +315,7 @@ namespace Cassandra.Tests.Requests
                             .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
-                    builder.Policies = new Policies(
+                    builder.Policies = new Dse.Policies(
                         lbpCluster, 
                         new ConstantReconnectionPolicy(5), 
                         new DefaultRetryPolicy(), 
@@ -382,7 +382,7 @@ namespace Cassandra.Tests.Requests
                             .SetPrepareOnAllHosts(false);
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
-                    builder.Policies = new Policies(
+                    builder.Policies = new Dse.Policies(
                         lbpCluster, 
                         new ConstantReconnectionPolicy(5), 
                         new DefaultRetryPolicy(), 
@@ -447,7 +447,7 @@ namespace Cassandra.Tests.Requests
             var configBuilder = new TestConfigurationBuilder
             {
                 ConnectionFactory = factory,
-                Policies = new Policies(new RoundRobinPolicy(), new ConstantReconnectionPolicy(100), new DefaultRetryPolicy())
+                Policies = new Dse.Policies(new RoundRobinPolicy(), new ConstantReconnectionPolicy(100), new DefaultRetryPolicy())
             };
             configBuilderAct(configBuilder);
             var config = configBuilder.Build();

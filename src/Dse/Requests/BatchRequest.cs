@@ -120,7 +120,7 @@ namespace Dse.Requests
                     wb.WriteByte((byte) _batchFlags);
                 }
 
-                wb.WriteUInt16((ushort) _serialConsistency);
+                wb.WriteUInt16((ushort) SerialConsistency);
 
                 if (_timestamp != null)
                 {

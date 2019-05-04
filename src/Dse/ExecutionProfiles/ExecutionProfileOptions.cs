@@ -17,7 +17,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Cassandra.ExecutionProfiles
+namespace Dse.ExecutionProfiles
 {
     /// <inheritdoc />
     internal class ExecutionProfileOptions : IExecutionProfileOptions

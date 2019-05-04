@@ -17,9 +17,9 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-using Cassandra.SessionManagement;
+using Dse.SessionManagement;
 
-namespace Cassandra.Requests
+namespace Dse.Requests
 {
     internal interface IPrepareHandler
     {

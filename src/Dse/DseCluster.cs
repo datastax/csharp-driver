@@ -11,7 +11,10 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Dse.Connections;
+using Dse.Requests;
+using Dse.Serialization;
 using Dse.SessionManagement;
 using Dse.Tasks;
 
@@ -67,7 +70,7 @@ namespace Dse
         {
             get { return _config.CassandraConfiguration; }
         }
-        
+
         /// <summary>
         /// Creates a new <see cref="DseClusterBuilder"/> instance.
         /// </summary>
@@ -144,7 +147,7 @@ namespace Dse
         {
             return await _coreCluster.ConnectAsync(_dseSessionFactory, keyspace).ConfigureAwait(false);
         }
-        
+
         /// <summary>
         /// Get a host instance for a given endpoint.
         /// </summary>
@@ -187,7 +190,7 @@ namespace Dse
 
         /// <summary>
         /// Shutdown this cluster instance. This closes all connections from all the sessions of this instance and
-        /// reclaim all resources used by it. 
+        /// reclaim all resources used by it.
         /// <para>This method has no effect if the cluster has already been shutdown.</para>
         /// </summary>
         public void Shutdown(int timeoutMs = -1)
@@ -209,9 +212,15 @@ namespace Dse
         /// <inheritdoc />
         ConcurrentDictionary<byte[], PreparedStatement> IInternalCluster.PreparedQueries => _coreCluster.InternalRef.PreparedQueries;
 
+        /// <inheritdoc />
+        Task<PreparedStatement> IInternalCluster.Prepare(IInternalSession session, Serializer serializer, InternalPrepareRequest request)
+        {
+            return _coreCluster.InternalRef.Prepare(session, serializer, request);
+        }
+
         /// <summary>
         /// Shutdown this cluster instance. This closes all connections from all the sessions of this instance and
-        /// reclaim all resources used by it. 
+        /// reclaim all resources used by it.
         /// <para>This method has no effect if the cluster has already been shutdown.</para>
         /// </summary>
         public Task ShutdownAsync(int timeout = Timeout.Infinite)

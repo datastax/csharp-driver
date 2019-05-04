@@ -14,9 +14,11 @@
 //    limitations under the License.
 //
 
-using Cassandra.Serialization;
+using System.Collections.Generic;
+using Dse.ExecutionProfiles;
+using Dse.Serialization;
 
-namespace Cassandra.Requests
+namespace Dse.Requests
 {
     internal class PrepareHandlerFactory : IPrepareHandlerFactory
     {

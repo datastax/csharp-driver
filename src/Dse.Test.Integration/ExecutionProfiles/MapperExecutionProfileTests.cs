@@ -19,15 +19,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-using Cassandra.IntegrationTests.Linq.Structures;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
-using Cassandra.Mapping;
-using Cassandra.Tests.Mapping.Pocos;
+using Dse.Mapping;
+using Dse.Test.Integration.Linq.Structures;
+using Dse.Test.Integration.TestClusterManagement.Simulacron;
+using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Unit.Mapping.Pocos;
 
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.ExecutionProfiles
+namespace Dse.Test.Integration.ExecutionProfiles
 {
     [TestFixture]
     [Category("short")]

@@ -17,12 +17,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using Cassandra.ExecutionProfiles;
-using Cassandra.Tests.Connections;
+using Dse.ExecutionProfiles;
+using Dse.Test.Unit.Connections;
 using Moq;
 using NUnit.Framework;
 
-namespace Cassandra.Tests.ExecutionProfiles
+namespace Dse.Test.Unit.ExecutionProfiles
 {
     [TestFixture]
     public class ClusterTests
@@ -41,7 +41,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             {
                 ControlConnectionFactory = new FakeControlConnectionFactory(),
                 ConnectionFactory = new FakeConnectionFactory(),
-                Policies = new Policies(
+                Policies = new Dse.Policies(
                     lbps[0], 
                     new ConstantReconnectionPolicy(50), 
                     new DefaultRetryPolicy(), 
@@ -104,7 +104,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             {
                 ControlConnectionFactory = new FakeControlConnectionFactory(),
                 ConnectionFactory = new FakeConnectionFactory(),
-                Policies = new Policies(
+                Policies = new Dse.Policies(
                     lbp, 
                     new ConstantReconnectionPolicy(50), 
                     new DefaultRetryPolicy(), 
@@ -140,7 +140,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             {
                 ControlConnectionFactory = new FakeControlConnectionFactory(),
                 ConnectionFactory = new FakeConnectionFactory(),
-                Policies = new Policies(
+                Policies = new Dse.Policies(
                     lbps[0], 
                     new ConstantReconnectionPolicy(50), 
                     new DefaultRetryPolicy(), 
@@ -195,7 +195,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             {
                 ControlConnectionFactory = new FakeControlConnectionFactory(),
                 ConnectionFactory = new FakeConnectionFactory(),
-                Policies = new Policies(
+                Policies = new Dse.Policies(
                     lbp, 
                     new ConstantReconnectionPolicy(50), 
                     new DefaultRetryPolicy(), 

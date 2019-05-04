@@ -16,7 +16,7 @@
 
 using System;
 
-namespace Cassandra.ExecutionProfiles
+namespace Dse.ExecutionProfiles
 {
     internal class ExecutionProfileBuilder : IExecutionProfileBuilder
     {

@@ -17,17 +17,18 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-using Cassandra.Connections;
-using Cassandra.ExecutionProfiles;
-using Cassandra.Requests;
-using Cassandra.Serialization;
-using Cassandra.SessionManagement;
-
+using Dse.Connections;
+using Dse.ExecutionProfiles;
+using Dse.Requests;
+using Dse.Serialization;
+using Dse.SessionManagement;
+using Dse.Tasks;
+using Dse.Test.Unit.Connections;
 using Moq;
 
 using NUnit.Framework;
 
-namespace Cassandra.Tests.ExecutionProfiles
+namespace Dse.Test.Unit.ExecutionProfiles
 {
     [TestFixture]
     public class SessionTests

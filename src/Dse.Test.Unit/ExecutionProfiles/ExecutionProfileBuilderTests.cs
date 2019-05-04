@@ -14,10 +14,10 @@
 //    limitations under the License.
 // 
 
-using Cassandra.ExecutionProfiles;
+using Dse.ExecutionProfiles;
 using NUnit.Framework;
 
-namespace Cassandra.Tests.ExecutionProfiles
+namespace Dse.Test.Unit.ExecutionProfiles
 {
     [TestFixture]
     public class ExecutionProfileBuilderTests

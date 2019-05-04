@@ -435,7 +435,8 @@ namespace Dse.Test.Unit.Insights
                         .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial),
                     new DefaultAddressTranslator(),
                     new StartupOptionsFactory(),
-                    new SessionFactoryBuilder()),
+                    new SessionFactoryBuilder(),
+                    new Dictionary<string, IExecutionProfile>()),
                 new GraphOptions().SetName("testGraphName").SetReadConsistencyLevel(ConsistencyLevel.All),
                 Guid.Parse("BECFE098-E462-47E7-B6A7-A21CD316D4C0"),
                 "appv1",
@@ -450,7 +451,7 @@ namespace Dse.Test.Unit.Insights
 
     internal class FakeResultResponse : ResultResponse
     {
-        internal FakeResultResponse(ResultResponseKind kind) : base(kind)
+        internal FakeResultResponse(ResultResponseKind kind) : base(kind, Mock.Of<IOutput>())
         {
         }
     }

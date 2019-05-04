@@ -423,8 +423,7 @@ namespace Dse
         }
         
         /// <inheritdoc />
-        public async Task<PreparedStatement> PrepareAsync(string cqlQuery, string keyspace,
-                                                    IDictionary<string, byte[]> customPayload)
+        public async Task<PreparedStatement> PrepareAsync(string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload)
         {
             if (!_serializer.ProtocolVersion.SupportsKeyspaceInRequest() && keyspace != null)
             {
@@ -433,8 +432,8 @@ namespace Dse
                 throw new NotSupportedException($"Protocol version {_serializer.ProtocolVersion} does not support" +
                                                 " setting the keyspace as part of the PREPARE request");
             }
-            var request = new PrepareRequest(cqlQuery, keyspace, customPayload);
-            return await PrepareHandler.Prepare(this, _serializer, request).ConfigureAwait(false);
+            var request = new InternalPrepareRequest(cqlQuery, keyspace, customPayload);
+            return await _cluster.Prepare(this, _serializer, request).ConfigureAwait(false);
         }
         
         public void WaitForSchemaAgreement(RowSet rs)

@@ -22,19 +22,19 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
-using Cassandra.Connections;
-using Cassandra.ExecutionProfiles;
-using Cassandra.Requests;
-using Cassandra.Responses;
-using Cassandra.Serialization;
-using Cassandra.Tests.Connections;
-using Cassandra.Tests.Requests;
+using Dse.Connections;
+using Dse.ExecutionProfiles;
+using Dse.Requests;
+using Dse.Responses;
+using Dse.Serialization;
+using Dse.Test.Unit.Connections;
+using Dse.Test.Unit.Requests;
 
 using Moq;
 
 using NUnit.Framework;
 
-namespace Cassandra.Tests.ExecutionProfiles
+namespace Dse.Test.Unit.ExecutionProfiles
 {
     [TestFixture]
     public class RequestHandlerTests
@@ -76,7 +76,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                             .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
-                    builder.Policies = new Policies(
+                    builder.Policies = new Dse.Policies(
                         lbpCluster, new ConstantReconnectionPolicy(5), rpCluster, sepCluster, new AtomicMonotonicTimestampGenerator());
                 },
                 profile);
@@ -131,7 +131,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                             .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
-                    builder.Policies = new Policies(
+                    builder.Policies = new Dse.Policies(
                         lbpCluster, new ConstantReconnectionPolicy(5), rpCluster, sepCluster, new AtomicMonotonicTimestampGenerator());
                 },
                 profile);
@@ -177,7 +177,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                             .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
-                    builder.Policies = new Policies(
+                    builder.Policies = new Dse.Policies(
                         lbpCluster, new ConstantReconnectionPolicy(5), rpCluster, sepCluster, new AtomicMonotonicTimestampGenerator());
                 },
                 null);
@@ -258,7 +258,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             var configBuilder = new TestConfigurationBuilder
             {
                 ConnectionFactory = new FakeConnectionFactory(() => connection),
-                Policies = new Policies(new RoundRobinPolicy(), new ConstantReconnectionPolicy(100), new DefaultRetryPolicy())
+                Policies = new Dse.Policies(new RoundRobinPolicy(), new ConstantReconnectionPolicy(100), new DefaultRetryPolicy())
             };
             configBuilderAct(configBuilder);
             var config = configBuilder.Build();

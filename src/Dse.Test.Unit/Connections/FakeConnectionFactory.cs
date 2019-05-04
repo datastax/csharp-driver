@@ -17,11 +17,11 @@
 using System;
 using System.Collections.Concurrent;
 using System.Net;
-using Cassandra.Connections;
-using Cassandra.Serialization;
+using Dse.Connections;
+using Dse.Serialization;
 using Moq;
 
-namespace Cassandra.Tests.Connections
+namespace Dse.Test.Unit.Connections
 {
     internal class FakeConnectionFactory : IConnectionFactory
     {

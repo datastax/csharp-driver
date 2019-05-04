@@ -14,6 +14,7 @@
 //    limitations under the License.
 // 
 
+using System.Collections.Generic;
 using Dse.Connections;
 using Dse.Requests;
 using Dse.SessionManagement;

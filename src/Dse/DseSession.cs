@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+
 using Dse.Connections;
 using Dse.Graph;
 using Dse.SessionManagement;
@@ -91,7 +92,7 @@ namespace Dse
             set => _coreSession.Keyspace = value;
         }
 
-        public Configuration Configuration => _coreSession.Configuration;
+        public Configuration Configuration => _coreSession.Cluster.Configuration;
 
         public IInternalCluster InternalCluster => _coreSession.InternalCluster;
 
@@ -222,6 +223,11 @@ namespace Dse
             return _coreSession.EndPrepare(ar);
         }
 
+        public RowSet Execute(IStatement statement, string executionProfileName)
+        {
+            return _coreSession.Execute(statement, executionProfileName);
+        }
+
         public RowSet Execute(IStatement statement)
         {
             return _coreSession.Execute(statement);
@@ -230,6 +236,11 @@ namespace Dse
         public RowSet Execute(string cqlQuery)
         {
             return _coreSession.Execute(cqlQuery);
+        }
+
+        public RowSet Execute(string cqlQuery, string executionProfileName)
+        {
+            return _coreSession.Execute(cqlQuery, executionProfileName);
         }
 
         public RowSet Execute(string cqlQuery, ConsistencyLevel consistency)
@@ -245,6 +256,11 @@ namespace Dse
         public Task<RowSet> ExecuteAsync(IStatement statement)
         {
             return _coreSession.ExecuteAsync(statement);
+        }
+
+        public Task<RowSet> ExecuteAsync(IStatement statement, string executionProfileName)
+        {
+            return _coreSession.ExecuteAsync(statement, executionProfileName);
         }
 
         public PreparedStatement Prepare(string cqlQuery)

@@ -116,7 +116,7 @@ namespace Dse
                 query.SkipMetadata,
                 pageSize,
                 query.PagingState,
-                queryOptions.GetSerialConsistencyLevelOrDefault(query),
+                requestOptions.GetSerialConsistencyLevelOrDefault(query),
                 timestamp,
                 query.Keyspace);
         }

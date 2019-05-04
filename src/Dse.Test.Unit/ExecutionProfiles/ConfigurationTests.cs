@@ -16,7 +16,7 @@
 
 using NUnit.Framework;
 
-namespace Cassandra.Tests.ExecutionProfiles
+namespace Dse.Test.Unit.ExecutionProfiles
 {
     [TestFixture]
     public class ConfigurationTests
