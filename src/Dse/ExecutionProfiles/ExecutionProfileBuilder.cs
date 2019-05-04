@@ -15,6 +15,7 @@
 // 
 
 using System;
+using Dse.Graph;
 
 namespace Dse.ExecutionProfiles
 {
@@ -26,6 +27,8 @@ namespace Dse.ExecutionProfiles
         private ILoadBalancingPolicy _loadBalancingPolicy;
         private ISpeculativeExecutionPolicy _speculativeExecutionPolicy;
         private IExtendedRetryPolicy _retryPolicy;
+        
+        private GraphOptions _graphOptions;
         
         public IExecutionProfileBuilder WithLoadBalancingPolicy(ILoadBalancingPolicy loadBalancingPolicy)
         {
@@ -63,6 +66,13 @@ namespace Dse.ExecutionProfiles
             return this;
         }
 
+        /// <inheritdoc />
+        public IExecutionProfileBuilder WithGraphOptions(GraphOptions graphOptions)
+        {
+            _graphOptions = graphOptions;
+            return this;
+        }
+
         public IExecutionProfile Build()
         {
             return new ExecutionProfile(
@@ -71,7 +81,8 @@ namespace Dse.ExecutionProfiles
                 _readTimeoutMillis,
                 _loadBalancingPolicy,
                 _speculativeExecutionPolicy,
-                _retryPolicy);
+                _retryPolicy,
+                _graphOptions);
         }
     }
 }

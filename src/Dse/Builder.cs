@@ -22,7 +22,8 @@ namespace Dse
     public class Builder : IInitializer
     {
         private readonly List<IPEndPoint> _addresses = new List<IPEndPoint>();
-        private readonly IList<string> _hostNames = new List<string>();
+        private readonly List<string> _hostNames = new List<string>();
+        private readonly ICoreClusterFactory _coreClusterFactory = new CoreClusterFactory();
         private const int DefaultQueryAbortTimeout = 20000;
         private PoolingOptions _poolingOptions;
         private SocketOptions _socketOptions = new SocketOptions();
@@ -50,6 +51,7 @@ namespace Dse
         private IStartupOptionsFactory _startupOptionsFactory = new StartupOptionsFactory();
         private ISessionFactoryBuilder<IInternalCluster, IInternalSession> _sessionFactoryBuilder = new SessionFactoryBuilder();
         private IReadOnlyDictionary<string, IExecutionProfile> _profiles = new Dictionary<string, IExecutionProfile>();
+        private IRequestOptionsMapper _requestOptionsMapper = new RequestOptionsMapper();
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -127,7 +129,8 @@ namespace Dse
                 _addressTranslator,
                 _startupOptionsFactory,
                 _sessionFactoryBuilder,
-                _profiles);
+                _profiles,
+                _requestOptionsMapper);
             if (_typeSerializerDefinitions != null)
             {
                 config.TypeSerializers = _typeSerializerDefinitions.Definitions;
@@ -646,6 +649,12 @@ namespace Dse
             return this;
         }
 
+        internal Builder WithRequestOptionsMapper(IRequestOptionsMapper requestOptionsMapper)
+        {
+            _requestOptionsMapper = requestOptionsMapper ?? throw new ArgumentNullException(nameof(requestOptionsMapper));
+            return this;
+        }
+
         /// <summary>
         /// Sets the maximum time to wait for schema agreement before returning from a DDL query.
         /// <para/>
@@ -713,7 +722,9 @@ namespace Dse
         /// <returns>the newly build Cluster instance. </returns>
         public Cluster Build()
         {
-            return Cluster.BuildFrom(this, _hostNames);
+            return _coreClusterFactory.Create(this, HostNames, null, null);
         }
+
+        internal IReadOnlyList<string> HostNames => _hostNames;
     }
 }

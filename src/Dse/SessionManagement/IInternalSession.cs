@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
 using Dse.Connections;
+using Dse.ExecutionProfiles;
 
 namespace Dse.SessionManagement
 {
@@ -65,5 +66,15 @@ namespace Dse.SessionManagement
         new string Keyspace { get; set; }
 
         IInternalCluster InternalCluster { get; }
+
+        /// <summary>
+        /// Executes a query asynchronously with the provided request options.
+        /// </summary>
+        Task<RowSet> ExecuteAsync(IStatement statement, IRequestOptions requestOptions);
+        
+        /// <summary>
+        /// Fetches the request options that were mapped from the provided execution profile's name.
+        /// </summary>
+        IRequestOptions GetRequestOptions(string executionProfileName);
     }
 }

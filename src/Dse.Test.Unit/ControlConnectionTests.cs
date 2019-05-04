@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using Dse.Connections;
+using Dse.ExecutionProfiles;
 using Dse.Requests;
 using Dse.SessionManagement;
 using Moq;
@@ -119,7 +120,8 @@ namespace Dse.Test.Unit
                  translatorMock.Object,
                  Mock.Of<IStartupOptionsFactory>(),
                  new SessionFactoryBuilder(),
-                 new Dictionary<string, IExecutionProfile>());
+                 new Dictionary<string, IExecutionProfile>(),
+                 new RequestOptionsMapper());
             var cc = NewInstance(config, metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);

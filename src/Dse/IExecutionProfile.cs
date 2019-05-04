@@ -14,6 +14,8 @@
 //    limitations under the License.
 //
 
+using Dse.Graph;
+
 namespace Dse
 {
     /// <summary>
@@ -72,5 +74,11 @@ namespace Dse
         /// <para>See <see cref="ISpeculativeExecutionPolicy"/> for additional context on this setting.</para>
         /// </summary>
         ISpeculativeExecutionPolicy SpeculativeExecutionPolicy { get; }
+
+        /// <summary>
+        /// <para>Retrieves the DSE Graph options set on this profile.</para>
+        /// <para>See <see cref="GraphOptions"/> for additional information on the settings within the <see cref="GraphOptions"/> class.</para>
+        /// </summary>
+        GraphOptions GraphOptions { get; }
     }
 }

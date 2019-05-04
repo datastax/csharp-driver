@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
+using Dse.ExecutionProfiles;
 using Dse.Requests;
 using Dse.Serialization;
 using Dse.SessionManagement;
@@ -53,6 +54,7 @@ namespace Dse.Test.Unit
                 Mock.Of<IStartupOptionsFactory>(),
                 new SessionFactoryBuilder(),
                 new Dictionary<string, IExecutionProfile>(),
+                new RequestOptionsMapper(),
                 requestExecutionFactory: requestExecutionFactory);
         }
 

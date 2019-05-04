@@ -17,6 +17,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Dse.Connections;
+using Dse.ExecutionProfiles;
 using Dse.Tasks;
 using Dse.Test.Unit;
 using Dse.Requests;
@@ -426,7 +427,8 @@ namespace Dse.Test.Integration.Core
                 new DefaultAddressTranslator(),
                 new StartupOptionsFactory(),
                 new SessionFactoryBuilder(),
-                new Dictionary<string, IExecutionProfile>());
+                new Dictionary<string, IExecutionProfile>(),
+                new RequestOptionsMapper());
             using (var connection = CreateConnection(GetProtocolVersion(), config))
             {
                 var ex = Assert.Throws<AggregateException>(() => connection.Open().Wait(10000));
@@ -622,7 +624,8 @@ namespace Dse.Test.Integration.Core
                 new DefaultAddressTranslator(),
                 new StartupOptionsFactory(),
                 new SessionFactoryBuilder(),
-                new Dictionary<string, IExecutionProfile>());
+                new Dictionary<string, IExecutionProfile>(),
+                new RequestOptionsMapper());
             using (var connection = new Connection(new Serializer(GetProtocolVersion()), new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042), config))
             {
                 var ex = Assert.Throws<SocketException>(() => TaskHelper.WaitToComplete(connection.Open()));
@@ -827,7 +830,8 @@ namespace Dse.Test.Integration.Core
                 new DefaultAddressTranslator(),
                 new StartupOptionsFactory(),
                 new SessionFactoryBuilder(),
-                new Dictionary<string, IExecutionProfile>());
+                new Dictionary<string, IExecutionProfile>(),
+                new RequestOptionsMapper());
             return CreateConnection(GetProtocolVersion(), config);
         }
 

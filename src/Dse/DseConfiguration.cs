@@ -27,7 +27,7 @@ namespace Dse
     {
         internal static string DefaultApplicationVersion => string.Empty;
 
-        internal static string FallbackApplicationName => 
+        internal static string FallbackApplicationName =>
             AssemblyHelpers.GetEntryAssembly()?.GetName().Name ?? DseClusterBuilder.DefaultApplicationName;
 
         /// <summary>
@@ -49,7 +49,7 @@ namespace Dse
         /// A unique identifier for the created cluster instance.
         /// </summary>
         public Guid ClusterId { get; }
-        
+
         /// <summary>
         /// To be replaced with CassandraConfiguration.AddressTranslator after CSHARP-444.
         /// </summary>
@@ -73,10 +73,10 @@ namespace Dse
         /// Configuration options for monitor reporting
         /// </summary>
         public MonitorReportingOptions MonitorReportingOptions { get; }
-        
+
         internal IInsightsSupportVerifier InsightsSupportVerifier { get; }
 
-        internal static IDseSessionManagerFactory DefaultDseSessionManagerFactory => 
+        internal static IDseSessionManagerFactory DefaultDseSessionManagerFactory =>
             new DseSessionManagerFactory(DseConfiguration.DefaultInsightsClientFactory);
 
         internal static ISessionFactoryBuilder<IInternalDseCluster, IInternalDseSession> GetDefaultDseSessionFactoryBuilder(
@@ -86,18 +86,18 @@ namespace Dse
         }
 
         internal static IInsightsSupportVerifier DefaultInsightsSupportVerifier => new InsightsSupportVerifier();
-        
-        internal static IInsightsClientFactory DefaultInsightsClientFactory => 
+
+        internal static IInsightsClientFactory DefaultInsightsClientFactory =>
             new InsightsClientFactory(
                 DseConfiguration.DefaultInsightsStartupMessageFactory, DseConfiguration.DefaultInsightsStatusMessageFactory);
 
-        internal static IInsightsMessageFactory<InsightsStartupData> DefaultInsightsStartupMessageFactory => 
+        internal static IInsightsMessageFactory<InsightsStartupData> DefaultInsightsStartupMessageFactory =>
             new InsightsStartupMessageFactory(
                 DseConfiguration.DefaultInsightsMetadataFactory,
                 DseConfiguration.DefaultInsightsInfoProvidersCollection
             );
 
-        internal static IInsightsMessageFactory<InsightsStatusData> DefaultInsightsStatusMessageFactory => 
+        internal static IInsightsMessageFactory<InsightsStatusData> DefaultInsightsStatusMessageFactory =>
             new InsightsStatusMessageFactory(
                 DseConfiguration.DefaultInsightsMetadataFactory,
                 new NodeStatusInfoProvider()
@@ -119,7 +119,7 @@ namespace Dse
                 new OtherOptionsInfoProvider(),
                 new ConfigAntiPatternsInfoProvider(),
                 new ReconnectionPolicyInfoProvider(),
-                new DriverInfoProvider(), 
+                new DriverInfoProvider(),
                 new HostnameInfoProvider());
 
         /// <summary>
@@ -127,12 +127,12 @@ namespace Dse
         /// </summary>
         public DseConfiguration(Configuration cassandraConfiguration, GraphOptions graphOptions) :
             this(
-                cassandraConfiguration, 
-                graphOptions, 
-                Guid.NewGuid(), 
-                null, 
+                cassandraConfiguration,
+                graphOptions,
+                Guid.NewGuid(),
                 null,
-                null, 
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -143,7 +143,7 @@ namespace Dse
             ClusterId = Guid.NewGuid();
             ApplicationVersion = DseConfiguration.DefaultApplicationVersion;
             MonitorReportingOptions = new MonitorReportingOptions();
-            
+
             AddressTranslator = new IdentityAddressTranslator();
         }
 

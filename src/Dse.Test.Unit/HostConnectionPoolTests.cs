@@ -14,6 +14,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Dse.Connections;
+using Dse.ExecutionProfiles;
 using Dse.Requests;
 using Dse.Serialization;
 using Dse.SessionManagement;
@@ -92,7 +93,8 @@ namespace Dse.Test.Unit
                 new DefaultAddressTranslator(),
                 Mock.Of<IStartupOptionsFactory>(),
                 new SessionFactoryBuilder(),
-                new Dictionary<string, IExecutionProfile>());
+                new Dictionary<string, IExecutionProfile>(),
+                new RequestOptionsMapper());
             return config;
         }
 

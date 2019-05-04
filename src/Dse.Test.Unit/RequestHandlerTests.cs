@@ -41,7 +41,8 @@ namespace Dse.Test.Unit
                 new DefaultAddressTranslator(),
                 Mock.Of<IStartupOptionsFactory>(),
                 new SessionFactoryBuilder(),
-                new Dictionary<string, IExecutionProfile>());
+                new Dictionary<string, IExecutionProfile>(),
+                new RequestOptionsMapper());
         }
 
         private static IRequestOptions GetRequestOptions(QueryOptions queryOptions = null, Dse.Policies policies = null)

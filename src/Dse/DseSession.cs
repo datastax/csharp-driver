@@ -12,6 +12,7 @@ using System.Net;
 using System.Threading.Tasks;
 
 using Dse.Connections;
+using Dse.ExecutionProfiles;
 using Dse.Graph;
 using Dse.SessionManagement;
 using Dse.Tasks;
@@ -115,39 +116,62 @@ namespace Dse
             InternalSessionId = Guid.NewGuid();
         }
 
+        /// <inheritdoc />
         public GraphResultSet ExecuteGraph(IGraphStatement statement)
         {
-            return TaskHelper.WaitToComplete(ExecuteGraphAsync(statement));
+            return ExecuteGraph(statement, Configuration.DefaultExecutionProfileName);
         }
 
-        public async Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement graphStatement)
+        /// <inheritdoc />
+        public Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement graphStatement)
         {
-            var stmt = graphStatement.ToIStatement(_config.GraphOptions);
-            await GetAnalyticsMaster(stmt, graphStatement).ConfigureAwait(false);
-            var rs = await _coreSession.ExecuteAsync(stmt).ConfigureAwait(false);
-            return GraphResultSet.CreateNew(rs, graphStatement, _config.GraphOptions);
+            return ExecuteGraphAsync(graphStatement, Configuration.DefaultExecutionProfileName);
         }
 
-        private Task<IStatement> GetAnalyticsMaster(IStatement statement, IGraphStatement graphStatement)
+        /// <inheritdoc />
+        public GraphResultSet ExecuteGraph(IGraphStatement statement, string executionProfileName)
         {
-            if (!(statement is TargettedSimpleStatement) || !_config.GraphOptions.IsAnalyticsQuery(graphStatement))
+            return TaskHelper.WaitToComplete(ExecuteGraphAsync(statement, executionProfileName));
+        }
+
+        /// <inheritdoc />
+        public async Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement graphStatement, string executionProfileName)
+        {
+            var requestOptions = _coreSession.GetRequestOptions(executionProfileName);
+            var stmt = graphStatement.ToIStatement(requestOptions.GraphOptions);
+            await GetAnalyticsMaster(stmt, graphStatement, requestOptions).ConfigureAwait(false);
+            var rs = await _coreSession.ExecuteAsync(stmt, requestOptions).ConfigureAwait(false);
+            return GraphResultSet.CreateNew(rs, graphStatement, requestOptions.GraphOptions);
+        }
+
+        private async Task<IStatement> GetAnalyticsMaster(
+            IStatement statement, IGraphStatement graphStatement, IRequestOptions requestOptions)
+        {
+            if (!(statement is TargettedSimpleStatement) || !requestOptions.GraphOptions.IsAnalyticsQuery(graphStatement))
             {
-                return TaskHelper.ToTask(statement);
-            }
-            var targettedSimpleStatement = (TargettedSimpleStatement)statement;
-            return _coreSession
-                .ExecuteAsync(new SimpleStatement("CALL DseClientTool.getAnalyticsGraphServer()"))
-                .ContinueWith(t => AdaptRpcMasterResult(t, targettedSimpleStatement), TaskContinuationOptions.ExecuteSynchronously);
-        }
-
-        private IStatement AdaptRpcMasterResult(Task<RowSet> task, TargettedSimpleStatement statement)
-        {
-            if (task.IsFaulted)
-            {
-                Logger.Verbose("Error querying graph analytics server, query will not be routed optimally: {0}", task.Exception);
                 return statement;
             }
-            var row = task.Result.FirstOrDefault();
+
+            var targettedSimpleStatement = (TargettedSimpleStatement)statement;
+
+            RowSet rs;
+            try
+            {
+                rs = await _coreSession.ExecuteAsync(
+                    new SimpleStatement("CALL DseClientTool.getAnalyticsGraphServer()"), requestOptions).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Logger.Verbose("Error querying graph analytics server, query will not be routed optimally: {0}", ex);
+                return statement;
+            }
+
+            return AdaptRpcMasterResult(rs, targettedSimpleStatement);
+        }
+
+        private IStatement AdaptRpcMasterResult(RowSet rowSet, TargettedSimpleStatement statement)
+        {
+            var row = rowSet.FirstOrDefault();
             if (row == null)
             {
                 Logger.Verbose("Empty response querying graph analytics server, query will not be routed optimally");
@@ -261,6 +285,16 @@ namespace Dse
         public Task<RowSet> ExecuteAsync(IStatement statement, string executionProfileName)
         {
             return _coreSession.ExecuteAsync(statement, executionProfileName);
+        }
+
+        public Task<RowSet> ExecuteAsync(IStatement statement, IRequestOptions requestOptions)
+        {
+            return _coreSession.ExecuteAsync(statement, requestOptions);
+        }
+
+        public IRequestOptions GetRequestOptions(string executionProfileName)
+        {
+            return _coreSession.GetRequestOptions(executionProfileName);
         }
 
         public PreparedStatement Prepare(string cqlQuery)

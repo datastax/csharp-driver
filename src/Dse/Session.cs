@@ -305,11 +305,17 @@ namespace Dse
         /// <inheritdoc />
         public Task<RowSet> ExecuteAsync(IStatement statement, string executionProfileName)
         {
-            return Configuration.RequestHandlerFactory
-                                .Create(this, _serializer, statement, GetRequestOptions(executionProfileName))
-                                .SendAsync();
+            return InternalRef.ExecuteAsync(statement, InternalRef.GetRequestOptions(executionProfileName));
         }
         
+        /// <inheritdoc />
+        Task<RowSet> IInternalSession.ExecuteAsync(IStatement statement, IRequestOptions requestOptions)
+        {
+            return Configuration.RequestHandlerFactory
+                                .Create(this, _serializer, statement, requestOptions)
+                                .SendAsync();
+        }
+
         /// <inheritdoc />
         IHostConnectionPool IInternalSession.GetOrCreateConnectionPool(Host host, HostDistance distance)
         {
@@ -450,7 +456,8 @@ namespace Dse
             return new SimpleStatement(cqlQuery);
         }
 
-        private IRequestOptions GetRequestOptions(string executionProfileName)
+        /// <inheritdoc />
+        IRequestOptions IInternalSession.GetRequestOptions(string executionProfileName)
         {
             if (!Configuration.RequestOptions.TryGetValue(executionProfileName, out var profile))
             {

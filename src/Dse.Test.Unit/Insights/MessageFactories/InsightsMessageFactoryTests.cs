@@ -12,6 +12,7 @@ using System.Management;
 using System.Net;
 using System.Runtime.InteropServices;
 using Dse.Connections;
+using Dse.ExecutionProfiles;
 using Dse.Graph;
 using Dse.Insights;
 using Dse.Insights.Schema;
@@ -270,7 +271,8 @@ namespace Dse.Test.Unit.Insights.MessageFactories
                     new DefaultAddressTranslator(),
                     new StartupOptionsFactory(),
                     new SessionFactoryBuilder(),
-                    new Dictionary<string, IExecutionProfile>()),
+                    new Dictionary<string, IExecutionProfile>(),
+                    new RequestOptionsMapper(new GraphOptions())),
                 new GraphOptions(),
                 Guid.Parse("BECFE098-E462-47E7-B6A7-A21CD316D4C0"),
                 "appv1",

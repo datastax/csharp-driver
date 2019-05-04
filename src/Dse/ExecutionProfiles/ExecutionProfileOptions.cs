@@ -58,7 +58,7 @@ namespace Dse.ExecutionProfiles
             {
                 throw new ArgumentNullException(nameof(name));
             }
-            
+
             if (_profiles.ContainsKey(name))
             {
                 throw new ArgumentException("There is already an execution profile with that name.");

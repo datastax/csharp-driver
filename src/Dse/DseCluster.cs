@@ -39,8 +39,7 @@ namespace Dse
     /// </example>
     public class DseCluster : IInternalDseCluster
     {
-        private readonly Cluster _coreCluster;
-        private readonly DseConfiguration _config;
+        private readonly IInternalCluster _coreCluster;
         private readonly ISessionFactory<IInternalDseSession> _dseSessionFactory;
 
         /// <summary>
@@ -54,22 +53,13 @@ namespace Dse
         public event Action<Host> HostRemoved;
 
         /// <inheritdoc/>
-        public Metadata Metadata
-        {
-            get { return _coreCluster.Metadata; }
-        }
+        public Metadata Metadata => _coreCluster.Metadata;
 
         /// <inheritdoc/>
-        public DseConfiguration Configuration
-        {
-            get { return _config; }
-        }
+        public DseConfiguration Configuration { get; }
 
         /// <inheritdoc/>
-        Configuration ICluster.Configuration
-        {
-            get { return _config.CassandraConfiguration; }
-        }
+        Configuration ICluster.Configuration => Configuration.CassandraConfiguration;
 
         /// <summary>
         /// Creates a new <see cref="DseClusterBuilder"/> instance.
@@ -79,10 +69,10 @@ namespace Dse
             return new DseClusterBuilder();
         }
 
-        internal DseCluster(Cluster coreCluster, DseConfiguration config)
+        internal DseCluster(IInitializer initializer, IReadOnlyList<string> hostnames, DseConfiguration config, IDseCoreClusterFactory dseCoreClusterFactory)
         {
-            _coreCluster = coreCluster;
-            _config = config;
+            Configuration = config;
+            _coreCluster = dseCoreClusterFactory.Create(this, initializer, hostnames, config.CassandraConfiguration);
             _coreCluster.HostAdded += OnCoreHostAdded;
             _coreCluster.HostRemoved += OnCoreHostRemoved;
             _dseSessionFactory = config.DseSessionFactoryBuilder.BuildWithCluster(this);
@@ -115,12 +105,22 @@ namespace Dse
             return Connect(keyspace);
         }
 
+        Task<ISession> ICluster.ConnectAsync()
+        {
+            return _coreCluster.ConnectAsync();
+        }
+
+        Task<ISession> ICluster.ConnectAsync(string keyspace)
+        {
+            return _coreCluster.ConnectAsync(keyspace);
+        }
+
         /// <summary>
         /// Creates a new <see cref="IDseSession"/> for this cluster.
         /// </summary>
         public IDseSession Connect()
         {
-            return Connect(_config.CassandraConfiguration.ClientOptions.DefaultKeyspace);
+            return Connect(Configuration.CassandraConfiguration.ClientOptions.DefaultKeyspace);
         }
 
         /// <summary>
@@ -136,7 +136,7 @@ namespace Dse
         /// </summary>
         public Task<IDseSession> ConnectAsync()
         {
-            return ConnectAsync(_config.CassandraConfiguration.ClientOptions.DefaultKeyspace);
+            return ConnectAsync(Configuration.CassandraConfiguration.ClientOptions.DefaultKeyspace);
         }
 
         /// <summary>
@@ -188,11 +188,7 @@ namespace Dse
             }
         }
 
-        /// <summary>
-        /// Shutdown this cluster instance. This closes all connections from all the sessions of this instance and
-        /// reclaim all resources used by it.
-        /// <para>This method has no effect if the cluster has already been shutdown.</para>
-        /// </summary>
+        /// <inheritdoc />
         public void Shutdown(int timeoutMs = -1)
         {
             _coreCluster.Shutdown(timeoutMs);
@@ -200,29 +196,40 @@ namespace Dse
 
         public bool AnyOpenConnections(Host host)
         {
-            return _coreCluster.InternalRef.AnyOpenConnections(host);
+            return _coreCluster.AnyOpenConnections(host);
         }
 
         /// <inheritdoc />
         IControlConnection IInternalCluster.GetControlConnection()
         {
-            return _coreCluster.InternalRef.GetControlConnection();
+            return _coreCluster.GetControlConnection();
         }
 
         /// <inheritdoc />
-        ConcurrentDictionary<byte[], PreparedStatement> IInternalCluster.PreparedQueries => _coreCluster.InternalRef.PreparedQueries;
+        ConcurrentDictionary<byte[], PreparedStatement> IInternalCluster.PreparedQueries => _coreCluster.PreparedQueries;
 
         /// <inheritdoc />
         Task<PreparedStatement> IInternalCluster.Prepare(IInternalSession session, Serializer serializer, InternalPrepareRequest request)
         {
-            return _coreCluster.InternalRef.Prepare(session, serializer, request);
+            return _coreCluster.Prepare(session, serializer, request);
         }
 
-        /// <summary>
-        /// Shutdown this cluster instance. This closes all connections from all the sessions of this instance and
-        /// reclaim all resources used by it.
-        /// <para>This method has no effect if the cluster has already been shutdown.</para>
-        /// </summary>
+        Task<TSession> IInternalCluster.ConnectAsync<TSession>(ISessionFactory<TSession> sessionFactory, string keyspace)
+        {
+            return _coreCluster.ConnectAsync(sessionFactory, keyspace);
+        }
+
+        public Task<bool> OnInitializeAsync()
+        {
+            return _coreCluster.OnInitializeAsync();
+        }
+
+        public Task<bool> OnShutdownAsync(int timeoutMs = Timeout.Infinite)
+        {
+            return _coreCluster.OnShutdownAsync(timeoutMs);
+        }
+
+        /// <inheritdoc />
         public Task ShutdownAsync(int timeout = Timeout.Infinite)
         {
             return _coreCluster.ShutdownAsync(timeout);

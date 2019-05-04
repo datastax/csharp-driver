@@ -16,6 +16,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Dse;
+using Dse.ExecutionProfiles;
 using Dse.Graph;
 using Dse.SessionManagement;
 using Moq;
@@ -25,12 +26,11 @@ namespace Dse.Test.Unit.Graph
 {
     public class ExecuteGraphTests : BaseUnitTest
     {
-        private static DseSession NewInstance(IInternalSession coreSession, GraphOptions graphOptions = null)
+        private static DseSession NewInstance(IInternalSession coreSession)
         {
             //Cassandra Configuration does not have a public constructor
             //Create a dummy Cluster instance
-            using (var cluster = DseCluster.Builder().AddContactPoint("127.0.0.1")
-                .WithGraphOptions(graphOptions ?? new GraphOptions()).Build())
+            using (var cluster = DseCluster.Builder().AddContactPoint("127.0.0.1").Build())
             {
                 return new DseSession(coreSession, cluster);   
             }
@@ -80,10 +80,10 @@ namespace Dse.Test.Unit.Graph
         [Test]
         public void ExecuteGraph_Should_Call_ExecuteAsync_With_ReadTimeout_Set_To_Default()
         {
-            SimpleStatement coreStatement = null;
-            var coreSessionMock = GetCoreSessionMock(stmt => coreStatement = stmt);
             const int readTimeout = 5000;
-            var session = NewInstance(coreSessionMock.Object, new GraphOptions().SetReadTimeoutMillis(readTimeout));
+            SimpleStatement coreStatement = null;
+            var coreSessionMock = GetCoreSessionMock(stmt => coreStatement = stmt, new GraphOptions().SetReadTimeoutMillis(readTimeout));
+            var session = NewInstance(coreSessionMock.Object);
             session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
             Assert.NotNull(coreStatement);
             Assert.AreEqual(readTimeout, coreStatement.ReadTimeoutMillis);
@@ -99,12 +99,12 @@ namespace Dse.Test.Unit.Graph
         [Test]
         public void ExecuteGraph_Should_Call_ExecuteAsync_With_ReadTimeout_Set_From_Statement()
         {
-            SimpleStatement coreStatement = null;
-            var coreSessionMock = GetCoreSessionMock(stmt => coreStatement = stmt);
             const int defaultReadTimeout = 15000;
+            SimpleStatement coreStatement = null;
+            var coreSessionMock = GetCoreSessionMock(
+                stmt => coreStatement = stmt, new GraphOptions().SetReadTimeoutMillis(defaultReadTimeout));
             const int readTimeout = 6000;
-            var session = NewInstance(coreSessionMock.Object, 
-                new GraphOptions().SetReadTimeoutMillis(defaultReadTimeout));
+            var session = NewInstance(coreSessionMock.Object);
             session.ExecuteGraph(new SimpleGraphStatement("g.V()").SetReadTimeoutMillis(readTimeout));
             Assert.NotNull(coreStatement);
             Assert.AreEqual(readTimeout, coreStatement.ReadTimeoutMillis);
@@ -147,7 +147,10 @@ namespace Dse.Test.Unit.Graph
             rsMock.Setup(r => r.GetEnumerator()).Returns(() => rows.GetEnumerator());
 
             var coreSessionMock = new Mock<IInternalSession>(MockBehavior.Strict);
-            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
+            var requestOptions = Mock.Of<IRequestOptions>();
+            Mock.Get(requestOptions).SetupGet(s => s.GraphOptions).Returns(new GraphOptions());
+            coreSessionMock.Setup(s => s.GetRequestOptions("default")).Returns(requestOptions);
+            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>(), It.IsAny<IRequestOptions>()))
                 .Returns(TaskOf(rsMock.Object))
                 .Verifiable();
             coreSessionMock.Setup(s => s.Cluster).Returns((ICluster) null);
@@ -178,14 +181,15 @@ namespace Dse.Test.Unit.Graph
         public void ExecuteGraph_Should_Build_Payload_With_GraphOptions()
         {
             SimpleStatement coreStatement = null;
-            var coreSessionMock = GetCoreSessionMock(stmt => coreStatement = stmt);
-            var session = NewInstance(coreSessionMock.Object,
+            var coreSessionMock = GetCoreSessionMock(
+                stmt => coreStatement = stmt, 
                 new GraphOptions()
                     .SetName("name1")
                     .SetSource("My source!")
                     .SetReadTimeoutMillis(22222)
                     .SetReadConsistencyLevel(ConsistencyLevel.LocalQuorum)
                     .SetWriteConsistencyLevel(ConsistencyLevel.EachQuorum));
+            var session = NewInstance(coreSessionMock.Object);
             session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
             Assert.NotNull(coreStatement);
             Assert.NotNull(coreStatement.OutgoingPayload);
@@ -202,13 +206,14 @@ namespace Dse.Test.Unit.Graph
         public void ExecuteGraph_Should_Build_Payload_With_Statement_Properties()
         {
             SimpleStatement coreStatement = null;
-            var coreSessionMock = GetCoreSessionMock(stmt => coreStatement = stmt);
-            var session = NewInstance(coreSessionMock.Object,
+            var coreSessionMock = GetCoreSessionMock(
+                stmt => coreStatement = stmt,
                 new GraphOptions()
                     .SetName("name1")
                     .SetSource("My source!")
                     .SetReadConsistencyLevel(ConsistencyLevel.LocalQuorum)
                     .SetWriteConsistencyLevel(ConsistencyLevel.EachQuorum));
+            var session = NewInstance(coreSessionMock.Object);
             session.ExecuteGraph(new SimpleGraphStatement("g.V()")
                 .SetGraphLanguage("my-lang")
                 .SetReadTimeoutMillis(5555)
@@ -259,9 +264,12 @@ namespace Dse.Test.Unit.Graph
         {
             SimpleStatement coreStatement = null;
             var coreSessionMock = new Mock<IInternalSession>(MockBehavior.Strict);
-            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
-                .Returns(TaskOf(new RowSet()))
-                .Callback<SimpleStatement>(stmt => coreStatement = stmt);
+            var requestOptions = Mock.Of<IRequestOptions>();
+            Mock.Get(requestOptions).SetupGet(s => s.GraphOptions).Returns(new GraphOptions());
+            coreSessionMock.Setup(s => s.GetRequestOptions("default")).Returns(requestOptions);
+            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>(), It.IsAny<IRequestOptions>()))
+                           .Returns(TaskOf(new RowSet()))
+                           .Callback<SimpleStatement, IRequestOptions>((stmt, opts) => coreStatement = stmt);
             coreSessionMock.Setup(s => s.Cluster)
                            .Returns((ICluster)null);
             var session = NewInstance(coreSessionMock.Object);
@@ -330,9 +338,10 @@ namespace Dse.Test.Unit.Graph
         public void Should_Identity_Timeout_Infinite_ReadTimeout()
         {
             SimpleStatement coreStatement = null;
-            var coreSessionMock = GetCoreSessionMock(stmt => coreStatement = stmt);
-            var session = NewInstance(coreSessionMock.Object,
+            var coreSessionMock = GetCoreSessionMock(
+                stmt => coreStatement = stmt,
                 new GraphOptions().SetReadTimeoutMillis(32000));
+            var session = NewInstance(coreSessionMock.Object);
             session.ExecuteGraph(new SimpleGraphStatement("g.V()")
                 .SetReadTimeoutMillis(Timeout.Infinite));
             Assert.NotNull(coreStatement);
@@ -345,7 +354,7 @@ namespace Dse.Test.Unit.Graph
         public async Task Should_Consider_Bulk_In_Gremlin_Response_With_GraphSON1()
         {
             var rs = GetRowSet(GetGremlin(1, 1), GetGremlin(2, 2), GetGremlin(3, 3), GetGremlin(4));
-            var coreSessionMock = GetCoreSessionMock(stmt => { }, rs);
+            var coreSessionMock = GetCoreSessionMock(stmt => { }, null, rs);
             var session = NewInstance(coreSessionMock.Object);
             var graphStatement = new SimpleGraphStatement("g.V()").SetGraphLanguage(GraphOptions.DefaultLanguage);
             var result = await session.ExecuteGraphAsync(graphStatement);
@@ -359,7 +368,7 @@ namespace Dse.Test.Unit.Graph
                                GetGremlin(2, "{\"@type\": \"g:Int64\", \"@value\": 2}"),
                                GetGremlin(3, "{\"@type\": \"g:Int64\", \"@value\": 3}"),
                                GetGremlin(10, "{\"@type\": \"g:Int64\", \"@value\": 1}"));
-            var coreSessionMock = GetCoreSessionMock(stmt => { }, rs);
+            var coreSessionMock = GetCoreSessionMock(stmt => { }, null, rs);
             var session = NewInstance(coreSessionMock.Object);
             var graphStatement = new SimpleGraphStatement("g.V()").SetGraphLanguage(GraphOptions.GraphSON2Language);
             var result = await session.ExecuteGraphAsync(graphStatement);
@@ -371,13 +380,18 @@ namespace Dse.Test.Unit.Graph
             return Serialization.TypeSerializer.PrimitiveLongSerializer.Serialize(4, value);
         }
 
-        private static Mock<IInternalSession> GetCoreSessionMock(Action<SimpleStatement> executeCallback, RowSet rs = null)
+        private static Mock<IInternalSession> GetCoreSessionMock(
+            Action<SimpleStatement> executeCallback, GraphOptions graphOptions = null, RowSet rs = null)
         {
+            var requestOptions = Mock.Of<IRequestOptions>();
+            Mock.Get(requestOptions).SetupGet(x => x.GraphOptions).Returns(graphOptions ?? new GraphOptions());
             var coreSessionMock = new Mock<IInternalSession>(MockBehavior.Strict);
-            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
+            coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>(), requestOptions))
                 .Returns(TaskOf(rs ?? new RowSet()))
-                .Callback(executeCallback)
+                .Callback<SimpleStatement, IRequestOptions>((stmt, opts) => executeCallback(stmt))
                 .Verifiable();
+            coreSessionMock.Setup(s => s.GetRequestOptions("default"))
+                .Returns(requestOptions);
             coreSessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
             return coreSessionMock;
         }

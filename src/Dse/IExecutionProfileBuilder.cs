@@ -14,6 +14,8 @@
 //    limitations under the License.
 // 
 
+using Dse.Graph;
+
 namespace Dse
 {
     /// <summary>
@@ -76,5 +78,11 @@ namespace Dse
         /// </summary>
         /// <returns>The new execution profile instance.</returns>
         IExecutionProfile Build();
+
+        /// <summary>
+        /// <para>Sets the DSE Graph options.</para>
+        /// <para>See <see cref="GraphOptions"/> for additional information on the settings within the <see cref="GraphOptions"/> class.</para>
+        /// </summary>
+        IExecutionProfileBuilder WithGraphOptions(GraphOptions graphOptions);
     }
 }

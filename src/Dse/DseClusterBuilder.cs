@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Reflection;
-
+using Dse.ExecutionProfiles;
 using Dse.Graph;
 using Dse.Requests;
 using Dse.Serialization;
@@ -26,6 +26,8 @@ namespace Dse
         public const string DefaultApplicationName = "Default .NET Application";
 
         private static readonly Logger Logger = new Logger(typeof(DseClusterBuilder));
+
+        private readonly IDseCoreClusterFactory _dseCoreClusterFactory = new DseCoreClusterFactory();
         private TypeSerializerDefinitions _typeSerializerDefinitions;
         private IAddressTranslator _addressTranslator = new IdentityAddressTranslator();
         private MonitorReportingOptions _monitorReportingOptions = new MonitorReportingOptions();
@@ -537,7 +539,7 @@ namespace Dse
             _typeSerializerDefinitions = definitions;
             return this;
         }
-        
+
         /// <summary>
         /// Configures options related to Monitor Reporting for the new cluster.
         /// By default, Monitor Reporting is enabled.
@@ -556,6 +558,81 @@ namespace Dse
         internal DseClusterBuilder WithMonitorReporting(MonitorReportingOptions options)
         {
             _monitorReportingOptions = options;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the maximum time to wait for schema agreement before returning from a DDL query.
+        /// <para/>
+        /// DDL queries introduce schema changes that need to be propagated to all nodes in the cluster.
+        /// Once they have settled on a common version, we say that they are in agreement.
+        /// <para/>
+        /// If not set through this method, the default value (10 seconds) will be used.
+        /// </summary>
+        /// <param name="maxSchemaAgreementWaitSeconds">The new value to set.</param>
+        /// <returns>This Builder.</returns>
+        /// <exception cref="ArgumentException">If the provided value is zero or less.</exception>
+        public new DseClusterBuilder WithMaxSchemaAgreementWaitSeconds(int maxSchemaAgreementWaitSeconds)
+        {
+            base.WithMaxSchemaAgreementWaitSeconds(maxSchemaAgreementWaitSeconds);
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the generator that will produce the client-side timestamp sent with each query.
+        /// <para>
+        /// This feature is only available with protocol version 3 or above of the native protocol.
+        /// With earlier versions, timestamps are always generated server-side, and setting a generator
+        /// through this method will have no effect.
+        /// </para>
+        /// <para>
+        /// If no generator is set through this method, the driver will default to client-side timestamps
+        /// by using <see cref="AtomicMonotonicTimestampGenerator"/>.
+        /// </para>
+        /// </summary>
+        /// <param name="generator">The generator to use.</param>
+        /// <returns>This builder instance</returns>
+        public new DseClusterBuilder WithTimestampGenerator(ITimestampGenerator generator)
+        {
+            base.WithTimestampGenerator(generator);
+            return this;
+        }
+
+        /// <summary>
+        /// <para>
+        /// Adds Execution Profiles to the DseCluster instance.
+        /// </para>
+        /// <para>
+        /// Execution profiles are like configuration presets, multiple methods
+        /// of the driver accept an execution profile name which is like telling the driver which settings to use for that particular request.
+        /// This makes it easier to change settings like ConsistencyLevel and ReadTimeoutMillis on a per request basis.
+        /// </para>
+        /// <para>
+        /// Note that subsequent calls to this method will override the previously provided profiles.
+        /// </para>
+        /// <para>
+        /// To add execution profiles you can use
+        /// <see cref="IExecutionProfileOptions.WithProfile(string,Action{IExecutionProfileBuilder})"/>:
+        /// </para>
+        /// <para>
+        /// <code>
+        ///         DseCluster.Builder()
+        ///                 .WithExecutionProfiles(options => options
+        ///                     .WithProfile("profile1", profileBuilder => profileBuilder
+        ///                         .WithReadTimeoutMillis(10000)
+        ///                         .WithConsistencyLevel(ConsistencyLevel.LocalQuorum))
+        ///                     .WithProfile("profile-graph", profileBuilder => profileBuilder
+        ///                         .WithReadTimeoutMillis(10000)
+        ///                         .WithGraphOptions(new GraphOptions().SetName("name"))))
+        ///                 .Build();
+        /// </code>
+        /// </para>
+        /// </summary>
+        /// <param name="profileOptionsBuilder"></param>
+        /// <returns>This builder</returns>
+        public new DseClusterBuilder WithExecutionProfiles(Action<IExecutionProfileOptions> profileOptionsBuilder)
+        {
+            base.WithExecutionProfiles(profileOptionsBuilder);
             return this;
         }
 
@@ -583,28 +660,26 @@ namespace Dse
             var clusterId = ClusterId ?? Guid.NewGuid();
             var appVersion = ApplicationVersion ?? DseConfiguration.DefaultApplicationVersion;
             var appName = ApplicationName ?? DseConfiguration.FallbackApplicationName;
+            var graphOptions = GraphOptions ?? new GraphOptions();
 
             base.WithTypeSerializers(typeSerializerDefinitions);
             base.WithStartupOptionsFactory(new DseStartupOptionsFactory(clusterId, appVersion, appName));
-            var coreCluster = base.Build();
+            base.WithRequestOptionsMapper(new RequestOptionsMapper(graphOptions));
+            var cassandraConfig = base.GetConfiguration();
 
             var config = new DseConfiguration(
-                coreCluster.Configuration,
-                GraphOptions ?? new GraphOptions(),
+                cassandraConfig,
+                graphOptions,
                 clusterId,
                 appVersion,
                 appName,
-                _monitorReportingOptions, 
+                _monitorReportingOptions,
                 _addressTranslator,
                 DseConfiguration.DefaultInsightsSupportVerifier,
                 DseConfiguration.DefaultDseSessionManagerFactory,
-                DseConfiguration.GetDefaultDseSessionFactoryBuilder(coreCluster.Configuration.SessionFactoryBuilder));
+                DseConfiguration.GetDefaultDseSessionFactoryBuilder(cassandraConfig.SessionFactoryBuilder));
 
-            var dseCluster = new DseCluster(
-                coreCluster,
-                config);
-
-            return dseCluster;
+            return new DseCluster(this, HostNames, config, _dseCoreClusterFactory);
         }
     }
 }

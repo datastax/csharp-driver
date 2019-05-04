@@ -16,6 +16,7 @@
 
 using System.Collections.Generic;
 using Dse.Connections;
+using Dse.ExecutionProfiles;
 using Dse.Requests;
 using Dse.SessionManagement;
 
@@ -42,6 +43,8 @@ namespace Dse.Test.Unit
         public IAddressTranslator AddressTranslator { get; set; } = new DefaultAddressTranslator();
 
         public IStartupOptionsFactory StartupOptionsFactory { get; set; } = new StartupOptionsFactory();
+
+        public IRequestOptionsMapper RequestOptionsMapper { get; set; } = new RequestOptionsMapper();
 
         public ISessionFactoryBuilder<IInternalCluster, IInternalSession> SessionFactoryBuilder { get; set; } = new SessionFactoryBuilder();
 
@@ -74,6 +77,7 @@ namespace Dse.Test.Unit
                 StartupOptionsFactory,
                 SessionFactoryBuilder,
                 ExecutionProfiles,
+                RequestOptionsMapper,
                 RequestHandlerFactory,
                 HostConnectionPoolFactory,
                 RequestExecutionFactory,
