@@ -15,10 +15,12 @@
 //
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
@@ -34,35 +36,22 @@ namespace Cassandra.Requests
         
         private readonly Serializer _serializer;
         private readonly IEnumerator<Host> _queryPlan;
-        private readonly IRequestOptions _requestOptions;
 
-        public PrepareHandler(Serializer serializer, IEnumerator<Host> queryPlan, IRequestOptions requestOptions)
+        public PrepareHandler(Serializer serializer, IEnumerator<Host> queryPlan)
         {
             _serializer = serializer;
             _queryPlan = queryPlan;
-            _requestOptions = requestOptions;
         }
         
         public async Task<PreparedStatement> Prepare(
-            InternalPrepareRequest request, IInternalSession session, Dictionary<IPEndPoint, Exception> triedHosts)
+            InternalPrepareRequest request, IInternalSession session)
         {
-            if (triedHosts == null)
+            if (session.Cluster.Configuration.QueryOptions.IsPrepareOnAllHosts())
             {
-                triedHosts = new Dictionary<IPEndPoint, Exception>();
+                return await SendRequestToAllNodesWithExistingConnections(session, request).ConfigureAwait(false);
             }
-            // It may throw a NoHostAvailableException which we should yield to the caller
-            var connection = await GetNextConnection(session, triedHosts).ConfigureAwait(false);
-            Response response;
-            try
-            {
-                response = await connection.Send(request, _requestOptions.ReadTimeoutMillis).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (CanBeRetried(ex))
-            {
-                triedHosts[connection.Address] = ex;
-                return await Prepare(request, session, triedHosts).ConfigureAwait(false);
-            }
-            return await GetPreparedStatement(response, request, connection.Keyspace, session.Cluster).ConfigureAwait(false);
+
+            return await SendRequestToOneNode(session, request).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -73,35 +62,7 @@ namespace Cassandra.Requests
             return ex is SocketException || ex is OperationTimedOutException || ex is IsBootstrappingException ||
                    ex is OverloadedException || ex is QueryExecutionException;
         }
-
-        public async Task PrepareOnTheRestOfTheNodes(InternalPrepareRequest request, IInternalSession session)
-        {
-            Host host;
-            HostDistance distance;
-            var lbp = _requestOptions.LoadBalancingPolicy;
-            var tasks = new List<Task>();
-            var triedHosts = new Dictionary<IPEndPoint, Exception>();
-            while ((host = GetNextHost(lbp, out distance)) != null)
-            {
-                var connection = await RequestHandler
-                    .GetConnectionFromHostAsync(host, distance, session, triedHosts).ConfigureAwait(false);
-                if (connection == null)
-                {
-                    continue;
-                }
-                // For each valid connection, send a the request in parallel
-                tasks.Add(connection.Send(request));
-            }
-            try
-            {
-                await Task.WhenAll(tasks).ConfigureAwait(false);
-            }
-            catch
-            {
-                // Don't consider individual failures
-            }
-        }
-        
+                
         private async Task<PreparedStatement> GetPreparedStatement(Response response, InternalPrepareRequest request,
                                                                    string keyspace, ICluster cluster)
         {
@@ -174,7 +135,7 @@ namespace Cassandra.Requests
         {
             Host host;
             HostDistance distance;
-            var lbp = _requestOptions.LoadBalancingPolicy;
+            var lbp = session.Cluster.Configuration.DefaultRequestOptions.LoadBalancingPolicy;
             while ((host = GetNextHost(lbp, out distance)) != null)
             {
                 var connection = await RequestHandler
@@ -205,6 +166,132 @@ namespace Cassandra.Requests
                 return host;
             }
             return null;
+        }
+
+        private async Task<PreparedStatement> CreateConnectionIfNeededAndSendRequest(IInternalSession session, InternalPrepareRequest request)
+        {
+            var triedHosts = new Dictionary<IPEndPoint, Exception>();
+            
+            while(true)
+            {
+                // It may throw a NoHostAvailableException which we should yield to the caller
+                var connection = await GetNextConnection(session, triedHosts).ConfigureAwait(false);
+                try
+                {
+                    var result =  await connection.Send(request).ConfigureAwait(false);
+                    return await GetPreparedStatement(result, request, connection.Keyspace, session.Cluster).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (CanBeRetried(ex))
+                {
+                    triedHosts[connection.Address] = ex;
+                }
+            }
+        }
+
+        private async Task<PreparedStatement> SendRequestToOneNode(IInternalSession session, InternalPrepareRequest request)
+        {
+            var connectionFound = false;
+            var triedHosts = new Dictionary<IPEndPoint, Exception>();
+            var hosts = session.Cluster.AllHosts();
+
+            foreach (var host in hosts)
+            {
+                // Get the first connection for that host
+                var connection = session.GetExistingPool(host.Address)?.ConnectionsSnapshot.FirstOrDefault();
+                if (connection == null)
+                {
+                    PrepareHandler.Logger.Info(
+                        $"Did not prepare request on {host.Address} as there wasn't an open connection to the node");
+                    continue;
+                }
+
+                connectionFound = true;
+                PrepareHandler.Logger.Info($"Preparing request on {host.Address}");
+                try
+                {
+                    var result =  await connection.Send(request).ConfigureAwait(false);
+                    return await GetPreparedStatement(result, request, connection.Keyspace, session.Cluster).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (PrepareHandler.CanBeRetried(ex))
+                {
+                    triedHosts[connection.Address] = ex;
+                }
+            }
+
+            if (!connectionFound)
+            {
+                return await CreateConnectionIfNeededAndSendRequest(session, request).ConfigureAwait(false);
+            }
+            
+            throw new NoHostAvailableException(triedHosts);
+        }
+
+        private async Task<PreparedStatement> SendRequestToAllNodesWithExistingConnections(IInternalSession session, InternalPrepareRequest request)
+        {
+            var triedHosts = new ConcurrentDictionary<IPEndPoint, Exception>();
+
+            var hosts = session.Cluster.AllHosts();
+            using (var semaphore = new SemaphoreSlim(64, 64))
+            {
+                var tasks = new List<Task<Tuple<Response,IConnection>>>(hosts.Count);
+                foreach (var host in hosts)
+                {
+                    // Get the first connection for that host
+                    var connection = session.GetExistingPool(host.Address)?.ConnectionsSnapshot.FirstOrDefault();
+                    if (connection == null)
+                    {
+                        PrepareHandler.Logger.Info(
+                            $"Did not prepare request on {host.Address} as there wasn't an open connection to the node");
+                        continue;
+                    }
+
+                    PrepareHandler.Logger.Info($"Preparing request on {host.Address}");
+                    await semaphore.WaitAsync().ConfigureAwait(false);
+                    tasks.Add(SendSingleRequest(connection, request, semaphore, triedHosts));
+                }
+
+                if (tasks.Count == 0)
+                {
+                    throw new NoHostAvailableException("No connections available to prepare the request.");
+                }
+
+                try
+                {
+                    await Task.WhenAll(tasks).ConfigureAwait(false);
+                    var result = tasks.First().Result;
+                    return await GetPreparedStatement(result.Item1, request, result.Item2.Keyspace, session.Cluster).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    var completedTasks = tasks.Where(t => t.IsCompleted && !t.IsFaulted && !t.IsCanceled).ToList();
+                    if (completedTasks.Count > 0)
+                    {
+                        PrepareHandler.Logger.Warning("Prepare did not succeed on all hosts. There was one or more errors when preparing the query on all hosts.", ex);
+                        var result = completedTasks.First().Result;
+                        return await GetPreparedStatement(result.Item1, request, result.Item2.Keyspace, session.Cluster).ConfigureAwait(false);
+                    }
+
+                    PrepareHandler.Logger.Error("There was one or more errors when preparing the query on all hosts.", ex);
+                    throw new NoHostAvailableException(triedHosts.ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
+                }
+            }
+        }
+
+        private async Task<Tuple<Response, IConnection>> SendSingleRequest(IConnection connection, IRequest request, SemaphoreSlim sem, ConcurrentDictionary<IPEndPoint, Exception> triedHosts)
+        {
+            try
+            {
+                return new Tuple<Response, IConnection>(await connection.Send(request).ConfigureAwait(false), connection);
+            }
+            catch (Exception ex)
+            {
+                triedHosts.AddOrUpdate(connection.Address, ex, (point, exception) => exception);
+                throw;
+            }
+            finally
+            {
+                sem.Release();
+            }
         }
     }
 }

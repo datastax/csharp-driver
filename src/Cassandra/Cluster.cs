@@ -258,34 +258,27 @@ namespace Cassandra
                     var initialAbortTimeout = Configuration.SocketOptions.ConnectTimeoutMillis * 2 * _metadata.Hosts.Count;
                     initialAbortTimeout = Math.Max(initialAbortTimeout, ControlConnection.MetadataAbortTimeout);
                     await _controlConnection.Init().WaitToCompleteAsync(initialAbortTimeout).ConfigureAwait(false);
-
+                    
                     // Initialize policies
-                    var initializedPolicies = new List<object>();
+                    var loadBalancingPolicies = new HashSet<ILoadBalancingPolicy>(new ReferenceEqualityComparer<ILoadBalancingPolicy>());
+                    var speculativeExecutionPolicies = new HashSet<ISpeculativeExecutionPolicy>(new ReferenceEqualityComparer<ISpeculativeExecutionPolicy>());
                     foreach (var options in Configuration.RequestOptions.Values)
                     {
-                        if (initializedPolicies.All(policy => !ReferenceEquals(options.LoadBalancingPolicy, policy)))
-                        {
-                            initializedPolicies.Add(options.LoadBalancingPolicy);
-                            options.LoadBalancingPolicy.Initialize(this);
-                        }
-                        
-                        if (initializedPolicies.All(policy => !ReferenceEquals(options.SpeculativeExecutionPolicy, policy)))
-                        {
-                            initializedPolicies.Add(options.SpeculativeExecutionPolicy);
-                            options.SpeculativeExecutionPolicy.Initialize(this);
-                        }
+                        loadBalancingPolicies.Add(options.LoadBalancingPolicy);
+                        speculativeExecutionPolicies.Add(options.SpeculativeExecutionPolicy);
                     }
-                    
-                    if (initializedPolicies.All(policy => !ReferenceEquals(Configuration.Policies.LoadBalancingPolicy, policy)))
+
+                    loadBalancingPolicies.Add(Configuration.Policies.LoadBalancingPolicy);
+                    speculativeExecutionPolicies.Add(Configuration.Policies.SpeculativeExecutionPolicy);
+
+                    foreach (var lbp in loadBalancingPolicies)
                     {
-                        initializedPolicies.Add(Configuration.Policies.LoadBalancingPolicy);
-                        Configuration.Policies.LoadBalancingPolicy.Initialize(this);
+                        lbp.Initialize(this);
                     }
-                        
-                    if (initializedPolicies.All(policy => !ReferenceEquals(Configuration.Policies.SpeculativeExecutionPolicy, policy)))
+
+                    foreach (var sep in speculativeExecutionPolicies)
                     {
-                        initializedPolicies.Add(Configuration.Policies.SpeculativeExecutionPolicy);
-                        Configuration.Policies.SpeculativeExecutionPolicy.Initialize(this);
+                        sep.Initialize(this);
                     }
                 }
                 catch (NoHostAvailableException)
@@ -503,20 +496,17 @@ namespace Cassandra
             _controlConnection.Dispose();
             Configuration.Timer.Dispose();
             
-            var disposedPolicies = new List<object>();
+            // Dispose policies
+            var speculativeExecutionPolicies = new HashSet<ISpeculativeExecutionPolicy>(new ReferenceEqualityComparer<ISpeculativeExecutionPolicy>());
             foreach (var options in Configuration.RequestOptions.Values)
             {
-                if (disposedPolicies.All(policy => !ReferenceEquals(options.SpeculativeExecutionPolicy, policy)))
-                {
-                    disposedPolicies.Add(options.SpeculativeExecutionPolicy);
-                    options.SpeculativeExecutionPolicy.Dispose();
-                }
+                speculativeExecutionPolicies.Add(options.SpeculativeExecutionPolicy);
             }
-            
-            if (disposedPolicies.All(policy => !ReferenceEquals(Configuration.Policies.SpeculativeExecutionPolicy, policy)))
+
+            speculativeExecutionPolicies.Add(Configuration.Policies.SpeculativeExecutionPolicy);
+            foreach (var sep in speculativeExecutionPolicies)
             {
-                disposedPolicies.Add(Configuration.Policies.SpeculativeExecutionPolicy);
-                Configuration.Policies.SpeculativeExecutionPolicy.Dispose();
+                sep.Dispose();
             }
 
             _logger.Info("Cluster [" + _metadata.ClusterName + "] has been shut down.");
@@ -535,12 +525,12 @@ namespace Cassandra
 
         /// <inheritdoc />
         async Task<PreparedStatement> IInternalCluster.Prepare(
-            IInternalSession session, Serializer serializer, InternalPrepareRequest request, IRequestOptions requestOptions)
+            IInternalSession session, Serializer serializer, InternalPrepareRequest request)
         {
-            var lbp = requestOptions.LoadBalancingPolicy;
+            var lbp = session.Cluster.Configuration.DefaultRequestOptions.LoadBalancingPolicy;
             var handler = InternalRef.Configuration.PrepareHandlerFactory.Create(
-                serializer, lbp.NewQueryPlan(session.Keyspace, null).GetEnumerator(), requestOptions);
-            var ps = await handler.Prepare(request, session, null).ConfigureAwait(false);
+                serializer, lbp.NewQueryPlan(session.Keyspace, null).GetEnumerator());
+            var ps = await handler.Prepare(request, session).ConfigureAwait(false);
             var psAdded = InternalRef.PreparedQueries.GetOrAdd(ps.Id, ps);
             if (ps != psAdded)
             {
@@ -548,12 +538,7 @@ namespace Cassandra
                                "affect performance. Consider preparing the statement only once. Query='{0}'", ps.Cql);
                 ps = psAdded;
             }
-            var prepareOnAllHosts = InternalRef.Configuration.QueryOptions.IsPrepareOnAllHosts();
-            if (!prepareOnAllHosts)
-            {
-                return ps;
-            }
-            await handler.PrepareOnTheRestOfTheNodes(request, session).ConfigureAwait(false);
+
             return ps;
         }
         

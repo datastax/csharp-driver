@@ -425,7 +425,7 @@ namespace Cassandra
                 Payload = prepareRequest.CustomPayload
             };
 
-            return await _cluster.Prepare(this, _serializer, request, GetRequestOptions(prepareRequest.ExecutionProfileName)).ConfigureAwait(false);
+            return await _cluster.Prepare(this, _serializer, request).ConfigureAwait(false);
         }
 
         public void WaitForSchemaAgreement(RowSet rs)
