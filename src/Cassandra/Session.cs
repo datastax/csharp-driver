@@ -388,46 +388,34 @@ namespace Cassandra
         /// <inheritdoc />
         public PreparedStatement Prepare(string cqlQuery)
         {
-            return Prepare(PrepareRequestBuilder.FromQuery(cqlQuery).Build());
+            return Prepare(cqlQuery, null);
         }
         
         /// <inheritdoc />
         public PreparedStatement Prepare(string cqlQuery, IDictionary<string, byte[]> customPayload)
         {
-            return Prepare(PrepareRequestBuilder.FromQuery(cqlQuery).WithCustomPayload(customPayload).Build());
-        }
-
-        /// <inheritdoc />
-        public PreparedStatement Prepare(IPrepareRequest prepareRequest)
-        {
-            var task = PrepareAsync(prepareRequest);
+            var task = PrepareAsync(cqlQuery, customPayload);
             TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
             return task.Result;
         }
-
+        
         /// <inheritdoc />
         public Task<PreparedStatement> PrepareAsync(string query)
         {
-            return PrepareAsync(PrepareRequestBuilder.FromQuery(query).Build());
+            return PrepareAsync(query, null);
         }
         
         /// <inheritdoc />
-        public Task<PreparedStatement> PrepareAsync(string query, IDictionary<string, byte[]> customPayload)
+        public async Task<PreparedStatement> PrepareAsync(string query, IDictionary<string, byte[]> customPayload)
         {
-            return PrepareAsync(PrepareRequestBuilder.FromQuery(query).WithCustomPayload(customPayload).Build());
-        }
-
-        /// <inheritdoc />
-        public async Task<PreparedStatement> PrepareAsync(IPrepareRequest prepareRequest)
-        {
-            var request = new InternalPrepareRequest(prepareRequest.Query)
+            var request = new InternalPrepareRequest(query)
             {
-                Payload = prepareRequest.CustomPayload
+                Payload = customPayload
             };
 
             return await _cluster.Prepare(this, _serializer, request).ConfigureAwait(false);
         }
-
+        
         public void WaitForSchemaAgreement(RowSet rs)
         {
         }

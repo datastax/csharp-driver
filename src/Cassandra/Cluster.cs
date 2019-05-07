@@ -528,9 +528,8 @@ namespace Cassandra
             IInternalSession session, Serializer serializer, InternalPrepareRequest request)
         {
             var lbp = session.Cluster.Configuration.DefaultRequestOptions.LoadBalancingPolicy;
-            var handler = InternalRef.Configuration.PrepareHandlerFactory.Create(
-                serializer, lbp.NewQueryPlan(session.Keyspace, null).GetEnumerator());
-            var ps = await handler.Prepare(request, session).ConfigureAwait(false);
+            var handler = InternalRef.Configuration.PrepareHandlerFactory.Create(serializer);
+            var ps = await handler.Prepare(request, session, lbp.NewQueryPlan(session.Keyspace, null).GetEnumerator()).ConfigureAwait(false);
             var psAdded = InternalRef.PreparedQueries.GetOrAdd(ps.Id, ps);
             if (ps != psAdded)
             {
