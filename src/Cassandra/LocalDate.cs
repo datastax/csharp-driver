@@ -46,25 +46,27 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Port from http://howardhinnant.github.io/date_algorithms.html#civil_from_days
+        /// Port from https://github.com/HowardHinnant/date which is based on http://howardhinnant.github.io/date_algorithms.html
         /// There's a good explanation of the algorithm over there.
         /// </summary>
         /// <param name="daysSinceEpoch">Days since Epoch (January 1st, 1970), can be negative.</param>
         private void InitializeFromDaysSinceEpoch(long daysSinceEpoch)
         {
-            var z = daysSinceEpoch;
-            z += 719468L;
-            var era = (z >= 0 ? z : z - 146096) / 146097;
-            var doe = (z - era * 146097);                               // [0, 146096]
-            var yoe = (doe - doe/1460 + doe/36524 - doe/146096) / 365;  // [0, 399]
-            var y = yoe + era * 400;
-            var doy = doe - (365*yoe + yoe/4 - yoe/100);                // [0, 365]
-            var mp = (5*doy + 2)/153;                                   // [0, 11]
-            var d = doy - (153*mp+2)/5 + 1;                             // [1, 31]
-            var m = mp + (mp < 10 ? 3 : -9);                            // [1, 12]
-            Year = (int) (y + (m <= 2 ? 1 : 0));
-            Month = (int) m;
-            Day = (int) d;
+            daysSinceEpoch += 719468L;                                                                  // shift epoch from 1970-01-01 to 0000-03-01
+            var era = (daysSinceEpoch >= 0 ? daysSinceEpoch : daysSinceEpoch - 146096) / 146097;        // compute era
+            var dayOfEra = (daysSinceEpoch - era * 146097);                                             // [0, 146096]
+            var yearOfEra = (dayOfEra - dayOfEra/1460 + dayOfEra/36524 - dayOfEra/146096) / 365;        // [0, 399]
+            var dayOfYear = dayOfEra - (365*yearOfEra + yearOfEra/4 - yearOfEra/100);                   // [0, 365]
+            var monthInternal = (5*dayOfYear + 2)/153;                                                  // [0, 11]
+            var yearInternal = yearOfEra + era * 400;                                                   // beginning in Mar 1st, NOT in Jan 1st
+
+            var day = dayOfYear - (153*monthInternal+2)/5 + 1;                                          // [1, 31]
+            var monthCivil = monthInternal + (monthInternal < 10 ? 3 : -9);                             // [1, 12]
+            var yearCivil = yearInternal + (monthCivil <= 2 ? 1 : 0);                                   // shift to beginning in Jan 1st
+
+            Year = (int) yearCivil;
+            Month = (int) monthCivil;
+            Day = (int) day;
         }
 
         /// <summary>
