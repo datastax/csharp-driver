@@ -15,6 +15,7 @@
 // 
 
 using System;
+using System.Collections.Concurrent;
 using System.Net;
 using Cassandra.Connections;
 using Cassandra.Serialization;
@@ -24,21 +25,32 @@ namespace Cassandra.Tests.Connections
 {
     internal class FakeConnectionFactory : IConnectionFactory
     {
-        private readonly Func<IConnection> _func;
+        private readonly Func<IPEndPoint, IConnection> _func;
+        public event Action<IConnection> OnCreate;
+
+        public ConcurrentDictionary<IPEndPoint, ConcurrentQueue<IConnection>> CreatedConnections { get; } = new ConcurrentDictionary<IPEndPoint, ConcurrentQueue<IConnection>>();
         
-        public FakeConnectionFactory()
+        public FakeConnectionFactory() : this(Mock.Of<IConnection>)
         {
-            _func = Mock.Of<IConnection>;
         }
 
         public FakeConnectionFactory(Func<IConnection> func)
+        {
+            _func = _ => func();
+        }
+        
+        public FakeConnectionFactory(Func<IPEndPoint, IConnection> func)
         {
             _func = func;
         }
 
         public IConnection Create(Serializer serializer, IPEndPoint endpoint, Configuration configuration)
         {
-            return _func();
+            var connection = _func(endpoint);
+            var queue = CreatedConnections.GetOrAdd(endpoint, _ => new ConcurrentQueue<IConnection>());
+            queue.Enqueue(connection);
+            OnCreate?.Invoke(connection);
+            return connection;
         }
     }
 }

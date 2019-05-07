@@ -14,6 +14,7 @@
 //    limitations under the License.
 //
 
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 using Cassandra.SessionManagement;
@@ -22,6 +23,6 @@ namespace Cassandra.Requests
 {
     internal interface IPrepareHandler
     {
-        Task<PreparedStatement> Prepare(InternalPrepareRequest request, IInternalSession session);
+        Task<PreparedStatement> Prepare(InternalPrepareRequest request, IInternalSession session, IEnumerator<Host> queryPlan);
     }
 }
