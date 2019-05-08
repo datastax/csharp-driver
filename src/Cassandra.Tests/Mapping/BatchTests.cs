@@ -47,7 +47,7 @@ namespace Cassandra.Tests.Mapping
                 .Returns(TaskHelper.ToTask(GetPrepared()))
                 .Verifiable();
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
                 .Returns(TaskHelper.ToTask(GetPrepared()))
                 .Verifiable();
             return GetMappingClient(sessionMock);
@@ -76,7 +76,7 @@ namespace Cassandra.Tests.Mapping
                 .Returns(TaskHelper.ToTask(GetPrepared()))
                 .Verifiable();
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
                 .Returns(TaskHelper.ToTask(GetPrepared()))
                 .Verifiable();
             return new MapperAndSessionTuple

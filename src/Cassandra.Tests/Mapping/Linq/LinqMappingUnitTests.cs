@@ -33,7 +33,6 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Returns(TestHelper.DelayedTask(result, 200))
                 .Verifiable();
             sessionMock.Setup(s => s.PrepareAsync(It.IsAny<string>())).Returns(TaskHelper.ToTask(GetPrepared("Mock query")));
-            sessionMock.Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>())).Returns(TaskHelper.ToTask(GetPrepared("Mock query")));
             sessionMock.Setup(s => s.BinaryProtocolVersion).Returns(2);
             sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             return sessionMock.Object;
@@ -142,7 +141,6 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Callback<IStatement, string>((s, profile) => stmt = (BoundStatement)s)
                 .Verifiable();
             sessionMock.Setup(s => s.PrepareAsync(It.IsAny<string>())).Returns(TaskHelper.ToTask(GetPrepared("Mock query")));
-            sessionMock.Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>())).Returns(TaskHelper.ToTask(GetPrepared("Mock query")));
             sessionMock.Setup(s => s.BinaryProtocolVersion).Returns(2);
             rs.AutoPage = true;
             rs.PagingState = new byte[] { 0, 0, 0 };

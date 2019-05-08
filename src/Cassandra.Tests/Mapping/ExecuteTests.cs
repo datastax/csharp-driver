@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+
 using Cassandra.Mapping;
 using Cassandra.Tasks;
 using Cassandra.Tests.Mapping.Pocos;
-using Cassandra.Tests.Mapping.TestData;
+
 using Moq;
+
 using NUnit.Framework;
 
 namespace Cassandra.Tests.Mapping
@@ -44,7 +43,7 @@ namespace Cassandra.Tests.Mapping
                 .Returns(() => TaskHelper.ToTask(new RowSet()))
                 .Verifiable();
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
                 .Returns(TaskHelper.ToTask(GetPrepared()))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock);
@@ -74,8 +73,8 @@ namespace Cassandra.Tests.Mapping
                 }))
                 .Verifiable();
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
-                .Returns<IPrepareRequest>(req => TaskHelper.ToTask(GetPrepared(req.Query)))
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>((cql) => TaskHelper.ToTask(GetPrepared(cql)))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock);
             var batch = mapper.CreateBatch();

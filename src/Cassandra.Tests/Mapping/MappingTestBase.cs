@@ -61,8 +61,8 @@ namespace Cassandra.Tests.Mapping
                 .Callback<BoundStatement, string>((s, profile) => queryCallback(s.PreparedStatement.Cql, s.QueryValues))
                 .Verifiable();
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
-                .Returns<IPrepareRequest>((req) => TaskHelper.ToTask(GetPrepared(req.Query)))
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>(q => TaskHelper.ToTask(GetPrepared(q)))
                 .Verifiable();
             return new MapperAndSessionTuple
             {
@@ -117,8 +117,8 @@ namespace Cassandra.Tests.Mapping
                 .Returns<string>(query => TaskHelper.ToTask(GetPrepared(query)))
                 .Verifiable();
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
-                .Returns<IPrepareRequest>((req) => TaskHelper.ToTask(GetPrepared(req.Query)))
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>(query => TaskHelper.ToTask(GetPrepared(query)))
                 .Verifiable();
             sessionMock
                 .Setup(s => s.BinaryProtocolVersion)
@@ -170,8 +170,8 @@ namespace Cassandra.Tests.Mapping
                 .ReturnsAsync(() => rs)
                 .Verifiable();
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
-                .Returns<IPrepareRequest>((req) => TaskHelper.ToTask(GetPrepared(req.Query)))
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>(query => TaskHelper.ToTask(GetPrepared(query)))
                 .Verifiable();
 
             var trace = new Mock<QueryTrace>(MockBehavior.Strict, Guid.NewGuid(), sessionMock.Object);

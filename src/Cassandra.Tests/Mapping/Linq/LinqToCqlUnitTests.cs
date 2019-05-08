@@ -368,8 +368,8 @@ APPLY BATCH".Replace("\r", ""));
                 .Setup(s => s.ExecuteAsync(It.IsAny<IStatement>(), It.IsAny<string>()))
                 .Returns(Task<RowSet>.Factory.StartNew(() => new RowSet()));
             sessionMock
-                .Setup(s => s.PrepareAsync(It.IsAny<IPrepareRequest>()))
-                .Callback<IPrepareRequest>((req) => actualCqlQueries.Add(req.Query))
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Callback<string>(query => actualCqlQueries.Add(query))
                 .Returns(TaskHelper.ToTask(GetPrepared("Mock query")));
 
             //Execute all linq queries

@@ -50,7 +50,7 @@ namespace Cassandra.Mapping.Statements
             var prepareTask = _statementCache.GetOrAdd(psCacheKey, _ =>
             {
                 wasPreviouslyCached = false;
-                return session.PrepareAsync(PrepareRequestBuilder.FromQuery(query).WithExecutionProfile(profile).Build());
+                return session.PrepareAsync(query);
             });
 
             PreparedStatement ps;
@@ -63,7 +63,7 @@ namespace Cassandra.Mapping.Statements
                 // The exception was caused from awaiting upon a Task that was previously cached
                 // It's possible that the schema or topology changed making this query preparation to succeed
                 // in a new attemp
-                prepareTask = session.PrepareAsync(PrepareRequestBuilder.FromQuery(query).WithExecutionProfile(profile).Build());
+                prepareTask = session.PrepareAsync(query);
                 ps = await prepareTask.ConfigureAwait(false);
                 // AddOrUpdate() returns a task which we already waited upon, its safe to call Forget()
                 _statementCache.AddOrUpdate(psCacheKey, prepareTask, (k, v) => prepareTask).Forget();
