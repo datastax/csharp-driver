@@ -18,6 +18,8 @@ namespace Cassandra
         // unix epoch is represented by the number  2 ^ 31
         private const long DateCenter = 2147483648L;
         private const long DaysFromYear0ToUnixEpoch = 719528L;
+        // ReSharper disable once InconsistentNaming
+        private const long DaysFromYear0March1stToUnixEpoch = LocalDate.DaysFromYear0ToUnixEpoch - 60L;
         
         private static readonly Regex RegexInteger = new Regex("^-?\\d+$", RegexOptions.Compiled);
 
@@ -52,9 +54,12 @@ namespace Cassandra
         /// <param name="daysSinceEpoch">Days since Epoch (January 1st, 1970), can be negative.</param>
         private void InitializeFromDaysSinceEpoch(long daysSinceEpoch)
         {
-            daysSinceEpoch += 719468L;                                                                  // shift epoch from 1970-01-01 to 0000-03-01
-            var era = (daysSinceEpoch >= 0 ? daysSinceEpoch : daysSinceEpoch - 146096) / 146097;        // compute era
-            var dayOfEra = (daysSinceEpoch - era * 146097);                                             // [0, 146096]
+            var daysSinceShiftedEpoch = daysSinceEpoch + LocalDate.DaysFromYear0March1stToUnixEpoch;    // shift epoch from 1970-01-01 to 0000-03-01
+            var era =                                                                                   // compute era (400 year period)
+                (daysSinceShiftedEpoch >= 0 ? daysSinceShiftedEpoch : daysSinceShiftedEpoch - 146096) 
+                / 146097;                                          
+            
+            var dayOfEra = (daysSinceShiftedEpoch - era * 146097);                                      // [0, 146096]
             var yearOfEra = (dayOfEra - dayOfEra/1460 + dayOfEra/36524 - dayOfEra/146096) / 365;        // [0, 399]
             var dayOfYear = dayOfEra - (365*yearOfEra + yearOfEra/4 - yearOfEra/100);                   // [0, 365]
             var monthInternal = (5*dayOfYear + 2)/153;                                                  // [0, 11]
