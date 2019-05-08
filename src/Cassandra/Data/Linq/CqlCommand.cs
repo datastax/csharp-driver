@@ -34,6 +34,8 @@ namespace Cassandra.Data.Linq
         protected DateTimeOffset? _timestamp;
         protected int? _ttl;
         private QueryTrace _queryTrace;
+        
+        protected int QueryAbortTimeout { get; private set; }
 
         internal PocoData PocoData { get; }
         internal ITable Table { get; }
@@ -84,6 +86,7 @@ namespace Cassandra.Data.Linq
             Table = table;
             _statementFactory = stmtFactory;
             PocoData = pocoData;
+            QueryAbortTimeout = table.GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
         }
 
         protected internal abstract string GetCql(out object[] values);
@@ -105,9 +108,7 @@ namespace Cassandra.Data.Linq
             {
                 throw new ArgumentNullException(nameof(executionProfile));
             }
-            
-            var queryAbortTimeout = GetTable().GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
-            return TaskHelper.WaitToComplete(ExecuteAsync(executionProfile), queryAbortTimeout);
+            return TaskHelper.WaitToComplete(ExecuteAsync(executionProfile), QueryAbortTimeout);
         }
 
         public void SetQueryTrace(QueryTrace trace)

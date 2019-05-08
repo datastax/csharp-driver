@@ -29,6 +29,9 @@ namespace Cassandra.Data.Linq
     public abstract class CqlQueryBase<TEntity> : Statement
     {
         private QueryTrace _queryTrace;
+
+        protected int QueryAbortTimeout { get; private set; }
+
         internal ITable Table { get; private set; }
 
         public Expression Expression { get; private set; }
@@ -81,6 +84,7 @@ namespace Cassandra.Data.Linq
             MapperFactory = mapperFactory;
             StatementFactory = stmtFactory;
             PocoData = pocoData;
+            QueryAbortTimeout = table.GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
         }
 
         public ITable GetTable()
@@ -168,9 +172,7 @@ namespace Cassandra.Data.Linq
         
         private IEnumerable<TEntity> ExecuteCqlQuery(string executionProfile)
         {
-            var queryAbortTimeout = GetTable().GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
-            var task = ExecuteCqlQueryAsync(executionProfile);
-            return TaskHelper.WaitToComplete(task, queryAbortTimeout);
+            return TaskHelper.WaitToComplete(ExecuteCqlQueryAsync(executionProfile), QueryAbortTimeout);
         }
         
         private async Task<IEnumerable<TEntity>> ExecuteCqlQueryAsync(string executionProfile)

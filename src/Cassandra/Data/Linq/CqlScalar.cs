@@ -39,16 +39,12 @@ namespace Cassandra.Data.Linq
 
         public new TEntity Execute()
         {
-            var queryAbortTimeout = GetTable().GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
-            var task = ExecuteAsync();
-            return TaskHelper.WaitToComplete(task, queryAbortTimeout);
+            return Execute(Configuration.DefaultExecutionProfileName);
         }
         
         public new TEntity Execute(string executionProfile)
         {
-            var queryAbortTimeout = GetTable().GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
-            var task = ExecuteAsync(executionProfile);
-            return TaskHelper.WaitToComplete(task, queryAbortTimeout);
+            return TaskHelper.WaitToComplete(ExecuteAsync(executionProfile), QueryAbortTimeout);
         }
 
         public new CqlScalar<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)

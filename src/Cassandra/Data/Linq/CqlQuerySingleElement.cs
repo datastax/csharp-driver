@@ -83,9 +83,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public new TEntity Execute()
         {
-            var queryAbortTimeout = GetTable().GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
-            var task = ExecuteAsync();
-            return TaskHelper.WaitToComplete(task, queryAbortTimeout);
+            return Execute(Configuration.DefaultExecutionProfileName);
         }
         
         /// <summary>
@@ -93,9 +91,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public new TEntity Execute(string executionProfile)
         {
-            var queryAbortTimeout = GetTable().GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
-            var task = ExecuteAsync(executionProfile);
-            return TaskHelper.WaitToComplete(task, queryAbortTimeout);
+            return TaskHelper.WaitToComplete(ExecuteAsync(executionProfile), QueryAbortTimeout);
         }
     }
 }

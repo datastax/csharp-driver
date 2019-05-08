@@ -28,6 +28,8 @@ namespace Cassandra.Data.Linq
         protected BatchType _batchType;
         protected DateTimeOffset? _timestamp = null;
 
+        protected int QueryAbortTimeout { get; private set; }
+
         public abstract bool IsEmpty { get; }
 
         public override RoutingKey RoutingKey
@@ -41,6 +43,7 @@ namespace Cassandra.Data.Linq
         {
             _session = session;
             _batchType = batchType;
+            QueryAbortTimeout = session.Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
         }
 
         public abstract void Append(CqlCommand cqlCommand);
@@ -68,14 +71,12 @@ namespace Cassandra.Data.Linq
 
         public void Execute()
         {
-            var queryAbortTimeout = _session.Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
-            TaskHelper.WaitToComplete(InternalExecuteAsync(), queryAbortTimeout);
+            Execute(Configuration.DefaultExecutionProfileName);
         }
         
         public void Execute(string executionProfile)
         {
-            var queryAbortTimeout = _session.Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
-            TaskHelper.WaitToComplete(InternalExecuteAsync(executionProfile), queryAbortTimeout);
+            TaskHelper.WaitToComplete(InternalExecuteAsync(executionProfile), QueryAbortTimeout);
         }
 
         protected abstract Task<RowSet> InternalExecuteAsync();
