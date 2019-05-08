@@ -69,9 +69,7 @@ namespace Cassandra.Connections
         int MaxConcurrentRequests { get; }
 
         ProtocolOptions Options { get; }
-
-        //Configuration Configuration { get; set; }
-
+        
         /// <summary>
         /// Initializes the connection.
         /// </summary>

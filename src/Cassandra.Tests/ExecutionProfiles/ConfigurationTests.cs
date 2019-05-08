@@ -312,7 +312,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                                                      .WithRetryPolicy(rp));
             }).Build();
 
-            var execProfile = cluster.ExecutionProfiles["test1"];
+            var execProfile = cluster.Configuration.ExecutionProfiles["test1"];
             Assert.AreEqual(ConsistencyLevel.EachQuorum, execProfile.ConsistencyLevel);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, execProfile.SerialConsistencyLevel);
             Assert.AreEqual(9999, execProfile.ReadTimeoutMillis);
@@ -338,7 +338,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                                                      .WithRetryPolicy(rp));
             }).Build();
             
-            var execProfile = cluster.ExecutionProfiles["default"];
+            var execProfile = cluster.Configuration.ExecutionProfiles["default"];
             Assert.AreEqual(ConsistencyLevel.EachQuorum, execProfile.ConsistencyLevel);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, execProfile.SerialConsistencyLevel);
             Assert.AreEqual(9999, execProfile.ReadTimeoutMillis);
@@ -374,7 +374,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                           .Build();
 
             Assert.AreEqual(1, cluster.Configuration.RequestOptions.Count);
-            var profile = cluster.ExecutionProfiles["default"];
+            var profile = cluster.Configuration.ExecutionProfiles["default"];
             Assert.AreEqual(ConsistencyLevel.EachQuorum, profile.ConsistencyLevel);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, profile.SerialConsistencyLevel);
             Assert.AreEqual(9999, profile.ReadTimeoutMillis);
