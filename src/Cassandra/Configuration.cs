@@ -88,6 +88,13 @@ namespace Cassandra
         /// </summary>
         /// <returns>the address translator in use.</returns>
         public IAddressTranslator AddressTranslator { get; private set; }
+        
+        /// <summary>
+        /// Gets a read only key value map of execution profiles that were configured with
+        /// <see cref="Builder.WithExecutionProfiles"/>. The keys are execution profile names and the values
+        /// are <see cref="IExecutionProfile"/> instances.
+        /// </summary>
+        public IReadOnlyDictionary<string, IExecutionProfile> ExecutionProfiles { get; }
 
         /// <summary>
         /// Shared reusable timer
@@ -125,11 +132,6 @@ namespace Cassandra
         /// built from the execution profile with that key.
         /// </summary>
         internal IReadOnlyDictionary<string, IRequestOptions> RequestOptions { get; }
-        
-        /// <summary>
-        /// The key is the execution profile name and the value is the IExecutionProfile instance with that key.
-        /// </summary>
-        internal IReadOnlyDictionary<string, IExecutionProfile> ExecutionProfiles { get; }
 
         internal IRequestOptions DefaultRequestOptions => RequestOptions[Configuration.DefaultExecutionProfileName];
 

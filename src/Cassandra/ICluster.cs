@@ -98,10 +98,5 @@ namespace Cassandra
         ///  used by it. <p> This method has no effect if the cluster was already shutdown.</p>
         /// </summary>
         void Shutdown(int timeoutMs = System.Threading.Timeout.Infinite);
-
-        /// <summary>
-        /// Gets a collection of execution profiles that were configured for this Cluster instance.
-        /// </summary>
-        IReadOnlyDictionary<string, IExecutionProfile> ExecutionProfiles { get; }
     }
 }

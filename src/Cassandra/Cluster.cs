@@ -61,9 +61,6 @@ namespace Cassandra
         internal IInternalCluster InternalRef => this;
 
         /// <inheritdoc />
-        public IReadOnlyDictionary<string, IExecutionProfile> ExecutionProfiles => Configuration.ExecutionProfiles;
-
-        /// <inheritdoc />
         IControlConnection IInternalCluster.GetControlConnection()
         {
             return _controlConnection;
