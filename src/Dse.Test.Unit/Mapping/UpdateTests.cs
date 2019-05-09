@@ -35,8 +35,8 @@ namespace Dse.Test.Unit.Mapping
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
-                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
-                .Callback<IStatement>(b =>
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
+                .Callback<IStatement, string>((b, profile) =>
                 {
                     query = ((BoundStatement)b).PreparedStatement.Cql;
                     parameters = b.QueryValues;
@@ -45,7 +45,7 @@ namespace Dse.Test.Unit.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
+                .Returns<string>(cql => TestHelper.DelayedTask(GetPrepared(cql)))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock, new MappingConfiguration()
                 .Define(new Map<Song>().PartitionKey(s => s.Id)));
@@ -71,8 +71,8 @@ namespace Dse.Test.Unit.Mapping
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
-                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
-                .Callback<IStatement>(b =>
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
+                .Callback<IStatement, string>((b, profile) =>
                 {
                     query = ((BoundStatement)b).PreparedStatement.Cql;
                     parameters = b.QueryValues;
@@ -81,7 +81,7 @@ namespace Dse.Test.Unit.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
+                .Returns<string>(cql => TestHelper.DelayedTask(GetPrepared(cql)))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock, new MappingConfiguration()
                 .Define(new Map<Song>().PartitionKey(s => s.Title, s => s.Id)));
@@ -116,8 +116,8 @@ namespace Dse.Test.Unit.Mapping
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
-                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
-                .Callback<IStatement>(b =>
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
+                .Callback<IStatement, string>((b, profile) =>
                 {
                     query = ((BoundStatement)b).PreparedStatement.Cql;
                     parameters = b.QueryValues;
@@ -126,7 +126,7 @@ namespace Dse.Test.Unit.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
+                .Returns<string>(cql => TestHelper.DelayedTask(GetPrepared(cql)))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock, new MappingConfiguration()
                 .Define(new Map<Song>().PartitionKey(s => s.Id).ClusteringKey(s => s.ReleaseDate)));
@@ -152,8 +152,8 @@ namespace Dse.Test.Unit.Mapping
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
-                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
-                .Callback<IStatement>(b =>
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
+                .Callback<IStatement, string>((b, profile) =>
                 {
                     consistency = b.ConsistencyLevel;
                     serialConsistency = b.SerialConsistencyLevel;
@@ -162,7 +162,7 @@ namespace Dse.Test.Unit.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
+                .Returns<string>(cql => TestHelper.DelayedTask(GetPrepared(cql)))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock, new MappingConfiguration()
                 .Define(new Map<Song>().PartitionKey(s => s.Title)));
@@ -266,13 +266,18 @@ namespace Dse.Test.Unit.Mapping
             sessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
+                .Returns(() => TestHelper.DelayedTask(RowSet.Empty()))
+                .Callback<BoundStatement, string>((stmt, profile) => statement = stmt)
+                .Verifiable();
+            sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(() => TestHelper.DelayedTask(RowSet.Empty()))
                 .Callback<BoundStatement>(stmt => statement = stmt)
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(query => TaskHelper.ToTask(GetPrepared(query)))
+                .Returns<string>((cql) => TestHelper.DelayedTask(GetPrepared(cql)))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock);
             var song = new Song { Id = Guid.NewGuid(), Title = "t2", ReleaseDate = DateTimeOffset.Now };

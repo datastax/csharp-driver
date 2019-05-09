@@ -5,16 +5,16 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Dse.Mapping;
 using Dse.Tasks;
 using Dse.Test.Unit.Mapping.Pocos;
 using Dse.Test.Unit.Mapping.TestData;
 using Moq;
+
 using NUnit.Framework;
+using NUnit.Framework.Interfaces;
 
 namespace Dse.Test.Unit.Mapping
 {
@@ -42,10 +42,52 @@ namespace Dse.Test.Unit.Mapping
                 .Callback(statementCallback)
                 .Verifiable();
             sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BatchStatement>(), It.IsAny<string>()))
+                .Returns(getRowSetFunc)
+                .Callback<BatchStatement, string>((bs, profile) => statementCallback(bs))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns(TaskHelper.ToTask(GetPrepared()))
+                .Verifiable();
+            sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
                 .Returns(TaskHelper.ToTask(GetPrepared()))
                 .Verifiable();
             return GetMappingClient(sessionMock);
+        }
+
+        private MapperAndSessionTuple GetMapperAndSession(Func<Task<RowSet>> getRowSetFunc, Action<BatchStatement> statementCallback = null)
+        {
+            if (statementCallback == null)
+            {
+                statementCallback = _ => { };
+            }
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BatchStatement>()))
+                .Returns(getRowSetFunc)
+                .Callback(statementCallback)
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<IStatement>(), It.IsAny<string>()))
+                .Returns(getRowSetFunc)
+                .Callback<IStatement, string>((stmt, ep) => statementCallback((BatchStatement)stmt))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns(TaskHelper.ToTask(GetPrepared()))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns(TaskHelper.ToTask(GetPrepared()))
+                .Verifiable();
+            return new MapperAndSessionTuple
+            {
+                Mapper = GetMappingClient(sessionMock),
+                Session = sessionMock.Object
+            };
         }
 
         [Test]
@@ -246,12 +288,17 @@ namespace Dse.Test.Unit.Mapping
             }).ToList();
 
             // Create batch to insert users and execute
-            var mapper = GetMapper(() => TestHelper.DelayedTask(new RowSet()));
-            ICqlBatch batch = mapper.CreateBatch();
+            var mapperAndSession = GetMapperAndSession(() => TestHelper.DelayedTask(new RowSet()));
+            ICqlBatch batch = mapperAndSession.Mapper.CreateBatch();
             batch.Insert(testUsers[0]);
             batch.Insert(testUsers[1]);
             batch.Insert(testUsers[2]);
-            mapper.ExecuteAsync(batch);
+            mapperAndSession.Mapper.ExecuteAsync(batch);
+            Mock.Get(mapperAndSession.Session).Verify(s => s.ExecuteAsync(It.IsAny<IStatement>(), It.Is<string>(profile => profile != "default")), Times.Never);
+            Mock.Get(mapperAndSession.Session).Verify(s => s.ExecuteAsync(It.IsAny<IStatement>(), It.Is<string>(profile => profile == "default")), Times.Once);
+            Mock.Get(mapperAndSession.Session).Verify(s => s.ExecuteAsync(It.IsAny<IStatement>()), Times.Never);
+            Mock.Get(mapperAndSession.Session).Verify(s => s.Execute(It.IsAny<IStatement>(), It.IsAny<string>()), Times.Never);
+            Mock.Get(mapperAndSession.Session).Verify(s => s.Execute(It.IsAny<IStatement>()), Times.Never);
         }
 
         [Test]
@@ -286,6 +333,90 @@ namespace Dse.Test.Unit.Mapping
             batch.Delete<InsertUser>("WHERE userid = ?", deleteId);
             batch.Update<InsertUser>("SET name = ? WHERE userid = ?", "SomeNewName", updateId);
             mapper.ExecuteAsync(batch).Wait();
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void ExecuteAsync_WithExecutionProfile_Batch_Test(bool async)
+        {
+            // Generate 3 test users
+            var testUsers = Enumerable.Range(110, 3).Select(idx => new InsertUser
+            {
+                Id = Guid.NewGuid(),
+                Name = string.Format("Name {0}", idx),
+                Age = idx,
+                CreatedDate = TestDataGenerator.GetDateTimeInPast(idx),
+                IsActive = idx % 2 == 0,
+                LastLoginDate = TestDataGenerator.GetNullableDateTimeInPast(idx),
+                LoginHistory = TestDataGenerator.GetList(idx, TestDataGenerator.GetDateTimeInPast),
+                LuckyNumbers = TestDataGenerator.GetSet(idx, i => i),
+                FavoriteColor = TestDataGenerator.GetEnumValue<RainbowColor>(idx),
+                TypeOfUser = TestDataGenerator.GetEnumValue<UserType?>(idx),
+                PreferredContact = TestDataGenerator.GetEnumValue<ContactMethod>(idx),
+                HairColor = TestDataGenerator.GetEnumValue<HairColor>(idx)
+            }).ToList();
+
+            // Create batch to insert users and execute
+            var mapperAndSession = GetMapperAndSession(() => TestHelper.DelayedTask(new RowSet()));
+            ICqlBatch batch = mapperAndSession.Mapper.CreateBatch();
+            batch.Insert(testUsers[0]);
+            batch.Insert(testUsers[1]);
+            batch.Insert(testUsers[2]);
+            if (async)
+            {
+                mapperAndSession.Mapper.ExecuteAsync(batch, "testProfile").Wait();
+            }
+            else
+            {
+                mapperAndSession.Mapper.Execute(batch, "testProfile");
+            }
+            Mock.Get(mapperAndSession.Session).Verify(s => s.ExecuteAsync(It.IsAny<IStatement>(), "testProfile"), Times.Once);
+            Mock.Get(mapperAndSession.Session).Verify(s => s.ExecuteAsync(It.IsAny<IStatement>()), Times.Never);
+            Mock.Get(mapperAndSession.Session).Verify(s => s.Execute(It.IsAny<IStatement>(), "testProfile"), Times.Never);
+            Mock.Get(mapperAndSession.Session).Verify(s => s.Execute(It.IsAny<IStatement>()), Times.Never);
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void ExecuteConditionalAsync_WithExecutionProfile_Batch_Test(bool async)
+        {
+            // Generate 3 test users
+            var testUsers = Enumerable.Range(110, 3).Select(idx => new InsertUser
+            {
+                Id = Guid.NewGuid(),
+                Name = string.Format("Name {0}", idx),
+                Age = idx,
+                CreatedDate = TestDataGenerator.GetDateTimeInPast(idx),
+                IsActive = idx % 2 == 0,
+                LastLoginDate = TestDataGenerator.GetNullableDateTimeInPast(idx),
+                LoginHistory = TestDataGenerator.GetList(idx, TestDataGenerator.GetDateTimeInPast),
+                LuckyNumbers = TestDataGenerator.GetSet(idx, i => i),
+                FavoriteColor = TestDataGenerator.GetEnumValue<RainbowColor>(idx),
+                TypeOfUser = TestDataGenerator.GetEnumValue<UserType?>(idx),
+                PreferredContact = TestDataGenerator.GetEnumValue<ContactMethod>(idx),
+                HairColor = TestDataGenerator.GetEnumValue<HairColor>(idx)
+            }).ToList();
+
+            // Create batch to insert users and execute
+            var mapperAndSession = GetMapperAndSession(() => TestHelper.DelayedTask(new RowSet()));
+            ICqlBatch batch = mapperAndSession.Mapper.CreateBatch();
+            batch.Insert(testUsers[0]);
+            batch.Insert(testUsers[1]);
+            batch.Insert(testUsers[2]);
+            if (async)
+            {
+                mapperAndSession.Mapper.ExecuteConditionalAsync<InsertUser>(batch, "testProfile").Wait();
+            }
+            else
+            {
+                mapperAndSession.Mapper.ExecuteConditional<InsertUser>(batch, "testProfile");
+            }
+            Mock.Get(mapperAndSession.Session).Verify(s => s.ExecuteAsync(It.IsAny<IStatement>(), "testProfile"), Times.Once);
+            Mock.Get(mapperAndSession.Session).Verify(s => s.ExecuteAsync(It.IsAny<IStatement>()), Times.Never);
+            Mock.Get(mapperAndSession.Session).Verify(s => s.Execute(It.IsAny<IStatement>(), "testProfile"), Times.Never);
+            Mock.Get(mapperAndSession.Session).Verify(s => s.Execute(It.IsAny<IStatement>()), Times.Never);
         }
     }
 }

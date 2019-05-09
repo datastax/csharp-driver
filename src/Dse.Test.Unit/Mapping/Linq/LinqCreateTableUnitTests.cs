@@ -560,6 +560,7 @@ namespace Dse.Test.Unit.Mapping.Linq
             metadata.ControlConnection = ccMock.Object;
             var clusterMock = new Mock<ICluster>();
             clusterMock.Setup(c => c.Metadata).Returns(metadata);
+            clusterMock.Setup(c => c.Configuration).Returns(config);
             sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             return sessionMock;
         }

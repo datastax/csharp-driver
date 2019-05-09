@@ -14,6 +14,7 @@ using Dse.Tasks;
 using Dse.Test.Unit.Mapping.Pocos;
 using Dse.Test.Unit.Mapping.TestData;
 using Moq;
+
 using NUnit.Framework;
 
 namespace Dse.Test.Unit.Mapping
@@ -31,6 +32,19 @@ namespace Dse.Test.Unit.Mapping
             sessionMock
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Callback<IStatement>(b =>
+                {
+                    consistency = b.ConsistencyLevel;
+                    serialConsistency = b.SerialConsistencyLevel;
+                })
+                .Returns(() => TaskHelper.ToTask(new RowSet()))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns(TaskHelper.ToTask(GetPrepared()))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
+                .Callback<IStatement, string>((b, profile) =>
                 {
                     consistency = b.ConsistencyLevel;
                     serialConsistency = b.SerialConsistencyLevel;
@@ -60,7 +74,7 @@ namespace Dse.Test.Unit.Mapping
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
-                .Setup(s => s.ExecuteAsync(It.IsAny<BatchStatement>()))
+                .Setup(s => s.ExecuteAsync(It.IsAny<BatchStatement>(), It.IsAny<string>()))
                 .Returns(TestHelper.DelayedTask(new RowSet(), 2000).ContinueWith(t =>
                 {
                     rowsetReturned = true;
@@ -69,7 +83,7 @@ namespace Dse.Test.Unit.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(cql => TaskHelper.ToTask(GetPrepared(cql)))
+                .Returns<string>((cql) => TaskHelper.ToTask(GetPrepared(cql)))
                 .Verifiable();
             var mapper = GetMappingClient(sessionMock);
             var batch = mapper.CreateBatch();

@@ -14,6 +14,7 @@
 //    limitations under the License.
 // 
 
+using Dse.ExecutionProfiles;
 using Dse.Serialization;
 using Dse.SessionManagement;
 
@@ -21,9 +22,9 @@ namespace Dse.Requests
 {
     internal interface IRequestHandlerFactory
     {
-        IRequestHandler Create(IInternalSession session, Serializer serializer, IRequest request, IStatement statement);
+        IRequestHandler Create(IInternalSession session, Serializer serializer, IRequest request, IStatement statement, IRequestOptions options);
 
-        IRequestHandler Create(IInternalSession session, Serializer serializer, IStatement statement);
+        IRequestHandler Create(IInternalSession session, Serializer serializer, IStatement statement, IRequestOptions options);
 
         IRequestHandler Create(IInternalSession session, Serializer serializer);
     }

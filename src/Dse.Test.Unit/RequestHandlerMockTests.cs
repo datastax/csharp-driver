@@ -52,6 +52,7 @@ namespace Dse.Test.Unit
                 new DefaultAddressTranslator(),
                 Mock.Of<IStartupOptionsFactory>(),
                 new SessionFactoryBuilder(),
+                new Dictionary<string, IExecutionProfile>(),
                 requestExecutionFactory: requestExecutionFactory);
         }
 

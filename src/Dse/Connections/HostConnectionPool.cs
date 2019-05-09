@@ -111,8 +111,9 @@ namespace Dse.Connections
             _host.Remove += OnHostRemoved;
             _host.DistanceChanged += OnDistanceChanged;
             _config = config ?? throw new ArgumentNullException(nameof(config));
-            _maxRequestsPerConnection = config.GetPoolingOptions(serializer.ProtocolVersion)
-                                              .GetMaxRequestsPerConnection();
+            _maxRequestsPerConnection = config
+                                        .GetPoolingOptions(serializer.ProtocolVersion)
+                                        .GetMaxRequestsPerConnection();
             _serializer = serializer;
             _timer = config.Timer;
             _reconnectionSchedule = config.Policies.ReconnectionPolicy.NewSchedule();
@@ -127,7 +128,24 @@ namespace Dse.Connections
             {
                 throw new DriverInternalError("No connection could be borrowed");
             }
+            
+            return BorrowLeastBusyConnection(connections);
+        }
+        
+        /// <inheritdoc />
+        public IConnection BorrowExistingConnection()
+        {
+            var connections = GetExistingConnections();
+            if (connections.Length == 0)
+            {
+                return null;
+            }
 
+            return BorrowLeastBusyConnection(connections);
+        }
+
+        private IConnection BorrowLeastBusyConnection(IConnection[] connections)
+        {
             var c = HostConnectionPool.MinInFlight(connections, ref _connectionIndex, _maxRequestsPerConnection, out var inFlight);
 
             if (inFlight >= _maxRequestsPerConnection)
@@ -711,17 +729,13 @@ namespace Dse.Connections
         /// <exception cref="UnsupportedProtocolVersionException" />
         public async Task<IConnection[]> EnsureCreate()
         {
-            var connections = _connections.GetSnapshot();
+            var connections = GetExistingConnections();
             if (connections.Length > 0)
             {
                 // Use snapshot to return as early as possible
                 return connections;
             }
-            if (IsClosing || !_host.IsUp)
-            {
-                // Should have not been considered as UP
-                throw HostConnectionPool.GetNotConnectedException();
-            }
+
             if (!_canCreateForeground)
             {
                 // Take a new snapshot
@@ -748,6 +762,28 @@ namespace Dse.Connections
             }
             StartCreatingConnection(null);
             return new[] { c };
+        }
+
+        /// <summary>
+        /// Gets existing connections snapshot.
+        /// If it's empty then it validates whether the pool is shutting down or the is down (in which case an exception is thrown).
+        /// </summary>
+        /// <exception cref="SocketException">Not connected.</exception>
+        private IConnection[] GetExistingConnections()
+        {
+            var connections = _connections.GetSnapshot();
+            if (connections.Length > 0)
+            {
+                return connections;
+            }
+
+            if (IsClosing || !_host.IsUp)
+            {
+                // Should have not been considered as UP
+                throw HostConnectionPool.GetNotConnectedException();
+            }
+
+            return connections;
         }
 
         public void SetDistance(HostDistance distance)

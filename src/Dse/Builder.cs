@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using Dse.ExecutionProfiles;
 using Dse.Requests;
 using Dse.Serialization;
 using Dse.SessionManagement;
@@ -48,6 +49,7 @@ namespace Dse
         private int _maxSchemaAgreementWaitSeconds = ProtocolOptions.DefaultMaxSchemaAgreementWaitSeconds;
         private IStartupOptionsFactory _startupOptionsFactory = new StartupOptionsFactory();
         private ISessionFactoryBuilder<IInternalCluster, IInternalSession> _sessionFactoryBuilder = new SessionFactoryBuilder();
+        private IReadOnlyDictionary<string, IExecutionProfile> _profiles = new Dictionary<string, IExecutionProfile>();
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -124,7 +126,8 @@ namespace Dse
                 _queryOptions,
                 _addressTranslator,
                 _startupOptionsFactory,
-                _sessionFactoryBuilder);
+                _sessionFactoryBuilder,
+                _profiles);
             if (_typeSerializerDefinitions != null)
             {
                 config.TypeSerializers = _typeSerializerDefinitions.Definitions;
@@ -665,6 +668,43 @@ namespace Dse
             return this;
         }
 
+        /// <summary>
+        /// <para>
+        /// Adds Execution Profiles to the Cluster instance. 
+        /// </para>
+        /// <para>
+        /// Execution profiles are like configuration presets, multiple methods
+        /// of the driver accept an execution profile name which is like telling the driver which settings to use for that particular request.
+        /// This makes it easier to change settings like ConsistencyLevel and ReadTimeoutMillis on a per request basis.
+        /// </para>
+        /// <para>
+        /// Note that subsequent calls to this method will override the previously provided profiles.
+        /// </para>
+        /// <para>
+        /// To add execution profiles you can use
+        /// <see cref="IExecutionProfileOptions.WithProfile(string,Action{IExecutionProfileBuilder})"/>:
+        /// </para>
+        /// <para>
+        /// <code>
+        ///         Cluster.Builder()
+        ///                 .WithExecutionProfiles(options => options
+        ///                     .WithProfile("profile1", profileBuilder => profileBuilder
+        ///                         .WithReadTimeoutMillis(10000)
+        ///                         .WithConsistencyLevel(ConsistencyLevel.LocalQuorum)))
+        ///                 .Build()
+        /// </code>
+        /// </para>
+        /// </summary>
+        /// <param name="profileOptionsBuilder"></param>
+        /// <returns>This builder</returns>
+        public Builder WithExecutionProfiles(Action<IExecutionProfileOptions> profileOptionsBuilder)
+        {
+            var profileOptions = new ExecutionProfileOptions();
+            profileOptionsBuilder(profileOptions);
+            _profiles = profileOptions.GetProfiles();
+            return this;
+        }
+        
         /// <summary>
         ///  Build the cluster with the configured set of initial contact points and policies.
         /// </summary>

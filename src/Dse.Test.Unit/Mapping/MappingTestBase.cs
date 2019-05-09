@@ -35,6 +35,21 @@ namespace Dse.Test.Unit.Mapping
 
         protected IMapper GetMappingClient(Func<Task<RowSet>> getRowSetFunc, Action<string, object[]> queryCallback, MappingConfiguration config = null)
         {
+            return GetMappingClientAndSession(getRowSetFunc, queryCallback, config).Mapper;
+        }
+
+        protected MapperAndSessionTuple GetMappingClientAndSession(RowSet rowset, MappingConfiguration config = null)
+        {
+            return GetMappingClientAndSession(() => TaskHelper.ToTask(rowset), config);
+        }
+
+        protected MapperAndSessionTuple GetMappingClientAndSession(Func<Task<RowSet>> getRowSetFunc, MappingConfiguration config = null)
+        {
+            return GetMappingClientAndSession(getRowSetFunc, null, config);
+        }
+        
+        protected MapperAndSessionTuple GetMappingClientAndSession(Func<Task<RowSet>> getRowSetFunc, Action<string, object[]> queryCallback, MappingConfiguration config = null)
+        {
             if (queryCallback == null)
             {
                 //noop
@@ -48,10 +63,19 @@ namespace Dse.Test.Unit.Mapping
                 .Callback<BoundStatement>(s => queryCallback(s.PreparedStatement.Cql, s.QueryValues))
                 .Verifiable();
             sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
+                .Returns(getRowSetFunc)
+                .Callback<BoundStatement, string>((s, profile) => queryCallback(s.PreparedStatement.Cql, s.QueryValues))
+                .Verifiable();
+            sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
                 .Returns<string>(q => TaskHelper.ToTask(GetPrepared(q)))
                 .Verifiable();
-            return GetMappingClient(sessionMock, config);
+            return new MapperAndSessionTuple
+            {
+                Mapper = GetMappingClient(sessionMock, config),
+                Session = sessionMock.Object
+            };
         }
 
         protected IMapper GetMappingClient(Mock<ISession> sessionMock, MappingConfiguration config = null)
@@ -60,7 +84,9 @@ namespace Dse.Test.Unit.Mapping
             {
                 config = new MappingConfiguration().Define(new FluentUserMapping());
             }
-            sessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
+            var clusterMock = new Mock<ICluster>();
+            clusterMock.Setup(c => c.Configuration).Returns(new Configuration());
+            sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             return new Mapper(sessionMock.Object, config);
         }
 
@@ -69,7 +95,7 @@ namespace Dse.Test.Unit.Mapping
             return GetSession<BoundStatement>(rs, stmt => callback(stmt.PreparedStatement.Cql, stmt.QueryValues));
         }
 
-        protected ISession GetSession<TStatement>(RowSet rs, Action<TStatement> callback)
+        protected ISession GetSession<TStatement>(RowSet rs, Action<TStatement> callback, ProtocolVersion protocolVersion = ProtocolVersion.MaxSupported)
             where TStatement : IStatement
         {
             if (rs == null)
@@ -78,11 +104,24 @@ namespace Dse.Test.Unit.Mapping
             }
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
-            sessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
+            var clusterMock = new Mock<ICluster>();
+            clusterMock.Setup(c => c.Configuration).Returns(new Configuration());
+            sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             sessionMock
-                .Setup(s => s.ExecuteAsync(It.IsAny<TStatement>()))
+                .Setup(s => s.ExecuteAsync(It.IsAny<IStatement>()))
                 .Returns(() => TaskHelper.ToTask(rs))
                 .Callback(callback)
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<IStatement>(), It.IsAny<string>()))
+                .Returns(() => TaskHelper.ToTask(rs))
+                .Callback<IStatement, string>(
+                    (stmt, execProfile) => 
+                        callback((TStatement)stmt))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>(query => TaskHelper.ToTask(GetPrepared(query)))
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
@@ -90,7 +129,7 @@ namespace Dse.Test.Unit.Mapping
                 .Verifiable();
             sessionMock
                 .Setup(s => s.BinaryProtocolVersion)
-                .Returns((int)ProtocolVersion.MaxSupported);
+                .Returns((int)protocolVersion);
             return sessionMock.Object;
         }
 
@@ -133,6 +172,14 @@ namespace Dse.Test.Unit.Mapping
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
                 .Returns<string>(query => TaskHelper.ToTask(GetPrepared(query)))
                 .Verifiable();
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<IStatement>(), It.IsAny<string>()))
+                .ReturnsAsync(() => rs)
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>(query => TaskHelper.ToTask(GetPrepared(query)))
+                .Verifiable();
 
             var trace = new Mock<QueryTrace>(MockBehavior.Strict, Guid.NewGuid(), sessionMock.Object);
             trace.Setup(t => t.ToString()).Returns("instance");
@@ -154,6 +201,13 @@ namespace Dse.Test.Unit.Mapping
         {
             //Clear the global mapping between tests
             MappingConfiguration.Global.Clear();
+        }
+
+        protected class MapperAndSessionTuple
+        {
+            public IMapper Mapper { get; set; }
+
+            public ISession Session { get; set; }
         }
     }
 }

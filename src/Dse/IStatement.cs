@@ -187,7 +187,8 @@ namespace Dse
         /// Sets the retry policy to use for this query.
         /// <para>
         /// Calling this method is only required when you want to override the default 
-        /// <see cref="Policies.RetryPolicy"/> set in the cluster configuration for this request.
+        /// <see cref="Policies.RetryPolicy"/> set in the cluster configuration for this request or the one set
+        /// in the execution profile (see <see cref="IExecutionProfile.RetryPolicy"/>) for this request.
         /// </para>
         /// <para>
         /// Use a <see cref="IExtendedRetryPolicy"/> implementation to cover all error scenarios.

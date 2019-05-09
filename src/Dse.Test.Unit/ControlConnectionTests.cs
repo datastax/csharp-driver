@@ -118,7 +118,8 @@ namespace Dse.Test.Unit
                  new QueryOptions(),
                  translatorMock.Object,
                  Mock.Of<IStartupOptionsFactory>(),
-                 new SessionFactoryBuilder());
+                 new SessionFactoryBuilder(),
+                 new Dictionary<string, IExecutionProfile>());
             var cc = NewInstance(config, metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);

@@ -36,8 +36,7 @@ namespace Dse.Mapping
         /// <param name="queryOptions">Optional query options</param>
         /// <returns></returns>
         void Insert<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null);
-
-
+        
         /// <summary>
         /// Inserts the specified POCO in Cassandra.
         /// </summary>
@@ -59,7 +58,7 @@ namespace Dse.Mapping
         /// from the database after the specified time.</param>
         /// <returns></returns>
         void Insert<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null);
-
+        
         /// <summary>
         /// Updates the POCO specified in Cassandra.
         /// </summary>
@@ -82,7 +81,7 @@ namespace Dse.Mapping
         /// Deletes the specified POCO from Cassandra.
         /// </summary>
         void Delete<T>(T poco, CqlQueryOptions queryOptions = null);
-
+        
         /// <summary>
         /// Deletes from the table for the POCO type specified (T) using the CQL string and bind variable values specified.  Prepends "DELETE FROM tablname " to
         /// the CQL string you specify, getting the tablename appropriately from the POCO Type T.

@@ -18,7 +18,7 @@ namespace Dse.Mapping
         /// Inserts the specified POCO in Cassandra.
         /// </summary>
         Task InsertAsync<T>(T poco, CqlQueryOptions queryOptions = null);
-
+        
         /// <summary>
         /// Inserts the specified POCO in Cassandra.
         /// </summary>
@@ -38,7 +38,7 @@ namespace Dse.Mapping
         /// <param name="queryOptions">Optional query options</param>
         /// <returns></returns>
         Task InsertAsync<T>(T poco, bool insertNulls, CqlQueryOptions queryOptions = null);
-
+        
         /// <summary>
         /// Inserts the specified POCO in Cassandra.
         /// </summary>

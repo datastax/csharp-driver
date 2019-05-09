@@ -6,10 +6,11 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-
+using Dse.ExecutionProfiles;
 using Dse.Requests;
 using Dse.Serialization;
 using Dse.SessionManagement;
@@ -27,11 +28,11 @@ namespace Dse.Test.Unit
     {
         private static readonly Serializer Serializer = new Serializer(ProtocolVersion.MaxSupported);
 
-        private static Configuration GetConfig(QueryOptions queryOptions = null)
+        private static Configuration GetConfig(QueryOptions queryOptions = null, Policies policies = null, PoolingOptions poolingOptions = null)
         {
             return new Configuration(new Dse.Policies(),
                 new ProtocolOptions(),
-                null,
+                poolingOptions,
                 new SocketOptions(),
                 new ClientOptions(),
                 NoneAuthProvider.Instance,
@@ -39,7 +40,13 @@ namespace Dse.Test.Unit
                 queryOptions ?? DefaultQueryOptions,
                 new DefaultAddressTranslator(),
                 Mock.Of<IStartupOptionsFactory>(),
-                new SessionFactoryBuilder());
+                new SessionFactoryBuilder(),
+                new Dictionary<string, IExecutionProfile>());
+        }
+
+        private static IRequestOptions GetRequestOptions(QueryOptions queryOptions = null, Policies policies = null)
+        {
+            return RequestHandlerTests.GetConfig(queryOptions, policies).DefaultRequestOptions;
         }
 
         private static QueryOptions DefaultQueryOptions => new QueryOptions();
@@ -55,7 +62,7 @@ namespace Dse.Test.Unit
             var stmt = new SimpleStatement("DUMMY QUERY");
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
-            var request = (QueryRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
+            var request = (QueryRequest)RequestHandler.GetRequest(stmt, Serializer, GetRequestOptions());
             Assert.AreEqual(DefaultQueryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(DefaultQueryOptions.GetConsistencyLevel(), request.Consistency);
         }
@@ -67,7 +74,7 @@ namespace Dse.Test.Unit
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
             var queryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalQuorum).SetPageSize(100);
-            var request = (QueryRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig(queryOptions));
+            var request = (QueryRequest)RequestHandler.GetRequest(stmt, Serializer, GetRequestOptions(queryOptions));
             Assert.AreEqual(100, request.PageSize);
             Assert.AreEqual(queryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(queryOptions.GetConsistencyLevel(), request.Consistency);
@@ -84,7 +91,7 @@ namespace Dse.Test.Unit
             Assert.AreEqual(350, stmt.PageSize);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, stmt.ConsistencyLevel);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, stmt.SerialConsistencyLevel);
-            var request = (QueryRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
+            var request = (QueryRequest)RequestHandler.GetRequest(stmt, Serializer, GetRequestOptions());
             Assert.AreEqual(350, request.PageSize);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, request.Consistency);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, request.SerialConsistency);
@@ -97,7 +104,7 @@ namespace Dse.Test.Unit
             var stmt = ps.Bind();
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
-            var request = (ExecuteRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
+            var request = (ExecuteRequest)RequestHandler.GetRequest(stmt, Serializer, GetRequestOptions());
             Assert.AreEqual(DefaultQueryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(DefaultQueryOptions.GetConsistencyLevel(), request.Consistency);
         }
@@ -110,7 +117,7 @@ namespace Dse.Test.Unit
             Assert.AreEqual(0, stmt.PageSize);
             Assert.Null(stmt.ConsistencyLevel);
             var queryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalQuorum).SetPageSize(100);
-            var request = (ExecuteRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig(queryOptions));
+            var request = (ExecuteRequest)RequestHandler.GetRequest(stmt, Serializer, GetRequestOptions(queryOptions));
             Assert.AreEqual(100, request.PageSize);
             Assert.AreEqual(queryOptions.GetPageSize(), request.PageSize);
             Assert.AreEqual(queryOptions.GetConsistencyLevel(), request.Consistency);
@@ -128,7 +135,7 @@ namespace Dse.Test.Unit
             Assert.AreEqual(350, stmt.PageSize);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, stmt.ConsistencyLevel);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, stmt.SerialConsistencyLevel);
-            var request = (ExecuteRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
+            var request = (ExecuteRequest)RequestHandler.GetRequest(stmt, Serializer, GetRequestOptions());
             Assert.AreEqual(350, request.PageSize);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, request.Consistency);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, request.SerialConsistency);
@@ -139,7 +146,7 @@ namespace Dse.Test.Unit
         {
             var stmt = new BatchStatement();
             Assert.Null(stmt.ConsistencyLevel);
-            var request = (BatchRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
+            var request = (BatchRequest)RequestHandler.GetRequest(stmt, Serializer, GetRequestOptions());
             Assert.AreEqual(DefaultQueryOptions.GetConsistencyLevel(), request.Consistency);
         }
 
@@ -149,7 +156,7 @@ namespace Dse.Test.Unit
             var stmt = new BatchStatement();
             Assert.Null(stmt.ConsistencyLevel);
             var queryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalQuorum);
-            var request = (BatchRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig(queryOptions));
+            var request = (BatchRequest)RequestHandler.GetRequest(stmt, Serializer, GetRequestOptions(queryOptions));
             Assert.AreEqual(queryOptions.GetConsistencyLevel(), request.Consistency);
         }
 
@@ -159,7 +166,7 @@ namespace Dse.Test.Unit
             var stmt = new BatchStatement();
             stmt.SetConsistencyLevel(ConsistencyLevel.EachQuorum);
             Assert.AreEqual(ConsistencyLevel.EachQuorum, stmt.ConsistencyLevel);
-            var request = (BatchRequest)RequestHandler.GetRequest(stmt, Serializer, GetConfig());
+            var request = (BatchRequest)RequestHandler.GetRequest(stmt, Serializer, GetRequestOptions());
             Assert.AreEqual(ConsistencyLevel.EachQuorum, request.Consistency);
         }
 
@@ -207,7 +214,7 @@ namespace Dse.Test.Unit
             var statement = new SimpleStatement("QUERY");
             var config = new Configuration();
 
-            var request = RequestHandler.GetRequest(statement, Serializer, config);
+            var request = RequestHandler.GetRequest(statement, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
             // The query request is composed by:
@@ -240,20 +247,9 @@ namespace Dse.Test.Unit
                 Dse.Policies.DefaultLoadBalancingPolicy, Dse.Policies.DefaultReconnectionPolicy,
                 Dse.Policies.DefaultRetryPolicy, Dse.Policies.DefaultSpeculativeExecutionPolicy,
                 new NoTimestampGenerator());
-            var config = new Configuration(
-                policies,
-                new ProtocolOptions(),
-                PoolingOptions.Create(),
-                new SocketOptions(),
-                new ClientOptions(),
-                NoneAuthProvider.Instance,
-                null,
-                new QueryOptions(),
-                new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>(),
-                new SessionFactoryBuilder());
+            var config = RequestHandlerTests.GetConfig(new QueryOptions(), policies, PoolingOptions.Create());
 
-            var request = RequestHandler.GetRequest(statement, Serializer.Default, config);
+            var request = RequestHandler.GetRequest(statement, Serializer.Default, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
             // The query request is composed by:
@@ -283,20 +279,9 @@ namespace Dse.Test.Unit
                 Dse.Policies.DefaultLoadBalancingPolicy, Dse.Policies.DefaultReconnectionPolicy,
                 Dse.Policies.DefaultRetryPolicy, Dse.Policies.DefaultSpeculativeExecutionPolicy,
                 new NoTimestampGenerator());
-            var config = new Configuration(
-                policies,
-                new ProtocolOptions(),
-                PoolingOptions.Create(),
-                new SocketOptions(),
-                new ClientOptions(),
-                NoneAuthProvider.Instance,
-                null,
-                new QueryOptions(),
-                new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>(),
-                new SessionFactoryBuilder());
-
-            var request = RequestHandler.GetRequest(statement, Serializer, config);
+            var config = RequestHandlerTests.GetConfig(new QueryOptions(), policies, PoolingOptions.Create());
+            
+            var request = RequestHandler.GetRequest(statement, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
             // The query request is composed by:
@@ -324,20 +309,9 @@ namespace Dse.Test.Unit
             {
                 batch.Add(new SimpleStatement("QUERY"));
             }
-            var config = new Configuration(
-                Dse.Policies.DefaultPolicies,
-                new ProtocolOptions(),
-                PoolingOptions.Create(),
-                new SocketOptions(),
-                new ClientOptions(),
-                NoneAuthProvider.Instance,
-                null,
-                new QueryOptions(),
-                new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>(),
-                new SessionFactoryBuilder());
-
-            var request = RequestHandler.GetRequest(batch, Serializer, config);
+            
+            var config = RequestHandlerTests.GetConfig(new QueryOptions(), Policies.DefaultPolicies, PoolingOptions.Create());
+            var request = RequestHandler.GetRequest(batch, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
             // The batch request is composed by:
@@ -353,20 +327,9 @@ namespace Dse.Test.Unit
             var startDate = DateTimeOffset.Now;
             // To microsecond precision
             startDate = startDate.Subtract(TimeSpan.FromTicks(startDate.Ticks % 10));
-            var config = new Configuration(
-                Dse.Policies.DefaultPolicies,
-                new ProtocolOptions(),
-                PoolingOptions.Create(),
-                new SocketOptions(),
-                new ClientOptions(),
-                NoneAuthProvider.Instance,
-                null,
-                new QueryOptions(),
-                new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>(),
-                new SessionFactoryBuilder());
-
-            var request = RequestHandler.GetRequest(batch, Serializer, config);
+            
+            var config = RequestHandlerTests.GetConfig(new QueryOptions(), Policies.DefaultPolicies, PoolingOptions.Create());
+            var request = RequestHandler.GetRequest(batch, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
             // The batch request is composed by:
@@ -400,20 +363,9 @@ namespace Dse.Test.Unit
                 Dse.Policies.DefaultLoadBalancingPolicy, Dse.Policies.DefaultReconnectionPolicy,
                 Dse.Policies.DefaultRetryPolicy, Dse.Policies.DefaultSpeculativeExecutionPolicy,
                 new NoTimestampGenerator());
-            var config = new Configuration(
-                policies,
-                new ProtocolOptions(),
-                PoolingOptions.Create(),
-                new SocketOptions(),
-                new ClientOptions(),
-                NoneAuthProvider.Instance,
-                null,
-                new QueryOptions(),
-                new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>(),
-                new SessionFactoryBuilder());
 
-            var request = RequestHandler.GetRequest(batch, Serializer, config);
+            var config = RequestHandlerTests.GetConfig(new QueryOptions(), policies, PoolingOptions.Create());
+            var request = RequestHandler.GetRequest(batch, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
             // The batch request is composed by:
@@ -438,20 +390,9 @@ namespace Dse.Test.Unit
             // To microsecond precision
             providedTimestamp = providedTimestamp.Subtract(TimeSpan.FromTicks(providedTimestamp.Ticks % 10));
             batch.SetTimestamp(providedTimestamp);
-            var config = new Configuration(
-                Dse.Policies.DefaultPolicies,
-                new ProtocolOptions(),
-                PoolingOptions.Create(),
-                new SocketOptions(),
-                new ClientOptions(),
-                NoneAuthProvider.Instance,
-                null,
-                new QueryOptions(),
-                new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>(),
-                new SessionFactoryBuilder());
 
-            var request = RequestHandler.GetRequest(batch, Serializer, config);
+            var config = RequestHandlerTests.GetConfig(new QueryOptions(), Policies.DefaultPolicies, PoolingOptions.Create());
+            var request = RequestHandler.GetRequest(batch, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
             // The batch request is composed by:
@@ -528,7 +469,7 @@ namespace Dse.Test.Unit
                  .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
             var serializer = new Serializer(ProtocolVersion.V2);
 
-            var request = RequestHandler.GetRequest(batch, serializer, new Configuration());
+            var request = RequestHandler.GetRequest(batch, serializer, new Configuration().DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request, serializer);
 
             // The batch request on protocol 2 is composed by:
@@ -579,7 +520,7 @@ namespace Dse.Test.Unit
             var config = new Configuration();
             config.QueryOptions.SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
 
-            var request = RequestHandler.GetRequest(statement, Serializer, config);
+            var request = RequestHandler.GetRequest(statement, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
             // The execute request is composed by:
@@ -609,7 +550,7 @@ namespace Dse.Test.Unit
             var config = new Configuration();
             config.QueryOptions.SetSerialConsistencyLevel(expectedSerialConsistencyLevel);
 
-            var request = RequestHandler.GetRequest(statement, Serializer, config);
+            var request = RequestHandler.GetRequest(statement, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
             // The execute request is composed by:
@@ -640,7 +581,7 @@ namespace Dse.Test.Unit
             var config = new Configuration();
             config.QueryOptions.SetSerialConsistencyLevel(ConsistencyLevel.Serial);
 
-            var request = RequestHandler.GetRequest(statement, Serializer, config);
+            var request = RequestHandler.GetRequest(statement, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
             // The query request is composed by:
@@ -705,7 +646,7 @@ namespace Dse.Test.Unit
             var config = new Configuration();
             config.QueryOptions.SetSerialConsistencyLevel(expectedSerialConsistencyLevel);
 
-            var request = RequestHandler.GetRequest(statement, Serializer, config);
+            var request = RequestHandler.GetRequest(statement, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
             // The query request is composed by:
@@ -776,7 +717,7 @@ namespace Dse.Test.Unit
         private static void AssertBatchSerialConsistencyLevel(BatchStatement batch, Configuration config, string query,
                                                               ConsistencyLevel expectedSerialConsistencyLevel)
         {
-            var request = RequestHandler.GetRequest(batch, Serializer, config);
+            var request = RequestHandler.GetRequest(batch, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
             // The batch request is composed by:

@@ -33,8 +33,13 @@ namespace Dse.Data.Linq
             }
             _batchScript.Add(cqlCommand);
         }
-
+        
         protected override Task<RowSet> InternalExecuteAsync()
+        {
+            return InternalExecuteAsync(Configuration.DefaultExecutionProfileName);
+        }
+
+        protected override Task<RowSet> InternalExecuteAsync(string executionProfile)
         {
             if (_batchScript.IsEmpty)
             {
@@ -42,8 +47,7 @@ namespace Dse.Data.Linq
             }
             _batchScript.SetBatchType(_batchType);
             this.CopyQueryPropertiesTo(_batchScript);
-            return _session.ExecuteAsync(_batchScript);
-
+            return _session.ExecuteAsync(_batchScript, executionProfile);
         }
 
         public override string ToString()

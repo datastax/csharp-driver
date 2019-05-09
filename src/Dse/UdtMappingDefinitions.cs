@@ -7,7 +7,10 @@
 
 using System;
 using System.Collections.Concurrent;
- ﻿using Dse.Serialization;using System.Threading.Tasks;
+using System.Linq;
+using System.Threading.Tasks;
+using Dse.Serialization;
+using Dse.SessionManagement;
 using Dse.Tasks;
 
 namespace Dse
@@ -18,14 +21,14 @@ namespace Dse
     public class UdtMappingDefinitions
     {
         private readonly ConcurrentDictionary<Type, UdtMap> _udtByNetType;
-        private readonly ICluster _cluster;
-        private readonly ISession _session;
+        private readonly IInternalCluster _cluster;
+        private readonly IInternalSession _session;
         private readonly Serializer _serializer;
 
-        internal UdtMappingDefinitions(ISession session, Serializer serializer)
+        internal UdtMappingDefinitions(IInternalSession session, Serializer serializer)
         {
             _udtByNetType = new ConcurrentDictionary<Type, UdtMap>();
-            _cluster = session.Cluster;
+            _cluster = session.InternalCluster;
             _session = session;
             _serializer = serializer;
         }
@@ -36,7 +39,7 @@ namespace Dse
         /// <exception cref="ArgumentException" />
         public void Define(params UdtMap[] udtMaps)
         {
-            TaskHelper.WaitToComplete(DefineAsync(udtMaps), _cluster.Configuration.ClientOptions.QueryAbortTimeout);
+            TaskHelper.WaitToComplete(DefineAsync(udtMaps), _cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout);
         }
 
         /// <summary>
@@ -49,10 +52,12 @@ namespace Dse
             {
                 throw new ArgumentNullException("udtMaps");
             }
-            var keyspace = _session.Keyspace;
-            if (String.IsNullOrEmpty(keyspace))
+            var sessionKeyspace = _session.Keyspace;
+            if (string.IsNullOrEmpty(sessionKeyspace) && udtMaps.Any(map => map.Keyspace == null))
             {
-                throw new ArgumentException("It is not possible to define a mapping when no keyspace is specified.");
+                throw new ArgumentException("It is not possible to define a mapping when no keyspace is specified. " +
+                                            "You can specify it while creating the UdtMap, while creating the Session and" +
+                                            " while creating the Cluster (default keyspace config setting).");
             }
             if (_session.BinaryProtocolVersion < 3)
             {
@@ -61,7 +66,7 @@ namespace Dse
             // Add types to both indexes
             foreach (var map in udtMaps)
             {
-                var udtDefition = await GetDefinitionAsync(keyspace, map).ConfigureAwait(false);
+                var udtDefition = await GetDefinitionAsync(map.Keyspace ?? sessionKeyspace, map).ConfigureAwait(false);
                 map.SetSerializer(_serializer);
                 map.Build(udtDefition);
                 _serializer.SetUdtMap(udtDefition.Name, map);

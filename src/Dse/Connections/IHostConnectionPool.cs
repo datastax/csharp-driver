@@ -55,6 +55,14 @@ namespace Dse.Connections
         /// <exception cref="AuthenticationException" />
         Task<IConnection> BorrowConnection();
 
+        /// <summary>
+        /// Gets an open connection from the host pool. It does NOT create one if necessary (for that use <see cref="BorrowConnection"/>.
+        /// It returns null if there isn't a connection available.
+        /// </summary>
+        /// <exception cref="BusyPoolException" />
+        /// <exception cref="SocketException">Not connected.</exception>
+        IConnection BorrowExistingConnection();
+
         void SetDistance(HostDistance distance);
 
         void CheckHealth(IConnection c);

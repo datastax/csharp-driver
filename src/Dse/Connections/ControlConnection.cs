@@ -110,7 +110,7 @@ namespace Dse.Connections
         private async Task Connect(bool isInitializing)
         {
             var hosts = !isInitializing ?
-                _config.Policies.LoadBalancingPolicy.NewQueryPlan(null, null) : GetHostEnumerable();
+                _config.DefaultRequestOptions.LoadBalancingPolicy.NewQueryPlan(null, null) : GetHostEnumerable();
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
             foreach (var host in hosts)
@@ -416,7 +416,7 @@ namespace Dse.Connections
                 ControlConnection._logger.Info("Received status change event for host {0} but it was not found", address);
                 return;
             }
-            var distance = Cluster.RetrieveDistance(host, _config.Policies.LoadBalancingPolicy);
+            var distance = Cluster.RetrieveDistance(host, _config.DefaultRequestOptions.LoadBalancingPolicy);
             if (distance != HostDistance.Ignored)
             {
                 // We should not consider events for status changes

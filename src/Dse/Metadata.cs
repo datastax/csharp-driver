@@ -450,7 +450,7 @@ namespace Dse
             if (table == null)
             {
                 //Refresh all the keyspaces and tables information
-                return TaskHelper.WaitToComplete(RefreshKeyspaces(true), Configuration.ClientOptions.QueryAbortTimeout);
+                return TaskHelper.WaitToComplete(RefreshKeyspaces(true), Configuration.DefaultRequestOptions.QueryAbortTimeout);
             }
             var ks = GetKeyspace(keyspace);
             if (ks == null)
@@ -618,7 +618,7 @@ namespace Dse
                     var schemaVersionPeersQuery = new QueryRequest(ControlConnection.ProtocolVersion, Metadata.SelectSchemaVersionPeers, false, QueryProtocolOptions.Default);
                     var queries = new[] { connection.Send(schemaVersionLocalQuery), connection.Send(schemaVersionPeersQuery) };
                     // ReSharper disable once CoVariantArrayConversion
-                    Task.WaitAll(queries, Configuration.ClientOptions.QueryAbortTimeout);
+                    Task.WaitAll(queries, Configuration.DefaultRequestOptions.QueryAbortTimeout);
 
                     if (Metadata.CheckSchemaVersionResults(
                         Dse.Connections.ControlConnection.GetRowSet(queries[0].Result),

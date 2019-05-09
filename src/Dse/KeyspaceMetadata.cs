@@ -100,7 +100,7 @@ namespace Dse
         public TableMetadata GetTableMetadata(string tableName)
         {
             return TaskHelper.WaitToComplete(
-                GetTableMetadataAsync(tableName), _parent.Configuration.ClientOptions.GetQueryAbortTimeout(2));
+                GetTableMetadataAsync(tableName), _parent.Configuration.DefaultRequestOptions.GetQueryAbortTimeout(2));
         }
 
         internal Task<TableMetadata> GetTableMetadataAsync(string tableName)
@@ -154,7 +154,7 @@ namespace Dse
                     _views.AddOrUpdate(viewName, view, (k, o) => view);
                     return view;
                 });
-            return TaskHelper.WaitToComplete(task, _parent.Configuration.ClientOptions.GetQueryAbortTimeout(2));
+            return TaskHelper.WaitToComplete(task, _parent.Configuration.DefaultRequestOptions.GetQueryAbortTimeout(2));
         }
 
         /// <summary>
@@ -266,7 +266,7 @@ namespace Dse
         /// </summary>
         internal UdtColumnInfo GetUdtDefinition(string typeName)
         {
-            return TaskHelper.WaitToComplete(GetUdtDefinitionAsync(typeName), _parent.Configuration.ClientOptions.QueryAbortTimeout);
+            return TaskHelper.WaitToComplete(GetUdtDefinitionAsync(typeName), _parent.Configuration.DefaultRequestOptions.QueryAbortTimeout);
         }
 
         /// <summary>
@@ -305,7 +305,7 @@ namespace Dse
                     _functions.AddOrUpdate(key, f, (k, v) => f);
                     return f;
                 });
-            return TaskHelper.WaitToComplete(t, _parent.Configuration.ClientOptions.QueryAbortTimeout);
+            return TaskHelper.WaitToComplete(t, _parent.Configuration.DefaultRequestOptions.QueryAbortTimeout);
         }
 
         /// <summary>
@@ -336,7 +336,7 @@ namespace Dse
                     _aggregates.AddOrUpdate(key, a, (k, v) => a);
                     return a;
                 });
-            return TaskHelper.WaitToComplete(t, _parent.Configuration.ClientOptions.QueryAbortTimeout);
+            return TaskHelper.WaitToComplete(t, _parent.Configuration.DefaultRequestOptions.QueryAbortTimeout);
         }
 
         private static Tuple<string, string> GetFunctionKey(string name, string[] signature)

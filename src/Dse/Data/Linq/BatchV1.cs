@@ -35,6 +35,11 @@ namespace Dse.Data.Linq
 
         protected override Task<RowSet> InternalExecuteAsync()
         {
+            return InternalExecuteAsync(Configuration.DefaultExecutionProfileName);
+        }
+        
+        protected override Task<RowSet> InternalExecuteAsync(string executionProfile)
+        {
             if (_batchScript.Length == 0)
             {
                 return TaskHelper.FromException<RowSet>(new RequestInvalidException("The Batch must contain queries to execute"));
@@ -42,7 +47,7 @@ namespace Dse.Data.Linq
             string cqlQuery = GetCql();
             var stmt = new SimpleStatement(cqlQuery);
             this.CopyQueryPropertiesTo(stmt);
-            return _session.ExecuteAsync(stmt);
+            return _session.ExecuteAsync(stmt, executionProfile);
         }
 
         private string GetCql()

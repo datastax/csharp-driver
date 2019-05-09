@@ -51,16 +51,5 @@ namespace Dse.Data.Linq
             }
             return new BatchV1(session, batchType);
         }
-
-        internal static Configuration GetConfiguration(this ISession session)
-        {
-            Configuration config = null;
-            if (session is IInternalSession internalSession)
-            {
-                config = internalSession.Configuration;
-            }
-
-            return config;
-        }
     }
 }

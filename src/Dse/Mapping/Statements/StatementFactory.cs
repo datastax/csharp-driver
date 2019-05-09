@@ -39,6 +39,7 @@ namespace Dse.Mapping.Statements
         /// <param name="forceNoPrepare">When defined, it's used to override the CQL options behavior.</param>
         public async Task<Statement> GetStatementAsync(ISession session, Cql cql, bool? forceNoPrepare = null)
         {
+            var profile = cql.ExecutionProfile ?? Configuration.DefaultExecutionProfileName;
             var noPrepare = forceNoPrepare ?? cql.QueryOptions.NoPrepare;
             if (noPrepare)
             {
@@ -107,6 +108,7 @@ namespace Dse.Mapping.Statements
         public async Task<BatchStatement> GetBatchStatementAsync(ISession session, ICqlBatch cqlBatch)
         {
             // Get all the statements async in parallel, then add to batch
+            // execution profile is not used here because no statement is prepared or executed in this method
             var childStatements = await Task
                 .WhenAll(cqlBatch.Statements.Select(cql => GetStatementAsync(session, cql, cqlBatch.Options.NoPrepare)))
                 .ConfigureAwait(false);

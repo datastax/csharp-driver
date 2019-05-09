@@ -18,6 +18,11 @@ namespace Dse.Test.Integration.Core
     [Category("short")]
     public class UdtMappingsTests : SharedClusterTest
     {
+        const string CqlType1 = "CREATE TYPE phone (alias text, number text, country_code int, verified_at timestamp, phone_type text)";
+        const string CqlType2 = "CREATE TYPE contact (first_name text, last_name text, birth_date timestamp, phones set<frozen<phone>>, emails set<text>, nullable_long bigint)";
+        const string CqlTable1 = "CREATE TABLE users (id int PRIMARY KEY, main_phone frozen<phone>)";
+        const string CqlTable2 = "CREATE TABLE users_contacts (id int PRIMARY KEY, contacts list<frozen<contact>>)";
+
         public override void OneTimeSetUp()
         {
             if (CassandraVersion < Version.Parse("2.1.0"))
@@ -25,15 +30,10 @@ namespace Dse.Test.Integration.Core
 
             base.OneTimeSetUp();
 
-            const string cqlType1 = "CREATE TYPE phone (alias text, number text, country_code int, verified_at timestamp, phone_type text)";
-            const string cqlType2 = "CREATE TYPE contact (first_name text, last_name text, birth_date timestamp, phones set<frozen<phone>>, emails set<text>, nullable_long bigint)";
-            const string cqlTable1 = "CREATE TABLE users (id int PRIMARY KEY, main_phone frozen<phone>)";
-            const string cqlTable2 = "CREATE TABLE users_contacts (id int PRIMARY KEY, contacts list<frozen<contact>>)";
-
-            Session.Execute(cqlType1);
-            Session.Execute(cqlType2);
-            Session.Execute(cqlTable1);
-            Session.Execute(cqlTable2);
+            Session.Execute(UdtMappingsTests.CqlType1);
+            Session.Execute(UdtMappingsTests.CqlType2);
+            Session.Execute(UdtMappingsTests.CqlTable1);
+            Session.Execute(UdtMappingsTests.CqlTable2);
         }
 
         [Test]
@@ -79,6 +79,84 @@ namespace Dse.Test.Integration.Core
             Assert.AreEqual("home phone", value.Alias);
             Assert.AreEqual("123", value.Number);
             Assert.AreEqual(34, value.CountryCode);
+        }
+        
+        [Test]
+        public async Task MappingDifferentKeyspaceSingleExplicitAsync_AsParameter()
+        {
+            const string cqlType1 = "CREATE TYPE phone2 (alias2 text, number2 text, country_code2 int, verified_at timestamp, phone_type text)";
+            const string cqlTable1 = "CREATE TABLE users2 (id int PRIMARY KEY, main_phone frozen<phone2>)";
+
+            var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build();
+            var newKeyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
+            var session = cluster.Connect();
+            session.CreateKeyspaceIfNotExists(newKeyspace);
+            session.ChangeKeyspace(newKeyspace);
+            
+            session.Execute(cqlType1);
+            session.Execute(cqlTable1);
+            
+            await session.UserDefinedTypes.DefineAsync(
+                UdtMap.For<Phone>("phone", KeyspaceName)
+                      .Map(v => v.Alias, "alias")
+                      .Map(v => v.CountryCode, "country_code")
+                      .Map(v => v.Number, "number"),
+                UdtMap.For<Phone2>("phone2")
+                      .Map(v => v.Alias, "alias2")
+                      .Map(v => v.CountryCode, "country_code2")
+                      .Map(v => v.Number, "number2")
+            ).ConfigureAwait(false);
+            var phone = new Phone
+            {
+                Alias = "home phone",
+                Number = "85 988888888",
+                CountryCode = 55
+            };
+            var phone2 = new Phone2
+            {
+                Alias = "home phone2",
+                Number = "85 988888811",
+                CountryCode = 66
+            };
+
+            session.Execute(new SimpleStatement($"INSERT INTO {KeyspaceName}.users (id, main_phone) values (1, ?)", phone));
+            var rs = session.Execute($"SELECT * FROM {KeyspaceName}.users WHERE id = 1");
+            var row = rs.First();
+            var value = row.GetValue<Phone>("main_phone");
+            session.Execute(new SimpleStatement("INSERT INTO users2 (id, main_phone) values (1, ?)", phone2));
+            rs = session.Execute("SELECT * FROM users2 WHERE id = 1");
+            row = rs.First();
+            var value2 = row.GetValue<Phone2>("main_phone");
+            
+            Assert.AreEqual(phone, value);
+            Assert.AreEqual(phone2, value2);
+        }
+
+        [Test]
+        public void MappingDifferentKeyspaceWithoutSpecifyingIt()
+        {
+            const string cqlType1 = "CREATE TYPE phone2 (alias2 text, number2 text, country_code2 int, verified_at timestamp, phone_type text)";
+            const string cqlTable1 = "CREATE TABLE users2 (id int PRIMARY KEY, main_phone frozen<phone2>)";
+
+            var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build();
+            var newKeyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
+            var session = cluster.Connect();
+            session.CreateKeyspaceIfNotExists(newKeyspace);
+            session.ChangeKeyspace(newKeyspace);
+            
+            session.Execute(cqlType1);
+            session.Execute(cqlTable1);
+
+            Assert.ThrowsAsync<InvalidTypeException>(() => session.UserDefinedTypes.DefineAsync(
+                UdtMap.For<Phone>("phone")
+                      .Map(v => v.Alias, "alias")
+                      .Map(v => v.CountryCode, "country_code")
+                      .Map(v => v.Number, "number"),
+                UdtMap.For<Phone2>("phone2")
+                      .Map(v => v.Alias, "alias2")
+                      .Map(v => v.CountryCode, "country_code2")
+                      .Map(v => v.Number, "number2")
+            ));
         }
 
         [Test]
@@ -401,6 +479,14 @@ namespace Dse.Test.Integration.Core
                 return $"{nameof(FirstName)}: {FirstName}, {nameof(LastName)}: {LastName}, {nameof(Birth)}: {Birth}, " +
                        $"{nameof(NotMappedProp)}: {NotMappedProp}, {nameof(Phones)}: {Phones}, " +
                        $"{nameof(Emails)}: {Emails}, {nameof(NullableLong)}: {NullableLong}";
+            }
+        }
+
+        private class Phone2 : Phone, IEquatable<Phone2>
+        {
+            public bool Equals(Phone2 other)
+            {
+                return base.Equals(other);
             }
         }
 

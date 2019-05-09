@@ -30,6 +30,7 @@ namespace Dse.Test.Unit.Mapping
             mapper.Delete<Song>(Cql.New("WHERE id = ?", Guid.NewGuid()));
             Assert.AreEqual("DELETE FROM Song WHERE id = ?", query);
         }
+
         [Test]
         public void Delete_Poco_Generates_Test()
         {
@@ -89,6 +90,15 @@ namespace Dse.Test.Unit.Mapping
                 .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>()))
                 .Returns(() => TestHelper.DelayedTask(RowSet.Empty()))
                 .Callback<BoundStatement>(stmt => statement = stmt)
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>(query => TaskHelper.ToTask(GetPrepared(query)))
+                .Verifiable();
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<BoundStatement>(), It.IsAny<string>()))
+                .Returns(() => TestHelper.DelayedTask(RowSet.Empty()))
+                .Callback<BoundStatement, string>((stmt, profile) => statement = stmt)
                 .Verifiable();
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))

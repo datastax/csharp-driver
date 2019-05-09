@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+using Dse.SessionManagement;
 using Dse.Tasks;
 
 namespace Dse
@@ -169,13 +170,13 @@ namespace Dse
             //The properties will be populated later.
             _traceId = traceId;
             _metadata = session.Cluster.Metadata;
-            _metadataFetchSyncTimeout = session.Cluster.Configuration.ClientOptions.QueryAbortTimeout;
+            _metadataFetchSyncTimeout = session.Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
         }
 
         public override string ToString()
         {
             MaybeFetchTrace();
-            return string.Format("{0} [{1}] - {2}µs", _requestType, _traceId, _duration);
+            return $"{_requestType} [{_traceId}] - {_duration}µs";
         }
 
         private void MaybeFetchTrace()

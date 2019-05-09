@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Generic;
+using Dse.ExecutionProfiles;
 using Dse.Serialization;
 
 namespace Dse
@@ -86,15 +87,15 @@ namespace Dse
             _keyspace = keyspace;
         }
 
-        internal static QueryProtocolOptions CreateFromQuery(ProtocolVersion protocolVersion, Statement query,
-                                                             QueryOptions queryOptions, Policies policies)
+        internal static QueryProtocolOptions CreateFromQuery(
+            ProtocolVersion protocolVersion, Statement query, IRequestOptions requestOptions)
         {
             if (query == null)
             {
                 return Default;
             }
-            var consistency = query.ConsistencyLevel ?? queryOptions.GetConsistencyLevel();
-            var pageSize = query.PageSize != 0 ? query.PageSize : queryOptions.GetPageSize();
+            var consistency = query.ConsistencyLevel ?? requestOptions.ConsistencyLevel;
+            var pageSize = query.PageSize != 0 ? query.PageSize : requestOptions.PageSize;
             long? timestamp = null;
             if (query.Timestamp != null)
             {
@@ -102,7 +103,7 @@ namespace Dse
             }
             else if (protocolVersion.SupportsTimestamp())
             {
-                timestamp = policies.TimestampGenerator.Next();
+                timestamp = requestOptions.TimestampGenerator.Next();
                 if (timestamp == long.MinValue)
                 {
                     timestamp = null;

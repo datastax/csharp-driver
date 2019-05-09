@@ -52,6 +52,12 @@ namespace Dse.Data.Linq
             return rs.FirstOrDefault();
         }
 
+        public new async Task<TEntity> ExecuteAsync(string executionProfile)
+        {
+            var rs = await base.ExecuteAsync(executionProfile).ConfigureAwait(false);
+            return rs.FirstOrDefault();
+        }
+
         public new IAsyncResult BeginExecute(AsyncCallback callback, object state)
         {
             return ExecuteAsync().ToApm(callback, state);
@@ -68,9 +74,15 @@ namespace Dse.Data.Linq
         /// </summary>
         public new TEntity Execute()
         {
-            var queryAbortTimeout = GetTable().GetSession().GetConfiguration()?.ClientOptions.QueryAbortTimeout ?? ClientOptions.DefaultQueryAbortTimeout;
-            var task = ExecuteAsync();
-            return TaskHelper.WaitToComplete(task, queryAbortTimeout);
+            return Execute(Configuration.DefaultExecutionProfileName);
+        }
+        
+        /// <summary>
+        /// Evaluates the Linq query, executes the cql statement with the provided execution profile and returns the first result.
+        /// </summary>
+        public new TEntity Execute(string executionProfile)
+        {
+            return TaskHelper.WaitToComplete(ExecuteAsync(executionProfile), QueryAbortTimeout);
         }
     }
 }

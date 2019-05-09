@@ -16,6 +16,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dse.Collections;
 using Dse.Connections;
+using Dse.ExecutionProfiles;
 using Dse.Helpers;
 using Dse.Requests;
 using Dse.Serialization;
@@ -242,15 +243,31 @@ namespace Dse
                 try
                 {
                     // Only abort the async operations when at least twice the time for ConnectTimeout per host passed
-                    var initialAbortTimeout = Configuration.SocketOptions.ConnectTimeoutMillis * 2 *
-                                              _metadata.Hosts.Count;
+                    var initialAbortTimeout = Configuration.SocketOptions.ConnectTimeoutMillis * 2 * _metadata.Hosts.Count;
                     initialAbortTimeout = Math.Max(initialAbortTimeout, ControlConnection.MetadataAbortTimeout);
                     await _controlConnection.Init().WaitToCompleteAsync(initialAbortTimeout).ConfigureAwait(false);
-
+                    
                     // Initialize policies
-                    Configuration.Policies.LoadBalancingPolicy.Initialize(this);
-                    Configuration.Policies.SpeculativeExecutionPolicy.Initialize(this);
-                    Configuration.Policies.InitializeRetryPolicy(this);
+                    var loadBalancingPolicies = new HashSet<ILoadBalancingPolicy>(new ReferenceEqualityComparer<ILoadBalancingPolicy>());
+                    var speculativeExecutionPolicies = new HashSet<ISpeculativeExecutionPolicy>(new ReferenceEqualityComparer<ISpeculativeExecutionPolicy>());
+                    foreach (var options in Configuration.RequestOptions.Values)
+                    {
+                        loadBalancingPolicies.Add(options.LoadBalancingPolicy);
+                        speculativeExecutionPolicies.Add(options.SpeculativeExecutionPolicy);
+                    }
+
+                    loadBalancingPolicies.Add(Configuration.Policies.LoadBalancingPolicy);
+                    speculativeExecutionPolicies.Add(Configuration.Policies.SpeculativeExecutionPolicy);
+
+                    foreach (var lbp in loadBalancingPolicies)
+                    {
+                        lbp.Initialize(this);
+                    }
+
+                    foreach (var sep in speculativeExecutionPolicies)
+                    {
+                        sep.Initialize(this);
+                    }
                 }
                 catch (NoHostAvailableException)
                 {
@@ -417,8 +434,9 @@ namespace Dse
             {
                 return;
             }
+
             // We should prepare all current queries on the host
-            PrepareHandler.PrepareAllQueries(h, InternalRef.PreparedQueries.Values, _connectedSessions).Forget();
+            PrepareAllQueries(h).Forget();
         }
 
         /// <summary>
@@ -465,7 +483,20 @@ namespace Dse
             _metadata.ShutDown(timeoutMs);
             _controlConnection.Dispose();
             Configuration.Timer.Dispose();
-            Configuration.Policies.SpeculativeExecutionPolicy.Dispose();
+            
+            // Dispose policies
+            var speculativeExecutionPolicies = new HashSet<ISpeculativeExecutionPolicy>(new ReferenceEqualityComparer<ISpeculativeExecutionPolicy>());
+            foreach (var options in Configuration.RequestOptions.Values)
+            {
+                speculativeExecutionPolicies.Add(options.SpeculativeExecutionPolicy);
+            }
+
+            speculativeExecutionPolicies.Add(Configuration.Policies.SpeculativeExecutionPolicy);
+            foreach (var sep in speculativeExecutionPolicies)
+            {
+                sep.Dispose();
+            }
+
             _logger.Info("Cluster [" + _metadata.ClusterName + "] has been shut down.");
         }
 
@@ -478,6 +509,78 @@ namespace Dse
             var distance = lbp.Distance(host);
             host.SetDistance(distance);
             return distance;
+        }
+
+        /// <inheritdoc />
+        async Task<PreparedStatement> IInternalCluster.Prepare(
+            IInternalSession session, Serializer serializer, InternalPrepareRequest request)
+        {
+            var lbp = session.Cluster.Configuration.DefaultRequestOptions.LoadBalancingPolicy;
+            var handler = InternalRef.Configuration.PrepareHandlerFactory.Create(serializer);
+            var ps = await handler.Prepare(request, session, lbp.NewQueryPlan(session.Keyspace, null).GetEnumerator()).ConfigureAwait(false);
+            var psAdded = InternalRef.PreparedQueries.GetOrAdd(ps.Id, ps);
+            if (ps != psAdded)
+            {
+                PrepareHandler.Logger.Warning("Re-preparing already prepared query is generally an anti-pattern and will likely " +
+                               "affect performance. Consider preparing the statement only once. Query='{0}'", ps.Cql);
+                ps = psAdded;
+            }
+
+            return ps;
+        }
+        
+        private async Task PrepareAllQueries(Host host)
+        {
+            ICollection<PreparedStatement> preparedQueries = InternalRef.PreparedQueries.Values;
+            IEnumerable<IInternalSession> sessions = _connectedSessions;
+
+            if (preparedQueries.Count == 0)
+            {
+                return;
+            }
+            // Get the first connection for that host, in any of the existings connection pool
+            var connection = sessions.SelectMany(s => s.GetExistingPool(host.Address)?.ConnectionsSnapshot)
+                                     .FirstOrDefault();
+            if (connection == null)
+            {
+                PrepareHandler.Logger.Info($"Could not re-prepare queries on {host.Address} as there wasn't an open connection to" +
+                            " the node");
+                return;
+            }
+            PrepareHandler.Logger.Info($"Re-preparing {preparedQueries.Count} queries on {host.Address}");
+            var tasks = new List<Task>(preparedQueries.Count);
+            using (var semaphore = new SemaphoreSlim(64, 64))
+            {
+                foreach (var query in preparedQueries.Select(ps => ps.Cql))
+                {
+                    var request = new InternalPrepareRequest(query);
+                    await semaphore.WaitAsync().ConfigureAwait(false);
+
+                    async Task SendSingle()
+                    {
+                        try
+                        {
+                            await connection.Send(request).ConfigureAwait(false);
+                        }
+                        finally
+                        {
+                            // ReSharper disable once AccessToDisposedClosure
+                            // There is no risk of being disposed as the list of tasks is awaited upon below
+                            semaphore.Release();
+                        }
+                    }
+
+                    tasks.Add(Task.Run(SendSingle));
+                }
+                try
+                {
+                    await Task.WhenAll(tasks).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    PrepareHandler.Logger.Error($"There was an error when re-preparing queries on {host.Address}", ex);
+                }
+            }
         }
     }
 }

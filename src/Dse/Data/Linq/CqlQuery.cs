@@ -98,15 +98,9 @@ namespace Dse.Data.Linq
         /// <summary>
         /// Asynchronously executes the query and returns a task of a page of results
         /// </summary>
-        public async Task<IPage<TEntity>> ExecutePagedAsync()
+        public Task<IPage<TEntity>> ExecutePagedAsync()
         {
-            SetAutoPage(false);
-            var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
-            object[] values;
-            var cql = visitor.GetSelect(Expression, out values);
-            var rs = await InternalExecuteAsync(cql, values).ConfigureAwait(false);
-            var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
-            return new Page<TEntity>(rs.Select(mapper), PagingState, rs.PagingState);
+            return ExecutePagedAsync(Configuration.DefaultExecutionProfileName);
         }
 
         /// <summary>
@@ -114,11 +108,41 @@ namespace Dse.Data.Linq
         /// </summary>
         public IPage<TEntity> ExecutePaged()
         {
-            var queryAbortTimeout = GetTable().GetSession().GetConfiguration()?.ClientOptions.QueryAbortTimeout ?? ClientOptions.DefaultQueryAbortTimeout;
-            var task = ExecutePagedAsync();
-            return TaskHelper.WaitToComplete(task, queryAbortTimeout);
+            return ExecutePaged(Configuration.DefaultExecutionProfileName);
+        }
+        
+        /// <summary>
+        /// Asynchronously executes the query with the provided execution profile and returns a task of a page of results
+        /// </summary>
+        public async Task<IPage<TEntity>> ExecutePagedAsync(string executionProfile)
+        {
+            if (executionProfile == null)
+            {
+                throw new ArgumentNullException(nameof(executionProfile));
+            }
+            
+            SetAutoPage(false);
+            var visitor = new CqlExpressionVisitor(PocoData, Table.Name, Table.KeyspaceName);
+            object[] values;
+            var cql = visitor.GetSelect(Expression, out values);
+            var rs = await InternalExecuteWithProfileAsync(executionProfile, cql, values).ConfigureAwait(false);
+            var mapper = MapperFactory.GetMapper<TEntity>(cql, rs);
+            return new Page<TEntity>(rs.Select(mapper), PagingState, rs.PagingState);
         }
 
+        /// <summary>
+        /// Executes the query with the provided execution profile and returns a page of results
+        /// </summary>
+        public IPage<TEntity> ExecutePaged(string executionProfile)
+        {
+            if (executionProfile == null)
+            {
+                throw new ArgumentNullException(nameof(executionProfile));
+            }
+            
+            return TaskHelper.WaitToComplete(ExecutePagedAsync(executionProfile), QueryAbortTimeout);
+        }
+        
         /// <summary>
         /// Generates and returns cql query for this instance 
         /// </summary>
