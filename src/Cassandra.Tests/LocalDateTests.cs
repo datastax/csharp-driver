@@ -40,7 +40,11 @@ namespace Cassandra.Tests
             Tuple.Create(new LocalDate(093456, 8, 5),        0x81fdde88),
             Tuple.Create(new LocalDate(123456, 8, 5),        2191855715),
             Tuple.Create(new LocalDate(5881580, 7, 10),      4294967294U),
-            Tuple.Create(new LocalDate(5881580, 7, 11),      uint.MaxValue)
+            Tuple.Create(new LocalDate(5881580, 7, 11),      uint.MaxValue),
+            Tuple.Create(new LocalDate(2399, 12, 31),        2147640701),
+            Tuple.Create(new LocalDate(2100, 10, 10),        2147531412),
+            Tuple.Create(new LocalDate(2300, 12, 31),        2147604542),
+            Tuple.Create(new LocalDate(2400, 12, 31),        2147641067)
         };
 
         [Test]
