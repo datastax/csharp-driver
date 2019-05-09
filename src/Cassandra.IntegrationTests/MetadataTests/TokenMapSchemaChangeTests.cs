@@ -43,7 +43,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
             var oldTokenMap = newCluster.Metadata.TokenToReplicasMap;
             Assert.AreEqual(3, newCluster.Metadata.Hosts.Count);
 
-            Assert.Throws<KeyNotFoundException>(() => newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName));
+            Assert.IsNull(newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName));
             var createKeyspaceCql = $"CREATE KEYSPACE {keyspaceName} WITH replication = {{'class': 'SimpleStrategy', 'replication_factor' : 3}}";
 
             newSession.Execute(createKeyspaceCql);
@@ -78,7 +78,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
             var oldTokenMap = newCluster.Metadata.TokenToReplicasMap;
             TestHelper.RetryAssert(() =>
             {
-                Assert.Throws<KeyNotFoundException>(() => newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName));
+                Assert.IsNull(newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName));
             });
             Assert.IsTrue(object.ReferenceEquals(newCluster.Metadata.TokenToReplicasMap, oldTokenMap));
         }

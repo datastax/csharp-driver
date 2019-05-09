@@ -16,6 +16,7 @@
 
 using System.Collections.Generic;
 using Cassandra.Connections;
+using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.SessionManagement;
 
@@ -41,6 +42,8 @@ namespace Cassandra.Tests
 
         public IAddressTranslator AddressTranslator { get; set; } = new DefaultAddressTranslator();
 
+        public MetadataSyncOptions MetadataSyncOptions { get; set; } = new MetadataSyncOptions();
+
         public IStartupOptionsFactory StartupOptionsFactory { get; set; } = new StartupOptionsFactory();
 
         public ISessionFactoryBuilder<IInternalCluster, IInternalSession> SessionFactoryBuilder { get; set; } = new SessionFactoryBuilder();
@@ -59,6 +62,8 @@ namespace Cassandra.Tests
 
         public IPrepareHandlerFactory PrepareHandlerFactory { get; set; } = new PrepareHandlerFactory();
 
+        public ITimerFactory TimerFactory { get; set; } = new DotnetTimerFactory();
+
         public Configuration Build()
         {
             return new Configuration(
@@ -74,12 +79,14 @@ namespace Cassandra.Tests
                 StartupOptionsFactory,
                 SessionFactoryBuilder,
                 ExecutionProfiles,
+                MetadataSyncOptions,
                 RequestHandlerFactory,
                 HostConnectionPoolFactory,
                 RequestExecutionFactory,
                 ConnectionFactory,
                 ControlConnectionFactory,
-                PrepareHandlerFactory);
+                PrepareHandlerFactory,
+                TimerFactory);
         }
     }
 }

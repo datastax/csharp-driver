@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Cassandra.Connections;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
 using Cassandra.Serialization;
@@ -549,7 +550,7 @@ namespace Cassandra.Tests.Mapping.Linq
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             var config = new Configuration();
             var metadata = new Metadata(config);
-            var ccMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var ccMock = new Mock<IControlConnection>(MockBehavior.Strict);
             ccMock.Setup(cc => cc.Serializer).Returns(serializer);
             metadata.ControlConnection = ccMock.Object;
             var clusterMock = new Mock<ICluster>();

@@ -1,5 +1,5 @@
 ﻿// 
-//       Copyright (C) 2019 DataStax Inc.
+//       Copyright (C) DataStax Inc.
 // 
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -14,22 +14,23 @@
 //    limitations under the License.
 // 
 
-using Cassandra.Connections;
+using System;
+using System.Collections.Concurrent;
+using System.Threading;
 using Cassandra.ProtocolEvents;
-using Cassandra.Serialization;
-using Cassandra.Tasks;
 using Moq;
 
-namespace Cassandra.Tests.Connections
+namespace Cassandra.Tests.MetadataHelpers.TestHelpers
 {
-    internal class FakeControlConnectionFactory : IControlConnectionFactory
+    internal class FakeTimerFactory : ITimerFactory
     {
-        public IControlConnection Create(IProtocolEventDebouncer protocolEventDebouncer, ProtocolVersion initialProtocolVersion, Configuration config, Metadata metadata)
+        public ConcurrentQueue<ITimer> CreatedTimers { get; } = new ConcurrentQueue<ITimer>();
+
+        public ITimer Create(TimerCallback action, object state, TimeSpan due, TimeSpan period)
         {
-            var cc = Mock.Of<IControlConnection>();
-            Mock.Get(cc).Setup(c => c.Init()).Returns(TaskHelper.Completed);
-            Mock.Get(cc).Setup(c => c.Serializer).Returns(new Serializer(ProtocolVersion.V3));
-            return cc;
+            var timer = Mock.Of<ITimer>();
+            CreatedTimers.Enqueue(timer);
+            return timer;
         }
     }
 }

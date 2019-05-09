@@ -22,7 +22,10 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Connections;
 using Cassandra.MetadataHelpers;
+using Cassandra.ProtocolEvents;
+using Cassandra.Tests.Connections;
 using Cassandra.Tests.MetadataHelpers.TestHelpers;
 using Moq;
 using NUnit.Framework;
@@ -413,7 +416,7 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void TokenMapUpdates_Should_FunctionCorrectly_When_MultipleThreadsCallingRebuildAndUpdateKeyspace()
+        public void Should_UpdateKeyspacesAndTokenMapCorrectly_When_MultipleThreadsCallingRefreshKeyspace()
         {
             var keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
 
@@ -433,7 +436,16 @@ namespace Cassandra.Tests
             keyspaces.AddOrUpdate("ks11", TokenTests.CreateSimpleKeyspace("ks11", 2), (s, keyspaceMetadata) => keyspaceMetadata);
 
             var schemaParser = new FakeSchemaParser(keyspaces);
-            var metadata = new Metadata(new Configuration(), schemaParser) {Partitioner = "Murmur3Partitioner"};
+            var config = new TestConfigurationBuilder
+            {
+                ConnectionFactory = new FakeConnectionFactory()
+            }.Build();
+            var metadata = new Metadata(config, schemaParser) {Partitioner = "Murmur3Partitioner"};
+            metadata.ControlConnection = new ControlConnection(
+                new ProtocolEventDebouncer(new DotnetTimerFactory(), TimeSpan.FromMilliseconds(50), TimeSpan.FromSeconds(200)), 
+                ProtocolVersion.V3, 
+                config, 
+                metadata);
             metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.1"), 9042));
             metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.2"), 9042));
             metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.3"), 9042));
@@ -456,7 +468,7 @@ namespace Cassandra.Tests
                 }));
                 initialToken++;
             }
-            metadata.RefreshKeyspaces().GetAwaiter().GetResult();
+            metadata.RebuildTokenMapAsync(false, true).GetAwaiter().GetResult();
             var expectedTokenMap = metadata.TokenToReplicasMap;
             Assert.NotNull(expectedTokenMap);
             var bag = new ConcurrentBag<string>();
@@ -469,9 +481,9 @@ namespace Cassandra.Tests
                     {
                         for (var j = 0; j < 11; j++)
                         {
-                            if (j % 5 == 0)
+                            if (j % 10 == 0 && i % 10 == 0)
                             {
-                                metadata.RefreshKeyspaces().GetAwaiter().GetResult();
+                                metadata.RefreshSchemaAsync().GetAwaiter().GetResult();
                             }
                             else if (j % 2 == 1)
                             {
@@ -479,9 +491,11 @@ namespace Cassandra.Tests
                                 {
                                     if (keyspaces.TryRemove(ksName, out var ks))
                                     {
-                                        if (!metadata.RemoveKeyspace(ks.Name).GetAwaiter().GetResult())
+                                        metadata.ControlConnection.HandleKeyspaceRefreshLaterAsync(ks.Name).GetAwaiter().GetResult();
+                                        ks = metadata.GetKeyspace(ksName);
+                                        if (ks != null)
                                         {
-                                            // one rebuild finished between keyspace remove and metadata removekeyspace
+                                            throw new Exception($"refresh for {ks.Name} returned non null after remove.");
                                         }
                                     }
                                 }
@@ -494,10 +508,11 @@ namespace Cassandra.Tests
                                     keyspaceName, 
                                     ks, 
                                     (s, keyspaceMetadata) => ks);
-                                ks = metadata.RefreshSingleKeyspace(true, keyspaceName).GetAwaiter().GetResult();
+                                metadata.ControlConnection.HandleKeyspaceRefreshLaterAsync(ks.Name).GetAwaiter().GetResult();
+                                ks = metadata.GetKeyspace(ks.Name);
                                 if (ks == null)
                                 {
-                                    throw new Exception($"refresh for {keyspaceName} returned null.");
+                                    throw new Exception($"refresh for {keyspaceName} returned null after add.");
                                 }
                                 bag.Add(keyspaceName);
                             }
@@ -526,7 +541,7 @@ namespace Cassandra.Tests
             }));
 
             Assert.IsNull(metadata.TokenToReplicasMap);
-            metadata.RefreshSingleKeyspace(true, "ks1").GetAwaiter().GetResult();
+            metadata.RefreshSingleKeyspace("ks1").GetAwaiter().GetResult();
             Assert.NotNull(metadata.TokenToReplicasMap);
         }
 
