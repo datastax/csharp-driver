@@ -190,9 +190,9 @@ namespace Cassandra
             tokenToHostsByKeyspace[ks.Name] = replicas;
         }
 
-        public void RemoveKeyspace(KeyspaceMetadata keyspaceMetadata)
+        public void RemoveKeyspace(string name)
         {
-            _tokenToHostsByKeyspace.TryRemove(keyspaceMetadata.Name, out _);
+            _tokenToHostsByKeyspace.TryRemove(name, out _);
         }
     }
 }

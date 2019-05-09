@@ -175,13 +175,17 @@ namespace Cassandra
             return _keyspacesUpdateCounters.TryUpdate(name, newCounter, currentKeyspaceCounter);
         }
 
-        internal async Task<bool> RebuildTokenMapAsync(bool retry)
+        internal async Task<bool> RebuildTokenMapAsync(bool retry, bool fetchKeyspaces)
         {
             var currentCounter = Interlocked.Read(ref _counterRebuild);
 
-            Metadata.Logger.Info("Retrieving keyspaces metadata");
-            // running this statement synchronously inside the exclusive scheduler deadlocks
-            var ksList = await _schemaParser.GetKeyspaces(retry).ConfigureAwait(false);
+            IEnumerable<KeyspaceMetadata> ksList = null;
+            if (fetchKeyspaces)
+            {
+                Metadata.Logger.Info("Retrieving keyspaces metadata");
+                // running this statement synchronously inside the exclusive scheduler deadlocks
+                ksList = await _schemaParser.GetKeyspaces(retry).ConfigureAwait(false);
+            }
 
             var task = _tokenMapTaskFactory.StartNew(() =>
             {
@@ -190,9 +194,13 @@ namespace Cassandra
                     return true;
                 }
 
-                Metadata.Logger.Info("Updating keyspaces metadata");
-                var ksMap = ksList.Select(ks => new KeyValuePair<string, KeyspaceMetadata>(ks.Name, ks));
-                _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>(ksMap);
+                if (ksList != null)
+                {
+                    Metadata.Logger.Info("Updating keyspaces metadata");
+                    var ksMap = ksList.Select(ks => new KeyValuePair<string, KeyspaceMetadata>(ks.Name, ks));
+                    _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>(ksMap);
+                }
+
                 Metadata.Logger.Info("Rebuilding token map");
                 if (Partitioner == null)
                 {
@@ -224,13 +232,9 @@ namespace Cassandra
                     }
 
                     Metadata.Logger.Verbose("Removing keyspace metadata: " + name);
-                    if (!_keyspaces.TryRemove(name, out var ks))
-                    {
-                        //The keyspace didn't exist
-                        return false;
-                    }
-                    _tokenMap?.RemoveKeyspace(ks);
-                    return true;
+                    var dropped = _keyspaces.TryRemove(name, out _);
+                    _tokenMap?.RemoveKeyspace(name);
+                    return dropped;
                 });
         }
 
@@ -241,6 +245,13 @@ namespace Cassandra
 
             // running this statement synchronously inside the exclusive scheduler deadlocks
             var keyspaceMetadata = await _schemaParser.GetKeyspace(name).ConfigureAwait(false);
+            var dropped = false;
+            var updated = false;
+            
+            if (_tokenMap == null)
+            {
+                await RebuildTokenMapAsync(false, false).ConfigureAwait(false);
+            }
 
             var task = _tokenMapTaskFactory.StartNew(
                 () =>
@@ -260,13 +271,20 @@ namespace Cassandra
                         return false;
                     }
 
-                    Metadata.Logger.Verbose("Updating keyspace metadata: " + name);
                     if (keyspaceMetadata == null)
                     {
-                        return (bool?)null;
+                        Metadata.Logger.Verbose("Removing keyspace metadata: " + name);
+                        dropped = _keyspaces.TryRemove(name, out _);
+                        _tokenMap?.RemoveKeyspace(name);
+                        return (bool?) null;
                     }
 
-                    _keyspaces.AddOrUpdate(keyspaceMetadata.Name, keyspaceMetadata, (k, v) => keyspaceMetadata);
+                    Metadata.Logger.Verbose("Updating keyspace metadata: " + name);
+                    _keyspaces.AddOrUpdate(keyspaceMetadata.Name, keyspaceMetadata, (k, v) =>
+                    {
+                        updated = true;
+                        return keyspaceMetadata;
+                    });
                     Metadata.Logger.Info("Rebuilding token map for keyspace {0}", keyspaceMetadata.Name);
                     if (Partitioner == null)
                     {
@@ -277,10 +295,22 @@ namespace Cassandra
                     return true;
                 });
 
-            var existsTokenMap = await task.ConfigureAwait(false);
-            if (existsTokenMap.HasValue && !existsTokenMap.Value)
+            await task.ConfigureAwait(false);
+
+            if (Configuration.MetadataSyncEnabled)
             {
-                await RefreshKeyspaces().ConfigureAwait(false);
+                if (dropped)
+                {
+                    FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Dropped, name, null, this);
+                }
+                else if (updated)
+                {
+                    FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Updated, name, null, this);
+                }
+                else
+                {
+                    FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Created, name, null, this);
+                }
             }
 
             return keyspaceMetadata;
@@ -456,28 +486,24 @@ namespace Cassandra
         /// </summary>
         public bool RefreshSchema(string keyspace = null, string table = null)
         {
-            if (table == null)
+            if (keyspace == null)
             {
-                //Refresh all the keyspaces and tables information
-                return TaskHelper.WaitToComplete(RefreshKeyspaces(true), Configuration.DefaultRequestOptions.QueryAbortTimeout);
+                return TaskHelper.WaitToComplete(RebuildTokenMapAsync(true, true), Configuration.DefaultRequestOptions.QueryAbortTimeout);
             }
-            var ks = GetKeyspace(keyspace);
+            
+            var ks = TaskHelper.WaitToComplete(RefreshSingleKeyspace(keyspace), Configuration.DefaultRequestOptions.QueryAbortTimeout);
             if (ks == null)
             {
                 return false;
             }
-            ks.ClearTableMetadata(table);
+
+            if (table != null)
+            {
+                ks.ClearTableMetadata(table);
+            }
             return true;
         }
-
-        /// <summary>
-        /// Retrieves the keyspaces, stores the information in the internal state and rebuilds the token map
-        /// </summary>
-        internal Task<bool> RefreshKeyspaces(bool retry = false)
-        {
-            return RebuildTokenMapAsync(retry);
-        }
-
+        
         public void ShutDown(int timeoutMs = Timeout.Infinite)
         {
             //it is really not required to be called, left as it is part of the public API
@@ -497,19 +523,12 @@ namespace Cassandra
             return true;
         }
 
-        internal async Task<KeyspaceMetadata> RefreshSingleKeyspace(bool added, string name)
+        internal async Task<KeyspaceMetadata> RefreshSingleKeyspace(string name)
         {
-            var ks = await UpdateTokenMapForKeyspace(name).ConfigureAwait(false);
-            if (ks == null)
-            {
-                return null;
-            }
-            var eventKind = added ? SchemaChangedEventArgs.Kind.Created : SchemaChangedEventArgs.Kind.Updated;
-            FireSchemaChangedEvent(eventKind, name, null, this);
-            return ks;
+            return await UpdateTokenMapForKeyspace(name).ConfigureAwait(false);
         }
 
-        internal void RefreshTable(string keyspaceName, string tableName)
+        internal void ClearTable(string keyspaceName, string tableName)
         {
             KeyspaceMetadata ksMetadata;
             if (_keyspaces.TryGetValue(keyspaceName, out ksMetadata))
@@ -518,7 +537,7 @@ namespace Cassandra
             }
         }
 
-        internal void RefreshView(string keyspaceName, string name)
+        internal void ClearView(string keyspaceName, string name)
         {
             KeyspaceMetadata ksMetadata;
             if (_keyspaces.TryGetValue(keyspaceName, out ksMetadata))

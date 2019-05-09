@@ -52,6 +52,7 @@ namespace Cassandra.Connections
         private Task<bool> _reconnectTask;
         private readonly Serializer _serializer;
         internal const int MetadataAbortTimeout = 5 * 60000;
+        private readonly IProtocolEventDebouncer _eventDebouncer;
 
         /// <summary>
         /// Gets the binary protocol version to be used for this cluster.
@@ -70,7 +71,11 @@ namespace Cassandra.Connections
 
         public Serializer Serializer => _serializer;
 
-        internal ControlConnection(ProtocolVersion initialProtocolVersion, Configuration config, Metadata metadata)
+        internal ControlConnection(
+            IProtocolEventDebouncer eventDebouncer, 
+            ProtocolVersion initialProtocolVersion, 
+            Configuration config, 
+            Metadata metadata)
         {
             _metadata = metadata;
             _reconnectionPolicy = config.Policies.ReconnectionPolicy;
@@ -78,6 +83,7 @@ namespace Cassandra.Connections
             _reconnectionTimer = new Timer(_ => Reconnect().Forget(), null, Timeout.Infinite, Timeout.Infinite);
             _config = config;
             _serializer = new Serializer(initialProtocolVersion, config.TypeSerializers);
+            _eventDebouncer = eventDebouncer;
         }
 
         public void Dispose()
@@ -147,7 +153,7 @@ namespace Cassandra.Connections
                     }
 
                     await SubscribeToServerEvents(connection).ConfigureAwait(false);
-                    await _metadata.RefreshKeyspaces().ConfigureAwait(false);
+                    await _metadata.RebuildTokenMapAsync(false, _config.MetadataSyncEnabled).ConfigureAwait(false);
 
                     host.Down += OnHostDown;
                     return;
@@ -279,7 +285,7 @@ namespace Cassandra.Connections
             try
             {
                 await RefreshNodeList().ConfigureAwait(false);
-                await _metadata.RefreshKeyspaces().ConfigureAwait(false);
+                await _metadata.RebuildTokenMapAsync(false, _config.MetadataSyncEnabled).ConfigureAwait(false);
                 _reconnectionSchedule = _reconnectionPolicy.NewSchedule();
             }
             catch (SocketException ex)
@@ -358,51 +364,69 @@ namespace Cassandra.Connections
         private void OnConnectionCassandraEvent(object sender, CassandraEventArgs e)
         {
             //This event is invoked from a worker thread (not a IO thread)
-            if (e is TopologyChangeEventArgs)
+            if (e is TopologyChangeEventArgs tce)
             {
-                var tce = (TopologyChangeEventArgs)e;
                 if (tce.What == TopologyChangeEventArgs.Reason.NewNode || tce.What == TopologyChangeEventArgs.Reason.RemovedNode)
                 {
                     // Start refresh
-                    Refresh().Forget();
+                    ScheduleHostsRefresh().GetAwaiter().GetResult();
                     return;
                 }
             }
-            if (e is StatusChangeEventArgs)
+            if (e is StatusChangeEventArgs args)
             {
-                HandleStatusChangeEvent((StatusChangeEventArgs)e);
+                HandleStatusChangeEvent(args);
                 return;
             }
-            if (e is SchemaChangeEventArgs)
+            if (e is SchemaChangeEventArgs ssc)
             {
-                var ssc = (SchemaChangeEventArgs)e;
+                if (!_config.MetadataSyncEnabled)
+                {
+                    return;
+                }
+
+                Func<Task> handler;
                 if (!string.IsNullOrEmpty(ssc.Table))
                 {
-                    //Can be either a table or a view
-                    _metadata.RefreshTable(ssc.Keyspace, ssc.Table);
-                    _metadata.RefreshView(ssc.Keyspace, ssc.Table);
-                    return;
+                    handler = () =>
+                    {
+                        //Can be either a table or a view
+                        _metadata.ClearTable(ssc.Keyspace, ssc.Table);
+                        _metadata.ClearView(ssc.Keyspace, ssc.Table);
+                        return TaskHelper.Completed;
+                    };
                 }
-                if (ssc.FunctionName != null)
+                else if (ssc.FunctionName != null)
                 {
-                    _metadata.ClearFunction(ssc.Keyspace, ssc.FunctionName, ssc.Signature);
-                    return;
+                    handler = () =>
+                    {
+                        _metadata.ClearFunction(ssc.Keyspace, ssc.FunctionName, ssc.Signature);
+                        return TaskHelper.Completed;
+                    };
                 }
-                if (ssc.AggregateName != null)
+                else if (ssc.AggregateName != null)
                 {
-                    _metadata.ClearAggregate(ssc.Keyspace, ssc.AggregateName, ssc.Signature);
-                    return;
+                    handler = () =>
+                    {
+                        _metadata.ClearAggregate(ssc.Keyspace, ssc.AggregateName, ssc.Signature);
+                        return TaskHelper.Completed;
+                    };
                 }
-                if (ssc.Type != null)
+                else if (ssc.Type != null)
                 {
                     return;
                 }
-                if (ssc.What == SchemaChangeEventArgs.Reason.Dropped)
+                else if (ssc.What == SchemaChangeEventArgs.Reason.Dropped)
                 {
-                    _metadata.RemoveKeyspace(ssc.Keyspace).Forget();
+                    handler = () => _metadata.RemoveKeyspace(ssc.Keyspace);
+                }
+                else
+                {
+                    ScheduleKeyspaceRefreshAsync(ssc.Keyspace, false).GetAwaiter().GetResult();
                     return;
                 }
-                _metadata.RefreshSingleKeyspace(ssc.What == SchemaChangeEventArgs.Reason.Created, ssc.Keyspace).Forget();
+
+                ScheduleObjectRefreshAsync(ssc.Keyspace, false, handler).GetAwaiter().GetResult();
             }
         }
 
@@ -593,6 +617,22 @@ namespace Cassandra.Connections
                     hosts = newHosts.ToArray();
                 }
             }
+        }
+
+        private Task ScheduleKeyspaceRefreshAsync(string keyspace, bool processNow)
+        {
+            return _eventDebouncer.ScheduleEventAsync(
+                new KeyspaceProtocolEvent(true, keyspace, () => _metadata.RefreshSingleKeyspace(keyspace)), processNow);
+        }
+        
+        private Task ScheduleObjectRefreshAsync(string keyspace, bool processNow, Func<Task> handler)
+        {
+            return _eventDebouncer.ScheduleEventAsync(new KeyspaceProtocolEvent(false, keyspace, handler), processNow);
+        }
+
+        private Task ScheduleHostsRefresh()
+        {
+            return _eventDebouncer.ScheduleEventAsync(new ProtocolEvent(Refresh), false);
         }
     }
 }

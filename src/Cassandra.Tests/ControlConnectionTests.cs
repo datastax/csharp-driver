@@ -17,10 +17,15 @@ namespace Cassandra.Tests
         {
             Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Info;
         }
+        
+        private IProtocolEventDebouncer GetEventDebouncer(Configuration config)
+        {
+            return new ProtocolEventDebouncer(new DotnetTimerFactory(), config.EventDebouncerDelay, config.EventDebouncerMaxDelay);
+        }
 
         private ControlConnection NewInstance(Configuration config, Metadata metadata)
         {
-            return new ControlConnection(ProtocolVersion.MaxSupported, config, metadata);
+            return new ControlConnection(GetEventDebouncer(config), ProtocolVersion.MaxSupported, config, metadata);
         }
 
         private ControlConnection NewInstance(Metadata metadata)

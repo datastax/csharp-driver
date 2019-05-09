@@ -111,6 +111,12 @@ namespace Cassandra
         /// </summary>
         internal IEnumerable<ITypeSerializer> TypeSerializers { get; set; }
 
+        internal bool MetadataSyncEnabled { get; } = true;
+
+        internal TimeSpan EventDebouncerDelay { get; } = TimeSpan.FromSeconds(5);
+
+        internal TimeSpan EventDebouncerMaxDelay { get; } = TimeSpan.FromSeconds(30);
+
         internal IStartupOptionsFactory StartupOptionsFactory { get; }
 
         internal ISessionFactoryBuilder<IInternalCluster, IInternalSession> SessionFactoryBuilder { get; }

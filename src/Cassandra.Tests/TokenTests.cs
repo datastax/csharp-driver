@@ -456,7 +456,7 @@ namespace Cassandra.Tests
                 }));
                 initialToken++;
             }
-            metadata.RefreshKeyspaces().GetAwaiter().GetResult();
+            metadata.RebuildTokenMapAsync(false, true).GetAwaiter().GetResult();
             var expectedTokenMap = metadata.TokenToReplicasMap;
             Assert.NotNull(expectedTokenMap);
             var bag = new ConcurrentBag<string>();
@@ -471,7 +471,7 @@ namespace Cassandra.Tests
                         {
                             if (j % 5 == 0)
                             {
-                                metadata.RefreshKeyspaces().GetAwaiter().GetResult();
+                                metadata.RebuildTokenMapAsync(false, true).GetAwaiter().GetResult();
                             }
                             else if (j % 2 == 1)
                             {
@@ -494,7 +494,7 @@ namespace Cassandra.Tests
                                     keyspaceName, 
                                     ks, 
                                     (s, keyspaceMetadata) => ks);
-                                ks = metadata.RefreshSingleKeyspace(true, keyspaceName).GetAwaiter().GetResult();
+                                ks = metadata.RefreshSingleKeyspace(keyspaceName).GetAwaiter().GetResult();
                                 if (ks == null)
                                 {
                                     throw new Exception($"refresh for {keyspaceName} returned null.");
@@ -526,7 +526,7 @@ namespace Cassandra.Tests
             }));
 
             Assert.IsNull(metadata.TokenToReplicasMap);
-            metadata.RefreshSingleKeyspace(true, "ks1").GetAwaiter().GetResult();
+            metadata.RefreshSingleKeyspace("ks1").GetAwaiter().GetResult();
             Assert.NotNull(metadata.TokenToReplicasMap);
         }
 

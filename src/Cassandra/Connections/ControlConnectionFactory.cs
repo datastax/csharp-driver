@@ -20,7 +20,14 @@ namespace Cassandra.Connections
     {
         public IControlConnection Create(ProtocolVersion initialProtocolVersion, Configuration config, Metadata metadata)
         {
-            return new ControlConnection(initialProtocolVersion, config, metadata);
+            return new ControlConnection(
+                new ProtocolEventDebouncer(
+                    new DotnetTimerFactory(), 
+                    config.EventDebouncerDelay, 
+                    config.EventDebouncerMaxDelay), 
+                initialProtocolVersion, 
+                config, 
+                metadata);
         }
     }
 }
