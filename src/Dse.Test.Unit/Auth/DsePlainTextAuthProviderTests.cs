@@ -36,5 +36,12 @@ namespace Dse.Test.Unit.Auth
                 new byte[] { 0, Encoding.UTF8.GetBytes("u")[0], 0, Encoding.UTF8.GetBytes("p")[0] }, 
                 authenticator.InitialResponse());
         }
+
+        [Test]
+        public void Should_CreateDsePlainTextAuthProvider_When_WithCredentialsIsCalled()
+        {
+            var cluster = DseCluster.Builder().AddContactPoint("127.0.0.1").WithCredentials("cassandra", "cassandra").Build();
+            Assert.AreEqual(typeof(DsePlainTextAuthProvider), cluster.Configuration.CassandraConfiguration.AuthProvider.GetType());
+        }
     }
 }

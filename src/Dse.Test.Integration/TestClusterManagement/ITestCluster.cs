@@ -115,6 +115,8 @@ namespace Dse.Test.Integration.TestClusterManagement
         /// Resumes the node (SIGCONT) associated with provided node ID
         /// </summary>
         void ResumeNode(int nodeId);
+
+        void SwitchToThisCluster();
     }
 
     public class TestClusterOptions : IEquatable<TestClusterOptions>

@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Reflection;
+using Dse.Auth;
 using Dse.ExecutionProfiles;
 using Dse.Graph;
 using Dse.Requests;
@@ -368,7 +369,7 @@ namespace Dse
         /// <returns>this Builder</returns>
         public new DseClusterBuilder WithCredentials(String username, String password)
         {
-            base.WithCredentials(username, password);
+            this.WithAuthProvider(new DsePlainTextAuthProvider(username, password));
             return this;
         }
 
