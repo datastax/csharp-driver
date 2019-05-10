@@ -56,6 +56,7 @@ namespace Cassandra.Tests
                 Mock.Of<IStartupOptionsFactory>(),
                 new SessionFactoryBuilder(),
                 new Dictionary<string, IExecutionProfile>(),
+                new RequestOptionsMapper(),
                 null);
         }
 

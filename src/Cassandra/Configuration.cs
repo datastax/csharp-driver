@@ -117,6 +117,8 @@ namespace Cassandra
         internal IStartupOptionsFactory StartupOptionsFactory { get; }
 
         internal ISessionFactoryBuilder<IInternalCluster, IInternalSession> SessionFactoryBuilder { get; }
+
+        internal IRequestOptionsMapper RequestOptionsMapper { get; }
         
         internal IRequestHandlerFactory RequestHandlerFactory { get; }
 
@@ -153,6 +155,7 @@ namespace Cassandra
                  new StartupOptionsFactory(),
                  new SessionFactoryBuilder(),
                  new Dictionary<string, IExecutionProfile>(),
+                 new RequestOptionsMapper(),
                  null)
         {
         }
@@ -173,6 +176,7 @@ namespace Cassandra
                                IStartupOptionsFactory startupOptionsFactory,
                                ISessionFactoryBuilder<IInternalCluster, IInternalSession> sessionFactoryBuilder,
                                IReadOnlyDictionary<string, IExecutionProfile> executionProfiles,
+                               IRequestOptionsMapper requestOptionsMapper,
                                MetadataSyncOptions metadataSyncOptions,
                                IRequestHandlerFactory requestHandlerFactory = null,
                                IHostConnectionPoolFactory hostConnectionPoolFactory = null,
@@ -193,6 +197,7 @@ namespace Cassandra
             AuthInfoProvider = authInfoProvider;
             StartupOptionsFactory = startupOptionsFactory;
             SessionFactoryBuilder = sessionFactoryBuilder;
+            RequestOptionsMapper = requestOptionsMapper;
             MetadataSyncOptions = metadataSyncOptions?.Clone() ?? new MetadataSyncOptions();
 
             RequestHandlerFactory = requestHandlerFactory ?? new RequestHandlerFactory();
@@ -203,7 +208,7 @@ namespace Cassandra
             PrepareHandlerFactory = prepareHandlerFactory ?? new PrepareHandlerFactory();
             TimerFactory = timerFactory ?? new TaskBasedTimerFactory();
             
-            RequestOptions = BuildRequestOptionsDictionary(executionProfiles, policies, socketOptions, clientOptions, queryOptions);
+            RequestOptions = RequestOptionsMapper.BuildRequestOptionsDictionary(executionProfiles, policies, socketOptions, clientOptions, queryOptions);
             ExecutionProfiles = BuildExecutionProfilesDictionary(executionProfiles, RequestOptions);
 
             // Create the buffer pool with 16KB for small buffers and 256Kb for large buffers.
@@ -212,32 +217,7 @@ namespace Cassandra
             BufferPool = new RecyclableMemoryStreamManager(16 * 1024, 256 * 1024, ProtocolOptions.MaximumFrameLength);
             Timer = new HashedWheelTimer();
         }
-
-        /// <summary>
-        /// Converts execution profile instances to RequestOptions which handle the fallback logic
-        /// therefore guaranteeing that the settings are non null.
-        /// </summary>
-        private IReadOnlyDictionary<string, IRequestOptions> BuildRequestOptionsDictionary(
-            IReadOnlyDictionary<string, IExecutionProfile> executionProfiles,
-            Policies policies,
-            SocketOptions socketOptions,
-            ClientOptions clientOptions,
-            QueryOptions queryOptions)
-        {
-            executionProfiles.TryGetValue(Configuration.DefaultExecutionProfileName, out var defaultProfile);
-            var requestOptions =
-                executionProfiles
-                    .Where(kvp => kvp.Key != Configuration.DefaultExecutionProfileName)
-                    .ToDictionary<KeyValuePair<string, IExecutionProfile>, string, IRequestOptions>(
-                        kvp => kvp.Key,
-                        kvp => new RequestOptions(kvp.Value, defaultProfile, policies, socketOptions, queryOptions, clientOptions));
-
-            requestOptions.Add(
-                Configuration.DefaultExecutionProfileName, 
-                new RequestOptions(null, defaultProfile, policies, socketOptions, queryOptions, clientOptions));
-            return requestOptions;
-        }
-
+        
         /// <summary>
         /// Clones (shallow) the provided execution profile dictionary and add the default profile if not there yet.
         /// </summary>

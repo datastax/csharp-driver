@@ -314,8 +314,14 @@ namespace Cassandra
         /// <inheritdoc />
         public Task<RowSet> ExecuteAsync(IStatement statement, string executionProfileName)
         {
+            return InternalRef.ExecuteAsync(statement, InternalRef.GetRequestOptions(executionProfileName));
+        }
+        
+        /// <inheritdoc />
+        Task<RowSet> IInternalSession.ExecuteAsync(IStatement statement, IRequestOptions requestOptions)
+        {
             return Configuration.RequestHandlerFactory
-                                .Create(this, _serializer, statement, GetRequestOptions(executionProfileName))
+                                .Create(this, _serializer, statement, requestOptions)
                                 .SendAsync();
         }
         
@@ -430,7 +436,8 @@ namespace Cassandra
             return new SimpleStatement(cqlQuery);
         }
 
-        private IRequestOptions GetRequestOptions(string executionProfileName)
+        /// <inheritdoc />
+        IRequestOptions IInternalSession.GetRequestOptions(string executionProfileName)
         {
             if (!Configuration.RequestOptions.TryGetValue(executionProfileName, out var profile))
             {

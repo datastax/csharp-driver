@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 
+using Cassandra.ExecutionProfiles;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -56,6 +57,7 @@ namespace Cassandra.Tests
                 Mock.Of<IStartupOptionsFactory>(),
                 new SessionFactoryBuilder(),
                 new Dictionary<string, IExecutionProfile>(),
+                new RequestOptionsMapper(),
                 null,
                 requestExecutionFactory: requestExecutionFactory);
         }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Net;
 using Cassandra.Connections;
+using Cassandra.ExecutionProfiles;
 using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.SessionManagement;
@@ -123,6 +124,7 @@ namespace Cassandra.Tests
                  Mock.Of<IStartupOptionsFactory>(),
                  new SessionFactoryBuilder(),
                  new Dictionary<string, IExecutionProfile>(),
+                 new RequestOptionsMapper(),
                  null);
             var cc = NewInstance(config, metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");

@@ -60,6 +60,7 @@ namespace Cassandra
         private IStartupOptionsFactory _startupOptionsFactory = new StartupOptionsFactory();
         private ISessionFactoryBuilder<IInternalCluster, IInternalSession> _sessionFactoryBuilder = new SessionFactoryBuilder();
         private IReadOnlyDictionary<string, IExecutionProfile> _profiles = new Dictionary<string, IExecutionProfile>();
+        private IRequestOptionsMapper _requestOptionsMapper = new RequestOptionsMapper();
         private MetadataSyncOptions _metadataSyncOptions;
 
         /// <summary>
@@ -139,6 +140,7 @@ namespace Cassandra
                 _startupOptionsFactory,
                 _sessionFactoryBuilder,
                 _profiles,
+                _requestOptionsMapper,
                 _metadataSyncOptions);
             if (_typeSerializerDefinitions != null)
             {
@@ -655,6 +657,12 @@ namespace Cassandra
         internal Builder WithStartupOptionsFactory(IStartupOptionsFactory startupOptionsFactory)
         {
             _startupOptionsFactory = startupOptionsFactory ?? throw new ArgumentNullException(nameof(startupOptionsFactory));
+            return this;
+        }
+
+        internal Builder WithRequestOptionsMapper(IRequestOptionsMapper requestOptionsMapper)
+        {
+            _requestOptionsMapper = requestOptionsMapper ?? throw new ArgumentNullException(nameof(requestOptionsMapper));
             return this;
         }
 

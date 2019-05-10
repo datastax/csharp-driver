@@ -16,6 +16,7 @@
 
 using System.Collections.Generic;
 using Cassandra.Connections;
+using Cassandra.ExecutionProfiles;
 using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.SessionManagement;
@@ -45,6 +46,8 @@ namespace Cassandra.Tests
         public MetadataSyncOptions MetadataSyncOptions { get; set; } = new MetadataSyncOptions();
 
         public IStartupOptionsFactory StartupOptionsFactory { get; set; } = new StartupOptionsFactory();
+
+        public IRequestOptionsMapper RequestOptionsMapper { get; set; } = new RequestOptionsMapper();
 
         public ISessionFactoryBuilder<IInternalCluster, IInternalSession> SessionFactoryBuilder { get; set; } = new SessionFactoryBuilder();
 
@@ -79,6 +82,7 @@ namespace Cassandra.Tests
                 StartupOptionsFactory,
                 SessionFactoryBuilder,
                 ExecutionProfiles,
+                RequestOptionsMapper,
                 MetadataSyncOptions,
                 RequestHandlerFactory,
                 HostConnectionPoolFactory,

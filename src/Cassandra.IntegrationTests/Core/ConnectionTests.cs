@@ -24,6 +24,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
+using Cassandra.ExecutionProfiles;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Requests;
 using Cassandra.Responses;
@@ -435,6 +436,7 @@ namespace Cassandra.IntegrationTests.Core
                 new StartupOptionsFactory(),
                 new SessionFactoryBuilder(),
                 new Dictionary<string, IExecutionProfile>(),
+                new RequestOptionsMapper(),
                 null);
             using (var connection = CreateConnection(GetProtocolVersion(), config))
             {
@@ -632,6 +634,7 @@ namespace Cassandra.IntegrationTests.Core
                 new StartupOptionsFactory(),
                 new SessionFactoryBuilder(),
                 new Dictionary<string, IExecutionProfile>(),
+                new RequestOptionsMapper(),
                 null);
             using (var connection = new Connection(new Serializer(GetProtocolVersion()), new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042), config))
             {
@@ -838,6 +841,7 @@ namespace Cassandra.IntegrationTests.Core
                 new StartupOptionsFactory(),
                 new SessionFactoryBuilder(),
                 new Dictionary<string, IExecutionProfile>(),
+                new RequestOptionsMapper(),
                 null);
             return CreateConnection(GetProtocolVersion(), config);
         }

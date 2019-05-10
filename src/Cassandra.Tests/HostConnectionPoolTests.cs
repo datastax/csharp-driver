@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
+using Cassandra.ExecutionProfiles;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -86,6 +87,7 @@ namespace Cassandra.Tests
                 Mock.Of<IStartupOptionsFactory>(),
                 new SessionFactoryBuilder(),
                 new Dictionary<string, IExecutionProfile>(),
+                new RequestOptionsMapper(),
                 null);
             return config;
         }
