@@ -15,7 +15,7 @@ namespace Dse.Insights.Schema.StartupMessage
     internal class ExecutionProfileInfo
     {
         [JsonProperty("readTimeout")]
-        public int ReadTimeout { get; set; }
+        public int? ReadTimeout { get; set; }
         
         [JsonProperty("retry")]
         public PolicyInfo Retry { get; set; }
@@ -28,11 +28,11 @@ namespace Dse.Insights.Schema.StartupMessage
 
         [JsonProperty("consistency")]
         [JsonConverter(typeof(ConsistencyInsightsConverter))]
-        public ConsistencyLevel Consistency { get; set; }
+        public ConsistencyLevel? Consistency { get; set; }
 
         [JsonProperty("serialConsistency")]
         [JsonConverter(typeof(ConsistencyInsightsConverter))]
-        public ConsistencyLevel SerialConsistency { get; set; }
+        public ConsistencyLevel? SerialConsistency { get; set; }
 
         [JsonProperty("graphOptions")]
         public Dictionary<string, object> GraphOptions { get; set; }

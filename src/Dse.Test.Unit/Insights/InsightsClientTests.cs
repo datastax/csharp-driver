@@ -56,7 +56,7 @@ namespace Dse.Test.Unit.Insights
             Trace.Listeners.Add(listener);
             Dse.Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
 
-            var cluster = GetCluster();
+            var cluster = GetCluster(false);
             var session = GetSession(cluster);
             using (var target = InsightsClientTests.GetInsightsClient(cluster, session))
             {
@@ -90,7 +90,7 @@ namespace Dse.Test.Unit.Insights
             Trace.Listeners.Add(listener);
             Dse.Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
 
-            var cluster = GetCluster();
+            var cluster = GetCluster(false);
             var session = GetSession(cluster);
             using (var target = InsightsClientTests.GetInsightsClient(cluster, session))
             {
@@ -235,7 +235,132 @@ namespace Dse.Test.Unit.Insights
                     "\"applicationNameWasGenerated\":false," +
                     "\"driverVersion\":\"1.1.2\"," +
                     "\"dataCenters\":[\"dc123\"]}}";
-            var cluster = GetCluster(eventDelayMilliseconds: 5000);
+            var cluster = GetCluster(false, eventDelayMilliseconds: 5000);
+            var session = GetSession(cluster);
+            using (var target = InsightsClientTests.GetInsightsClient(cluster, session))
+            {
+                var queryProtocolOptions = new ConcurrentQueue<QueryProtocolOptions>();
+                Mock.Get(cluster.Metadata.ControlConnection).Setup(cc => cc.SendQueryRequestAsync(
+                        "CALL InsightsRpc.reportInsight(?)",
+                        It.IsAny<bool>(),
+                        It.IsAny<QueryProtocolOptions>()))
+                    .ReturnsAsync(new FakeResultResponse(ResultResponse.ResultResponseKind.Void))
+                    .Callback<string, bool, QueryProtocolOptions>((query, retry, opts) => { queryProtocolOptions.Enqueue(opts); });
+
+                target.Init();
+
+                TestHelper.RetryAssert(
+                    () => { Assert.GreaterOrEqual(queryProtocolOptions.Count, 1); }, 10, 50);
+                queryProtocolOptions.TryPeek(out var result);
+                Assert.AreEqual(expectedJson, result.Values[0], "Actual: " + Environment.NewLine + result.Values[0]);
+            }
+        }
+
+        [Test]
+        public void Should_InvokeRpcCallCorrectlyAndImmediatelyWithExecutionProfiles_When_SendStartupMessageIsInvoked()
+        {
+            const string expectedJson =
+                "{\"metadata\":{" +
+                    "\"name\":\"driver.startup\"," +
+                    "\"timestamp\":124219041," +
+                    "\"tags\":{\"language\":\"csharp\"}," +
+                    "\"insightType\":\"EVENT\"," +
+                    "\"insightMappingId\":\"v1\"}," +
+                "\"data\":{" +
+                    "\"clientId\":\"becfe098-e462-47e7-b6a7-a21cd316d4c0\"," +
+                    "\"sessionId\":\"e21eab96-d91e-4790-80bd-1d5fb5472258\"," +
+                    "\"applicationName\":\"appname\"," +
+                    "\"applicationVersion\":\"appv1\"," +
+                    "\"contactPoints\":{\"localhost\":[\"127.0.0.1:9042\"]}," +
+                    "\"initialControlConnection\":\"10.10.10.10:9011\"," +
+                    "\"protocolVersion\":4," +
+                    "\"localAddress\":\"10.10.10.2:9015\"," +
+                    "\"executionProfiles\":{" +
+                        "\"default\":{" +
+                            "\"readTimeout\":1505," +
+                            "\"retry\":{" +
+                                "\"type\":\"DowngradingConsistencyRetryPolicy\"," +
+                                "\"namespace\":\"Dse\"}," +
+                            "\"loadBalancing\":{" +
+                                "\"type\":\"RoundRobinPolicy\"," +
+                                "\"namespace\":\"Dse\"}," +
+                            "\"speculativeExecution\":{" +
+                                "\"type\":\"ConstantSpeculativeExecutionPolicy\"," +
+                                "\"namespace\":\"Dse\"," +
+                                "\"options\":{" +
+                                    "\"delay\":1213," +
+                                    "\"maxSpeculativeExecutions\":10}}," +
+                            "\"consistency\":\"ALL\"," +
+                            "\"serialConsistency\":\"LOCAL_SERIAL\"," +
+                            "\"graphOptions\":{" +
+                                "\"language\":\"gremlin-groovy\"," +
+                                "\"source\":\"g\"," +
+                                "\"name\":\"testGraphName\"," +
+                                "\"readConsistency\":\"ALL\"," +
+                                "\"writeConsistency\":null," +
+                                "\"readTimeout\":-1}}," +
+                        "\"profile2\":{" +
+                            "\"readTimeout\":501," +
+                            "\"retry\":{" +
+                                "\"type\":\"IdempotenceAwareRetryPolicy\"," +
+                                "\"namespace\":\"Dse\"," +
+                                "\"options\":{" +
+                                    "\"childPolicy\":{" +
+                                        "\"type\":\"DefaultRetryPolicy\"," +
+                                        "\"namespace\":\"Dse\"}}}," +
+                            "\"loadBalancing\":{" +
+                                "\"type\":\"TokenAwarePolicy\"," +
+                                "\"namespace\":\"Dse\"," +
+                                "\"options\":{" +
+                                    "\"childPolicy\":{" +
+                                        "\"type\":\"RoundRobinPolicy\"," +
+                                        "\"namespace\":\"Dse\"}}}," +
+                            "\"speculativeExecution\":{" +
+                                "\"type\":\"ConstantSpeculativeExecutionPolicy\"," +
+                                "\"namespace\":\"Dse\"," +
+                                "\"options\":{" +
+                                    "\"delay\":230," +
+                                    "\"maxSpeculativeExecutions\":5}}," +
+                            "\"serialConsistency\":\"SERIAL\"" +
+                        "}," +
+                        "\"profile3\":{" +
+                            "\"consistency\":\"EACH_QUORUM\"" +
+                        "}" +
+                    "}," +
+                    "\"poolSizeByHostDistance\":{" +
+                        "\"local\":1," +
+                        "\"remote\":5}," +
+                    "\"heartbeatInterval\":10000," +
+                    "\"compression\":\"SNAPPY\"," +
+                    "\"reconnectionPolicy\":{" +
+                        "\"type\":\"ConstantReconnectionPolicy\"," +
+                        "\"namespace\":\"Dse\"," +
+                        "\"options\":{" +
+                            "\"constantDelayMs\":150}}," +
+                    "\"ssl\":{\"enabled\":false}," +
+                    "\"authProvider\":{" +
+                        "\"type\":\"NoneAuthProvider\"," +
+                        "\"namespace\":\"Dse\"}," +
+                    "\"configAntiPatterns\":{" +
+                        "\"downgradingConsistency\":\"Downgrading consistency retry policy in use\"}," +
+                    "\"periodicStatusInterval\":5," +
+                    "\"platformInfo\":{" +
+                        "\"os\":{\"name\":\"os name\",\"version\":\"os version\",\"arch\":\"os arch\"}," +
+                        "\"cpus\":{\"length\":2,\"model\":\"Awesome CPU\"}," +
+                        "\"runtime\":{" +
+                            "\"runtimeFramework\":\"runtime-framework\"," +
+                            "\"targetFramework\":\"target-framework\"," +
+                            "\"dependencies\":{" +
+                                "\"Assembly1\":{" +
+                                    "\"fullName\":\"Assembly1FullName\"," +
+                                    "\"name\":\"Assembly1\"," +
+                                    "\"version\":\"1.2.0\"}}}}," +
+                    "\"hostName\":\"awesome_hostname\"," +
+                    "\"driverName\":\"Driver Name\"," +
+                    "\"applicationNameWasGenerated\":false," +
+                    "\"driverVersion\":\"1.1.2\"," +
+                    "\"dataCenters\":[\"dc123\"]}}";
+            var cluster = GetCluster(true, eventDelayMilliseconds: 5000);
             var session = GetSession(cluster);
             using (var target = InsightsClientTests.GetInsightsClient(cluster, session))
             {
@@ -273,7 +398,7 @@ namespace Dse.Test.Unit.Insights
                     "\"connectedNodes\":{" +
                         "\"127.0.0.1:9042\":{\"connections\":3,\"inFlightQueries\":1}," +
                         "\"127.0.0.2:9042\":{\"connections\":4,\"inFlightQueries\":2}}}}";
-            var cluster = GetCluster();
+            var cluster = GetCluster(false);
             var session = GetSession(cluster);
             using (var target = InsightsClientTests.GetInsightsClient(cluster, session))
             {
@@ -382,10 +507,10 @@ namespace Dse.Test.Unit.Insights
             return session;
         }
 
-        private IInternalDseCluster GetCluster(int eventDelayMilliseconds = 5)
+        private IInternalDseCluster GetCluster(bool withProfiles, int eventDelayMilliseconds = 5)
         {
             var cluster = Mock.Of<IInternalDseCluster>();
-            var config = GetConfig(eventDelayMilliseconds);
+            var config = GetConfig(eventDelayMilliseconds, withProfiles);
             var metadata = new Metadata(config.CassandraConfiguration)
             {
                 ControlConnection = Mock.Of<IMetadataQueryProvider>()
@@ -408,8 +533,9 @@ namespace Dse.Test.Unit.Insights
             return cluster;
         }
 
-        private DseConfiguration GetConfig(int eventDelayMilliseconds)
+        private DseConfiguration GetConfig(int eventDelayMilliseconds, bool withProfiles)
         {
+            var graphOptions = new GraphOptions().SetName("testGraphName").SetReadConsistencyLevel(ConsistencyLevel.All);
             var supportVerifier = Mock.Of<IInsightsSupportVerifier>();
             Mock.Get(supportVerifier).Setup(m => m.SupportsInsights(It.IsAny<IInternalDseCluster>())).Returns(true);
             return new DseConfiguration(
@@ -437,9 +563,29 @@ namespace Dse.Test.Unit.Insights
                     new DefaultAddressTranslator(),
                     new StartupOptionsFactory(),
                     new SessionFactoryBuilder(),
-                    new Dictionary<string, IExecutionProfile>(),
-                    new RequestOptionsMapper(new GraphOptions())),
-                new GraphOptions().SetName("testGraphName").SetReadConsistencyLevel(ConsistencyLevel.All),
+                    withProfiles 
+                        ? new Dictionary<string, IExecutionProfile>
+                        {
+                            {
+                                "profile2",
+                                new ExecutionProfileBuilder()
+                                    .WithReadTimeoutMillis(501)
+                                    .WithSpeculativeExecutionPolicy(new ConstantSpeculativeExecutionPolicy(230, 5))
+                                    .WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
+                                    .WithRetryPolicy(new IdempotenceAwareRetryPolicy(new DefaultRetryPolicy()))
+                                    .WithSerialConsistencyLevel(ConsistencyLevel.Serial)
+                                    .Build()
+                            },
+                            {
+                                "profile3",
+                                new ExecutionProfileBuilder()
+                                    .WithConsistencyLevel(ConsistencyLevel.EachQuorum)
+                                    .Build()
+                            }
+                        }
+                        : new Dictionary<string, IExecutionProfile>(),
+                    new RequestOptionsMapper(graphOptions)),
+                graphOptions,
                 Guid.Parse("BECFE098-E462-47E7-B6A7-A21CD316D4C0"),
                 "appv1",
                 "appname",

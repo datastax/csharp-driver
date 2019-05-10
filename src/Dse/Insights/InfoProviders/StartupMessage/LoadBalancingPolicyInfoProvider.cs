@@ -1,26 +1,26 @@
-﻿// 
+﻿//
 //       Copyright (C) 2019 DataStax, Inc.
-// 
+//
 //     Please see the license for details:
 //     http://www.datastax.com/terms/datastax-dse-driver-license-terms
-// 
+//
 
 using System;
 using System.Collections.Generic;
+
 using Dse.Insights.Schema.StartupMessage;
-using Dse.SessionManagement;
 
 namespace Dse.Insights.InfoProviders.StartupMessage
 {
-    internal class LoadBalancingPolicyInfoProvider : IInsightsInfoProvider<PolicyInfo>
+    internal class LoadBalancingPolicyInfoProvider : IPolicyInfoMapper<ILoadBalancingPolicy>
     {
         static LoadBalancingPolicyInfoProvider()
         {
-            LoadBalancingPolicyInfoProvider.LoadBalancingPolicyOptionsProviders 
+            LoadBalancingPolicyInfoProvider.LoadBalancingPolicyOptionsProviders
                 = new Dictionary<Type, Func<ILoadBalancingPolicy, IPolicyInfoMapper<IReconnectionPolicy>, Dictionary<string, object>>>
             {
-                { 
-                    typeof(DCAwareRoundRobinPolicy), 
+                {
+                    typeof(DCAwareRoundRobinPolicy),
                     (policy, reconnectionPolicyInfoMapper) =>
                     {
                         var typedPolicy = (DCAwareRoundRobinPolicy) policy;
@@ -32,8 +32,8 @@ namespace Dse.Insights.InfoProviders.StartupMessage
                         };
                     }
                 },
-                { 
-                    typeof(DseLoadBalancingPolicy), 
+                {
+                    typeof(DseLoadBalancingPolicy),
                     (policy, reconnectionPolicyInfoMapper) =>
                     {
                         var typedPolicy = (DseLoadBalancingPolicy) policy;
@@ -43,20 +43,20 @@ namespace Dse.Insights.InfoProviders.StartupMessage
                         };
                     }
                 },
-                { 
-                    typeof(RetryLoadBalancingPolicy), 
+                {
+                    typeof(RetryLoadBalancingPolicy),
                     (policy, reconnectionPolicyInfoMapper) =>
                     {
                         var typedPolicy = (RetryLoadBalancingPolicy) policy;
                         return new Dictionary<string, object>
                         {
-                            { "reconnectionPolicy", reconnectionPolicyInfoMapper.GetReconnectionPolicyInformation(typedPolicy.ReconnectionPolicy) },
+                            { "reconnectionPolicy", reconnectionPolicyInfoMapper.GetPolicyInformation(typedPolicy.ReconnectionPolicy) },
                             { "loadBalancingPolicy", LoadBalancingPolicyInfoProvider.GetLoadBalancingPolicyInfo(typedPolicy.LoadBalancingPolicy, reconnectionPolicyInfoMapper) }
                         };
                     }
                 },
-                { 
-                    typeof(TokenAwarePolicy), 
+                {
+                    typeof(TokenAwarePolicy),
                     (policy, reconnectionPolicyInfoMapper) =>
                     {
                         var typedPolicy = (TokenAwarePolicy) policy;
@@ -70,7 +70,7 @@ namespace Dse.Insights.InfoProviders.StartupMessage
         }
 
         private static IReadOnlyDictionary<Type, Func<ILoadBalancingPolicy, IPolicyInfoMapper<IReconnectionPolicy>, Dictionary<string, object>>> LoadBalancingPolicyOptionsProviders { get; }
-        
+
         private readonly IPolicyInfoMapper<IReconnectionPolicy> _reconnectionPolicyInfoMapper;
 
         public LoadBalancingPolicyInfoProvider(IPolicyInfoMapper<IReconnectionPolicy> reconnectionPolicyInfoMapper)
@@ -78,10 +78,9 @@ namespace Dse.Insights.InfoProviders.StartupMessage
             _reconnectionPolicyInfoMapper = reconnectionPolicyInfoMapper;
         }
 
-        public PolicyInfo GetInformation(IInternalDseCluster cluster, IInternalDseSession dseSession)
+        public PolicyInfo GetPolicyInformation(ILoadBalancingPolicy policy)
         {
-            var loadBalancingPolicy = cluster.Configuration.CassandraConfiguration.Policies.LoadBalancingPolicy;
-            return LoadBalancingPolicyInfoProvider.GetLoadBalancingPolicyInfo(loadBalancingPolicy, _reconnectionPolicyInfoMapper);
+            return LoadBalancingPolicyInfoProvider.GetLoadBalancingPolicyInfo(policy, _reconnectionPolicyInfoMapper);
         }
 
         private static PolicyInfo GetLoadBalancingPolicyInfo(ILoadBalancingPolicy policy, IPolicyInfoMapper<IReconnectionPolicy> reconnectionPolicyInfoMapper)

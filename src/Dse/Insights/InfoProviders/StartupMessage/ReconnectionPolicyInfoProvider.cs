@@ -60,7 +60,7 @@ namespace Dse.Insights.InfoProviders.StartupMessage
             };
         }
 
-        public PolicyInfo GetReconnectionPolicyInformation(IReconnectionPolicy policy)
+        public PolicyInfo GetPolicyInformation(IReconnectionPolicy policy)
         {
             var type = policy.GetType();
             ReconnectionPolicyInfoProvider.PolicyOptionsProviders.TryGetValue(type, out var optionsProvider);

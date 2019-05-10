@@ -11,6 +11,6 @@ namespace Dse.Insights.InfoProviders.StartupMessage
 {
     internal interface IPolicyInfoMapper<in T>
     {
-        PolicyInfo GetReconnectionPolicyInformation(T reconnectionPolicy);
+        PolicyInfo GetPolicyInformation(T policy);
     }
 }

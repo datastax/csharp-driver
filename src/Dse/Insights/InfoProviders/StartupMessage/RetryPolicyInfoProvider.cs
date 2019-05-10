@@ -1,18 +1,18 @@
-﻿// 
+﻿//
 //       Copyright (C) 2019 DataStax, Inc.
-// 
+//
 //     Please see the license for details:
 //     http://www.datastax.com/terms/datastax-dse-driver-license-terms
-// 
+//
 
 using System;
 using System.Collections.Generic;
+
 using Dse.Insights.Schema.StartupMessage;
-using Dse.SessionManagement;
 
 namespace Dse.Insights.InfoProviders.StartupMessage
 {
-    internal class RetryPolicyInfoProvider : IInsightsInfoProvider<PolicyInfo>
+    internal class RetryPolicyInfoProvider : IPolicyInfoMapper<IExtendedRetryPolicy>
     {
         static RetryPolicyInfoProvider()
         {
@@ -39,35 +39,28 @@ namespace Dse.Insights.InfoProviders.StartupMessage
                             { "childPolicy", RetryPolicyInfoProvider.GetRetryPolicyInfo(typedPolicy.ChildPolicy) }
                         };
                     }
-                },
-                {
-                    typeof(RetryPolicyExtensions.WrappedExtendedRetryPolicy),
-                    policy =>
-                    {
-                        var typedPolicy = (RetryPolicyExtensions.WrappedExtendedRetryPolicy) policy;
-                        return new Dictionary<string, object>
-                        {
-                            { "policy", RetryPolicyInfoProvider.GetRetryPolicyInfo(typedPolicy.Policy) },
-                            { "defaultPolicy", RetryPolicyInfoProvider.GetRetryPolicyInfo(typedPolicy.DefaultPolicy) }
-                        };
-                    }
                 }
             };
         }
 
-        public PolicyInfo GetInformation(IInternalDseCluster cluster, IInternalDseSession dseSession)
+        public PolicyInfo GetPolicyInformation(IExtendedRetryPolicy policy)
         {
-            var retryPolicy = cluster.Configuration.CassandraConfiguration.Policies.RetryPolicy;
-            return RetryPolicyInfoProvider.GetRetryPolicyInfo(retryPolicy);
+            return RetryPolicyInfoProvider.GetRetryPolicyInfo(policy);
         }
 
         private static IReadOnlyDictionary<Type, Func<IRetryPolicy, Dictionary<string, object>>> RetryPolicyOptionsProviders { get; }
-        
+
         private static PolicyInfo GetRetryPolicyInfo(IRetryPolicy policy)
         {
             var retryPolicyType = policy.GetType();
-            RetryPolicyInfoProvider.RetryPolicyOptionsProviders.TryGetValue(retryPolicyType, out var retryPolicyOptionsProvider);
 
+            if (retryPolicyType == typeof(RetryPolicyExtensions.WrappedExtendedRetryPolicy))
+            {
+                var typedPolicy = (RetryPolicyExtensions.WrappedExtendedRetryPolicy) policy;
+                return RetryPolicyInfoProvider.GetRetryPolicyInfo(typedPolicy.Policy);
+            }
+
+            RetryPolicyInfoProvider.RetryPolicyOptionsProviders.TryGetValue(retryPolicyType, out var retryPolicyOptionsProvider);
             return new PolicyInfo
             {
                 Namespace = retryPolicyType.Namespace,

@@ -1,26 +1,26 @@
-﻿// 
+﻿//
 //       Copyright (C) 2019 DataStax, Inc.
-// 
+//
 //     Please see the license for details:
 //     http://www.datastax.com/terms/datastax-dse-driver-license-terms
-// 
+//
 
 using System;
 using System.Collections.Generic;
+
 using Dse.Insights.Schema.StartupMessage;
-using Dse.SessionManagement;
 
 namespace Dse.Insights.InfoProviders.StartupMessage
 {
-    internal class SpeculativeExecutionPolicyInfoProvider : IInsightsInfoProvider<PolicyInfo>
+    internal class SpeculativeExecutionPolicyInfoProvider : IPolicyInfoMapper<ISpeculativeExecutionPolicy>
     {
         static SpeculativeExecutionPolicyInfoProvider()
         {
-            SpeculativeExecutionPolicyInfoProvider.SpeculativeExecutionPolicyOptionsProviders 
+            SpeculativeExecutionPolicyInfoProvider.SpeculativeExecutionPolicyOptionsProviders
                 = new Dictionary<Type, Func<ISpeculativeExecutionPolicy, Dictionary<string, object>>>
                 {
-                    { 
-                        typeof(ConstantSpeculativeExecutionPolicy), 
+                    {
+                        typeof(ConstantSpeculativeExecutionPolicy),
                         policy =>
                         {
                             var typedPolicy = (ConstantSpeculativeExecutionPolicy) policy;
@@ -32,13 +32,12 @@ namespace Dse.Insights.InfoProviders.StartupMessage
                     }
                 };
         }
-        
+
         private static IReadOnlyDictionary<Type, Func<ISpeculativeExecutionPolicy, Dictionary<string, object>>> SpeculativeExecutionPolicyOptionsProviders { get; }
 
-        public PolicyInfo GetInformation(IInternalDseCluster cluster, IInternalDseSession dseSession)
+        public PolicyInfo GetPolicyInformation(ISpeculativeExecutionPolicy policy)
         {
-            var speculativeExecutionPolicy = cluster.Configuration.CassandraConfiguration.Policies.SpeculativeExecutionPolicy;
-            return SpeculativeExecutionPolicyInfoProvider.GetSpeculativeExecutionPolicyInfo(speculativeExecutionPolicy);
+            return SpeculativeExecutionPolicyInfoProvider.GetSpeculativeExecutionPolicyInfo(policy);
         }
 
         private static PolicyInfo GetSpeculativeExecutionPolicyInfo(ISpeculativeExecutionPolicy policy)
