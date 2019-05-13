@@ -17,9 +17,9 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-using Cassandra.SessionManagement;
+using Dse.SessionManagement;
 
-namespace Cassandra
+namespace Dse
 {
     internal class ClusterLifecycleManager : IClusterLifecycleManager
     {

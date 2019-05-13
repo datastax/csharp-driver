@@ -17,7 +17,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Cassandra
+namespace Dse
 {
     internal interface IClusterLifecycleManager
     {
