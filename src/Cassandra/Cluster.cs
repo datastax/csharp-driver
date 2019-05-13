@@ -52,6 +52,7 @@ namespace Cassandra
         private readonly Metadata _metadata;
         private readonly Serializer _serializer;
         private readonly ISessionFactory<IInternalSession> _sessionFactory;
+        private readonly IClusterLifecycleManager _lifecycleManager;
 
         /// <inheritdoc />
         public event Action<Host> HostAdded;
@@ -81,10 +82,15 @@ namespace Cassandra
         /// <returns>the newly created Cluster instance </returns>
         public static Cluster BuildFrom(IInitializer initializer)
         {
-            return BuildFrom(initializer, null);
+            return BuildFrom(initializer, null, null, null);
+        }
+        
+        internal static Cluster BuildFrom(IInitializer initializer, IReadOnlyList<string> hostNames)
+        {
+            return BuildFrom(initializer, hostNames, null, null);
         }
 
-        internal static Cluster BuildFrom(IInitializer initializer, ICollection<string> hostNames)
+        internal static Cluster BuildFrom(IInitializer initializer, IReadOnlyList<string> hostNames, Configuration config, IClusterLifecycleManager manager)
         {
             hostNames = hostNames ?? new string[0];
             if (initializer.ContactPoints.Count == 0 && hostNames.Count == 0)
@@ -92,7 +98,10 @@ namespace Cassandra
                 throw new ArgumentException("Cannot build a cluster without contact points");
             }
 
-            return new Cluster(initializer.ContactPoints.Cast<object>().Concat(hostNames), initializer.GetConfiguration());
+            return new Cluster(
+                initializer.ContactPoints.Cast<object>().Concat(hostNames), 
+                config ?? initializer.GetConfiguration(), 
+                manager);
         }
 
         /// <summary>
@@ -144,7 +153,7 @@ namespace Cassandra
             }
         }
 
-        private Cluster(IEnumerable<object> contactPoints, Configuration configuration)
+        private Cluster(IEnumerable<object> contactPoints, Configuration configuration, IClusterLifecycleManager lifecycleManager)
         {
             Configuration = configuration;
             _metadata = new Metadata(configuration);
@@ -159,6 +168,7 @@ namespace Cassandra
             _metadata.ControlConnection = _controlConnection;
             _serializer = _controlConnection.Serializer;
             _sessionFactory = configuration.SessionFactoryBuilder.BuildWithCluster(this);
+            _lifecycleManager = lifecycleManager ?? new ClusterLifecycleManager(this);
         }
 
         /// <summary>
@@ -228,12 +238,81 @@ namespace Cassandra
         /// <summary>
         /// Initializes once (Thread-safe) the control connection and metadata associated with the Cluster instance
         /// </summary>
-        private async Task Init()
+        private Task Init()
+        {
+            return _lifecycleManager.InitializeAsync();
+        }
+
+        private static string GetAssemblyInfo()
+        {
+            var assembly = typeof(ISession).GetTypeInfo().Assembly;
+            var info = FileVersionInfo.GetVersionInfo(assembly.Location);
+            return $"{info.ProductName} v{info.FileVersion}";
+        }
+
+        internal IReadOnlyDictionary<string, IEnumerable<IPEndPoint>> GetResolvedEndpoints()
+        {
+            return _metadata.ResolvedContactPoints;
+        }
+
+        /// <inheritdoc />
+        public ICollection<Host> AllHosts()
+        {
+            //Do not connect at first
+            return _metadata.AllHosts();
+        }
+
+        /// <summary>
+        /// Creates a new session on this cluster.
+        /// </summary>
+        public ISession Connect()
+        {
+            return Connect(Configuration.ClientOptions.DefaultKeyspace);
+        }
+
+        /// <summary>
+        /// Creates a new session on this cluster.
+        /// </summary>
+        public Task<ISession> ConnectAsync()
+        {
+            return ConnectAsync(Configuration.ClientOptions.DefaultKeyspace);
+        }
+
+        /// <summary>
+        /// Creates a new session on this cluster and using a keyspace an existing keyspace.
+        /// </summary>
+        /// <param name="keyspace">Case-sensitive keyspace name to use</param>
+        public ISession Connect(string keyspace)
+        {
+            return TaskHelper.WaitToComplete(ConnectAsync(keyspace));
+        }
+
+        /// <summary>
+        /// Creates a new session on this cluster and using a keyspace an existing keyspace.
+        /// </summary>
+        /// <param name="keyspace">Case-sensitive keyspace name to use</param>
+        public async Task<ISession> ConnectAsync(string keyspace)
+        {
+            return await InternalRef.ConnectAsync(_sessionFactory, keyspace).ConfigureAwait(false);
+        }
+
+        async Task<TSession> IInternalCluster.ConnectAsync<TSession>(ISessionFactory<TSession> sessionFactory, string keyspace)
+        {
+            await Init().ConfigureAwait(false);
+            var session = await sessionFactory.CreateSessionAsync(keyspace, _serializer).ConfigureAwait(false);
+            await session.Init().ConfigureAwait(false);
+            _connectedSessions.Add(session);
+            _logger.Info("Session connected ({0})", session.GetHashCode());
+            return session;
+        }
+
+        /// <inheritdoc />
+        async Task<bool> IInternalCluster.OnInitializeAsync()
         {
             if (_initialized)
             {
                 //It was already initialized
-                return;
+                return false;
             }
             await _initLock.WaitAsync().ConfigureAwait(false);
             try
@@ -241,7 +320,7 @@ namespace Cassandra
                 if (_initialized)
                 {
                     //It was initialized when waiting on the lock
-                    return;
+                    return false;
                 }
                 if (_initException != null)
                 {
@@ -309,70 +388,55 @@ namespace Cassandra
             {
                 _initLock.Release();
             }
-        }
 
-        private static string GetAssemblyInfo()
-        {
-            var assembly = typeof(ISession).GetTypeInfo().Assembly;
-            var info = FileVersionInfo.GetVersionInfo(assembly.Location);
-            return $"{info.ProductName} v{info.FileVersion}";
-        }
-
-        internal IReadOnlyDictionary<string, IEnumerable<IPEndPoint>> GetResolvedEndpoints()
-        {
-            return _metadata.ResolvedContactPoints;
+            return true;
         }
 
         /// <inheritdoc />
-        public ICollection<Host> AllHosts()
+        async Task<bool> IInternalCluster.OnShutdownAsync(int timeoutMs)
         {
-            //Do not connect at first
-            return _metadata.AllHosts();
-        }
+            if (!_initialized)
+            {
+                return false;
+            }
+            var sessions = _connectedSessions.ClearAndGet();
+            try
+            {
+                var task = Task.Run(() =>
+                {
+                    foreach (var s in sessions)
+                    {
+                        s.Dispose();
+                    }
+                }).WaitToCompleteAsync(timeoutMs);
+                await task.ConfigureAwait(false);
+            }
+            catch (AggregateException ex)
+            {
+                if (ex.InnerExceptions.Count == 1)
+                {
+                    throw ex.InnerExceptions[0];
+                }
+                throw;
+            }
+            _metadata.ShutDown(timeoutMs);
+            _controlConnection.Dispose();
+            Configuration.Timer.Dispose();
+            
+            // Dispose policies
+            var speculativeExecutionPolicies = new HashSet<ISpeculativeExecutionPolicy>(new ReferenceEqualityComparer<ISpeculativeExecutionPolicy>());
+            foreach (var options in Configuration.RequestOptions.Values)
+            {
+                speculativeExecutionPolicies.Add(options.SpeculativeExecutionPolicy);
+            }
 
-        /// <summary>
-        /// Creates a new session on this cluster.
-        /// </summary>
-        public ISession Connect()
-        {
-            return Connect(Configuration.ClientOptions.DefaultKeyspace);
-        }
+            speculativeExecutionPolicies.Add(Configuration.Policies.SpeculativeExecutionPolicy);
+            foreach (var sep in speculativeExecutionPolicies)
+            {
+                sep.Dispose();
+            }
 
-        /// <summary>
-        /// Creates a new session on this cluster.
-        /// </summary>
-        public Task<ISession> ConnectAsync()
-        {
-            return ConnectAsync(Configuration.ClientOptions.DefaultKeyspace);
-        }
-
-        /// <summary>
-        /// Creates a new session on this cluster and using a keyspace an existing keyspace.
-        /// </summary>
-        /// <param name="keyspace">Case-sensitive keyspace name to use</param>
-        public ISession Connect(string keyspace)
-        {
-            return TaskHelper.WaitToComplete(ConnectAsync(keyspace));
-        }
-
-        /// <summary>
-        /// Creates a new session on this cluster and using a keyspace an existing keyspace.
-        /// </summary>
-        /// <param name="keyspace">Case-sensitive keyspace name to use</param>
-        public async Task<ISession> ConnectAsync(string keyspace)
-        {
-            return await ConnectAsync(_sessionFactory, keyspace).ConfigureAwait(false);
-        }
-
-        internal async Task<TSession> ConnectAsync<TSession>(ISessionFactory<TSession> sessionFactory, string keyspace) 
-            where TSession : IInternalSession
-        {
-            await Init().ConfigureAwait(false);
-            var session = await sessionFactory.CreateSessionAsync(keyspace, _serializer).ConfigureAwait(false);
-            await session.Init().ConfigureAwait(false);
-            _connectedSessions.Add(session);
-            _logger.Info("Session connected ({0})", session.GetHashCode());
-            return session;
+            return true;
         }
 
         /// <summary>
@@ -463,50 +527,9 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        public async Task ShutdownAsync(int timeoutMs = Timeout.Infinite)
+        public Task ShutdownAsync(int timeoutMs = Timeout.Infinite)
         {
-            if (!_initialized)
-            {
-                return;
-            }
-            var sessions = _connectedSessions.ClearAndGet();
-            try
-            {
-                var task = Task.Run(() =>
-                {
-                    foreach (var s in sessions)
-                    {
-                        s.Dispose();
-                    }
-                }).WaitToCompleteAsync(timeoutMs);
-                await task.ConfigureAwait(false);
-            }
-            catch (AggregateException ex)
-            {
-                if (ex.InnerExceptions.Count == 1)
-                {
-                    throw ex.InnerExceptions[0];
-                }
-                throw;
-            }
-            _metadata.ShutDown(timeoutMs);
-            _controlConnection.Dispose();
-            Configuration.Timer.Dispose();
-            
-            // Dispose policies
-            var speculativeExecutionPolicies = new HashSet<ISpeculativeExecutionPolicy>(new ReferenceEqualityComparer<ISpeculativeExecutionPolicy>());
-            foreach (var options in Configuration.RequestOptions.Values)
-            {
-                speculativeExecutionPolicies.Add(options.SpeculativeExecutionPolicy);
-            }
-
-            speculativeExecutionPolicies.Add(Configuration.Policies.SpeculativeExecutionPolicy);
-            foreach (var sep in speculativeExecutionPolicies)
-            {
-                sep.Dispose();
-            }
-
-            _logger.Info("Cluster [" + _metadata.ClusterName + "] has been shut down.");
+            return _lifecycleManager.ShutdownAsync(timeoutMs);
         }
 
         /// <summary>

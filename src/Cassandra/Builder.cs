@@ -31,7 +31,8 @@ namespace Cassandra
     public class Builder : IInitializer
     {
         private readonly List<IPEndPoint> _addresses = new List<IPEndPoint>();
-        private readonly IList<string> _hostNames = new List<string>();
+        private readonly List<string> _hostNames = new List<string>();
+        private readonly ICoreClusterFactory _coreClusterFactory = new CoreClusterFactory();
         private const int DefaultQueryAbortTimeout = 20000;
         private PoolingOptions _poolingOptions;
         private SocketOptions _socketOptions = new SocketOptions();
@@ -722,7 +723,9 @@ namespace Cassandra
         /// <returns>the newly build Cluster instance. </returns>
         public Cluster Build()
         {
-            return Cluster.BuildFrom(this, _hostNames);
+            return _coreClusterFactory.Create(this, HostNames, null, null);
         }
+
+        internal IReadOnlyList<string> HostNames => _hostNames;
     }
 }

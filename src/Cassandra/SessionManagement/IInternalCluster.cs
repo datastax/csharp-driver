@@ -15,6 +15,7 @@
 //
 
 using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
@@ -45,5 +46,12 @@ namespace Cassandra.SessionManagement
         /// In case the statement was already in the prepared statements cache, logs an warning but prepares it anyway.
         /// </summary>
         Task<PreparedStatement> Prepare(IInternalSession session, Serializer serializer, InternalPrepareRequest request);
+
+        Task<TSession> ConnectAsync<TSession>(ISessionFactory<TSession> sessionFactory, string keyspace)
+            where TSession : IInternalSession;
+
+        Task<bool> OnInitializeAsync();
+        
+        Task<bool> OnShutdownAsync(int timeoutMs = Timeout.Infinite);
     }
 }
