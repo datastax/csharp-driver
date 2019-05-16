@@ -442,7 +442,7 @@ namespace Cassandra.Tests
             }.Build();
             var metadata = new Metadata(config, schemaParser) {Partitioner = "Murmur3Partitioner"};
             metadata.ControlConnection = new ControlConnection(
-                new ProtocolEventDebouncer(new DotnetTimerFactory(), TimeSpan.FromMilliseconds(50), TimeSpan.FromSeconds(200)), 
+                new ProtocolEventDebouncer(new TaskBasedTimerFactory(), TimeSpan.FromMilliseconds(50), TimeSpan.FromSeconds(200)), 
                 ProtocolVersion.V3, 
                 config, 
                 metadata);

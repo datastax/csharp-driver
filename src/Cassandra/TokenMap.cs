@@ -57,12 +57,8 @@ namespace Cassandra
 
         public IReadOnlyDictionary<IToken, ISet<Host>> GetByKeyspace(string keyspaceName)
         {
-            if (_tokenToHostsByKeyspace.TryGetValue(keyspaceName, out var value))
-            {
-                return value;
-            }
-
-            return null;
+            _tokenToHostsByKeyspace.TryGetValue(keyspaceName, out var value);
+            return value;
         }
 
         public void UpdateKeyspace(KeyspaceMetadata ks)

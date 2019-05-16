@@ -22,7 +22,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var cluster = Cluster.Builder()
                                  .AddContactPoint(_testCluster.InitialContactPoint)
-                                 .WithMetadataSyncOptions(new MetadataSyncOptions { MetadataSyncEnabled = metadataSync, RefreshSchemaDelayIncrement = 1, MaxTotalRefreshSchemaDelay = 5})
+                                 .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync).SetRefreshSchemaDelayIncrement(1).SetMaxTotalRefreshSchemaDelay(5))
                                  .Build();
             _clusters.Add(cluster);
             return cluster;

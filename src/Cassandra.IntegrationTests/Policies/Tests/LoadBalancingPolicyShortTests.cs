@@ -306,7 +306,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             var testCluster = TestClusterManager.CreateNew(3, new TestClusterOptions { UseVNodes = true });
             var cluster = Cluster.Builder()
                                  .AddContactPoint(testCluster.InitialContactPoint)
-                                 .WithMetadataSyncOptions(new MetadataSyncOptions { MetadataSyncEnabled = metadataSync })
+                                 .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync))
                                  .Build();
             try
             {
@@ -347,7 +347,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             var testCluster = TestClusterManager.CreateNew(3, new TestClusterOptions { UseVNodes = true });
             var cluster = Cluster.Builder()
                                  .AddContactPoint(testCluster.InitialContactPoint)
-                                 .WithMetadataSyncOptions(new MetadataSyncOptions { MetadataSyncEnabled = metadataSync })
+                                 .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync))
                                  .Build();
             try
             {

@@ -39,7 +39,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
             var keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
             ClusterObj = Cluster.Builder()
                                 .AddContactPoint(TestCluster.InitialContactPoint)
-                                .WithMetadataSyncOptions(new MetadataSyncOptions { MetadataSyncEnabled = metadataSync})
+                                .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync))
                                 .Build();
 
             var session = ClusterObj.Connect();
@@ -72,7 +72,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
             var keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
             ClusterObj = Cluster.Builder()
                                 .AddContactPoint(TestCluster.InitialContactPoint)
-                                .WithMetadataSyncOptions(new MetadataSyncOptions { MetadataSyncEnabled = metadataSync})
+                                .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync))
                                 .Build();
 
             var session = ClusterObj.Connect();

@@ -23,6 +23,8 @@ namespace Cassandra.ProtocolEvents
     /// </summary>
     internal interface ITimer : IDisposable
     {
-        bool Change(TimeSpan due, TimeSpan period);
+        void Cancel();
+
+        void Change(Action action, TimeSpan due);
     }
 }

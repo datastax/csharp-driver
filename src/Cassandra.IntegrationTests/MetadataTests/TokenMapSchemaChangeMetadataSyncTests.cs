@@ -42,7 +42,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
             base.OneTimeSetUp();
             _cluster = Cluster.Builder()
                              .AddContactPoint(TestCluster.InitialContactPoint)
-                             .WithMetadataSyncOptions(new MetadataSyncOptions { MetadataSyncEnabled = false })
+                             .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
                              .WithQueryTimeout(60000)
                              .Build();
             _session = _cluster.Connect();
@@ -55,7 +55,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
             var keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
             var newSession = Cluster.Builder()
                                     .AddContactPoint(TestCluster.InitialContactPoint)
-                                    .WithMetadataSyncOptions(new MetadataSyncOptions { MetadataSyncEnabled = false })
+                                    .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
                                     .WithQueryTimeout(60000)
                                     .Build()
                                     .Connect();
@@ -85,7 +85,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
 
             var newSession = Cluster.Builder()
                                     .AddContactPoint(TestCluster.InitialContactPoint)
-                                    .WithMetadataSyncOptions(new MetadataSyncOptions { MetadataSyncEnabled = false })
+                                    .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
                                     .WithQueryTimeout(60000)
                                     .Build()
                                     .Connect();
@@ -109,7 +109,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
             
             var newSession = Cluster.Builder()
                                     .AddContactPoint(TestCluster.InitialContactPoint)
-                                    .WithMetadataSyncOptions(new MetadataSyncOptions { MetadataSyncEnabled = false })
+                                    .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
                                     .WithQueryTimeout(60000)
                                     .Build()
                                     .Connect(keyspaceName);
@@ -151,7 +151,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
             
             var newSession = Cluster.Builder()
                                     .AddContactPoint(TestCluster.InitialContactPoint)
-                                    .WithMetadataSyncOptions(new MetadataSyncOptions { MetadataSyncEnabled = false })
+                                    .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
                                     .WithQueryTimeout(60000)
                                     .Build()
                                     .Connect(keyspaceName);
@@ -189,7 +189,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
             
             var newSession = Cluster.Builder()
                                     .AddContactPoint(TestCluster.InitialContactPoint)
-                                    .WithMetadataSyncOptions(new MetadataSyncOptions { MetadataSyncEnabled = false })
+                                    .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
                                     .WithQueryTimeout(60000)
                                     .Build()
                                     .Connect(keyspaceName);

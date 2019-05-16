@@ -201,7 +201,7 @@ namespace Cassandra
             ConnectionFactory = connectionFactory ?? new ConnectionFactory();
             ControlConnectionFactory = controlConnectionFactory ?? new ControlConnectionFactory();
             PrepareHandlerFactory = prepareHandlerFactory ?? new PrepareHandlerFactory();
-            TimerFactory = timerFactory ?? new DotnetTimerFactory();
+            TimerFactory = timerFactory ?? new TaskBasedTimerFactory();
             
             RequestOptions = BuildRequestOptionsDictionary(executionProfiles, policies, socketOptions, clientOptions, queryOptions);
             ExecutionProfiles = BuildExecutionProfilesDictionary(executionProfiles, RequestOptions);

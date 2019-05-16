@@ -14,16 +14,15 @@
 //    limitations under the License.
 //
 
-using System;
-using System.Threading;
+using System.Threading.Tasks;
 
 namespace Cassandra.ProtocolEvents
 {
-    internal class DotnetTimerFactory : ITimerFactory
+    internal class TaskBasedTimerFactory : ITimerFactory
     {
-        public ITimer Create(TimerCallback action, object state, TimeSpan due, TimeSpan period)
+        public ITimer Create(TaskScheduler scheduler)
         {
-            return new DotnetTimer(action, state, due, period);
+            return new TaskBasedTimer(scheduler);
         }
     }
 }

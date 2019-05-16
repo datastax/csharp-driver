@@ -1,28 +1,29 @@
-﻿// 
+﻿//
 //       Copyright (C) DataStax Inc.
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //       http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-// 
+//
 
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
+
 using Cassandra.ProtocolEvents;
 using Cassandra.Tasks;
-using Cassandra.Tests.MetadataHelpers.TestHelpers;
+
 using Moq;
+
 using NUnit.Framework;
 
 namespace Cassandra.Tests.MetadataTests
@@ -42,11 +43,10 @@ namespace Cassandra.Tests.MetadataTests
 
             TestHelper.RetryAssert(() =>
             {
-                VerifyTimerFactoryCreate(mockResult, 10, Times.Once());
+                VerifyTimerChange(mockResult.Timers.Single(), 10, Times.Once());
             });
             await Task.Delay(100).ConfigureAwait(false); // assert that no more timers are invoked
-            VerifyTimerFactoryCreate(mockResult, 10, Times.Once());
-            VerifyTimerChange(mockResult.Timers.Single(), null, Times.Never());
+            VerifyTimerChange(mockResult.Timers.Single(), 10, Times.Once());
         }
 
         [Test]
@@ -60,18 +60,14 @@ namespace Cassandra.Tests.MetadataTests
 
             TestHelper.RetryAssert(() =>
             {
-                VerifyTimerFactoryCreate(mockResult, 10, Times.Exactly(2));
                 var timers = mockResult.Timers.ToArray();
-                Assert.AreEqual(2, timers.Length);
-                VerifyTimerChange(timers[0], Timeout.Infinite, Times.Once());
-                VerifyTimerChange(timers[1], Timeout.Infinite, Times.Never());
+                Assert.AreEqual(1, timers.Length);
+                VerifyTimerChange(timers[0], 10, Times.Exactly(2));
             });
             await Task.Delay(100).ConfigureAwait(false);
-            VerifyTimerFactoryCreate(mockResult, 10, Times.Exactly(2));
-            VerifyTimerChange(mockResult.Timers.First(), Timeout.Infinite, Times.Once());
-            VerifyTimerChange(mockResult.Timers.Last(), Timeout.Infinite, Times.Never());
+            VerifyTimerChange(mockResult.Timers.Single(), 10, Times.Exactly(2));
         }
-        
+
         [Test]
         [TestCase(true)]
         [TestCase(false)]
@@ -84,11 +80,10 @@ namespace Cassandra.Tests.MetadataTests
 
             TestHelper.RetryAssert(() =>
             {
-                VerifyTimerFactoryCreate(mockResult, 10, Times.Once());
+                VerifyTimerChange(mockResult.Timers.Single(), 10, Times.Once());
             });
             await Task.Delay(100).ConfigureAwait(false); // assert that no more timers are invoked
-            VerifyTimerFactoryCreate(mockResult, 10, Times.Once());
-            VerifyTimerChange(mockResult.Timers.Single(), null, Times.Never());
+            VerifyTimerChange(mockResult.Timers.Single(), 10, Times.Once());
         }
 
         [Test]
@@ -104,16 +99,12 @@ namespace Cassandra.Tests.MetadataTests
 
             TestHelper.RetryAssert(() =>
             {
-                VerifyTimerFactoryCreate(mockResult, 10, Times.Exactly(2));
                 var timers = mockResult.Timers.ToArray();
-                Assert.AreEqual(2, timers.Length);
-                VerifyTimerChange(timers[0], Timeout.Infinite, Times.Once());
-                VerifyTimerChange(timers[1], Timeout.Infinite, Times.Never());
+                Assert.AreEqual(1, timers.Length);
+                VerifyTimerChange(timers[0], 10, Times.Exactly(2));
             });
             await Task.Delay(100).ConfigureAwait(false);
-            VerifyTimerFactoryCreate(mockResult, 10, Times.Exactly(2));
-            VerifyTimerChange(mockResult.Timers.First(), Timeout.Infinite, Times.Once());
-            VerifyTimerChange(mockResult.Timers.Last(), Timeout.Infinite, Times.Never());
+            VerifyTimerChange(mockResult.Timers.Single(), 10, Times.Exactly(2));
             Assert.AreEqual(2, target.GetQueue().Keyspaces.Count);
         }
 
@@ -129,30 +120,13 @@ namespace Cassandra.Tests.MetadataTests
 
             TestHelper.RetryAssert(() =>
             {
-                VerifyTimerFactoryCreate(mockResult, 10, Times.Exactly(3));
                 var timers = mockResult.Timers.ToArray();
-                Assert.AreEqual(3, timers.Length);
-                VerifyTimerChange(timers[0], Timeout.Infinite, Times.Once());
-                VerifyTimerChange(timers[1], Timeout.Infinite, Times.Once());
-                VerifyTimerChange(timers[2], Timeout.Infinite, Times.Never());
+                Assert.AreEqual(1, timers.Length);
+                VerifyTimerChange(timers[0], 10, Times.Exactly(3));
             });
             await Task.Delay(100).ConfigureAwait(false);
-            VerifyTimerFactoryCreate(mockResult, 10, Times.Exactly(3));
-            VerifyTimerChange(mockResult.Timers.First(), Timeout.Infinite, Times.Once());
-            VerifyTimerChange(mockResult.Timers.Skip(1).First(), Timeout.Infinite, Times.Once());
-            VerifyTimerChange(mockResult.Timers.Last(), Timeout.Infinite, Times.Never());
+            VerifyTimerChange(mockResult.Timers.Single(), 10, Times.Exactly(3));
             Assert.AreEqual(0, target.GetQueue().Keyspaces.Count);
-        }
-
-        private void VerifyTimerFactoryCreate(TimerMockResult mockResult, long? delayMs, Times times)
-        {
-            Mock.Get(mockResult.TimerFactory).Verify(
-                t => t.Create(
-                    It.IsAny<TimerCallback>(), 
-                    It.IsAny<object>(), 
-                    delayMs == null ? It.IsAny<TimeSpan>() : TimeSpan.FromMilliseconds(delayMs.Value), 
-                    Timeout.InfiniteTimeSpan), 
-                times);
         }
 
         private ProtocolEvent CreateProtocolEvent(string keyspace = null, bool? isRefreshEvent = null)
@@ -179,8 +153,8 @@ namespace Cassandra.Tests.MetadataTests
         {
             Mock.Get(timer).Verify(
                 t => t.Change(
-                    delayMs == null ? It.IsAny<TimeSpan>() : TimeSpan.FromMilliseconds(delayMs.Value), 
-                    It.IsAny<TimeSpan>()), 
+                    It.IsAny<Action>(),
+                    delayMs == null ? It.IsAny<TimeSpan>() : TimeSpan.FromMilliseconds(delayMs.Value)),
                 times);
         }
 
@@ -189,7 +163,7 @@ namespace Cassandra.Tests.MetadataTests
             var mockResult = new TimerMockResult();
             var timerFactory = Mock.Of<ITimerFactory>();
             Mock.Get(timerFactory)
-                .Setup(t => t.Create(It.IsAny<TimerCallback>(), It.IsAny<object>(), TimeSpan.FromMilliseconds(delayMs), Timeout.InfiniteTimeSpan))
+                .Setup(t => t.Create(It.IsAny<TaskScheduler>()))
                 .Returns(() =>
                 {
                     var timer = Mock.Of<ITimer>();

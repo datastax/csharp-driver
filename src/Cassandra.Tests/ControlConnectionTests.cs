@@ -22,7 +22,7 @@ namespace Cassandra.Tests
         private IProtocolEventDebouncer GetEventDebouncer(Configuration config)
         {
             return new ProtocolEventDebouncer(
-                new DotnetTimerFactory(), 
+                new TaskBasedTimerFactory(), 
                 TimeSpan.FromMilliseconds(config.MetadataSyncOptions.RefreshSchemaDelayIncrement), 
                 TimeSpan.FromMilliseconds(config.MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
         }

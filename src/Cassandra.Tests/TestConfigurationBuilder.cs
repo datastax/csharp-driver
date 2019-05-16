@@ -62,7 +62,7 @@ namespace Cassandra.Tests
 
         public IPrepareHandlerFactory PrepareHandlerFactory { get; set; } = new PrepareHandlerFactory();
 
-        public ITimerFactory TimerFactory { get; set; } = new DotnetTimerFactory();
+        public ITimerFactory TimerFactory { get; set; } = new TaskBasedTimerFactory();
 
         public Configuration Build()
         {

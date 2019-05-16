@@ -29,15 +29,14 @@ namespace Cassandra.ProtocolEvents
     /// </summary>
     internal class SlidingWindowExclusiveTimer : IDisposable
     {
-        private readonly ITimerFactory _timerFactory;
         private readonly TimeSpan _delayIncrement;
         private readonly TimeSpan _maxDelay;
         private readonly Action _act;
-        private volatile ITimer _timer;
-        private long _counter;
+        private readonly ITimer _timer;
+        private readonly TaskFactory _timerTaskFactory;
+
         private long _windowFirstTimestamp;
         private volatile bool _isRunning;
-        private readonly TaskFactory _timerTaskFactory;
 
         public SlidingWindowExclusiveTimer(ITimerFactory timerFactory, TimeSpan delayIncrement, TimeSpan maxDelay, Action act)
         {
@@ -55,7 +54,7 @@ namespace Cassandra.ProtocolEvents
 
             ExclusiveScheduler = scheduler;
             _timerTaskFactory = taskFactory;
-            _timerFactory = timerFactory;
+            _timer = timerFactory.Create(scheduler);
             _delayIncrement = delayIncrement;
             _maxDelay = maxDelay;
             _act = act;
@@ -82,19 +81,12 @@ namespace Cassandra.ProtocolEvents
                 {
                     CancelExistingTimer();
                     _act();
-
-                    // increment counter so that previous timers don't execute _act()
-                    IncrementTimerCounter();
-
+                    
                     _isRunning = false;
                     return;
                 }
 
-                CancelExistingTimer();
-
-                // increment counter and pass the new counter to the new timer
-                var counter = IncrementTimerCounter();
-                _timer = _timerFactory.Create(Fire, counter, timeUntilNextTrigger, Timeout.InfiniteTimeSpan);
+                _timer.Change(Fire, timeUntilNextTrigger);
 
             }).Forget();
         }
@@ -139,44 +131,19 @@ namespace Cassandra.ProtocolEvents
 
         private void CancelExistingTimer()
         {
-            // if there is an existing timer, cancel it (if by any change it already fired and the task is scheduled then 
-            // the counter increment will make it not invoke _act()
-            if (_timer != null)
+            _timer?.Cancel();
+        }
+        
+        private void Fire()
+        {
+            // this method can't be async otherwise exclusive scheduler is pointless
+            // this is already running inside the exclusive scheduler
+            
+            if (_isRunning)
             {
-                _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-                _timer.Dispose();
-                _timer = null;
+                _act();
+                _isRunning = false;
             }
-        }
-
-        /// <summary>
-        /// Increments timer counter so that we can avoid duplicate <see cref="_act"/> calls (<see cref="Fire"/> checks the provided counter)
-        /// </summary>
-        private long IncrementTimerCounter()
-        {
-            var currentCounter = Volatile.Read(ref _counter);
-            currentCounter = (currentCounter == long.MaxValue) ? 0 : (currentCounter + 1);
-            Volatile.Write(ref _counter, currentCounter);
-            return currentCounter;
-        }
-
-        private void Fire(object state)
-        {
-            // delegate can't be async otherwise exclusive scheduler is pointless
-            _timerTaskFactory.StartNew(() =>
-            {
-                if (_isRunning)
-                {
-                    var counter = Volatile.Read(ref _counter);
-                    
-                    // if counter is different then another timer was created or act() was already invoked in SlideDelay()
-                    if (counter == (long)state)
-                    {
-                        _act();
-                        _isRunning = false;
-                    }
-                }
-            }).Forget();
         }
     }
 }
