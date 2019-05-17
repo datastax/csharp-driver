@@ -17,9 +17,58 @@ The legacy configuration remains intact but it is recommended to set the availab
 This page explains how Execution Profiles relate to existing settings, and shows how to use the new profiles for
 request execution.
 
+## Using Execution Profiles
+
+When SLAs are defined there might be different SLAs for different parts of a system. When it comes to authentication, for example, the SLA for a log in might be different from the SLA for a new user registration.
+
+| User journey    | Per host timeout  | Consistency |
+|-----------------|-------------------|-------------|
+| Log in          | 100ms             | LOCAL_ONE   |
+| Sign up         | 2000ms            | QUORUM      |
+
+Instead of manually adjusting the options on every request, you can create execution profiles:
+
+```csharp
+var cluster = 
+   Cluster.Builder()
+          .AddContactPoint("127.0.0.1")
+          .WithExecutionProfiles(opts => opts
+            .WithProfile("default", profile => profile
+                .WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc: "dc1")))
+            .WithProfile("login", profile => profile
+                .WithConsistencyLevel(ConsistencyLevel.LocalOne)
+                .WithReadTimeoutMillis(100)
+            .WithProfile("signup", profile => profile
+                .WithConsistencyLevel(ConsistencyLevel.Quorum)
+                .WithReadTimeoutMillis(2000)))
+          .Build();
+```
+
+Note that both profiles (`login` and `signup`) will inherit the unspecified parameters from the `default` profile. This means that in this case both profiles will use the token and datacenter aware load balancing policy with local datacenter `dc1`.
+
+Now each request only needs a profile name. Here's an example with `Mapper`.
+
+```csharp
+var session = cluster.Connect();
+var mapper = new Mapper(session);
+
+var cql = Cql.New("SELECT * FROM users WHERE username = ?", username).WithExecutionProfile("login");
+var fetchResult = await mapper.FetchAsync<User>(cql).ConfigureAwait(false);
+```
+
+And here's the same operation with a `PreparedStatement` and `Session.ExecuteAsync`:
+
+```csharp
+var session = cluster.Connect();
+var ps = await session.PrepareAsync("SELECT * FROM users WHERE username = ?").ConfigureAwait(false);
+
+var statement = ps.Bind(username);
+var fetchResult = await session.ExecuteAsync(statement, "login").ConfigureAwait(false);
+```
+
 ## Mapping Legacy Parameters to Profiles
 
-The name "default" is reserved for the default execution profile. This profile will be the one that is going to be used whenever no profile is specified in a request.
+The name `default` is reserved for the default execution profile. This profile will be the one that is going to be used whenever no profile is specified in a request.
 
 You can change the default profile either by the legacy parameters on `Cluster.Builder` or by changing the execution profile itself with `Builder.WithExecutionProfiles`.
 
@@ -56,272 +105,39 @@ var cluster2 =
           .Build();
 ```
 
-## Using Execution Profiles
+## Derived Execution Profiles
 
-### Initializing cluster with profiles
+This is an advanced feature that might be useful in some cases. You can create derived profiles that inherit parameters from base profiles. A similar behavior is the way every execution profile inherits parameters from the `default` profile. 
 
-Execution profiles should be created when creating the `Client` instance with a name that identifies it and the settings
-that apply to the profile.
+Let's say an application needs 2 execution profiles for its operations but it also implements datacenter failover. In this case it will need 2 more execution profiles that will basically be the same except for `localDc` and `timeout`. 
 
-```javascript
-const aggregationProfile = new ExecutionProfile('aggregation', {
-  consistency: consistency.localQuorum,
-  loadBalancing: new DCAwareRoundRobinPolicy('us-west'),
-  retry: myRetryPolicy,
-  readTimeout: 30000,
-  serialConsistency: consistency.localSerial
-});
+| Scenario       | Per host timeout | Consistency  | Load Datacenter |
+|----------------|------------------|--------------|-----------------|
+| default        | 50ms             | LOCAL_ONE    | dc1             |
+| local-quorum   | 100ms            | LOCAL_QUORUM | dc1             |
+| remote-one     | 2000ms           | LOCAL_ONE    | dc2             |
+| remote-quorum  | 2500ms           | LOCAL_QUORUM | dc2             |
 
-const client = new Client({ 
-  contactPoints: ['host1'],
-  localDataCenter,
-  profiles: [ aggregationProfile ]
-});
+Here is how this looks in code (note that `local-quorum` is not created with `WithDerivedProfile`, because the `default` profile inheritance happens by default):
+
+```csharp
+var cluster = 
+   Cluster.Builder()
+          .AddContactPoint("127.0.0.1")
+          .WithExecutionProfiles(opts => opts
+            .WithProfile("default", profile => profile
+                .WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc: "dc1")))
+                .WithConsistencyLevel(ConsistencyLevel.LocalOne)
+                .WithReadTimeoutMillis(50))
+            .WithProfile("local-quorum", profile => profile
+                .WithConsistencyLevel(ConsistencyLevel.LocalQuorum)
+                .WithReadTimeoutMillis(100))
+            .WithProfile("remote-one", profile => profile
+                .WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc: "dc2")))
+                .WithConsistencyLevel(ConsistencyLevel.LocalOne)
+                .WithReadTimeoutMillis(2000))
+            .WithDerivedProfile("remote-quorum", "remote-one", profile => profile
+                .WithConsistencyLevel(ConsistencyLevel.LocalQuorum)
+                .WithReadTimeoutMillis(2500)))
+          .Build();
 ```
-
-Note that while the above options are all the supported settings on the execution profiles, you can specify only the
-ones that are required for the executions, using the `'default'` profile to fill the rest of the options.
-
-#### Default execution profile
-
-You can define a default profile, using the name `'default'`:
-
-```javascript
-const client = new Client({ 
-  contactPoints: ['host1'],
-  localDataCenter,
-  profiles: [ 
-    new ExecutionProfile('default', {
-      consistency: consistency.one,
-      readTimeout: 10000
-    }),
-    new ExecutionProfile('time-series', {
-      consistency: consistency.localQuorum
-    })
-  ]
-});
-```
-
-The default profile will be used to fill the unspecified options in the rest of the profiles. In the above example, the
-read timeout for the profile named `'time-series'` will be the one defined in the default profile (10,000 ms).
-
-For the settings that are not specified in the default profile, the driver will use the default `Client` options.
-
-### Using an execution profile by name
-
-Use the name to specify which profile you want to use for the execution.
-
-```javascript
-client.execute(query, params, { executionProfile: 'aggregation' });
-```
-### Using an execution profile by instance
-
-You can also use the `ExecutionProfile` instance.
-
-```javascript
-client.execute(query, params, { executionProfile: aggregationProfile });
-```
-
-### Using default execution profile
-
-When the execution profile is not provided in the options, the default execution profile is used.
-
-```javascript
-client.execute(query, params);
-```
-
-
-
-
-
-
-
-
-
-Execution Profiles
-==================
-
-Execution profiles aim at making it easier to execute requests in different ways within
-a single connected ``Session``. Execution profiles are being introduced to deal with the exploding number of
-configuration options, especially as the database platform evolves more complex workloads.
-
-The legacy configuration remains intact, but legacy and Execution Profile APIs
-cannot be used simultaneously on the same client ``Cluster``. Legacy configuration
-will be removed in the next major release (4.0).
-
-This document explains how Execution Profiles relate to existing settings, and shows how to use the new profiles for
-request execution.
-
-Mapping Legacy Parameters to Profiles
--------------------------------------
-
-Execution profiles can inherit from :class:`.cluster.ExecutionProfile`, and currently provide the following options,
-previously input from the noted attributes:
-
-- load_balancing_policy - :attr:`.Cluster.load_balancing_policy`
-- request_timeout - :attr:`.Session.default_timeout`, optional :meth:`.Session.execute` parameter
-- retry_policy - :attr:`.Cluster.default_retry_policy`, optional :attr:`.Statement.retry_policy` attribute
-- consistency_level - :attr:`.Session.default_consistency_level`, optional :attr:`.Statement.consistency_level` attribute
-- serial_consistency_level - :attr:`.Session.default_serial_consistency_level`, optional :attr:`.Statement.serial_consistency_level` attribute
-- row_factory - :attr:`.Session.row_factory` attribute
-
-When using the new API, these parameters can be defined by instances of :class:`.cluster.ExecutionProfile`.
-
-Using Execution Profiles
-------------------------
-Default
-~~~~~~~
-
-.. code:: python
-
-    from cassandra.cluster import Cluster
-    cluster = Cluster()
-    session = cluster.connect()
-    local_query = 'SELECT rpc_address FROM system.local'
-    for _ in cluster.metadata.all_hosts():
-        print session.execute(local_query)[0]
-
-
-.. parsed-literal::
-
-    Row(rpc_address='127.0.0.2')
-    Row(rpc_address='127.0.0.1')
-
-
-The default execution profile is built from Cluster parameters and default Session attributes. This profile matches existing default
-parameters.
-
-Initializing cluster with profiles
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code:: python
-
-    from cassandra.cluster import ExecutionProfile
-    from cassandra.policies import WhiteListRoundRobinPolicy
-
-    node1_profile = ExecutionProfile(load_balancing_policy=WhiteListRoundRobinPolicy(['127.0.0.1']))
-    node2_profile = ExecutionProfile(load_balancing_policy=WhiteListRoundRobinPolicy(['127.0.0.2']))
-
-    profiles = {'node1': node1_profile, 'node2': node2_profile}
-    session = Cluster(execution_profiles=profiles).connect()
-    for _ in cluster.metadata.all_hosts():
-        print session.execute(local_query, execution_profile='node1')[0]
-
-
-.. parsed-literal::
-
-    Row(rpc_address='127.0.0.1')
-    Row(rpc_address='127.0.0.1')
-
-
-.. code:: python
-
-    for _ in cluster.metadata.all_hosts():
-        print session.execute(local_query, execution_profile='node2')[0]
-
-
-.. parsed-literal::
-
-    Row(rpc_address='127.0.0.2')
-    Row(rpc_address='127.0.0.2')
-
-
-.. code:: python
-
-    for _ in cluster.metadata.all_hosts():
-        print session.execute(local_query)[0]
-
-
-.. parsed-literal::
-
-    Row(rpc_address='127.0.0.2')
-    Row(rpc_address='127.0.0.1')
-
-Note that, even when custom profiles are injected, the default ``TokenAwarePolicy(DCAwareRoundRobinPolicy())`` is still
-present. To override the default, specify a policy with the :data:`~.cluster.EXEC_PROFILE_DEFAULT` key.
-
-.. code:: python
-
-    from cassandra.cluster import EXEC_PROFILE_DEFAULT
-    profile = ExecutionProfile(request_timeout=30)
-    cluster = Cluster(execution_profiles={EXEC_PROFILE_DEFAULT: profile})
-
-
-Adding named profiles
-~~~~~~~~~~~~~~~~~~~~~
-
-New profiles can be added constructing from scratch, or deriving from default:
-
-.. code:: python
-
-    locked_execution = ExecutionProfile(load_balancing_policy=WhiteListRoundRobinPolicy(['127.0.0.1']))
-    node1_profile = 'node1_whitelist'
-    cluster.add_execution_profile(node1_profile, locked_execution)
-    
-    for _ in cluster.metadata.all_hosts():
-        print session.execute(local_query, execution_profile=node1_profile)[0]
-
-
-.. parsed-literal::
-
-    Row(rpc_address='127.0.0.1')
-    Row(rpc_address='127.0.0.1')
-
-See :meth:`.Cluster.add_execution_profile` for details and optional parameters.
-
-Passing a profile instance without mapping
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-We also have the ability to pass profile instances to be used for execution, but not added to the mapping:
-
-.. code:: python
-
-    from cassandra.query import tuple_factory
-    
-    tmp = session.execution_profile_clone_update('node1', request_timeout=100, row_factory=tuple_factory)
-
-    print session.execute(local_query, execution_profile=tmp)[0]
-    print session.execute(local_query, execution_profile='node1')[0]
-
-.. parsed-literal::
-
-    ('127.0.0.1',)
-    Row(rpc_address='127.0.0.1')
-
-The new profile is a shallow copy, so the ``tmp`` profile shares a load balancing policy with one managed by the cluster.
-If reference objects are to be updated in the clone, one would typically set those attributes to a new instance.
-
-
-
-
-
-
-
-
-Execution profiles
-
-Imagine an application that does both transactional and analytical requests. Transactional requests are simpler and must return quickly, so they will typically use a short timeout, let's say 100 milliseconds; analytical requests are more complex and less frequent so a higher SLA is acceptable, for example 5 seconds. In addition, maybe you want to use a different consistency level.
-
-Instead of manually adjusting the options on every request, you can create execution profiles:
-
-datastax-java-driver {
-  profiles {
-    oltp {
-      basic.request.timeout = 100 milliseconds
-      basic.request.consistency = ONE
-    }
-    olap {
-      basic.request.timeout = 5 seconds
-      basic.request.consistency = QUORUM
-    }
-}
-
-Now each request only needs a profile name:
-
-SimpleStatement s =
-  SimpleStatement.builder("SELECT name FROM user WHERE id = 1")
-      .setExecutionProfileName("oltp")
-      .build();
-session.execute(s);
-
-The configuration has an anonymous default profile that is always present. It can define an arbitrary number of named profiles. They inherit from the default profile, so you only need to override the options that have a different value.
