@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -201,10 +202,10 @@ namespace Cassandra.Requests
         {
             RequestExecution.ValidateResult(response);
             var resultResponse = (ResultResponse)response;
-            if (resultResponse.Output is OutputSchemaChange)
+            if (resultResponse.Output is OutputSchemaChange schemaChange)
             {
                 //Schema changes need to do blocking operations
-                HandleSchemaChange(resultResponse);
+                HandleSchemaChange(resultResponse, schemaChange);
                 return;
             }
             RowSet rs;
@@ -223,7 +224,7 @@ namespace Cassandra.Requests
             _parent.SetCompleted(null, FillRowSet(rs, resultResponse));
         }
 
-        private void HandleSchemaChange(ResultResponse response)
+        private void HandleSchemaChange(ResultResponse response, OutputSchemaChange schemaChange)
         {
             var result = FillRowSet(new RowSet(), response);
 
@@ -237,6 +238,16 @@ namespace Cassandra.Requests
                 {
                     var schemaAgreed = _session.Cluster.Metadata.WaitForSchemaAgreement(_connection);
                     result.Info.SetSchemaInAgreement(schemaAgreed);
+                    try
+                    {
+                        TaskHelper.WaitToComplete(
+                            _session.InternalCluster.GetControlConnection().HandleSchemaChangeEvent(schemaChange.SchemaChangeEventArgs, true),
+                            _session.Cluster.Configuration.ProtocolOptions.MaxSchemaAgreementWaitSeconds * 1000);
+                    }
+                    catch (TimeoutException)
+                    {
+                        RequestExecution.Logger.Warning("Schema refresh triggered by a SCHEMA_CHANGE response timed out.");
+                    }
                 });
         }
 

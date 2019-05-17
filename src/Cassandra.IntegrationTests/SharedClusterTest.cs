@@ -141,9 +141,11 @@ namespace Cassandra.IntegrationTests
             return GetNewCluster().Connect(keyspace);
         }
 
-        protected Cluster GetNewCluster()
+        protected Cluster GetNewCluster(Action<Builder> build = null)
         {
-            var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build();
+            var builder = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint);
+            build?.Invoke(builder);
+            var cluster = builder.Build();
             _clusterInstances.Add(cluster);
             return cluster;
         }

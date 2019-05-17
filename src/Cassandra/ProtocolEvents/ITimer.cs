@@ -1,32 +1,30 @@
-﻿// 
-//       Copyright (C) 2019 DataStax Inc.
-// 
+﻿//
+//       Copyright (C) DataStax Inc.
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //       http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-// 
+//
 
-using Cassandra.ProtocolEvents;
+using System;
 
-namespace Cassandra.Connections
+namespace Cassandra.ProtocolEvents
 {
-    internal class ControlConnectionFactory : IControlConnectionFactory
+    /// <summary>
+    /// For unit testing purposes. Wrapper around <see cref="System.Threading.Timer"/>.
+    /// </summary>
+    internal interface ITimer : IDisposable
     {
-        public IControlConnection Create(IProtocolEventDebouncer protocolEventDebouncer, ProtocolVersion initialProtocolVersion, Configuration config, Metadata metadata)
-        {
-            return new ControlConnection(
-                protocolEventDebouncer, 
-                initialProtocolVersion, 
-                config, 
-                metadata);
-        }
+        void Cancel();
+
+        void Change(Action action, TimeSpan due);
     }
 }

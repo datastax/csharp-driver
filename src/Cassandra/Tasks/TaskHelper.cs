@@ -421,5 +421,14 @@ namespace Cassandra.Tasks
         {
             return new CancellationTokenSource(timespan).Token;
         }
+
+        public static Func<Task> ActionToAsync(Action act)
+        {
+            return () =>
+            {
+                act();
+                return TaskHelper.Completed;
+            };
+        }
     }
 }

@@ -55,7 +55,8 @@ namespace Cassandra.Tests
                 new DefaultAddressTranslator(),
                 Mock.Of<IStartupOptionsFactory>(),
                 new SessionFactoryBuilder(),
-                new Dictionary<string, IExecutionProfile>());
+                new Dictionary<string, IExecutionProfile>(),
+                null);
         }
 
         private static IRequestOptions GetRequestOptions(QueryOptions queryOptions = null, Policies policies = null)

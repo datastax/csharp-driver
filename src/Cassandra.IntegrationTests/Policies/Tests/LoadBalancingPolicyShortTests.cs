@@ -300,20 +300,21 @@ namespace Cassandra.IntegrationTests.Policies.Tests
         /// <summary>
         /// Token Aware with vnodes test
         /// </summary>
-        [Test]
-        public void TokenAware_VNodes_Test()
+        [Test, TestCase(true), TestCase(false)]
+        public void TokenAware_VNodes_Test(bool metadataSync)
         {
             var testCluster = TestClusterManager.CreateNew(3, new TestClusterOptions { UseVNodes = true });
-            var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build();
+            var cluster = Cluster.Builder()
+                                 .AddContactPoint(testCluster.InitialContactPoint)
+                                 .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync))
+                                 .Build();
             try
             {
                 var session = cluster.Connect();
                 Assert.AreEqual(256, cluster.AllHosts().First().Tokens.Count());
                 session.Execute("CREATE KEYSPACE ks1 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}");
-                Thread.Sleep(3000);
                 session.ChangeKeyspace("ks1");
                 session.Execute("CREATE TABLE tbl1 (id uuid primary key)");
-                Thread.Sleep(3000);
                 var ps = session.Prepare("INSERT INTO tbl1 (id) VALUES (?)");
                 var traces = new List<QueryTrace>();
                 for (var i = 0; i < 10; i++)
@@ -325,6 +326,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                     var rs = session.Execute(bound);
                     traces.Add(rs.Info.QueryTrace);
                 }
+                
                 //Check that there weren't any hops
                 foreach (var t in traces)
                 {
@@ -339,11 +341,14 @@ namespace Cassandra.IntegrationTests.Policies.Tests
             }
         }
 
-        [Test]
-        public void Token_Aware_Uses_Keyspace_From_Statement_To_Determine_Replication()
+        [Test, TestCase(true), TestCase(false)]
+        public void Token_Aware_Uses_Keyspace_From_Statement_To_Determine_Replication(bool metadataSync)
         {
             var testCluster = TestClusterManager.CreateNew(3, new TestClusterOptions { UseVNodes = true });
-            var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build();
+            var cluster = Cluster.Builder()
+                                 .AddContactPoint(testCluster.InitialContactPoint)
+                                 .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync))
+                                 .Build();
             try
             {
                 // Connect without a keyspace
@@ -359,13 +364,13 @@ namespace Cassandra.IntegrationTests.Policies.Tests
                     coordinators.Add(rs.Info.QueriedHost);
                 }
                 // There should be exactly 2 different coordinators for a given token
-                Assert.AreEqual(2, coordinators.Count);
+                Assert.AreEqual(metadataSync ? 2 : 1, coordinators.Count);
 
                 // Manually calculate the routing key
                 var routingKey = Serializer.Default.Serialize(id);
                 // Get the replicas
                 var replicas = cluster.GetReplicas("ks_tap_stmt_ks", routingKey);
-                Assert.AreEqual(2, replicas.Count);
+                Assert.AreEqual(metadataSync ? 2 : 1, replicas.Count);
                 CollectionAssert.AreEquivalent(replicas.Select(h => h.Address), coordinators);
             }
             finally

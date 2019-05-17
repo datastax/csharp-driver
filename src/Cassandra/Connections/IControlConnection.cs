@@ -24,5 +24,30 @@ namespace Cassandra.Connections
         Host Host { get; }
 
         Task Init();
+
+        /// <summary>
+        /// Updates keyspace metadata and token map if necessary.
+        /// </summary>
+        Task HandleSchemaChangeEvent(SchemaChangeEventArgs ssc, bool processNow);
+
+        /// <summary>
+        /// Schedule a keyspace refresh. The returned task will be complete when the refresh is done.
+        /// Currently only used in tests.
+        /// </summary>
+        Task HandleKeyspaceRefreshLaterAsync(string keyspace);
+
+        /// <summary>
+        /// Schedule a keyspace refresh. If <paramref name="processNow"/> is <code>true</code>,
+        /// the returned task will be complete when the refresh is done. If it's <code>false</code>
+        /// then the returned task will be complete when the refresh has been added to the queue (event debouncer).
+        /// </summary>
+        Task ScheduleKeyspaceRefreshAsync(string keyspace, bool processNow);
+        
+        /// <summary>
+        /// Schedule a refresh of all keyspaces. If <paramref name="processNow"/> is <code>true</code>,
+        /// the returned task will be complete when the refresh is done. If it's <code>false</code>
+        /// then the returned task will be complete when the refresh has been added to the queue (event debouncer).
+        /// </summary>
+        Task ScheduleAllKeyspacesRefreshAsync(bool processNow);
     }
 }

@@ -15,23 +15,20 @@
 //
 
 using System;
+using Cassandra.Responses;
 
 namespace Cassandra
 {
     internal class OutputSchemaChange : IOutput
     {
-        public string Change;
-        public string Keyspace;
-        public string Table;
+        public SchemaChangeEventArgs SchemaChangeEventArgs { get; }
 
-        public Guid? TraceId { get; private set; }
+        public Guid? TraceId { get; }
 
-        internal OutputSchemaChange(FrameReader reader, Guid? traceId)
+        internal OutputSchemaChange(ProtocolVersion protocolVersion, FrameReader reader, Guid? traceId)
         {
             TraceId = traceId;
-            Change = reader.ReadString();
-            Keyspace = reader.ReadString();
-            Table = reader.ReadString();
+            SchemaChangeEventArgs = EventResponse.ParseSchemaChangeBody(protocolVersion, reader);
         }
 
         public void Dispose()

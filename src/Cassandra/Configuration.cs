@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
+using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -111,6 +112,8 @@ namespace Cassandra
         /// </summary>
         internal IEnumerable<ITypeSerializer> TypeSerializers { get; set; }
 
+        internal MetadataSyncOptions MetadataSyncOptions { get; }
+
         internal IStartupOptionsFactory StartupOptionsFactory { get; }
 
         internal ISessionFactoryBuilder<IInternalCluster, IInternalSession> SessionFactoryBuilder { get; }
@@ -126,6 +129,8 @@ namespace Cassandra
         internal IControlConnectionFactory ControlConnectionFactory { get; }
 
         internal IPrepareHandlerFactory PrepareHandlerFactory { get; }
+
+        internal ITimerFactory TimerFactory { get; }
         
         /// <summary>
         /// The key is the execution profile name and the value is the IRequestOptions instance
@@ -147,7 +152,8 @@ namespace Cassandra
                  new DefaultAddressTranslator(),
                  new StartupOptionsFactory(),
                  new SessionFactoryBuilder(),
-                 new Dictionary<string, IExecutionProfile>())
+                 new Dictionary<string, IExecutionProfile>(),
+                 null)
         {
         }
 
@@ -167,12 +173,14 @@ namespace Cassandra
                                IStartupOptionsFactory startupOptionsFactory,
                                ISessionFactoryBuilder<IInternalCluster, IInternalSession> sessionFactoryBuilder,
                                IReadOnlyDictionary<string, IExecutionProfile> executionProfiles,
+                               MetadataSyncOptions metadataSyncOptions,
                                IRequestHandlerFactory requestHandlerFactory = null,
                                IHostConnectionPoolFactory hostConnectionPoolFactory = null,
                                IRequestExecutionFactory requestExecutionFactory = null,
                                IConnectionFactory connectionFactory = null,
                                IControlConnectionFactory controlConnectionFactory = null,
-                               IPrepareHandlerFactory prepareHandlerFactory = null)
+                               IPrepareHandlerFactory prepareHandlerFactory = null,
+                               ITimerFactory timerFactory = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -185,6 +193,7 @@ namespace Cassandra
             AuthInfoProvider = authInfoProvider;
             StartupOptionsFactory = startupOptionsFactory;
             SessionFactoryBuilder = sessionFactoryBuilder;
+            MetadataSyncOptions = metadataSyncOptions?.Clone() ?? new MetadataSyncOptions();
 
             RequestHandlerFactory = requestHandlerFactory ?? new RequestHandlerFactory();
             HostConnectionPoolFactory = hostConnectionPoolFactory ?? new HostConnectionPoolFactory();
@@ -192,6 +201,7 @@ namespace Cassandra
             ConnectionFactory = connectionFactory ?? new ConnectionFactory();
             ControlConnectionFactory = controlConnectionFactory ?? new ControlConnectionFactory();
             PrepareHandlerFactory = prepareHandlerFactory ?? new PrepareHandlerFactory();
+            TimerFactory = timerFactory ?? new TaskBasedTimerFactory();
             
             RequestOptions = BuildRequestOptionsDictionary(executionProfiles, policies, socketOptions, clientOptions, queryOptions);
             ExecutionProfiles = BuildExecutionProfilesDictionary(executionProfiles, RequestOptions);
