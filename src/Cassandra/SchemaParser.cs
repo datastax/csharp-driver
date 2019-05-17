@@ -51,7 +51,6 @@ namespace Cassandra
         protected abstract string SelectFunctions { get; }
         protected abstract string SelectTables { get; }
         protected abstract string SelectUdts { get; }
-        protected abstract string SelectKeyspacesNames { get; }
 
         protected SchemaParser(Metadata parent)
         {
@@ -80,11 +79,7 @@ namespace Cassandra
             return rs.Select(r => r.GetValue<string>(0)).ToArray();
         }
 
-        public async Task<ICollection<string>> GetKeyspacesNamesAsync()
-        {
-            var rs = await Cc.QueryAsync(SelectKeyspacesNames, true).ConfigureAwait(false);
-            return rs.Select(r => r.GetValue<string>(0)).ToArray();
-        }
+        public abstract Task<ICollection<string>> GetKeyspacesNamesAsync();
 
         public abstract Task<FunctionMetadata> GetFunctionAsync(string keyspaceName, string functionName, string signatureString);
 
@@ -171,6 +166,7 @@ namespace Cassandra
         private const string SelectKeyspaces = "SELECT * FROM system.schema_keyspaces";
         private const string SelectSingleKeyspace = "SELECT * FROM system.schema_keyspaces WHERE keyspace_name = '{0}'";
         private const string SelectSingleTable = "SELECT * FROM system.schema_columnfamilies WHERE columnfamily_name='{0}' AND keyspace_name='{1}'";
+        private const string SelectKeyspacesNames = "SELECT keyspace_name FROM system.schema_keyspaces";
 
         protected override string SelectAggregates => "SELECT * FROM system.schema_aggregates WHERE keyspace_name = '{0}' AND aggregate_name = '{1}' AND signature = {2}";
 
@@ -180,7 +176,6 @@ namespace Cassandra
 
         protected override string SelectUdts => "SELECT * FROM system.schema_usertypes WHERE keyspace_name='{0}' AND type_name = '{1}'";
 
-        protected override string SelectKeyspacesNames => "SELECT keyspace_name FROM system.schema_keyspaces";
 
         internal SchemaParserV1(Metadata parent) : base(parent)
         {
@@ -214,6 +209,12 @@ namespace Cassandra
             return Cc
                 .QueryAsync(SelectKeyspaces, retry)
                 .ContinueSync(rs => rs.Select(ParseKeyspaceRow));
+        }
+        
+        public override async Task<ICollection<string>> GetKeyspacesNamesAsync()
+        {
+            var rs = await Cc.QueryAsync(SelectKeyspacesNames, true).ConfigureAwait(false);
+            return rs.Select(r => r.GetValue<string>(0)).ToArray();
         }
 
         private static SortedDictionary<string, string> GetCompactionStrategyOptions(Row row)
@@ -539,6 +540,7 @@ namespace Cassandra
         private const string SelectSingleKeyspace = "SELECT * FROM system_schema.keyspaces WHERE keyspace_name = '{0}'";
         private const string SelectSingleTable = "SELECT * FROM system_schema.tables WHERE table_name='{0}' AND keyspace_name='{1}'";
         private const string SelectSingleView = "SELECT * FROM system_schema.views WHERE view_name='{0}' AND keyspace_name='{1}'";
+        private const string SelectKeyspacesNames = "SELECT keyspace_name FROM system_schema.keyspaces";
 
         protected override string SelectAggregates => "SELECT * FROM system_schema.aggregates WHERE keyspace_name = '{0}' AND aggregate_name = '{1}' AND argument_types = {2}";
 
@@ -547,9 +549,7 @@ namespace Cassandra
         protected override string SelectTables => "SELECT table_name FROM system_schema.tables WHERE keyspace_name='{0}'";
 
         protected override string SelectUdts => "SELECT * FROM system_schema.types WHERE keyspace_name='{0}' AND type_name = '{1}'";
-
-        protected override string SelectKeyspacesNames => "SELECT keyspace_name FROM system_schema.keyspaces";
-
+        
         internal SchemaParserV2(Metadata parent, Func<string, string, Task<UdtColumnInfo>> udtResolver)
             : base(parent)
         {
@@ -595,6 +595,12 @@ namespace Cassandra
         {
             var rs = await Cc.QueryAsync(SelectKeyspaces, retry).ConfigureAwait(false);
             return rs.Select(ParseKeyspaceRow);
+        }
+        
+        public override async Task<ICollection<string>> GetKeyspacesNamesAsync()
+        {
+            var rs = await Cc.QueryAsync(SelectKeyspacesNames, true).ConfigureAwait(false);
+            return rs.Select(r => r.GetValue<string>(0)).ToArray();
         }
 
         public override async Task<TableMetadata> GetTableAsync(string keyspaceName, string tableName)
@@ -912,6 +918,7 @@ namespace Cassandra
             "SELECT * FROM system_virtual_schema.tables WHERE keyspace_name = '{0}' AND table_name='{1}'";
         private const string SelectVirtualColumns =
             "SELECT * FROM system_virtual_schema.columns WHERE keyspace_name = '{0}' AND table_name='{1}'";
+        private const string SelectVirtualKeyspaceNames = "SELECT keyspace_name FROM system_virtual_schema.keyspaces";
 
         internal SchemaParserV3(Metadata parent, Func<string, string, Task<UdtColumnInfo>> udtResolver)
             : base(parent, udtResolver)
@@ -963,7 +970,7 @@ namespace Cassandra
 
             try
             {
-                var rs = await Cc.QueryAsync(SelectVirtualKeyspaces, retry).ConfigureAwait(false);
+                var rs = await Cc.QueryAsync(SchemaParserV3.SelectVirtualKeyspaces, retry).ConfigureAwait(false);
                 virtualKeyspaces = rs.Select(ParseVirtualKeyspaceRow);
             }
             catch (InvalidQueryException)
@@ -975,6 +982,28 @@ namespace Cassandra
 
             // Yield the keyspaces followed by the virtual keyspaces
             return keyspaces.Concat(virtualKeyspaces);
+        }
+        
+        public override async Task<ICollection<string>> GetKeyspacesNamesAsync()
+        {
+            // Start the task to get the keyspace names in parallel
+            var keyspacesTask = base.GetKeyspacesNamesAsync();
+            var virtualKeyspaces = Enumerable.Empty<string>();
+
+            try
+            {
+                var rs = await Cc.QueryAsync(SelectVirtualKeyspaceNames, true).ConfigureAwait(false);
+                virtualKeyspaces = rs.Select(r => r.GetValue<string>(0));
+            }
+            catch (InvalidQueryException)
+            {
+                // Incorrect version reported by the server: virtual keyspaces/tables are not yet supported
+            }
+
+            var keyspaces = await keyspacesTask.ConfigureAwait(false);
+
+            // Yield the keyspaces followed by the virtual keyspaces
+            return keyspaces.Concat(virtualKeyspaces).ToArray();
         }
 
         public override async Task<TableMetadata> GetTableAsync(string keyspaceName, string tableName)
