@@ -38,9 +38,12 @@ namespace Dse.Test.Unit.MetadataHelpers.TestHelpers
 
         protected override string SelectUdts => throw new System.NotImplementedException();
 
-        protected override string SelectKeyspacesNames => throw new System.NotImplementedException();
-
         public override Task<AggregateMetadata> GetAggregateAsync(string keyspaceName, string aggregateName, string signatureString)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public override Task<ICollection<string>> GetKeyspacesNamesAsync()
         {
             throw new System.NotImplementedException();
         }
