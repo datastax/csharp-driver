@@ -12,6 +12,7 @@ Cassandra (1.2+) using exclusively Cassandra's binary protocol and Cassandra Que
     - [Linq](components/linq)
     - [Mapper](components/mapper)
     - [ADO.NET](components/adonet)
+- [Execution Profiles](execution-profiles)
 - [Connection heartbeat](connection-heartbeat)
 - [Connection pooling](connection-pooling)
 - [Native protocol](native-protocol)
