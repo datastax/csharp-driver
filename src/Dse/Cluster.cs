@@ -18,6 +18,7 @@ using Dse.Collections;
 using Dse.Connections;
 using Dse.ExecutionProfiles;
 using Dse.Helpers;
+using Dse.ProtocolEvents;
 using Dse.Requests;
 using Dse.Serialization;
 using Dse.SessionManagement;
@@ -44,6 +45,7 @@ namespace Dse
         private readonly Serializer _serializer;
         private readonly ISessionFactory<IInternalSession> _sessionFactory;
         private readonly IClusterLifecycleManager _lifecycleManager;
+        private readonly IProtocolEventDebouncer _protocolEventDebouncer;
 
         /// <inheritdoc />
         public event Action<Host> HostAdded;
@@ -155,7 +157,12 @@ namespace Dse
             {
                 protocolVersion = Configuration.ProtocolOptions.MaxProtocolVersionValue.Value;
             }
-            _controlConnection = configuration.ControlConnectionFactory.Create(protocolVersion, Configuration, _metadata);
+
+            _protocolEventDebouncer = new ProtocolEventDebouncer(
+                configuration.TimerFactory,
+                TimeSpan.FromMilliseconds(configuration.MetadataSyncOptions.RefreshSchemaDelayIncrement),
+                TimeSpan.FromMilliseconds(configuration.MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
+            _controlConnection = configuration.ControlConnectionFactory.Create(_protocolEventDebouncer, protocolVersion, Configuration, _metadata);
             _metadata.ControlConnection = _controlConnection;
             _serializer = _controlConnection.Serializer;
             _sessionFactory = configuration.SessionFactoryBuilder.BuildWithCluster(this);
@@ -411,6 +418,7 @@ namespace Dse
                 throw;
             }
             _metadata.ShutDown(timeoutMs);
+            _protocolEventDebouncer.Dispose();
             _controlConnection.Dispose();
             Configuration.Timer.Dispose();
             
@@ -492,23 +500,36 @@ namespace Dse
             }
         }
 
-        private void OnHostUp(Host h)
+        private async void OnHostUp(Host h)
         {
-            if (!Configuration.QueryOptions.IsReprepareOnUp())
+            try
             {
-                return;
-            }
+                if (!Configuration.QueryOptions.IsReprepareOnUp())
+                {
+                    return;
+                }
 
-            // We should prepare all current queries on the host
-            PrepareAllQueries(h).Forget();
+                // We should prepare all current queries on the host
+                await PrepareAllQueries(h).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Cluster._logger.Error(
+                    "An exception was thrown when preparing all queries on a host ({0}) " +
+                    "that came UP:" + Environment.NewLine + "{1}", h?.Address?.ToString(), ex.ToString());
+            }
         }
 
-        /// <summary>
-        /// Updates cluster metadata for a given keyspace or keyspace table
-        /// </summary>
+        /// <inheritdoc />
         public bool RefreshSchema(string keyspace = null, string table = null)
         {
             return Metadata.RefreshSchema(keyspace, table);
+        }
+
+        /// <inheritdoc />
+        public Task<bool> RefreshSchemaAsync(string keyspace = null, string table = null)
+        {
+            return Metadata.RefreshSchemaAsync(keyspace, table);
         }
 
         /// <inheritdoc />

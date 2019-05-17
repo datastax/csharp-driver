@@ -25,7 +25,7 @@ namespace Dse.Test.Unit.MetadataHelpers.TestHelpers
     {
         private readonly ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces;
 
-        public FakeSchemaParser(ConcurrentDictionary<string, KeyspaceMetadata> keyspaces) : base(new Metadata(null))
+        public FakeSchemaParser(ConcurrentDictionary<string, KeyspaceMetadata> keyspaces) : base(new Metadata(new Configuration()))
         {
             _keyspaces = keyspaces;
         }
@@ -38,37 +38,40 @@ namespace Dse.Test.Unit.MetadataHelpers.TestHelpers
 
         protected override string SelectUdts => throw new System.NotImplementedException();
 
-        public override Task<AggregateMetadata> GetAggregate(string keyspaceName, string aggregateName, string signatureString)
+        protected override string SelectKeyspacesNames => throw new System.NotImplementedException();
+
+        public override Task<AggregateMetadata> GetAggregateAsync(string keyspaceName, string aggregateName, string signatureString)
         {
             throw new System.NotImplementedException();
         }
 
-        public override Task<FunctionMetadata> GetFunction(string keyspaceName, string functionName, string signatureString)
+        public override Task<FunctionMetadata> GetFunctionAsync(string keyspaceName, string functionName, string signatureString)
         {
             throw new System.NotImplementedException();
         }
 
-        public override Task<KeyspaceMetadata> GetKeyspace(string name)
+        public override Task<KeyspaceMetadata> GetKeyspaceAsync(string name)
         {
-            return Task.FromResult(_keyspaces[name]);
+            _keyspaces.TryGetValue(name, out var keyspace);
+            return Task.FromResult(keyspace);
         }
 
-        public override Task<IEnumerable<KeyspaceMetadata>> GetKeyspaces(bool retry)
+        public override Task<IEnumerable<KeyspaceMetadata>> GetKeyspacesAsync(bool retry)
         {
             return Task.FromResult(_keyspaces.ToArray().Select(kvp => kvp.Value));
         }
 
-        public override Task<TableMetadata> GetTable(string keyspaceName, string tableName)
+        public override Task<TableMetadata> GetTableAsync(string keyspaceName, string tableName)
         {
             throw new System.NotImplementedException();
         }
 
-        public override Task<UdtColumnInfo> GetUdtDefinition(string keyspaceName, string typeName)
+        public override Task<UdtColumnInfo> GetUdtDefinitionAsync(string keyspaceName, string typeName)
         {
             throw new System.NotImplementedException();
         }
 
-        public override Task<MaterializedViewMetadata> GetView(string keyspaceName, string viewName)
+        public override Task<MaterializedViewMetadata> GetViewAsync(string keyspaceName, string viewName)
         {
             throw new System.NotImplementedException();
         }

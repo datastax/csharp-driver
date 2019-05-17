@@ -15,6 +15,7 @@
 // 
 
 using Dse.Connections;
+using Dse.ProtocolEvents;
 using Dse.Serialization;
 using Dse.Tasks;
 using Moq;
@@ -23,7 +24,7 @@ namespace Dse.Test.Unit.Connections
 {
     internal class FakeControlConnectionFactory : IControlConnectionFactory
     {
-        public IControlConnection Create(ProtocolVersion initialProtocolVersion, Configuration config, Metadata metadata)
+        public IControlConnection Create(IProtocolEventDebouncer protocolEventDebouncer, ProtocolVersion initialProtocolVersion, Configuration config, Metadata metadata)
         {
             var cc = Mock.Of<IControlConnection>();
             Mock.Get(cc).Setup(c => c.Init()).Returns(TaskHelper.Completed);

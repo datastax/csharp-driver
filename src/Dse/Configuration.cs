@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Dse.Connections;
 using Dse.ExecutionProfiles;
+using Dse.ProtocolEvents;
 using Dse.Requests;
 using Dse.Serialization;
 using Dse.SessionManagement;
@@ -102,6 +103,8 @@ namespace Dse
         /// </summary>
         internal IEnumerable<ITypeSerializer> TypeSerializers { get; set; }
 
+        internal MetadataSyncOptions MetadataSyncOptions { get; }
+
         internal IStartupOptionsFactory StartupOptionsFactory { get; }
 
         internal ISessionFactoryBuilder<IInternalCluster, IInternalSession> SessionFactoryBuilder { get; }
@@ -119,6 +122,8 @@ namespace Dse
         internal IControlConnectionFactory ControlConnectionFactory { get; }
 
         internal IPrepareHandlerFactory PrepareHandlerFactory { get; }
+
+        internal ITimerFactory TimerFactory { get; }
         
         /// <summary>
         /// The key is the execution profile name and the value is the IRequestOptions instance
@@ -141,7 +146,8 @@ namespace Dse
                  new StartupOptionsFactory(),
                  new SessionFactoryBuilder(),
                  new Dictionary<string, IExecutionProfile>(),
-                 new RequestOptionsMapper())
+                 new RequestOptionsMapper(),
+                 null)
         {
         }
 
@@ -162,12 +168,14 @@ namespace Dse
                                ISessionFactoryBuilder<IInternalCluster, IInternalSession> sessionFactoryBuilder,
                                IReadOnlyDictionary<string, IExecutionProfile> executionProfiles,
                                IRequestOptionsMapper requestOptionsMapper,
+                               MetadataSyncOptions metadataSyncOptions,
                                IRequestHandlerFactory requestHandlerFactory = null,
                                IHostConnectionPoolFactory hostConnectionPoolFactory = null,
                                IRequestExecutionFactory requestExecutionFactory = null,
                                IConnectionFactory connectionFactory = null,
                                IControlConnectionFactory controlConnectionFactory = null,
-                               IPrepareHandlerFactory prepareHandlerFactory = null)
+                               IPrepareHandlerFactory prepareHandlerFactory = null,
+                               ITimerFactory timerFactory = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -181,6 +189,7 @@ namespace Dse
             StartupOptionsFactory = startupOptionsFactory;
             SessionFactoryBuilder = sessionFactoryBuilder;
             RequestOptionsMapper = requestOptionsMapper;
+            MetadataSyncOptions = metadataSyncOptions?.Clone() ?? new MetadataSyncOptions();
 
             RequestHandlerFactory = requestHandlerFactory ?? new RequestHandlerFactory();
             HostConnectionPoolFactory = hostConnectionPoolFactory ?? new HostConnectionPoolFactory();
@@ -188,6 +197,7 @@ namespace Dse
             ConnectionFactory = connectionFactory ?? new ConnectionFactory();
             ControlConnectionFactory = controlConnectionFactory ?? new ControlConnectionFactory();
             PrepareHandlerFactory = prepareHandlerFactory ?? new PrepareHandlerFactory();
+            TimerFactory = timerFactory ?? new TaskBasedTimerFactory();
             
             RequestOptions = RequestOptionsMapper.BuildRequestOptionsDictionary(executionProfiles, policies, socketOptions, clientOptions, queryOptions);
             ExecutionProfiles = BuildExecutionProfilesDictionary(executionProfiles, RequestOptions);

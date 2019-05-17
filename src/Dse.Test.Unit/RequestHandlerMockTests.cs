@@ -55,6 +55,7 @@ namespace Dse.Test.Unit
                 new SessionFactoryBuilder(),
                 new Dictionary<string, IExecutionProfile>(),
                 new RequestOptionsMapper(),
+                null,
                 requestExecutionFactory: requestExecutionFactory);
         }
 

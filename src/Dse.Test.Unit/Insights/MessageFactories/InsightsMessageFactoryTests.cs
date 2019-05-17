@@ -226,7 +226,7 @@ namespace Dse.Test.Unit.Insights.MessageFactories
             var config = GetConfig();
             var metadata = new Metadata(config.CassandraConfiguration)
             {
-                ControlConnection = Mock.Of<IMetadataQueryProvider>()
+                ControlConnection = Mock.Of<IControlConnection>()
             };
             Mock.Get(metadata.ControlConnection).SetupGet(cc => cc.ProtocolVersion).Returns(ProtocolVersion.V4);
             Mock.Get(metadata.ControlConnection).SetupGet(cc => cc.Address).Returns(new IPEndPoint(IPAddress.Parse("10.10.10.10"), 9011));
@@ -272,7 +272,8 @@ namespace Dse.Test.Unit.Insights.MessageFactories
                     new StartupOptionsFactory(),
                     new SessionFactoryBuilder(),
                     new Dictionary<string, IExecutionProfile>(),
-                    new RequestOptionsMapper(new GraphOptions())),
+                    new RequestOptionsMapper(new GraphOptions()),
+                    null),
                 new GraphOptions(),
                 Guid.Parse("BECFE098-E462-47E7-B6A7-A21CD316D4C0"),
                 "appv1",

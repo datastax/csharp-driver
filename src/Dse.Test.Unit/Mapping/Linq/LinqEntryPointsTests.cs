@@ -5,6 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
+using Dse.Connections;
 using Dse.Data.Linq;
 using Dse.Mapping;
 using Dse.Serialization;
@@ -123,7 +124,7 @@ namespace Dse.Test.Unit.Mapping.Linq
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             var config = new Configuration();
             var metadata = new Metadata(config);
-            var ccMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var ccMock = new Mock<IControlConnection>(MockBehavior.Strict);
             ccMock.Setup(cc => cc.Serializer).Returns(serializer);
             metadata.ControlConnection = ccMock.Object;
             var clusterMock = new Mock<ICluster>();

@@ -70,7 +70,7 @@ namespace Dse.Connections
         private readonly Serializer _serializer;
         private readonly CopyOnWriteList<IConnection> _connections = new CopyOnWriteList<IConnection>();
         private readonly HashedWheelTimer _timer;
-        private readonly object _allConnectionClosedEventLock = new object();
+        private readonly SemaphoreSlim _allConnectionClosedEventLock = new SemaphoreSlim(1, 1);
         private volatile IReconnectionSchedule _reconnectionSchedule;
         private volatile int _expectedConnectionLength;
         private volatile int _maxInflightThresholdToConsiderResizing;
@@ -366,10 +366,11 @@ namespace Dse.Connections
                 return;
             }
             // We are using an IO thread
-            Task.Run(() =>
+            Task.Run(async () =>
             {
                 // Use a lock for avoiding concurrent calls to SetNewConnectionTimeout()
-                lock (_allConnectionClosedEventLock)
+                await _allConnectionClosedEventLock.WaitAsync().ConfigureAwait(false);
+                try
                 {
                     if (currentLength == 0)
                     {
@@ -384,7 +385,11 @@ namespace Dse.Connections
                     }
                     SetNewConnectionTimeout(_reconnectionSchedule);
                 }
-            });
+                finally
+                {
+                    _allConnectionClosedEventLock.Release();
+                }
+            }).Forget();
         }
 
         private void OnDistanceChanged(HostDistance previousDistance, HostDistance distance)
@@ -572,34 +577,42 @@ namespace Dse.Connections
                 // There's another reconnection schedule, leave it
                 return;
             }
-            CreateOpenConnection(false).ContinueWith(t =>
+
+            CreateOrScheduleReconnectAsync(schedule).Forget();
+        }
+
+        private async Task CreateOrScheduleReconnectAsync(IReconnectionSchedule schedule)
+        {
+            try
             {
-                if (t.Status == TaskStatus.RanToCompletion)
-                {
-                    StartCreatingConnection(null);
-                    _host.BringUpIfDown();
-                    return;
-                }
-                t.Exception?.Handle(_ => true);
+                var t = await CreateOpenConnection(false).ConfigureAwait(false);
+                StartCreatingConnection(null);
+                _host.BringUpIfDown();
+            }
+            catch (Exception)
+            {
                 // The connection could not be opened
                 if (IsClosing)
                 {
                     // don't mind, the pool is not supposed to be open
                     return;
                 }
+
                 if (schedule == null)
                 {
                     // As it failed, we need a new schedule for the following attempts
                     schedule = _config.Policies.ReconnectionPolicy.NewSchedule();
                     _reconnectionSchedule = schedule;
                 }
+
                 if (schedule != _reconnectionSchedule)
                 {
                     // There's another reconnection schedule, leave it
                     return;
                 }
+
                 OnConnectionClosing();
-            }, TaskContinuationOptions.ExecuteSynchronously);
+            }
         }
 
         /// <summary>

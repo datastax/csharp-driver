@@ -1,28 +1,34 @@
+﻿//
+//      Copyright (C) 2012-2014 DataStax Inc.
 //
-//  Copyright (C) 2017 DataStax, Inc.
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
 //
-//  Please see the license for details:
-//  http://www.datastax.com/terms/datastax-dse-driver-license-terms
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
 //
 
 using System;
+using Dse.Responses;
 
 namespace Dse
 {
     internal class OutputSchemaChange : IOutput
     {
-        public string Change;
-        public string Keyspace;
-        public string Table;
+        public SchemaChangeEventArgs SchemaChangeEventArgs { get; }
 
-        public Guid? TraceId { get; private set; }
+        public Guid? TraceId { get; }
 
-        internal OutputSchemaChange(FrameReader reader, Guid? traceId)
+        internal OutputSchemaChange(ProtocolVersion protocolVersion, FrameReader reader, Guid? traceId)
         {
             TraceId = traceId;
-            Change = reader.ReadString();
-            Keyspace = reader.ReadString();
-            Table = reader.ReadString();
+            SchemaChangeEventArgs = EventResponse.ParseSchemaChangeBody(protocolVersion, reader);
         }
 
         public void Dispose()

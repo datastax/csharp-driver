@@ -94,7 +94,8 @@ namespace Dse.Test.Unit
                 Mock.Of<IStartupOptionsFactory>(),
                 new SessionFactoryBuilder(),
                 new Dictionary<string, IExecutionProfile>(),
-                new RequestOptionsMapper());
+                new RequestOptionsMapper(),
+                null);
             return config;
         }
 

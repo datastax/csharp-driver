@@ -60,7 +60,7 @@ namespace Dse.Test.Unit.Insights
             var session = GetSession(cluster);
             using (var target = InsightsClientTests.GetInsightsClient(cluster, session))
             {
-                Expression<Func<IMetadataQueryProvider, Task<Response>>> mockExpression =
+                Expression<Func<IControlConnection, Task<Response>>> mockExpression =
                     cc => cc.SendQueryRequestAsync(
                         "CALL InsightsRpc.reportInsight(?)",
                         It.IsAny<bool>(),
@@ -94,7 +94,7 @@ namespace Dse.Test.Unit.Insights
             var session = GetSession(cluster);
             using (var target = InsightsClientTests.GetInsightsClient(cluster, session))
             {
-                Expression<Func<IMetadataQueryProvider, Task<Response>>> mockExpression =
+                Expression<Func<IControlConnection, Task<Response>>> mockExpression =
                     cc => cc.SendQueryRequestAsync(
                         "CALL InsightsRpc.reportInsight(?)",
                         It.IsAny<bool>(),
@@ -513,7 +513,7 @@ namespace Dse.Test.Unit.Insights
             var config = GetConfig(eventDelayMilliseconds, withProfiles);
             var metadata = new Metadata(config.CassandraConfiguration)
             {
-                ControlConnection = Mock.Of<IMetadataQueryProvider>()
+                ControlConnection = Mock.Of<IControlConnection>()
             };
             Mock.Get(metadata.ControlConnection).SetupGet(cc => cc.ProtocolVersion).Returns(ProtocolVersion.V4);
             Mock.Get(metadata.ControlConnection).SetupGet(cc => cc.Address).Returns(new IPEndPoint(IPAddress.Parse("10.10.10.10"), 9011));
@@ -584,7 +584,8 @@ namespace Dse.Test.Unit.Insights
                             }
                         }
                         : new Dictionary<string, IExecutionProfile>(),
-                    new RequestOptionsMapper(graphOptions)),
+                    new RequestOptionsMapper(graphOptions),
+                    null),
                 graphOptions,
                 Guid.Parse("BECFE098-E462-47E7-B6A7-A21CD316D4C0"),
                 "appv1",

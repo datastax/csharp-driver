@@ -429,5 +429,14 @@ namespace Dse.Tasks
                 return false;
             }
         }
+
+        public static Func<Task> ActionToAsync(Action act)
+        {
+            return () =>
+            {
+                act();
+                return TaskHelper.Completed;
+            };
+        }
     }
 }

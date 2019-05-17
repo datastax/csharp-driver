@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Net;
 using Dse.Connections;
 using Dse.ExecutionProfiles;
+using Dse.ProtocolEvents;
 using Dse.Requests;
 using Dse.SessionManagement;
 using Moq;
@@ -25,10 +26,18 @@ namespace Dse.Test.Unit
         {
             Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Info;
         }
+        
+        private IProtocolEventDebouncer GetEventDebouncer(Configuration config)
+        {
+            return new ProtocolEventDebouncer(
+                new TaskBasedTimerFactory(), 
+                TimeSpan.FromMilliseconds(config.MetadataSyncOptions.RefreshSchemaDelayIncrement), 
+                TimeSpan.FromMilliseconds(config.MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
+        }
 
         private ControlConnection NewInstance(Configuration config, Metadata metadata)
         {
-            return new ControlConnection(ProtocolVersion.MaxSupported, config, metadata);
+            return new ControlConnection(GetEventDebouncer(config), ProtocolVersion.MaxSupported, config, metadata);
         }
 
         private ControlConnection NewInstance(Metadata metadata)
@@ -121,7 +130,8 @@ namespace Dse.Test.Unit
                  Mock.Of<IStartupOptionsFactory>(),
                  new SessionFactoryBuilder(),
                  new Dictionary<string, IExecutionProfile>(),
-                 new RequestOptionsMapper());
+                 new RequestOptionsMapper(),
+                 null);
             var cc = NewInstance(config, metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);

@@ -5,6 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -154,12 +155,14 @@ namespace Dse.Test.Integration
 
         protected ISession GetNewSession(string keyspace = null)
         {
-            return GetNewCluster().Connect(keyspace);
+            return GetNewCluster(null).Connect(keyspace);
         }
 
-        protected ICluster GetNewCluster()
+        protected ICluster GetNewCluster(Action<Builder> build)
         {
-            var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build();
+            var builder = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint);
+            build?.Invoke(builder);
+            var cluster = builder.Build();
             ClusterInstances.Add(cluster);
             return cluster;
         }

@@ -9,6 +9,7 @@ using System;
 using System.Net;
 using System.Text;
 using Dse.Connections;
+using Dse.ProtocolEvents;
 using NUnit.Framework;
 using Dse.Test.Integration.TestClusterManagement;
 
@@ -81,9 +82,17 @@ namespace Dse.Test.Integration.Core
                 metadata = new Metadata(config);
                 metadata.AddHost(new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), ProtocolOptions.DefaultPort));
             }
-            var cc = new ControlConnection(version, config, metadata);
+            var cc = new ControlConnection(GetEventDebouncer(config), version, config, metadata);
             metadata.ControlConnection = cc;
             return cc;
+        }
+
+        private IProtocolEventDebouncer GetEventDebouncer(Configuration config)
+        {
+            return new ProtocolEventDebouncer(
+                new TaskBasedTimerFactory(), 
+                TimeSpan.FromMilliseconds(config.MetadataSyncOptions.RefreshSchemaDelayIncrement), 
+                TimeSpan.FromMilliseconds(config.MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
         }
     }
 }

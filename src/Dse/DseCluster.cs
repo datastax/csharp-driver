@@ -194,6 +194,7 @@ namespace Dse
             _coreCluster.Shutdown(timeoutMs);
         }
 
+        /// <inheritdoc />
         public bool AnyOpenConnections(Host host)
         {
             return _coreCluster.AnyOpenConnections(host);
@@ -233,6 +234,18 @@ namespace Dse
         public Task ShutdownAsync(int timeout = Timeout.Infinite)
         {
             return _coreCluster.ShutdownAsync(timeout);
+        }
+
+        /// <inheritdoc />
+        public Task<bool> RefreshSchemaAsync(string keyspace = null, string table = null)
+        {
+            return _coreCluster.RefreshSchemaAsync(keyspace, table);
+        }
+
+        /// <inheritdoc />
+        public bool RefreshSchema(string keyspace = null, string table = null)
+        {
+            return _coreCluster.RefreshSchema(keyspace, table);
         }
     }
 }

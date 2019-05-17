@@ -17,6 +17,7 @@
 using System.Collections.Generic;
 using Dse.Connections;
 using Dse.ExecutionProfiles;
+using Dse.ProtocolEvents;
 using Dse.Requests;
 using Dse.SessionManagement;
 
@@ -42,6 +43,8 @@ namespace Dse.Test.Unit
 
         public IAddressTranslator AddressTranslator { get; set; } = new DefaultAddressTranslator();
 
+        public MetadataSyncOptions MetadataSyncOptions { get; set; } = new MetadataSyncOptions();
+
         public IStartupOptionsFactory StartupOptionsFactory { get; set; } = new StartupOptionsFactory();
 
         public IRequestOptionsMapper RequestOptionsMapper { get; set; } = new RequestOptionsMapper();
@@ -62,6 +65,8 @@ namespace Dse.Test.Unit
 
         public IPrepareHandlerFactory PrepareHandlerFactory { get; set; } = new PrepareHandlerFactory();
 
+        public ITimerFactory TimerFactory { get; set; } = new TaskBasedTimerFactory();
+
         public Configuration Build()
         {
             return new Configuration(
@@ -78,12 +83,14 @@ namespace Dse.Test.Unit
                 SessionFactoryBuilder,
                 ExecutionProfiles,
                 RequestOptionsMapper,
+                MetadataSyncOptions,
                 RequestHandlerFactory,
                 HostConnectionPoolFactory,
                 RequestExecutionFactory,
                 ConnectionFactory,
                 ControlConnectionFactory,
-                PrepareHandlerFactory);
+                PrepareHandlerFactory,
+                TimerFactory);
         }
     }
 }

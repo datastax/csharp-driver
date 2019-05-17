@@ -103,26 +103,24 @@ namespace Dse
                 GetTableMetadataAsync(tableName), _parent.Configuration.DefaultRequestOptions.GetQueryAbortTimeout(2));
         }
 
-        internal Task<TableMetadata> GetTableMetadataAsync(string tableName)
+        internal async Task<TableMetadata> GetTableMetadataAsync(string tableName)
         {
-            TableMetadata tableMetadata;
-            if (_tables.TryGetValue(tableName, out tableMetadata))
+            if (_tables.TryGetValue(tableName, out var tableMetadata))
             {
                 //The table metadata is available in local cache
-                return TaskHelper.ToTask(tableMetadata);
+                return tableMetadata;
             }
-            return _parent.SchemaParser
-                .GetTable(Name, tableName)
-                .ContinueSync(table =>
-                {
-                    if (table == null)
-                    {
-                        return null;
-                    }
-                    //Cache it
-                    _tables.AddOrUpdate(tableName, table, (k, o) => table);
-                    return table;
-                });
+
+            var table = await _parent.SchemaParser.GetTableAsync(Name, tableName).ConfigureAwait(false);
+            
+            if (table == null)
+            {
+                return null;
+            }
+
+            //Cache it
+            _tables.AddOrUpdate(tableName, table, (k, o) => table);
+            return table;
         }
 
         /// <summary>
@@ -133,28 +131,27 @@ namespace Dse
         ///  exists, <c>null</c> otherwise.</returns>
         public MaterializedViewMetadata GetMaterializedViewMetadata(string viewName)
         {
+            return TaskHelper.WaitToComplete(
+                GetMaterializedViewMetadataAsync(viewName), _parent.Configuration.DefaultRequestOptions.GetQueryAbortTimeout(2));
+        }
+
+        private async Task<MaterializedViewMetadata> GetMaterializedViewMetadataAsync(string viewName)
+        {
+            if (_views.TryGetValue(viewName, out var v))
             {
-                //use a code block to avoid reusing 'view' field on lambdas
-                MaterializedViewMetadata view;
-                if (_views.TryGetValue(viewName, out view))
-                {
-                    //The table metadata is available in local cache
-                    return view;
-                }
+                //The table metadata is available in local cache
+                return v;
             }
-            var task = _parent.SchemaParser
-                .GetView(Name, viewName)
-                .ContinueSync(view =>
-                {
-                    if (view == null)
-                    {
-                        return null;
-                    }
-                    //Cache it
-                    _views.AddOrUpdate(viewName, view, (k, o) => view);
-                    return view;
-                });
-            return TaskHelper.WaitToComplete(task, _parent.Configuration.DefaultRequestOptions.GetQueryAbortTimeout(2));
+
+            var view = await _parent.SchemaParser.GetViewAsync(Name, viewName).ConfigureAwait(false);
+            if (view == null)
+            {
+                return null;
+            }
+
+            //Cache it
+            _views.AddOrUpdate(viewName, view, (k, o) => view);
+            return view;
         }
 
         /// <summary>
@@ -162,8 +159,7 @@ namespace Dse
         /// </summary>
         internal void ClearTableMetadata(string tableName)
         {
-            TableMetadata table;
-            _tables.TryRemove(tableName, out table);
+            _tables.TryRemove(tableName, out _);
         }
 
         /// <summary>
@@ -171,8 +167,7 @@ namespace Dse
         /// </summary>
         internal void ClearViewMetadata(string name)
         {
-            MaterializedViewMetadata view;
-            _views.TryRemove(name, out view);
+            _views.TryRemove(name, out _);
         }
 
         /// <summary>
@@ -180,8 +175,7 @@ namespace Dse
         /// </summary>
         internal void ClearFunction(string name, string[] signature)
         {
-            FunctionMetadata element;
-            _functions.TryRemove(GetFunctionKey(name, signature), out element);
+            _functions.TryRemove(KeyspaceMetadata.GetFunctionKey(name, signature), out _);
         }
 
         /// <summary>
@@ -189,8 +183,7 @@ namespace Dse
         /// </summary>
         internal void ClearAggregate(string name, string[] signature)
         {
-            AggregateMetadata element;
-            _aggregates.TryRemove(GetFunctionKey(name, signature), out element);
+            _aggregates.TryRemove(KeyspaceMetadata.GetFunctionKey(name, signature), out _);
         }
 
         /// <summary>
@@ -213,7 +206,7 @@ namespace Dse
         ///  keyspace tables names.</returns>
         public ICollection<string> GetTablesNames()
         {
-            return TaskHelper.WaitToComplete(_parent.SchemaParser.GetTableNames(Name));
+            return TaskHelper.WaitToComplete(_parent.SchemaParser.GetTableNamesAsync(Name));
         }
 
         /// <summary>
@@ -274,7 +267,7 @@ namespace Dse
         /// </summary>
         internal Task<UdtColumnInfo> GetUdtDefinitionAsync(string typeName)
         {
-            return _parent.SchemaParser.GetUdtDefinition(Name, typeName);
+            return _parent.SchemaParser.GetUdtDefinitionAsync(Name, typeName);
         }
 
         /// <summary>
@@ -283,29 +276,32 @@ namespace Dse
         /// <returns>The function metadata or null if not found.</returns>
         public FunctionMetadata GetFunction(string functionName, string[] signature)
         {
+            return TaskHelper.WaitToComplete(
+                GetFunctionAsync(functionName, signature), _parent.Configuration.DefaultRequestOptions.QueryAbortTimeout);
+        }
+
+        private async Task<FunctionMetadata> GetFunctionAsync(string functionName, string[] signature)
+        {
             if (signature == null)
             {
                 signature = new string[0];
             }
-            FunctionMetadata func;
-            var key = GetFunctionKey(functionName, signature);
-            if (_functions.TryGetValue(key, out func))
+
+            var key = KeyspaceMetadata.GetFunctionKey(functionName, signature);
+            if (_functions.TryGetValue(key, out var func))
             {
                 return func;
             }
-            var signatureString = "[" + string.Join(",", signature.Select(s => "'" + s + "'")) + "]";
-            var t = _parent.SchemaParser
-                .GetFunction(Name, functionName, signatureString)
-                .ContinueSync(f =>
-                {
-                    if (f == null)
-                    {
-                        return null;
-                    }
-                    _functions.AddOrUpdate(key, f, (k, v) => f);
-                    return f;
-                });
-            return TaskHelper.WaitToComplete(t, _parent.Configuration.DefaultRequestOptions.QueryAbortTimeout);
+
+            var signatureString = _parent.SchemaParser.ComputeFunctionSignatureString(signature);
+            var f = await _parent.SchemaParser.GetFunctionAsync(Name, functionName, signatureString).ConfigureAwait(false);
+            if (f == null)
+            {
+                return null;
+            }
+
+            _functions.AddOrUpdate(key, f, (k, v) => f);
+            return f;
         }
 
         /// <summary>
@@ -314,34 +310,37 @@ namespace Dse
         /// <returns>The aggregate metadata or null if not found.</returns>
         public AggregateMetadata GetAggregate(string aggregateName, string[] signature)
         {
+            return TaskHelper.WaitToComplete(
+                GetAggregateAsync(aggregateName, signature), _parent.Configuration.DefaultRequestOptions.QueryAbortTimeout);
+        }
+
+        private async Task<AggregateMetadata> GetAggregateAsync(string aggregateName, string[] signature)
+        {
             if (signature == null)
             {
                 signature = new string[0];
             }
-            AggregateMetadata aggregate;
-            var key = GetFunctionKey(aggregateName, signature);
-            if (_aggregates.TryGetValue(key, out aggregate))
+
+            var key = KeyspaceMetadata.GetFunctionKey(aggregateName, signature);
+            if (_aggregates.TryGetValue(key, out var aggregate))
             {
                 return aggregate;
             }
-            var signatureString = "[" + string.Join(",", signature.Select(s => "'" + s + "'")) + "]";
-            var t = _parent.SchemaParser
-                .GetAggregate(Name, aggregateName, signatureString)
-                .ContinueSync(a =>
-                {
-                    if (a == null)
-                    {
-                        return null;
-                    }
-                    _aggregates.AddOrUpdate(key, a, (k, v) => a);
-                    return a;
-                });
-            return TaskHelper.WaitToComplete(t, _parent.Configuration.DefaultRequestOptions.QueryAbortTimeout);
+
+            var signatureString = _parent.SchemaParser.ComputeFunctionSignatureString(signature);
+            var a = await _parent.SchemaParser.GetAggregateAsync(Name, aggregateName, signatureString).ConfigureAwait(false);
+            if (a == null)
+            {
+                return null;
+            }
+
+            _aggregates.AddOrUpdate(key, a, (k, v) => a);
+            return a;
         }
 
         private static Tuple<string, string> GetFunctionKey(string name, string[] signature)
         {
-            return Tuple.Create(name, String.Join(",", signature));
+            return Tuple.Create(name, string.Join(",", signature));
         }
     }
 }

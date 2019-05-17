@@ -1,5 +1,5 @@
 ﻿// 
-//       Copyright (C) 2019 DataStax Inc.
+//       Copyright (C) DataStax Inc.
 // 
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -14,18 +14,18 @@
 //    limitations under the License.
 // 
 
-using Dse.ProtocolEvents;
-namespace Dse.Connections
+using System.Threading.Tasks;
+
+namespace Dse.ProtocolEvents.Internal
 {
-    internal class ControlConnectionFactory : IControlConnectionFactory
+    /// <summary>
+    /// Used internally by <see cref="ProtocolEventDebouncer"/>.
+    /// </summary>
+    internal class InternalKeyspaceProtocolEvent
     {
-        public IControlConnection Create(IProtocolEventDebouncer protocolEventDebouncer, ProtocolVersion initialProtocolVersion, Configuration config, Metadata metadata)
-        {
-            return new ControlConnection(
-                protocolEventDebouncer, 
-                initialProtocolVersion, 
-                config, 
-                metadata);
-        }
+        public KeyspaceProtocolEvent KeyspaceEvent { get; set; }
+
+        public TaskCompletionSource<bool> Callback { get; set; }
     }
+
 }

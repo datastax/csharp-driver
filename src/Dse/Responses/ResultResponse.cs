@@ -54,7 +54,7 @@ namespace Dse.Responses
                     Output = new OutputPrepared(frame.Header.Version, Reader);
                     break;
                 case ResultResponseKind.SchemaChange:
-                    Output = new OutputSchemaChange(Reader, TraceId);
+                    Output = new OutputSchemaChange(frame.Header.Version, Reader, TraceId);
                     break;
                 default:
                     throw new DriverInternalError("Unknown ResultResponseKind Type");

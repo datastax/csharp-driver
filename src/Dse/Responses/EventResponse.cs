@@ -42,7 +42,7 @@ namespace Dse.Responses
             }
             if (eventTypeString == "SCHEMA_CHANGE")
             {
-                HandleSchemaChange(frame);
+                CassandraEventArgs = EventResponse.ParseSchemaChangeBody(frame.Header.Version, Reader);
                 return;
             }
 
@@ -51,11 +51,10 @@ namespace Dse.Responses
             throw ex;
         }
 
-        public void HandleSchemaChange(Frame frame)
+        public static SchemaChangeEventArgs ParseSchemaChangeBody(ProtocolVersion protocolVersion, FrameReader reader)
         {
             var ce = new SchemaChangeEventArgs();
-            CassandraEventArgs = ce;
-            var changeTypeText = Reader.ReadString();
+            var changeTypeText = reader.ReadString();
             SchemaChangeEventArgs.Reason changeType;
             switch (changeTypeText)
             {
@@ -70,33 +69,35 @@ namespace Dse.Responses
                     break;
             }
             ce.What = changeType;
-            if (!frame.Header.Version.SupportsSchemaChangeFullMetadata())
+            if (!protocolVersion.SupportsSchemaChangeFullMetadata())
             {
                 //protocol v1 and v2: <change_type><keyspace><table>
-                ce.Keyspace = Reader.ReadString();
-                ce.Table = Reader.ReadString();
-                return;
+                ce.Keyspace = reader.ReadString();
+                ce.Table = reader.ReadString();
+                return ce;
             }
             //protocol v3+: <change_type><target><options>
-            var target = Reader.ReadString();
-            ce.Keyspace = Reader.ReadString();
+            var target = reader.ReadString();
+            ce.Keyspace = reader.ReadString();
             switch (target)
             {
                 case "TABLE":
-                    ce.Table = Reader.ReadString();
+                    ce.Table = reader.ReadString();
                     break;
                 case "TYPE":
-                    ce.Type = Reader.ReadString();
+                    ce.Type = reader.ReadString();
                     break;
                 case "FUNCTION":
-                    ce.FunctionName = Reader.ReadString();
-                    ce.Signature = Reader.ReadStringList();
+                    ce.FunctionName = reader.ReadString();
+                    ce.Signature = reader.ReadStringList();
                     break;
                 case "AGGREGATE":
-                    ce.AggregateName = Reader.ReadString();
-                    ce.Signature = Reader.ReadStringList();
+                    ce.AggregateName = reader.ReadString();
+                    ce.Signature = reader.ReadStringList();
                     break;
             }
+
+            return ce;
         }
 
         internal static EventResponse Create(Frame frame)
