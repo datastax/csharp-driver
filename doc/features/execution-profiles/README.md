@@ -19,7 +19,7 @@ request execution.
 
 ## Using Execution Profiles
 
-When SLAs are defined there might be different SLAs for different parts of a system. When it comes to authentication, for example, the SLA for a log in might be different from the SLA for a new user registration.
+When SLAs are defined there might be different SLAs for different parts of a system. When it comes to authentication, for example, the SLA for a log in might be different from the SLA for a new user registration. Let's say that we need the following settings to meet the SLAs:
 
 | User journey    | Per host timeout  | Consistency |
 |-----------------|-------------------|-------------|
@@ -49,9 +49,11 @@ Note that both profiles (`login` and `signup`) will inherit the unspecified para
 Now each request only needs a profile name. Here's an example with `Mapper`.
 
 ```csharp
+// on startup
 var session = cluster.Connect();
 var mapper = new Mapper(session);
 
+// on request
 var cql = Cql.New("SELECT * FROM users WHERE username = ?", username).WithExecutionProfile("login");
 var fetchResult = await mapper.FetchAsync<User>(cql).ConfigureAwait(false);
 ```
@@ -59,9 +61,11 @@ var fetchResult = await mapper.FetchAsync<User>(cql).ConfigureAwait(false);
 And here's the same operation with a `PreparedStatement` and `Session.ExecuteAsync`:
 
 ```csharp
+// on startup
 var session = cluster.Connect();
 var ps = await session.PrepareAsync("SELECT * FROM users WHERE username = ?").ConfigureAwait(false);
 
+// on request
 var statement = ps.Bind(username);
 var fetchResult = await session.ExecuteAsync(statement, "login").ConfigureAwait(false);
 ```
@@ -72,7 +76,7 @@ The name `default` is reserved for the default execution profile. This profile w
 
 You can change the default profile either by the legacy parameters on `Cluster.Builder` or by changing the execution profile itself with `Builder.WithExecutionProfiles`.
 
-The following code snippet illustrates two `Cluster` instances being build with the same configuration parameters:
+The following code snippet illustrates two `Cluster` instances being built with the same configuration parameters:
 
 - `cluster1` uses the legacy configuration
 - `cluster2` uses the new Execution Profile API for the same parameters as `cluster1`
@@ -140,4 +144,17 @@ var cluster =
                 .WithConsistencyLevel(ConsistencyLevel.LocalQuorum)
                 .WithReadTimeoutMillis(2500)))
           .Build();
+```
+
+## Accessing the defined profiles for a given Cluster
+
+You can obtain `IReadOnlyDictionary` of immutable `IExecutionProfile` instances via the `Configuration.ExecutionProfiles` property.
+
+```csharp
+var profiles = cluster.Configuration.ExecutionProfiles;
+```
+
+Note that you can access the `ICluster` instance through `ISession`:
+```csharp
+var profiles = session.Cluster.Configuration.ExecutionProfiles;
 ```
