@@ -46,7 +46,7 @@ These releases only contain bug fixes so they will never contain changes to the 
 
 ## 3.10
 
-A lot of new methods were added to some interfaces on this release, mostly to `ISession`, `IMapper` and `ICluster`. We are also taking this opportunity to clarify our stance on breaking changes. To read about our policy on breaking changes read the section "Our policy regarding breaking changes" on the top of this page.
+A lot of new methods were added to some interfaces on this release, mostly to `ISession`, `IMapper` and `ICluster`. We are also taking this opportunity to clarify our stance on breaking changes. To read about our policy on public API changes read the first section on the top of this page.
 
 ### New methods with execution profile support
 
