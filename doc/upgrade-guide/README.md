@@ -12,13 +12,13 @@ The driver versions follow semantic versioning.
 
 Example: `3.0.0`
 
-Regarding `major` releases, any public component of the driver might be changed or removed although we will always avoid introducing significant changes that would make it signifcantly harder for an application to upgrade to the new `major` version.
+Regarding `major` releases, any public component of the driver might be changed or removed although we will always try to avoid introducing significant changes that would make it significantly harder for an application to upgrade to the new `major` version.
 
 ### Minor releases
 
 Example: `3.10.0`
 
-For `minor` releases, it's a little more complicated because we don't want to be forced into bumping the `major` version every time we want to add a new client facing feature to the driver. Because of this we group the public interfaces of the driver in two categories. Here we refer to them as _mockable_ and _implementable_ but these names are here just to make it easier to explain them in this section.
+For `minor` releases, it's a little more complicated because we don't want to be forced into bumping the `major` version every time we want to add a new client facing feature to the driver. For this reason, we group public interfaces of the driver in two categories. Here we refer to them as _mockable_ and _implementable_ but these names are here just to make it easier to explain them in this section.
 
 #### _Implementable_ Interfaces
 
@@ -30,11 +30,11 @@ The reason why we commit to never add new methods to these interfaces in `minor`
 
 #### _Mockable_ Interfaces
 
-For the remaining policies, i.e., those who can not be plugged in to the driver, they exist to allow client applications to mock the driver in their test suites. These interfaces are usually the main entry points of the driver's public API with which client applications interact to execute requests. Some examples: `ISession`, `ICluster`, `IMapper`, `ICqlQueryAsyncClient`, `ICqlWriteAsyncClient`, `ICqlQueryClient`, `ICqlWriteClient`.
+For the remaining policies, i.e., those who can not be plugged in to the driver, they exist to allow client applications to mock the driver in their test suites and inject those dependencies in the application when needed. These interfaces are usually the main entry points of the driver's public API with which client applications interact to execute requests. Some examples: `ISession`, `ICluster`, `IMapper`, `ICqlQueryAsyncClient`, `ICqlWriteAsyncClient`, `ICqlQueryClient`, `ICqlWriteClient`.
 
-**Users should expect new methods to be added to the interfaces that fall into this category in `minor` releases.** 
+**Users should expect new methods to be added to the interfaces that fall into this category in `minor` releases.**
 
-We recommend users to use a mocking library that do not force applications to provide an implementation of every single method of an interface. 
+We recommend users to use a mocking library that do not force applications to provide an implementation of every single method of an interface.
 
 If you need to implement a wrapper class to provide functionality on top of the driver (like tracing), we recommend **composition** instead of **inheritance**, i.e., the wrapper class should have its own interface instead of implementing the driver interface.
 
