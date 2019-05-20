@@ -15,6 +15,8 @@ The DataStax Enterprise C# Driver is feature-rich and highly tunable C# client l
 - [Connection heartbeat](connection-heartbeat)
 - [Connection pooling](connection-pooling)
 - [CQL data types to C# types](datatypes)
+- [Execution Profiles](execution-profiles)
+- [Cluster and schema metadata](metadata)
 - [Geospatial types support](geotypes)
 - [Graph support](graph-support)
 - [Native protocol](native-protocol)

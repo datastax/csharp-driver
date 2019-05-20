@@ -35,9 +35,24 @@ public class Address
 You declare the mapping once at the session level:
 
 ```csharp
-session.UserDefinedTypes.Define(
-   UdtMap.For<Address>()
-);
+await session.UserDefinedTypes.DefineAsync(
+      UdtMap.For<Phone>()
+            .Map(v => v.Alias, "alias")
+            .Map(v => v.CountryCode, "country_code")
+            .Map(v => v.Number, "number")).ConfigureAwait(false);
+```
+
+You can also provide the keyspace when declaring a UDT. This is useful for these situations:
+- If the UDT is defined on a keyspace which is not the default - which can be set via `Session.Connect(string)` or `Builder.WithDefaultKeyspace(string)`
+- if you don't declare a default keyspace with the methods mentioned above
+
+To provide the keyspace when declaring a UDT:
+```csharp
+await session.UserDefinedTypes.DefineAsync(
+      UdtMap.For<Phone>(keyspace: "keyspace")
+            .Map(v => v.Alias, "alias")
+            .Map(v => v.CountryCode, "country_code")
+            .Map(v => v.Number, "number")).ConfigureAwait(false);
 ```
 
 Once declared the mapping will be available for the lifetime of the application:
