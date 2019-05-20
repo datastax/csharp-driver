@@ -31,7 +31,7 @@ Note that `ConstantSpeculativeExecutionPolicy(100, 1)` means that at most `1` sp
 Instead of manually adjusting the options on every request, you can create execution profiles:
 
 ```csharp
-var cluster = 
+var cluster =
    Cluster.Builder()
           .AddContactPoint("127.0.0.1")
           .WithExecutionProfiles(opts => opts
@@ -91,7 +91,6 @@ var cluster2 =
               new QueryOptions()
                   .SetConsistencyLevel(ConsistencyLevel.LocalQuorum)
                   .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial))
-          .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(9999))
           .WithLoadBalancingPolicy(lbp)
           .WithSpeculativeExecutionPolicy(sep)
           .WithRetryPolicy(rp)
@@ -104,7 +103,6 @@ var cluster2 =
             .WithProfile("default", profile => profile
                 .WithConsistencyLevel(ConsistencyLevel.LocalQuorum)
                 .WithSerialConsistencyLevel(ConsistencyLevel.LocalSerial)
-                .WithReadTimeoutMillis(9999)
                 .WithLoadBalancingPolicy(lbp)
                 .WithSpeculativeExecutionPolicy(sep)
                 .WithRetryPolicy(rp)))
@@ -113,16 +111,16 @@ var cluster2 =
 
 ## Derived Execution Profiles
 
-This is an advanced feature that might be useful in some cases. You can create derived profiles that inherit parameters from base profiles. A similar behavior is the way every execution profile inherits parameters from the `default` profile. 
+This is an advanced feature that might be useful in some cases. You can create derived profiles that inherit parameters from base profiles. A similar behavior is the way every execution profile inherits parameters from the `default` profile.
 
-Let's say an application needs 2 execution profiles for its operations but it also implements datacenter failover. In this case it will need 2 more execution profiles that will basically be the same except for `localDc` and `timeout`. 
+Let's say an application needs 2 execution profiles for its operations but it also implements datacenter failover. In this case it will need 2 more execution profiles that will basically be the same except for the `localDc` parameter of `DCAwareRoundRobinPolicy` and for the delay used in `ISpeculativeExecutionPolicy`.
 
-| Scenario       | Per host timeout | Consistency  | Load Datacenter |
+| Scenario       | Speculative Execution Policy    | Consistency  | Local Datacenter |
 |----------------|------------------|--------------|-----------------|
-| default        | 50ms             | LOCAL_ONE    | dc1             |
-| local-quorum   | 100ms            | LOCAL_QUORUM | dc1             |
-| remote-one     | 2000ms           | LOCAL_ONE    | dc2             |
-| remote-quorum  | 2500ms           | LOCAL_QUORUM | dc2             |
+| default        | `ConstantSpeculativeExecutionPolicy(50, 1)`             | LOCAL_ONE    | dc1             |
+| local-quorum   | `ConstantSpeculativeExecutionPolicy(100, 1)`            | LOCAL_QUORUM | dc1             |
+| remote-one     | `ConstantSpeculativeExecutionPolicy(2000, 1)`           | LOCAL_ONE    | dc2             |
+| remote-quorum  | `ConstantSpeculativeExecutionPolicy(2500, 1)`           | LOCAL_QUORUM | dc2             |
 
 Here is how this looks in code (note that `local-quorum` is not created with `WithDerivedProfile`, because the `default` profile inheritance happens by default):
 
@@ -134,17 +132,17 @@ var cluster =
             .WithProfile("default", profile => profile
                 .WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc: "dc1")))
                 .WithConsistencyLevel(ConsistencyLevel.LocalOne)
-                .WithReadTimeoutMillis(50))
+                .WithSpeculativeExecutionPolicy(new ConstantSpeculativeExecutionPolicy(delay: 50, maxSpeculativeExecutions: 1)))
             .WithProfile("local-quorum", profile => profile
                 .WithConsistencyLevel(ConsistencyLevel.LocalQuorum)
-                .WithReadTimeoutMillis(100))
+                .WithSpeculativeExecutionPolicy(new ConstantSpeculativeExecutionPolicy(delay: 100, maxSpeculativeExecutions: 1)))
             .WithProfile("remote-one", profile => profile
                 .WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc: "dc2")))
                 .WithConsistencyLevel(ConsistencyLevel.LocalOne)
-                .WithReadTimeoutMillis(2000))
+                .WithSpeculativeExecutionPolicy(new ConstantSpeculativeExecutionPolicy(delay: 2000, maxSpeculativeExecutions: 1)))
             .WithDerivedProfile("remote-quorum", "remote-one", profile => profile
                 .WithConsistencyLevel(ConsistencyLevel.LocalQuorum)
-                .WithReadTimeoutMillis(2500)))
+                .WithSpeculativeExecutionPolicy(new ConstantSpeculativeExecutionPolicy(delay: 2500, maxSpeculativeExecutions: 1))))
           .Build();
 ```
 
@@ -157,6 +155,7 @@ var profiles = cluster.Configuration.ExecutionProfiles;
 ```
 
 Note that you can access the `ICluster` instance through `ISession`:
+
 ```csharp
 var profiles = session.Cluster.Configuration.ExecutionProfiles;
 ```
