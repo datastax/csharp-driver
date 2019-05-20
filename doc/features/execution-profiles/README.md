@@ -37,7 +37,7 @@ var cluster =
           .AddContactPoint("127.0.0.1")
           .WithExecutionProfiles(opts => opts
             .WithProfile("default", profile => profile
-                .WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc: "dc1"))))
+                .WithLoadBalancingPolicy(new DseLoadBalancingPolicy(localDc: "dc1")))
             .WithProfile("login", profile => profile
                 .WithConsistencyLevel(ConsistencyLevel.LocalOne)
                 .WithSpeculativeExecutionPolicy(new ConstantSpeculativeExecutionPolicy(delay: 100, maxSpeculativeExecutions: 1)))
@@ -114,7 +114,7 @@ var cluster2 =
 
 This is an advanced feature that might be useful in some cases. You can create derived profiles that inherit parameters from base profiles. A similar behavior is the way every execution profile inherits parameters from the `default` profile.
 
-Let's say an application needs 2 execution profiles for its operations but it also implements datacenter failover. In this case it will need 2 more execution profiles that will basically be the same except for the `localDc` parameter of `DCAwareRoundRobinPolicy` and for the delay used in `ISpeculativeExecutionPolicy`.
+Let's say an application needs 2 execution profiles for its operations but it also implements datacenter failover. In this case it will need 2 more execution profiles that will basically be the same except for the `localDc` parameter of `DseLoadBalancingPolicy` and for the delay used in `ISpeculativeExecutionPolicy`.
 
 | Scenario       | Speculative Execution Policy    | Consistency  | Local Datacenter |
 |----------------|------------------|--------------|-----------------|
@@ -131,7 +131,7 @@ var cluster =
           .AddContactPoint("127.0.0.1")
           .WithExecutionProfiles(opts => opts
             .WithProfile("default", profile => profile
-                .WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc: "dc1")))
+                .WithLoadBalancingPolicy(new DseLoadBalancingPolicy(localDc: "dc1"))
                 .WithConsistencyLevel(ConsistencyLevel.LocalOne)
                 .WithSpeculativeExecutionPolicy(new ConstantSpeculativeExecutionPolicy(delay: 50, maxSpeculativeExecutions: 1)))
             .WithProfile("local-quorum", profile => profile
