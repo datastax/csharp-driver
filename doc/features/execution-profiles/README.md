@@ -21,10 +21,12 @@ request execution.
 
 When SLAs are defined there might be different SLAs for different parts of a system. When it comes to authentication, for example, the SLA for a log in might be different from the SLA for a new user registration. Let's say that we need the following settings to meet the SLAs:
 
-| User journey    | Per host timeout  | Consistency |
-|-----------------|-------------------|-------------|
-| Log in          | 100ms             | LOCAL_ONE   |
-| Sign up         | 2000ms            | QUORUM      |
+| User journey    | Speculative Execution Policy                 | Consistency |
+|-----------------|----------------------------------------------|-------------|
+| Log in          | `ConstantSpeculativeExecutionPolicy(100, 1)`  | LOCAL_ONE   |
+| Sign up         | `NoSpeculativeExecutionPolicy`               | QUORUM      |
+
+Note that `ConstantSpeculativeExecutionPolicy(100, 1)` means that at most `1` speculative execution will be launched after `100` ms of not receiving a response from a coordinator node. For more information on speculative executions, [see this page](../speculative-retries).
 
 Instead of manually adjusting the options on every request, you can create execution profiles:
 
@@ -34,13 +36,13 @@ var cluster =
           .AddContactPoint("127.0.0.1")
           .WithExecutionProfiles(opts => opts
             .WithProfile("default", profile => profile
-                .WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc: "dc1")))
+                .WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc: "dc1"))))
             .WithProfile("login", profile => profile
                 .WithConsistencyLevel(ConsistencyLevel.LocalOne)
-                .WithReadTimeoutMillis(100)
+                .WithSpeculativeExecutionPolicy(new ConstantSpeculativeExecutionPolicy(delay: 100, maxSpeculativeExecutions: 1)))
             .WithProfile("signup", profile => profile
                 .WithConsistencyLevel(ConsistencyLevel.Quorum)
-                .WithReadTimeoutMillis(2000)))
+                .WithSpeculativeExecutionPolicy(NoSpeculativeExecutionPolicy.Instance)))
           .Build();
 ```
 
