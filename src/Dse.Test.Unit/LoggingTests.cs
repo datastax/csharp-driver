@@ -108,7 +108,7 @@ namespace Dse.Test.Unit
             loggerHandler.Warning("Message 5 {0}", "Param4");
         }
 
-        private class TestTraceListener : TraceListener
+        internal class TestTraceListener : TraceListener
         {
             public readonly ConcurrentDictionary<int, string> Messages = new ConcurrentDictionary<int, string>();
 

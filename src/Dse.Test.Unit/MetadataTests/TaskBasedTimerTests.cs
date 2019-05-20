@@ -15,6 +15,8 @@
 // 
 
 using System;
+using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Dse.ProtocolEvents;
@@ -74,6 +76,41 @@ namespace Dse.Test.Unit.MetadataTests
 
             await Task.Delay(500).ConfigureAwait(false);
             Assert.AreEqual(1, Interlocked.Read(ref _counter));
+        }
+        
+        [Test]
+        [Repeat(5)]
+        public void Should_NotLogExceptions_When_CancellationTokenIsCancelledAndDisposed()
+        {
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
+            var listener = new LoggingTests.TestTraceListener();
+            Trace.Listeners.Add(listener);
+            var target = new TaskBasedTimer(_scheduler);
+
+            for (var i = 0; i < 20000; i++)
+            {
+                WrapExclusiveScheduler(() => target.Change(() => Interlocked.Increment(ref _counter), TimeSpan.FromMilliseconds(5000)));
+            }
+
+            target.Dispose();
+            Assert.AreEqual(0, listener.Messages.Values.Count(m => m.Contains("Exception thrown in TaskBasedTimer")));
+        }
+        
+        [Test]
+        public void Should_LogExceptions_When_ExceptionsAreThrownByProvidedAction()
+        {
+            Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Error;
+            var listener = new LoggingTests.TestTraceListener();
+            Trace.Listeners.Add(listener);
+            var target = new TaskBasedTimer(_scheduler);
+
+            WrapExclusiveScheduler(() => target.Change(() => throw new Exception("123"), TimeSpan.FromMilliseconds(1)));
+            
+            TestHelper.RetryAssert(() =>
+            {
+                Assert.AreEqual(1, listener.Messages.Values.Count(m => m.Contains("Exception thrown in TaskBasedTimer") && m.Contains("123")));
+            }, 10, 100);
+            target.Dispose();
         }
     }
 }

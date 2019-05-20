@@ -75,12 +75,21 @@ namespace Dse.ProtocolEvents
 
             _cts = new CancellationTokenSource();
             var cts = _cts;
+
+            // ReSharper disable once MethodSupportsCancellation
             _task = Task.Run(async () =>
             {
                 // not running within exclusive scheduler
                 try
                 {
+                    if (cts.IsCancellationRequested)
+                    {
+                        return;
+                    }
+
                     await Task.Delay(due, cts.Token).ConfigureAwait(false);
+
+                    // ReSharper disable once MethodSupportsCancellation
                     var t = _taskFactory.StartNew(() =>
                     {
                         // running within exclusive scheduler
@@ -89,11 +98,11 @@ namespace Dse.ProtocolEvents
                             action();
                         }
                     });
+
                     await t.ConfigureAwait(false);
                 }
-                catch (TaskCanceledException)
-                {
-                }
+                catch (TaskCanceledException) { }
+                catch (ObjectDisposedException) { }
                 catch (Exception ex)
                 {
                     TaskBasedTimer.Logger.Error("Exception thrown in TaskBasedTimer.", ex);
