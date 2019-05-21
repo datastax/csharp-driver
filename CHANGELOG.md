@@ -1,5 +1,21 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.10.0
+
+2019-05-21
+
+### Features
+
+- [CSHARP-275] - Prevent duplicate metadata fetches from control connection and allow disabling schema metadata fetching
+- [CSHARP-763] - Introduce Execution Profiles in Mapper and LINQ APIs
+- [CSHARP-678] - Introduce Execution Profiles at Session Level
+- [CSHARP-424] - Allow UDT mappings to be defined for different keyspaces
+
+### Bug Fixes
+
+- [CSHARP-744] - LINQ and Mapper don't support empty column names
+- [CSHARP-766] - Cassandra Date is not mapped correct to LocalDate with some specfic values
+
 ## 3.9.0
 
 2019-04-02
