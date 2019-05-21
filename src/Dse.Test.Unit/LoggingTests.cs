@@ -49,7 +49,7 @@ namespace Dse.Test.Unit
 
             // The name and version should be logged
             var message = listener.Messages.Values.First(m => m.Contains("Connecting to cluster using"));
-            StringAssert.IsMatch("DataStax .*Driver .*v\\d\\.\\d\\.\\d\\.\\d", message);
+            StringAssert.IsMatch("DataStax .*Driver .*v\\d+\\.\\d+\\.\\d+\\.\\d+", message);
         }
 
         [Test]

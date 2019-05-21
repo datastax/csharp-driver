@@ -49,10 +49,9 @@ namespace Dse.Test.Unit.ExecutionProfiles
                 HostConnectionPoolFactory = hostConnectionPoolFactoryMock,
                 ExecutionProfiles = new Dictionary<string, IExecutionProfile>
                 {
-                    { "testE", new ExecutionProfileBuilder()
-                               .WithConsistencyLevel(ConsistencyLevel.EachQuorum)
-                               .WithReadTimeoutMillis(1)
-                               .Build() },
+                    { "testE", ((ExecutionProfileBuilder)new ExecutionProfileBuilder()
+                                                         .WithConsistencyLevel(ConsistencyLevel.EachQuorum)
+                                                         .WithReadTimeoutMillis(1)).Build() },
                     { "testE2", new ExecutionProfileBuilder().Build() }
                 },
                 QueryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalSerial),
@@ -94,10 +93,10 @@ namespace Dse.Test.Unit.ExecutionProfiles
                 HostConnectionPoolFactory = hostConnectionPoolFactoryMock,
                 ExecutionProfiles = new Dictionary<string, IExecutionProfile>
                 {
-                    { "testE", new ExecutionProfileBuilder()
+                    { "testE", ((ExecutionProfileBuilder)new ExecutionProfileBuilder()
                                .WithConsistencyLevel(ConsistencyLevel.EachQuorum)
                                .WithReadTimeoutMillis(1)
-                               .Build() },
+                               ).Build() },
                     { "testE2", new ExecutionProfileBuilder().Build() }
                 },
                 QueryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalSerial),

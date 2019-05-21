@@ -72,12 +72,6 @@ namespace Dse
         /// </summary>
         /// <returns>This builder.</returns>
         IExecutionProfileBuilder WithReadTimeoutMillis(int readTimeoutMillis);
-        
-        /// <summary>
-        /// Build a new execution profile instance that is configured with the options that were set with this builder.
-        /// </summary>
-        /// <returns>The new execution profile instance.</returns>
-        IExecutionProfile Build();
 
         /// <summary>
         /// <para>Sets the DSE Graph options.</para>

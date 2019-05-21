@@ -36,6 +36,7 @@ namespace Dse.Test.Unit.ExecutionProfiles
                 new ExecutionProfileBuilder()
                                 .WithSpeculativeExecutionPolicy(seps[1])
                                 .WithLoadBalancingPolicy(lbps[1])
+                                .CastToClass()
                                 .Build();
             var testConfig = new TestConfigurationBuilder
             {
@@ -54,12 +55,14 @@ namespace Dse.Test.Unit.ExecutionProfiles
                         "profile2",
                         new ExecutionProfileBuilder()
                                         .WithSpeculativeExecutionPolicy(seps[2])
+                                        .CastToClass()
                                         .Build()
                     },
                     {
                         "profile3",
                         new ExecutionProfileBuilder()
                                         .WithLoadBalancingPolicy(lbps[2])
+                                        .CastToClass()
                                         .Build()
                     },
                     {
@@ -76,6 +79,7 @@ namespace Dse.Test.Unit.ExecutionProfiles
                         new ExecutionProfileBuilder()
                             .WithLoadBalancingPolicy(lbps[4])
                             .WithSpeculativeExecutionPolicy(seps[4])
+                            .CastToClass()
                             .Build()
                     },
                     {
@@ -83,6 +87,7 @@ namespace Dse.Test.Unit.ExecutionProfiles
                         new ExecutionProfileBuilder()
                             .WithLoadBalancingPolicy(lbps[3])
                             .WithSpeculativeExecutionPolicy(seps[3])
+                            .CastToClass()
                             .Build()
                     }
                 }
@@ -144,6 +149,7 @@ namespace Dse.Test.Unit.ExecutionProfiles
                 new ExecutionProfileBuilder()
                                 .WithSpeculativeExecutionPolicy(seps[1])
                                 .WithLoadBalancingPolicy(lbps[1])
+                                .CastToClass()
                                 .Build();
             var testConfig = new TestConfigurationBuilder
             {
@@ -162,6 +168,7 @@ namespace Dse.Test.Unit.ExecutionProfiles
                         "profile2",
                         new ExecutionProfileBuilder()
                                         .WithSpeculativeExecutionPolicy(seps[1])
+                                        .CastToClass()
                                         .Build()
                     },
                     {
@@ -177,11 +184,14 @@ namespace Dse.Test.Unit.ExecutionProfiles
                         "graphProfile1", 
                         new ExecutionProfileBuilder()
                             .WithSpeculativeExecutionPolicy(seps[3])
+                            .CastToClass()
                             .Build() },
                     {
                         "default",
                         new ExecutionProfileBuilder()
-                            .WithSpeculativeExecutionPolicy(seps[2]).Build()
+                            .WithSpeculativeExecutionPolicy(seps[2])
+                            .CastToClass()
+                            .Build()
                     }
                 }
             }.Build();

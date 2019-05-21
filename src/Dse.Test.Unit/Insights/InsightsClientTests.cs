@@ -574,12 +574,14 @@ namespace Dse.Test.Unit.Insights
                                     .WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
                                     .WithRetryPolicy(new IdempotenceAwareRetryPolicy(new DefaultRetryPolicy()))
                                     .WithSerialConsistencyLevel(ConsistencyLevel.Serial)
+                                    .CastToClass()
                                     .Build()
                             },
                             {
                                 "profile3",
                                 new ExecutionProfileBuilder()
                                     .WithConsistencyLevel(ConsistencyLevel.EachQuorum)
+                                    .CastToClass()
                                     .Build()
                             }
                         }

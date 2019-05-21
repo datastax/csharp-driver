@@ -29,6 +29,7 @@ namespace Dse.Test.Unit.ExecutionProfiles
             var go = new GraphOptions();
             var baseProfile = new ExecutionProfileBuilder()
                                               .WithGraphOptions(go)
+                                              .CastToClass()
                                               .Build();
 
             var profile = new ExecutionProfile(baseProfile, new ExecutionProfileBuilder().Build());
@@ -43,11 +44,13 @@ namespace Dse.Test.Unit.ExecutionProfiles
             var goProfile = new GraphOptions().SetName("tt");
             var baseProfile = new ExecutionProfileBuilder()
                                               .WithGraphOptions(go)
+                                              .CastToClass()
                                               .Build();
 
             
             var derivedProfile = new ExecutionProfileBuilder()
                                           .WithGraphOptions(goProfile)
+                                          .CastToClass()
                                           .Build();
             
             var profile = new ExecutionProfile(baseProfile, derivedProfile);
