@@ -28,14 +28,16 @@ namespace Cassandra.Tests.ExecutionProfiles
             var lbp = new RoundRobinPolicy();
             var sep = new ConstantSpeculativeExecutionPolicy(1000, 1);
             var rp = new LoggingRetryPolicy(new DefaultRetryPolicy());
-            var baseProfile = new ExecutionProfileBuilder()
-                                              .WithLoadBalancingPolicy(lbp)
-                                              .WithSpeculativeExecutionPolicy(sep)
-                                              .WithSerialConsistencyLevel(ConsistencyLevel.LocalSerial)
-                                              .WithConsistencyLevel(ConsistencyLevel.Quorum)
-                                              .WithReadTimeoutMillis(3000)
-                                              .WithRetryPolicy(rp)
-                                              .Build();
+            var baseProfileBuilder = new ExecutionProfileBuilder();
+            baseProfileBuilder
+                .WithLoadBalancingPolicy(lbp)
+                .WithSpeculativeExecutionPolicy(sep)
+                .WithSerialConsistencyLevel(ConsistencyLevel.LocalSerial)
+                .WithConsistencyLevel(ConsistencyLevel.Quorum)
+                .WithReadTimeoutMillis(3000)
+                .WithRetryPolicy(rp);
+
+            var baseProfile = baseProfileBuilder.Build();
 
             var profile = new ExecutionProfile(baseProfile, new ExecutionProfileBuilder().Build());
 
@@ -56,24 +58,27 @@ namespace Cassandra.Tests.ExecutionProfiles
             var sepProfile = new ConstantSpeculativeExecutionPolicy(200, 50);
             var lbpProfile = new TokenAwarePolicy(new DCAwareRoundRobinPolicy());
             var rpProfile = new LoggingRetryPolicy(new IdempotenceAwareRetryPolicy(new DefaultRetryPolicy()));
-            var baseProfile = new ExecutionProfileBuilder()
-                                              .WithLoadBalancingPolicy(lbp)
-                                              .WithSpeculativeExecutionPolicy(sep)
-                                              .WithSerialConsistencyLevel(ConsistencyLevel.LocalSerial)
-                                              .WithConsistencyLevel(ConsistencyLevel.Quorum)
-                                              .WithReadTimeoutMillis(3000)
-                                              .WithRetryPolicy(rp)
-                                              .Build();
+            var baseProfileBuilder = new ExecutionProfileBuilder();
+            baseProfileBuilder
+                .WithLoadBalancingPolicy(lbp)
+                .WithSpeculativeExecutionPolicy(sep)
+                .WithSerialConsistencyLevel(ConsistencyLevel.LocalSerial)
+                .WithConsistencyLevel(ConsistencyLevel.Quorum)
+                .WithReadTimeoutMillis(3000)
+                .WithRetryPolicy(rp);
 
+            var baseProfile = baseProfileBuilder.Build();
             
-            var derivedProfile = new ExecutionProfileBuilder()
-                                          .WithLoadBalancingPolicy(lbpProfile)
-                                          .WithSpeculativeExecutionPolicy(sepProfile)
-                                          .WithSerialConsistencyLevel(ConsistencyLevel.Serial)
-                                          .WithConsistencyLevel(ConsistencyLevel.LocalQuorum)
-                                          .WithReadTimeoutMillis(5000)
-                                          .WithRetryPolicy(rpProfile)
-                                          .Build();
+            var derivedProfileBuilder = new ExecutionProfileBuilder();
+            derivedProfileBuilder
+                .WithLoadBalancingPolicy(lbpProfile)
+                .WithSpeculativeExecutionPolicy(sepProfile)
+                .WithSerialConsistencyLevel(ConsistencyLevel.Serial)
+                .WithConsistencyLevel(ConsistencyLevel.LocalQuorum)
+                .WithReadTimeoutMillis(5000)
+                .WithRetryPolicy(rpProfile);
+
+            var derivedProfile = derivedProfileBuilder.Build();
             
             var profile = new ExecutionProfile(baseProfile, derivedProfile);
 

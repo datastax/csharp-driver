@@ -52,14 +52,14 @@ namespace Cassandra.Tests.ExecutionProfiles
             var sep = new FakeSpeculativeExecutionPolicy();
             var rp = new FakeRetryPolicy();
             var rpStatement = new FakeRetryPolicy();
-            var profile = new ExecutionProfileBuilder()
+            var profile = ((ExecutionProfileBuilder)new ExecutionProfileBuilder()
                                           .WithConsistencyLevel(ConsistencyLevel.All)
                                           .WithSerialConsistencyLevel(ConsistencyLevel.Serial)
                                           .WithReadTimeoutMillis(50)
                                           .WithLoadBalancingPolicy(lbp)
                                           .WithSpeculativeExecutionPolicy(sep)
                                           .WithRetryPolicy(rp)
-                                          .Build();
+                                          ).Build();
 
             var mockResult = BuildRequestHandler(
                 BuildStatement(requestType)
@@ -112,14 +112,14 @@ namespace Cassandra.Tests.ExecutionProfiles
             var lbp = new FakeLoadBalancingPolicy();
             var sep = new FakeSpeculativeExecutionPolicy();
             var rp = new FakeRetryPolicy();
-            var profile = new ExecutionProfileBuilder()
+            var profile = ((ExecutionProfileBuilder)new ExecutionProfileBuilder()
                                           .WithConsistencyLevel(ConsistencyLevel.All)
                                           .WithSerialConsistencyLevel(ConsistencyLevel.Serial)
                                           .WithReadTimeoutMillis(50)
                                           .WithLoadBalancingPolicy(lbp)
                                           .WithSpeculativeExecutionPolicy(sep)
                                           .WithRetryPolicy(rp)
-                                          .Build();
+                                          ).Build();
 
             var mockResult = BuildRequestHandler(
                 BuildStatement(requestType).SetIdempotence(true),
