@@ -47,7 +47,16 @@ namespace Cassandra
         public object[] Values { get; private set; }
         public ConsistencyLevel Consistency { get; set; }
 
-        public long? Timestamp { get; }
+        public DateTimeOffset? Timestamp
+        {
+            get
+            {
+                return RawTimestamp == null ? (DateTimeOffset?) null :
+                    TypeSerializer.UnixStart.AddTicks(RawTimestamp.Value * 10);
+            }
+        }
+
+        internal long? RawTimestamp { get; }
 
         /// <summary>
         /// Names of the query parameters
@@ -79,7 +88,7 @@ namespace Cassandra
             }
             PagingState = pagingState;
             SerialConsistency = serialConsistency;
-            Timestamp = timestamp;
+            RawTimestamp = timestamp;
         }
 
         internal static QueryProtocolOptions CreateFromQuery(
@@ -147,7 +156,7 @@ namespace Cassandra
             {
                 flags |= QueryFlags.WithSerialConsistency;
             }
-            if (protocolVersion.SupportsTimestamp() && Timestamp != null)
+            if (protocolVersion.SupportsTimestamp() && RawTimestamp != null)
             {
                 flags |= QueryFlags.WithDefaultTimestamp;
             }
@@ -213,7 +222,7 @@ namespace Cassandra
             {
                 // ReSharper disable once PossibleInvalidOperationException
                 // Null check has been done when setting the flag
-                wb.WriteLong(Timestamp.Value);
+                wb.WriteLong(RawTimestamp.Value);
             }
         }
     }

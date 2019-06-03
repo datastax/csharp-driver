@@ -72,7 +72,7 @@ namespace Cassandra.Requests
             {
                 throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
             }
-            if (queryOptions.Timestamp != null && !protocolVersion.SupportsTimestamp())
+            if (queryOptions.RawTimestamp != null && !protocolVersion.SupportsTimestamp())
             {
                 throw new NotSupportedException("Timestamp for query is supported in Cassandra 2.1 or above.");
             }
