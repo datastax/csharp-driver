@@ -11,14 +11,12 @@ branches:
     - 2.1
     - dse_3.1
     
-matrix:
-  include:
-    - env:
-        - TARGETF="netcoreapp2.1"
-        - BUILD_EXAMPLES="1"
-    - env:
-        - TARGETF="netcoreapp2.0"
-        - BUILD_EXAMPLES="0"
+env:
+  global:
+    - BuildCoreOnly=True
+  matrix:
+    - TARGETF="netcoreapp2.1" BUILD_EXAMPLES="1"
+    - TARGETF="netcoreapp2.0" BUILD_EXAMPLES="0"
 
 script:
   - |
