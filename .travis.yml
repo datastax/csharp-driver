@@ -25,7 +25,7 @@ script:
     if [ "${BUILD_EXAMPLES}" == "1" ]
     then
         dotnet restore examples
-        dotnet build examples/examples.sln -c Release -f $TARGETF
+        dotnet build --no-restore examples/examples.sln -c Release /p:BuildCoreOnly=True
     fi
   - dotnet restore src
   - dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj -c Release -f $TARGETF
