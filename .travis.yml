@@ -2,7 +2,7 @@ language: csharp
 sudo: required
 mono: none
 dist: xenial
-dotnet: 2.2
+dotnet: 2.2.204
 
 addons:
   apt:
@@ -35,5 +35,5 @@ script:
     fi
   - dotnet restore src
   - dotnet build src/Cassandra.Tests/Cassandra.Tests.csproj --no-restore -c Release /p:BuildCoreOnly=True
-  - dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj --no-restore --no-build -v d -c Release -f $TARGETF --logger:"nunit;LogFilePath=test-result.xml" -nodereuse:false
+  - dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj --no-restore --no-build -v n -c Release -f $TARGETF --logger:"nunit;LogFilePath=test-result.xml"
   - if [ -f /home/travis/build/datastax/csharp-driver/src/Cassandra.Tests/test-result.xml ]; then lynx -dump /home/travis/build/datastax/csharp-driver/src/Cassandra.Tests/test-result.xml; fi
