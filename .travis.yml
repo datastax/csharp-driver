@@ -23,8 +23,8 @@ script:
     if [ "${BUILD_EXAMPLES}" == "1" ]
     then
         dotnet restore examples
-        dotnet build --no-restore examples/examples.sln -c Release /p:BuildCoreOnly=True
+        dotnet build --no-restore examples/examples.sln -c Release
     fi
   - dotnet restore src
-  - dotnet build src/Cassandra.Tests/Cassandra.Tests.csproj --no-restore -c Release /p:BuildCoreOnly=True
+  - dotnet build src/Cassandra.Tests/Cassandra.Tests.csproj --no-restore -c Release
   - dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj --no-restore --no-build -v n -c Release -f $TARGETF
