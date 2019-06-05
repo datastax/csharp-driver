@@ -4,6 +4,12 @@ mono: none
 dist: xenial
 dotnet: 2.2
 
+addons:
+  apt:
+    packages:
+      - lynx
+
+
 branches:
   except:
     - 1.0
@@ -28,4 +34,6 @@ script:
         dotnet build --no-restore examples/examples.sln -c Release /p:BuildCoreOnly=True
     fi
   - dotnet restore src
-  - dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj -c Release -f $TARGETF
+  - dotnet build src/Cassandra.Tests/Cassandra.Tests.csproj --no-restore -c Release /p:BuildCoreOnly=True
+  - dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj --no-restore --no-build -v d -c Release -f $TARGETF --logger:"nunit;LogFilePath=test-result.xml"
+  - if [ -f src/Cassandra.Tests/test-result.xml ]; then lynx -dump src/Cassandra.Tests/test-result.xml; fi
