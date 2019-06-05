@@ -13,9 +13,19 @@ branches:
     
 matrix:
   include:
-    - env: TARGETF=netcoreapp2.1
-    - env: TARGETF=netcoreapp2.0
+    - env:
+        - TARGETF="netcoreapp2.1"
+        - BUILD_EXAMPLES="1"
+    - env:
+        - TARGETF="netcoreapp2.0"
+        - BUILD_EXAMPLES="0"
 
 script:
+  - |
+    if [ "${BUILD_EXAMPLES}" == "1" ]
+    then
+        dotnet restore examples
+        dotnet build examples/examples.sln -c Release -f $TARGETF
+    fi
   - dotnet restore src
   - dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj -c Release -f $TARGETF
