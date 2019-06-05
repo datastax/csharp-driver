@@ -35,5 +35,5 @@ script:
     fi
   - dotnet restore src
   - dotnet build src/Cassandra.Tests/Cassandra.Tests.csproj --no-restore -c Release /p:BuildCoreOnly=True
-  - dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj --no-restore --no-build -v d -c Release -f $TARGETF --logger:"nunit;LogFilePath=test-result.xml"
+  - dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj --no-restore --no-build -v d -c Release -f $TARGETF --logger:"nunit;LogFilePath=test-result.xml" -nodereuse:false
   - if [ -f src/Cassandra.Tests/test-result.xml ]; then lynx -dump src/Cassandra.Tests/test-result.xml; fi
