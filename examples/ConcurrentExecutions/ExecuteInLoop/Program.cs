@@ -57,7 +57,7 @@ namespace ExecuteInLoop
                     .Build();
 
             // create session
-            _session = _cluster.Connect();
+            _session = await _cluster.ConnectAsync().ConfigureAwait(false);
 
             // prepare schema
             await _session.ExecuteAsync(new SimpleStatement("CREATE KEYSPACE IF NOT EXISTS examples WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': '1' }")).ConfigureAwait(false);
@@ -110,8 +110,7 @@ namespace ExecuteInLoop
         {
             foreach (var counter in Enumerable.Range(i, count))
             {
-                var uuid = Guid.NewGuid();
-                var bs = _ps.Bind(uuid, $"{counter}").SetIdempotence(true);
+                var bs = _ps.Bind(Guid.NewGuid(), $"{counter}").SetIdempotence(true);
                 await _session.ExecuteAsync(bs).ConfigureAwait(false);
             }
         }
