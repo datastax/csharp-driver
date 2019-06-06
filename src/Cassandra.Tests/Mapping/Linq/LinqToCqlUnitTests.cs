@@ -414,7 +414,7 @@ APPLY BATCH".Replace("\r", ""));
                 .AllowFiltering();
 
             Assert.That(cqlQuery, Is.Not.Null);
-            Assert.That(cqlQuery.ToString(), Is.StringEnding("ALLOW FILTERING"));
+            StringAssert.EndsWith("ALLOW FILTERING", cqlQuery.ToString());
             Trace.WriteLine(cqlQuery.ToString());
         }
 

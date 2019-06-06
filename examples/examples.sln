@@ -1,0 +1,42 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.329
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2 - Driver", "2 - Driver", "{EE6E727D-835E-42D1-8E62-081E0B6FAAC2}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cassandra", "..\src\Cassandra\Cassandra.csproj", "{B2C593E7-FC3B-4B57-8E45-AC6385D48BA7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ConcurrentExecutions", "ConcurrentExecutions", "{136222AF-A2B4-4AC3-A5DE-9CD37064FE49}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExecuteInLoop", "ConcurrentExecutions\ExecuteInLoop\ExecuteInLoop.csproj", "{5BBBBCBB-2044-4249-BD53-DEBA56067F0B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "1 - Examples", "1 - Examples", "{A589A223-6F57-40C7-BE7D-00E87354A69E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B2C593E7-FC3B-4B57-8E45-AC6385D48BA7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2C593E7-FC3B-4B57-8E45-AC6385D48BA7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2C593E7-FC3B-4B57-8E45-AC6385D48BA7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2C593E7-FC3B-4B57-8E45-AC6385D48BA7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5BBBBCBB-2044-4249-BD53-DEBA56067F0B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5BBBBCBB-2044-4249-BD53-DEBA56067F0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5BBBBCBB-2044-4249-BD53-DEBA56067F0B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5BBBBCBB-2044-4249-BD53-DEBA56067F0B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B2C593E7-FC3B-4B57-8E45-AC6385D48BA7} = {EE6E727D-835E-42D1-8E62-081E0B6FAAC2}
+		{136222AF-A2B4-4AC3-A5DE-9CD37064FE49} = {A589A223-6F57-40C7-BE7D-00E87354A69E}
+		{5BBBBCBB-2044-4249-BD53-DEBA56067F0B} = {136222AF-A2B4-4AC3-A5DE-9CD37064FE49}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A731352A-6C46-4D13-A44F-07731EE671DA}
+	EndGlobalSection
+EndGlobal
