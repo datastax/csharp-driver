@@ -77,7 +77,7 @@ namespace Cassandra.Requests
             if (!protocolVersion.SupportsTimestamp())
             {
                 //Features supported in protocol v3 and above
-                if (queryOptions.Timestamp != null)
+                if (queryOptions.RawTimestamp != null)
                 {
                     throw new NotSupportedException("Timestamp for query is supported in Cassandra 2.1 and above.");
                 }
