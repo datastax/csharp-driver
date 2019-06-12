@@ -34,8 +34,7 @@ namespace Dse
         private readonly bool _skipMetadata;
         public readonly int PageSize;
         public readonly ConsistencyLevel SerialConsistency;
-
-        private readonly long? _timestamp;
+        
         private readonly string _keyspace;
 
         public byte[] PagingState { get; set; }
@@ -46,11 +45,12 @@ namespace Dse
         {
             get
             {
-                return _timestamp == null ? (DateTimeOffset?) null :
-                    TypeSerializer.UnixStart.AddTicks(_timestamp.Value * 10);
+                return RawTimestamp == null ? (DateTimeOffset?) null :
+                    TypeSerializer.UnixStart.AddTicks(RawTimestamp.Value * 10);
             }
         }
 
+        internal long? RawTimestamp { get; }
 
         /// <summary>
         /// Names of the query parameters
@@ -83,7 +83,7 @@ namespace Dse
             }
             PagingState = pagingState;
             SerialConsistency = serialConsistency;
-            _timestamp = timestamp;
+            RawTimestamp = timestamp;
             _keyspace = keyspace;
         }
 
@@ -153,7 +153,7 @@ namespace Dse
             {
                 flags |= QueryFlags.WithSerialConsistency;
             }
-            if (protocolVersion.SupportsTimestamp() && _timestamp != null)
+            if (protocolVersion.SupportsTimestamp() && RawTimestamp != null)
             {
                 flags |= QueryFlags.WithDefaultTimestamp;
             }
@@ -235,7 +235,7 @@ namespace Dse
             {
                 // ReSharper disable once PossibleInvalidOperationException
                 // Null check has been done when setting the flag
-                wb.WriteLong(_timestamp.Value);
+                wb.WriteLong(RawTimestamp.Value);
             }
 
             if (flags.HasFlag(QueryFlags.WithKeyspace))
