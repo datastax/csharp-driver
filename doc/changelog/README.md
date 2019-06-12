@@ -2,6 +2,15 @@
 
 Changelog for the DataStax Enterprise C# Driver.
 
+## 2.7.1
+
+2019-06-PLACEHOLDER
+
+### Bug Fixes
+
+- [CSHARP-772] - Remove internal conversion of timestmap to DateTimeOffset
+- [CSHARP-777] - Invalid or unsupported protocol version (0)
+
 ## 2.7.0
 
 2019-05-21
