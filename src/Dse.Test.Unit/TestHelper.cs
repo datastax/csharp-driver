@@ -23,7 +23,7 @@ using Moq;
 
 using NUnit.Framework;
 using NUnit.Framework.Internal;
-using IgnoreAttribute = Cassandra.Mapping.Attributes.IgnoreAttribute;
+using IgnoreAttribute = Dse.Mapping.Attributes.IgnoreAttribute;
 
 namespace Dse.Test.Unit
 {
