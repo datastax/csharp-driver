@@ -161,7 +161,7 @@ namespace Cassandra.Tests.Mapping.Linq
             object[] parameters;
             var queryCql = visitor.GetSelect(query.Expression, out parameters);
 
-            Assert.That(parameters, Is.EquivalentTo(new[] { "a", "static" }));
+            Assert.That(parameters, Is.EquivalentTo(new[] { "a", "b" }));
             Assert.AreEqual(@"SELECT ""x_pk"", ""x_ck1"", ""x_f1"" FROM ""x_ts"" WHERE ""x_pk"" = ? AND ""x_ck1"" = ?", queryCql);
         }
 
