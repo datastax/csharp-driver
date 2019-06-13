@@ -137,6 +137,11 @@ namespace Cassandra.Tests.Mapping.Linq
             public TestObject AnotherObjectField;
             public TestObject AnotherObjectProperty { get; set; }
         }
+        
+        private class TestObjectStaticProperty
+        {
+            public static string Property => "static";
+        }
 
         [Test]
         public void PropertyAccess_Test()
@@ -156,8 +161,23 @@ namespace Cassandra.Tests.Mapping.Linq
             object[] parameters;
             var queryCql = visitor.GetSelect(query.Expression, out parameters);
 
-            Assert.That(parameters, Is.EquivalentTo(new[] { "a", "b" }));
+            Assert.That(parameters, Is.EquivalentTo(new[] { "a", "static" }));
             Assert.AreEqual(@"SELECT ""x_pk"", ""x_ck1"", ""x_f1"" FROM ""x_ts"" WHERE ""x_pk"" = ? AND ""x_ck1"" = ?", queryCql);
+        }
+
+        [Test]
+        public void StaticPropertyAccess_Test()
+        {
+            var table = new Table<LinqDecoratedWithStringCkEntity>(GetSession((_, __) => { }));
+
+            var cql = table.Select(t => new LinqDecoratedWithStringCkEntity
+            {
+                pk = TestObjectStaticProperty.Property,
+                ck1 = TestObjectStaticProperty.Property
+            }).Update().GetCql(out var parameters);
+
+            Assert.That(parameters, Is.EquivalentTo(new[] { "static", "static" }));
+            Assert.AreEqual(@"UPDATE ""x_ts"" SET ""x_pk"" = ?, ""x_ck1"" = ?", cql);
         }
 
         [Test]
