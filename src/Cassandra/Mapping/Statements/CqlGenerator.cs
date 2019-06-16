@@ -340,7 +340,8 @@ namespace Cassandra.Mapping.Statements
                 .Where(k => k.Item2 != SortOrder.Unspecified)
                 .Select(k => Escape(k.Item1.ColumnName, pocoData) + " " + (k.Item2 == SortOrder.Ascending ? "ASC" : "DESC")));
 
-            if (!string.IsNullOrEmpty(clusteringOrder))
+            var clusteringOrderIsDefined = !string.IsNullOrEmpty(clusteringOrder);
+            if (clusteringOrderIsDefined)
             {
                 createTable
                     .Append(" WITH CLUSTERING ORDER BY (")
@@ -349,7 +350,7 @@ namespace Cassandra.Mapping.Statements
             }
             if (pocoData.CompactStorage)
             {
-                createTable.Append($" {(!string.IsNullOrEmpty(clusteringOrder) ? "AND" : "WITH")} COMPACT STORAGE");
+                createTable.Append($" {(clusteringOrderIsDefined ? "AND" : "WITH")} COMPACT STORAGE");
             }
             commands.Add(createTable.ToString());
             //Secondary index definitions
