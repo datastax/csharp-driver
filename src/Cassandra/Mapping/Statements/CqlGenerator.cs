@@ -349,7 +349,7 @@ namespace Cassandra.Mapping.Statements
             }
             if (pocoData.CompactStorage)
             {
-                createTable.Append(" WITH COMPACT STORAGE");
+                createTable.Append($" {(!string.IsNullOrEmpty(clusteringOrder) ? "AND" : "WITH")} COMPACT STORAGE");
             }
             commands.Add(createTable.ToString());
             //Secondary index definitions
