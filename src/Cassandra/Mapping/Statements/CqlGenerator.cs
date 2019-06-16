@@ -324,23 +324,23 @@ namespace Cassandra.Mapping.Statements
                 //tupled partition keys
                 createTable
                     .Append("(")
-                    .Append(String.Join(", ", pocoData.PartitionKeys.Select(Escape(pocoData))))
+                    .Append(string.Join(", ", pocoData.PartitionKeys.Select(Escape(pocoData))))
                     .Append(")");
             }
             if (pocoData.ClusteringKeys.Count > 0)
             {
                 createTable.Append(", ");
-                createTable.Append(String.Join(", ", pocoData.ClusteringKeys.Select(k => Escape(k.Item1.ColumnName, pocoData))));
+                createTable.Append(string.Join(", ", pocoData.ClusteringKeys.Select(k => Escape(k.Item1.ColumnName, pocoData))));
             }
             //close primary keys
             createTable.Append(")");
             //close table column definition
             createTable.Append(")");
-            var clusteringOrder = String.Join(", ", pocoData.ClusteringKeys
+            var clusteringOrder = string.Join(", ", pocoData.ClusteringKeys
                 .Where(k => k.Item2 != SortOrder.Unspecified)
                 .Select(k => Escape(k.Item1.ColumnName, pocoData) + " " + (k.Item2 == SortOrder.Ascending ? "ASC" : "DESC")));
 
-            if (!String.IsNullOrEmpty(clusteringOrder))
+            if (!string.IsNullOrEmpty(clusteringOrder))
             {
                 createTable
                     .Append(" WITH CLUSTERING ORDER BY (")
