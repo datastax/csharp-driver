@@ -1,5 +1,5 @@
 ﻿//
-//  Copyright (C) 2017 DataStax, Inc.
+//  Copyright (C) DataStax, Inc.
 //
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
@@ -406,7 +406,7 @@ APPLY BATCH".Replace("\r", ""));
                 .AllowFiltering();
 
             Assert.That(cqlQuery, Is.Not.Null);
-            Assert.That(cqlQuery.ToString(), Is.StringEnding("ALLOW FILTERING"));
+            StringAssert.EndsWith("ALLOW FILTERING", cqlQuery.ToString());
             Trace.WriteLine(cqlQuery.ToString());
         }
 

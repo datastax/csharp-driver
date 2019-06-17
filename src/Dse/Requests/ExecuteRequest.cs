@@ -1,5 +1,5 @@
 //
-//  Copyright (C) 2017 DataStax, Inc.
+//  Copyright (C) DataStax, Inc.
 //
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
@@ -66,7 +66,7 @@ namespace Dse.Requests
             {
                 throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
             }
-            if (queryOptions.Timestamp != null && !protocolVersion.SupportsTimestamp())
+            if (queryOptions.RawTimestamp != null && !protocolVersion.SupportsTimestamp())
             {
                 throw new NotSupportedException("Timestamp for query is supported in Cassandra 2.1 or above.");
             }

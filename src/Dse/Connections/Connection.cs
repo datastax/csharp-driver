@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -797,6 +797,7 @@ namespace Dse.Connections
                 }
                 _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
                 int frameLength;
+                var startLength = stream?.Length ?? 0; 
                 try
                 {
                     //lazy initialize the stream
@@ -816,6 +817,9 @@ namespace Dse.Connections
                     RemoveFromPending(streamId);
                     //Callback with the Exception
                     state.InvokeCallback(ex);
+
+                    //Reset the stream to before we started writing this frame
+                    stream?.SetLength(startLength);
                     break;
                 }
                 //We will not use the request any more, stop reference it.

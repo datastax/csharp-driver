@@ -1,5 +1,5 @@
 ﻿//
-//  Copyright (C) 2017 DataStax, Inc.
+//  Copyright (C) DataStax, Inc.
 //
 //  Please see the license for details:
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
@@ -22,7 +22,7 @@ using Microsoft.DotNet.InternalAbstractions;
 using Moq;
 
 using NUnit.Framework;
-
+using NUnit.Framework.Internal;
 using IgnoreAttribute = Dse.Mapping.Attributes.IgnoreAttribute;
 
 namespace Dse.Test.Unit
@@ -616,18 +616,21 @@ namespace Dse.Test.Unit
             var i = 0;
             do
             {
-                try
+                using (new TestExecutionContext.IsolatedContext())
                 {
-                    await func().ConfigureAwait(false);
-                    return;
-                }
-                catch (MockException ex1)
-                {
-                    lastException = ex1;
-                }
-                catch (AssertionException ex2)
-                {
-                    lastException = ex2;
+                    try
+                    {
+                        await func().ConfigureAwait(false);
+                        return;
+                    }
+                    catch (MockException ex1)
+                    {
+                        lastException = ex1;
+                    }
+                    catch (AssertionException ex2)
+                    {
+                        lastException = ex2;
+                    }
                 }
 
                 await Task.Delay(msPerRetry).ConfigureAwait(false);

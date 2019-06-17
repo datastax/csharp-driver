@@ -98,7 +98,7 @@ build:
 
           # Run the tests
           echo "==========RUNNING FULL SUITE OF TESTS=========="
-          dotnet test src/Dse.Test.Integration/Dse.Test.Integration.csproj -f $DOTNET_VERSION -c Release --filter "(TestCategory!=long)&(TestCategory!=memory)" --logger "nunit;LogFilePath=../../TestResult.xml"  || error=true
+          dotnet test src/Dse.Test.Integration/Dse.Test.Integration.csproj -v n -f $DOTNET_VERSION -c Release --filter "(TestCategory!=long)&(TestCategory!=memory)" --logger "nunit;LogFilePath=../../TestResult.xml"  || error=true
           
           #Fail the build if there was an error
           if [ $error ]
