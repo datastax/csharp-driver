@@ -2,7 +2,7 @@
 
 ## 3.10.1
 
-2019-06-PLACEHOLDER
+2019-06-17
 
 ### Bug Fixes
 
