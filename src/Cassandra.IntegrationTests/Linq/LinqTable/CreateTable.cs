@@ -66,6 +66,20 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             table.Create();
             WriteReadValidate(table);
         }
+        
+        [Test]
+        public void Should_CreateTable_WhenClusteringOrderAndCompactOptionsAreSet()
+        {
+            var config = new MappingConfiguration().Define(
+                new Map<Tweet>()
+                    .PartitionKey(a => a.TweetId)
+                    .ClusteringKey(a => a.AuthorId, SortOrder.Descending)
+                    .CompactStorage());
+            var table = new Table<Tweet>(_session, config);
+            table.Create();
+            table.ExecutePaged();
+            Assert.AreEqual(0, table.Execute().ToList().Count);
+        }
 
         /// <summary>
         /// Successfully create a table using the method Create, 
