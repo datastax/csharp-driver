@@ -4,7 +4,7 @@ Changelog for the DataStax Enterprise C# Driver.
 
 ## 2.7.1
 
-2019-06-PLACEHOLDER
+2019-06-17
 
 ### Bug Fixes
 
