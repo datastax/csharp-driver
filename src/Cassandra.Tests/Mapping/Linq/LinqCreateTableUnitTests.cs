@@ -222,6 +222,31 @@ namespace Cassandra.Tests.Mapping.Linq
         }
 
         [Test]
+        public void Create_With_Compact_Storage_And_Clustering_Order()
+        {
+            string createQuery = null;
+            var sessionMock = GetSessionMock();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q)
+                .Verifiable();
+            var typeDefinition = new Map<AllTypesDecorated>()
+                                 .Column(t => t.IntValue, cm => cm.WithName("int_value"))
+                                 .Column(t => t.Int64Value, cm => cm.WithName("long_value"))
+                                 .PartitionKey(t => t.StringValue)
+                                 .ClusteringKey(t => t.Int64Value, SortOrder.Descending)
+                                 .ClusteringKey(t => t.DateTimeValue)
+                                 .CompactStorage();
+            var table = GetTable<AllTypesDecorated>(sessionMock.Object, typeDefinition);
+            table.Create();
+            Assert.AreEqual("CREATE TABLE AllTypesDecorated " +
+                            "(BooleanValue boolean, DateTimeValue timestamp, DecimalValue decimal, DoubleValue double, " +
+                            "long_value bigint, int_value int, StringValue text, TimeUuidValue timeuuid, UuidValue uuid, " +
+                            "PRIMARY KEY (StringValue, long_value, DateTimeValue)) WITH CLUSTERING ORDER BY (long_value DESC) AND COMPACT STORAGE", createQuery);
+        }
+
+        [Test]
         public void Create_With_Fully_Qualified_Table_Name_Case_Sensitive()
         {
             string createQuery = null;
@@ -523,7 +548,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Returns(() => new RowSet())
                 .Callback<string>(q => createQuery = q);
 
-            var table = GetTable<AllTypesEntity>(sessionMock.Object, 
+            var table = GetTable<AllTypesEntity>(sessionMock.Object,
                 new Map<AllTypesEntity>().ExplicitColumns()
                                          .TableName("tbl1")
                                          .PartitionKey(t => t.UuidValue)
