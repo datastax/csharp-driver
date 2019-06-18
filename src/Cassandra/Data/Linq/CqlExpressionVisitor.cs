@@ -1139,6 +1139,12 @@ namespace Cassandra.Data.Linq
         private static object GetPropertyValue(MemberExpression node)
         {
             var propertyInfo = (PropertyInfo)node.Member;
+
+            if (node.Expression == null)
+            {
+                return propertyInfo.GetValue(null);
+            }
+
             if (node.Expression is MemberExpression)
             {
                 // Field property
