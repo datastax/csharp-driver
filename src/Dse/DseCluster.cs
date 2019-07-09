@@ -8,10 +8,14 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Net;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
-
+using Dse.Cloud;
 using Dse.Connections;
 using Dse.Requests;
 using Dse.Serialization;
@@ -76,6 +80,44 @@ namespace Dse
             _coreCluster.HostAdded += OnCoreHostAdded;
             _coreCluster.HostRemoved += OnCoreHostRemoved;
             _dseSessionFactory = config.DseSessionFactoryBuilder.BuildWithCluster(this);
+        }
+
+        //TODO
+        internal static async Task<IDseCluster> ForClusterConfigAsync(string url, string certFile)
+        {
+            var metadata = new CloudMetadataService();
+            var clusterMetadata = await metadata.GetClusterMetadataAsync(url, certFile).ConfigureAwait(false);
+
+            var proxyAddress = clusterMetadata.ContactInfo.SniProxyAddress;
+            var separatorIndex = proxyAddress.IndexOf(':');
+
+            if (separatorIndex == -1)
+            {
+                throw new DriverInternalError($"The SNI endpoint address should contain ip/name and port. Address received: {proxyAddress}");
+            }
+
+            var ipOrName = proxyAddress.Substring(0, separatorIndex);
+            var port = int.Parse(proxyAddress.Substring(separatorIndex + 1));
+            var isIp = IPAddress.TryParse(ipOrName, out var address);
+            var sniOptions = new SniOptions(address, port, isIp ? null : ipOrName);
+
+            var builder = 
+                DseCluster.Builder()
+                          .AddContactPoints(clusterMetadata.ContactInfo.ContactPoints);
+
+            var sslOptions = new SSLOptions(SslProtocols.Tls12 | SslProtocols.Tls, false, (sender, certificate, chain, errors) => true); // TODO REMOVE CERT VALIDATION CALLBACK
+
+            if (certFile != null)
+            {
+                sslOptions = sslOptions.SetCertificateCollection(new X509Certificate2Collection(new[]
+                    { new X509Certificate2(certFile) }));
+            }
+               
+            return builder
+                      .WithSSL(sslOptions)
+                      .WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(clusterMetadata.ContactInfo.LocalDc)))
+                      .WithEndPointResolver(new SniEndPointResolver(new DnsResolver(), sniOptions))
+                      .Build();
         }
 
         /// <summary>

@@ -5,6 +5,7 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 
@@ -37,7 +38,7 @@ namespace Dse.Test.Integration.TestClusterManagement
         /// <summary>
         /// Spawns a new process (platform independent)
         /// </summary>
-        public static ProcessOutput ExecuteProcess(string processName, string args, int timeout = 90000)
+        public static ProcessOutput ExecuteProcess(string processName, string args, int timeout = 90000, IReadOnlyDictionary<string, string> envVariables = null, string workDir = null)
         {
             var output = new ProcessOutput();
             using (var process = new Process())
@@ -52,6 +53,19 @@ namespace Dse.Test.Integration.TestClusterManagement
                 process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
 #endif
                 process.StartInfo.CreateNoWindow = true;
+
+                if (envVariables != null)
+                {
+                    foreach (var envVar in envVariables)
+                    {
+                        process.StartInfo.EnvironmentVariables[envVar.Key] = envVar.Value;
+                    }
+                }
+
+                if (workDir != null)
+                {
+                    process.StartInfo.WorkingDirectory = workDir;
+                }
 
                 using (var outputWaitHandle = new AutoResetEvent(false))
                 using (var errorWaitHandle = new AutoResetEvent(false))

@@ -61,6 +61,17 @@ build:
 
       echo "========== Copying ssl files to $HOME/ssl =========="
       cp -r /home/jenkins/ccm/ssl $HOME/ssl
+      
+      export SNI_ENABLED="true"
+      export SINGLE_ENDPOINT_PATH="${HOME}/proxy/run.sh"
+      export SNI_CERTIFICATE_PATH="${HOME}/proxy/certs/client_key.pfx"
+      
+      echo $SNI_ENABLED
+      echo $SINGLE_ENDPOINT_PATH
+      echo $SNI_CERTIFICATE_PATH
+      
+      ls "${HOME}/proxy/"
+ 
 
       # Download and uncompress saxon
       mkdir saxon
