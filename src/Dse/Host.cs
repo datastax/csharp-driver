@@ -121,7 +121,7 @@ namespace Dse
         /// This property might be null on older server versions.
         /// </summary>
         public Version DseVersion { get; private set; }
-
+        
         /// <summary>
         /// Creates a new instance of <see cref="Host"/>.
         /// </summary>
@@ -198,6 +198,15 @@ namespace Dse
                 if (releaseVersion != null)
                 {
                     CassandraVersion = Version.Parse(releaseVersion.Split('-')[0]);
+                }
+            }
+
+            if (row.ContainsColumn("host_id"))
+            {
+                var nullableHostId = row.GetValue<Guid?>("host_id");
+                if (nullableHostId.HasValue)
+                {
+                    HostId = nullableHostId.Value;
                 }
             }
 

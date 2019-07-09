@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Reflection;
 using Dse.Auth;
+using Dse.Connections;
 using Dse.ExecutionProfiles;
 using Dse.Graph;
 using Dse.Requests;
@@ -679,6 +680,12 @@ namespace Dse
         public new DseClusterBuilder WithMetadataSyncOptions(MetadataSyncOptions metadataSyncOptions)
         {
             base.WithMetadataSyncOptions(metadataSyncOptions);
+            return this;
+        }
+
+        internal new DseClusterBuilder WithEndPointResolver(IEndPointResolver endPointResolver)
+        {
+            base.WithEndPointResolver(endPointResolver);
             return this;
         }
 

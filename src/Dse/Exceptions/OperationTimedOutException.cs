@@ -5,8 +5,8 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using System;
 using System.Net;
+
 using Dse.Connections;
 
 // ReSharper disable once CheckNamespace
