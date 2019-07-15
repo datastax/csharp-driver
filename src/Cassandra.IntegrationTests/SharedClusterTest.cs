@@ -148,10 +148,10 @@ namespace Cassandra.IntegrationTests
 
         protected virtual ISession GetNewSession(string keyspace = null)
         {
-            return GetNewCluster(null).Connect(keyspace);
+            return GetNewCluster().Connect(keyspace);
         }
 
-        protected virtual ICluster GetNewCluster(Action<Builder> build)
+        protected virtual ICluster GetNewCluster(Action<Builder> build = null)
         {
             var builder = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint);
             build?.Invoke(builder);
