@@ -52,7 +52,7 @@ namespace Cassandra.SessionManagement
         /// </summary>
         IHostConnectionPool GetExistingPool(IPEndPoint address);
 
-        void CheckHealth(IConnection connection);
+        void CheckHealth(Host host, IConnection connection);
 
         bool HasConnections(Host host);
 

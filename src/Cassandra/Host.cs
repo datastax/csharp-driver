@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
+using Cassandra.Connections;
 
 namespace Cassandra
 {
@@ -74,6 +75,11 @@ namespace Cassandra
         public IPEndPoint Address { get; }
 
         /// <summary>
+        /// Gets the node's host id.
+        /// </summary>
+        public Guid HostId { get; private set; }
+
+        /// <summary>
         /// Tokens assigned to the host
         /// </summary>
         internal IEnumerable<string> Tokens { get; private set; }
@@ -108,7 +114,6 @@ namespace Cassandra
         // ReSharper disable once UnusedParameter.Local : Part of the public API
         public Host(IPEndPoint address, IReconnectionPolicy reconnectionPolicy) : this(address)
         {
-
         }
         
         internal Host(IPEndPoint address)
@@ -178,6 +183,15 @@ namespace Cassandra
                 if (releaseVersion != null)
                 {
                     CassandraVersion = Version.Parse(releaseVersion.Split('-')[0]);
+                }
+            }
+
+            if (row.ContainsColumn("host_id"))
+            {
+                var nullableHostId = row.GetValue<Guid?>("host_id");
+                if (nullableHostId.HasValue)
+                {
+                    HostId = nullableHostId.Value;
                 }
             }
         }

@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Requests;
 using Cassandra.Serialization;
@@ -62,6 +63,7 @@ namespace Cassandra
         private IReadOnlyDictionary<string, IExecutionProfile> _profiles = new Dictionary<string, IExecutionProfile>();
         private IRequestOptionsMapper _requestOptionsMapper = new RequestOptionsMapper();
         private MetadataSyncOptions _metadataSyncOptions;
+        private IEndPointResolver _endPointResolver;
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -141,7 +143,8 @@ namespace Cassandra
                 _sessionFactoryBuilder,
                 _profiles,
                 _requestOptionsMapper,
-                _metadataSyncOptions);
+                _metadataSyncOptions,
+                _endPointResolver);
             if (_typeSerializerDefinitions != null)
             {
                 config.TypeSerializers = _typeSerializerDefinitions.Definitions;
@@ -663,6 +666,12 @@ namespace Cassandra
         internal Builder WithRequestOptionsMapper(IRequestOptionsMapper requestOptionsMapper)
         {
             _requestOptionsMapper = requestOptionsMapper ?? throw new ArgumentNullException(nameof(requestOptionsMapper));
+            return this;
+        }
+
+        internal Builder WithEndPointResolver(IEndPointResolver endPointResolver)
+        {
+            _endPointResolver = endPointResolver ?? throw new ArgumentNullException(nameof(endPointResolver));
             return this;
         }
 

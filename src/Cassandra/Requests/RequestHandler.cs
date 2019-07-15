@@ -332,7 +332,7 @@ namespace Cassandra.Requests
             var hostPool = session.GetOrCreateConnectionPool(host, distance);
             try
             {
-                c = await hostPool.BorrowConnection().ConfigureAwait(false);
+                c = await hostPool.BorrowConnectionAsync().ConfigureAwait(false);
             }
             catch (UnsupportedProtocolVersionException ex)
             {

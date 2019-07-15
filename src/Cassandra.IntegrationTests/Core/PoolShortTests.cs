@@ -290,7 +290,7 @@ namespace Cassandra.IntegrationTests.Core
                 WaitSimulatorConnections(testCluster, 4);
                 Assert.AreEqual(4, testCluster.GetConnectedPorts().Count);
 
-                var ccAddress = cluster.InternalRef.GetControlConnection().Address;
+                var ccAddress = cluster.InternalRef.GetControlConnection().EndPoint.GetHostIpEndPointWithFallback();
                 Assert.NotNull(ccAddress);
                 var simulacronNode = testCluster.GetNode(ccAddress);
 
@@ -301,15 +301,15 @@ namespace Cassandra.IntegrationTests.Core
 
                 Assert.False(cluster.GetHost(ccAddress).IsUp);
 
-                TestHelper.WaitUntil(() => !cluster.InternalRef.GetControlConnection().Address.Address.Equals(ccAddress.Address));
-                Assert.NotNull(cluster.InternalRef.GetControlConnection().Address);
-                Assert.AreNotEqual(ccAddress.Address, cluster.InternalRef.GetControlConnection().Address.Address);
+                TestHelper.WaitUntil(() => !cluster.InternalRef.GetControlConnection().EndPoint.GetHostIpEndPointWithFallback().Address.Equals(ccAddress.Address));
+                Assert.NotNull(cluster.InternalRef.GetControlConnection().EndPoint.GetHostIpEndPointWithFallback());
+                Assert.AreNotEqual(ccAddress.Address, cluster.InternalRef.GetControlConnection().EndPoint.GetHostIpEndPointWithFallback().Address);
 
                 // Previous host is still DOWN
                 Assert.False(cluster.GetHost(ccAddress).IsUp);
 
                 // New host is UP
-                ccAddress = cluster.InternalRef.GetControlConnection().Address;
+                ccAddress = cluster.InternalRef.GetControlConnection().EndPoint.GetHostIpEndPointWithFallback();
                 Assert.True(cluster.GetHost(ccAddress).IsUp);
             }
         }
@@ -341,7 +341,7 @@ namespace Cassandra.IntegrationTests.Core
                 // Disable all connections
                 await testCluster.DisableConnectionListener().ConfigureAwait(false);
 
-                var ccAddress = cluster.InternalRef.GetControlConnection().Address;
+                var ccAddress = cluster.InternalRef.GetControlConnection().EndPoint.GetHostIpEndPointWithFallback();
 
                 // Drop all connections to hosts
                 foreach (var connection in serverConnections)
@@ -361,7 +361,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 TestHelper.WaitUntil(() => cluster.AllHosts().All(h => h.IsUp));
 
-                ccAddress = cluster.InternalRef.GetControlConnection().Address;
+                ccAddress = cluster.InternalRef.GetControlConnection().EndPoint.GetHostIpEndPointWithFallback();
                 Assert.True(cluster.GetHost(ccAddress).IsUp);
 
                 // Once all connections are created, the control connection should be usable

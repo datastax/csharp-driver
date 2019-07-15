@@ -41,7 +41,7 @@ namespace Cassandra.IntegrationTests
         /// <summary>
         /// The shared cluster instance of the fixture
         /// </summary>
-        protected Cluster Cluster { get; private set; }
+        protected Cluster Cluster { get; set; }
 
         /// <summary>
         /// The shared Session instance of the fixture
@@ -74,6 +74,19 @@ namespace Cassandra.IntegrationTests
             Options = options;
         }
 
+        protected virtual ITestCluster CreateNew(int nodeLength, TestClusterOptions options, bool startCluster)
+        {
+            return TestClusterManager.CreateNew(nodeLength, options, startCluster);
+        }
+
+        protected virtual bool IsSimilarCluster(ITestCluster reusableInstance, TestClusterOptions options, int nodeLength)
+        {
+            return ReferenceEquals(reusableInstance, TestClusterManager.LastInstance)
+                   && ((options != null && options.Equals(TestClusterManager.LastOptions)) ||
+                       (options == null && TestClusterManager.LastOptions == null))
+                   && nodeLength == TestClusterManager.LastAmountOfNodes;
+        }
+
         [OneTimeSetUp]
         public virtual void OneTimeSetUp()
         {
@@ -83,17 +96,14 @@ namespace Cassandra.IntegrationTests
             Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
 
-            if (_reuse && _reusableInstance != null 
-                       && ReferenceEquals(_reusableInstance, TestClusterManager.LastInstance)
-                       && ((Options != null && Options.Equals(TestClusterManager.LastOptions)) || (Options == null && TestClusterManager.LastOptions == null))
-                       && AmountOfNodes == TestClusterManager.LastAmountOfNodes)
+            if (_reuse && _reusableInstance != null && IsSimilarCluster(SharedClusterTest._reusableInstance, Options, AmountOfNodes))
             {
                 Trace.WriteLine("Reusing ccm instance");
                 TestCluster = _reusableInstance;
             }
             else
             {
-                TestCluster = TestClusterManager.CreateNew(AmountOfNodes, Options);
+                TestCluster = CreateNew(AmountOfNodes, Options, true);
                 if (_reuse)
                 {
                     _reusableInstance = TestCluster;
@@ -136,12 +146,12 @@ namespace Cassandra.IntegrationTests
             }
         }
 
-        protected ISession GetNewSession(string keyspace = null)
+        protected virtual ISession GetNewSession(string keyspace = null)
         {
-            return GetNewCluster().Connect(keyspace);
+            return GetNewCluster(null).Connect(keyspace);
         }
 
-        protected Cluster GetNewCluster(Action<Builder> build = null)
+        protected virtual ICluster GetNewCluster(Action<Builder> build)
         {
             var builder = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint);
             build?.Invoke(builder);

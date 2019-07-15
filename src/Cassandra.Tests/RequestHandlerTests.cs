@@ -57,6 +57,7 @@ namespace Cassandra.Tests
                 new SessionFactoryBuilder(),
                 new Dictionary<string, IExecutionProfile>(),
                 new RequestOptionsMapper(),
+                null,
                 null);
         }
 
