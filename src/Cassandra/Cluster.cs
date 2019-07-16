@@ -42,8 +42,7 @@ namespace Cassandra
     public class Cluster : IInternalCluster
     {
         private static ProtocolVersion _maxProtocolVersion = ProtocolVersion.MaxSupported;
-        // ReSharper disable once InconsistentNaming
-        private static readonly Logger _logger = new Logger(typeof(Cluster));
+        internal static readonly Logger Logger = new Logger(typeof(Cluster));
         private readonly CopyOnWriteList<IInternalSession> _connectedSessions = new CopyOnWriteList<IInternalSession>();
         private readonly IControlConnection _controlConnection;
         private volatile bool _initialized;
@@ -159,7 +158,6 @@ namespace Cassandra
         {
             Configuration = configuration;
             _metadata = new Metadata(configuration);
-            TaskHelper.WaitToComplete(AddHosts(contactPoints));
             var protocolVersion = _maxProtocolVersion;
             if (Configuration.ProtocolOptions.MaxProtocolVersionValue != null &&
                 Configuration.ProtocolOptions.MaxProtocolVersionValue.Value.IsSupported())
@@ -171,75 +169,13 @@ namespace Cassandra
                 configuration.TimerFactory,
                 TimeSpan.FromMilliseconds(configuration.MetadataSyncOptions.RefreshSchemaDelayIncrement),
                 TimeSpan.FromMilliseconds(configuration.MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
-            _controlConnection = configuration.ControlConnectionFactory.Create(_protocolEventDebouncer, protocolVersion, Configuration, _metadata);
+
+            _controlConnection = configuration.ControlConnectionFactory.Create(_protocolEventDebouncer, protocolVersion, Configuration, _metadata, contactPoints);
+
             _metadata.ControlConnection = _controlConnection;
             _serializer = _controlConnection.Serializer;
             _sessionFactory = configuration.SessionFactoryBuilder.BuildWithCluster(this);
             _lifecycleManager = lifecycleManager ?? new ClusterLifecycleManager(this);
-        }
-
-        /// <summary>
-        /// Adds contact points as hosts and resolving host names if necessary.
-        /// </summary>
-        /// <exception cref="NoHostAvailableException">When no host can be resolved and no other contact point is an address</exception>
-        private async Task AddHosts(IEnumerable<object> contactPoints)
-        {
-            var resolvedContactPoints = new Dictionary<string, ICollection<IPEndPoint>>();
-            var hostNames = new List<string>();
-            foreach (var contactPoint in contactPoints)
-            {
-                if (contactPoint is IPEndPoint endpoint)
-                {
-                    resolvedContactPoints.CreateOrAdd(endpoint.ToString(), endpoint);
-                    _metadata.AddHost(endpoint);
-                    continue;
-                }
-
-                if (!(contactPoint is string contactPointText))
-                {
-                    throw new InvalidOperationException("Contact points should be either string or IPEndPoint instances");
-                }
-
-                if (IPAddress.TryParse(contactPointText, out var ipAddress))
-                {
-                    var ipEndpoint = new IPEndPoint(ipAddress, Configuration.ProtocolOptions.Port);
-                    resolvedContactPoints.CreateOrAdd(contactPointText, ipEndpoint);
-                    _metadata.AddHost(ipEndpoint);
-                    continue;
-                }
-
-                hostNames.Add(contactPointText);
-                IPHostEntry hostEntry = null;
-                try
-                {
-                    hostEntry = await Dns.GetHostEntryAsync(contactPointText).ConfigureAwait(false);
-                }
-                catch (Exception)
-                {
-                    _logger.Warning($"Host '{contactPointText}' could not be resolved");
-                }
-
-                if (hostEntry != null && hostEntry.AddressList.Length > 0)
-                {
-                    foreach (var resolvedAddress in hostEntry.AddressList)
-                    {
-                        var ipEndpoint = new IPEndPoint(resolvedAddress, Configuration.ProtocolOptions.Port);
-                        _metadata.AddHost(ipEndpoint);
-                        resolvedContactPoints.CreateOrAdd(contactPointText, ipEndpoint);
-                    }                    
-                }
-                else
-                {
-                    resolvedContactPoints.CreateIfDoesNotExist(contactPointText);
-                }
-            }
-
-            _metadata.SetResolvedContactPoints(resolvedContactPoints.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.AsEnumerable()));
-
-            if (_metadata.Hosts.Count == 0)
-            {
-                throw new NoHostAvailableException($"No host name could be resolved, attempted: {string.Join(", ", hostNames)}");                
-            }
         }
 
         /// <summary>
@@ -257,7 +193,7 @@ namespace Cassandra
             return $"{info.ProductName} v{info.FileVersion}";
         }
 
-        internal IReadOnlyDictionary<string, IEnumerable<IPEndPoint>> GetResolvedEndpoints()
+        IReadOnlyDictionary<string, IEnumerable<IPEndPoint>> IInternalCluster.GetResolvedEndpoints()
         {
             return _metadata.ResolvedContactPoints;
         }
@@ -309,7 +245,7 @@ namespace Cassandra
             var session = await sessionFactory.CreateSessionAsync(keyspace, _serializer).ConfigureAwait(false);
             await session.Init().ConfigureAwait(false);
             _connectedSessions.Add(session);
-            _logger.Info("Session connected ({0})", session.GetHashCode());
+            Cluster.Logger.Info("Session connected ({0})", session.GetHashCode());
             return session;
         }
 
@@ -334,13 +270,13 @@ namespace Cassandra
                     //There was an exception that is not possible to recover from
                     throw _initException;
                 }
-                _logger.Info("Connecting to cluster using {0}", GetAssemblyInfo());
+                Cluster.Logger.Info("Connecting to cluster using {0}", GetAssemblyInfo());
                 try
                 {
                     // Only abort the async operations when at least twice the time for ConnectTimeout per host passed
                     var initialAbortTimeout = Configuration.SocketOptions.ConnectTimeoutMillis * 2 * _metadata.Hosts.Count;
                     initialAbortTimeout = Math.Max(initialAbortTimeout, ControlConnection.MetadataAbortTimeout);
-                    await _controlConnection.Init().WaitToCompleteAsync(initialAbortTimeout).ConfigureAwait(false);
+                    await _controlConnection.InitAsync().WaitToCompleteAsync(initialAbortTimeout).ConfigureAwait(false);
                     
                     // Initialize policies
                     var loadBalancingPolicies = new HashSet<ILoadBalancingPolicy>(new ReferenceEqualityComparer<ILoadBalancingPolicy>());
@@ -385,7 +321,7 @@ namespace Cassandra
                     //Throw the actual exception for the first time
                     throw;
                 }
-                _logger.Info("Cluster Connected using binary protocol version: [" + _serializer.ProtocolVersion + "]");
+                Cluster.Logger.Info("Cluster Connected using binary protocol version: [" + _serializer.ProtocolVersion + "]");
                 _initialized = true;
                 _metadata.Hosts.Added += OnHostAdded;
                 _metadata.Hosts.Removed += OnHostRemoved;
@@ -523,7 +459,7 @@ namespace Cassandra
             }
             catch (Exception ex)
             {
-                Cluster._logger.Error(
+                Cluster.Logger.Error(
                     "An exception was thrown when preparing all queries on a host ({0}) " +
                     "that came UP:" + Environment.NewLine + "{1}", h?.Address?.ToString(), ex.ToString());
             }

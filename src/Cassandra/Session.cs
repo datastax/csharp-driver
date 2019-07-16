@@ -381,9 +381,9 @@ namespace Cassandra
             return pool;
         }
 
-        void IInternalSession.CheckHealth(IConnection connection)
+        void IInternalSession.CheckHealth(Host host, IConnection connection)
         {
-            if (!_connectionPool.TryGetValue(connection.Address, out var pool))
+            if (!_connectionPool.TryGetValue(host.Address, out var pool))
             {
                 Logger.Error("Internal error: No host connection pool found");
                 return;

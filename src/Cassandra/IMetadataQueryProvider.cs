@@ -17,6 +17,7 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+using Cassandra.Connections;
 using Cassandra.Responses;
 using Cassandra.Serialization;
 
@@ -32,7 +33,7 @@ namespace Cassandra
         /// <summary>
         /// The address of the endpoint used by the ControlConnection
         /// </summary>
-        IPEndPoint Address { get; }
+        IConnectionEndPoint EndPoint { get; }
         
         /// <summary>
         /// The local address of the socket used by the ControlConnection

@@ -446,7 +446,8 @@ namespace Cassandra.Tests
                 new ProtocolEventDebouncer(new TaskBasedTimerFactory(), TimeSpan.FromMilliseconds(20), TimeSpan.FromSeconds(100)), 
                 ProtocolVersion.V3, 
                 config, 
-                metadata);
+                metadata,
+                new List<object> { "127.0.0.1" });
             metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.1"), 9042));
             metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.2"), 9042));
             metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.3"), 9042));

@@ -133,6 +133,10 @@ namespace Cassandra
         internal IPrepareHandlerFactory PrepareHandlerFactory { get; }
 
         internal ITimerFactory TimerFactory { get; }
+
+        internal IEndPointResolver EndPointResolver { get; }
+
+        internal IDnsResolver DnsResolver { get; }
         
         /// <summary>
         /// The key is the execution profile name and the value is the IRequestOptions instance
@@ -156,6 +160,7 @@ namespace Cassandra
                  new SessionFactoryBuilder(),
                  new Dictionary<string, IExecutionProfile>(),
                  new RequestOptionsMapper(),
+                 null,
                  null)
         {
         }
@@ -178,6 +183,7 @@ namespace Cassandra
                                IReadOnlyDictionary<string, IExecutionProfile> executionProfiles,
                                IRequestOptionsMapper requestOptionsMapper,
                                MetadataSyncOptions metadataSyncOptions,
+                               IEndPointResolver endPointResolver,
                                IRequestHandlerFactory requestHandlerFactory = null,
                                IHostConnectionPoolFactory hostConnectionPoolFactory = null,
                                IRequestExecutionFactory requestExecutionFactory = null,
@@ -199,6 +205,8 @@ namespace Cassandra
             SessionFactoryBuilder = sessionFactoryBuilder;
             RequestOptionsMapper = requestOptionsMapper;
             MetadataSyncOptions = metadataSyncOptions?.Clone() ?? new MetadataSyncOptions();
+            DnsResolver = new DnsResolver();
+            EndPointResolver = endPointResolver ?? new EndPointResolver(DnsResolver, protocolOptions);
 
             RequestHandlerFactory = requestHandlerFactory ?? new RequestHandlerFactory();
             HostConnectionPoolFactory = hostConnectionPoolFactory ?? new HostConnectionPoolFactory();

@@ -14,18 +14,22 @@
 //    limitations under the License.
 // 
 
-using System.Collections.Generic;
-using Cassandra.ProtocolEvents;
+using Cassandra.Helpers;
 
-namespace Cassandra.Connections
+namespace Cassandra.Tests
 {
-    internal interface IControlConnectionFactory
+    public class FixedRandom : IRandom
     {
-        IControlConnection Create(
-            IProtocolEventDebouncer protocolEventDebouncer,
-            ProtocolVersion initialProtocolVersion, 
-            Configuration config, 
-            Metadata metadata,
-            IEnumerable<object> contactPoints);
+        private readonly int _value;
+
+        public FixedRandom(int value)
+        {
+            _value = value;
+        }
+
+        public int Next()
+        {
+            return _value;
+        }
     }
 }

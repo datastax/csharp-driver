@@ -15,16 +15,27 @@
 // 
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Cassandra.Connections
 {
     internal interface IControlConnection : IMetadataQueryProvider, IDisposable
     {
+        /// <summary>
+        /// Host to which the control connection is currently connected.
+        /// </summary>
         Host Host { get; }
-
-        Task Init();
-
+        
+        /// <summary>
+        /// Tries to create a connection to any of the contact points and retrieve cluster metadata for the first time.
+        /// Not thread-safe.
+        /// </summary>
+        /// <exception cref="NoHostAvailableException" />
+        /// <exception cref="TimeoutException" />
+        /// <exception cref="DriverInternalError" />
+        Task InitAsync();
+        
         /// <summary>
         /// Updates keyspace metadata and token map if necessary.
         /// </summary>
