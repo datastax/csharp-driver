@@ -95,6 +95,7 @@ namespace Cassandra
             Keyspace = keyspace;
             UserDefinedTypes = new UdtMappingDefinitions(this, serializer);
             _connectionPool = new ConcurrentDictionary<IPEndPoint, IHostConnectionPool>();
+            _cluster.HostRemoved += OnHostRemoved;
         }
 
         /// <inheritdoc />
@@ -174,6 +175,8 @@ namespace Cassandra
             }
 
             _sessionManager?.OnShutdownAsync().GetAwaiter().GetResult();
+
+            _cluster.HostRemoved -= OnHostRemoved;
 
             var hosts = Cluster.AllHosts().ToArray();
             foreach (var host in hosts)
@@ -445,6 +448,15 @@ namespace Cassandra
             }
 
             return profile;
+        }
+
+        private void OnHostRemoved(Host host)
+        {
+            if (_connectionPool.TryRemove(host.Address, out var pool))
+            {
+                pool.OnHostRemoved();
+                pool.Dispose();
+            }
         }
     }
 }

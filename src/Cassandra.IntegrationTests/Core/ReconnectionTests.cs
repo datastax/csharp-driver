@@ -238,5 +238,97 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(2, pool2.OpenConnections);
             }
         }
+        
+        [Test]
+        public void Should_UseNewHostInQueryPlans_When_HostIsDecommissionedAndJoinsAgain()
+        {
+            var testCluster = TestClusterManager.CreateNew(2);
+
+            using (var cluster = 
+                 Cluster.Builder()
+                        .AddContactPoint(testCluster.InitialContactPoint)
+                        .WithPoolingOptions(
+                            new PoolingOptions()
+                                .SetCoreConnectionsPerHost(HostDistance.Local, 2)
+                                .SetMaxConnectionsPerHost(HostDistance.Local, 2))
+                        .Build())
+            {
+                var session = (IInternalSession)cluster.Connect();
+                session.CreateKeyspaceIfNotExists("testks");
+                session.ChangeKeyspace("testks");
+                session.Execute("CREATE TABLE test_table (id text, PRIMARY KEY (id))");
+
+                // Assert that there are 2 pools, one for each host
+                var hosts = session.Cluster.AllHosts().ToList();
+                var pool1 = session.GetExistingPool(hosts[0].Address);
+                Assert.AreEqual(2, pool1.OpenConnections);
+                var pool2 = session.GetExistingPool(hosts[1].Address);
+                Assert.AreEqual(2, pool2.OpenConnections);
+
+                // Assert that both hosts are used in queries
+                var set = new HashSet<IPEndPoint>();
+                foreach (var i in Enumerable.Range(1, 100))
+                {
+                    var rs = session.Execute($"INSERT INTO test_table(id) VALUES ('{i}')");
+                    set.Add(rs.Info.QueriedHost);
+                }
+                Assert.AreEqual(2, set.Count);
+                
+                // Decommission node
+                testCluster.DecommissionNode(1);
+                testCluster.Stop(1);
+                
+                // Assert that one pool was removed
+                TestHelper.RetryAssert(() =>
+                {
+                    var pools = session.GetPools();
+                    Assert.AreEqual(1, pools.Count());
+                }, 1000, 60);
+
+                // Assert that only one host is used in queries
+                set.Clear();
+                foreach (var i in Enumerable.Range(1, 100))
+                {
+                    var rs = session.Execute($"INSERT INTO test_table(id) VALUES ('{i}')");
+                    set.Add(rs.Info.QueriedHost);
+                }
+                Assert.AreEqual(1, set.Count);
+
+                // Assert that the removed host (the one not being used in queries) doesn't have a pool
+                var removedHost = hosts.Single(h => !h.Address.Equals(set.First()));
+                TestHelper.RetryAssert(() =>
+                {
+                    Assert.AreEqual(1, cluster.AllHosts().Count);
+                    pool2 = session.GetExistingPool(removedHost.Address);
+                    Assert.IsNull(pool2);
+                }, 1000, 60);
+
+                // Bring back the decommissioned node
+                testCluster.Start(1, "--jvm_arg=\"-Dcassandra.override_decommission=true\"");
+                
+                // Assert that there are 2 hosts
+                TestHelper.RetryAssert(() =>
+                {
+                    Assert.AreEqual(2, cluster.AllHosts().Count);
+                }, 1000, 60);
+                
+                // Assert that queries use both hosts again
+                set.Clear();
+                foreach (var i in Enumerable.Range(1, 100))
+                {
+                    var rs = session.Execute($"INSERT INTO test_table(id) VALUES ('{i}')");
+                    set.Add(rs.Info.QueriedHost);
+                }
+                Assert.AreEqual(2, set.Count);
+
+                // Assert that the removed host has a pool again
+                TestHelper.RetryAssert(() =>
+                {
+                    pool2 = session.GetExistingPool(removedHost.Address);
+                    Assert.IsNotNull(pool2);
+                    Assert.AreEqual(2, pool2.OpenConnections);
+                }, 1000, 60);
+            }
+        }
     }
 }

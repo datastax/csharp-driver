@@ -108,7 +108,6 @@ namespace Cassandra.Connections
             _host = host;
             _host.Down += OnHostDown;
             _host.Up += OnHostUp;
-            _host.Remove += OnHostRemoved;
             _host.DistanceChanged += OnDistanceChanged;
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _maxRequestsPerConnection = config
@@ -248,7 +247,6 @@ namespace Cassandra.Connections
             }
             _host.Up -= OnHostUp;
             _host.Down -= OnHostDown;
-            _host.Remove -= OnHostRemoved;
             _host.DistanceChanged -= OnDistanceChanged;
             var t = _resizingEndTimeout;
             if (t != null)
@@ -278,6 +276,27 @@ namespace Cassandra.Connections
             }
             c.Closing += OnConnectionClosing;
             return c;
+        }
+        
+        public void OnHostRemoved()
+        {
+            var previousState = Interlocked.Exchange(ref _state, PoolState.ShuttingDown);
+            if (previousState == PoolState.Shutdown)
+            {
+                // It was already shutdown
+                Interlocked.Exchange(ref _state, PoolState.Shutdown);
+                return;
+            }
+            HostConnectionPool.Logger.Info("Host decommissioned. Closing pool #{0} to {1}", GetHashCode(), _host.Address);
+
+            DrainConnections(() => Interlocked.Exchange(ref _state, PoolState.Shutdown));
+
+            CancelNewConnectionTimeout();
+            var t = _resizingEndTimeout;
+            if (t != null)
+            {
+                t.Cancel();
+            }
         }
 
         /// <summary>
@@ -422,27 +441,6 @@ namespace Cassandra.Connections
                 Interlocked.CompareExchange(ref _state, PoolState.Init, PoolState.Closing);
             });
             CancelNewConnectionTimeout();
-        }
-
-        private void OnHostRemoved()
-        {
-            var previousState = Interlocked.Exchange(ref _state, PoolState.ShuttingDown);
-            if (previousState == PoolState.Shutdown)
-            {
-                // It was already shutdown
-                Interlocked.Exchange(ref _state, PoolState.Shutdown);
-                return;
-            }
-            HostConnectionPool.Logger.Info("Host decommissioned. Closing pool #{0} to {1}", GetHashCode(), _host.Address);
-
-            DrainConnections(() => Interlocked.Exchange(ref _state, PoolState.Shutdown));
-
-            CancelNewConnectionTimeout();
-            var t = _resizingEndTimeout;
-            if (t != null)
-            {
-                t.Cancel();
-            }
         }
         
         /// <summary>
