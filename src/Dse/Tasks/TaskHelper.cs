@@ -241,6 +241,14 @@ namespace Dse.Tasks
             return tcs.Task;
         }
 
+        /// <summary>
+        /// Checks whether the task has finished.
+        /// </summary>
+        public static bool HasFinished(this Task task)
+        {
+            return task.IsCompleted || task.IsCanceled || task.IsFaulted;
+        }
+
         private static void DoNextThen<TIn, TOut>(TaskCompletionSource<TOut> tcs, Task<TIn> previousTask, Func<TIn, Task<TOut>> next, TaskContinuationOptions options)
         {
             if (previousTask.IsFaulted && previousTask.Exception != null)

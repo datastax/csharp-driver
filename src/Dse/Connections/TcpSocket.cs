@@ -1,8 +1,17 @@
 //
-//  Copyright (C) DataStax, Inc.
+//      Copyright (C) DataStax Inc.
 //
-//  Please see the license for details:
-//  http://www.datastax.com/terms/datastax-dse-driver-license-terms
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
 //
 
 using System;
@@ -15,7 +24,7 @@ using System.Threading.Tasks;
 using Dse.Tasks;
 using Microsoft.IO;
 
-namespace Dse
+namespace Dse.Connections
 {
     /// <summary>
     /// Represents a Tcp connection to a host.
@@ -23,9 +32,9 @@ namespace Dse
     /// Similar to Netty's Channel or Node.js's net.Socket
     /// It handles TLS validation and encryption when required.
     /// </summary>
-    internal class TcpSocket : IDisposable
+    internal class TcpSocket : ITcpSocket
     {
-        private static Logger _logger = new Logger(typeof(TcpSocket));
+        public static readonly Logger Logger = new Logger(typeof(TcpSocket));
         private Socket _socket;
         private SocketAsyncEventArgs _receiveSocketEvent;
         private SocketAsyncEventArgs _sendSocketEvent;
@@ -34,7 +43,7 @@ namespace Dse
         private volatile bool _isClosing;
         private Action _writeFlushCallback;
 
-        public IPEndPoint IPEndPoint { get; protected set; }
+        public IConnectionEndPoint EndPoint { get; protected set; }
 
         public SocketOptions Options { get; protected set; }
 
@@ -60,13 +69,13 @@ namespace Dse
         /// <summary>
         /// Creates a new instance of TcpSocket using the endpoint and options provided.
         /// </summary>
-        public TcpSocket(IPEndPoint ipEndPoint, SocketOptions options, SSLOptions sslOptions)
+        public TcpSocket(IConnectionEndPoint endPoint, SocketOptions options, SSLOptions sslOptions)
         {
-            IPEndPoint = ipEndPoint;
+            EndPoint = endPoint;
             Options = options;
             SSLOptions = sslOptions;
         }
-
+        
         /// <summary>
         /// Get this socket's local address.
         /// </summary>
@@ -77,11 +86,11 @@ namespace Dse
             {
                 var s = _socket;
 
-                return (IPEndPoint) s?.LocalEndPoint;
+                return (IPEndPoint)s?.LocalEndPoint;
             }
             catch (Exception ex)
             {
-                TcpSocket._logger.Warning("Exception thrown when trying to get LocalIpEndpoint: {0}", ex.ToString());
+                TcpSocket.Logger.Warning("Exception thrown when trying to get LocalIpEndpoint: {0}", ex.ToString());
                 return null;
             }
         }
@@ -91,8 +100,10 @@ namespace Dse
         /// </summary>
         public void Init()
         {
-            _socket = new Socket(IPEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            _socket.SendTimeout = Options.ConnectTimeoutMillis;
+            _socket = new Socket(EndPoint.SocketIpEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp)
+            {
+                SendTimeout = Options.ConnectTimeoutMillis
+            };
             if (Options.KeepAlive != null)
             {
                 _socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, Options.KeepAlive.Value);
@@ -123,12 +134,12 @@ namespace Dse
         public async Task<bool> Connect()
         {
             var tcs = TaskHelper.TaskCompletionSourceWithTimeout<bool>(
-                Options.ConnectTimeoutMillis, 
-                () => new SocketException((int) SocketError.TimedOut));
+                Options.ConnectTimeoutMillis,
+                () => new SocketException((int)SocketError.TimedOut));
             var socketConnectTask = tcs.Task;
             var eventArgs = new SocketAsyncEventArgs
             {
-                RemoteEndPoint = IPEndPoint
+                RemoteEndPoint = EndPoint.SocketIpEndPoint
             };
 
             eventArgs.Completed += (sender, e) =>
@@ -164,13 +175,13 @@ namespace Dse
             // There are 2 modes: using SocketAsyncEventArgs (most performant) and Stream mode
             if (Options.UseStreamMode)
             {
-                _logger.Verbose("Socket connected, start reading using Stream interface");
+                TcpSocket.Logger.Verbose("Socket connected, start reading using Stream interface");
                 //Stream mode: not the most performant but it is a choice
                 _socketStream = new NetworkStream(_socket);
                 ReceiveAsync();
                 return true;
             }
-            _logger.Verbose("Socket connected, start reading using SocketEventArgs interface");
+            TcpSocket.Logger.Verbose("Socket connected, start reading using SocketEventArgs interface");
             //using SocketAsyncEventArgs
             _receiveSocketEvent = new SocketAsyncEventArgs();
             _receiveSocketEvent.SetBuffer(_receiveBuffer, 0, _receiveBuffer.Length);
@@ -183,28 +194,9 @@ namespace Dse
 
         private async Task<bool> ConnectSsl()
         {
-            _logger.Verbose("Socket connected, starting SSL client authentication");
+            TcpSocket.Logger.Verbose("Socket connected, starting SSL client authentication");
             //Stream mode: not the most performant but it has ssl support
-            var targetHost = IPEndPoint.Address.ToString();
-            //HostNameResolver is a sync operation but it can block
-            //Use another thread
-            Action resolveAction = () =>
-            {
-                try
-                {
-                    targetHost = SSLOptions.HostNameResolver(IPEndPoint.Address);
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error(
-                        string.Format(
-                            "SSL connection: Can not resolve host name for address {0}. Using the IP address instead of the host name. This may cause RemoteCertificateNameMismatch error during Cassandra host authentication. Note that the Cassandra node SSL certificate's CN(Common Name) must match the Cassandra node hostname.",
-                            targetHost), ex);
-                }
-            };
-            await Task.Factory.StartNew(resolveAction).ConfigureAwait(false);
-
-            _logger.Verbose("Starting SSL authentication");
+            TcpSocket.Logger.Verbose("Starting SSL authentication");
             var sslStream = new SslStream(new NetworkStream(_socket), false, SSLOptions.RemoteCertValidationCallback, null);
             _socketStream = sslStream;
             // Use a timer to ensure that it does callback
@@ -212,7 +204,7 @@ namespace Dse
                 Options.ConnectTimeoutMillis,
                 () => new TimeoutException("The timeout period elapsed prior to completion of SSL authentication operation."));
 
-            sslStream.AuthenticateAsClientAsync(targetHost,
+            sslStream.AuthenticateAsClientAsync(await EndPoint.GetServerNameAsync().ConfigureAwait(false),
                                                 SSLOptions.CertificateCollection,
                                                 SSLOptions.SslProtocol,
                                                 SSLOptions.CheckCertificateRevocation)
@@ -231,7 +223,7 @@ namespace Dse
                      .Forget();
 
             await tcs.Task.ConfigureAwait(false);
-            _logger.Verbose("SSL authentication successful");
+            TcpSocket.Logger.Verbose("SSL authentication successful");
             ReceiveAsync();
             return true;
         }
@@ -497,7 +489,7 @@ namespace Dse
             }
         }
 
-        internal void Kill()
+        public void Kill()
         {
             _socket.Shutdown(SocketShutdown.Send);
         }

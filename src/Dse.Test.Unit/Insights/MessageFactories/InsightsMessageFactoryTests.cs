@@ -229,7 +229,7 @@ namespace Dse.Test.Unit.Insights.MessageFactories
                 ControlConnection = Mock.Of<IControlConnection>()
             };
             Mock.Get(metadata.ControlConnection).SetupGet(cc => cc.ProtocolVersion).Returns(ProtocolVersion.V4);
-            Mock.Get(metadata.ControlConnection).SetupGet(cc => cc.Address).Returns(new IPEndPoint(IPAddress.Parse("10.10.10.10"), 9011));
+            Mock.Get(metadata.ControlConnection).SetupGet(cc => cc.EndPoint).Returns(new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse("10.10.10.10"), 9011), null));
             Mock.Get(metadata.ControlConnection).SetupGet(cc => cc.LocalAddress).Returns(new IPEndPoint(IPAddress.Parse("10.10.10.2"), 9015));
             var hostIp = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042);
             metadata.SetResolvedContactPoints(new Dictionary<string, IEnumerable<IPEndPoint>>
@@ -273,6 +273,7 @@ namespace Dse.Test.Unit.Insights.MessageFactories
                     new SessionFactoryBuilder(),
                     new Dictionary<string, IExecutionProfile>(),
                     new RequestOptionsMapper(new GraphOptions()),
+                    null,
                     null),
                 new GraphOptions(),
                 Guid.Parse("BECFE098-E462-47E7-B6A7-A21CD316D4C0"),

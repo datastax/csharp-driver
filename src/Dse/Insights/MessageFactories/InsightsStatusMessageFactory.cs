@@ -39,7 +39,7 @@ namespace Dse.Insights.MessageFactories
             {
                 ClientId = cluster.Configuration.ClusterId.ToString(),
                 SessionId = dseSession.InternalSessionId.ToString(),
-                ControlConnection = cluster.Metadata.ControlConnection.Address?.ToString(),
+                ControlConnection = cluster.Metadata.ControlConnection.EndPoint?.GetHostIpEndPointWithFallback().ToString(),
                 ConnectedNodes = _connectedNodesInfoProvider.GetInformation(cluster, dseSession)
             };
 

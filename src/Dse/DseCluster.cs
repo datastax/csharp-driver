@@ -230,6 +230,11 @@ namespace Dse
             return _coreCluster.OnShutdownAsync(timeoutMs);
         }
 
+        public IReadOnlyDictionary<string, IEnumerable<IPEndPoint>> GetResolvedEndpoints()
+        {
+            return _coreCluster.GetResolvedEndpoints();
+        }
+
         /// <inheritdoc />
         public Task ShutdownAsync(int timeout = Timeout.Infinite)
         {

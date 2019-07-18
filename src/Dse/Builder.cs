@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using Dse.Connections;
 using Dse.ExecutionProfiles;
 using Dse.Requests;
 using Dse.Serialization;
@@ -53,6 +54,7 @@ namespace Dse
         private IReadOnlyDictionary<string, IExecutionProfile> _profiles = new Dictionary<string, IExecutionProfile>();
         private IRequestOptionsMapper _requestOptionsMapper = new RequestOptionsMapper();
         private MetadataSyncOptions _metadataSyncOptions;
+        private IEndPointResolver _endPointResolver;
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -132,7 +134,8 @@ namespace Dse
                 _sessionFactoryBuilder,
                 _profiles,
                 _requestOptionsMapper,
-                _metadataSyncOptions);
+                _metadataSyncOptions,
+                _endPointResolver);
             if (_typeSerializerDefinitions != null)
             {
                 config.TypeSerializers = _typeSerializerDefinitions.Definitions;
@@ -654,6 +657,12 @@ namespace Dse
         internal Builder WithRequestOptionsMapper(IRequestOptionsMapper requestOptionsMapper)
         {
             _requestOptionsMapper = requestOptionsMapper ?? throw new ArgumentNullException(nameof(requestOptionsMapper));
+            return this;
+        }
+
+        internal Builder WithEndPointResolver(IEndPointResolver endPointResolver)
+        {
+            _endPointResolver = endPointResolver ?? throw new ArgumentNullException(nameof(endPointResolver));
             return this;
         }
 

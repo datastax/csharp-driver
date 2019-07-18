@@ -21,9 +21,9 @@ namespace Dse.Connections
 {
     internal class ConnectionFactory : IConnectionFactory
     {
-        public IConnection Create(Serializer serializer, IPEndPoint endpoint, Configuration configuration)
+        public IConnection Create(Serializer serializer, IConnectionEndPoint endPoint, Configuration configuration)
         {
-            return new Connection(serializer, endpoint, configuration);
+            return new Connection(serializer, endPoint, configuration);
         }
     }
 }

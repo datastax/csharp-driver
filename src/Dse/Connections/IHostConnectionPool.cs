@@ -53,10 +53,10 @@ namespace Dse.Connections
         /// <exception cref="UnsupportedProtocolVersionException" />
         /// <exception cref="SocketException" />
         /// <exception cref="AuthenticationException" />
-        Task<IConnection> BorrowConnection();
+        Task<IConnection> BorrowConnectionAsync();
 
         /// <summary>
-        /// Gets an open connection from the host pool. It does NOT create one if necessary (for that use <see cref="BorrowConnection"/>.
+        /// Gets an open connection from the host pool. It does NOT create one if necessary (for that use <see cref="BorrowConnectionAsync"/>.
         /// It returns null if there isn't a connection available.
         /// </summary>
         /// <exception cref="BusyPoolException" />
@@ -65,7 +65,7 @@ namespace Dse.Connections
 
         void SetDistance(HostDistance distance);
 
-        void CheckHealth(IConnection c);
+        void CheckHealth(IConnection connection);
 
         /// <summary>
         /// Closes the connection and removes it from the pool
@@ -84,5 +84,7 @@ namespace Dse.Connections
         /// Until the task is completed, no other thread is expected to be using this instance.
         /// </summary>
         Task Warmup();
+
+        void OnHostRemoved();
     }
 }

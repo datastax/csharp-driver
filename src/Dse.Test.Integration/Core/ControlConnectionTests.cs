@@ -6,6 +6,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using Dse.Connections;
@@ -31,7 +32,7 @@ namespace Dse.Test.Integration.Core
         public void Should_Use_Maximum_Protocol_Version_Supported()
         {
             var cc = NewInstance();
-            cc.Init().Wait(InitTimeout);
+            cc.InitAsync().Wait(InitTimeout);
             Assert.AreEqual(GetProtocolVersion(), cc.ProtocolVersion);
             cc.Dispose();
         }
@@ -46,7 +47,7 @@ namespace Dse.Test.Integration.Core
                 version = ProtocolVersion.V3;
             }
             var cc = NewInstance(version);
-            cc.Init().Wait(InitTimeout);
+            cc.InitAsync().Wait(InitTimeout);
             Assert.AreEqual(version, cc.ProtocolVersion);
             cc.Dispose();
         }
@@ -57,7 +58,7 @@ namespace Dse.Test.Integration.Core
             //Use a higher protocol version
             var version = (ProtocolVersion)(GetProtocolVersion() + 1);
             var cc = NewInstance(version);
-            cc.Init().Wait(InitTimeout);
+            cc.InitAsync().Wait(InitTimeout);
             Assert.AreEqual(version - 1, cc.ProtocolVersion);
         }
 
@@ -67,7 +68,7 @@ namespace Dse.Test.Integration.Core
             // Use a non-existent higher cassandra protocol version
             var version = (ProtocolVersion)0x0f;
             var cc = NewInstance(version);
-            cc.Init().Wait(InitTimeout);
+            cc.InitAsync().Wait(InitTimeout);
             Assert.AreEqual(ProtocolVersion.V4, cc.ProtocolVersion);
         }
 
@@ -82,7 +83,7 @@ namespace Dse.Test.Integration.Core
                 metadata = new Metadata(config);
                 metadata.AddHost(new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), ProtocolOptions.DefaultPort));
             }
-            var cc = new ControlConnection(GetEventDebouncer(config), version, config, metadata);
+            var cc = new ControlConnection(GetEventDebouncer(config), version, config, metadata, new List<object> { _testCluster.InitialContactPoint });
             metadata.ControlConnection = cc;
             return cc;
         }

@@ -14,18 +14,26 @@
 //    limitations under the License.
 // 
 
+using System.Collections.Generic;
 using Dse.ProtocolEvents;
+
 namespace Dse.Connections
 {
     internal class ControlConnectionFactory : IControlConnectionFactory
     {
-        public IControlConnection Create(IProtocolEventDebouncer protocolEventDebouncer, ProtocolVersion initialProtocolVersion, Configuration config, Metadata metadata)
+        public IControlConnection Create(
+            IProtocolEventDebouncer protocolEventDebouncer, 
+            ProtocolVersion initialProtocolVersion, 
+            Configuration config, 
+            Metadata metadata,
+            IEnumerable<object> contactPoints)
         {
             return new ControlConnection(
                 protocolEventDebouncer, 
                 initialProtocolVersion, 
                 config, 
-                metadata);
+                metadata,
+                contactPoints);
         }
     }
 }

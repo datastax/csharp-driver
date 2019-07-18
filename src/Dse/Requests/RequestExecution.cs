@@ -340,23 +340,23 @@ namespace Dse.Requests
                 _parent.SetNoMoreHosts(exception, this);
                 return;
             }
-            var c = _connection;
-            if (c != null)
+            var h = _host;
+            if (h != null)
             {
-                _triedHosts[c.Address] = ex;
+                _triedHosts[h.Address] = ex;
             }
             if (ex is OperationTimedOutException)
             {
                 RequestExecution.Logger.Warning(ex.Message);
                 var connection = _connection;
-                if (connection == null)
+                if (h == null || connection == null)
                 {
                     RequestExecution.Logger.Error("Host and Connection must not be null");
                 }
                 else
                 {
                     // Checks how many timed out operations are in the connection
-                    _session.CheckHealth(connection);
+                    _session.CheckHealth(h, connection);
                 }
             }
             var decision = RequestExecution.GetRetryDecision(
@@ -426,7 +426,7 @@ namespace Dse.Requests
         private void PrepareAndRetry(byte[] id)
         {
             RequestExecution.Logger.Info(
-                $"Query {BitConverter.ToString(id)} is not prepared on {_connection.Address}, preparing before retrying executing.");
+                $"Query {BitConverter.ToString(id)} is not prepared on {_connection.EndPoint.EndpointFriendlyName}, preparing before retrying executing.");
             BoundStatement boundStatement = null;
             if (_parent.Statement is BoundStatement statement1)
             {

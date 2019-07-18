@@ -108,7 +108,6 @@ namespace Dse.Connections
             _host = host;
             _host.Down += OnHostDown;
             _host.Up += OnHostUp;
-            _host.Remove += OnHostRemoved;
             _host.DistanceChanged += OnDistanceChanged;
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _maxRequestsPerConnection = config
@@ -121,7 +120,7 @@ namespace Dse.Connections
         }
 
         /// <inheritdoc />
-        public async Task<IConnection> BorrowConnection()
+        public async Task<IConnection> BorrowConnectionAsync()
         {
             var connections = await EnsureCreate().ConfigureAwait(false);
             if (connections.Length == 0)
@@ -150,7 +149,7 @@ namespace Dse.Connections
 
             if (inFlight >= _maxRequestsPerConnection)
             {
-                throw new BusyPoolException(c.Address, _maxRequestsPerConnection, connections.Length);
+                throw new BusyPoolException(_host.Address, _maxRequestsPerConnection, connections.Length);
             }
 
             ConsiderResizingPool(inFlight);
@@ -248,7 +247,6 @@ namespace Dse.Connections
             }
             _host.Up -= OnHostUp;
             _host.Down -= OnHostDown;
-            _host.Remove -= OnHostRemoved;
             _host.DistanceChanged -= OnDistanceChanged;
             var t = _resizingEndTimeout;
             if (t != null)
@@ -259,9 +257,10 @@ namespace Dse.Connections
             Interlocked.Exchange(ref _state, PoolState.Shutdown);
         }
 
-        public virtual async Task<IConnection> DoCreateAndOpen()
+        public virtual async Task<IConnection> DoCreateAndOpen(bool isReconnection)
         {
-            var c = _config.ConnectionFactory.Create(_serializer, _host.Address, _config);
+            var endPoint = await _config.EndPointResolver.GetConnectionEndPointAsync(_host, isReconnection).ConfigureAwait(false);
+            var c = _config.ConnectionFactory.Create(_serializer, endPoint, _config);
             try
             {
                 await c.Open().ConfigureAwait(false);
@@ -277,6 +276,27 @@ namespace Dse.Connections
             }
             c.Closing += OnConnectionClosing;
             return c;
+        }
+        
+        public void OnHostRemoved()
+        {
+            var previousState = Interlocked.Exchange(ref _state, PoolState.ShuttingDown);
+            if (previousState == PoolState.Shutdown)
+            {
+                // It was already shutdown
+                Interlocked.Exchange(ref _state, PoolState.Shutdown);
+                return;
+            }
+            HostConnectionPool.Logger.Info("Host decommissioned. Closing pool #{0} to {1}", GetHashCode(), _host.Address);
+
+            DrainConnections(() => Interlocked.Exchange(ref _state, PoolState.Shutdown));
+
+            CancelNewConnectionTimeout();
+            var t = _resizingEndTimeout;
+            if (t != null)
+            {
+                t.Cancel();
+            }
         }
 
         /// <summary>
@@ -422,27 +442,6 @@ namespace Dse.Connections
             });
             CancelNewConnectionTimeout();
         }
-
-        private void OnHostRemoved()
-        {
-            var previousState = Interlocked.Exchange(ref _state, PoolState.ShuttingDown);
-            if (previousState == PoolState.Shutdown)
-            {
-                // It was already shutdown
-                Interlocked.Exchange(ref _state, PoolState.Shutdown);
-                return;
-            }
-            HostConnectionPool.Logger.Info("Host decommissioned. Closing pool #{0} to {1}", GetHashCode(), _host.Address);
-
-            DrainConnections(() => Interlocked.Exchange(ref _state, PoolState.Shutdown));
-
-            CancelNewConnectionTimeout();
-            var t = _resizingEndTimeout;
-            if (t != null)
-            {
-                t.Cancel();
-            }
-        }
         
         /// <summary>
         /// Removes the connections from the pool and defers the closing of the connections until twice the
@@ -585,7 +584,7 @@ namespace Dse.Connections
         {
             try
             {
-                var t = await CreateOpenConnection(false).ConfigureAwait(false);
+                var t = await CreateOpenConnection(false, schedule != null).ConfigureAwait(false);
                 StartCreatingConnection(null);
                 _host.BringUpIfDown();
             }
@@ -622,10 +621,11 @@ namespace Dse.Connections
         /// <param name="satisfyWithAnOpenConnection">
         /// Determines whether the Task should be marked as completed when there is a connection already opened.
         /// </param>
+        /// <param name="isReconnection">Determines whether this is a reconnection</param>
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
         /// <exception cref="AuthenticationException" />
         /// <exception cref="UnsupportedProtocolVersionException" />
-        private async Task<IConnection> CreateOpenConnection(bool satisfyWithAnOpenConnection)
+        private async Task<IConnection> CreateOpenConnection(bool satisfyWithAnOpenConnection, bool isReconnection)
         {
             var concurrentOpenTcs = Volatile.Read(ref _connectionOpenTcs);
             // Try to exit early (cheap) as there could be another thread creating / finishing creating
@@ -678,7 +678,7 @@ namespace Dse.Connections
             IConnection c;
             try
             {
-                c = await DoCreateAndOpen().ConfigureAwait(false);
+                c = await DoCreateAndOpen(isReconnection).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -766,7 +766,7 @@ namespace Dse.Connections
                 // It should only await for the creation of the connection in few selected occasions:
                 // It's the first time accessing or it has been recently set as UP
                 // CreateOpenConnection() supports concurrent calls
-                c = await CreateOpenConnection(true).ConfigureAwait(false);
+                c = await CreateOpenConnection(true, false).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -819,7 +819,7 @@ namespace Dse.Connections
             {
                 try
                 {
-                    await CreateOpenConnection(false).ConfigureAwait(false);
+                    await CreateOpenConnection(false, false).ConfigureAwait(false);
                 }
                 catch
                 {

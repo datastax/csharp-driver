@@ -326,8 +326,8 @@ namespace Dse.Test.Unit.ExecutionProfiles
                     };
                 });
             Mock.Get(connection)
-                .SetupGet(c => c.Address)
-                .Returns(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042));
+                .SetupGet(c => c.EndPoint)
+                .Returns(new ConnectionEndPoint(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042), null));
 
             return mockResult;
         }

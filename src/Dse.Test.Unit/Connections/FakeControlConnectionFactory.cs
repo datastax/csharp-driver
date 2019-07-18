@@ -14,6 +14,7 @@
 //    limitations under the License.
 // 
 
+using System.Collections.Generic;
 using Dse.Connections;
 using Dse.ProtocolEvents;
 using Dse.Serialization;
@@ -24,10 +25,10 @@ namespace Dse.Test.Unit.Connections
 {
     internal class FakeControlConnectionFactory : IControlConnectionFactory
     {
-        public IControlConnection Create(IProtocolEventDebouncer protocolEventDebouncer, ProtocolVersion initialProtocolVersion, Configuration config, Metadata metadata)
+        public IControlConnection Create(IProtocolEventDebouncer protocolEventDebouncer, ProtocolVersion initialProtocolVersion, Configuration config, Metadata metadata, IEnumerable<object> contactPoints)
         {
             var cc = Mock.Of<IControlConnection>();
-            Mock.Get(cc).Setup(c => c.Init()).Returns(TaskHelper.Completed);
+            Mock.Get(cc).Setup(c => c.InitAsync()).Returns(TaskHelper.Completed);
             Mock.Get(cc).Setup(c => c.Serializer).Returns(new Serializer(ProtocolVersion.V3));
             return cc;
         }

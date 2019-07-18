@@ -67,6 +67,8 @@ namespace Dse.Test.Unit
 
         public ITimerFactory TimerFactory { get; set; } = new TaskBasedTimerFactory();
 
+        public IEndPointResolver EndPointResolver { get; set; } = new EndPointResolver(new DnsResolver(), new ProtocolOptions());
+
         public Configuration Build()
         {
             return new Configuration(
@@ -84,6 +86,7 @@ namespace Dse.Test.Unit
                 ExecutionProfiles,
                 RequestOptionsMapper,
                 MetadataSyncOptions,
+                EndPointResolver,
                 RequestHandlerFactory,
                 HostConnectionPoolFactory,
                 RequestExecutionFactory,

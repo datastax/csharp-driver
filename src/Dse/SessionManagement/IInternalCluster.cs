@@ -15,6 +15,8 @@
 //
 
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Dse.Connections;
@@ -53,5 +55,7 @@ namespace Dse.SessionManagement
         Task<bool> OnInitializeAsync();
         
         Task<bool> OnShutdownAsync(int timeoutMs = Timeout.Infinite);
+
+        IReadOnlyDictionary<string, IEnumerable<IPEndPoint>> GetResolvedEndpoints();
     }
 }

@@ -44,10 +44,10 @@ namespace Dse.Test.Unit.Connections
             _func = func;
         }
 
-        public IConnection Create(Serializer serializer, IPEndPoint endpoint, Configuration configuration)
+        public IConnection Create(Serializer serializer, IConnectionEndPoint endpoint, Configuration configuration)
         {
-            var connection = _func(endpoint);
-            var queue = CreatedConnections.GetOrAdd(endpoint, _ => new ConcurrentQueue<IConnection>());
+            var connection = _func(endpoint.GetHostIpEndPointWithFallback());
+            var queue = CreatedConnections.GetOrAdd(endpoint.GetHostIpEndPointWithFallback(), _ => new ConcurrentQueue<IConnection>());
             queue.Enqueue(connection);
             OnCreate?.Invoke(connection);
             return connection;

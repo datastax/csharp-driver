@@ -34,7 +34,10 @@ namespace Dse.Connections
 
         IFrameCompressor Compressor { get; set; }
 
-        IPEndPoint Address { get; }
+        /// <summary>
+        /// Remote EndPoint, i.e., endpoint to which this instance is connected.
+        /// </summary>
+        IConnectionEndPoint EndPoint { get; }
 
         IPEndPoint LocalAddress { get; }
 

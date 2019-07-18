@@ -86,6 +86,7 @@ namespace Dse
             Keyspace = keyspace;
             UserDefinedTypes = new UdtMappingDefinitions(this, serializer);
             _connectionPool = new ConcurrentDictionary<IPEndPoint, IHostConnectionPool>();
+            _cluster.HostRemoved += OnHostRemoved;
         }
 
         /// <inheritdoc />
@@ -165,6 +166,8 @@ namespace Dse
             }
 
             _sessionManager?.OnShutdownAsync().GetAwaiter().GetResult();
+
+            _cluster.HostRemoved -= OnHostRemoved;
 
             var hosts = Cluster.AllHosts().ToArray();
             foreach (var host in hosts)
@@ -372,9 +375,9 @@ namespace Dse
             return pool;
         }
 
-        void IInternalSession.CheckHealth(IConnection connection)
+        void IInternalSession.CheckHealth(Host host, IConnection connection)
         {
-            if (!_connectionPool.TryGetValue(connection.Address, out var pool))
+            if (!_connectionPool.TryGetValue(host.Address, out var pool))
             {
                 Logger.Error("Internal error: No host connection pool found");
                 return;
@@ -465,6 +468,15 @@ namespace Dse
             }
 
             return profile;
+        }
+
+        private void OnHostRemoved(Host host)
+        {
+            if (_connectionPool.TryRemove(host.Address, out var pool))
+            {
+                pool.OnHostRemoved();
+                pool.Dispose();
+            }
         }
     }
 }

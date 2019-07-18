@@ -107,7 +107,7 @@ namespace Dse.Mapping.Statements
         /// <param name="timestamp">Data timestamp</param>
         /// <param name="tableName">Table name. If null, it will use table name based on Poco Data</param>
         /// <returns></returns>
-        public string GenerateInsert<T>(bool insertNulls, object[] pocoValues, out object[] queryParameters, 
+        public string GenerateInsert<T>(bool insertNulls, object[] pocoValues, out object[] queryParameters,
             bool ifNotExists = false, int? ttl = null, DateTimeOffset? timestamp = null, string tableName = null)
         {
             var pocoData = _pocoDataFactory.GetPocoData<T>();
@@ -192,7 +192,7 @@ namespace Dse.Mapping.Statements
             queryParameters = parameterList.ToArray();
             return queryBuilder.ToString();
         }
-        
+
         /// <summary>
         /// Generates an "UPDATE tablename SET columns = ? WHERE pkColumns = ?" statement for a POCO of Type T.
         /// </summary>
@@ -283,7 +283,7 @@ namespace Dse.Mapping.Statements
         {
             if (pocoData == null)
             {
-                throw new ArgumentNullException("pocoData");
+                throw new ArgumentNullException(nameof(pocoData));
             }
             if (pocoData.MissingPrimaryKeyColumns.Count > 0)
             {
@@ -308,7 +308,7 @@ namespace Dse.Mapping.Statements
                     .Append(columnName)
                     .Append(" ");
                 var columnType = GetTypeString(serializer, column);
-                createTable    
+                createTable
                     .Append(columnType);
                 createTable
                     .Append(", ");
@@ -331,23 +331,24 @@ namespace Dse.Mapping.Statements
                 //tupled partition keys
                 createTable
                     .Append("(")
-                    .Append(String.Join(", ", pocoData.PartitionKeys.Select(Escape(pocoData))))
+                    .Append(string.Join(", ", pocoData.PartitionKeys.Select(Escape(pocoData))))
                     .Append(")");
             }
             if (pocoData.ClusteringKeys.Count > 0)
             {
                 createTable.Append(", ");
-                createTable.Append(String.Join(", ", pocoData.ClusteringKeys.Select(k => Escape(k.Item1.ColumnName, pocoData))));
+                createTable.Append(string.Join(", ", pocoData.ClusteringKeys.Select(k => Escape(k.Item1.ColumnName, pocoData))));
             }
             //close primary keys
             createTable.Append(")");
             //close table column definition
             createTable.Append(")");
-            var clusteringOrder = String.Join(", ", pocoData.ClusteringKeys
+            var clusteringOrder = string.Join(", ", pocoData.ClusteringKeys
                 .Where(k => k.Item2 != SortOrder.Unspecified)
                 .Select(k => Escape(k.Item1.ColumnName, pocoData) + " " + (k.Item2 == SortOrder.Ascending ? "ASC" : "DESC")));
 
-            if (!String.IsNullOrEmpty(clusteringOrder))
+            var clusteringOrderIsDefined = !string.IsNullOrEmpty(clusteringOrder);
+            if (clusteringOrderIsDefined)
             {
                 createTable
                     .Append(" WITH CLUSTERING ORDER BY (")
@@ -356,7 +357,7 @@ namespace Dse.Mapping.Statements
             }
             if (pocoData.CompactStorage)
             {
-                createTable.Append(" WITH COMPACT STORAGE");
+                createTable.Append($" {(clusteringOrderIsDefined ? "AND" : "WITH")} COMPACT STORAGE");
             }
             commands.Add(createTable.ToString());
             //Secondary index definitions

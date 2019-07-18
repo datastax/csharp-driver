@@ -43,7 +43,10 @@ api_docs:
   '2.5': http://docs.datastax.com/en/drivers/csharp-dse/2.5
   '2.6': http://docs.datastax.com/en/drivers/csharp-dse/2.6
   '2.7': http://docs.datastax.com/en/drivers/csharp-dse/2.7
+  '2.8': http://docs.datastax.com/en/drivers/csharp-dse/2.8
 versions:
+  - name: '2.8'
+    ref: '2.8'
   - name: '2.7'
     ref: '2.7'
   - name: '2.6'

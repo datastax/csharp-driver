@@ -2,6 +2,22 @@
 
 Changelog for the DataStax Enterprise C# Driver.
 
+## 2.8.0
+
+2019-07-PLACEHOLDER
+
+### Features
+
+- [CSHARP-756] - ControlConnection init: Defer host map creation until system tables have been queried
+- [CSHARP-757] - Include host_id in host metadata
+- [CSHARP-779] - Separate socket endpoint from the host address using an endpoint resolver
+
+### Bug Fixes
+
+- [CSHARP-778] - NullReferenceException at Cassandra.Data.Linq.CqlExpressionVisitor.GetPropertyValue(MemberExpression node)
+- [CSHARP-781] - Linq2Cql GetTable() generates invalid create table when more than one option is specified
+- [CSHARP-784] - Driver is unable to correctly reestablish connection with previously decommissioned node
+
 ## 2.7.1
 
 2019-06-17

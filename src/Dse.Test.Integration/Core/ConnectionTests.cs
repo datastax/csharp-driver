@@ -429,6 +429,7 @@ namespace Dse.Test.Integration.Core
                 new SessionFactoryBuilder(),
                 new Dictionary<string, IExecutionProfile>(),
                 new RequestOptionsMapper(),
+                null,
                 null);
             using (var connection = CreateConnection(GetProtocolVersion(), config))
             {
@@ -627,13 +628,14 @@ namespace Dse.Test.Integration.Core
                 new SessionFactoryBuilder(),
                 new Dictionary<string, IExecutionProfile>(),
                 new RequestOptionsMapper(),
+                null,
                 null);
-            using (var connection = new Connection(new Serializer(GetProtocolVersion()), new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042), config))
+            using (var connection = new Connection(new Serializer(GetProtocolVersion()), config.EndPointResolver.GetOrResolveContactPointAsync(new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042)).Result.Single(), config))
             {
                 var ex = Assert.Throws<SocketException>(() => TaskHelper.WaitToComplete(connection.Open()));
                 Assert.AreEqual(SocketError.TimedOut, ex.SocketErrorCode);
             }
-            using (var connection = new Connection(new Serializer(GetProtocolVersion()), new IPEndPoint(new IPAddress(new byte[] { 255, 255, 255, 255 }), 9042), config))
+            using (var connection = new Connection(new Serializer(GetProtocolVersion()), config.EndPointResolver.GetOrResolveContactPointAsync(new IPEndPoint(new IPAddress(new byte[] { 255, 255, 255, 255 }), 9042)).Result.Single(), config))
             {
                 Assert.Throws<SocketException>(() => TaskHelper.WaitToComplete(connection.Open()));
             }
@@ -834,6 +836,7 @@ namespace Dse.Test.Integration.Core
                 new SessionFactoryBuilder(),
                 new Dictionary<string, IExecutionProfile>(),
                 new RequestOptionsMapper(),
+                null,
                 null);
             return CreateConnection(GetProtocolVersion(), config);
         }
@@ -841,7 +844,7 @@ namespace Dse.Test.Integration.Core
         private Connection CreateConnection(ProtocolVersion protocolVersion, Configuration config)
         {
             Trace.TraceInformation("Creating test connection using protocol v{0}", protocolVersion);
-            return new Connection(new Serializer(protocolVersion), new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), 9042), config);
+            return new Connection(new Serializer(protocolVersion), config.EndPointResolver.GetOrResolveContactPointAsync(new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), 9042)).Result.Single(), config);
         }
 
         private Task<Response> Query(Connection connection, string query, QueryProtocolOptions options = null)

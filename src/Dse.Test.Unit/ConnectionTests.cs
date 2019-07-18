@@ -30,7 +30,7 @@ namespace Dse.Test.Unit
         {
             config = config ?? new Configuration();
             return new Mock<Connection>(
-                MockBehavior.Loose, new Serializer(ProtocolVersion.MaxSupported), Address, config);
+                MockBehavior.Loose, new Serializer(ProtocolVersion.MaxSupported), new ConnectionEndPoint(ConnectionTests.Address, null), config);
         }
 
         [Test]

@@ -59,7 +59,9 @@ namespace Dse.Requests
             while (true)
             {
                 // It may throw a NoHostAvailableException which we should yield to the caller
-                var connection = await GetNextConnection(session, queryPlan, triedHosts).ConfigureAwait(false);
+                var hostConnectionTuple = await GetNextConnection(session, queryPlan, triedHosts).ConfigureAwait(false);
+                var connection = hostConnectionTuple.Item2;
+                var host = hostConnectionTuple.Item1;
                 try
                 {
                     var result = await connection.Send(request).ConfigureAwait(false);
@@ -67,12 +69,12 @@ namespace Dse.Requests
                     {
                         PreparedStatement = await GetPreparedStatement(result, request, request.Keyspace ?? connection.Keyspace, session.Cluster).ConfigureAwait(false),
                         TriedHosts = triedHosts,
-                        HostAddress = connection.Address
+                        HostAddress = host.Address
                     };
                 }
                 catch (Exception ex) when (PrepareHandler.CanBeRetried(ex))
                 {
-                    triedHosts[connection.Address] = ex;
+                    triedHosts[host.Address] = ex;
                 }
             }
         }
@@ -86,7 +88,7 @@ namespace Dse.Requests
                    ex is OverloadedException || ex is QueryExecutionException;
         }
 
-        private async Task<IConnection> GetNextConnection(IInternalSession session, IEnumerator<Host> queryPlan, Dictionary<IPEndPoint, Exception> triedHosts)
+        private async Task<Tuple<Host, IConnection>> GetNextConnection(IInternalSession session, IEnumerator<Host> queryPlan, Dictionary<IPEndPoint, Exception> triedHosts)
         {
             Host host;
             HostDistance distance;
@@ -96,7 +98,7 @@ namespace Dse.Requests
                 var connection = await RequestHandler.GetConnectionFromHostAsync(host, distance, session, triedHosts).ConfigureAwait(false);
                 if (connection != null)
                 {
-                    return connection;
+                    return Tuple.Create(host, connection);
                 }
             }
             throw new NoHostAvailableException(triedHosts);

@@ -46,7 +46,7 @@ namespace Dse.Insights.MessageFactories
                     cluster.Metadata.ResolvedContactPoints.ToDictionary(
                         kvp => kvp.Key, kvp => kvp.Value.Select(ipEndPoint => ipEndPoint.ToString()).ToList()),
                 DataCenters = _infoProviders.DataCentersInfoProvider.GetInformation(cluster, dseSession),
-                InitialControlConnection = cluster.Metadata.ControlConnection.Address?.ToString(),
+                InitialControlConnection = cluster.Metadata.ControlConnection.EndPoint?.GetHostIpEndPointWithFallback().ToString(),
                 LocalAddress = cluster.Metadata.ControlConnection.LocalAddress?.ToString(),
                 HostName = _infoProviders.HostnameProvider.GetInformation(cluster, dseSession),
                 ProtocolVersion = (byte)cluster.Metadata.ControlConnection.ProtocolVersion,

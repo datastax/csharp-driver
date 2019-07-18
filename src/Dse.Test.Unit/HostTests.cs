@@ -35,5 +35,27 @@ namespace Dse.Test.Unit
             //Should fire event only once
             Assert.AreEqual(1, counter);
         }
+        
+        [Test]
+        public void Should_UseHostIdEmpty_When_HostIdIsNull()
+        {
+            var hostAddress = new IPEndPoint(IPAddress.Parse("163.10.10.10"), 9092);
+            var host = new Host(hostAddress);
+            var row = BuildRow(null);
+            host.SetInfo(row);
+            Assert.AreEqual(Guid.Empty, host.HostId);
+        }
+        
+        private IRow BuildRow(Guid? hostId)
+        {
+            return new TestHelper.DictionaryBasedRow(new Dictionary<string, object>
+            {
+                { "host_id", hostId },
+                { "data_center", "dc1"},
+                { "rack", "rack1" },
+                { "release_version", "3.11.1" },
+                { "tokens", new List<string> { "1" }}
+            });
+        }
     }
 }

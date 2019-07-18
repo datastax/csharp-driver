@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
+using Dse.Connections;
 
 namespace Dse
 {
@@ -64,6 +65,11 @@ namespace Dse
         ///  Gets the node address.
         /// </summary>
         public IPEndPoint Address { get; }
+
+        /// <summary>
+        /// Gets the node's host id.
+        /// </summary>
+        public Guid HostId { get; private set; }
 
         /// <summary>
         /// Tokens assigned to the host
@@ -122,7 +128,6 @@ namespace Dse
         // ReSharper disable once UnusedParameter.Local : Part of the public API
         public Host(IPEndPoint address, IReconnectionPolicy reconnectionPolicy) : this(address)
         {
-
         }
 
         internal Host(IPEndPoint address)
@@ -220,6 +225,15 @@ namespace Dse
                 if (!string.IsNullOrEmpty(dseVersion))
                 {
                     DseVersion = Version.Parse(dseVersion.Split('-')[0]);
+                }
+            }
+
+            if (row.ContainsColumn("host_id"))
+            {
+                var nullableHostId = row.GetValue<Guid?>("host_id");
+                if (nullableHostId.HasValue)
+                {
+                    HostId = nullableHostId.Value;
                 }
             }
         }

@@ -415,5 +415,25 @@ namespace Dse.Test.Unit.Mapping.Linq
             CollectionAssert.AreEquivalent(new object[] {value, id, list}, statement.QueryValues);
             Assert.AreEqual(expectedQuery, statement.PreparedStatement.Cql);
         }
+        
+        private class TestObjectStaticProperty
+        {
+            public static string Property => "static";
+        }
+
+        [Test]
+        public void StaticPropertyAccess_Test()
+        {
+            var table = new Table<LinqDecoratedWithStringCkEntity>(GetSession((_, __) => { }));
+
+            var cql = table.Select(t => new LinqDecoratedWithStringCkEntity
+            {
+                pk = TestObjectStaticProperty.Property,
+                ck1 = TestObjectStaticProperty.Property
+            }).Update().GetCql(out var parameters);
+
+            Assert.That(parameters, Is.EquivalentTo(new[] { "static", "static" }));
+            Assert.AreEqual(@"UPDATE ""x_ts"" SET ""x_pk"" = ?, ""x_ck1"" = ?", cql);
+        }
     }
 }

@@ -67,9 +67,9 @@ namespace Dse
             return _coreSession.GetExistingPool(address);
         }
 
-        public void CheckHealth(IConnection connection)
+        public void CheckHealth(Host host, IConnection connection)
         {
-            _coreSession.CheckHealth(connection);
+            _coreSession.CheckHealth(host, connection);
         }
 
         public bool HasConnections(Host host)
