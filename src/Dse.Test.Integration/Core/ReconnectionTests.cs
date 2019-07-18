@@ -281,7 +281,14 @@ namespace Dse.Test.Integration.Core
                 Assert.AreEqual(2, set.Count);
                 
                 // Decommission node
-                testCluster.DecommissionNodeForcefully(1);
+                if (TestClusterManager.DseVersion.Major < 5)
+                {
+                    testCluster.DecommissionNode(1);
+                }
+                else
+                {
+                    testCluster.DecommissionNodeForcefully(1);
+                }
                 testCluster.Stop(1);
                 
                 // Assert that only one host is used in queries
