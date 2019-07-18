@@ -84,5 +84,7 @@ namespace Cassandra.Connections
         /// Until the task is completed, no other thread is expected to be using this instance.
         /// </summary>
         Task Warmup();
+
+        void OnHostRemoved();
     }
 }
