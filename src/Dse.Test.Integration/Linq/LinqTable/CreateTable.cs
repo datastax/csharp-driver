@@ -58,7 +58,7 @@ namespace Dse.Test.Integration.Linq.LinqTable
             WriteReadValidate(table);
         }
         
-        [Test]
+        [Test, TestCassandraVersion(4, 0, Comparison.LessThan)]
         public void Should_CreateTable_WhenClusteringOrderAndCompactOptionsAreSet()
         {
             var config = new MappingConfiguration().Define(
