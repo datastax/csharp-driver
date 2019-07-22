@@ -2,7 +2,7 @@
 
 ## 3.11.0
 
-2019-07-PLACEHOLDER
+2019-07-22
 
 ### Features
 
