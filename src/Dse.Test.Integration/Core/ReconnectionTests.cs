@@ -281,7 +281,8 @@ namespace Dse.Test.Integration.Core
                 Assert.AreEqual(2, set.Count);
                 
                 // Decommission node
-                if (TestClusterManager.DseVersion.Major < 5)
+                if (TestClusterManager.DseVersion.Major < 5 ||
+                    (TestClusterManager.DseVersion.Major == 5 && TestClusterManager.DseVersion.Minor < 1))
                 {
                     testCluster.DecommissionNode(1);
                 }
