@@ -9,7 +9,7 @@ namespace Cassandra.Mapping
     /// <summary>
     /// Represents data about a POCO and its mapping to Cassandra Rows in a table.
     /// </summary>
-    internal class PocoData
+    internal class PocoData : IPocoData
     {
         private readonly Dictionary<string, PocoColumn> _columnsByMemberName;
         private readonly HashSet<string> _primaryKeys;
