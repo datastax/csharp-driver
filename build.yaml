@@ -45,7 +45,19 @@ build:
 
       echo "========== Copying ssl files to $HOME/ssl =========="
       cp -r /home/jenkins/ccm/ssl $HOME/ssl
-
+      
+      export SNI_ENABLED="true"
+      export SINGLE_ENDPOINT_PATH="${HOME}/proxy/run.sh"
+      export SNI_CERTIFICATE_PATH="${HOME}/proxy/certs/client_key.pfx"
+      export SNI_CA_PATH="${HOME}/proxy/certs/root.crt"
+      
+      echo $SNI_ENABLED
+      echo $SINGLE_ENDPOINT_PATH
+      echo $SNI_CERTIFICATE_PATH
+      echo $SNI_CA_PATH
+      
+      ls "${HOME}/proxy/"
+ 
       # Download and uncompress saxon
       mkdir saxon
       curl -L -o saxon/saxon9he.jar http://central.maven.org/maven2/net/sf/saxon/Saxon-HE/9.8.0-12/Saxon-HE-9.8.0-12.jar

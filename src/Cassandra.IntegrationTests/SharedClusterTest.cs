@@ -22,7 +22,7 @@ namespace Cassandra.IntegrationTests
     {
         private static ITestCluster _reusableInstance;
         private readonly bool _reuse;
-        private readonly List<Cluster> _clusterInstances = new List<Cluster>();
+        protected readonly List<Cluster> ClusterInstances = new List<Cluster>();
         /// <summary>
         /// Gets the amount of nodes in the test cluster
         /// </summary>
@@ -46,7 +46,7 @@ namespace Cassandra.IntegrationTests
         /// <summary>
         /// The shared Session instance of the fixture
         /// </summary>
-        protected Session Session { get; private set; }
+        protected ISession Session { get; private set; }
 
         /// <summary>
         /// It executes the queries provided on test fixture setup.
@@ -115,20 +115,30 @@ namespace Cassandra.IntegrationTests
             }
             if (CreateSession)
             {
-                Cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
-                    .WithQueryTimeout(60000)
-                    .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000))
-                    .Build();
-                Session = (Session) Cluster.Connect();
-                Session.CreateKeyspace(KeyspaceName, null, false);
-                Session.ChangeKeyspace(KeyspaceName);
+                CreateCommonSession();
                 if (SetupQueries != null)
                 {
-                    foreach (var query in SetupQueries)
-                    {
-                        Session.Execute(query);
-                    }
+                    ExecuteSetupQueries();
                 }
+            }
+        }
+        
+        protected virtual void CreateCommonSession()
+        {
+            Cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
+                             .WithQueryTimeout(60000)
+                             .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000))
+                             .Build();
+            Session = (Session)Cluster.Connect();
+            Session.CreateKeyspace(KeyspaceName, null, false);
+            Session.ChangeKeyspace(KeyspaceName);
+        }
+
+        protected virtual void ExecuteSetupQueries()
+        {
+            foreach (var query in SetupQueries)
+            {
+                Session.Execute(query);
             }
         }
 
@@ -140,7 +150,7 @@ namespace Cassandra.IntegrationTests
                 Cluster.Shutdown(1000);   
             }
             //Shutdown the other instances created by helper methods
-            foreach (var c in _clusterInstances)
+            foreach (var c in ClusterInstances)
             {
                 c.Shutdown(1000);
             }
@@ -156,8 +166,13 @@ namespace Cassandra.IntegrationTests
             var builder = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint);
             build?.Invoke(builder);
             var cluster = builder.Build();
-            _clusterInstances.Add(cluster);
+            ClusterInstances.Add(cluster);
             return cluster;
+        }
+
+        protected void SetBaseSession(ISession session)
+        {
+            Session = session;
         }
     }
 }

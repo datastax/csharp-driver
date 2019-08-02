@@ -54,6 +54,11 @@ namespace Cassandra
         }
 
         /// <summary>
+        /// For testing purposes.
+        /// </summary>
+        internal string Username => _username;
+
+        /// <summary>
         /// Uses the supplied credentials and the SASL PLAIN mechanism to login to the server.
         /// </summary>
         /// <param name="host"> the Cassandra host with which we want to authenticate</param>

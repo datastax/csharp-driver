@@ -25,28 +25,43 @@ namespace Cassandra.Tests.Connections
 {
     internal class FakeConnectionFactory : IConnectionFactory
     {
-        private readonly Func<IPEndPoint, IConnection> _func;
+        private readonly Func<IConnectionEndPoint, IConnection> _func;
         public event Action<IConnection> OnCreate;
 
         public ConcurrentDictionary<IPEndPoint, ConcurrentQueue<IConnection>> CreatedConnections { get; } = new ConcurrentDictionary<IPEndPoint, ConcurrentQueue<IConnection>>();
         
-        public FakeConnectionFactory() : this(Mock.Of<IConnection>)
+        public FakeConnectionFactory() : this((Func<IConnectionEndPoint, IConnection>)null)
         {
         }
-
+        
         public FakeConnectionFactory(Func<IConnection> func)
         {
-            _func = _ => func();
+            _func = endpoint => func();
+        }
+
+        public FakeConnectionFactory(Func<IConnectionEndPoint, IConnection> func)
+        {
+            if (func == null)
+            {
+                func = endpoint =>
+                {
+                    var connection = Mock.Of<IConnection>();
+                    Mock.Get(connection).SetupGet(c => c.EndPoint).Returns(endpoint);
+                    return connection;
+                };
+            }
+
+            _func = func;
         }
         
         public FakeConnectionFactory(Func<IPEndPoint, IConnection> func)
         {
-            _func = func;
+            _func = endpoint => func(endpoint.SocketIpEndPoint);
         }
 
         public IConnection Create(Serializer serializer, IConnectionEndPoint endpoint, Configuration configuration)
         {
-            var connection = _func(endpoint.GetHostIpEndPointWithFallback());
+            var connection = _func(endpoint);
             var queue = CreatedConnections.GetOrAdd(endpoint.GetHostIpEndPointWithFallback(), _ => new ConcurrentQueue<IConnection>());
             queue.Enqueue(connection);
             OnCreate?.Invoke(connection);
