@@ -94,7 +94,7 @@ namespace Cassandra.Connections
         /// <exception cref="DriverInternalError" />
         public async Task Init()
         {
-            ControlConnection._logger.Info("Trying to connect the ControlConnection");
+            _logger.Info("Trying to connect the ControlConnection");
             await Connect(true).ConfigureAwait(false);
         }
 
@@ -116,7 +116,7 @@ namespace Cassandra.Connections
 
             foreach (var host in hosts)
             {
-                var connection = _config.ConnectionFactory.Create(_serializer, host.Address, _config);
+                var connection = _config.ConnectionFactory.CreateWithoutMetrics(_serializer, host, _config);
                 try
                 {
                     var version = _serializer.ProtocolVersion;
@@ -127,7 +127,7 @@ namespace Cassandra.Connections
                     catch (UnsupportedProtocolVersionException ex)
                     {
                         var nextVersion = _serializer.ProtocolVersion;
-                        connection = await ChangeProtocolVersion(nextVersion, connection, ex, version)
+                        connection = await ChangeProtocolVersion(nextVersion, host, connection, ex, version)
                             .ConfigureAwait(false);
                     }
 
@@ -142,7 +142,7 @@ namespace Cassandra.Connections
                     if (commonVersion != _serializer.ProtocolVersion)
                     {
                         // Current connection will be closed and reopened
-                        connection = await ChangeProtocolVersion(commonVersion, connection).ConfigureAwait(false);
+                        connection = await ChangeProtocolVersion(commonVersion, host, connection).ConfigureAwait(false);
                         _connection = connection;
                     }
 
@@ -163,9 +163,12 @@ namespace Cassandra.Connections
             throw new NoHostAvailableException(triedHosts);
         }
 
-        private async Task<IConnection> ChangeProtocolVersion(ProtocolVersion nextVersion, IConnection previousConnection,
-                                                 UnsupportedProtocolVersionException ex = null,
-                                                 ProtocolVersion? previousVersion = null)
+        private async Task<IConnection> ChangeProtocolVersion(
+            ProtocolVersion nextVersion,
+            Host host,
+            IConnection previousConnection,
+            UnsupportedProtocolVersionException ex = null,
+            ProtocolVersion? previousVersion = null)
         {
             if (!nextVersion.IsSupported() || nextVersion == previousVersion)
             {
@@ -192,7 +195,7 @@ namespace Cassandra.Connections
 
             previousConnection.Dispose();
 
-            var c = _config.ConnectionFactory.Create(_serializer, previousConnection.Address, _config);
+            var c = _config.ConnectionFactory.CreateWithoutMetrics(_serializer, host, _config);
             await c.Open().ConfigureAwait(false);
             return c;
         }
