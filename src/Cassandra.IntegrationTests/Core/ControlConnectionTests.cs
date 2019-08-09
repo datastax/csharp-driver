@@ -3,7 +3,7 @@ using System.Net;
 using Cassandra.Connections;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
-
+using Cassandra.Observers;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
@@ -72,7 +72,7 @@ namespace Cassandra.IntegrationTests.Core
             config = config ?? new Configuration();
             if (metadata == null)
             {
-                metadata = new Metadata(config);
+                metadata = new Metadata(config, new ClusterObserver());
                 metadata.AddHost(new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), ProtocolOptions.DefaultPort));
             }
             var cc = new ControlConnection(version, config, metadata);

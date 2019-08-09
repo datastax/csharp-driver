@@ -6,6 +6,8 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
+using Cassandra.Metrics.Registries;
+using Cassandra.Observers;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -49,7 +51,7 @@ namespace Cassandra.Tests
             {
                 config = GetConfig();
             }
-            return new Connection(new Serializer(ProtocolVersion.MaxSupported), GetIpEndPoint(lastIpByte), config);
+            return new Connection(new Serializer(ProtocolVersion.MaxSupported), GetIpEndPoint(lastIpByte), config, new ConnectionObserver());
         }
 
         private static Mock<HostConnectionPool> GetPoolMock(Host host = null, Configuration config = null)
@@ -90,7 +92,7 @@ namespace Cassandra.Tests
         private static IConnection GetConnectionMock(int inflight, int timedOutOperations = 0)
         {
             var connectionMock = new Mock<Connection>(
-                MockBehavior.Loose, new Serializer(ProtocolVersion.MaxSupported), Address, new Configuration());
+                MockBehavior.Loose, new Serializer(ProtocolVersion.MaxSupported), Address, new Configuration(), new ConnectionObserver());
             connectionMock.Setup(c => c.InFlight).Returns(inflight);
             connectionMock.Setup(c => c.TimedOutOperations).Returns(timedOutOperations);
             return connectionMock.Object;

@@ -49,7 +49,7 @@ namespace Cassandra.Tests
                 {
                     Interlocked.Increment(ref clientCallbackCounter);
                 };
-                var state = new OperationState(clientCallback);
+                var state = OperationStateExtensions.CreateMock(clientCallback);
                 var actions = new Action[]
                 {
                     () =>
@@ -89,7 +89,7 @@ namespace Cassandra.Tests
                     // ReSharper disable once AccessToModifiedClosure
                     Interlocked.Increment(ref clientCallbackCounter);
                 };
-                var state = new OperationState(clientCallback);
+                var state = OperationStateExtensions.CreateMock(clientCallback);
                 var actions = Enumerable.Repeat<Action>(() =>
                 {
                     var cb = state.SetCompleted();
@@ -115,7 +115,7 @@ namespace Cassandra.Tests
             {
                 Interlocked.Increment(ref clientCallbackCounter);
             };
-            var state = new OperationState(clientCallback);
+            var state = OperationStateExtensions.CreateMock(clientCallback);
             state.Cancel();
             state.InvokeCallback(null);
             //Allow callbacks to be called using the default scheduler

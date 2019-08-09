@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using Cassandra.Observers;
 using Cassandra.Tasks;
 using Moq;
 using NUnit.Framework;
@@ -15,7 +16,7 @@ namespace Cassandra.Tests
     {
         private static SchemaParserV1 GetV1Instance(IMetadataQueryProvider cc)
         {
-            var metadata = new Metadata(new Configuration())
+            var metadata = new Metadata(new Configuration(), new ClusterObserver())
             {
                 ControlConnection = cc
             };
@@ -25,7 +26,7 @@ namespace Cassandra.Tests
 
         private static SchemaParserV2 GetV2Instance(IMetadataQueryProvider cc, Func<string, string, Task<UdtColumnInfo>> udtResolver = null)
         {
-            var metadata = new Metadata(new Configuration())
+            var metadata = new Metadata(new Configuration(), new ClusterObserver())
             {
                 ControlConnection = cc
             };

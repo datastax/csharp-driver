@@ -18,7 +18,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
-
+using Cassandra.Metrics;
+using Cassandra.Metrics.Registries;
+using Cassandra.Observers;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -33,6 +35,14 @@ namespace Cassandra.Tests
     [SuppressMessage("ReSharper", "PossibleMultipleEnumeration")]
     public class RequestHandlerMockTests
     {
+        private static IInternalSession GetMockInternalSession()
+        {
+            var sessionMock = new Mock<IInternalSession>();
+            var clusterMock = new Mock<IInternalCluster>();
+            clusterMock.Setup(x => x.ClusterObserver).Returns(new ClusterObserver());
+            sessionMock.Setup(x => x.InternalCluster).Returns(clusterMock.Object);
+            return sessionMock.Object;
+        }
         private static Configuration GetConfig(ILoadBalancingPolicy lbp)
         {
             var requestExecutionFactory = Mock.Of<IRequestExecutionFactory>();
@@ -60,7 +70,7 @@ namespace Cassandra.Tests
         [Test]
         public void Should_ThrowNoHostAvailableException_When_QueryPlanMoveNextReturnsFalse()
         {
-            var sessionMock = Mock.Of<IInternalSession>();
+            var sessionMock = GetMockInternalSession();
             var lbpMock = Mock.Of<ILoadBalancingPolicy>();
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
             var enumerable = Mock.Of<IEnumerable<Host>>();
@@ -80,7 +90,7 @@ namespace Cassandra.Tests
         [Test]
         public void Should_ThrowNoHostAvailableException_When_QueryPlanMoveNextReturnsTrueButCurrentReturnsNull()
         {
-            var sessionMock = Mock.Of<IInternalSession>();
+            var sessionMock = GetMockInternalSession();
             var lbpMock = Mock.Of<ILoadBalancingPolicy>();
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
             var enumerable = Mock.Of<IEnumerable<Host>>();
@@ -101,13 +111,12 @@ namespace Cassandra.Tests
         [Test]
         public void Should_ReturnHost_When_QueryPlanMoveNextReturnsTrueAndCurrentReturnsHost()
         {
-            var sessionMock = Mock.Of<IInternalSession>();
+            var sessionMock = GetMockInternalSession();
             var lbpMock = Mock.Of<ILoadBalancingPolicy>();
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
             var enumerable = Mock.Of<IEnumerable<Host>>();
             var enumerator = Mock.Of<IEnumerator<Host>>();
-
-            var host = new Host(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9047));
+            var host = new Host(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9047), new HostObserver());
             Mock.Get(enumerator).Setup(m => m.MoveNext()).Returns(true);
             Mock.Get(enumerator).SetupGet(m => m.Current).Returns(host);
             Mock.Get(enumerable).Setup(m => m.GetEnumerator()).Returns(enumerator);

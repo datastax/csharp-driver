@@ -5,6 +5,9 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
+using Cassandra.Metrics;
+using Cassandra.Metrics.Registries;
+using Cassandra.Observers;
 using NUnit.Framework;
 
 namespace Cassandra.Tests
@@ -17,7 +20,7 @@ namespace Cassandra.Tests
         [Test]
         public void BringUpIfDown_Should_Allow_Multiple_Concurrent_Calls()
         {
-            var host = new Host(Address);
+            var host = new Host(Address, new HostObserver());
             var counter = 0;
             host.Up += _ => Interlocked.Increment(ref counter);
             host.SetDown();

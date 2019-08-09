@@ -16,6 +16,7 @@
 
 using System.Collections.Generic;
 using Cassandra.Connections;
+using Cassandra.Metrics.NoopImpl;
 using Cassandra.Requests;
 using Cassandra.SessionManagement;
 
@@ -67,6 +68,8 @@ namespace Cassandra.Tests
                 AddressTranslator,
                 StartupOptionsFactory,
                 SessionFactoryBuilder,
+                EmptyDriverMetricsProvider.Instance,
+                EmptyDriverMetricsScheduler.Instance,
                 RequestHandlerFactory,
                 HostConnectionPoolFactory,
                 RequestExecutionFactory,
