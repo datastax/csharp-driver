@@ -61,7 +61,7 @@ namespace Cassandra.Connections
         /// <summary>
         /// Stores the available stream ids.
         /// </summary>
-        private ConcurrentStack<short> _freeOperations;
+        private CountableConcurrentStack<short> _freeOperations;
 
         /// <summary> Contains the requests that were sent through the wire and that hasn't been received yet.</summary>
         private ConcurrentDictionary<short, OperationState> _pendingOperations;
