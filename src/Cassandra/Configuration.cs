@@ -18,11 +18,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Connections;
+using Cassandra.Metrics;
+using Cassandra.Metrics.DriverAbstractions;
+using Cassandra.Metrics.NoopImpl;
+using Cassandra.Metrics.Registries;
+using Cassandra.Observers;
+using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;
-
 using Microsoft.IO;
 
 namespace Cassandra
@@ -104,7 +109,7 @@ namespace Cassandra
         internal IStartupOptionsFactory StartupOptionsFactory { get; }
 
         internal ISessionFactoryBuilder<IInternalCluster, IInternalSession> SessionFactoryBuilder { get; }
-        
+
         internal IRequestHandlerFactory RequestHandlerFactory { get; }
 
         internal IHostConnectionPoolFactory HostConnectionPoolFactory { get; }
@@ -112,21 +117,25 @@ namespace Cassandra
         internal IRequestExecutionFactory RequestExecutionFactory { get; }
 
         internal IConnectionFactory ConnectionFactory { get; }
-        
+
         internal IControlConnectionFactory ControlConnectionFactory { get; }
+
+        internal MetricsRegistry MetricsRegistry { get; }
+
+        internal IDriverMetricsScheduler MetricsScheduler { get; }
 
         internal Configuration() :
             this(Policies.DefaultPolicies,
-                 new ProtocolOptions(),
-                 null,
-                 new SocketOptions(),
-                 new ClientOptions(),
-                 NoneAuthProvider.Instance,
-                 null,
-                 new QueryOptions(),
-                 new DefaultAddressTranslator(),
-                 new StartupOptionsFactory(),
-                 new SessionFactoryBuilder())
+                new ProtocolOptions(),
+                null,
+                new SocketOptions(),
+                new ClientOptions(),
+                NoneAuthProvider.Instance,
+                null,
+                new QueryOptions(),
+                new DefaultAddressTranslator(),
+                new StartupOptionsFactory(),
+                new SessionFactoryBuilder())
         {
         }
 
@@ -145,6 +154,8 @@ namespace Cassandra
                                IAddressTranslator addressTranslator,
                                IStartupOptionsFactory startupOptionsFactory,
                                ISessionFactoryBuilder<IInternalCluster, IInternalSession> sessionFactoryBuilder,
+                               IDriverMetricsProvider driverMetricsProvider = null,
+                               IDriverMetricsScheduler driverMetricsScheduler = null,
                                IRequestHandlerFactory requestHandlerFactory = null,
                                IHostConnectionPoolFactory hostConnectionPoolFactory = null,
                                IRequestExecutionFactory requestExecutionFactory = null,
@@ -174,6 +185,8 @@ namespace Cassandra
             // to create the instance.
             BufferPool = new RecyclableMemoryStreamManager(16 * 1024, 256 * 1024, ProtocolOptions.MaximumFrameLength);
             Timer = new HashedWheelTimer();
+            MetricsRegistry = new MetricsRegistry(driverMetricsProvider ?? EmptyDriverMetricsProvider.Instance);
+            MetricsScheduler = driverMetricsScheduler ?? EmptyDriverMetricsScheduler.Instance;
         }
 
         /// <summary>
@@ -188,6 +201,11 @@ namespace Cassandra
 
             PoolingOptions = PoolingOptions.Create(protocolVersion);
             return PoolingOptions;
+        }
+
+        internal IObserverFactory GetObserverFactory()
+        {
+            return new ObserverFactory(MetricsRegistry, MetricsScheduler);
         }
     }
 }

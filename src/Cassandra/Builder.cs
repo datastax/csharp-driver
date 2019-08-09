@@ -18,9 +18,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
+using Cassandra.Metrics.DriverAbstractions;
+using Cassandra.Metrics.NoopImpl;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
+#if NETSTANDARD2_0
+using App.Metrics.Scheduling;
+using Cassandra.Metrics.AppMetricsImpl;
+#endif
 
 namespace Cassandra
 {
@@ -57,6 +64,8 @@ namespace Cassandra
         private int _maxSchemaAgreementWaitSeconds = ProtocolOptions.DefaultMaxSchemaAgreementWaitSeconds;
         private IStartupOptionsFactory _startupOptionsFactory = new StartupOptionsFactory();
         private ISessionFactoryBuilder<IInternalCluster, IInternalSession> _sessionFactoryBuilder = new SessionFactoryBuilder();
+        private IDriverMetricsProvider _driverMetricsProvider = EmptyDriverMetricsProvider.Instance;
+        private IDriverMetricsScheduler _driverMetricsScheduler = EmptyDriverMetricsScheduler.Instance;
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -133,7 +142,9 @@ namespace Cassandra
                 _queryOptions,
                 _addressTranslator,
                 _startupOptionsFactory,
-                _sessionFactoryBuilder);
+                _sessionFactoryBuilder,
+                _driverMetricsProvider,
+                _driverMetricsScheduler);
             if (_typeSerializerDefinitions != null)
             {
                 config.TypeSerializers = _typeSerializerDefinitions.Definitions;
@@ -673,6 +684,31 @@ namespace Cassandra
             _maxSchemaAgreementWaitSeconds = maxSchemaAgreementWaitSeconds;
             return this;
         }
+
+        public Builder WithMetrics(IDriverMetricsProvider driverMetricsProvider, IDriverMetricsScheduler driverMetricsScheduler)
+        {
+            _driverMetricsProvider = driverMetricsProvider;
+            _driverMetricsScheduler = driverMetricsScheduler;
+            return this;
+        }
+
+#if NETSTANDARD2_0
+        public Builder WithAppMetrics(Func<IDriverAppMetricsBuilder, IDriverAppMetricsBuilder> builderConfigurator)
+        {
+            var builder = (DriverAppMetricsBuilder)builderConfigurator(new DriverAppMetricsBuilder());
+            var metrics = builder.MetricsBuilder.Build();
+            // todo (sivukhin, 29.05.2019): Avoid starting scheduler before Build()
+            var scheduler = new AppMetricsTaskScheduler(builder.SchedulerDelay,
+                async () => { await Task.WhenAll(metrics.ReportRunner.RunAllAsync()).ConfigureAwait(false); }
+            );
+            return WithMetrics(new AppMetricsDriverMetricsProvider(metrics), new AppMetricsDriverMetricsScheduler(scheduler));
+        }
+
+        public Builder WithAppMetricsRoot(App.Metrics.IMetricsRoot metrics)
+        {
+            return WithMetrics(new AppMetricsDriverMetricsProvider(metrics), EmptyDriverMetricsScheduler.Instance);
+        }
+#endif
 
         /// <summary>
         ///  Build the cluster with the configured set of initial contact points and policies.
