@@ -340,9 +340,12 @@ namespace Cassandra.Requests
                     _session.CheckHealth(connection);
                 }
             }
-            var decision = RequestExecution.GetRetryDecision(
+
+            var retryInformation = GetRetryDecisionWithReason(
                 ex, _parent.RetryPolicy, _parent.Statement, _session.Cluster.Configuration, _retryCount);
-            switch (decision.DecisionType)
+            // todo (sivukhin, 14.04.2019): Are there a situations where there is no _host available at the moment?
+            _host.HostObserver.OnRequestRetry(retryInformation.Reason, retryInformation.Decision.DecisionType);
+            switch (retryInformation.Decision.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.Rethrow:
                     _parent.SetCompleted(ex);
@@ -355,9 +358,57 @@ namespace Cassandra.Requests
 
                 case RetryDecision.RetryDecisionType.Retry:
                     //Retry the Request using the new consistency level
-                    Retry(decision.RetryConsistencyLevel, decision.UseCurrentHost);
+                    Retry(retryInformation.Decision.RetryConsistencyLevel, retryInformation.Decision.UseCurrentHost);
                     break;
             }
+        }
+
+        private static RetryDecisionWithReason GetRetryDecisionWithReason(
+            Exception ex, IExtendedRetryPolicy policy, IStatement statement, Configuration config, int retryCount)
+        {
+            if (ex is SocketException || ex is OverloadedException || ex is IsBootstrappingException || ex is TruncateException ||
+                ex is OperationTimedOutException)
+            {
+                if (ex is SocketException exception)
+                {
+                    RequestExecution.Logger.Verbose("Socket error " + exception.SocketErrorCode);
+                }
+
+                // For PREPARE requests, retry on next host
+                var decision = statement == null && ex is OperationTimedOutException
+                    ? RetryDecision.Retry(null, false)
+                    : policy.OnRequestError(statement, config, ex, retryCount);
+                return new RetryDecisionWithReason(decision, RetryReasonType.RequestError);
+            }
+
+            if (ex is ReadTimeoutException e)
+            {
+                return new RetryDecisionWithReason(
+                    policy.OnReadTimeout(statement, e.ConsistencyLevel, e.RequiredAcknowledgements, e.ReceivedAcknowledgements, e.WasDataRetrieved,
+                        retryCount),
+                    RetryReasonType.ReadTimeOut
+                );
+            }
+
+            if (ex is WriteTimeoutException e1)
+            {
+                return new RetryDecisionWithReason(
+                    policy.OnWriteTimeout(statement, e1.ConsistencyLevel, e1.WriteType, e1.RequiredAcknowledgements, e1.ReceivedAcknowledgements,
+                        retryCount),
+                    RetryReasonType.WriteTimeOut
+                );
+            }
+
+            if (ex is UnavailableException e2)
+            {
+                return new RetryDecisionWithReason(
+                    policy.OnUnavailable(statement, e2.Consistency, e2.RequiredReplicas, e2.AliveReplicas, retryCount),
+                    RetryReasonType.Unavailable
+                );
+            }
+
+            // Any other Exception just throw it
+            return new RetryDecisionWithReason(RetryDecision.Rethrow(), RetryReasonType.Unknown);
         }
 
         /// <summary>
@@ -366,39 +417,7 @@ namespace Cassandra.Requests
         internal static RetryDecision GetRetryDecision(
             Exception ex, IExtendedRetryPolicy policy, IStatement statement, Configuration config, int retryCount)
         {
-            if (ex is SocketException exception)
-            {
-                RequestExecution.Logger.Verbose("Socket error " + exception.SocketErrorCode);
-                return policy.OnRequestError(statement, config, exception, retryCount);
-            }
-            if (ex is OverloadedException || ex is IsBootstrappingException || ex is TruncateException)
-            {
-                return policy.OnRequestError(statement, config, ex, retryCount);
-            }
-            if (ex is ReadTimeoutException e)
-            {
-                return policy.OnReadTimeout(statement, e.ConsistencyLevel, e.RequiredAcknowledgements, e.ReceivedAcknowledgements, e.WasDataRetrieved, retryCount);
-            }
-            if (ex is WriteTimeoutException e1)
-            {
-                return policy.OnWriteTimeout(statement, e1.ConsistencyLevel, e1.WriteType, e1.RequiredAcknowledgements, e1.ReceivedAcknowledgements, retryCount);
-            }
-            if (ex is UnavailableException e2)
-            {
-                return policy.OnUnavailable(statement, e2.Consistency, e2.RequiredReplicas, e2.AliveReplicas, retryCount);
-            }
-            if (ex is OperationTimedOutException)
-            {
-                if (statement == null)
-                {
-                    // For PREPARE requests, retry on next host
-                    return RetryDecision.Retry(null, false);
-                }
-                // Delegate on retry policy
-                return policy.OnRequestError(statement, config, ex, retryCount);
-            }
-            // Any other Exception just throw it
-            return RetryDecision.Rethrow();
+            return GetRetryDecisionWithReason(ex, policy, statement, config, retryCount).Decision;
         }
 
         /// <summary>
