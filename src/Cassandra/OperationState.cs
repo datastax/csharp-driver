@@ -14,17 +14,16 @@
 //   limitations under the License.
 //
 
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-﻿using System.Threading;
-﻿using System.Threading.Tasks;
-﻿using Cassandra.Requests;
- using Cassandra.Responses;
- using Cassandra.Tasks;
-﻿using Microsoft.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using Cassandra.Observers.Abstractions;
+using Cassandra.Requests;
+using Cassandra.Responses;
+using Cassandra.Serialization;
+using Cassandra.Tasks;
 
 namespace Cassandra
 {
@@ -33,6 +32,7 @@ namespace Cassandra
     /// </summary>
     internal class OperationState
     {
+        private readonly IOperationObserver _operationObserver;
         private const int StateInit = 0;
         private const int StateCancelled = 1;
         private const int StateTimedout = 2;
@@ -58,9 +58,16 @@ namespace Cassandra
         /// <summary>
         /// Creates a new operation state with the provided callback
         /// </summary>
-        public OperationState(Action<Exception, Response> callback)
+        public OperationState(Action<Exception, Response> callback, IRequest request, int timeoutMillis, IOperationObserver operationObserver)
         {
-            Volatile.Write(ref _callback, callback);
+            Volatile.Write(ref _callback, (exception, response) =>
+            {
+                callback(exception, response);
+                operationObserver.OnOperationReceive(exception, response);
+            });
+            _operationObserver = operationObserver;
+            Request = request;
+            TimeoutMillis = timeoutMillis;
         }
 
         /// <summary>
@@ -69,6 +76,15 @@ namespace Cassandra
         public void SetTimeout(HashedWheelTimer.ITimeout value)
         {
             _timeout = value;
+        }
+
+        public long WriteFrame(short streamId, MemoryStream memoryStream, Serializer serializer)
+        {
+            var frameLength = Request.WriteFrame(streamId, memoryStream, serializer);
+            _operationObserver.OnOperationSend(frameLength);
+            //We will not use the request any more, stop reference it.
+            Request = null;
+            return frameLength;
         }
 
         /// <summary>

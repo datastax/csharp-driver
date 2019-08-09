@@ -14,15 +14,19 @@
 //    limitations under the License.
 // 
 
-using System.Net;
-using Cassandra.Metrics.Registries;
-using Cassandra.Observers.Abstractions;
 using Cassandra.Serialization;
 
 namespace Cassandra.Connections
 {
-    internal interface IConnectionFactory
+    internal static class ConnectionFactoryExtensions
     {
-        IConnection Create(Serializer serializer, IPEndPoint endpoint, Configuration configuration, IConnectionObserver connectionObserver);
+        public static IConnection CreateWithoutMetrics(
+            this IConnectionFactory connectionFactory,
+            Serializer serializer,
+            Host host,
+            Configuration configuration)
+        {
+            return connectionFactory.Create(serializer, host.Address, configuration, host.HostObserver.CreateConnectionObserver());
+        }
     }
 }

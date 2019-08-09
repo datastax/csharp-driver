@@ -15,15 +15,16 @@
 // 
 
 using System.Net;
+using Cassandra.Observers.Abstractions;
 using Cassandra.Serialization;
 
 namespace Cassandra.Connections
 {
     internal class ConnectionFactory : IConnectionFactory
     {
-        public IConnection Create(Serializer serializer, IPEndPoint endpoint, Configuration configuration)
+        public IConnection Create(Serializer serializer, IPEndPoint endpoint, Configuration configuration, IConnectionObserver connectionObserver)
         {
-            return new Connection(serializer, endpoint, configuration);
+            return new Connection(serializer, endpoint, configuration, connectionObserver);
         }
     }
 }
