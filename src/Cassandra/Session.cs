@@ -338,6 +338,8 @@ namespace Cassandra
             }
         }
 
+        int IInternalSession.CountAllConnections => _connectionPool.Count;
+        
         bool IInternalSession.HasConnections(Host host)
         {
             if (_connectionPool.TryGetValue(host.Address, out var pool))

@@ -30,7 +30,7 @@ namespace Cassandra.SessionManagement
         /// Initialize the session
         /// </summary>
         Task Init(ISessionManager sessionManager);
-        
+
         /// <summary>
         /// Initialize the session without a session manager
         /// </summary>
@@ -44,7 +44,7 @@ namespace Cassandra.SessionManagement
         /// <summary>
         /// Gets a snapshot of the connection pools
         /// </summary>
-        IEnumerable<KeyValuePair<IPEndPoint, IHostConnectionPool>>  GetPools();
+        IEnumerable<KeyValuePair<IPEndPoint, IHostConnectionPool>> GetPools();
 
         /// <summary>
         /// Gets the existing connection pool for this host and session or null when it does not exists
@@ -63,6 +63,8 @@ namespace Cassandra.SessionManagement
         /// Gets or sets the keyspace
         /// </summary>
         new string Keyspace { get; set; }
+
+        int CountAllConnections { get; }
 
         Configuration Configuration { get; }
 
