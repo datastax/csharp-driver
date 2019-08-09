@@ -93,7 +93,13 @@ namespace Cassandra.Connections
         public int OpenConnections => _connections.Count;
 
         /// <inheritdoc />
+        public int AvailableStreams => _connections.Sum(c => c.AvailableStreams);
+        
+        /// <inheritdoc />
         public int InFlight => _connections.Sum(c => c.InFlight);
+
+        /// <inheritdoc />
+        public int MaxRequestsPerConnection => _maxRequestsPerConnection;
 
         /// <summary>
         /// Determines whether the pool is not on the initial state.
@@ -117,6 +123,7 @@ namespace Cassandra.Connections
             _timer = config.Timer;
             _reconnectionSchedule = config.Policies.ReconnectionPolicy.NewSchedule();
             _expectedConnectionLength = 1;
+            host.HostObserver.OnHostConnectionPoolInit(this);
         }
 
         /// <inheritdoc />
@@ -243,7 +250,7 @@ namespace Cassandra.Connections
 
         public virtual async Task<IConnection> DoCreateAndOpen()
         {
-            var c = _config.ConnectionFactory.Create(_serializer, _host.Address, _config);
+            var c = _config.ConnectionFactory.Create(_serializer, _host.Address, _config, _host.HostObserver.CreateConnectionObserver());
             try
             {
                 await c.Open().ConfigureAwait(false);
