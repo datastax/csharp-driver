@@ -27,7 +27,7 @@ namespace Cassandra.Data.Linq
     /// <summary>
     /// Represents a Linq query (UPDATE/INSERT/DELETE) that gets evaluated as a CQL statement.
     /// </summary>
-    public abstract class CqlCommand : SimpleStatement
+    public abstract class CqlCommand : SimpleStatement, IInternalStatement
     {
         private readonly Expression _expression;
         private readonly StatementFactory _statementFactory;
@@ -37,6 +37,8 @@ namespace Cassandra.Data.Linq
 
         internal PocoData PocoData { get; }
         internal ITable Table { get; }
+
+        internal IInternalStatement InternalRef => this;
 
         /// <inheritdoc />
         public override string QueryString
@@ -60,7 +62,7 @@ namespace Cassandra.Data.Linq
             }
         }
 
-        internal StatementFactory StatementFactory => _statementFactory;
+        StatementFactory IInternalStatement.StatementFactory => _statementFactory;
 
         public Expression Expression => _expression;
 
@@ -155,11 +157,7 @@ namespace Cassandra.Data.Linq
         {
             object[] values;
             var cqlQuery = GetCql(out values);
-            var session = GetTable().GetSession();
-            var stmt = await _statementFactory.GetStatementAsync(session, Cql.New(cqlQuery, values))
-                                              .ConfigureAwait(false);
-            this.CopyQueryPropertiesTo(stmt);
-            var rs = await session.ExecuteAsync(stmt).ConfigureAwait(false);
+            var rs = await this.SendQuery(cqlQuery, values).ConfigureAwait(false);
             QueryTrace = rs.Info.QueryTrace;
             return rs;
         }

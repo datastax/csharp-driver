@@ -26,7 +26,7 @@ using Cassandra.Tasks;
 
 namespace Cassandra.Data.Linq
 {
-    public abstract class CqlQueryBase<TEntity> : Statement
+    public abstract class CqlQueryBase<TEntity> : Statement, IInternalStatement
     {
         private QueryTrace _queryTrace;
         internal ITable Table { get; private set; }
@@ -55,6 +55,9 @@ namespace Cassandra.Data.Linq
         internal MapperFactory MapperFactory { get; set; }
 
         internal StatementFactory StatementFactory { get; set; }
+
+        StatementFactory IInternalStatement.StatementFactory => this.StatementFactory;
+
         /// <summary>
         /// The information associated with the TEntity
         /// </summary>
@@ -92,12 +95,7 @@ namespace Cassandra.Data.Linq
 
         protected async Task<RowSet> InternalExecuteAsync(string cqlQuery, object[] values)
         {
-            var session = GetTable().GetSession();
-            var statement = await StatementFactory.GetStatementAsync(session, Cql.New(cqlQuery, values))
-                                             .ConfigureAwait(false);
-            
-            this.CopyQueryPropertiesTo(statement);
-            var rs = await session.ExecuteAsync(statement).ConfigureAwait(false);
+            var rs = await this.SendQuery(cqlQuery, values).ConfigureAwait(false);
             QueryTrace = rs.Info.QueryTrace;
             return rs;
         }
