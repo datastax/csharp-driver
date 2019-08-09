@@ -117,6 +117,8 @@ namespace Cassandra.Connections
         /// </summary>
         public virtual int InFlight => Volatile.Read(ref _inFlight);
 
+        public virtual int AvailableStreams => _freeOperations.Count;
+
         /// <summary>
         /// Determines if there isn't any operations pending to be written or inflight.
         /// </summary>
