@@ -18,6 +18,8 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
+using Cassandra.Observers;
+using Cassandra.Observers.Abstractions;
 
 namespace Cassandra
 {
@@ -102,18 +104,23 @@ namespace Cassandra
         /// </summary>
         public Version CassandraVersion { get; private set; }
 
+
+        internal IHostObserver HostObserver { get; }
+
         /// <summary>
         /// Creates a new instance of <see cref="Host"/>.
         /// </summary>
         // ReSharper disable once UnusedParameter.Local : Part of the public API
-        public Host(IPEndPoint address, IReconnectionPolicy reconnectionPolicy) : this(address)
+        public Host(IPEndPoint address, IReconnectionPolicy reconnectionPolicy) : this(address, new HostObserver())
         {
 
         }
-        
-        internal Host(IPEndPoint address)
+
+        internal Host(IPEndPoint address, IHostObserver hostObserver)
         {
             Address = address ?? throw new ArgumentNullException(nameof(address));
+            HostObserver = hostObserver;
+            hostObserver.OnHostInit(this);
         }
 
         /// <summary>

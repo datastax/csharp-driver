@@ -16,6 +16,7 @@
 
 using System.Collections.Concurrent;
 using Cassandra.Connections;
+using Cassandra.Observers.Abstractions;
 
 namespace Cassandra.SessionManagement
 {
@@ -23,7 +24,7 @@ namespace Cassandra.SessionManagement
     internal interface IInternalCluster : ICluster
     {
         bool AnyOpenConnections(Host host);
-        
+
         /// <summary>
         /// Gets the control connection used by the cluster
         /// </summary>
@@ -33,5 +34,10 @@ namespace Cassandra.SessionManagement
         /// Gets the the prepared statements cache
         /// </summary>
         ConcurrentDictionary<byte[], PreparedStatement> PreparedQueries { get; }
+
+        /// <summary>
+        /// Gets the cluster observer 
+        /// </summary>
+        IClusterObserver ClusterObserver { get; }
     }
 }

@@ -24,6 +24,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.MetadataHelpers;
+using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 using Cassandra.Tasks;
 
@@ -78,16 +79,19 @@ namespace Cassandra
             new Dictionary<string, IEnumerable<IPEndPoint>>();
 
         internal IReadOnlyTokenMap TokenToReplicasMap => _tokenMap;
+        
+        internal IClusterObserver ClusterObserver { get;}
 
-        internal Metadata(Configuration configuration)
+        internal Metadata(Configuration configuration, IClusterObserver clusterObserver)
         {
             Configuration = configuration;
             Hosts = new Hosts();
             Hosts.Down += OnHostDown;
             Hosts.Up += OnHostUp;
+            ClusterObserver = clusterObserver;
         }
 
-        internal Metadata(Configuration configuration, SchemaParser schemaParser) : this(configuration)
+        internal Metadata(Configuration configuration, IClusterObserver clusterObserver, SchemaParser schemaParser) : this(configuration, clusterObserver)
         {
             _schemaParser = schemaParser;
         }
@@ -112,7 +116,7 @@ namespace Cassandra
 
         internal Host AddHost(IPEndPoint address)
         {
-            return Hosts.Add(address);
+            return Hosts.Add(address, ClusterObserver.CreateHostObserver());
         }
 
         internal void RemoveHost(IPEndPoint address)

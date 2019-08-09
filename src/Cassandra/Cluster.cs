@@ -26,6 +26,7 @@ using System.Threading.Tasks;
 using Cassandra.Collections;
 using Cassandra.Connections;
 using Cassandra.Helpers;
+using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -51,6 +52,7 @@ namespace Cassandra
         private readonly Metadata _metadata;
         private readonly Serializer _serializer;
         private readonly ISessionFactory<IInternalSession> _sessionFactory;
+        private readonly IClusterObserver _clusterObserver;
 
         /// <inheritdoc />
         public event Action<Host> HostAdded;
@@ -58,6 +60,7 @@ namespace Cassandra
         public event Action<Host> HostRemoved;
         
         internal IInternalCluster InternalRef => this;
+        IClusterObserver IInternalCluster.ClusterObserver => _clusterObserver;
 
         /// <inheritdoc />
         IControlConnection IInternalCluster.GetControlConnection()
@@ -146,7 +149,8 @@ namespace Cassandra
         private Cluster(IEnumerable<object> contactPoints, Configuration configuration)
         {
             Configuration = configuration;
-            _metadata = new Metadata(configuration);
+            _clusterObserver = configuration.GetObserverFactory().GetClusterObserver();
+            _metadata = new Metadata(configuration, _clusterObserver);
             TaskHelper.WaitToComplete(AddHosts(contactPoints));
             var protocolVersion = _maxProtocolVersion;
             if (Configuration.ProtocolOptions.MaxProtocolVersionValue != null &&
@@ -292,6 +296,7 @@ namespace Cassandra
             {
                 _initLock.Release();
             }
+            _clusterObserver.OnClusterInit(this);
         }
 
         private static string GetAssemblyInfo()
@@ -354,7 +359,7 @@ namespace Cassandra
             var session = await sessionFactory.CreateSessionAsync(keyspace, _serializer).ConfigureAwait(false);
             await session.Init().ConfigureAwait(false);
             _connectedSessions.Add(session);
-            _logger.Info("Session connected ({0})", session.GetHashCode());
+            _clusterObserver.OnSessionConnect(session);
             return session;
         }
 
@@ -475,7 +480,7 @@ namespace Cassandra
             _controlConnection.Dispose();
             Configuration.Timer.Dispose();
             Configuration.Policies.SpeculativeExecutionPolicy.Dispose();
-            _logger.Info("Cluster [" + _metadata.ClusterName + "] has been shut down.");
+            _clusterObserver.OnClusterShutdown();
         }
 
         /// <summary>

@@ -21,6 +21,8 @@ using System.Collections.Generic;
 using System.Net;
 using System.Linq;
 using Cassandra.Collections;
+using Cassandra.Observers;
+using Cassandra.Observers.Abstractions;
 
 namespace Cassandra
 {
@@ -65,9 +67,10 @@ namespace Cassandra
         /// <summary>
         /// Adds the host if not exists
         /// </summary>
-        public Host Add(IPEndPoint key)
+        public Host Add(IPEndPoint key, IHostObserver hostObserver = null)
         {
-            var newHost = new Host(key);
+            // todo (sivukhin, 14.04.2019): Try to avoid coalescing operator here?
+            var newHost = new Host(key, hostObserver ?? new HostObserver());
             var host = _hosts.GetOrAdd(key, newHost);
             if (!ReferenceEquals(newHost, host))
             {
