@@ -23,9 +23,9 @@ namespace Cassandra.Observers
     // todo(sivukhin, 09.08.2019): Warn about calls to the empty metrics?
     internal class ConnectionObserver : IConnectionObserver
     {
-        private Logger _logger = new Logger(typeof(ConnectionObserver));
-        private readonly ClusterObserver _clusterObserver;
-        private readonly HostObserver _hostObserver;
+        private readonly Logger _logger = new Logger(typeof(ConnectionObserver));
+        private readonly ClusterObserver _clusterObserver = new ClusterObserver();
+        private readonly HostObserver _hostObserver = new HostObserver();
 
         public ConnectionObserver()
         {
@@ -58,7 +58,7 @@ namespace Cassandra.Observers
                 case AuthenticationException _:
                     _hostObserver.HostLevelMetricsRegistry.AuthenticationErrors.Increment(1);
                     break;
-                case Exception e when (e is SocketException || e is UnsupportedProtocolVersionException):
+                case Exception e when e is SocketException || e is UnsupportedProtocolVersionException:
                     _hostObserver.HostLevelMetricsRegistry.ConnectionInitErrors.Increment(1);
                     break;
             }
