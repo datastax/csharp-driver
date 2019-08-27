@@ -58,13 +58,15 @@ namespace Cassandra.Data.Linq
         private bool _allowFiltering;
         private int _limit;
 
+        private static readonly ICqlIdentifierHelper CqlIdentifierHelper = new CqlIdentifierHelper();
+
         private readonly IList<Tuple<PocoColumn, object, ExpressionType>> _projections =
             new List<Tuple<PocoColumn, object, ExpressionType>>();
         private readonly IList<Tuple<string, bool>> _orderBy = new List<Tuple<string, bool>>();
         private readonly IList<string> _groupBy = new List<string>();
-        private readonly IList<string> _selectFields = new List<string>(DefaultClauseParameterCapacity);
-        private readonly IList<IConditionItem> _where = new List<IConditionItem>(DefaultClauseParameterCapacity);
-        private readonly IList<IConditionItem> _ifClause = new List<IConditionItem>(DefaultClauseParameterCapacity);
+        private readonly IList<string> _selectFields = new List<string>(CqlExpressionVisitor.DefaultClauseParameterCapacity);
+        private readonly IList<IConditionItem> _where = new List<IConditionItem>(CqlExpressionVisitor.DefaultClauseParameterCapacity);
+        private readonly IList<IConditionItem> _ifClause = new List<IConditionItem>(CqlExpressionVisitor.DefaultClauseParameterCapacity);
 
         private readonly string _tableName;
         private readonly string _keyspaceName;
@@ -85,15 +87,18 @@ namespace Cassandra.Data.Linq
         {
             _isSelectQuery = true;
             Visit(expression);
-            var query = new StringBuilder(DefaultQueryStringCapacity);
+            var query = new StringBuilder(CqlExpressionVisitor.DefaultQueryStringCapacity);
             var parameters = new List<object>();
             query.Append("SELECT ");
             query.Append(_selectFields.Count == 0
-                ? _pocoData.Columns.Select(c => Escape(c.ColumnName)).ToCommaDelimitedString()
-                : _selectFields.Select(Escape).ToCommaDelimitedString());
+                ? _pocoData.Columns
+                           .Select(c => CqlExpressionVisitor.CqlIdentifierHelper.EscapeIdentifierIfNecessary(_pocoData, c.ColumnName))
+                           .ToCommaDelimitedString()
+                : _selectFields.Select(c => CqlExpressionVisitor.CqlIdentifierHelper.EscapeIdentifierIfNecessary(_pocoData, c))
+                               .ToCommaDelimitedString());
 
             query.Append(" FROM ");
-            query.Append(GetEscapedTableName());
+            query.Append(CqlExpressionVisitor.CqlIdentifierHelper.EscapeTableNameIfNecessary(_pocoData, _keyspaceName, _tableName));
 
             GenerateConditions(_where, "WHERE", query, parameters, expression);
 
@@ -106,7 +111,11 @@ namespace Cassandra.Data.Linq
             if (_orderBy.Count > 0)
             {
                 query.Append(" ORDER BY ");
-                query.Append(string.Join(", ", _orderBy.Select(item => Escape(item.Item1) + (item.Item2 ? "" : " DESC"))));
+                query.Append(string.Join(
+                    ", ", 
+                    _orderBy.Select(item => 
+                        CqlExpressionVisitor.CqlIdentifierHelper.EscapeIdentifierIfNecessary(_pocoData, item.Item1) 
+                        + (item.Item2 ? "" : " DESC"))));
             }
 
             if (_limit > 0)
@@ -155,27 +164,15 @@ namespace Cassandra.Data.Linq
         }
 
         /// <summary>
-        /// Escapes an identifier if necessary
-        /// </summary>
-        private string Escape(string identifier)
-        {
-            if (!_pocoData.CaseSensitive && !string.IsNullOrWhiteSpace(identifier))
-            {
-                return identifier;
-            }
-            return "\"" + identifier + "\"";
-        }
-
-        /// <summary>
         /// Gets a cql DELETE statement based on the current state
         /// </summary>
         public string GetDelete(Expression expression, out object[] values, DateTimeOffset? timestamp, bool ifExists)
         {
             Visit(expression);
-            var query = new StringBuilder(DefaultQueryStringCapacity);
+            var query = new StringBuilder(CqlExpressionVisitor.DefaultQueryStringCapacity);
             var parameters = new List<object>();
             query.Append("DELETE FROM ");
-            query.Append(GetEscapedTableName());
+            query.Append(CqlExpressionVisitor.CqlIdentifierHelper.EscapeTableNameIfNecessary(_pocoData, _keyspaceName, _tableName));
             if (timestamp != null)
             {
                 query.Append(" USING TIMESTAMP ?");
@@ -211,10 +208,10 @@ namespace Cassandra.Data.Linq
                                 MapperFactory mapperFactory)
         {
             Visit(expression);
-            var query = new StringBuilder(DefaultQueryStringCapacity);
+            var query = new StringBuilder(CqlExpressionVisitor.DefaultQueryStringCapacity);
             var parameters = new List<object>();
             query.Append("UPDATE ");
-            query.Append(GetEscapedTableName());
+            query.Append(CqlExpressionVisitor.CqlIdentifierHelper.EscapeTableNameIfNecessary(_pocoData, _keyspaceName, _tableName));
             if (ttl != null || timestamp != null)
             {
                 query.Append(" USING ");
@@ -238,7 +235,7 @@ namespace Cassandra.Data.Linq
             foreach (var projection in _projections)
             {
                 var column = projection.Item1;
-                var columnName = Escape(column.ColumnName);
+                var columnName = CqlExpressionVisitor.CqlIdentifierHelper.EscapeIdentifierIfNecessary(_pocoData, column.ColumnName);
                 var value = mapperFactory.AdaptValue(_pocoData, column, projection.Item2);
                 string operation;
                 switch (projection.Item3)
@@ -290,10 +287,10 @@ namespace Cassandra.Data.Linq
         public string GetCount(Expression expression, out object[] values)
         {
             Visit(expression);
-            var query = new StringBuilder(DefaultQueryStringCapacity);
+            var query = new StringBuilder(CqlExpressionVisitor.DefaultQueryStringCapacity);
             var parameters = new List<object>();
             query.Append("SELECT count(*) FROM ");
-            query.Append(GetEscapedTableName());
+            query.Append(CqlExpressionVisitor.CqlIdentifierHelper.EscapeTableNameIfNecessary(_pocoData, _keyspaceName, _tableName));
 
             GenerateConditions(_where, "WHERE", query, parameters, expression);
 
@@ -311,17 +308,6 @@ namespace Cassandra.Data.Linq
             values = parameters.ToArray();
 
             return query.ToString();
-        }
-
-        private string GetEscapedTableName()
-        {
-            string name = null;
-            if (_keyspaceName != null)
-            {
-                name = Escape(_keyspaceName) + ".";
-            }
-            name += Escape(_tableName);
-            return name;
         }
 
         protected override Expression VisitMemberInit(MemberInitExpression node)
@@ -571,7 +557,7 @@ namespace Cassandra.Data.Linq
             object value;
             if (node is MemberExpression)
             {
-                value = GetClosureValue((MemberExpression) node);
+                value = CqlExpressionVisitor.GetClosureValue((MemberExpression) node);
             }
             else
             {
@@ -606,7 +592,7 @@ namespace Cassandra.Data.Linq
                     Visit(node.Object);
                     var startsWithArgument = node.Arguments[0];
                     var startString = (string)Expression.Lambda(startsWithArgument).Compile().DynamicInvoke();
-                    var endString = startString + Utf8MaxValue;
+                    var endString = startString + CqlExpressionVisitor.Utf8MaxValue;
                     // Create 2 conditions, ie: WHERE col1 >= startString AND col2 < endString
                     var column = condition.Column;
                     condition.SetOperator(ExpressionType.GreaterThanOrEqual)
@@ -626,7 +612,7 @@ namespace Cassandra.Data.Linq
                     Visit(node.Arguments[0]);
                     return node;
 
-                case nameof(Equals):
+                case nameof(object.Equals):
                     Visit(node.Object);
                     condition.SetOperator(ExpressionType.Equal);
                     Visit(node.Arguments[0]);
@@ -778,7 +764,7 @@ namespace Cassandra.Data.Linq
                 if (BinaryConditionItem.IsSupported(node.NodeType))
                 {
                     condition.SetOperator(node.NodeType);
-                    Visit(DropNullableConversion(node.Operand));
+                    Visit(CqlExpressionVisitor.DropNullableConversion(node.Operand));
                 }
                 else if (node.NodeType == ExpressionType.Convert)
                 {
@@ -867,13 +853,13 @@ namespace Cassandra.Data.Linq
                         return node;
                     }
 
-                    Visit(DropNullableConversion(node.Left));
+                    Visit(CqlExpressionVisitor.DropNullableConversion(node.Left));
                     condition.SetOperator(node.NodeType);
-                    Visit(DropNullableConversion(node.Right));
+                    Visit(CqlExpressionVisitor.DropNullableConversion(node.Right));
                     return node;
                 }
 
-                if (!CqlUnsupTags.Contains(node.NodeType))
+                if (!CqlExpressionVisitor.CqlUnsupTags.Contains(node.NodeType))
                 {
                     condition.SetParameter(Expression.Lambda(node).Compile().DynamicInvoke());
                     return node;
@@ -971,7 +957,7 @@ namespace Cassandra.Data.Linq
             var condition = _conditions.Last();
             if (node.Expression == null || node.Expression.NodeType == ExpressionType.MemberAccess)
             {
-                var val = GetClosureValue(node);
+                var val = CqlExpressionVisitor.GetClosureValue(node);
                 condition.SetParameter(val);
                 return node;
             }
@@ -994,7 +980,7 @@ namespace Cassandra.Data.Linq
             }
             if (node.Expression.NodeType == ExpressionType.Constant)
             {
-                var val = GetClosureValue(node);
+                var val = CqlExpressionVisitor.GetClosureValue(node);
                 if (val is CqlToken)
                 {
                     var tokenValues = (val as CqlToken).Values;
@@ -1045,7 +1031,7 @@ namespace Cassandra.Data.Linq
                 }
                 if (column.IsCounter)
                 {
-                    var value = GetClosureValue(node);
+                    var value = CqlExpressionVisitor.GetClosureValue(node);
                     if (!(value is long || value is int))
                     {
                         throw new ArgumentException("Only Int64 and Int32 values are supported as counter increment of decrement values");
@@ -1106,11 +1092,11 @@ namespace Cassandra.Data.Linq
             object value;
             if (node.Member.MemberType == MemberTypes.Field)
             {
-                value = GetFieldValue(node);
+                value = CqlExpressionVisitor.GetFieldValue(node);
             }
             else if (node.Member.MemberType == MemberTypes.Property)
             {
-                value = GetPropertyValue(node);
+                value = CqlExpressionVisitor.GetPropertyValue(node);
             }
             else
             {
@@ -1125,7 +1111,7 @@ namespace Cassandra.Data.Linq
             if (node.Expression is MemberExpression)
             {
                 // The field of a field instance
-                var instance = GetClosureValue((MemberExpression)node.Expression);
+                var instance = CqlExpressionVisitor.GetClosureValue((MemberExpression)node.Expression);
                 return fieldInfo.GetValue(instance);
             }
             if (node.Expression == null)
@@ -1148,7 +1134,7 @@ namespace Cassandra.Data.Linq
             if (node.Expression is MemberExpression)
             {
                 // Field property
-                var instance = GetClosureValue((MemberExpression)node.Expression);
+                var instance = CqlExpressionVisitor.GetClosureValue((MemberExpression)node.Expression);
                 return propertyInfo.GetValue(instance, null);
             }
             // Current instance property

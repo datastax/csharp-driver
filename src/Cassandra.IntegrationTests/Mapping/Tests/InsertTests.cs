@@ -649,6 +649,22 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.DoesNotThrow(() => mapper.Insert(new PocoWithEnumCollections { Id = 1001L }));
         }
 
+        [Test]
+        public void Should_InsertWithMapper_When_TableHasReservedKeywords()
+        {
+            Session.CreateKeyspaceIfNotExists("create");
+            var table = new Table<ReservedKeywordPoco>(Session, MappingConfiguration.Global, "add", "create");
+
+            table.CreateIfNotExists();
+            table.Insert(new ReservedKeywordPoco { Batch = "123", Id = "1", NotReserved = "n", Select = "select" }).Execute();
+
+            var result = table.First(poco => poco.Id == "1").Execute();
+            Assert.AreEqual("1", result.Id);
+            Assert.AreEqual("123", result.Batch);
+            Assert.AreEqual("n", result.NotReserved);
+            Assert.AreEqual("select", result.Select);
+        }
+
         /////////////////////////////////////////
         /// Private test classes
         /////////////////////////////////////////
