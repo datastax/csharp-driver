@@ -123,6 +123,11 @@ namespace Cassandra
         /// <returns>the configuration to use for the new cluster.</returns>
         public Configuration GetConfiguration()
         {
+            if (_bundlePath != null)
+            {
+                ConfigureCloudCluster(_bundlePath);
+            }
+
             var policies = new Policies(
                 _loadBalancingPolicy,
                 _reconnectionPolicy,
@@ -817,12 +822,14 @@ namespace Cassandra
         ///                   .WithCredentials("username", "password")
         ///                   .Build();
         /// </code>
+        /// </para> 
+        /// <para>
+        /// <see cref="Build"/> will throw <see cref="InvalidOperationException"/> when an error occurs that is not related to
+        /// connectivity and <see cref="NoHostAvailableException"/> when an error occurs while trying to obtain the cluster metadata from the remote endpoint.
         /// </para>
         /// </summary>
         /// <param name="bundlePath">Path of the secure connection bundle.</param>
         /// <returns>A preconfigured builder ready for use.</returns>
-        /// <exception cref="InvalidOperationException">When an error occurs that is not related to connectivity.</exception>
-        /// <exception cref="NoHostAvailableException">When an error occurs while trying to obtain the cluster metadata from the remote endpoint.</exception>
         public Builder WithCloudSecureConnectionBundle(string bundlePath)
         {
             _bundlePath = bundlePath;
@@ -837,12 +844,7 @@ namespace Cassandra
         /// <returns>the newly build Cluster instance. </returns>
         public Cluster Build()
         {
-            if (_bundlePath != null)
-            {
-                ConfigureCloudCluster(_bundlePath);
-            }
-
-            return _coreClusterFactory.Create(this, HostNames, null, null);
+            return _coreClusterFactory.Create(this, HostNames, GetConfiguration(), null);
         }
 
         internal IReadOnlyList<string> HostNames => _hostNames;
