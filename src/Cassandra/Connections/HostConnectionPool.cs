@@ -829,6 +829,7 @@ namespace Cassandra.Connections
                         break;
                     }
 
+                    OnConnectionClosing();
                     throw;
                 }
             }
