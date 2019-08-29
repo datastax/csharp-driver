@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">net452;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
-    <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True'">netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
+    <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True' And '$(NETCORE_RUNTIME)' != '2.0'">netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
+    <TargetFramework Condition="'$(BuildCoreOnly)' == 'True' And '$(NETCORE_RUNTIME)' == '2.0'">netcoreapp2.0</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <PublicSign>false</PublicSign>
     <AssemblyName>Cassandra.IntegrationTests</AssemblyName>
