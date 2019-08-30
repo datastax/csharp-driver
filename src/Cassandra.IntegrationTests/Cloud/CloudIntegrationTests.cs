@@ -125,7 +125,7 @@ namespace Cassandra.IntegrationTests.Cloud
         }
 
         [Test]
-        public async Task Should_SupportOverridingSslOptions()
+        public async Task Should_NotSupportOverridingSslOptions()
         {
             var session = await CreateSessionAsync(act: b => b
                     .WithSSL(
@@ -133,8 +133,8 @@ namespace Cassandra.IntegrationTests.Cloud
                             .SetCertificateCollection(Session.Cluster.Configuration.ProtocolOptions.SslOptions.CertificateCollection))).ConfigureAwait(false);
             {
                 Assert.AreEqual(false, Session.Cluster.Configuration.ProtocolOptions.SslOptions.CheckCertificateRevocation);
-                Assert.AreEqual(true, session.Cluster.Configuration.ProtocolOptions.SslOptions.CheckCertificateRevocation);
-                Assert.AreNotEqual(Session.Cluster.Configuration.ProtocolOptions.SslOptions.SslProtocol, session.Cluster.Configuration.ProtocolOptions.SslOptions.SslProtocol);
+                Assert.AreEqual(false, session.Cluster.Configuration.ProtocolOptions.SslOptions.CheckCertificateRevocation);
+                Assert.AreEqual(Session.Cluster.Configuration.ProtocolOptions.SslOptions.SslProtocol, session.Cluster.Configuration.ProtocolOptions.SslOptions.SslProtocol);
             }
         }
 

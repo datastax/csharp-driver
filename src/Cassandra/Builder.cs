@@ -878,24 +878,25 @@ namespace Cassandra
 
         private Builder ConfigureCloudCluster(SecureConnectionBundle bundle)
         {
-            SSLOptions sslOptions;
-
             if (_addedSsl)
             {
-                sslOptions = this._sslOptions;
+                Builder.Logger.Warning("The provided SSL Options will not be used because a secure connection bundle was provided to this builder.");
             }
-            else
-            {
-                var certificateValidator = new CustomCaCertificateValidator(bundle.CaCert);
-                sslOptions = new SSLOptions(
-                    SslProtocols.Tls12 | SslProtocols.Tls11 |  SslProtocols.Tls, 
-                    false, 
-                    (sender, certificate, chain, errors) => certificateValidator.Validate(certificate, chain, errors));
             
-                if (bundle.ClientCert != null)
-                {
-                    sslOptions = sslOptions.SetCertificateCollection(new X509Certificate2Collection(new[] { bundle.ClientCert }));
-                }
+            if (_addedContactPoints)
+            {
+                Builder.Logger.Warning("The provided contact points will not be used because a secure connection bundle was provided to this builder.");
+            }
+
+            var certificateValidator = new CustomCaCertificateValidator(bundle.CaCert);
+            var sslOptions = new SSLOptions(
+                SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls,
+                false,
+                (sender, certificate, chain, errors) => certificateValidator.Validate(certificate, chain, errors));
+
+            if (bundle.ClientCert != null)
+            {
+                sslOptions = sslOptions.SetCertificateCollection(new X509Certificate2Collection(new[] { bundle.ClientCert }));
             }
 
             var metadata = new CloudMetadataService();
@@ -917,13 +918,8 @@ namespace Cassandra
             var port = int.Parse(proxyAddress.Substring(separatorIndex + 1));
             var isIp = IPAddress.TryParse(ipOrName, out var address);
             var sniOptions = new SniOptions(address, port, isIp ? null : ipOrName);
-
-            var builder = this;
-
-            if (!_addedContactPoints)
-            {
-                builder = this.SetContactPoints(clusterMetadata.ContactInfo.ContactPoints);
-            }
+            
+            var builder = this.SetContactPoints(clusterMetadata.ContactInfo.ContactPoints);
             
             if (!_addedAuth && bundle.Config.Password != null && bundle.Config.Username != null)
             {
@@ -942,12 +938,9 @@ namespace Cassandra
                 {
                     builder = builder.WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(clusterMetadata.ContactInfo.LocalDc)));
                 }
-            }
-
-            if (!_addedSsl)
-            {
-                builder = builder.WithSSL(sslOptions);
-            }
+            } 
+            
+            builder = builder.WithSSL(sslOptions);
 
             return builder
                 .WithEndPointResolver(new SniEndPointResolver(new DnsResolver(), sniOptions));
