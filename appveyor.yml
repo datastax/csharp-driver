@@ -22,7 +22,7 @@ environment:
       PROJECT: Cassandra.Tests
     - TARGET: net452
       CASSANDRA_VERSION: 3.11.2
-      CI_TYPE: INTEGRATION
+      CI_TYPE: INTEGRATION_FULL
       PROJECT: Cassandra.IntegrationTests
     - TARGET: netcoreapp2.0
       CASSANDRA_VERSION: 3.11.2
@@ -45,7 +45,15 @@ build_script:
   - ps: dotnet build src\Cassandra.sln -c Release
 
 test_script:
-  - ps: dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --filter "(TestCategory!=long)&(TestCategory!=memory)&(TestCategory!=realcluster)" --logger:Appveyor
+  - ps: |
+      if($CI_TYPE -eq "INTEGRATION_FULL")
+      {
+          dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --filter "(TestCategory!=long)&(TestCategory!=memory)" --logger:Appveyor
+      }
+      else 
+      {
+          dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --filter "(TestCategory!=long)&(TestCategory!=memory)&(TestCategory!=realcluster)" --logger:Appveyor
+      }      
 on_failure:
   - ps: |
       Write-Host "Build failed"
