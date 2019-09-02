@@ -25,7 +25,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_Move_To_Next_Host_For_Simple_Queries()
         {
             var testCluster = SimulacronCluster.CreateNew(2);
-            var socketOptions = new SocketOptions().SetReadTimeoutMillis(100);
+            var socketOptions = new SocketOptions().SetReadTimeoutMillis(500);
             var builder = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint)
                 .WithSocketOptions(socketOptions);
             using (var cluster = builder.Build())
@@ -59,7 +59,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_Move_To_Next_Host_For_Bound_Statements()
         {
             var testCluster = SimulacronCluster.CreateNew(2);
-            var socketOptions = new SocketOptions().SetReadTimeoutMillis(100);
+            var socketOptions = new SocketOptions().SetReadTimeoutMillis(500);
             var builder = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint)
                 .WithSocketOptions(socketOptions);
             using (var cluster = builder.Build())
@@ -116,7 +116,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_Throw_OperationTimedOutException_When_Retry_Is_False()
         {
             var testCluster = SimulacronCluster.CreateNew(2);
-            var socketOptions = new SocketOptions().SetReadTimeoutMillis(100);
+            var socketOptions = new SocketOptions().SetReadTimeoutMillis(500);
             var queryOptions = new QueryOptions().SetRetryOnTimeout(false);
             var builder = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint)
                 .WithSocketOptions(socketOptions)
@@ -268,7 +268,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_Throw_NoHostAvailableException_When_All_Hosts_Down()
         {
             var testCluster = SimulacronCluster.CreateNew(2);
-            var socketOptions = new SocketOptions().SetReadTimeoutMillis(100);
+            var socketOptions = new SocketOptions().SetReadTimeoutMillis(500);
             var builder = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint)
                 .WithSocketOptions(socketOptions);
             using (var cluster = builder.Build())
