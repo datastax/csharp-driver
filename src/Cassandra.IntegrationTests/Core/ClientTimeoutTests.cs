@@ -307,7 +307,7 @@ namespace Cassandra.IntegrationTests.Core
                                  .WithSocketOptions(socketOptions);
             using (var cluster = builder.Build())
             {
-                testCluster.GetNodes().First().DisableConnectionListener(0, "reject_startup");
+                testCluster.GetNodes().First().DisableConnectionListener(0, "reject_startup").GetAwaiter().GetResult();
                 var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
                 Assert.AreEqual(1, ex.Errors.Count);
                 foreach (var innerException in ex.Errors.Values)
@@ -327,7 +327,7 @@ namespace Cassandra.IntegrationTests.Core
                                  .WithSocketOptions(socketOptions);
 
             var node = testCluster.GetNodes().First();
-            node.DisableConnectionListener(0, "reject_startup");
+            node.DisableConnectionListener(0, "reject_startup").GetAwaiter().GetResult();
             const int length = 1000;
             using (var cluster = builder.Build())
             {
