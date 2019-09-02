@@ -8,13 +8,14 @@ using System.Text;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.SessionManagement;
 using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), Category("realcluster")]
+    [Category("short")]
     public class ReconnectionTests : TestGlobals
     {
         /// Tests that reconnection attempts are made multiple times in the background
@@ -37,7 +38,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Reconnection_Attempted_Multiple_Times()
         {
-            var testCluster = TestClusterManager.CreateNew();
+            var testCluster = SimulacronCluster.CreateNew(1);
 
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(testCluster.InitialContactPoint)
@@ -67,23 +68,25 @@ namespace Cassandra.IntegrationTests.Core
                 };
                 Assert.True(host.IsUp);
                 Trace.TraceInformation("Stopping node");
-                testCluster.Stop(1);
+                var node = testCluster.GetNodes().First(); 
+                node.Stop().GetAwaiter().GetResult();
                 // Make sure the node is considered down
-                Assert.Throws<NoHostAvailableException>(() => session.Execute("SELECT * FROM system.local"));
-                Assert.False(host.IsUp);
-                Assert.AreEqual(1, Volatile.Read(ref downCounter));
-                Assert.AreEqual(0, Volatile.Read(ref upCounter));
-                Trace.TraceInformation("Waiting for 15 seconds");
-                Thread.Sleep(15000);
-                Assert.False(host.IsUp);
+                TestHelper.RetryAssert(() =>
+                {
+                    Assert.Throws<NoHostAvailableException>(() => session.Execute("SELECT * FROM system.local"));
+                    Assert.False(host.IsUp);
+                    Assert.AreEqual(1, Volatile.Read(ref downCounter));
+                    Assert.AreEqual(0, Volatile.Read(ref upCounter));
+                }, 100, 200);
                 Trace.TraceInformation("Restarting node");
-                testCluster.Start(1);
+                node.Start().GetAwaiter().GetResult();
                 Trace.TraceInformation("Waiting up to 20s");
-                var attempts = TestHelper.WaitUntil(() => host.IsUp, 1000, 20);
-                Trace.TraceInformation("Waited {0}s", attempts);
-                Assert.True(host.IsUp);
-                Assert.AreEqual(1, Volatile.Read(ref downCounter));
-                Assert.AreEqual(1, Volatile.Read(ref upCounter));
+                TestHelper.RetryAssert(() =>
+                {
+                    Assert.True(host.IsUp);
+                    Assert.AreEqual(1, Volatile.Read(ref downCounter));
+                    Assert.AreEqual(1, Volatile.Read(ref upCounter));
+                }, 100, 200);
             }
         }
 
@@ -106,7 +109,7 @@ namespace Cassandra.IntegrationTests.Core
         [Repeat(3)]
         public void Reconnection_Attempted_Multiple_Times_On_Multiple_Nodes()
         {
-            var testCluster = TestClusterManager.CreateNew(2);
+            var testCluster = SimulacronCluster.CreateNew(2);
 
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(testCluster.InitialContactPoint)
@@ -122,60 +125,69 @@ namespace Cassandra.IntegrationTests.Core
                 //Another session to have multiple pools
                 var dummySession = cluster.Connect();
                 TestHelper.Invoke(() => dummySession.Execute("SELECT * FROM system.local"), 10);
-                var host1 = cluster.AllHosts().First(h => TestHelper.GetLastAddressByte(h) == 1);
-                var host2 = cluster.AllHosts().First(h => TestHelper.GetLastAddressByte(h) == 2);
-                var upCounter = new ConcurrentDictionary<byte, int>();
-                var downCounter = new ConcurrentDictionary<byte, int>();
+                var hosts = cluster.AllHosts().ToList();
+                var host1 = hosts[0];
+                var host2 = hosts[1];
+                var upCounter = new ConcurrentDictionary<string, int>();
+                var downCounter = new ConcurrentDictionary<string, int>();
                 cluster.Metadata.HostsEvent += (sender, e) =>
                 {
                     if (e.What == HostsEventArgs.Kind.Up)
                     {
-                        upCounter.AddOrUpdate(TestHelper.GetLastAddressByte(e.Address), 1, (k, v) => ++v);
+                        upCounter.AddOrUpdate(e.Address.ToString(), 1, (k, v) => ++v);
                         return;
                     }
-                    downCounter.AddOrUpdate(TestHelper.GetLastAddressByte(e.Address), 1, (k, v) => ++v);
+                    downCounter.AddOrUpdate(e.Address.ToString(), 1, (k, v) => ++v);
                 };
                 Assert.True(host1.IsUp);
                 Trace.TraceInformation("Stopping node #1");
-                testCluster.Stop(1);
+                var nodes = testCluster.GetNodes().ToArray();
+                nodes[0].Stop().GetAwaiter().GetResult();
                 // Make sure the node is considered down
-                Assert.DoesNotThrow(() => TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local"), 6));
-                Thread.Sleep(1000);
-                Assert.False(host1.IsUp);
-                Assert.AreEqual(1, downCounter.GetOrAdd(1, 0));
-                Assert.AreEqual(0, upCounter.GetOrAdd(1, 0));
+                TestHelper.RetryAssert(() =>
+                {
+                    Assert.DoesNotThrow(() => TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local"), 6));
+                    Assert.False(host1.IsUp);
+                    Assert.AreEqual(1, downCounter.GetOrAdd(nodes[0].ContactPoint, 0));
+                    Assert.AreEqual(0, upCounter.GetOrAdd(nodes[0].ContactPoint, 0));
+                }, 100, 100);
                 Trace.TraceInformation("Stopping node #2");
-                testCluster.Stop(2);
-                Assert.Throws<NoHostAvailableException>(() => TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local"), 6));
-                Thread.Sleep(1000);
-                Assert.False(host2.IsUp);
-                Assert.AreEqual(1, downCounter.GetOrAdd(1, 0));
-                Assert.AreEqual(0, upCounter.GetOrAdd(1, 0));
-                Assert.AreEqual(1, downCounter.GetOrAdd(2, 0));
-                Assert.AreEqual(0, upCounter.GetOrAdd(2, 0));
-                Trace.TraceInformation("Waiting for few seconds");
-                Thread.Sleep(8000);
-                Assert.False(host1.IsUp);
-                Assert.False(host2.IsUp);
+                nodes[1].Stop().GetAwaiter().GetResult();
+                
+                TestHelper.RetryAssert(() =>
+                {
+                    Assert.Throws<NoHostAvailableException>(() => TestHelper.Invoke(() => session.Execute("SELECT * FROM system.local"), 6));
+                    Assert.False(host2.IsUp);
+                    Assert.AreEqual(1, downCounter.GetOrAdd(nodes[0].ContactPoint, 0));
+                    Assert.AreEqual(0, upCounter.GetOrAdd(nodes[0].ContactPoint, 0));
+                    Assert.AreEqual(1, downCounter.GetOrAdd(nodes[1].ContactPoint, 0));
+                    Assert.AreEqual(0, upCounter.GetOrAdd(nodes[1].ContactPoint, 0));
+                    Assert.False(host1.IsUp);
+                    Assert.False(host2.IsUp);
+                }, 100, 100);
+
                 Trace.TraceInformation("Restarting node #1");
-                testCluster.Start(1);
+                nodes[0].Start().GetAwaiter().GetResult();
                 Trace.TraceInformation("Restarting node #2");
-                testCluster.Start(2);
+                nodes[1].Start().GetAwaiter().GetResult();
                 Trace.TraceInformation("Waiting for few more seconds");
-                TestHelper.WaitUntil(() => host1.IsUp && host2.IsUp, 1000, 20);
-                Assert.True(host1.IsUp, "Host 1 should be UP after restarting");
-                Assert.True(host2.IsUp, "Host 2 should be UP after restarting");
-                Assert.AreEqual(1, downCounter.GetOrAdd(1, 0));
-                Assert.AreEqual(1, upCounter.GetOrAdd(1, 0));
-                Assert.AreEqual(1, downCounter.GetOrAdd(2, 0));
-                Assert.AreEqual(1, upCounter.GetOrAdd(2, 0));
+                TestHelper.RetryAssert(() =>
+                {
+                    Assert.True(host1.IsUp && host2.IsUp);
+                    Assert.True(host1.IsUp, "Host 1 should be UP after restarting");
+                    Assert.True(host2.IsUp, "Host 2 should be UP after restarting");
+                    Assert.AreEqual(1, downCounter.GetOrAdd(nodes[0].ContactPoint, 0));
+                    Assert.AreEqual(1, upCounter.GetOrAdd(nodes[0].ContactPoint, 0));
+                    Assert.AreEqual(1, downCounter.GetOrAdd(nodes[1].ContactPoint, 0));
+                    Assert.AreEqual(1, upCounter.GetOrAdd(nodes[1].ContactPoint, 0));
+                }, 100, 200);
             }
         }
 
         [Test]
         public void Executions_After_Reconnection_Resizes_Pool()
         {
-            var testCluster = TestClusterManager.CreateNew(2);
+            var testCluster = SimulacronCluster.CreateNew(2);
 
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(testCluster.InitialContactPoint)
@@ -191,47 +203,52 @@ namespace Cassandra.IntegrationTests.Core
                 var session2 = (IInternalSession)cluster.Connect();
                 TestHelper.Invoke(() => session1.Execute("SELECT * FROM system.local"), 10);
                 TestHelper.Invoke(() => session2.Execute("SELECT * FROM system.local"), 10);
-                var host1 = cluster.AllHosts().First(h => TestHelper.GetLastAddressByte(h) == 1);
-                var host2 = cluster.AllHosts().First(h => TestHelper.GetLastAddressByte(h) == 2);
-                var upCounter = new ConcurrentDictionary<byte, int>();
-                var downCounter = new ConcurrentDictionary<byte, int>();
+                var hosts = cluster.AllHosts().ToList();
+                var host1 = hosts[0];
+                var host2 = hosts[1];
+                var upCounter = new ConcurrentDictionary<string, int>();
+                var downCounter = new ConcurrentDictionary<string, int>();
                 cluster.Metadata.HostsEvent += (sender, e) =>
                 {
                     if (e.What == HostsEventArgs.Kind.Up)
                     {
-                        upCounter.AddOrUpdate(TestHelper.GetLastAddressByte(e.Address), 1, (k, v) => ++v);
+                        upCounter.AddOrUpdate(e.Address.ToString(), 1, (k, v) => ++v);
                         return;
                     }
-                    downCounter.AddOrUpdate(TestHelper.GetLastAddressByte(e.Address), 1, (k, v) => ++v);
+                    downCounter.AddOrUpdate(e.Address.ToString(), 1, (k, v) => ++v);
                 };
+                var nodes = testCluster.GetNodes().ToList();
                 Assert.True(host1.IsUp);
                 Assert.True(host2.IsUp);
                 Trace.TraceInformation("Stopping node #1");
-                testCluster.Stop(1);
+                nodes[0].Stop().GetAwaiter().GetResult();
                 Trace.TraceInformation("Stopping node #2");
-                testCluster.Stop(2);
+                nodes[1].Stop().GetAwaiter().GetResult();
                 //Force to be considered down
-                Assert.Throws<NoHostAvailableException>(() => session1.Execute("SELECT * FROM system.local"));
-                Assert.AreEqual(1, downCounter.GetOrAdd(1, 0));
-                Assert.AreEqual(0, upCounter.GetOrAdd(1, 0));
-                Assert.AreEqual(1, downCounter.GetOrAdd(2, 0));
-                Assert.AreEqual(0, upCounter.GetOrAdd(2, 0));
+                TestHelper.RetryAssert(() =>
+                {
+                    Assert.Throws<NoHostAvailableException>(() => session1.Execute("SELECT * FROM system.local"));
+                    Assert.AreEqual(1, downCounter.GetOrAdd(nodes[0].ContactPoint, 0));
+                    Assert.AreEqual(0, upCounter.GetOrAdd(nodes[0].ContactPoint, 0));
+                    Assert.AreEqual(1, downCounter.GetOrAdd(nodes[1].ContactPoint, 0));
+                    Assert.AreEqual(0, upCounter.GetOrAdd(nodes[1].ContactPoint, 0));
+                }, 100, 200);
                 Trace.TraceInformation("Restarting node #1");
-                testCluster.Start(1);
+                nodes[0].Start().GetAwaiter().GetResult();
                 Trace.TraceInformation("Restarting node #2");
-                testCluster.Start(2);
+                nodes[1].Start().GetAwaiter().GetResult();
                 Trace.TraceInformation("Waiting for few more seconds");
-                Thread.Sleep(6000);
-                Assert.True(host1.IsUp);
-                Assert.True(host2.IsUp);
-                Assert.AreEqual(1, downCounter.GetOrAdd(1, 0));
-                Assert.AreEqual(1, upCounter.GetOrAdd(1, 0));
-                Assert.AreEqual(1, downCounter.GetOrAdd(2, 0));
-                Assert.AreEqual(1, upCounter.GetOrAdd(2, 0));
+                TestHelper.RetryAssert(() =>
+                {
+                    Assert.True(host1.IsUp);
+                    Assert.True(host2.IsUp);
+                    Assert.AreEqual(1, downCounter.GetOrAdd(nodes[0].ContactPoint, 0));
+                    Assert.AreEqual(1, upCounter.GetOrAdd(nodes[0].ContactPoint, 0));
+                    Assert.AreEqual(1, downCounter.GetOrAdd(nodes[1].ContactPoint, 0));
+                    Assert.AreEqual(1, upCounter.GetOrAdd(nodes[1].ContactPoint, 0));
+                }, 100, 200);
                 TestHelper.Invoke(() => session1.Execute("SELECT * FROM system.local"), 10);
                 TestHelper.Invoke(() => session2.Execute("SELECT * FROM system.local"), 10);
-                Trace.TraceInformation("Waiting for few more seconds");
-                Thread.Sleep(6000);
                 var pool1 = session1.GetOrCreateConnectionPool(host1, HostDistance.Local);
                 Assert.AreEqual(2, pool1.OpenConnections);
                 var pool2 = session1.GetOrCreateConnectionPool(host2, HostDistance.Local);
@@ -239,6 +256,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+        [Category("realcluster")]
         [Test]
         public void Should_UseNewHostInQueryPlans_When_HostIsDecommissionedAndJoinsAgain()
         {

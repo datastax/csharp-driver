@@ -23,10 +23,10 @@ namespace Cassandra.IntegrationTests.Core
             TestClusterManager.TryRemove();
         }
 
-        [Test, Category("realcluster"), TestTimeout(1000 * 60 * 4), TestCase(false), TestCase(true)]
+        [Test, TestTimeout(1000 * 60 * 4), TestCase(false), TestCase(true)]
         public void StopForce_With_Inflight_Requests(bool useStreamMode)
         {
-            var testCluster = TestClusterManager.CreateNew(2);
+            var testCluster = SimulacronCluster.CreateNew(2);
             const int connectionLength = 4;
             var builder = Cluster.Builder()
                 .AddContactPoint(testCluster.InitialContactPoint)
@@ -40,9 +40,33 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = builder.Build())
             {
                 var session = (IInternalSession)cluster.Connect();
-                session.Execute(string.Format(TestUtils.CreateKeyspaceSimpleFormat, "ks1", 2));
-                session.Execute("CREATE TABLE ks1.table1 (id1 int, id2 int, PRIMARY KEY (id1, id2))");
-                var ps = session.Prepare("INSERT INTO ks1.table1 (id1, id2) VALUES (?, ?)");
+                testCluster.Prime(new
+                {
+                    when = new
+                    {
+                        query = "SELECT * FROM ks1.table1 WHERE id1 = ?, id2 = ?"
+                    },
+                    then = new
+                    {
+                        result = "success",
+                        delay_in_ms = 0,
+                        rows = new []
+                        {
+                            new
+                            {
+                                id1 = 2,
+                                id2 = 3
+                            }
+                        },
+                        column_types = new
+                        {
+                            id1 = "int",
+                            id2 = "int"
+                        },
+                        ignore_on_prepare = true
+                    }
+                });
+                var ps = session.Prepare("SELECT * FROM ks1.table1 WHERE id1 = ?, id2 = ?");
                 var t = ExecuteMultiple(testCluster, session, ps, false, 1, 100);
                 t.Wait();
                 Assert.AreEqual(2, t.Result.Length, "The 2 hosts must have been used");
@@ -61,7 +85,7 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        private Task<string[]> ExecuteMultiple(ITestCluster testCluster, IInternalSession session, PreparedStatement ps, bool stopNode, int maxConcurrency, int repeatLength)
+        private Task<string[]> ExecuteMultiple(SimulacronCluster testCluster, IInternalSession session, PreparedStatement ps, bool stopNode, int maxConcurrency, int repeatLength)
         {
             var hosts = new ConcurrentDictionary<string, bool>();
             var tcs = new TaskCompletionSource<string[]>();
@@ -94,7 +118,7 @@ namespace Cassandra.IntegrationTests.Core
 
                         Task.Factory.StartNew(() =>
                         {
-                            testCluster.StopForce(2);
+                            testCluster.GetNodes().Skip(1).First().Stop();
                         }, TaskCreationOptions.LongRunning);
                     }
                     if (received == repeatLength)
@@ -179,11 +203,12 @@ namespace Cassandra.IntegrationTests.Core
         /// <summary>
         /// Tests that if no host is available at Cluster.Init(), it will initialize next time it is invoked
         /// </summary>
-        [Test, Category("realcluster")]
+        [Test]
         public void Cluster_Initialization_Recovers_From_NoHostAvailableException()
         {
-            var testCluster = TestClusterManager.CreateNew();
-            testCluster.StopForce(1);
+            var testCluster = SimulacronCluster.CreateNew(1);
+            var nodes = testCluster.GetNodes().ToList();
+            nodes[0].Stop().GetAwaiter().GetResult();
             var cluster = Cluster.Builder()
                                  .AddContactPoint(testCluster.InitialContactPoint)
                                  .Build();
@@ -191,8 +216,8 @@ namespace Cassandra.IntegrationTests.Core
             Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
 
             // wait for the node to be up
-            testCluster.Start(1);
-            TestUtils.WaitForUp(testCluster.InitialContactPoint, 9042, 5);
+            nodes[0].Start().GetAwaiter().GetResult();
+            TestUtils.WaitForUp(testCluster.InitialContactPoint.Address.ToString(), 9042, 5);
             // Now the node is ready to accept connections
             var session = cluster.Connect("system");
             TestHelper.ParallelInvoke(() => session.Execute("SELECT * from local"), 20);
