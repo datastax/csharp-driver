@@ -29,7 +29,7 @@ namespace Cassandra.IntegrationTests.Core
     /// Validates the (de)serialization of CRL types and CQL types.
     /// Each test will upsert a value on specific CQL type and expect the correspondent CRL type. Should_Get(CRL type)_When_Upsert(CQL data type).
     /// </summary>
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class BasicTypeTests : SharedClusterTest
     {
         [Test]

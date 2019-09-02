@@ -22,7 +22,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Data
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category("short"), Category("realcluster")]
     public class AdoBasicTests : SharedClusterTest
     {
         private CqlConnection _connection;

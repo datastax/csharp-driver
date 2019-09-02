@@ -14,7 +14,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class ReconnectionTests : TestGlobals
     {
         /// Tests that reconnection attempts are made multiple times in the background

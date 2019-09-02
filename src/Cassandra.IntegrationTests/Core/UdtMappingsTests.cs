@@ -24,7 +24,7 @@ using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class UdtMappingsTests : SharedClusterTest
     {
         const string CqlType1 = "CREATE TYPE phone (alias text, number text, country_code int, verified_at timestamp, phone_type text)";

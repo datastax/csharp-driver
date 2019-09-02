@@ -9,7 +9,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class Append : SharedClusterTest
     {
         private ISession _session;

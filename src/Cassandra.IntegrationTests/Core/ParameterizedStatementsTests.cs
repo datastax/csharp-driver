@@ -24,7 +24,7 @@ using System.Numerics;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     [TestCassandraVersion(2, 0)]
     public class ParameterizedStatementsTests : SharedClusterTest
     {

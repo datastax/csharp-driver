@@ -25,7 +25,7 @@ using System.Threading;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class SessionExecuteAsyncTests : SharedClusterTest
     {
         [Test]

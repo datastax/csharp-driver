@@ -9,7 +9,7 @@ using SortOrder = Cassandra.DataCollectionMetadata.SortOrder;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category("short"), Category("realcluster")]
     public class SchemaMetadataTests : SharedClusterTest
     {
         [Test, TestCase(true), TestCase(false)]

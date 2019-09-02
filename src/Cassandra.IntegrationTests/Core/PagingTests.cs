@@ -26,7 +26,7 @@ namespace Cassandra.IntegrationTests.Core
     /// <summary>
     /// Validates that the Session.GetRequest (called within ExecuteAsync) method uses the paging size under different scenarios
     /// </summary>
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class PagingTests : SharedClusterTest
     {
         public override void OneTimeSetUp()

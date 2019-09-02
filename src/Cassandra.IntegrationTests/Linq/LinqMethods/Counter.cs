@@ -11,6 +11,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
+    [Category("realcluster")]
     public class Counter : SharedClusterTest
     {
         ISession _session;

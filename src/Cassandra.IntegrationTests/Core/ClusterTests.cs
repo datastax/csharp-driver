@@ -13,7 +13,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category("short"), Category("realcluster")]
     public class ClusterTests : TestGlobals
     {
         private ITestCluster _testCluster;

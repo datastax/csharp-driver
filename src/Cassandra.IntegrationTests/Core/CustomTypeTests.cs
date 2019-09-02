@@ -23,7 +23,7 @@ using Cassandra.Serialization;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class CustomTypeTests : SharedClusterTest
     {
         [Test, TestCassandraVersion(4, 0, Comparison.LessThan)]

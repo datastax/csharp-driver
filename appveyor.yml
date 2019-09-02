@@ -45,7 +45,7 @@ build_script:
   - ps: dotnet build src\Cassandra.sln -c Release
 
 test_script:
-  - ps: dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --filter "(TestCategory!=long)&(TestCategory!=memory)" --logger:Appveyor
+  - ps: dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --filter "(TestCategory!=long)&(TestCategory!=memory)&(TestCategory!=realcluster)" --logger:Appveyor
 on_failure:
   - ps: |
       Write-Host "Build failed"

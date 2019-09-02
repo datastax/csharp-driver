@@ -23,7 +23,7 @@ namespace Cassandra.IntegrationTests.Core
             TestClusterManager.TryRemove();
         }
 
-        [Test, TestTimeout(1000 * 60 * 4), TestCase(false), TestCase(true)]
+        [Test, Category("realcluster"), TestTimeout(1000 * 60 * 4), TestCase(false), TestCase(true)]
         public void StopForce_With_Inflight_Requests(bool useStreamMode)
         {
             var testCluster = TestClusterManager.CreateNew(2);
@@ -179,7 +179,7 @@ namespace Cassandra.IntegrationTests.Core
         /// <summary>
         /// Tests that if no host is available at Cluster.Init(), it will initialize next time it is invoked
         /// </summary>
-        [Test]
+        [Test, Category("realcluster")]
         public void Cluster_Initialization_Recovers_From_NoHostAvailableException()
         {
             var testCluster = TestClusterManager.CreateNew();
@@ -198,7 +198,7 @@ namespace Cassandra.IntegrationTests.Core
             TestHelper.ParallelInvoke(() => session.Execute("SELECT * from local"), 20);
         }
 
-        [Test]
+        [Test, Category("realcluster")]
         public void Connect_With_Ssl_Test()
         {
             //use ssl

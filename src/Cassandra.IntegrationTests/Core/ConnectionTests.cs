@@ -39,7 +39,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestTimeout(600000), Category("short")]
+    [TestTimeout(600000), Category("short"), Category("realcluster")]
     public class ConnectionTests : TestGlobals
     {
         private const string BasicQuery = "SELECT key FROM system.local";

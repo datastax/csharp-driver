@@ -21,6 +21,7 @@ namespace Cassandra.IntegrationTests.Core
             Diagnostics.CassandraStackTraceIncluded = true;    
         }
 
+        [Category("realcluster")]
         [Test]
         public void Should_Move_To_Next_Host_For_Simple_Queries()
         {
@@ -42,7 +43,8 @@ namespace Cassandra.IntegrationTests.Core
                 testCluster.ResumeNode(2);
             }
         }
-
+        
+        [Category("realcluster")]
         [Test]
         public void Should_Move_To_Next_Host_For_Bound_Statements()
         {
@@ -65,7 +67,8 @@ namespace Cassandra.IntegrationTests.Core
                 testCluster.ResumeNode(2);
             }
         }
-
+        
+        [Category("realcluster")]
         [Test]
         public void Should_Move_To_Next_Host_For_Prepare_Requests()
         {
@@ -86,7 +89,8 @@ namespace Cassandra.IntegrationTests.Core
                 testCluster.ResumeNode(2);
             }
         }
-
+        
+        [Category("realcluster")]
         [Test]
         public void Should_Throw_OperationTimedOutException_When_Retry_Is_False()
         {
@@ -165,6 +169,7 @@ namespace Cassandra.IntegrationTests.Core
         /// @expected_result A OperationTimedOutException if timeout expires.
         ///
         /// @test_category connection:timeout
+        [Category("realcluster")]
         [Test]
         public void Should_Use_Statement_ReadTimeout()
         {
@@ -215,6 +220,7 @@ namespace Cassandra.IntegrationTests.Core
         /// @expected_result A NoHostAvailableException should be raised after 3 seconds.
         ///
         /// @test_category connection:timeout
+        [Category("realcluster")]
         [Test]
         public void Should_Throw_NoHostAvailableException_When_All_Hosts_Down()
         {
@@ -239,7 +245,8 @@ namespace Cassandra.IntegrationTests.Core
                 testCluster.ResumeNode(2);
             }
         }
-
+        
+        [Category("realcluster")]
         [Test]
         public void Should_Throw_NoHostAvailable_When_Startup_Times_out()
         {
@@ -260,7 +267,8 @@ namespace Cassandra.IntegrationTests.Core
                 testCluster.ResumeNode(1);
             }
         }
-
+        
+        [Category("realcluster")]
         [Test]
         public void Should_Not_Leak_Connections_Test()
         {
