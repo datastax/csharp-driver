@@ -10,7 +10,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Mapping.Tests
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class Delete : SharedClusterTest
     {
         ISession _session = null;

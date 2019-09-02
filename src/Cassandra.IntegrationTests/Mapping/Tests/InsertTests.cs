@@ -31,7 +31,7 @@ using HairColor = Cassandra.Tests.Mapping.Pocos.HairColor;
 
 namespace Cassandra.IntegrationTests.Mapping.Tests
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class InsertTests : SharedClusterTest
     {
         private ISession _session;
