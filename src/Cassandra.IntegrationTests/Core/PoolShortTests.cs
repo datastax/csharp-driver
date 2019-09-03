@@ -141,54 +141,56 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void MarkHostDown_PartialPoolConnection()
         {
-            var sCluster = SimulacronCluster.CreateNew(new SimulacronOptions());
-            const int connectionLength = 4;
-            var builder = Cluster.Builder()
-                                 .AddContactPoint(sCluster.InitialContactPoint)
-                                 .WithPoolingOptions(new PoolingOptions()
-                                     .SetCoreConnectionsPerHost(HostDistance.Local, connectionLength)
-                                     .SetMaxConnectionsPerHost(HostDistance.Local, connectionLength)
-                                     .SetHeartBeatInterval(2000))
-                                 .WithReconnectionPolicy(new ConstantReconnectionPolicy(long.MaxValue));
-            using (var cluster = builder.Build())
+            using (var sCluster = SimulacronCluster.CreateNew(new SimulacronOptions()))
             {
-                var session = (IInternalSession)cluster.Connect();
-                var allHosts = cluster.AllHosts();
-
-                TestHelper.WaitUntil(() =>
-                    allHosts.Sum(h => session
-                        .GetOrCreateConnectionPool(h, HostDistance.Local)
-                        .OpenConnections
-                    ) == allHosts.Count * connectionLength);
-                var h1 = allHosts.FirstOrDefault();
-                var pool = session.GetOrCreateConnectionPool(h1, HostDistance.Local);
-                var ports = sCluster.GetConnectedPorts();
-                // 4 pool connections + the control connection
-                Assert.AreEqual(5, ports.Count);
-                sCluster.DisableConnectionListener().Wait();
-                // Remove the first connections
-                for (var i = 0; i < 3; i++)
+                const int connectionLength = 4;
+                var builder = Cluster.Builder()
+                                     .AddContactPoint(sCluster.InitialContactPoint)
+                                     .WithPoolingOptions(new PoolingOptions()
+                                         .SetCoreConnectionsPerHost(HostDistance.Local, connectionLength)
+                                         .SetMaxConnectionsPerHost(HostDistance.Local, connectionLength)
+                                         .SetHeartBeatInterval(2000))
+                                     .WithReconnectionPolicy(new ConstantReconnectionPolicy(long.MaxValue));
+                using (var cluster = builder.Build())
                 {
-                    // Closure
-                    var index = i;
-                    var expectedOpenConnections = 5 - index;
-                    WaitSimulatorConnections(sCluster, expectedOpenConnections);
+                    var session = (IInternalSession)cluster.Connect();
+                    var allHosts = cluster.AllHosts();
+
+                    TestHelper.WaitUntil(() =>
+                        allHosts.Sum(h => session
+                            .GetOrCreateConnectionPool(h, HostDistance.Local)
+                            .OpenConnections
+                        ) == allHosts.Count * connectionLength);
+                    var h1 = allHosts.FirstOrDefault();
+                    var pool = session.GetOrCreateConnectionPool(h1, HostDistance.Local);
+                    var ports = sCluster.GetConnectedPorts();
+                    // 4 pool connections + the control connection
+                    Assert.AreEqual(5, ports.Count);
+                    sCluster.DisableConnectionListener().Wait();
+                    // Remove the first connections
+                    for (var i = 0; i < 3; i++)
+                    {
+                        // Closure
+                        var index = i;
+                        var expectedOpenConnections = 5 - index;
+                        WaitSimulatorConnections(sCluster, expectedOpenConnections);
+                        ports = sCluster.GetConnectedPorts();
+                        Assert.AreEqual(expectedOpenConnections, ports.Count, "Cassandra simulator contains unexpected number of connected clients");
+                        sCluster.DropConnection(ports.Last().Address.ToString(), ports.Last().Port).Wait();
+                        // Host pool could have between pool.OpenConnections - i and pool.OpenConnections - i - 1
+                        TestHelper.WaitUntil(() => pool.OpenConnections >= 4 - index - 1 && pool.OpenConnections <= 4 - index);
+                        Assert.LessOrEqual(pool.OpenConnections, 4 - index);
+                        Assert.GreaterOrEqual(pool.OpenConnections, 4 - index - 1);
+                        Assert.IsTrue(h1.IsUp);
+                    }
+                    WaitSimulatorConnections(sCluster, 2);
                     ports = sCluster.GetConnectedPorts();
-                    Assert.AreEqual(expectedOpenConnections, ports.Count, "Cassandra simulator contains unexpected number of connected clients");
+                    Assert.AreEqual(2, ports.Count);
                     sCluster.DropConnection(ports.Last().Address.ToString(), ports.Last().Port).Wait();
-                    // Host pool could have between pool.OpenConnections - i and pool.OpenConnections - i - 1
-                    TestHelper.WaitUntil(() => pool.OpenConnections >= 4 - index - 1 && pool.OpenConnections <= 4 - index);
-                    Assert.LessOrEqual(pool.OpenConnections, 4 - index);
-                    Assert.GreaterOrEqual(pool.OpenConnections, 4 - index - 1);
-                    Assert.IsTrue(h1.IsUp);
+                    sCluster.DropConnection(ports.First().Address.ToString(), ports.First().Port).Wait();
+                    TestHelper.WaitUntil(() => pool.OpenConnections == 0 && !h1.IsUp);
+                    Assert.IsFalse(h1.IsUp);
                 }
-                WaitSimulatorConnections(sCluster, 2);
-                ports = sCluster.GetConnectedPorts();
-                Assert.AreEqual(2, ports.Count);
-                sCluster.DropConnection(ports.Last().Address.ToString(), ports.Last().Port).Wait();
-                sCluster.DropConnection(ports.First().Address.ToString(), ports.First().Port).Wait();
-                TestHelper.WaitUntil(() => pool.OpenConnections == 0 && !h1.IsUp);
-                Assert.IsFalse(h1.IsUp);
             }
         }
 
@@ -206,21 +208,23 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Cluster_Initialization_Recovers_From_NoHostAvailableException()
         {
-            var testCluster = SimulacronCluster.CreateNew(1);
-            var nodes = testCluster.GetNodes().ToList();
-            nodes[0].Stop().GetAwaiter().GetResult();
-            var cluster = Cluster.Builder()
-                                 .AddContactPoint(testCluster.InitialContactPoint)
-                                 .Build();
-            //initially it will throw as there is no node reachable
-            Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
+            using (var testCluster = SimulacronCluster.CreateNew(1))
+            {
+                var nodes = testCluster.GetNodes().ToList();
+                nodes[0].Stop().GetAwaiter().GetResult();
+                var cluster = Cluster.Builder()
+                                     .AddContactPoint(testCluster.InitialContactPoint)
+                                     .Build();
+                //initially it will throw as there is no node reachable
+                Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
 
-            // wait for the node to be up
-            nodes[0].Start().GetAwaiter().GetResult();
-            TestUtils.WaitForUp(testCluster.InitialContactPoint.Address.ToString(), 9042, 5);
-            // Now the node is ready to accept connections
-            var session = cluster.Connect("system");
-            TestHelper.ParallelInvoke(() => session.Execute("SELECT * from local"), 20);
+                // wait for the node to be up
+                nodes[0].Start().GetAwaiter().GetResult();
+                TestUtils.WaitForUp(testCluster.InitialContactPoint.Address.ToString(), 9042, 5);
+                // Now the node is ready to accept connections
+                var session = cluster.Connect("system");
+                TestHelper.ParallelInvoke(() => session.Execute("SELECT * from local"), 20);
+            }
         }
 
         [Test, Category("realcluster")]

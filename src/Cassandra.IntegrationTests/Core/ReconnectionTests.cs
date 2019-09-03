@@ -18,6 +18,15 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short")]
     public class ReconnectionTests : TestGlobals
     {
+        private SimulacronCluster _testCluster;
+
+        [TearDown]
+        public void TearDown()
+        {
+            _testCluster?.Dispose();
+            _testCluster = null;
+        }
+
         /// Tests that reconnection attempts are made multiple times in the background
         ///
         /// Reconnection_Attempted_Multiple_Times tests that the driver automatically reschedules host reconnections using 
@@ -38,10 +47,10 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Reconnection_Attempted_Multiple_Times()
         {
-            var testCluster = SimulacronCluster.CreateNew(1);
+            _testCluster = SimulacronCluster.CreateNew(1);
 
             using (var cluster = Cluster.Builder()
-                                        .AddContactPoint(testCluster.InitialContactPoint)
+                                        .AddContactPoint(_testCluster.InitialContactPoint)
                                         .WithPoolingOptions(
                                             new PoolingOptions()
                                                 .SetCoreConnectionsPerHost(HostDistance.Local, 2)
@@ -68,7 +77,7 @@ namespace Cassandra.IntegrationTests.Core
                 };
                 Assert.True(host.IsUp);
                 Trace.TraceInformation("Stopping node");
-                var node = testCluster.GetNodes().First(); 
+                var node = _testCluster.GetNodes().First(); 
                 node.Stop().GetAwaiter().GetResult();
                 // Make sure the node is considered down
                 TestHelper.RetryAssert(() =>
@@ -109,10 +118,10 @@ namespace Cassandra.IntegrationTests.Core
         [Repeat(3)]
         public void Reconnection_Attempted_Multiple_Times_On_Multiple_Nodes()
         {
-            var testCluster = SimulacronCluster.CreateNew(2);
+            _testCluster = SimulacronCluster.CreateNew(2);
 
             using (var cluster = Cluster.Builder()
-                                        .AddContactPoint(testCluster.InitialContactPoint)
+                                        .AddContactPoint(_testCluster.InitialContactPoint)
                                         .WithPoolingOptions(
                                             new PoolingOptions()
                                                 .SetCoreConnectionsPerHost(HostDistance.Local, 2)
@@ -141,7 +150,7 @@ namespace Cassandra.IntegrationTests.Core
                 };
                 Assert.True(host1.IsUp);
                 Trace.TraceInformation("Stopping node #1");
-                var nodes = testCluster.GetNodes().ToArray();
+                var nodes = _testCluster.GetNodes().ToArray();
                 nodes[0].Stop().GetAwaiter().GetResult();
                 // Make sure the node is considered down
                 TestHelper.RetryAssert(() =>
@@ -187,10 +196,10 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Executions_After_Reconnection_Resizes_Pool()
         {
-            var testCluster = SimulacronCluster.CreateNew(2);
+            _testCluster = SimulacronCluster.CreateNew(2);
 
             using (var cluster = Cluster.Builder()
-                                        .AddContactPoint(testCluster.InitialContactPoint)
+                                        .AddContactPoint(_testCluster.InitialContactPoint)
                                         .WithPoolingOptions(
                                             new PoolingOptions()
                                                 .SetCoreConnectionsPerHost(HostDistance.Local, 2)
@@ -217,7 +226,7 @@ namespace Cassandra.IntegrationTests.Core
                     }
                     downCounter.AddOrUpdate(e.Address.ToString(), 1, (k, v) => ++v);
                 };
-                var nodes = testCluster.GetNodes().ToList();
+                var nodes = _testCluster.GetNodes().ToList();
                 Assert.True(host1.IsUp);
                 Assert.True(host2.IsUp);
                 Trace.TraceInformation("Stopping node #1");

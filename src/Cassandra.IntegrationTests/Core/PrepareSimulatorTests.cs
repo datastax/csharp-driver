@@ -166,7 +166,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint)
                                         .WithQueryOptions(new QueryOptions().SetPrepareOnAllHosts(false))
-                                        .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(400))
+                                        .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(1000))
                                         .WithLoadBalancingPolicy(new TestHelper.OrderedLoadBalancingPolicy()).Build())
             {
                 var session = cluster.Connect();
@@ -174,7 +174,7 @@ namespace Cassandra.IntegrationTests.Core
                 foreach (var h in cluster.AllHosts())
                 {
                     var node = simulacronCluster.GetNode(h.Address);
-                    node.Prime(QueryPrime(h == firstHost ? 5000 : 0));
+                    node.Prime(QueryPrime(h == firstHost ? 10000 : 0));
                 }
                 var ps = session.Prepare(Query);
                 Assert.NotNull(ps);

@@ -4,10 +4,11 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Tests;
+
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
@@ -15,25 +16,34 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture, Category("short")]
     public class ClientTimeoutTests : TestGlobals
     {
+        private SimulacronCluster _testCluster;
+
         public ClientTimeoutTests()
         {
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
-            Diagnostics.CassandraStackTraceIncluded = true;    
+            Diagnostics.CassandraStackTraceIncluded = true;
         }
-        
+
+        [TearDown]
+        public void TearDown()
+        {
+            _testCluster?.Dispose();
+            _testCluster = null;
+        }
+
         [Test]
         public void Should_Move_To_Next_Host_For_Simple_Queries()
         {
-            var testCluster = SimulacronCluster.CreateNew(2);
+            _testCluster = SimulacronCluster.CreateNew(2);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(500);
-            var builder = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint)
+            var builder = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint)
                 .WithSocketOptions(socketOptions);
             using (var cluster = builder.Build())
             {
                 var session = cluster.Connect();
                 //warmup
                 TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local"), 10);
-                var nodes = testCluster.GetNodes().ToList();
+                var nodes = _testCluster.GetNodes().ToList();
                 var node = nodes[0];
                 node.Prime(new
                 {
@@ -42,7 +52,7 @@ namespace Cassandra.IntegrationTests.Core
                     {
                         result = "success",
                         delay_in_ms = 2000,
-                        rows = new [] { new { key = "123" } },
+                        rows = new[] { new { key = "123" } },
                         column_types = new { key = "ascii" },
                         ignore_on_prepare = false
                     }
@@ -54,13 +64,13 @@ namespace Cassandra.IntegrationTests.Core
                 }, 10);
             }
         }
-        
+
         [Test]
         public void Should_Move_To_Next_Host_For_Bound_Statements()
         {
-            var testCluster = SimulacronCluster.CreateNew(2);
+            _testCluster = SimulacronCluster.CreateNew(2);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(500);
-            var builder = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint)
+            var builder = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint)
                 .WithSocketOptions(socketOptions);
             using (var cluster = builder.Build())
             {
@@ -68,7 +78,7 @@ namespace Cassandra.IntegrationTests.Core
                 var ps = session.Prepare("SELECT key FROM system.local");
                 //warmup
                 TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local"), 10);
-                var nodes = testCluster.GetNodes().ToList();
+                var nodes = _testCluster.GetNodes().ToList();
                 var node = nodes[0];
                 node.Prime(new
                 {
@@ -77,7 +87,7 @@ namespace Cassandra.IntegrationTests.Core
                     {
                         result = "success",
                         delay_in_ms = 2000,
-                        rows = new [] { new { key = "123" } },
+                        rows = new[] { new { key = "123" } },
                         column_types = new { key = "ascii" },
                         ignore_on_prepare = false
                     }
@@ -89,20 +99,20 @@ namespace Cassandra.IntegrationTests.Core
                 }, 10);
             }
         }
-        
+
         [Test]
         public void Should_Move_To_Next_Host_For_Prepare_Requests()
         {
-            var testCluster = SimulacronCluster.CreateNew(2);
+            _testCluster = SimulacronCluster.CreateNew(2);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(3000);
-            var builder = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint)
+            var builder = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint)
                 .WithSocketOptions(socketOptions);
             using (var cluster = builder.Build())
             {
                 var session = cluster.Connect();
                 //warmup
                 TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local"), 10);
-                var node = testCluster.GetNodes().Skip(1).First();
+                var node = _testCluster.GetNodes().Skip(1).First();
                 node.Stop().GetAwaiter().GetResult();
                 TestHelper.Invoke(() =>
                 {
@@ -111,14 +121,14 @@ namespace Cassandra.IntegrationTests.Core
                 node.Start().GetAwaiter().GetResult();
             }
         }
-        
+
         [Test]
         public void Should_Throw_OperationTimedOutException_When_Retry_Is_False()
         {
-            var testCluster = SimulacronCluster.CreateNew(2);
+            _testCluster = SimulacronCluster.CreateNew(2);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(500);
             var queryOptions = new QueryOptions().SetRetryOnTimeout(false);
-            var builder = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint)
+            var builder = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint)
                 .WithSocketOptions(socketOptions)
                 .WithQueryOptions(queryOptions);
             using (var cluster = builder.Build())
@@ -126,7 +136,7 @@ namespace Cassandra.IntegrationTests.Core
                 var session = cluster.Connect();
                 //warmup
                 TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local"), 10);
-                var nodes = testCluster.GetNodes().ToList();
+                var nodes = _testCluster.GetNodes().ToList();
                 var node = nodes[1];
                 node.Prime(new
                 {
@@ -135,7 +145,7 @@ namespace Cassandra.IntegrationTests.Core
                     {
                         result = "success",
                         delay_in_ms = 2000,
-                        rows = new [] { new { key = "123" } },
+                        rows = new[] { new { key = "123" } },
                         column_types = new { key = "ascii" },
                         ignore_on_prepare = false
                     }
@@ -174,12 +184,12 @@ namespace Cassandra.IntegrationTests.Core
                     {
                         result = "success",
                         delay_in_ms = 30000,
-                        rows = new [] { new { key = "123" } },
+                        rows = new[] { new { key = "123" } },
                         column_types = new { key = "ascii" },
                         ignore_on_prepare = false
                     }
                 });
-                
+
                 using (var cluster = Cluster.Builder().AddContactPoint(simulacronCluster.InitialContactPoint).WithSocketOptions(socketOptions).Build())
                 {
                     var session = cluster.Connect();
@@ -197,7 +207,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         /// Tests the priority of statement specific timeout over general timeout
-        /// 
+        ///
         /// @jira_ticket CSHARP-415
         /// @expected_result A OperationTimedOutException if timeout expires.
         ///
@@ -207,10 +217,10 @@ namespace Cassandra.IntegrationTests.Core
         {
             const int generalReadTimeout = 100;
             const int statementReadTimeout = 3000;
-            var testCluster = SimulacronCluster.CreateNew(1);
+            _testCluster = SimulacronCluster.CreateNew(1);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(generalReadTimeout);
             var queryOptions = new QueryOptions().SetRetryOnTimeout(false);
-            var builder = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint)
+            var builder = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint)
                 .WithSocketOptions(socketOptions)
                 .WithPoolingOptions(PoolingOptions.Create().SetHeartBeatInterval(0))
                 .WithQueryTimeout(Timeout.Infinite)
@@ -220,7 +230,7 @@ namespace Cassandra.IntegrationTests.Core
                 var session = cluster.Connect();
                 //warmup
                 TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local"), 10);
-                var nodes = testCluster.GetNodes().ToList();
+                var nodes = _testCluster.GetNodes().ToList();
                 var node = nodes[0];
                 node.Prime(new
                 {
@@ -229,7 +239,7 @@ namespace Cassandra.IntegrationTests.Core
                     {
                         result = "success",
                         delay_in_ms = 10000,
-                        rows = new [] { new { key = "123" } },
+                        rows = new[] { new { key = "123" } },
                         column_types = new { key = "ascii" },
                         ignore_on_prepare = false
                     }
@@ -256,7 +266,7 @@ namespace Cassandra.IntegrationTests.Core
 
         /// Tests a NoHostAvailableException is raised when all hosts down with read timeout
         ///
-        /// Should_Throw_NoHostAvailableException_When_All_Hosts_Down tests that the driver quickly throws a NoHostAvailableException 
+        /// Should_Throw_NoHostAvailableException_When_All_Hosts_Down tests that the driver quickly throws a NoHostAvailableException
         /// when all nodes in the cluster is down, given a set ReadTimeoutMillis of 3 seconds.
         ///
         /// @since 2.7.0
@@ -267,23 +277,23 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_Throw_NoHostAvailableException_When_All_Hosts_Down()
         {
-            var testCluster = SimulacronCluster.CreateNew(2);
+            _testCluster = SimulacronCluster.CreateNew(2);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(500);
-            var builder = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint)
+            var builder = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint)
                 .WithSocketOptions(socketOptions);
             using (var cluster = builder.Build())
             {
                 var session = cluster.Connect();
                 //warmup
                 TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local"), 10);
-                testCluster.Prime(new
+                _testCluster.Prime(new
                 {
                     when = new { query = "SELECT key FROM system.local" },
                     then = new
                     {
                         result = "success",
                         delay_in_ms = 10000,
-                        rows = new [] { new { key = "123" } },
+                        rows = new[] { new { key = "123" } },
                         column_types = new { key = "ascii" },
                         ignore_on_prepare = false
                     }
@@ -296,18 +306,18 @@ namespace Cassandra.IntegrationTests.Core
                 }
             }
         }
-        
+
         [Test]
         public void Should_Throw_NoHostAvailable_When_Startup_Times_out()
         {
-            var testCluster = SimulacronCluster.CreateNew(1);
+            _testCluster = SimulacronCluster.CreateNew(1);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(1000).SetConnectTimeoutMillis(1000);
             var builder = Cluster.Builder()
-                                 .AddContactPoint(testCluster.InitialContactPoint)
+                                 .AddContactPoint(_testCluster.InitialContactPoint)
                                  .WithSocketOptions(socketOptions);
             using (var cluster = builder.Build())
             {
-                testCluster.GetNodes().First().DisableConnectionListener(0, "reject_startup").GetAwaiter().GetResult();
+                _testCluster.GetNodes().First().DisableConnectionListener(0, "reject_startup").GetAwaiter().GetResult();
                 var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
                 Assert.AreEqual(1, ex.Errors.Count);
                 foreach (var innerException in ex.Errors.Values)
@@ -316,17 +326,17 @@ namespace Cassandra.IntegrationTests.Core
                 }
             }
         }
-        
+
         [Test]
         public void Should_Not_Leak_Connections_Test()
         {
-            var testCluster = SimulacronCluster.CreateNew(1);
+            _testCluster = SimulacronCluster.CreateNew(1);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(1).SetConnectTimeoutMillis(1);
             var builder = Cluster.Builder()
-                                 .AddContactPoint(testCluster.InitialContactPoint)
+                                 .AddContactPoint(_testCluster.InitialContactPoint)
                                  .WithSocketOptions(socketOptions);
 
-            var node = testCluster.GetNodes().First();
+            var node = _testCluster.GetNodes().First();
             node.DisableConnectionListener(0, "reject_startup").GetAwaiter().GetResult();
             const int length = 1000;
             using (var cluster = builder.Build())
