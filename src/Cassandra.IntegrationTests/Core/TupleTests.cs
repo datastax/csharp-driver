@@ -23,7 +23,7 @@ using System.Text;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     [TestCassandraVersion(2, 1)]
     public class TupleTests : SharedClusterTest
     {

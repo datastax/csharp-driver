@@ -45,6 +45,10 @@ build:
 
       echo "========== Copying ssl files to $HOME/ssl =========="
       cp -r /home/jenkins/ccm/ssl $HOME/ssl
+
+      # Download and uncompress saxon
+      mkdir saxon
+      curl -L -o saxon/saxon9he.jar http://central.maven.org/maven2/net/sf/saxon/Saxon-HE/9.8.0-12/Saxon-HE-9.8.0-12.jar
  
       if [ $DOTNET_VERSION = 'mono' ]; then      
           echo "========== Starting Mono Build =========="
@@ -63,8 +67,9 @@ build:
           msbuild /p:Configuration=Release /v:m /p:DynamicConstants=LINUX src/Cassandra.sln
 
           # Run the tests
-          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net452/Cassandra.IntegrationTests.dll --where "cat != long && cat != memory" --labels=All --result:"TestResult.xml" || error=true
-                    
+          mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Cassandra.IntegrationTests/bin/Release/net452/Cassandra.IntegrationTests.dll --where "cat != long && cat != memory" --labels=All --result:"TestResult_nunit.xml" || error=true
+          java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_nunit.xml tools/nunit3-junit.xslt
+          
           #Fail the build if there was an error
           if [ $error ]
           then 
@@ -79,15 +84,17 @@ build:
           dotnet restore src
 
           # Run the tests
-          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f $DOTNET_VERSION -c Release --filter "(TestCategory!=long)&(TestCategory!=memory)" --logger "nunit;LogFilePath=../../TestResult.xml" || error=true
-                    
+          dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f $DOTNET_VERSION -c Release --filter "(TestCategory!=long)&(TestCategory!=memory)" --logger "xunit;LogFilePath=../../TestResult_xunit.xml" || error=true
+          java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_xunit.xml tools/JUnitXml.xslt
+          
           #Fail the build if there was an error
           if [ $error ]
           then 
               exit -1
           fi
       fi
+      
 
-  - nunit:
-    - "TestResult.xml"
+  - xunit:
+    - "**/TestResult.xml"
 

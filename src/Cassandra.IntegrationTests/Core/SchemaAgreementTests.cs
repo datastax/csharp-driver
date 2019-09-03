@@ -6,7 +6,7 @@
 
     using NUnit.Framework;
 
-    [TestFixture, Category("short")]
+    [TestFixture, Category("short"), Category("realcluster")]
     public class SchemaAgreementTests : SharedClusterTest
     {
         public SchemaAgreementTests() : base(2, false, true)

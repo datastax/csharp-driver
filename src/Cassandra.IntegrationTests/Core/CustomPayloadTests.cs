@@ -9,7 +9,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category("short"), Category("realcluster")]
     public class CustomPayloadTests : TestGlobals
     {
         public ISession Session { get; set; }

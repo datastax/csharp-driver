@@ -12,7 +12,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class Select : SharedClusterTest
     {
         ISession _session = null;

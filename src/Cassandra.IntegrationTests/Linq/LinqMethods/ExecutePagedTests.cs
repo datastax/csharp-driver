@@ -13,7 +13,7 @@ using Cassandra.Mapping;
 
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class ExecutePagedTests : SharedClusterTest
     {
         private ISession _session;

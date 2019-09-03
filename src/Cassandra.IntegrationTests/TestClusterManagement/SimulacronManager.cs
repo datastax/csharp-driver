@@ -48,7 +48,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 if (e.Data == null || started) return;
                 Trace.TraceInformation(e.Data);
-                if (e.Data.Contains("Created nodes will start with ip"))
+                if (e.Data.Contains("Created nodes will start with ip") || e.Data.Contains("Address already in use"))
                 {
                     started = true;
                     eventWaitHandler.Set();

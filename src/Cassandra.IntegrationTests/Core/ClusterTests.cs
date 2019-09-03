@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.SessionManagement;
 using Cassandra.Tests;
 using NUnit.Framework;
@@ -16,7 +17,7 @@ namespace Cassandra.IntegrationTests.Core
     [TestFixture, Category("short")]
     public class ClusterTests : TestGlobals
     {
-        private ITestCluster _testCluster;
+        private SimulacronCluster _testCluster;
 
         [TearDown]
         public void TestTearDown()
@@ -32,7 +33,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestCase(false)]
         public Task Cluster_Connect_Should_Initialize_Loadbalancing_With_ControlConnection_Address_Set(bool asyncConnect)
         {
-            _testCluster = TestClusterManager.CreateNew(2);
+            _testCluster = SimulacronCluster.CreateNew(2);
             var lbp = new TestLoadBalancingPolicy();
             var cluster = Cluster.Builder()
                 .AddContactPoint(_testCluster.InitialContactPoint)
@@ -41,8 +42,7 @@ namespace Cassandra.IntegrationTests.Core
             return Connect(cluster, asyncConnect, session =>
             {
                 Assert.NotNull(lbp.ControlConnectionHost);
-                Assert.AreEqual(IPAddress.Parse(_testCluster.InitialContactPoint),
-                    lbp.ControlConnectionHost.Address.Address);
+                Assert.AreEqual(_testCluster.InitialContactPoint, lbp.ControlConnectionHost.Address);
             });
         }
 
@@ -51,22 +51,19 @@ namespace Cassandra.IntegrationTests.Core
         [TestCase(false)]
         public Task Cluster_Connect_Should_Use_Node2_Address(bool asyncConnect)
         {
-            _testCluster = TestClusterManager.CreateNew(2);
-            _testCluster.PauseNode(1);
+            _testCluster = SimulacronCluster.CreateNew(2);
+            var nodes = _testCluster.GetNodes().ToArray();
+            var contactPoints = nodes.Select(n => n.ContactPoint).ToArray();
+            nodes[0].DisableConnectionListener().GetAwaiter().GetResult();
             var lbp = new TestLoadBalancingPolicy();
             var cluster = Cluster.Builder()
-                                 .AddContactPoints(new []
-                                 {
-                                     _testCluster.InitialContactPoint,
-                                     _testCluster.ClusterIpPrefix + "2"
-                                 })
+                                 .AddContactPoints(contactPoints.Select(s => s.Split(':').First()))
                                  .WithLoadBalancingPolicy(lbp)
                                  .Build();
             return Connect(cluster, asyncConnect, session =>
             {
                 Assert.NotNull(lbp.ControlConnectionHost);
-                Assert.AreEqual(IPAddress.Parse(_testCluster.ClusterIpPrefix + "2"),
-                    lbp.ControlConnectionHost.Address.Address);
+                Assert.AreEqual(contactPoints[1], lbp.ControlConnectionHost.Address.ToString());
             });
         }
 
@@ -91,7 +88,7 @@ namespace Cassandra.IntegrationTests.Core
         [TestCase(false)]
         public async Task Cluster_Should_Honor_MaxProtocolVersion_Set(bool asyncConnect)
         {
-            _testCluster = TestClusterManager.CreateNew(2);
+            _testCluster = SimulacronCluster.CreateNew(2);
 
             // Default MaxProtocolVersion
             var clusterDefault = Cluster.Builder()
@@ -134,18 +131,17 @@ namespace Cassandra.IntegrationTests.Core
         /// Validates that the client adds the newly bootstrapped node and eventually queries from it
         /// </summary>
         [Test]
-        [TestCase(true)]
-        [TestCase(false)]
-        public async Task Should_Add_And_Query_Newly_Bootstrapped_Node(bool asyncConnect)
+        [Category("realcluster")]
+        public async Task Should_Add_And_Query_Newly_Bootstrapped_Node()
         {
-            _testCluster = TestClusterManager.CreateNew();
-            var cluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
-            await Connect(cluster, asyncConnect, session =>
+            var testCluster = TestClusterManager.CreateNew();
+            var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build();
+            await Connect(cluster, false, session =>
             {
                 Assert.AreEqual(1, cluster.AllHosts().Count);
-                _testCluster.BootstrapNode(2);
+                testCluster.BootstrapNode(2);
                 Trace.TraceInformation("Node bootstrapped");
-                var newNodeAddress = _testCluster.ClusterIpPrefix + 2;
+                var newNodeAddress = testCluster.ClusterIpPrefix + 2;
                 var newNodeIpAddress = IPAddress.Parse(newNodeAddress);
                 TestHelper.RetryAssert(() =>
                     {
@@ -176,22 +172,24 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [TestCase(true)]
-        [TestCase(false)]
-        public async Task Should_Remove_Decommissioned_Node(bool asyncConnect)
+        [Category("realcluster")]
+        public async Task Should_Remove_Decommissioned_Node()
         {
-            _testCluster = TestClusterManager.CreateNew(2);
-            var cluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build();
-            await Connect(cluster, asyncConnect, session =>
+            var testCluster = TestClusterManager.CreateNew(2);
+            var cluster = Cluster.Builder().AddContactPoint(testCluster.InitialContactPoint).Build();
+            await Connect(cluster, false, session =>
             {
                 Assert.AreEqual(2, cluster.AllHosts().Count);
-                _testCluster.DecommissionNode(2);
+                testCluster.DecommissionNode(2);
                 Trace.TraceInformation("Node decommissioned");
-                Thread.Sleep(10000);
-                var decommisionedNode = _testCluster.ClusterIpPrefix + 2;
-                Assert.False(TestUtils.IsNodeReachable(IPAddress.Parse(decommisionedNode)));
-                //New node should be part of the metadata
-                Assert.AreEqual(1, cluster.AllHosts().Count);
+                string decommisionedNode = null;
+                TestHelper.RetryAssert(() =>
+                {
+                    decommisionedNode = testCluster.ClusterIpPrefix + 2;
+                    Assert.False(TestUtils.IsNodeReachable(IPAddress.Parse(decommisionedNode)));
+                    //New node should be part of the metadata
+                    Assert.AreEqual(1, cluster.AllHosts().Count);
+                }, 100, 100);
                 var queried = false;
                 for (var i = 0; i < 10; i++)
                 {

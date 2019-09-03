@@ -9,7 +9,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class ControlConnectionTests : TestGlobals
     {
         private const int InitTimeout = 2000;

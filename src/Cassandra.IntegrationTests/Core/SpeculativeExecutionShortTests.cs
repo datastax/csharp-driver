@@ -14,7 +14,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short"), TestTimeout(60000)]
+    [TestFixture, Category("short"), Category("realcluster"), TestTimeout(60000)]
     public class SpeculativeExecutionShortTests : SharedClusterTest
     {
         private const string QueryLocal = "SELECT key FROM system.local";

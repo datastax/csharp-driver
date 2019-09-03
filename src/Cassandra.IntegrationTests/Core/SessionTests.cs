@@ -29,7 +29,7 @@ using Cassandra.Tasks;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class SessionTests : SharedClusterTest
     {
         public SessionTests() : base(2)

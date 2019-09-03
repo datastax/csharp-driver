@@ -10,7 +10,7 @@
 
     using NUnit.Framework;
 
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class ClusterSharedSingleNodeTests : SharedClusterTest
     {
         [Test]

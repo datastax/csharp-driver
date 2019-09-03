@@ -26,7 +26,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.MetadataTests
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category("short"), Category("realcluster")]
     public class TokenMapSchemaChangeMetadataSyncTests : SharedClusterTest
     {
         private Cluster _cluster;
