@@ -6,8 +6,9 @@ cache:
   - C:\ProgramData\chocolatey\lib -> .\build\appveyor_install.ps1
   - C:\Users\appveyor\.ccm\repository -> .\build\appveyor_install.ps1
   - C:\Users\appveyor\deps -> .\build\appveyor_install.ps1
-image: Visual Studio 2019
+image: Visual Studio 2017
 environment:
+  appveyor_build_worker_cloud: gce
   NUNIT_PATH: nunit3-console
   matrix:
     - TARGET: net452
