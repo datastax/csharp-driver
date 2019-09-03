@@ -201,7 +201,7 @@ namespace Cassandra.IntegrationTests.Core
         /// </summary>
         private static void WaitSimulatorConnections(SimulacronCluster sSimulacronCluster, int expected)
         {
-            TestHelper.WaitUntil(() => sSimulacronCluster.GetConnectedPorts().Count == expected);
+            TestHelper.WaitUntil(() => sSimulacronCluster.GetConnectedPorts().Count >= expected);
         }
 
         /// <summary>
