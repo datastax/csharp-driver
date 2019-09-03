@@ -26,62 +26,64 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestTimeout(1000 * 60 * 4), TestCase(false), TestCase(true)]
         public void StopForce_With_Inflight_Requests(bool useStreamMode)
         {
-            var testCluster = SimulacronCluster.CreateNew(2);
-            const int connectionLength = 4;
-            var builder = Cluster.Builder()
-                .AddContactPoint(testCluster.InitialContactPoint)
-                .WithPoolingOptions(new PoolingOptions()
-                    .SetCoreConnectionsPerHost(HostDistance.Local, connectionLength)
-                    .SetMaxConnectionsPerHost(HostDistance.Local, connectionLength)
-                    .SetHeartBeatInterval(0))
-                .WithRetryPolicy(AlwaysIgnoreRetryPolicy.Instance)
-                .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(0).SetStreamMode(useStreamMode))
-                .WithLoadBalancingPolicy(new RoundRobinPolicy());
-            using (var cluster = builder.Build())
+            using (var testCluster = SimulacronCluster.CreateNew(2))
             {
-                var session = (IInternalSession)cluster.Connect();
-                testCluster.Prime(new
+                const int connectionLength = 4;
+                var builder = Cluster.Builder()
+                    .AddContactPoint(testCluster.InitialContactPoint)
+                    .WithPoolingOptions(new PoolingOptions()
+                        .SetCoreConnectionsPerHost(HostDistance.Local, connectionLength)
+                        .SetMaxConnectionsPerHost(HostDistance.Local, connectionLength)
+                        .SetHeartBeatInterval(0))
+                    .WithRetryPolicy(AlwaysIgnoreRetryPolicy.Instance)
+                    .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(0).SetStreamMode(useStreamMode))
+                    .WithLoadBalancingPolicy(new RoundRobinPolicy());
+                using (var cluster = builder.Build())
                 {
-                    when = new
+                    var session = (IInternalSession)cluster.Connect();
+                    testCluster.Prime(new
                     {
-                        query = "SELECT * FROM ks1.table1 WHERE id1 = ?, id2 = ?"
-                    },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 0,
-                        rows = new []
+                        when = new
                         {
+                            query = "SELECT * FROM ks1.table1 WHERE id1 = ?, id2 = ?"
+                        },
+                        then = new
+                        {
+                            result = "success",
+                            delay_in_ms = 0,
+                            rows = new[]
+                            {
                             new
                             {
                                 id1 = 2,
                                 id2 = 3
                             }
                         },
-                        column_types = new
-                        {
-                            id1 = "int",
-                            id2 = "int"
-                        },
-                        ignore_on_prepare = true
-                    }
-                });
-                var ps = session.Prepare("SELECT * FROM ks1.table1 WHERE id1 = ?, id2 = ?");
-                var t = ExecuteMultiple(testCluster, session, ps, false, 1, 100);
-                t.Wait();
-                Assert.AreEqual(2, t.Result.Length, "The 2 hosts must have been used");
-                // Wait for all connections to be opened
-                Thread.Sleep(1000);
-                var hosts = cluster.AllHosts().ToArray();
-                TestHelper.WaitUntil(() =>
-                    hosts.Sum(h => session
-                        .GetOrCreateConnectionPool(h, HostDistance.Local)
-                        .OpenConnections
-                    ) == hosts.Length * connectionLength);
-                Assert.AreEqual(
-                    hosts.Length * connectionLength, 
-                    hosts.Sum(h => session.GetOrCreateConnectionPool(h, HostDistance.Local).OpenConnections));
-                ExecuteMultiple(testCluster, session, ps, true, 8000, 200000).Wait();
+                            column_types = new
+                            {
+                                id1 = "int",
+                                id2 = "int"
+                            },
+                            ignore_on_prepare = true
+                        }
+                    });
+                    var ps = session.Prepare("SELECT * FROM ks1.table1 WHERE id1 = ?, id2 = ?");
+                    var t = ExecuteMultiple(testCluster, session, ps, false, 1, 100);
+                    t.Wait();
+                    Assert.AreEqual(2, t.Result.Length, "The 2 hosts must have been used");
+                    // Wait for all connections to be opened
+                    Thread.Sleep(1000);
+                    var hosts = cluster.AllHosts().ToArray();
+                    TestHelper.WaitUntil(() =>
+                        hosts.Sum(h => session
+                            .GetOrCreateConnectionPool(h, HostDistance.Local)
+                            .OpenConnections
+                        ) == hosts.Length * connectionLength);
+                    Assert.AreEqual(
+                        hosts.Length * connectionLength,
+                        hosts.Sum(h => session.GetOrCreateConnectionPool(h, HostDistance.Local).OpenConnections));
+                    ExecuteMultiple(testCluster, session, ps, true, 8000, 200000).Wait();
+                }
             }
         }
 
@@ -253,12 +255,12 @@ namespace Cassandra.IntegrationTests.Core
         {
             var sCluster = SimulacronCluster.CreateNew(new SimulacronOptions());
             var options1 = PoolingOptions.Create(protocolVersion);
-            using(var cluster = Cluster.Builder()
+            using (var cluster = Cluster.Builder()
                                        .AddContactPoint(sCluster.InitialContactPoint)
                                        .WithPoolingOptions(options1)
                                        .Build())
             {
-                var session = (IInternalSession) cluster.Connect();
+                var session = (IInternalSession)cluster.Connect();
                 var allHosts = cluster.AllHosts();
                 var host = allHosts.First();
                 var pool = session.GetOrCreateConnectionPool(host, HostDistance.Local);
@@ -278,7 +280,7 @@ namespace Cassandra.IntegrationTests.Core
             var poolingOptions = PoolingOptions.Create().SetCoreConnectionsPerHost(HostDistance.Local, 5);
 
             // Use multiple DCs: 4 nodes in first DC and 3 nodes in second DC
-            using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = $"{nodeLength},3"}))
+            using (var testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = $"{nodeLength},3" }))
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(testCluster.InitialContactPoint)
                                         .WithPoolingOptions(poolingOptions).Build())
@@ -524,7 +526,7 @@ namespace Cassandra.IntegrationTests.Core
                     foreach (var kv in ex.Errors)
                     {
                         Assert.IsInstanceOf<BusyPoolException>(kv.Value);
-                        var busyException = (BusyPoolException) kv.Value;
+                        var busyException = (BusyPoolException)kv.Value;
                         Assert.AreEqual(kv.Key, busyException.Address);
                         Assert.That(busyException.ConnectionLength, Is.EqualTo(connectionLength));
                         Assert.That(busyException.MaxRequestsPerConnection, Is.EqualTo(maxRequestsPerConnection));
