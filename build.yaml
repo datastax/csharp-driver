@@ -48,8 +48,7 @@ build:
 
       # Download and uncompress saxon
       mkdir saxon
-      curl -L -o saxon/SaxonHE9-8-0-12J.zip https://downloads.sourceforge.net/project/saxon/Saxon-HE/9.8/SaxonHE9-8-0-12J.zip
-      unzip saxon/SaxonHE9-8-0-12J.zip -d saxon
+      curl -L -o saxon/saxon9he.jar http://central.maven.org/maven2/net/sf/saxon/Saxon-HE/9.8.0-12/Saxon-HE-9.8.0-12.jar
  
       if [ $DOTNET_VERSION = 'mono' ]; then      
           echo "========== Starting Mono Build =========="
