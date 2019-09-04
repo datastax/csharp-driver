@@ -14,7 +14,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class CollectionsNestedTests : SharedClusterTest
     {
         [Test, TestCassandraVersion(2, 1, 3)]

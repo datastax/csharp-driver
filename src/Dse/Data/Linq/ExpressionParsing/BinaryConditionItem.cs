@@ -21,6 +21,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using Dse.Mapping;
+using Dse.Mapping.Utils;
 
 namespace Dse.Data.Linq.ExpressionParsing
 {
@@ -56,6 +57,8 @@ namespace Dse.Data.Linq.ExpressionParsing
         // Internally we use Index as a place holder for "IN" CQL operator
         private const ExpressionType InOperator = ExpressionType.Index;
 
+        private static readonly ICqlIdentifierHelper CqlIdentifierHelper = new CqlIdentifierHelper();
+
         private readonly List<PocoColumn> _columns = new List<PocoColumn>(1);
         private readonly List<object> _parameters = new List<object>(1);
         private ExpressionType? _operator;
@@ -78,7 +81,7 @@ namespace Dse.Data.Linq.ExpressionParsing
 
         public void SetInClause(IEnumerable values)
         {
-            _operator = InOperator;
+            _operator = BinaryConditionItem.InOperator;
             _parameters.Add(values);
         }
 
@@ -88,7 +91,7 @@ namespace Dse.Data.Linq.ExpressionParsing
             {
                 throw new ArgumentException("Operator is not defined");
             }
-            if (_operator == InOperator)
+            if (_operator == BinaryConditionItem.InOperator)
             {
                 if (_isYoda)
                 {
@@ -101,7 +104,7 @@ namespace Dse.Data.Linq.ExpressionParsing
             var linqOperator = _operator.Value;
             if (_isYoda)
             {
-                if (!InvertedOperations.TryGetValue(linqOperator, out var invertedOperator))
+                if (!BinaryConditionItem.InvertedOperations.TryGetValue(linqOperator, out var invertedOperator))
                 {
                     throw new InvalidOperationException($"Operator {linqOperator} not supported");
                 }
@@ -109,7 +112,7 @@ namespace Dse.Data.Linq.ExpressionParsing
                 linqOperator = invertedOperator;
             }
 
-            if (!CqlTags.TryGetValue(linqOperator, out var cqlOperator))
+            if (!BinaryConditionItem.CqlTags.TryGetValue(linqOperator, out var cqlOperator))
             {
                 throw new InvalidOperationException($"Operator {linqOperator} not supported");
             }
@@ -241,7 +244,7 @@ namespace Dse.Data.Linq.ExpressionParsing
                     query.Append("(");
                 }
 
-                query.Append(Escape(pocoData, Column.ColumnName));
+                query.Append(BinaryConditionItem.CqlIdentifierHelper.EscapeIdentifierIfNecessary(pocoData, Column.ColumnName));
 
                 if (functionName != null)
                 {
@@ -259,7 +262,7 @@ namespace Dse.Data.Linq.ExpressionParsing
                         query.Append(", ");
                     }
 
-                    query.Append(Escape(pocoData, _columns[i].ColumnName));
+                    query.Append(BinaryConditionItem.CqlIdentifierHelper.EscapeIdentifierIfNecessary(pocoData, _columns[i].ColumnName));
                 }
 
                 query.Append(")");
@@ -282,15 +285,6 @@ namespace Dse.Data.Linq.ExpressionParsing
             }
         }
 
-        private string Escape(PocoData pocoData, string identifier)
-        {
-            if (!pocoData.CaseSensitive && !string.IsNullOrWhiteSpace(identifier))
-            {
-                return identifier;
-            }
-            return "\"" + identifier + "\"";
-        }
-
         public IConditionItem SetAsCompareTo()
         {
             _isCompareTo = true;
@@ -301,7 +295,7 @@ namespace Dse.Data.Linq.ExpressionParsing
                     throw new InvalidOperationException("CompareTo() Linq calls only supported to compare against 0");
                 }
 
-                if (!InvertedOperations.TryGetValue(_operator.Value, out var invertedOperator))
+                if (!BinaryConditionItem.InvertedOperations.TryGetValue(_operator.Value, out var invertedOperator))
                 {
                     throw new InvalidOperationException($"Operator {_operator.Value} not supported");
                 }
@@ -315,7 +309,7 @@ namespace Dse.Data.Linq.ExpressionParsing
 
         public static bool IsSupported(ExpressionType operatorType)
         {
-            return CqlTags.ContainsKey(operatorType);
+            return BinaryConditionItem.CqlTags.ContainsKey(operatorType);
         }
     }
 }

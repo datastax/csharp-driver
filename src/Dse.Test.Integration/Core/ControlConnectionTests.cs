@@ -16,7 +16,7 @@ using Dse.Test.Integration.TestClusterManagement;
 
 namespace Dse.Test.Integration.Core
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class ControlConnectionTests : TestGlobals
     {
         private const int InitTimeout = 2000;

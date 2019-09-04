@@ -22,7 +22,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.MetadataTests
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category("short"), Category("realcluster")]
     public class TokenMapTopologyChangeTests
     {
         private ITestCluster TestCluster { get; set; }

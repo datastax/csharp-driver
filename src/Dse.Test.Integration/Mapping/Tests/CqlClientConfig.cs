@@ -17,7 +17,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Mapping.Tests
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class CqlClientConfig : SharedClusterTest
     {
         private ISession _session;

@@ -17,7 +17,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Linq.CqlOperatorTests
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class Prepend : SharedClusterTest
     {
         private ISession _session;

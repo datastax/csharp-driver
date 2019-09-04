@@ -18,9 +18,13 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Policies.Tests
 {
-    [TestFixture, Category("short")]
-    public class LoadBalancingPolicyShortTests : TestGlobals
+    [TestFixture, Category("short"), Category("realcluster")]
+    public class LoadBalancingPolicyShortTests : SharedClusterTest
     {
+        public LoadBalancingPolicyShortTests() : base(3, false, true, new TestClusterOptions { UseVNodes = true })
+        {
+        }
+
         /// <summary>
         /// Validate that two sessions connected to the same DC use separate Policy instances
         /// </summary>
@@ -28,10 +32,9 @@ namespace Dse.Test.Integration.Policies.Tests
         public void TwoSessionsConnectedToSameDcUseSeparatePolicyInstances()
         {
             var builder = Cluster.Builder();
-            var testCluster = TestClusterManager.CreateNew();
 
-            using (var cluster1 = builder.WithConnectionString(String.Format("Contact Points={0}1", testCluster.ClusterIpPrefix)).Build())
-            using (var cluster2 = builder.WithConnectionString(String.Format("Contact Points={0}2", testCluster.ClusterIpPrefix)).Build())
+            using (var cluster1 = builder.WithConnectionString($"Contact Points={TestCluster.ClusterIpPrefix}1").Build())
+            using (var cluster2 = builder.WithConnectionString($"Contact Points={TestCluster.ClusterIpPrefix}2").Build())
             {
                 var session1 = (Session) cluster1.Connect();
                 var session2 = (Session) cluster2.Connect();
@@ -50,22 +53,20 @@ namespace Dse.Test.Integration.Policies.Tests
         public void TokenAware_TargetPartition_NoHops()
         {
             // Setup
-            PolicyTestTools policyTestTools = new PolicyTestTools();
-            ITestCluster testCluster = TestClusterManager.CreateNew(3);
-            testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
-            testCluster.InitClient();
+            var policyTestTools = new PolicyTestTools();
 
             // Test
-            policyTestTools.TableName = TestUtils.GetUniqueTableName();
-            policyTestTools.CreateSchema(testCluster.Session, 1);
+            var ks = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
+            var session = GetNewSession();
+            policyTestTools.CreateSchema(session, 1, ks);
             var traces = new List<QueryTrace>();
             for (var i = -10; i < 10; i++)
             {
                 var partitionKey = BitConverter.GetBytes(i).Reverse().ToArray();
-                var statement = new SimpleStatement(String.Format("INSERT INTO " + policyTestTools.TableName + " (k, i) VALUES ({0}, {0})", i))
+                var statement = new SimpleStatement(string.Format("INSERT INTO " + policyTestTools.TableName + " (k, i) VALUES ({0}, {0})", i))
                     .SetRoutingKey(new RoutingKey() { RawRoutingKey = partitionKey })
                     .EnableTracing();
-                var rs = testCluster.Session.Execute(statement);
+                var rs = session.Execute(statement);
                 traces.Add(rs.Info.QueryTrace);
             }
             //Check that there weren't any hops
@@ -86,16 +87,14 @@ namespace Dse.Test.Integration.Policies.Tests
         public void TokenAware_Guid_NoHops()
         {
             // Setup
-            PolicyTestTools policyTestTools = new PolicyTestTools();
-            ITestCluster testCluster = TestClusterManager.CreateNew(3);
-            testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
-            testCluster.InitClient();
+            var policyTestTools = new PolicyTestTools();
+            var cluster = GetNewCluster(b => b.WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())));
 
             // Test
-            var session = testCluster.Session;
+            var session = cluster.Connect();
             string uniqueTableName = TestUtils.GetUniqueTableName();
             policyTestTools.CreateSchema(session);
-            session.Execute(String.Format("CREATE TABLE {0} (k uuid PRIMARY KEY, i int)", uniqueTableName));
+            session.Execute($"CREATE TABLE {uniqueTableName} (k uuid PRIMARY KEY, i int)");
             var traces = new List<QueryTrace>();
             for (var i = 0; i < 10; i++)
             {
@@ -126,15 +125,14 @@ namespace Dse.Test.Integration.Policies.Tests
         {
             // Setup
             PolicyTestTools policyTestTools = new PolicyTestTools();
-            ITestCluster testCluster = TestClusterManager.CreateNew(3);
-            testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
-            testCluster.InitClient();
+            var cluster = GetNewCluster(b => b.WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())));
 
             // Test
-            var session = testCluster.Session;
-            policyTestTools.CreateSchema(session);
+            var session = cluster.Connect();
+            var ks = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
+            policyTestTools.CreateSchema(session, 1, ks);
             policyTestTools.TableName = TestUtils.GetUniqueTableName();
-            session.Execute(String.Format("CREATE TABLE {0} (k1 text, k2 int, i int, PRIMARY KEY ((k1, k2)))", policyTestTools.TableName));
+            session.Execute($"CREATE TABLE {policyTestTools.TableName} (k1 text, k2 int, i int, PRIMARY KEY ((k1, k2)))");
             var traces = new List<QueryTrace>();
             for (var i = 0; i < 10; i++)
             {
@@ -163,17 +161,16 @@ namespace Dse.Test.Integration.Policies.Tests
         {
             // Setup
             PolicyTestTools policyTestTools = new PolicyTestTools();
-            ITestCluster testCluster = TestClusterManager.CreateNew(3);
-            testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
-            testCluster.InitClient();
+            var cluster = GetNewCluster(b => b.WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())));
 
             // Test
-            var session = testCluster.Session;
-            policyTestTools.CreateSchema(session);
+            var session = cluster.Connect();
+            var ks = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
+            policyTestTools.CreateSchema(session, 1, ks);
             policyTestTools.TableName = TestUtils.GetUniqueTableName();
-            session.Execute(String.Format("CREATE TABLE {0} (k1 text, k2 int, i int, PRIMARY KEY ((k1, k2)))", policyTestTools.TableName));
+            session.Execute($"CREATE TABLE {policyTestTools.TableName} (k1 text, k2 int, i int, PRIMARY KEY ((k1, k2)))");
             Thread.Sleep(1000);
-            var ps = session.Prepare(String.Format("INSERT INTO {0} (k1, k2, i) VALUES (?, ?, ?)", policyTestTools.TableName));
+            var ps = session.Prepare($"INSERT INTO {policyTestTools.TableName} (k1, k2, i) VALUES (?, ?, ?)");
             var traces = new List<QueryTrace>();
             for (var i = 0; i < 10; i++)
             {
@@ -203,15 +200,14 @@ namespace Dse.Test.Integration.Policies.Tests
         {
             // Setup
             PolicyTestTools policyTestTools = new PolicyTestTools();
-            ITestCluster testCluster = TestClusterManager.CreateNew(3);
-            testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
-            testCluster.InitClient();
+            var cluster = GetNewCluster(b => b.WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())));
 
             // Test
-            var session = testCluster.Session;
-            policyTestTools.CreateSchema(session);
+            var session = cluster.Connect();
+            var ks = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
+            policyTestTools.CreateSchema(session, 1, ks);
             policyTestTools.TableName = TestUtils.GetUniqueTableName();
-            session.Execute(String.Format("CREATE TABLE {0} (k text PRIMARY KEY, i int)", policyTestTools.TableName));
+            session.Execute($"CREATE TABLE {policyTestTools.TableName} (k text PRIMARY KEY, i int)");
             var traces = new List<QueryTrace>();
             string key = "value";
             for (var i = 100; i < 140; i++)
@@ -244,14 +240,13 @@ namespace Dse.Test.Integration.Policies.Tests
         {
             // Setup
             PolicyTestTools policyTestTools = new PolicyTestTools();
-            ITestCluster testCluster = TestClusterManager.CreateNew(3);
-            testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
-            testCluster.InitClient();
+            var cluster = GetNewCluster(b => b.WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())));
 
             // Test
-            var session = testCluster.Session;
+            var session = cluster.Connect();
+            var ks = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
             policyTestTools.TableName = TestUtils.GetUniqueTableName();
-            policyTestTools.CreateSchema(session, 1);
+            policyTestTools.CreateSchema(session, 1, ks);
             var traces = new List<QueryTrace>();
             var pstmt = session.Prepare("INSERT INTO " + policyTestTools.TableName + " (k, i) VALUES (?, ?)");
             for (var i = (int)short.MinValue; i < short.MinValue + 40; i++)
@@ -281,13 +276,12 @@ namespace Dse.Test.Integration.Policies.Tests
         {
             // Setup
             PolicyTestTools policyTestTools = new PolicyTestTools();
-            ITestCluster testCluster = TestClusterManager.CreateNew(3);
-            testCluster.Builder = Cluster.Builder().WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()));
-            testCluster.InitClient();
+            var cluster = GetNewCluster(b => b.WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())));
 
-            var session = testCluster.Session;
+            var session = cluster.Connect();
+            var ks = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
             policyTestTools.TableName = TestUtils.GetUniqueTableName();
-            policyTestTools.CreateSchema(session, 1);
+            policyTestTools.CreateSchema(session, 1, ks);
             var traces = new List<QueryTrace>();
             for (var i = 1; i < 10; i++)
             {
@@ -309,17 +303,17 @@ namespace Dse.Test.Integration.Policies.Tests
         [Test, TestCase(true), TestCase(false)]
         public void TokenAware_VNodes_Test(bool metadataSync)
         {
-            var testCluster = TestClusterManager.CreateNew(3, new TestClusterOptions { UseVNodes = true });
             var cluster = Cluster.Builder()
-                                 .AddContactPoint(testCluster.InitialContactPoint)
+                                 .AddContactPoint(TestCluster.InitialContactPoint)
                                  .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync))
                                  .Build();
             try
             {
                 var session = cluster.Connect();
                 Assert.AreEqual(256, cluster.AllHosts().First().Tokens.Count());
-                session.Execute("CREATE KEYSPACE ks1 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}");
-                session.ChangeKeyspace("ks1");
+                var ks = TestUtils.GetUniqueKeyspaceName();
+                session.Execute($"CREATE KEYSPACE \"{ks}\" WITH replication = {{'class': 'SimpleStrategy', 'replication_factor' : 1}}");
+                session.ChangeKeyspace(ks);
                 session.Execute("CREATE TABLE tbl1 (id uuid primary key)");
                 var ps = session.Prepare("INSERT INTO tbl1 (id) VALUES (?)");
                 var traces = new List<QueryTrace>();
@@ -343,25 +337,25 @@ namespace Dse.Test.Integration.Policies.Tests
             finally
             {
                 cluster.Dispose();
-                testCluster.Remove();
             }
         }
 
         [Test, TestCase(true), TestCase(false)]
         public void Token_Aware_Uses_Keyspace_From_Statement_To_Determine_Replication(bool metadataSync)
         {
-            var testCluster = TestClusterManager.CreateNew(3, new TestClusterOptions { UseVNodes = true });
             var cluster = Cluster.Builder()
-                                 .AddContactPoint(testCluster.InitialContactPoint)
+                                 .AddContactPoint(TestCluster.InitialContactPoint)
                                  .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync))
                                  .Build();
             try
             {
                 // Connect without a keyspace
                 var session = cluster.Connect();
-                session.Execute("CREATE KEYSPACE ks_tap_stmt_ks WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 2}");
-                session.Execute("CREATE TABLE ks_tap_stmt_ks.tbl1 (id uuid primary key)");
-                var ps = session.Prepare("INSERT INTO ks_tap_stmt_ks.tbl1 (id) VALUES (?)");
+                var ks = TestUtils.GetUniqueKeyspaceName();
+                session.Execute($"CREATE KEYSPACE \"{ks}\" WITH replication = {{'class': 'SimpleStrategy', 'replication_factor' : 2}}");
+                session.ChangeKeyspace(ks);
+                session.Execute($"CREATE TABLE tbl1 (id uuid primary key)");
+                var ps = session.Prepare($"INSERT INTO tbl1 (id) VALUES (?)");
                 var id = Guid.NewGuid();
                 var coordinators = new HashSet<IPEndPoint>();
                 for (var i = 0; i < 20; i++)
@@ -375,14 +369,13 @@ namespace Dse.Test.Integration.Policies.Tests
                 // Manually calculate the routing key
                 var routingKey = Serializer.Default.Serialize(id);
                 // Get the replicas
-                var replicas = cluster.GetReplicas("ks_tap_stmt_ks", routingKey);
+                var replicas = cluster.GetReplicas(ks, routingKey);
                 Assert.AreEqual(metadataSync ? 2 : 1, replicas.Count);
                 CollectionAssert.AreEquivalent(replicas.Select(h => h.Address), coordinators);
             }
             finally
             {
                 cluster.Dispose();
-                testCluster.Remove();
             }
         }
     }

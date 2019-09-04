@@ -25,7 +25,7 @@ namespace Dse.Data.Linq
         protected DateTimeOffset? _timestamp;
         protected int? _ttl;
         private QueryTrace _queryTrace;
-        
+
         protected int QueryAbortTimeout { get; private set; }
 
         internal PocoData PocoData { get; }
@@ -62,7 +62,7 @@ namespace Dse.Data.Linq
         /// <para>Use <see cref="IStatement.EnableTracing"/> to enable tracing.</para>
         /// <para>
         /// Note that enabling query trace introduces server-side overhead by storing request information, so it's
-        /// recommended that you only enable query tracing when trying to identify possible issues / debugging. 
+        /// recommended that you only enable query tracing when trying to identify possible issues / debugging.
         /// </para>
         /// </summary>
         public QueryTrace QueryTrace
@@ -89,7 +89,7 @@ namespace Dse.Data.Linq
         {
             Execute(Configuration.DefaultExecutionProfileName);
         }
-        
+
         /// <summary>
         /// Executes the command using the <see cref="ISession"/> with the provided execution profile.
         /// </summary>
@@ -159,7 +159,7 @@ namespace Dse.Data.Linq
         {
             return ExecuteAsync(Configuration.DefaultExecutionProfileName);
         }
-        
+
         /// <summary>
         /// Evaluates the Linq command and executes asynchronously the cql statement with the provided execution profile.
         /// </summary>
@@ -169,11 +169,11 @@ namespace Dse.Data.Linq
             {
                 throw new ArgumentNullException(executionProfile);
             }
-            
+
             var cqlQuery = GetCql(out var values);
             var session = GetTable().GetSession();
             var stmt = await _statementFactory.GetStatementAsync(
-                session, 
+                session,
                 Cql.New(cqlQuery, values).WithExecutionProfile(executionProfile)).ConfigureAwait(false);
             this.CopyQueryPropertiesTo(stmt);
             var rs = await session.ExecuteAsync(stmt, executionProfile).ConfigureAwait(false);

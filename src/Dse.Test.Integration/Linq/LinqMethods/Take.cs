@@ -17,7 +17,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Linq.LinqMethods
 {
-    [Category("short"), TestCassandraVersion(2, 0)]
+    [Category("short"), Category("realcluster"), TestCassandraVersion(2, 0)]
     public class Take : SharedClusterTest
     {
         ISession _session = null;

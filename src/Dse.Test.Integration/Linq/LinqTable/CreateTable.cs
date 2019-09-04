@@ -18,7 +18,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Linq.LinqTable
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class CreateTable : SharedClusterTest
     {
         ISession _session;

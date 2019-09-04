@@ -20,7 +20,7 @@ using Dse.Mapping;
 
 namespace Dse.Test.Integration.Linq.LinqMethods
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class ExecutePagedTests : SharedClusterTest
     {
         private ISession _session;

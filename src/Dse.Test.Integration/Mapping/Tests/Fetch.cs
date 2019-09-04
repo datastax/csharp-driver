@@ -19,7 +19,7 @@ using HairColor = Dse.Test.Unit.Mapping.Pocos.HairColor;
 
 namespace Dse.Test.Integration.Mapping.Tests
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class Fetch : SharedClusterTest
     {
         ISession _session;

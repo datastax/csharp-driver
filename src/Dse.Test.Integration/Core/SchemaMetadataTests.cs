@@ -17,7 +17,7 @@ using SortOrder = Dse.DataCollectionMetadata.SortOrder;
 
 namespace Dse.Test.Integration.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category("short"), Category("realcluster")]
     public class SchemaMetadataTests : SharedClusterTest
     {
         protected override string[] SetupQueries

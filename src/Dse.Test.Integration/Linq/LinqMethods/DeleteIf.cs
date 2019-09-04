@@ -18,7 +18,7 @@ using Dse.Mapping;
 
 namespace Dse.Test.Integration.Linq.LinqMethods
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class DeleteIf : SharedClusterTest
     {
         ISession _session = null;

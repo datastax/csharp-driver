@@ -14,7 +14,7 @@ using System.Text;
 
 namespace Dse.Test.Integration.Core
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     [TestCassandraVersion(2, 1)]
     public class TupleTests : SharedClusterTest
     {

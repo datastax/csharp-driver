@@ -18,6 +18,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Linq.LinqMethods
 {
+    [Category("short"), Category("realcluster")]
     public class Counter : SharedClusterTest
     {
         ISession _session;

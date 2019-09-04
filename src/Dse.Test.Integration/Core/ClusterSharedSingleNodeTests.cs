@@ -8,7 +8,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class ClusterSharedSingleNodeTests : SharedClusterTest
     {
         [Test]

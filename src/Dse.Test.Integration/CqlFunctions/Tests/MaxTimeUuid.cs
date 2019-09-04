@@ -17,7 +17,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.CqlFunctions.Tests
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class MaxTimeUuid : SharedClusterTest
     {
         private ISession _session = null;

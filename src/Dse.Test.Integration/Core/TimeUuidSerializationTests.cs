@@ -15,7 +15,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class TimeUuidSerializationTests : SharedClusterTest
     {
         private const string AllTypesTableName = "all_formats_table";

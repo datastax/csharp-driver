@@ -16,7 +16,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Policies.Tests
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category("short"), Category("realcluster")]
     public class IdempotenceAwareRetryPolicyTests : TestGlobals
     {
 

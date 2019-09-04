@@ -16,7 +16,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Linq.LinqTable
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category("short"), Category("realcluster")]
     [TestCassandraVersion(2,1)]
     public class LinqUdtTests : SharedClusterTest
     {

@@ -20,7 +20,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Linq.LinqMethods
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class InsertTests : SharedClusterTest
     {
         private ISession _session;

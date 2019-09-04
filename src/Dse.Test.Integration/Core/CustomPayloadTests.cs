@@ -15,7 +15,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category("short"), Category("realcluster")]
     public class CustomPayloadTests : TestGlobals
     {
         public ISession Session { get; set; }

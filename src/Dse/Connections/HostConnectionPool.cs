@@ -829,6 +829,7 @@ namespace Dse.Connections
                         break;
                     }
 
+                    OnConnectionClosing();
                     throw;
                 }
             }

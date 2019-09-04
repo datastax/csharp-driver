@@ -21,7 +21,7 @@ using Linq = Dse.Data.Linq;
 
 namespace Dse.Test.Integration.Mapping.Tests
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class Attributes : SharedClusterTest
     {
         ISession _session;

@@ -17,7 +17,7 @@ using NUnit.Framework.Constraints;
 
 namespace Dse.Test.Integration.Mapping.Tests
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class Single : SharedClusterTest
     {
         ISession _session = null;

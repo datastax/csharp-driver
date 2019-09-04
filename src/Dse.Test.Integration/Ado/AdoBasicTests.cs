@@ -13,7 +13,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Data
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category("short"), Category("realcluster")]
     public class AdoBasicTests : SharedClusterTest
     {
         private CqlConnection _connection;

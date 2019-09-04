@@ -15,7 +15,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Linq.CqlOperatorTests
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class SubstractAssign : SharedClusterTest
     {
         /// <summary>

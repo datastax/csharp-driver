@@ -19,7 +19,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Linq.LinqMethods
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class Where : SharedClusterTest
     {
         private ISession _session;
