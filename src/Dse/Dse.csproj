@@ -6,6 +6,7 @@
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
     <FileVersion>2.8.0.0</FileVersion>
     <VersionPrefix>2.8.0</VersionPrefix>
+    <VersionSuffix>dbaas-1</VersionSuffix>
     <Authors>DataStax</Authors>
     <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">net45;netstandard1.5;netstandard2.0</TargetFrameworks>
     <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True'">netstandard1.5;netstandard2.0</TargetFrameworks>
