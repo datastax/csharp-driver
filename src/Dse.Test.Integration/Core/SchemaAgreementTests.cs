@@ -76,5 +76,12 @@ namespace Dse.Test.Integration.Core
             TestCluster.ResumeNode(2);
             TestUtils.WaitForSchemaAgreement(_cluster, false, true, SchemaAgreementTests.MaxTestSchemaAgreementRetries);
         }
+        
+        public override void OneTimeTearDown()
+        {
+            _session.Dispose();
+            _cluster.Dispose();
+            base.OneTimeTearDown();
+        }
     }
 }

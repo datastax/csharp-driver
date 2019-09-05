@@ -47,31 +47,38 @@ namespace Dse.Test.Integration.MetadataTests
             _session = _cluster.Connect();
         }
 
+        public override void OneTimeTearDown()
+        {
+            _cluster.Shutdown();
+            base.OneTimeTearDown();
+        }
+
         [Test]
         public void TokenMap_Should_NotUpdateExistingTokenMap_When_KeyspaceIsCreated()
         {
             TestUtils.WaitForSchemaAgreement(_cluster);
             var keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
-            var newSession = Cluster.Builder()
-                                    .AddContactPoint(TestCluster.InitialContactPoint)
-                                    .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
-                                    .WithQueryTimeout(60000)
-                                    .Build()
-                                    .Connect();
-            var newCluster = newSession.Cluster;
-            var oldTokenMap = newCluster.Metadata.TokenToReplicasMap;
-            Assert.AreEqual(3, newCluster.Metadata.Hosts.Count);
+            using (var newCluster = Cluster.Builder()
+                                           .AddContactPoint(TestCluster.InitialContactPoint)
+                                           .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
+                                           .WithQueryTimeout(60000)
+                                           .Build())
+            {
+                var newSession = newCluster.Connect();
+                var oldTokenMap = newCluster.Metadata.TokenToReplicasMap;
+                Assert.AreEqual(3, newCluster.Metadata.Hosts.Count);
 
-            Assert.IsNull(newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName));
-            var createKeyspaceCql = $"CREATE KEYSPACE {keyspaceName} WITH replication = {{'class': 'SimpleStrategy', 'replication_factor' : 3}}";
+                Assert.IsNull(newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName));
+                var createKeyspaceCql = $"CREATE KEYSPACE {keyspaceName} WITH replication = {{'class': 'SimpleStrategy', 'replication_factor' : 3}}";
 
-            newSession.Execute(createKeyspaceCql);
-            TestUtils.WaitForSchemaAgreement(newCluster);
-            newSession.ChangeKeyspace(keyspaceName);
-            
-            Assert.IsNull(newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName));
-            Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
-            Assert.IsTrue(object.ReferenceEquals(newCluster.Metadata.TokenToReplicasMap, oldTokenMap));
+                newSession.Execute(createKeyspaceCql);
+                TestUtils.WaitForSchemaAgreement(newCluster);
+                newSession.ChangeKeyspace(keyspaceName);
+
+                Assert.IsNull(newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName));
+                Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
+                Assert.IsTrue(object.ReferenceEquals(newCluster.Metadata.TokenToReplicasMap, oldTokenMap));
+            }
         }
 
         [Test]
@@ -82,20 +89,21 @@ namespace Dse.Test.Integration.MetadataTests
             _session.Execute(createKeyspaceCql);
             TestUtils.WaitForSchemaAgreement(_cluster);
 
-            var newSession = Cluster.Builder()
-                                    .AddContactPoint(TestCluster.InitialContactPoint)
-                                    .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
-                                    .WithQueryTimeout(60000)
-                                    .Build()
-                                    .Connect();
-            var newCluster = newSession.Cluster;
-            var removeKeyspaceCql = $"DROP KEYSPACE {keyspaceName}";
-            newSession.Execute(removeKeyspaceCql);
-            TestUtils.WaitForSchemaAgreement(newCluster);
-            var oldTokenMap = newCluster.Metadata.TokenToReplicasMap;
-            Assert.IsNull(newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName));
-            Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
-            Assert.IsTrue(object.ReferenceEquals(newCluster.Metadata.TokenToReplicasMap, oldTokenMap));
+            using (var newCluster = Cluster.Builder()
+                                           .AddContactPoint(TestCluster.InitialContactPoint)
+                                           .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
+                                           .WithQueryTimeout(60000)
+                                           .Build())
+            {
+                var newSession = newCluster.Connect();
+                var removeKeyspaceCql = $"DROP KEYSPACE {keyspaceName}";
+                newSession.Execute(removeKeyspaceCql);
+                TestUtils.WaitForSchemaAgreement(newCluster);
+                var oldTokenMap = newCluster.Metadata.TokenToReplicasMap;
+                Assert.IsNull(newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName));
+                Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
+                Assert.IsTrue(object.ReferenceEquals(newCluster.Metadata.TokenToReplicasMap, oldTokenMap));
+            }
         }
 
         [Test]
@@ -105,37 +113,38 @@ namespace Dse.Test.Integration.MetadataTests
             var createKeyspaceCql = $"CREATE KEYSPACE {keyspaceName} WITH replication = {{'class': 'SimpleStrategy', 'replication_factor' : 3}}";
             _session.Execute(createKeyspaceCql);
             TestUtils.WaitForSchemaAgreement(_cluster);
-            
-            var newSession = Cluster.Builder()
-                                    .AddContactPoint(TestCluster.InitialContactPoint)
-                                    .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
-                                    .WithQueryTimeout(60000)
-                                    .Build()
-                                    .Connect(keyspaceName);
-            var newCluster = newSession.Cluster;
-            TestHelper.RetryAssert(() =>
-            {
-                var replicas = newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
-                Assert.IsNull(replicas);
-                Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
-            });
 
-            Assert.AreEqual(3, newCluster.Metadata.Hosts.Count(h => h.IsUp));
-            var oldTokenMap = newCluster.Metadata.TokenToReplicasMap;
-            var alterKeyspaceCql = $"ALTER KEYSPACE {keyspaceName} WITH replication = {{'class': 'SimpleStrategy', 'replication_factor' : 2}}";
-            newSession.Execute(alterKeyspaceCql);
-            TestUtils.WaitForSchemaAgreement(newCluster);
-            TestHelper.RetryAssert(() =>
+            using (var newCluster = Cluster.Builder()
+                                           .AddContactPoint(TestCluster.InitialContactPoint)
+                                           .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
+                                           .WithQueryTimeout(60000)
+                                           .Build())
             {
-                var replicas = newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
-                Assert.IsNull(replicas);
-                Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
-            });
+                var newSession = newCluster.Connect(keyspaceName);
+                TestHelper.RetryAssert(() =>
+                {
+                    var replicas = newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
+                    Assert.IsNull(replicas);
+                    Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
+                });
 
-            Assert.AreEqual(3, newCluster.Metadata.Hosts.Count(h => h.IsUp));
-            Assert.IsTrue(object.ReferenceEquals(newCluster.Metadata.TokenToReplicasMap, oldTokenMap));
+                Assert.AreEqual(3, newCluster.Metadata.Hosts.Count(h => h.IsUp));
+                var oldTokenMap = newCluster.Metadata.TokenToReplicasMap;
+                var alterKeyspaceCql = $"ALTER KEYSPACE {keyspaceName} WITH replication = {{'class': 'SimpleStrategy', 'replication_factor' : 2}}";
+                newSession.Execute(alterKeyspaceCql);
+                TestUtils.WaitForSchemaAgreement(newCluster);
+                TestHelper.RetryAssert(() =>
+                {
+                    var replicas = newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
+                    Assert.IsNull(replicas);
+                    Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
+                });
+
+                Assert.AreEqual(3, newCluster.Metadata.Hosts.Count(h => h.IsUp));
+                Assert.IsTrue(object.ReferenceEquals(newCluster.Metadata.TokenToReplicasMap, oldTokenMap));
+            }
         }
-        
+
         [Test]
         public async Task TokenMap_Should_RefreshTokenMapForSingleKeyspace_When_RefreshSchemaWithKeyspaceIsCalled()
         {
@@ -147,31 +156,32 @@ namespace Dse.Test.Integration.MetadataTests
             createKeyspaceCql = $"CREATE KEYSPACE {keyspaceName} WITH replication = {{'class': 'SimpleStrategy', 'replication_factor' : 3}}";
             _session.Execute(createKeyspaceCql);
             TestUtils.WaitForSchemaAgreement(_cluster);
-            
-            var newSession = Cluster.Builder()
-                                    .AddContactPoint(TestCluster.InitialContactPoint)
-                                    .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
-                                    .WithQueryTimeout(60000)
-                                    .Build()
-                                    .Connect(keyspaceName);
-            var newCluster = newSession.Cluster;
-            var oldTokenMap = newCluster.Metadata.TokenToReplicasMap;
-            var replicas = newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
-            Assert.IsNull(replicas);
-            Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
-            Assert.AreEqual(3, newCluster.Metadata.Hosts.Count(h => h.IsUp));
-            Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
 
-            await newCluster.RefreshSchemaAsync(keyspaceName).ConfigureAwait(false);
-            
-            Assert.AreEqual(1, newCluster.Metadata.KeyspacesSnapshot.Length);
+            using (var newCluster = Cluster.Builder()
+                                           .AddContactPoint(TestCluster.InitialContactPoint)
+                                           .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
+                                           .WithQueryTimeout(60000)
+                                           .Build())
+            {
+                var newSession = newCluster.Connect(keyspaceName);
+                var oldTokenMap = newCluster.Metadata.TokenToReplicasMap;
+                var replicas = newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
+                Assert.IsNull(replicas);
+                Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
+                Assert.AreEqual(3, newCluster.Metadata.Hosts.Count(h => h.IsUp));
+                Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
 
-            replicas = newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
-            Assert.AreEqual(newCluster.Metadata.Hosts.Sum(h => h.Tokens.Count()), replicas.Count);
-            Assert.AreEqual(3, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
+                await newCluster.RefreshSchemaAsync(keyspaceName).ConfigureAwait(false);
 
-            Assert.AreEqual(3, newCluster.Metadata.Hosts.Count(h => h.IsUp));
-            Assert.IsTrue(object.ReferenceEquals(newCluster.Metadata.TokenToReplicasMap, oldTokenMap));
+                Assert.AreEqual(1, newCluster.Metadata.KeyspacesSnapshot.Length);
+
+                replicas = newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
+                Assert.AreEqual(newCluster.Metadata.Hosts.Sum(h => h.Tokens.Count()), replicas.Count);
+                Assert.AreEqual(3, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
+
+                Assert.AreEqual(3, newCluster.Metadata.Hosts.Count(h => h.IsUp));
+                Assert.IsTrue(object.ReferenceEquals(newCluster.Metadata.TokenToReplicasMap, oldTokenMap));
+            }
         }
 
         [Test]
@@ -185,35 +195,36 @@ namespace Dse.Test.Integration.MetadataTests
             createKeyspaceCql = $"CREATE KEYSPACE {keyspaceName} WITH replication = {{'class': 'SimpleStrategy', 'replication_factor' : 3}}";
             _session.Execute(createKeyspaceCql);
             TestUtils.WaitForSchemaAgreement(_cluster);
-            
-            var newSession = Cluster.Builder()
-                                    .AddContactPoint(TestCluster.InitialContactPoint)
-                                    .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
-                                    .WithQueryTimeout(60000)
-                                    .Build()
-                                    .Connect(keyspaceName);
-            var newCluster = newSession.Cluster;
-            var replicas = newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
-            Assert.IsNull(replicas);
-            Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
-            var oldTokenMap = newCluster.Metadata.TokenToReplicasMap;
-            Assert.AreEqual(3, newCluster.Metadata.Hosts.Count(h => h.IsUp));
-            Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
 
-            await newCluster.RefreshSchemaAsync().ConfigureAwait(false);
-            
-            Assert.GreaterOrEqual(newCluster.Metadata.KeyspacesSnapshot.Length, 2);
+            using (var newCluster = Cluster.Builder()
+                                           .AddContactPoint(TestCluster.InitialContactPoint)
+                                           .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
+                                           .WithQueryTimeout(60000)
+                                           .Build())
+            {
+                var newSession = newCluster.Connect(keyspaceName);
+                var replicas = newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
+                Assert.IsNull(replicas);
+                Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
+                var oldTokenMap = newCluster.Metadata.TokenToReplicasMap;
+                Assert.AreEqual(3, newCluster.Metadata.Hosts.Count(h => h.IsUp));
+                Assert.AreEqual(1, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
 
-            replicas = newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
-            Assert.AreEqual(newCluster.Metadata.Hosts.Sum(h => h.Tokens.Count()), replicas.Count);
-            Assert.AreEqual(3, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
+                await newCluster.RefreshSchemaAsync().ConfigureAwait(false);
 
-            replicas = newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName1);
-            Assert.AreEqual(newCluster.Metadata.Hosts.Sum(h => h.Tokens.Count()), replicas.Count);
-            Assert.AreEqual(3, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
+                Assert.GreaterOrEqual(newCluster.Metadata.KeyspacesSnapshot.Length, 2);
 
-            Assert.AreEqual(3, newCluster.Metadata.Hosts.Count(h => h.IsUp));
-            Assert.IsFalse(object.ReferenceEquals(newCluster.Metadata.TokenToReplicasMap, oldTokenMap));
+                replicas = newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName);
+                Assert.AreEqual(newCluster.Metadata.Hosts.Sum(h => h.Tokens.Count()), replicas.Count);
+                Assert.AreEqual(3, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
+
+                replicas = newCluster.Metadata.TokenToReplicasMap.GetByKeyspace(keyspaceName1);
+                Assert.AreEqual(newCluster.Metadata.Hosts.Sum(h => h.Tokens.Count()), replicas.Count);
+                Assert.AreEqual(3, newCluster.Metadata.GetReplicas(keyspaceName, Encoding.UTF8.GetBytes("123")).Count);
+
+                Assert.AreEqual(3, newCluster.Metadata.Hosts.Count(h => h.IsUp));
+                Assert.IsFalse(object.ReferenceEquals(newCluster.Metadata.TokenToReplicasMap, oldTokenMap));
+            }
         }
     }
 }

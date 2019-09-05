@@ -87,7 +87,7 @@ namespace Dse.Test.Integration.Core
             const string cqlType1 = "CREATE TYPE phone2 (alias2 text, number2 text, country_code2 int, verified_at timestamp, phone_type text)";
             const string cqlTable1 = "CREATE TABLE users2 (id int PRIMARY KEY, main_phone frozen<phone2>)";
 
-            var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build();
+            var cluster = GetNewCluster();
             var newKeyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
             var session = cluster.Connect();
             session.CreateKeyspaceIfNotExists(newKeyspace);
@@ -138,7 +138,7 @@ namespace Dse.Test.Integration.Core
             const string cqlType1 = "CREATE TYPE phone2 (alias2 text, number2 text, country_code2 int, verified_at timestamp, phone_type text)";
             const string cqlTable1 = "CREATE TABLE users2 (id int PRIMARY KEY, main_phone frozen<phone2>)";
 
-            var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build();
+            var cluster = GetNewCluster();
             var newKeyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
             var session = cluster.Connect();
             session.CreateKeyspaceIfNotExists(newKeyspace);

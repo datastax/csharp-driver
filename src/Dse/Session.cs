@@ -169,13 +169,10 @@ namespace Dse
 
             _cluster.HostRemoved -= OnHostRemoved;
 
-            var hosts = Cluster.AllHosts().ToArray();
-            foreach (var host in hosts)
+            var pools = _connectionPool.ToArray();
+            foreach (var pool in pools)
             {
-                if (_connectionPool.TryGetValue(host.Address, out var pool))
-                {
-                    pool.Dispose();
-                }
+                pool.Value.Dispose();
             }
         }
         

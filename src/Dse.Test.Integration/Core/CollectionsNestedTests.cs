@@ -20,8 +20,9 @@ namespace Dse.Test.Integration.Core
         [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_Upsert()
         {
-            using (var session = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build().Connect())
+            using (var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
             {
+                var session = cluster.Connect();
                 string keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
                 string fqTableName = keyspaceName + "." + TestUtils.GetUniqueKeyspaceName().ToLower();
                 SetupForFrozenNestedCollectionTest(session, keyspaceName, fqTableName);
@@ -44,8 +45,9 @@ namespace Dse.Test.Integration.Core
         [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_Update()
         {
-            using (var session = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build().Connect())
+            using (var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
             {
+                var session = cluster.Connect();
                 string keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
                 string fqTableName = keyspaceName + "." + TestUtils.GetUniqueKeyspaceName().ToLower();
                 SetupForFrozenNestedCollectionTest(session, keyspaceName, fqTableName);
@@ -82,8 +84,9 @@ namespace Dse.Test.Integration.Core
         [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_Update_SpecificMapValByKey()
         {
-            using (var session = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build().Connect())
+            using (var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
             {
+                var session = cluster.Connect();
                 string keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
                 string fqTableName = keyspaceName + "." + TestUtils.GetUniqueKeyspaceName().ToLower();
                 SetupForFrozenNestedCollectionTest(session, keyspaceName, fqTableName);
@@ -118,8 +121,9 @@ namespace Dse.Test.Integration.Core
         [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_Upsert_IdFoundInSetPart()
         {
-            using (var session = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build().Connect())
+            using (var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
             {
+                var session = cluster.Connect();
                 string keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
                 string fqTableName = keyspaceName + "." + TestUtils.GetUniqueKeyspaceName().ToLower();
                 SetupForFrozenNestedCollectionTest(session, keyspaceName, fqTableName);
@@ -138,8 +142,9 @@ namespace Dse.Test.Integration.Core
         [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_SimpleStatements()
         {
-            using (var session = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build().Connect())
+            using (var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
             {
+                var session = cluster.Connect();
                 string keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
                 string fqTableName = keyspaceName + "." + TestUtils.GetUniqueKeyspaceName().ToLower();
                 SetupForFrozenNestedCollectionTest(session, keyspaceName, fqTableName);
@@ -161,8 +166,9 @@ namespace Dse.Test.Integration.Core
         [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_PreparedStatements()
         {
-            using (var session = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build().Connect())
+            using (var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
             {
+                var session = cluster.Connect();
                 string keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
                 string fqTableName = keyspaceName + "." + TestUtils.GetUniqueKeyspaceName().ToLower();
                 SetupForFrozenNestedCollectionTest(session, keyspaceName, fqTableName);
@@ -191,8 +197,9 @@ namespace Dse.Test.Integration.Core
         [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_PreparedStatements_ListWithNullValue()
         {
-            using (var session = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build().Connect())
+            using (var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
             {
+                var session = cluster.Connect();
                 string keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
                 string fqTableName = keyspaceName + "." + TestUtils.GetUniqueKeyspaceName().ToLower();
                 SetupForFrozenNestedCollectionTest(session, keyspaceName, fqTableName);
@@ -211,8 +218,9 @@ namespace Dse.Test.Integration.Core
         [Test, TestCassandraVersion(2, 1, 3)]
         public void NestedCollections_BatchStatements()
         {
-            using (var session = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build().Connect())
+            using (var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
             {
+                var session = cluster.Connect();
                 string keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
                 string fqTableName = keyspaceName + "." + TestUtils.GetUniqueKeyspaceName().ToLower();
                 SetupForFrozenNestedCollectionTest(session, keyspaceName, fqTableName);
