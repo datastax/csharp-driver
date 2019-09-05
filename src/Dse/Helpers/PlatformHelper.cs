@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
@@ -110,5 +111,47 @@ namespace Dse.Helpers
 
             return new CpuInfo(null, Environment.ProcessorCount);
         }
+
+#if !NET45
+        public static bool RuntimeSupportsCloudTlsSettings()
+        {
+            var netCoreVersion = PlatformHelper.GetNetCoreVersion();
+            if (netCoreVersion != null && Version.TryParse(netCoreVersion.Split('-')[0], out var version))
+            {
+                PlatformHelper.Logger.Info("NET Core Runtime detected: " + netCoreVersion);
+                if (version.Major > 2)
+                {
+                    return true;
+                }
+
+                if (version.Major == 2 && version.Minor >= 1)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            PlatformHelper.Logger.Warning(
+                "Could not detect NET Core Runtime or version parsing failed. " +
+                "Assuming that HttpClientHandler supports the required TLS settings for Cloud. " +
+                "Version: " + (netCoreVersion ?? "null"));
+
+            // if we can't detect the version, assume it supports
+            return true;
+        }
+
+        public static string GetNetCoreVersion()
+        {
+            var assembly = typeof(System.Runtime.GCSettings).GetTypeInfo().Assembly;
+            var assemblyPath = assembly.CodeBase.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+            var netCoreAppIndex = Array.IndexOf(assemblyPath, "Microsoft.NETCore.App");
+            if (netCoreAppIndex > 0 && netCoreAppIndex < assemblyPath.Length - 2)
+            {
+                return assemblyPath[netCoreAppIndex + 1];
+            }
+            return null;
+        }
+#endif
     }
 }

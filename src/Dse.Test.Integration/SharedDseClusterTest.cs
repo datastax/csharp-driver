@@ -36,10 +36,5 @@ namespace Dse.Test.Integration
             Session.CreateKeyspace(KeyspaceName);
             Session.ChangeKeyspace(KeyspaceName);
         }
-
-        protected void SetBaseSession(ISession session)
-        {
-            base.Session = session;
-        }
     }
 }

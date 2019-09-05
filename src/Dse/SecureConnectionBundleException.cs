@@ -14,28 +14,18 @@
 //   limitations under the License.
 //
 
-using System.Net;
+using System;
 
 namespace Dse
 {
-    /// <summary>
-    /// This class contains properties related to the proxy when using SNI.
-    /// </summary>
-    internal class SniOptions
+    internal class SecureConnectionBundleException : Exception
     {
-        public SniOptions(IPAddress ip, int port, string name)
+        public SecureConnectionBundleException(string message) : base(message)
         {
-            Ip = ip;
-            Port = port;
-            Name = name;
         }
 
-        public IPAddress Ip { get; }
-
-        public string Name { get; }
-
-        public int Port { get; }
-
-        public bool IsIp => Ip != null;
+        public SecureConnectionBundleException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
     }
 }

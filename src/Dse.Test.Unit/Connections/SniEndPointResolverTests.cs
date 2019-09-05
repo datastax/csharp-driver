@@ -1,8 +1,17 @@
 ﻿// 
-//       Copyright (C) DataStax, Inc.
+//       Copyright (C) DataStax Inc.
 // 
-//     Please see the license for details:
-//     http://www.datastax.com/terms/datastax-dse-driver-license-terms
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+// 
+//       http://www.apache.org/licenses/LICENSE-2.0
+// 
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
 // 
 
 using System;
@@ -116,13 +125,14 @@ namespace Dse.Test.Unit.Connections
             result.ResolveResults[0] = IPAddress.Parse("123.10.10.10");
 
             await target.RefreshContactPointCache().ConfigureAwait(false);
-            var newResolvedResults = await target.GetOrResolveContactPointAsync("cp1").ConfigureAwait(false);
+            var newResolvedResults = (await target.GetOrResolveContactPointAsync("cp1").ConfigureAwait(false)).ToList();
 
-            Assert.IsFalse(oldResolvedResults.Intersect(newResolvedResults).Any());
+            Assert.AreNotEqual(IPAddress.Parse("123.10.10.10"), oldResolvedResults.Single().SocketIpEndPoint.Address);
+            Assert.AreEqual(IPAddress.Parse("123.10.10.10"), newResolvedResults.Single().SocketIpEndPoint.Address);
         }
         
         [Test]
-        public async Task Should_GetCorrectServerName_When_ContactPointIsProvided()
+        public async Task Should_GetCorrectServerName()
         {
             var result = Create(_proxyEndPoint.Address);
             var target = result.EndPointResolver;
@@ -134,7 +144,7 @@ namespace Dse.Test.Unit.Connections
         }
         
         [Test]
-        public async Task Should_NotDnsResolveServerName_When_ContactPointIsProvided()
+        public async Task Should_NotDnsResolveServerName()
         {
             var result = Create(_proxyEndPoint.Address);
             var target = result.EndPointResolver;

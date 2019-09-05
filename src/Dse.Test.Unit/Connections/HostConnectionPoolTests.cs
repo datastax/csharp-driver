@@ -18,6 +18,7 @@ using System;
 using System.Net;
 using System.Threading.Tasks;
 using Dse.Connections;
+using Dse.Helpers;
 using Dse.Serialization;
 using Moq;
 using NUnit.Framework;
@@ -56,12 +57,47 @@ namespace Dse.Test.Unit.Connections
             Mock.Get(_resolver).Verify(resolver => resolver.GetConnectionEndPointAsync(_host, true), Times.Once);
         }
 
-        private IHostConnectionPool CreatePool()
+        [Test]
+        public async Task Should_UseAllResolvedProxyAddresses()
+        {
+            var rand = Mock.Of<IRandom>();
+            Mock.Get(rand).Setup(r => r.Next()).Returns(10);
+            var mockDnsResolver = Mock.Of<IDnsResolver>();
+            Mock.Get(mockDnsResolver).Setup(m => m.GetHostEntryAsync("test")).ReturnsAsync(new IPHostEntry()
+            {
+                AddressList = new[]
+                {
+                    IPAddress.Parse("127.0.0.99"),
+                    IPAddress.Parse("127.0.0.100")
+                }
+            });
+            var target = CreatePool(new SniEndPointResolver(mockDnsResolver, new SniOptions(null, 9032, "test"), rand));
+
+            Assert.AreEqual(0, target.OpenConnections);
+
+            // create connection (which triggers a second connection creation in the background)
+            var _ = await target.BorrowConnectionAsync().ConfigureAwait(false);
+            TestHelper.RetryAssert(() =>
+            {
+                Assert.AreEqual(2, target.OpenConnections);
+            });
+            Assert.AreEqual(new IPEndPoint(IPAddress.Parse("127.0.0.100"), 9032), target.ConnectionsSnapshot[0].EndPoint.SocketIpEndPoint);
+            Assert.AreEqual(new IPEndPoint(IPAddress.Parse("127.0.0.99"), 9032), target.ConnectionsSnapshot[1].EndPoint.SocketIpEndPoint);
+        }
+
+        private IHostConnectionPool CreatePool(IEndPointResolver res = null)
         {
             _host = new Host(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042));
-            _resolver = Mock.Of<IEndPointResolver>();
-            Mock.Get(_resolver).Setup(resolver => resolver.GetConnectionEndPointAsync(_host, It.IsAny<bool>()))
-                .ReturnsAsync((Host h, bool b) => new ConnectionEndPoint(h.Address, null));
+            if (res == null)
+            {
+                _resolver = Mock.Of<IEndPointResolver>();
+                Mock.Get(_resolver).Setup(resolver => resolver.GetConnectionEndPointAsync(_host, It.IsAny<bool>()))
+                    .ReturnsAsync((Host h, bool b) => new ConnectionEndPoint(h.Address, null));
+            }
+            else
+            {
+                _resolver = res;
+            }
             var pool = new HostConnectionPool(
                 _host, 
                 new TestConfigurationBuilder

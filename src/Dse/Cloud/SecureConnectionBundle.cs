@@ -14,28 +14,23 @@
 //   limitations under the License.
 //
 
-using System.Net;
+using System.Security.Cryptography.X509Certificates;
 
-namespace Dse
+namespace Dse.Cloud
 {
-    /// <summary>
-    /// This class contains properties related to the proxy when using SNI.
-    /// </summary>
-    internal class SniOptions
+    internal class SecureConnectionBundle
     {
-        public SniOptions(IPAddress ip, int port, string name)
+        public SecureConnectionBundle(X509Certificate2 caCert, X509Certificate2 clientCert, CloudConfiguration config)
         {
-            Ip = ip;
-            Port = port;
-            Name = name;
+            CaCert = caCert;
+            ClientCert = clientCert;
+            Config = config;
         }
 
-        public IPAddress Ip { get; }
+        public X509Certificate2 CaCert { get; }
 
-        public string Name { get; }
+        public X509Certificate2 ClientCert { get; }
 
-        public int Port { get; }
-
-        public bool IsIp => Ip != null;
+        public CloudConfiguration Config { get; }
     }
 }

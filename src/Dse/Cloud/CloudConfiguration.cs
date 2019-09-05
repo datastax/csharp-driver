@@ -14,28 +14,26 @@
 //   limitations under the License.
 //
 
-using System.Net;
+using Newtonsoft.Json;
 
-namespace Dse
+namespace Dse.Cloud
 {
-    /// <summary>
-    /// This class contains properties related to the proxy when using SNI.
-    /// </summary>
-    internal class SniOptions
+    [JsonObject]
+    internal class CloudConfiguration
     {
-        public SniOptions(IPAddress ip, int port, string name)
-        {
-            Ip = ip;
-            Port = port;
-            Name = name;
-        }
+        [JsonProperty("username")]
+        public string Username { get; private set; }
 
-        public IPAddress Ip { get; }
+        [JsonProperty("password")]
+        public string Password { get; private set; }
 
-        public string Name { get; }
+        [JsonProperty("host")]
+        public string Host { get; private set; }
 
-        public int Port { get; }
-
-        public bool IsIp => Ip != null;
+        [JsonProperty("port")]
+        public int Port { get; private set; }
+        
+        [JsonProperty("pfxCertPassword")]
+        public string CertificatePassword { get; private set; }
     }
 }
