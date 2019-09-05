@@ -14,28 +14,16 @@
 //   limitations under the License.
 //
 
-using System.Net;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 
-namespace Dse
+namespace Dse.Cloud
 {
     /// <summary>
-    /// This class contains properties related to the proxy when using SNI.
+    /// Validates a certificate (and its chain). Used in server certificate callbacks with SslStream, HttpClient, etc.
     /// </summary>
-    internal class SniOptions
+    internal interface ICertificateValidator
     {
-        public SniOptions(IPAddress ip, int port, string name)
-        {
-            Ip = ip;
-            Port = port;
-            Name = name;
-        }
-
-        public IPAddress Ip { get; }
-
-        public string Name { get; }
-
-        public int Port { get; }
-
-        public bool IsIp => Ip != null;
+        bool Validate(X509Certificate cert, X509Chain chain, SslPolicyErrors errors);
     }
 }

@@ -50,6 +50,14 @@ namespace Dse
         {
             Errors = new Dictionary<IPEndPoint, Exception>(0);
         }
+        
+        /// <summary>
+        /// Creates a new instance of NoHostAvailableException with a custom message, an empty error dictionary and an inner exception. 
+        /// </summary>
+        internal NoHostAvailableException(string message, Exception innerException) : base(message, innerException)
+        {
+            Errors = new Dictionary<IPEndPoint, Exception>(0);
+        }
 
 #if NET45
         protected NoHostAvailableException(SerializationInfo info, StreamingContext context) :

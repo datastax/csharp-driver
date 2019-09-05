@@ -1,5 +1,5 @@
 ﻿// 
-//       Copyright (C) 2019 DataStax Inc.
+//       Copyright (C) DataStax Inc.
 // 
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -12,24 +12,24 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+// 
 
-using System.Collections.Concurrent;
-using System.Diagnostics;
+using System;
+using Dse.Cloud;
+using Dse.Test.Unit.TestAttributes;
+using NUnit.Framework;
 
-namespace Dse.Test.Unit
+namespace Dse.Test.Unit.Cloud
 {
-    internal class TestTraceListener : TraceListener
+    [TestFixture]
+    public class CloudMetadataServiceTests
     {
-        public ConcurrentQueue<string> Queue = new ConcurrentQueue<string>();
-
-        public override void Write(string message)
+        [Test]
+        [CloudSupported(Supported = false)]
+        public void Should_ThrowNotSupported_When_NetCore20()
         {
-            Queue.Enqueue(message);
-        }
-
-        public override void WriteLine(string message)
-        {
-            Queue.Enqueue(message);
+            Assert.Throws<NotSupportedException>(() => 
+                new CloudMetadataService().GetClusterMetadataAsync(null, null, null).GetAwaiter().GetResult());
         }
     }
 }

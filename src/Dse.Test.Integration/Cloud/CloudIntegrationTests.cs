@@ -1,31 +1,189 @@
 ﻿//
-//       Copyright (C) DataStax, Inc.
+//      Copyright (C) DataStax Inc.
 //
-//     Please see the license for details:
-//     http://www.datastax.com/terms/datastax-dse-driver-license-terms
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
 //
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Security.Authentication;
+using System.Threading;
+using System.Threading.Tasks;
+using Dse.Auth;
+using Dse.Cloud;
 using Dse.Test.Integration.Policies.Util;
 using Dse.Test.Integration.TestAttributes;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Unit;
+using Dse.Test.Unit.TestAttributes;
 
 using NUnit.Framework;
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Dse.Test.Integration.Cloud
 {
     [SniEnabledOnly]
-    [TestFixture, Category("short")]
+    [CloudSupported(Supported = true)]
+    [TestFixture, Category("short"), Category("cloud")]
     public class CloudIntegrationTests : SharedCloudClusterTest
     {
+        [Test]
+        public void Should_ThrowNoHostAvailable_When_MetadataServiceIsUnreachable()
+        {
+            var ex = Assert.ThrowsAsync<NoHostAvailableException>(() => CreateSessionAsync("creds-v1-unreachable.zip"));
+            Assert.IsTrue(ex.Message.Contains("https://192.0.2.255:30443/metadata"), ex.Message);
+            Assert.IsTrue(ex.Message.Contains("There was an error fetching the metadata information"), ex.Message);
+        }
+
+        [Test]
+        public async Task Should_ContinueQuerying_When_ANodeGoesDown()
+        {
+            var session = await CreateSessionAsync(act: builder =>
+                builder.WithPoolingOptions(
+                           new PoolingOptions().SetHeartBeatInterval(50))
+                       .WithReconnectionPolicy(new ConstantReconnectionPolicy(40))
+                       .WithQueryOptions(new QueryOptions().SetDefaultIdempotence(true))).ConfigureAwait(false);
+
+            Assert.IsTrue(session.Cluster.AllHosts().All(h => h.IsUp));
+            var restarted = true;
+            var t = Task.Run(async () =>
+            {
+                TestCluster.Stop(1);
+                await Task.Delay(2000).ConfigureAwait(false);
+                TestCluster.Start(1);
+                await Task.Delay(500).ConfigureAwait(false);
+                try
+                {
+                    TestHelper.RetryAssert(
+                        () =>
+                        {
+                            var dict = Session.Cluster.Metadata.TokenToReplicasMap.GetByKeyspace("system_distributed");
+                            Assert.AreEqual(3, dict.First().Value.Count);
+                            Assert.AreEqual(3, Session.Cluster.AllHosts().Count);
+                            Assert.IsTrue(Session.Cluster.AllHosts().All(h => h.IsUp));
+                        },
+                        20,
+                        500);
+                }
+                finally
+                {
+                    Volatile.Write(ref restarted, true);
+                }
+            });
+
+            var t2 = Task.Run(async () =>
+            {
+                while (true)
+                {
+                    if (Volatile.Read(ref restarted))
+                    {
+                        return;
+                    }
+
+                    var tasks = new List<Task>();
+                    long counter = 0;
+                    foreach (var _ in Enumerable.Range(0, 32))
+                    {
+                        tasks.Add(Task.Run(async () =>
+                        {
+                            while (true)
+                            {
+                                var c = Interlocked.Increment(ref counter);
+                                if (c > 1000)
+                                {
+                                    return;
+                                }
+
+                                await session.ExecuteAsync(new SimpleStatement("SELECT key FROM system.local")).ConfigureAwait(false);
+                            }
+                        }));
+                    }
+
+                    await Task.WhenAll(tasks).ConfigureAwait(false);
+                }
+            });
+            await Task.WhenAll(t, t2).ConfigureAwait(false);
+        }
+
+        [Test]
+        public void Should_ThrowException_When_BundleDoesNotExist()
+        {
+            var ex = Assert.Throws<InvalidOperationException>(() => Dse.Cluster.Builder().WithCloudSecureConnectionBundle("does-not-exist.zip").Build());
+        }
+
+        [Test]
+        public async Task Should_NotSupportOverridingSslOptions()
+        {
+            var session = await CreateSessionAsync(act: b => b
+                    .WithSSL(
+                        new SSLOptions(SslProtocols.Tls12, true, (sender, certificate, chain, errors) => true)
+                            .SetCertificateCollection(Session.Cluster.Configuration.ProtocolOptions.SslOptions.CertificateCollection))).ConfigureAwait(false);
+            {
+                Assert.AreEqual(false, Session.Cluster.Configuration.ProtocolOptions.SslOptions.CheckCertificateRevocation);
+                Assert.AreEqual(false, session.Cluster.Configuration.ProtocolOptions.SslOptions.CheckCertificateRevocation);
+                Assert.AreEqual(Session.Cluster.Configuration.ProtocolOptions.SslOptions.SslProtocol, session.Cluster.Configuration.ProtocolOptions.SslOptions.SslProtocol);
+            }
+        }
+
+        [Test]
+        public void Should_SupportOverridingAuthProvider()
+        {
+            var cluster = CreateCluster(act: b => b.WithCredentials("user1", "12345678"));
+            Assert.AreEqual(typeof(PlainTextAuthProvider), cluster.Configuration.AuthProvider.GetType());
+            var provider = (PlainTextAuthProvider)cluster.Configuration.AuthProvider;
+            Assert.AreEqual("user1", provider.Username);
+        }
+
+        [Test]
+        public void Should_SupportLeavingAuthProviderUnset_When_ConfigJsonDoesNotHaveCredentials()
+        {
+            var cluster = CreateCluster("creds-v1-wo-creds.zip");
+            Assert.AreEqual(typeof(NoneAuthProvider), cluster.Configuration.AuthProvider.GetType());
+            Assert.IsNull(cluster.Configuration.AuthInfoProvider);
+        }
+
+        [Test]
+        public void Should_SetAuthProvider()
+        {
+            Assert.IsNotNull(Session.Cluster.Configuration.AuthProvider.GetType());
+            Assert.AreEqual(typeof(PlainTextAuthProvider), Session.Cluster.Configuration.AuthProvider.GetType());
+            var provider = (PlainTextAuthProvider)Session.Cluster.Configuration.AuthProvider;
+            Assert.AreEqual("cassandra", provider.Username);
+        }
+
+        [Test]
+        public async Task Should_MatchSystemLocalInformationOfEachNode()
+        {
+            const int port = 9042;
+            var session = await CreateSessionAsync(act: b => b.WithLoadBalancingPolicy(new RoundRobinPolicy())).ConfigureAwait(false);
+            var queriedHosts = new HashSet<IPAddress>();
+            foreach (var i in Enumerable.Range(0, 3))
+            {
+                var rs = await session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local")).ConfigureAwait(false);
+                var row = rs.First();
+                var host = session.Cluster.GetHost(new IPEndPoint(rs.Info.QueriedHost.Address, rs.Info.QueriedHost.Port));
+                Assert.IsNotNull(host);
+                queriedHosts.Add(rs.Info.QueriedHost.Address);
+                Assert.AreEqual(host.HostId, row.GetValue<Guid>("host_id"));
+                Assert.AreEqual(host.Address, new IPEndPoint(row.GetValue<IPAddress>("rpc_address"), port));
+            }
+
+            Assert.AreEqual(3, queriedHosts.Count);
+        }
+
         [Test]
         public async Task Should_HaveTwoRows_When_QueryingSystemPeers()
         {
@@ -96,7 +254,7 @@ namespace Dse.Test.Integration.Cloud
             for (var i = 1; i < 10; i++)
             {
                 //The partition key is wrongly calculated
-                var statement = new SimpleStatement(String.Format("INSERT INTO " + policyTestTools.TableName + " (k, i) VALUES ({0}, {0})", i))
+                var statement = new SimpleStatement(string.Format("INSERT INTO " + policyTestTools.TableName + " (k, i) VALUES ({0}, {0})", i))
                                 .EnableTracing();
                 var rs = Session.Execute(statement);
                 traces.Add(rs.Info.QueryTrace);
@@ -112,25 +270,66 @@ namespace Dse.Test.Integration.Cloud
         [Test]
         public void Should_ThrowSslException_When_ClientCertIsNotProvided()
         {
-            var ex = Assert.ThrowsAsync<DriverInternalError>(() => CreateSessionAsync(false));
+            var ex = Assert.ThrowsAsync<NoHostAvailableException>(() => CreateSessionAsync("creds-v1-wo-cert.zip"));
             AssertIsSslError(ex);
         }
 
-        private void AssertIsSslError(DriverInternalError ex)
+        [Test]
+        public void Should_ThrowSslException_When_CaMismatch()
         {
-#if NETCOREAPP2_0
+            var ex = Assert.ThrowsAsync<NoHostAvailableException>(() => CreateSessionAsync("creds-v1-invalid-ca.zip"));
+            AssertCaMismatchSslError(ex);
+        }
+
+        [Test]
+        public void Should_ParseBundleCorrectly_When_BundlePathIsProvided()
+        {
+            var scb = new SecureConnectionBundleParser()
+                .ParseBundle(
+                    Path.Combine(
+                        ((CloudCluster)TestCluster).SniHomeDirectory,
+                        "certs",
+                        "bundles",
+                        "creds-v1.zip"));
+
+            Assert.IsNotNull(scb.CaCert);
+            Assert.IsNotNull(scb.ClientCert);
+            Assert.IsFalse(string.IsNullOrWhiteSpace(scb.Config.CertificatePassword));
+            Assert.IsTrue(scb.ClientCert.HasPrivateKey);
+            Assert.AreEqual(30443, scb.Config.Port);
+            Assert.AreEqual("cassandra", scb.Config.Password);
+            Assert.AreEqual("cassandra", scb.Config.Username);
+            Assert.AreEqual("localhost", scb.Config.Host);
+        }
+
+        private void AssertCaMismatchSslError(NoHostAvailableException ex)
+        {
+#if NETCOREAPP2_1
             var ex2 = ex.InnerException;
             Assert.IsTrue(ex2 is HttpRequestException, ex2.ToString());
             var ex3 = ex2.InnerException;
-            if (TestHelper.IsWin)
+            Assert.IsTrue(ex2 is HttpRequestException, ex2.ToString());
+            Assert.IsTrue(ex2.Message.Contains("The SSL connection could not be established"), ex2.Message);
+#elif NET452
+            if (TestHelper.IsMono)
             {
-                Assert.IsTrue(ex3.Message.Contains("A security error occurred"), ex3.Message);
+                var ex2 = ex.InnerException;
+                Assert.IsTrue(ex2 is WebException, ex2.ToString());
+                Assert.IsTrue(ex2.Message.Contains("Authentication failed"), ex2.Message);
+                Assert.IsTrue(ex2.Message.Contains("TrustFailure"), ex2.Message);
             }
             else
             {
-                Assert.IsTrue(ex3.Message.Contains("Authentication failed"), ex3.Message);
+                var ex2 = ex.InnerException;
+                Assert.IsTrue(ex2 is WebException, ex2.ToString());
+                Assert.IsTrue(ex2.Message.Contains("Could not establish trust relationship for the SSL/TLS secure channel"), ex2.Message);
             }
-#elif NET452
+#endif
+        }
+
+        private void AssertIsSslError(NoHostAvailableException ex)
+        {
+#if NET452
             if (TestHelper.IsMono)
             {
                 var ex2 = ex.InnerException;
@@ -147,8 +346,77 @@ namespace Dse.Test.Integration.Cloud
 #else
             var ex2 = ex.InnerException;
             Assert.IsTrue(ex2 is HttpRequestException, ex2.ToString());
+
+            // SocketsHttpHandler
             Assert.IsTrue(ex2.Message.Contains("The SSL connection could not be established"), ex2.Message);
 #endif
+        }
+        
+        [Test]
+        public void Dse_Should_ThrowException_When_BundleDoesNotExist()
+        {
+            var ex = Assert.Throws<InvalidOperationException>(() => Dse.DseCluster.Builder().WithCloudSecureConnectionBundle("does-not-exist.zip").Build());
+        }
+
+        [Test]
+        public async Task Dse_Should_NotSupportOverridingSslOptions()
+        {
+            var session = await CreateDseSessionAsync(act: b => b
+                    .WithSSL(
+                        new SSLOptions(SslProtocols.Tls12, true, (sender, certificate, chain, errors) => true)
+                            .SetCertificateCollection(Session.Cluster.Configuration.ProtocolOptions.SslOptions.CertificateCollection))).ConfigureAwait(false);
+            {
+                Assert.AreEqual(false, Session.Cluster.Configuration.ProtocolOptions.SslOptions.CheckCertificateRevocation);
+                Assert.AreEqual(false, session.Cluster.Configuration.ProtocolOptions.SslOptions.CheckCertificateRevocation);
+                Assert.AreEqual(Session.Cluster.Configuration.ProtocolOptions.SslOptions.SslProtocol, session.Cluster.Configuration.ProtocolOptions.SslOptions.SslProtocol);
+            }
+        }
+
+        [Test]
+        public void Dse_Should_SupportOverridingAuthProvider()
+        {
+            var cluster = CreateDseCluster(act: b => b.WithCredentials("user1", "12345678"));
+            Assert.AreEqual(typeof(DsePlainTextAuthProvider), cluster.Configuration.CassandraConfiguration.AuthProvider.GetType());
+            var provider = (DsePlainTextAuthProvider)cluster.Configuration.CassandraConfiguration.AuthProvider;
+            Assert.AreEqual("user1", provider.Username);
+        }
+
+        [Test]
+        public void Dse_Should_SupportLeavingAuthProviderUnset_When_ConfigJsonDoesNotHaveCredentials()
+        {
+            var cluster = CreateDseCluster("creds-v1-wo-creds.zip");
+            Assert.AreEqual(typeof(NoneAuthProvider), cluster.Configuration.CassandraConfiguration.AuthProvider.GetType());
+            Assert.IsNull(cluster.Configuration.CassandraConfiguration.AuthInfoProvider);
+        }
+
+        [Test]
+        public void Dse_Should_SetAuthProvider()
+        {
+            var session = CreateDseSessionAsync().GetAwaiter().GetResult();
+            Assert.IsNotNull(session.Cluster.Configuration.AuthProvider.GetType());
+            Assert.AreEqual(typeof(PlainTextAuthProvider), session.Cluster.Configuration.AuthProvider.GetType());
+            var provider = (PlainTextAuthProvider)session.Cluster.Configuration.AuthProvider;
+            Assert.AreEqual("cassandra", provider.Username);
+        }
+
+        [Test]
+        public async Task Dse_Should_MatchSystemLocalInformationOfEachNode()
+        {
+            const int port = 9042;
+            var session = await CreateDseSessionAsync(act: b => b.WithLoadBalancingPolicy(new RoundRobinPolicy())).ConfigureAwait(false);
+            var queriedHosts = new HashSet<IPAddress>();
+            foreach (var i in Enumerable.Range(0, 3))
+            {
+                var rs = await session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local")).ConfigureAwait(false);
+                var row = rs.First();
+                var host = session.Cluster.GetHost(new IPEndPoint(rs.Info.QueriedHost.Address, rs.Info.QueriedHost.Port));
+                Assert.IsNotNull(host);
+                queriedHosts.Add(rs.Info.QueriedHost.Address);
+                Assert.AreEqual(host.HostId, row.GetValue<Guid>("host_id"));
+                Assert.AreEqual(host.Address, new IPEndPoint(row.GetValue<IPAddress>("rpc_address"), port));
+            }
+
+            Assert.AreEqual(3, queriedHosts.Count);
         }
     }
 }

@@ -14,28 +14,20 @@
 //   limitations under the License.
 //
 
-using System.Net;
+using System.IO;
 
-namespace Dse
+namespace Dse.Cloud
 {
     /// <summary>
-    /// This class contains properties related to the proxy when using SNI.
+    /// Parses the configuration data from the secure connection bundle.
     /// </summary>
-    internal class SniOptions
+    internal interface ICloudConfigurationParser
     {
-        public SniOptions(IPAddress ip, int port, string name)
-        {
-            Ip = ip;
-            Port = port;
-            Name = name;
-        }
-
-        public IPAddress Ip { get; }
-
-        public string Name { get; }
-
-        public int Port { get; }
-
-        public bool IsIp => Ip != null;
+        /// <summary>
+        /// Parses config.json file from the secure connection bundle.
+        /// </summary>
+        /// <param name="stream">Stream that contains the config.json data in text format</param>
+        /// <returns>Configuration object mapped from config.json</returns>
+        CloudConfiguration ParseConfig(Stream stream);
     }
 }

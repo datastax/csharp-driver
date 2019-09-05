@@ -683,6 +683,34 @@ namespace Dse
             return this;
         }
 
+        /// <summary>
+        /// <para>
+        /// Configures a DseCluster using the Cloud Secure Connection Bundle.
+        /// Using this method will configure this builder with specific contact points, SSL options, credentials and load balancing policy.
+        /// When needed, you can specify custom settings by calling other builder methods. 
+        /// </para>
+        /// <para>
+        /// In case you need to specify a different set of credentials from the one in the bundle, here is an example:
+        /// <code>
+        ///         DseCluster.Builder()
+        ///                   .WithCloudSecureConnectionBundle("/path/to/bundle.zip")
+        ///                   .WithCredentials("username", "password")
+        ///                   .Build();
+        /// </code>
+        /// </para>
+        /// <para>
+        /// <see cref="Build"/> will throw <see cref="InvalidOperationException"/> when an error occurs that is not related to
+        /// connectivity and <see cref="NoHostAvailableException"/> when an error occurs while trying to obtain the cluster metadata from the remote endpoint.
+        /// </para>
+        /// </summary>
+        /// <param name="bundlePath">Path of the secure connection bundle.</param>
+        /// <returns>A preconfigured builder ready for use.</returns>
+        public new DseClusterBuilder WithCloudSecureConnectionBundle(string bundlePath)
+        {
+            base.WithCloudSecureConnectionBundle(bundlePath);
+            return this;
+        }
+
         internal new DseClusterBuilder WithEndPointResolver(IEndPointResolver endPointResolver)
         {
             base.WithEndPointResolver(endPointResolver);

@@ -14,28 +14,18 @@
 //   limitations under the License.
 //
 
-using System.Net;
-
-namespace Dse
+namespace Dse.Cloud
 {
     /// <summary>
-    /// This class contains properties related to the proxy when using SNI.
+    /// Loads and parses the secure connection bundle.
     /// </summary>
-    internal class SniOptions
+    internal interface ISecureConnectionBundleParser
     {
-        public SniOptions(IPAddress ip, int port, string name)
-        {
-            Ip = ip;
-            Port = port;
-            Name = name;
-        }
-
-        public IPAddress Ip { get; }
-
-        public string Name { get; }
-
-        public int Port { get; }
-
-        public bool IsIp => Ip != null;
+        /// <summary>
+        /// Loads and parses the secure connection bundle (creds.zip)
+        /// </summary>
+        /// <param name="path">Path of the secure connection bundle file.</param>
+        /// <returns>The configuration object built from the provided bundle.</returns>
+        SecureConnectionBundle ParseBundle(string path);
     }
 }

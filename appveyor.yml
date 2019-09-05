@@ -23,6 +23,7 @@ install:
   - ps: choco install -y xmlstarlet
 
 build_script:
+  - ps: dotnet --info
   - ps: dotnet restore src
   - ps: dotnet build src\Dse.sln -c Release
 

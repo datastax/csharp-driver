@@ -1,14 +1,24 @@
-﻿// 
-//       Copyright (C) DataStax, Inc.
-// 
-//     Please see the license for details:
-//     http://www.datastax.com/terms/datastax-dse-driver-license-terms
-// 
+﻿//
+//      Copyright (C) DataStax Inc.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
 
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+
 using Dse.Test.Unit;
 
 namespace Dse.Test.Integration.TestClusterManagement
@@ -32,6 +42,8 @@ namespace Dse.Test.Integration.TestClusterManagement
         public string DefaultKeyspace { get; set; }
 
         public bool SniCertificateValidation { get; }
+
+        public string SniHomeDirectory { get; private set; }
 
         public CloudCluster(string name, string version, bool enableCert)
         {
@@ -91,12 +103,14 @@ namespace Dse.Test.Integration.TestClusterManagement
                 sniPath = @"powershell";
                 args = "\"& '" + oldSniPath + "'" + args + "\"";
             }
-            
-            if (envVars.ContainsKey("REQUIRE_CLIENT_CERTIFICATE")) 
+
+            if (envVars.ContainsKey("REQUIRE_CLIENT_CERTIFICATE"))
             {
                 args = @"-c ""export REQUIRE_CLIENT_CERTIFICATE=true && " + sniPath + "\"";
                 sniPath = "bash";
             }
+
+            SniHomeDirectory = fileInfo.Directory.FullName;
 
             ExecCommand(true, sniPath, args, envVars, fileInfo.Directory.FullName);
         }
@@ -108,17 +122,17 @@ namespace Dse.Test.Integration.TestClusterManagement
 
         public void Stop(int nodeIdToStop)
         {
-            throw new System.NotImplementedException();
+            ExecCcmCommand($"node{nodeIdToStop} stop");
         }
 
         public void Start(int nodeIdToStart, string additionalArgs = null)
         {
-            throw new System.NotImplementedException();
+            ExecCcmCommand($"node{nodeIdToStart} start --root --wait-for-binary-proto");
         }
 
         public void Start(string[] jvmArgs = null)
         {
-            throw new System.NotImplementedException();
+            ExecCcmCommand("start --root");
         }
 
         public void UpdateConfig(params string[] yamlChanges)
@@ -133,17 +147,27 @@ namespace Dse.Test.Integration.TestClusterManagement
 
         public void BootstrapNode(int nodeIdToStart, bool start = true)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public void SetNodeWorkloads(int nodeId, string[] workloads)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public void BootstrapNode(int nodeIdToStart, string dataCenterName, bool start = true)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
+        }
+
+        public void BootstrapNode(int nodeIdToStart)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void BootstrapNode(int nodeIdToStart, string dataCenterName)
+        {
+            throw new NotImplementedException();
         }
 
         public void DecommissionNode(int nodeId)
@@ -153,7 +177,7 @@ namespace Dse.Test.Integration.TestClusterManagement
 
         public void DecommissionNodeForcefully(int nodeId)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public void PauseNode(int nodeId)
@@ -168,13 +192,25 @@ namespace Dse.Test.Integration.TestClusterManagement
 
         public void SwitchToThisCluster()
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
+        }
+
+        private static void ExecCcmCommand(string ccmCmd)
+        {
+            if (TestHelper.IsWin)
+            {
+                ExecCommand(true, "powershell", $"-command \"docker ps -a -q --filter ancestor=single_endpoint | % {{ docker exec $_ ccm {ccmCmd} }}\"");
+            }
+            else
+            {
+                ExecCommand(true, "bash", $@"-c ""docker exec $(docker ps -a -q --filter ancestor=single_endpoint) ccm {ccmCmd}""");
+            }
         }
 
         private static ProcessOutput ExecCommand(bool throwOnProcessError, string executable, string args, IReadOnlyDictionary<string, string> envVars = null, string workDir = null)
         {
             Trace.TraceInformation($"{executable} {args}");
-            var output = CcmProcessExecuter.ExecuteProcess(executable, args, envVariables: envVars, workDir: workDir);
+            var output = CcmBridge.ExecuteProcess(executable, args, timeout: 300000, envVariables: envVars, workDir: workDir);
 
             if (!throwOnProcessError)
             {

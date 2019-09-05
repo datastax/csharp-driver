@@ -129,13 +129,13 @@ namespace Dse.Test.Integration
                 }
             }
         }
-
+        
         protected virtual void CreateCommonSession()
         {
             Cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
-                .WithQueryTimeout(60000)
-                .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000))
-                .Build();
+                             .WithQueryTimeout(60000)
+                             .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000))
+                             .Build();
             Session = (Session)Cluster.Connect();
             Session.CreateKeyspace(KeyspaceName, null, false);
             Session.ChangeKeyspace(KeyspaceName);
@@ -175,6 +175,11 @@ namespace Dse.Test.Integration
             var cluster = builder.Build();
             ClusterInstances.Add(cluster);
             return cluster;
+        }
+
+        protected void SetBaseSession(ISession session)
+        {
+            Session = session;
         }
     }
 }

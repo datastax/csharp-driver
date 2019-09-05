@@ -65,10 +65,12 @@ build:
       export SNI_ENABLED="true"
       export SINGLE_ENDPOINT_PATH="${HOME}/proxy/run.sh"
       export SNI_CERTIFICATE_PATH="${HOME}/proxy/certs/client_key.pfx"
+      export SNI_CA_PATH="${HOME}/proxy/certs/root.crt"
       
       echo $SNI_ENABLED
       echo $SINGLE_ENDPOINT_PATH
       echo $SNI_CERTIFICATE_PATH
+      echo $SNI_CA_PATH
       
       ls "${HOME}/proxy/"
  
