@@ -68,7 +68,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Session_Keyspace_Does_Not_Exist_On_Connect_Throws()
         {
-            var localCluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build();
+            var localCluster = GetNewCluster();
             try
             {
                 var ex = Assert.Throws<InvalidQueryException>(() => localCluster.Connect("THIS_KEYSPACE_DOES_NOT_EXIST"));
@@ -83,7 +83,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Session_Keyspace_Empty_On_Connect()
         {
-            var localCluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build();
+            var localCluster = GetNewCluster();
             try
             {
                 Assert.DoesNotThrow(() =>
@@ -101,7 +101,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Session_Keyspace_Does_Not_Exist_On_Change_Throws()
         {
-            var localCluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build();
+            var localCluster = GetNewCluster();
             try
             {
                 var localSession = localCluster.Connect();
@@ -117,9 +117,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Session_Keyspace_Connect_Case_Sensitive()
         {
-            var localCluster = Cluster.Builder()
-                .AddContactPoint(TestCluster.InitialContactPoint)
-                .Build();
+            var localCluster = GetNewCluster();
             try
             {
                 Assert.Throws<InvalidQueryException>(() => localCluster.Connect("SYSTEM"));
@@ -133,9 +131,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Session_Use_Statement_Changes_Keyspace()
         {
-            var localCluster = Cluster.Builder()
-                .AddContactPoint(TestCluster.InitialContactPoint)
-                .Build();
+            var localCluster = GetNewCluster();
             try
             {
                 var localSession = localCluster.Connect();
@@ -159,9 +155,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Session_Use_Statement_Changes_Keyspace_Case_Insensitive()
         {
-            var localCluster = Cluster.Builder()
-                .AddContactPoint(TestCluster.InitialContactPoint)
-                .Build();
+            var localCluster = GetNewCluster();
             try
             {
                 var localSession = localCluster.Connect();
@@ -185,9 +179,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Session_Keyspace_Create_Case_Sensitive()
         {
-            var localCluster = Cluster.Builder()
-                .AddContactPoint(TestCluster.InitialContactPoint)
-                .Build();
+            var localCluster = GetNewCluster();
             try
             {
                 var localSession = localCluster.Connect();
@@ -215,10 +207,11 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_Create_The_Right_Amount_Of_Connections()
         {
-            var localCluster1 = Cluster.Builder()
-                .AddContactPoint(TestCluster.InitialContactPoint)
-                .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 3))
-                .Build();
+            var localCluster1 = GetNewCluster(
+                builder => builder
+                    .WithPoolingOptions(
+                        new PoolingOptions()
+                            .SetCoreConnectionsPerHost(HostDistance.Local, 3)));
             Cluster localCluster2 = null;
             try
             {
@@ -372,7 +365,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public async Task Session_Disposed_On_Cluster()
         {
-            var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build();
+            var cluster = GetNewCluster();
             var session1 = cluster.Connect();
             var session2 = cluster.Connect();
             var isDown = 0;
@@ -471,7 +464,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Empty_RowSet_Test()
         {
-            var localCluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build();
+            var localCluster = GetNewCluster();
             var localSession = localCluster.Connect(KeyspaceName);
             localSession.Execute("CREATE TABLE test (k int PRIMARY KEY, v int)");
 

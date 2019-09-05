@@ -46,7 +46,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         [TestCase(false)]
         public void Should_UseDerivedProfileConsistency_When_DerivedProfileIsProvided(bool async)
         {
-            var cluster =
+            using (var cluster =
                 Cluster.Builder()
                        .AddContactPoint(_simulacron.InitialContactPoint)
                        .WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.One))
@@ -56,9 +56,10 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                             .WithConsistencyLevel(ConsistencyLevel.All))
                           .WithDerivedProfile("read", "write", derivedProfile => derivedProfile
                             .WithConsistencyLevel(ConsistencyLevel.Two)))
-                       .Build();
-            var session = cluster.Connect();
-            var primeQuery = new
+                       .Build())
+            {
+                var session = cluster.Connect();
+                var primeQuery = new
             {
                 when = new { query = "SELECT * from test.test", consistency_level = new[] { "TWO" } },
                 then = new
@@ -72,11 +73,12 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                     ignore_on_prepare = false
                 }
             };
-            _simulacron.Prime(primeQuery);
+                _simulacron.Prime(primeQuery);
 
-            var exception = async
-                ? Assert.ThrowsAsync<UnavailableException>(() => session.ExecuteAsync(new SimpleStatement("SELECT * from test.test"), "read"))
-                : Assert.Throws<UnavailableException>(() => session.Execute("SELECT * from test.test", "read"));
+                var exception = async
+                    ? Assert.ThrowsAsync<UnavailableException>(() => session.ExecuteAsync(new SimpleStatement("SELECT * from test.test"), "read"))
+                    : Assert.Throws<UnavailableException>(() => session.Execute("SELECT * from test.test", "read"));
+            }
         }
 
         [Test]
@@ -84,7 +86,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         [TestCase(false)]
         public async Task Should_UseProfileConsistency_When_ProfileIsProvided(bool async)
         {
-            var cluster =
+            using (var cluster =
                 Cluster.Builder()
                        .AddContactPoint(_simulacron.InitialContactPoint)
                        .WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.One))
@@ -94,29 +96,31 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                                 .WithConsistencyLevel(ConsistencyLevel.All))
                            .WithDerivedProfile("read", "write", derivedProfile => derivedProfile
                                 .WithConsistencyLevel(ConsistencyLevel.Two)))
-                       .Build();
-            var session = cluster.Connect();
-            var primeQuery = new
+                       .Build())
             {
-                when = new { query = "SELECT * from test.test", consistency_level = new[] { "TWO" } },
-                then = new
+                var session = cluster.Connect();
+                var primeQuery = new
                 {
-                    result = "success",
-                    delay_in_ms = 0,
-                    rows = new[] { "test6", "test5" }.Select(v => new { text = v }).ToArray(),
-                    column_types = new { text = "ascii" },
-                    ignore_on_prepare = false
-                }
-            };
-            _simulacron.Prime(primeQuery);
+                    when = new { query = "SELECT * from test.test", consistency_level = new[] { "TWO" } },
+                    then = new
+                    {
+                        result = "success",
+                        delay_in_ms = 0,
+                        rows = new[] { "test6", "test5" }.Select(v => new { text = v }).ToArray(),
+                        column_types = new { text = "ascii" },
+                        ignore_on_prepare = false
+                    }
+                };
+                _simulacron.Prime(primeQuery);
 
-            var rs = async
-                ? await session.ExecuteAsync(new SimpleStatement("SELECT * from test.test"), "read").ConfigureAwait(false)
-                : session.Execute("SELECT * from test.test", "read");
-            var rows = rs.ToList();
-            Assert.AreEqual(2, rows.Count);
-            Assert.AreEqual("test6", rows[0].GetValue<string>("text"));
-            Assert.AreEqual("test5", rows[1].GetValue<string>("text"));
+                var rs = async
+                    ? await session.ExecuteAsync(new SimpleStatement("SELECT * from test.test"), "read").ConfigureAwait(false)
+                    : session.Execute("SELECT * from test.test", "read");
+                var rows = rs.ToList();
+                Assert.AreEqual(2, rows.Count);
+                Assert.AreEqual("test6", rows[0].GetValue<string>("text"));
+                Assert.AreEqual("test5", rows[1].GetValue<string>("text"));
+            }
         }
 
         [Test]
@@ -124,7 +128,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         [TestCase(false)]
         public async Task Should_UseClusterConsistency_When_ProfileIsNotProvided(bool async)
         {
-            var cluster =
+            using (var cluster =
                 Cluster.Builder()
                        .AddContactPoint(_simulacron.InitialContactPoint)
                        .WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.One))
@@ -134,49 +138,51 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                                 .WithConsistencyLevel(ConsistencyLevel.All))
                           .WithDerivedProfile("read", "write", derivedProfile => derivedProfile
                                 .WithConsistencyLevel(ConsistencyLevel.Two)))
-                       .Build();
-            var session = cluster.Connect();
-
-            var primeQuery = new
+                       .Build())
             {
-                when = new { query = "SELECT * from test.test", consistency_level = new[] { "ONE" } },
-                then = new
-                {
-                    result = "success",
-                    delay_in_ms = 0,
-                    rows = new[] { "test10", "test60" }.Select(v => new { text = v }).ToArray(),
-                    column_types = new { text = "ascii" },
-                    ignore_on_prepare = false
-                }
-            };
-            _simulacron.Prime(primeQuery);
+                var session = cluster.Connect();
 
-            var secondPrimeQuery = new
-            {
-                when = new { query = "SELECT * from test.test", consistency_level = new[] { "TWO" } },
-                then = new
+                var primeQuery = new
                 {
-                    result = "unavailable",
-                    consistency_level = (int)ConsistencyLevel.Two,
-                    required = 2,
-                    alive = 1,
-                    delay_in_ms = 0,
-                    message = "unavailable",
-                    ignore_on_prepare = false
-                }
-            };
-            _simulacron.Prime(secondPrimeQuery);
+                    when = new { query = "SELECT * from test.test", consistency_level = new[] { "ONE" } },
+                    then = new
+                    {
+                        result = "success",
+                        delay_in_ms = 0,
+                        rows = new[] { "test10", "test60" }.Select(v => new { text = v }).ToArray(),
+                        column_types = new { text = "ascii" },
+                        ignore_on_prepare = false
+                    }
+                };
+                _simulacron.Prime(primeQuery);
 
-            var rs = async
-                ? await session.ExecuteAsync(new SimpleStatement("SELECT * from test.test")).ConfigureAwait(false)
-                : session.Execute("SELECT * from test.test");
-            var rows = rs.ToList();
-            Assert.AreEqual(2, rows.Count);
-            Assert.AreEqual("test10", rows[0].GetValue<string>("text"));
-            Assert.AreEqual("test60", rows[1].GetValue<string>("text"));
-            var exception = async
-                ? Assert.ThrowsAsync<UnavailableException>(() => session.ExecuteAsync(new SimpleStatement("SELECT * from test.test"), "read"))
-                : Assert.Throws<UnavailableException>(() => session.Execute("SELECT * from test.test", "read"));
+                var secondPrimeQuery = new
+                {
+                    when = new { query = "SELECT * from test.test", consistency_level = new[] { "TWO" } },
+                    then = new
+                    {
+                        result = "unavailable",
+                        consistency_level = (int)ConsistencyLevel.Two,
+                        required = 2,
+                        alive = 1,
+                        delay_in_ms = 0,
+                        message = "unavailable",
+                        ignore_on_prepare = false
+                    }
+                };
+                _simulacron.Prime(secondPrimeQuery);
+
+                var rs = async
+                    ? await session.ExecuteAsync(new SimpleStatement("SELECT * from test.test")).ConfigureAwait(false)
+                    : session.Execute("SELECT * from test.test");
+                var rows = rs.ToList();
+                Assert.AreEqual(2, rows.Count);
+                Assert.AreEqual("test10", rows[0].GetValue<string>("text"));
+                Assert.AreEqual("test60", rows[1].GetValue<string>("text"));
+                var exception = async
+                    ? Assert.ThrowsAsync<UnavailableException>(() => session.ExecuteAsync(new SimpleStatement("SELECT * from test.test"), "read"))
+                    : Assert.Throws<UnavailableException>(() => session.Execute("SELECT * from test.test", "read"));
+            }
         }
 
         [Test]
@@ -184,7 +190,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         [TestCase(false)]
         public async Task Should_UseDefaultProfileConsistency_When_ProfileIsNotProvidedButDefaultProfileWasChanged(bool async)
         {
-            var cluster =
+            using (var cluster =
                 Cluster.Builder()
                        .AddContactPoint(_simulacron.InitialContactPoint)
                        .WithQueryOptions(new QueryOptions().SetConsistencyLevel(ConsistencyLevel.One))
@@ -196,63 +202,65 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                                 .WithConsistencyLevel(ConsistencyLevel.Two))
                           .WithProfile("default", defaultProfile => defaultProfile
                                 .WithConsistencyLevel(ConsistencyLevel.Quorum)))
-                       .Build();
-            var session = cluster.Connect();
-
-            var primeQuery = new
+                       .Build())
             {
-                when = new { query = "SELECT * from test.test", consistency_level = new[] { "ONE" } },
-                then = new
-                {
-                    result = "success",
-                    delay_in_ms = 0,
-                    rows = new[] { "test10", "test60" }.Select(v => new { text = v }).ToArray(),
-                    column_types = new { text = "ascii" },
-                    ignore_on_prepare = false
-                }
-            };
-            _simulacron.Prime(primeQuery);
+                var session = cluster.Connect();
 
-            var secondPrimeQuery = new
-            {
-                when = new { query = "SELECT * from test.test", consistency_level = new[] { "TWO" } },
-                then = new
+                var primeQuery = new
                 {
-                    result = "success",
-                    delay_in_ms = 0,
-                    rows = new[] { "test12", "test62" }.Select(v => new { text = v }).ToArray(),
-                    column_types = new { text = "ascii" },
-                    ignore_on_prepare = false
-                }
-            };
-            _simulacron.Prime(secondPrimeQuery);
-            
-            var thirdPrimeQuery = new
-            {
-                when = new { query = "SELECT * from test.test", consistency_level = new[] { "QUORUM" } },
-                then = new
-                {
-                    result = "unavailable",
-                    consistency_level = (int)ConsistencyLevel.Two,
-                    required = 2,
-                    alive = 1,
-                    delay_in_ms = 0,
-                    message = "unavailable",
-                    ignore_on_prepare = false
-                }
-            };
-            _simulacron.Prime(thirdPrimeQuery);
+                    when = new { query = "SELECT * from test.test", consistency_level = new[] { "ONE" } },
+                    then = new
+                    {
+                        result = "success",
+                        delay_in_ms = 0,
+                        rows = new[] { "test10", "test60" }.Select(v => new { text = v }).ToArray(),
+                        column_types = new { text = "ascii" },
+                        ignore_on_prepare = false
+                    }
+                };
+                _simulacron.Prime(primeQuery);
 
-            var rs = async
-                ? await session.ExecuteAsync(new SimpleStatement("SELECT * from test.test"), "read").ConfigureAwait(false)
-                : session.Execute("SELECT * from test.test", "read");
-            var rows = rs.ToList();
-            Assert.AreEqual(2, rows.Count);
-            Assert.AreEqual("test12", rows[0].GetValue<string>("text"));
-            Assert.AreEqual("test62", rows[1].GetValue<string>("text"));
-            var exception = async
-                ? Assert.ThrowsAsync<UnavailableException>(() => session.ExecuteAsync(new SimpleStatement("SELECT * from test.test")))
-                : Assert.Throws<UnavailableException>(() => session.Execute("SELECT * from test.test"));
+                var secondPrimeQuery = new
+                {
+                    when = new { query = "SELECT * from test.test", consistency_level = new[] { "TWO" } },
+                    then = new
+                    {
+                        result = "success",
+                        delay_in_ms = 0,
+                        rows = new[] { "test12", "test62" }.Select(v => new { text = v }).ToArray(),
+                        column_types = new { text = "ascii" },
+                        ignore_on_prepare = false
+                    }
+                };
+                _simulacron.Prime(secondPrimeQuery);
+
+                var thirdPrimeQuery = new
+                {
+                    when = new { query = "SELECT * from test.test", consistency_level = new[] { "QUORUM" } },
+                    then = new
+                    {
+                        result = "unavailable",
+                        consistency_level = (int)ConsistencyLevel.Two,
+                        required = 2,
+                        alive = 1,
+                        delay_in_ms = 0,
+                        message = "unavailable",
+                        ignore_on_prepare = false
+                    }
+                };
+                _simulacron.Prime(thirdPrimeQuery);
+
+                var rs = async
+                    ? await session.ExecuteAsync(new SimpleStatement("SELECT * from test.test"), "read").ConfigureAwait(false)
+                    : session.Execute("SELECT * from test.test", "read");
+                var rows = rs.ToList();
+                Assert.AreEqual(2, rows.Count);
+                Assert.AreEqual("test12", rows[0].GetValue<string>("text"));
+                Assert.AreEqual("test62", rows[1].GetValue<string>("text"));
+                var exception = async
+                    ? Assert.ThrowsAsync<UnavailableException>(() => session.ExecuteAsync(new SimpleStatement("SELECT * from test.test")))
+                    : Assert.Throws<UnavailableException>(() => session.Execute("SELECT * from test.test"));
+            }
         }
     }
 }

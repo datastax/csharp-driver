@@ -582,6 +582,11 @@ namespace Cassandra.Connections
 
         private async Task CreateOrScheduleReconnectAsync(IReconnectionSchedule schedule)
         {
+            if (IsClosing)
+            {
+                return;
+            }
+
             try
             {
                 var t = await CreateOpenConnection(false, schedule != null).ConfigureAwait(false);

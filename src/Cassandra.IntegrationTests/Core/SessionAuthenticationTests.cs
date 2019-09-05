@@ -117,11 +117,12 @@ namespace Cassandra.IntegrationTests.Core
             Builder builder = Cluster.Builder()
                 .AddContactPoint(_testClusterForAuthTesting.InitialContactPoint)
                 .WithCredentials("cassandra", "cassandra");
-            Cluster cluster = builder.Build();
-
-            var session = cluster.Connect();
-            var rs = session.Execute("SELECT * FROM system.local");
-            Assert.Greater(rs.Count(), 0);
+            using (var cluster = builder.Build())
+            {
+                var session = cluster.Connect();
+                var rs = session.Execute("SELECT * FROM system.local");
+                Assert.Greater(rs.Count(), 0);
+            }
         }
 
         [Test]

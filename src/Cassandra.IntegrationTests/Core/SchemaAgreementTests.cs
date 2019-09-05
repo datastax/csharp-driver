@@ -78,5 +78,12 @@
             TestCluster.ResumeNode(2);
             TestUtils.WaitForSchemaAgreement(_cluster, false, true, MaxTestSchemaAgreementRetries);
         }
+        
+        public override void OneTimeTearDown()
+        {
+            _session.Dispose();
+            _cluster.Dispose();
+            base.OneTimeTearDown();
+        }
     }
 }

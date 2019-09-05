@@ -253,8 +253,16 @@ namespace Cassandra.Connections
             previousConnection.Dispose();
 
             var c = _config.ConnectionFactory.Create(_serializer, previousConnection.EndPoint, _config);
-            await c.Open().ConfigureAwait(false);
-            return c;
+            try
+            {
+                await c.Open().ConfigureAwait(false);
+                return c;
+            }
+            catch
+            {
+                c.Dispose();
+                throw;
+            }
         }
 
         private async void ReconnectEventHandler(object state)

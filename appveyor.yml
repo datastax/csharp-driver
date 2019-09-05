@@ -36,6 +36,9 @@ environment:
       CASSANDRA_VERSION: 2.2.7
       CI_TYPE: INTEGRATION
       PROJECT: Cassandra.IntegrationTests
+      
+# init:
+  # - ps: $blockRdp = $True; iex ((New-Object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 install:
   - ps: .\build\appveyor_install.ps1
