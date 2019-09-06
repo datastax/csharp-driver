@@ -1,7 +1,8 @@
 # Routing queries
 
-When using the `TokenAwarePolicy`, the driver uses the `RoutingKey` to determine which nodes is used as coordinator
-for a given statement.
+When using the `TokenAwarePolicy`, the driver uses the `RoutingKey` to determine which nodes is used as coordinator for a given statement.
+
+Note that the internal `TokenMap` must be up to date in order for this feature to work correctly. If metadata synchronization is enabled (which it is by default), then the driver will automatically keep it up to date. For more information on metadata synchronization, [check out this page](../metadata).
 
 ## Prepared statements 
 

@@ -16,10 +16,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.Responses;
@@ -155,11 +155,12 @@ namespace Cassandra.Requests
         /// </summary>
         private void Send(IRequest request, Action<Exception, Response> callback)
         {
-            var timeoutMillis = Timeout.Infinite;
-            if (_parent.Statement != null)
+            var timeoutMillis = _parent.RequestOptions.ReadTimeoutMillis;
+            if (_parent.Statement != null && _parent.Statement.ReadTimeoutMillis > 0)
             {
                 timeoutMillis = _parent.Statement.ReadTimeoutMillis;
             }
+
             _operation = _connection.Send(request, callback, timeoutMillis);
         }
 
@@ -201,10 +202,10 @@ namespace Cassandra.Requests
         {
             RequestExecution.ValidateResult(response);
             var resultResponse = (ResultResponse)response;
-            if (resultResponse.Output is OutputSchemaChange)
+            if (resultResponse.Output is OutputSchemaChange schemaChange)
             {
                 //Schema changes need to do blocking operations
-                HandleSchemaChange(resultResponse);
+                HandleSchemaChange(resultResponse, schemaChange);
                 return;
             }
             RowSet rs;
@@ -223,7 +224,7 @@ namespace Cassandra.Requests
             _parent.SetCompleted(null, FillRowSet(rs, resultResponse));
         }
 
-        private void HandleSchemaChange(ResultResponse response)
+        private void HandleSchemaChange(ResultResponse response, OutputSchemaChange schemaChange)
         {
             var result = FillRowSet(new RowSet(), response);
 
@@ -237,6 +238,16 @@ namespace Cassandra.Requests
                 {
                     var schemaAgreed = _session.Cluster.Metadata.WaitForSchemaAgreement(_connection);
                     result.Info.SetSchemaInAgreement(schemaAgreed);
+                    try
+                    {
+                        TaskHelper.WaitToComplete(
+                            _session.InternalCluster.GetControlConnection().HandleSchemaChangeEvent(schemaChange.SchemaChangeEventArgs, true),
+                            _session.Cluster.Configuration.ProtocolOptions.MaxSchemaAgreementWaitSeconds * 1000);
+                    }
+                    catch (TimeoutException)
+                    {
+                        RequestExecution.Logger.Warning("Schema refresh triggered by a SCHEMA_CHANGE response timed out.");
+                    }
                 });
         }
 
@@ -277,12 +288,13 @@ namespace Cassandra.Requests
             {
                 rs.Info.SetAchievedConsistency(request.Consistency);
             }
-            SetAutoPage(rs, _session, _parent.Statement);
+            SetAutoPage(rs, _session);
             return rs;
         }
 
-        private void SetAutoPage(RowSet rs, IInternalSession session, IStatement statement)
+        private void SetAutoPage(RowSet rs, IInternalSession session)
         {
+            var statement = _parent.Statement;
             rs.AutoPage = statement != null && statement.AutoPage;
             if (rs.AutoPage && rs.PagingState != null && _request is IQueryRequest)
             {
@@ -295,11 +307,10 @@ namespace Cassandra.Requests
                         return Task.FromResult(RowSet.Empty());
                     }
 
-                    var request = (IQueryRequest)_parent.BuildRequest(statement, _parent.Serializer,
-                        session.Cluster.Configuration);
+                    var request = (IQueryRequest)_parent.BuildRequest();
                     request.PagingState = pagingState;
-                    return _session.Configuration.RequestHandlerFactory.Create(session, _parent.Serializer, request, statement).SendAsync();
-                }, _session.Cluster.Configuration.ClientOptions.QueryAbortTimeout);
+                    return _session.Cluster.Configuration.RequestHandlerFactory.Create(session, _parent.Serializer, request, statement, _parent.RequestOptions).SendAsync();
+                }, _parent.RequestOptions.QueryAbortTimeout);
             }
         }
 
@@ -321,23 +332,23 @@ namespace Cassandra.Requests
                 _parent.SetNoMoreHosts(exception, this);
                 return;
             }
-            var c = _connection;
-            if (c != null)
+            var h = _host;
+            if (h != null)
             {
-                _triedHosts[c.Address] = ex;
+                _triedHosts[h.Address] = ex;
             }
             if (ex is OperationTimedOutException)
             {
                 RequestExecution.Logger.Warning(ex.Message);
                 var connection = _connection;
-                if (connection == null)
+                if (h == null || connection == null)
                 {
                     RequestExecution.Logger.Error("Host and Connection must not be null");
                 }
                 else
                 {
                     // Checks how many timed out operations are in the connection
-                    _session.CheckHealth(connection);
+                    _session.CheckHealth(h, connection);
                 }
             }
 
@@ -426,7 +437,7 @@ namespace Cassandra.Requests
         private void PrepareAndRetry(byte[] id)
         {
             RequestExecution.Logger.Info(
-                $"Query {BitConverter.ToString(id)} is not prepared on {_connection.Address}, preparing before retrying executing.");
+                $"Query {BitConverter.ToString(id)} is not prepared on {_connection.EndPoint.EndpointFriendlyName}, preparing before retrying executing.");
             BoundStatement boundStatement = null;
             if (_parent.Statement is BoundStatement statement1)
             {
@@ -442,7 +453,7 @@ namespace Cassandra.Requests
             {
                 throw new DriverInternalError("Expected Bound or batch statement");
             }
-            var request = new PrepareRequest(boundStatement.PreparedStatement.Cql);
+            var request = new InternalPrepareRequest(boundStatement.PreparedStatement.Cql);
             if (boundStatement.PreparedStatement.Keyspace != null && _session.Keyspace != boundStatement.PreparedStatement.Keyspace)
             {
                 RequestExecution.Logger.Warning("The statement was prepared using another keyspace, changing the keyspace temporarily to" +

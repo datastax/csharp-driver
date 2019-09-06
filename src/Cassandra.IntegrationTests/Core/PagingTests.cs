@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ namespace Cassandra.IntegrationTests.Core
     /// <summary>
     /// Validates that the Session.GetRequest (called within ExecuteAsync) method uses the paging size under different scenarios
     /// </summary>
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class PagingTests : SharedClusterTest
     {
         public override void OneTimeSetUp()

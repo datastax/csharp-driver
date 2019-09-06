@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.LinqTable
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class CreateTable : SharedClusterTest
     {
         ISession _session;
@@ -65,6 +65,20 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             table.Create();
             WriteReadValidate(table);
+        }
+        
+        [Test]
+        public void Should_CreateTable_WhenClusteringOrderAndCompactOptionsAreSet()
+        {
+            var config = new MappingConfiguration().Define(
+                new Map<Tweet>()
+                    .PartitionKey(a => a.TweetId)
+                    .ClusteringKey(a => a.AuthorId, SortOrder.Descending)
+                    .CompactStorage());
+            var table = new Table<Tweet>(_session, config);
+            table.Create();
+            table.ExecutePaged();
+            Assert.AreEqual(0, table.Execute().ToList().Count);
         }
 
         /// <summary>

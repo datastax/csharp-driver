@@ -1,5 +1,46 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.11.0
+
+2019-07-22
+
+### Features
+
+- [CSHARP-756] - ControlConnection init: Defer host map creation until system tables have been queried
+- [CSHARP-757] - Include host_id in host metadata
+- [CSHARP-779] - Separate socket endpoint from the host address using an endpoint resolver
+
+### Bug Fixes
+
+- [CSHARP-778] - NullReferenceException at Cassandra.Data.Linq.CqlExpressionVisitor.GetPropertyValue(MemberExpression node)
+- [CSHARP-781] - Linq2Cql GetTable() generates invalid create table when more than one option is specified
+- [CSHARP-784] - Driver is unable to correctly reestablish connection with previously decommissioned node
+
+## 3.10.1
+
+2019-06-17
+
+### Bug Fixes
+
+- [CSHARP-772] - Remove internal conversion of timestmap to DateTimeOffset
+- [CSHARP-777] - Invalid or unsupported protocol version (0)
+
+## 3.10.0
+
+2019-05-21
+
+### Features
+
+- [CSHARP-275] - Prevent duplicate metadata fetches from control connection and allow disabling schema metadata fetching
+- [CSHARP-763] - Introduce Execution Profiles in Mapper and LINQ APIs
+- [CSHARP-678] - Introduce Execution Profiles at Session Level
+- [CSHARP-424] - Allow UDT mappings to be defined for different keyspaces
+
+### Bug Fixes
+
+- [CSHARP-744] - LINQ and Mapper don't support empty column names
+- [CSHARP-766] - Cassandra Date is not mapped correct to LocalDate with some specfic values
+
 ## 3.9.0
 
 2019-04-02

@@ -42,7 +42,7 @@ namespace Cassandra.Tests
 
             // The name and version should be logged
             var message = listener.Messages.Values.First(m => m.Contains("Connecting to cluster using"));
-            StringAssert.IsMatch("DataStax .*Driver .*v\\d\\.\\d\\.\\d\\.\\d", message);
+            StringAssert.IsMatch("DataStax .*Driver .*v\\d+\\.\\d+\\.\\d+\\.\\d+", message);
         }
 
         [Test]
@@ -101,7 +101,7 @@ namespace Cassandra.Tests
             loggerHandler.Warning("Message 5 {0}", "Param4");
         }
 
-        private class TestTraceListener : TraceListener
+        internal class TestTraceListener : TraceListener
         {
             public readonly ConcurrentDictionary<int, string> Messages = new ConcurrentDictionary<int, string>();
 

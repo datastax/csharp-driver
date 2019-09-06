@@ -1,5 +1,5 @@
 ﻿// 
-//       Copyright (C) 2019 DataStax Inc.
+//       Copyright (C) DataStax Inc.
 // 
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 // 
 
 using System.Net;
+using Cassandra.Observers;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Serialization;
 
@@ -22,9 +23,14 @@ namespace Cassandra.Connections
 {
     internal class ConnectionFactory : IConnectionFactory
     {
-        public IConnection Create(Serializer serializer, IPEndPoint endpoint, Configuration configuration, IConnectionObserver connectionObserver)
+        public IConnection Create(Serializer serializer, IConnectionEndPoint endPoint, Configuration configuration, IConnectionObserver connectionObserver)
         {
-            return new Connection(serializer, endpoint, configuration, connectionObserver);
+            return new Connection(serializer, endPoint, configuration, connectionObserver);
+        }
+
+        public IConnection CreateWithoutMetrics(Serializer serializer, IConnectionEndPoint endPoint, Configuration configuration)
+        {
+            return Create(serializer, endPoint, configuration, new NullConnectionObserver());
         }
     }
 }

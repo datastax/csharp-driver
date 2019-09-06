@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
-    [Category("short"), TestCassandraVersion(2, 0)]
+    [Category("short"), Category("realcluster"), TestCassandraVersion(2, 0)]
     public class Take : SharedClusterTest
     {
         ISession _session = null;

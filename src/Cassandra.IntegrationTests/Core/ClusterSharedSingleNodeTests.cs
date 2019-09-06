@@ -10,7 +10,7 @@
 
     using NUnit.Framework;
 
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class ClusterSharedSingleNodeTests : SharedClusterTest
     {
         [Test]
@@ -82,14 +82,16 @@
         [Test]
         public void Cluster_Connect_With_Wrong_Keyspace_Name_Test()
         {
-            var cluster = Cluster.Builder()
-                                 .AddContactPoint(TestCluster.InitialContactPoint)
-                                 //using a keyspace that does not exists
-                                 .WithDefaultKeyspace("MY_WRONG_KEYSPACE")
-                                 .Build();
+            using (var cluster = Cluster.Builder()
+                                        .AddContactPoint(TestCluster.InitialContactPoint)
+                                        //using a keyspace that does not exists
+                                        .WithDefaultKeyspace("MY_WRONG_KEYSPACE")
+                                        .Build())
+            {
 
-            Assert.Throws<InvalidQueryException>(() => cluster.Connect());
-            Assert.Throws<InvalidQueryException>(() => cluster.Connect("ANOTHER_THAT_DOES_NOT_EXIST"));
+                Assert.Throws<InvalidQueryException>(() => cluster.Connect());
+                Assert.Throws<InvalidQueryException>(() => cluster.Connect("ANOTHER_THAT_DOES_NOT_EXIST"));
+            }
         }
 
         [Test]
@@ -110,11 +112,14 @@
             {
                 Assert.Ignore("Test uses localhost but contact point is not localhost");
             }
-            var cluster = Cluster.Builder()
-                                 .AddContactPoint("localhost")
-                                 .Build();
-            cluster.Connect("system");
-            Assert.AreEqual(contactPoint, cluster.AllHosts().First().Address.Address);
+
+            using (var cluster = Cluster.Builder()
+                                        .AddContactPoint("localhost")
+                                        .Build())
+            {
+                cluster.Connect("system");
+                Assert.AreEqual(contactPoint, cluster.AllHosts().First().Address.Address);
+            }
         }
     }
 }

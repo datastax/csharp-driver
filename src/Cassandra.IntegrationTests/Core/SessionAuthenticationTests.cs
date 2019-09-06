@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ namespace Cassandra.IntegrationTests.Core
     /// <summary>
     /// Test Cassandra Authentication.
     /// </summary>
-    [TestFixture, Category("short")]
+    [TestFixture, Category("short"), Category("realcluster")]
     public class SessionAuthenticationTests : TestGlobals
     {
         // Test cluster object to be shared by tests in this class only
@@ -117,11 +117,12 @@ namespace Cassandra.IntegrationTests.Core
             Builder builder = Cluster.Builder()
                 .AddContactPoint(_testClusterForAuthTesting.InitialContactPoint)
                 .WithCredentials("cassandra", "cassandra");
-            Cluster cluster = builder.Build();
-
-            var session = cluster.Connect();
-            var rs = session.Execute("SELECT * FROM system.local");
-            Assert.Greater(rs.Count(), 0);
+            using (var cluster = builder.Build())
+            {
+                var session = cluster.Connect();
+                var rs = session.Execute("SELECT * FROM system.local");
+                Assert.Greater(rs.Count(), 0);
+            }
         }
 
         [Test]

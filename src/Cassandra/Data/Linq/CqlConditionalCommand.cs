@@ -30,12 +30,9 @@ namespace Cassandra.Data.Linq
         /// <summary>
         /// Asynchronously executes a conditional query and returns information whether it was applied.
         /// </summary>
-        public new async Task<AppliedInfo<TEntity>> ExecuteAsync()
+        public new Task<AppliedInfo<TEntity>> ExecuteAsync()
         {
-            object[] values;
-            var cql = GetCql(out values);
-            var rs = await this.SendQuery(cql, values).ConfigureAwait(false);
-            return AppliedInfo<TEntity>.FromRowSet(_mapperFactory, cql, rs);
+            return ExecuteAsync(Configuration.DefaultExecutionProfileName);
         }
 
         /// <summary>
@@ -44,11 +41,45 @@ namespace Cassandra.Data.Linq
         /// <returns>An instance of AppliedInfo{TEntity}</returns>
         public new AppliedInfo<TEntity> Execute()
         {
-            var queryAbortTimeout = GetTable().GetSession().GetConfiguration()?.ClientOptions.QueryAbortTimeout ?? ClientOptions.DefaultQueryAbortTimeout;
-            var task = ExecuteAsync();
-            return TaskHelper.WaitToComplete(task, queryAbortTimeout);
+            return Execute(Configuration.DefaultExecutionProfileName);
         }
 
+        /// <summary>
+        /// Asynchronously executes a conditional query with the provided execution profile and returns information whether it was applied.
+        /// </summary>
+        public new async Task<AppliedInfo<TEntity>> ExecuteAsync(string executionProfile)
+        {
+            if (executionProfile == null)
+            {
+                throw new ArgumentNullException(nameof(executionProfile));
+            }
+            
+            object[] values;
+            var cql = GetCql(out values);
+            var session = GetTable().GetSession();
+            var stmt = await InternalRef.StatementFactory.GetStatementAsync(
+                session, 
+                Cql.New(cql, values).WithExecutionProfile(executionProfile)).ConfigureAwait(false);
+            this.CopyQueryPropertiesTo(stmt);
+            var rs = await session.ExecuteAsync(stmt, executionProfile).ConfigureAwait(false);
+            return AppliedInfo<TEntity>.FromRowSet(_mapperFactory, cql, rs);
+        }
+
+        /// <summary>
+        /// Executes a conditional query with the provided execution profile and returns information whether it was applied.
+        /// </summary>
+        /// <returns>An instance of AppliedInfo{TEntity}</returns>
+        public new AppliedInfo<TEntity> Execute(string executionProfile)
+        {
+            if (executionProfile == null)
+            {
+                throw new ArgumentNullException(nameof(executionProfile));
+            }
+            
+            var queryAbortTimeout = GetTable().GetSession().Cluster.Configuration.ClientOptions.QueryAbortTimeout;
+            return TaskHelper.WaitToComplete(ExecuteAsync(executionProfile), queryAbortTimeout);
+        }
+        
         public new CqlConditionalCommand<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)
         {
             base.SetConsistencyLevel(consistencyLevel);

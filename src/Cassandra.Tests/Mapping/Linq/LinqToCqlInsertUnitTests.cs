@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2017 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ namespace Cassandra.Tests.Mapping.Linq
         [Test]
         public void Insert_With_Nulls_Test()
         {
-            var table = new Table<InsertNullTable>(null, new MappingConfiguration());
+            var table = new Table<InsertNullTable>(GetSession((_,__) => {}), new MappingConfiguration());
             var row = new InsertNullTable { Key = 101, Value = null };
 
             var cqlInsert = table.Insert(row);
@@ -48,7 +48,7 @@ namespace Cassandra.Tests.Mapping.Linq
         [Test]
         public void Insert_Without_Nulls_Test()
         {
-            var table = new Table<InsertNullTable>(null, new MappingConfiguration());
+            var table = new Table<InsertNullTable>(GetSession((_,__) => {}), new MappingConfiguration());
             var row = new InsertNullTable { Key = 102, Value = null };
 
             var cqlInsert = table.Insert(row, false);
@@ -63,7 +63,7 @@ namespace Cassandra.Tests.Mapping.Linq
         [Test]
         public void Insert_Without_Nulls_With_Table_And_Keyspace_Name_Test()
         {
-            var table = new Table<InsertNullTable>(null, new MappingConfiguration(), "tbl1", "ks100");
+            var table = new Table<InsertNullTable>(GetSession((_,__) => {}), new MappingConfiguration(), "tbl1", "ks100");
             var row = new InsertNullTable { Key = 102, Value = null };
 
             var cqlInsert = table.Insert(row, false);
@@ -77,7 +77,7 @@ namespace Cassandra.Tests.Mapping.Linq
         [Test]
         public void Insert_Without_Nulls_With_Table_Test()
         {
-            var table = new Table<InsertNullTable>(null, new MappingConfiguration(), "tbl1");
+            var table = new Table<InsertNullTable>(GetSession((_,__) => {}), new MappingConfiguration(), "tbl1");
             var row = new InsertNullTable { Key = 110, Value = null };
 
             var cqlInsert = table.Insert(row, false);
@@ -91,7 +91,7 @@ namespace Cassandra.Tests.Mapping.Linq
         [Test]
         public void Insert_IfNotExists_Test()
         {
-            var table = SessionExtensions.GetTable<AllTypesDecorated>(null);
+            var table = SessionExtensions.GetTable<AllTypesDecorated>(GetSession((_,__) => {}));
             var uuid = Guid.NewGuid();
             var row = new AllTypesDecorated { Int64Value = 202, UuidValue = uuid};
 
@@ -105,7 +105,7 @@ namespace Cassandra.Tests.Mapping.Linq
         [Test]
         public void Insert_IfNotExists_With_Ttl_And_Timestamp_Test()
         {
-            var table = new Table<InsertNullTable>(null, new MappingConfiguration());
+            var table = new Table<InsertNullTable>(GetSession((_,__) => {}), new MappingConfiguration());
             var row = new InsertNullTable { Key = 103, Value = null };
 
             var timestamp = DateTimeOffset.UtcNow;
@@ -123,7 +123,7 @@ namespace Cassandra.Tests.Mapping.Linq
         [Test]
         public void Insert_IfNotExists_Without_Nulls_With_Timestamp_Test()
         {
-            var table = new Table<InsertNullTable>(null, new MappingConfiguration());
+            var table = new Table<InsertNullTable>(GetSession((_,__) => {}), new MappingConfiguration());
             var row = new InsertNullTable { Key = 104, Value = null };
 
             var timestamp = DateTimeOffset.UtcNow;

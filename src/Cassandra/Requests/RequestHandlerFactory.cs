@@ -1,5 +1,5 @@
 ﻿// 
-//       Copyright (C) 2019 DataStax Inc.
+//       Copyright (C) DataStax Inc.
 // 
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 //    limitations under the License.
 // 
 
+using Cassandra.ExecutionProfiles;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 
@@ -21,15 +22,15 @@ namespace Cassandra.Requests
 {
     internal class RequestHandlerFactory : IRequestHandlerFactory
     {
-        public IRequestHandler Create(IInternalSession session, Serializer serializer, IRequest request, IStatement statement)
+        public IRequestHandler Create(IInternalSession session, Serializer serializer, IRequest request, IStatement statement, IRequestOptions options)
         {
-            return new RequestHandler(session, serializer, request, statement);
+            return new RequestHandler(session, serializer, request, statement, options);
         }
 
         public IRequestHandler Create(
-            IInternalSession session, Serializer serializer, IStatement statement)
+            IInternalSession session, Serializer serializer, IStatement statement, IRequestOptions options)
         {
-            return new RequestHandler(session, serializer, statement);
+            return new RequestHandler(session, serializer, statement, options);
         }
 
         public IRequestHandler Create(IInternalSession session, Serializer serializer)

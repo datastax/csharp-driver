@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ namespace Cassandra
         UdtMappingDefinitions UserDefinedTypes { get; }
 
         /// <summary>
-        /// Begins asynchronous execute operation
+        /// Begins asynchronous execute operation.
         /// </summary>
         IAsyncResult BeginExecute(IStatement statement, AsyncCallback callback, object state);
 
@@ -136,6 +136,14 @@ namespace Cassandra
         /// Ends asynchronous prepare operation
         /// </summary>
         PreparedStatement EndPrepare(IAsyncResult ar);
+        
+        /// <summary>
+        /// Executes the provided statement with the provided execution profile.
+        /// The execution profile must have been added previously to the Cluster using <see cref="Builder.WithExecutionProfiles"/>.
+        /// </summary>
+        /// <param name="statement">Statement to execute.</param>
+        /// <param name="executionProfileName">ExecutionProfile name to be used while executing the statement.</param>
+        RowSet Execute(IStatement statement, string executionProfileName);
 
         /// <summary>
         /// Executes the provided query.
@@ -146,7 +154,15 @@ namespace Cassandra
         /// Executes the provided query.
         /// </summary>
         RowSet Execute(string cqlQuery);
-
+        
+        /// <summary>
+        /// Executes the provided query with the provided execution profile.
+        /// The execution profile must have been added previously to the Cluster using <see cref="Builder.WithExecutionProfiles"/>.
+        /// </summary>
+        /// <param name="cqlQuery">Query to execute.</param>
+        /// <param name="executionProfileName">ExecutionProfile name to be used while executing the statement.</param>
+        RowSet Execute(string cqlQuery, string executionProfileName);
+        
         /// <summary>
         /// Executes the provided query.
         /// </summary>
@@ -165,30 +181,40 @@ namespace Cassandra
         Task<RowSet> ExecuteAsync(IStatement statement);
 
         /// <summary>
+        /// Executes a query asynchronously with the provided execution profile.
+        /// The execution profile must have been added previously to the Cluster using <see cref="Builder.WithExecutionProfiles"/>.
+        /// </summary>
+        /// <param name="statement">The statement to execute (simple, bound or batch statement)</param>
+        /// <param name="executionProfileName">ExecutionProfile name to be used while executing the statement.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        Task<RowSet> ExecuteAsync(IStatement statement, string executionProfileName);
+
+        /// <summary>
         /// Prepares the provided query string.
         /// </summary>
         /// <param name="cqlQuery">cql query to prepare</param>
         PreparedStatement Prepare(string cqlQuery);
-
+        
         /// <summary>
         /// Prepares the query string, sending the custom payload request.
         /// </summary>
         /// <param name="cqlQuery">cql query to prepare</param>
         /// <param name="customPayload">Custom outgoing payload to send with the prepare request</param>
         PreparedStatement Prepare(string cqlQuery, IDictionary<string, byte[]> customPayload);
-
+        
         /// <summary>
         /// Prepares the provided query string asynchronously.
         /// </summary>
         /// <param name="cqlQuery">cql query to prepare</param>
         Task<PreparedStatement> PrepareAsync(string cqlQuery);
-
+        
         /// <summary>
         /// Prepares the provided query string asynchronously, and sending the custom payload request.
         /// </summary>
         /// <param name="cqlQuery">cql query to prepare</param>
         /// <param name="customPayload">Custom outgoing payload to send with the prepare request</param>
         Task<PreparedStatement> PrepareAsync(string cqlQuery, IDictionary<string, byte[]> customPayload);
+
         [Obsolete("Method deprecated. The driver internally waits for schema agreement when there is an schema change. See ProtocolOptions.MaxSchemaAgreementWaitSeconds for more info.")]
         void WaitForSchemaAgreement(RowSet rs);
         [Obsolete("Method deprecated. The driver internally waits for schema agreement when there is an schema change. See ProtocolOptions.MaxSchemaAgreementWaitSeconds for more info.")]

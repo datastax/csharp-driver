@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -84,17 +84,17 @@ namespace Cassandra.IntegrationTests.Core
             ITestCluster testCluster = TestClusterManager.GetNonShareableTestCluster(2);
             var cluster = testCluster.Cluster;
             //The control connection is connected to host 1
-            Assert.AreEqual(1, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.Address));
+            Assert.AreEqual(1, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.EndPoint.GetHostIpEndPointWithFallback()));
             testCluster.StopForce(1);
             Thread.Sleep(10000);
 
             //The control connection is still connected to host 1
-            Assert.AreEqual(1, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.Address));
+            Assert.AreEqual(1, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.EndPoint.GetHostIpEndPointWithFallback()));
             var t = cluster.Metadata.GetTable("system", "local");
             Assert.NotNull(t);
 
             //The control connection should be connected to host 2
-            Assert.AreEqual(2, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.Address));
+            Assert.AreEqual(2, TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.EndPoint.GetHostIpEndPointWithFallback()));
         }
 
         [Test]
@@ -157,7 +157,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
             };
             //The host not used by the control connection
-            int hostToKill = TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.Address);
+            int hostToKill = TestHelper.GetLastAddressByte(cluster.Metadata.ControlConnection.EndPoint.GetHostIpEndPointWithFallback());
             if (!useControlConnectionHost)
             {
                 hostToKill = hostToKill == 1 ? 2 : 1;

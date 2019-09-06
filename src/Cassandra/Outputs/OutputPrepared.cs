@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -30,6 +30,13 @@ namespace Cassandra
             QueryId = reader.ReadShortBytes();
 
             Metadata = new RowSetMetadata(reader, protocolVersion.SupportsPreparedPartitionKey());
+        }
+
+        // for testing
+        internal OutputPrepared(byte[] queryId, RowSetMetadata rowSetMetadata)
+        {
+            QueryId = queryId;
+            Metadata = rowSetMetadata;
         }
 
         public void Dispose()

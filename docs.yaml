@@ -29,21 +29,27 @@ links:
   - title: Nuget
     href:  https://www.nuget.org/packages/CassandraCSharpDriver
 api_docs:
-  3.0: http://docs.datastax.com/en/drivers/csharp/3.0
-  3.1: http://docs.datastax.com/en/drivers/csharp/3.1
-  3.2: http://docs.datastax.com/en/drivers/csharp/3.2
-  3.3: http://docs.datastax.com/en/drivers/csharp/3.3
-  3.4: http://docs.datastax.com/en/drivers/csharp/3.4
-  3.5: http://docs.datastax.com/en/drivers/csharp/3.5
-  3.6: http://docs.datastax.com/en/drivers/csharp/3.6
-  3.7: http://docs.datastax.com/en/drivers/csharp/3.7
-  3.8: http://docs.datastax.com/en/drivers/csharp/3.8
-  3.9: http://docs.datastax.com/en/drivers/csharp/3.9
+  '3.0': http://docs.datastax.com/en/drivers/csharp/3.0
+  '3.1': http://docs.datastax.com/en/drivers/csharp/3.1
+  '3.2': http://docs.datastax.com/en/drivers/csharp/3.2
+  '3.3': http://docs.datastax.com/en/drivers/csharp/3.3
+  '3.4': http://docs.datastax.com/en/drivers/csharp/3.4
+  '3.5': http://docs.datastax.com/en/drivers/csharp/3.5
+  '3.6': http://docs.datastax.com/en/drivers/csharp/3.6
+  '3.7': http://docs.datastax.com/en/drivers/csharp/3.7
+  '3.8': http://docs.datastax.com/en/drivers/csharp/3.8
+  '3.9': http://docs.datastax.com/en/drivers/csharp/3.9
+  '3.10': http://docs.datastax.com/en/drivers/csharp/3.10
+  '3.11': http://docs.datastax.com/en/drivers/csharp/3.11
 checks:
   external_links:
     exclude:
       - 'https://ci.appveyor.com/api/projects/status/ri1olv8bl7b7yk7y/branch/master?svg=true'
 versions:
+  - name: '3.11'
+    ref: '3.11'
+  - name: '3.10'
+    ref: '3.10'
   - name: '3.9'
     ref: '3.9'
   - name: '3.8'

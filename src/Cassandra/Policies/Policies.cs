@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -47,12 +47,22 @@ namespace Cassandra
                 return new ExponentialReconnectionPolicy(1000, 10 * 60 * 1000);
             }
         }
-
+        
         /// <summary>
-        ///  The default retry policy. <p> The default retry policy is
-        ///  <link>DefaultRetryPolicy</link>.</p>
+        ///  The default retry policy.The default retry policy is <see cref="Cassandra.DefaultRetryPolicy"/>
         /// </summary>
         public static IRetryPolicy DefaultRetryPolicy
+        {
+            get
+            {
+                return new DefaultRetryPolicy();
+            }
+        }
+        
+        /// <summary>
+        ///  The default extended retry policy.The default extended retry policy is <see cref="Cassandra.DefaultRetryPolicy"/>
+        /// </summary>
+        internal static IExtendedRetryPolicy DefaultExtendedRetryPolicy
         {
             get
             {
@@ -167,11 +177,8 @@ namespace Cassandra
         /// <param name="loadBalancingPolicy"> the load balancing policy to use. </param>
         /// <param name="reconnectionPolicy"> the reconnection policy to use. </param>
         /// <param name="retryPolicy"> the retry policy to use.</param>
-        public Policies(ILoadBalancingPolicy loadBalancingPolicy,
-                        IReconnectionPolicy reconnectionPolicy,
-                        IRetryPolicy retryPolicy)
-            : this(loadBalancingPolicy, reconnectionPolicy, retryPolicy, DefaultSpeculativeExecutionPolicy,
-                   DefaultTimestampGenerator)
+        public Policies(ILoadBalancingPolicy loadBalancingPolicy, IReconnectionPolicy reconnectionPolicy, IRetryPolicy retryPolicy)
+            : this(loadBalancingPolicy, reconnectionPolicy, retryPolicy, DefaultSpeculativeExecutionPolicy, DefaultTimestampGenerator)
         {
             //Part of the public API can not be removed
         }
@@ -187,16 +194,7 @@ namespace Cassandra
             _retryPolicy = retryPolicy ?? DefaultRetryPolicy;
             _speculativeExecutionPolicy = speculativeExecutionPolicy ?? DefaultSpeculativeExecutionPolicy;
             _timestampGenerator = timestampGenerator ?? DefaultTimestampGenerator;
-        }
-
-        /// <summary>
-        /// Sets the current policy as extended retry policy.
-        /// If the current policy is not <see cref="IExtendedRetryPolicy"/>, it creates a wrapper to delegate
-        /// the methods that were not implemented to a default policy.
-        /// </summary>
-        internal void InitializeRetryPolicy(ICluster cluster)
-        {
-            _extendedRetryPolicy = _retryPolicy.Wrap(null);
+            _extendedRetryPolicy = _retryPolicy.Wrap(DefaultExtendedRetryPolicy);
         }
     }
 }

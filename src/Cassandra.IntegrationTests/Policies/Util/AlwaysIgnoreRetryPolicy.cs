@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,9 +14,10 @@
 //   limitations under the License.
 //
 
+using System;
 namespace Cassandra.IntegrationTests.Policies.Util
 {
-    public class AlwaysIgnoreRetryPolicy : IRetryPolicy
+    public class AlwaysIgnoreRetryPolicy : IExtendedRetryPolicy
     {
         public static readonly AlwaysIgnoreRetryPolicy Instance = new AlwaysIgnoreRetryPolicy();
 
@@ -37,6 +38,11 @@ namespace Cassandra.IntegrationTests.Policies.Util
         }
 
         public RetryDecision OnUnavailable(IStatement query, ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry)
+        {
+            return RetryDecision.Ignore();
+        }
+
+        public RetryDecision OnRequestError(IStatement statement, Configuration config, Exception ex, int nbRetry)
         {
             return RetryDecision.Ignore();
         }

@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ namespace Cassandra.Connections
 
         private readonly Serializer _serializer;
         private readonly IStartupRequestFactory _startupRequestFactory;
-        private readonly TcpSocket _tcpSocket;
+        private readonly ITcpSocket _tcpSocket;
         private long _disposed;
 
         /// <summary>
@@ -110,7 +110,7 @@ namespace Cassandra.Connections
 
         public IFrameCompressor Compressor { get; set; }
 
-        public IPEndPoint Address => _tcpSocket.IPEndPoint;
+        public IConnectionEndPoint EndPoint => _tcpSocket.EndPoint;
 
         public IPEndPoint LocalAddress => _tcpSocket.GetLocalIpEndPoint();
 
@@ -178,17 +178,17 @@ namespace Cassandra.Connections
 
         public Configuration Configuration { get; set; }
 
-        public Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration, IConnectionObserver connectionObserver) :
-            this(serializer, endpoint, configuration, new StartupRequestFactory(configuration.StartupOptionsFactory), connectionObserver)
+        public Connection(Serializer serializer, IConnectionEndPoint endPoint, Configuration configuration, IConnectionObserver connectionObserver) :
+            this(serializer, endPoint, configuration, new StartupRequestFactory(configuration.StartupOptionsFactory), connectionObserver)
         {
         }
 
-        internal Connection(Serializer serializer, IPEndPoint endpoint, Configuration configuration, IStartupRequestFactory startupRequestFactory, IConnectionObserver connectionObserver)
+        internal Connection(Serializer serializer, IConnectionEndPoint endPoint, Configuration configuration, IStartupRequestFactory startupRequestFactory, IConnectionObserver connectionObserver)
         {
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
             Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _startupRequestFactory = startupRequestFactory ?? throw new ArgumentNullException(nameof(startupRequestFactory));
-            _tcpSocket = new TcpSocket(endpoint, configuration.SocketOptions, configuration.ProtocolOptions.SslOptions);
+            _tcpSocket = new TcpSocket(endPoint, configuration.SocketOptions, configuration.ProtocolOptions.SslOptions);
             _idleTimer = new Timer(IdleTimeoutHandler, null, Timeout.Infinite, Timeout.Infinite);
             _connectionObserver = connectionObserver;
         }
@@ -221,11 +221,11 @@ namespace Cassandra.Connections
                 if (Configuration.AuthInfoProvider == null)
                 {
                     throw new AuthenticationException(
-                        $"Host {Address} requires authentication, but no credentials provided in Cluster configuration",
-                        Address);
+                        $"Host {EndPoint.EndpointFriendlyName} requires authentication, but no credentials provided in Cluster configuration",
+                        EndPoint.GetHostIpEndPointWithFallback());
                 }
                 var credentialsProvider = Configuration.AuthInfoProvider;
-                var credentials = credentialsProvider.GetAuthInfos(Address);
+                var credentials = credentialsProvider.GetAuthInfos(EndPoint.GetHostIpEndPointWithFallback());
                 var request = new CredentialsRequest(credentials);
                 var response = await Send(request).ConfigureAwait(false);
                 if (!(response is ReadyResponse))
@@ -243,7 +243,7 @@ namespace Cassandra.Connections
                 ((IAuthProviderNamed)Configuration.AuthProvider).SetName(name);
             }
             //NewAuthenticator will throw AuthenticationException when NoneAuthProvider
-            var authenticator = Configuration.AuthProvider.NewAuthenticator(Address);
+            var authenticator = Configuration.AuthProvider.NewAuthenticator(EndPoint.GetHostIpEndPointWithFallback());
 
             var initialResponse = authenticator.InitialResponse() ?? new byte[0];
             return await Authenticate(initialResponse, authenticator).ConfigureAwait(false);
@@ -295,7 +295,7 @@ namespace Cassandra.Connections
                     Closing(this);
                 }
 
-                Connection.Logger.Info("Cancelling in Connection {0}, {1} pending operations and write queue {2}", Address,
+                Connection.Logger.Info("Cancelling in Connection {0}, {1} pending operations and write queue {2}", EndPoint.EndpointFriendlyName,
                     InFlight, _writeQueue.Count);
 
                 if (socketError != null)
@@ -566,7 +566,7 @@ namespace Cassandra.Connections
                         // There aren't enough bytes to read the header
                         break;
                     }
-                    Connection.Logger.Verbose("Received #{0} from {1}", header.StreamId, Address);
+                    Connection.Logger.Verbose("Received #{0} from {1}", header.StreamId, EndPoint.EndpointFriendlyName);
                     remainingBodyLength = header.BodyLength;
                 }
                 else
@@ -738,20 +738,22 @@ namespace Cassandra.Connections
             return Send(request, Configuration.SocketOptions.ConnectTimeoutMillis);
         }
 
-        /// <summary>
-        /// Sends a new request if possible. If it is not possible it queues it up.
-        /// </summary>
-        public Task<Response> Send(IRequest request, int timeoutMillis = Timeout.Infinite)
+        /// <inheritdoc />
+        public Task<Response> Send(IRequest request, int timeoutMillis)
         {
             var tcs = new TaskCompletionSource<Response>();
             Send(request, tcs.TrySet, timeoutMillis);
             return tcs.Task;
         }
+        
+        /// <inheritdoc />
+        public Task<Response> Send(IRequest request)
+        {
+            return Send(request, Configuration.DefaultRequestOptions.ReadTimeoutMillis);
+        }
 
-        /// <summary>
-        /// Sends a new request if possible and executes the callback when the response is parsed. If it is not possible it queues it up.
-        /// </summary>
-        public OperationState Send(IRequest request, Action<Exception, Response> callback, int timeoutMillis = Timeout.Infinite)
+        /// <inheritdoc />
+        public OperationState Send(IRequest request, Action<Exception, Response> callback, int timeoutMillis)
         {
             if (_isCanceled)
             {
@@ -772,6 +774,12 @@ namespace Cassandra.Connections
             _writeQueue.Enqueue(state);
             RunWriteQueue();
             return state;
+        }
+
+        /// <inheritdoc />
+        public OperationState Send(IRequest request, Action<Exception, Response> callback)
+        {
+            return Send(request, callback, Configuration.DefaultRequestOptions.ReadTimeoutMillis);
         }
 
         private void RunWriteQueue()
@@ -815,13 +823,14 @@ namespace Cassandra.Connections
                     Connection.Logger.Info("Enqueued, no streamIds available. If this message is recurrent consider configuring more connections per host or lower the pressure");
                     break;
                 }
-                Connection.Logger.Verbose("Sending #{0} for {1} to {2}", streamId, state.Request.GetType().Name, Address);
+                Connection.Logger.Verbose("Sending #{0} for {1} to {2}", streamId, state.Request.GetType().Name, EndPoint.EndpointFriendlyName);
                 if (_isCanceled)
                 {
                     state.InvokeCallback(new SocketException((int)SocketError.NotConnected));
                     break;
                 }
                 _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
+                var startLength = stream?.Length ?? 0; 
                 try
                 {
                     //lazy initialize the stream
@@ -843,6 +852,9 @@ namespace Cassandra.Connections
                     RemoveFromPending(streamId);
                     //Callback with the Exception
                     state.InvokeCallback(ex);
+
+                    //Reset the stream to before we started writing this frame
+                    stream?.SetLength(startLength);
                     break;
                 }
             }
@@ -877,8 +889,7 @@ namespace Cassandra.Connections
         /// <param name="streamId"></param>
         protected internal virtual OperationState RemoveFromPending(short streamId)
         {
-            OperationState state;
-            if (_pendingOperations.TryRemove(streamId, out state))
+            if (_pendingOperations.TryRemove(streamId, out var state))
             {
                 DecrementInFlight();
             }
@@ -915,8 +926,8 @@ namespace Cassandra.Connections
                     continue;
                 }
                 // CAS operation won, this is the only thread changing the keyspace
-                Connection.Logger.Info("Connection to host {0} switching to keyspace {1}", Address, value);
-                var request = new QueryRequest(_serializer.ProtocolVersion, string.Format("USE \"{0}\"", value), false, QueryProtocolOptions.Default);
+                Connection.Logger.Info("Connection to host {0} switching to keyspace {1}", EndPoint.EndpointFriendlyName, value);
+                var request = new QueryRequest(_serializer.ProtocolVersion, $"USE \"{value}\"", false, QueryProtocolOptions.Default);
                 Exception sendException = null;
                 try
                 {
@@ -939,12 +950,11 @@ namespace Cassandra.Connections
         private void OnTimeout(object stateObj)
         {
             var streamId = (short)stateObj;
-            OperationState state;
-            if (!_pendingOperations.TryGetValue(streamId, out state))
+            if (!_pendingOperations.TryGetValue(streamId, out var state))
             {
                 return;
             }
-            var ex = new OperationTimedOutException(Address, state.TimeoutMillis);
+            var ex = new OperationTimedOutException(EndPoint, state.TimeoutMillis);
             //Invoke if it hasn't been invoked yet
             //Once the response is obtained, we decrement the timed out counter
             var timedout = state.MarkAsTimedOut(ex, () => Interlocked.Decrement(ref _timedOutOperations));

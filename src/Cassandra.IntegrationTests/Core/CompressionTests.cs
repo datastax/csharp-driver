@@ -8,7 +8,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class CompressionTests : SharedClusterTest
     {
         [Test, TestTimeout(120000)]

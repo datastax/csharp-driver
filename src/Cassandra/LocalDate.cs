@@ -18,9 +18,8 @@ namespace Cassandra
         // unix epoch is represented by the number  2 ^ 31
         private const long DateCenter = 2147483648L;
         private const long DaysFromYear0ToUnixEpoch = 719528L;
-        private const int DaysIn4Years = 4 * 365 + 1;
-        private const int DaysIn100Years = 25 * DaysIn4Years - 1;
-        private const int DaysIn400Years = 4 * DaysIn100Years + 1;
+        // ReSharper disable once InconsistentNaming
+        private const long DaysFromYear0March1stToUnixEpoch = LocalDate.DaysFromYear0ToUnixEpoch - 60L;
         
         private static readonly Regex RegexInteger = new Regex("^-?\\d+$", RegexOptions.Compiled);
 
@@ -30,7 +29,7 @@ namespace Cassandra
         /// <summary>
         /// An unsigned integer representing days with epoch centered at 2^31 (unix epoch January 1st, 1970).
         /// </summary>
-        internal uint DaysSinceEpochCentered { get; private set; }
+        internal uint DaysSinceEpochCentered { get; }
 
         public int Day { get; set; }
 
@@ -45,47 +44,34 @@ namespace Cassandra
         internal LocalDate(uint days)
         {
             DaysSinceEpochCentered = days;
-            var d0 = Convert.ToInt64(days - DateCenter +  DaysFromYear0ToUnixEpoch);
-            var y400 = d0 / DaysIn400Years;
-            var d = d0 % DaysIn400Years;
-            var y100 = d / DaysIn100Years;
-            d %= DaysIn100Years;
-            var y4 = d / DaysIn4Years;
-            d %= DaysIn4Years;
-            //No risk of overflow
-            var year = Convert.ToInt32(y400*400 + y100*100 + y4*4);
-            var isLastMultipleOf4Leap = IsLeapYear(year);
-            if (d >= 0)
-            {
-                if (isLastMultipleOf4Leap)
-                {
-                    for (var i = 0; i < 3; i++)
-                    {
-                        var daysInYear = 365 + (i == 0 ? 1 : 0);
-                        if (d < daysInYear)
-                        {
-                            break;
-                        }
-                        d -= daysInYear;
-                        year++;
-                    }
-                }
-                else
-                {
-                    year += (int) Math.Floor(d/365D);
-                    d %= 365;
-                }
-                CalculateMonthDay(IsLeapYear(year), Convert.ToInt32(d));
-            }
-            else
-            {
-                year += (int)Math.Floor(d / 365D);
-                var isLeap = IsLeapYear(year);
-                //Days in the year - rest days to discount
-                var dayInYear = (isLeap ? 366 : 365) + Convert.ToInt32(d % 365);
-                CalculateMonthDay(isLeap, dayInYear);
-            }
-            Year = year;
+            InitializeFromDaysSinceEpoch(days - LocalDate.DateCenter);
+        }
+
+        /// <summary>
+        /// Port from https://github.com/HowardHinnant/date which is based on http://howardhinnant.github.io/date_algorithms.html
+        /// There's a good explanation of the algorithm over there.
+        /// </summary>
+        /// <param name="daysSinceEpoch">Days since Epoch (January 1st, 1970), can be negative.</param>
+        private void InitializeFromDaysSinceEpoch(long daysSinceEpoch)
+        {
+            var daysSinceShiftedEpoch = daysSinceEpoch + LocalDate.DaysFromYear0March1stToUnixEpoch;    // shift epoch from 1970-01-01 to 0000-03-01
+            var era =                                                                                   // compute era (400 year period)
+                (daysSinceShiftedEpoch >= 0 ? daysSinceShiftedEpoch : daysSinceShiftedEpoch - 146096) 
+                / 146097;                                          
+            
+            var dayOfEra = (daysSinceShiftedEpoch - era * 146097);                                      // [0, 146096]
+            var yearOfEra = (dayOfEra - dayOfEra/1460 + dayOfEra/36524 - dayOfEra/146096) / 365;        // [0, 399]
+            var dayOfYear = dayOfEra - (365*yearOfEra + yearOfEra/4 - yearOfEra/100);                   // [0, 365]
+            var monthInternal = (5*dayOfYear + 2)/153;                                                  // [0, 11]
+            var yearInternal = yearOfEra + era * 400;                                                   // beginning in Mar 1st, NOT in Jan 1st
+
+            var day = dayOfYear - (153*monthInternal+2)/5 + 1;                                          // [1, 31]
+            var monthCivil = monthInternal + (monthInternal < 10 ? 3 : -9);                             // [1, 12]
+            var yearCivil = yearInternal + (monthCivil <= 2 ? 1 : 0);                                   // shift to beginning in Jan 1st
+
+            Year = (int) yearCivil;
+            Month = (int) monthCivil;
+            Day = (int) day;
         }
 
         /// <summary>
@@ -117,33 +103,12 @@ namespace Cassandra
             Month = month;
             Day = day;
 
-            long value =
+            var value =
                 DaysSinceYearZero(year) +
                 DaysSinceJan1(year, month, day) -
                 DaysFromYear0ToUnixEpoch +
                 DateCenter + (year > 0 ? 1L : 0L);
             DaysSinceEpochCentered = Convert.ToUInt32(value);
-        }
-
-        private void CalculateMonthDay(bool isLeap, int dayInYear)
-        {
-            var daysToMonth = isLeap ? DaysToMonthLeap : DaysToMonth;
-            for (var i = 1; i < daysToMonth.Length; i++)
-            {
-                var toMonth = daysToMonth[i];
-                if (toMonth <= dayInYear)
-                {
-                    continue;
-                }
-                Month = i;
-                Day = Convert.ToInt32(dayInYear - daysToMonth[i - 1] + 1);
-                break;
-            }
-            if (Month == 0)
-            {
-                Month = 1;
-                Day = 1;
-            }
         }
 
         /// <summary>

@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,8 +15,15 @@
 //
 
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 using Cassandra.Connections;
+using Cassandra.ExecutionProfiles;
 using Cassandra.Observers.Abstractions;
+using Cassandra.Requests;
+using Cassandra.Serialization;
 
 namespace Cassandra.SessionManagement
 {
@@ -34,6 +41,23 @@ namespace Cassandra.SessionManagement
         /// Gets the the prepared statements cache
         /// </summary>
         ConcurrentDictionary<byte[], PreparedStatement> PreparedQueries { get; }
+
+        /// <summary>
+        /// Executes the prepare request on the first host selected by the load balancing policy.
+        /// When <see cref="QueryOptions.IsPrepareOnAllHosts"/> is enabled, it prepares on the rest of the hosts in
+        /// parallel.
+        /// In case the statement was already in the prepared statements cache, logs an warning but prepares it anyway.
+        /// </summary>
+        Task<PreparedStatement> Prepare(IInternalSession session, Serializer serializer, InternalPrepareRequest request);
+
+        Task<TSession> ConnectAsync<TSession>(ISessionFactory<TSession> sessionFactory, string keyspace)
+            where TSession : IInternalSession;
+
+        Task<bool> OnInitializeAsync();
+        
+        Task<bool> OnShutdownAsync(int timeoutMs = Timeout.Infinite);
+
+        IReadOnlyDictionary<string, IEnumerable<IPEndPoint>> GetResolvedEndpoints();
 
         /// <summary>
         /// Gets the cluster observer 

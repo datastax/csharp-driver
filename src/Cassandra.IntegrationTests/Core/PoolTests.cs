@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -147,7 +147,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     actions.Add(selectAction);
                     //Check that the control connection is using first host
-                    StringAssert.StartsWith(nonShareableTestCluster.ClusterIpPrefix + "1", nonShareableTestCluster.Cluster.Metadata.ControlConnection.Address.ToString());
+                    StringAssert.StartsWith(nonShareableTestCluster.ClusterIpPrefix + "1", nonShareableTestCluster.Cluster.Metadata.ControlConnection.EndPoint.GetHostIpEndPointWithFallback().ToString());
 
                     //Kill some nodes
                     //Including the one used by the control connection
@@ -199,7 +199,7 @@ namespace Cassandra.IntegrationTests.Core
                     Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "3:" + DefaultCassandraPort, queriedHosts);
                     Assert.Contains(nonShareableTestCluster.ClusterIpPrefix + "4:" + DefaultCassandraPort, queriedHosts);
                     //Check that the control connection is still using last host
-                    StringAssert.StartsWith(nonShareableTestCluster.ClusterIpPrefix + "4", nonShareableTestCluster.Cluster.Metadata.ControlConnection.Address.ToString());
+                    StringAssert.StartsWith(nonShareableTestCluster.ClusterIpPrefix + "4", nonShareableTestCluster.Cluster.Metadata.ControlConnection.EndPoint.GetHostIpEndPointWithFallback().ToString());
                 }
             }
         }

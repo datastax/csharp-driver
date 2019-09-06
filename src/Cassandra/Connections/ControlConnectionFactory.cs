@@ -1,5 +1,5 @@
 ﻿// 
-//       Copyright (C) 2019 DataStax Inc.
+//       Copyright (C) DataStax Inc.
 // 
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -14,13 +14,26 @@
 //    limitations under the License.
 // 
 
+using System.Collections.Generic;
+using Cassandra.ProtocolEvents;
+
 namespace Cassandra.Connections
 {
     internal class ControlConnectionFactory : IControlConnectionFactory
     {
-        public IControlConnection Create(ProtocolVersion initialProtocolVersion, Configuration config, Metadata metadata)
+        public IControlConnection Create(
+            IProtocolEventDebouncer protocolEventDebouncer, 
+            ProtocolVersion initialProtocolVersion, 
+            Configuration config, 
+            Metadata metadata,
+            IEnumerable<object> contactPoints)
         {
-            return new ControlConnection(initialProtocolVersion, config, metadata);
+            return new ControlConnection(
+                protocolEventDebouncer, 
+                initialProtocolVersion, 
+                config, 
+                metadata,
+                contactPoints);
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using Cassandra.Connections;
 using Cassandra.Observers;
 using Cassandra.Tasks;
 using Moq;
@@ -14,7 +15,7 @@ namespace Cassandra.Tests
     [TestFixture]
     public class SchemaParserTests
     {
-        private static SchemaParserV1 GetV1Instance(IMetadataQueryProvider cc)
+        private static SchemaParserV1 GetV1Instance(IControlConnection cc)
         {
             var metadata = new Metadata(new Configuration(), new ClusterObserver())
             {
@@ -24,7 +25,7 @@ namespace Cassandra.Tests
             return new SchemaParserV1(metadata);
         }
 
-        private static SchemaParserV2 GetV2Instance(IMetadataQueryProvider cc, Func<string, string, Task<UdtColumnInfo>> udtResolver = null)
+        private static SchemaParserV2 GetV2Instance(IControlConnection cc, Func<string, string, Task<UdtColumnInfo>> udtResolver = null)
         {
             var metadata = new Metadata(new Configuration(), new ClusterObserver())
             {
@@ -50,12 +51,12 @@ namespace Cassandra.Tests
         public void SchemaParserV1_GetKeyspace_Should_Return_Null_When_Not_Found()
         {
             const string ksName = "ks1";
-            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_keyspaces.*" + ksName), It.IsAny<bool>()))
                 .Returns(() => TaskHelper.ToTask(Enumerable.Empty<Row>()));
             var parser = GetV1Instance(queryProviderMock.Object);
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(ksName));
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync(ksName));
             Assert.Null(ks);
         }
 
@@ -70,12 +71,12 @@ namespace Cassandra.Tests
                 {"strategy_class", "Simple"},
                 {"strategy_options", "{\"replication_factor\": \"4\"}"}
             });
-            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_keyspaces.*" + ksName), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { row }));
             var parser = GetV1Instance(queryProviderMock.Object);
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(ksName));
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync(ksName));
             Assert.NotNull(ks);
             Assert.AreEqual(ksName, ks.Name);
             Assert.AreEqual(true, ks.DurableWrites);
@@ -132,7 +133,7 @@ namespace Cassandra.Tests
                 {"strategy_class", "Simple"},
                 {"strategy_options", "{\"replication_factor\": \"1\"}"}
             });
-            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_keyspaces.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
@@ -143,7 +144,7 @@ namespace Cassandra.Tests
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columns.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask(columnRows));
             var parser = GetV1Instance(queryProviderMock.Object);
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace("ks1"));
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync("ks1"));
             Assert.NotNull(ks);
             var table = ks.GetTableMetadata("ks_tbl_meta");
             Assert.True(table.Options.IsCompactStorage);
@@ -201,7 +202,7 @@ namespace Cassandra.Tests
                 {"strategy_class", "Simple"},
                 {"strategy_options", "{\"replication_factor\": \"1\"}"}
             });
-            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_keyspaces.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
@@ -212,7 +213,7 @@ namespace Cassandra.Tests
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columns.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask(columnRows));
             var parser = GetV1Instance(queryProviderMock.Object);
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace("ks1"));
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync("ks1"));
             Assert.NotNull(ks);
             var table = ks.GetTableMetadata("ks_tbl_meta");
             Assert.False(table.Options.IsCompactStorage);
@@ -251,7 +252,7 @@ namespace Cassandra.Tests
                 {"strategy_class", "Simple"},
                 {"strategy_options", "{\"replication_factor\": \"1\"}"}
             });
-            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_keyspaces.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
@@ -262,7 +263,7 @@ namespace Cassandra.Tests
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columns.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask(columnRows));
             var parser = GetV1Instance(queryProviderMock.Object);
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace("ks1"));
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync("ks1"));
             Assert.NotNull(ks);
             var table = ks.GetTableMetadata("ks_tbl_meta");
             Assert.False(table.Options.IsCompactStorage);
@@ -314,7 +315,7 @@ namespace Cassandra.Tests
             {
                 {"keyspace_name", "ks1"}, {"durable_writes", true}, {"strategy_class", "Simple"}, {"strategy_options", "{\"replication_factor\": \"1\"}"}
             });
-            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_keyspaces.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
@@ -325,7 +326,7 @@ namespace Cassandra.Tests
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columns.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<Row>));
             var parser = GetV1Instance(queryProviderMock.Object);
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace("ks1"));
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync("ks1"));
             Assert.NotNull(ks);
             var ex = Assert.Throws<ArgumentException>(() => ks.GetTableMetadata("ks_tbl_meta"));
             StringAssert.Contains("bloom_filter_fp_chance", ex.Message);
@@ -383,7 +384,7 @@ namespace Cassandra.Tests
             {
                 {"keyspace_name", "ks1"}, {"durable_writes", true}, {"strategy_class", "Simple"}, {"strategy_options", "{\"replication_factor\": \"1\"}"}
             });
-            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_keyspaces.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
@@ -394,7 +395,7 @@ namespace Cassandra.Tests
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columns.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { columnRow }));
             var parser = GetV1Instance(queryProviderMock.Object);
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace("ks1"));
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync("ks1"));
             Assert.NotNull(ks);
             var ex = Assert.Throws<ArgumentException>(() => ks.GetTableMetadata("ks_tbl_meta"));
             StringAssert.Contains("column_name", ex.Message);
@@ -407,7 +408,7 @@ namespace Cassandra.Tests
             {
                 {"keyspace_name", "ks1"}, {"durable_writes", true}, {"strategy_class", "Simple"}, {"strategy_options", "{\"replication_factor\": \"1\"}"}
             });
-            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_keyspaces.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
@@ -419,7 +420,7 @@ namespace Cassandra.Tests
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system\\.schema_columns.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TaskHelper.FromException<IEnumerable<Row>>(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>())));
             var parser = GetV1Instance(queryProviderMock.Object);
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace("ks1"));
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync("ks1"));
             Assert.NotNull(ks);
             Assert.Throws<NoHostAvailableException>(() => ks.GetTableMetadata("tbl1"));
         }
@@ -434,12 +435,12 @@ namespace Cassandra.Tests
                 {"durable_writes", true},
                 {"replication", new Dictionary<string, string>{{"class", "org.apache.cassandra.locator.SimpleStrategy"}, {"replication_factor", "2"}}},
             });
-            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.keyspaces.*" + ksName), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { row }));
             var parser = GetV2Instance(queryProviderMock.Object);
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace(ksName));
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync(ksName));
             Assert.NotNull(ks);
             Assert.AreEqual(ksName, ks.Name);
             Assert.AreEqual(true, ks.DurableWrites);
@@ -481,7 +482,7 @@ namespace Cassandra.Tests
             {
                 {"keyspace_name", "ks1"}, {"durable_writes", true}, {"replication", new SortedDictionary<string, string>{{"class", "org.apache.cassandra.locator.SimpleStrategy"}, {"replication_factor", "1"}}},
             });
-            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.keyspaces.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
@@ -495,7 +496,7 @@ namespace Cassandra.Tests
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.indexes.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<Row>()));
             var parser = GetV2Instance(queryProviderMock.Object);
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace("ks1"));
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync("ks1"));
             Assert.NotNull(ks);
             var table = ks.GetTableMetadata("ks_tbl_meta");
             Assert.False(table.Options.IsCompactStorage);
@@ -540,7 +541,7 @@ namespace Cassandra.Tests
                 {"keyspace_name", "ks1"}, {"durable_writes", true}, {"replication", new SortedDictionary<string, string>{{"class", "org.apache.cassandra.locator.SimpleStrategy"}, {"replication_factor", "1"}}},
             });
 
-            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.keyspaces.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
@@ -554,7 +555,7 @@ namespace Cassandra.Tests
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.indexes.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<Row>()));
             var parser = GetV2Instance(queryProviderMock.Object);
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace("ks1"));
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync("ks1"));
             Assert.NotNull(ks);
             var table = ks.GetTableMetadata("tbl4");
             Assert.False(table.Options.IsCompactStorage);
@@ -608,7 +609,7 @@ namespace Cassandra.Tests
             {
                 {"keyspace_name", "ks1"}, {"durable_writes", true}, {"replication", new Dictionary<string, string>{{"class", "org.apache.cassandra.locator.SimpleStrategy"}, {"replication_factor", "1"}}},
             });
-            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.keyspaces.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
@@ -622,7 +623,7 @@ namespace Cassandra.Tests
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.indexes.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] {indexRow}));
             var parser = GetV2Instance(queryProviderMock.Object);
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace("ks1"));
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync("ks1"));
             Assert.NotNull(ks);
             var table = ks.GetTableMetadata("tbl4");
             Assert.False(table.Options.IsCompactStorage);
@@ -646,7 +647,7 @@ namespace Cassandra.Tests
             {
                 {"keyspace_name", "ks1"}, {"durable_writes", true}, {"replication", new Dictionary<string, string>{{"class", "org.apache.cassandra.locator.SimpleStrategy"}, {"replication_factor", "1"}}},
             });
-            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.keyspaces.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { ksRow }));
@@ -661,7 +662,7 @@ namespace Cassandra.Tests
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_schema\\.indexes.*ks1"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask(Enumerable.Empty<Row>()));
             var parser = GetV2Instance(queryProviderMock.Object);
-            var ks = TaskHelper.WaitToComplete(parser.GetKeyspace("ks1"));
+            var ks = TaskHelper.WaitToComplete(parser.GetKeyspaceAsync("ks1"));
             Assert.NotNull(ks);
             Assert.Throws<NoHostAvailableException>(() => ks.GetTableMetadata("tbl1"));
         }
@@ -685,7 +686,7 @@ namespace Cassandra.Tests
                 {"source", IPAddress.Parse("192.168.1.100")},
                 {"thread", "thread name"}
             });
-            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.sessions"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { sessionRow }));
@@ -696,7 +697,7 @@ namespace Cassandra.Tests
             var queryTrace = GetQueryTrace();
             var parser = GetV1Instance(queryProviderMock.Object);
             var timer = new HashedWheelTimer();
-            var resultTrace = TaskHelper.WaitToComplete(parser.GetQueryTrace(queryTrace, timer));
+            var resultTrace = TaskHelper.WaitToComplete(parser.GetQueryTraceAsync(queryTrace, timer));
             Assert.AreSame(queryTrace, resultTrace);
             Assert.Greater(queryTrace.DurationMicros, 0);
             Assert.AreEqual("test query", queryTrace.RequestType);
@@ -708,7 +709,7 @@ namespace Cassandra.Tests
         [Test]
         public void SchemaParser_GetQueryTrace_When_First_QueryAsync_Fails_Exception_Should_Propagate()
         {
-            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.sessions"), It.IsAny<bool>()))
                 .Returns(() => TaskHelper.FromException<IEnumerable<Row>>(new Exception("Test exception")));
@@ -719,7 +720,7 @@ namespace Cassandra.Tests
             var queryTrace = GetQueryTrace();
             var parser = GetV1Instance(queryProviderMock.Object);
             var timer = new HashedWheelTimer();
-            var ex = Assert.Throws<Exception>(() => TaskHelper.WaitToComplete(parser.GetQueryTrace(queryTrace, timer)));
+            var ex = Assert.Throws<Exception>(() => TaskHelper.WaitToComplete(parser.GetQueryTraceAsync(queryTrace, timer)));
             Assert.AreEqual("Test exception", ex.Message);
             timer.Dispose();
         }
@@ -735,7 +736,7 @@ namespace Cassandra.Tests
                 {"parameters", null},
                 {"started_at", DateTimeOffset.Now}
             });
-            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.sessions"), It.IsAny<bool>()))
                 .Returns(() => TestHelper.DelayedTask<IEnumerable<Row>>(new[] { sessionRow }));
@@ -746,7 +747,7 @@ namespace Cassandra.Tests
             var queryTrace = GetQueryTrace();
             var parser = GetV1Instance(queryProviderMock.Object);
             var timer = new HashedWheelTimer();
-            var ex = Assert.Throws<Exception>(() => TaskHelper.WaitToComplete(parser.GetQueryTrace(queryTrace, timer)));
+            var ex = Assert.Throws<Exception>(() => TaskHelper.WaitToComplete(parser.GetQueryTraceAsync(queryTrace, timer)));
             Assert.AreEqual("Test exception 2", ex.Message);
             timer.Dispose();
         }
@@ -755,7 +756,7 @@ namespace Cassandra.Tests
         public void SchemaParser_GetQueryTrace_Should_Try_Multiple_Times_To_Get_The_Trace()
         {
             var counter = 0;
-            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.sessions"), It.IsAny<bool>()))
                 .Returns(() =>
@@ -776,7 +777,7 @@ namespace Cassandra.Tests
             var queryTrace = GetQueryTrace();
             var parser = GetV1Instance(queryProviderMock.Object);
             var timer = new HashedWheelTimer();
-            TaskHelper.WaitToComplete(parser.GetQueryTrace(queryTrace, timer));
+            TaskHelper.WaitToComplete(parser.GetQueryTraceAsync(queryTrace, timer));
             Assert.AreEqual(counter, 3);
             Assert.AreEqual("test query 3", queryTrace.RequestType);
             timer.Dispose();
@@ -786,7 +787,7 @@ namespace Cassandra.Tests
         public void SchemaParser_GetQueryTrace_Should_Not_Try_More_Than_Max_Attempts()
         {
             var counter = 0;
-            var queryProviderMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var queryProviderMock = new Mock<IControlConnection>(MockBehavior.Strict);
             queryProviderMock
                 .Setup(cc => cc.QueryAsync(It.IsRegex("system_traces\\.sessions"), It.IsAny<bool>()))
                 .Returns(() =>
@@ -808,7 +809,7 @@ namespace Cassandra.Tests
             var queryTrace = GetQueryTrace();
             var parser = GetV1Instance(queryProviderMock.Object);
             var timer = new HashedWheelTimer();
-            Assert.Throws<TraceRetrievalException>(() => TaskHelper.WaitToComplete(parser.GetQueryTrace(queryTrace, timer)));
+            Assert.Throws<TraceRetrievalException>(() => TaskHelper.WaitToComplete(parser.GetQueryTraceAsync(queryTrace, timer)));
             Assert.AreEqual(counter, 5);
             timer.Dispose();
         }

@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -59,17 +59,6 @@ namespace Cassandra.Data.Linq
                 return new BatchV2(session, batchType);
             }
             return new BatchV1(session, batchType);
-        }
-
-        internal static Configuration GetConfiguration(this ISession session)
-        {
-            Configuration config = null;
-            if (session is IInternalSession internalSession)
-            {
-                config = internalSession.Configuration;
-            }
-
-            return config;
         }
     }
 }

@@ -18,6 +18,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
+
+using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Registries;
 using Cassandra.Observers;
@@ -53,7 +55,8 @@ namespace Cassandra.Tests
                     It.IsAny<IRequest>()))
                 .Returns(Mock.Of<IRequestExecution>());
 
-            return new Configuration(new Policies(lbp, null, null),
+            return new Configuration(
+                new Policies(lbp, null, null),
                 new ProtocolOptions(),
                 null,
                 new SocketOptions(),
@@ -64,6 +67,10 @@ namespace Cassandra.Tests
                 new DefaultAddressTranslator(),
                 Mock.Of<IStartupOptionsFactory>(),
                 new SessionFactoryBuilder(),
+                new Dictionary<string, IExecutionProfile>(),
+                new RequestOptionsMapper(),
+                null,
+                null,
                 requestExecutionFactory: requestExecutionFactory);
         }
 

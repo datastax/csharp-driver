@@ -79,53 +79,6 @@ namespace Cassandra.Tests
                 Cluster.Builder().AddContactPoints(contactPoints).WithCredentials(null, null));
             Assert.That(ex.Message, Contains.Substring("username"));
         }
-
-        [Test]
-        public void AddContactPointsWithPortShouldHaveCorrectPort()
-        {
-            const string host1 = "127.0.0.1";
-            const string host2 = "127.0.0.2";
-
-            int port = new Random().Next(9000, 9999);
-            var builder = Cluster.Builder().AddContactPoint(host1).WithPort(port);
-            var cluster = builder.Build();
-            Assert.AreEqual(cluster.AllHosts().Last().Address.Port, port);
-
-            builder = Cluster.Builder().AddContactPoints(host1, host2).WithPort(port);
-            cluster = builder.Build();
-            Assert.True(cluster.AllHosts().All(h => h.Address.Port == port));
-        }
-
-        [Test]
-        public void AddContactPointsWithDefaultPort()
-        {
-            const string host1 = "127.0.0.1";
-            const string host2 = "127.0.0.2";
-
-            var builder = Cluster.Builder().AddContactPoint(host1);
-            var cluster = builder.Build();
-            Assert.AreEqual(ProtocolOptions.DefaultPort, cluster.AllHosts().Last().Address.Port);
-
-            builder = Cluster.Builder().AddContactPoints(host1, host2);
-            cluster = builder.Build();
-            Assert.True(cluster.AllHosts().All(h => h.Address.Port == ProtocolOptions.DefaultPort));
-        }
-
-        [Test]
-        public void AddContactPointsWithPortBeforeContactPoints()
-        {
-            const string host1 = "127.0.0.1";
-            const string host2 = "127.0.0.2";
-
-            const int port = 9999;
-            var builder = Cluster.Builder().WithPort(port).AddContactPoint(host1);
-            var cluster = builder.Build();
-            Assert.AreEqual(port, cluster.AllHosts().Last().Address.Port);
-
-            builder = Cluster.Builder().WithPort(port).AddContactPoints(host1, host2);
-            cluster = builder.Build();
-            Assert.True(cluster.AllHosts().All(h => h.Address.Port == port));
-        }
         
         [Test]
         public void Should_SetResolvedContactPoints_When_ClusterIsBuilt()
@@ -136,16 +89,16 @@ namespace Cassandra.Tests
             
             var builder = Cluster.Builder().AddContactPoints(host1, host2, host3);
             var cluster = builder.Build();
-            Assert.AreEqual(3, cluster.GetResolvedEndpoints().Count);
+            Assert.AreEqual(3, cluster.InternalRef.GetResolvedEndpoints().Count);
             CollectionAssert.AreEqual(
                 new[] { new IPEndPoint(IPAddress.Parse(host1), ProtocolOptions.DefaultPort) }, 
-                cluster.GetResolvedEndpoints()[host1]);
+                cluster.InternalRef.GetResolvedEndpoints()[host1]);
             CollectionAssert.AreEqual(
                 new[] { new IPEndPoint(IPAddress.Parse(host2), ProtocolOptions.DefaultPort) }, 
-                cluster.GetResolvedEndpoints()[host2]);
+                cluster.InternalRef.GetResolvedEndpoints()[host2]);
 
             var localhostAddress = new IPEndPoint(IPAddress.Parse("127.0.0.1"), ProtocolOptions.DefaultPort);
-            Assert.Contains(localhostAddress, cluster.GetResolvedEndpoints()[host3].ToList());
+            Assert.Contains(localhostAddress, cluster.InternalRef.GetResolvedEndpoints()[host3].ToList());
         }
 
         [Test]
@@ -222,9 +175,9 @@ namespace Cassandra.Tests
         public void Should_Throw_When_All_Contact_Points_Cant_Be_Resolved()
         {
             var ex = Assert.Throws<NoHostAvailableException>(() => Cluster.Builder()
-                                                                          .AddContactPoint("not-a-host")
-                                                                          .AddContactPoint("not-a-host2")
-                                                                          .Build());
+                .AddContactPoint("not-a-host")
+                .AddContactPoint("not-a-host2")
+                .Build());
             Assert.That(ex.Message, Is.EqualTo("No host name could be resolved, attempted: not-a-host, not-a-host2"));
         }
 

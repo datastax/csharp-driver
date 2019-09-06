@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
+using Cassandra.Connections;
 using Cassandra.Observers;
 using Cassandra.Observers.Abstractions;
 
@@ -76,6 +77,11 @@ namespace Cassandra
         public IPEndPoint Address { get; }
 
         /// <summary>
+        /// Gets the node's host id.
+        /// </summary>
+        public Guid HostId { get; private set; }
+
+        /// <summary>
         /// Tokens assigned to the host
         /// </summary>
         internal IEnumerable<string> Tokens { get; private set; }
@@ -113,7 +119,6 @@ namespace Cassandra
         // ReSharper disable once UnusedParameter.Local : Part of the public API
         public Host(IPEndPoint address, IReconnectionPolicy reconnectionPolicy) : this(address, new HostObserver())
         {
-
         }
 
         internal Host(IPEndPoint address, IHostObserver hostObserver)
@@ -185,6 +190,15 @@ namespace Cassandra
                 if (releaseVersion != null)
                 {
                     CassandraVersion = Version.Parse(releaseVersion.Split('-')[0]);
+                }
+            }
+
+            if (row.ContainsColumn("host_id"))
+            {
+                var nullableHostId = row.GetValue<Guid?>("host_id");
+                if (nullableHostId.HasValue)
+                {
+                    HostId = nullableHostId.Value;
                 }
             }
         }

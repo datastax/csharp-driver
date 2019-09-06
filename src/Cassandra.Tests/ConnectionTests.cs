@@ -24,7 +24,7 @@ namespace Cassandra.Tests
         {
             config = config ?? new Configuration();
             return new Mock<Connection>(
-                MockBehavior.Loose, new Serializer(ProtocolVersion.MaxSupported), Address, config, new ConnectionObserver());
+                MockBehavior.Loose, new Serializer(ProtocolVersion.MaxSupported), new ConnectionEndPoint(ConnectionTests.Address, null), config, new ConnectionObserver());
         }
 
         [Test]

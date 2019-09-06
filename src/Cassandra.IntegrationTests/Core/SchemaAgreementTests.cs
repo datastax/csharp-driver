@@ -6,7 +6,7 @@
 
     using NUnit.Framework;
 
-    [TestFixture, Category("short")]
+    [TestFixture, Category("short"), Category("realcluster")]
     public class SchemaAgreementTests : SharedClusterTest
     {
         public SchemaAgreementTests() : base(2, false, true)
@@ -77,6 +77,13 @@
         {
             TestCluster.ResumeNode(2);
             TestUtils.WaitForSchemaAgreement(_cluster, false, true, MaxTestSchemaAgreementRetries);
+        }
+        
+        public override void OneTimeTearDown()
+        {
+            _session.Dispose();
+            _cluster.Dispose();
+            base.OneTimeTearDown();
         }
     }
 }

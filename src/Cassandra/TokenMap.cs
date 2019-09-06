@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -57,7 +57,8 @@ namespace Cassandra
 
         public IReadOnlyDictionary<IToken, ISet<Host>> GetByKeyspace(string keyspaceName)
         {
-            return _tokenToHostsByKeyspace[keyspaceName];
+            _tokenToHostsByKeyspace.TryGetValue(keyspaceName, out var value);
+            return value;
         }
 
         public void UpdateKeyspace(KeyspaceMetadata ks)
@@ -90,12 +91,16 @@ namespace Cassandra
                     i = 0;
                 }
             }
+
             var closestToken = readOnlyRing[i];
             if (keyspaceName != null && _tokenToHostsByKeyspace.ContainsKey(keyspaceName))
             {
                 return _tokenToHostsByKeyspace[keyspaceName][closestToken];
             }
-            return new Host[] { _primaryReplicas[closestToken] };
+
+            TokenMap.Logger.Warning("An attempt to obtain the replicas for a specific token was made but the replicas collection " +
+                                    "wasn't computed for this keyspace: {0}. Returning the primary replica for the provided token.", keyspaceName);
+            return new[] { _primaryReplicas[closestToken] };
         }
 
         public static TokenMap Build(string partitioner, ICollection<Host> hosts, ICollection<KeyspaceMetadata> keyspaces)
@@ -190,9 +195,9 @@ namespace Cassandra
             tokenToHostsByKeyspace[ks.Name] = replicas;
         }
 
-        public void RemoveKeyspace(KeyspaceMetadata keyspaceMetadata)
+        public void RemoveKeyspace(string name)
         {
-            _tokenToHostsByKeyspace.TryRemove(keyspaceMetadata.Name, out _);
+            _tokenToHostsByKeyspace.TryRemove(name, out _);
         }
     }
 }

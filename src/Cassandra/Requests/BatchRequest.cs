@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Cassandra.ExecutionProfiles;
 using Cassandra.Serialization;
 
 namespace Cassandra.Requests
@@ -31,13 +32,14 @@ namespace Cassandra.Requests
         private readonly ICollection<IQueryRequest> _requests;
         private readonly BatchType _type;
         private readonly long? _timestamp;
-        private readonly ConsistencyLevel _serialConsistency;
+
+        internal ConsistencyLevel SerialConsistency { get; }
 
         public ConsistencyLevel Consistency { get; set; }
 
         public IDictionary<string, byte[]> Payload { get; set; }
 
-        public BatchRequest(ProtocolVersion protocolVersion, BatchStatement statement, ConsistencyLevel consistency, Configuration config)
+        public BatchRequest(ProtocolVersion protocolVersion, BatchStatement statement, ConsistencyLevel consistency, IRequestOptions requestOptions)
         {
             if (!protocolVersion.SupportsBatch())
             {
@@ -53,10 +55,10 @@ namespace Cassandra.Requests
                 _headerFlags = FrameHeader.HeaderFlag.Tracing;
             }
 
-            _serialConsistency = config.QueryOptions.GetSerialConsistencyLevelOrDefault(statement);
+            SerialConsistency = requestOptions.GetSerialConsistencyLevelOrDefault(statement);
             _batchFlags |= QueryProtocolOptions.QueryFlags.WithSerialConsistency;
 
-            _timestamp = GetRequestTimestamp(protocolVersion, statement, config.Policies);
+            _timestamp = BatchRequest.GetRequestTimestamp(protocolVersion, statement, requestOptions.TimestampGenerator);
             if (_timestamp != null)
             {
                 _batchFlags |= QueryProtocolOptions.QueryFlags.WithDefaultTimestamp;   
@@ -67,8 +69,7 @@ namespace Cassandra.Requests
         /// Gets the timestamp of the request or null if not defined.
         /// </summary>
         /// <exception cref="NotSupportedException" />
-        private static long? GetRequestTimestamp(ProtocolVersion protocolVersion, BatchStatement statement,
-                                                 Policies policies)
+        private static long? GetRequestTimestamp(ProtocolVersion protocolVersion, BatchStatement statement, ITimestampGenerator timestampGenerator)
         {
             if (!protocolVersion.SupportsTimestamp())
             {
@@ -83,7 +84,7 @@ namespace Cassandra.Requests
             {
                 return TypeSerializer.SinceUnixEpoch(statement.Timestamp.Value).Ticks / 10;
             }
-            var timestamp = policies.TimestampGenerator.Next();
+            var timestamp = timestampGenerator.Next();
             return timestamp != long.MinValue ? (long?) timestamp : null;
         }
 
@@ -113,7 +114,7 @@ namespace Cassandra.Requests
             if (protocolVersion.SupportsTimestamp())
             {
                 wb.WriteByte((byte) _batchFlags);
-                wb.WriteUInt16((ushort) _serialConsistency);
+                wb.WriteUInt16((ushort) SerialConsistency);
 
                 if (_timestamp != null)
                 {

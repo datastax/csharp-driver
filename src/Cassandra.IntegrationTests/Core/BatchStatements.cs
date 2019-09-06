@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class BatchStatements : SharedClusterTest
     {
         private readonly string _tableName = "tbl" + Guid.NewGuid().ToString("N").ToLower();

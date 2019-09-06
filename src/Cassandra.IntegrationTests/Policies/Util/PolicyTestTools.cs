@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -49,18 +49,18 @@ namespace Cassandra.IntegrationTests.Policies.Util
             CreateSchema(session, 1);
         }
 
-        public void CreateSchema(ISession session, int replicationFactor)
+        public void CreateSchema(ISession session, int replicationFactor, string keyspace = null)
         {
             try
             {
-                session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, DefaultKeyspace, replicationFactor));
+                session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspace ?? DefaultKeyspace, replicationFactor));
             }
             catch (AlreadyExistsException)
             {
             }
             TestUtils.WaitForSchemaAgreement(session.Cluster);
-            session.ChangeKeyspace(DefaultKeyspace);
-            session.Execute(String.Format("CREATE TABLE {0} (k int PRIMARY KEY, i int)", TableName));
+            session.ChangeKeyspace(keyspace ?? DefaultKeyspace);
+            session.Execute($"CREATE TABLE {TableName} (k int PRIMARY KEY, i int)");
             TestUtils.WaitForSchemaAgreement(session.Cluster);
         }
 

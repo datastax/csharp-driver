@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -37,17 +37,7 @@ namespace Cassandra.Data.Linq
                 dst.SetSerialConsistencyLevel(src.SerialConsistencyLevel);
             }
         }
-
-        internal static async Task<RowSet> SendQuery(this IInternalStatement baseStatement, string cqlQuery, params object[] values)
-        {
-            var table = baseStatement.GetTable();
-            var session = table.GetSession();
-            var cqlInstance = Cql.New(cqlQuery, values);
-            var statement = await baseStatement.StatementFactory.GetStatementAsync(session, cqlInstance).ConfigureAwait(false);
-            baseStatement.CopyQueryPropertiesTo(statement);
-            return await session.ExecuteAsync(statement).ConfigureAwait(false);
-        }
-
+        
         /// <summary>
         /// Projects each element of a sequence into a new form.
         /// </summary>

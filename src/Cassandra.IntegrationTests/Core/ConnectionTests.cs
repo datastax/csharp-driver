@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
+using Cassandra.ExecutionProfiles;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Registries;
@@ -41,7 +42,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestTimeout(600000), Category("short")]
+    [TestTimeout(600000), Category("short"), Category("realcluster")]
     public class ConnectionTests : TestGlobals
     {
         private const string BasicQuery = "SELECT key FROM system.local";
@@ -92,7 +93,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Open().Wait();
-                var request = new PrepareRequest(BasicQuery);
+                var request = new InternalPrepareRequest(BasicQuery);
                 var task = connection.Send(request);
                 task.Wait();
                 Assert.AreEqual(TaskStatus.RanToCompletion, task.Status);
@@ -106,7 +107,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var connection = CreateConnection())
             {
                 connection.Open().Wait();
-                var request = new PrepareRequest("SELECT WILL FAIL");
+                var request = new InternalPrepareRequest("SELECT WILL FAIL");
                 var task = connection.Send(request);
                 task.ContinueWith(t =>
                 {
@@ -125,7 +126,7 @@ namespace Cassandra.IntegrationTests.Core
                 connection.Open().Wait();
 
                 //Prepare a query
-                var prepareRequest = new PrepareRequest(BasicQuery);
+                var prepareRequest = new InternalPrepareRequest(BasicQuery);
                 var task = connection.Send(prepareRequest);
                 var prepareOutput = ValidateResult<OutputPrepared>(task.Result);
 
@@ -147,7 +148,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 connection.Open().Wait();
 
-                var prepareRequest = new PrepareRequest("SELECT * FROM system.local WHERE key = ?");
+                var prepareRequest = new InternalPrepareRequest("SELECT * FROM system.local WHERE key = ?");
                 var task = connection.Send(prepareRequest);
                 var prepareOutput = ValidateResult<OutputPrepared>(task.Result);
 
@@ -436,7 +437,11 @@ namespace Cassandra.IntegrationTests.Core
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
                 new StartupOptionsFactory(),
-                new SessionFactoryBuilder());
+                new SessionFactoryBuilder(),
+                new Dictionary<string, IExecutionProfile>(),
+                new RequestOptionsMapper(),
+                null,
+                null);
             using (var connection = CreateConnection(GetProtocolVersion(), config))
             {
                 var ex = Assert.Throws<AggregateException>(() => connection.Open().Wait(10000));
@@ -446,7 +451,7 @@ namespace Cassandra.IntegrationTests.Core
                     //So we throw a TimeoutException
                     StringAssert.IsMatch("SSL", ex.InnerException.Message);
                 }
-                else if (ex.InnerException is System.IO.IOException ||
+                else if (ex.InnerException is IOException ||
                          ex.InnerException.GetType().Name.Contains("Mono") ||
                          ex.InnerException is System.Security.Authentication.AuthenticationException)
                 {
@@ -631,13 +636,17 @@ namespace Cassandra.IntegrationTests.Core
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
                 new StartupOptionsFactory(),
-                new SessionFactoryBuilder());
-            using (var connection = new Connection(new Serializer(GetProtocolVersion()), new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042), config, new ConnectionObserver()))
+                new SessionFactoryBuilder(),
+                new Dictionary<string, IExecutionProfile>(),
+                new RequestOptionsMapper(),
+                null,
+                null);
+            using (var connection = new Connection(new Serializer(GetProtocolVersion()), config.EndPointResolver.GetOrResolveContactPointAsync(new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042)).Result.Single(), config, new ConnectionObserver()))
             {
                 var ex = Assert.Throws<SocketException>(() => TaskHelper.WaitToComplete(connection.Open()));
                 Assert.AreEqual(SocketError.TimedOut, ex.SocketErrorCode);
             }
-            using (var connection = new Connection(new Serializer(GetProtocolVersion()), new IPEndPoint(new IPAddress(new byte[] { 255, 255, 255, 255 }), 9042), config, new ConnectionObserver()))
+            using (var connection = new Connection(new Serializer(GetProtocolVersion()), config.EndPointResolver.GetOrResolveContactPointAsync(new IPEndPoint(new IPAddress(new byte[] { 255, 255, 255, 255 }), 9042)).Result.Single(), config, new ConnectionObserver()))
             {
                 Assert.Throws<SocketException>(() => TaskHelper.WaitToComplete(connection.Open()));
             }
@@ -835,14 +844,18 @@ namespace Cassandra.IntegrationTests.Core
                 new QueryOptions(),
                 new DefaultAddressTranslator(),
                 new StartupOptionsFactory(),
-                new SessionFactoryBuilder());
+                new SessionFactoryBuilder(),
+                new Dictionary<string, IExecutionProfile>(),
+                new RequestOptionsMapper(),
+                null,
+                null);
             return CreateConnection(GetProtocolVersion(), config);
         }
 
         private Connection CreateConnection(ProtocolVersion protocolVersion, Configuration config)
         {
             Trace.TraceInformation("Creating test connection using protocol v{0}", protocolVersion);
-            return new Connection(new Serializer(protocolVersion), new IPEndPoint(new IPAddress(new byte[] { 127, 0, 0, 1 }), 9042), config, new ConnectionObserver());
+            return new Connection(new Serializer(protocolVersion), config.EndPointResolver.GetOrResolveContactPointAsync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042)).Result.Single(), config, new ConnectionObserver());
         }
 
         private Task<Response> Query(Connection connection, string query, QueryProtocolOptions options = null)

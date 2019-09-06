@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Net;
 using Cassandra.Connections;
+using Cassandra.ExecutionProfiles;
 using Cassandra.Observers;
+using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.SessionManagement;
 using Moq;
@@ -18,10 +20,18 @@ namespace Cassandra.Tests
         {
             Diagnostics.CassandraTraceSwitch.Level = System.Diagnostics.TraceLevel.Info;
         }
+        
+        private IProtocolEventDebouncer GetEventDebouncer(Configuration config)
+        {
+            return new ProtocolEventDebouncer(
+                new TaskBasedTimerFactory(), 
+                TimeSpan.FromMilliseconds(config.MetadataSyncOptions.RefreshSchemaDelayIncrement), 
+                TimeSpan.FromMilliseconds(config.MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
+        }
 
         private ControlConnection NewInstance(Configuration config, Metadata metadata)
         {
-            return new ControlConnection(ProtocolVersion.MaxSupported, config, metadata);
+            return new ControlConnection(GetEventDebouncer(config), ProtocolVersion.MaxSupported, config, metadata, new List<object> { "127.0.0.1" });
         }
 
         private ControlConnection NewInstance(Metadata metadata)
@@ -39,7 +49,7 @@ namespace Cassandra.Tests
             {
                 { "cluster_name", "ut-cluster" }, { "data_center", "ut-dc" }, { "rack", "ut-rack" }, {"tokens", null}, {"release_version", "2.2.1-SNAPSHOT"}
             });
-            cc.UpdateLocalInfo(row);
+            cc.GetAndUpdateLocalHost(new ConnectionEndPoint(cc.Host.Address, null), row);
             Assert.AreEqual("ut-cluster", metadata.ClusterName);
             Assert.AreEqual("ut-dc", cc.Host.Datacenter);
             Assert.AreEqual("ut-rack", cc.Host.Rack);
@@ -60,7 +70,7 @@ namespace Cassandra.Tests
                 new Dictionary<string, object>{{"rpc_address", hostAddress2}, {"peer", null}, { "data_center", "ut-dc2" }, { "rack", "ut-rack2" }, {"tokens", null}, {"release_version", "2.1.5"}},
                 new Dictionary<string, object>{{"rpc_address", IPAddress.Parse("0.0.0.0")}, {"peer", hostAddress3}, { "data_center", "ut-dc3" }, { "rack", "ut-rack3" }, {"tokens", null}, {"release_version", "2.1.5"}}
             });
-            cc.UpdatePeersInfo(rows);
+            cc.UpdatePeersInfo(rows, cc.Host);
             Assert.AreEqual(3, metadata.AllHosts().Count);
             //using rpc_address
             var host2 = metadata.GetHost(new IPEndPoint(hostAddress2, ProtocolOptions.DefaultPort));
@@ -86,7 +96,7 @@ namespace Cassandra.Tests
             {
                 new Dictionary<string, object>{{"rpc_address", null}, {"peer", null}, { "data_center", "ut-dc2" }, { "rack", "ut-rack" }, {"tokens", null}, {"release_version", "2.2.1"}}
             });
-            cc.UpdatePeersInfo(rows);
+            cc.UpdatePeersInfo(rows, cc.Host);
             //Only local host present
             Assert.AreEqual(1, metadata.AllHosts().Count);
         }
@@ -112,7 +122,11 @@ namespace Cassandra.Tests
                  new QueryOptions(),
                  translatorMock.Object,
                  Mock.Of<IStartupOptionsFactory>(),
-                 new SessionFactoryBuilder());
+                 new SessionFactoryBuilder(),
+                 new Dictionary<string, IExecutionProfile>(),
+                 new RequestOptionsMapper(),
+                 null,
+                 null);
             var cc = NewInstance(config, metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);
@@ -123,7 +137,7 @@ namespace Cassandra.Tests
                 new Dictionary<string, object>{{"rpc_address", hostAddress2}, {"peer", null}, { "data_center", "ut-dc2" }, { "rack", "ut-rack2" }, {"tokens", null}},
                 new Dictionary<string, object>{{"rpc_address", IPAddress.Parse("0.0.0.0")}, {"peer", hostAddress3}, { "data_center", "ut-dc3" }, { "rack", "ut-rack3" }, {"tokens", null}}
             });
-            cc.UpdatePeersInfo(rows);
+            cc.UpdatePeersInfo(rows, cc.Host);
             Assert.AreEqual(3, metadata.AllHosts().Count);
             Assert.AreEqual(2, invokedEndPoints.Count);
             Assert.AreEqual(hostAddress2, invokedEndPoints[0].Address);

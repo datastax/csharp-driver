@@ -1,14 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using Cassandra.Connections;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Observers;
+using Cassandra.ProtocolEvents;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class ControlConnectionTests : TestGlobals
     {
         private const int InitTimeout = 2000;
@@ -24,7 +26,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_Use_Maximum_Protocol_Version_Supported()
         {
             var cc = NewInstance();
-            cc.Init().Wait(InitTimeout);
+            cc.InitAsync().Wait(InitTimeout);
             Assert.AreEqual(GetProtocolVersion(), cc.ProtocolVersion);
             cc.Dispose();
         }
@@ -39,7 +41,7 @@ namespace Cassandra.IntegrationTests.Core
                 version = ProtocolVersion.V3;
             }
             var cc = NewInstance(version);
-            cc.Init().Wait(InitTimeout);
+            cc.InitAsync().Wait(InitTimeout);
             Assert.AreEqual(version, cc.ProtocolVersion);
             cc.Dispose();
         }
@@ -50,7 +52,7 @@ namespace Cassandra.IntegrationTests.Core
             //Use a higher protocol version
             var version = (ProtocolVersion)(GetProtocolVersion() + 1);
             var cc = NewInstance(version);
-            cc.Init().Wait(InitTimeout);
+            cc.InitAsync().Wait(InitTimeout);
             Assert.AreEqual(version - 1, cc.ProtocolVersion);
         }
 
@@ -60,7 +62,7 @@ namespace Cassandra.IntegrationTests.Core
             // Use a non-existent higher protocol version
             var version = (ProtocolVersion)0x0f;
             var cc = NewInstance(version);
-            cc.Init().Wait(InitTimeout);
+            cc.InitAsync().Wait(InitTimeout);
             Assert.AreEqual(GetProtocolVersion(), cc.ProtocolVersion);
         }
 
@@ -75,9 +77,17 @@ namespace Cassandra.IntegrationTests.Core
                 metadata = new Metadata(config, new ClusterObserver());
                 metadata.AddHost(new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), ProtocolOptions.DefaultPort));
             }
-            var cc = new ControlConnection(version, config, metadata);
+            var cc = new ControlConnection(GetEventDebouncer(config), version, config, metadata, new List<object> { _testCluster.InitialContactPoint });
             metadata.ControlConnection = cc;
             return cc;
+        }
+
+        private IProtocolEventDebouncer GetEventDebouncer(Configuration config)
+        {
+            return new ProtocolEventDebouncer(
+                new TaskBasedTimerFactory(), 
+                TimeSpan.FromMilliseconds(config.MetadataSyncOptions.RefreshSchemaDelayIncrement), 
+                TimeSpan.FromMilliseconds(config.MetadataSyncOptions.MaxTotalRefreshSchemaDelay));
         }
     }
 }

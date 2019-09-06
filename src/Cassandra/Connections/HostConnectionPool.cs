@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2016 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -70,7 +70,7 @@ namespace Cassandra.Connections
         private readonly Serializer _serializer;
         private readonly CopyOnWriteList<IConnection> _connections = new CopyOnWriteList<IConnection>();
         private readonly HashedWheelTimer _timer;
-        private readonly object _allConnectionClosedEventLock = new object();
+        private readonly SemaphoreSlim _allConnectionClosedEventLock = new SemaphoreSlim(1, 1);
         private volatile IReconnectionSchedule _reconnectionSchedule;
         private volatile int _expectedConnectionLength;
         private volatile int _maxInflightThresholdToConsiderResizing;
@@ -114,11 +114,11 @@ namespace Cassandra.Connections
             _host = host;
             _host.Down += OnHostDown;
             _host.Up += OnHostUp;
-            _host.Remove += OnHostRemoved;
             _host.DistanceChanged += OnDistanceChanged;
             _config = config ?? throw new ArgumentNullException(nameof(config));
-            _maxRequestsPerConnection = config.GetPoolingOptions(serializer.ProtocolVersion)
-                                              .GetMaxRequestsPerConnection();
+            _maxRequestsPerConnection = config
+                                        .GetPoolingOptions(serializer.ProtocolVersion)
+                                        .GetMaxRequestsPerConnection();
             _serializer = serializer;
             _timer = config.Timer;
             _reconnectionSchedule = config.Policies.ReconnectionPolicy.NewSchedule();
@@ -127,19 +127,36 @@ namespace Cassandra.Connections
         }
 
         /// <inheritdoc />
-        public async Task<IConnection> BorrowConnection()
+        public async Task<IConnection> BorrowConnectionAsync()
         {
             var connections = await EnsureCreate().ConfigureAwait(false);
             if (connections.Length == 0)
             {
                 throw new DriverInternalError("No connection could be borrowed");
             }
+            
+            return BorrowLeastBusyConnection(connections);
+        }
+        
+        /// <inheritdoc />
+        public IConnection BorrowExistingConnection()
+        {
+            var connections = GetExistingConnections();
+            if (connections.Length == 0)
+            {
+                return null;
+            }
 
+            return BorrowLeastBusyConnection(connections);
+        }
+
+        private IConnection BorrowLeastBusyConnection(IConnection[] connections)
+        {
             var c = HostConnectionPool.MinInFlight(connections, ref _connectionIndex, _maxRequestsPerConnection, out var inFlight);
 
             if (inFlight >= _maxRequestsPerConnection)
             {
-                throw new BusyPoolException(c.Address, _maxRequestsPerConnection, connections.Length);
+                throw new BusyPoolException(_host.Address, _maxRequestsPerConnection, connections.Length);
             }
 
             ConsiderResizingPool(inFlight);
@@ -237,7 +254,6 @@ namespace Cassandra.Connections
             }
             _host.Up -= OnHostUp;
             _host.Down -= OnHostDown;
-            _host.Remove -= OnHostRemoved;
             _host.DistanceChanged -= OnDistanceChanged;
             var t = _resizingEndTimeout;
             if (t != null)
@@ -248,9 +264,10 @@ namespace Cassandra.Connections
             Interlocked.Exchange(ref _state, PoolState.Shutdown);
         }
 
-        public virtual async Task<IConnection> DoCreateAndOpen()
+        public virtual async Task<IConnection> DoCreateAndOpen(bool isReconnection)
         {
-            var c = _config.ConnectionFactory.Create(_serializer, _host.Address, _config, _host.HostObserver.CreateConnectionObserver());
+            var endPoint = await _config.EndPointResolver.GetConnectionEndPointAsync(_host, isReconnection).ConfigureAwait(false);
+            var c = _config.ConnectionFactory.Create(_serializer, endPoint, _config, _host.HostObserver.CreateConnectionObserver());
             try
             {
                 await c.Open().ConfigureAwait(false);
@@ -266,6 +283,27 @@ namespace Cassandra.Connections
             }
             c.Closing += OnConnectionClosing;
             return c;
+        }
+        
+        public void OnHostRemoved()
+        {
+            var previousState = Interlocked.Exchange(ref _state, PoolState.ShuttingDown);
+            if (previousState == PoolState.Shutdown)
+            {
+                // It was already shutdown
+                Interlocked.Exchange(ref _state, PoolState.Shutdown);
+                return;
+            }
+            HostConnectionPool.Logger.Info("Host decommissioned. Closing pool #{0} to {1}", GetHashCode(), _host.Address);
+
+            DrainConnections(() => Interlocked.Exchange(ref _state, PoolState.Shutdown));
+
+            CancelNewConnectionTimeout();
+            var t = _resizingEndTimeout;
+            if (t != null)
+            {
+                t.Cancel();
+            }
         }
 
         /// <summary>
@@ -355,10 +393,11 @@ namespace Cassandra.Connections
                 return;
             }
             // We are using an IO thread
-            Task.Run(() =>
+            Task.Run(async () =>
             {
                 // Use a lock for avoiding concurrent calls to SetNewConnectionTimeout()
-                lock (_allConnectionClosedEventLock)
+                await _allConnectionClosedEventLock.WaitAsync().ConfigureAwait(false);
+                try
                 {
                     if (currentLength == 0)
                     {
@@ -373,7 +412,11 @@ namespace Cassandra.Connections
                     }
                     SetNewConnectionTimeout(_reconnectionSchedule);
                 }
-            });
+                finally
+                {
+                    _allConnectionClosedEventLock.Release();
+                }
+            }).Forget();
         }
 
         private void OnDistanceChanged(HostDistance previousDistance, HostDistance distance)
@@ -405,27 +448,6 @@ namespace Cassandra.Connections
                 Interlocked.CompareExchange(ref _state, PoolState.Init, PoolState.Closing);
             });
             CancelNewConnectionTimeout();
-        }
-
-        private void OnHostRemoved()
-        {
-            var previousState = Interlocked.Exchange(ref _state, PoolState.ShuttingDown);
-            if (previousState == PoolState.Shutdown)
-            {
-                // It was already shutdown
-                Interlocked.Exchange(ref _state, PoolState.Shutdown);
-                return;
-            }
-            HostConnectionPool.Logger.Info("Host decommissioned. Closing pool #{0} to {1}", GetHashCode(), _host.Address);
-
-            DrainConnections(() => Interlocked.Exchange(ref _state, PoolState.Shutdown));
-
-            CancelNewConnectionTimeout();
-            var t = _resizingEndTimeout;
-            if (t != null)
-            {
-                t.Cancel();
-            }
         }
         
         /// <summary>
@@ -561,34 +583,47 @@ namespace Cassandra.Connections
                 // There's another reconnection schedule, leave it
                 return;
             }
-            CreateOpenConnection(false).ContinueWith(t =>
+
+            CreateOrScheduleReconnectAsync(schedule).Forget();
+        }
+
+        private async Task CreateOrScheduleReconnectAsync(IReconnectionSchedule schedule)
+        {
+            if (IsClosing)
             {
-                if (t.Status == TaskStatus.RanToCompletion)
-                {
-                    StartCreatingConnection(null);
-                    _host.BringUpIfDown();
-                    return;
-                }
-                t.Exception?.Handle(_ => true);
+                return;
+            }
+
+            try
+            {
+                var t = await CreateOpenConnection(false, schedule != null).ConfigureAwait(false);
+                StartCreatingConnection(null);
+                _host.BringUpIfDown();
+            }
+            catch (Exception)
+            {
                 // The connection could not be opened
                 if (IsClosing)
                 {
                     // don't mind, the pool is not supposed to be open
                     return;
                 }
+
                 if (schedule == null)
                 {
                     // As it failed, we need a new schedule for the following attempts
                     schedule = _config.Policies.ReconnectionPolicy.NewSchedule();
                     _reconnectionSchedule = schedule;
                 }
+
                 if (schedule != _reconnectionSchedule)
                 {
                     // There's another reconnection schedule, leave it
                     return;
                 }
+
                 OnConnectionClosing();
-            }, TaskContinuationOptions.ExecuteSynchronously);
+            }
         }
 
         /// <summary>
@@ -598,10 +633,11 @@ namespace Cassandra.Connections
         /// <param name="satisfyWithAnOpenConnection">
         /// Determines whether the Task should be marked as completed when there is a connection already opened.
         /// </param>
+        /// <param name="isReconnection">Determines whether this is a reconnection</param>
         /// <exception cref="SocketException">Throws a SocketException when the connection could not be established with the host</exception>
         /// <exception cref="AuthenticationException" />
         /// <exception cref="UnsupportedProtocolVersionException" />
-        private async Task<IConnection> CreateOpenConnection(bool satisfyWithAnOpenConnection)
+        private async Task<IConnection> CreateOpenConnection(bool satisfyWithAnOpenConnection, bool isReconnection)
         {
             var concurrentOpenTcs = Volatile.Read(ref _connectionOpenTcs);
             // Try to exit early (cheap) as there could be another thread creating / finishing creating
@@ -654,7 +690,7 @@ namespace Cassandra.Connections
             IConnection c;
             try
             {
-                c = await DoCreateAndOpen().ConfigureAwait(false);
+                c = await DoCreateAndOpen(isReconnection).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -718,17 +754,13 @@ namespace Cassandra.Connections
         /// <exception cref="UnsupportedProtocolVersionException" />
         public async Task<IConnection[]> EnsureCreate()
         {
-            var connections = _connections.GetSnapshot();
+            var connections = GetExistingConnections();
             if (connections.Length > 0)
             {
                 // Use snapshot to return as early as possible
                 return connections;
             }
-            if (IsClosing || !_host.IsUp)
-            {
-                // Should have not been considered as UP
-                throw HostConnectionPool.GetNotConnectedException();
-            }
+
             if (!_canCreateForeground)
             {
                 // Take a new snapshot
@@ -746,7 +778,7 @@ namespace Cassandra.Connections
                 // It should only await for the creation of the connection in few selected occasions:
                 // It's the first time accessing or it has been recently set as UP
                 // CreateOpenConnection() supports concurrent calls
-                c = await CreateOpenConnection(true).ConfigureAwait(false);
+                c = await CreateOpenConnection(true, false).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -755,6 +787,28 @@ namespace Cassandra.Connections
             }
             StartCreatingConnection(null);
             return new[] { c };
+        }
+
+        /// <summary>
+        /// Gets existing connections snapshot.
+        /// If it's empty then it validates whether the pool is shutting down or the is down (in which case an exception is thrown).
+        /// </summary>
+        /// <exception cref="SocketException">Not connected.</exception>
+        private IConnection[] GetExistingConnections()
+        {
+            var connections = _connections.GetSnapshot();
+            if (connections.Length > 0)
+            {
+                return connections;
+            }
+
+            if (IsClosing || !_host.IsUp)
+            {
+                // Should have not been considered as UP
+                throw HostConnectionPool.GetNotConnectedException();
+            }
+
+            return connections;
         }
 
         public void SetDistance(HostDistance distance)
@@ -777,7 +831,7 @@ namespace Cassandra.Connections
             {
                 try
                 {
-                    await CreateOpenConnection(false).ConfigureAwait(false);
+                    await CreateOpenConnection(false, false).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -787,6 +841,7 @@ namespace Cassandra.Connections
                         break;
                     }
 
+                    OnConnectionClosing();
                     throw;
                 }
             }

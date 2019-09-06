@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,11 +14,9 @@
 //   limitations under the License.
 //
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
+using Cassandra.Mapping.Utils;
 
 namespace Cassandra.Data.Linq
 {
@@ -27,6 +25,8 @@ namespace Cassandra.Data.Linq
     /// </summary>
     public class CqlInsert<TEntity> : CqlCommand
     {
+        private static readonly ICqlIdentifierHelper CqlIdentifierHelper = new CqlIdentifierHelper();
+
         private readonly TEntity _entity;
         private bool _ifNotExists;
         private readonly MapperFactory _mapperFactory;
@@ -49,36 +49,16 @@ namespace Cassandra.Data.Linq
         protected internal override string GetCql(out object[] values)
         {
             var pocoData = _mapperFactory.PocoDataFactory.GetPocoData<TEntity>();
-            var queryIdentifier = string.Format("INSERT LINQ ID {0}/{1}", Table.KeyspaceName, Table.Name);
+            var queryIdentifier = $"INSERT LINQ ID {Table.KeyspaceName}/{Table.Name}";
             var getBindValues = _mapperFactory.GetValueCollector<TEntity>(queryIdentifier);
             //get values first to identify null values
             var pocoValues = getBindValues(_entity);
             //generate INSERT query based on null values (if insertNulls set)
             var cqlGenerator = new CqlGenerator(_mapperFactory.PocoDataFactory);
             //Use the table name from Table<TEntity> instance instead of PocoData
-            var tableName = GetEscapedTableName(pocoData);
+            var tableName = CqlInsert<TEntity>.CqlIdentifierHelper.EscapeTableNameIfNecessary(pocoData, Table.KeyspaceName, Table.Name);
             return cqlGenerator.GenerateInsert<TEntity>(
                 _insertNulls, pocoValues, out values, _ifNotExists, _ttl, _timestamp, tableName);
-        }
-
-        private string GetEscapedTableName(PocoData pocoData)
-        {
-            string name = null;
-            if (Table.KeyspaceName != null)
-            {
-                name = Escape(Table.KeyspaceName, pocoData) + ".";
-            }
-            name += Escape(Table.Name, pocoData);
-            return name;
-        }
-
-        private static string Escape(string identifier, PocoData pocoData)
-        {
-            if (!pocoData.CaseSensitive && !string.IsNullOrWhiteSpace(identifier))
-            {
-                return identifier;
-            }
-            return "\"" + identifier + "\"";
         }
 
         internal string GetCqlAndValues(out object[] values)

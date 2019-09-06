@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using Cassandra.ExecutionProfiles;
 using Cassandra.Serialization;
 
 namespace Cassandra
@@ -42,8 +43,6 @@ namespace Cassandra
         public readonly int PageSize;
         public readonly ConsistencyLevel SerialConsistency;
 
-        private readonly long? _timestamp;
-
         public byte[] PagingState { get; set; }
         public object[] Values { get; private set; }
         public ConsistencyLevel Consistency { get; set; }
@@ -52,11 +51,12 @@ namespace Cassandra
         {
             get
             {
-                return _timestamp == null ? (DateTimeOffset?) null :
-                    TypeSerializer.UnixStart.AddTicks(_timestamp.Value * 10);
+                return RawTimestamp == null ? (DateTimeOffset?) null :
+                    TypeSerializer.UnixStart.AddTicks(RawTimestamp.Value * 10);
             }
         }
 
+        internal long? RawTimestamp { get; }
 
         /// <summary>
         /// Names of the query parameters
@@ -88,18 +88,18 @@ namespace Cassandra
             }
             PagingState = pagingState;
             SerialConsistency = serialConsistency;
-            _timestamp = timestamp;
+            RawTimestamp = timestamp;
         }
 
-        internal static QueryProtocolOptions CreateFromQuery(ProtocolVersion protocolVersion, Statement query,
-                                                             QueryOptions queryOptions, Policies policies)
+        internal static QueryProtocolOptions CreateFromQuery(
+            ProtocolVersion protocolVersion, Statement query, IRequestOptions requestOptions)
         {
             if (query == null)
             {
                 return Default;
             }
-            var consistency = query.ConsistencyLevel ?? queryOptions.GetConsistencyLevel();
-            var pageSize = query.PageSize != 0 ? query.PageSize : queryOptions.GetPageSize();
+            var consistency = query.ConsistencyLevel ?? requestOptions.ConsistencyLevel;
+            var pageSize = query.PageSize != 0 ? query.PageSize : requestOptions.PageSize;
             long? timestamp = null;
             if (query.Timestamp != null)
             {
@@ -107,7 +107,7 @@ namespace Cassandra
             }
             else if (protocolVersion.SupportsTimestamp())
             {
-                timestamp = policies.TimestampGenerator.Next();
+                timestamp = requestOptions.TimestampGenerator.Next();
                 if (timestamp == long.MinValue)
                 {
                     timestamp = null;
@@ -120,7 +120,7 @@ namespace Cassandra
                 query.SkipMetadata,
                 pageSize,
                 query.PagingState,
-                queryOptions.GetSerialConsistencyLevelOrDefault(query),
+                requestOptions.GetSerialConsistencyLevelOrDefault(query),
                 timestamp);
         }
 
@@ -156,7 +156,7 @@ namespace Cassandra
             {
                 flags |= QueryFlags.WithSerialConsistency;
             }
-            if (protocolVersion.SupportsTimestamp() && _timestamp != null)
+            if (protocolVersion.SupportsTimestamp() && RawTimestamp != null)
             {
                 flags |= QueryFlags.WithDefaultTimestamp;
             }
@@ -222,7 +222,7 @@ namespace Cassandra
             {
                 // ReSharper disable once PossibleInvalidOperationException
                 // Null check has been done when setting the flag
-                wb.WriteLong(_timestamp.Value);
+                wb.WriteLong(RawTimestamp.Value);
             }
         }
     }

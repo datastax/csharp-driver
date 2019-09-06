@@ -13,7 +13,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
     /// <summary>
     /// NOTE: The GetTable() method is deprecated.
     /// </summary>
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class GetTable : SharedClusterTest
     {
         string _uniqueKsName;

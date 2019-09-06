@@ -3,18 +3,19 @@ using System.Linq;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Tasks;
+using Cassandra.Tests;
 using NUnit.Framework;
 using SortOrder = Cassandra.DataCollectionMetadata.SortOrder;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short")]
+    [TestFixture, Category("short"), Category("realcluster")]
     public class SchemaMetadataTests : SharedClusterTest
     {
-        [Test]
-        public void KeyspacesMetadataAvailableAtStartup()
+        [Test, TestCase(true), TestCase(false)]
+        public void KeyspacesMetadataAvailableAtStartup(bool metadataSync)
         {
-            var cluster = GetNewCluster();
+            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             // Basic status check
             Assert.Greater(cluster.Metadata.GetKeyspaces().Count, 0);
             Assert.NotNull(cluster.Metadata.GetKeyspace("system"));
@@ -31,10 +32,10 @@ namespace Cassandra.IntegrationTests.Core
             Assert.Null(cluster.Metadata.GetKeyspace("SYSTEM"));
         }
 
-        [Test, TestCassandraVersion(2, 1)]
-        public void UdtMetadataTest()
+        [Test, TestCase(true), TestCase(false), TestCassandraVersion(2, 1)]
+        public void UdtMetadataTest(bool metadataSync)
         {
-            var cluster = GetNewCluster();
+            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
             var keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
             session.CreateKeyspace(keyspaceName);
@@ -75,10 +76,10 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(ColumnTypeCode.Udt, tableMetadata.TableColumns.First(c => c.Name == "addr").TypeCode);
         }
 
-        [Test]
-        public void Custom_MetadataTest()
+        [Test, TestCase(true), TestCase(false)]
+        public void Custom_MetadataTest(bool metadataSync)
         {
-            var cluster = GetNewCluster();
+            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
             var keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
             session.CreateKeyspace(keyspaceName);
@@ -114,10 +115,10 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(typeName2, typeInfo2.CustomTypeName);
         }
 
-        [Test, TestCassandraVersion(2, 1)]
-        public void Udt_Case_Sensitive_Metadata_Test()
+        [Test, TestCase(true), TestCase(false), TestCassandraVersion(2, 1)]
+        public void Udt_Case_Sensitive_Metadata_Test(bool metadataSync)
         {
-            var cluster = GetNewCluster();
+            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
             var keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
             session.CreateKeyspace(keyspaceName);
@@ -138,14 +139,14 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(keyspaceName + ".MyUdt", udtInfo.Name);
         }
 
-        [Test, TestCassandraVersion(2, 1)]
-        public void TupleMetadataTest()
+        [Test, TestCase(true), TestCase(false), TestCassandraVersion(2, 1)]
+        public void TupleMetadataTest(bool metadataSync)
         {
             var keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
             var tableName = TestUtils.GetUniqueTableName().ToLower();
             var cqlTable1 = "CREATE TABLE " + tableName + " (id int PRIMARY KEY, phone frozen<tuple<uuid, text, int>>, achievements list<frozen<tuple<text,int>>>)";
 
-            var cluster = GetNewCluster();
+            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
 
             session.CreateKeyspaceIfNotExists(keyspaceName);
@@ -156,12 +157,12 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(3, tableMetadata.TableColumns.Count());
         }
 
-        [Test]
-        public void TableMetadataCompositePartitionKeyTest()
+        [Test, TestCase(true), TestCase(false)]
+        public void TableMetadataCompositePartitionKeyTest(bool metadataSync)
         {
             var keyspaceName = TestUtils.GetUniqueKeyspaceName();
             var tableName1 = TestUtils.GetUniqueTableName().ToLower();
-            var cluster = GetNewCluster();
+            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
 
             var cql = "CREATE TABLE " + tableName1 + " ( " +
@@ -217,12 +218,12 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual("a", String.Join(", ", table.PartitionKeys.Select(p => p.Name)));
         }
 
-        [Test]
-        public void TableMetadataClusteringOrderTest()
+        [Test, TestCase(true), TestCase(false)]
+        public void TableMetadataClusteringOrderTest(bool metadataSync)
         {
             var keyspaceName = TestUtils.GetUniqueKeyspaceName();
             var tableName = TestUtils.GetUniqueTableName().ToLower();
-            var cluster = GetNewCluster();
+            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
 
             var cql = "CREATE TABLE " + tableName + " (" +
@@ -260,12 +261,12 @@ namespace Cassandra.IntegrationTests.Core
                  .Select(c => c.Name));
         }
 
-        [Test, TestCassandraVersion(2, 1)]
-        public void TableMetadataCollectionsSecondaryIndexTest()
+        [Test, TestCase(true), TestCase(false), TestCassandraVersion(2, 1)]
+        public void TableMetadataCollectionsSecondaryIndexTest(bool metadataSync)
         {
             var keyspaceName = TestUtils.GetUniqueKeyspaceName();
             const string tableName = "products";
-            var cluster = GetNewCluster();
+            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
             session.CreateKeyspace(keyspaceName);
             session.ChangeKeyspace(keyspaceName);
@@ -302,12 +303,12 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(5, table.TableColumns.Count());
         }
 
-        [Test]
-        public void TableMetadataAllTypesTest()
+        [Test, TestCase(true), TestCase(false)]
+        public void TableMetadataAllTypesTest(bool metadataSync)
         {
             var keyspaceName = TestUtils.GetUniqueKeyspaceName();
             var tableName = TestUtils.GetUniqueTableName().ToLower();
-            var cluster = GetNewCluster();
+            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
             session.CreateKeyspaceIfNotExists(keyspaceName);
             session.ChangeKeyspace(keyspaceName);
@@ -355,10 +356,10 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(1, table.TableColumns.Count(c => c.Name == "added_col"));
         }
 
-        [Test]
-        public void GetTableAsync_With_Keyspace_And_Table_Not_Found()
+        [Test, TestCase(true), TestCase(false)]
+        public void GetTableAsync_With_Keyspace_And_Table_Not_Found(bool metadataSync)
         {
-            var cluster = GetNewCluster();
+            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             cluster.Connect();
             var t = cluster.Metadata.GetTableAsync("ks_does_not_exist", "t1");
             var table = TaskHelper.WaitToComplete(t);
@@ -380,17 +381,19 @@ namespace Cassandra.IntegrationTests.Core
         /// @expected_result Materialized view metadata is updated correctly
         /// 
         /// @test_category metadata
-        [Test, TestCassandraVersion(3, 0)]
-        public void GetMaterializedView_Should_Refresh_View_Metadata_Via_Events()
+        [Test, TestCase(true), TestCase(false), TestCassandraVersion(3, 0)]
+        public void GetMaterializedView_Should_Refresh_View_Metadata_Via_Events(bool metadataSync)
         {
             var queries = new[]
             {
-                "CREATE KEYSPACE ks_view_meta3 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}",
-                "CREATE TABLE ks_view_meta3.scores (user TEXT, game TEXT, year INT, month INT, day INT, score INT, PRIMARY KEY (user, game, year, month, day))",
-                "CREATE MATERIALIZED VIEW ks_view_meta3.monthlyhigh AS SELECT user FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL AND day IS NOT NULL PRIMARY KEY ((game, year, month), score, user, day) WITH CLUSTERING ORDER BY (score DESC) AND compaction = { 'class' : 'SizeTieredCompactionStrategy' }"
+                "CREATE KEYSPACE IF NOT EXISTS ks_view_meta3 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}",
+                "CREATE TABLE IF NOT EXISTS ks_view_meta3.scores (user TEXT, game TEXT, year INT, month INT, day INT, score INT, PRIMARY KEY (user, game, year, month, day))",
+                "CREATE MATERIALIZED VIEW IF NOT EXISTS ks_view_meta3.monthlyhigh AS SELECT user FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL AND day IS NOT NULL PRIMARY KEY ((game, year, month), score, user, day) WITH CLUSTERING ORDER BY (score DESC) AND compaction = { 'class' : 'SizeTieredCompactionStrategy' }"
             };
-            var cluster = GetNewCluster();
+            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster2 = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
+            var session2 = cluster2.Connect();
             foreach (var q in queries)
             {
                 session.Execute(q);
@@ -402,15 +405,20 @@ namespace Cassandra.IntegrationTests.Core
             const string alterQuery = "ALTER MATERIALIZED VIEW ks_view_meta3.monthlyhigh WITH compaction = { 'class' : 'LeveledCompactionStrategy' }";
             session.Execute(alterQuery);
             //Wait for event
-            Thread.Sleep(5000);
-            view = cluster.Metadata.GetMaterializedView("ks_view_meta3", "monthlyhigh");
-            StringAssert.Contains("LeveledCompactionStrategy", view.Options.CompactionOptions["class"]);
+            TestHelper.RetryAssert(() =>
+            {
+                view = cluster2.Metadata.GetMaterializedView("ks_view_meta3", "monthlyhigh");
+                Assert.IsNotNull(view);
+                StringAssert.Contains("LeveledCompactionStrategy", view.Options.CompactionOptions["class"]);
+            }, 200, 55);
 
             const string dropQuery = "DROP MATERIALIZED VIEW ks_view_meta3.monthlyhigh";
             session.Execute(dropQuery);
             //Wait for event
-            Thread.Sleep(5000);
-            Assert.Null(cluster.Metadata.GetMaterializedView("ks_view_meta3", "monthlyhigh"));
+            TestHelper.RetryAssert(() =>
+            {
+                Assert.Null(cluster2.Metadata.GetMaterializedView("ks_view_meta3", "monthlyhigh"));
+            }, 200, 55);
         }
 
         /// Tests that materialized view metadata is updated from base table addition changes
@@ -426,18 +434,20 @@ namespace Cassandra.IntegrationTests.Core
         /// @expected_result Materialized view metadata is updated due to base table changes
         /// 
         /// @test_category metadata
-        [Test, TestCassandraVersion(3, 0)]
-        public void MaterializedView_Base_Table_Column_Addition()
+        [Test, TestCase(true), TestCase(false), TestCassandraVersion(3, 0)]
+        public void MaterializedView_Base_Table_Column_Addition(bool metadataSync)
         {
             var queries = new[]
             {
-                "CREATE KEYSPACE ks_view_meta4 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}",
-                "CREATE TABLE ks_view_meta4.scores (user TEXT, game TEXT, year INT, month INT, day INT, score INT, PRIMARY KEY (user, game, year, month, day))",
-                "CREATE MATERIALIZED VIEW ks_view_meta4.dailyhigh AS SELECT user FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND day IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL PRIMARY KEY ((game, year, month, day), score, user) WITH CLUSTERING ORDER BY (score DESC)",
-                "CREATE MATERIALIZED VIEW ks_view_meta4.alltimehigh AS SELECT * FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND day IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL PRIMARY KEY (game, year, month, day, score, user) WITH CLUSTERING ORDER BY (score DESC)"
+                "CREATE KEYSPACE IF NOT EXISTS ks_view_meta4 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}",
+                "CREATE TABLE IF NOT EXISTS ks_view_meta4.scores (user TEXT, game TEXT, year INT, month INT, day INT, score INT, PRIMARY KEY (user, game, year, month, day))",
+                "CREATE MATERIALIZED VIEW IF NOT EXISTS ks_view_meta4.dailyhigh AS SELECT user FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND day IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL PRIMARY KEY ((game, year, month, day), score, user) WITH CLUSTERING ORDER BY (score DESC)",
+                "CREATE MATERIALIZED VIEW IF NOT EXISTS ks_view_meta4.alltimehigh AS SELECT * FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND day IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL PRIMARY KEY (game, year, month, day, score, user) WITH CLUSTERING ORDER BY (score DESC)"
             };
-            var cluster = GetNewCluster();
+            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster2 = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
+            var session2 = cluster2.Connect();
             foreach (var q in queries)
             {
                 session.Execute(q);
@@ -452,17 +462,22 @@ namespace Cassandra.IntegrationTests.Core
             Assert.NotNull(alltimeView);
             Assert.NotNull(alltimeView.Options);
 
-            session.Execute("ALTER TABLE ks_view_meta4.scores ADD fouls INT");
+            var colName = $"fouls{Math.Abs(session.GetHashCode())}";
+            session.Execute($"ALTER TABLE ks_view_meta4.scores ADD {colName} INT");
             //Wait for event
-            Thread.Sleep(5000);
-            Assert.NotNull(cluster.Metadata.GetKeyspace("ks_view_meta4").GetTableMetadata("scores").ColumnsByName["fouls"]);
+            TableColumn foulMeta = null;
+            TestHelper.RetryAssert(() =>
+            {
+                Assert.NotNull(cluster2.Metadata.GetKeyspace("ks_view_meta4")?.GetTableMetadata("scores").ColumnsByName[colName]);
+                alltimeView = cluster2.Metadata.GetMaterializedView("ks_view_meta4", "alltimehigh");
+                Assert.IsNotNull(alltimeView);
+                 foulMeta = alltimeView.ColumnsByName[colName];
+                Assert.NotNull(foulMeta);
 
-            alltimeView = cluster.Metadata.GetMaterializedView("ks_view_meta4", "alltimehigh");
-            var foulMeta = alltimeView.ColumnsByName["fouls"];
-            Assert.NotNull(foulMeta);
+            }, 200, 55);
+            
             Assert.AreEqual(ColumnTypeCode.Int, foulMeta.TypeCode);
-
-            dailyView = cluster.Metadata.GetMaterializedView("ks_view_meta4", "dailyhigh");
+            dailyView = cluster2.Metadata.GetMaterializedView("ks_view_meta4", "dailyhigh");
             Assert.IsFalse(dailyView.TableColumns.Contains(foulMeta));
         }
 
@@ -479,12 +494,12 @@ namespace Cassandra.IntegrationTests.Core
         /// @expected_result Multiple secondary indexes should be created on the same column
         /// 
         /// @test_category metadata
-        [Test, TestCassandraVersion(3, 0)]
-        public void MultipleSecondaryIndexTest()
+        [Test, TestCase(true), TestCase(false), TestCassandraVersion(3, 0)]
+        public void MultipleSecondaryIndexTest(bool metadataSync)
         {
             var keyspaceName = TestUtils.GetUniqueKeyspaceName();
             var tableName = TestUtils.GetUniqueTableName().ToLower();
-            var cluster = GetNewCluster();
+            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
             session.CreateKeyspace(keyspaceName);
             session.ChangeKeyspace(keyspaceName);
@@ -530,12 +545,12 @@ namespace Cassandra.IntegrationTests.Core
         /// @expected_result Multiple secondary indexes should not be created on the same column in each case
         /// 
         /// @test_category metadata
-        [Test, TestCassandraVersion(3, 0)]
-        public void RaiseErrorOnInvalidMultipleSecondaryIndexTest()
+        [Test, TestCase(true), TestCase(false), TestCassandraVersion(3, 0)]
+        public void RaiseErrorOnInvalidMultipleSecondaryIndexTest(bool metadataSync)
         {
             var keyspaceName = TestUtils.GetUniqueKeyspaceName();
             var tableName = TestUtils.GetUniqueTableName().ToLower();
-            var cluster = GetNewCluster();
+            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
             session.CreateKeyspace(keyspaceName);
             session.ChangeKeyspace(keyspaceName);
@@ -575,8 +590,8 @@ namespace Cassandra.IntegrationTests.Core
         /// @expected_result Clustering order metadata is properly set
         /// 
         /// @test_category metadata
-        [Test, TestCassandraVersion(3, 0)]
-        public void ColumnClusteringOrderReversedTest()
+        [Test, TestCase(true), TestCase(false), TestCassandraVersion(3, 0)]
+        public void ColumnClusteringOrderReversedTest(bool metadataSync)
         {
             if (CassandraVersion >= Version.Parse("4.0"))
             {
@@ -584,7 +599,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             var keyspaceName = TestUtils.GetUniqueKeyspaceName();
             var tableName = TestUtils.GetUniqueTableName().ToLower();
-            var cluster = GetNewCluster();
+            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
             session.CreateKeyspace(keyspaceName);
             session.ChangeKeyspace(keyspaceName);
@@ -603,8 +618,8 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(new[] { SortOrder.Ascending, SortOrder.Descending }, tableMeta.ClusteringKeys.Select(c => c.Item2));
         }
 
-        [Test, TestCassandraVersion(2, 1)]
-        public void CassandraVersion_Should_Be_Obtained_From_Host_Metadata()
+        [Test, TestCase(true), TestCase(false), TestCassandraVersion(2, 1)]
+        public void CassandraVersion_Should_Be_Obtained_From_Host_Metadata(bool metadataSync)
         {
             foreach (var host in Cluster.AllHosts())
             {
@@ -613,10 +628,10 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-        [Test, TestCassandraVersion(4, 0)]
-        public void Virtual_Table_Metadata_Test()
+        [Test, TestCase(true), TestCase(false), TestCassandraVersion(4, 0)]
+        public void Virtual_Table_Metadata_Test(bool metadataSync)
         {
-            var cluster = GetNewCluster();
+            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var table = cluster.Metadata.GetTable("system_views", "clients");
             Assert.NotNull(table);
             Assert.True(table.IsVirtual);
@@ -624,10 +639,10 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(table.ClusteringKeys.Select(t => t.Item1.Name), new[] { "port" });
         }
 
-        [Test, TestCassandraVersion(4, 0)]
-        public void Virtual_Keyspaces_Are_Included()
+        [Test, TestCase(true), TestCase(false), TestCassandraVersion(4, 0)]
+        public void Virtual_Keyspaces_Are_Included(bool metadataSync)
         {
-            var cluster = GetNewCluster();
+            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var defaultVirtualKeyspaces = new[] {"system_views", "system_virtual_schema"};
             CollectionAssert.IsSubsetOf(defaultVirtualKeyspaces, cluster.Metadata.GetKeyspaces());
 

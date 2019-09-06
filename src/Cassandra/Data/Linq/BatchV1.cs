@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -44,6 +44,11 @@ namespace Cassandra.Data.Linq
 
         protected override Task<RowSet> InternalExecuteAsync()
         {
+            return InternalExecuteAsync(Configuration.DefaultExecutionProfileName);
+        }
+        
+        protected override Task<RowSet> InternalExecuteAsync(string executionProfile)
+        {
             if (_batchScript.Length == 0)
             {
                 return TaskHelper.FromException<RowSet>(new RequestInvalidException("The Batch must contain queries to execute"));
@@ -51,7 +56,7 @@ namespace Cassandra.Data.Linq
             string cqlQuery = GetCql();
             var stmt = new SimpleStatement(cqlQuery);
             this.CopyQueryPropertiesTo(stmt);
-            return _session.ExecuteAsync(stmt);
+            return _session.ExecuteAsync(stmt, executionProfile);
         }
 
         private string GetCql()

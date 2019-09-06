@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -115,27 +115,6 @@ namespace Cassandra
         {
             return _serialConsistency;
         }
-
-        /// <summary>
-        /// Gets the serial consistency level of the statement or the default value from the query options.
-        /// </summary>
-        /// <exception cref="ArgumentException" />
-        internal ConsistencyLevel GetSerialConsistencyLevelOrDefault(IStatement statement)
-        {
-            var consistency = GetSerialConsistencyLevel();
-            if (statement.SerialConsistencyLevel != ConsistencyLevel.Any)
-            {
-                consistency = statement.SerialConsistencyLevel;
-            }
-
-            if (!consistency.IsSerialConsistencyLevel())
-            {
-                throw new ArgumentException("Serial consistency level can only be set to LocalSerial or Serial");
-            }
-
-            return consistency;
-        }
-
 
         /// <summary>
         /// Sets the default page size to use for SELECT queries.

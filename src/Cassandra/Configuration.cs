@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,12 +18,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Connections;
+using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics;
 using Cassandra.Metrics.DriverAbstractions;
 using Cassandra.Metrics.NoopImpl;
 using Cassandra.Metrics.Registries;
 using Cassandra.Observers;
 using Cassandra.Observers.Abstractions;
+using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -40,6 +42,8 @@ namespace Cassandra
     /// </summary>
     public class Configuration
     {
+        internal const string DefaultExecutionProfileName = "default";
+
         /// <summary>
         ///  Gets the policies set for the cluster.
         /// </summary>
@@ -90,6 +94,13 @@ namespace Cassandra
         /// </summary>
         /// <returns>the address translator in use.</returns>
         public IAddressTranslator AddressTranslator { get; private set; }
+        
+        /// <summary>
+        /// Gets a read only key value map of execution profiles that were configured with
+        /// <see cref="Builder.WithExecutionProfiles"/>. The keys are execution profile names and the values
+        /// are <see cref="IExecutionProfile"/> instances.
+        /// </summary>
+        public IReadOnlyDictionary<string, IExecutionProfile> ExecutionProfiles { get; }
 
         /// <summary>
         /// Shared reusable timer
@@ -106,10 +117,14 @@ namespace Cassandra
         /// </summary>
         internal IEnumerable<ITypeSerializer> TypeSerializers { get; set; }
 
+        internal MetadataSyncOptions MetadataSyncOptions { get; }
+
         internal IStartupOptionsFactory StartupOptionsFactory { get; }
 
         internal ISessionFactoryBuilder<IInternalCluster, IInternalSession> SessionFactoryBuilder { get; }
 
+        internal IRequestOptionsMapper RequestOptionsMapper { get; }
+        
         internal IRequestHandlerFactory RequestHandlerFactory { get; }
 
         internal IHostConnectionPoolFactory HostConnectionPoolFactory { get; }
@@ -120,22 +135,42 @@ namespace Cassandra
 
         internal IControlConnectionFactory ControlConnectionFactory { get; }
 
+        internal IPrepareHandlerFactory PrepareHandlerFactory { get; }
+
+        internal ITimerFactory TimerFactory { get; }
+
+        internal IEndPointResolver EndPointResolver { get; }
+
+        internal IDnsResolver DnsResolver { get; }
+        
+        /// <summary>
+        /// The key is the execution profile name and the value is the IRequestOptions instance
+        /// built from the execution profile with that key.
+        /// </summary>
+        internal IReadOnlyDictionary<string, IRequestOptions> RequestOptions { get; }
+
+        internal IRequestOptions DefaultRequestOptions => RequestOptions[Configuration.DefaultExecutionProfileName];
+
         internal MetricsRegistry MetricsRegistry { get; }
 
         internal IDriverMetricsScheduler MetricsScheduler { get; }
 
         internal Configuration() :
             this(Policies.DefaultPolicies,
-                new ProtocolOptions(),
-                null,
-                new SocketOptions(),
-                new ClientOptions(),
-                NoneAuthProvider.Instance,
-                null,
-                new QueryOptions(),
-                new DefaultAddressTranslator(),
-                new StartupOptionsFactory(),
-                new SessionFactoryBuilder())
+                 new ProtocolOptions(),
+                 null,
+                 new SocketOptions(),
+                 new ClientOptions(),
+                 NoneAuthProvider.Instance,
+                 null,
+                 new QueryOptions(),
+                 new DefaultAddressTranslator(),
+                 new StartupOptionsFactory(),
+                 new SessionFactoryBuilder(),
+                 new Dictionary<string, IExecutionProfile>(),
+                 new RequestOptionsMapper(),
+                 null,
+                 null)
         {
         }
 
@@ -154,13 +189,19 @@ namespace Cassandra
                                IAddressTranslator addressTranslator,
                                IStartupOptionsFactory startupOptionsFactory,
                                ISessionFactoryBuilder<IInternalCluster, IInternalSession> sessionFactoryBuilder,
+                               IReadOnlyDictionary<string, IExecutionProfile> executionProfiles,
+                               IRequestOptionsMapper requestOptionsMapper,
+                               MetadataSyncOptions metadataSyncOptions,
+                               IEndPointResolver endPointResolver,
                                IDriverMetricsProvider driverMetricsProvider = null,
                                IDriverMetricsScheduler driverMetricsScheduler = null,
                                IRequestHandlerFactory requestHandlerFactory = null,
                                IHostConnectionPoolFactory hostConnectionPoolFactory = null,
                                IRequestExecutionFactory requestExecutionFactory = null,
                                IConnectionFactory connectionFactory = null,
-                               IControlConnectionFactory controlConnectionFactory = null)
+                               IControlConnectionFactory controlConnectionFactory = null,
+                               IPrepareHandlerFactory prepareHandlerFactory = null,
+                               ITimerFactory timerFactory = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -173,12 +214,21 @@ namespace Cassandra
             AuthInfoProvider = authInfoProvider;
             StartupOptionsFactory = startupOptionsFactory;
             SessionFactoryBuilder = sessionFactoryBuilder;
+            RequestOptionsMapper = requestOptionsMapper;
+            MetadataSyncOptions = metadataSyncOptions?.Clone() ?? new MetadataSyncOptions();
+            DnsResolver = new DnsResolver();
+            EndPointResolver = endPointResolver ?? new EndPointResolver(DnsResolver, protocolOptions);
 
             RequestHandlerFactory = requestHandlerFactory ?? new RequestHandlerFactory();
             HostConnectionPoolFactory = hostConnectionPoolFactory ?? new HostConnectionPoolFactory();
             RequestExecutionFactory = requestExecutionFactory ?? new RequestExecutionFactory();
             ConnectionFactory = connectionFactory ?? new ConnectionFactory();
             ControlConnectionFactory = controlConnectionFactory ?? new ControlConnectionFactory();
+            PrepareHandlerFactory = prepareHandlerFactory ?? new PrepareHandlerFactory();
+            TimerFactory = timerFactory ?? new TaskBasedTimerFactory();
+            
+            RequestOptions = RequestOptionsMapper.BuildRequestOptionsDictionary(executionProfiles, policies, socketOptions, clientOptions, queryOptions);
+            ExecutionProfiles = BuildExecutionProfilesDictionary(executionProfiles, RequestOptions);
 
             // Create the buffer pool with 16KB for small buffers and 256Kb for large buffers.
             // The pool does not eagerly reserve the buffers, so it doesn't take unnecessary memory
@@ -187,6 +237,19 @@ namespace Cassandra
             Timer = new HashedWheelTimer();
             MetricsRegistry = new MetricsRegistry(driverMetricsProvider ?? EmptyDriverMetricsProvider.Instance);
             MetricsScheduler = driverMetricsScheduler ?? EmptyDriverMetricsScheduler.Instance;
+        }
+        
+        /// <summary>
+        /// Clones (shallow) the provided execution profile dictionary and add the default profile if not there yet.
+        /// </summary>
+        private IReadOnlyDictionary<string, IExecutionProfile> BuildExecutionProfilesDictionary(
+            IReadOnlyDictionary<string, IExecutionProfile> executionProfiles,
+            IReadOnlyDictionary<string, IRequestOptions> requestOptions)
+        {
+            var executionProfilesDictionary = executionProfiles.ToDictionary(profileKvp => profileKvp.Key, profileKvp => profileKvp.Value);
+            var defaultOptions = requestOptions[Configuration.DefaultExecutionProfileName];
+            executionProfilesDictionary[Configuration.DefaultExecutionProfileName] = new ExecutionProfile(defaultOptions);
+            return executionProfilesDictionary;
         }
 
         /// <summary>

@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -57,16 +57,17 @@ namespace Cassandra.Responses
                     Output = new OutputPrepared(frame.Header.Version, Reader);
                     break;
                 case ResultResponseKind.SchemaChange:
-                    Output = new OutputSchemaChange(Reader, TraceId);
+                    Output = new OutputSchemaChange(frame.Header.Version, Reader, TraceId);
                     break;
                 default:
                     throw new DriverInternalError("Unknown ResultResponseKind Type");
             }
         }
 
-        protected ResultResponse(ResultResponseKind kind)
+        protected ResultResponse(ResultResponseKind kind, IOutput output)
         {
             Kind = kind;
+            Output = output;
         }
 
         internal static ResultResponse Create(Frame frame)

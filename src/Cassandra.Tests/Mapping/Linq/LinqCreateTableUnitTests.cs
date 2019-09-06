@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Cassandra.Connections;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
 using Cassandra.Observers;
@@ -219,6 +220,31 @@ namespace Cassandra.Tests.Mapping.Linq
             var table = GetTable<AllTypesDecorated>(sessionMock.Object, typeDefinition);
             table.Create();
             Assert.AreEqual(@"CREATE TABLE tbl1 (city_id int, name text, user_id uuid, PRIMARY KEY (user_id)) WITH COMPACT STORAGE", createQuery);
+        }
+
+        [Test]
+        public void Create_With_Compact_Storage_And_Clustering_Order()
+        {
+            string createQuery = null;
+            var sessionMock = GetSessionMock();
+            sessionMock
+                .Setup(s => s.Execute(It.IsAny<string>()))
+                .Returns(() => new RowSet())
+                .Callback<string>(q => createQuery = q)
+                .Verifiable();
+            var typeDefinition = new Map<AllTypesDecorated>()
+                                 .Column(t => t.IntValue, cm => cm.WithName("int_value"))
+                                 .Column(t => t.Int64Value, cm => cm.WithName("long_value"))
+                                 .PartitionKey(t => t.StringValue)
+                                 .ClusteringKey(t => t.Int64Value, SortOrder.Descending)
+                                 .ClusteringKey(t => t.DateTimeValue)
+                                 .CompactStorage();
+            var table = GetTable<AllTypesDecorated>(sessionMock.Object, typeDefinition);
+            table.Create();
+            Assert.AreEqual("CREATE TABLE AllTypesDecorated " +
+                            "(BooleanValue boolean, DateTimeValue timestamp, DecimalValue decimal, DoubleValue double, " +
+                            "long_value bigint, int_value int, StringValue text, TimeUuidValue timeuuid, UuidValue uuid, " +
+                            "PRIMARY KEY (StringValue, long_value, DateTimeValue)) WITH CLUSTERING ORDER BY (long_value DESC) AND COMPACT STORAGE", createQuery);
         }
 
         [Test]
@@ -523,7 +549,7 @@ namespace Cassandra.Tests.Mapping.Linq
                 .Returns(() => new RowSet())
                 .Callback<string>(q => createQuery = q);
 
-            var table = GetTable<AllTypesEntity>(sessionMock.Object, 
+            var table = GetTable<AllTypesEntity>(sessionMock.Object,
                 new Map<AllTypesEntity>().ExplicitColumns()
                                          .TableName("tbl1")
                                          .PartitionKey(t => t.UuidValue)
@@ -550,11 +576,12 @@ namespace Cassandra.Tests.Mapping.Linq
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             var config = new Configuration();
             var metadata = new Metadata(config, new ClusterObserver());
-            var ccMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var ccMock = new Mock<IControlConnection>(MockBehavior.Strict);
             ccMock.Setup(cc => cc.Serializer).Returns(serializer);
             metadata.ControlConnection = ccMock.Object;
             var clusterMock = new Mock<ICluster>();
             clusterMock.Setup(c => c.Metadata).Returns(metadata);
+            clusterMock.Setup(c => c.Configuration).Returns(config);
             sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             return sessionMock;
         }

@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
 using Cassandra.Connections;
+using Cassandra.ExecutionProfiles;
 
 namespace Cassandra.SessionManagement
 {
@@ -51,7 +52,7 @@ namespace Cassandra.SessionManagement
         /// </summary>
         IHostConnectionPool GetExistingPool(IPEndPoint address);
 
-        void CheckHealth(IConnection connection);
+        void CheckHealth(Host host, IConnection connection);
 
         bool HasConnections(Host host);
 
@@ -64,10 +65,18 @@ namespace Cassandra.SessionManagement
         /// </summary>
         new string Keyspace { get; set; }
 
-        int CountAllConnections { get; }
-
-        Configuration Configuration { get; }
-
         IInternalCluster InternalCluster { get; }
+
+        /// <summary>
+        /// Executes a query asynchronously with the provided request options.
+        /// </summary>
+        Task<RowSet> ExecuteAsync(IStatement statement, IRequestOptions requestOptions);
+        
+        /// <summary>
+        /// Fetches the request options that were mapped from the provided execution profile's name.
+        /// </summary>
+        IRequestOptions GetRequestOptions(string executionProfileName);
+
+        int CountAllConnections { get; }
     }
 }

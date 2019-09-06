@@ -18,6 +18,11 @@ namespace Cassandra.Mapping
         public object[] Arguments { get; private set; }
 
         /// <summary>
+        /// Execution Profile to be used when executing this CQL instance.
+        /// </summary>
+        public string ExecutionProfile { get; private set; }
+
+        /// <summary>
         /// Options that are available on a per-query basis.
         /// </summary>
         internal CqlQueryOptions QueryOptions { get; private set; }
@@ -48,8 +53,21 @@ namespace Cassandra.Mapping
         /// </summary>
         public Cql WithOptions(Action<CqlQueryOptions> options)
         {
-            if (options == null) throw new ArgumentNullException("options");
+            if (options == null)
+            {
+                throw new ArgumentNullException(nameof(options));
+            }
+
             options(QueryOptions);
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the execution profile for execution of this Cql instance.
+        /// </summary>
+        public Cql WithExecutionProfile(string executionProfile)
+        {
+            ExecutionProfile = executionProfile ?? throw new ArgumentNullException(nameof(executionProfile));
             return this;
         }
 
@@ -64,6 +82,14 @@ namespace Cassandra.Mapping
         public static Cql New(string cql, params object[] args)
         {
             return new Cql(cql, args);
+        }
+        
+        /// <summary>
+        /// Creates an empty CQL instance for cases where a cql string is not needed like fetch queries.
+        /// </summary>
+        public static Cql New()
+        {
+            return new Cql(string.Empty);
         }
 
         internal static Cql New(string cql, object[] args, CqlQueryOptions queryOptions)

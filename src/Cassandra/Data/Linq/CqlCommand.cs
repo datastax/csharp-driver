@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2017 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ using System;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
 using Cassandra.Tasks;
@@ -34,6 +35,8 @@ namespace Cassandra.Data.Linq
         protected DateTimeOffset? _timestamp;
         protected int? _ttl;
         private QueryTrace _queryTrace;
+
+        protected int QueryAbortTimeout { get; private set; }
 
         internal PocoData PocoData { get; }
         internal ITable Table { get; }
@@ -71,7 +74,7 @@ namespace Cassandra.Data.Linq
         /// <para>Use <see cref="IStatement.EnableTracing"/> to enable tracing.</para>
         /// <para>
         /// Note that enabling query trace introduces server-side overhead by storing request information, so it's
-        /// recommended that you only enable query tracing when trying to identify possible issues / debugging. 
+        /// recommended that you only enable query tracing when trying to identify possible issues / debugging.
         /// </para>
         /// </summary>
         public QueryTrace QueryTrace
@@ -86,6 +89,7 @@ namespace Cassandra.Data.Linq
             Table = table;
             _statementFactory = stmtFactory;
             PocoData = pocoData;
+            QueryAbortTimeout = table.GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
         }
 
         protected internal abstract string GetCql(out object[] values);
@@ -95,9 +99,19 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public void Execute()
         {
-            var queryAbortTimeout = GetTable().GetSession().GetConfiguration()?.ClientOptions.QueryAbortTimeout ?? ClientOptions.DefaultQueryAbortTimeout;
-            var task = ExecuteAsync();
-            TaskHelper.WaitToComplete(task, queryAbortTimeout);
+            Execute(Configuration.DefaultExecutionProfileName);
+        }
+
+        /// <summary>
+        /// Executes the command using the <see cref="ISession"/> with the provided execution profile.
+        /// </summary>
+        public RowSet Execute(string executionProfile)
+        {
+            if (executionProfile == null)
+            {
+                throw new ArgumentNullException(nameof(executionProfile));
+            }
+            return TaskHelper.WaitToComplete(ExecuteAsync(executionProfile), QueryAbortTimeout);
         }
 
         public void SetQueryTrace(QueryTrace trace)
@@ -153,11 +167,28 @@ namespace Cassandra.Data.Linq
         /// <summary>
         /// Evaluates the Linq command and executes asynchronously the cql statement.
         /// </summary>
-        public async Task<RowSet> ExecuteAsync()
+        public Task<RowSet> ExecuteAsync()
         {
-            object[] values;
-            var cqlQuery = GetCql(out values);
-            var rs = await this.SendQuery(cqlQuery, values).ConfigureAwait(false);
+            return ExecuteAsync(Configuration.DefaultExecutionProfileName);
+        }
+
+        /// <summary>
+        /// Evaluates the Linq command and executes asynchronously the cql statement with the provided execution profile.
+        /// </summary>
+        public async Task<RowSet> ExecuteAsync(string executionProfile)
+        {
+            if (executionProfile == null)
+            {
+                throw new ArgumentNullException(executionProfile);
+            }
+
+            var cqlQuery = GetCql(out var values);
+            var session = GetTable().GetSession();
+            var stmt = await _statementFactory.GetStatementAsync(
+                session,
+                Cql.New(cqlQuery, values).WithExecutionProfile(executionProfile)).ConfigureAwait(false);
+            this.CopyQueryPropertiesTo(stmt);
+            var rs = await session.ExecuteAsync(stmt, executionProfile).ConfigureAwait(false);
             QueryTrace = rs.Info.QueryTrace;
             return rs;
         }

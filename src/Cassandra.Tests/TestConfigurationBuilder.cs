@@ -1,5 +1,5 @@
 ﻿// 
-//       Copyright (C) 2019 DataStax Inc.
+//       Copyright (C) DataStax Inc.
 // 
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -16,7 +16,9 @@
 
 using System.Collections.Generic;
 using Cassandra.Connections;
+using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics.NoopImpl;
+using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.SessionManagement;
 
@@ -42,9 +44,15 @@ namespace Cassandra.Tests
 
         public IAddressTranslator AddressTranslator { get; set; } = new DefaultAddressTranslator();
 
+        public MetadataSyncOptions MetadataSyncOptions { get; set; } = new MetadataSyncOptions();
+
         public IStartupOptionsFactory StartupOptionsFactory { get; set; } = new StartupOptionsFactory();
 
+        public IRequestOptionsMapper RequestOptionsMapper { get; set; } = new RequestOptionsMapper();
+
         public ISessionFactoryBuilder<IInternalCluster, IInternalSession> SessionFactoryBuilder { get; set; } = new SessionFactoryBuilder();
+
+        public IReadOnlyDictionary<string, IExecutionProfile> ExecutionProfiles { get; set; } = new Dictionary<string, IExecutionProfile>();
 
         public IRequestHandlerFactory RequestHandlerFactory { get; set; } = new RequestHandlerFactory();
 
@@ -53,6 +61,14 @@ namespace Cassandra.Tests
         public IRequestExecutionFactory RequestExecutionFactory { get; set; } = new RequestExecutionFactory();
 
         public IConnectionFactory ConnectionFactory { get; set; } = new ConnectionFactory();
+
+        public IControlConnectionFactory ControlConnectionFactory { get; set; } = new ControlConnectionFactory();
+
+        public IPrepareHandlerFactory PrepareHandlerFactory { get; set; } = new PrepareHandlerFactory();
+
+        public ITimerFactory TimerFactory { get; set; } = new TaskBasedTimerFactory();
+
+        public IEndPointResolver EndPointResolver { get; set; } = new EndPointResolver(new DnsResolver(), new ProtocolOptions());
 
         public Configuration Build()
         {
@@ -68,12 +84,19 @@ namespace Cassandra.Tests
                 AddressTranslator,
                 StartupOptionsFactory,
                 SessionFactoryBuilder,
+                ExecutionProfiles,
+                RequestOptionsMapper,
+                MetadataSyncOptions,
+                EndPointResolver,
                 EmptyDriverMetricsProvider.Instance,
                 EmptyDriverMetricsScheduler.Instance,
                 RequestHandlerFactory,
                 HostConnectionPoolFactory,
                 RequestExecutionFactory,
-                ConnectionFactory);
+                ConnectionFactory,
+                ControlConnectionFactory,
+                PrepareHandlerFactory,
+                TimerFactory);
         }
     }
 }

@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ using System.Text;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     [TestCassandraVersion(2, 1)]
     public class TupleTests : SharedClusterTest
     {

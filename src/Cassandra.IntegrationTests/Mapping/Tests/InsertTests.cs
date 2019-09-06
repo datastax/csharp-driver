@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ using HairColor = Cassandra.Tests.Mapping.Pocos.HairColor;
 
 namespace Cassandra.IntegrationTests.Mapping.Tests
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class InsertTests : SharedClusterTest
     {
         private ISession _session;
@@ -647,6 +647,22 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             
             // BONUS: Attempt insert with null values
             Assert.DoesNotThrow(() => mapper.Insert(new PocoWithEnumCollections { Id = 1001L }));
+        }
+
+        [Test]
+        public void Should_InsertWithMapper_When_TableHasReservedKeywords()
+        {
+            Session.CreateKeyspaceIfNotExists("create");
+            var table = new Table<ReservedKeywordPoco>(Session, MappingConfiguration.Global, "add", "create");
+
+            table.CreateIfNotExists();
+            table.Insert(new ReservedKeywordPoco { Batch = "123", Id = "1", NotReserved = "n", Select = "select" }).Execute();
+
+            var result = table.First(poco => poco.Id == "1").Execute();
+            Assert.AreEqual("1", result.Id);
+            Assert.AreEqual("123", result.Batch);
+            Assert.AreEqual("n", result.NotReserved);
+            Assert.AreEqual("select", result.Select);
         }
 
         /////////////////////////////////////////

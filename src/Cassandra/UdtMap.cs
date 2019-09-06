@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -33,8 +33,8 @@ namespace Cassandra
     {
         private const string NotPropertyMessage = "The expression '{0}' does not refer to a property.";
 
-        internal UdtMap(string udtName)
-            : base(typeof(T), udtName)
+        internal UdtMap(string udtName, string keyspace)
+            : base(typeof(T), udtName, keyspace)
         {
         }
 
@@ -97,7 +97,13 @@ namespace Cassandra
 
         protected internal UdtColumnInfo Definition { get; protected set; }
 
-        protected UdtMap(Type netType, string udtName)
+        protected internal string Keyspace { get; }
+
+        protected UdtMap(Type netType, string udtName) : this(netType, udtName, null)
+        {
+        }
+        
+        protected UdtMap(Type netType, string udtName, string keyspace)
         {
             if (netType == null)
             {
@@ -106,6 +112,7 @@ namespace Cassandra
             NetType = netType;
             UdtName = string.IsNullOrWhiteSpace(udtName) ? NetType.Name : udtName;
             IgnoreCase = true;
+            Keyspace = keyspace;
 
             _fieldNameToProperty = new Dictionary<string, PropertyInfo>();
             _propertyToFieldName = new Dictionary<PropertyInfo, string>();
@@ -240,9 +247,9 @@ namespace Cassandra
         /// <summary>
         /// Creates a new UdtMap for the specified .NET type, optionally mapped to the specified UDT name.
         /// </summary>
-        public static UdtMap<T> For<T>(string udtName = null) where T : new()
+        public static UdtMap<T> For<T>(string udtName = null, string keyspace = null) where T : new()
         {
-            return new UdtMap<T>(udtName);
+            return new UdtMap<T>(udtName, keyspace);
         }
 
         /// <summary>

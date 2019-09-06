@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -72,7 +72,7 @@ namespace Cassandra.Requests
             {
                 throw new RequestInvalidException("Non-serial consistency specified as a serial one.");
             }
-            if (queryOptions.Timestamp != null && !protocolVersion.SupportsTimestamp())
+            if (queryOptions.RawTimestamp != null && !protocolVersion.SupportsTimestamp())
             {
                 throw new NotSupportedException("Timestamp for query is supported in Cassandra 2.1 or above.");
             }

@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -180,7 +180,8 @@ namespace Cassandra
         /// Sets the retry policy to use for this query.
         /// <para>
         /// Calling this method is only required when you want to override the default 
-        /// <see cref="Policies.RetryPolicy"/> set in the cluster configuration for this request.
+        /// <see cref="Policies.RetryPolicy"/> set in the cluster configuration for this request or the one set
+        /// in the execution profile (see <see cref="IExecutionProfile.RetryPolicy"/>) for this request.
         /// </para>
         /// <para>
         /// Use a <see cref="IExtendedRetryPolicy"/> implementation to cover all error scenarios.

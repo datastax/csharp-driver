@@ -14,7 +14,7 @@ using Linq = Cassandra.Data.Linq;
 
 namespace Cassandra.IntegrationTests.Mapping.Tests
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class Attributes : SharedClusterTest
     {
         ISession _session;

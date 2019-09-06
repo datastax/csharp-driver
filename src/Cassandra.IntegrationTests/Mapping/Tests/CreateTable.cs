@@ -8,7 +8,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Mapping.Tests
 {
-    [Category("short")]
+    [Category("short"), Category("realcluster")]
     public class CreateTable : SharedClusterTest
     {
         ISession _session;

@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,23 +15,20 @@
 //
 
 using System;
+using Cassandra.Responses;
 
 namespace Cassandra
 {
     internal class OutputSchemaChange : IOutput
     {
-        public string Change;
-        public string Keyspace;
-        public string Table;
+        public SchemaChangeEventArgs SchemaChangeEventArgs { get; }
 
-        public Guid? TraceId { get; private set; }
+        public Guid? TraceId { get; }
 
-        internal OutputSchemaChange(FrameReader reader, Guid? traceId)
+        internal OutputSchemaChange(ProtocolVersion protocolVersion, FrameReader reader, Guid? traceId)
         {
             TraceId = traceId;
-            Change = reader.ReadString();
-            Keyspace = reader.ReadString();
-            Table = reader.ReadString();
+            SchemaChangeEventArgs = EventResponse.ParseSchemaChangeBody(protocolVersion, reader);
         }
 
         public void Dispose()

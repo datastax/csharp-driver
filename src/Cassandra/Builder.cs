@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using Cassandra.Connections;
+using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics.DriverAbstractions;
 using Cassandra.Metrics.NoopImpl;
 using Cassandra.Requests;
@@ -37,7 +39,8 @@ namespace Cassandra
     public class Builder : IInitializer
     {
         private readonly List<IPEndPoint> _addresses = new List<IPEndPoint>();
-        private readonly IList<string> _hostNames = new List<string>();
+        private readonly List<string> _hostNames = new List<string>();
+        private readonly ICoreClusterFactory _coreClusterFactory = new CoreClusterFactory();
         private const int DefaultQueryAbortTimeout = 20000;
         private PoolingOptions _poolingOptions;
         private SocketOptions _socketOptions = new SocketOptions();
@@ -64,6 +67,10 @@ namespace Cassandra
         private int _maxSchemaAgreementWaitSeconds = ProtocolOptions.DefaultMaxSchemaAgreementWaitSeconds;
         private IStartupOptionsFactory _startupOptionsFactory = new StartupOptionsFactory();
         private ISessionFactoryBuilder<IInternalCluster, IInternalSession> _sessionFactoryBuilder = new SessionFactoryBuilder();
+        private IReadOnlyDictionary<string, IExecutionProfile> _profiles = new Dictionary<string, IExecutionProfile>();
+        private IRequestOptionsMapper _requestOptionsMapper = new RequestOptionsMapper();
+        private MetadataSyncOptions _metadataSyncOptions;
+        private IEndPointResolver _endPointResolver;
         private IDriverMetricsProvider _driverMetricsProvider = EmptyDriverMetricsProvider.Instance;
         private IDriverMetricsScheduler _driverMetricsScheduler = EmptyDriverMetricsScheduler.Instance;
 
@@ -143,6 +150,10 @@ namespace Cassandra
                 _addressTranslator,
                 _startupOptionsFactory,
                 _sessionFactoryBuilder,
+                _profiles,
+                _requestOptionsMapper,
+                _metadataSyncOptions,
+                _endPointResolver,
                 _driverMetricsProvider,
                 _driverMetricsScheduler);
             if (_typeSerializerDefinitions != null)
@@ -663,6 +674,18 @@ namespace Cassandra
             return this;
         }
 
+        internal Builder WithRequestOptionsMapper(IRequestOptionsMapper requestOptionsMapper)
+        {
+            _requestOptionsMapper = requestOptionsMapper ?? throw new ArgumentNullException(nameof(requestOptionsMapper));
+            return this;
+        }
+
+        internal Builder WithEndPointResolver(IEndPointResolver endPointResolver)
+        {
+            _endPointResolver = endPointResolver ?? throw new ArgumentNullException(nameof(endPointResolver));
+            return this;
+        }
+
         /// <summary>
         /// Sets the maximum time to wait for schema agreement before returning from a DDL query.
         /// <para/>
@@ -711,6 +734,88 @@ namespace Cassandra
 #endif
 
         /// <summary>
+        /// <para>
+        /// Adds Execution Profiles to the Cluster instance. 
+        /// </para>
+        /// <para>
+        /// Execution profiles are like configuration presets, multiple methods
+        /// of the driver accept an execution profile name which is like telling the driver which settings to use for that particular request.
+        /// This makes it easier to change settings like ConsistencyLevel and ReadTimeoutMillis on a per request basis.
+        /// </para>
+        /// <para>
+        /// Note that subsequent calls to this method will override the previously provided profiles.
+        /// </para>
+        /// <para>
+        /// To add execution profiles you can use
+        /// <see cref="IExecutionProfileOptions.WithProfile(string,Action{IExecutionProfileBuilder})"/>:
+        /// </para>
+        /// <para>
+        /// <code>
+        ///         Cluster.Builder()
+        ///                 .WithExecutionProfiles(options => options
+        ///                     .WithProfile("profile1", profileBuilder => profileBuilder
+        ///                         .WithReadTimeoutMillis(10000)
+        ///                         .WithConsistencyLevel(ConsistencyLevel.LocalQuorum)))
+        ///                 .Build()
+        /// </code>
+        /// </para>
+        /// </summary>
+        /// <param name="profileOptionsBuilder"></param>
+        /// <returns>This builder</returns>
+        public Builder WithExecutionProfiles(Action<IExecutionProfileOptions> profileOptionsBuilder)
+        {
+            var profileOptions = new ExecutionProfileOptions();
+            profileOptionsBuilder(profileOptions);
+            _profiles = profileOptions.GetProfiles();
+            return this;
+        }
+        
+        /// <summary>
+        /// <para>
+        /// If not set through this method, the default value options will be used (metadata synchronization is enabled by default). The api reference of <see cref="MetadataSyncOptions"/>
+        /// specifies what is the default for each option.
+        /// </para>
+        /// <para>
+        /// In case you disable Metadata synchronization, please ensure you invoke <see cref="ICluster.RefreshSchemaAsync"/> in order to keep the token metadata up to date
+        /// otherwise you will not be getting everything you can out of token aware routing, i.e. <see cref="TokenAwarePolicy"/>, which is enabled by the default. 
+        /// </para>
+        /// <para>
+        /// Disabling this feature has the following impact:
+        /// 
+        /// <list type="bullet">
+        /// 
+        /// <item><description>
+        /// Token metadata will not be computed and stored.
+        /// This means that token aware routing (<see cref="TokenAwarePolicy"/>, enabled by default) will only work correctly
+        /// if you keep the token metadata up to date using the <see cref="ICluster.RefreshSchemaAsync"/> method.
+        /// If you wish to go this route of manually refreshing the metadata then
+        /// it's recommended to refresh only the keyspaces that this application will use, by passing the <code>keyspace</code> parameter.
+        /// </description></item>
+        /// 
+        /// <item><description>
+        /// Keyspace metadata will not be cached by the driver. Every time you call methods like <see cref="Metadata.GetTable"/>, <see cref="Metadata.GetKeyspace"/>
+        /// and other similar methods of the <see cref="Metadata"/> class, the driver will query that data on demand and will not cache it.
+        /// </description></item>
+        /// 
+        /// <item><description>
+        /// The driver will not handle <code>SCHEMA_CHANGED</code> responses. This means that when you execute schema changing statements through the driver, it will
+        /// not update the schema or topology metadata automatically before returning.
+        /// </description></item>
+        /// 
+        /// </list>
+        /// </para>
+        /// </summary>
+        /// <summary>
+        /// </summary>
+        /// <param name="metadataSyncOptions">The new options to set.</param>
+        /// <returns>This Builder.</returns>
+        public Builder WithMetadataSyncOptions(MetadataSyncOptions metadataSyncOptions)
+        {
+            _metadataSyncOptions = metadataSyncOptions;
+            return this;
+        }
+
+        /// <summary>
         ///  Build the cluster with the configured set of initial contact points and policies.
         /// </summary>
         /// <exception cref="NoHostAvailableException">Throws a NoHostAvailableException when no host could be resolved.</exception>
@@ -718,7 +823,9 @@ namespace Cassandra
         /// <returns>the newly build Cluster instance. </returns>
         public Cluster Build()
         {
-            return Cluster.BuildFrom(this, _hostNames);
+            return _coreClusterFactory.Create(this, HostNames, null, null);
         }
+
+        internal IReadOnlyList<string> HostNames => _hostNames;
     }
 }

@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -250,6 +250,14 @@ namespace Cassandra.Tasks
             return tcs.Task;
         }
 
+        /// <summary>
+        /// Checks whether the task has finished.
+        /// </summary>
+        public static bool HasFinished(this Task task)
+        {
+            return task.IsCompleted || task.IsCanceled || task.IsFaulted;
+        }
+
         private static void DoNextThen<TIn, TOut>(TaskCompletionSource<TOut> tcs, Task<TIn> previousTask, Func<TIn, Task<TOut>> next, TaskContinuationOptions options)
         {
             if (previousTask.IsFaulted && previousTask.Exception != null)
@@ -420,6 +428,15 @@ namespace Cassandra.Tasks
         public static CancellationToken CancelTokenAfterDelay(TimeSpan timespan)
         {
             return new CancellationTokenSource(timespan).Token;
+        }
+
+        public static Func<Task> ActionToAsync(Action act)
+        {
+            return () =>
+            {
+                act();
+                return TaskHelper.Completed;
+            };
         }
     }
 }

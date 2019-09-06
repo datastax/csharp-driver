@@ -1,5 +1,5 @@
 ﻿//
-//      Copyright (C) 2012-2014 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Cassandra.Connections;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
 using Cassandra.Observers;
@@ -39,7 +40,7 @@ namespace Cassandra.Tests.Mapping.Linq
         [Test]
         public void TestCqlFromLinq()
         {
-            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
+            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(GetSession((_,__) => {}));
 
             Assert.AreEqual(
                 (from ent in table select ent).ToString(),
@@ -119,7 +120,7 @@ namespace Cassandra.Tests.Mapping.Linq
         [Test]
         public void StartsWith_Test()
         {
-            var table = new Table<LinqDecoratedWithStringCkEntity>(null);
+            var table = new Table<LinqDecoratedWithStringCkEntity>(GetSession((_,__) => {}));
             var query = table.Where(t => t.pk == "a" && t.ck1.StartsWith("foo") && t.pk == "bar");
             var pocoData = MappingConfiguration.Global.MapperFactory.GetPocoData<LinqDecoratedWithStringCkEntity>();
             var visitor = new CqlExpressionVisitor(pocoData, "x_ts", null);
@@ -149,7 +150,7 @@ namespace Cassandra.Tests.Mapping.Linq
                     Property = "b"
                 }
             };
-            var table = new Table<LinqDecoratedWithStringCkEntity>(null);
+            var table = new Table<LinqDecoratedWithStringCkEntity>(GetSession((_,__) => {}));
             var query = table.Where(t => t.pk == testObject.Property && t.ck1 == testObject.AnotherObjectProperty.Property);
             var pocoData = MappingConfiguration.Global.MapperFactory.GetPocoData<LinqDecoratedWithStringCkEntity>();
             var visitor = new CqlExpressionVisitor(pocoData, "x_ts", null);
@@ -171,7 +172,7 @@ namespace Cassandra.Tests.Mapping.Linq
                     Field = "b"
                 }
             };
-            var table = new Table<LinqDecoratedWithStringCkEntity>(null);
+            var table = new Table<LinqDecoratedWithStringCkEntity>(GetSession((_,__) => { }));
             var query = table.Where(t => t.pk == testObject.Field && t.ck1 == testObject.AnotherObjectField.Field);
             var pocoData = MappingConfiguration.Global.MapperFactory.GetPocoData<LinqDecoratedWithStringCkEntity>();
             var visitor = new CqlExpressionVisitor(pocoData, "x_ts", null);
@@ -196,7 +197,7 @@ namespace Cassandra.Tests.Mapping.Linq
                     Field = "b"
                 }
             };
-            var table = new Table<LinqDecoratedWithStringCkEntity>(null);
+            var table = new Table<LinqDecoratedWithStringCkEntity>(GetSession((_,__) => {}));
             var query = table.Where(t => t.pk == testObject.AnotherObjectField.Property && t.ck1 == testObject.AnotherObjectProperty.Field);
             var pocoData = MappingConfiguration.Global.MapperFactory.GetPocoData<LinqDecoratedWithStringCkEntity>();
             var visitor = new CqlExpressionVisitor(pocoData, "x_ts", null);
@@ -211,8 +212,8 @@ namespace Cassandra.Tests.Mapping.Linq
         [Test]
         public void Linq_Unlogged_Batch_Test()
         {
-            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
-            var batch = SessionExtensions.CreateBatch(null, BatchType.Unlogged);
+            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(GetSession((_,__) => {}));
+            var batch = SessionExtensions.CreateBatch(GetSession((_,__) => {}), BatchType.Unlogged);
             batch.Append(table.Insert(new LinqDecoratedEntity() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" }));
             batch.Append(table.Where(ent => new int[] { 10, 30, 40 }.Contains(ent.ck2)).Select(ent => new { f1 = 1223 }).Update());
             batch.Append(table.Where(ent => new int[] { 10, 30, 40 }.Contains(ent.ck2)).Delete());
@@ -227,8 +228,8 @@ APPLY BATCH".Replace("\r", ""));
         [Test]
         public void Linq_Logged_Batch_Test()
         {
-            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
-            var batch = SessionExtensions.CreateBatch(null, BatchType.Logged);
+            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(GetSession((_,__) => {}));
+            var batch = SessionExtensions.CreateBatch(GetSession((_,__) => {}), BatchType.Logged);
             batch.Append(table.Insert(new LinqDecoratedEntity() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" }));
             batch.Append(table.Where(ent => new int[] { 10, 30, 40 }.Contains(ent.ck2)).Select(ent => new { f1 = 1223 }).Update());
             batch.Append(table.Where(ent => new int[] { 10, 30, 40 }.Contains(ent.ck2)).Delete());
@@ -244,8 +245,8 @@ APPLY BATCH".Replace("\r", ""));
         public void Linq_Counter_Batch_Test()
         {
             //TODO: Write actual counter statements
-            var table = SessionExtensions.GetTable<CounterTestTable1>(null);
-            var batch = SessionExtensions.CreateBatch(null, BatchType.Counter);
+            var table = SessionExtensions.GetTable<CounterTestTable1>(GetSession((_,__) => {}));
+            var batch = SessionExtensions.CreateBatch(GetSession((_,__) => {}), BatchType.Counter);
             batch.Append(table.Where(ent => ent.RowKey1 == 1 && ent.RowKey2 == 2).Select(_ => new CounterTestTable1 { Value = 1 }).Update());
             batch.Append(table.Where(ent => ent.RowKey1 == 3 && ent.RowKey2 == 4).Select(_ => new CounterTestTable1 { Value = 1 }).Update());
             Assert.AreEqual(batch.ToString().Replace("\r", ""),
@@ -258,7 +259,7 @@ APPLY BATCH".Replace("\r", ""));
         [Test]
         public void LinqGeneratedUpdateStatementTest()
         {
-            var table = SessionExtensions.GetTable<AllTypesEntity>(null);
+            var table = SessionExtensions.GetTable<AllTypesEntity>(GetSession((_,__) => {}));
             string query;
             string expectedQuery;
 
@@ -284,7 +285,7 @@ APPLY BATCH".Replace("\r", ""));
         [Test]
         public void TestCqlFromLinqPaxosSupport()
         {
-            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
+            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(GetSession((_,__) => {}));
 
             Assert.AreEqual(
                (table.Insert(new LinqDecoratedEntity() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" })).IfNotExists().ToString(),
@@ -303,7 +304,7 @@ APPLY BATCH".Replace("\r", ""));
         [Test]
         public void TestCqlNullValuesLinqSupport()
         {
-            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
+            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(GetSession((_,__) => {}));
 
             Assert.AreEqual(
                 @"INSERT INTO ""x_t"" (""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES (?, ?, ?, ?)",
@@ -332,7 +333,10 @@ APPLY BATCH".Replace("\r", ""));
         [Test]
         public void LinqSelectWhereTest()
         {
+            var clusterMock = new Mock<ICluster>();
+            clusterMock.Setup(c => c.Configuration).Returns(new Configuration());
             var sessionMock = new Mock<ISession>();
+            sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             var session = sessionMock.Object;
 
             var table = session.GetTable<AllTypesEntity>();
@@ -361,6 +365,13 @@ APPLY BATCH".Replace("\r", ""));
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
                 .Callback<string>(actualCqlQueries.Add)
+                .Returns(TaskHelper.ToTask(GetPrepared("Mock query")));
+            sessionMock
+                .Setup(s => s.ExecuteAsync(It.IsAny<IStatement>(), It.IsAny<string>()))
+                .Returns(Task<RowSet>.Factory.StartNew(() => new RowSet()));
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Callback<string>(query => actualCqlQueries.Add(query))
                 .Returns(TaskHelper.ToTask(GetPrepared("Mock query")));
 
             //Execute all linq queries
@@ -397,14 +408,14 @@ APPLY BATCH".Replace("\r", ""));
         [Test]
         public void AllowFilteringTest()
         {
-            var table = SessionExtensions.GetTable<AllowFilteringTestTable>(null);
+            var table = SessionExtensions.GetTable<AllowFilteringTestTable>(GetSession((_,__) => {}));
             var key1 = "x";
             var cqlQuery = table
                 .Where(item => item.ClusteringKey == key1 && item.Value == 1M)
                 .AllowFiltering();
 
             Assert.That(cqlQuery, Is.Not.Null);
-            Assert.That(cqlQuery.ToString(), Is.StringEnding("ALLOW FILTERING"));
+            StringAssert.EndsWith("ALLOW FILTERING", cqlQuery.ToString());
             Trace.WriteLine(cqlQuery.ToString());
         }
 
@@ -444,11 +455,12 @@ APPLY BATCH".Replace("\r", ""));
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             var config = new Configuration();
             var metadata = new Metadata(config, new ClusterObserver());
-            var ccMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var ccMock = new Mock<IControlConnection>(MockBehavior.Strict);
             ccMock.Setup(cc => cc.Serializer).Returns(new Serializer(ProtocolVersion.MaxSupported));
             metadata.ControlConnection = ccMock.Object;
             var clusterMock = new Mock<ICluster>();
             clusterMock.Setup(c => c.Metadata).Returns(metadata);
+            clusterMock.Setup(c => c.Configuration).Returns(config);
             sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
@@ -472,7 +484,7 @@ APPLY BATCH".Replace("\r", ""));
         [Test]
         public void VirtualPropertiesTest()
         {
-            var table = SessionExtensions.GetTable<InheritedEntity>(null);
+            var table = SessionExtensions.GetTable<InheritedEntity>(GetSession((_,__) => {}));
             var query1 = table.Where(e => e.Id == 10);
             Assert.AreEqual("SELECT \"Id\", \"Description\", \"Name\" FROM \"InheritedEntity\" WHERE \"Id\" = ?", query1.ToString());
             var query2 = (from e in table where e.Id == 1 && e.Name == "MyName" select new { e.Id, e.Name, e.Description });
@@ -480,11 +492,12 @@ APPLY BATCH".Replace("\r", ""));
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             var config = new Configuration();
             var metadata = new Metadata(config, new ClusterObserver());
-            var ccMock = new Mock<IMetadataQueryProvider>(MockBehavior.Strict);
+            var ccMock = new Mock<IControlConnection>(MockBehavior.Strict);
             ccMock.Setup(cc => cc.Serializer).Returns(new Serializer(ProtocolVersion.MaxSupported));
             metadata.ControlConnection = ccMock.Object;
             var clusterMock = new Mock<ICluster>();
             clusterMock.Setup(c => c.Metadata).Returns(metadata);
+            clusterMock.Setup(c => c.Configuration).Returns(config);
             sessionMock.Setup(s => s.Cluster).Returns(clusterMock.Object);
             string createQuery = null;
             sessionMock
@@ -500,7 +513,7 @@ APPLY BATCH".Replace("\r", ""));
         [Test]
         public void LinqGeneratedUpdateStatementForCounterTest()
         {
-            var table = SessionExtensions.GetTable<CounterTestTable1>(null);
+            var table = SessionExtensions.GetTable<CounterTestTable1>(GetSession((_,__) => {}));
             var query = table
                 .Where(r => r.RowKey1 == 5 && r.RowKey2 == 6)
                 .Select(r => new CounterTestTable1() { Value = 2 })
@@ -519,7 +532,7 @@ APPLY BATCH".Replace("\r", ""));
         [Test]
         public void EmptyListTest()
         {
-            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
+            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(GetSession((_,__) => {}));
             var keys = new string[0];
             var query = table.Where(item => keys.Contains(item.pk));
 
@@ -554,7 +567,7 @@ APPLY BATCH".Replace("\r", ""));
         [Test]
         public void Select_Specific_Columns()
         {
-            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
+            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(GetSession((_,__) => {}));
             var query = table.Select(t => new LinqDecoratedEntity { f1 = t.f1, pk = t.pk });
             Assert.AreEqual(@"SELECT ""x_f1"", ""x_pk"" FROM ""x_t"" ALLOW FILTERING", query.ToString());
         }
@@ -562,7 +575,7 @@ APPLY BATCH".Replace("\r", ""));
         [Test]
         public void Select_Count()
         {
-            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
+            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(GetSession((_,__) => {}));
             Assert.AreEqual(
                 (from ent in table select ent).Count().ToString(),
                 @"SELECT count(*) FROM ""x_t"" ALLOW FILTERING");
@@ -571,7 +584,7 @@ APPLY BATCH".Replace("\r", ""));
         [Test]
         public void Select_One_Columns()
         {
-            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(null);
+            var table = SessionExtensions.GetTable<LinqDecoratedEntity>(GetSession((_,__) => {}));
             var query = table.Select(t => t.f1);
             Assert.AreEqual(@"SELECT ""x_f1"" FROM ""x_t"" ALLOW FILTERING", query.ToString());
         }
@@ -579,7 +592,7 @@ APPLY BATCH".Replace("\r", ""));
         [Test]
         public void Select_OrderBy_Columns()
         {
-            var table = SessionExtensions.GetTable<AllTypesEntity>(null);
+            var table = SessionExtensions.GetTable<AllTypesEntity>(GetSession((_,__) => {}));
             var query = table.OrderBy(t => t.UuidValue).OrderByDescending(t => t.DateTimeValue);
             Assert.AreEqual(@"SELECT ""BooleanValue"", ""DateTimeValue"", ""DecimalValue"", ""DoubleValue"", ""Int64Value"", ""IntValue"", ""StringValue"", ""UuidValue"" FROM ""AllTypesEntity"" ORDER BY ""UuidValue"", ""DateTimeValue"" DESC", query.ToString());
         }
@@ -587,7 +600,7 @@ APPLY BATCH".Replace("\r", ""));
         [Test]
         public void Select_Where_Contains()
         {
-            var table = SessionExtensions.GetTable<AllTypesDecorated>(null);
+            var table = SessionExtensions.GetTable<AllTypesDecorated>(GetSession((_,__) => {}));
             var ids = new []{ 1, 2, 3};
             var query = table.Where(t => ids.Contains(t.IntValue) && t.Int64Value == 10);
             Assert.AreEqual(
@@ -600,7 +613,7 @@ APPLY BATCH".Replace("\r", ""));
         [Test]
         public void DeleteIf_With_Where_Clause()
         {
-            var table = SessionExtensions.GetTable<AllTypesDecorated>(null);
+            var table = SessionExtensions.GetTable<AllTypesDecorated>(GetSession((_,__) => {}));
             var query = table
                 .Where(t => t.Int64Value == 1)
                 .DeleteIf(t => t.StringValue == "conditional!");

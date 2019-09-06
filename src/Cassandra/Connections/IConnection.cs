@@ -1,7 +1,6 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Requests;
 using Cassandra.Responses;
@@ -35,7 +34,10 @@ namespace Cassandra.Connections
 
         IFrameCompressor Compressor { get; set; }
 
-        IPEndPoint Address { get; }
+        /// <summary>
+        /// Remote EndPoint, i.e., endpoint to which this instance is connected.
+        /// </summary>
+        IConnectionEndPoint EndPoint { get; }
 
         IPEndPoint LocalAddress { get; }
 
@@ -75,9 +77,7 @@ namespace Cassandra.Connections
         int MaxConcurrentRequests { get; }
 
         ProtocolOptions Options { get; }
-
-        Configuration Configuration { get; set; }
-
+        
         /// <summary>
         /// Initializes the connection.
         /// </summary>
@@ -89,12 +89,22 @@ namespace Cassandra.Connections
         /// <summary>
         /// Sends a new request if possible. If it is not possible it queues it up.
         /// </summary>
-        Task<Response> Send(IRequest request, int timeoutMillis = Timeout.Infinite);
+        Task<Response> Send(IRequest request, int timeoutMillis);
 
         /// <summary>
         /// Sends a new request if possible and executes the callback when the response is parsed. If it is not possible it queues it up.
         /// </summary>
-        OperationState Send(IRequest request, Action<Exception, Response> callback, int timeoutMillis = Timeout.Infinite);
+        OperationState Send(IRequest request, Action<Exception, Response> callback, int timeoutMillis);
+
+        /// <summary>
+        /// Sends a new request if possible with the default timeout. If it is not possible it queues it up.
+        /// </summary>
+        Task<Response> Send(IRequest request);
+
+        /// <summary>
+        /// Sends a new request if possible and executes the callback when the response is parsed with the default timeout. If it is not possible it queues it up.
+        /// </summary>
+        OperationState Send(IRequest request, Action<Exception, Response> callback);
 
         /// <summary>
         /// Sets the keyspace of the connection.

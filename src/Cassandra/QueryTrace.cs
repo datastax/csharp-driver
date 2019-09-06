@@ -1,5 +1,5 @@
 //
-//      Copyright (C) 2012-2016 DataStax Inc.
+//      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
 namespace Cassandra
@@ -178,13 +179,13 @@ namespace Cassandra
             //The properties will be populated later.
             _traceId = traceId;
             _metadata = session.Cluster.Metadata;
-            _metadataFetchSyncTimeout = session.Cluster.Configuration.ClientOptions.QueryAbortTimeout;
+            _metadataFetchSyncTimeout = session.Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
         }
 
         public override string ToString()
         {
             MaybeFetchTrace();
-            return string.Format("{0} [{1}] - {2}µs", _requestType, _traceId, _duration);
+            return $"{_requestType} [{_traceId}] - {_duration}µs";
         }
 
         private void MaybeFetchTrace()
