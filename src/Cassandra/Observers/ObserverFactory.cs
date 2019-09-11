@@ -14,7 +14,6 @@
 //    limitations under the License.
 // 
 
-using Cassandra.Metrics.DriverAbstractions;
 using Cassandra.Metrics.Registries;
 using Cassandra.Observers.Abstractions;
 
@@ -31,10 +30,10 @@ namespace Cassandra.Observers
             _scheduler = scheduler;
         }
 
-        public IClusterObserver GetClusterObserver()
+        public ISessionObserver CreateSessionObserver()
         {
             _scheduler.StartAsync();
-            return new ClusterObserver(_metricsRegistry);
+            return new SessionObserver(_metricsRegistry);
         }
     }
 }

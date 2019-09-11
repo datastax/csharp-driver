@@ -14,13 +14,12 @@
 //    limitations under the License.
 // 
 
-using Cassandra.Metrics.DriverAbstractions;
+using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.Metrics.Registries
 {
     internal class RequestErrorsLevelMetricsRegistry
     {
-        public IDriverMeter Total { get; }
         public IDriverMeter OnAborted { get; }
         public IDriverMeter OnReadTimeout { get; }
         public IDriverMeter OnWriteTimeout { get; }
@@ -29,7 +28,6 @@ namespace Cassandra.Metrics.Registries
 
         public RequestErrorsLevelMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
         {
-            Total = driverMetricsProvider.Meter("total", DriverMeasurementUnit.Requests);
             OnAborted = driverMetricsProvider.Meter("aborted", DriverMeasurementUnit.Requests);
             OnReadTimeout = driverMetricsProvider.Meter("read-timeout", DriverMeasurementUnit.Requests);
             OnWriteTimeout = driverMetricsProvider.Meter("write-timeout", DriverMeasurementUnit.Requests);

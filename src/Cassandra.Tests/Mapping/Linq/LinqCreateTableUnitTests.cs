@@ -575,7 +575,7 @@ namespace Cassandra.Tests.Mapping.Linq
             }
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             var config = new Configuration();
-            var metadata = new Metadata(config, new ClusterObserver());
+            var metadata = new Metadata(config, new SessionObserver());
             var ccMock = new Mock<IControlConnection>(MockBehavior.Strict);
             ccMock.Setup(cc => cc.Serializer).Returns(serializer);
             metadata.ControlConnection = ccMock.Object;

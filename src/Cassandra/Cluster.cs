@@ -55,7 +55,7 @@ namespace Cassandra
         private readonly ISessionFactory<IInternalSession> _sessionFactory;
         private readonly IClusterLifecycleManager _lifecycleManager;
         private readonly IProtocolEventDebouncer _protocolEventDebouncer;
-        private readonly IClusterObserver _clusterObserver;
+        private readonly ISessionObserver _sessionObserver;
 
         /// <inheritdoc />
         public event Action<Host> HostAdded;
@@ -63,7 +63,7 @@ namespace Cassandra
         public event Action<Host> HostRemoved;
         
         internal IInternalCluster InternalRef => this;
-        IClusterObserver IInternalCluster.ClusterObserver => _clusterObserver;
+        ISessionObserver IInternalCluster.SessionObserver => _sessionObserver;
 
         /// <inheritdoc />
         IControlConnection IInternalCluster.GetControlConnection()
@@ -160,8 +160,8 @@ namespace Cassandra
         private Cluster(IEnumerable<object> contactPoints, Configuration configuration, IClusterLifecycleManager lifecycleManager)
         {
             Configuration = configuration;
-            _clusterObserver = configuration.GetObserverFactory().GetClusterObserver();
-            _metadata = new Metadata(configuration, _clusterObserver);
+            _sessionObserver = configuration.GetObserverFactory().CreateSessionObserver();
+            _metadata = new Metadata(configuration, _sessionObserver);
             var protocolVersion = _maxProtocolVersion;
             if (Configuration.ProtocolOptions.MaxProtocolVersionValue != null &&
                 Configuration.ProtocolOptions.MaxProtocolVersionValue.Value.IsSupported())
@@ -250,7 +250,7 @@ namespace Cassandra
             await session.Init().ConfigureAwait(false);
             _connectedSessions.Add(session);
             Cluster.Logger.Info("Session connected ({0})", session.GetHashCode());
-            _clusterObserver.OnSessionConnect(session);
+            _sessionObserver.OnConnect(session);
             return session;
         }
 
@@ -337,7 +337,7 @@ namespace Cassandra
                 _initLock.Release();
             }
 
-            _clusterObserver.OnClusterInit(this);
+            _sessionObserver.OnInit(this);
             return true;
         }
 
@@ -348,7 +348,7 @@ namespace Cassandra
             {
                 return false;
             }
-			_clusterObserver.OnClusterShutdown();
+			_sessionObserver.OnShutdown();
             var sessions = _connectedSessions.ClearAndGet();
             try
             {

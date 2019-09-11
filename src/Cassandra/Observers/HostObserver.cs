@@ -24,21 +24,21 @@ namespace Cassandra.Observers
     internal class HostObserver : IHostObserver
     {
         private static readonly Logger Logger = new Logger(typeof(HostObserver));
-        private readonly ClusterObserver _clusterObserver = new ClusterObserver();
+        private readonly SessionObserver _sessionObserver = new SessionObserver();
 
         private Host _host;
-        private HostLevelMetricsRegistry _hostLevelMetricsRegistry = HostLevelMetricsRegistry.EmptyInstance;
+        private NodeLevelMetricsRegistry _nodeLevelMetricsRegistry = NodeLevelMetricsRegistry.EmptyInstance;
 
-        public HostLevelMetricsRegistry HostLevelMetricsRegistry
+        public NodeLevelMetricsRegistry NodeLevelMetricsRegistry
         {
             get
             {
                 if (_host == null ||
-                    !ReferenceEquals(_hostLevelMetricsRegistry, HostLevelMetricsRegistry.EmptyInstance) ||
-                    ReferenceEquals(_clusterObserver.ClusterLevelMetricsRegistry, ClusterLevelMetricsRegistry.EmptyInstance))
-                    return _hostLevelMetricsRegistry;
+                    !ReferenceEquals(_nodeLevelMetricsRegistry, NodeLevelMetricsRegistry.EmptyInstance) ||
+                    ReferenceEquals(_sessionObserver.SessionLevelMetricsRegistry, SessionLevelMetricsRegistry.EmptyInstance))
+                    return _nodeLevelMetricsRegistry;
 
-                return _hostLevelMetricsRegistry = _clusterObserver.ClusterLevelMetricsRegistry.GetHostLevelMetrics(_host);
+                return _nodeLevelMetricsRegistry = _sessionObserver.SessionLevelMetricsRegistry.GetNodeLevelMetrics(_host);
             }
         }
 
@@ -46,20 +46,20 @@ namespace Cassandra.Observers
         {
         }
 
-        public HostObserver(ClusterObserver clusterObserver)
+        public HostObserver(SessionObserver sessionObserver)
         {
-            _clusterObserver = clusterObserver;
+            _sessionObserver = sessionObserver;
         }
 
         public void OnSpeculativeExecution(long delay)
         {
             Logger.Info("Starting new speculative execution after {0}, last used host {1}", delay, _host.Address);
-            HostLevelMetricsRegistry.SpeculativeExecutions.Increment(1);
+            NodeLevelMetricsRegistry.SpeculativeExecutions.Increment(1);
         }
 
         public IConnectionObserver CreateConnectionObserver()
         {
-            return new ConnectionObserver(_clusterObserver, this);
+            return new ConnectionObserver(_sessionObserver, this);
         }
 
         public void OnHostInit(Host host)
@@ -69,19 +69,19 @@ namespace Cassandra.Observers
 
         public void OnHostConnectionPoolInit(HostConnectionPool hostConnectionPool)
         {
-            HostLevelMetricsRegistry.InitializeHostConnectionPoolGauges(hostConnectionPool);
+            NodeLevelMetricsRegistry.InitializeHostConnectionPoolGauges(hostConnectionPool);
         }
 
         public void OnRequestRetry(RetryReasonType reason, RetryDecision.RetryDecisionType decision)
         {
-            OnRequestRetry(HostLevelMetricsRegistry.Errors, reason);
+            OnRequestRetry(NodeLevelMetricsRegistry.Errors, reason);
             switch (decision)
             {
                 case RetryDecision.RetryDecisionType.Retry:
-                    OnRequestRetry(HostLevelMetricsRegistry.Retries, reason);
+                    OnRequestRetry(NodeLevelMetricsRegistry.Retries, reason);
                     break;
                 case RetryDecision.RetryDecisionType.Ignore:
-                    OnRequestRetry(HostLevelMetricsRegistry.Ignores, reason);
+                    OnRequestRetry(NodeLevelMetricsRegistry.Ignores, reason);
                     break;
             }
         }

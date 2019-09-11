@@ -74,7 +74,7 @@ namespace Cassandra.Tests.Connections
                     new FakeTimerFactory(), TimeSpan.Zero, TimeSpan.Zero), 
                 ProtocolVersion.V3, 
                 config, 
-                new Metadata(config, new ClusterObserver()), 
+                new Metadata(config, new SessionObserver()), 
                 new List<object> { "cp1", "cp2", "127.0.0.1" });
         }
     }

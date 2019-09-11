@@ -17,7 +17,7 @@
 using System.Collections.Generic;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
-using Cassandra.Metrics.NoopImpl;
+using Cassandra.Metrics.Providers.Null;
 using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.SessionManagement;
@@ -88,7 +88,7 @@ namespace Cassandra.Tests
                 RequestOptionsMapper,
                 MetadataSyncOptions,
                 EndPointResolver,
-                EmptyDriverMetricsProvider.Instance,
+                NullDriverMetricsProvider.Instance,
                 EmptyDriverMetricsScheduler.Instance,
                 RequestHandlerFactory,
                 HostConnectionPoolFactory,

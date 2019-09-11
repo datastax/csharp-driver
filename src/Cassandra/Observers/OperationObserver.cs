@@ -15,8 +15,8 @@
 // 
 
 using System;
-using Cassandra.Metrics.DriverAbstractions;
-using Cassandra.Metrics.NoopImpl;
+using Cassandra.Metrics.Abstractions;
+using Cassandra.Metrics.Providers.Null;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Responses;
 
@@ -24,8 +24,8 @@ namespace Cassandra.Observers
 {
     internal class OperationObserver : IOperationObserver
     {
-        private readonly IDriverTimer _operationTimer = EmptyDriverTimer.Instance;
-        private IDriverTimeHandler _driverTimeHandler = EmptyDriverTimeHandler.Instance;
+        private readonly IDriverTimer _operationTimer = NullDriverTimer.Instance;
+        private IDriverTimeHandler _driverTimeHandler = NullDriverTimeHandler.Instance;
 
         public OperationObserver()
         {

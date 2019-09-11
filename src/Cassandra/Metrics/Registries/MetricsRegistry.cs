@@ -14,14 +14,15 @@
 //    limitations under the License.
 // 
 
-using Cassandra.Metrics.DriverAbstractions;
-using Cassandra.Metrics.NoopImpl;
+using Cassandra.Metrics.Abstractions;
+using Cassandra.Metrics.Providers.Null;
+using Cassandra.SessionManagement;
 
 namespace Cassandra.Metrics.Registries
 {
     internal class MetricsRegistry
     {
-        public static readonly MetricsRegistry EmptyInstance = new MetricsRegistry(EmptyDriverMetricsProvider.Instance);
+        public static readonly MetricsRegistry EmptyInstance = new MetricsRegistry(NullDriverMetricsProvider.Instance);
 
         private readonly IDriverMetricsProvider _driverMetricsProvider;
 
@@ -30,16 +31,16 @@ namespace Cassandra.Metrics.Registries
             _driverMetricsProvider = driverMetricsProvider;
         }
 
-        public ClusterLevelMetricsRegistry GetClusterLevelMetrics(Cluster cluster)
+        public SessionLevelMetricsRegistry GetSessionLevelMetrics(IInternalSession session)
         {
-            return new ClusterLevelMetricsRegistry(
+            return new SessionLevelMetricsRegistry(
                 _driverMetricsProvider.WithContext(cluster.Metadata.ClusterName)
             );
         }
 
-        public HostLevelMetricsRegistry GetHostLevelMetrics(Cluster cluster, Host host)
+        public NodeLevelMetricsRegistry GetHostLevelMetrics(Cluster cluster, Host host)
         {
-            return new HostLevelMetricsRegistry(
+            return new NodeLevelMetricsRegistry(
                 _driverMetricsProvider.WithContext(cluster.Metadata.ClusterName)
                                       .WithContext("nodes")
                                       .WithContext(BuildHostAddressMetricPath(host))

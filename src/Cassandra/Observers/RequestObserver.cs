@@ -15,16 +15,16 @@
 // 
 
 using System;
-using Cassandra.Metrics.DriverAbstractions;
-using Cassandra.Metrics.NoopImpl;
+using Cassandra.Metrics.Abstractions;
+using Cassandra.Metrics.Providers.Null;
 using Cassandra.Observers.Abstractions;
 
 namespace Cassandra.Observers
 {
     internal class RequestObserver : IRequestObserver
     {
-        private readonly IDriverTimer _requestTimer = EmptyDriverTimer.Instance;
-        private IDriverTimeHandler _driverTimeHandler = EmptyDriverTimeHandler.Instance;
+        private readonly IDriverTimer _requestTimer = NullDriverTimer.Instance;
+        private IDriverTimeHandler _driverTimeHandler = NullDriverTimeHandler.Instance;
 
         public RequestObserver()
         {

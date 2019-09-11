@@ -62,6 +62,6 @@ namespace Cassandra.SessionManagement
         /// <summary>
         /// Gets the cluster observer 
         /// </summary>
-        IClusterObserver ClusterObserver { get; }
+        ISessionObserver SessionObserver { get; }
     }
 }

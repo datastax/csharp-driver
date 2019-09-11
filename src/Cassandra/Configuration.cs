@@ -20,8 +20,8 @@ using System.Linq;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics;
-using Cassandra.Metrics.DriverAbstractions;
-using Cassandra.Metrics.NoopImpl;
+using Cassandra.Metrics.Abstractions;
+using Cassandra.Metrics.Providers.Null;
 using Cassandra.Metrics.Registries;
 using Cassandra.Observers;
 using Cassandra.Observers.Abstractions;
@@ -235,7 +235,7 @@ namespace Cassandra
             // to create the instance.
             BufferPool = new RecyclableMemoryStreamManager(16 * 1024, 256 * 1024, ProtocolOptions.MaximumFrameLength);
             Timer = new HashedWheelTimer();
-            MetricsRegistry = new MetricsRegistry(driverMetricsProvider ?? EmptyDriverMetricsProvider.Instance);
+            MetricsRegistry = new MetricsRegistry(driverMetricsProvider ?? NullDriverMetricsProvider.Instance);
             MetricsScheduler = driverMetricsScheduler ?? EmptyDriverMetricsScheduler.Instance;
         }
         

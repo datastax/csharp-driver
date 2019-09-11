@@ -1,5 +1,4 @@
 using System;
-using Cassandra.Metrics.NoopImpl;
 using Cassandra.Observers;
 using Cassandra.Responses;
 

@@ -41,7 +41,7 @@ namespace Cassandra.Tests
         {
             var sessionMock = new Mock<IInternalSession>();
             var clusterMock = new Mock<IInternalCluster>();
-            clusterMock.Setup(x => x.ClusterObserver).Returns(new ClusterObserver());
+            clusterMock.Setup(x => x.SessionObserver).Returns(new SessionObserver());
             sessionMock.Setup(x => x.InternalCluster).Returns(clusterMock.Object);
             return sessionMock.Object;
         }

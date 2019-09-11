@@ -26,7 +26,7 @@ namespace Cassandra.Tests.MetadataHelpers.TestHelpers
     {
         private readonly ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces;
 
-        public FakeSchemaParser(ConcurrentDictionary<string, KeyspaceMetadata> keyspaces) : base(new Metadata(new Configuration(), new ClusterObserver()))
+        public FakeSchemaParser(ConcurrentDictionary<string, KeyspaceMetadata> keyspaces) : base(new Metadata(new Configuration(), new SessionObserver()))
         {
             _keyspaces = keyspaces;
         }

@@ -21,14 +21,15 @@ using System.Net;
 using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
-using Cassandra.Metrics.DriverAbstractions;
-using Cassandra.Metrics.NoopImpl;
+using Cassandra.Metrics.Abstractions;
+using Cassandra.Metrics.Providers.AppMetrics;
+using Cassandra.Metrics.Providers.Null;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 #if NETSTANDARD2_0
 using App.Metrics.Scheduling;
-using Cassandra.Metrics.AppMetricsImpl;
+
 #endif
 
 namespace Cassandra
@@ -71,8 +72,7 @@ namespace Cassandra
         private IRequestOptionsMapper _requestOptionsMapper = new RequestOptionsMapper();
         private MetadataSyncOptions _metadataSyncOptions;
         private IEndPointResolver _endPointResolver;
-        private IDriverMetricsProvider _driverMetricsProvider = EmptyDriverMetricsProvider.Instance;
-        private IDriverMetricsScheduler _driverMetricsScheduler = EmptyDriverMetricsScheduler.Instance;
+        private IDriverMetricsProvider _driverMetricsProvider = NullDriverMetricsProvider.Instance;
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -154,8 +154,7 @@ namespace Cassandra
                 _requestOptionsMapper,
                 _metadataSyncOptions,
                 _endPointResolver,
-                _driverMetricsProvider,
-                _driverMetricsScheduler);
+                _driverMetricsProvider);
             if (_typeSerializerDefinitions != null)
             {
                 config.TypeSerializers = _typeSerializerDefinitions.Definitions;
@@ -705,13 +704,43 @@ namespace Cassandra
             }
 
             _maxSchemaAgreementWaitSeconds = maxSchemaAgreementWaitSeconds;
+            this.WithMetrics(null, MetricNames.ConnectedNodes, MetricNames.);
             return this;
         }
 
-        public Builder WithMetrics(IDriverMetricsProvider driverMetricsProvider, IDriverMetricsScheduler driverMetricsScheduler)
+        public class SessionMetric
+        {
+            private SessionMetric(string name)
+            {
+                Name = name;
+            }
+
+            public string Name { get; }
+
+            public static readonly SessionMetric ConnectedNodes = new SessionMetric("connected-nodes");
+        }
+        
+        public class NodeMetric
+        {
+            private NodeMetric(string name)
+            {
+                Name = name;
+            }
+
+            public string Name { get; }
+
+            public static readonly NodeMetric BytesSent = new NodeMetric("bytes-sent");
+        }
+
+        public Builder WithMetrics(IDriverMetricsProvider driverMetricsProvider)
         {
             _driverMetricsProvider = driverMetricsProvider;
-            _driverMetricsScheduler = driverMetricsScheduler;
+            return this;
+        }
+
+        public Builder WithMetrics(IDriverMetricsProvider driverMetricsProvider, params string[] disabledMetrics)
+        {
+            _driverMetricsProvider = driverMetricsProvider;
             return this;
         }
 

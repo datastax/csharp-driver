@@ -17,7 +17,7 @@ namespace Cassandra.Tests
     {
         private static SchemaParserV1 GetV1Instance(IControlConnection cc)
         {
-            var metadata = new Metadata(new Configuration(), new ClusterObserver())
+            var metadata = new Metadata(new Configuration(), new SessionObserver())
             {
                 ControlConnection = cc
             };
@@ -27,7 +27,7 @@ namespace Cassandra.Tests
 
         private static SchemaParserV2 GetV2Instance(IControlConnection cc, Func<string, string, Task<UdtColumnInfo>> udtResolver = null)
         {
-            var metadata = new Metadata(new Configuration(), new ClusterObserver())
+            var metadata = new Metadata(new Configuration(), new SessionObserver())
             {
                 ControlConnection = cc
             };

@@ -77,19 +77,19 @@ namespace Cassandra
 
         internal IReadOnlyTokenMap TokenToReplicasMap => _tokenMap;
         
-        internal IClusterObserver ClusterObserver { get;}
+        internal ISessionObserver SessionObserver { get;}
 
-        internal Metadata(Configuration configuration, IClusterObserver clusterObserver)
+        internal Metadata(Configuration configuration, ISessionObserver sessionObserver)
         {
             _queryAbortTimeout = configuration.DefaultRequestOptions.QueryAbortTimeout;
             Configuration = configuration;
             Hosts = new Hosts();
             Hosts.Down += OnHostDown;
             Hosts.Up += OnHostUp;
-            ClusterObserver = clusterObserver;
+            SessionObserver = sessionObserver;
         }
 
-        internal Metadata(Configuration configuration, IClusterObserver clusterObserver, SchemaParser schemaParser) : this(configuration, clusterObserver)
+        internal Metadata(Configuration configuration, ISessionObserver sessionObserver, SchemaParser schemaParser) : this(configuration, sessionObserver)
         {
             _schemaParser = schemaParser;
         }
@@ -113,7 +113,7 @@ namespace Cassandra
 
         internal Host AddHost(IPEndPoint address)
         {
-            return Hosts.Add(address, ClusterObserver.CreateHostObserver());
+            return Hosts.Add(address, SessionObserver.CreateHostObserver());
         }
 
         internal void RemoveHost(IPEndPoint address)

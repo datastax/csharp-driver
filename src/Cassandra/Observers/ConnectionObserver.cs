@@ -24,31 +24,31 @@ namespace Cassandra.Observers
     internal class ConnectionObserver : IConnectionObserver
     {
         private readonly Logger _logger = new Logger(typeof(ConnectionObserver));
-        private readonly ClusterObserver _clusterObserver = new ClusterObserver();
+        private readonly SessionObserver _sessionObserver = new SessionObserver();
         private readonly HostObserver _hostObserver = new HostObserver();
 
         public ConnectionObserver()
         {
         }
 
-        public ConnectionObserver(ClusterObserver clusterObserver, HostObserver hostObserver)
+        public ConnectionObserver(SessionObserver sessionObserver, HostObserver hostObserver)
         {
-            _clusterObserver = clusterObserver;
+            _sessionObserver = sessionObserver;
             _hostObserver = hostObserver;
         }
 
         public void SendBytes(long size)
         {
             _logger.Info($"Send {size} bytes");
-            _clusterObserver.ClusterLevelMetricsRegistry.BytesSent.Increment(size);
-            _hostObserver.HostLevelMetricsRegistry.BytesSent.Increment(size);
+            _sessionObserver.SessionLevelMetricsRegistry.BytesSent.Increment(size);
+            _hostObserver.NodeLevelMetricsRegistry.BytesSent.Increment(size);
         }
 
         public void ReceiveBytes(long size)
         {
             _logger.Info($"Received {size} bytes");
-            _clusterObserver.ClusterLevelMetricsRegistry.BytesReceived.Increment(size);
-            _hostObserver.HostLevelMetricsRegistry.BytesReceived.Increment(size);
+            _sessionObserver.SessionLevelMetricsRegistry.BytesReceived.Increment(size);
+            _hostObserver.NodeLevelMetricsRegistry.BytesReceived.Increment(size);
         }
 
         public void OnErrorOnOpen(Exception exception)
@@ -56,17 +56,17 @@ namespace Cassandra.Observers
             switch (exception)
             {
                 case AuthenticationException _:
-                    _hostObserver.HostLevelMetricsRegistry.AuthenticationErrors.Increment(1);
+                    _hostObserver.NodeLevelMetricsRegistry.AuthenticationErrors.Increment(1);
                     break;
                 case Exception e when e is SocketException || e is UnsupportedProtocolVersionException:
-                    _hostObserver.HostLevelMetricsRegistry.ConnectionInitErrors.Increment(1);
+                    _hostObserver.NodeLevelMetricsRegistry.ConnectionInitErrors.Increment(1);
                     break;
             }
         }
 
         public IOperationObserver CreateOperationObserver()
         {
-            return new OperationObserver(_hostObserver.HostLevelMetricsRegistry.CqlMessages);
+            return new OperationObserver(_hostObserver.NodeLevelMetricsRegistry.CqlMessages);
         }
     }
 }
