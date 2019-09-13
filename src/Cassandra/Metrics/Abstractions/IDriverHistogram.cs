@@ -16,10 +16,8 @@
 
 namespace Cassandra.Metrics.Abstractions
 {
-    public interface IDriverHistogram
+    public interface IDriverHistogram : IDriverMetric<IHistogramValue>
     {
         void Update(long value);
-
-        IHistogramValue GetValue();
     }
 }

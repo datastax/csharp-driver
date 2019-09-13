@@ -22,17 +22,14 @@ namespace Cassandra.Observers
     internal class ObserverFactory : IObserverFactory
     {
         private readonly MetricsRegistry _metricsRegistry;
-        private readonly IDriverMetricsScheduler _scheduler;
 
-        public ObserverFactory(MetricsRegistry metricsRegistry, IDriverMetricsScheduler scheduler)
+        public ObserverFactory(MetricsRegistry metricsRegistry)
         {
             _metricsRegistry = metricsRegistry;
-            _scheduler = scheduler;
         }
 
         public ISessionObserver CreateSessionObserver()
         {
-            _scheduler.StartAsync();
             return new SessionObserver(_metricsRegistry);
         }
     }

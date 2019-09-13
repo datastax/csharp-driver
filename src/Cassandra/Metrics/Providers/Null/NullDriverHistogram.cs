@@ -18,7 +18,7 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.Metrics.Providers.Null
 {
-    internal class NullDriverHistogram : IDriverHistogram
+    internal class NullDriverHistogram : NullMetricBase, IDriverHistogram
     {
         public static readonly NullDriverHistogram Instance = new NullDriverHistogram();
 

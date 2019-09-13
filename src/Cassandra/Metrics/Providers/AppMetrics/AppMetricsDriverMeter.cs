@@ -16,6 +16,8 @@
 
 #if NETSTANDARD2_0
 
+using System.Collections.Generic;
+
 using App.Metrics;
 using App.Metrics.Meter;
 
@@ -27,15 +29,16 @@ namespace Cassandra.Metrics.Providers.AppMetrics
     {
         private readonly IMetrics _metrics;
         private readonly IMeter _meter;
-        private readonly string _context;
-        private readonly string _name;
+        private readonly string _formattedContext;
 
-        public AppMetricsDriverMeter(IMetrics metrics, IMeter meter, string context, string name)
+        public AppMetricsDriverMeter(
+            IMetrics metrics, IMeter meter, IEnumerable<string> context, string formattedContext, string name)
         {
             _metrics = metrics;
             _meter = meter;
-            _context = context;
-            _name = name;
+            Context = context;
+            _formattedContext = formattedContext;
+            MetricName = name;
         }
 
         public void Mark()
@@ -48,9 +51,13 @@ namespace Cassandra.Metrics.Providers.AppMetrics
             _meter.Mark(amount);
         }
 
+        public IEnumerable<string> Context { get; }
+
+        public string MetricName { get; }
+
         public IMeterValue GetValue()
         {
-            return new AppMetricsMeterValue(_metrics.Snapshot.GetMeterValue(_context, _name));
+            return new AppMetricsMeterValue(_metrics.Snapshot.GetMeterValue(_formattedContext, MetricName));
         }
     }
 }

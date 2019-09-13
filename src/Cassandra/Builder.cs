@@ -19,18 +19,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Metrics;
 using Cassandra.Metrics.Abstractions;
-using Cassandra.Metrics.Providers.AppMetrics;
 using Cassandra.Metrics.Providers.Null;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
-#if NETSTANDARD2_0
-using App.Metrics.Scheduling;
-
-#endif
 
 namespace Cassandra
 {
@@ -72,12 +69,13 @@ namespace Cassandra
         private IRequestOptionsMapper _requestOptionsMapper = new RequestOptionsMapper();
         private MetadataSyncOptions _metadataSyncOptions;
         private IEndPointResolver _endPointResolver;
-        private IDriverMetricsProvider _driverMetricsProvider = NullDriverMetricsProvider.Instance;
+        private IDriverMetricsProvider _driverMetricsProvider;
+        private MetricsOptions _metricsOptions;
 
         /// <summary>
         ///  The pooling options used by this builder.
         /// </summary>
-        /// 
+        ///
         /// <returns>the pooling options that will be used by this builder. You can use
         ///  the returned object to define the initial pooling options for the built
         ///  cluster.</returns>
@@ -89,7 +87,7 @@ namespace Cassandra
         /// <summary>
         ///  The socket options used by this builder.
         /// </summary>
-        /// 
+        ///
         /// <returns>the socket options that will be used by this builder. You can use
         ///  the returned object to define the initial socket options for the built
         ///  cluster.</returns>
@@ -117,7 +115,7 @@ namespace Cassandra
         ///  not be used by the cluster build. Instead, you should use the other methods
         ///  of this <c>Builder</c></p>.
         /// </summary>
-        /// 
+        ///
         /// <returns>the configuration to use for the new cluster.</returns>
         public Configuration GetConfiguration()
         {
@@ -128,7 +126,7 @@ namespace Cassandra
                 _speculativeExecutionPolicy,
                 _timestampGenerator);
 
-            var protocolOptions = 
+            var protocolOptions =
                 new ProtocolOptions(_port, _sslOptions)
                     .SetCompression(_compression)
                     .SetCustomCompressor(_customCompressor)
@@ -137,7 +135,7 @@ namespace Cassandra
                     .SetMaxSchemaAgreementWaitSeconds(_maxSchemaAgreementWaitSeconds);
 
             var clientOptions = new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace);
-            
+
             var config = new Configuration(
                 policies,
                 protocolOptions,
@@ -154,7 +152,9 @@ namespace Cassandra
                 _requestOptionsMapper,
                 _metadataSyncOptions,
                 _endPointResolver,
-                _driverMetricsProvider);
+                _driverMetricsProvider,
+                _metricsOptions);
+
             if (_typeSerializerDefinitions != null)
             {
                 config.TypeSerializers = _typeSerializerDefinitions.Definitions;
@@ -179,10 +179,9 @@ namespace Cassandra
             return this;
         }
 
-
         /// <summary>
         /// Sets the QueryOptions to use for the newly created Cluster.
-        /// 
+        ///
         /// If no query options are set through this method, default query
         /// options will be used.
         /// </summary>
@@ -226,16 +225,16 @@ namespace Cassandra
         ///  won't be able to initialize itself correctly.
         /// </summary>
         /// <remarks>
-        ///  However, this can be useful if the Cassandra nodes are behind a router and 
-        ///  are not accessed directly. Note that if you are in this situation 
-        ///  (Cassandra nodes are behind a router, not directly accessible), you almost 
-        ///  surely want to provide a specific <c>IAddressTranslator</c> 
-        ///  (through <link>Builder.WithAddressTranslater</link>) to translate actual 
-        ///  Cassandra node addresses to the addresses the driver should use, otherwise 
-        ///  the driver will not be able to auto-detect new nodes (and will generally not 
+        ///  However, this can be useful if the Cassandra nodes are behind a router and
+        ///  are not accessed directly. Note that if you are in this situation
+        ///  (Cassandra nodes are behind a router, not directly accessible), you almost
+        ///  surely want to provide a specific <c>IAddressTranslator</c>
+        ///  (through <link>Builder.WithAddressTranslater</link>) to translate actual
+        ///  Cassandra node addresses to the addresses the driver should use, otherwise
+        ///  the driver will not be able to auto-detect new nodes (and will generally not
         ///  function optimally).
         /// </remarks>
-        /// <param name="address">the address of the node to connect to</param> 
+        /// <param name="address">the address of the node to connect to</param>
         /// <returns>this Builder</returns>
         public Builder AddContactPoint(string address)
         {
@@ -247,7 +246,7 @@ namespace Cassandra
         ///  Add contact point. See <see cref="Builder.AddContactPoint(string)"/> for more details
         ///  on contact points.
         /// </summary>
-        /// <param name="address"> address of the node to add as contact point</param> 
+        /// <param name="address"> address of the node to add as contact point</param>
         /// <returns>this Builder</returns>
         public Builder AddContactPoint(IPAddress address)
         {
@@ -261,7 +260,7 @@ namespace Cassandra
         ///  Add contact point. See <see cref="Builder.AddContactPoint(string)"/> for more details
         ///  on contact points.
         /// </summary>
-        /// <param name="address"> address of the node to add as contact point</param> 
+        /// <param name="address"> address of the node to add as contact point</param>
         /// <returns>this Builder</returns>
         public Builder AddContactPoint(IPEndPoint address)
         {
@@ -273,7 +272,7 @@ namespace Cassandra
         ///  Add contact points. See <see cref="Builder.AddContactPoint(string)"/> for more details
         ///  on contact points.
         /// </summary>
-        /// <param name="addresses"> addresses of the nodes to add as contact point</param> 
+        /// <param name="addresses"> addresses of the nodes to add as contact point</param>
         /// <returns>this Builder </returns>
         public Builder AddContactPoints(params string[] addresses)
         {
@@ -329,7 +328,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="addresses"> addresses of the nodes to add as contact point
         ///  </param>
-        /// 
+        ///
         /// <returns>this Builder</returns>
         public Builder AddContactPoints(params IPEndPoint[] addresses)
         {
@@ -343,7 +342,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="addresses"> addresses of the nodes to add as contact point
         ///  </param>
-        /// 
+        ///
         /// <returns>this Builder</returns>
         public Builder AddContactPoints(IEnumerable<IPEndPoint> addresses)
         {
@@ -370,7 +369,7 @@ namespace Cassandra
         ///  <link>Policies.DefaultReconnectionPolicy</link> will be used instead.</p>
         /// </summary>
         /// <param name="policy"> the reconnection policy to use </param>
-        /// 
+        ///
         /// <returns>this Builder</returns>
         public Builder WithReconnectionPolicy(IReconnectionPolicy policy)
         {
@@ -397,8 +396,8 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Configure the speculative execution to use for the new cluster. 
-        /// <para> 
+        ///  Configure the speculative execution to use for the new cluster.
+        /// <para>
         /// If no speculative execution policy is set through this method, <see cref="Policies.DefaultSpeculativeExecutionPolicy"/> will be used instead.
         /// </para>
         /// </summary>
@@ -413,7 +412,7 @@ namespace Cassandra
         /// <summary>
         /// Configures the generator that will produce the client-side timestamp sent with each query.
         /// <para>
-        /// This feature is only available with protocol version 3 or above of the native protocol. 
+        /// This feature is only available with protocol version 3 or above of the native protocol.
         /// With earlier versions, timestamps are always generated server-side, and setting a generator
         /// through this method will have no effect.
         /// </para>
@@ -431,10 +430,10 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Configure the cluster by applying settings from ConnectionString. 
+        ///  Configure the cluster by applying settings from ConnectionString.
         /// </summary>
         /// <param name="connectionString"> the ConnectionString to use </param>
-        /// 
+        ///
         /// <returns>this Builder</returns>
         public Builder WithConnectionString(string connectionString)
         {
@@ -458,7 +457,6 @@ namespace Cassandra
             return this;
         }
 
-
         /// <summary>
         ///  Use the specified AuthProvider when connecting to Cassandra hosts. <p> Use
         ///  this method when a custom authentication scheme is in place. You shouldn't
@@ -477,7 +475,7 @@ namespace Cassandra
         ///  Disables row set buffering for the created cluster (row set buffering is enabled by
         ///  default otherwise).
         /// </summary>
-        /// 
+        ///
         /// <returns>this builder</returns>
         public Builder WithoutRowSetBuffering()
         {
@@ -488,7 +486,7 @@ namespace Cassandra
         /// <summary>
         /// Specifies the number of milliseconds that the driver should wait for the response before the query times out in a synchronous operation.
         /// <para>
-        /// This will cause that synchronous operations like <see cref="ISession.Execute(string)"/> to throw a <see cref="System.TimeoutException"/> 
+        /// This will cause that synchronous operations like <see cref="ISession.Execute(string)"/> to throw a <see cref="System.TimeoutException"/>
         /// after the specified number of milliseconds.
         /// </para>
         /// Default timeout value is set to <code>20,000</code> (20 seconds).
@@ -531,7 +529,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Enables the use of SSL for the created Cluster. Calling this method will use default SSL options. 
+        ///  Enables the use of SSL for the created Cluster. Calling this method will use default SSL options.
         /// </summary>
         /// <remarks>
         /// If SSL is enabled, the driver will not connect to any
@@ -547,7 +545,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Enables the use of SSL for the created Cluster using the provided options. 
+        ///  Enables the use of SSL for the created Cluster using the provided options.
         /// </summary>
         /// <remarks>
         /// If SSL is enabled, the driver will not connect to any
@@ -556,7 +554,7 @@ namespace Cassandra
         /// SSL in the driver. Note that SSL certificate common name(CN) on Cassandra node must match Cassandra node hostname.
         /// </remarks>
         /// <param name="sslOptions">SSL options to use.</param>
-        /// <returns>this builder</returns>        
+        /// <returns>this builder</returns>
         public Builder WithSSL(SSLOptions sslOptions)
         {
             _sslOptions = sslOptions;
@@ -586,7 +584,7 @@ namespace Cassandra
         /// cluster upon establishing the first connection.
         /// </para>
         /// <para>
-        /// Useful when connecting to a cluster that contains nodes with different major/minor versions 
+        /// Useful when connecting to a cluster that contains nodes with different major/minor versions
         /// of Cassandra. For example, preparing for a rolling upgrade of the Cluster.
         /// </para>
         /// </summary>
@@ -612,7 +610,7 @@ namespace Cassandra
         /// cluster upon establishing the first connection.
         /// </para>
         /// <para>
-        /// Useful when connecting to a cluster that contains nodes with different major/minor versions 
+        /// Useful when connecting to a cluster that contains nodes with different major/minor versions
         /// of Cassandra. For example, preparing for a rolling upgrade of the Cluster.
         /// </para>
         /// </summary>
@@ -704,67 +702,26 @@ namespace Cassandra
             }
 
             _maxSchemaAgreementWaitSeconds = maxSchemaAgreementWaitSeconds;
-            this.WithMetrics(null, MetricNames.ConnectedNodes, MetricNames.);
             return this;
-        }
-
-        public class SessionMetric
-        {
-            private SessionMetric(string name)
-            {
-                Name = name;
-            }
-
-            public string Name { get; }
-
-            public static readonly SessionMetric ConnectedNodes = new SessionMetric("connected-nodes");
-        }
-        
-        public class NodeMetric
-        {
-            private NodeMetric(string name)
-            {
-                Name = name;
-            }
-
-            public string Name { get; }
-
-            public static readonly NodeMetric BytesSent = new NodeMetric("bytes-sent");
         }
 
         public Builder WithMetrics(IDriverMetricsProvider driverMetricsProvider)
         {
             _driverMetricsProvider = driverMetricsProvider;
+            _metricsOptions = null;
             return this;
         }
 
-        public Builder WithMetrics(IDriverMetricsProvider driverMetricsProvider, params string[] disabledMetrics)
+        public Builder WithMetrics(IDriverMetricsProvider driverMetricsProvider, MetricsOptions metricsOptions)
         {
             _driverMetricsProvider = driverMetricsProvider;
+            _metricsOptions = metricsOptions.Clone();
             return this;
         }
-
-#if NETSTANDARD2_0
-        public Builder WithAppMetrics(Func<IDriverAppMetricsBuilder, IDriverAppMetricsBuilder> builderConfigurator)
-        {
-            var builder = (DriverAppMetricsBuilder)builderConfigurator(new DriverAppMetricsBuilder());
-            var metrics = builder.MetricsBuilder.Build();
-            // todo (sivukhin, 29.05.2019): Avoid starting scheduler before Build()
-            var scheduler = new AppMetricsTaskScheduler(builder.SchedulerDelay,
-                async () => { await Task.WhenAll(metrics.ReportRunner.RunAllAsync()).ConfigureAwait(false); }
-            );
-            return WithMetrics(new AppMetricsDriverMetricsProvider(metrics), new AppMetricsDriverMetricsScheduler(scheduler));
-        }
-
-        public Builder WithAppMetricsRoot(App.Metrics.IMetricsRoot metrics)
-        {
-            return WithMetrics(new AppMetricsDriverMetricsProvider(metrics), EmptyDriverMetricsScheduler.Instance);
-        }
-#endif
 
         /// <summary>
         /// <para>
-        /// Adds Execution Profiles to the Cluster instance. 
+        /// Adds Execution Profiles to the Cluster instance.
         /// </para>
         /// <para>
         /// Execution profiles are like configuration presets, multiple methods
@@ -798,7 +755,7 @@ namespace Cassandra
             _profiles = profileOptions.GetProfiles();
             return this;
         }
-        
+
         /// <summary>
         /// <para>
         /// If not set through this method, the default value options will be used (metadata synchronization is enabled by default). The api reference of <see cref="MetadataSyncOptions"/>
@@ -806,13 +763,13 @@ namespace Cassandra
         /// </para>
         /// <para>
         /// In case you disable Metadata synchronization, please ensure you invoke <see cref="ICluster.RefreshSchemaAsync"/> in order to keep the token metadata up to date
-        /// otherwise you will not be getting everything you can out of token aware routing, i.e. <see cref="TokenAwarePolicy"/>, which is enabled by the default. 
+        /// otherwise you will not be getting everything you can out of token aware routing, i.e. <see cref="TokenAwarePolicy"/>, which is enabled by the default.
         /// </para>
         /// <para>
         /// Disabling this feature has the following impact:
-        /// 
+        ///
         /// <list type="bullet">
-        /// 
+        ///
         /// <item><description>
         /// Token metadata will not be computed and stored.
         /// This means that token aware routing (<see cref="TokenAwarePolicy"/>, enabled by default) will only work correctly
@@ -820,17 +777,17 @@ namespace Cassandra
         /// If you wish to go this route of manually refreshing the metadata then
         /// it's recommended to refresh only the keyspaces that this application will use, by passing the <code>keyspace</code> parameter.
         /// </description></item>
-        /// 
+        ///
         /// <item><description>
         /// Keyspace metadata will not be cached by the driver. Every time you call methods like <see cref="Metadata.GetTable"/>, <see cref="Metadata.GetKeyspace"/>
         /// and other similar methods of the <see cref="Metadata"/> class, the driver will query that data on demand and will not cache it.
         /// </description></item>
-        /// 
+        ///
         /// <item><description>
         /// The driver will not handle <code>SCHEMA_CHANGED</code> responses. This means that when you execute schema changing statements through the driver, it will
         /// not update the schema or topology metadata automatically before returning.
         /// </description></item>
-        /// 
+        ///
         /// </list>
         /// </para>
         /// </summary>

@@ -15,6 +15,7 @@
 // 
 
 using System;
+using System.Collections.Generic;
 using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.Metrics.Providers.Null
@@ -58,8 +59,6 @@ namespace Cassandra.Metrics.Providers.Null
             return this;
         }
 
-        public void StartAsync()
-        {
-        }
+        public IEnumerable<string> CurrentContext => new List<string>();
     }
 }

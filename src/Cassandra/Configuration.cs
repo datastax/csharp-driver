@@ -142,6 +142,10 @@ namespace Cassandra
         internal IEndPointResolver EndPointResolver { get; }
 
         internal IDnsResolver DnsResolver { get; }
+
+        internal MetricsRegistry MetricsRegistry { get; }
+
+        internal MetricsOptions MetricsOptions { get; }
         
         /// <summary>
         /// The key is the execution profile name and the value is the IRequestOptions instance
@@ -150,10 +154,6 @@ namespace Cassandra
         internal IReadOnlyDictionary<string, IRequestOptions> RequestOptions { get; }
 
         internal IRequestOptions DefaultRequestOptions => RequestOptions[Configuration.DefaultExecutionProfileName];
-
-        internal MetricsRegistry MetricsRegistry { get; }
-
-        internal IDriverMetricsScheduler MetricsScheduler { get; }
 
         internal Configuration() :
             this(Policies.DefaultPolicies,
@@ -169,6 +169,8 @@ namespace Cassandra
                  new SessionFactoryBuilder(),
                  new Dictionary<string, IExecutionProfile>(),
                  new RequestOptionsMapper(),
+                 null,
+                 null,
                  null,
                  null)
         {
@@ -193,8 +195,8 @@ namespace Cassandra
                                IRequestOptionsMapper requestOptionsMapper,
                                MetadataSyncOptions metadataSyncOptions,
                                IEndPointResolver endPointResolver,
-                               IDriverMetricsProvider driverMetricsProvider = null,
-                               IDriverMetricsScheduler driverMetricsScheduler = null,
+                               IDriverMetricsProvider driverMetricsProvider,
+                               MetricsOptions metricsOptions,
                                IRequestHandlerFactory requestHandlerFactory = null,
                                IHostConnectionPoolFactory hostConnectionPoolFactory = null,
                                IRequestExecutionFactory requestExecutionFactory = null,
@@ -218,6 +220,8 @@ namespace Cassandra
             MetadataSyncOptions = metadataSyncOptions?.Clone() ?? new MetadataSyncOptions();
             DnsResolver = new DnsResolver();
             EndPointResolver = endPointResolver ?? new EndPointResolver(DnsResolver, protocolOptions);
+            MetricsRegistry = new MetricsRegistry(driverMetricsProvider ?? NullDriverMetricsProvider.Instance);
+            MetricsOptions = metricsOptions ?? MetricsOptions.Default;
 
             RequestHandlerFactory = requestHandlerFactory ?? new RequestHandlerFactory();
             HostConnectionPoolFactory = hostConnectionPoolFactory ?? new HostConnectionPoolFactory();
@@ -235,8 +239,6 @@ namespace Cassandra
             // to create the instance.
             BufferPool = new RecyclableMemoryStreamManager(16 * 1024, 256 * 1024, ProtocolOptions.MaximumFrameLength);
             Timer = new HashedWheelTimer();
-            MetricsRegistry = new MetricsRegistry(driverMetricsProvider ?? NullDriverMetricsProvider.Instance);
-            MetricsScheduler = driverMetricsScheduler ?? EmptyDriverMetricsScheduler.Instance;
         }
         
         /// <summary>
@@ -268,7 +270,7 @@ namespace Cassandra
 
         internal IObserverFactory GetObserverFactory()
         {
-            return new ObserverFactory(MetricsRegistry, MetricsScheduler);
+            return new ObserverFactory(MetricsRegistry);
         }
     }
 }

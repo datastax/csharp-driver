@@ -16,6 +16,8 @@
 
 #if NETSTANDARD2_0
 
+using System.Collections.Generic;
+
 using App.Metrics;
 using App.Metrics.Timer;
 
@@ -27,15 +29,16 @@ namespace Cassandra.Metrics.Providers.AppMetrics
     {
         private readonly IMetrics _metrics;
         private readonly ITimer _timer;
-        private readonly string _context;
-        private readonly string _name;
+        private readonly string _formattedContext;
 
-        public AppMetricsTimer(IMetrics metrics, ITimer timer, string context, string name)
+        public AppMetricsTimer(
+            IMetrics metrics, ITimer timer, IEnumerable<string> context, string formattedContext, string name)
         {
             _metrics = metrics;
             _timer = timer;
-            _context = context;
-            _name = name;
+            Context = context;
+            _formattedContext = formattedContext;
+            MetricName = name;
         }
 
         public IDriverTimeHandler StartRecording()
@@ -43,9 +46,13 @@ namespace Cassandra.Metrics.Providers.AppMetrics
             return new AppMetricsTimeHandler(_timer.NewContext());
         }
 
+        public IEnumerable<string> Context { get; }
+
+        public string MetricName { get; }
+
         public ITimerValue GetValue()
         {
-            var value = _metrics.Snapshot.GetTimerValue(_context, _name);
+            var value = _metrics.Snapshot.GetTimerValue(_formattedContext, MetricName);
             return new AppMetricsTimerValue(value);
         }
     }

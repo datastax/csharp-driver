@@ -15,6 +15,7 @@
 // 
 
 using System;
+using System.Collections.Generic;
 
 namespace Cassandra.Metrics.Abstractions
 {
@@ -32,6 +33,12 @@ namespace Cassandra.Metrics.Abstractions
 
         IDriverGauge Gauge(string metricName, DriverMeasurementUnit measurementUnit);
 
+        /// <summary>
+        /// Create a new provider with a new context that is the concatenation of the current context plus the provided context.
+        /// The current instance should maintain the existing context.
+        /// </summary>
         IDriverMetricsProvider WithContext(string context);
+
+        IEnumerable<string> CurrentContext { get; }
     }
 }

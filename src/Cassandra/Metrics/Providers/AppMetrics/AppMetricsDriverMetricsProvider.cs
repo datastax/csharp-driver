@@ -34,16 +34,16 @@ namespace Cassandra.Metrics.Providers.AppMetrics
     internal class AppMetricsDriverMetricsProvider : IDriverMetricsProvider
     {
         private readonly IMetricsRoot _metricsRoot;
-        private readonly IEnumerable<string> _contextComponents;
+        private readonly string _currentFormattedContext;
 
         public AppMetricsDriverMetricsProvider(IMetricsRoot metricsRoot, IEnumerable<string> contextComponents)
         {
             _metricsRoot = metricsRoot;
-            _contextComponents = contextComponents;
-            CurrentContext = $"{string.Join(".", _contextComponents)}";
+            CurrentContext = contextComponents;
+            _currentFormattedContext = $"{string.Join(".", CurrentContext)}";
         }
 
-        private string CurrentContext { get; }
+        public IEnumerable<string> CurrentContext { get; }
 
         public IDriverTimer Timer(string metricName, DriverMeasurementUnit measurementUnit, DriverTimeUnit timeUnit)
         {
@@ -52,11 +52,12 @@ namespace Cassandra.Metrics.Providers.AppMetrics
                 _metricsRoot.Provider.Timer.Instance(new TimerOptions
                 {
                     Name = metricName,
-                    Context = CurrentContext,
+                    Context = _currentFormattedContext,
                     MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
                     DurationUnit = timeUnit.ToAppMetricsTimeUnit()
                 }),
                 CurrentContext,
+                _currentFormattedContext,
                 metricName);
         }
 
@@ -67,10 +68,11 @@ namespace Cassandra.Metrics.Providers.AppMetrics
                 _metricsRoot.Provider.Histogram.Instance(new HistogramOptions
                 {
                     Name = metricName,
-                    Context = CurrentContext,
+                    Context = _currentFormattedContext,
                     MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
                 }),
                 CurrentContext,
+                _currentFormattedContext,
                 metricName);
         }
 
@@ -81,10 +83,11 @@ namespace Cassandra.Metrics.Providers.AppMetrics
                 _metricsRoot.Provider.Meter.Instance(new MeterOptions
                 {
                     Name = metricName,
-                    Context = CurrentContext,
+                    Context = _currentFormattedContext,
                     MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
                 }),
                 CurrentContext,
+                _currentFormattedContext,
                 metricName);
         }
 
@@ -95,10 +98,11 @@ namespace Cassandra.Metrics.Providers.AppMetrics
                 _metricsRoot.Provider.Counter.Instance(new CounterOptions
                 {
                     Name = metricName,
-                    Context = CurrentContext,
+                    Context = _currentFormattedContext,
                     MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
                 }),
                 CurrentContext,
+                _currentFormattedContext,
                 metricName);
         }
 
@@ -109,12 +113,13 @@ namespace Cassandra.Metrics.Providers.AppMetrics
                 _metricsRoot.Provider.Gauge.Instance(
                     new GaugeOptions
                     {
-                        Context = CurrentContext,
+                        Context = _currentFormattedContext,
                         Name = metricName,
                         MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
                     },
                     () => _metricsRoot.Build.Gauge.Build(valueProvider)),
                 CurrentContext,
+                _currentFormattedContext,
                 metricName);
         }
 
@@ -125,19 +130,20 @@ namespace Cassandra.Metrics.Providers.AppMetrics
                 _metricsRoot.Provider.Gauge.Instance(
                     new GaugeOptions
                     {
-                        Context = CurrentContext,
+                        Context = _currentFormattedContext,
                         Name = metricName,
                         MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
                     },
                     () => _metricsRoot.Build.Gauge.Build()),
                 CurrentContext,
+                _currentFormattedContext,
                 metricName);
         }
 
         public IDriverMetricsProvider WithContext(string context)
         {
             return new AppMetricsDriverMetricsProvider(
-                _metricsRoot, _contextComponents.Concat(new[] { AppMetricsDriverMetricsProvider.FormatContext(context) }));
+                _metricsRoot, CurrentContext.Concat(new[] { AppMetricsDriverMetricsProvider.FormatContext(context) }));
         }
 
         private static string FormatContext(string context)

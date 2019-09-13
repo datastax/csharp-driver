@@ -16,6 +16,9 @@
 
 #if NETSTANDARD2_0
 
+using System.Collections;
+using System.Collections.Generic;
+
 using App.Metrics;
 using App.Metrics.Gauge;
 
@@ -28,20 +31,24 @@ namespace Cassandra.Metrics.Providers.AppMetrics
     {
         private readonly IMetrics _metrics;
         private readonly IGauge _gauge;
-        private readonly string _context;
-        private readonly string _name;
+        private readonly string _formattedContext;
 
-        public AppMetricsDriverGauge(IMetrics metrics, IGauge gauge, string context, string name)
+        public AppMetricsDriverGauge(IMetrics metrics, IGauge gauge, IEnumerable<string> context, string formattedContext, string name)
         {
             _metrics = metrics;
             _gauge = gauge;
-            _context = context;
-            _name = name;
+            Context = context;
+            _formattedContext = formattedContext;
+            MetricName = name;
         }
+
+        public IEnumerable<string> Context { get; }
+
+        public string MetricName { get; }
 
         public double GetValue()
         {
-            return _metrics.Snapshot.GetGaugeValue(_context, _name);
+            return _metrics.Snapshot.GetGaugeValue(_formattedContext, MetricName);
         }
 
         public void SetValue(double value)

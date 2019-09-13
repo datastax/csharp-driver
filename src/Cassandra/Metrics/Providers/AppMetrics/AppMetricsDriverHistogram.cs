@@ -16,6 +16,8 @@
 
 #if NETSTANDARD2_0
 
+using System.Collections.Generic;
+
 using App.Metrics;
 using App.Metrics.Histogram;
 
@@ -27,15 +29,16 @@ namespace Cassandra.Metrics.Providers.AppMetrics
     {
         private readonly IMetrics _metrics;
         private readonly IHistogram _histogram;
-        private readonly string _context;
-        private readonly string _name;
+        private readonly string _formattedContext;
 
-        public AppMetricsDriverHistogram(IMetrics metrics, IHistogram histogram, string context, string name)
+        public AppMetricsDriverHistogram(
+            IMetrics metrics, IHistogram histogram, IEnumerable<string> context, string formattedContext, string name)
         {
             _metrics = metrics;
             _histogram = histogram;
-            _context = context;
-            _name = name;
+            Context = context;
+            _formattedContext = formattedContext;
+            MetricName = name;
         }
 
         public void Update(long value)
@@ -43,9 +46,13 @@ namespace Cassandra.Metrics.Providers.AppMetrics
             _histogram.Update(value);
         }
 
+        public IEnumerable<string> Context { get; }
+
+        public string MetricName { get; }
+
         public IHistogramValue GetValue()
         {
-            return new AppMetricsHistogramValue(_metrics.Snapshot.GetHistogramValue(_context, _name));
+            return new AppMetricsHistogramValue(_metrics.Snapshot.GetHistogramValue(_formattedContext, MetricName));
         }
     }
 }

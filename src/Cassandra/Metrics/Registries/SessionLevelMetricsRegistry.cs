@@ -36,7 +36,7 @@ namespace Cassandra.Metrics.Registries
         {
             _session = session;
             _driverMetricsProvider = driverMetricsProvider;
-            CqlRequests = driverMetricsProvider.Timer("cql-requests", DriverMeasurementUnit.Requests);
+            CqlRequests = driverMetricsProvider.Timer("cql-requests", DriverMeasurementUnit.Requests, DriverTimeUnit.Milliseconds);
             CqlClientTimeouts = driverMetricsProvider.Meter("cql-client-timeouts", DriverMeasurementUnit.None);
             BytesSent = driverMetricsProvider.Counter("bytes-sent", DriverMeasurementUnit.Bytes);
             BytesReceived = driverMetricsProvider.Counter("bytes-received", DriverMeasurementUnit.Bytes);
@@ -45,7 +45,9 @@ namespace Cassandra.Metrics.Registries
         public void InitializeSessionGauges()
         {
             _driverMetricsProvider.Gauge(
-                "connected-nodes", () => _session.GetPools()..Metadata.Hosts.Count(), DriverMeasurementUnit.None);
+                "connected-nodes", 
+                () => _session.GetPools().Count(), //TODO
+                DriverMeasurementUnit.None);
         }
 
         public NodeLevelMetricsRegistry GetNodeLevelMetrics(Host host)

@@ -41,7 +41,7 @@ namespace Cassandra.Metrics.Registries
             SpeculativeExecutions = _driverMetricsProvider.Counter("speculative-executions", DriverMeasurementUnit.Requests);
             BytesSent = _driverMetricsProvider.Counter("bytes-sent", DriverMeasurementUnit.Bytes);
             BytesReceived = _driverMetricsProvider.Counter("bytes-received", DriverMeasurementUnit.Bytes);
-            CqlMessages = _driverMetricsProvider.Timer("cql-messages", DriverMeasurementUnit.Requests);
+            CqlMessages = _driverMetricsProvider.Timer("cql-messages", DriverMeasurementUnit.Requests, DriverTimeUnit.Milliseconds);
 
             var connectionErrorsMetricsProvider = _driverMetricsProvider.WithContext("errors").WithContext("connection");
             ConnectionInitErrors = connectionErrorsMetricsProvider.Counter("init", DriverMeasurementUnit.Requests);

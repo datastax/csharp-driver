@@ -16,6 +16,7 @@
 
 #if NETSTANDARD2_0
 
+using System.Collections.Generic;
 using App.Metrics;
 using App.Metrics.Counter;
 
@@ -27,15 +28,16 @@ namespace Cassandra.Metrics.Providers.AppMetrics
     {
         private readonly IMetrics _metrics;
         private readonly ICounter _counter;
-        private readonly string _context;
-        private readonly string _name;
+        private readonly string _formattedContext;
 
-        public AppMetricsDriverCounter(IMetrics metrics, ICounter counter, string context, string name)
+        public AppMetricsDriverCounter(
+            IMetrics metrics, ICounter counter, IEnumerable<string> context, string formattedContext, string name)
         {
             _metrics = metrics;
             _counter = counter;
-            _context = context;
-            _name = name;
+            Context = context;
+            _formattedContext = formattedContext;
+            MetricName = name;
         }
 
         public void Increment(long value)
@@ -53,9 +55,13 @@ namespace Cassandra.Metrics.Providers.AppMetrics
             _counter.Reset();
         }
 
+        public IEnumerable<string> Context { get; }
+
+        public string MetricName { get; }
+
         public long GetValue()
         {
-            return _metrics.Snapshot.GetCounterValue(_context, _name).Count;
+            return _metrics.Snapshot.GetCounterValue(_formattedContext, MetricName).Count;
         }
     }
 }

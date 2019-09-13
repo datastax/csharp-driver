@@ -18,7 +18,7 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.Metrics.Providers.Null
 {
-    internal class NullDriverGauge : IDriverGauge
+    internal class NullDriverGauge : NullMetricBase, IDriverGauge
     {
         public static NullDriverGauge Instance = new NullDriverGauge();
 
