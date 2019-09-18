@@ -40,15 +40,15 @@ namespace Cassandra.Observers
         public void SendBytes(long size)
         {
             _logger.Info($"Send {size} bytes");
-            _sessionObserver.SessionLevelMetricsRegistry.BytesSent.Increment(size);
-            _hostObserver.NodeLevelMetricsRegistry.BytesSent.Increment(size);
+            _sessionObserver.SessionMetricsRegistry.BytesSent.Increment(size);
+            _hostObserver.NodeMetricsRegistry.BytesSent.Increment(size);
         }
 
         public void ReceiveBytes(long size)
         {
             _logger.Info($"Received {size} bytes");
-            _sessionObserver.SessionLevelMetricsRegistry.BytesReceived.Increment(size);
-            _hostObserver.NodeLevelMetricsRegistry.BytesReceived.Increment(size);
+            _sessionObserver.SessionMetricsRegistry.BytesReceived.Increment(size);
+            _hostObserver.NodeMetricsRegistry.BytesReceived.Increment(size);
         }
 
         public void OnErrorOnOpen(Exception exception)
@@ -56,17 +56,17 @@ namespace Cassandra.Observers
             switch (exception)
             {
                 case AuthenticationException _:
-                    _hostObserver.NodeLevelMetricsRegistry.AuthenticationErrors.Increment(1);
+                    _hostObserver.NodeMetricsRegistry.AuthenticationErrors.Increment(1);
                     break;
                 case Exception e when e is SocketException || e is UnsupportedProtocolVersionException:
-                    _hostObserver.NodeLevelMetricsRegistry.ConnectionInitErrors.Increment(1);
+                    _hostObserver.NodeMetricsRegistry.ConnectionInitErrors.Increment(1);
                     break;
             }
         }
 
         public IOperationObserver CreateOperationObserver()
         {
-            return new OperationObserver(_hostObserver.NodeLevelMetricsRegistry.CqlMessages);
+            return new OperationObserver(_hostObserver.NodeMetricsRegistry.CqlMessages);
         }
     }
 }

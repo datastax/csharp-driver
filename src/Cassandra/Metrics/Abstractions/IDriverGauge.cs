@@ -18,8 +18,7 @@ using System;
 
 namespace Cassandra.Metrics.Abstractions
 {
-    public interface IDriverGauge : IDriverMetric<double>, IDisposable
+    public interface IDriverGauge : IDriverMetric<double?>, IDisposable
     {
-        void SetValue(double value);
     }
 }

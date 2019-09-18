@@ -26,13 +26,9 @@ namespace Cassandra.Metrics.Providers.Null
         {
         }
 
-        public double GetValue()
+        public double? GetValue()
         {
-            return 0;
-        }
-
-        public void SetValue(double value)
-        {
+            return null;
         }
     }
 }

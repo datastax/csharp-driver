@@ -14,13 +14,22 @@
 //    limitations under the License.
 
 using System.Collections.Generic;
+using Cassandra.Metrics.Abstractions;
 
-namespace Cassandra.Metrics.Abstractions
+namespace Cassandra.Metrics.Registries
 {
-    public interface IDriverMetric
+    internal interface IRequestMetrics
     {
-        IEnumerable<string> Context { get; }
+        IDriverMeter OnAborted { get; }
 
-        string MetricName { get; }
+        IDriverMeter OnReadTimeout { get; }
+
+        IDriverMeter OnWriteTimeout { get; }
+
+        IDriverMeter OnUnavailable { get; }
+
+        IDriverMeter OnOtherError { get; }
+
+        IEnumerable<IDriverMeter> Meters { get; }
     }
 }

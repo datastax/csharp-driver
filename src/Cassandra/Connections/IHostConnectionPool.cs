@@ -54,6 +54,8 @@ namespace Cassandra.Connections
         /// </summary>
         IConnection[] ConnectionsSnapshot { get; }
 
+        Host Host { get; }
+
         /// <summary>
         /// Gets an open connection from the host pool (creating if necessary).
         /// It returns null if the load balancing policy didn't allow connections to this host.

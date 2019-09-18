@@ -25,6 +25,7 @@ using Cassandra.Collections;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics;
+using Cassandra.Metrics.Internal;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;

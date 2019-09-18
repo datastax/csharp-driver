@@ -24,6 +24,8 @@ using System.Threading.Tasks;
 using Cassandra.Collections;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Metrics;
+using Cassandra.Metrics.Internal;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -41,6 +43,7 @@ namespace Cassandra
         private readonly IInternalCluster _cluster;
         private int _disposed;
         private volatile string _keyspace;
+        private IMetricsManager _metricsManager;
 
         internal IInternalSession InternalRef => this;
 
@@ -82,6 +85,8 @@ namespace Cassandra
         /// <inheritdoc />
         public UdtMappingDefinitions UserDefinedTypes { get; private set; }
 
+        public string SessionName => throw new NotImplementedException(); //TODO
+
         public Policies Policies => Configuration.Policies;
 
         internal Session(
@@ -97,6 +102,7 @@ namespace Cassandra
             UserDefinedTypes = new UdtMappingDefinitions(this, serializer);
             _connectionPool = new CopyOnWriteDictionary<IPEndPoint, IHostConnectionPool>();
             _cluster.HostRemoved += OnHostRemoved;
+            _metricsManager = new MetricsManager(configuration.MetricsProvider, this);
         }
 
         /// <inheritdoc />
@@ -196,6 +202,8 @@ namespace Cassandra
         async Task IInternalSession.Init(ISessionManager sessionManager)
         {
             _sessionManager = sessionManager;
+
+            _metricsManager.InitializeMetrics();
 
             if (Configuration.GetPoolingOptions(_serializer.ProtocolVersion).GetWarmup())
             {
@@ -334,6 +342,7 @@ namespace Cassandra
                 var newPool = Configuration.HostConnectionPoolFactory.Create(host, Configuration, _serializer);
                 newPool.AllConnectionClosed += InternalRef.OnAllConnectionClosed;
                 newPool.SetDistance(distance);
+                _metricsManager.AddNodeMetrics(newPool);
                 return newPool;
             });
             return hostPool;
@@ -367,7 +376,12 @@ namespace Cassandra
         }
 
         int IInternalSession.CountAllConnections => _connectionPool.Count;
-        
+
+        public IDriverMetrics GetMetrics()
+        {
+            return _metricsManager;
+        }
+
         bool IInternalSession.HasConnections(Host host)
         {
             if (_connectionPool.TryGetValue(host.Address, out var pool))

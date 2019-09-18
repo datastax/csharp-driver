@@ -18,7 +18,7 @@ using System;
 using System.Threading.Tasks;
 using Cassandra.Observers.Abstractions;
 
-namespace Cassandra.Metrics
+namespace Cassandra.Metrics.Internal
 {
     internal class RequestResultHandlerWithMetrics
     {

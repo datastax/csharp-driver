@@ -27,18 +27,18 @@ namespace Cassandra.Observers
         private readonly SessionObserver _sessionObserver = new SessionObserver();
 
         private Host _host;
-        private NodeLevelMetricsRegistry _nodeLevelMetricsRegistry = NodeLevelMetricsRegistry.EmptyInstance;
+        private NodeMetricsRegistry _nodeMetricsRegistry = NodeMetricsRegistry.EmptyInstance;
 
-        public NodeLevelMetricsRegistry NodeLevelMetricsRegistry
+        public NodeMetricsRegistry NodeMetricsRegistry
         {
             get
             {
                 if (_host == null ||
-                    !ReferenceEquals(_nodeLevelMetricsRegistry, NodeLevelMetricsRegistry.EmptyInstance) ||
-                    ReferenceEquals(_sessionObserver.SessionLevelMetricsRegistry, SessionLevelMetricsRegistry.EmptyInstance))
-                    return _nodeLevelMetricsRegistry;
+                    !ReferenceEquals(_nodeMetricsRegistry, NodeMetricsRegistry.EmptyInstance) ||
+                    ReferenceEquals(_sessionObserver.SessionMetricsRegistry, SessionMetricsRegistry.EmptyInstance))
+                    return _nodeMetricsRegistry;
 
-                return _nodeLevelMetricsRegistry = _sessionObserver.SessionLevelMetricsRegistry.GetNodeLevelMetrics(_host);
+                return _nodeMetricsRegistry = _sessionObserver.SessionMetricsRegistry.GetNodeLevelMetrics(_host);
             }
         }
 
@@ -54,7 +54,7 @@ namespace Cassandra.Observers
         public void OnSpeculativeExecution(long delay)
         {
             Logger.Info("Starting new speculative execution after {0}, last used host {1}", delay, _host.Address);
-            NodeLevelMetricsRegistry.SpeculativeExecutions.Increment(1);
+            NodeMetricsRegistry.SpeculativeExecutions.Increment(1);
         }
 
         public IConnectionObserver CreateConnectionObserver()
@@ -69,24 +69,24 @@ namespace Cassandra.Observers
 
         public void OnHostConnectionPoolInit(HostConnectionPool hostConnectionPool)
         {
-            NodeLevelMetricsRegistry.InitializeHostConnectionPoolGauges(hostConnectionPool);
+            NodeMetricsRegistry.InitializeHostConnectionPoolGauges(hostConnectionPool);
         }
 
         public void OnRequestRetry(RetryReasonType reason, RetryDecision.RetryDecisionType decision)
         {
-            OnRequestRetry(NodeLevelMetricsRegistry.Errors, reason);
+            OnRequestRetry(NodeMetricsRegistry.Errors, reason);
             switch (decision)
             {
                 case RetryDecision.RetryDecisionType.Retry:
-                    OnRequestRetry(NodeLevelMetricsRegistry.Retries, reason);
+                    OnRequestRetry(NodeMetricsRegistry.Retries, reason);
                     break;
                 case RetryDecision.RetryDecisionType.Ignore:
-                    OnRequestRetry(NodeLevelMetricsRegistry.Ignores, reason);
+                    OnRequestRetry(NodeMetricsRegistry.Ignores, reason);
                     break;
             }
         }
 
-        private void OnRequestRetry(RequestErrorsLevelMetricsRegistry metricsRegistry, RetryReasonType reason)
+        private void OnRequestRetry(RequestMetricsRegistry metricsRegistry, RetryReasonType reason)
         {
             // todo(sivukhin, 08.08.2019): Missed OnAborted metric?
             metricsRegistry.Total.Mark();

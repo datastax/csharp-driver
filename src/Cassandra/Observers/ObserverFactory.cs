@@ -14,6 +14,8 @@
 //    limitations under the License.
 // 
 
+using Cassandra.Metrics;
+using Cassandra.Metrics.Internal;
 using Cassandra.Metrics.Registries;
 using Cassandra.Observers.Abstractions;
 
@@ -21,16 +23,16 @@ namespace Cassandra.Observers
 {
     internal class ObserverFactory : IObserverFactory
     {
-        private readonly MetricsRegistry _metricsRegistry;
+        private readonly MetricsManager _metricsManager;
 
-        public ObserverFactory(MetricsRegistry metricsRegistry)
+        public ObserverFactory(MetricsManager metricsManager)
         {
-            _metricsRegistry = metricsRegistry;
+            _metricsManager = metricsManager;
         }
 
         public ISessionObserver CreateSessionObserver()
         {
-            return new SessionObserver(_metricsRegistry);
+            return new SessionObserver(_metricsManager);
         }
     }
 }

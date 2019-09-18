@@ -46,16 +46,12 @@ namespace Cassandra.Metrics.Providers.AppMetrics
 
         public string MetricName { get; }
 
-        public double GetValue()
+        public double? GetValue()
         {
-            return _metrics.Snapshot.GetGaugeValue(_formattedContext, MetricName);
+            var value = _metrics.Snapshot.GetGaugeValue(_formattedContext, MetricName);
+            return double.IsNaN(value) ? null : (double?)value;
         }
-
-        public void SetValue(double value)
-        {
-            _gauge.SetValue(value);
-        }
-
+        
         public void Dispose()
         {
         }

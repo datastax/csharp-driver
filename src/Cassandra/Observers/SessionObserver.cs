@@ -14,6 +14,9 @@
 //    limitations under the License.
 // 
 
+using Cassandra.Metrics;
+using Cassandra.Metrics.Internal;
+using Cassandra.Metrics.Providers.Null;
 using Cassandra.Metrics.Registries;
 using Cassandra.Observers.Abstractions;
 using Cassandra.SessionManagement;
@@ -23,24 +26,25 @@ namespace Cassandra.Observers
     internal class SessionObserver : ISessionObserver
     {
         private static readonly Logger Logger = new Logger(typeof(SessionObserver));
-        private readonly MetricsRegistry _metricsRegistry = MetricsRegistry.EmptyInstance;
+        private readonly MetricsManager _metricsManager = MetricsManager.EmptyInstance;
         private Cluster _cluster;
-        public SessionLevelMetricsRegistry SessionLevelMetricsRegistry { get; private set; } = SessionLevelMetricsRegistry.EmptyInstance;
+        public SessionMetricsRegistry SessionMetricsRegistry { get; private set; } = SessionMetricsRegistry.EmptyInstance;
 
         public SessionObserver()
         {
+            _metricsManager = new MetricsManager(new NullDriverMetricsProvider(), );
         }
 
-        public SessionObserver(MetricsRegistry metricsRegistry)
+        public SessionObserver(MetricsManager metricsManager)
         {
-            _metricsRegistry = metricsRegistry;
+            _metricsManager = metricsManager;
         }
 
         public void OnInit(Cluster cluster)
         {
             _cluster = cluster;
-            SessionLevelMetricsRegistry = _metricsRegistry.GetSessionLevelMetrics(cluster);
-            SessionLevelMetricsRegistry.InitializeSessionGauges(cluster);
+            SessionMetricsRegistry = _metricsManager.GetSessionMetrics(cluster);
+            SessionMetricsRegistry.InitializeSessionGauges(cluster);
         }
 
         public void OnConnect(IInternalSession session)
@@ -56,7 +60,7 @@ namespace Cassandra.Observers
 
         public IRequestObserver CreateRequestObserver()
         {
-            return new RequestObserver(SessionLevelMetricsRegistry.CqlRequests);
+            return new RequestObserver(SessionMetricsRegistry.CqlRequests);
         }
 
         public IHostObserver CreateHostObserver()

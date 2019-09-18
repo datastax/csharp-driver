@@ -10,7 +10,7 @@ namespace Cassandra.Collections
     /// A thread-safe variant of Dictionary{TKey, TValue} in which all mutative operations (Add and Remove) are implemented by making a copy of the underlying dictionary,
     /// intended to provide safe enumeration of its items.
     /// </summary>
-    internal class CopyOnWriteDictionary<TKey, TValue> : IThreadSafeDictionary<TKey, TValue>
+    internal class CopyOnWriteDictionary<TKey, TValue> : IThreadSafeDictionary<TKey, TValue>, IReadOnlyDictionary<TKey, TValue>
     {
         private static readonly Dictionary<TKey, TValue> Empty = new Dictionary<TKey, TValue>();
         private volatile Dictionary<TKey, TValue> _map;
@@ -21,6 +21,10 @@ namespace Cassandra.Collections
         public bool IsReadOnly => false;
 
         public ICollection<TKey> Keys => _map.Keys;
+
+        IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
+
+        IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys;
 
         public ICollection<TValue> Values => _map.Values;
 

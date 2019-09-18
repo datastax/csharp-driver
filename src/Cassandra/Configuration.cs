@@ -31,6 +31,7 @@ using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 using Microsoft.IO;
+using MetricsManager = Cassandra.Metrics.Internal.MetricsManager;
 
 namespace Cassandra
 {
@@ -143,7 +144,7 @@ namespace Cassandra
 
         internal IDnsResolver DnsResolver { get; }
 
-        internal MetricsRegistry MetricsRegistry { get; }
+        internal IDriverMetricsProvider MetricsProvider { get; }
 
         internal MetricsOptions MetricsOptions { get; }
         
@@ -220,8 +221,8 @@ namespace Cassandra
             MetadataSyncOptions = metadataSyncOptions?.Clone() ?? new MetadataSyncOptions();
             DnsResolver = new DnsResolver();
             EndPointResolver = endPointResolver ?? new EndPointResolver(DnsResolver, protocolOptions);
-            MetricsRegistry = new MetricsRegistry(driverMetricsProvider ?? NullDriverMetricsProvider.Instance);
-            MetricsOptions = metricsOptions ?? MetricsOptions.Default;
+            MetricsOptions = metricsOptions ?? new MetricsOptions();
+            MetricsProvider = driverMetricsProvider ?? new NullDriverMetricsProvider();
 
             RequestHandlerFactory = requestHandlerFactory ?? new RequestHandlerFactory();
             HostConnectionPoolFactory = hostConnectionPoolFactory ?? new HostConnectionPoolFactory();
@@ -270,7 +271,7 @@ namespace Cassandra
 
         internal IObserverFactory GetObserverFactory()
         {
-            return new ObserverFactory(MetricsRegistry);
+            return new ObserverFactory(MetricsManager);
         }
     }
 }

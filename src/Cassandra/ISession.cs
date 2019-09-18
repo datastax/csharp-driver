@@ -62,6 +62,8 @@ namespace Cassandra
         /// </summary>
         UdtMappingDefinitions UserDefinedTypes { get; }
 
+        string SessionName { get; }
+
         /// <summary>
         /// Begins asynchronous execute operation.
         /// </summary>

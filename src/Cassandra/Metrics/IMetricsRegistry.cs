@@ -13,12 +13,13 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+using System;
 using System.Collections.Generic;
 using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.Metrics
 {
-    public interface IMetricsRegistry
+    public interface IMetricsRegistry : IDisposable
     {
         IEnumerable<IDriverCounter> Counters { get; }
 
