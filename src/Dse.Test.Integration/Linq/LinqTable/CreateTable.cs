@@ -147,7 +147,14 @@ namespace Dse.Test.Integration.Linq.LinqTable
             var uniqueTableName = TestUtils.GetUniqueTableName();
             var uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
-            Assert.Throws<InvalidConfigurationInQueryException>(() => table.Create());
+            if (TestClusterManager.DseVersion < new Version(6, 8))
+            {
+                Assert.Throws<InvalidConfigurationInQueryException>(() => table.Create());
+            }
+            else
+            {
+                Assert.Throws<InvalidQueryException>(() => table.CreateIfNotExists());
+            }
         }
 
         /// <summary>
@@ -160,7 +167,14 @@ namespace Dse.Test.Integration.Linq.LinqTable
             var uniqueTableName = TestUtils.GetUniqueTableName();
             var uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
-            Assert.Throws<InvalidConfigurationInQueryException>(() => table.CreateIfNotExists());
+            if (TestClusterManager.DseVersion < new Version(6, 8))
+            {
+                Assert.Throws<InvalidConfigurationInQueryException>(() => table.CreateIfNotExists());
+            }
+            else
+            {
+                Assert.Throws<InvalidQueryException>(() => table.CreateIfNotExists());
+            }
         }
 
         /// <summary>

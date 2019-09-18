@@ -32,14 +32,14 @@ namespace Dse.Test.Integration.Core
                 Assert.Ignore("Requires Cassandra version >= 2.2");
 
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
-            
+
             _testCluster = TestClusterManager.CreateNew(1, new TestClusterOptions
             {
                 CassandraYaml = new[]
-                {
-                    "batch_size_warn_threshold_in_kb:5",
-                    "batch_size_fail_threshold_in_kb:50"
-                },
+                        {
+                            "batch_size_warn_threshold_in_kb:5",
+                            "batch_size_fail_threshold_in_kb:50"
+                        },
                 //Using a mirroring handler, the server will reply providing the same payload that was sent
                 JvmArgs = new[] { "-Dcassandra.custom_query_handler_class=org.apache.cassandra.cql3.CustomPayloadMirroringQueryHandler" }
             });
@@ -152,14 +152,14 @@ namespace Dse.Test.Integration.Core
             StringAssert.Contains("exceeding", rs.Info.Warnings[0].ToLowerInvariant());
         }
 
-        private static SimpleStatement GetBatchAsSimpleStatement(int length)
+        private static IStatement GetBatchAsSimpleStatement(int length)
         {
             const string query = "BEGIN UNLOGGED BATCH" +
                                  " INSERT INTO {0} (k, t) VALUES ('key0', 'value0');" +
                                  " INSERT INTO {0} (k, t) VALUES ('{1}', '{2}');" +
                                  "APPLY BATCH";
-            return new SimpleStatement(
-                string.Format(query, Table, "key1", String.Join("", Enumerable.Repeat("a", length))));
+            return new SimpleStatement(string.Format(query, Table, "key1", String.Join("", Enumerable.Repeat("a", length))))
+                .SetConsistencyLevel(ConsistencyLevel.LocalQuorum);
         }
 
         private static IDictionary<string, byte[]> GetPayload()

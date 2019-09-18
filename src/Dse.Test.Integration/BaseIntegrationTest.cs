@@ -62,8 +62,9 @@ namespace Dse.Test.Integration
         /// </summary>
         public void CreateClassicGraph(IDseSession session, string name)
         {
-            session.ExecuteGraph(new SimpleGraphStatement($"system.graph('{name}').ifNotExists().create()"));
-            session.ExecuteGraph(new SimpleGraphStatement(MakeStrict).SetGraphName(name));
+            session.ExecuteGraph(TestClusterManager.DseVersion < new Version(6, 8)
+                ? new SimpleGraphStatement($"system.graph('{name}').ifNotExists().create()")
+                : new SimpleGraphStatement($"system.graph('{name}').ifNotExists().engine(Classic).create()"));
             session.ExecuteGraph(new SimpleGraphStatement(AllowScans).SetGraphName(name));
             session.ExecuteGraph(new SimpleGraphStatement(ClassicSchemaGremlinQuery).SetGraphName(name));
             session.ExecuteGraph(new SimpleGraphStatement(ClassicLoadGremlinQuery).SetGraphName(name));

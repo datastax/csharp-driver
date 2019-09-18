@@ -33,7 +33,7 @@ namespace Dse.Test.Integration.Core
                                 "WITH nodesync={'enabled': 'true', 'deadline_target_sec': '86400'}");
                     queries.Add("CREATE TABLE tbl_nodesync_false (a int PRIMARY KEY, b text) " +
                                 "WITH nodesync={'enabled': 'false'}");
-                    queries.Add("CREATE MATERIALIZED VIEW view_nodesync AS SELECT b FROM tbl_nodesync_true " +
+                    queries.Add("CREATE MATERIALIZED VIEW view_nodesync AS SELECT a, b FROM tbl_nodesync_true " +
                                 "WHERE a > 0 AND b IS NOT NULL PRIMARY KEY (b, a) " +
                                 "WITH nodesync = { 'enabled': 'true', 'deadline_target_sec': '86400'}");
                 }
@@ -121,6 +121,10 @@ namespace Dse.Test.Integration.Core
             const string typeName2 = "org.apache.cassandra.db.marshal.CompositeType(" +
                                      "org.apache.cassandra.db.marshal.UTF8Type," +
                                      "org.apache.cassandra.db.marshal.Int32Type)";
+            
+            const string typeName3 = "org.apache.cassandra.db.marshal.DynamicCompositeType(" +
+                                     "i=>org.apache.cassandra.db.marshal.Int32Type," +
+                                     "s=>org.apache.cassandra.db.marshal.UTF8Type)";
             session.Execute("CREATE TABLE tbl_custom (id int PRIMARY KEY, " +
                             "c1 'DynamicCompositeType(s => UTF8Type, i => Int32Type)', " +
                             "c2 'CompositeType(UTF8Type, Int32Type)')");
@@ -134,7 +138,14 @@ namespace Dse.Test.Integration.Core
             Assert.AreEqual(keyspaceName, c1.Keyspace);
             Assert.IsFalse(c1.IsFrozen);
             Assert.IsFalse(c1.IsReversed);
-            Assert.AreEqual(typeName1, typeInfo1.CustomTypeName);
+            if (TestClusterManager.DseVersion >= new Version(6, 8))
+            {
+                Assert.AreEqual(typeName3, typeInfo1.CustomTypeName);
+            }
+            else
+            {
+                Assert.AreEqual(typeName1, typeInfo1.CustomTypeName);
+            }
             var c2 = table.TableColumns.First(c => c.Name == "c2");
             Assert.AreEqual(ColumnTypeCode.Custom, c2.TypeCode);
             Assert.AreEqual("tbl_custom", c2.Table);
@@ -418,7 +429,7 @@ namespace Dse.Test.Integration.Core
             {
                 "CREATE KEYSPACE IF NOT EXISTS ks_view_meta3 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}",
                 "CREATE TABLE IF NOT EXISTS ks_view_meta3.scores (user TEXT, game TEXT, year INT, month INT, day INT, score INT, PRIMARY KEY (user, game, year, month, day))",
-                "CREATE MATERIALIZED VIEW IF NOT EXISTS ks_view_meta3.monthlyhigh AS SELECT user FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL AND day IS NOT NULL PRIMARY KEY ((game, year, month), score, user, day) WITH CLUSTERING ORDER BY (score DESC) AND compaction = { 'class' : 'SizeTieredCompactionStrategy' }"
+                "CREATE MATERIALIZED VIEW IF NOT EXISTS ks_view_meta3.monthlyhigh AS SELECT user, game, year, month, score, day FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL AND day IS NOT NULL PRIMARY KEY ((game, year, month), score, user, day) WITH CLUSTERING ORDER BY (score DESC, user DESC, day DESC) AND compaction = { 'class' : 'SizeTieredCompactionStrategy' }"
             };
             var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var cluster2 = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
@@ -471,8 +482,8 @@ namespace Dse.Test.Integration.Core
             {
                 "CREATE KEYSPACE IF NOT EXISTS ks_view_meta4 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}",
                 "CREATE TABLE IF NOT EXISTS ks_view_meta4.scores (user TEXT, game TEXT, year INT, month INT, day INT, score INT, PRIMARY KEY (user, game, year, month, day))",
-                "CREATE MATERIALIZED VIEW IF NOT EXISTS ks_view_meta4.dailyhigh AS SELECT user FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND day IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL PRIMARY KEY ((game, year, month, day), score, user) WITH CLUSTERING ORDER BY (score DESC)",
-                "CREATE MATERIALIZED VIEW IF NOT EXISTS ks_view_meta4.alltimehigh AS SELECT * FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND day IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL PRIMARY KEY (game, year, month, day, score, user) WITH CLUSTERING ORDER BY (score DESC)"
+                "CREATE MATERIALIZED VIEW IF NOT EXISTS ks_view_meta4.dailyhigh AS SELECT user, game, year, month, day, score FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND day IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL PRIMARY KEY ((game, year, month, day), score, user) WITH CLUSTERING ORDER BY (score DESC, user DESC)",
+                "CREATE MATERIALIZED VIEW IF NOT EXISTS ks_view_meta4.alltimehigh AS SELECT * FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND day IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL PRIMARY KEY (game, score, year, month, day, user) WITH CLUSTERING ORDER BY (score DESC, year DESC, month DESC, day DESC, user DESC)"
             };
             var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var cluster2 = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
