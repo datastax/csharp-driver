@@ -79,10 +79,11 @@ namespace Cassandra.Requests
         /// </summary>
         private async Task SendToCurrentHostAsync()
         {
+            var host = _host;
             try
             {
                 // host needs to be re-validated using the load balancing policy
-                _connection = await _parent.ValidateHostAndGetConnectionAsync(_host, _triedHosts).ConfigureAwait(false);
+                _connection = await _parent.ValidateHostAndGetConnectionAsync(host, _triedHosts).ConfigureAwait(false);
                 if (_connection != null)
                 {
                     Send(_request, HandleResponse);
@@ -96,7 +97,7 @@ namespace Cassandra.Requests
                 RequestExecution.Logger.Warning("RequestHandler received exception while attempting to retry with the current host: {0}", ex.ToString());
             }
 
-            RetryExecution(false);
+            RetryExecution(false, host);
         }
 
         /// <summary>
@@ -127,7 +128,7 @@ namespace Cassandra.Requests
             catch (Exception ex)
             {
                 _host = validHost.Host;
-                HandleResponse(ex, null);
+                HandleResponse(ex, null, validHost.Host);
             }
         }
 
@@ -136,7 +137,7 @@ namespace Cassandra.Requests
         /// this method catches them and marks the <see cref="_parent"/> request as complete,
         /// making it suitable to be called in a fire and forget manner.
         /// </summary>
-        private void RetryExecution(bool currentHostRetry)
+        private void RetryExecution(bool currentHostRetry, Host host)
         {
             try
             {
@@ -146,14 +147,14 @@ namespace Cassandra.Requests
             {
                 //There was an Exception before sending (probably no host is available).
                 //This will mark the Task as faulted.
-                HandleResponse(ex, null);
+                HandleResponse(ex, null, host);
             }
         }
 
         /// <summary>
         /// Sends a new request using the active connection
         /// </summary>
-        private void Send(IRequest request, Action<Exception, Response> callback)
+        private void Send(IRequest request, Action<Exception, Response, Host> callback)
         {
             var timeoutMillis = _parent.RequestOptions.ReadTimeoutMillis;
             if (_parent.Statement != null && _parent.Statement.ReadTimeoutMillis > 0)
@@ -164,7 +165,7 @@ namespace Cassandra.Requests
             _operation = _connection.Send(request, callback, timeoutMillis);
         }
 
-        private void HandleResponse(Exception ex, Response response)
+        private void HandleResponse(Exception ex, Response response, Host host)
         {
             if (_parent.HasCompleted())
             {
@@ -175,7 +176,7 @@ namespace Cassandra.Requests
             {
                 if (ex != null)
                 {
-                    HandleException(ex);
+                    HandleException(ex, host);
                     return;
                 }
                 HandleRowSetResult(response);
@@ -186,7 +187,7 @@ namespace Cassandra.Requests
             }
         }
 
-        private void Retry(ConsistencyLevel? consistency, bool useCurrentHost)
+        private void Retry(ConsistencyLevel? consistency, bool useCurrentHost, Host host)
         {
             _retryCount++;
             if (consistency != null && _request is ICqlRequest request)
@@ -195,7 +196,7 @@ namespace Cassandra.Requests
                 request.Consistency = consistency.Value;
             }
             RequestExecution.Logger.Info("Retrying request: {0}", _request.GetType().Name);
-            RetryExecution(useCurrentHost);
+            RetryExecution(useCurrentHost, host);
         }
 
         private void HandleRowSetResult(Response response)
@@ -317,7 +318,7 @@ namespace Cassandra.Requests
         /// <summary>
         /// Checks if the exception is either a Cassandra response error or a socket exception to retry or failover if necessary.
         /// </summary>
-        private void HandleException(Exception ex)
+        private void HandleException(Exception ex, Host host)
         {
             RequestExecution.Logger.Info("RequestHandler received exception {0}", ex.ToString());
             if (ex is PreparedQueryNotFoundException foundException &&
@@ -332,30 +333,26 @@ namespace Cassandra.Requests
                 _parent.SetNoMoreHosts(exception, this);
                 return;
             }
-            var h = _host;
-            if (h != null)
-            {
-                _triedHosts[h.Address] = ex;
-            }
+
+            _triedHosts[host.Address] = ex;
             if (ex is OperationTimedOutException)
             {
                 RequestExecution.Logger.Warning(ex.Message);
                 var connection = _connection;
-                if (h == null || connection == null)
+                if (connection == null)
                 {
-                    RequestExecution.Logger.Error("Host and Connection must not be null");
+                    RequestExecution.Logger.Error("Connection must not be null");
                 }
                 else
                 {
                     // Checks how many timed out operations are in the connection
-                    _session.CheckHealth(h, connection);
+                    _session.CheckHealth(host, connection);
                 }
             }
 
             var retryInformation = GetRetryDecisionWithReason(
                 ex, _parent.RetryPolicy, _parent.Statement, _session.Cluster.Configuration, _retryCount);
-            // todo (sivukhin, 14.04.2019): Are there a situations where there is no _host available at the moment?
-            _host.HostObserver.OnRequestRetry(retryInformation.Reason, retryInformation.Decision.DecisionType);
+
             switch (retryInformation.Decision.DecisionType)
             {
                 case RetryDecision.RetryDecisionType.Rethrow:
@@ -369,9 +366,11 @@ namespace Cassandra.Requests
 
                 case RetryDecision.RetryDecisionType.Retry:
                     //Retry the Request using the new consistency level
-                    Retry(retryInformation.Decision.RetryConsistencyLevel, retryInformation.Decision.UseCurrentHost);
+                    Retry(retryInformation.Decision.RetryConsistencyLevel, retryInformation.Decision.UseCurrentHost, host);
                     break;
             }
+
+            host.HostObserver.OnRequestRetry(retryInformation.Reason, retryInformation.Decision.DecisionType);
         }
 
         private static RetryDecisionWithReason GetRetryDecisionWithReason(
@@ -474,13 +473,13 @@ namespace Cassandra.Requests
         /// <summary>
         /// Handles the response of a (re)prepare request and retries to execute on the same connection
         /// </summary>
-        private void ReprepareResponseHandler(Exception ex, Response response)
+        private void ReprepareResponseHandler(Exception ex, Response response, Host host)
         {
             try
             {
                 if (ex != null)
                 {
-                    HandleException(ex);
+                    HandleException(ex, host);
                     return;
                 }
                 RequestExecution.ValidateResult(response);

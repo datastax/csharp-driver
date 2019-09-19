@@ -16,31 +16,32 @@
 
 using System;
 using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
-using System.Linq;
+
 using Cassandra.Collections;
-using Cassandra.Observers;
-using Cassandra.Observers.Abstractions;
 
 namespace Cassandra
 {
     internal class Hosts : IEnumerable<Host>
     {
         private readonly CopyOnWriteDictionary<IPEndPoint, Host> _hosts = new CopyOnWriteDictionary<IPEndPoint, Host>();
+
         /// <summary>
         /// Event that gets triggered when a host is considered as DOWN (not available)
         /// </summary>
         internal event Action<Host> Down;
+
         /// <summary>
         /// Event that gets triggered when a host is considered back UP (available for queries)
         /// </summary>
         internal event Action<Host> Up;
+
         /// <summary>
         /// Event that gets triggered when a new host has been added to the pool
         /// </summary>
         internal event Action<Host> Added;
+
         /// <summary>
         /// Event that gets triggered when a host has been removed
         /// </summary>
@@ -67,10 +68,9 @@ namespace Cassandra
         /// <summary>
         /// Adds the host if not exists
         /// </summary>
-        public Host Add(IPEndPoint key, IHostObserver hostObserver = null)
+        public Host Add(IPEndPoint key)
         {
-            // todo (sivukhin, 14.04.2019): Try to avoid coalescing operator here?
-            var newHost = new Host(key, hostObserver ?? new HostObserver());
+            var newHost = new Host(key);
             var host = _hosts.GetOrAdd(key, newHost);
             if (!ReferenceEquals(newHost, host))
             {

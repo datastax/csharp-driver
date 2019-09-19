@@ -16,9 +16,12 @@
 
 namespace Cassandra.Observers.Abstractions
 {
-    // todo(sivukhin, 08.08.2019): Run metrics scheduler!
     internal interface IObserverFactory
     {
-        ISessionObserver CreateSessionObserver();
+        IRequestObserver CreateRequestObserver(Host host);
+
+        IConnectionObserver CreateConnectionObserver(Host host);
+
+        IOperationObserver CreateOperationObserver(Host host);
     }
 }

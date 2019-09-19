@@ -19,9 +19,8 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Cassandra.Connections;
-using Cassandra.ExecutionProfiles;
-using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 
@@ -54,14 +53,9 @@ namespace Cassandra.SessionManagement
             where TSession : IInternalSession;
 
         Task<bool> OnInitializeAsync();
-        
+
         Task<bool> OnShutdownAsync(int timeoutMs = Timeout.Infinite);
 
         IReadOnlyDictionary<string, IEnumerable<IPEndPoint>> GetResolvedEndpoints();
-
-        /// <summary>
-        /// Gets the cluster observer 
-        /// </summary>
-        ISessionObserver SessionObserver { get; }
     }
 }

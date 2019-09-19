@@ -18,14 +18,14 @@ using System;
 using System.Threading.Tasks;
 using Cassandra.Observers.Abstractions;
 
-namespace Cassandra.Metrics.Internal
+namespace Cassandra.Requests
 {
-    internal class RequestResultHandlerWithMetrics
+    internal class TcsMetricsRequestResultHandler : IRequestResultHandler
     {
         private readonly IRequestObserver _requestObserver;
         private readonly TaskCompletionSource<RowSet> _taskCompletionSource;
 
-        public RequestResultHandlerWithMetrics(IRequestObserver requestObserver)
+        public TcsMetricsRequestResultHandler(IRequestObserver requestObserver)
         {
             _requestObserver = requestObserver;
             _taskCompletionSource = new TaskCompletionSource<RowSet>();

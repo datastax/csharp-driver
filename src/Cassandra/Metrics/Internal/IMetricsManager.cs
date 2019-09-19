@@ -13,12 +13,13 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+using System;
 using Cassandra.Connections;
 using Cassandra.Metrics.Registries;
 
 namespace Cassandra.Metrics.Internal
 {
-    internal interface IMetricsManager : IDriverMetrics
+    internal interface IMetricsManager : IDriverMetrics, IDisposable
     {
         ISessionMetrics GetSessionMetrics();
 

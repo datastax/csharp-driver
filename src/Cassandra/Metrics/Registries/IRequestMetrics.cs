@@ -20,15 +20,17 @@ namespace Cassandra.Metrics.Registries
 {
     internal interface IRequestMetrics
     {
-        IDriverMeter OnAborted { get; }
+        IDriverMeter Aborted { get; }
 
-        IDriverMeter OnReadTimeout { get; }
+        IDriverMeter ReadTimeout { get; }
 
-        IDriverMeter OnWriteTimeout { get; }
+        IDriverMeter WriteTimeout { get; }
 
-        IDriverMeter OnUnavailable { get; }
+        IDriverMeter Unavailable { get; }
 
-        IDriverMeter OnOtherError { get; }
+        IDriverMeter Other { get; }
+
+        IDriverMeter Total { get; }
 
         IEnumerable<IDriverMeter> Meters { get; }
     }

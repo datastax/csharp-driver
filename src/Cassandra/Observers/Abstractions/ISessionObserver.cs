@@ -16,6 +16,7 @@
 
 namespace Cassandra.Observers.Abstractions
 {
+    //TODO DELETE
     internal interface ISessionObserver
     {
         void OnInit();

@@ -20,6 +20,7 @@ using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics;
+using Cassandra.Metrics.Internal;
 
 namespace Cassandra.SessionManagement
 {
@@ -80,6 +81,6 @@ namespace Cassandra.SessionManagement
 
         int CountAllConnections { get; }
 
-        IDriverMetrics GetMetrics();
+        IMetricsManager MetricsManager { get; }
     }
 }

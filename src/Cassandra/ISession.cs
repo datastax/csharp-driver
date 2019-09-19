@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+using Cassandra.Metrics;
 
 namespace Cassandra
 {
@@ -216,6 +217,8 @@ namespace Cassandra
         /// <param name="cqlQuery">cql query to prepare</param>
         /// <param name="customPayload">Custom outgoing payload to send with the prepare request</param>
         Task<PreparedStatement> PrepareAsync(string cqlQuery, IDictionary<string, byte[]> customPayload);
+
+        IDriverMetrics GetMetrics();
 
         [Obsolete("Method deprecated. The driver internally waits for schema agreement when there is an schema change. See ProtocolOptions.MaxSchemaAgreementWaitSeconds for more info.")]
         void WaitForSchemaAgreement(RowSet rs);

@@ -23,28 +23,30 @@ using Cassandra.SessionManagement;
 
 namespace Cassandra.Observers
 {
+    //TODO DELETE??
     internal class SessionObserver : ISessionObserver
     {
         private static readonly Logger Logger = new Logger(typeof(SessionObserver));
-        private readonly MetricsManager _metricsManager = MetricsManager.EmptyInstance;
-        private Cluster _cluster;
-        public SessionMetricsRegistry SessionMetricsRegistry { get; private set; } = SessionMetricsRegistry.EmptyInstance;
+        private readonly IMetricsManager _metricsManager;
+        private IInternalSession _session;
+        public ISessionMetrics SessionMetricsRegistry { get; private set; }
 
-        public SessionObserver()
+        public SessionObserver(IInternalSession session)
         {
-            _metricsManager = new MetricsManager(new NullDriverMetricsProvider(), );
+            _session = session;
+            _metricsManager = new MetricsManager(new NullDriverMetricsProvider(), session);
         }
 
-        public SessionObserver(MetricsManager metricsManager)
+        public SessionObserver(IInternalSession session, IMetricsManager metricsManager)
         {
+            _session = session;
             _metricsManager = metricsManager;
+            SessionMetricsRegistry = _metricsManager.GetSessionMetrics();
         }
 
-        public void OnInit(Cluster cluster)
+        public void OnInit()
         {
-            _cluster = cluster;
-            SessionMetricsRegistry = _metricsManager.GetSessionMetrics(cluster);
-            SessionMetricsRegistry.InitializeSessionGauges(cluster);
+            SessionMetricsRegistry.InitializeMetrics();
         }
 
         public void OnConnect(IInternalSession session)
@@ -54,8 +56,7 @@ namespace Cassandra.Observers
 
         public void OnShutdown()
         {
-            Logger.Info("Cluster [" + _cluster.Metadata.ClusterName + "] has been shut down.");
-            // todo(sivukhin, 08.08.2019): Gracefully dispose metrics here
+            _metricsManager.Dispose();
         }
 
         public IRequestObserver CreateRequestObserver()

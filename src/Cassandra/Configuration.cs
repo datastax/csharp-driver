@@ -147,6 +147,8 @@ namespace Cassandra
         internal IDriverMetricsProvider MetricsProvider { get; }
 
         internal MetricsOptions MetricsOptions { get; }
+
+        internal IObserverFactoryBuilder ObserverFactoryBuilder { get; }
         
         /// <summary>
         /// The key is the execution profile name and the value is the IRequestOptions instance
@@ -198,6 +200,7 @@ namespace Cassandra
                                IEndPointResolver endPointResolver,
                                IDriverMetricsProvider driverMetricsProvider,
                                MetricsOptions metricsOptions,
+                               IObserverFactoryBuilder observerFactoryBuilder = null,
                                IRequestHandlerFactory requestHandlerFactory = null,
                                IHostConnectionPoolFactory hostConnectionPoolFactory = null,
                                IRequestExecutionFactory requestExecutionFactory = null,
@@ -224,6 +227,7 @@ namespace Cassandra
             MetricsOptions = metricsOptions ?? new MetricsOptions();
             MetricsProvider = driverMetricsProvider ?? new NullDriverMetricsProvider();
 
+            ObserverFactoryBuilder = observerFactoryBuilder ?? new ObserverFactoryBuilder();
             RequestHandlerFactory = requestHandlerFactory ?? new RequestHandlerFactory();
             HostConnectionPoolFactory = hostConnectionPoolFactory ?? new HostConnectionPoolFactory();
             RequestExecutionFactory = requestExecutionFactory ?? new RequestExecutionFactory();
@@ -267,11 +271,6 @@ namespace Cassandra
 
             PoolingOptions = PoolingOptions.Create(protocolVersion);
             return PoolingOptions;
-        }
-
-        internal IObserverFactory GetObserverFactory()
-        {
-            return new ObserverFactory(MetricsManager);
         }
     }
 }

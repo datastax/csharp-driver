@@ -41,7 +41,7 @@ namespace Cassandra.Requests
         
         private readonly IRequest _request;
         private readonly IInternalSession _session;
-        private readonly RequestResultHandlerWithMetrics _requestResultHandler;
+        private readonly IRequestResultHandler _requestResultHandler;
         private long _state;
         private readonly IEnumerator<Host> _queryPlan;
         private readonly object _queryPlanLock = new object();
@@ -59,7 +59,7 @@ namespace Cassandra.Requests
         public RequestHandler(IInternalSession session, Serializer serializer, IRequest request, IStatement statement, IRequestOptions requestOptions)
         {
             _session = session ?? throw new ArgumentNullException(nameof(session));
-            _requestResultHandler = new RequestResultHandlerWithMetrics(session.InternalCluster.SessionObserver.CreateRequestObserver());
+            _requestResultHandler = new TcsMetricsRequestResultHandler(session.InternalCluster.SessionObserver.CreateRequestObserver());
             _request = request;
             Serializer = serializer ?? throw new ArgumentNullException(nameof(session));
             Statement = statement;
@@ -449,8 +449,8 @@ namespace Cassandra.Requests
                     {
                         return;
                     }
-                    
-                    currentHost.HostObserver.OnSpeculativeExecution(delay);
+
+                    Logger.Info("Starting new speculative execution after {0} ms. Last used host: {1}", delay, currentHost.Address);
                     StartNewExecution();
                 });
             }, null, delay);

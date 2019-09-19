@@ -16,57 +16,72 @@
 
 using System;
 using System.Net.Sockets;
+using Cassandra.Metrics.Registries;
 using Cassandra.Observers.Abstractions;
 
 namespace Cassandra.Observers
 {
-    // todo(sivukhin, 09.08.2019): Warn about calls to the empty metrics?
     internal class ConnectionObserver : IConnectionObserver
     {
-        private readonly Logger _logger = new Logger(typeof(ConnectionObserver));
-        private readonly SessionObserver _sessionObserver = new SessionObserver();
-        private readonly HostObserver _hostObserver = new HostObserver();
+        private static readonly Logger Logger = new Logger(typeof(ConnectionObserver));
+        private readonly ISessionMetrics _sessionMetrics;
+        private readonly INodeMetrics _nodeMetrics;
 
-        public ConnectionObserver()
+        public ConnectionObserver(ISessionMetrics sessionMetrics, INodeMetrics nodeMetrics)
         {
-        }
-
-        public ConnectionObserver(SessionObserver sessionObserver, HostObserver hostObserver)
-        {
-            _sessionObserver = sessionObserver;
-            _hostObserver = hostObserver;
+            _sessionMetrics = sessionMetrics;
+            _nodeMetrics = nodeMetrics;
         }
 
         public void SendBytes(long size)
         {
-            _logger.Info($"Send {size} bytes");
-            _sessionObserver.SessionMetricsRegistry.BytesSent.Increment(size);
-            _hostObserver.NodeMetricsRegistry.BytesSent.Increment(size);
+            try
+            {
+                _nodeMetrics.BytesSent.Increment(size);
+                _sessionMetrics.BytesSent.Increment(size);
+            }
+            catch (Exception ex)
+            {
+                LogError(ex);
+            }
         }
 
         public void ReceiveBytes(long size)
         {
-            _logger.Info($"Received {size} bytes");
-            _sessionObserver.SessionMetricsRegistry.BytesReceived.Increment(size);
-            _hostObserver.NodeMetricsRegistry.BytesReceived.Increment(size);
+            try
+            {
+                _nodeMetrics.BytesReceived.Increment(size);
+                _sessionMetrics.BytesReceived.Increment(size);
+            }
+            catch (Exception ex)
+            {
+                LogError(ex);
+            }
         }
 
         public void OnErrorOnOpen(Exception exception)
         {
-            switch (exception)
+            try
             {
-                case AuthenticationException _:
-                    _hostObserver.NodeMetricsRegistry.AuthenticationErrors.Increment(1);
-                    break;
-                case Exception e when e is SocketException || e is UnsupportedProtocolVersionException:
-                    _hostObserver.NodeMetricsRegistry.ConnectionInitErrors.Increment(1);
-                    break;
+                switch (exception)
+                {
+                    case AuthenticationException _:
+                        _nodeMetrics.AuthenticationErrors.Increment(1);
+                        break;
+                    case Exception e when e is SocketException || e is UnsupportedProtocolVersionException:
+                        _nodeMetrics.ConnectionInitErrors.Increment(1);
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError(ex);
             }
         }
 
-        public IOperationObserver CreateOperationObserver()
+        private static void LogError(Exception ex)
         {
-            return new OperationObserver(_hostObserver.NodeMetricsRegistry.CqlMessages);
+            Logger.Warning("An error occured while recording metrics for a connection. Exception: {0}", ex.ToString());
         }
     }
 }

@@ -18,6 +18,7 @@ using Cassandra.Observers.Abstractions;
 
 namespace Cassandra.Observers
 {
+    //TODO DELETE??
     internal class NullConnectionObserver : IConnectionObserver
     {
         public void SendBytes(long size)

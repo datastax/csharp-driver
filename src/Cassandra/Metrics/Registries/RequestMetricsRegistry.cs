@@ -22,25 +22,25 @@ namespace Cassandra.Metrics.Registries
 {
     internal class RequestMetricsRegistry : IRequestMetrics
     {
-        public IDriverMeter OnAborted { get; }
+        public IDriverMeter Aborted { get; }
 
-        public IDriverMeter OnReadTimeout { get; }
+        public IDriverMeter ReadTimeout { get; }
 
-        public IDriverMeter OnWriteTimeout { get; }
+        public IDriverMeter WriteTimeout { get; }
 
-        public IDriverMeter OnUnavailable { get; }
+        public IDriverMeter Unavailable { get; }
 
-        public IDriverMeter OnOtherError { get; }
+        public IDriverMeter Other { get; }
 
         public RequestMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
         {
-            OnAborted = driverMetricsProvider.Meter("aborted", DriverMeasurementUnit.Requests);
-            OnReadTimeout = driverMetricsProvider.Meter("read-timeout", DriverMeasurementUnit.Requests);
-            OnWriteTimeout = driverMetricsProvider.Meter("write-timeout", DriverMeasurementUnit.Requests);
-            OnUnavailable = driverMetricsProvider.Meter("unavailables", DriverMeasurementUnit.Requests);
-            OnOtherError = driverMetricsProvider.Meter("other", DriverMeasurementUnit.Requests);
+            Aborted = driverMetricsProvider.Meter("aborted", DriverMeasurementUnit.Requests);
+            ReadTimeout = driverMetricsProvider.Meter("read-timeout", DriverMeasurementUnit.Requests);
+            WriteTimeout = driverMetricsProvider.Meter("write-timeout", DriverMeasurementUnit.Requests);
+            Unavailable = driverMetricsProvider.Meter("unavailables", DriverMeasurementUnit.Requests);
+            Other = driverMetricsProvider.Meter("other", DriverMeasurementUnit.Requests);
         }
 
-        public IEnumerable<IDriverMeter> Meters => new[] { OnAborted, OnReadTimeout, OnWriteTimeout, OnUnavailable, OnOtherError };
+        public IEnumerable<IDriverMeter> Meters => new[] { Aborted, ReadTimeout, WriteTimeout, Unavailable, Other };
     }
 }

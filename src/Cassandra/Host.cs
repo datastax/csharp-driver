@@ -109,23 +109,18 @@ namespace Cassandra
         /// </remarks>
         /// </summary>
         public Version CassandraVersion { get; private set; }
-
-
-        internal IHostObserver HostObserver { get; }
-
+        
         /// <summary>
         /// Creates a new instance of <see cref="Host"/>.
         /// </summary>
         // ReSharper disable once UnusedParameter.Local : Part of the public API
-        public Host(IPEndPoint address, IReconnectionPolicy reconnectionPolicy) : this(address, new HostObserver())
+        public Host(IPEndPoint address, IReconnectionPolicy reconnectionPolicy) : this(address)
         {
         }
 
-        internal Host(IPEndPoint address, IHostObserver hostObserver)
+        internal Host(IPEndPoint address)
         {
             Address = address ?? throw new ArgumentNullException(nameof(address));
-            HostObserver = hostObserver;
-            hostObserver.OnHostInit(this);
         }
 
         /// <summary>

@@ -20,6 +20,10 @@ namespace Cassandra.Observers.Abstractions
 {
     internal interface IRequestObserver
     {
+        void OnSpeculativeExecution(long delay);
+
+        void OnRequestRetry(RetryReasonType reason, RetryDecision.RetryDecisionType decision);
+
         void OnRequestStart();
 
         void OnRequestFinish(Exception exception);

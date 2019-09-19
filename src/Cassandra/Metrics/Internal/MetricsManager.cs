@@ -27,6 +27,8 @@ namespace Cassandra.Metrics.Internal
 {
     internal class MetricsManager : IMetricsManager
     {
+        private static readonly Logger Logger = new Logger(typeof(MetricsManager));
+
         private readonly IDriverMetricsProvider _driverMetricsProvider;
         private readonly IInternalSession _session;
         private readonly ISessionMetrics _sessionMetricsRegistry;
@@ -58,7 +60,12 @@ namespace Cassandra.Metrics.Internal
 
         public INodeMetrics GetNodeMetrics(Host host)
         {
-            return _nodeMetricsCollection[host];
+            if (!_nodeMetricsCollection.TryGetValue(host, out var value))
+            {
+                throw new DriverInternalError($"Could not retrieve node metrics manager for host {host.Address}.");
+            }
+
+            return value;
         }
 
         public INodeMetrics AddNodeMetrics(IHostConnectionPool pool)
@@ -79,6 +86,15 @@ namespace Cassandra.Metrics.Internal
         private static string BuildHostAddressMetricPath(IPEndPoint address)
         {
             return $"{address.ToString().Replace('.', '_')}";
+        }
+
+        public void Dispose()
+        {
+            _sessionMetricsRegistry.Dispose();
+            foreach (var nodeMetrics in _nodeMetricsCollection.Values)
+            {
+                nodeMetrics.Dispose();
+            }
         }
     }
 }

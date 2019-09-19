@@ -43,7 +43,7 @@ namespace Cassandra
         private readonly IInternalCluster _cluster;
         private int _disposed;
         private volatile string _keyspace;
-        private IMetricsManager _metricsManager;
+        private readonly IMetricsManager _metricsManager;
 
         internal IInternalSession InternalRef => this;
 
@@ -53,6 +53,8 @@ namespace Cassandra
         public ICluster Cluster => _cluster;
 
         IInternalCluster IInternalSession.InternalCluster => _cluster;
+
+        IMetricsManager IInternalSession.MetricsManager => _metricsManager;
 
         /// <summary>
         /// Gets the cluster configuration
@@ -182,6 +184,8 @@ namespace Cassandra
             }
 
             _sessionManager?.OnShutdownAsync().GetAwaiter().GetResult();
+
+            _metricsManager?.Dispose();
 
             _cluster.HostRemoved -= OnHostRemoved;
 
