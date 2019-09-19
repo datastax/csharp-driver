@@ -26,6 +26,7 @@ using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Internal;
+using Cassandra.Observers.Abstractions;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;
@@ -48,6 +49,7 @@ namespace Cassandra.Requests
         private readonly ICollection<IRequestExecution> _running = new CopyOnWriteList<IRequestExecution>();
         private ISpeculativeExecutionPlan _executionPlan;
         private volatile HashedWheelTimer.ITimeout _nextExecutionTimeout;
+        private readonly IRequestObserver _requestObserver;
         public IExtendedRetryPolicy RetryPolicy { get; }
         public Serializer Serializer { get; }
         public IStatement Statement { get; }
@@ -59,7 +61,8 @@ namespace Cassandra.Requests
         public RequestHandler(IInternalSession session, Serializer serializer, IRequest request, IStatement statement, IRequestOptions requestOptions)
         {
             _session = session ?? throw new ArgumentNullException(nameof(session));
-            _requestResultHandler = new TcsMetricsRequestResultHandler(session.InternalCluster.SessionObserver.CreateRequestObserver());
+            _requestObserver = session.ObserverFactory.CreateRequestObserver();
+            _requestResultHandler = new TcsMetricsRequestResultHandler(_requestObserver);
             _request = request;
             Serializer = serializer ?? throw new ArgumentNullException(nameof(session));
             Statement = statement;
@@ -398,7 +401,7 @@ namespace Cassandra.Requests
         {
             try
             {
-                var execution = _session.Cluster.Configuration.RequestExecutionFactory.Create(this, _session, _request);
+                var execution = _session.Cluster.Configuration.RequestExecutionFactory.Create(this, _session, _request, _requestObserver);
                 var lastHost = execution.Start(false);
                 _running.Add(execution);
                 ScheduleNext(lastHost);
@@ -450,7 +453,8 @@ namespace Cassandra.Requests
                         return;
                     }
 
-                    Logger.Info("Starting new speculative execution after {0} ms. Last used host: {1}", delay, currentHost.Address);
+                    RequestHandler.Logger.Info("Starting new speculative execution after {0} ms. Last used host: {1}", delay, currentHost.Address);
+                    _requestObserver.OnSpeculativeExecution(currentHost, delay);
                     StartNewExecution();
                 });
             }, null, delay);

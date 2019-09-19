@@ -22,6 +22,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using Cassandra.Connections;
+using Cassandra.Observers.Abstractions;
 using Cassandra.Responses;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;
@@ -38,18 +39,20 @@ namespace Cassandra.Requests
         private volatile IConnection _connection;
         private volatile int _retryCount;
         private volatile OperationState _operation;
+        private readonly IRequestObserver _requestObserver;
 
         /// <summary>
         /// Host that was queried last in this execution. It can be null in case there was no attempt to send the request yet.
         /// </summary>
         private volatile Host _host;
-
-        public RequestExecution(IRequestHandler parent, IInternalSession session, IRequest request)
+        
+        public RequestExecution(IRequestHandler parent, IInternalSession session, IRequest request, IRequestObserver requestObserver)
         {
             _parent = parent;
             _session = session;
             _request = request;
             _host = null;
+            _requestObserver = requestObserver;
         }
 
         public void Cancel()
@@ -370,7 +373,7 @@ namespace Cassandra.Requests
                     break;
             }
 
-            host.HostObserver.OnRequestRetry(retryInformation.Reason, retryInformation.Decision.DecisionType);
+            _requestObserver.OnRequestRetry(host, retryInformation.Reason, retryInformation.Decision.DecisionType);
         }
 
         private static RetryDecisionWithReason GetRetryDecisionWithReason(

@@ -17,6 +17,7 @@
 using System;
 
 using Cassandra.Metrics.Abstractions;
+using Cassandra.Metrics.Internal;
 using Cassandra.Metrics.Providers.Null;
 using Cassandra.Metrics.Registries;
 using Cassandra.Observers.Abstractions;
@@ -27,32 +28,33 @@ namespace Cassandra.Observers
     {
         private static readonly Logger Logger = new Logger(typeof(RequestObserver));
 
-        private readonly INodeMetrics _nodeMetrics;
+        private readonly IMetricsManager _manager;
         private readonly IDriverTimer _requestTimer;
         private IDriverTimeHandler _driverTimeHandler;
 
-        public RequestObserver(INodeMetrics nodeMetrics, IDriverTimer requestTimer)
+        public RequestObserver(IMetricsManager manager, IDriverTimer requestTimer)
         {
-            _nodeMetrics = nodeMetrics;
+            _manager = manager;
             _requestTimer = requestTimer;
         }
         
-        public void OnSpeculativeExecution(long delay)
+        public void OnSpeculativeExecution(Host host, long delay)
         {
-            _nodeMetrics.SpeculativeExecutions.Increment(1);
+            _manager.GetOrCreateNodeMetrics(host).SpeculativeExecutions.Increment(1);
         }
 
-        public void OnRequestRetry(RetryReasonType reason, RetryDecision.RetryDecisionType decision)
+        public void OnRequestRetry(Host host, RetryReasonType reason, RetryDecision.RetryDecisionType decision)
         {
-            OnRequestRetry(_nodeMetrics.Errors, reason);
+            var nodeMetrics = _manager.GetOrCreateNodeMetrics(host);
+            OnRequestRetry(nodeMetrics.Errors, reason);
             switch (decision)
             {
                 case RetryDecision.RetryDecisionType.Retry:
-                    OnRequestRetry(_nodeMetrics.Retries, reason);
+                    OnRequestRetry(nodeMetrics.Retries, reason);
                     break;
 
                 case RetryDecision.RetryDecisionType.Ignore:
-                    OnRequestRetry(_nodeMetrics.Ignores, reason);
+                    OnRequestRetry(nodeMetrics.Ignores, reason);
                     break;
             }
         }

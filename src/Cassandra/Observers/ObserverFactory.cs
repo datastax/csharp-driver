@@ -28,19 +28,19 @@ namespace Cassandra.Observers
             _session = session;
         }
 
-        public IRequestObserver CreateRequestObserver(Host host)
+        public IRequestObserver CreateRequestObserver()
         {
-            return new RequestObserver(_session.MetricsManager.GetNodeMetrics(host), _session.MetricsManager.GetSessionMetrics().CqlRequests);
+            return new RequestObserver(_session.MetricsManager, _session.MetricsManager.GetSessionMetrics().CqlRequests);
         }
 
         public IConnectionObserver CreateConnectionObserver(Host host)
         {
-            return new ConnectionObserver(_session.MetricsManager.GetSessionMetrics(), _session.MetricsManager.GetNodeMetrics(host));
+            return new ConnectionObserver(_session.MetricsManager.GetSessionMetrics(), _session.MetricsManager.GetOrCreateNodeMetrics(host));
         }
 
         public IOperationObserver CreateOperationObserver(Host host)
         {
-            return new OperationObserver(_session.MetricsManager.GetNodeMetrics(host));
+            return new OperationObserver(_session.MetricsManager.GetOrCreateNodeMetrics(host));
         }
     }
 }

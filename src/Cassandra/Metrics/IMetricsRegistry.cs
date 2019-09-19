@@ -19,7 +19,7 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.Metrics
 {
-    public interface IMetricsRegistry : IDisposable
+    public interface IMetricsRegistry
     {
         IEnumerable<IDriverCounter> Counters { get; }
 

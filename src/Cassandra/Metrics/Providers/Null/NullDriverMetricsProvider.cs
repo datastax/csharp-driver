@@ -44,7 +44,7 @@ namespace Cassandra.Metrics.Providers.Null
             return NullDriverCounter.Instance;
         }
 
-        public IDriverGauge Gauge(string metricName, Func<double> valueProvider, DriverMeasurementUnit measurementUnit)
+        public IDriverGauge Gauge(string metricName, Func<double?> valueProvider, DriverMeasurementUnit measurementUnit)
         {
             return NullDriverGauge.Instance;
         }

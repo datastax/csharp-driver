@@ -53,16 +53,30 @@ namespace Cassandra.Metrics.Internal
             _sessionMetricsRegistry.InitializeMetrics();
         }
 
+        public void RemoveNodeMetrics(Host host)
+        {
+            _nodeMetricsRegistryCollection.TryRemove(host, out var _);
+        }
+
         public ISessionMetrics GetSessionMetrics()
         {
             return _sessionMetricsRegistry;
         }
 
-        public INodeMetrics GetNodeMetrics(Host host)
+        public INodeMetrics GetOrCreateNodeMetrics(Host host)
         {
             if (!_nodeMetricsCollection.TryGetValue(host, out var value))
             {
-                throw new DriverInternalError($"Could not retrieve node metrics manager for host {host.Address}.");
+                var context = MetricsManager.BuildHostAddressMetricPath(host.Address);
+
+                _nodeMetricsRegistryCollection.TryRemove(host, out _);
+                _nodeMetricsCollection.TryRemove(host, out _);
+
+                var newRegistry = new NodeMetricsRegistry(_driverMetricsProvider.WithContext("nodes").WithContext(context));
+                _nodeMetricsRegistryCollection.Add(host, newRegistry);
+                _nodeMetricsCollection.Add(host, newRegistry);
+
+                return newRegistry;
             }
 
             return value;
@@ -76,7 +90,7 @@ namespace Cassandra.Metrics.Internal
             _nodeMetricsRegistryCollection.TryRemove(host, out _);
             _nodeMetricsCollection.TryRemove(host, out _);
 
-            var newRegistry = new NodeMetricsRegistry(_driverMetricsProvider.WithContext("nodes").WithContext(context), pool);
+            var newRegistry = new NodeMetricsRegistry(_driverMetricsProvider.WithContext("nodes").WithContext(context));
             _nodeMetricsRegistryCollection.Add(host, newRegistry);
             _nodeMetricsCollection.Add(host, newRegistry);
 

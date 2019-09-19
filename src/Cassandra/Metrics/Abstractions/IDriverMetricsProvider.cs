@@ -29,7 +29,7 @@ namespace Cassandra.Metrics.Abstractions
 
         IDriverCounter Counter(string metricName, DriverMeasurementUnit measurementUnit);
 
-        IDriverGauge Gauge(string metricName, Func<double> valueProvider, DriverMeasurementUnit measurementUnit);
+        IDriverGauge Gauge(string metricName, Func<double?> valueProvider, DriverMeasurementUnit measurementUnit);
 
         IDriverGauge Gauge(string metricName, DriverMeasurementUnit measurementUnit);
 

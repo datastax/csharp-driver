@@ -18,7 +18,7 @@ namespace Cassandra.Observers.Abstractions
 {
     internal interface IObserverFactory
     {
-        IRequestObserver CreateRequestObserver(Host host);
+        IRequestObserver CreateRequestObserver();
 
         IConnectionObserver CreateConnectionObserver(Host host);
 

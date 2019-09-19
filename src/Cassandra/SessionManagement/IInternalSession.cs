@@ -21,6 +21,7 @@ using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Internal;
+using Cassandra.Observers.Abstractions;
 
 namespace Cassandra.SessionManagement
 {
@@ -82,5 +83,7 @@ namespace Cassandra.SessionManagement
         int CountAllConnections { get; }
 
         IMetricsManager MetricsManager { get; }
+
+        IObserverFactory ObserverFactory { get; }
     }
 }

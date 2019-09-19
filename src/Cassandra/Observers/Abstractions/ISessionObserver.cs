@@ -17,16 +17,16 @@
 namespace Cassandra.Observers.Abstractions
 {
     //TODO DELETE
-    internal interface ISessionObserver
-    {
-        void OnInit();
+    //internal interface ISessionObserver
+    //{
+    //    void OnInit();
 
-        void OnConnect();
+    //    void OnConnect();
 
-        void OnShutdown();
+    //    void OnShutdown();
 
-        IRequestObserver CreateRequestObserver();
+    //    IRequestObserver CreateRequestObserver();
 
-        IHostObserver CreateHostObserver();
-    }
+    //    IHostObserver CreateHostObserver();
+    //}
 }

@@ -13,11 +13,12 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+using System;
 using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.Metrics.Registries
 {
-    internal interface ISessionMetrics : IMetricsRegistry
+    internal interface ISessionMetrics : IMetricsRegistry, IDisposable
     {
         IDriverTimer CqlRequests { get; }
 

@@ -13,11 +13,13 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+using System;
+using Cassandra.Connections;
 using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.Metrics.Registries
 {
-    internal interface INodeMetrics : IMetricsRegistry
+    internal interface INodeMetrics : IMetricsRegistry, IDisposable
     {
         IDriverCounter SpeculativeExecutions { get; }
 
@@ -44,5 +46,7 @@ namespace Cassandra.Metrics.Registries
         IRequestMetrics Retries { get; }
 
         IRequestMetrics Ignores { get; }
+
+        void InitializePoolGauges(IHostConnectionPool pool);
     }
 }

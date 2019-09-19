@@ -24,49 +24,49 @@ using Cassandra.SessionManagement;
 namespace Cassandra.Observers
 {
     //TODO DELETE??
-    internal class SessionObserver : ISessionObserver
-    {
-        private static readonly Logger Logger = new Logger(typeof(SessionObserver));
-        private readonly IMetricsManager _metricsManager;
-        private IInternalSession _session;
-        public ISessionMetrics SessionMetricsRegistry { get; private set; }
+    //internal class SessionObserver : ISessionObserver
+    //{
+    //    private static readonly Logger Logger = new Logger(typeof(SessionObserver));
+    //    private readonly IMetricsManager _metricsManager;
+    //    private IInternalSession _session;
+    //    public ISessionMetrics SessionMetricsRegistry { get; private set; }
 
-        public SessionObserver(IInternalSession session)
-        {
-            _session = session;
-            _metricsManager = new MetricsManager(new NullDriverMetricsProvider(), session);
-        }
+    //    public SessionObserver(IInternalSession session)
+    //    {
+    //        _session = session;
+    //        _metricsManager = new MetricsManager(new NullDriverMetricsProvider(), session);
+    //    }
 
-        public SessionObserver(IInternalSession session, IMetricsManager metricsManager)
-        {
-            _session = session;
-            _metricsManager = metricsManager;
-            SessionMetricsRegistry = _metricsManager.GetSessionMetrics();
-        }
+    //    public SessionObserver(IInternalSession session, IMetricsManager metricsManager)
+    //    {
+    //        _session = session;
+    //        _metricsManager = metricsManager;
+    //        SessionMetricsRegistry = _metricsManager.GetSessionMetrics();
+    //    }
 
-        public void OnInit()
-        {
-            SessionMetricsRegistry.InitializeMetrics();
-        }
+    //    public void OnInit()
+    //    {
+    //        SessionMetricsRegistry.InitializeMetrics();
+    //    }
 
-        public void OnConnect(IInternalSession session)
-        {
-            Logger.Info("Session connected ({0})", session.GetHashCode());
-        }
+    //    public void OnConnect(IInternalSession session)
+    //    {
+    //        Logger.Info("Session connected ({0})", session.GetHashCode());
+    //    }
 
-        public void OnShutdown()
-        {
-            _metricsManager.Dispose();
-        }
+    //    public void OnShutdown()
+    //    {
+    //        _metricsManager.Dispose();
+    //    }
 
-        public IRequestObserver CreateRequestObserver()
-        {
-            return new RequestObserver(SessionMetricsRegistry.CqlRequests);
-        }
+    //    public IRequestObserver CreateRequestObserver()
+    //    {
+    //        return new RequestObserver(SessionMetricsRegistry.CqlRequests);
+    //    }
 
-        public IHostObserver CreateHostObserver()
-        {
-            return new HostObserver(this);
-        }
-    }
+    //    public IHostObserver CreateHostObserver()
+    //    {
+    //        return new HostObserver(this);
+    //    }
+    //}
 }

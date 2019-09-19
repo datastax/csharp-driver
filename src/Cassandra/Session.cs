@@ -26,6 +26,8 @@ using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Internal;
+using Cassandra.Observers;
+using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -44,6 +46,7 @@ namespace Cassandra
         private int _disposed;
         private volatile string _keyspace;
         private readonly IMetricsManager _metricsManager;
+        private readonly IObserverFactory _observerFactory;
 
         internal IInternalSession InternalRef => this;
 
@@ -55,6 +58,8 @@ namespace Cassandra
         IInternalCluster IInternalSession.InternalCluster => _cluster;
 
         IMetricsManager IInternalSession.MetricsManager => _metricsManager;
+
+        IObserverFactory IInternalSession.ObserverFactory => _observerFactory;
 
         /// <summary>
         /// Gets the cluster configuration
@@ -105,6 +110,7 @@ namespace Cassandra
             _connectionPool = new CopyOnWriteDictionary<IPEndPoint, IHostConnectionPool>();
             _cluster.HostRemoved += OnHostRemoved;
             _metricsManager = new MetricsManager(configuration.MetricsProvider, this);
+            _observerFactory = configuration.ObserverFactoryBuilder.Build(this);
         }
 
         /// <inheritdoc />
@@ -346,7 +352,7 @@ namespace Cassandra
                 var newPool = Configuration.HostConnectionPoolFactory.Create(host, Configuration, _serializer);
                 newPool.AllConnectionClosed += InternalRef.OnAllConnectionClosed;
                 newPool.SetDistance(distance);
-                _metricsManager.AddNodeMetrics(newPool);
+                _metricsManager.GetOrCreateNodeMetrics(host).InitializePoolGauges(newPool);
                 return newPool;
             });
             return hostPool;
@@ -470,6 +476,7 @@ namespace Cassandra
 
         private void OnHostRemoved(Host host)
         {
+            _metricsManager.RemoveNodeMetrics(host);
             if (_connectionPool.TryRemove(host.Address, out var pool))
             {
                 pool.OnHostRemoved();

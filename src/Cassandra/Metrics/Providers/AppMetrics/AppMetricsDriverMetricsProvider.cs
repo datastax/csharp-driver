@@ -106,7 +106,7 @@ namespace Cassandra.Metrics.Providers.AppMetrics
                 metricName);
         }
 
-        public IDriverGauge Gauge(string metricName, Func<double> valueProvider, DriverMeasurementUnit measurementUnit)
+        public IDriverGauge Gauge(string metricName, Func<double?> valueProvider, DriverMeasurementUnit measurementUnit)
         {
             return new AppMetricsDriverGauge(
                 _metricsRoot,
@@ -117,7 +117,7 @@ namespace Cassandra.Metrics.Providers.AppMetrics
                         Name = metricName,
                         MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
                     },
-                    () => _metricsRoot.Build.Gauge.Build(valueProvider)),
+                    () => _metricsRoot.Build.Gauge.Build(() => valueProvider() ?? double.NaN)),
                 CurrentContext,
                 _currentFormattedContext,
                 metricName);

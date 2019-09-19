@@ -19,6 +19,7 @@ namespace Cassandra.Metrics.Abstractions
 {
     public interface IDriverMetric
     {
+        // change to match gdoc
         IEnumerable<string> Context { get; }
 
         string MetricName { get; }

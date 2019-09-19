@@ -22,107 +22,135 @@ namespace Cassandra
     {
         public static readonly IEnumerable<string> AllNodeMetrics = new[]
         {
-            NodeMetrics.BytesSent,
-            NodeMetrics.SpeculativeExecutions,
-            NodeMetrics.BytesReceived,
-            NodeMetrics.CqlMessages,
+            NodeMetrics.Counters.BytesSent,
+            NodeMetrics.Counters.SpeculativeExecutions,
+            NodeMetrics.Counters.BytesReceived,
+            NodeMetrics.Timers.CqlMessages,
 
-            Pool.OpenConnections,
-            Pool.AvailableStreams,
-            Pool.InFlight,
-            Pool.MaxRequestsPerConnection,
+            Gauges.Pool.OpenConnections,
+            Gauges.Pool.AvailableStreams,
+            Gauges.Pool.InFlight,
+            Gauges.Pool.MaxRequestsPerConnection,
 
-            Errors.Connection.Auth,
-            Errors.Connection.Init,
+            Counters.Errors.Connection.Auth,
+            Counters.Errors.Connection.Init,
 
-            Errors.Request.Aborted,
-            Errors.Request.Other,
-            Errors.Request.ReadTimeout,
-            Errors.Request.Unavailable,
-            Errors.Request.Unsent,
-            Errors.Request.WriteTimeout,
+            Meters.Errors.Request.Aborted,
+            Meters.Errors.Request.Other,
+            Meters.Errors.Request.ReadTimeout,
+            Meters.Errors.Request.Unavailable,
+            Meters.Errors.Request.Unsent,
+            Meters.Errors.Request.WriteTimeout,
 
-            Retries.Unavailable,
-            Retries.Aborted,
-            Retries.Other,
-            Retries.ReadTimeout,
-            Retries.WriteTimeout,
+            Meters.Retries.Unavailable,
+            Meters.Retries.Aborted,
+            Meters.Retries.Other,
+            Meters.Retries.ReadTimeout,
+            Meters.Retries.WriteTimeout,
 
-            Ignores.ReadTimeout,
-            Ignores.Unavailable,
-            Ignores.Aborted,
-            Ignores.Other,
-            Ignores.WriteTimeout
+            Meters.Ignores.ReadTimeout,
+            Meters.Ignores.Unavailable,
+            Meters.Ignores.Aborted,
+            Meters.Ignores.Other,
+            Meters.Ignores.WriteTimeout
         };
 
-        public const string BytesSent = "bytes-sent";
-
-        public const string SpeculativeExecutions = "speculative-executions";
-
-        public const string BytesReceived = "bytes-received";
-
-        public const string CqlMessages = "cql-messages";
-        
-        public static class Pool
+        public static class Counters
         {
-            public const string OpenConnections = "pool.open-connections";
-            
-            public const string AvailableStreams = "pool.available-streams";
-            
-            public const string InFlight = "pool.in-flight";
-            
-            public const string MaxRequestsPerConnection = "pool.max-requests-per-connection";
-        }
+            public const string BytesSent = "bytes-sent";
 
-        public static class Errors
-        {
-            public static class Connection
+            public const string SpeculativeExecutions = "speculative-executions";
+
+            public const string BytesReceived = "bytes-received";
+
+            public static class Errors
             {
-                public const string Init = "errors.connection.init";
+                public static class Connection
+                {
+                    public const string Init = "errors.connection.init";
 
-                public const string Auth = "errors.connection.auth";
-            }
-
-            public static class Request
-            {
-                public const string ReadTimeout = "errors.request.read-timeout";
-
-                public const string WriteTimeout = "errors.request.write-timeout";
-
-                public const string Unavailable = "errors.request.unavailable";
-
-                public const string Other = "errors.request.other";
-
-                public const string Aborted = "errors.request.aborted";
-
-                public const string Unsent = "errors.request.unsent";
+                    public const string Auth = "errors.connection.auth";
+                }
             }
         }
 
-        public static class Retries
+        public static class Gauges
         {
-            public const string ReadTimeout = "retries.read-timeout";
-
-            public const string WriteTimeout = "retries.write-timeout";
-
-            public const string Unavailable = "retries.unavailable";
-
-            public const string Other = "retries.other";
+            public static class Pool
+            {
+                public const string OpenConnections = "pool.open-connections";
             
-            public const string Aborted = "retries.aborted";
+                public const string AvailableStreams = "pool.available-streams";
+            
+                public const string InFlight = "pool.in-flight";
+            
+                public const string MaxRequestsPerConnection = "pool.max-requests-per-connection";
+            }
         }
-        
-        public static class Ignores
+
+        public static class Timers
         {
-            public const string ReadTimeout = "ignores.read-timeout";
+            public const string CqlMessages = "cql-messages";
+        }
 
-            public const string WriteTimeout = "ignores.write-timeout";
+        public static class Meters
+        {
+            public static class Retries
+            {
+                public const string ReadTimeout = "retries.read-timeout";
 
-            public const string Unavailable = "ignores.unavailable";
+                public const string WriteTimeout = "retries.write-timeout";
 
-            public const string Other = "ignores.other";
+                public const string Unavailable = "retries.unavailable";
+
+                public const string Other = "retries.other";
             
-            public const string Aborted = "ignores.aborted";
+                public const string Aborted = "retries.aborted";
+                
+                public const string Total = "retries.total";
+            }
+        
+            public static class Ignores
+            {
+                public const string ReadTimeout = "ignores.read-timeout";
+
+                public const string WriteTimeout = "ignores.write-timeout";
+
+                public const string Unavailable = "ignores.unavailable";
+
+                public const string Other = "ignores.other";
+            
+                public const string Aborted = "ignores.aborted";
+                
+                public const string Total = "ignores.total";
+            }
+
+            public static class Errors
+            {
+                public static class Connection
+                {
+                    public const string Init = "errors.connection.init";
+
+                    public const string Auth = "errors.connection.auth";
+                }
+                    
+                public static class Request
+                {
+                    public const string ReadTimeout = "errors.request.read-timeout";
+
+                    public const string WriteTimeout = "errors.request.write-timeout";
+
+                    public const string Unavailable = "errors.request.unavailable";
+
+                    public const string Other = "errors.request.other";
+
+                    public const string Aborted = "errors.request.aborted";
+
+                    public const string Unsent = "errors.request.unsent";
+                
+                    public const string Total = "errors.request.total";
+                }
+            }
         }
     }
 }

@@ -14,7 +14,7 @@
 //    limitations under the License.
 
 using System;
-using Cassandra.Connections;
+
 using Cassandra.Metrics.Registries;
 
 namespace Cassandra.Metrics.Internal
@@ -23,10 +23,10 @@ namespace Cassandra.Metrics.Internal
     {
         ISessionMetrics GetSessionMetrics();
 
-        INodeMetrics GetNodeMetrics(Host host);
-
-        INodeMetrics AddNodeMetrics(IHostConnectionPool pool);
+        INodeMetrics GetOrCreateNodeMetrics(Host host);
 
         void InitializeMetrics();
+
+        void RemoveNodeMetrics(Host host);
     }
 }

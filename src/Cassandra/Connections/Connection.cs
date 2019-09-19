@@ -777,7 +777,7 @@ namespace Cassandra.Connections
         }
 
         /// <inheritdoc />
-        public OperationState Send(IRequest request, Action<Exception, Response> callback)
+        public OperationState Send(IRequest request, Action<Exception, Response, Host> callback)
         {
             return Send(request, callback, Configuration.DefaultRequestOptions.ReadTimeoutMillis);
         }
