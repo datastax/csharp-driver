@@ -76,6 +76,8 @@ namespace Cassandra.Tests
 
         public MetricsOptions MetricsOptions { get; set; } = new MetricsOptions();
 
+        public string SessionName { get; set; }
+
         public Configuration Build()
         {
             return new Configuration(
@@ -96,6 +98,7 @@ namespace Cassandra.Tests
                 EndPointResolver,
                 NullDriverMetricsProvider.Instance,
                 MetricsOptions,
+                SessionName,
                 RequestHandlerFactory,
                 HostConnectionPoolFactory,
                 RequestExecutionFactory,

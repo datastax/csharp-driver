@@ -60,6 +60,7 @@ namespace Cassandra.Tests
                 null,
                 null,
                 null,
+                null,
                 null);
         }
 

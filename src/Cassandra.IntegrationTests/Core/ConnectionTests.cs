@@ -443,6 +443,7 @@ namespace Cassandra.IntegrationTests.Core
                 null,
                 null,
                 null,
+                null,
                 null);
             using (var connection = CreateConnection(GetProtocolVersion(), config))
             {
@@ -641,6 +642,7 @@ namespace Cassandra.IntegrationTests.Core
                 new SessionFactoryBuilder(),
                 new Dictionary<string, IExecutionProfile>(),
                 new RequestOptionsMapper(),
+                null,
                 null,
                 null,
                 null,
@@ -869,6 +871,7 @@ namespace Cassandra.IntegrationTests.Core
                 new SessionFactoryBuilder(),
                 new Dictionary<string, IExecutionProfile>(),
                 new RequestOptionsMapper(),
+                null,
                 null,
                 null,
                 null,

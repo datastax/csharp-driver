@@ -277,7 +277,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             config.Policies.LoadBalancingPolicy.Initialize(cluster);
 
             // create session
-            var session = new Session(cluster, config, null, Serializer.Default);
+            var session = new Session(cluster, config, null, Serializer.Default, null);
 
             // create request handler
             var options = profile != null

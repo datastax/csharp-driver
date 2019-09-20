@@ -128,6 +128,7 @@ namespace Cassandra.Tests
                  null,
                  null,
                  null,
+                 null,
                  null);
             var cc = NewInstance(config, metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");

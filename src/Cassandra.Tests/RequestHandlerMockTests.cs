@@ -74,6 +74,7 @@ namespace Cassandra.Tests
                 null,
                 null,
                 null,
+                null,
                 requestExecutionFactory: requestExecutionFactory);
         }
 
