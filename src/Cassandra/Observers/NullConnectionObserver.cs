@@ -21,6 +21,12 @@ namespace Cassandra.Observers
     //TODO DELETE??
     internal class NullConnectionObserver : IConnectionObserver
     {
+        public static readonly IConnectionObserver Instance = new NullConnectionObserver();
+
+        private NullConnectionObserver()
+        {
+        }
+
         public void SendBytes(long size)
         {
         }

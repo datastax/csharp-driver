@@ -74,7 +74,7 @@ namespace Cassandra.IntegrationTests.Core
             config = config ?? new Configuration();
             if (metadata == null)
             {
-                metadata = new Metadata(config, new SessionObserver());
+                metadata = new Metadata(config);
                 metadata.AddHost(new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), ProtocolOptions.DefaultPort));
             }
             var cc = new ControlConnection(GetEventDebouncer(config), version, config, metadata, new List<object> { _testCluster.InitialContactPoint });

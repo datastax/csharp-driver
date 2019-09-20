@@ -23,7 +23,11 @@ namespace Cassandra.Metrics.Providers.Null
     internal class NullDriverMetricsProvider : IDriverMetricsProvider
     {
         public static readonly IDriverMetricsProvider Instance = new NullDriverMetricsProvider();
-        
+
+        private NullDriverMetricsProvider()
+        {
+        }
+
         public IDriverTimer Timer(string metricName, DriverMeasurementUnit measurementUnit, DriverTimeUnit timeUnit)
         {
             return NullDriverTimer.Instance;

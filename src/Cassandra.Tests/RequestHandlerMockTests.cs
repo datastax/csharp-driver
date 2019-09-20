@@ -23,6 +23,7 @@ using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Registries;
 using Cassandra.Observers;
+using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -41,7 +42,6 @@ namespace Cassandra.Tests
         {
             var sessionMock = new Mock<IInternalSession>();
             var clusterMock = new Mock<IInternalCluster>();
-            clusterMock.Setup(x => x.SessionObserver).Returns(new SessionObserver());
             sessionMock.Setup(x => x.InternalCluster).Returns(clusterMock.Object);
             return sessionMock.Object;
         }
@@ -52,7 +52,8 @@ namespace Cassandra.Tests
                 .Setup(m => m.Create(
                     It.IsAny<IRequestHandler>(),
                     It.IsAny<IInternalSession>(),
-                    It.IsAny<IRequest>()))
+                    It.IsAny<IRequest>(),
+                    It.IsAny<IRequestObserver>()))
                 .Returns(Mock.Of<IRequestExecution>());
 
             return new Configuration(
@@ -69,6 +70,8 @@ namespace Cassandra.Tests
                 new SessionFactoryBuilder(),
                 new Dictionary<string, IExecutionProfile>(),
                 new RequestOptionsMapper(),
+                null,
+                null,
                 null,
                 null,
                 requestExecutionFactory: requestExecutionFactory);
@@ -123,7 +126,7 @@ namespace Cassandra.Tests
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
             var enumerable = Mock.Of<IEnumerable<Host>>();
             var enumerator = Mock.Of<IEnumerator<Host>>();
-            var host = new Host(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9047), new HostObserver());
+            var host = new Host(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9047));
             Mock.Get(enumerator).Setup(m => m.MoveNext()).Returns(true);
             Mock.Get(enumerator).SetupGet(m => m.Current).Returns(host);
             Mock.Get(enumerable).Setup(m => m.GetEnumerator()).Returns(enumerator);

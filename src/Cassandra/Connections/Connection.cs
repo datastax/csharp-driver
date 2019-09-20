@@ -177,13 +177,13 @@ namespace Cassandra.Connections
         public ProtocolOptions Options => Configuration.ProtocolOptions;
 
         public Configuration Configuration { get; set; }
-
-        public Connection(Serializer serializer, IConnectionEndPoint endPoint, Configuration configuration, IConnectionObserver connectionObserver) :
-            this(serializer, endPoint, configuration, new StartupRequestFactory(configuration.StartupOptionsFactory), connectionObserver)
-        {
-        }
-
-        internal Connection(Serializer serializer, IConnectionEndPoint endPoint, Configuration configuration, IStartupRequestFactory startupRequestFactory, IConnectionObserver connectionObserver)
+        
+        internal Connection(
+            Serializer serializer, 
+            IConnectionEndPoint endPoint, 
+            Configuration configuration, 
+            IStartupRequestFactory startupRequestFactory, 
+            IConnectionObserver connectionObserver)
         {
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
             Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
@@ -777,7 +777,7 @@ namespace Cassandra.Connections
         }
 
         /// <inheritdoc />
-        public OperationState Send(IRequest request, Action<Exception, Response, Host> callback)
+        public OperationState Send(IRequest request, Action<Exception, Response> callback)
         {
             return Send(request, callback, Configuration.DefaultRequestOptions.ReadTimeoutMillis);
         }

@@ -20,7 +20,7 @@ namespace Cassandra.Tests
         [Test]
         public void BringUpIfDown_Should_Allow_Multiple_Concurrent_Calls()
         {
-            var host = new Host(Address, new HostObserver());
+            var host = new Host(Address);
             var counter = 0;
             host.Up += _ => Interlocked.Increment(ref counter);
             host.SetDown();
@@ -36,7 +36,7 @@ namespace Cassandra.Tests
         public void Should_UseHostIdEmpty_When_HostIdIsNull()
         {
             var hostAddress = new IPEndPoint(IPAddress.Parse("163.10.10.10"), 9092);
-            var host = new Host(hostAddress, new HostObserver());
+            var host = new Host(hostAddress);
             var row = BuildRow(null);
             host.SetInfo(row);
             Assert.AreEqual(Guid.Empty, host.HostId);

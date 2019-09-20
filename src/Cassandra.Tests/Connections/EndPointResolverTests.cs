@@ -48,7 +48,7 @@ namespace Cassandra.Tests.Connections
         {
             var target = Create();
             var endpoint = new IPEndPoint(IPAddress.Parse("140.20.10.10"), EndPointResolverTests.Port);
-            var host = new Host(endpoint, new HostObserver());
+            var host = new Host(endpoint);
             var resolved = await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false);
 
             Mock.Get(_dnsResolver).Verify(x => x.GetHostEntryAsync(It.IsAny<string>()), Times.Never);
@@ -104,7 +104,7 @@ namespace Cassandra.Tests.Connections
         {
             var target = Create();
             var endpoint = new IPEndPoint(IPAddress.Parse("140.20.10.10"), EndPointResolverTests.Port);
-            var host = new Host(endpoint, new HostObserver());
+            var host = new Host(endpoint);
 
             var resolved = await target.GetConnectionEndPointAsync(host, false).ConfigureAwait(false);
             

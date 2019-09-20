@@ -55,9 +55,9 @@ namespace Cassandra.Tests.Connections
             return connection;
         }
 
-        public IConnection CreateWithoutMetrics(Serializer serializer, IConnectionEndPoint endPoint, Configuration configuration)
+        public IConnection CreateUnobserved(Serializer serializer, IConnectionEndPoint endPoint, Configuration configuration)
         {
-            return Create(serializer, endPoint, configuration, new NullConnectionObserver());
+            return Create(serializer, endPoint, configuration, NullConnectionObserver.Instance);
         }
     }
 }

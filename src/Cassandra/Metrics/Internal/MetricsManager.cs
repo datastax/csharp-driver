@@ -30,16 +30,14 @@ namespace Cassandra.Metrics.Internal
         private static readonly Logger Logger = new Logger(typeof(MetricsManager));
 
         private readonly IDriverMetricsProvider _driverMetricsProvider;
-        private readonly IInternalSession _session;
         private readonly ISessionMetrics _sessionMetricsRegistry;
         private readonly CopyOnWriteDictionary<Host, IMetricsRegistry> _nodeMetricsRegistryCollection;
         private readonly CopyOnWriteDictionary<Host, INodeMetrics> _nodeMetricsCollection;
 
-        public MetricsManager(IDriverMetricsProvider driverMetricsProvider, IInternalSession session)
+        public MetricsManager(IDriverMetricsProvider driverMetricsProvider, string sessionName)
         {
-            _driverMetricsProvider = driverMetricsProvider.WithContext(session.SessionName);
-            _session = session;
-            _sessionMetricsRegistry = new SessionMetricsRegistry(_session, _driverMetricsProvider);
+            _driverMetricsProvider = driverMetricsProvider.WithContext(sessionName);
+            _sessionMetricsRegistry = new SessionMetricsRegistry(_driverMetricsProvider);
             _nodeMetricsRegistryCollection = new CopyOnWriteDictionary<Host, IMetricsRegistry>();
             _nodeMetricsCollection = new CopyOnWriteDictionary<Host, INodeMetrics>();
         }
@@ -48,14 +46,14 @@ namespace Cassandra.Metrics.Internal
 
         public IReadOnlyDictionary<Host, IMetricsRegistry> NodeMetrics => _nodeMetricsRegistryCollection;
 
-        public void InitializeMetrics()
+        public void InitializeMetrics(IInternalSession session)
         {
-            _sessionMetricsRegistry.InitializeMetrics();
+            _sessionMetricsRegistry.InitializeMetrics(session);
         }
 
         public void RemoveNodeMetrics(Host host)
         {
-            _nodeMetricsRegistryCollection.TryRemove(host, out var _);
+            _nodeMetricsRegistryCollection.TryRemove(host, out _);
         }
 
         public ISessionMetrics GetSessionMetrics()

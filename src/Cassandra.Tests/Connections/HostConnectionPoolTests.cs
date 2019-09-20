@@ -18,6 +18,8 @@ using System;
 using System.Net;
 using System.Threading.Tasks;
 using Cassandra.Connections;
+using Cassandra.Metrics.Internal;
+using Cassandra.Metrics.Providers.Null;
 using Cassandra.Observers;
 using Cassandra.Serialization;
 using Moq;
@@ -59,7 +61,7 @@ namespace Cassandra.Tests.Connections
 
         private IHostConnectionPool CreatePool()
         {
-            _host = new Host(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042), new HostObserver());
+            _host = new Host(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042));
             _resolver = Mock.Of<IEndPointResolver>();
             Mock.Get(_resolver).Setup(resolver => resolver.GetConnectionEndPointAsync(_host, It.IsAny<bool>()))
                 .ReturnsAsync((Host h, bool b) => new ConnectionEndPoint(h.Address, null));
@@ -77,7 +79,9 @@ namespace Cassandra.Tests.Connections
                         new AtomicMonotonicTimestampGenerator()), 
                     PoolingOptions = PoolingOptions.Create(ProtocolVersion.V4).SetCoreConnectionsPerHost(HostDistance.Local, 2)
                 }.Build(), 
-                Serializer.Default);
+                Serializer.Default,
+                new ObserverFactory(new MetricsManager(NullDriverMetricsProvider.Instance, string.Empty))
+                );
             pool.SetDistance(HostDistance.Local); // set expected connections length
             return pool;
         }

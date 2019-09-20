@@ -200,14 +200,14 @@ namespace Cassandra
                                IEndPointResolver endPointResolver,
                                IDriverMetricsProvider driverMetricsProvider,
                                MetricsOptions metricsOptions,
-                               IObserverFactoryBuilder observerFactoryBuilder = null,
                                IRequestHandlerFactory requestHandlerFactory = null,
                                IHostConnectionPoolFactory hostConnectionPoolFactory = null,
                                IRequestExecutionFactory requestExecutionFactory = null,
                                IConnectionFactory connectionFactory = null,
                                IControlConnectionFactory controlConnectionFactory = null,
                                IPrepareHandlerFactory prepareHandlerFactory = null,
-                               ITimerFactory timerFactory = null)
+                               ITimerFactory timerFactory = null,
+                               IObserverFactoryBuilder observerFactoryBuilder = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -225,7 +225,7 @@ namespace Cassandra
             DnsResolver = new DnsResolver();
             EndPointResolver = endPointResolver ?? new EndPointResolver(DnsResolver, protocolOptions);
             MetricsOptions = metricsOptions ?? new MetricsOptions();
-            MetricsProvider = driverMetricsProvider ?? new NullDriverMetricsProvider();
+            MetricsProvider = driverMetricsProvider ?? NullDriverMetricsProvider.Instance;
 
             ObserverFactoryBuilder = observerFactoryBuilder ?? new ObserverFactoryBuilder();
             RequestHandlerFactory = requestHandlerFactory ?? new RequestHandlerFactory();

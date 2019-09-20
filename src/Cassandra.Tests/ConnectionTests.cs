@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.Observers;
+using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
 using Moq;
@@ -24,7 +25,12 @@ namespace Cassandra.Tests
         {
             config = config ?? new Configuration();
             return new Mock<Connection>(
-                MockBehavior.Loose, new Serializer(ProtocolVersion.MaxSupported), new ConnectionEndPoint(ConnectionTests.Address, null), config, new ConnectionObserver());
+                MockBehavior.Loose, 
+                new Serializer(ProtocolVersion.MaxSupported), 
+                new ConnectionEndPoint(ConnectionTests.Address, null), 
+                config, 
+                new StartupRequestFactory(config.StartupOptionsFactory),
+                NullConnectionObserver.Instance);
         }
 
         [Test]

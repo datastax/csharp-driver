@@ -14,12 +14,13 @@
 //    limitations under the License.
 // 
 
+using Cassandra.Observers.Abstractions;
 using Cassandra.Serialization;
 
 namespace Cassandra.Connections
 {
     internal interface IHostConnectionPoolFactory
     {
-        IHostConnectionPool Create(Host host, Configuration config, Serializer serializer);
+        IHostConnectionPool Create(Host host, Configuration config, Serializer serializer, IObserverFactory observerFactory);
     }
 }

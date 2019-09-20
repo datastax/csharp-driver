@@ -16,6 +16,7 @@
 using System;
 
 using Cassandra.Metrics.Registries;
+using Cassandra.SessionManagement;
 
 namespace Cassandra.Metrics.Internal
 {
@@ -25,7 +26,7 @@ namespace Cassandra.Metrics.Internal
 
         INodeMetrics GetOrCreateNodeMetrics(Host host);
 
-        void InitializeMetrics();
+        void InitializeMetrics(IInternalSession session);
 
         void RemoveNodeMetrics(Host host);
     }

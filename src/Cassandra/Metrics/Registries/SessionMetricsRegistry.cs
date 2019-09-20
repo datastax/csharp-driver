@@ -25,7 +25,6 @@ namespace Cassandra.Metrics.Registries
 {
     internal class SessionMetricsRegistry : ISessionMetrics
     {
-        private readonly IInternalSession _session;
         private readonly IDriverMetricsProvider _driverMetricsProvider;
 
         public IDriverTimer CqlRequests { get; private set; }
@@ -34,13 +33,12 @@ namespace Cassandra.Metrics.Registries
         public IDriverCounter BytesReceived { get; private set; }
         public IDriverGauge ConnectedNodes { get; private set; }
 
-        public SessionMetricsRegistry(IInternalSession session, IDriverMetricsProvider driverMetricsProvider)
+        public SessionMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
         {
-            _session = session;
             _driverMetricsProvider = driverMetricsProvider;
         }
 
-        public void InitializeMetrics()
+        public void InitializeMetrics(IInternalSession session)
         {
             try
             {
@@ -50,7 +48,7 @@ namespace Cassandra.Metrics.Registries
                 BytesReceived = _driverMetricsProvider.Counter("bytes-received", DriverMeasurementUnit.Bytes);
                 ConnectedNodes = _driverMetricsProvider.Gauge(
                     "connected-nodes",
-                    () => _session.GetPools().Count(), //TODO
+                    () => session.GetPools().Count(), //TODO
                     DriverMeasurementUnit.None);
 
                 Counters = new[] { BytesSent, BytesReceived };

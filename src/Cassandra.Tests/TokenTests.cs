@@ -442,7 +442,7 @@ namespace Cassandra.Tests
             {
                 ConnectionFactory = new FakeConnectionFactory()
             }.Build();
-            var metadata = new Metadata(config, new SessionObserver(), schemaParser) {Partitioner = "Murmur3Partitioner"};
+            var metadata = new Metadata(config, schemaParser) {Partitioner = "Murmur3Partitioner"};
             metadata.ControlConnection = new ControlConnection(
                 new ProtocolEventDebouncer(new TaskBasedTimerFactory(), TimeSpan.FromMilliseconds(20), TimeSpan.FromSeconds(100)), 
                 ProtocolVersion.V3, 
@@ -549,7 +549,7 @@ namespace Cassandra.Tests
             var keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
             keyspaces.GetOrAdd("ks1", TokenTests.CreateSimpleKeyspace("ks1", 1));
             var schemaParser = new FakeSchemaParser(keyspaces);
-            var metadata = new Metadata(new Configuration(), new SessionObserver(), schemaParser) {Partitioner = "Murmur3Partitioner"};
+            var metadata = new Metadata(new Configuration(), schemaParser) {Partitioner = "Murmur3Partitioner"};
             metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.1"), 9042));;
             metadata.Hosts.First().SetInfo(new TestHelper.DictionaryBasedRow(new Dictionary<string, object>
             {

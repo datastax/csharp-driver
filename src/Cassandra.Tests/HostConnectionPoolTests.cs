@@ -53,7 +53,12 @@ namespace Cassandra.Tests
             {
                 config = GetConfig();
             }
-            return new Connection(new Serializer(ProtocolVersion.MaxSupported), config.EndPointResolver.GetOrResolveContactPointAsync(GetIpEndPoint(lastIpByte)).Result.Single(), config, new ConnectionObserver());
+            return new Connection(
+                new Serializer(ProtocolVersion.MaxSupported), 
+                config.EndPointResolver.GetOrResolveContactPointAsync(GetIpEndPoint(lastIpByte)).Result.Single(), 
+                config,
+                new StartupRequestFactory(config.StartupOptionsFactory), 
+                NullConnectionObserver.Instance);
         }
 
         private static Mock<HostConnectionPool> GetPoolMock(Host host = null, Configuration config = null)
@@ -91,14 +96,22 @@ namespace Cassandra.Tests
                 new Dictionary<string, IExecutionProfile>(),
                 new RequestOptionsMapper(),
                 null,
+                null,
+                null,
                 null);
             return config;
         }
 
         private static IConnection GetConnectionMock(int inflight, int timedOutOperations = 0)
         {
+            var config = new Configuration();
             var connectionMock = new Mock<Connection>(
-                MockBehavior.Loose, new Serializer(ProtocolVersion.MaxSupported), new ConnectionEndPoint(HostConnectionPoolTests.Address, null), new Configuration(), new ConnectionObserver());
+                MockBehavior.Loose, 
+                new Serializer(ProtocolVersion.MaxSupported), 
+                new ConnectionEndPoint(HostConnectionPoolTests.Address, null), 
+                config, 
+                new StartupRequestFactory(config.StartupOptionsFactory),
+                NullConnectionObserver.Instance);
             connectionMock.Setup(c => c.InFlight).Returns(inflight);
             connectionMock.Setup(c => c.TimedOutOperations).Returns(timedOutOperations);
             return connectionMock.Object;

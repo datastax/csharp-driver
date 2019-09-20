@@ -177,7 +177,7 @@ namespace Cassandra.Connections
             foreach (var endPointTask in endPointTasks)
             {
                 var endPoint = await endPointTask.ConfigureAwait(false);
-                var connection = _config.ConnectionFactory.CreateWithoutMetrics(_serializer, endPoint, _config);
+                var connection = _config.ConnectionFactory.CreateUnobserved(_serializer, endPoint, _config);
                 try
                 {
                     var version = _serializer.ProtocolVersion;
@@ -252,7 +252,7 @@ namespace Cassandra.Connections
 
             previousConnection.Dispose();
 
-            var c = _config.ConnectionFactory.CreateWithoutMetrics(_serializer, previousConnection.EndPoint, _config);
+            var c = _config.ConnectionFactory.CreateUnobserved(_serializer, previousConnection.EndPoint, _config);
             try
             {
                 await c.Open().ConfigureAwait(false);

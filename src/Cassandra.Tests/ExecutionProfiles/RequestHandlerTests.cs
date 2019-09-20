@@ -373,8 +373,8 @@ namespace Cassandra.Tests.ExecutionProfiles
                 Interlocked.Increment(ref Count);
                 return new List<Host>
                 {
-                    new Host(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042), new HostObserver()),
-                    new Host(new IPEndPoint(IPAddress.Parse("127.0.0.2"), 9042), new HostObserver()) // 2 hosts for speculative execution policy
+                    new Host(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042)),
+                    new Host(new IPEndPoint(IPAddress.Parse("127.0.0.2"), 9042)) // 2 hosts for speculative execution policy
                 };
             }
         }

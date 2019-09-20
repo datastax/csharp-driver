@@ -58,6 +58,8 @@ namespace Cassandra.Tests
                 new Dictionary<string, IExecutionProfile>(),
                 new RequestOptionsMapper(),
                 null,
+                null,
+                null,
                 null);
         }
 

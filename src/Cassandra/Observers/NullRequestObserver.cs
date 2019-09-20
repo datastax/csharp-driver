@@ -1,12 +1,12 @@
-﻿//
+﻿// 
 //       Copyright (C) DataStax Inc.
-//
+// 
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-//
+// 
 //       http://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,21 +14,32 @@
 //    limitations under the License.
 
 using System;
-using Cassandra.Metrics.Abstractions;
-using Cassandra.SessionManagement;
+using Cassandra.Observers.Abstractions;
 
-namespace Cassandra.Metrics.Registries
+namespace Cassandra.Observers
 {
-    internal interface ISessionMetrics : IMetricsRegistry, IDisposable
+    internal class NullRequestObserver : IRequestObserver
     {
-        IDriverTimer CqlRequests { get; }
+        public static readonly IRequestObserver Instance = new NullRequestObserver();
 
-        IDriverMeter CqlClientTimeouts { get; }
+        private NullRequestObserver()
+        {
+        }
 
-        IDriverCounter BytesSent { get; }
+        public void OnSpeculativeExecution(Host host, long delay)
+        {
+        }
 
-        IDriverCounter BytesReceived { get; }
+        public void OnRequestRetry(Host host, RetryReasonType reason, RetryDecision.RetryDecisionType decision)
+        {
+        }
 
-        void InitializeMetrics(IInternalSession session);
+        public void OnRequestStart()
+        {
+        }
+
+        public void OnRequestFinish(Exception exception)
+        {
+        }
     }
 }

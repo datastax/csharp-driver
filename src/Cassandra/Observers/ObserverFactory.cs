@@ -14,33 +14,28 @@
 //    limitations under the License.
 //
 
+using Cassandra.Metrics.Internal;
 using Cassandra.Observers.Abstractions;
-using Cassandra.SessionManagement;
 
 namespace Cassandra.Observers
 {
     internal class ObserverFactory : IObserverFactory
     {
-        private readonly IInternalSession _session;
+        private readonly IMetricsManager _metricsManager;
 
-        public ObserverFactory(IInternalSession session)
+        public ObserverFactory(IMetricsManager metricsManager)
         {
-            _session = session;
+            _metricsManager = metricsManager;
         }
 
         public IRequestObserver CreateRequestObserver()
         {
-            return new RequestObserver(_session.MetricsManager, _session.MetricsManager.GetSessionMetrics().CqlRequests);
+            return new RequestObserver(_metricsManager, _metricsManager.GetSessionMetrics().CqlRequests);
         }
 
         public IConnectionObserver CreateConnectionObserver(Host host)
         {
-            return new ConnectionObserver(_session.MetricsManager.GetSessionMetrics(), _session.MetricsManager.GetOrCreateNodeMetrics(host));
-        }
-
-        public IOperationObserver CreateOperationObserver(Host host)
-        {
-            return new OperationObserver(_session.MetricsManager.GetOrCreateNodeMetrics(host));
+            return new ConnectionObserver(_metricsManager.GetSessionMetrics(), _metricsManager.GetOrCreateNodeMetrics(host));
         }
     }
 }

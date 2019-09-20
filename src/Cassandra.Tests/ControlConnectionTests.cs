@@ -42,7 +42,7 @@ namespace Cassandra.Tests
         [Test]
         public void UpdateLocalNodeInfoModifiesHost()
         {
-            var metadata = new Metadata(new Configuration(), new SessionObserver());
+            var metadata = new Metadata(new Configuration());
             var cc = NewInstance(metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             var row = TestHelper.CreateRow(new Dictionary<string, object>
@@ -59,7 +59,7 @@ namespace Cassandra.Tests
         [Test]
         public void UpdatePeersInfoModifiesPool()
         {
-            var metadata = new Metadata(new Configuration(), new SessionObserver());
+            var metadata = new Metadata(new Configuration());
             var cc = NewInstance(metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);
@@ -88,7 +88,7 @@ namespace Cassandra.Tests
         [Test]
         public void UpdatePeersInfoWithNullRpcIgnores()
         {
-            var metadata = new Metadata(new Configuration(), new SessionObserver());
+            var metadata = new Metadata(new Configuration());
             var cc = NewInstance(metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);
@@ -111,7 +111,7 @@ namespace Cassandra.Tests
                 .Callback<IPEndPoint>(invokedEndPoints.Add)
                 .Returns<IPEndPoint>(e => e);
             const int portNumber = 9999;
-            var metadata = new Metadata(new Configuration(), new SessionObserver());
+            var metadata = new Metadata(new Configuration());
             var config = new Configuration(Policies.DefaultPolicies,
                  new ProtocolOptions(portNumber),
                  null,
@@ -125,6 +125,8 @@ namespace Cassandra.Tests
                  new SessionFactoryBuilder(),
                  new Dictionary<string, IExecutionProfile>(),
                  new RequestOptionsMapper(),
+                 null,
+                 null,
                  null,
                  null);
             var cc = NewInstance(config, metadata);

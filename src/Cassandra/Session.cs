@@ -109,8 +109,8 @@ namespace Cassandra
             UserDefinedTypes = new UdtMappingDefinitions(this, serializer);
             _connectionPool = new CopyOnWriteDictionary<IPEndPoint, IHostConnectionPool>();
             _cluster.HostRemoved += OnHostRemoved;
-            _metricsManager = new MetricsManager(configuration.MetricsProvider, this);
-            _observerFactory = configuration.ObserverFactoryBuilder.Build(this);
+            _metricsManager = new MetricsManager(configuration.MetricsProvider, SessionName);
+            _observerFactory = configuration.ObserverFactoryBuilder.Build(_metricsManager);
         }
 
         /// <inheritdoc />
@@ -213,7 +213,7 @@ namespace Cassandra
         {
             _sessionManager = sessionManager;
 
-            _metricsManager.InitializeMetrics();
+            _metricsManager.InitializeMetrics(this);
 
             if (Configuration.GetPoolingOptions(_serializer.ProtocolVersion).GetWarmup())
             {
@@ -349,7 +349,7 @@ namespace Cassandra
         {
             var hostPool = _connectionPool.GetOrAdd(host.Address, address =>
             {
-                var newPool = Configuration.HostConnectionPoolFactory.Create(host, Configuration, _serializer);
+                var newPool = Configuration.HostConnectionPoolFactory.Create(host, Configuration, _serializer, _observerFactory);
                 newPool.AllConnectionClosed += InternalRef.OnAllConnectionClosed;
                 newPool.SetDistance(distance);
                 _metricsManager.GetOrCreateNodeMetrics(host).InitializePoolGauges(newPool);

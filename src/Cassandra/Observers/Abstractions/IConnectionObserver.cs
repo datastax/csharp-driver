@@ -25,5 +25,7 @@ namespace Cassandra.Observers.Abstractions
         void ReceiveBytes(long size);
 
         void OnErrorOnOpen(Exception exception);
+
+        IOperationObserver CreateOperationObserver();
     }
 }

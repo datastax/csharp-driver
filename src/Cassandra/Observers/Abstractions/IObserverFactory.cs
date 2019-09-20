@@ -21,7 +21,5 @@ namespace Cassandra.Observers.Abstractions
         IRequestObserver CreateRequestObserver();
 
         IConnectionObserver CreateConnectionObserver(Host host);
-
-        IOperationObserver CreateOperationObserver(Host host);
     }
 }

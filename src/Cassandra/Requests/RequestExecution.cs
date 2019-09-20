@@ -89,7 +89,7 @@ namespace Cassandra.Requests
                 _connection = await _parent.ValidateHostAndGetConnectionAsync(host, _triedHosts).ConfigureAwait(false);
                 if (_connection != null)
                 {
-                    Send(_request, HandleResponse);
+                    Send(_request, host, HandleResponse);
                     return;
                 }
 
@@ -126,7 +126,7 @@ namespace Cassandra.Requests
 
                 _connection = connection;
                 _host = validHost.Host;
-                Send(_request, HandleResponse);
+                Send(_request, validHost.Host, HandleResponse);
             }
             catch (Exception ex)
             {
@@ -157,7 +157,7 @@ namespace Cassandra.Requests
         /// <summary>
         /// Sends a new request using the active connection
         /// </summary>
-        private void Send(IRequest request, Action<Exception, Response, Host> callback)
+        private void Send(IRequest request, Host host, Action<Exception, Response, Host> callback)
         {
             var timeoutMillis = _parent.RequestOptions.ReadTimeoutMillis;
             if (_parent.Statement != null && _parent.Statement.ReadTimeoutMillis > 0)
@@ -165,7 +165,7 @@ namespace Cassandra.Requests
                 timeoutMillis = _parent.Statement.ReadTimeoutMillis;
             }
 
-            _operation = _connection.Send(request, callback, timeoutMillis);
+            _operation = _connection.Send(request, (ex, response) => callback(ex, response, host), timeoutMillis);
         }
 
         private void HandleResponse(Exception ex, Response response, Host host)
@@ -327,7 +327,7 @@ namespace Cassandra.Requests
             if (ex is PreparedQueryNotFoundException foundException &&
                 (_parent.Statement is BoundStatement || _parent.Statement is BatchStatement))
             {
-                PrepareAndRetry(foundException.UnknownId);
+                PrepareAndRetry(foundException.UnknownId, host);
                 return;
             }
             if (ex is NoHostAvailableException exception)
@@ -436,7 +436,7 @@ namespace Cassandra.Requests
         /// <summary>
         /// Sends a prepare request before retrying the statement
         /// </summary>
-        private void PrepareAndRetry(byte[] id)
+        private void PrepareAndRetry(byte[] id, Host host)
         {
             RequestExecution.Logger.Info(
                 $"Query {BitConverter.ToString(id)} is not prepared on {_connection.EndPoint.EndpointFriendlyName}, preparing before retrying executing.");
@@ -465,12 +465,12 @@ namespace Cassandra.Requests
                     .SetKeyspace(boundStatement.PreparedStatement.Keyspace)
                     .ContinueSync(_ =>
                     {
-                        Send(request, ReprepareResponseHandler);
+                        Send(request, host, ReprepareResponseHandler);
                         return true;
                     });
                 return;
             }
-            Send(request, ReprepareResponseHandler);
+            Send(request, host, ReprepareResponseHandler);
         }
 
         /// <summary>
@@ -491,7 +491,7 @@ namespace Cassandra.Requests
                 {
                     throw new DriverInternalError("Expected prepared response, obtained " + output.GetType().FullName);
                 }
-                Send(_request, HandleResponse);
+                Send(_request, host, HandleResponse);
             }
             catch (Exception exception)
             {

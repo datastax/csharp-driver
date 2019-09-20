@@ -78,6 +78,11 @@ namespace Cassandra.Observers
                 LogError(ex);
             }
         }
+        
+        public IOperationObserver CreateOperationObserver()
+        {
+            return new OperationObserver(_nodeMetrics);
+        }
 
         private static void LogError(Exception ex)
         {
