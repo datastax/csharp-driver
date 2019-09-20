@@ -44,6 +44,7 @@ namespace Cassandra
     public class Configuration
     {
         internal const string DefaultExecutionProfileName = "default";
+        internal const string DefaultSessionName = "s";
 
         /// <summary>
         ///  Gets the policies set for the cluster.
@@ -148,6 +149,8 @@ namespace Cassandra
 
         internal MetricsOptions MetricsOptions { get; }
 
+        internal string SessionName { get; }
+
         internal IObserverFactoryBuilder ObserverFactoryBuilder { get; }
         
         /// <summary>
@@ -172,6 +175,7 @@ namespace Cassandra
                  new SessionFactoryBuilder(),
                  new Dictionary<string, IExecutionProfile>(),
                  new RequestOptionsMapper(),
+                 null,
                  null,
                  null,
                  null,
@@ -200,6 +204,7 @@ namespace Cassandra
                                IEndPointResolver endPointResolver,
                                IDriverMetricsProvider driverMetricsProvider,
                                MetricsOptions metricsOptions,
+                               string sessionName,
                                IRequestHandlerFactory requestHandlerFactory = null,
                                IHostConnectionPoolFactory hostConnectionPoolFactory = null,
                                IRequestExecutionFactory requestExecutionFactory = null,
@@ -226,6 +231,7 @@ namespace Cassandra
             EndPointResolver = endPointResolver ?? new EndPointResolver(DnsResolver, protocolOptions);
             MetricsOptions = metricsOptions ?? new MetricsOptions();
             MetricsProvider = driverMetricsProvider ?? NullDriverMetricsProvider.Instance;
+            SessionName = sessionName;
 
             ObserverFactoryBuilder = observerFactoryBuilder ?? new ObserverFactoryBuilder();
             RequestHandlerFactory = requestHandlerFactory ?? new RequestHandlerFactory();

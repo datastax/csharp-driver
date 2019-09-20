@@ -28,10 +28,10 @@ namespace Cassandra.SessionManagement
             _cluster = cluster;
         }
 
-        public Task<IInternalSession> CreateSessionAsync(string keyspace, Serializer serializer)
+        public Task<IInternalSession> CreateSessionAsync(string keyspace, Serializer serializer, string sessionName)
         {
             return Task.FromResult(
-                new Session(_cluster, _cluster.Configuration, keyspace, serializer).InternalRef);
+                new Session(_cluster, _cluster.Configuration, keyspace, serializer, sessionName).InternalRef);
         }
     }
 }

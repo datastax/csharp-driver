@@ -92,7 +92,7 @@ namespace Cassandra
         /// <inheritdoc />
         public UdtMappingDefinitions UserDefinedTypes { get; private set; }
 
-        public string SessionName => throw new NotImplementedException(); //TODO
+        public string SessionName { get; }
 
         public Policies Policies => Configuration.Policies;
 
@@ -100,12 +100,14 @@ namespace Cassandra
             IInternalCluster cluster,
             Configuration configuration,
             string keyspace,
-            Serializer serializer)
+            Serializer serializer,
+            string sessionName)
         {
             _serializer = serializer;
             _cluster = cluster;
             Configuration = configuration;
             Keyspace = keyspace;
+            SessionName = sessionName;
             UserDefinedTypes = new UdtMappingDefinitions(this, serializer);
             _connectionPool = new CopyOnWriteDictionary<IPEndPoint, IHostConnectionPool>();
             _cluster.HostRemoved += OnHostRemoved;

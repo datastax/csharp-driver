@@ -18,13 +18,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Threading.Tasks;
 
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
-using Cassandra.Metrics;
 using Cassandra.Metrics.Abstractions;
-using Cassandra.Metrics.Providers.Null;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
@@ -71,6 +68,7 @@ namespace Cassandra
         private IEndPointResolver _endPointResolver;
         private IDriverMetricsProvider _driverMetricsProvider;
         private MetricsOptions _metricsOptions;
+        private string _sessionName;
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -153,7 +151,8 @@ namespace Cassandra
                 _metadataSyncOptions,
                 _endPointResolver,
                 _driverMetricsProvider,
-                _metricsOptions);
+                _metricsOptions,
+                _sessionName);
 
             if (_typeSerializerDefinitions != null)
             {
@@ -798,6 +797,34 @@ namespace Cassandra
         public Builder WithMetadataSyncOptions(MetadataSyncOptions metadataSyncOptions)
         {
             _metadataSyncOptions = metadataSyncOptions;
+            return this;
+        }
+
+        /// <summary>
+        /// <see cref="ISession"/> objects created through the <see cref="ICluster"/> built from this builder will have <see cref="ISession.SessionName"/>
+        /// set to the value provided in this method.
+        /// The first session created by this cluster instance will have its name set exactly as it is provided in this method.
+        /// Any session created by the <see cref="ICluster"/> built from this builder after the first one will have its name set as a concatenation
+        /// of the provided value plus a counter.
+        /// <code>
+        ///         var cluster = Cluster.Builder().WithSessionName("main-session").Build();
+        ///         var session = cluster.Connect(); // session.SessionName == "main-session"
+        ///         var session1 = cluster.Connect(); // session1.SessionName == "main-session1"
+        ///         var session2 = cluster.Connect(); // session2.SessionName == "main-session2"
+        /// </code>
+        /// If this setting is not set, the default session names will be "s0", "s1", "s2", etc.
+        /// <code>
+        ///         var cluster = Cluster.Builder().Build();
+        ///         var session = cluster.Connect(); // session.SessionName == "s0"
+        ///         var session1 = cluster.Connect(); // session1.SessionName == "s1"
+        ///         var session2 = cluster.Connect(); // session2.SessionName == "s2"
+        /// </code>
+        /// </summary>
+        /// <param name="sessionName"></param>
+        /// <returns></returns>
+        public Builder WithSessionName(string sessionName)
+        {
+            _sessionName = sessionName ?? throw new ArgumentNullException(nameof(sessionName));
             return this;
         }
 
