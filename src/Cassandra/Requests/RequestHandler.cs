@@ -58,7 +58,8 @@ namespace Cassandra.Requests
         /// <summary>
         /// Creates a new instance using a request, the statement and the execution profile.
         /// </summary>
-        public RequestHandler(IInternalSession session, Serializer serializer, IRequest request, IStatement statement, IRequestOptions requestOptions)
+        public RequestHandler(
+            IInternalSession session, Serializer serializer, IRequest request, IStatement statement, IRequestOptions requestOptions)
         {
             _session = session ?? throw new ArgumentNullException(nameof(session));
             _requestObserver = session.ObserverFactory.CreateRequestObserver();

@@ -21,6 +21,8 @@ using System.Net;
 
 using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics;
+using Cassandra.Metrics.Internal;
+using Cassandra.Metrics.Providers.Null;
 using Cassandra.Metrics.Registries;
 using Cassandra.Observers;
 using Cassandra.Observers.Abstractions;
@@ -43,6 +45,8 @@ namespace Cassandra.Tests
             var sessionMock = new Mock<IInternalSession>();
             var clusterMock = new Mock<IInternalCluster>();
             sessionMock.Setup(x => x.InternalCluster).Returns(clusterMock.Object);
+            sessionMock.Setup(x => x.ObserverFactory)
+                       .Returns(new ObserverFactory(new MetricsManager(NullDriverMetricsProvider.Instance, string.Empty)));
             return sessionMock.Object;
         }
         private static Configuration GetConfig(ILoadBalancingPolicy lbp)

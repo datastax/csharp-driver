@@ -8,6 +8,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Metrics.Internal;
+using Cassandra.Metrics.Providers.Null;
 using Cassandra.Metrics.Registries;
 using Cassandra.Observers;
 using Cassandra.Requests;
@@ -71,7 +73,11 @@ namespace Cassandra.Tests
             {
                 config = GetConfig();
             }
-            return new Mock<HostConnectionPool>(host, config, new Serializer(ProtocolVersion.MaxSupported));
+            return new Mock<HostConnectionPool>(
+                host, 
+                config, 
+                new Serializer(ProtocolVersion.MaxSupported), 
+                new ObserverFactory(new MetricsManager(NullDriverMetricsProvider.Instance, string.Empty)));
         }
 
         private static Configuration GetConfig(int coreConnections = 3, int maxConnections = 8, IReconnectionPolicy rp = null)
