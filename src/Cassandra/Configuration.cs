@@ -252,5 +252,21 @@ namespace Cassandra
             PoolingOptions = PoolingOptions.Create(protocolVersion);
             return PoolingOptions;
         }
+
+        /// <summary>
+        /// Sets the default consistency level.
+        /// </summary>
+        internal void SetDefaultConsistencyLevel(ConsistencyLevel consistencyLevel)
+        {
+            QueryOptions.SetDefaultConsistencyLevel(consistencyLevel);
+        }
+        
+        /// <summary>
+        /// Sets the default serial consistency level.
+        /// </summary>
+        internal void SetDefaultSerialConsistencyLevel(ConsistencyLevel consistencyLevel)
+        {
+            QueryOptions.SetDefaultSerialConsistencyLevel(consistencyLevel);
+        }
     }
 }

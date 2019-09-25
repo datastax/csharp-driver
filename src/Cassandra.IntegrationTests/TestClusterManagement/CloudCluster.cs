@@ -84,7 +84,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 if (sniPath.EndsWith("run.ps1"))
                 {
-                    args = " -REQUIRE_CLIENT_CERTIFICATE $True";
+                    args = " -REQUIRE_CLIENT_CERTIFICATE true";
                 }
                 else
                 {
@@ -127,12 +127,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void Start(int nodeIdToStart, string additionalArgs = null)
         {
-            ExecCcmCommand($"node{nodeIdToStart} start --root --wait-for-binary-proto");
+            ExecCcmCommand($"node{nodeIdToStart} start --root --wait-for-binary-proto {additionalArgs}");
         }
 
         public void Start(string[] jvmArgs = null)
         {
-            ExecCcmCommand("start --root");
+            ExecCcmCommand($"start --root --wait-for-binary-proto {jvmArgs}");
         }
 
         public void UpdateConfig(params string[] yamlChanges)
@@ -174,10 +174,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         {
             if (TestHelper.IsWin)
             {
+                ccmCmd = ccmCmd.Replace("\"", "\"\"\"");
                 ExecCommand(true, "powershell", $"-command \"docker ps -a -q --filter ancestor=single_endpoint | % {{ docker exec $_ ccm {ccmCmd} }}\"");
             }
             else
             {
+                ccmCmd = ccmCmd.Replace("\"", @"\""");
                 ExecCommand(true, "bash", $@"-c ""docker exec $(docker ps -a -q --filter ancestor=single_endpoint) ccm {ccmCmd}""");
             }
         }
