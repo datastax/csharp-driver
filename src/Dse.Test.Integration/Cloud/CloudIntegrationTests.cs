@@ -25,9 +25,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dse.Auth;
 using Dse.Cloud;
+using Dse.Data.Linq;
+using Dse.Test.Integration.Mapping.Structures;
 using Dse.Test.Integration.Policies.Util;
 using Dse.Test.Integration.TestAttributes;
 using Dse.Test.Integration.TestClusterManagement;
+using Dse.Mapping;
 using Dse.Test.Unit;
 using Dse.Test.Unit.TestAttributes;
 
@@ -63,7 +66,7 @@ namespace Dse.Test.Integration.Cloud
             {
                 TestCluster.Stop(1);
                 await Task.Delay(2000).ConfigureAwait(false);
-                TestCluster.Start(1);
+                TestCluster.Start(1, "--jvm_arg \"-Ddse.product_type=DATASTAX_APOLLO\"");
                 await Task.Delay(500).ConfigureAwait(false);
                 try
                 {
@@ -143,7 +146,7 @@ namespace Dse.Test.Integration.Cloud
         {
             var cluster = CreateCluster(act: b => b.WithCredentials("user1", "12345678"));
             Assert.AreEqual(typeof(PlainTextAuthProvider), cluster.Configuration.AuthProvider.GetType());
-            var provider = (PlainTextAuthProvider)cluster.Configuration.AuthProvider;
+            var provider = (PlainTextAuthProvider) cluster.Configuration.AuthProvider;
             Assert.AreEqual("user1", provider.Username);
         }
 
@@ -160,7 +163,7 @@ namespace Dse.Test.Integration.Cloud
         {
             Assert.IsNotNull(Session.Cluster.Configuration.AuthProvider.GetType());
             Assert.AreEqual(typeof(PlainTextAuthProvider), Session.Cluster.Configuration.AuthProvider.GetType());
-            var provider = (PlainTextAuthProvider)Session.Cluster.Configuration.AuthProvider;
+            var provider = (PlainTextAuthProvider) Session.Cluster.Configuration.AuthProvider;
             Assert.AreEqual("cassandra", provider.Username);
         }
 
@@ -287,9 +290,9 @@ namespace Dse.Test.Integration.Cloud
             var scb = new SecureConnectionBundleParser()
                 .ParseBundle(
                     Path.Combine(
-                        ((CloudCluster)TestCluster).SniHomeDirectory,
-                        "certs",
-                        "bundles",
+                        ((CloudCluster) TestCluster).SniHomeDirectory, 
+                        "certs", 
+                        "bundles", 
                         "creds-v1.zip"));
 
             Assert.IsNotNull(scb.CaCert);
@@ -300,6 +303,50 @@ namespace Dse.Test.Integration.Cloud
             Assert.AreEqual("cassandra", scb.Config.Password);
             Assert.AreEqual("cassandra", scb.Config.Username);
             Assert.AreEqual("localhost", scb.Config.Host);
+        }
+
+        [Test]
+        public async Task Should_UseCorrectConsistencyLevelDefaults_When_Dbaas()
+        {
+            var session = await CreateSessionAsync(act: b => b
+                .WithExecutionProfiles(opt => opt
+                    .WithProfile("default", profile => 
+                        profile.WithConsistencyLevel(ConsistencyLevel.All))
+                    .WithProfile("profile", profile => 
+                        profile.WithSerialConsistencyLevel(ConsistencyLevel.LocalSerial))
+                    .WithDerivedProfile("derived", "profile", profile => 
+                        profile.WithConsistencyLevel(ConsistencyLevel.LocalQuorum)))).ConfigureAwait(false);
+            Assert.AreEqual(ConsistencyLevel.LocalQuorum, Cluster.Configuration.DefaultRequestOptions.ConsistencyLevel);
+            Assert.AreEqual(ConsistencyLevel.LocalQuorum, Cluster.Configuration.QueryOptions.GetConsistencyLevel());
+            Assert.AreEqual(ConsistencyLevel.LocalSerial, Cluster.Configuration.DefaultRequestOptions.SerialConsistencyLevel);
+            Assert.AreEqual(ConsistencyLevel.LocalSerial, Cluster.Configuration.QueryOptions.GetSerialConsistencyLevel());
+
+            var ks = TestUtils.GetUniqueKeyspaceName().ToLower();
+            const string createKeyspaceQuery = "CREATE KEYSPACE {0} WITH replication = {{ 'class' : '{1}', {2} }}";
+            session.Execute(string.Format(createKeyspaceQuery, ks, "SimpleStrategy", "'replication_factor' : 3"));
+            var table = new Table<Author>(session, MappingConfiguration.Global, "author", ks);
+            table.CreateIfNotExists();
+            RowSet rs = null;
+            Assert.Throws<InvalidQueryException>(() =>
+            {
+                rs = session.Execute($"INSERT INTO {ks}.author(authorid) VALUES ('auth')");
+            });
+
+            Assert.Throws<InvalidQueryException>(() =>
+            {
+                rs = session.Execute($"INSERT INTO {ks}.author(authorid) VALUES ('auth')", "profile");
+            });
+
+            rs = session.Execute($"INSERT INTO {ks}.author(authorid) VALUES ('auth')", "derived");
+            Assert.AreEqual(ConsistencyLevel.LocalQuorum, rs.Info.AchievedConsistency);
+            
+            rs = session.Execute($"INSERT INTO {ks}.author(authorid) VALUES ('auth') IF NOT EXISTS", "derived");
+            Assert.IsTrue(string.Compare(rs.First()["[applied]"].ToString(), "false", StringComparison.OrdinalIgnoreCase) == 0);
+            
+            rs = session.Execute($"SELECT authorid FROM {ks}.author WHERE authorid = 'auth'", "derived");
+            var row = rs.First();
+            Assert.AreEqual(ConsistencyLevel.LocalQuorum, rs.Info.AchievedConsistency);
+            Assert.AreEqual("auth", row["authorid"].ToString());
         }
 
         private void AssertCaMismatchSslError(NoHostAvailableException ex)
@@ -417,6 +464,50 @@ namespace Dse.Test.Integration.Cloud
             }
 
             Assert.AreEqual(3, queriedHosts.Count);
+        }
+        
+        [Test]
+        public async Task Dse_Should_UseCorrectConsistencyLevelDefaults_When_Dbaas()
+        {
+            var session = await CreateDseSessionAsync(act: b => b
+                .WithExecutionProfiles(opt => opt
+                    .WithProfile("default", profile => 
+                        profile.WithConsistencyLevel(ConsistencyLevel.All))
+                    .WithProfile("profile", profile => 
+                        profile.WithSerialConsistencyLevel(ConsistencyLevel.LocalSerial))
+                    .WithDerivedProfile("derived", "profile", profile => 
+                        profile.WithConsistencyLevel(ConsistencyLevel.LocalQuorum)))).ConfigureAwait(false);
+            Assert.AreEqual(ConsistencyLevel.LocalQuorum, Cluster.Configuration.DefaultRequestOptions.ConsistencyLevel);
+            Assert.AreEqual(ConsistencyLevel.LocalQuorum, Cluster.Configuration.QueryOptions.GetConsistencyLevel());
+            Assert.AreEqual(ConsistencyLevel.LocalSerial, Cluster.Configuration.DefaultRequestOptions.SerialConsistencyLevel);
+            Assert.AreEqual(ConsistencyLevel.LocalSerial, Cluster.Configuration.QueryOptions.GetSerialConsistencyLevel());
+
+            var ks = TestUtils.GetUniqueKeyspaceName().ToLower();
+            const string createKeyspaceQuery = "CREATE KEYSPACE {0} WITH replication = {{ 'class' : '{1}', {2} }}";
+            session.Execute(string.Format(createKeyspaceQuery, ks, "SimpleStrategy", "'replication_factor' : 3"));
+            var table = new Table<Author>(session, MappingConfiguration.Global, "author", ks);
+            table.CreateIfNotExists();
+            RowSet rs = null;
+            Assert.Throws<InvalidQueryException>(() =>
+            {
+                rs = session.Execute($"INSERT INTO {ks}.author(authorid) VALUES ('auth')");
+            });
+
+            Assert.Throws<InvalidQueryException>(() =>
+            {
+                rs = session.Execute($"INSERT INTO {ks}.author(authorid) VALUES ('auth')", "profile");
+            });
+
+            rs = session.Execute($"INSERT INTO {ks}.author(authorid) VALUES ('auth')", "derived");
+            Assert.AreEqual(ConsistencyLevel.LocalQuorum, rs.Info.AchievedConsistency);
+            
+            rs = session.Execute($"INSERT INTO {ks}.author(authorid) VALUES ('auth') IF NOT EXISTS", "derived");
+            Assert.IsTrue(string.Compare(rs.First()["[applied]"].ToString(), "false", StringComparison.OrdinalIgnoreCase) == 0);
+            
+            rs = session.Execute($"SELECT authorid FROM {ks}.author WHERE authorid = 'auth'", "derived");
+            var row = rs.First();
+            Assert.AreEqual(ConsistencyLevel.LocalQuorum, rs.Info.AchievedConsistency);
+            Assert.AreEqual("auth", row["authorid"].ToString());
         }
     }
 }

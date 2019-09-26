@@ -37,7 +37,7 @@ namespace Dse.Test.Integration.TestClusterManagement
         {
             TryRemove();
             var testCluster = new CloudCluster(
-                TestUtils.GetTestClusterNameBasedOnTime(),
+                TestUtils.GetTestClusterNameBasedOnTime(), 
                 VersionString,
                 enableCert);
             testCluster.Create(3, null);
@@ -54,7 +54,7 @@ namespace Dse.Test.Integration.TestClusterManagement
             {
                 if (Diagnostics.CassandraTraceSwitch.Level == TraceLevel.Verbose)
                 {
-                    Trace.TraceError("cloud test cluster could not be removed: {0}", ex);
+                    Trace.TraceError("cloud test cluster could not be removed: {0}", ex);   
                 }
             }
         }

@@ -18,7 +18,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-
 using Dse.Test.Unit;
 
 namespace Dse.Test.Integration.TestClusterManagement
@@ -84,7 +83,7 @@ namespace Dse.Test.Integration.TestClusterManagement
             {
                 if (sniPath.EndsWith("run.ps1"))
                 {
-                    args = " -REQUIRE_CLIENT_CERTIFICATE $True";
+                    args = " -REQUIRE_CLIENT_CERTIFICATE true";
                 }
                 else
                 {
@@ -103,8 +102,8 @@ namespace Dse.Test.Integration.TestClusterManagement
                 sniPath = @"powershell";
                 args = "\"& '" + oldSniPath + "'" + args + "\"";
             }
-
-            if (envVars.ContainsKey("REQUIRE_CLIENT_CERTIFICATE"))
+            
+            if (envVars.ContainsKey("REQUIRE_CLIENT_CERTIFICATE")) 
             {
                 args = @"-c ""export REQUIRE_CLIENT_CERTIFICATE=true && " + sniPath + "\"";
                 sniPath = "bash";
@@ -127,12 +126,12 @@ namespace Dse.Test.Integration.TestClusterManagement
 
         public void Start(int nodeIdToStart, string additionalArgs = null)
         {
-            ExecCcmCommand($"node{nodeIdToStart} start --root --wait-for-binary-proto");
+            ExecCcmCommand($"node{nodeIdToStart} start --root --wait-for-binary-proto {additionalArgs}");
         }
 
         public void Start(string[] jvmArgs = null)
         {
-            ExecCcmCommand("start --root");
+            ExecCcmCommand($"start --root --wait-for-binary-proto {jvmArgs}");
         }
 
         public void UpdateConfig(params string[] yamlChanges)
@@ -199,10 +198,12 @@ namespace Dse.Test.Integration.TestClusterManagement
         {
             if (TestHelper.IsWin)
             {
+                ccmCmd = ccmCmd.Replace("\"", "\"\"\"");
                 ExecCommand(true, "powershell", $"-command \"docker ps -a -q --filter ancestor=single_endpoint | % {{ docker exec $_ ccm {ccmCmd} }}\"");
             }
             else
             {
+                ccmCmd = ccmCmd.Replace("\"", @"\""");
                 ExecCommand(true, "bash", $@"-c ""docker exec $(docker ps -a -q --filter ancestor=single_endpoint) ccm {ccmCmd}""");
             }
         }

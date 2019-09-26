@@ -39,9 +39,11 @@ namespace Dse
         /// </summary>
         public const bool DefaultRetryOnTimeout = true;
 
-        private ConsistencyLevel _consistency = DefaultConsistencyLevel;
+        private ConsistencyLevel? _consistency;
+        private ConsistencyLevel _defaultConsistencyLevel = QueryOptions.DefaultConsistencyLevel;
         private int _pageSize = DefaultPageSize;
-        private ConsistencyLevel _serialConsistency = DefaultSerialConsistencyLevel;
+        private ConsistencyLevel? _serialConsistency;
+        private ConsistencyLevel _defaultSerialConsistency = QueryOptions.DefaultSerialConsistencyLevel;
         private bool _retryOnTimeout = DefaultRetryOnTimeout;
         private bool _defaultIdempotence = false;
         private bool _prepareOnAllHosts = true;
@@ -70,6 +72,10 @@ namespace Dse
             return this;
         }
 
+        internal void SetDefaultConsistencyLevel(ConsistencyLevel consistencyLevel)
+        {
+            _defaultConsistencyLevel = consistencyLevel;
+        }
 
         /// <summary>
         ///  The default consistency level used by queries.
@@ -77,7 +83,7 @@ namespace Dse
         /// <returns>the default consistency level used by queries.</returns>
         public ConsistencyLevel GetConsistencyLevel()
         {
-            return _consistency;
+            return _consistency ?? _defaultConsistencyLevel;
         }
 
 
@@ -98,6 +104,16 @@ namespace Dse
             return this;
         }
 
+        internal void SetDefaultSerialConsistencyLevel(ConsistencyLevel serialConsistencyLevel)
+        {
+            if (!serialConsistencyLevel.IsSerialConsistencyLevel())
+            {
+                throw new ArgumentException("Serial consistency level can only be set to LocalSerial or Serial");
+            }
+
+            _defaultSerialConsistency = serialConsistencyLevel;
+        }
+
 
         /// <summary>
         /// The default serial consistency level used by queries.
@@ -105,7 +121,7 @@ namespace Dse
         /// <returns>the default serial consistency level used by queries.</returns>
         public ConsistencyLevel GetSerialConsistencyLevel()
         {
-            return _serialConsistency;
+            return _serialConsistency ?? _defaultSerialConsistency;
         }
 
         /// <summary>
