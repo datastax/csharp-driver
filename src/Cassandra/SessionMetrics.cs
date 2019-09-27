@@ -20,26 +20,35 @@ namespace Cassandra
 {
     public static class SessionMetrics
     {
-        public static readonly IEnumerable<string> AllSessionMetrics = new[]
+        public static readonly IEnumerable<SessionMetric> AllSessionMetrics = new[]
         {
-            SessionMetrics.BytesSent,
-            SessionMetrics.SpeculativeExecutions,
-            SessionMetrics.BytesReceived,
-            SessionMetrics.CqlRequests,
-            SessionMetrics.ConnectedNodes,
-            SessionMetrics.CqlPreparedCacheSize
+            Counters.BytesSent,
+            Meters.CqlClientTimeouts,
+            Counters.BytesReceived,
+            Timers.CqlRequests,
+            Gauges.ConnectedNodes
         };
 
-        public const string CqlRequests = "cql-requests";
+        public static class Timers
+        {
+            public static readonly SessionMetric CqlRequests = new SessionMetric("cql-requests");
+        }
 
-        public const string SpeculativeExecutions = "cql-client-timeouts";
+        public static class Meters
+        {
+            public static readonly SessionMetric CqlClientTimeouts = new SessionMetric("cql-client-timeouts");
+        }
 
-        public const string BytesSent = "bytes-sent";
-        
-        public const string BytesReceived = "bytes-received";
+        public static class Counters
+        {
+            public static readonly SessionMetric BytesSent = new SessionMetric("bytes-sent");
 
-        public const string ConnectedNodes = "connected-nodes";
+            public static readonly SessionMetric BytesReceived = new SessionMetric("bytes-received");
+        }
 
-        public const string CqlPreparedCacheSize = "cql-prepared-cache-size";
+        public static class Gauges
+        {
+            public static readonly SessionMetric ConnectedNodes = new SessionMetric("connected-nodes");
+        }
     }
 }

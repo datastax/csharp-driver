@@ -16,7 +16,7 @@
 
 namespace Cassandra.Metrics.Abstractions
 {
-    public interface IDriverTimer : IDriverMetric<ITimerValue>
+    public interface IDriverTimer : IDriverMetricWithValue<ITimerValue>
     {
         IDriverTimeHandler StartRecording();
     }

@@ -20,7 +20,9 @@ namespace Cassandra.Metrics.Providers.Null
 {
     internal class NullDriverHistogram : NullMetricBase, IDriverHistogram
     {
-        public static readonly NullDriverHistogram Instance = new NullDriverHistogram();
+        public NullDriverHistogram(string fullName) : base(fullName)
+        {
+        }
 
         public void Update(long value)
         {

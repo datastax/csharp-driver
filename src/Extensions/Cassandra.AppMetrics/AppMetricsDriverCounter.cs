@@ -14,30 +14,30 @@
 //    limitations under the License.
 //
 
-#if NETSTANDARD2_0
-
 using System.Collections.Generic;
+
 using App.Metrics;
 using App.Metrics.Counter;
 
 using Cassandra.Metrics.Abstractions;
 
-namespace Cassandra.Metrics.Providers.AppMetrics
+namespace Cassandra.AppMetrics
 {
     internal class AppMetricsDriverCounter : IDriverCounter
     {
         private readonly IMetrics _metrics;
         private readonly ICounter _counter;
         private readonly string _formattedContext;
+        private readonly string _name;
 
         public AppMetricsDriverCounter(
-            IMetrics metrics, ICounter counter, IEnumerable<string> context, string formattedContext, string name)
+            IMetrics metrics, ICounter counter, string formattedContext, string name, string fullName)
         {
             _metrics = metrics;
             _counter = counter;
-            Context = context;
             _formattedContext = formattedContext;
-            MetricName = name;
+            _name = name;
+            FullName = fullName;
         }
 
         public void Increment(long value)
@@ -54,15 +54,12 @@ namespace Cassandra.Metrics.Providers.AppMetrics
         {
             _counter.Reset();
         }
-
-        public IEnumerable<string> Context { get; }
-
-        public string MetricName { get; }
+        
+        public string FullName { get; }
 
         public long GetValue()
         {
-            return _metrics.Snapshot.GetCounterValue(_formattedContext, MetricName).Count;
+            return _metrics.Snapshot.GetForContext(_formattedContext).Counters.ValueFor(_name).Count;
         }
     }
 }
-#endif

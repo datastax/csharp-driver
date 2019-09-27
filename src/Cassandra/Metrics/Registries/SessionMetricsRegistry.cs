@@ -26,6 +26,7 @@ namespace Cassandra.Metrics.Registries
     internal class SessionMetricsRegistry : ISessionMetrics
     {
         private readonly IDriverMetricsProvider _driverMetricsProvider;
+        private readonly string _context;
 
         public IDriverTimer CqlRequests { get; private set; }
         public IDriverMeter CqlClientTimeouts { get; private set; }
@@ -33,20 +34,22 @@ namespace Cassandra.Metrics.Registries
         public IDriverCounter BytesReceived { get; private set; }
         public IDriverGauge ConnectedNodes { get; private set; }
 
-        public SessionMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
+        public SessionMetricsRegistry(IDriverMetricsProvider driverMetricsProvider, string context)
         {
             _driverMetricsProvider = driverMetricsProvider;
+            _context = context;
         }
 
         public void InitializeMetrics(IInternalSession session)
         {
             try
             {
-                CqlRequests = _driverMetricsProvider.Timer("cql-requests", DriverMeasurementUnit.Requests, DriverTimeUnit.Milliseconds);
-                CqlClientTimeouts = _driverMetricsProvider.Meter("cql-client-timeouts", DriverMeasurementUnit.None);
-                BytesSent = _driverMetricsProvider.Counter("bytes-sent", DriverMeasurementUnit.Bytes);
-                BytesReceived = _driverMetricsProvider.Counter("bytes-received", DriverMeasurementUnit.Bytes);
+                CqlRequests = _driverMetricsProvider.Timer(_context, "cql-requests", DriverMeasurementUnit.Requests, DriverTimeUnit.Milliseconds);
+                CqlClientTimeouts = _driverMetricsProvider.Meter(_context,"cql-client-timeouts", DriverMeasurementUnit.None);
+                BytesSent = _driverMetricsProvider.Counter(_context, "bytes-sent", DriverMeasurementUnit.Bytes);
+                BytesReceived = _driverMetricsProvider.Counter(_context, "bytes-received", DriverMeasurementUnit.Bytes);
                 ConnectedNodes = _driverMetricsProvider.Gauge(
+                    _context,
                     "connected-nodes",
                     () => session.GetPools().Count(), //TODO
                     DriverMeasurementUnit.None);
@@ -55,10 +58,11 @@ namespace Cassandra.Metrics.Registries
                 Gauges = new[] { ConnectedNodes };
                 Meters = new[] { CqlClientTimeouts };
                 Timers = new[] { CqlRequests };
+                All = new IDriverMetric[0].Concat(Counters).Concat(Gauges).Concat(Histograms).Concat(Meters).Concat(Timers);
             }
             catch (Exception)
             {
-                ConnectedNodes?.Dispose();
+                Dispose();
                 throw;
             }
         }
@@ -73,9 +77,11 @@ namespace Cassandra.Metrics.Registries
 
         public IEnumerable<IDriverTimer> Timers { get; private set; }
 
+        public IEnumerable<IDriverMetric> All { get; private set; }
+
         public void Dispose()
         {
-            ConnectedNodes?.Dispose();
+            _driverMetricsProvider.ShutdownMetricsContext(_context);
         }
     }
 }

@@ -34,14 +34,14 @@ namespace Cassandra.Metrics.Registries
 
         public IDriverMeter Total { get; }
 
-        public RequestMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
+        public RequestMetricsRegistry(IDriverMetricsProvider driverMetricsProvider, string context, string metricNamePrefix)
         {
-            Aborted = driverMetricsProvider.Meter("aborted", DriverMeasurementUnit.Requests);
-            ReadTimeout = driverMetricsProvider.Meter("read-timeout", DriverMeasurementUnit.Requests);
-            WriteTimeout = driverMetricsProvider.Meter("write-timeout", DriverMeasurementUnit.Requests);
-            Unavailable = driverMetricsProvider.Meter("unavailables", DriverMeasurementUnit.Requests);
-            Other = driverMetricsProvider.Meter("other", DriverMeasurementUnit.Requests);
-            Total = driverMetricsProvider.Meter("total", DriverMeasurementUnit.Requests);
+            Aborted = driverMetricsProvider.Meter(context, metricNamePrefix + "aborted", DriverMeasurementUnit.Requests);
+            ReadTimeout = driverMetricsProvider.Meter(context, metricNamePrefix + "read-timeout", DriverMeasurementUnit.Requests);
+            WriteTimeout = driverMetricsProvider.Meter(context, metricNamePrefix + "write-timeout", DriverMeasurementUnit.Requests);
+            Unavailable = driverMetricsProvider.Meter(context, metricNamePrefix + "unavailables", DriverMeasurementUnit.Requests);
+            Other = driverMetricsProvider.Meter(context, metricNamePrefix + "other", DriverMeasurementUnit.Requests);
+            Total = driverMetricsProvider.Meter(context, metricNamePrefix + "total", DriverMeasurementUnit.Requests);
         }
 
         public IEnumerable<IDriverMeter> Meters => new[] { Aborted, ReadTimeout, WriteTimeout, Unavailable, Other };

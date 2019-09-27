@@ -20,7 +20,9 @@ namespace Cassandra.Metrics.Providers.Null
 {
     internal class NullDriverTimer : NullMetricBase, IDriverTimer
     {
-        public static NullDriverTimer Instance = new NullDriverTimer();
+        public NullDriverTimer(string fullName) : base(fullName)
+        {
+        }
 
         public IDriverTimeHandler StartRecording()
         {

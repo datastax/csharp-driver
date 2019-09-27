@@ -20,12 +20,12 @@ namespace Cassandra
 {
     public static class NodeMetrics
     {
-        public static readonly IEnumerable<string> AllNodeMetrics = new[]
+        public static readonly IEnumerable<NodeMetric> AllNodeMetrics = new[]
         {
-            NodeMetrics.Counters.BytesSent,
-            NodeMetrics.Counters.SpeculativeExecutions,
-            NodeMetrics.Counters.BytesReceived,
-            NodeMetrics.Timers.CqlMessages,
+            Counters.BytesSent,
+            Counters.SpeculativeExecutions,
+            Counters.BytesReceived,
+            Timers.CqlMessages,
 
             Gauges.Pool.OpenConnections,
             Gauges.Pool.AvailableStreams,
@@ -57,19 +57,19 @@ namespace Cassandra
 
         public static class Counters
         {
-            public const string BytesSent = "bytes-sent";
+            public static readonly NodeMetric BytesSent = new NodeMetric("bytes-sent");
 
-            public const string SpeculativeExecutions = "speculative-executions";
+            public static readonly NodeMetric SpeculativeExecutions = new NodeMetric("speculative-executions");
 
-            public const string BytesReceived = "bytes-received";
+            public static readonly NodeMetric BytesReceived = new NodeMetric("bytes-received");
 
             public static class Errors
             {
                 public static class Connection
                 {
-                    public const string Init = "errors.connection.init";
+                    public static readonly NodeMetric Init = new NodeMetric(new[] { "errors", "connection" }, "init");
 
-                    public const string Auth = "errors.connection.auth";
+                    public static readonly NodeMetric Auth = new NodeMetric(new[] { "errors", "connection" }, "auth");
                 }
             }
         }
@@ -78,77 +78,70 @@ namespace Cassandra
         {
             public static class Pool
             {
-                public const string OpenConnections = "pool.open-connections";
-            
-                public const string AvailableStreams = "pool.available-streams";
-            
-                public const string InFlight = "pool.in-flight";
-            
-                public const string MaxRequestsPerConnection = "pool.max-requests-per-connection";
+                public static readonly NodeMetric OpenConnections = new NodeMetric(new[] { "pool" }, "open-connections");
+
+                public static readonly NodeMetric AvailableStreams = new NodeMetric(new[] { "pool" }, "available-streams");
+
+                public static readonly NodeMetric InFlight = new NodeMetric(new[] { "pool" }, "in-flight");
+
+                public static readonly NodeMetric MaxRequestsPerConnection = new NodeMetric(new[] { "pool" }, "max-requests-per-connection");
             }
         }
 
         public static class Timers
         {
-            public const string CqlMessages = "cql-messages";
+            public static readonly NodeMetric CqlMessages = new NodeMetric("cql-messages");
         }
 
         public static class Meters
         {
             public static class Retries
             {
-                public const string ReadTimeout = "retries.read-timeout";
+                public static readonly NodeMetric ReadTimeout = new NodeMetric(new[] { "retries" }, "read-timeout");
 
-                public const string WriteTimeout = "retries.write-timeout";
+                public static readonly NodeMetric WriteTimeout = new NodeMetric(new[] { "retries" }, "write-timeout");
 
-                public const string Unavailable = "retries.unavailable";
+                public static readonly NodeMetric Unavailable = new NodeMetric(new[] { "retries" }, "unavailable");
 
-                public const string Other = "retries.other";
-            
-                public const string Aborted = "retries.aborted";
-                
-                public const string Total = "retries.total";
+                public static readonly NodeMetric Other = new NodeMetric(new[] { "retries" }, "other");
+
+                public static readonly NodeMetric Aborted = new NodeMetric(new[] { "retries" }, "aborted");
+
+                public static readonly NodeMetric Total = new NodeMetric(new[] { "retries" }, "total");
             }
-        
+
             public static class Ignores
             {
-                public const string ReadTimeout = "ignores.read-timeout";
+                public static readonly NodeMetric ReadTimeout = new NodeMetric(new[] { "ignores" }, "read-timeout");
 
-                public const string WriteTimeout = "ignores.write-timeout";
+                public static readonly NodeMetric WriteTimeout = new NodeMetric(new[] { "ignores" }, "write-timeout");
 
-                public const string Unavailable = "ignores.unavailable";
+                public static readonly NodeMetric Unavailable = new NodeMetric(new[] { "ignores" }, "unavailable");
 
-                public const string Other = "ignores.other";
-            
-                public const string Aborted = "ignores.aborted";
-                
-                public const string Total = "ignores.total";
+                public static readonly NodeMetric Other = new NodeMetric(new[] { "ignores" }, "other");
+
+                public static readonly NodeMetric Aborted = new NodeMetric(new[] { "ignores" }, "aborted");
+
+                public static readonly NodeMetric Total = new NodeMetric(new[] { "ignores" }, "total");
             }
 
             public static class Errors
             {
-                public static class Connection
-                {
-                    public const string Init = "errors.connection.init";
-
-                    public const string Auth = "errors.connection.auth";
-                }
-                    
                 public static class Request
                 {
-                    public const string ReadTimeout = "errors.request.read-timeout";
+                    public static readonly NodeMetric ReadTimeout = new NodeMetric(new[] { "errors", "request" }, "read-timeout");
 
-                    public const string WriteTimeout = "errors.request.write-timeout";
+                    public static readonly NodeMetric WriteTimeout = new NodeMetric(new[] { "errors", "request" }, "write-timeout");
 
-                    public const string Unavailable = "errors.request.unavailable";
+                    public static readonly NodeMetric Unavailable = new NodeMetric(new[] { "errors", "request" }, "unavailable");
 
-                    public const string Other = "errors.request.other";
+                    public static readonly NodeMetric Other = new NodeMetric(new[] { "errors", "request" }, "other");
 
-                    public const string Aborted = "errors.request.aborted";
+                    public static readonly NodeMetric Aborted = new NodeMetric(new[] { "errors", "request" }, "aborted");
 
-                    public const string Unsent = "errors.request.unsent";
-                
-                    public const string Total = "errors.request.total";
+                    public static readonly NodeMetric Total = new NodeMetric(new[] { "errors", "request" }, "total");
+
+                    public static readonly NodeMetric Unsent = new NodeMetric(new[] { "errors", "request" }, "unsent");
                 }
             }
         }

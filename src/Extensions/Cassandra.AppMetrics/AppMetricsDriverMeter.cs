@@ -14,31 +14,27 @@
 //    limitations under the License.
 //
 
-#if NETSTANDARD2_0
-
-using System.Collections.Generic;
-
 using App.Metrics;
 using App.Metrics.Meter;
-
 using Cassandra.Metrics.Abstractions;
 
-namespace Cassandra.Metrics.Providers.AppMetrics
+namespace Cassandra.AppMetrics
 {
     internal class AppMetricsDriverMeter : IDriverMeter
     {
         private readonly IMetrics _metrics;
         private readonly IMeter _meter;
-        private readonly string _formattedContext;
+        private readonly string _context;
+        private readonly string _name;
 
         public AppMetricsDriverMeter(
-            IMetrics metrics, IMeter meter, IEnumerable<string> context, string formattedContext, string name)
+            IMetrics metrics, IMeter meter, string context, string name, string fullName)
         {
             _metrics = metrics;
             _meter = meter;
-            Context = context;
-            _formattedContext = formattedContext;
-            MetricName = name;
+            _context = context;
+            _name = name;
+            FullName = fullName;
         }
 
         public void Mark()
@@ -51,14 +47,11 @@ namespace Cassandra.Metrics.Providers.AppMetrics
             _meter.Mark(amount);
         }
 
-        public IEnumerable<string> Context { get; }
-
-        public string MetricName { get; }
+        public string FullName { get; }
 
         public IMeterValue GetValue()
         {
-            return new AppMetricsMeterValue(_metrics.Snapshot.GetMeterValue(_formattedContext, MetricName));
+            return new AppMetricsMeterValue(_metrics.Snapshot.GetForContext(_context).Meters.ValueFor(_name));
         }
     }
 }
-#endif

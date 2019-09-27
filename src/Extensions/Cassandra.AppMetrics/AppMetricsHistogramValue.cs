@@ -13,17 +13,15 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-#if NETSTANDARD2_0
-
 using App.Metrics.Histogram;
 
 using Cassandra.Metrics.Abstractions;
 
-namespace Cassandra.Metrics.Providers.AppMetrics
+namespace Cassandra.AppMetrics
 {
     internal class AppMetricsHistogramValue : IHistogramValue
     {
-        private HistogramValue histogram;
+        private readonly HistogramValue histogram;
 
         public AppMetricsHistogramValue(HistogramValue histogram)
         {
@@ -59,4 +57,3 @@ namespace Cassandra.Metrics.Providers.AppMetrics
         public double StdDev => histogram.StdDev;
     }
 }
-#endif

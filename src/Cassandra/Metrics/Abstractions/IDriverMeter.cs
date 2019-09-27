@@ -16,7 +16,7 @@
 
 namespace Cassandra.Metrics.Abstractions
 {
-    public interface IDriverMeter : IDriverMetric<IMeterValue>
+    public interface IDriverMeter : IDriverMetricWithValue<IMeterValue>
     {
         /// <summary>
         /// Same as calling <see cref="Mark(long)"/> with amount=1.

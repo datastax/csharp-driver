@@ -14,12 +14,10 @@
 //    limitations under the License.
 //
 
-#if NETSTANDARD2_0
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
 using App.Metrics;
 using App.Metrics.Counter;
 using App.Metrics.Gauge;
@@ -29,127 +27,122 @@ using App.Metrics.Timer;
 
 using Cassandra.Metrics.Abstractions;
 
-namespace Cassandra.Metrics.Providers.AppMetrics
+namespace Cassandra.AppMetrics
 {
-    internal class AppMetricsDriverMetricsProvider : IDriverMetricsProvider
+    public class AppMetricsDriverMetricsProvider : IDriverMetricsProvider
     {
         private readonly IMetricsRoot _metricsRoot;
-        private readonly string _currentFormattedContext;
 
-        public AppMetricsDriverMetricsProvider(IMetricsRoot metricsRoot, IEnumerable<string> contextComponents)
+        public AppMetricsDriverMetricsProvider(IMetricsRoot metricsRoot)
         {
             _metricsRoot = metricsRoot;
-            CurrentContext = contextComponents;
-            _currentFormattedContext = $"{string.Join(".", CurrentContext)}";
         }
-
-        public IEnumerable<string> CurrentContext { get; }
-
-        public IDriverTimer Timer(string metricName, DriverMeasurementUnit measurementUnit, DriverTimeUnit timeUnit)
+        
+        public IDriverTimer Timer(string context, string metricName, DriverMeasurementUnit measurementUnit, DriverTimeUnit timeUnit)
         {
             return new AppMetricsTimer(
                 _metricsRoot,
                 _metricsRoot.Provider.Timer.Instance(new TimerOptions
                 {
                     Name = metricName,
-                    Context = _currentFormattedContext,
+                    Context = context,
                     MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
                     DurationUnit = timeUnit.ToAppMetricsTimeUnit()
                 }),
-                CurrentContext,
-                _currentFormattedContext,
-                metricName);
+                context,
+                metricName,
+                ComputeFullMetricName(context, metricName));
         }
 
-        public IDriverHistogram Histogram(string metricName, DriverMeasurementUnit measurementUnit)
+        public IDriverHistogram Histogram(string context, string metricName, DriverMeasurementUnit measurementUnit)
         {
             return new AppMetricsDriverHistogram(
                 _metricsRoot,
                 _metricsRoot.Provider.Histogram.Instance(new HistogramOptions
                 {
                     Name = metricName,
-                    Context = _currentFormattedContext,
+                    Context = context,
                     MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
                 }),
-                CurrentContext,
-                _currentFormattedContext,
-                metricName);
+                context,
+                metricName,
+                ComputeFullMetricName(context, metricName));
         }
 
-        public IDriverMeter Meter(string metricName, DriverMeasurementUnit measurementUnit)
+        public IDriverMeter Meter(string context, string metricName, DriverMeasurementUnit measurementUnit)
         {
             return new AppMetricsDriverMeter(
                 _metricsRoot,
                 _metricsRoot.Provider.Meter.Instance(new MeterOptions
                 {
                     Name = metricName,
-                    Context = _currentFormattedContext,
+                    Context = context,
                     MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
                 }),
-                CurrentContext,
-                _currentFormattedContext,
-                metricName);
+                context,
+                metricName,
+                ComputeFullMetricName(context, metricName));
         }
 
-        public IDriverCounter Counter(string metricName, DriverMeasurementUnit measurementUnit)
+        public IDriverCounter Counter(string context, string metricName, DriverMeasurementUnit measurementUnit)
         {
             return new AppMetricsDriverCounter(
                 _metricsRoot,
                 _metricsRoot.Provider.Counter.Instance(new CounterOptions
                 {
                     Name = metricName,
-                    Context = _currentFormattedContext,
+                    Context = context,
                     MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
+                    ReportItemPercentages = false,
+                    ReportSetItems = false,
                 }),
-                CurrentContext,
-                _currentFormattedContext,
-                metricName);
+                context,
+                metricName,
+                ComputeFullMetricName(context, metricName));
         }
 
-        public IDriverGauge Gauge(string metricName, Func<double?> valueProvider, DriverMeasurementUnit measurementUnit)
+        public IDriverGauge Gauge(string context, string metricName, Func<double?> valueProvider, DriverMeasurementUnit measurementUnit)
         {
             return new AppMetricsDriverGauge(
                 _metricsRoot,
                 _metricsRoot.Provider.Gauge.Instance(
                     new GaugeOptions
                     {
-                        Context = _currentFormattedContext,
+                        Context = context,
                         Name = metricName,
                         MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
                     },
                     () => _metricsRoot.Build.Gauge.Build(() => valueProvider() ?? double.NaN)),
-                CurrentContext,
-                _currentFormattedContext,
-                metricName);
+                context,
+                metricName,
+                ComputeFullMetricName(context, metricName));
         }
 
-        public IDriverGauge Gauge(string metricName, DriverMeasurementUnit measurementUnit)
+        public IDriverGauge Gauge(string context, string metricName, DriverMeasurementUnit measurementUnit)
         {
             return new AppMetricsDriverGauge(
                 _metricsRoot,
                 _metricsRoot.Provider.Gauge.Instance(
                     new GaugeOptions
                     {
-                        Context = _currentFormattedContext,
+                        Context = context,
                         Name = metricName,
                         MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
                     },
                     () => _metricsRoot.Build.Gauge.Build()),
-                CurrentContext,
-                _currentFormattedContext,
-                metricName);
+                context,
+                metricName,
+                ComputeFullMetricName(context, metricName));
         }
 
-        public IDriverMetricsProvider WithContext(string context)
+        private string ComputeFullMetricName(string context, string name)
         {
-            return new AppMetricsDriverMetricsProvider(
-                _metricsRoot, CurrentContext.Concat(new[] { AppMetricsDriverMetricsProvider.FormatContext(context) }));
+            return $"{context}.{name}";
         }
 
-        private static string FormatContext(string context)
+        public void ShutdownMetricsContext(string context)
         {
-            return context.Replace(".", "_");
+            _metricsRoot.Manage.ShutdownContext(context);
         }
     }
 }
-#endif

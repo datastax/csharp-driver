@@ -14,14 +14,15 @@
 //    limitations under the License.
 //
 
-using System.Collections.Generic;
-
 namespace Cassandra.Metrics.Providers.Null
 {
     internal class NullMetricBase
     {
-        public IEnumerable<string> Context { get; } = new List<string>();
+        protected NullMetricBase(string fullName)
+        {
+            FullName = fullName;
+        }
 
-        public string MetricName { get; } = string.Empty;
+        public string FullName { get; }
     }
 }

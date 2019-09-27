@@ -96,7 +96,7 @@ namespace Cassandra.Tests
                 RequestOptionsMapper,
                 MetadataSyncOptions,
                 EndPointResolver,
-                NullDriverMetricsProvider.Instance,
+                new NullDriverMetricsProvider(), 
                 MetricsOptions,
                 SessionName,
                 RequestHandlerFactory,

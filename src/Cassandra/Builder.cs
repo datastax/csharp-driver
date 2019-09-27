@@ -704,17 +704,60 @@ namespace Cassandra
             return this;
         }
 
+        /// <summary>
+        /// <para>
+        /// Enables metrics. DataStax provides an implementation based on a third party library (App.Metrics)
+        /// on a separate NuGet package: CassandraCSharpDriver.AppMetrics
+        /// Alternatively, you can implement your own provider that implements <see cref="IDriverMetricsProvider"/>.
+        /// </para>
+        /// <para>
+        /// This method enables all individual metrics and sets an empty context. To customize these options,
+        /// use <see cref="WithMetrics(IDriverMetricsProvider, MetricsOptions)"/>.
+        /// </para>
+        /// </summary>
+        /// <param name="driverMetricsProvider">Metrics Provider implementation.</param>
+        /// <returns>This builder</returns>
         public Builder WithMetrics(IDriverMetricsProvider driverMetricsProvider)
         {
-            _driverMetricsProvider = driverMetricsProvider;
+            _driverMetricsProvider = driverMetricsProvider ?? throw new ArgumentNullException(nameof(driverMetricsProvider));
             _metricsOptions = null;
             return this;
         }
-
+        
+        /// <summary>
+        /// <para>
+        /// Enables metrics. DataStax provides an implementation based on a third party library (App.Metrics)
+        /// on a separate NuGet package: CassandraCSharpDriver.AppMetrics
+        /// Alternatively, you can implement your own provider that implements <see cref="IDriverMetricsProvider"/>.
+        /// </para>
+        /// <para>
+        /// This method enables all individual metrics and sets an empty context. To customize these settings,
+        /// use <see cref="WithMetrics(IDriverMetricsProvider, MetricsOptions)"/>. For explanations on these settings,
+        /// see the API docs of the <see cref="Cassandra.Metrics"/> class.
+        /// <para>
+        /// Here is an example:
+        /// <code>
+        /// var cluster = 
+        ///     Cluster.Builder()
+        ///            .WithMetrics(
+        ///                new AppMetricsDriverMetricsProvider(metrics),
+        ///                new MetricsOptions()
+        ///                    .SetDisabledNodeMetrics(new[] { NodeMetrics.Counters.BytesSent })
+        ///                    .SetDisabledSessionMetrics(
+        ///                        SessionMetrics.AllSessionMetrics.Except(new[] { SessionMetrics.CqlRequests }))
+        ///                    .SetContext("web", "app"))
+        ///            .Build();
+        /// </code>
+        /// </para>
+        /// </para>
+        /// </summary>
+        /// <param name="driverMetricsProvider">Metrics Provider implementation.</param>
+        /// <param name="metricsOptions">Metrics Provider implementation.</param>
+        /// <returns>This builder</returns> //TODO fix xml docs SetContext
         public Builder WithMetrics(IDriverMetricsProvider driverMetricsProvider, MetricsOptions metricsOptions)
         {
-            _driverMetricsProvider = driverMetricsProvider;
-            _metricsOptions = metricsOptions.Clone();
+            _driverMetricsProvider = driverMetricsProvider ?? throw new ArgumentNullException(nameof(driverMetricsProvider));
+            _metricsOptions = metricsOptions?.Clone() ?? throw new ArgumentNullException(nameof(metricsOptions));
             return this;
         }
 

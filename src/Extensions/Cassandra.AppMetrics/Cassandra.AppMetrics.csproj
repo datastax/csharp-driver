@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>This package builds on the DataStax Enterprise C# driver and DataStax C# Driver for Apache Cassandra, adding a metrics provider implementation using App Metrics.</Description>
+    <Copyright>Copyright © by DataStax</Copyright>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <Authors>DataStax</Authors>
+    <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">netstandard2.0;net461</TargetFrameworks>
+    <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True'">netstandard2.0</TargetFrameworks>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <Authors>DataStax</Authors>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AssemblyName>Cassandra.AppMetrics</AssemblyName>
+    <Product>DataStax C# Drivers App Metrics Extension</Product>
+    <AssemblyOriginatorKeyFile>../../../build/datastax.snk</AssemblyOriginatorKeyFile>
+    <SignAssembly>true</SignAssembly>
+    <PackageId>CassandraCSharpDriver.AppMetrics</PackageId>
+    <Title>DataStax C# Drivers App Metrics Extension</Title>
+    <PackageTags>cassandra;apache;datastax;dse;driver;client;metrics;appmetricsdatabase;nosql;dotnet;netcore;db</PackageTags>
+    <PackageLicenseUrl>https://github.com/datastax/csharp-driver/blob/master/LICENSE</PackageLicenseUrl>
+    <RepositoryUrl>https://github.com/datastax/csharp-driver</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/datastax/csharp-driver</PackageProjectUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="App.Metrics.Abstractions" Version="[3.0.0,4.0)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Cassandra\Cassandra.csproj" />
+  </ItemGroup>
+
+</Project>

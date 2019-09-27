@@ -14,31 +14,27 @@
 //    limitations under the License.
 //
 
-#if NETSTANDARD2_0
-
-using System.Collections.Generic;
-
 using App.Metrics;
 using App.Metrics.Histogram;
-
 using Cassandra.Metrics.Abstractions;
 
-namespace Cassandra.Metrics.Providers.AppMetrics
+namespace Cassandra.AppMetrics
 {
     internal class AppMetricsDriverHistogram : IDriverHistogram
     {
         private readonly IMetrics _metrics;
         private readonly IHistogram _histogram;
-        private readonly string _formattedContext;
+        private readonly string _context;
+        private readonly string _name;
 
         public AppMetricsDriverHistogram(
-            IMetrics metrics, IHistogram histogram, IEnumerable<string> context, string formattedContext, string name)
+            IMetrics metrics, IHistogram histogram, string context, string name, string fullName)
         {
             _metrics = metrics;
             _histogram = histogram;
-            Context = context;
-            _formattedContext = formattedContext;
-            MetricName = name;
+            _context = context;
+            _name = name;
+            FullName = fullName;
         }
 
         public void Update(long value)
@@ -46,14 +42,11 @@ namespace Cassandra.Metrics.Providers.AppMetrics
             _histogram.Update(value);
         }
 
-        public IEnumerable<string> Context { get; }
-
-        public string MetricName { get; }
+        public string FullName { get; }
 
         public IHistogramValue GetValue()
         {
-            return new AppMetricsHistogramValue(_metrics.Snapshot.GetHistogramValue(_formattedContext, MetricName));
+            return new AppMetricsHistogramValue(_metrics.Snapshot.GetForContext(_context).Histograms.ValueFor(_name));
         }
     }
 }
-#endif

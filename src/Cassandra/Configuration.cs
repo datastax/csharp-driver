@@ -230,7 +230,7 @@ namespace Cassandra
             DnsResolver = new DnsResolver();
             EndPointResolver = endPointResolver ?? new EndPointResolver(DnsResolver, protocolOptions);
             MetricsOptions = metricsOptions ?? new MetricsOptions();
-            MetricsProvider = driverMetricsProvider ?? NullDriverMetricsProvider.Instance;
+            MetricsProvider = driverMetricsProvider ?? new NullDriverMetricsProvider();
             SessionName = sessionName;
 
             ObserverFactoryBuilder = observerFactoryBuilder ?? new ObserverFactoryBuilder();

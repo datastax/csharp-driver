@@ -20,7 +20,9 @@ namespace Cassandra.Metrics.Providers.Null
 {
     internal class NullDriverMeter : NullMetricBase, IDriverMeter
     {
-        public static readonly NullDriverMeter Instance = new NullDriverMeter();
+        public NullDriverMeter(string fullName) : base(fullName)
+        {
+        }
 
         public void Mark()
         {

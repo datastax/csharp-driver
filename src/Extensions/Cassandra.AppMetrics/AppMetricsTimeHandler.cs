@@ -14,13 +14,11 @@
 //    limitations under the License.
 //
 
-#if NETSTANDARD2_0
-
 using App.Metrics.Timer;
 
 using Cassandra.Metrics.Abstractions;
 
-namespace Cassandra.Metrics.Providers.AppMetrics
+namespace Cassandra.AppMetrics
 {
     internal class AppMetricsTimeHandler : IDriverTimeHandler
     {
@@ -37,4 +35,3 @@ namespace Cassandra.Metrics.Providers.AppMetrics
         }
     }
 }
-#endif

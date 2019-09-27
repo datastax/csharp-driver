@@ -13,12 +13,11 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-#if NETSTANDARD2_0
 using App.Metrics.Meter;
 
 using Cassandra.Metrics.Abstractions;
 
-namespace Cassandra.Metrics.Providers.AppMetrics
+namespace Cassandra.AppMetrics
 {
     internal class AppMetricsMeterValue : IMeterValue
     {
@@ -42,5 +41,3 @@ namespace Cassandra.Metrics.Providers.AppMetrics
         public DriverTimeUnit RateUnit => _rate.RateUnit.ToDriverTimeUnit();
     }
 }
-
-#endif

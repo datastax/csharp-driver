@@ -14,31 +14,27 @@
 //    limitations under the License.
 //
 
-#if NETSTANDARD2_0
-
-using System.Collections.Generic;
-
 using App.Metrics;
 using App.Metrics.Timer;
-
 using Cassandra.Metrics.Abstractions;
 
-namespace Cassandra.Metrics.Providers.AppMetrics
+namespace Cassandra.AppMetrics
 {
     internal class AppMetricsTimer : IDriverTimer
     {
         private readonly IMetrics _metrics;
         private readonly ITimer _timer;
-        private readonly string _formattedContext;
+        private readonly string _context;
+        private readonly string _name;
 
         public AppMetricsTimer(
-            IMetrics metrics, ITimer timer, IEnumerable<string> context, string formattedContext, string name)
+            IMetrics metrics, ITimer timer, string context, string name, string fullName)
         {
             _metrics = metrics;
             _timer = timer;
-            Context = context;
-            _formattedContext = formattedContext;
-            MetricName = name;
+            _name = name;
+            _context = context;
+            FullName = fullName;
         }
 
         public IDriverTimeHandler StartRecording()
@@ -46,15 +42,12 @@ namespace Cassandra.Metrics.Providers.AppMetrics
             return new AppMetricsTimeHandler(_timer.NewContext());
         }
 
-        public IEnumerable<string> Context { get; }
-
-        public string MetricName { get; }
+        public string FullName { get; }
 
         public ITimerValue GetValue()
         {
-            var value = _metrics.Snapshot.GetTimerValue(_formattedContext, MetricName);
+            var value = _metrics.Snapshot.GetForContext(_context).Timers.ValueFor(_name);
             return new AppMetricsTimerValue(value);
         }
     }
 }
-#endif

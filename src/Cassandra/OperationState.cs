@@ -42,18 +42,13 @@ namespace Cassandra
         private volatile bool _timeoutCallbackSet;
         private int _state = StateInit;
         private volatile HashedWheelTimer.ITimeout _timeout;
-
-        /// <summary>
-        /// 8 byte header of the frame
-        /// </summary>
-        public FrameHeader Header { get; set; }
-
-        public IRequest Request { get; set; }
+        
+        public IRequest Request { get; private set; }
 
         /// <summary>
         /// Gets or sets the timeout in milliseconds for the request.
         /// </summary>
-        public int TimeoutMillis { get; set; }
+        public int TimeoutMillis { get; }
 
         /// <summary>
         /// Creates a new operation state with the provided callback

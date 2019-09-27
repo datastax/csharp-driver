@@ -20,7 +20,9 @@ namespace Cassandra.Metrics.Providers.Null
 {
     internal class NullDriverCounter : NullMetricBase, IDriverCounter
     {
-        public static readonly NullDriverCounter Instance = new NullDriverCounter();
+        public NullDriverCounter(string fullName) : base(fullName)
+        {
+        }
 
         public void Increment(long value)
         {

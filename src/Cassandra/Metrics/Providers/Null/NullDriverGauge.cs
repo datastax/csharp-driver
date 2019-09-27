@@ -20,7 +20,9 @@ namespace Cassandra.Metrics.Providers.Null
 {
     internal class NullDriverGauge : NullMetricBase, IDriverGauge
     {
-        public static NullDriverGauge Instance = new NullDriverGauge();
+        public NullDriverGauge(string fullName) : base(fullName)
+        {
+        }
 
         public void Dispose()
         {

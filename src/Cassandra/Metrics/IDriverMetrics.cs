@@ -14,6 +14,7 @@
 //    limitations under the License.
 
 using System.Collections.Generic;
+using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.Metrics
 {
@@ -22,5 +23,9 @@ namespace Cassandra.Metrics
         IMetricsRegistry SessionMetrics { get; }
 
         IReadOnlyDictionary<Host, IMetricsRegistry> NodeMetrics { get; }
+
+        TMetricType GetNodeMetric<TMetricType>(Host host, NodeMetric nodeMetric) where TMetricType : class, IDriverMetric;
+        
+        TMetricType GetSessionMetric<TMetricType>(SessionMetric sessionMetric) where TMetricType : class, IDriverMetric;
     }
 }

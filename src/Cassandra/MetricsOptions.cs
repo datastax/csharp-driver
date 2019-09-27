@@ -14,30 +14,81 @@
 //    limitations under the License.
 
 using System.Collections.Generic;
+using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra
 {
+    /// <summary>
+    /// This class is used to customize options related to Metrics. It is used in 
+    /// <see cref="Builder.WithMetrics(IDriverMetricsProvider, MetricsOptions)"/>.
+    /// </summary>
     public class MetricsOptions
     {
-        public IEnumerable<string> DisabledNodeMetrics { get; private set; } = new List<string>();
-
-        public IEnumerable<string> DisabledSessionMetrics { get; private set; } = new List<string>();
-
-        public IEnumerable<string> Context { get; private set; } = new List<string>();
+        /// <summary>
+        /// See <see cref="SetDisabledNodeMetrics"/> for more information.
+        /// </summary>
+        public IEnumerable<NodeMetric> DisabledNodeMetrics { get; private set; } = new List<NodeMetric>();
         
-        public MetricsOptions SetDisabledNodeMetrics(IEnumerable<string> disabledNodeMetrics)
+        /// <summary>
+        /// See <see cref="SetDisabledSessionMetrics"/> for more information.
+        /// </summary>
+        public IEnumerable<SessionMetric> DisabledSessionMetrics { get; private set; } = new List<SessionMetric>();
+        
+        /// <summary>
+        /// See <see cref="SetContext"/> for more information.
+        /// </summary>
+        public string Context { get; private set; }
+        
+        /// <summary>
+        /// Disables specific node metrics. The available node metrics can be found as static readonly properties in
+        /// the <see cref="NodeMetrics"/> class, e.g., <see cref="NodeMetrics.Counters.BytesSent"/>.
+        /// There is also a property that returns a collection with all node metrics: <see cref="NodeMetrics.AllNodeMetrics"/>.
+        /// </summary>
+        /// <returns>This instance.</returns>
+        public MetricsOptions SetDisabledNodeMetrics(IEnumerable<NodeMetric> disabledNodeMetrics)
         {
             DisabledNodeMetrics = disabledNodeMetrics;
             return this;
         }
-
-        public MetricsOptions SetDisabledSessionMetrics(IEnumerable<string> disabledSessionMetrics)
+        
+        /// <summary>
+        /// Disables specific session metrics. The available session metrics can be found as static readonly properties in
+        /// the <see cref="SessionMetrics"/> class, e.g., <see cref="SessionMetrics.Counters.BytesSent"/>.
+        /// There is also a property that returns a collection with all node metrics: <see cref="SessionMetrics.AllSessionMetrics"/>.
+        /// </summary>
+        /// <returns>This instance.</returns>
+        public MetricsOptions SetDisabledSessionMetrics(IEnumerable<SessionMetric> disabledSessionMetrics)
         {
             DisabledSessionMetrics = disabledSessionMetrics;
             return this;
         }
 
-        public MetricsOptions SetContext(params string[] context)
+        /// <summary>
+        /// Prepends context components to all metrics. The way these strings are used depends on the <see cref="IDriverMetricsProvider"/>
+        /// that is provided to the builder. In the case of the provider based on App.Metrics available in the CassandraCSharpDriver.AppMetrics package,
+        /// the context components will be concatenated with a dot separating each one, which makes the full metric path like this:
+        /// <code>
+        /// Format: &lt;context[0]&gt;.&lt;context[n]&gt;.&lt;session-name&gt;.nodes.&lt;node-address&gt;.&lt;metric-context[0]&gt;.&lt;metric-context[n]&gt;.&lt;metric-name&gt;
+        /// </code>
+        /// Here is how the full metric name will look like for <see cref="NodeMetrics.Meters.Retries.Total"/> in practice:
+        /// <code>
+        /// // Set metrics context
+        /// var cluster = 
+        ///     Cluster.Builder()
+        ///            .AddContactPoint("127.0.0.1")
+        ///            .WithSessionName("session")
+        ///            .WithMetrics(
+        ///                new AppMetricsDriverMetricsProvider(metrics),
+        ///                new MetricsOptions().SetContext("web", "app"))
+        ///            .Build();
+        ///
+        /// // Resulting metric name for the NodeMetrics.Meters.Retries.Total metric:
+        /// web.app.session.nodes.127_0_0_1:9042.retries.total
+        /// </code>
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public MetricsOptions SetContext(string context) //TODO fix xmldocs
         {
             Context = context;
             return this;

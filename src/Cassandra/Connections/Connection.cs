@@ -530,6 +530,8 @@ namespace Cassandra.Connections
             {
                 return false;
             }
+            
+            // Check if protocol version has already been determined (first message)
             ProtocolVersion protocolVersion;
             var headerLength = Volatile.Read(ref _frameHeaderSize);
             if (headerLength == 0)
@@ -544,6 +546,7 @@ namespace Cassandra.Connections
             {
                 protocolVersion = _serializer.ProtocolVersion;
             }
+
             // Use _readStream to buffer between messages, when the body is not contained in a single read call
             var stream = Interlocked.Exchange(ref _readStream, null);
             var previousHeader = Interlocked.Exchange(ref _receivingHeader, null);
@@ -552,13 +555,16 @@ namespace Cassandra.Connections
                 // This connection has been disposed
                 return false;
             }
+
             var operationCallbacks = new LinkedList<Action<MemoryStream>>();
             var offset = 0;
             while (offset < length)
             {
-                var header = previousHeader;
+                FrameHeader header;
                 int remainingBodyLength;
-                if (header == null)
+
+                // check if header has not been read yet
+                if (previousHeader == null)
                 {
                     header = ReadHeader(buffer, ref offset, length, headerLength, protocolVersion);
                     if (header == null)
@@ -566,38 +572,51 @@ namespace Cassandra.Connections
                         // There aren't enough bytes to read the header
                         break;
                     }
+
                     Connection.Logger.Verbose("Received #{0} from {1}", header.StreamId, EndPoint.EndpointFriendlyName);
                     remainingBodyLength = header.BodyLength;
                 }
                 else
                 {
+                    header = previousHeader;
                     previousHeader = null;
                     remainingBodyLength = header.BodyLength - (int)stream.Length;
                 }
+
                 if (remainingBodyLength > length - offset)
                 {
                     // The buffer does not contains the body for the current frame, store it for later
                     StoreReadState(header, stream, buffer, offset, length, operationCallbacks.Count > 0);
                     break;
                 }
+
+                // Get read stream
                 stream = stream ?? Configuration.BufferPool.GetStream(Connection.StreamReadTag);
-                // todo (sivukhin, 14.04.2019): Is it crucial to remove state from pending operations strictly before writing remaining body to the stream?
-                stream.Write(buffer, offset, remainingBodyLength);
+
+                // Get callback
+                Action<Exception, Response> callback;
                 if (header.Opcode == EventResponse.OpCode)
                 {
-                    operationCallbacks.AddLast(CreateResponseAction(header, EventHandler));
+                    callback = EventHandler;
                 }
                 else
                 {
                     var state = RemoveFromPending(header.StreamId);
                     // State can be null when the Connection is being closed concurrently
                     // The original callback is being called with an error, use a Noop here
-                    var callback = state != null ? state.SetCompleted() : OperationState.Noop;
-                    operationCallbacks.AddLast(CreateResponseAction(header, callback));
+                    callback = state != null ? state.SetCompleted() : OperationState.Noop;
                 }
+
+                // Write to read stream
+                stream.Write(buffer, offset, remainingBodyLength);
+
+                // Add callback with deserialize from stream
+                operationCallbacks.AddLast(CreateResponseAction(header, callback));
 
                 offset += remainingBodyLength;
             }
+
+            // Invoke callbacks with read stream
             return Connection.InvokeReadCallbacks(stream, operationCallbacks);
         }
 
@@ -768,7 +787,7 @@ namespace Cassandra.Connections
             var state = new OperationState(
                 callback,
                 request,
-                timeoutMillis > 0 ? timeoutMillis : Configuration.SocketOptions.ReadTimeoutMillis,
+                timeoutMillis,
                 _connectionObserver.CreateOperationObserver()
             );
             _writeQueue.Enqueue(state);

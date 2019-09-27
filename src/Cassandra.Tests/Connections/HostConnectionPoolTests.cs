@@ -80,7 +80,7 @@ namespace Cassandra.Tests.Connections
                     PoolingOptions = PoolingOptions.Create(ProtocolVersion.V4).SetCoreConnectionsPerHost(HostDistance.Local, 2)
                 }.Build(), 
                 Serializer.Default,
-                new ObserverFactory(new MetricsManager(NullDriverMetricsProvider.Instance, string.Empty))
+                new ObserverFactory(new MetricsManager(new NullDriverMetricsProvider(), string.Empty, "s1"))
                 );
             pool.SetDistance(HostDistance.Local); // set expected connections length
             return pool;

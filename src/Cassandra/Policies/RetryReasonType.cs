@@ -16,7 +16,7 @@
 
 namespace Cassandra
 {
-    public enum RetryReasonType
+    internal enum RetryReasonType
     {
         ReadTimeOut,
         WriteTimeOut,

@@ -25,12 +25,14 @@ namespace Cassandra.Metrics.Registries
     internal class NodeMetricsRegistry : INodeMetrics
     {
         private readonly IDriverMetricsProvider _driverMetricsProvider;
+        private readonly string _context;
 
         private IHostConnectionPool _hostConnectionPool = null;
         
-        public NodeMetricsRegistry(IDriverMetricsProvider driverMetricsProvider)
+        public NodeMetricsRegistry(IDriverMetricsProvider driverMetricsProvider, string context)
         {
             _driverMetricsProvider = driverMetricsProvider;
+            _context = context;
 
             InitializeMetrics();
         }
@@ -70,36 +72,37 @@ namespace Cassandra.Metrics.Registries
         public IEnumerable<IDriverMeter> Meters { get; private set; }
 
         public IEnumerable<IDriverTimer> Timers { get; private set; }
-        
+
+        public IEnumerable<IDriverMetric> All { get; private set; }
+
         private void InitializeMetrics()
         {
-            SpeculativeExecutions = _driverMetricsProvider.Counter("speculative-executions", DriverMeasurementUnit.Requests);
-            BytesSent = _driverMetricsProvider.Counter("bytes-sent", DriverMeasurementUnit.Bytes);
-            BytesReceived = _driverMetricsProvider.Counter("bytes-received", DriverMeasurementUnit.Bytes);
-            CqlMessages = _driverMetricsProvider.Timer("cql-messages", DriverMeasurementUnit.Requests, DriverTimeUnit.Milliseconds);
+            SpeculativeExecutions = _driverMetricsProvider.Counter(_context, "speculative-executions", DriverMeasurementUnit.Requests);
+            BytesSent = _driverMetricsProvider.Counter(_context, "bytes-sent", DriverMeasurementUnit.Bytes);
+            BytesReceived = _driverMetricsProvider.Counter(_context, "bytes-received", DriverMeasurementUnit.Bytes);
+            CqlMessages = _driverMetricsProvider.Timer(_context, "cql-messages", DriverMeasurementUnit.Requests, DriverTimeUnit.Milliseconds);
 
-            var connectionErrorsMetricsProvider = _driverMetricsProvider.WithContext("errors").WithContext("connection");
-            ConnectionInitErrors = connectionErrorsMetricsProvider.Counter("init", DriverMeasurementUnit.Requests);
-            AuthenticationErrors = connectionErrorsMetricsProvider.Counter("auth", DriverMeasurementUnit.Requests);
+            ConnectionInitErrors = _driverMetricsProvider.Counter(_context, "errors.connection.init", DriverMeasurementUnit.Requests);
+            AuthenticationErrors = _driverMetricsProvider.Counter(_context, "errors.connection.auth", DriverMeasurementUnit.Requests);
 
-            Errors = new RequestMetricsRegistry(_driverMetricsProvider.WithContext("errors").WithContext("request"));
-            Retries = new RequestMetricsRegistry(_driverMetricsProvider.WithContext("retries"));
-            Ignores = new RequestMetricsRegistry(_driverMetricsProvider.WithContext("ignores"));
-
-            var poolDriverMetricsProvider = _driverMetricsProvider.WithContext("pool");
-            OpenConnections = poolDriverMetricsProvider.Gauge("open-connections",
+            Errors = new RequestMetricsRegistry(_driverMetricsProvider, _context, "errors.request.");
+            Retries = new RequestMetricsRegistry(_driverMetricsProvider, _context, "retries.");
+            Ignores = new RequestMetricsRegistry(_driverMetricsProvider, _context, "ignores.");
+            
+            OpenConnections = _driverMetricsProvider.Gauge(_context, "pool.open-connections",
                 () => _hostConnectionPool?.OpenConnections, DriverMeasurementUnit.None);
-            AvailableStreams = poolDriverMetricsProvider.Gauge("available-streams",
+            AvailableStreams = _driverMetricsProvider.Gauge(_context, "pool.available-streams",
                 () => _hostConnectionPool?.AvailableStreams, DriverMeasurementUnit.None);
-            InFlight = poolDriverMetricsProvider.Gauge("in-flight",
+            InFlight = _driverMetricsProvider.Gauge(_context, "pool.in-flight",
                 () => _hostConnectionPool?.InFlight, DriverMeasurementUnit.None);
-            MaxRequestsPerConnection = poolDriverMetricsProvider.Gauge("max-requests-per-connection",
+            MaxRequestsPerConnection = _driverMetricsProvider.Gauge(_context, "pool.max-requests-per-connection",
                 () => _hostConnectionPool?.MaxRequestsPerConnection, DriverMeasurementUnit.Requests);
 
             Counters = new[] { SpeculativeExecutions, BytesSent, BytesReceived, ConnectionInitErrors, AuthenticationErrors };
             Gauges = new[] { OpenConnections, AvailableStreams, InFlight, MaxRequestsPerConnection };
             Meters = Errors.Meters.Concat(Ignores.Meters).Concat(Retries.Meters);
             Timers = new[] { CqlMessages };
+            All = new IDriverMetric[0].Concat(Counters).Concat(Gauges).Concat(Histograms).Concat(Meters).Concat(Timers);
         }
 
         public void InitializePoolGauges(IHostConnectionPool pool)
@@ -107,13 +110,9 @@ namespace Cassandra.Metrics.Registries
             _hostConnectionPool = pool;
         }
 
-        //TODO
         public void Dispose()
         {
-            foreach (var gauge in Gauges)
-            {
-                gauge.Dispose();
-            }
+            _driverMetricsProvider.ShutdownMetricsContext(_context);
         }
     }
 }

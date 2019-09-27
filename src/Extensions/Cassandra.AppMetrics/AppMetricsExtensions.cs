@@ -14,15 +14,14 @@
 //    limitations under the License.
 //
 
-#if NETSTANDARD2_0
-
 using System;
-
+using System.Collections.Generic;
+using System.Linq;
 using App.Metrics;
 
 using Cassandra.Metrics.Abstractions;
 
-namespace Cassandra.Metrics.Providers.AppMetrics
+namespace Cassandra.AppMetrics
 {
     internal static class AppMetricsExtensions
     {
@@ -109,6 +108,12 @@ namespace Cassandra.Metrics.Providers.AppMetrics
                     throw new ArgumentOutOfRangeException(nameof(timeUnit), timeUnit, null);
             }
         }
+
+        public static T ValueFor<T>(this IEnumerable<MetricValueSourceBase<T>> values, string metricName)
+        {
+            var selectedValues = values.Where(t => t.Name == metricName).Select(t => t.Value).Take(2).ToList();
+
+            return selectedValues.Count == 1 ? selectedValues.First() : default(T);
+        }
     }
 }
-#endif

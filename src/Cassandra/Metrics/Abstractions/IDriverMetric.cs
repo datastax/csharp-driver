@@ -13,15 +13,10 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-using System.Collections.Generic;
-
 namespace Cassandra.Metrics.Abstractions
 {
     public interface IDriverMetric
     {
-        // change to match gdoc
-        IEnumerable<string> Context { get; }
-
-        string MetricName { get; }
+        string FullName { get; }
     }
 }
