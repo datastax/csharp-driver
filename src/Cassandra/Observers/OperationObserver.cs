@@ -15,7 +15,7 @@
 //
 
 using System;
-
+using Cassandra.Connections;
 using Cassandra.Metrics.Abstractions;
 using Cassandra.Metrics.Providers.Null;
 using Cassandra.Metrics.Registries;
@@ -29,7 +29,7 @@ namespace Cassandra.Observers
         private static readonly Logger Logger = new Logger(typeof(OperationObserver));
 
         private readonly IDriverTimer _operationTimer;
-        private IDriverTimeHandler _driverTimeHandler;
+        private IDriverTimerMeasurement _driverTimerMeasurement;
 
         public OperationObserver(INodeMetrics nodeMetrics)
         {
@@ -40,30 +40,30 @@ namespace Cassandra.Observers
         {
             try
             {
-                _driverTimeHandler = _operationTimer.StartRecording();
+                _driverTimerMeasurement = _operationTimer.StartMeasuring();
             }
             catch (Exception ex)
             {
                 LogError(ex);
-                _driverTimeHandler = NullDriverTimeHandler.Instance;
+                _driverTimerMeasurement = NullDriverTimerMeasurement.Instance;
             }
         }
 
-        public void OnOperationReceive(Exception exception, Response response)
+        public void OnOperationReceive(IRequestError error, Response response)
         {
             try
             {
-                _driverTimeHandler.EndRecording();
+                _driverTimerMeasurement.StopMeasuring();
             }
             catch (Exception ex)
             {
-                LogError(ex);
+                OperationObserver.LogError(ex);
             }
         }
 
         private static void LogError(Exception ex)
         {
-            Logger.Warning("An error occured while recording metrics for a connection operation. Exception = {0}", ex.ToString());
+            OperationObserver.Logger.Warning("An error occured while recording metrics for a connection operation. Exception = {0}", ex.ToString());
         }
     }
 }

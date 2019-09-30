@@ -15,6 +15,7 @@
 
 using System;
 using Cassandra.Observers.Abstractions;
+using Cassandra.Requests;
 
 namespace Cassandra.Observers
 {
@@ -30,7 +31,7 @@ namespace Cassandra.Observers
         {
         }
 
-        public void OnRequestRetry(Host host, RetryReasonType reason, RetryDecision.RetryDecisionType decision)
+        public void OnRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision)
         {
         }
 

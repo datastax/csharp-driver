@@ -140,7 +140,7 @@ namespace Cassandra.Tests
                 {
                     Mock.Get(connection)
                         .Verify(
-                            c => c.Send(mockRequest, It.IsAny<Action<Exception, Response>>(), It.IsAny<int>()),
+                            c => c.Send(mockRequest, It.IsAny<Action<IRequestError, Response>>(), It.IsAny<int>()),
                             Times.Once);
                 });
         }
@@ -220,7 +220,7 @@ namespace Cassandra.Tests
                 () =>
                 {
                     Mock.Get(connection).Verify(
-                        c => c.Send(mockRequest, It.IsAny<Action<Exception, Response>>(), It.IsAny<int>()),
+                        c => c.Send(mockRequest, It.IsAny<Action<IRequestError, Response>>(), It.IsAny<int>()),
                         Times.Once);
                 });
 

@@ -51,7 +51,7 @@ namespace Cassandra.Metrics.Registries
                 ConnectedNodes = _driverMetricsProvider.Gauge(
                     _context,
                     "connected-nodes",
-                    () => session.GetPools().Count(), //TODO
+                    () => session.NumberOfConnectionPools,
                     DriverMeasurementUnit.None);
 
                 Counters = new[] { BytesSent, BytesReceived };

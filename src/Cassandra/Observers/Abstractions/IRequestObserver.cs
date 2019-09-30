@@ -15,6 +15,7 @@
 // 
 
 using System;
+using Cassandra.Requests;
 
 namespace Cassandra.Observers.Abstractions
 {
@@ -22,7 +23,7 @@ namespace Cassandra.Observers.Abstractions
     {
         void OnSpeculativeExecution(Host host, long delay);
 
-        void OnRequestRetry(Host host, RetryReasonType reason, RetryDecision.RetryDecisionType decision);
+        void OnRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision);
 
         void OnRequestStart();
 

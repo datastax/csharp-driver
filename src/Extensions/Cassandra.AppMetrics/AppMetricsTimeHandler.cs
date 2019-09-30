@@ -20,16 +20,18 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics
 {
-    internal class AppMetricsTimeHandler : IDriverTimeHandler
+    /// <inheritdoc/>
+    internal class AppMetricsTimerMeasurement : IDriverTimerMeasurement
     {
         private TimerContext _timerContext;
 
-        public AppMetricsTimeHandler(TimerContext timerContext)
+        public AppMetricsTimerMeasurement(TimerContext timerContext)
         {
             _timerContext = timerContext;
         }
-
-        public void EndRecording()
+        
+        /// <inheritdoc/>
+        public void StopMeasuring()
         {
             _timerContext.Dispose();
         }

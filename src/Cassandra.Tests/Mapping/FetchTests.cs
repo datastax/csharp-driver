@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cassandra.Mapping;
+using Cassandra.Metrics.Internal;
 using Cassandra.Tasks;
 using Cassandra.Tests.Mapping.Pocos;
 using Cassandra.Tests.Mapping.TestData;
@@ -428,7 +429,7 @@ namespace Cassandra.Tests.Mapping
 
         private static void SetFetchNextMethod(RowSet rs, Func<byte[], RowSet> handler)
         {
-            rs.SetFetchNextPageHandler(pagingState => Task.FromResult(handler(pagingState)), 10000);
+            rs.SetFetchNextPageHandler(pagingState => Task.FromResult(handler(pagingState)), 10000, Mock.Of<IMetricsManager>());
         }
     }
 }

@@ -91,7 +91,7 @@ namespace Cassandra.Data.Linq
         /// </summary>
         public new TEntity Execute(string executionProfile)
         {
-            return TaskHelper.WaitToComplete(ExecuteAsync(executionProfile), QueryAbortTimeout);
+            return WaitToCompleteWithMetrics(ExecuteAsync(executionProfile), QueryAbortTimeout);
         }
     }
 }

@@ -53,18 +53,17 @@ namespace Cassandra.Metrics.Internal
                 { Cassandra.NodeMetrics.Meters.Errors.Request.Other, metrics => metrics.Errors.Other },
                 { Cassandra.NodeMetrics.Meters.Errors.Request.ReadTimeout, metrics => metrics.Errors.ReadTimeout },
                 { Cassandra.NodeMetrics.Meters.Errors.Request.Unavailable, metrics => metrics.Errors.Unavailable },
-                { Cassandra.NodeMetrics.Meters.Errors.Request.Unsent, metrics => metrics.Errors.Unavailable }, // TODO
+                { Cassandra.NodeMetrics.Meters.Errors.Request.Unsent, metrics => metrics.Errors.Unsent },
+                { Cassandra.NodeMetrics.Meters.Errors.Request.ClientTimeout, metrics => metrics.Errors.ClientTimeout },
                 { Cassandra.NodeMetrics.Meters.Errors.Request.WriteTimeout, metrics => metrics.Errors.WriteTimeout },
 
                 { Cassandra.NodeMetrics.Meters.Ignores.Total, metrics => metrics.Ignores.Total },
-                { Cassandra.NodeMetrics.Meters.Ignores.Aborted, metrics => metrics.Ignores.Aborted },
                 { Cassandra.NodeMetrics.Meters.Ignores.Other, metrics => metrics.Ignores.Other },
                 { Cassandra.NodeMetrics.Meters.Ignores.ReadTimeout, metrics => metrics.Ignores.ReadTimeout },
                 { Cassandra.NodeMetrics.Meters.Ignores.Unavailable, metrics => metrics.Ignores.Unavailable },
                 { Cassandra.NodeMetrics.Meters.Ignores.WriteTimeout, metrics => metrics.Ignores.WriteTimeout },
 
                 { Cassandra.NodeMetrics.Meters.Retries.Total, metrics => metrics.Retries.Total },
-                { Cassandra.NodeMetrics.Meters.Retries.Aborted, metrics => metrics.Retries.Aborted },
                 { Cassandra.NodeMetrics.Meters.Retries.Other, metrics => metrics.Retries.Other },
                 { Cassandra.NodeMetrics.Meters.Retries.ReadTimeout, metrics => metrics.Retries.ReadTimeout },
                 { Cassandra.NodeMetrics.Meters.Retries.Unavailable, metrics => metrics.Retries.Unavailable },
@@ -73,6 +72,8 @@ namespace Cassandra.Metrics.Internal
                 { Cassandra.NodeMetrics.Counters.BytesReceived, metrics => metrics.BytesReceived },
                 { Cassandra.NodeMetrics.Counters.BytesSent, metrics => metrics.BytesSent },
                 { Cassandra.NodeMetrics.Counters.SpeculativeExecutions, metrics => metrics.SpeculativeExecutions },
+                { Cassandra.NodeMetrics.Counters.Errors.Connection.Auth, metrics => metrics.Errors.AuthenticationErrors },
+                { Cassandra.NodeMetrics.Counters.Errors.Connection.Init, metrics => metrics.Errors.ConnectionInitErrors },
                 
                 { Cassandra.NodeMetrics.Gauges.Pool.OpenConnections, metrics => metrics.OpenConnections },
                 { Cassandra.NodeMetrics.Gauges.Pool.AvailableStreams, metrics => metrics.AvailableStreams },
@@ -87,7 +88,7 @@ namespace Cassandra.Metrics.Internal
                 { Cassandra.SessionMetrics.Meters.CqlClientTimeouts, metrics => metrics.CqlClientTimeouts },
                 { Cassandra.SessionMetrics.Counters.BytesSent, metrics => metrics.BytesSent },
                 { Cassandra.SessionMetrics.Counters.BytesReceived, metrics => metrics.BytesReceived },
-                { Cassandra.SessionMetrics.Gauges.ConnectedNodes, metrics => metrics.BytesReceived }, // TODO
+                { Cassandra.SessionMetrics.Gauges.ConnectedNodes, metrics => metrics.ConnectedNodes },
                 { Cassandra.SessionMetrics.Timers.CqlRequests, metrics => metrics.CqlRequests },
             };
         }

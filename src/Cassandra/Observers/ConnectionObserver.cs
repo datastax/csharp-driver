@@ -66,10 +66,11 @@ namespace Cassandra.Observers
                 switch (exception)
                 {
                     case AuthenticationException _:
-                        _nodeMetrics.AuthenticationErrors.Increment(1);
+                        _nodeMetrics.Errors.AuthenticationErrors.Increment(1);
                         break;
-                    case Exception e when e is SocketException || e is UnsupportedProtocolVersionException:
-                        _nodeMetrics.ConnectionInitErrors.Increment(1);
+
+                    default:
+                        _nodeMetrics.Errors.ConnectionInitErrors.Increment(1);
                         break;
                 }
             }

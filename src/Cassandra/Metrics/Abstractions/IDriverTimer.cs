@@ -16,8 +16,18 @@
 
 namespace Cassandra.Metrics.Abstractions
 {
+    /// <summary>
+    /// A <see cref="IDriverTimer"/> is a combination of a <see cref="IDriverHistogram"/> and a <see cref="IDriverMeter"/>
+    /// allowing us to measure the duration of a type of event, the rate of its occurrence and provide duration statistics,
+    /// for example tracking the time it takes to execute a particular CQL request.
+    /// </summary>
     public interface IDriverTimer : IDriverMetricWithValue<ITimerValue>
     {
-        IDriverTimeHandler StartRecording();
+        /// <summary>
+        /// Starts the timer for a single measurement.
+        /// </summary>
+        /// <returns>An instance of <see cref="IDriverTimerMeasurement"/> that can be used to stop the timer for this measurement
+        /// and add the value to the metric value.</returns>
+        IDriverTimerMeasurement StartMeasuring();
     }
 }

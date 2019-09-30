@@ -19,9 +19,9 @@ namespace Cassandra.Requests
     internal struct RetryDecisionWithReason
     {
         public RetryDecision Decision { get; }
-        public RetryReasonType Reason { get; }
+        public RequestErrorType Reason { get; }
 
-        public RetryDecisionWithReason(RetryDecision decision, RetryReasonType reason)
+        public RetryDecisionWithReason(RetryDecision decision, RequestErrorType reason)
         {
             Decision = decision;
             Reason = reason;

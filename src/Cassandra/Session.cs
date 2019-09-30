@@ -26,12 +26,14 @@ using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Internal;
+using Cassandra.Metrics.Registries;
 using Cassandra.Observers;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;
+using TimeoutException = System.TimeoutException;
 
 namespace Cassandra
 {
@@ -274,7 +276,7 @@ namespace Cassandra
         public RowSet EndExecute(IAsyncResult ar)
         {
             var task = (Task<RowSet>)ar;
-            TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
             return task.Result;
         }
 
@@ -282,7 +284,7 @@ namespace Cassandra
         public PreparedStatement EndPrepare(IAsyncResult ar)
         {
             var task = (Task<PreparedStatement>)ar;
-            TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
             return task.Result;
         }
 
@@ -290,16 +292,14 @@ namespace Cassandra
         public RowSet Execute(IStatement statement, string executionProfileName)
         {
             var task = ExecuteAsync(statement, executionProfileName);
-            TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
             return task.Result;
         }
 
         /// <inheritdoc />
         public RowSet Execute(IStatement statement)
         {
-            var task = ExecuteAsync(statement);
-            TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
-            return task.Result;
+            return Execute(statement, Configuration.DefaultExecutionProfileName);
         }
 
         /// <inheritdoc />
@@ -386,8 +386,9 @@ namespace Cassandra
                 pool.ScheduleReconnection();
             }
         }
-
-        int IInternalSession.CountAllConnections => _connectionPool.Count;
+        
+        /// <inheritdoc/>
+        int IInternalSession.NumberOfConnectionPools => _connectionPool.Count;
 
         public IDriverMetrics GetMetrics()
         {
@@ -430,7 +431,7 @@ namespace Cassandra
         public PreparedStatement Prepare(string cqlQuery, IDictionary<string, byte[]> customPayload)
         {
             var task = PrepareAsync(cqlQuery, customPayload);
-            TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
             return task.Result;
         }
         

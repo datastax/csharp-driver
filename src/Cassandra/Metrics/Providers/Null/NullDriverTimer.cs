@@ -18,17 +18,20 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.Metrics.Providers.Null
 {
+    /// <inheritdoc cref="IDriverTimer" />
     internal class NullDriverTimer : NullMetricBase, IDriverTimer
     {
         public NullDriverTimer(string fullName) : base(fullName)
         {
         }
-
-        public IDriverTimeHandler StartRecording()
+        
+        /// <inheritdoc/>
+        public IDriverTimerMeasurement StartMeasuring()
         {
-            return NullDriverTimeHandler.Instance;
+            return NullDriverTimerMeasurement.Instance;
         }
-
+        
+        /// <inheritdoc/>
         public ITimerValue GetValue()
         {
             return NullTimerValue.Instance;

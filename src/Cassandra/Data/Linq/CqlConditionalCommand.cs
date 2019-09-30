@@ -77,7 +77,7 @@ namespace Cassandra.Data.Linq
             }
             
             var queryAbortTimeout = GetTable().GetSession().Cluster.Configuration.ClientOptions.QueryAbortTimeout;
-            return TaskHelper.WaitToComplete(ExecuteAsync(executionProfile), queryAbortTimeout);
+            return WaitToCompleteWithMetrics(ExecuteAsync(executionProfile), queryAbortTimeout);
         }
         
         public new CqlConditionalCommand<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)

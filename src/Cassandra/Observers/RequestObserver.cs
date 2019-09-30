@@ -21,6 +21,7 @@ using Cassandra.Metrics.Internal;
 using Cassandra.Metrics.Providers.Null;
 using Cassandra.Metrics.Registries;
 using Cassandra.Observers.Abstractions;
+using Cassandra.Requests;
 
 namespace Cassandra.Observers
 {
@@ -30,7 +31,7 @@ namespace Cassandra.Observers
 
         private readonly IMetricsManager _manager;
         private readonly IDriverTimer _requestTimer;
-        private IDriverTimeHandler _driverTimeHandler;
+        private IDriverTimerMeasurement _driverTimerMeasurement;
 
         public RequestObserver(IMetricsManager manager, IDriverTimer requestTimer)
         {
@@ -43,42 +44,43 @@ namespace Cassandra.Observers
             _manager.GetOrCreateNodeMetrics(host).SpeculativeExecutions.Increment(1);
         }
 
-        public void OnRequestRetry(Host host, RetryReasonType reason, RetryDecision.RetryDecisionType decision)
+        public void OnRequestError(Host host, RequestErrorType errorType, RetryDecision.RetryDecisionType decision)
         {
             var nodeMetrics = _manager.GetOrCreateNodeMetrics(host);
-            OnRequestRetry(nodeMetrics.Errors, reason);
+            OnRequestError(nodeMetrics.Errors, errorType);
             switch (decision)
             {
                 case RetryDecision.RetryDecisionType.Retry:
-                    OnRequestRetry(nodeMetrics.Retries, reason);
+                    OnRetryPolicyDecision(nodeMetrics.Retries, errorType);
                     break;
 
                 case RetryDecision.RetryDecisionType.Ignore:
-                    OnRequestRetry(nodeMetrics.Ignores, reason);
+                    OnRetryPolicyDecision(nodeMetrics.Ignores, errorType);
                     break;
             }
         }
 
-        private void OnRequestRetry(IRequestMetrics metricsRegistry, RetryReasonType reason)
+        private void OnRetryPolicyDecision(IRetryPolicyMetrics metricsRegistry, RequestErrorType reason)
         {
-            // todo(sivukhin, 08.08.2019): Missed OnAborted metric?
             metricsRegistry.Total.Mark();
             switch (reason)
             {
-                case RetryReasonType.Unavailable:
+                case RequestErrorType.Unavailable:
                     metricsRegistry.Unavailable.Mark();
                     break;
 
-                case RetryReasonType.ReadTimeOut:
+                case RequestErrorType.ReadTimeOut:
                     metricsRegistry.ReadTimeout.Mark();
                     break;
 
-                case RetryReasonType.WriteTimeOut:
+                case RequestErrorType.WriteTimeOut:
                     metricsRegistry.WriteTimeout.Mark();
                     break;
 
-                case RetryReasonType.RequestError:
-                case RetryReasonType.Unknown:
+                case RequestErrorType.Other:
+                case RequestErrorType.Aborted:
+                case RequestErrorType.Unsent:
+                case RequestErrorType.ClientTimeout:
                     metricsRegistry.Other.Mark();
                     break;
 
@@ -87,16 +89,54 @@ namespace Cassandra.Observers
             }
         }
 
+        private void OnRequestError(IRequestErrorMetrics metricsRegistry, RequestErrorType errorType)
+        {
+            metricsRegistry.Total.Mark();
+            switch (errorType)
+            {
+                case RequestErrorType.Unavailable:
+                    metricsRegistry.Unavailable.Mark();
+                    break;
+
+                case RequestErrorType.ReadTimeOut:
+                    metricsRegistry.ReadTimeout.Mark();
+                    break;
+
+                case RequestErrorType.WriteTimeOut:
+                    metricsRegistry.WriteTimeout.Mark();
+                    break;
+
+                case RequestErrorType.Other:
+                    metricsRegistry.Other.Mark();
+                    break;
+
+                case RequestErrorType.Aborted:
+                    metricsRegistry.Aborted.Mark();
+                    break;
+
+                case RequestErrorType.Unsent:
+                    metricsRegistry.Unsent.Mark();
+                    break;
+                
+                case RequestErrorType.ClientTimeout:
+                    metricsRegistry.ClientTimeout.Mark();
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(errorType), errorType, null);
+            }
+        }
+
         public void OnRequestStart()
         {
             try
             {
-                _driverTimeHandler = _requestTimer.StartRecording();
+                _driverTimerMeasurement = _requestTimer.StartMeasuring();
             }
             catch (Exception ex)
             {
                 LogError(ex);
-                _driverTimeHandler = NullDriverTimeHandler.Instance;
+                _driverTimerMeasurement = NullDriverTimerMeasurement.Instance;
             }
         }
 
@@ -104,8 +144,8 @@ namespace Cassandra.Observers
         {
             try
             {
-                _driverTimeHandler.EndRecording();
-                _driverTimeHandler = null;
+                _driverTimerMeasurement.StopMeasuring();
+                _driverTimerMeasurement = null;
             }
             catch (Exception ex)
             {

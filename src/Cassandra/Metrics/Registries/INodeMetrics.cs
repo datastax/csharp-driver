@@ -27,10 +27,6 @@ namespace Cassandra.Metrics.Registries
 
         IDriverCounter BytesReceived { get; }
 
-        IDriverCounter ConnectionInitErrors { get; }
-
-        IDriverCounter AuthenticationErrors { get; }
-
         IDriverTimer CqlMessages { get; }
 
         IDriverGauge OpenConnections { get; }
@@ -41,11 +37,11 @@ namespace Cassandra.Metrics.Registries
 
         IDriverGauge MaxRequestsPerConnection { get; }
 
-        IRequestMetrics Errors { get; }
+        IRequestErrorMetrics Errors { get; }
 
-        IRequestMetrics Retries { get; }
+        IRetryPolicyMetrics Retries { get; }
 
-        IRequestMetrics Ignores { get; }
+        IRetryPolicyMetrics Ignores { get; }
 
         void InitializePoolGauges(IHostConnectionPool pool);
     }

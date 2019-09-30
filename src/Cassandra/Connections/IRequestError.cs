@@ -14,21 +14,28 @@
 //    limitations under the License.
 
 using System;
-using Cassandra.Connections;
-using Cassandra.Observers.Abstractions;
-using Cassandra.Responses;
 
-namespace Cassandra.Observers
+namespace Cassandra.Connections
 {
-    //TODO DELETE??
-    internal class NullOperationObserver : IOperationObserver
+    /// <summary>
+    /// Represents an error that occured during a request.
+    /// </summary>
+    internal interface IRequestError
     {
-        public void OnOperationSend(long requestSize)
-        {
-        }
+        /// <summary>
+        /// Exception related to this error.
+        /// </summary>
+        Exception Exception { get; }
 
-        public void OnOperationReceive(IRequestError error, Response response)
-        {
-        }
+        /// <summary>
+        /// Whether this error was parsed from a server response.
+        /// </summary>
+        bool IsServerError { get; }
+
+        /// <summary>
+        /// Whether the request was sent or not. This error might have happened before writing
+        /// the request to the socket.
+        /// </summary>
+        bool Unsent { get; }
     }
 }

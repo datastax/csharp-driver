@@ -20,6 +20,7 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics
 {
+    /// <inheritdoc />
     internal class AppMetricsTimer : IDriverTimer
     {
         private readonly IMetrics _metrics;
@@ -37,13 +38,16 @@ namespace Cassandra.AppMetrics
             FullName = fullName;
         }
 
-        public IDriverTimeHandler StartRecording()
+        /// <inheritdoc/>
+        public IDriverTimerMeasurement StartMeasuring()
         {
-            return new AppMetricsTimeHandler(_timer.NewContext());
+            return new AppMetricsTimerMeasurement(_timer.NewContext());
         }
-
+        
+        /// <inheritdoc/>
         public string FullName { get; }
-
+        
+        /// <inheritdoc/>
         public ITimerValue GetValue()
         {
             var value = _metrics.Snapshot.GetForContext(_context).Timers.ValueFor(_name);

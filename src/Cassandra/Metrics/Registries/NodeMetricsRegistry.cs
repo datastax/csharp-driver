@@ -44,11 +44,7 @@ namespace Cassandra.Metrics.Registries
         public IDriverCounter BytesReceived { get; private set; }
 
         public IDriverTimer CqlMessages { get; private set; }
-
-        public IDriverCounter ConnectionInitErrors { get; private set; }
-
-        public IDriverCounter AuthenticationErrors { get; private set; }
-
+        
         public IDriverGauge OpenConnections { get; private set; }
 
         public IDriverGauge AvailableStreams { get; private set; }
@@ -57,11 +53,11 @@ namespace Cassandra.Metrics.Registries
 
         public IDriverGauge MaxRequestsPerConnection { get; private set; }
 
-        public IRequestMetrics Errors { get; private set; }
+        public IRequestErrorMetrics Errors { get; private set; }
 
-        public IRequestMetrics Retries { get; private set; }
+        public IRetryPolicyMetrics Retries { get; private set; }
 
-        public IRequestMetrics Ignores { get; private set; }
+        public IRetryPolicyMetrics Ignores { get; private set; }
 
         public IEnumerable<IDriverCounter> Counters { get; private set; }
 
@@ -81,13 +77,10 @@ namespace Cassandra.Metrics.Registries
             BytesSent = _driverMetricsProvider.Counter(_context, "bytes-sent", DriverMeasurementUnit.Bytes);
             BytesReceived = _driverMetricsProvider.Counter(_context, "bytes-received", DriverMeasurementUnit.Bytes);
             CqlMessages = _driverMetricsProvider.Timer(_context, "cql-messages", DriverMeasurementUnit.Requests, DriverTimeUnit.Milliseconds);
-
-            ConnectionInitErrors = _driverMetricsProvider.Counter(_context, "errors.connection.init", DriverMeasurementUnit.Requests);
-            AuthenticationErrors = _driverMetricsProvider.Counter(_context, "errors.connection.auth", DriverMeasurementUnit.Requests);
-
-            Errors = new RequestMetricsRegistry(_driverMetricsProvider, _context, "errors.request.");
-            Retries = new RequestMetricsRegistry(_driverMetricsProvider, _context, "retries.");
-            Ignores = new RequestMetricsRegistry(_driverMetricsProvider, _context, "ignores.");
+            
+            Errors = new RequestErrorMetricsRegistry(_driverMetricsProvider, _context, "errors.");
+            Retries = new RetryPolicyMetrics(_driverMetricsProvider, _context, "retries.");
+            Ignores = new RetryPolicyMetrics(_driverMetricsProvider, _context, "ignores.");
             
             OpenConnections = _driverMetricsProvider.Gauge(_context, "pool.open-connections",
                 () => _hostConnectionPool?.OpenConnections, DriverMeasurementUnit.None);
@@ -98,7 +91,7 @@ namespace Cassandra.Metrics.Registries
             MaxRequestsPerConnection = _driverMetricsProvider.Gauge(_context, "pool.max-requests-per-connection",
                 () => _hostConnectionPool?.MaxRequestsPerConnection, DriverMeasurementUnit.Requests);
 
-            Counters = new[] { SpeculativeExecutions, BytesSent, BytesReceived, ConnectionInitErrors, AuthenticationErrors };
+            Counters = Errors.Counters.Concat(new[] { SpeculativeExecutions, BytesSent, BytesReceived });
             Gauges = new[] { OpenConnections, AvailableStreams, InFlight, MaxRequestsPerConnection };
             Meters = Errors.Meters.Concat(Ignores.Meters).Concat(Retries.Meters);
             Timers = new[] { CqlMessages };

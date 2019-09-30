@@ -11,7 +11,11 @@ namespace Cassandra.Tests
     {
         public static OperationState CreateMock(Action<Exception, Response> action)
         {
-            return new OperationState(action, null, 0, new OperationObserver(new NodeMetricsRegistry(new NullDriverMetricsProvider(), "c")));
+            return new OperationState(
+                (error, response) => action(error.Exception, response), 
+                null, 
+                0, 
+                new OperationObserver(new NodeMetricsRegistry(new NullDriverMetricsProvider(), "c")));
         }
     }
 }

@@ -21,6 +21,8 @@ using System.Threading.Tasks;
 
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
+using Cassandra.Metrics.Internal;
+using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
 namespace Cassandra.Data.Linq
@@ -35,6 +37,7 @@ namespace Cassandra.Data.Linq
         protected DateTimeOffset? _timestamp;
         protected int? _ttl;
         private QueryTrace _queryTrace;
+        private IMetricsManager _metricsManager;
 
         protected int QueryAbortTimeout { get; private set; }
 
@@ -90,6 +93,7 @@ namespace Cassandra.Data.Linq
             _statementFactory = stmtFactory;
             PocoData = pocoData;
             QueryAbortTimeout = table.GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
+            _metricsManager = (table.GetSession() as IInternalSession)?.MetricsManager;
         }
 
         protected internal abstract string GetCql(out object[] values);
@@ -111,7 +115,7 @@ namespace Cassandra.Data.Linq
             {
                 throw new ArgumentNullException(nameof(executionProfile));
             }
-            return TaskHelper.WaitToComplete(ExecuteAsync(executionProfile), QueryAbortTimeout);
+            return WaitToCompleteWithMetrics(ExecuteAsync(executionProfile), QueryAbortTimeout);
         }
 
         public void SetQueryTrace(QueryTrace trace)
@@ -208,6 +212,11 @@ namespace Cassandra.Data.Linq
         {
             var task = (Task<RowSet>)ar;
             task.Wait();
+        }
+
+        internal T WaitToCompleteWithMetrics<T>(Task<T> task, int timeout = Timeout.Infinite)
+        {
+            return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, timeout);
         }
     }
 }

@@ -131,7 +131,7 @@ namespace Cassandra.Requests
             catch (Exception ex)
             {
                 _host = validHost.Host;
-                HandleResponse(ex, null, validHost.Host);
+                HandleResponse(RequestError.CreateClientError(ex, true), null, validHost.Host);
             }
         }
 
@@ -150,14 +150,14 @@ namespace Cassandra.Requests
             {
                 //There was an Exception before sending (probably no host is available).
                 //This will mark the Task as faulted.
-                HandleResponse(ex, null, host);
+                HandleResponse(RequestError.CreateClientError(ex, true), null, host);
             }
         }
 
         /// <summary>
         /// Sends a new request using the active connection
         /// </summary>
-        private void Send(IRequest request, Host host, Action<Exception, Response, Host> callback)
+        private void Send(IRequest request, Host host, Action<IRequestError, Response, Host> callback)
         {
             var timeoutMillis = _parent.RequestOptions.ReadTimeoutMillis;
             if (_parent.Statement != null && _parent.Statement.ReadTimeoutMillis > 0)
@@ -165,10 +165,10 @@ namespace Cassandra.Requests
                 timeoutMillis = _parent.Statement.ReadTimeoutMillis;
             }
 
-            _operation = _connection.Send(request, (ex, response) => callback(ex, response, host), timeoutMillis);
+            _operation = _connection.Send(request, (error, response) => callback(error, response, host), timeoutMillis);
         }
 
-        private void HandleResponse(Exception ex, Response response, Host host)
+        private void HandleResponse(IRequestError error, Response response, Host host)
         {
             if (_parent.HasCompleted())
             {
@@ -177,9 +177,9 @@ namespace Cassandra.Requests
             }
             try
             {
-                if (ex != null)
+                if (error?.Exception != null)
                 {
-                    HandleException(ex, host);
+                    HandleRequestError(error, host);
                     return;
                 }
                 HandleRowSetResult(response);
@@ -314,15 +314,16 @@ namespace Cassandra.Requests
                     var request = (IQueryRequest)_parent.BuildRequest();
                     request.PagingState = pagingState;
                     return _session.Cluster.Configuration.RequestHandlerFactory.Create(session, _parent.Serializer, request, statement, _parent.RequestOptions).SendAsync();
-                }, _parent.RequestOptions.QueryAbortTimeout);
+                }, _parent.RequestOptions.QueryAbortTimeout, _session.MetricsManager);
             }
         }
 
         /// <summary>
         /// Checks if the exception is either a Cassandra response error or a socket exception to retry or failover if necessary.
         /// </summary>
-        private void HandleException(Exception ex, Host host)
+        private void HandleRequestError(IRequestError error, Host host)
         {
+            var ex = error.Exception;
             RequestExecution.Logger.Info("RequestHandler received exception {0}", ex.ToString());
             if (ex is PreparedQueryNotFoundException foundException &&
                 (_parent.Statement is BoundStatement || _parent.Statement is BatchStatement))
@@ -354,7 +355,7 @@ namespace Cassandra.Requests
             }
 
             var retryInformation = GetRetryDecisionWithReason(
-                ex, _parent.RetryPolicy, _parent.Statement, _session.Cluster.Configuration, _retryCount);
+                error, _parent.RetryPolicy, _parent.Statement, _session.Cluster.Configuration, _retryCount);
 
             switch (retryInformation.Decision.DecisionType)
             {
@@ -373,12 +374,16 @@ namespace Cassandra.Requests
                     break;
             }
 
-            _requestObserver.OnRequestRetry(host, retryInformation.Reason, retryInformation.Decision.DecisionType);
+            _requestObserver.OnRequestError(host, retryInformation.Reason, retryInformation.Decision.DecisionType);
         }
-
-        private static RetryDecisionWithReason GetRetryDecisionWithReason(
-            Exception ex, IExtendedRetryPolicy policy, IStatement statement, Configuration config, int retryCount)
+        
+        /// <summary>
+        /// Gets the retry decision based on the request error
+        /// </summary>
+        internal static RetryDecisionWithReason GetRetryDecisionWithReason(
+            IRequestError error, IExtendedRetryPolicy policy, IStatement statement, Configuration config, int retryCount)
         {
+            var ex = error.Exception;
             if (ex is SocketException || ex is OverloadedException || ex is IsBootstrappingException || ex is TruncateException ||
                 ex is OperationTimedOutException)
             {
@@ -391,24 +396,34 @@ namespace Cassandra.Requests
                 var decision = statement == null && ex is OperationTimedOutException
                     ? RetryDecision.Retry(null, false)
                     : policy.OnRequestError(statement, config, ex, retryCount);
-                return new RetryDecisionWithReason(decision, RetryReasonType.RequestError);
+                return new RetryDecisionWithReason(decision, RequestExecution.GetErrorType(error));
             }
 
             if (ex is ReadTimeoutException e)
             {
                 return new RetryDecisionWithReason(
-                    policy.OnReadTimeout(statement, e.ConsistencyLevel, e.RequiredAcknowledgements, e.ReceivedAcknowledgements, e.WasDataRetrieved,
+                    policy.OnReadTimeout(
+                        statement, 
+                        e.ConsistencyLevel, 
+                        e.RequiredAcknowledgements, 
+                        e.ReceivedAcknowledgements, 
+                        e.WasDataRetrieved,
                         retryCount),
-                    RetryReasonType.ReadTimeOut
+                    RequestErrorType.ReadTimeOut
                 );
             }
 
             if (ex is WriteTimeoutException e1)
             {
                 return new RetryDecisionWithReason(
-                    policy.OnWriteTimeout(statement, e1.ConsistencyLevel, e1.WriteType, e1.RequiredAcknowledgements, e1.ReceivedAcknowledgements,
+                    policy.OnWriteTimeout(
+                        statement, 
+                        e1.ConsistencyLevel, 
+                        e1.WriteType, 
+                        e1.RequiredAcknowledgements, 
+                        e1.ReceivedAcknowledgements,
                         retryCount),
-                    RetryReasonType.WriteTimeOut
+                    RequestErrorType.WriteTimeOut
                 );
             }
 
@@ -416,21 +431,27 @@ namespace Cassandra.Requests
             {
                 return new RetryDecisionWithReason(
                     policy.OnUnavailable(statement, e2.Consistency, e2.RequiredReplicas, e2.AliveReplicas, retryCount),
-                    RetryReasonType.Unavailable
+                    RequestErrorType.Unavailable
                 );
             }
 
             // Any other Exception just throw it
-            return new RetryDecisionWithReason(RetryDecision.Rethrow(), RetryReasonType.Unknown);
+            return new RetryDecisionWithReason(RetryDecision.Rethrow(), RequestExecution.GetErrorType(error));
         }
 
-        /// <summary>
-        /// Gets the retry decision based on the exception from Cassandra
-        /// </summary>
-        internal static RetryDecision GetRetryDecision(
-            Exception ex, IExtendedRetryPolicy policy, IStatement statement, Configuration config, int retryCount)
+        private static RequestErrorType GetErrorType(IRequestError error)
         {
-            return GetRetryDecisionWithReason(ex, policy, statement, config, retryCount).Decision;
+            if (error.Exception is OperationTimedOutException)
+            {
+                return RequestErrorType.ClientTimeout;
+            }
+
+            if (error.Unsent)
+            {
+                return RequestErrorType.Unsent;
+            }
+
+            return error.IsServerError ? RequestErrorType.Other : RequestErrorType.Aborted;
         }
 
         /// <summary>
@@ -476,13 +497,13 @@ namespace Cassandra.Requests
         /// <summary>
         /// Handles the response of a (re)prepare request and retries to execute on the same connection
         /// </summary>
-        private void ReprepareResponseHandler(Exception ex, Response response, Host host)
+        private void ReprepareResponseHandler(IRequestError error, Response response, Host host)
         {
             try
             {
-                if (ex != null)
+                if (error?.Exception != null)
                 {
-                    HandleException(ex, host);
+                    HandleRequestError(error, host);
                     return;
                 }
                 RequestExecution.ValidateResult(response);

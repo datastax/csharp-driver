@@ -29,6 +29,8 @@ namespace Cassandra.Metrics.Registries
 
         IDriverCounter BytesReceived { get; }
 
+        IDriverGauge ConnectedNodes { get; }
+
         void InitializeMetrics(IInternalSession session);
     }
 }

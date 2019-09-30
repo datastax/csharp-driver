@@ -337,7 +337,7 @@ namespace Cassandra.Connections
                 }
             }
             Interlocked.MemoryBarrier();
-            OperationState.CallbackMultiple(ops, ex);
+            OperationState.CallbackMultiple(ops, RequestError.CreateClientError(ex, false));
             Interlocked.Exchange(ref _inFlight, 0);
         }
 
@@ -357,17 +357,15 @@ namespace Cassandra.Connections
             }
         }
 
-        private void EventHandler(Exception ex, Response response)
+        private void EventHandler(IRequestError error, Response response)
         {
             if (!(response is EventResponse))
             {
                 Connection.Logger.Error("Unexpected response type for event: " + response.GetType().Name);
                 return;
             }
-            if (CassandraEventResponse != null)
-            {
-                CassandraEventResponse(this, ((EventResponse)response).CassandraEventArgs);
-            }
+
+            CassandraEventResponse?.Invoke(this, ((EventResponse)response).CassandraEventArgs);
         }
 
         /// <summary>
@@ -391,18 +389,18 @@ namespace Cassandra.Connections
             }
             Connection.Logger.Verbose("Connection idling, issuing a Request to prevent idle disconnects");
             var request = new OptionsRequest();
-            Send(request, (ex, response) =>
+            Send(request, (error, response) =>
             {
-                if (ex == null)
+                if (error?.Exception == null)
                 {
                     //The send succeeded
                     //There is a valid response but we don't care about the response
                     return;
                 }
-                Connection.Logger.Warning("Received heartbeat request exception " + ex.ToString());
-                if (ex is SocketException && OnIdleRequestException != null)
+                Connection.Logger.Warning("Received heartbeat request exception " + error.Exception.ToString());
+                if (error.Exception is SocketException)
                 {
-                    OnIdleRequestException(ex);
+                    OnIdleRequestException?.Invoke(error.Exception);
                 }
             });
         }
@@ -594,7 +592,7 @@ namespace Cassandra.Connections
                 stream = stream ?? Configuration.BufferPool.GetStream(Connection.StreamReadTag);
 
                 // Get callback
-                Action<Exception, Response> callback;
+                Action<IRequestError, Response> callback;
                 if (header.Opcode == EventResponse.OpCode)
                 {
                     callback = EventHandler;
@@ -686,14 +684,14 @@ namespace Cassandra.Connections
         /// <summary>
         /// Returns an action that capture the parameters closure
         /// </summary>
-        private Action<MemoryStream> CreateResponseAction(FrameHeader header, Action<Exception, Response> callback)
+        private Action<MemoryStream> CreateResponseAction(FrameHeader header, Action<IRequestError, Response> callback)
         {
             var compressor = Compressor;
 
             void DeserializeResponseStream(MemoryStream stream)
             {
                 Response response = null;
-                Exception ex = null;
+                IRequestError error = null;
                 var nextPosition = stream.Position + header.BodyLength;
                 try
                 {
@@ -705,19 +703,18 @@ namespace Cassandra.Connections
                     }
                     response = FrameParser.Parse(new Frame(header, plainTextStream, _serializer));
                 }
-                catch (Exception catchedException)
+                catch (Exception caughtException)
                 {
-                    ex = catchedException;
+                    error = RequestError.CreateClientError(caughtException, false);
                 }
-                if (response is ErrorResponse)
+                if (response is ErrorResponse errorResponse)
                 {
-                    //Create an exception from the response error
-                    ex = ((ErrorResponse)response).Output.CreateException();
+                    error = RequestError.CreateServerError(errorResponse);
                     response = null;
                 }
                 //We must advance the position of the stream manually in case it was not correctly parsed
                 stream.Position = nextPosition;
-                callback(ex, response);
+                callback(error, response);
             }
 
             return DeserializeResponseStream;
@@ -761,7 +758,7 @@ namespace Cassandra.Connections
         public Task<Response> Send(IRequest request, int timeoutMillis)
         {
             var tcs = new TaskCompletionSource<Response>();
-            Send(request, tcs.TrySet, timeoutMillis);
+            Send(request, tcs.TrySetRequestError, timeoutMillis);
             return tcs.Task;
         }
         
@@ -772,12 +769,12 @@ namespace Cassandra.Connections
         }
 
         /// <inheritdoc />
-        public OperationState Send(IRequest request, Action<Exception, Response> callback, int timeoutMillis)
+        public OperationState Send(IRequest request, Action<IRequestError, Response> callback, int timeoutMillis)
         {
             if (_isCanceled)
             {
                 // Avoid calling back before returning
-                Task.Factory.StartNew(() => callback(new SocketException((int)SocketError.NotConnected), null),
+                Task.Factory.StartNew(() => callback(RequestError.CreateClientError(new SocketException((int)SocketError.NotConnected), true), null),
                     CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
                 return null;
             }
@@ -796,7 +793,7 @@ namespace Cassandra.Connections
         }
 
         /// <inheritdoc />
-        public OperationState Send(IRequest request, Action<Exception, Response> callback)
+        public OperationState Send(IRequest request, Action<IRequestError, Response> callback)
         {
             return Send(request, callback, Configuration.DefaultRequestOptions.ReadTimeoutMillis);
         }
@@ -845,7 +842,7 @@ namespace Cassandra.Connections
                 Connection.Logger.Verbose("Sending #{0} for {1} to {2}", streamId, state.Request.GetType().Name, EndPoint.EndpointFriendlyName);
                 if (_isCanceled)
                 {
-                    state.InvokeCallback(new SocketException((int)SocketError.NotConnected));
+                    state.InvokeCallback(RequestError.CreateClientError(new SocketException((int)SocketError.NotConnected), true));
                     break;
                 }
                 _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
@@ -870,7 +867,7 @@ namespace Cassandra.Connections
                     //The request was not written, clear it from pending operations
                     RemoveFromPending(streamId);
                     //Callback with the Exception
-                    state.InvokeCallback(ex);
+                    state.InvokeCallback(RequestError.CreateClientError(ex, true));
 
                     //Reset the stream to before we started writing this frame
                     stream?.SetLength(startLength);

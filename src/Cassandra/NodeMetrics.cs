@@ -25,6 +25,10 @@ namespace Cassandra
             Counters.BytesSent,
             Counters.SpeculativeExecutions,
             Counters.BytesReceived,
+
+            Counters.Errors.Connection.Auth,
+            Counters.Errors.Connection.Init,
+
             Timers.CqlMessages,
 
             Gauges.Pool.OpenConnections,
@@ -32,27 +36,26 @@ namespace Cassandra
             Gauges.Pool.InFlight,
             Gauges.Pool.MaxRequestsPerConnection,
 
-            Counters.Errors.Connection.Auth,
-            Counters.Errors.Connection.Init,
-
             Meters.Errors.Request.Aborted,
             Meters.Errors.Request.Other,
             Meters.Errors.Request.ReadTimeout,
             Meters.Errors.Request.Unavailable,
             Meters.Errors.Request.Unsent,
             Meters.Errors.Request.WriteTimeout,
+            Meters.Errors.Request.ClientTimeout,
+            Meters.Errors.Request.Total,
 
             Meters.Retries.Unavailable,
-            Meters.Retries.Aborted,
             Meters.Retries.Other,
             Meters.Retries.ReadTimeout,
             Meters.Retries.WriteTimeout,
+            Meters.Retries.Total,
 
             Meters.Ignores.ReadTimeout,
             Meters.Ignores.Unavailable,
-            Meters.Ignores.Aborted,
             Meters.Ignores.Other,
-            Meters.Ignores.WriteTimeout
+            Meters.Ignores.WriteTimeout,
+            Meters.Ignores.Total
         };
 
         public static class Counters
@@ -104,9 +107,7 @@ namespace Cassandra
                 public static readonly NodeMetric Unavailable = new NodeMetric(new[] { "retries" }, "unavailable");
 
                 public static readonly NodeMetric Other = new NodeMetric(new[] { "retries" }, "other");
-
-                public static readonly NodeMetric Aborted = new NodeMetric(new[] { "retries" }, "aborted");
-
+                
                 public static readonly NodeMetric Total = new NodeMetric(new[] { "retries" }, "total");
             }
 
@@ -119,9 +120,7 @@ namespace Cassandra
                 public static readonly NodeMetric Unavailable = new NodeMetric(new[] { "ignores" }, "unavailable");
 
                 public static readonly NodeMetric Other = new NodeMetric(new[] { "ignores" }, "other");
-
-                public static readonly NodeMetric Aborted = new NodeMetric(new[] { "ignores" }, "aborted");
-
+                
                 public static readonly NodeMetric Total = new NodeMetric(new[] { "ignores" }, "total");
             }
 
@@ -142,6 +141,8 @@ namespace Cassandra
                     public static readonly NodeMetric Total = new NodeMetric(new[] { "errors", "request" }, "total");
 
                     public static readonly NodeMetric Unsent = new NodeMetric(new[] { "errors", "request" }, "unsent");
+                    
+                    public static readonly NodeMetric ClientTimeout = new NodeMetric(new[] { "errors", "request" }, "client-timeout");
                 }
             }
         }

@@ -294,8 +294,8 @@ namespace Cassandra.Tests.ExecutionProfiles
 
             // mock connection send
             Mock.Get(connection)
-                .Setup(c => c.Send(It.IsAny<IRequest>(), It.IsAny<Action<Exception, Response>>(), It.IsAny<int>()))
-                .Returns<IRequest, Action<Exception, Response>, int>((req, act, timeout) =>
+                .Setup(c => c.Send(It.IsAny<IRequest>(), It.IsAny<Action<IRequestError, Response>>(), It.IsAny<int>()))
+                .Returns<IRequest, Action<IRequestError, Response>, int>((req, act, timeout) =>
                 {
                     mockResult.SendResults.Enqueue(new ConnectionSendResult { Request = req, TimeoutMillis = timeout });
                     Task.Run(async () =>
@@ -316,7 +316,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                             }
                             finally
                             {
-                                act(new OverloadedException(string.Empty), null);
+                                act(RequestError.CreateServerError(new OverloadedException(string.Empty)), null);
                             }
                         }
                     });

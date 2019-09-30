@@ -80,7 +80,10 @@ namespace Cassandra.SessionManagement
         /// </summary>
         IRequestOptions GetRequestOptions(string executionProfileName);
 
-        int CountAllConnections { get; }
+        /// <summary>
+        /// Returns the number of connection pools. Can be used as a way to fetch the number of connected nodes.
+        /// </summary>
+        int NumberOfConnectionPools { get; }
 
         IMetricsManager MetricsManager { get; }
 

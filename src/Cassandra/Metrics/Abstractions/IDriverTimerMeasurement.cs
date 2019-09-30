@@ -16,8 +16,14 @@
 
 namespace Cassandra.Metrics.Abstractions
 {
-    public interface IDriverTimeHandler
+    /// <summary>
+    /// Represents an individual measurement obtained with an instance of <see cref="IDriverTimer"/>.
+    /// </summary>
+    public interface IDriverTimerMeasurement
     {
-        void EndRecording();
+        /// <summary>
+        /// Stops measuring and adds the measurement to the related metric.
+        /// </summary>
+        void StopMeasuring();
     }
 }
