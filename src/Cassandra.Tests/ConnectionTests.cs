@@ -158,7 +158,7 @@ namespace Cassandra.Tests
             buffer = buffer.Skip(firstSlice).ToArray();
             connection.ReadParse(buffer, buffer.Length);
             CollectionAssert.AreEqual(new short[] { 127, 126, 100 }, streamIds);
-            TestHelper.WaitUntil(() => responses.Count + exceptions.Count == 3, 500, 1000);
+            TestHelper.WaitUntil(() => responses.Count + exceptions.Count == 3, 500, 5);
             CollectionAssert.IsEmpty(exceptions);
             CollectionAssert.AreEqual(Enumerable.Repeat(ResultResponse.ResultResponseKind.Void, 3), responses.Select(r => ((ResultResponse)r).Kind));
             buffer = GetResultBuffer(1);
