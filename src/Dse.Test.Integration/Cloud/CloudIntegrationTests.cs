@@ -479,8 +479,8 @@ namespace Dse.Test.Integration.Cloud
                         profile.WithConsistencyLevel(ConsistencyLevel.LocalQuorum)))).ConfigureAwait(false);
             Assert.AreEqual(ConsistencyLevel.LocalQuorum, Cluster.Configuration.DefaultRequestOptions.ConsistencyLevel);
             Assert.AreEqual(ConsistencyLevel.LocalQuorum, Cluster.Configuration.QueryOptions.GetConsistencyLevel());
-            Assert.AreEqual(ConsistencyLevel.LocalSerial, Cluster.Configuration.DefaultRequestOptions.SerialConsistencyLevel);
-            Assert.AreEqual(ConsistencyLevel.LocalSerial, Cluster.Configuration.QueryOptions.GetSerialConsistencyLevel());
+            Assert.AreEqual(ConsistencyLevel.Serial, Cluster.Configuration.DefaultRequestOptions.SerialConsistencyLevel);
+            Assert.AreEqual(ConsistencyLevel.Serial, Cluster.Configuration.QueryOptions.GetSerialConsistencyLevel());
 
             var ks = TestUtils.GetUniqueKeyspaceName().ToLower();
             const string createKeyspaceQuery = "CREATE KEYSPACE {0} WITH replication = {{ 'class' : '{1}', {2} }}";
