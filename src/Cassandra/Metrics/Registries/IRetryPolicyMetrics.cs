@@ -19,14 +19,14 @@ namespace Cassandra.Metrics.Registries
 {
     internal interface IRetryPolicyMetrics
     {
-        IDriverMeter ReadTimeout { get; }
+        IDriverCounter ReadTimeout { get; }
 
-        IDriverMeter WriteTimeout { get; }
+        IDriverCounter WriteTimeout { get; }
 
-        IDriverMeter Unavailable { get; }
+        IDriverCounter Unavailable { get; }
 
-        IDriverMeter Other { get; }
+        IDriverCounter Other { get; }
 
-        IDriverMeter Total { get; }
+        IDriverCounter Total { get; }
     }
 }

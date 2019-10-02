@@ -62,26 +62,26 @@ namespace Cassandra.Observers
 
         private void OnRetryPolicyDecision(IRetryPolicyMetrics metricsRegistry, RequestErrorType reason)
         {
-            metricsRegistry.Total.Mark();
+            metricsRegistry.Total.Increment();
             switch (reason)
             {
                 case RequestErrorType.Unavailable:
-                    metricsRegistry.Unavailable.Mark();
+                    metricsRegistry.Unavailable.Increment();
                     break;
 
                 case RequestErrorType.ReadTimeOut:
-                    metricsRegistry.ReadTimeout.Mark();
+                    metricsRegistry.ReadTimeout.Increment();
                     break;
 
                 case RequestErrorType.WriteTimeOut:
-                    metricsRegistry.WriteTimeout.Mark();
+                    metricsRegistry.WriteTimeout.Increment();
                     break;
 
                 case RequestErrorType.Other:
                 case RequestErrorType.Aborted:
                 case RequestErrorType.Unsent:
                 case RequestErrorType.ClientTimeout:
-                    metricsRegistry.Other.Mark();
+                    metricsRegistry.Other.Increment();
                     break;
 
                 default:
@@ -91,35 +91,35 @@ namespace Cassandra.Observers
 
         private void OnRequestError(IRequestErrorMetrics metricsRegistry, RequestErrorType errorType)
         {
-            metricsRegistry.Total.Mark();
+            metricsRegistry.Total.Increment();
             switch (errorType)
             {
                 case RequestErrorType.Unavailable:
-                    metricsRegistry.Unavailable.Mark();
+                    metricsRegistry.Unavailable.Increment();
                     break;
 
                 case RequestErrorType.ReadTimeOut:
-                    metricsRegistry.ReadTimeout.Mark();
+                    metricsRegistry.ReadTimeout.Increment();
                     break;
 
                 case RequestErrorType.WriteTimeOut:
-                    metricsRegistry.WriteTimeout.Mark();
+                    metricsRegistry.WriteTimeout.Increment();
                     break;
 
                 case RequestErrorType.Other:
-                    metricsRegistry.Other.Mark();
+                    metricsRegistry.Other.Increment();
                     break;
 
                 case RequestErrorType.Aborted:
-                    metricsRegistry.Aborted.Mark();
+                    metricsRegistry.Aborted.Increment();
                     break;
 
                 case RequestErrorType.Unsent:
-                    metricsRegistry.Unsent.Mark();
+                    metricsRegistry.Unsent.Increment();
                     break;
                 
                 case RequestErrorType.ClientTimeout:
-                    metricsRegistry.ClientTimeout.Mark();
+                    metricsRegistry.ClientTimeout.Increment();
                     break;
 
                 default:

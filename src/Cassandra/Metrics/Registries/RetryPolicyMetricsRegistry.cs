@@ -22,21 +22,21 @@ namespace Cassandra.Metrics.Registries
     {
         public RetryPolicyOnRetryMetrics(IInternalMetricsRegistry<NodeMetric> nodeMetricsRegistry, string context)
         {
-            ReadTimeout = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.RetriesOnReadTimeout, DriverMeasurementUnit.Requests);
-            WriteTimeout = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.RetriesOnWriteTimeout, DriverMeasurementUnit.Requests);
-            Unavailable = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.RetriesOnUnavailable, DriverMeasurementUnit.Requests);
-            Other = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.RetriesOnOtherError, DriverMeasurementUnit.Requests);
-            Total = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.Retries, DriverMeasurementUnit.Requests);
+            ReadTimeout = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.RetriesOnReadTimeout, DriverMeasurementUnit.Requests);
+            WriteTimeout = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.RetriesOnWriteTimeout, DriverMeasurementUnit.Requests);
+            Unavailable = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.RetriesOnUnavailable, DriverMeasurementUnit.Requests);
+            Other = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.RetriesOnOtherError, DriverMeasurementUnit.Requests);
+            Total = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.Retries, DriverMeasurementUnit.Requests);
         }
 
-        public IDriverMeter ReadTimeout { get; }
+        public IDriverCounter ReadTimeout { get; }
 
-        public IDriverMeter WriteTimeout { get; }
+        public IDriverCounter WriteTimeout { get; }
 
-        public IDriverMeter Unavailable { get; }
+        public IDriverCounter Unavailable { get; }
 
-        public IDriverMeter Other { get; }
+        public IDriverCounter Other { get; }
 
-        public IDriverMeter Total { get; }
+        public IDriverCounter Total { get; }
     }
 }

@@ -33,9 +33,9 @@ namespace Cassandra
 
         /// <summary>
         /// Metric path.
-        /// Here is what this property will return for <see cref="NodeMetric.Meters.ReadTimeouts"/>:
+        /// Here is what this property will return for <see cref="NodeMetric.Counters.ReadTimeouts"/>:
         /// <code>
-        /// // Assume the following full metric path the NodeMetric.Meters.ReadTimeouts metric:
+        /// // Assume the following full metric path the NodeMetric.Counters.ReadTimeouts metric:
         /// web.app.session.nodes.127_0_0_1:9042.errors.request.read-timeout
         ///
         /// // NodeMetric.Path property will return
@@ -81,70 +81,49 @@ namespace Cassandra
 
         public static readonly IEnumerable<NodeMetric> AllNodeMetrics = new[]
         {
-            Counters.BytesSent,
-            Counters.SpeculativeExecutions,
-            Counters.BytesReceived,
-
-            Counters.AuthenticationErrors,
-            Counters.ConnectionInitErrors,
+            Meters.BytesSent,
+            Meters.BytesReceived,
 
             Timers.CqlMessages,
 
             Gauges.OpenConnections,
             Gauges.AvailableStreams,
             Gauges.InFlight,
+            
+            Counters.SpeculativeExecutions,
+            Counters.AuthenticationErrors,
+            Counters.ConnectionInitErrors,
 
-            Meters.AbortedRequests,
-            Meters.OtherErrors,
-            Meters.ReadTimeouts,
-            Meters.UnavailableErrors,
-            Meters.UnsentRequests,
-            Meters.WriteTimeouts,
-            Meters.ClientTimeouts,
-            Meters.Errors,
+            Counters.AbortedRequests,
+            Counters.OtherErrors,
+            Counters.ReadTimeouts,
+            Counters.UnavailableErrors,
+            Counters.UnsentRequests,
+            Counters.WriteTimeouts,
+            Counters.ClientTimeouts,
+            Counters.Errors,
 
-            Meters.RetriesOnUnavailable,
-            Meters.RetriesOnOtherError,
-            Meters.RetriesOnReadTimeout,
-            Meters.RetriesOnWriteTimeout,
-            Meters.Retries,
+            Counters.RetriesOnUnavailable,
+            Counters.RetriesOnOtherError,
+            Counters.RetriesOnReadTimeout,
+            Counters.RetriesOnWriteTimeout,
+            Counters.Retries,
 
-            Meters.IgnoresOnReadTimeout,
-            Meters.IgnoresOnUnavailable,
-            Meters.IgnoresOnOtherError,
-            Meters.IgnoresOnWriteTimeout,
-            Meters.Ignores
+            Counters.IgnoresOnReadTimeout,
+            Counters.IgnoresOnUnavailable,
+            Counters.IgnoresOnOtherError,
+            Counters.IgnoresOnWriteTimeout,
+            Counters.Ignores
         };
 
         public static class Counters
         {
-            public static readonly NodeMetric BytesSent = new NodeMetric("bytes-sent");
-
             public static readonly NodeMetric SpeculativeExecutions = new NodeMetric("speculative-executions");
-
-            public static readonly NodeMetric BytesReceived = new NodeMetric("bytes-received");
 
             public static readonly NodeMetric ConnectionInitErrors = new NodeMetric("errors.connection.init");
 
             public static readonly NodeMetric AuthenticationErrors = new NodeMetric("errors.connection.auth");
-        }
 
-        public static class Gauges
-        {
-            public static readonly NodeMetric OpenConnections = new NodeMetric("pool.open-connections");
-
-            public static readonly NodeMetric AvailableStreams = new NodeMetric("pool.available-streams");
-
-            public static readonly NodeMetric InFlight = new NodeMetric("pool.in-flight");
-        }
-
-        public static class Timers
-        {
-            public static readonly NodeMetric CqlMessages = new NodeMetric("cql-messages");
-        }
-
-        public static class Meters
-        {
             public static readonly NodeMetric RetriesOnReadTimeout = new NodeMetric("retries.read-timeout");
 
             public static readonly NodeMetric RetriesOnWriteTimeout = new NodeMetric("retries.write-timeout");
@@ -180,6 +159,27 @@ namespace Cassandra
             public static readonly NodeMetric UnsentRequests = new NodeMetric("errors.request.unsent");
 
             public static readonly NodeMetric ClientTimeouts = new NodeMetric("errors.request.client-timeout");
+        }
+
+        public static class Gauges
+        {
+            public static readonly NodeMetric OpenConnections = new NodeMetric("pool.open-connections");
+
+            public static readonly NodeMetric AvailableStreams = new NodeMetric("pool.available-streams");
+
+            public static readonly NodeMetric InFlight = new NodeMetric("pool.in-flight");
+        }
+
+        public static class Timers
+        {
+            public static readonly NodeMetric CqlMessages = new NodeMetric("cql-messages");
+        }
+
+        public static class Meters
+        {
+            public static readonly NodeMetric BytesSent = new NodeMetric("bytes-sent");
+
+            public static readonly NodeMetric BytesReceived = new NodeMetric("bytes-received");
         }
     }
 }

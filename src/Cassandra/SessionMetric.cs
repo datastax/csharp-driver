@@ -33,9 +33,9 @@ namespace Cassandra
 
         /// <summary>
         /// Metric path.
-        /// Here is what this property will return for <see cref="SessionMetric.Meters.CqlClientTimeouts"/>:
+        /// Here is what this property will return for <see cref="SessionMetric.Counters.CqlClientTimeouts"/>:
         /// <code>
-        /// // Assume the following full metric path the SessionMetric.Meters.CqlClientTimeouts metric:
+        /// // Assume the following full metric path the SessionMetric.Counters.CqlClientTimeouts metric:
         /// web.app.session.cql-client-timeouts
         ///
         /// // The SessionMetric.Path property will return
@@ -81,10 +81,10 @@ namespace Cassandra
 
         public static readonly IEnumerable<SessionMetric> AllSessionMetrics = new[]
         {
-            Counters.BytesSent,
-            Counters.BytesReceived,
+            Meters.BytesSent,
+            Meters.BytesReceived,
 
-            Meters.CqlClientTimeouts,
+            Counters.CqlClientTimeouts,
 
             Timers.CqlRequests,
 
@@ -98,14 +98,14 @@ namespace Cassandra
 
         public static class Meters
         {
-            public static readonly SessionMetric CqlClientTimeouts = new SessionMetric("cql-client-timeouts");
+            public static readonly SessionMetric BytesSent = new SessionMetric("bytes-sent");
+
+            public static readonly SessionMetric BytesReceived = new SessionMetric("bytes-received");
         }
 
         public static class Counters
         {
-            public static readonly SessionMetric BytesSent = new SessionMetric("bytes-sent");
-
-            public static readonly SessionMetric BytesReceived = new SessionMetric("bytes-received");
+            public static readonly SessionMetric CqlClientTimeouts = new SessionMetric("cql-client-timeouts");
         }
 
         public static class Gauges

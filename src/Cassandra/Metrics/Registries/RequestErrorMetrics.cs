@@ -22,36 +22,36 @@ namespace Cassandra.Metrics.Registries
     {
         public RequestErrorMetrics(IInternalMetricsRegistry<NodeMetric> nodeMetricsRegistry, string context)
         {
-            Aborted = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.AbortedRequests, DriverMeasurementUnit.Requests);
-            ReadTimeout = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.ReadTimeouts, DriverMeasurementUnit.Requests);
-            WriteTimeout = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.WriteTimeouts, DriverMeasurementUnit.Requests);
-            Unavailable = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.UnavailableErrors, DriverMeasurementUnit.Requests);
-            Other = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.OtherErrors, DriverMeasurementUnit.Requests);
-            Total = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.Errors, DriverMeasurementUnit.Requests);
-            Unsent = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.UnsentRequests, DriverMeasurementUnit.Requests);
-            ClientTimeout = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.ClientTimeouts, DriverMeasurementUnit.Requests);
+            Aborted = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.AbortedRequests, DriverMeasurementUnit.Requests);
+            ReadTimeout = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.ReadTimeouts, DriverMeasurementUnit.Requests);
+            WriteTimeout = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.WriteTimeouts, DriverMeasurementUnit.Requests);
+            Unavailable = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.UnavailableErrors, DriverMeasurementUnit.Requests);
+            Other = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.OtherErrors, DriverMeasurementUnit.Requests);
+            Total = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.Errors, DriverMeasurementUnit.Requests);
+            Unsent = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.UnsentRequests, DriverMeasurementUnit.Requests);
+            ClientTimeout = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.ClientTimeouts, DriverMeasurementUnit.Requests);
             ConnectionInitErrors = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.ConnectionInitErrors, DriverMeasurementUnit.Requests);
             AuthenticationErrors = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.AuthenticationErrors, DriverMeasurementUnit.Requests);
         }
 
-        public IDriverMeter Aborted { get; }
+        public IDriverCounter Aborted { get; }
 
-        public IDriverMeter ReadTimeout { get; }
+        public IDriverCounter ReadTimeout { get; }
 
-        public IDriverMeter WriteTimeout { get; }
+        public IDriverCounter WriteTimeout { get; }
 
-        public IDriverMeter Unavailable { get; }
+        public IDriverCounter Unavailable { get; }
 
-        public IDriverMeter ClientTimeout { get; }
+        public IDriverCounter ClientTimeout { get; }
 
-        public IDriverMeter Other { get; }
+        public IDriverCounter Other { get; }
 
-        public IDriverMeter Unsent { get; }
+        public IDriverCounter Unsent { get; }
 
         public IDriverCounter ConnectionInitErrors { get; }
 
         public IDriverCounter AuthenticationErrors { get; }
 
-        public IDriverMeter Total { get; }
+        public IDriverCounter Total { get; }
     }
 }

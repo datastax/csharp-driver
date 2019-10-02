@@ -24,11 +24,11 @@ namespace Cassandra.Metrics.Registries
     {
         IDriverTimer CqlRequests { get; }
 
-        IDriverMeter CqlClientTimeouts { get; }
+        IDriverCounter CqlClientTimeouts { get; }
 
-        IDriverCounter BytesSent { get; }
+        IDriverMeter BytesSent { get; }
 
-        IDriverCounter BytesReceived { get; }
+        IDriverMeter BytesReceived { get; }
 
         IDriverGauge ConnectedNodes { get; }
 

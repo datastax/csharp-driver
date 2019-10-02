@@ -35,19 +35,14 @@ namespace Cassandra.AppMetrics.Implementations
             MeasurementUnit = measurementUnit.ToAppMetricsUnit();
         }
 
+        public void Increment()
+        {
+            _counter.Increment();
+        }
+        
         public void Increment(long value)
         {
             _counter.Increment(value);
-        }
-
-        public void Decrement(long value)
-        {
-            _counter.Decrement(value);
-        }
-
-        public void Reset()
-        {
-            _counter.Reset();
         }
         
         public string Context { get; }

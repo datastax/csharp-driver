@@ -29,12 +29,8 @@ namespace Cassandra.Metrics.Providers.Null
         public void Increment(long value)
         {
         }
-
-        public void Decrement(long value)
-        {
-        }
-
-        public void Reset()
+        
+        public void Increment()
         {
         }
     }

@@ -37,8 +37,8 @@ namespace Cassandra.Observers
         {
             try
             {
-                _nodeMetrics.BytesSent.Increment(size);
-                _sessionMetrics.BytesSent.Increment(size);
+                _nodeMetrics.BytesSent.Mark(size);
+                _sessionMetrics.BytesSent.Mark(size);
             }
             catch (Exception ex)
             {
@@ -50,8 +50,8 @@ namespace Cassandra.Observers
         {
             try
             {
-                _nodeMetrics.BytesReceived.Increment(size);
-                _sessionMetrics.BytesReceived.Increment(size);
+                _nodeMetrics.BytesReceived.Mark(size);
+                _sessionMetrics.BytesReceived.Mark(size);
             }
             catch (Exception ex)
             {

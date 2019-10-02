@@ -19,21 +19,21 @@ namespace Cassandra.Metrics.Registries
 {
     internal interface IRequestErrorMetrics
     {
-        IDriverMeter Aborted { get; }
+        IDriverCounter Aborted { get; }
 
-        IDriverMeter ReadTimeout { get; }
+        IDriverCounter ReadTimeout { get; }
 
-        IDriverMeter WriteTimeout { get; }
+        IDriverCounter WriteTimeout { get; }
 
-        IDriverMeter Unavailable { get; }
+        IDriverCounter Unavailable { get; }
 
-        IDriverMeter ClientTimeout { get; }
+        IDriverCounter ClientTimeout { get; }
 
-        IDriverMeter Other { get; }
+        IDriverCounter Other { get; }
 
-        IDriverMeter Unsent { get; }
+        IDriverCounter Unsent { get; }
 
-        IDriverMeter Total { get; }
+        IDriverCounter Total { get; }
 
         IDriverCounter ConnectionInitErrors { get; }
 

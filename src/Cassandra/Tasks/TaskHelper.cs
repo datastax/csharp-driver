@@ -100,7 +100,7 @@ namespace Cassandra.Tasks
         /// <exception cref="AggregateException" />
         public static T WaitToComplete<T>(Task<T> task, int timeout = Timeout.Infinite)
         {
-            WaitToComplete((Task) task, timeout);
+            TaskHelper.WaitToComplete((Task) task, timeout);
             return task.Result;
         }
         
@@ -113,6 +113,7 @@ namespace Cassandra.Tasks
             if (sessionMetrics == null)
             {
                 TaskHelper.WaitToComplete(task, timeout);
+                return;
             }
 
             try
@@ -121,7 +122,7 @@ namespace Cassandra.Tasks
             }
             catch (TimeoutException)
             {
-                sessionMetrics.CqlClientTimeouts.Mark();
+                sessionMetrics.CqlClientTimeouts.Increment();
                 throw;
             }
         }
@@ -131,7 +132,7 @@ namespace Cassandra.Tasks
         /// </summary>
         public static T WaitToCompleteWithMetrics<T>(IMetricsManager manager, Task<T> task, int timeout = Timeout.Infinite)
         {
-            WaitToCompleteWithMetrics(manager, (Task) task, timeout);
+            TaskHelper.WaitToCompleteWithMetrics(manager, (Task) task, timeout);
             return task.Result;
         }
 

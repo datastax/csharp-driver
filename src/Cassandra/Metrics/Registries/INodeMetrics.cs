@@ -24,9 +24,9 @@ namespace Cassandra.Metrics.Registries
     {
         IDriverCounter SpeculativeExecutions { get; }
 
-        IDriverCounter BytesSent { get; }
+        IDriverMeter BytesSent { get; }
 
-        IDriverCounter BytesReceived { get; }
+        IDriverMeter BytesReceived { get; }
 
         IDriverTimer CqlMessages { get; }
 

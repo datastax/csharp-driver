@@ -41,7 +41,7 @@ namespace Cassandra
         
         /// <summary>
         /// Disables specific node metrics. The available node metrics can be found as static readonly properties in
-        /// the <see cref="NodeMetric"/> class, e.g., <see cref="NodeMetric.Counters.BytesSent"/>.
+        /// the <see cref="NodeMetric"/> class, e.g., <see cref="NodeMetric.Meters.BytesSent"/>.
         /// There is also a property that returns a collection with all node metrics: <see cref="NodeMetric.AllNodeMetrics"/>.
         /// </summary>
         /// <returns>This instance.</returns>
@@ -53,7 +53,7 @@ namespace Cassandra
         
         /// <summary>
         /// Disables specific session metrics. The available session metrics can be found as static readonly properties in
-        /// the <see cref="SessionMetric"/> class, e.g., <see cref="SessionMetric.Counters.BytesSent"/>.
+        /// the <see cref="SessionMetric"/> class, e.g., <see cref="SessionMetric.Meters.BytesSent"/>.
         /// There is also a property that returns a collection with all node metrics: <see cref="SessionMetric.AllSessionMetrics"/>.
         /// </summary>
         /// <returns>This instance.</returns>
@@ -70,7 +70,7 @@ namespace Cassandra
         /// <code>
         /// Format: &lt;path-prefix&gt;.&lt;session-name&gt;.nodes.&lt;node-address&gt;.&lt;metric-path&gt;
         /// </code>
-        /// Here is how the full metric name will look like for <see cref="NodeMetric.Meters.Retries"/> in practice:
+        /// Here is how the full metric name will look like for <see cref="NodeMetric.Counters.Retries"/> in practice:
         /// <code>
         /// // Set metric prefix
         /// var cluster = 
@@ -82,7 +82,7 @@ namespace Cassandra
         ///                new MetricsOptions().SetPathPrefix("web.app"))
         ///            .Build();
         ///
-        /// // Resulting metric name for the NodeMetric.Meters.Retries metric:
+        /// // Resulting metric name for the NodeMetric.Counters.Retries metric:
         /// web.app.session.nodes.127_0_0_1:9042.retries.total
         /// </code>
         /// </summary>

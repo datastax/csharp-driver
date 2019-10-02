@@ -39,9 +39,9 @@ namespace Cassandra.Metrics.Registries
 
         public IDriverCounter SpeculativeExecutions { get; private set; }
 
-        public IDriverCounter BytesSent { get; private set; }
+        public IDriverMeter BytesSent { get; private set; }
 
-        public IDriverCounter BytesReceived { get; private set; }
+        public IDriverMeter BytesReceived { get; private set; }
 
         public IDriverTimer CqlMessages { get; private set; }
 
@@ -65,8 +65,8 @@ namespace Cassandra.Metrics.Registries
             {
                 SpeculativeExecutions = MetricsRegistry.Counter(
                     _context, NodeMetric.Counters.SpeculativeExecutions, DriverMeasurementUnit.Requests);
-                BytesSent = MetricsRegistry.Counter(_context, NodeMetric.Counters.BytesSent, DriverMeasurementUnit.Bytes);
-                BytesReceived = MetricsRegistry.Counter(_context, NodeMetric.Counters.BytesReceived, DriverMeasurementUnit.Bytes);
+                BytesSent = MetricsRegistry.Meter(_context, NodeMetric.Meters.BytesSent, DriverMeasurementUnit.Bytes);
+                BytesReceived = MetricsRegistry.Meter(_context, NodeMetric.Meters.BytesReceived, DriverMeasurementUnit.Bytes);
                 CqlMessages = MetricsRegistry.Timer(
                     _context, NodeMetric.Timers.CqlMessages, DriverMeasurementUnit.Requests, DriverTimeUnit.Milliseconds);
 
