@@ -343,7 +343,6 @@ namespace Cassandra
             if (_metadata.IsDbaas)
             {
                 Configuration.SetDefaultConsistencyLevel(ConsistencyLevel.LocalQuorum);
-                Configuration.SetDefaultSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
             }
         }
 
