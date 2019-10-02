@@ -15,8 +15,11 @@
 
 namespace Cassandra.Metrics.Abstractions
 {
+    /// <summary>
+    /// Represents an individual metric. Every metric type implements this interface:
+    /// <see cref="IDriverGauge"/>, <see cref="IDriverMetric"/>, <see cref="IDriverTimer"/>, <see cref="IDriverCounter"/>, <see cref="IDriverHistogram"/>.
+    /// </summary>
     public interface IDriverMetric
     {
-        string FullName { get; }
     }
 }

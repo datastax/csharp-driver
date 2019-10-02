@@ -22,6 +22,6 @@ namespace Cassandra.Metrics.Abstractions
         Errors,
         Requests,
         Connections,
-        None,
+        None
     }
 }

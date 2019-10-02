@@ -13,10 +13,24 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-namespace Cassandra.Metrics.Abstractions
+using App.Metrics;
+using App.Metrics.Timer;
+
+namespace Cassandra.AppMetrics.Implementations
 {
-    public interface IDriverMetricWithValue<out T> : IDriverMetric
+    internal class AppMetricsTimerValue : IAppMetricsTimerValue
     {
-        T GetValue();
+        public AppMetricsTimerValue(TimerValue value)
+        {
+            Histogram = new AppMetricsHistogramValue(value.Histogram);
+            Rate = new AppMetricsMeterValue(value.Rate);
+            DurationUnit = value.DurationUnit;
+        }
+
+        public IAppMetricsHistogramValue Histogram { get; }
+
+        public IAppMetricsMeterValue Rate { get; }
+
+        public TimeUnit DurationUnit { get; }
     }
 }

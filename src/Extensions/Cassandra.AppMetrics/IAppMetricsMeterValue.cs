@@ -13,36 +13,22 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-namespace Cassandra.Metrics.Abstractions
+using Cassandra.Metrics.Abstractions;
+
+namespace Cassandra.AppMetrics
 {
-    public interface IHistogramValue
-    {
+    public interface IAppMetricsMeterValue
+    {       
         long Count { get; }
 
-        double Sum { get; }
+        double FifteenMinuteRate { get; }
+
+        double FiveMinuteRate { get; }
         
-        double LastValue { get; }
+        double MeanRate { get; }
 
-        double Max { get; }
+        double OneMinuteRate { get; }
 
-        double Mean { get; }
-
-        double Median { get; }
-
-        double Min { get; }
-        
-        double Percentile75 { get; }
-
-        double Percentile95 { get; }
-
-        double Percentile98 { get; }
-
-        double Percentile99 { get; }
-
-        double Percentile999 { get; }
-
-        int SampleSize { get; }
-
-        double StdDev { get; }
+        DriverTimeUnit RateUnit { get; }
     }
 }

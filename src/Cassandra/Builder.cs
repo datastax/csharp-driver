@@ -711,7 +711,7 @@ namespace Cassandra
         /// Alternatively, you can implement your own provider that implements <see cref="IDriverMetricsProvider"/>.
         /// </para>
         /// <para>
-        /// This method enables all individual metrics and sets an empty context. To customize these options,
+        /// This method enables all individual metrics without a path prefix (besides session name). To customize these options,
         /// use <see cref="WithMetrics(IDriverMetricsProvider, MetricsOptions)"/>.
         /// </para>
         /// </summary>
@@ -731,9 +731,9 @@ namespace Cassandra
         /// Alternatively, you can implement your own provider that implements <see cref="IDriverMetricsProvider"/>.
         /// </para>
         /// <para>
-        /// This method enables all individual metrics and sets an empty context. To customize these settings,
+        /// This method enables all individual metrics without a path prefix (besides session name). To customize these settings,
         /// use <see cref="WithMetrics(IDriverMetricsProvider, MetricsOptions)"/>. For explanations on these settings,
-        /// see the API docs of the <see cref="Cassandra.Metrics"/> class.
+        /// see the API docs of the <see cref="MetricsOptions"/> class.
         /// <para>
         /// Here is an example:
         /// <code>
@@ -745,7 +745,7 @@ namespace Cassandra
         ///                    .SetDisabledNodeMetrics(new[] { NodeMetrics.Counters.BytesSent })
         ///                    .SetDisabledSessionMetrics(
         ///                        SessionMetrics.AllSessionMetrics.Except(new[] { SessionMetrics.CqlRequests }))
-        ///                    .SetContext("web", "app"))
+        ///                    .SetPathPrefix("web.app"))
         ///            .Build();
         /// </code>
         /// </para>
@@ -753,7 +753,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="driverMetricsProvider">Metrics Provider implementation.</param>
         /// <param name="metricsOptions">Metrics Provider implementation.</param>
-        /// <returns>This builder</returns> //TODO fix xml docs SetContext
+        /// <returns>This builder</returns>
         public Builder WithMetrics(IDriverMetricsProvider driverMetricsProvider, MetricsOptions metricsOptions)
         {
             _driverMetricsProvider = driverMetricsProvider ?? throw new ArgumentNullException(nameof(driverMetricsProvider));

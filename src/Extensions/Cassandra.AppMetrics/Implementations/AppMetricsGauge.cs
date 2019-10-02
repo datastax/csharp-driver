@@ -18,29 +18,31 @@ using App.Metrics;
 using App.Metrics.Gauge;
 using Cassandra.Metrics.Abstractions;
 
-namespace Cassandra.AppMetrics
+namespace Cassandra.AppMetrics.Implementations
 {
-    internal class AppMetricsDriverGauge : IDriverGauge
+    internal class AppMetricsGauge : IAppMetricsGauge
     {
         private readonly IMetrics _metrics;
         private readonly IGauge _gauge;
-        private readonly string _context;
-        private readonly string _name;
 
-        public AppMetricsDriverGauge(IMetrics metrics, IGauge gauge, string context, string name, string fullName)
+        public AppMetricsGauge(IMetrics metrics, IGauge gauge, string bucket, string path, DriverMeasurementUnit measurementUnit)
         {
             _metrics = metrics;
             _gauge = gauge;
-            _context = context;
-            FullName = fullName;
-            _name = name;
+            Context = bucket;
+            Name = path;
+            MeasurementUnit = measurementUnit.ToAppMetricsUnit();
         }
 
-        public string FullName { get; }
+        public string Context { get; }
+        
+        public string Name { get; }
+
+        public Unit MeasurementUnit { get; }
 
         public double? GetValue()
         {
-            var value = _metrics.Snapshot.GetForContext(_context).Gauges.ValueFor(_name);
+            var value = _metrics.Snapshot.GetForContext(Context).Gauges.ValueFor(Name);
             return double.IsNaN(value) ? null : (double?)value;
         }
     }

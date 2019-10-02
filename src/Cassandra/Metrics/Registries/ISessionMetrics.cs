@@ -14,12 +14,13 @@
 //    limitations under the License.
 
 using System;
+
 using Cassandra.Metrics.Abstractions;
 using Cassandra.SessionManagement;
 
 namespace Cassandra.Metrics.Registries
 {
-    internal interface ISessionMetrics : IMetricsRegistry, IDisposable
+    internal interface ISessionMetrics : IDisposable
     {
         IDriverTimer CqlRequests { get; }
 
@@ -30,6 +31,8 @@ namespace Cassandra.Metrics.Registries
         IDriverCounter BytesReceived { get; }
 
         IDriverGauge ConnectedNodes { get; }
+
+        IInternalMetricsRegistry<SessionMetric> MetricsRegistry { get; }
 
         void InitializeMetrics(IInternalSession session);
     }

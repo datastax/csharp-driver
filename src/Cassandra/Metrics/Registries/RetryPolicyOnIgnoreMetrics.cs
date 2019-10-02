@@ -18,15 +18,15 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.Metrics.Registries
 {
-    internal class RetryPolicyOnRetryMetrics : IRetryPolicyMetrics
+    internal class RetryPolicyOnIgnoreMetrics : IRetryPolicyMetrics
     {
-        public RetryPolicyOnRetryMetrics(IInternalMetricsRegistry<NodeMetric> nodeMetricsRegistry, string context)
+        public RetryPolicyOnIgnoreMetrics(IInternalMetricsRegistry<NodeMetric> nodeMetricsRegistry, string context)
         {
-            ReadTimeout = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.RetriesOnReadTimeout, DriverMeasurementUnit.Requests);
-            WriteTimeout = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.RetriesOnWriteTimeout, DriverMeasurementUnit.Requests);
-            Unavailable = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.RetriesOnUnavailable, DriverMeasurementUnit.Requests);
-            Other = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.RetriesOnOtherError, DriverMeasurementUnit.Requests);
-            Total = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.Retries, DriverMeasurementUnit.Requests);
+            ReadTimeout = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.IgnoresOnReadTimeout, DriverMeasurementUnit.Requests);
+            WriteTimeout = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.IgnoresOnWriteTimeout, DriverMeasurementUnit.Requests);
+            Unavailable = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.IgnoresOnUnavailable, DriverMeasurementUnit.Requests);
+            Other = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.IgnoresOnOtherError, DriverMeasurementUnit.Requests);
+            Total = nodeMetricsRegistry.Meter(context, NodeMetric.Meters.Ignores, DriverMeasurementUnit.Requests);
         }
 
         public IDriverMeter ReadTimeout { get; }

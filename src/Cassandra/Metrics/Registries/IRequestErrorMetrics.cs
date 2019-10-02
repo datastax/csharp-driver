@@ -13,8 +13,6 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-using System.Collections.Generic;
-
 using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.Metrics.Registries
@@ -40,9 +38,5 @@ namespace Cassandra.Metrics.Registries
         IDriverCounter ConnectionInitErrors { get; }
 
         IDriverCounter AuthenticationErrors { get; }
-
-        IEnumerable<IDriverMeter> Meters { get; }
-        
-        IEnumerable<IDriverCounter> Counters { get; }
     }
 }

@@ -1,5 +1,5 @@
 ﻿//
-//       Copyright (C) 2019 DataStax Inc.
+//       Copyright (C) DataStax Inc.
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -12,24 +12,15 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-//
 
-using Cassandra.Metrics.Abstractions;
-
-namespace Cassandra.Metrics.Providers.Null
+namespace Cassandra.AppMetrics
 {
-    internal class NullTimerValue : ITimerValue
+    /// <summary>
+    /// Represents a metric with a value of type <typeparamref name="T"/> that can be obtained.
+    /// </summary>
+    /// <typeparam name="T">Type of the value that can be obtained with this metric.</typeparam>
+    public interface IAppMetricsMetricWithValue<out T> : IAppMetricsMetric
     {
-        public static readonly ITimerValue Instance = new NullTimerValue();
-
-        private NullTimerValue()
-        {
-        }
-
-        public IHistogramValue Histogram => NullHistogramValue.Instance;
-
-        public IMeterValue Rate => NullMeterValue.Instance;
-
-        public DriverTimeUnit DurationUnit => default(DriverTimeUnit);
+        T GetValue();
     }
 }

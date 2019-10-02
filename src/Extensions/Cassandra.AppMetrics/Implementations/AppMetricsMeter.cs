@@ -18,23 +18,21 @@ using App.Metrics;
 using App.Metrics.Meter;
 using Cassandra.Metrics.Abstractions;
 
-namespace Cassandra.AppMetrics
+namespace Cassandra.AppMetrics.Implementations
 {
-    internal class AppMetricsDriverMeter : IDriverMeter
+    internal class AppMetricsMeter : IAppMetricsMeter
     {
         private readonly IMetrics _metrics;
         private readonly IMeter _meter;
-        private readonly string _context;
-        private readonly string _name;
 
-        public AppMetricsDriverMeter(
-            IMetrics metrics, IMeter meter, string context, string name, string fullName)
+        public AppMetricsMeter(
+            IMetrics metrics, IMeter meter, string bucket, string path, DriverMeasurementUnit measurementUnit)
         {
             _metrics = metrics;
             _meter = meter;
-            _context = context;
-            _name = name;
-            FullName = fullName;
+            Context = bucket;
+            Name = path;
+            MeasurementUnit = measurementUnit.ToAppMetricsUnit();
         }
 
         public void Mark()
@@ -47,11 +45,15 @@ namespace Cassandra.AppMetrics
             _meter.Mark(amount);
         }
 
-        public string FullName { get; }
+        public string Context { get; }
+        
+        public string Name { get; }
 
-        public IMeterValue GetValue()
+        public Unit MeasurementUnit { get; }
+
+        public IAppMetricsMeterValue GetValue()
         {
-            return new AppMetricsMeterValue(_metrics.Snapshot.GetForContext(_context).Meters.ValueFor(_name));
+            return new AppMetricsMeterValue(_metrics.Snapshot.GetForContext(Context).Meters.ValueFor(Name));
         }
     }
 }

@@ -18,19 +18,16 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.Metrics.Providers.Null
 {
-    internal class NullDriverGauge : NullMetricBase, IDriverGauge
+    internal class NullDriverGauge : IDriverGauge
     {
-        public NullDriverGauge(string fullName) : base(fullName)
+        public static IDriverGauge Instance = new NullDriverGauge();
+
+        private NullDriverGauge()
         {
         }
 
         public void Dispose()
         {
-        }
-
-        public double? GetValue()
-        {
-            return null;
         }
     }
 }

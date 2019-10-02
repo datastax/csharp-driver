@@ -46,7 +46,7 @@ namespace Cassandra.Tests
             var clusterMock = new Mock<IInternalCluster>();
             sessionMock.Setup(x => x.InternalCluster).Returns(clusterMock.Object);
             sessionMock.Setup(x => x.ObserverFactory)
-                       .Returns(new ObserverFactory(new MetricsManager(new NullDriverMetricsProvider(), string.Empty, "s1")));
+                       .Returns(new ObserverFactory(new MetricsManager(new NullDriverMetricsProvider(), new MetricsOptions(), "s1")));
             return sessionMock.Object;
         }
         private static Configuration GetConfig(ILoadBalancingPolicy lbp)

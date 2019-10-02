@@ -15,66 +15,43 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Cassandra
 {
     /// <summary>
-    /// Represents an individual metric.
+    /// Represents an individual session metric.
     /// </summary>
-    public class SessionMetric : IEquatable<SessionMetric>
+    public sealed class SessionMetric : IEquatable<SessionMetric>, IEquatable<IMetric>, IMetric
     {
         private readonly int _hashCode;
 
-        internal SessionMetric(string name)
+        internal SessionMetric(string path)
         {
-            Context = Enumerable.Empty<string>();
-            Name = name ?? throw new ArgumentNullException(nameof(name));
-            _hashCode = SessionMetric.ComputeHashCode(Context, name);
-        }
-
-        internal SessionMetric(IEnumerable<string> context, string name)
-        {
-            Context = context ?? throw new ArgumentNullException(nameof(context));
-            Name = name ?? throw new ArgumentNullException(nameof(name));
-            _hashCode = SessionMetric.ComputeHashCode(context, name);
+            Path = path ?? throw new ArgumentNullException(nameof(path));
+            _hashCode = path.GetHashCode();
         }
 
         /// <summary>
-        /// Context for this metric. It doesn't include the full context like the global context set in the builder or
-        /// session name.
-        /// Here is what this property will return for <see cref="SessionMetrics.Meters.CqlClientTimeouts"/>:
+        /// Metric path.
+        /// Here is what this property will return for <see cref="SessionMetric.Meters.CqlClientTimeouts"/>:
         /// <code>
-        /// // Assume the following full metric path the SessionMetrics.Meters.CqlClientTimeouts metric:
+        /// // Assume the following full metric path the SessionMetric.Meters.CqlClientTimeouts metric:
         /// web.app.session.cql-client-timeouts
         ///
-        /// // The SessionMetric.Context property will return an empty collection equivalent:
-        /// new [] { }
-        /// </code>
-        /// </summary>
-        public IEnumerable<string> Context { get; }
-
-        /// <summary>
-        /// Metric name without any context.
-        /// Here is what this property will return for <see cref="SessionMetrics.Meters.CqlClientTimeouts"/>:
-        /// <code>
-        /// // Assume the following full metric path the SessionMetrics.Meters.CqlClientTimeouts metric:
-        /// web.app.session.cql-client-timeouts
-        ///
-        /// // The SessionMetric.Name property will return
+        /// // The SessionMetric.Path property will return
         /// cql-client-timeouts
         /// </code>
         /// </summary>
-        public string Name { get; }
+        public string Path { get; }
 
         public bool Equals(SessionMetric other)
         {
-            return other != null && Context.SequenceEqual(other.Context) && string.Equals(Name, other.Name);
+            return other != null && StrictEqualsNotNull(other);
         }
 
         public override bool Equals(object obj)
         {
-            return obj != null && obj is SessionMetric other && Equals(other);
+            return StrictEquals(obj);
         }
 
         public override int GetHashCode()
@@ -82,9 +59,58 @@ namespace Cassandra
             return _hashCode;
         }
 
-        private static int ComputeHashCode(IEnumerable<string> context, string name)
+        public bool Equals(IMetric other)
         {
-            return Utils.CombineHashCode(context.Concat(new[] { name }));
+            return StrictEquals(other);
+        }
+
+        public override string ToString()
+        {
+            return Path;
+        }
+
+        private bool StrictEquals(object obj)
+        {
+            return obj != null && obj is SessionMetric other && StrictEqualsNotNull(other);
+        }
+
+        private bool StrictEqualsNotNull(SessionMetric other)
+        {
+            return string.Equals(Path, other.Path);
+        }
+
+        public static readonly IEnumerable<SessionMetric> AllSessionMetrics = new[]
+        {
+            Counters.BytesSent,
+            Counters.BytesReceived,
+
+            Meters.CqlClientTimeouts,
+
+            Timers.CqlRequests,
+
+            Gauges.ConnectedNodes
+        };
+
+        public static class Timers
+        {
+            public static readonly SessionMetric CqlRequests = new SessionMetric("cql-requests");
+        }
+
+        public static class Meters
+        {
+            public static readonly SessionMetric CqlClientTimeouts = new SessionMetric("cql-client-timeouts");
+        }
+
+        public static class Counters
+        {
+            public static readonly SessionMetric BytesSent = new SessionMetric("bytes-sent");
+
+            public static readonly SessionMetric BytesReceived = new SessionMetric("bytes-received");
+        }
+
+        public static class Gauges
+        {
+            public static readonly SessionMetric ConnectedNodes = new SessionMetric("connected-nodes");
         }
     }
 }

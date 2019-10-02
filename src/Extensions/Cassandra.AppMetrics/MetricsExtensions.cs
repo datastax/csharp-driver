@@ -13,24 +13,19 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-using System.Collections.Generic;
+using App.Metrics;
 
+using Cassandra.AppMetrics;
+using Cassandra.AppMetrics.Implementations;
 using Cassandra.Metrics.Abstractions;
 
-namespace Cassandra.Metrics
+namespace Cassandra
 {
-    public interface IMetricsRegistry<TMetric> where TMetric : IMetric
+    public static class MetricsExtensions
     {
-        IReadOnlyDictionary<TMetric, IDriverCounter> Counters { get; }
-
-        IReadOnlyDictionary<TMetric, IDriverGauge> Gauges { get; }
-
-        IReadOnlyDictionary<TMetric, IDriverHistogram> Histograms { get; }
-
-        IReadOnlyDictionary<TMetric, IDriverMeter> Meters { get; }
-
-        IReadOnlyDictionary<TMetric, IDriverTimer> Timers { get; }
-
-        IReadOnlyDictionary<TMetric, IDriverMetric> Metrics { get; }
+        public static IDriverMetricsProvider CreateDriverMetricsProvider(this IMetricsRoot appMetrics)
+        {
+            return new AppMetricsDriverMetricsProvider(appMetrics);
+        }
     }
 }

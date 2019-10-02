@@ -18,23 +18,21 @@ using App.Metrics;
 using App.Metrics.Histogram;
 using Cassandra.Metrics.Abstractions;
 
-namespace Cassandra.AppMetrics
+namespace Cassandra.AppMetrics.Implementations
 {
-    internal class AppMetricsDriverHistogram : IDriverHistogram
+    internal class AppMetricsHistogram : IDriverHistogram
     {
         private readonly IMetrics _metrics;
         private readonly IHistogram _histogram;
-        private readonly string _context;
-        private readonly string _name;
 
-        public AppMetricsDriverHistogram(
-            IMetrics metrics, IHistogram histogram, string context, string name, string fullName)
+        public AppMetricsHistogram(
+            IMetrics metrics, IHistogram histogram, string bucket, string path, DriverMeasurementUnit measurementUnit)
         {
             _metrics = metrics;
             _histogram = histogram;
-            _context = context;
-            _name = name;
-            FullName = fullName;
+            Context = bucket;
+            Name = path;
+            MeasurementUnit = measurementUnit.ToAppMetricsUnit();
         }
 
         public void Update(long value)
@@ -42,11 +40,15 @@ namespace Cassandra.AppMetrics
             _histogram.Update(value);
         }
 
-        public string FullName { get; }
+        public string Context { get; }
+        
+        public string Name { get; }
 
-        public IHistogramValue GetValue()
+        public Unit MeasurementUnit { get; }
+
+        public IAppMetricsHistogramValue GetValue()
         {
-            return new AppMetricsHistogramValue(_metrics.Snapshot.GetForContext(_context).Histograms.ValueFor(_name));
+            return new AppMetricsHistogramValue(_metrics.Snapshot.GetForContext(Context).Histograms.ValueFor(Name));
         }
     }
 }

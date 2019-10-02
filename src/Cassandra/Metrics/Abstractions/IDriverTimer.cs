@@ -21,7 +21,7 @@ namespace Cassandra.Metrics.Abstractions
     /// allowing us to measure the duration of a type of event, the rate of its occurrence and provide duration statistics,
     /// for example tracking the time it takes to execute a particular CQL request.
     /// </summary>
-    public interface IDriverTimer : IDriverMetricWithValue<ITimerValue>
+    public interface IDriverTimer : IDriverMetric
     {
         /// <summary>
         /// Starts the timer for a single measurement.

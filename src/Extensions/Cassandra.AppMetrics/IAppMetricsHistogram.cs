@@ -1,5 +1,5 @@
-﻿// 
-//       Copyright (C) DataStax Inc.
+// 
+//       Copyright (C) 2019 DataStax Inc.
 // 
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -12,21 +12,13 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+// 
 
-namespace Cassandra.Metrics.Abstractions
+using Cassandra.Metrics.Abstractions;
+
+namespace Cassandra.AppMetrics
 {
-    public interface IMeterValue
-    {       
-        long Count { get; }
-
-        double FifteenMinuteRate { get; }
-
-        double FiveMinuteRate { get; }
-        
-        double MeanRate { get; }
-
-        double OneMinuteRate { get; }
-
-        DriverTimeUnit RateUnit { get; }
+    public interface IAppMetricsHistogram : IAppMetricsMetricWithValue<IAppMetricsHistogramValue>, IDriverHistogram
+    {
     }
 }

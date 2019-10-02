@@ -14,12 +14,11 @@
 //    limitations under the License.
 
 using App.Metrics.Meter;
-
 using Cassandra.Metrics.Abstractions;
 
-namespace Cassandra.AppMetrics
+namespace Cassandra.AppMetrics.Implementations
 {
-    internal class AppMetricsMeterValue : IMeterValue
+    internal class AppMetricsMeterValue : IAppMetricsMeterValue
     {
         private readonly MeterValue _rate;
 

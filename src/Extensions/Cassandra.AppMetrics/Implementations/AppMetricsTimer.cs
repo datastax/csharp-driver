@@ -18,24 +18,22 @@ using App.Metrics;
 using App.Metrics.Timer;
 using Cassandra.Metrics.Abstractions;
 
-namespace Cassandra.AppMetrics
+namespace Cassandra.AppMetrics.Implementations
 {
     /// <inheritdoc />
-    internal class AppMetricsTimer : IDriverTimer
+    internal class AppMetricsTimer : IAppMetricsTimer
     {
-        private readonly IMetrics _metrics;
+        private readonly IMetrics _appMetrics;
         private readonly ITimer _timer;
-        private readonly string _context;
-        private readonly string _name;
 
         public AppMetricsTimer(
-            IMetrics metrics, ITimer timer, string context, string name, string fullName)
+            IMetrics appMetrics, ITimer timer, string bucket, string path, DriverMeasurementUnit measurementUnit)
         {
-            _metrics = metrics;
+            _appMetrics = appMetrics;
             _timer = timer;
-            _name = name;
-            _context = context;
-            FullName = fullName;
+            Name = path;
+            Context = bucket;
+            MeasurementUnit = measurementUnit.ToAppMetricsUnit();
         }
 
         /// <inheritdoc/>
@@ -45,12 +43,18 @@ namespace Cassandra.AppMetrics
         }
         
         /// <inheritdoc/>
-        public string FullName { get; }
+        public string Context { get; }
+
+        /// <inheritdoc/>
+        public string Name { get; }
         
         /// <inheritdoc/>
-        public ITimerValue GetValue()
+        public Unit MeasurementUnit { get; }
+
+        /// <inheritdoc/>
+        public IAppMetricsTimerValue GetValue()
         {
-            var value = _metrics.Snapshot.GetForContext(_context).Timers.ValueFor(_name);
+            var value = _appMetrics.Snapshot.GetForContext(Context).Timers.ValueFor(Name);
             return new AppMetricsTimerValue(value);
         }
     }

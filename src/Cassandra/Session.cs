@@ -113,7 +113,7 @@ namespace Cassandra
             UserDefinedTypes = new UdtMappingDefinitions(this, serializer);
             _connectionPool = new CopyOnWriteDictionary<IPEndPoint, IHostConnectionPool>();
             _cluster.HostRemoved += OnHostRemoved;
-            _metricsManager = new MetricsManager(configuration.MetricsProvider, Configuration.MetricsOptions.Context, SessionName);
+            _metricsManager = new MetricsManager(configuration.MetricsProvider, Configuration.MetricsOptions, SessionName);
             _observerFactory = configuration.ObserverFactoryBuilder.Build(_metricsManager);
         }
 

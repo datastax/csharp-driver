@@ -20,18 +20,18 @@ namespace Cassandra.Metrics.Abstractions
 {
     public interface IDriverMetricsProvider
     {
-        IDriverTimer Timer(string context, string metricName, DriverMeasurementUnit measurementUnit, DriverTimeUnit timeUnit);
+        IDriverTimer Timer(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit, DriverTimeUnit timeUnit);
 
-        IDriverHistogram Histogram(string context, string metricName, DriverMeasurementUnit measurementUnit);
+        IDriverHistogram Histogram(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit);
 
-        IDriverMeter Meter(string context, string metricName, DriverMeasurementUnit measurementUnit);
+        IDriverMeter Meter(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit);
 
-        IDriverCounter Counter(string context, string metricName, DriverMeasurementUnit measurementUnit);
+        IDriverCounter Counter(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit);
 
-        IDriverGauge Gauge(string context, string metricName, Func<double?> valueProvider, DriverMeasurementUnit measurementUnit);
+        IDriverGauge Gauge(string bucket, IMetric metric, Func<double?> valueProvider, DriverMeasurementUnit measurementUnit);
 
-        IDriverGauge Gauge(string context, string metricName, DriverMeasurementUnit measurementUnit);
+        IDriverGauge Gauge(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit);
 
-        void ShutdownMetricsContext(string context);
+        void ShutdownMetricsBucket(string bucket);
     }
 }

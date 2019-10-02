@@ -14,26 +14,11 @@
 //    limitations under the License.
 //
 
-using App.Metrics.Timer;
-
 using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics
 {
-    /// <inheritdoc/>
-    internal class AppMetricsTimerMeasurement : IDriverTimerMeasurement
+    public interface IAppMetricsTimer : IAppMetricsMetricWithValue<IAppMetricsTimerValue>, IDriverTimer
     {
-        private TimerContext _timerContext;
-
-        public AppMetricsTimerMeasurement(TimerContext timerContext)
-        {
-            _timerContext = timerContext;
-        }
-        
-        /// <inheritdoc/>
-        public void StopMeasuring()
-        {
-            _timerContext.Dispose();
-        }
     }
 }

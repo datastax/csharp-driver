@@ -75,6 +75,12 @@ namespace Cassandra.Collections
         /// </returns>
         public TValue GetOrAdd(TKey key, TValue value)
         {
+            // optimistic scenario: return before lock
+            if (_map.TryGetValue(key, out var outPutValue))
+            {
+                return outPutValue;
+            }
+
             lock (_writeLock)
             {
                 TValue existingValue;
@@ -121,6 +127,13 @@ namespace Cassandra.Collections
         /// </summary>
         public bool Remove(TKey key)
         {
+            // optimistic scenario: return before lock
+            if (!_map.ContainsKey(key))
+            {
+                //Do not modify the underlying map
+                return false;
+            }
+
             lock (_writeLock)
             {
                 if (!_map.ContainsKey(key))
@@ -147,6 +160,13 @@ namespace Cassandra.Collections
         /// </summary>
         public bool TryRemove(TKey key, out TValue value)
         {
+            // optimistic scenario: return before lock
+            if (!_map.TryGetValue(key, out value))
+            {
+                //Do not modify the underlying map
+                return false;
+            }
+
             lock (_writeLock)
             {
                 if (!_map.TryGetValue(key, out value))
@@ -163,6 +183,12 @@ namespace Cassandra.Collections
 
         public TValue GetOrAdd(TKey key, Func<TKey, TValue> valueFactory)
         {
+            // optimistic scenario: return before lock
+            if (_map.TryGetValue(key, out var outputValue))
+            {
+                return outputValue;
+            }
+
             lock (_writeLock)
             {
                 TValue existingValue;

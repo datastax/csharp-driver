@@ -20,9 +20,9 @@ namespace Cassandra.Metrics
 {
     public interface IDriverMetrics
     {
-        IMetricsRegistry SessionMetrics { get; }
+        IMetricsRegistry<SessionMetric> SessionMetrics { get; }
 
-        IReadOnlyDictionary<Host, IMetricsRegistry> NodeMetrics { get; }
+        IReadOnlyDictionary<Host, IMetricsRegistry<NodeMetric>> NodeMetrics { get; }
 
         TMetricType GetNodeMetric<TMetricType>(Host host, NodeMetric nodeMetric) where TMetricType : class, IDriverMetric;
         

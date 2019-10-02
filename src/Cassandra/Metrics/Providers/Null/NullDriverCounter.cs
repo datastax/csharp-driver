@@ -18,12 +18,14 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.Metrics.Providers.Null
 {
-    internal class NullDriverCounter : NullMetricBase, IDriverCounter
+    internal class NullDriverCounter : IDriverCounter
     {
-        public NullDriverCounter(string fullName) : base(fullName)
+        public static IDriverCounter Instance = new NullDriverCounter();
+
+        private NullDriverCounter()
         {
         }
-
+        
         public void Increment(long value)
         {
         }
@@ -34,11 +36,6 @@ namespace Cassandra.Metrics.Providers.Null
 
         public void Reset()
         {
-        }
-
-        public long GetValue()
-        {
-            return 0;
         }
     }
 }

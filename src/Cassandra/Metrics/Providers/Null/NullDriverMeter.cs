@@ -18,9 +18,11 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.Metrics.Providers.Null
 {
-    internal class NullDriverMeter : NullMetricBase, IDriverMeter
+    internal class NullDriverMeter : IDriverMeter
     {
-        public NullDriverMeter(string fullName) : base(fullName)
+        public static IDriverMeter Instance = new NullDriverMeter();
+
+        private NullDriverMeter()
         {
         }
 
@@ -30,11 +32,6 @@ namespace Cassandra.Metrics.Providers.Null
 
         public void Mark(long amount)
         {
-        }
-
-        public IMeterValue GetValue()
-        {
-            return NullMeterValue.Instance;
         }
     }
 }

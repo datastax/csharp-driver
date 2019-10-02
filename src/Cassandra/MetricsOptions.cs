@@ -35,14 +35,14 @@ namespace Cassandra
         public IEnumerable<SessionMetric> DisabledSessionMetrics { get; private set; } = new List<SessionMetric>();
         
         /// <summary>
-        /// See <see cref="SetContext"/> for more information.
+        /// See <see cref="SetPathPrefix"/> for more information.
         /// </summary>
-        public string Context { get; private set; }
+        public string PathPrefix { get; private set; }
         
         /// <summary>
         /// Disables specific node metrics. The available node metrics can be found as static readonly properties in
-        /// the <see cref="NodeMetrics"/> class, e.g., <see cref="NodeMetrics.Counters.BytesSent"/>.
-        /// There is also a property that returns a collection with all node metrics: <see cref="NodeMetrics.AllNodeMetrics"/>.
+        /// the <see cref="NodeMetric"/> class, e.g., <see cref="NodeMetric.Counters.BytesSent"/>.
+        /// There is also a property that returns a collection with all node metrics: <see cref="NodeMetric.AllNodeMetrics"/>.
         /// </summary>
         /// <returns>This instance.</returns>
         public MetricsOptions SetDisabledNodeMetrics(IEnumerable<NodeMetric> disabledNodeMetrics)
@@ -53,8 +53,8 @@ namespace Cassandra
         
         /// <summary>
         /// Disables specific session metrics. The available session metrics can be found as static readonly properties in
-        /// the <see cref="SessionMetrics"/> class, e.g., <see cref="SessionMetrics.Counters.BytesSent"/>.
-        /// There is also a property that returns a collection with all node metrics: <see cref="SessionMetrics.AllSessionMetrics"/>.
+        /// the <see cref="SessionMetric"/> class, e.g., <see cref="SessionMetric.Counters.BytesSent"/>.
+        /// There is also a property that returns a collection with all node metrics: <see cref="SessionMetric.AllSessionMetrics"/>.
         /// </summary>
         /// <returns>This instance.</returns>
         public MetricsOptions SetDisabledSessionMetrics(IEnumerable<SessionMetric> disabledSessionMetrics)
@@ -68,29 +68,29 @@ namespace Cassandra
         /// that is provided to the builder. In the case of the provider based on App.Metrics available in the CassandraCSharpDriver.AppMetrics package,
         /// the context components will be concatenated with a dot separating each one, which makes the full metric path like this:
         /// <code>
-        /// Format: &lt;context[0]&gt;.&lt;context[n]&gt;.&lt;session-name&gt;.nodes.&lt;node-address&gt;.&lt;metric-context[0]&gt;.&lt;metric-context[n]&gt;.&lt;metric-name&gt;
+        /// Format: &lt;path-prefix&gt;.&lt;session-name&gt;.nodes.&lt;node-address&gt;.&lt;metric-path&gt;
         /// </code>
-        /// Here is how the full metric name will look like for <see cref="NodeMetrics.Meters.Retries.Total"/> in practice:
+        /// Here is how the full metric name will look like for <see cref="NodeMetric.Meters.Retries"/> in practice:
         /// <code>
-        /// // Set metrics context
+        /// // Set metric prefix
         /// var cluster = 
         ///     Cluster.Builder()
         ///            .AddContactPoint("127.0.0.1")
         ///            .WithSessionName("session")
         ///            .WithMetrics(
         ///                new AppMetricsDriverMetricsProvider(metrics),
-        ///                new MetricsOptions().SetContext("web", "app"))
+        ///                new MetricsOptions().SetPathPrefix("web.app"))
         ///            .Build();
         ///
-        /// // Resulting metric name for the NodeMetrics.Meters.Retries.Total metric:
+        /// // Resulting metric name for the NodeMetric.Meters.Retries metric:
         /// web.app.session.nodes.127_0_0_1:9042.retries.total
         /// </code>
         /// </summary>
-        /// <param name="context"></param>
+        /// <param name="pathPrefix"></param>
         /// <returns></returns>
-        public MetricsOptions SetContext(string context) //TODO fix xmldocs
+        public MetricsOptions SetPathPrefix(string pathPrefix)
         {
-            Context = context;
+            PathPrefix = pathPrefix;
             return this;
         }
 
@@ -100,7 +100,7 @@ namespace Cassandra
             {
                 DisabledNodeMetrics = DisabledNodeMetrics,
                 DisabledSessionMetrics = DisabledSessionMetrics,
-                Context = Context
+                PathPrefix = PathPrefix
             };
         }
     }

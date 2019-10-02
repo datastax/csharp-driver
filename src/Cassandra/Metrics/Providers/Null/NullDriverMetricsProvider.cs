@@ -22,37 +22,37 @@ namespace Cassandra.Metrics.Providers.Null
 {
     internal class NullDriverMetricsProvider : IDriverMetricsProvider
     {
-        public IDriverTimer Timer(string context, string metricName, DriverMeasurementUnit measurementUnit, DriverTimeUnit timeUnit)
+        public IDriverTimer Timer(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit, DriverTimeUnit timeUnit)
         {
-            return new NullDriverTimer(metricName);
+            return NullDriverTimer.Instance;
         }
 
-        public IDriverHistogram Histogram(string context, string metricName, DriverMeasurementUnit measurementUnit)
+        public IDriverHistogram Histogram(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit)
         {
-            return new NullDriverHistogram(metricName);
+            return NullDriverHistogram.Instance;
         }
 
-        public IDriverMeter Meter(string context, string metricName, DriverMeasurementUnit measurementUnit)
+        public IDriverMeter Meter(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit)
         {
-            return new NullDriverMeter(metricName);
+            return NullDriverMeter.Instance;
         }
 
-        public IDriverCounter Counter(string context, string metricName, DriverMeasurementUnit measurementUnit)
+        public IDriverCounter Counter(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit)
         {
-            return new NullDriverCounter(metricName);
+            return NullDriverCounter.Instance;
         }
 
-        public IDriverGauge Gauge(string context, string metricName, Func<double?> valueProvider, DriverMeasurementUnit measurementUnit)
+        public IDriverGauge Gauge(string bucket, IMetric metric, Func<double?> valueProvider, DriverMeasurementUnit measurementUnit)
         {
-            return new NullDriverGauge(metricName);
+            return NullDriverGauge.Instance;
         }
 
-        public IDriverGauge Gauge(string context, string metricName, DriverMeasurementUnit measurementUnit)
+        public IDriverGauge Gauge(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit)
         {
-            return new NullDriverGauge(metricName);
+            return NullDriverGauge.Instance;
         }
 
-        public void ShutdownMetricsContext(string context)
+        public void ShutdownMetricsBucket(string bucket)
         {
         }
     }

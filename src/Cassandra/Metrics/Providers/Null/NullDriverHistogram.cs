@@ -18,19 +18,16 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.Metrics.Providers.Null
 {
-    internal class NullDriverHistogram : NullMetricBase, IDriverHistogram
+    internal class NullDriverHistogram : IDriverHistogram
     {
-        public NullDriverHistogram(string fullName) : base(fullName)
+        public static IDriverHistogram Instance = new NullDriverHistogram();
+
+        private NullDriverHistogram()
         {
         }
 
         public void Update(long value)
         {
-        }
-
-        public IHistogramValue GetValue()
-        {
-            return NullHistogramValue.Instance;
         }
     }
 }
