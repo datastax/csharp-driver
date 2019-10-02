@@ -251,13 +251,5 @@ namespace Dse
         {
             QueryOptions.SetDefaultConsistencyLevel(consistencyLevel);
         }
-        
-        /// <summary>
-        /// Sets the default serial consistency level.
-        /// </summary>
-        internal void SetDefaultSerialConsistencyLevel(ConsistencyLevel consistencyLevel)
-        {
-            QueryOptions.SetDefaultSerialConsistencyLevel(consistencyLevel);
-        }
     }
 }
