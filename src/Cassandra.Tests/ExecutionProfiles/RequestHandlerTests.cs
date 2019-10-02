@@ -320,7 +320,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                             }
                         }
                     });
-                    return new OperationState(act, req, timeout, new NullOperationObserver());
+                    return new OperationState(act, req, timeout, NullOperationObserver.Instance);
                 });
             Mock.Get(connection)
                 .SetupGet(c => c.EndPoint)

@@ -20,9 +20,14 @@ using Cassandra.Responses;
 
 namespace Cassandra.Observers
 {
-    //TODO DELETE??
     internal class NullOperationObserver : IOperationObserver
     {
+        public static readonly IOperationObserver Instance = new NullOperationObserver();
+
+        private NullOperationObserver()
+        {
+        }
+
         public void OnOperationSend(long requestSize)
         {
         }

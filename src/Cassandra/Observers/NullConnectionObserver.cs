@@ -18,7 +18,6 @@ using Cassandra.Observers.Abstractions;
 
 namespace Cassandra.Observers
 {
-    //TODO DELETE??
     internal class NullConnectionObserver : IConnectionObserver
     {
         public static readonly IConnectionObserver Instance = new NullConnectionObserver();
@@ -41,7 +40,7 @@ namespace Cassandra.Observers
 
         public IOperationObserver CreateOperationObserver()
         {
-            return new NullOperationObserver();
+            return NullOperationObserver.Instance;
         }
     }
 }
