@@ -38,11 +38,6 @@ namespace Cassandra.Connections
         int AvailableStreams { get; }
         
         /// <summary>
-        /// Gets the maximum amount of requests that can be in-flight on a single connection at the same time.
-        /// </summary>
-        int MaxRequestsPerConnection { get; }
-        
-        /// <summary>
         /// Determines whether the connection pool has opened connections using snapshot semantics.
         /// </summary>
         bool HasConnections { get; }
@@ -53,9 +48,7 @@ namespace Cassandra.Connections
         /// Gets a snapshot of the current state of the pool.
         /// </summary>
         IConnection[] ConnectionsSnapshot { get; }
-
-        Host Host { get; }
-
+        
         /// <summary>
         /// Gets an open connection from the host pool (creating if necessary).
         /// It returns null if the load balancing policy didn't allow connections to this host.

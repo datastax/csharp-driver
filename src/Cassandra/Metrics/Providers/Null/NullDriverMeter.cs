@@ -25,11 +25,7 @@ namespace Cassandra.Metrics.Providers.Null
         private NullDriverMeter()
         {
         }
-
-        public void Mark()
-        {
-        }
-
+        
         public void Mark(long amount)
         {
         }

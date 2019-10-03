@@ -127,13 +127,6 @@ namespace Cassandra.Collections
         /// </summary>
         public bool Remove(TKey key)
         {
-            // optimistic scenario: return before lock
-            if (!_map.ContainsKey(key))
-            {
-                //Do not modify the underlying map
-                return false;
-            }
-
             lock (_writeLock)
             {
                 if (!_map.ContainsKey(key))
@@ -160,13 +153,6 @@ namespace Cassandra.Collections
         /// </summary>
         public bool TryRemove(TKey key, out TValue value)
         {
-            // optimistic scenario: return before lock
-            if (!_map.TryGetValue(key, out value))
-            {
-                //Do not modify the underlying map
-                return false;
-            }
-
             lock (_writeLock)
             {
                 if (!_map.TryGetValue(key, out value))

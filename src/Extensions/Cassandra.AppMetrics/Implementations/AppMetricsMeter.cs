@@ -39,12 +39,6 @@ namespace Cassandra.AppMetrics.Implementations
         }
         
         /// <inheritdoc />
-        public void Mark()
-        {
-            Mark(1);
-        }
-        
-        /// <inheritdoc />
         public void Mark(long amount)
         {
             _meter.Mark(amount);

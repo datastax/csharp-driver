@@ -72,6 +72,7 @@ namespace Cassandra.Connections
         private readonly CopyOnWriteList<IConnection> _connections = new CopyOnWriteList<IConnection>();
         private readonly HashedWheelTimer _timer;
         private readonly SemaphoreSlim _allConnectionClosedEventLock = new SemaphoreSlim(1, 1);
+        private readonly Host _host;
         private volatile IReconnectionSchedule _reconnectionSchedule;
         private volatile int _expectedConnectionLength;
         private volatile int _maxInflightThresholdToConsiderResizing;
@@ -99,9 +100,6 @@ namespace Cassandra.Connections
         /// <inheritdoc />
         public int InFlight => _connections.Sum(c => c.InFlight);
 
-        /// <inheritdoc />
-        public int MaxRequestsPerConnection => _maxRequestsPerConnection;
-
         /// <summary>
         /// Determines whether the pool is not on the initial state.
         /// </summary>
@@ -110,14 +108,13 @@ namespace Cassandra.Connections
         /// <inheritdoc />
         public IConnection[] ConnectionsSnapshot => _connections.GetSnapshot();
 
-        public Host Host { get; private set; }
 
         public HostConnectionPool(Host host, Configuration config, Serializer serializer, IObserverFactory observerFactory)
         {
-            Host = host;
-            Host.Down += OnHostDown;
-            Host.Up += OnHostUp;
-            Host.DistanceChanged += OnDistanceChanged;
+            _host = host;
+            _host.Down += OnHostDown;
+            _host.Up += OnHostUp;
+            _host.DistanceChanged += OnDistanceChanged;
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _maxRequestsPerConnection = config
                                         .GetPoolingOptions(serializer.ProtocolVersion)
@@ -159,7 +156,7 @@ namespace Cassandra.Connections
 
             if (inFlight >= _maxRequestsPerConnection)
             {
-                throw new BusyPoolException(Host.Address, _maxRequestsPerConnection, connections.Length);
+                throw new BusyPoolException(_host.Address, _maxRequestsPerConnection, connections.Length);
             }
 
             ConsiderResizingPool(inFlight);
@@ -189,7 +186,7 @@ namespace Cassandra.Connections
                 return;
             }
             HostConnectionPool.Logger.Warning("Connection to {0} considered as unhealthy after {1} timed out operations", 
-                Host.Address, timedOutOps);
+                _host.Address, timedOutOps);
             Remove(c);
         }
 
@@ -249,15 +246,15 @@ namespace Cassandra.Connections
                 // The pool is already being shutdown, never mind
                 return;
             }
-            HostConnectionPool.Logger.Info("Disposing connection pool #{0} to {1}", GetHashCode(), Host.Address);
+            HostConnectionPool.Logger.Info("Disposing connection pool #{0} to {1}", GetHashCode(), _host.Address);
             var connections = _connections.ClearAndGet();
             foreach (var c in connections)
             {
                 c.Dispose();
             }
-            Host.Up -= OnHostUp;
-            Host.Down -= OnHostDown;
-            Host.DistanceChanged -= OnDistanceChanged;
+            _host.Up -= OnHostUp;
+            _host.Down -= OnHostDown;
+            _host.DistanceChanged -= OnDistanceChanged;
             var t = _resizingEndTimeout;
             if (t != null)
             {
@@ -269,8 +266,8 @@ namespace Cassandra.Connections
 
         public virtual async Task<IConnection> DoCreateAndOpen(bool isReconnection)
         {
-            var endPoint = await _config.EndPointResolver.GetConnectionEndPointAsync(Host, isReconnection).ConfigureAwait(false);
-            var c = _config.ConnectionFactory.Create(_serializer, endPoint, _config, _observerFactory.CreateConnectionObserver(Host));
+            var endPoint = await _config.EndPointResolver.GetConnectionEndPointAsync(_host, isReconnection).ConfigureAwait(false);
+            var c = _config.ConnectionFactory.Create(_serializer, endPoint, _config, _observerFactory.CreateConnectionObserver(_host));
             try
             {
                 await c.Open().ConfigureAwait(false);
@@ -297,7 +294,7 @@ namespace Cassandra.Connections
                 Interlocked.Exchange(ref _state, PoolState.Shutdown);
                 return;
             }
-            HostConnectionPool.Logger.Info("Host decommissioned. Closing pool #{0} to {1}", GetHashCode(), Host.Address);
+            HostConnectionPool.Logger.Info("Host decommissioned. Closing pool #{0} to {1}", GetHashCode(), _host.Address);
 
             DrainConnections(() => Interlocked.Exchange(ref _state, PoolState.Shutdown));
 
@@ -384,7 +381,7 @@ namespace Cassandra.Connections
                     return;
                 }
                 HostConnectionPool.Logger.Info("Pool #{0} for host {1} removed a connection, new length: {2}",
-                    GetHashCode(), Host.Address, currentLength);
+                    GetHashCode(), _host.Address, currentLength);
             }
             else
             {
@@ -406,10 +403,10 @@ namespace Cassandra.Connections
                     {
                         // All connections have been closed
                         // If the node is UP, we should stop attempting to reconnect
-                        if (Host.IsUp && AllConnectionClosed != null)
+                        if (_host.IsUp && AllConnectionClosed != null)
                         {
                             // Raise the event and wait for a caller to decide
-                            AllConnectionClosed(Host, this);
+                            AllConnectionClosed(_host, this);
                             return;
                         }
                     }
@@ -444,7 +441,7 @@ namespace Cassandra.Connections
                 // Is already shutting down or shutdown, don't mind
                 return;
             }
-            HostConnectionPool.Logger.Info("Host ignored. Closing pool #{0} to {1}", GetHashCode(), Host.Address);
+            HostConnectionPool.Logger.Info("Host ignored. Closing pool #{0} to {1}", GetHashCode(), _host.Address);
             DrainConnections(() =>
             {
                 // After draining, set the pool back to init state
@@ -462,7 +459,7 @@ namespace Cassandra.Connections
             var connections = _connections.ClearAndGet();
             if (connections.Length == 0)
             {
-                HostConnectionPool.Logger.Info("Pool #{0} to {1} had no connections", GetHashCode(), Host.Address);
+                HostConnectionPool.Logger.Info("Pool #{0} to {1} had no connections", GetHashCode(), _host.Address);
                 return;
             }
             // The request handler might execute up to 2 queries with a single connection:
@@ -487,12 +484,12 @@ namespace Cassandra.Connections
                     if (!drained && --steps >= 0)
                     {
                         HostConnectionPool.Logger.Info("Pool #{0} to {1} can not be closed yet",
-                            GetHashCode(), Host.Address);
+                            GetHashCode(), _host.Address);
                         DrainConnectionsTimer(connections, afterDrainHandler, steps);
                         return;
                     }
                     HostConnectionPool.Logger.Info("Pool #{0} to {1} closing {2} connections to after {3} draining",
-                        GetHashCode(), Host.Address, connections.Length, drained ? "successful" : "unsuccessful");
+                        GetHashCode(), _host.Address, connections.Length, drained ? "successful" : "unsuccessful");
                     foreach (var c in connections)
                     {
                         c.Dispose();
@@ -514,7 +511,7 @@ namespace Cassandra.Connections
                 // This was the pool that was reconnecting, the pool is already getting the appropriate size
                 return;
             }
-            HostConnectionPool.Logger.Info("Pool #{0} for host {1} attempting to reconnect as host is UP", GetHashCode(), Host.Address);
+            HostConnectionPool.Logger.Info("Pool #{0} for host {1} attempting to reconnect as host is UP", GetHashCode(), _host.Address);
             // Schedule an immediate reconnection
             ScheduleReconnection(true);
         }
@@ -532,7 +529,7 @@ namespace Cassandra.Connections
         private void OnIdleRequestException(IConnection c, Exception ex)
         {
             HostConnectionPool.Logger.Warning("Connection to {0} considered as unhealthy after idle timeout exception: {1}",
-                Host.Address, ex);
+                _host.Address, ex);
             OnConnectionClosing(c);
             c.Dispose();
         }
@@ -557,14 +554,14 @@ namespace Cassandra.Connections
             {
                 // Schedule the creation
                 var delay = schedule.NextDelayMs();
-                HostConnectionPool.Logger.Info("Scheduling reconnection from #{0} to {1} in {2}ms", GetHashCode(), Host.Address, delay);
+                HostConnectionPool.Logger.Info("Scheduling reconnection from #{0} to {1} in {2}ms", GetHashCode(), _host.Address, delay);
                 timeout = _timer.NewTimeout(_ => Task.Run(() => StartCreatingConnection(schedule)), null, delay);
             }
             CancelNewConnectionTimeout(timeout);
             if (schedule == null)
             {
                 // Start creating immediately after de-scheduling the timer
-                HostConnectionPool.Logger.Info("Starting reconnection from pool #{0} to {1}", GetHashCode(), Host.Address);
+                HostConnectionPool.Logger.Info("Starting reconnection from pool #{0} to {1}", GetHashCode(), _host.Address);
                 StartCreatingConnection(null);
             }
         }
@@ -601,7 +598,7 @@ namespace Cassandra.Connections
             {
                 var t = await CreateOpenConnection(false, schedule != null).ConfigureAwait(false);
                 StartCreatingConnection(null);
-                Host.BringUpIfDown();
+                _host.BringUpIfDown();
             }
             catch (Exception)
             {
@@ -689,7 +686,7 @@ namespace Cassandra.Connections
                 return await FinishOpen(tcs, false, null, connectionsSnapshot[0]).ConfigureAwait(false);
             }
 
-            HostConnectionPool.Logger.Info("Creating a new connection to {0}", Host.Address);
+            HostConnectionPool.Logger.Info("Creating a new connection to {0}", _host.Address);
             IConnection c;
             try
             {
@@ -697,28 +694,28 @@ namespace Cassandra.Connections
             }
             catch (Exception ex)
             {
-                HostConnectionPool.Logger.Info("Connection to {0} could not be created: {1}", Host.Address, ex);
+                HostConnectionPool.Logger.Info("Connection to {0} could not be created: {1}", _host.Address, ex);
                 return await FinishOpen(tcs, true, ex).ConfigureAwait(false);
             }
 
             if (IsClosing)
             {
                 HostConnectionPool.Logger.Info("Connection to {0} opened successfully but pool #{1} was being closed", 
-                    Host.Address, GetHashCode());
+                    _host.Address, GetHashCode());
                 c.Dispose();
                 return await FinishOpen(tcs, false, HostConnectionPool.GetNotConnectedException()).ConfigureAwait(false);
             }
 
             var newLength = _connections.AddNew(c);
             HostConnectionPool.Logger.Info("Connection to {0} opened successfully, pool #{1} length: {2}",
-                Host.Address, GetHashCode(), newLength);
+                _host.Address, GetHashCode(), newLength);
 
             if (IsClosing)
             {
                 // We haven't use a CAS operation, so it's possible that the pool is being closed while adding a new
                 // connection, we should remove it.
                 HostConnectionPool.Logger.Info("Connection to {0} opened successfully and added to the pool #{1} but it was being closed",
-                    Host.Address, GetHashCode());
+                    _host.Address, GetHashCode());
                 _connections.Remove(c);
                 c.Dispose();
                 return await FinishOpen(tcs, false, HostConnectionPool.GetNotConnectedException()).ConfigureAwait(false);
@@ -805,7 +802,7 @@ namespace Cassandra.Connections
                 return connections;
             }
 
-            if (IsClosing || !Host.IsUp)
+            if (IsClosing || !_host.IsUp)
             {
                 // Should have not been considered as UP
                 throw HostConnectionPool.GetNotConnectedException();
