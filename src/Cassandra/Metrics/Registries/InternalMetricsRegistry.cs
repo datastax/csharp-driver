@@ -1,12 +1,12 @@
-﻿// 
+﻿//
 //       Copyright (C) DataStax Inc.
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //       http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,11 +16,13 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+
 using Cassandra.Metrics.Abstractions;
 using Cassandra.Metrics.Providers.Null;
 
 namespace Cassandra.Metrics.Registries
 {
+    /// <inheritdoc />
     internal class InternalMetricsRegistry<TMetric> : IInternalMetricsRegistry<TMetric> where TMetric : IMetric
     {
         private readonly IDriverMetricsProvider _driverMetricsProvider;
@@ -34,23 +36,29 @@ namespace Cassandra.Metrics.Registries
         private readonly Dictionary<TMetric, IDriverMetric> _metrics = new Dictionary<TMetric, IDriverMetric>();
 
         private bool _initialized = false;
-        
+
         public InternalMetricsRegistry(IDriverMetricsProvider driverMetricsProvider, IEnumerable<TMetric> disabledMetrics)
         {
             _disabledMetrics = new HashSet<TMetric>(disabledMetrics);
             _driverMetricsProvider = driverMetricsProvider;
         }
 
+        /// <inheritdoc />
         public IReadOnlyDictionary<TMetric, IDriverCounter> Counters => _counters;
 
+        /// <inheritdoc />
         public IReadOnlyDictionary<TMetric, IDriverGauge> Gauges => _gauges;
 
+        /// <inheritdoc />
         public IReadOnlyDictionary<TMetric, IDriverHistogram> Histograms => _histograms;
 
+        /// <inheritdoc />
         public IReadOnlyDictionary<TMetric, IDriverMeter> Meters => _meters;
 
+        /// <inheritdoc />
         public IReadOnlyDictionary<TMetric, IDriverTimer> Timers => _timers;
 
+        /// <inheritdoc />
         public IReadOnlyDictionary<TMetric, IDriverMetric> Metrics => _metrics;
 
         public IDriverTimer Timer(string context, TMetric metric, DriverMeasurementUnit measurementUnit, DriverTimeUnit timeUnit)
@@ -123,26 +131,13 @@ namespace Cassandra.Metrics.Registries
             return gauge;
         }
 
-        public IDriverGauge Gauge(string context, TMetric metric, DriverMeasurementUnit measurementUnit)
-        {
-            ThrowIfInitialized();
-            if (!IsMetricEnabled(metric))
-            {
-                return NullDriverGauge.Instance;
-            }
-
-            var gauge = _driverMetricsProvider.Gauge(context, metric, measurementUnit);
-            _gauges.Add(metric, gauge);
-            _metrics.Add(metric, gauge);
-            return gauge;
-        }
-
         public IDriverMetric GetMetric(TMetric metric)
         {
             _metrics.TryGetValue(metric, out var driverMetric);
             return driverMetric;
         }
 
+        /// <inheritdoc />
         public void OnMetricsAdded()
         {
             _initialized = true;

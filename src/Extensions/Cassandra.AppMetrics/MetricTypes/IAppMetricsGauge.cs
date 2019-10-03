@@ -19,6 +19,9 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.MetricTypes
 {
+    /// <summary>
+    /// Represents a gauge with a nullable <see cref="double"/> metric value.
+    /// </summary>
     public interface IAppMetricsGauge : IAppMetricsMetricWithValue<double?>, IDriverGauge
     {
     }

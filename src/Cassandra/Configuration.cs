@@ -17,21 +17,19 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
-using Cassandra.Metrics;
 using Cassandra.Metrics.Abstractions;
 using Cassandra.Metrics.Providers.Null;
-using Cassandra.Metrics.Registries;
 using Cassandra.Observers;
-using Cassandra.Observers.Abstractions;
 using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;
+
 using Microsoft.IO;
-using MetricsManager = Cassandra.Metrics.Internal.MetricsManager;
 
 namespace Cassandra
 {
@@ -96,7 +94,7 @@ namespace Cassandra
         /// </summary>
         /// <returns>the address translator in use.</returns>
         public IAddressTranslator AddressTranslator { get; private set; }
-        
+
         /// <summary>
         /// Gets a read only key value map of execution profiles that were configured with
         /// <see cref="Builder.WithExecutionProfiles"/>. The keys are execution profile names and the values
@@ -126,7 +124,7 @@ namespace Cassandra
         internal ISessionFactoryBuilder<IInternalCluster, IInternalSession> SessionFactoryBuilder { get; }
 
         internal IRequestOptionsMapper RequestOptionsMapper { get; }
-        
+
         internal IRequestHandlerFactory RequestHandlerFactory { get; }
 
         internal IHostConnectionPoolFactory HostConnectionPoolFactory { get; }
@@ -152,7 +150,7 @@ namespace Cassandra
         internal string SessionName { get; }
 
         internal IObserverFactoryBuilder ObserverFactoryBuilder { get; }
-        
+
         /// <summary>
         /// The key is the execution profile name and the value is the IRequestOptions instance
         /// built from the execution profile with that key.
@@ -241,7 +239,7 @@ namespace Cassandra
             ControlConnectionFactory = controlConnectionFactory ?? new ControlConnectionFactory();
             PrepareHandlerFactory = prepareHandlerFactory ?? new PrepareHandlerFactory();
             TimerFactory = timerFactory ?? new TaskBasedTimerFactory();
-            
+
             RequestOptions = RequestOptionsMapper.BuildRequestOptionsDictionary(executionProfiles, policies, socketOptions, clientOptions, queryOptions);
             ExecutionProfiles = BuildExecutionProfilesDictionary(executionProfiles, RequestOptions);
 
@@ -251,7 +249,7 @@ namespace Cassandra
             BufferPool = new RecyclableMemoryStreamManager(16 * 1024, 256 * 1024, ProtocolOptions.MaximumFrameLength);
             Timer = new HashedWheelTimer();
         }
-        
+
         /// <summary>
         /// Clones (shallow) the provided execution profile dictionary and add the default profile if not there yet.
         /// </summary>

@@ -13,10 +13,14 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+using App.Metrics.Meter;
 using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.MetricValues
 {
+    /// <summary>
+    /// Meter value based on <see cref="MeterValue"/>.
+    /// </summary>
     public interface IAppMetricsMeterValue
     {       
         long Count { get; }

@@ -27,15 +27,17 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.Implementations
 {
+    /// <inheritdoc />
     internal class AppMetricsDriverMetricsProvider : IDriverMetricsProvider
     {
         private readonly IMetricsRoot _metricsRoot;
 
-        public AppMetricsDriverMetricsProvider(IMetricsRoot metricsRoot)
+        public AppMetricsDriverMetricsProvider(IMetricsRoot appMetrics)
         {
-            _metricsRoot = metricsRoot;
+            _metricsRoot = appMetrics ?? throw new ArgumentNullException(nameof(appMetrics));
         }
-
+        
+        /// <inheritdoc />
         public IDriverTimer Timer(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit, DriverTimeUnit timeUnit)
         {
             return new AppMetricsTimer(
@@ -51,7 +53,8 @@ namespace Cassandra.AppMetrics.Implementations
                 metric.Path,
                 measurementUnit);
         }
-
+        
+        /// <inheritdoc />
         public IDriverHistogram Histogram(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit)
         {
             return new AppMetricsHistogram(
@@ -66,7 +69,8 @@ namespace Cassandra.AppMetrics.Implementations
                 metric.Path,
                 measurementUnit);
         }
-
+        
+        /// <inheritdoc />
         public IDriverMeter Meter(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit)
         {
             return new AppMetricsMeter(
@@ -81,7 +85,8 @@ namespace Cassandra.AppMetrics.Implementations
                 metric.Path,
                 measurementUnit);
         }
-
+        
+        /// <inheritdoc />
         public IDriverCounter Counter(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit)
         {
             return new AppMetricsCounter(
@@ -96,7 +101,8 @@ namespace Cassandra.AppMetrics.Implementations
                 metric.Path,
                 measurementUnit);
         }
-
+        
+        /// <inheritdoc />
         public IDriverGauge Gauge(string bucket, IMetric metric, Func<double?> valueProvider, DriverMeasurementUnit measurementUnit)
         {
             return new AppMetricsGauge(
@@ -113,7 +119,8 @@ namespace Cassandra.AppMetrics.Implementations
                 metric.Path,
                 measurementUnit);
         }
-
+        
+        /// <inheritdoc />
         public IDriverGauge Gauge(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit)
         {
             return new AppMetricsGauge(
@@ -130,7 +137,8 @@ namespace Cassandra.AppMetrics.Implementations
                 metric.Path,
                 measurementUnit);
         }
-
+        
+        /// <inheritdoc />
         public void ShutdownMetricsBucket(string bucket)
         {
             _metricsRoot.Manage.ShutdownContext(bucket);

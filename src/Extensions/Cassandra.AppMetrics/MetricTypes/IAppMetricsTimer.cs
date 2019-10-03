@@ -19,6 +19,9 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.MetricTypes
 {
+    /// <summary>
+    /// Represents a timer with a <see cref="IAppMetricsTimerValue"/> metric value.
+    /// </summary>
     public interface IAppMetricsTimer : IAppMetricsMetricWithValue<IAppMetricsTimerValue>, IDriverTimer
     {
     }

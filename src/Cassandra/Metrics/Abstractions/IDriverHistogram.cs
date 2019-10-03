@@ -16,6 +16,9 @@
 
 namespace Cassandra.Metrics.Abstractions
 {
+    /// <summary>
+    /// Represents a metric of type Histogram.
+    /// </summary>
     public interface IDriverHistogram : IDriverMetric
     {
         void Update(long value);

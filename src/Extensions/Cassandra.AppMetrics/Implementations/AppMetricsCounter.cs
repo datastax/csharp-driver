@@ -21,6 +21,7 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.Implementations
 {
+    /// <inheritdoc />
     internal class AppMetricsCounter : IAppMetricsCounter
     {
         private readonly IMetrics _metrics;
@@ -36,22 +37,28 @@ namespace Cassandra.AppMetrics.Implementations
             MeasurementUnit = measurementUnit.ToAppMetricsUnit();
         }
 
+        /// <inheritdoc />
         public void Increment()
         {
             _counter.Increment();
         }
-        
+
+        /// <inheritdoc />
         public void Increment(long value)
         {
             _counter.Increment(value);
         }
-        
+
+        /// <inheritdoc />
         public string Context { get; }
-        
+
+        /// <inheritdoc />
         public string Name { get; }
 
+        /// <inheritdoc />
         public Unit MeasurementUnit { get; }
 
+        /// <inheritdoc />
         public long GetValue()
         {
             return _metrics.Snapshot.GetForContext(Context).Counters.ValueFor(Name).Count;

@@ -20,14 +20,26 @@ using Cassandra.SessionManagement;
 
 namespace Cassandra.Metrics.Internal
 {
+    /// <summary>
+    /// Implements <see cref="IDriverMetrics"/> and exposes methods for the driver internals to update metrics.
+    /// </summary>
     internal interface IMetricsManager : IDriverMetrics, IDisposable
     {
         ISessionMetrics GetSessionMetrics();
 
+        /// <summary>
+        /// Get the existing node metrics for the provided host or creates them and returns them if they don't exist yet.
+        /// </summary>
         INodeMetrics GetOrCreateNodeMetrics(Host host);
 
+        /// <summary>
+        /// Initialize metrics with the provided session.
+        /// </summary>
         void InitializeMetrics(IInternalSession session);
 
+        /// <summary>
+        /// 
+        /// </summary>
         void RemoveNodeMetrics(Host host);
     }
 }

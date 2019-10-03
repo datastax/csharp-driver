@@ -35,7 +35,7 @@ namespace Cassandra
         /// Metric path.
         /// Here is what this property will return for <see cref="NodeMetric.Counters.ReadTimeouts"/>:
         /// <code>
-        /// // Assume the following full metric path the NodeMetric.Counters.ReadTimeouts metric:
+        /// // Assume this is the full metric path for the NodeMetric.Counters.ReadTimeouts metric (using the AppMetricsProvider):
         /// web.app.session.nodes.127_0_0_1:9042.errors.request.read-timeout
         ///
         /// // NodeMetric.Path property will return
@@ -118,67 +118,148 @@ namespace Cassandra
 
         public static class Counters
         {
+            /// <summary>
+            /// Number of speculative executions.
+            /// </summary>
             public static readonly NodeMetric SpeculativeExecutions = new NodeMetric("speculative-executions");
 
+            /// <summary>
+            /// Connection initialization errors.
+            /// </summary>
             public static readonly NodeMetric ConnectionInitErrors = new NodeMetric("errors.connection.init");
 
+            /// <summary>
+            /// Connection authentication errors.
+            /// </summary>
             public static readonly NodeMetric AuthenticationErrors = new NodeMetric("errors.connection.auth");
-
+            
+            /// <summary>
+            /// Retried attempts on read timeouts due to the retry policy.
+            /// </summary>
             public static readonly NodeMetric RetriesOnReadTimeout = new NodeMetric("retries.read-timeout");
-
+            
+            /// <summary>
+            /// Retried attempts on write timeouts due to the retry policy.
+            /// </summary>
             public static readonly NodeMetric RetriesOnWriteTimeout = new NodeMetric("retries.write-timeout");
-
+            
+            /// <summary>
+            /// Retried attempts on unavailable errors due to the retry policy.
+            /// </summary>
             public static readonly NodeMetric RetriesOnUnavailable = new NodeMetric("retries.unavailable");
-
+            
+            /// <summary>
+            /// Retried attempts on errors other than read timeouts, write timeouts and unavailable errors due to the retry policy.
+            /// </summary>
             public static readonly NodeMetric RetriesOnOtherError = new NodeMetric("retries.other");
 
+            /// <summary>
+            /// Total retry attempts due to the retry policy.
+            /// </summary>
             public static readonly NodeMetric Retries = new NodeMetric("retries.total");
             
+            /// <summary>
+            /// Ignored read timeouts due to the retry policy.
+            /// </summary>
             public static readonly NodeMetric IgnoresOnReadTimeout = new NodeMetric("ignores.read-timeout");
-
+            
+            /// <summary>
+            /// Ignored write timeouts due to the retry policy.
+            /// </summary>
             public static readonly NodeMetric IgnoresOnWriteTimeout = new NodeMetric("ignores.write-timeout");
-
+            
+            /// <summary>
+            /// Ignored unavailable errors due to the retry policy.
+            /// </summary>
             public static readonly NodeMetric IgnoresOnUnavailable = new NodeMetric("ignores.unavailable");
-
+            
+            /// <summary>
+            /// Ignored errors other than read timeouts, write timeouts and unavailable errors due to the retry policy.
+            /// </summary>
             public static readonly NodeMetric IgnoresOnOtherError = new NodeMetric("ignores.other");
-
+            
+            /// <summary>
+            /// Total ignored errors due to the retry policy.
+            /// </summary>
             public static readonly NodeMetric Ignores = new NodeMetric("ignores.total");
             
+            /// <summary>
+            /// Number of server side read timeout errors.
+            /// </summary>
             public static readonly NodeMetric ReadTimeouts = new NodeMetric("errors.request.read-timeout");
-
+            
+            /// <summary>
+            /// Number of server side write timeout errors.
+            /// </summary>
             public static readonly NodeMetric WriteTimeouts = new NodeMetric("errors.request.write-timeout");
-
+            
+            /// <summary>
+            /// Number of server side unavailable errors.
+            /// </summary>
             public static readonly NodeMetric UnavailableErrors = new NodeMetric("errors.request.unavailable");
-
+            
+            /// <summary>
+            /// Number of server side errors other than Unavailable, ReadTimeout or WriteTimeout.
+            /// </summary>
             public static readonly NodeMetric OtherErrors = new NodeMetric("errors.request.other");
-
+            
+            /// <summary>
+            /// Number of total errors.
+            /// </summary>
             public static readonly NodeMetric Errors = new NodeMetric("errors.request.total");
-
+            
+            /// <summary>
+            /// Number of failed requests without a server response.
+            /// </summary>
             public static readonly NodeMetric AbortedRequests = new NodeMetric("errors.request.aborted");
-
+            
+            /// <summary>
+            /// Number of requests that failed before being sent to the server.
+            /// </summary>
             public static readonly NodeMetric UnsentRequests = new NodeMetric("errors.request.unsent");
-
+            
+            /// <summary>
+            /// Number of failed requests due to socket timeout.
+            /// </summary>
             public static readonly NodeMetric ClientTimeouts = new NodeMetric("errors.request.client-timeout");
         }
 
         public static class Gauges
         {
+            /// <summary>
+            /// Number of open connections.
+            /// </summary>
             public static readonly NodeMetric OpenConnections = new NodeMetric("pool.open-connections");
-
+            
+            /// <summary>
+            /// Number of available streams.
+            /// </summary>
             public static readonly NodeMetric AvailableStreams = new NodeMetric("pool.available-streams");
 
+            /// <summary>
+            /// Number of in flight requests.
+            /// </summary>
             public static readonly NodeMetric InFlight = new NodeMetric("pool.in-flight");
         }
 
         public static class Timers
         {
+            /// <summary>
+            /// Timer that tracks the number/rate of cql requests and the time they take.
+            /// </summary>
             public static readonly NodeMetric CqlMessages = new NodeMetric("cql-messages");
         }
 
         public static class Meters
         {
+            /// <summary>
+            /// Meter that tracks the number/rate of bytes sent.
+            /// </summary>
             public static readonly NodeMetric BytesSent = new NodeMetric("bytes-sent");
-
+            
+            /// <summary>
+            /// Meter that tracks the number/rate of bytes received.
+            /// </summary>
             public static readonly NodeMetric BytesReceived = new NodeMetric("bytes-received");
         }
     }

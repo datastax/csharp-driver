@@ -18,6 +18,11 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.Metrics.Registries
 {
+    /// <summary>
+    /// Internal metrics registry that creates metrics (using the configured <see cref="IDriverMetricsProvider"/>).
+    /// Also filters the metrics and returns a null implementation if the metric is disabled.
+    /// </summary>
+    /// <typeparam name="TMetric"></typeparam>
     internal interface IInternalMetricsRegistry<TMetric> : IMetricsRegistry<TMetric> where TMetric : IMetric
     {
         IDriverTimer Timer(string context, TMetric metric, DriverMeasurementUnit measurementUnit, DriverTimeUnit timeUnit);
@@ -30,10 +35,11 @@ namespace Cassandra.Metrics.Registries
 
         IDriverGauge Gauge(string context, TMetric metric, Func<double?> valueProvider, DriverMeasurementUnit measurementUnit);
 
-        IDriverGauge Gauge(string context, TMetric metric, DriverMeasurementUnit measurementUnit);
-
         IDriverMetric GetMetric(TMetric metric);
 
+        /// <summary>
+        /// Used to notify the registry that no more metrics will be added. (Concurrency optimization).
+        /// </summary>
         void OnMetricsAdded();
     }
 }

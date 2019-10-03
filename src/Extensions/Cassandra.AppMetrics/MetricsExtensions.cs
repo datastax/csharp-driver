@@ -13,6 +13,7 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+using System;
 using App.Metrics;
 
 using Cassandra.AppMetrics.Implementations;
@@ -38,6 +39,7 @@ namespace Cassandra
         /// </summary>
         public static IAppMetricsCounter GetNodeCounter(this IDriverMetrics driverMetrics, Host host, NodeMetric nodeMetric)
         {
+            MetricsExtensions.ThrowIfNull(driverMetrics, host, nodeMetric);
             return driverMetrics.GetNodeMetric<IAppMetricsCounter>(host, nodeMetric);
         }
         
@@ -47,6 +49,7 @@ namespace Cassandra
         /// </summary>
         public static IAppMetricsGauge GetNodeGauge(this IDriverMetrics driverMetrics, Host host, NodeMetric nodeMetric)
         {
+            MetricsExtensions.ThrowIfNull(driverMetrics, host, nodeMetric);
             return driverMetrics.GetNodeMetric<IAppMetricsGauge>(host, nodeMetric);
         }
         
@@ -56,6 +59,7 @@ namespace Cassandra
         /// </summary>
         public static IAppMetricsHistogram GetNodeHistogram(this IDriverMetrics driverMetrics, Host host, NodeMetric nodeMetric)
         {
+            MetricsExtensions.ThrowIfNull(driverMetrics, host, nodeMetric);
             return driverMetrics.GetNodeMetric<IAppMetricsHistogram>(host, nodeMetric);
         }
         
@@ -65,6 +69,7 @@ namespace Cassandra
         /// </summary>
         public static IAppMetricsMeter GetNodeMeter(this IDriverMetrics driverMetrics, Host host, NodeMetric nodeMetric)
         {
+            MetricsExtensions.ThrowIfNull(driverMetrics, host, nodeMetric);
             return driverMetrics.GetNodeMetric<IAppMetricsMeter>(host, nodeMetric);
         }
         
@@ -74,6 +79,7 @@ namespace Cassandra
         /// </summary>
         public static IAppMetricsTimer GetNodeTimer(this IDriverMetrics driverMetrics, Host host, NodeMetric nodeMetric)
         {
+            MetricsExtensions.ThrowIfNull(driverMetrics, host, nodeMetric);
             return driverMetrics.GetNodeMetric<IAppMetricsTimer>(host, nodeMetric);
         }
         
@@ -83,6 +89,7 @@ namespace Cassandra
         /// </summary>
         public static IAppMetricsCounter GetSessionCounter(this IDriverMetrics driverMetrics, SessionMetric sessionMetric)
         {
+            MetricsExtensions.ThrowIfNull(driverMetrics, sessionMetric);
             return driverMetrics.GetSessionMetric<IAppMetricsCounter>(sessionMetric);
         }
         
@@ -92,6 +99,7 @@ namespace Cassandra
         /// </summary>
         public static IAppMetricsGauge GetSessionGauge(this IDriverMetrics driverMetrics, SessionMetric sessionMetric)
         {
+            MetricsExtensions.ThrowIfNull(driverMetrics, sessionMetric);
             return driverMetrics.GetSessionMetric<IAppMetricsGauge>(sessionMetric);
         }
         
@@ -101,6 +109,7 @@ namespace Cassandra
         /// </summary>
         public static IAppMetricsHistogram GetSessionHistogram(this IDriverMetrics driverMetrics, SessionMetric sessionMetric)
         {
+            MetricsExtensions.ThrowIfNull(driverMetrics, sessionMetric);
             return driverMetrics.GetSessionMetric<IAppMetricsHistogram>(sessionMetric);
         }
         
@@ -110,6 +119,7 @@ namespace Cassandra
         /// </summary>
         public static IAppMetricsMeter GetSessionMeter(this IDriverMetrics driverMetrics, SessionMetric sessionMetric)
         {
+            MetricsExtensions.ThrowIfNull(driverMetrics, sessionMetric);
             return driverMetrics.GetSessionMetric<IAppMetricsMeter>(sessionMetric);
         }
         
@@ -119,7 +129,119 @@ namespace Cassandra
         /// </summary>
         public static IAppMetricsTimer GetSessionTimer(this IDriverMetrics driverMetrics, SessionMetric sessionMetric)
         {
+            MetricsExtensions.ThrowIfNull(driverMetrics, sessionMetric);
             return driverMetrics.GetSessionMetric<IAppMetricsTimer>(sessionMetric);
+        }
+
+        /// <summary>
+        /// Casts the provided counter to the counter implementation of this provider.
+        /// </summary>
+        /// <exception cref="ArgumentException">If the counter was not created by the AppMetrics
+        /// provider (<see cref="CreateDriverMetricsProvider"/>).</exception>
+        public static IAppMetricsCounter ToAppMetricsCounter(this IDriverCounter counter)
+        {
+            MetricsExtensions.ThrowIfNull(counter, nameof(counter));
+
+            if (counter is IAppMetricsCounter appMetricsCounter)
+            {
+                return appMetricsCounter;
+            }
+
+            throw new ArgumentException("Counter was not created by the AppMetricsDriverProvider, " +
+                                        $"it's type is {counter.GetType().Name} and doesn't implement IAppMetricsCounter.");
+        }
+        
+        /// <summary>
+        /// Casts the provided gauge to the gauge implementation of this provider.
+        /// </summary>
+        /// <exception cref="ArgumentException">If the gauge was not created by the AppMetrics
+        /// provider (<see cref="CreateDriverMetricsProvider"/>).</exception>
+        public static IAppMetricsGauge ToAppMetricsGauge(this IDriverGauge gauge)
+        {
+            MetricsExtensions.ThrowIfNull(gauge, nameof(gauge));
+
+            if (gauge is IAppMetricsGauge appMetricsGauge)
+            {
+                return appMetricsGauge;
+            }
+
+            throw new ArgumentException("Gauge was not created by the AppMetricsDriverProvider, " +
+                                        $"it's type is {gauge.GetType().Name} and doesn't implement IAppMetricsGauge.");
+        }
+
+        /// <summary>
+        /// Casts the provided histogram to the histogram implementation of this provider.
+        /// </summary>
+        /// <exception cref="ArgumentException">If the histogram was not created by the AppMetrics
+        /// provider (<see cref="CreateDriverMetricsProvider"/>).</exception>
+        public static IAppMetricsHistogram ToAppMetricsHistogram(this IDriverHistogram histogram)
+        {
+            MetricsExtensions.ThrowIfNull(histogram, nameof(histogram));
+
+            if (histogram is IAppMetricsHistogram appMetricsHistogram)
+            {
+                return appMetricsHistogram;
+            }
+
+            throw new ArgumentException("Histogram was not created by the AppMetricsDriverProvider, " +
+                                        $"it's type is {histogram.GetType().Name} and doesn't implement IAppMetricsHistogram.");
+        }
+
+        /// <summary>
+        /// Casts the provided meter to the meter implementation of this provider.
+        /// </summary>
+        /// <exception cref="ArgumentException">If the meter was not created by the AppMetrics
+        /// provider (<see cref="CreateDriverMetricsProvider"/>).</exception>
+        public static IAppMetricsMeter ToAppMetricsMeter(this IDriverMeter meter)
+        {
+            MetricsExtensions.ThrowIfNull(meter, nameof(meter));
+
+            if (meter is IAppMetricsMeter appMetricsMeter)
+            {
+                return appMetricsMeter;
+            }
+
+            throw new ArgumentException("Counter was not created by the AppMetricsDriverProvider, " +
+                                        $"it's type is {meter.GetType().Name} and doesn't implement IAppMetricsMeter.");
+        }
+
+        /// <summary>
+        /// Casts the provided timer to the timer implementation of this provider.
+        /// </summary>
+        /// <exception cref="ArgumentException">If the timer was not created by the AppMetrics
+        /// provider (<see cref="CreateDriverMetricsProvider"/>).</exception>
+        public static IAppMetricsTimer ToAppMetricsTimer(this IDriverTimer timer)
+        {
+            MetricsExtensions.ThrowIfNull(timer, nameof(timer));
+
+            if (timer is IAppMetricsTimer appMetricsTimer)
+            {
+                return appMetricsTimer;
+            }
+
+            throw new ArgumentException("Timer was not created by the AppMetricsDriverProvider, " +
+                                        $"it's type is {timer.GetType().Name} and doesn't implement IAppMetricsTimer.");
+        }
+
+        private static void ThrowIfNull(object obj, string name)
+        {
+            if (obj == null)
+            {
+                throw new ArgumentNullException(name);
+            }
+        }
+
+        private static void ThrowIfNull(IDriverMetrics driverMetrics, SessionMetric sessionMetric)
+        {
+            MetricsExtensions.ThrowIfNull(driverMetrics, nameof(driverMetrics));
+            MetricsExtensions.ThrowIfNull(sessionMetric, nameof(sessionMetric));
+        }
+        
+        private static void ThrowIfNull(IDriverMetrics driverMetrics, Host host, NodeMetric nodeMetric)
+        {
+            MetricsExtensions.ThrowIfNull(driverMetrics, nameof(driverMetrics));
+            MetricsExtensions.ThrowIfNull(host, nameof(host));
+            MetricsExtensions.ThrowIfNull(nodeMetric, nameof(nodeMetric));
         }
     }
 }

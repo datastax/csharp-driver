@@ -18,12 +18,28 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.MetricTypes
 {
+    /// <summary>
+    /// Common base interface for all metrics of this provider.
+    /// </summary>
     public interface IAppMetricsMetric : IDriverMetric
     {
+        /// <summary>
+        /// Context provided to the AppMetrics library when creating metrics.
+        /// This will be set with the bucket name, see any metric creation method
+        /// like <see cref="IDriverMetricsProvider.Timer"/> for example.
+        /// </summary>
         string Context { get; }
 
+        /// <summary>
+        /// Name provided to the AppMetrics library when creating metrics. This will be set with the metric path,
+        /// see <see cref="NodeMetric.Path"/> or <see cref="SessionMetric.Path"/>.
+        /// </summary>
         string Name { get; }
 
+        /// <summary>
+        /// Measurement unit provided to the AppMetrics library when creating metrics.
+        /// This will be set with the a value converted from <see cref="DriverMeasurementUnit"/>.
+        /// </summary>
         Unit MeasurementUnit { get; }
     }
 }

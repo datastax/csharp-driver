@@ -25,6 +25,7 @@ using Cassandra.SessionManagement;
 
 namespace Cassandra.Metrics.Internal
 {
+    /// <inheritdoc />
     internal class MetricsManager : IMetricsManager
     {
         private static readonly Logger Logger = new Logger(typeof(MetricsManager));
@@ -46,10 +47,13 @@ namespace Cassandra.Metrics.Internal
             _nodeMetricsCollection = new CopyOnWriteDictionary<Host, INodeMetrics>();
         }
 
+        /// <inheritdoc/>
         public IMetricsRegistry<SessionMetric> SessionMetrics => _sessionMetrics.MetricsRegistry;
-
+        
+        /// <inheritdoc/>
         public IReadOnlyDictionary<Host, IMetricsRegistry<NodeMetric>> NodeMetrics => _nodeMetricsRegistryCollection;
 
+        /// <inheritdoc />
         public TMetricType GetNodeMetric<TMetricType>(Host host, NodeMetric nodeMetric) where TMetricType : class, IDriverMetric
         {
             if (!_nodeMetricsCollection.TryGetValue(host, out var nodeMetrics))
@@ -72,6 +76,7 @@ namespace Cassandra.Metrics.Internal
             return typedMetric;
         }
 
+        /// <inheritdoc />
         public TMetricType GetSessionMetric<TMetricType>(SessionMetric sessionMetric) where TMetricType : class, IDriverMetric
         {
             var metric = _sessionMetrics.MetricsRegistry.GetMetric(sessionMetric);
@@ -89,11 +94,13 @@ namespace Cassandra.Metrics.Internal
             return typedMetric;
         }
 
+        /// <inheritdoc />
         public void InitializeMetrics(IInternalSession session)
         {
             _sessionMetrics.InitializeMetrics(session);
         }
 
+        /// <inheritdoc />
         public void RemoveNodeMetrics(Host host)
         {
             if (!_nodeMetricsCollection.TryRemove(host, out var nodeMetrics))
@@ -105,11 +112,13 @@ namespace Cassandra.Metrics.Internal
             nodeMetrics.Dispose();
         }
 
+        /// <inheritdoc />
         public ISessionMetrics GetSessionMetrics()
         {
             return _sessionMetrics;
         }
 
+        /// <inheritdoc />
         public INodeMetrics GetOrCreateNodeMetrics(Host host)
         {
             var value = _nodeMetricsCollection.GetOrAdd(host, h =>

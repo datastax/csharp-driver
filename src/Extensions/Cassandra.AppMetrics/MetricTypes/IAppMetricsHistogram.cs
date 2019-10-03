@@ -19,6 +19,9 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.MetricTypes
 {
+    /// <summary>
+    /// Represents a histogram with a <see cref="IAppMetricsHistogramValue"/> metric value.
+    /// </summary>
     public interface IAppMetricsHistogram : IAppMetricsMetricWithValue<IAppMetricsHistogramValue>, IDriverHistogram
     {
     }

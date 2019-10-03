@@ -13,8 +13,13 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+using App.Metrics.Histogram;
+
 namespace Cassandra.AppMetrics.MetricValues
 {
+    /// <summary>
+    /// Histogram value based on <see cref="HistogramValue"/>.
+    /// </summary>
     public interface IAppMetricsHistogramValue
     {
         long Count { get; }

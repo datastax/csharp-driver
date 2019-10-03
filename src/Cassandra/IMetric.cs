@@ -15,8 +15,14 @@
 
 namespace Cassandra
 {
+    /// <summary>
+    /// Interface implemented by <see cref="NodeMetric"/> and <see cref="SessionMetric"/>.
+    /// </summary>
     public interface IMetric
     {
+        /// <summary>
+        /// Metric path.
+        /// </summary>
         string Path { get; }
     }
 }

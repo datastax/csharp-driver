@@ -35,7 +35,7 @@ namespace Cassandra
         /// Metric path.
         /// Here is what this property will return for <see cref="SessionMetric.Counters.CqlClientTimeouts"/>:
         /// <code>
-        /// // Assume the following full metric path the SessionMetric.Counters.CqlClientTimeouts metric:
+        /// // Assume this ist the full metric path for the SessionMetric.Counters.CqlClientTimeouts metric (using AppMetricsProvider):
         /// web.app.session.cql-client-timeouts
         ///
         /// // The SessionMetric.Path property will return
@@ -93,23 +93,38 @@ namespace Cassandra
 
         public static class Timers
         {
+            /// <summary>
+            /// Tracks the number/rate and latency of cql requests.
+            /// </summary>
             public static readonly SessionMetric CqlRequests = new SessionMetric("cql-requests");
         }
 
         public static class Meters
         {
+            /// <summary>
+            /// Tracks the number/rate of bytes sent.
+            /// </summary>
             public static readonly SessionMetric BytesSent = new SessionMetric("bytes-sent");
-
+            
+            /// <summary>
+            /// Tracks the number/rate of bytes received.
+            /// </summary>
             public static readonly SessionMetric BytesReceived = new SessionMetric("bytes-received");
         }
 
         public static class Counters
         {
+            /// <summary>
+            /// Number of client timeouts (timeout that affects the synchronous API only, see <see cref="Builder.WithQueryTimeout"/>).
+            /// </summary>
             public static readonly SessionMetric CqlClientTimeouts = new SessionMetric("cql-client-timeouts");
         }
 
         public static class Gauges
         {
+            /// <summary>
+            /// Number of connected hosts.
+            /// </summary>
             public static readonly SessionMetric ConnectedNodes = new SessionMetric("connected-nodes");
         }
     }

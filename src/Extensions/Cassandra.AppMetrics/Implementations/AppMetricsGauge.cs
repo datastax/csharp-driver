@@ -21,6 +21,7 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.Implementations
 {
+    /// <inheritdoc />
     internal class AppMetricsGauge : IAppMetricsGauge
     {
         private readonly IMetrics _metrics;
@@ -35,12 +36,16 @@ namespace Cassandra.AppMetrics.Implementations
             MeasurementUnit = measurementUnit.ToAppMetricsUnit();
         }
 
+        /// <inheritdoc />
         public string Context { get; }
-        
+
+        /// <inheritdoc />
         public string Name { get; }
 
+        /// <inheritdoc />
         public Unit MeasurementUnit { get; }
 
+        /// <inheritdoc />
         public double? GetValue()
         {
             var value = _metrics.Snapshot.GetForContext(Context).Gauges.ValueFor(Name);

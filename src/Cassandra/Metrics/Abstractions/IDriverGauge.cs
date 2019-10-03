@@ -16,6 +16,9 @@
 
 namespace Cassandra.Metrics.Abstractions
 {
+    /// <summary>
+    /// Represents a metric of type Gauge.
+    /// </summary>
     public interface IDriverGauge : IDriverMetric
     {
     }

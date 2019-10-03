@@ -16,6 +16,9 @@
 
 namespace Cassandra.Metrics.Abstractions
 {
+    /// <summary>
+    /// Represents a metric of type Meter.
+    /// </summary>
     public interface IDriverMeter : IDriverMetric
     {
         /// <summary>

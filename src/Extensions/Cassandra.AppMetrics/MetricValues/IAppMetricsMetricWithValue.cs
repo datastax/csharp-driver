@@ -23,6 +23,9 @@ namespace Cassandra.AppMetrics.MetricValues
     /// <typeparam name="T">Type of the value that can be obtained with this metric.</typeparam>
     public interface IAppMetricsMetricWithValue<out T> : IAppMetricsMetric
     {
+        /// <summary>
+        /// Gets the value for this metric.
+        /// </summary>
         T GetValue();
     }
 }

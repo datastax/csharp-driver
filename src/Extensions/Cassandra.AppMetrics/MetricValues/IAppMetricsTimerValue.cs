@@ -14,15 +14,23 @@
 //    limitations under the License.
 
 using App.Metrics;
+using App.Metrics.Timer;
+using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.MetricValues
 {
+    /// <summary>
+    /// Timer value based on <see cref="TimerValue"/>.
+    /// </summary>
     public interface IAppMetricsTimerValue
     {
         IAppMetricsHistogramValue Histogram { get; }
 
         IAppMetricsMeterValue Rate { get; }
 
+        /// <summary>
+        /// This is converted from <see cref="DriverTimeUnit"/>.
+        /// </summary>
         TimeUnit DurationUnit { get; }
     }
 }

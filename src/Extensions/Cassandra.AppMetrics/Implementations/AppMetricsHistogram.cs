@@ -16,12 +16,15 @@
 
 using App.Metrics;
 using App.Metrics.Histogram;
+
+using Cassandra.AppMetrics.MetricTypes;
 using Cassandra.AppMetrics.MetricValues;
 using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.Implementations
 {
-    internal class AppMetricsHistogram : IDriverHistogram
+    /// <inheritdoc />
+    internal class AppMetricsHistogram : IAppMetricsHistogram
     {
         private readonly IMetrics _metrics;
         private readonly IHistogram _histogram;
@@ -36,17 +39,22 @@ namespace Cassandra.AppMetrics.Implementations
             MeasurementUnit = measurementUnit.ToAppMetricsUnit();
         }
 
+        /// <inheritdoc />
         public void Update(long value)
         {
             _histogram.Update(value);
         }
 
+        /// <inheritdoc />
         public string Context { get; }
         
+        /// <inheritdoc />
         public string Name { get; }
-
+        
+        /// <inheritdoc />
         public Unit MeasurementUnit { get; }
-
+        
+        /// <inheritdoc />
         public IAppMetricsHistogramValue GetValue()
         {
             return new AppMetricsHistogramValue(_metrics.Snapshot.GetForContext(Context).Histograms.ValueFor(Name));

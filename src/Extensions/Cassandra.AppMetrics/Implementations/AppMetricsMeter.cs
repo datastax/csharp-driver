@@ -22,6 +22,7 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.Implementations
 {
+    /// <inheritdoc />
     internal class AppMetricsMeter : IAppMetricsMeter
     {
         private readonly IMetrics _metrics;
@@ -36,23 +37,29 @@ namespace Cassandra.AppMetrics.Implementations
             Name = path;
             MeasurementUnit = measurementUnit.ToAppMetricsUnit();
         }
-
+        
+        /// <inheritdoc />
         public void Mark()
         {
             Mark(1);
         }
-
+        
+        /// <inheritdoc />
         public void Mark(long amount)
         {
             _meter.Mark(amount);
         }
-
+        
+        /// <inheritdoc />
         public string Context { get; }
         
+        /// <inheritdoc />
         public string Name { get; }
-
+        
+        /// <inheritdoc />
         public Unit MeasurementUnit { get; }
-
+        
+        /// <inheritdoc />
         public IAppMetricsMeterValue GetValue()
         {
             return new AppMetricsMeterValue(_metrics.Snapshot.GetForContext(Context).Meters.ValueFor(Name));

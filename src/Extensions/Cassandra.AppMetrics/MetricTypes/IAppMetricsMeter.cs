@@ -19,6 +19,9 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.MetricTypes
 {
+    /// <summary>
+    /// Represents a meter with a <see cref="IAppMetricsMeterValue"/> metric value.
+    /// </summary>
     public interface IAppMetricsMeter : IAppMetricsMetricWithValue<IAppMetricsMeterValue>, IDriverMeter
     {
     }
