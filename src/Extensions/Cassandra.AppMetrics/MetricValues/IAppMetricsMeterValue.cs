@@ -15,7 +15,7 @@
 
 using Cassandra.Metrics.Abstractions;
 
-namespace Cassandra.AppMetrics
+namespace Cassandra.AppMetrics.MetricValues
 {
     public interface IAppMetricsMeterValue
     {       

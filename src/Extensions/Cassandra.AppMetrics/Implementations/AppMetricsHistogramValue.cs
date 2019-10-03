@@ -14,6 +14,7 @@
 //    limitations under the License.
 
 using App.Metrics.Histogram;
+using Cassandra.AppMetrics.MetricValues;
 
 namespace Cassandra.AppMetrics.Implementations
 {

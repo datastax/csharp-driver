@@ -16,6 +16,7 @@
 
 using App.Metrics;
 using App.Metrics.Histogram;
+using Cassandra.AppMetrics.MetricValues;
 using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.Implementations

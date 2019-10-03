@@ -14,6 +14,7 @@
 //    limitations under the License.
 
 using App.Metrics.Meter;
+using Cassandra.AppMetrics.MetricValues;
 using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.Implementations

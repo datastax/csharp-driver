@@ -16,6 +16,8 @@
 
 using App.Metrics;
 using App.Metrics.Meter;
+using Cassandra.AppMetrics.MetricTypes;
+using Cassandra.AppMetrics.MetricValues;
 using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.Implementations

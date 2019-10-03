@@ -14,11 +14,12 @@
 //    limitations under the License.
 // 
 
+using Cassandra.AppMetrics.MetricValues;
 using Cassandra.Metrics.Abstractions;
 
-namespace Cassandra.AppMetrics
+namespace Cassandra.AppMetrics.MetricTypes
 {
-    public interface IAppMetricsHistogram : IAppMetricsMetricWithValue<IAppMetricsHistogramValue>, IDriverHistogram
+    public interface IAppMetricsCounter : IAppMetricsMetricWithValue<long>, IDriverCounter
     {
     }
 }

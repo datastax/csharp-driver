@@ -16,6 +16,7 @@
 
 using App.Metrics;
 using App.Metrics.Gauge;
+using Cassandra.AppMetrics.MetricTypes;
 using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.Implementations

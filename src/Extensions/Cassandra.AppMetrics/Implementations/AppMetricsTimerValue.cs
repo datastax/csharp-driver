@@ -15,6 +15,7 @@
 
 using App.Metrics;
 using App.Metrics.Timer;
+using Cassandra.AppMetrics.MetricValues;
 
 namespace Cassandra.AppMetrics.Implementations
 {

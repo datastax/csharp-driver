@@ -14,11 +14,12 @@
 //    limitations under the License.
 //
 
+using Cassandra.AppMetrics.MetricValues;
 using Cassandra.Metrics.Abstractions;
 
-namespace Cassandra.AppMetrics
+namespace Cassandra.AppMetrics.MetricTypes
 {
-    public interface IAppMetricsTimer : IAppMetricsMetricWithValue<IAppMetricsTimerValue>, IDriverTimer
+    public interface IAppMetricsGauge : IAppMetricsMetricWithValue<double?>, IDriverGauge
     {
     }
 }
