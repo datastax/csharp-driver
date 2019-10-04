@@ -1,4 +1,4 @@
-// 
+﻿// 
 //       Copyright (C) 2019 DataStax Inc.
 // 
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,20 +14,17 @@
 //    limitations under the License.
 // 
 
-using Cassandra.Metrics.Abstractions;
+using Cassandra.Mapping.Statements;
 
-namespace Cassandra.Metrics.Providers.Null
+namespace Cassandra.Data.Linq
 {
-    internal class NullDriverHistogram : IDriverHistogram
+    /// <summary>
+    /// Internal interface that exposes useful methods and properties for the driver internal components.
+    /// </summary>
+    internal interface IInternalStatement : IStatement
     {
-        public static IDriverHistogram Instance = new NullDriverHistogram();
+        ITable GetTable();
 
-        private NullDriverHistogram()
-        {
-        }
-
-        public void Update(long value)
-        {
-        }
+        StatementFactory StatementFactory { get; }
     }
 }

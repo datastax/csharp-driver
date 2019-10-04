@@ -26,9 +26,7 @@ namespace Cassandra.Metrics.Registries
     internal interface IInternalMetricsRegistry<TMetric> : IMetricsRegistry<TMetric> where TMetric : IMetric
     {
         IDriverTimer Timer(string context, TMetric metric, DriverMeasurementUnit measurementUnit, DriverTimeUnit timeUnit);
-
-        IDriverHistogram Histogram(string context, TMetric metric, DriverMeasurementUnit measurementUnit);
-
+        
         IDriverMeter Meter(string context, TMetric metric, DriverMeasurementUnit measurementUnit);
 
         IDriverCounter Counter(string context, TMetric metric, DriverMeasurementUnit measurementUnit);

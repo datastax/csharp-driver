@@ -36,11 +36,6 @@ namespace Cassandra.Metrics
         IReadOnlyDictionary<TMetric, IDriverGauge> Gauges { get; }
         
         /// <summary>
-        /// Dictionary with histogram metrics.
-        /// </summary>
-        IReadOnlyDictionary<TMetric, IDriverHistogram> Histograms { get; }
-        
-        /// <summary>
         /// Dictionary with meter metrics.
         /// </summary>
         IReadOnlyDictionary<TMetric, IDriverMeter> Meters { get; }

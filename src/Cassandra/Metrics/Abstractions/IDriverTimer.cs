@@ -17,7 +17,7 @@
 namespace Cassandra.Metrics.Abstractions
 {
     /// <summary>
-    /// A <see cref="IDriverTimer"/> is a combination of a <see cref="IDriverHistogram"/> and a <see cref="IDriverMeter"/>
+    /// A <see cref="IDriverTimer"/> is a combination of a Histogram and a <see cref="IDriverMeter"/>
     /// allowing us to measure the duration of a type of event, the rate of its occurrence and provide duration statistics,
     /// for example tracking the time it takes to execute a particular CQL request.
     /// </summary>

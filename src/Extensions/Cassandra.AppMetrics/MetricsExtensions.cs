@@ -54,16 +54,6 @@ namespace Cassandra
         }
         
         /// <summary>
-        /// Utility method that wraps a call to <see cref="IDriverMetrics.GetNodeMetric{TMetricType}"/> with the appropriate AppMetrics based histogram type
-        /// as the type parameter. For more information see the API docs of <see cref="IDriverMetrics.GetNodeMetric{TMetricType}"/>.
-        /// </summary>
-        public static IAppMetricsHistogram GetNodeHistogram(this IDriverMetrics driverMetrics, Host host, NodeMetric nodeMetric)
-        {
-            MetricsExtensions.ThrowIfNull(driverMetrics, host, nodeMetric);
-            return driverMetrics.GetNodeMetric<IAppMetricsHistogram>(host, nodeMetric);
-        }
-        
-        /// <summary>
         /// Utility method that wraps a call to <see cref="IDriverMetrics.GetNodeMetric{TMetricType}"/> with the appropriate AppMetrics based meter type
         /// as the type parameter. For more information see the API docs of <see cref="IDriverMetrics.GetNodeMetric{TMetricType}"/>.
         /// </summary>
@@ -101,16 +91,6 @@ namespace Cassandra
         {
             MetricsExtensions.ThrowIfNull(driverMetrics, sessionMetric);
             return driverMetrics.GetSessionMetric<IAppMetricsGauge>(sessionMetric);
-        }
-        
-        /// <summary>
-        /// Utility method that wraps a call to <see cref="IDriverMetrics.GetSessionMetric{TMetricType}"/> with the appropriate AppMetrics based histogram type
-        /// as the type parameter. For more information see the API docs of <see cref="IDriverMetrics.GetSessionMetric{TMetricType}"/>.
-        /// </summary>
-        public static IAppMetricsHistogram GetSessionHistogram(this IDriverMetrics driverMetrics, SessionMetric sessionMetric)
-        {
-            MetricsExtensions.ThrowIfNull(driverMetrics, sessionMetric);
-            return driverMetrics.GetSessionMetric<IAppMetricsHistogram>(sessionMetric);
         }
         
         /// <summary>
@@ -168,25 +148,7 @@ namespace Cassandra
             throw new ArgumentException("Gauge was not created by the AppMetricsDriverProvider, " +
                                         $"it's type is {gauge.GetType().Name} and doesn't implement IAppMetricsGauge.");
         }
-
-        /// <summary>
-        /// Casts the provided histogram to the histogram implementation of this provider.
-        /// </summary>
-        /// <exception cref="ArgumentException">If the histogram was not created by the AppMetrics
-        /// provider (<see cref="CreateDriverMetricsProvider"/>).</exception>
-        public static IAppMetricsHistogram ToAppMetricsHistogram(this IDriverHistogram histogram)
-        {
-            MetricsExtensions.ThrowIfNull(histogram, nameof(histogram));
-
-            if (histogram is IAppMetricsHistogram appMetricsHistogram)
-            {
-                return appMetricsHistogram;
-            }
-
-            throw new ArgumentException("Histogram was not created by the AppMetricsDriverProvider, " +
-                                        $"it's type is {histogram.GetType().Name} and doesn't implement IAppMetricsHistogram.");
-        }
-
+        
         /// <summary>
         /// Casts the provided meter to the meter implementation of this provider.
         /// </summary>

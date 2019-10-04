@@ -267,6 +267,8 @@ namespace Cassandra
         private long GetAndIncrementSessionCounter()
         {
             var newCounter = Interlocked.Increment(ref _sessionCounter);
+
+            // Math.Abs just to avoid negative counters if it overflows
             return newCounter < 0 ? Math.Abs(newCounter) : newCounter;
         }
 

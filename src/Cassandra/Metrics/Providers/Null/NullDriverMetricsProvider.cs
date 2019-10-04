@@ -26,12 +26,7 @@ namespace Cassandra.Metrics.Providers.Null
         {
             return NullDriverTimer.Instance;
         }
-
-        public IDriverHistogram Histogram(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit)
-        {
-            return NullDriverHistogram.Instance;
-        }
-
+        
         public IDriverMeter Meter(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit)
         {
             return NullDriverMeter.Instance;

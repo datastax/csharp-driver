@@ -19,7 +19,6 @@ using System;
 using App.Metrics;
 using App.Metrics.Counter;
 using App.Metrics.Gauge;
-using App.Metrics.Histogram;
 using App.Metrics.Meter;
 using App.Metrics.Timer;
 
@@ -48,22 +47,6 @@ namespace Cassandra.AppMetrics.Implementations
                     Context = bucket,
                     MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
                     DurationUnit = timeUnit.ToAppMetricsTimeUnit()
-                }),
-                bucket,
-                metric.Path,
-                measurementUnit);
-        }
-        
-        /// <inheritdoc />
-        public IDriverHistogram Histogram(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit)
-        {
-            return new AppMetricsHistogram(
-                _metricsRoot,
-                _metricsRoot.Provider.Histogram.Instance(new HistogramOptions
-                {
-                    Name = metric.Path,
-                    Context = bucket,
-                    MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
                 }),
                 bucket,
                 metric.Path,
@@ -115,24 +98,6 @@ namespace Cassandra.AppMetrics.Implementations
                         MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
                     },
                     () => _metricsRoot.Build.Gauge.Build(() => valueProvider() ?? double.NaN)),
-                bucket,
-                metric.Path,
-                measurementUnit);
-        }
-        
-        /// <inheritdoc />
-        public IDriverGauge Gauge(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit)
-        {
-            return new AppMetricsGauge(
-                _metricsRoot,
-                _metricsRoot.Provider.Gauge.Instance(
-                    new GaugeOptions
-                    {
-                        Context = bucket,
-                        Name = metric.Path,
-                        MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
-                    },
-                    () => _metricsRoot.Build.Gauge.Build()),
                 bucket,
                 metric.Path,
                 measurementUnit);

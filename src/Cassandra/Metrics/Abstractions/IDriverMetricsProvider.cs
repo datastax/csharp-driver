@@ -31,13 +31,6 @@ namespace Cassandra.Metrics.Abstractions
         IDriverTimer Timer(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit, DriverTimeUnit timeUnit);
         
         /// <summary>
-        /// Creates a histogram metric. <paramref name="bucket"/> will contain the prefix configured with <see cref="MetricsOptions.SetPathPrefix"/>,
-        /// session name and node's address. Node's address will only be in the bucket name when <paramref name="metric"/> is a <see cref="NodeMetric"/>.
-        /// Implementations can call <see cref="object.Equals(object)"/> to test if <paramref name="metric"/> is a particular <see cref="NodeMetric"/> or <see cref="SessionMetric"/>.
-        /// </summary>
-        IDriverHistogram Histogram(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit);
-        
-        /// <summary>
         /// Creates a meter metric. <paramref name="bucket"/> will contain the prefix configured with <see cref="MetricsOptions.SetPathPrefix"/>,
         /// session name and node's address. Node's address will only be in the bucket name when <paramref name="metric"/> is a <see cref="NodeMetric"/>.
         /// Implementations can call <see cref="object.Equals(object)"/> to test if <paramref name="metric"/> is a particular <see cref="NodeMetric"/> or <see cref="SessionMetric"/>.

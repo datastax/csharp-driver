@@ -18,7 +18,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 
-namespace Cassandra.Connections
+namespace Cassandra.Collections
 {
     /// <summary>
     /// Wrapper for the ConcurrentStack that implements fast Count query that works in constant time but provide slightly less guarantees:

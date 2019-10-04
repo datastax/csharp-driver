@@ -30,7 +30,6 @@ namespace Cassandra.Metrics.Registries
 
         private readonly Dictionary<TMetric, IDriverGauge> _gauges = new Dictionary<TMetric, IDriverGauge>();
         private readonly Dictionary<TMetric, IDriverCounter> _counters = new Dictionary<TMetric, IDriverCounter>();
-        private readonly Dictionary<TMetric, IDriverHistogram> _histograms = new Dictionary<TMetric, IDriverHistogram>();
         private readonly Dictionary<TMetric, IDriverMeter> _meters = new Dictionary<TMetric, IDriverMeter>();
         private readonly Dictionary<TMetric, IDriverTimer> _timers = new Dictionary<TMetric, IDriverTimer>();
         private readonly Dictionary<TMetric, IDriverMetric> _metrics = new Dictionary<TMetric, IDriverMetric>();
@@ -48,10 +47,7 @@ namespace Cassandra.Metrics.Registries
 
         /// <inheritdoc />
         public IReadOnlyDictionary<TMetric, IDriverGauge> Gauges => _gauges;
-
-        /// <inheritdoc />
-        public IReadOnlyDictionary<TMetric, IDriverHistogram> Histograms => _histograms;
-
+        
         /// <inheritdoc />
         public IReadOnlyDictionary<TMetric, IDriverMeter> Meters => _meters;
 
@@ -74,21 +70,7 @@ namespace Cassandra.Metrics.Registries
             _metrics.Add(metric, timer);
             return timer;
         }
-
-        public IDriverHistogram Histogram(string context, TMetric metric, DriverMeasurementUnit measurementUnit)
-        {
-            ThrowIfInitialized();
-            if (!IsMetricEnabled(metric))
-            {
-                return NullDriverHistogram.Instance;
-            }
-
-            var histogram = _driverMetricsProvider.Histogram(context, metric, measurementUnit);
-            _histograms.Add(metric, histogram);
-            _metrics.Add(metric, histogram);
-            return histogram;
-        }
-
+        
         public IDriverMeter Meter(string context, TMetric metric, DriverMeasurementUnit measurementUnit)
         {
             ThrowIfInitialized();
