@@ -21,6 +21,7 @@ using Cassandra.SessionManagement;
 
 namespace Cassandra.Metrics.Registries
 {
+    /// <inheritdoc />
     internal class SessionMetrics : ISessionMetrics
     {
         private readonly IDriverMetricsProvider _driverMetricsProvider;
@@ -43,6 +44,7 @@ namespace Cassandra.Metrics.Registries
 
         public IDriverGauge ConnectedNodes { get; private set; }
 
+        /// <inheritdoc />
         public IInternalMetricsRegistry<SessionMetric> MetricsRegistry { get; }
 
         public void InitializeMetrics(IInternalSession session)

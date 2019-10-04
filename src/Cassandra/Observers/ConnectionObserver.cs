@@ -33,7 +33,7 @@ namespace Cassandra.Observers
             _nodeMetrics = nodeMetrics;
         }
 
-        public void SendBytes(long size)
+        public void OnBytesSent(long size)
         {
             try
             {
@@ -46,7 +46,7 @@ namespace Cassandra.Observers
             }
         }
 
-        public void ReceiveBytes(long size)
+        public void OnBytesReceived(long size)
         {
             try
             {

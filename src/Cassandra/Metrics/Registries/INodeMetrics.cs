@@ -20,6 +20,9 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.Metrics.Registries
 {
+    /// <summary>
+    /// Exposes specific node metrics for the driver internals.
+    /// </summary>
     internal interface INodeMetrics : IDisposable
     {
         IDriverCounter SpeculativeExecutions { get; }
@@ -42,8 +45,15 @@ namespace Cassandra.Metrics.Registries
 
         IRetryPolicyMetrics Ignores { get; }
 
+        /// <summary>
+        /// Internal MetricsRegistry used to create metrics internally.
+        /// </summary>
         IInternalMetricsRegistry<NodeMetric> MetricsRegistry { get; }
 
+        /// <summary>
+        /// Initialize gauge metrics with a specific connection pool.
+        /// </summary>
+        /// <param name="pool"></param>
         void InitializePoolGauges(IHostConnectionPool pool);
     }
 }

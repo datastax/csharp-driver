@@ -16,6 +16,9 @@
 
 namespace Cassandra.Observers.Abstractions
 {
+    /// <summary>
+    /// Factory to create high level observers.
+    /// </summary>
     internal interface IObserverFactory
     {
         IRequestObserver CreateRequestObserver();

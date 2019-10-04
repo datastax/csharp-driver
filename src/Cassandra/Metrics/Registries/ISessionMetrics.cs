@@ -20,6 +20,9 @@ using Cassandra.SessionManagement;
 
 namespace Cassandra.Metrics.Registries
 {
+    /// <summary>
+    /// Exposes specific session metrics for the driver internals.
+    /// </summary>
     internal interface ISessionMetrics : IDisposable
     {
         IDriverTimer CqlRequests { get; }
@@ -31,7 +34,10 @@ namespace Cassandra.Metrics.Registries
         IDriverMeter BytesReceived { get; }
 
         IDriverGauge ConnectedNodes { get; }
-
+        
+        /// <summary>
+        /// Internal MetricsRegistry used to create metrics internally.
+        /// </summary>
         IInternalMetricsRegistry<SessionMetric> MetricsRegistry { get; }
 
         void InitializeMetrics(IInternalSession session);

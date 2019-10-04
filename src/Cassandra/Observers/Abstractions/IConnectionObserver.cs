@@ -18,14 +18,21 @@ using System;
 
 namespace Cassandra.Observers.Abstractions
 {
+    /// <summary>
+    /// Observer with handlers for connection events, used for metrics for example.
+    /// </summary>
     internal interface IConnectionObserver
     {
-        void SendBytes(long size);
+        void OnBytesSent(long size);
 
-        void ReceiveBytes(long size);
+        void OnBytesReceived(long size);
 
         void OnErrorOnOpen(Exception exception);
 
+        /// <summary>
+        /// Creates an operation observer for an operation associated with the connection that is being observed by
+        /// this instance.
+        /// </summary>
         IOperationObserver CreateOperationObserver();
     }
 }

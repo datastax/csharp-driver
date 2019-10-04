@@ -21,6 +21,7 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.Metrics.Registries
 {
+    /// <inheritdoc />
     internal class NodeMetrics : INodeMetrics
     {
         private readonly IDriverMetricsProvider _driverMetricsProvider;
@@ -57,6 +58,7 @@ namespace Cassandra.Metrics.Registries
 
         public IRetryPolicyMetrics Ignores { get; private set; }
 
+        /// <inheritdoc />
         public IInternalMetricsRegistry<NodeMetric> MetricsRegistry { get; }
 
         private void InitializeMetrics()
@@ -92,6 +94,7 @@ namespace Cassandra.Metrics.Registries
             }
         }
 
+        /// <inheritdoc />
         public void InitializePoolGauges(IHostConnectionPool pool)
         {
             _hostConnectionPool = pool;

@@ -26,11 +26,11 @@ namespace Cassandra.Observers
         {
         }
 
-        public void SendBytes(long size)
+        public void OnBytesSent(long size)
         {
         }
 
-        public void ReceiveBytes(long size)
+        public void OnBytesReceived(long size)
         {
         }
 

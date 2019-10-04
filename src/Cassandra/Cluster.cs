@@ -48,8 +48,7 @@ namespace Cassandra
         private volatile bool _initialized;
         private volatile Exception _initException;
         private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
-        private long _sessionCounter = 0;
-        private readonly SemaphoreSlim _sessionCounterLock = new SemaphoreSlim(1, 1);
+        private long _sessionCounter = -1;
 
         private readonly Metadata _metadata;
         private readonly Serializer _serializer;
@@ -245,7 +244,7 @@ namespace Cassandra
         async Task<TSession> IInternalCluster.ConnectAsync<TSession>(ISessionFactory<TSession> sessionFactory, string keyspace)
         {
             await Init().ConfigureAwait(false);
-            var newSessionName = await GetNewSessionNameAsync().ConfigureAwait(false);
+            var newSessionName = GetNewSessionName();
             var session = await sessionFactory.CreateSessionAsync(keyspace, _serializer, newSessionName).ConfigureAwait(false);
             await session.Init().ConfigureAwait(false);
             _connectedSessions.Add(session);
@@ -253,9 +252,9 @@ namespace Cassandra
             return session;
         }
 
-        private async Task<string> GetNewSessionNameAsync()
+        private string GetNewSessionName()
         {
-            var sessionCounter = await GetAndIncrementSessionCounterAsync().ConfigureAwait(false);
+            var sessionCounter = GetAndIncrementSessionCounter();
             if (sessionCounter == 0 && Configuration.SessionName != null)
             {
                 return Configuration.SessionName;
@@ -265,28 +264,10 @@ namespace Cassandra
             return prefix + sessionCounter;
         }
 
-        private async Task<long> GetAndIncrementSessionCounterAsync()
+        private long GetAndIncrementSessionCounter()
         {
-            await _sessionCounterLock.WaitAsync().ConfigureAwait(false);
-            try
-            {
-                var counter = Volatile.Read(ref _sessionCounter);
-                if (counter == long.MaxValue)
-                {
-                    Volatile.Write(ref _sessionCounter, 1);
-                }
-                else
-                {
-                    Volatile.Write(ref _sessionCounter, counter + 1);
-                }
-
-                return counter;
-
-            }
-            finally
-            {
-                _sessionCounterLock.Release();
-            }
+            var newCounter = Interlocked.Increment(ref _sessionCounter);
+            return newCounter < 0 ? Math.Abs(newCounter) : newCounter;
         }
 
         /// <inheritdoc />

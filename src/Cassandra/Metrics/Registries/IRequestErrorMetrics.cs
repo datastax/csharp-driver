@@ -17,6 +17,9 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.Metrics.Registries
 {
+    /// <summary>
+    /// Exposes request error metrics.
+    /// </summary>
     internal interface IRequestErrorMetrics
     {
         IDriverCounter Aborted { get; }

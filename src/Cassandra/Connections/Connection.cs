@@ -505,7 +505,7 @@ namespace Cassandra.Connections
                 return;
             }
 
-            _connectionObserver.ReceiveBytes(bytesReceived);
+            _connectionObserver.OnBytesReceived(bytesReceived);
             //We are currently using an IO Thread
             //Parse the data received
             var streamIdAvailable = ReadParse(buffer, bytesReceived);
@@ -852,7 +852,7 @@ namespace Cassandra.Connections
                     //lazy initialize the stream
                     stream = stream ?? (RecyclableMemoryStream)Configuration.BufferPool.GetStream(Connection.StreamWriteTag);
                     var frameLength = state.WriteFrame(streamId, stream, _serializer);
-                    _connectionObserver.SendBytes(frameLength);
+                    _connectionObserver.OnBytesSent(frameLength);
                     totalLength += frameLength;
                     if (state.TimeoutMillis > 0)
                     {

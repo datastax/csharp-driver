@@ -19,6 +19,9 @@ using Cassandra.Requests;
 
 namespace Cassandra.Observers.Abstractions
 {
+    /// <summary>
+    /// Exposes callbacks for events related to <see cref="IRequestExecution"/> and <see cref="IRequestHandler"/>.
+    /// </summary>
     internal interface IRequestObserver
     {
         void OnSpeculativeExecution(Host host, long delay);

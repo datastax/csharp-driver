@@ -19,9 +19,13 @@ using Cassandra.Mapping.Statements;
 
 namespace Cassandra
 {
+    /// <summary>
+    /// Internal interface that exposes useful methods and properties for the driver internal components.
+    /// </summary>
     internal interface IInternalStatement : IStatement
     {
         ITable GetTable();
+
         StatementFactory StatementFactory { get; }
     }
 }

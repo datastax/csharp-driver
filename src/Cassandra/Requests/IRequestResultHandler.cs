@@ -19,6 +19,10 @@ using System.Threading.Tasks;
 
 namespace Cassandra.Requests
 {
+    /// <summary>
+    /// Component used by <see cref="IRequestHandler"/> and <see cref="IRequestExecution"/> to store the result
+    /// of a request and expose an awaitable task that will be complete when the request is complete.
+    /// </summary>
     internal interface IRequestResultHandler
     {
         void TrySetResult(RowSet result);

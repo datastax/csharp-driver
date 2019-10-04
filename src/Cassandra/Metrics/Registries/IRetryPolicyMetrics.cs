@@ -17,6 +17,9 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.Metrics.Registries
 {
+    /// <summary>
+    /// Exposes metrics related to outcomes decided by retry policies.
+    /// </summary>
     internal interface IRetryPolicyMetrics
     {
         IDriverCounter ReadTimeout { get; }

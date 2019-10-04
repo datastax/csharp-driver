@@ -63,6 +63,10 @@ namespace Cassandra
         /// </summary>
         UdtMappingDefinitions UserDefinedTypes { get; }
 
+        /// <summary>
+        /// Session name. This can be set with <see cref="Builder.WithSessionName"/>.
+        /// This is used as part of the metric bucket name, for example, which can be used to separate metric paths per session.
+        /// </summary>
         string SessionName { get; }
 
         /// <summary>
@@ -218,6 +222,9 @@ namespace Cassandra
         /// <param name="customPayload">Custom outgoing payload to send with the prepare request</param>
         Task<PreparedStatement> PrepareAsync(string cqlQuery, IDictionary<string, byte[]> customPayload);
 
+        /// <summary>
+        /// Retrieves the driver metrics for this session.
+        /// </summary>
         IDriverMetrics GetMetrics();
 
         [Obsolete("Method deprecated. The driver internally waits for schema agreement when there is an schema change. See ProtocolOptions.MaxSchemaAgreementWaitSeconds for more info.")]
