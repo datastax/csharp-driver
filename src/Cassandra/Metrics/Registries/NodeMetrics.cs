@@ -48,8 +48,6 @@ namespace Cassandra.Metrics.Registries
 
         public IDriverGauge OpenConnections { get; private set; }
 
-        public IDriverGauge AvailableStreams { get; private set; }
-
         public IDriverGauge InFlight { get; private set; }
 
         public IRequestErrorMetrics Errors { get; private set; }
@@ -78,10 +76,7 @@ namespace Cassandra.Metrics.Registries
 
                 OpenConnections = MetricsRegistry.Gauge(
                     _context, NodeMetric.Gauges.OpenConnections, () => _hostConnectionPool?.OpenConnections, DriverMeasurementUnit.None);
-
-                AvailableStreams = MetricsRegistry.Gauge(
-                    _context, NodeMetric.Gauges.AvailableStreams, () => _hostConnectionPool?.AvailableStreams, DriverMeasurementUnit.None);
-
+                
                 InFlight = MetricsRegistry.Gauge(
                     _context, NodeMetric.Gauges.InFlight, () => _hostConnectionPool?.InFlight, DriverMeasurementUnit.None);
 

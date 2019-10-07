@@ -63,11 +63,6 @@ namespace Cassandra.Connections
         int InFlight { get; }
         
         /// <summary>
-        /// Determines the amount of available streams for the connection 
-        /// </summary>
-        int AvailableStreams { get; }
-
-        /// <summary>
         /// Determines if there isn't any operations pending to be written or inflight.
         /// </summary>
         bool HasPendingOperations { get; }

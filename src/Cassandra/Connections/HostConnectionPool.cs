@@ -93,9 +93,6 @@ namespace Cassandra.Connections
 
         /// <inheritdoc />
         public int OpenConnections => _connections.Count;
-
-        /// <inheritdoc />
-        public int AvailableStreams => _connections.Sum(c => c.AvailableStreams);
         
         /// <inheritdoc />
         public int InFlight => _connections.Sum(c => c.InFlight);

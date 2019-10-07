@@ -23,13 +23,14 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Collections;
+
 using Cassandra.Compression;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
+
 using Microsoft.IO;
 
 namespace Cassandra.Connections
@@ -62,7 +63,7 @@ namespace Cassandra.Connections
         /// <summary>
         /// Stores the available stream ids.
         /// </summary>
-        private CountableConcurrentStack<short> _freeOperations;
+        private ConcurrentStack<short> _freeOperations;
 
         /// <summary> Contains the requests that were sent through the wire and that hasn't been received yet.</summary>
         private ConcurrentDictionary<short, OperationState> _pendingOperations;
@@ -120,8 +121,6 @@ namespace Cassandra.Connections
         /// </summary>
         public virtual int InFlight => Volatile.Read(ref _inFlight);
 
-        public virtual int AvailableStreams => _freeOperations.Count;
-
         /// <summary>
         /// Determines if there isn't any operations pending to be written or inflight.
         /// </summary>
@@ -178,12 +177,12 @@ namespace Cassandra.Connections
         public ProtocolOptions Options => Configuration.ProtocolOptions;
 
         public Configuration Configuration { get; set; }
-        
+
         internal Connection(
-            Serializer serializer, 
-            IConnectionEndPoint endPoint, 
-            Configuration configuration, 
-            IStartupRequestFactory startupRequestFactory, 
+            Serializer serializer,
+            IConnectionEndPoint endPoint,
+            Configuration configuration,
+            IStartupRequestFactory startupRequestFactory,
             IConnectionObserver connectionObserver)
         {
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
@@ -424,7 +423,7 @@ namespace Cassandra.Connections
                 throw;
             }
         }
-        
+
         /// <summary>
         /// Initializes the connection.
         /// </summary>
@@ -433,7 +432,7 @@ namespace Cassandra.Connections
         /// <exception cref="UnsupportedProtocolVersionException"></exception>
         public async Task<Response> DoOpen()
         {
-            _freeOperations = new CountableConcurrentStack<short>(Enumerable.Range(0, MaxConcurrentRequests).Select(s => (short)s).Reverse());
+            _freeOperations = new ConcurrentStack<short>(Enumerable.Range(0, MaxConcurrentRequests).Select(s => (short)s).Reverse());
             _pendingOperations = new ConcurrentDictionary<short, OperationState>();
             _writeQueue = new ConcurrentQueue<OperationState>();
 
@@ -529,7 +528,7 @@ namespace Cassandra.Connections
             {
                 return false;
             }
-            
+
             // Check if protocol version has already been determined (first message)
             ProtocolVersion protocolVersion;
             var headerLength = Volatile.Read(ref _frameHeaderSize);
@@ -762,7 +761,7 @@ namespace Cassandra.Connections
             Send(request, tcs.TrySetRequestError, timeoutMillis);
             return tcs.Task;
         }
-        
+
         /// <inheritdoc />
         public Task<Response> Send(IRequest request)
         {
@@ -847,7 +846,7 @@ namespace Cassandra.Connections
                     break;
                 }
                 _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
-                var startLength = stream?.Length ?? 0; 
+                var startLength = stream?.Length ?? 0;
                 try
                 {
                     //lazy initialize the stream

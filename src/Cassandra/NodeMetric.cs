@@ -88,7 +88,6 @@ namespace Cassandra
             Timers.CqlMessages,
 
             Gauges.OpenConnections,
-            Gauges.AvailableStreams,
             Gauges.InFlight,
             
             Counters.SpeculativeExecutions,
@@ -231,11 +230,6 @@ namespace Cassandra
             /// Number of open connections.
             /// </summary>
             public static readonly NodeMetric OpenConnections = new NodeMetric("pool.open-connections");
-            
-            /// <summary>
-            /// Number of available streams.
-            /// </summary>
-            public static readonly NodeMetric AvailableStreams = new NodeMetric("pool.available-streams");
 
             /// <summary>
             /// Number of in flight requests.

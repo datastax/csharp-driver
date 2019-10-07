@@ -35,9 +35,7 @@ namespace Cassandra.Metrics.Registries
         IDriverTimer CqlMessages { get; }
 
         IDriverGauge OpenConnections { get; }
-
-        IDriverGauge AvailableStreams { get; }
-
+        
         IDriverGauge InFlight { get; }
 
         IRequestErrorMetrics Errors { get; }
