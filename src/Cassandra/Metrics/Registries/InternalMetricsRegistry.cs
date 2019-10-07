@@ -27,6 +27,7 @@ namespace Cassandra.Metrics.Registries
     internal class InternalMetricsRegistry<TMetric> : IInternalMetricsRegistry<TMetric> where TMetric : IMetric
     {
         private readonly IDriverMetricsProvider _driverMetricsProvider;
+        private readonly bool _metricsEnabled;
         private readonly HashSet<TMetric> _disabledMetrics;
 
         private readonly Dictionary<TMetric, IDriverGauge> _gauges = new Dictionary<TMetric, IDriverGauge>();
@@ -37,10 +38,11 @@ namespace Cassandra.Metrics.Registries
 
         private bool _initialized = false;
 
-        public InternalMetricsRegistry(IDriverMetricsProvider driverMetricsProvider, IEnumerable<TMetric> disabledMetrics)
+        public InternalMetricsRegistry(IDriverMetricsProvider driverMetricsProvider, IEnumerable<TMetric> disabledMetrics, bool metricsEnabled)
         {
             _disabledMetrics = new HashSet<TMetric>(disabledMetrics);
             _driverMetricsProvider = driverMetricsProvider;
+            _metricsEnabled = metricsEnabled;
         }
 
         /// <inheritdoc />
@@ -137,7 +139,7 @@ namespace Cassandra.Metrics.Registries
 
         private bool IsMetricEnabled(TMetric metric)
         {
-            return !_disabledMetrics.Contains(metric);
+            return _metricsEnabled && !_disabledMetrics.Contains(metric);
         }
     }
 }

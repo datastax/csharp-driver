@@ -133,6 +133,9 @@ namespace Cassandra.IntegrationTests
             {
                 Cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
                     .WithQueryTimeout(60000)
+                    #if !NET452
+                    .WithMetrics(new App.Metrics.MetricsBuilder().Build().CreateDriverMetricsProvider())
+                    #endif
                     .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000))
                     .Build();
                 Session = (Session) Cluster.Connect();
@@ -170,6 +173,9 @@ namespace Cassandra.IntegrationTests
         protected virtual ICluster GetNewCluster(Action<Builder> build = null)
         {
             var builder = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint);
+#if !NET452
+            builder = builder.WithMetrics(new App.Metrics.MetricsBuilder().Build().CreateDriverMetricsProvider());
+#endif
             build?.Invoke(builder);
             var cluster = builder.Build();
             _clusterInstances.Add(cluster);

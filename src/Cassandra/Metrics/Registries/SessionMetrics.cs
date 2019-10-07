@@ -27,11 +27,11 @@ namespace Cassandra.Metrics.Registries
         private readonly IDriverMetricsProvider _driverMetricsProvider;
         private readonly string _context;
 
-        public SessionMetrics(IDriverMetricsProvider driverMetricsProvider, MetricsOptions metricsOptions, string context)
+        public SessionMetrics(IDriverMetricsProvider driverMetricsProvider, MetricsOptions metricsOptions, bool metricsEnabled, string context)
         {
             _driverMetricsProvider = driverMetricsProvider;
             _context = context;
-            MetricsRegistry = new InternalMetricsRegistry<SessionMetric>(driverMetricsProvider, metricsOptions.DisabledSessionMetrics);
+            MetricsRegistry = new InternalMetricsRegistry<SessionMetric>(driverMetricsProvider, metricsOptions.DisabledSessionMetrics, metricsEnabled);
         }
 
         public IDriverTimer CqlRequests { get; private set; }

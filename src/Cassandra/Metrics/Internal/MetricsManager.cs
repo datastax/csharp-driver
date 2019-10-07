@@ -32,17 +32,19 @@ namespace Cassandra.Metrics.Internal
 
         private readonly IDriverMetricsProvider _driverMetricsProvider;
         private readonly MetricsOptions _metricsOptions;
+        private readonly bool _metricsEnabled;
         private readonly string _sessionContext;
         private readonly ISessionMetrics _sessionMetrics;
         private readonly CopyOnWriteDictionary<Host, IMetricsRegistry<NodeMetric>> _nodeMetricsRegistryCollection;
         private readonly CopyOnWriteDictionary<Host, INodeMetrics> _nodeMetricsCollection;
 
-        public MetricsManager(IDriverMetricsProvider driverMetricsProvider, MetricsOptions metricsOptions, string sessionName)
+        public MetricsManager(IDriverMetricsProvider driverMetricsProvider, MetricsOptions metricsOptions, bool metricsEnabled, string sessionName)
         {
             _driverMetricsProvider = driverMetricsProvider;
             _metricsOptions = metricsOptions;
+            _metricsEnabled = metricsEnabled;
             _sessionContext = metricsOptions.PathPrefix != null ? $"{metricsOptions.PathPrefix}.{sessionName}" : sessionName;
-            _sessionMetrics = new SessionMetrics(_driverMetricsProvider, metricsOptions, _sessionContext);
+            _sessionMetrics = new SessionMetrics(_driverMetricsProvider, metricsOptions, metricsEnabled, _sessionContext);
             _nodeMetricsRegistryCollection = new CopyOnWriteDictionary<Host, IMetricsRegistry<NodeMetric>>();
             _nodeMetricsCollection = new CopyOnWriteDictionary<Host, INodeMetrics>();
         }
@@ -125,7 +127,7 @@ namespace Cassandra.Metrics.Internal
             {
                 var nodeContext = $"{_sessionContext}.nodes.{MetricsManager.BuildHostAddressMetricPath(host.Address)}";
 
-                var newRegistry = new NodeMetrics(_driverMetricsProvider, _metricsOptions, nodeContext);
+                var newRegistry = new NodeMetrics(_driverMetricsProvider, _metricsOptions, _metricsEnabled, nodeContext);
                 _nodeMetricsRegistryCollection.Add(host, newRegistry.MetricsRegistry);
 
                 return newRegistry;

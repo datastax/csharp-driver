@@ -150,6 +150,8 @@ namespace Cassandra
 
         internal string SessionName { get; }
 
+        internal bool MetricsEnabled { get; }
+
         internal IObserverFactoryBuilder ObserverFactoryBuilder { get; }
 
         /// <summary>
@@ -231,6 +233,7 @@ namespace Cassandra
             MetricsOptions = metricsOptions ?? new MetricsOptions();
             MetricsProvider = driverMetricsProvider ?? new NullDriverMetricsProvider();
             SessionName = sessionName;
+            MetricsEnabled = driverMetricsProvider != null;
 
             ObserverFactoryBuilder = observerFactoryBuilder ?? new ObserverFactoryBuilder();
             RequestHandlerFactory = requestHandlerFactory ?? new RequestHandlerFactory();

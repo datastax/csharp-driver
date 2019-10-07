@@ -29,11 +29,11 @@ namespace Cassandra.Metrics.Registries
 
         private IHostConnectionPool _hostConnectionPool = null;
 
-        public NodeMetrics(IDriverMetricsProvider driverMetricsProvider, MetricsOptions metricOptions, string context)
+        public NodeMetrics(IDriverMetricsProvider driverMetricsProvider, MetricsOptions metricOptions, bool metricsEnabled, string context)
         {
             _driverMetricsProvider = driverMetricsProvider;
             _context = context;
-            MetricsRegistry = new InternalMetricsRegistry<NodeMetric>(driverMetricsProvider, metricOptions.DisabledNodeMetrics);
+            MetricsRegistry = new InternalMetricsRegistry<NodeMetric>(driverMetricsProvider, metricOptions.DisabledNodeMetrics, metricsEnabled);
 
             InitializeMetrics();
         }
