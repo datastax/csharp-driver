@@ -17,7 +17,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Cassandra
+namespace Cassandra.Metrics
 {
     /// <summary>
     /// Represents an individual node metric.

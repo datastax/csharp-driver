@@ -21,7 +21,7 @@ using App.Metrics.Counter;
 using App.Metrics.Gauge;
 using App.Metrics.Meter;
 using App.Metrics.Timer;
-
+using Cassandra.Metrics;
 using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.Implementations

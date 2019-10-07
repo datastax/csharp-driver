@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-namespace Cassandra
+namespace Cassandra.Metrics
 {
     /// <summary>
     /// Interface implemented by <see cref="NodeMetric"/> and <see cref="SessionMetric"/>.

@@ -20,6 +20,7 @@ using System.Linq;
 
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Metrics;
 using Cassandra.Metrics.Abstractions;
 using Cassandra.Metrics.Providers.Null;
 using Cassandra.Observers;

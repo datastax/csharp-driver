@@ -17,11 +17,11 @@
 using System.Collections.Generic;
 using Cassandra.Metrics.Abstractions;
 
-namespace Cassandra
+namespace Cassandra.Metrics
 {
     /// <summary>
     /// This class is used to customize options related to Metrics. It is used in 
-    /// <see cref="Builder.WithMetrics(IDriverMetricsProvider, MetricsOptions)"/>.
+    /// <see cref="Builder.WithMetrics(Cassandra.Metrics.Abstractions.IDriverMetricsProvider,Cassandra.Metrics.MetricsOptions)"/>.
     /// </summary>
     public class MetricsOptions
     {

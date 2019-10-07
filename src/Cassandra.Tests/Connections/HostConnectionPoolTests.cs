@@ -18,6 +18,7 @@ using System;
 using System.Net;
 using System.Threading.Tasks;
 using Cassandra.Connections;
+using Cassandra.Metrics;
 using Cassandra.Metrics.Internal;
 using Cassandra.Metrics.Providers.Null;
 using Cassandra.Observers;

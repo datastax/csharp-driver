@@ -21,6 +21,7 @@ using System.Net;
 
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Metrics;
 using Cassandra.Metrics.Abstractions;
 using Cassandra.Requests;
 using Cassandra.Serialization;
