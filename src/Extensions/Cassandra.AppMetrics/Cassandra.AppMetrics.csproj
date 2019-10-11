@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <PackageReference Include="App.Metrics.Abstractions" Version="3.*" />
+    <PackageReference Include="App.Metrics.Concurrency" Version="2.*" />
   </ItemGroup>
 
   <ItemGroup>

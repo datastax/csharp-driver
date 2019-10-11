@@ -29,11 +29,11 @@ namespace Cassandra.Observers
         {
         }
 
-        public void OnOperationSend(long requestSize)
+        public void OnOperationSend(long requestSize, long timestamp)
         {
         }
 
-        public void OnOperationReceive(IRequestError error, Response response)
+        public void OnOperationReceive(IRequestError error, Response response, long timestamp)
         {
         }
     }

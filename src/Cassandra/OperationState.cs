@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -33,13 +34,15 @@ namespace Cassandra
     /// </summary>
     internal class OperationState
     {
+        private static readonly Logger Logger = new Logger(typeof(OperationState));
+
         private readonly IOperationObserver _operationObserver;
         private const int StateInit = 0;
         private const int StateCancelled = 1;
         private const int StateTimedout = 2;
         private const int StateCompleted = 3;
-        private Action<IRequestError, Response> _callback;
-        public static readonly Action<IRequestError, Response> Noop = (_, __) => { };
+        private Action<IRequestError, Response, long> _callback;
+        public static readonly Action<IRequestError, Response, long> Noop = (_, __, ___) => { };
         private volatile bool _timeoutCallbackSet;
         private int _state = StateInit;
         private volatile HashedWheelTimer.ITimeout _timeout;
@@ -56,10 +59,17 @@ namespace Cassandra
         /// </summary>
         public OperationState(Action<IRequestError, Response> callback, IRequest request, int timeoutMillis, IOperationObserver operationObserver)
         {
-            Volatile.Write(ref _callback, (exception, response) =>
+            Volatile.Write(ref _callback, (exception, response, timestamp) =>
             {
-                callback(exception, response);
-                operationObserver.OnOperationReceive(exception, response);
+                try
+                {
+                    callback(exception, response);
+                    operationObserver.OnOperationReceive(exception, response, timestamp);
+                }
+                catch (Exception ex)
+                {
+                    OperationState.Logger.Warning("Exception thrown inside an operation callback: {0}", ex.ToString());
+                }
             });
             _operationObserver = operationObserver;
             Request = request;
@@ -74,10 +84,10 @@ namespace Cassandra
             _timeout = value;
         }
 
-        public long WriteFrame(short streamId, MemoryStream memoryStream, Serializer serializer)
+        public long WriteFrame(short streamId, MemoryStream memoryStream, Serializer serializer, long timestamp)
         {
             var frameLength = Request.WriteFrame(streamId, memoryStream, serializer);
-            _operationObserver.OnOperationSend(frameLength);
+            _operationObserver.OnOperationSend(frameLength, timestamp);
             //We will not use the request any more, stop reference it.
             Request = null;
             return frameLength;
@@ -88,14 +98,14 @@ namespace Cassandra
         /// Note that the returned callback might be a reference to <see cref="Noop"/>, as the original callback
         /// might be already called.
         /// </summary>
-        public Action<IRequestError, Response> SetCompleted()
+        public Action<IRequestError, Response, long> SetCompleted()
         {
             var previousState = Interlocked.CompareExchange(ref _state, StateCompleted, StateInit);
             if (previousState == StateCancelled || previousState == StateCompleted)
             {
                 return Noop;
             }
-            Action<IRequestError, Response> callback;
+            Action<IRequestError, Response, long> callback;
             if (previousState == StateInit)
             {
                 callback = Interlocked.Exchange(ref _callback, Noop);
@@ -122,7 +132,7 @@ namespace Cassandra
         /// Marks this operation as completed and invokes the callback with the exception using the default task scheduler.
         /// Its safe to call this method multiple times as the underlying callback will be invoked just once.
         /// </summary>
-        public void InvokeCallback(IRequestError error)
+        public void InvokeCallback(IRequestError error, long timestamp)
         {
             var callback = SetCompleted();
             if (callback == Noop)
@@ -131,14 +141,14 @@ namespace Cassandra
             }
             //Invoke the callback in a new thread in the thread pool
             //This way we don't let the user block on a thread used by the Connection
-            Task.Factory.StartNew(() => callback(error, null), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+            Task.Factory.StartNew(() => callback(error, null, timestamp), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
         }
 
         /// <summary>
         /// Marks this operation as timed-out, callbacks with the exception 
         /// and sets a handler when the response is received
         /// </summary>
-        public bool MarkAsTimedOut(OperationTimedOutException ex, Action onReceive)
+        public bool MarkAsTimedOut(OperationTimedOutException ex, Action onReceive, long timestamp)
         {
             var previousState = Interlocked.CompareExchange(ref _state, StateTimedout, StateInit);
             if (previousState != StateInit)
@@ -146,14 +156,14 @@ namespace Cassandra
                 return false;
             }
             //When the data is received, invoke on receive callback
-            var callback = Interlocked.Exchange(ref _callback, (_, __) => onReceive());
+            var callback = Interlocked.Exchange(ref _callback, (_, __, ___) => onReceive());
 #if !NETCORE
             Thread.MemoryBarrier();
 #else
             Interlocked.MemoryBarrier();
 #endif
             _timeoutCallbackSet = true;
-            Task.Factory.StartNew(() => callback(RequestError.CreateClientError(ex, false), null), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+            Task.Factory.StartNew(() => callback(RequestError.CreateClientError(ex, false), null, timestamp), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
             return true;
         }
 
@@ -184,10 +194,11 @@ namespace Cassandra
         {
             Task.Factory.StartNew(() =>
             {
+                var timestamp = Stopwatch.GetTimestamp();
                 foreach (var state in ops)
                 {
                     var callback = state.SetCompleted();
-                    callback(error, null);
+                    callback(error, null, timestamp);
                 }
             }, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
         }

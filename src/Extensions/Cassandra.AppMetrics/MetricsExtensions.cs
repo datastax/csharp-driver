@@ -15,7 +15,7 @@
 
 using System;
 using App.Metrics;
-
+using Cassandra.AppMetrics;
 using Cassandra.AppMetrics.Implementations;
 using Cassandra.AppMetrics.MetricTypes;
 using Cassandra.Metrics;
@@ -30,7 +30,15 @@ namespace Cassandra
         /// </summary>
         public static IDriverMetricsProvider CreateDriverMetricsProvider(this IMetricsRoot appMetrics)
         {
-            return new AppMetricsDriverMetricsProvider(appMetrics);
+            return new AppMetricsDriverMetricsProvider(appMetrics, new DriverAppMetricsOptions());
+        }
+        
+        /// <summary>
+        /// Creates a <see cref="IDriverMetricsProvider"/> based on AppMetrics with the provided <see cref="IMetricsRoot"/>.
+        /// </summary>
+        public static IDriverMetricsProvider CreateDriverMetricsProvider(this IMetricsRoot appMetrics, DriverAppMetricsOptions options)
+        {
+            return new AppMetricsDriverMetricsProvider(appMetrics, options);
         }
 
         /// <summary>
@@ -117,7 +125,7 @@ namespace Cassandra
         /// Casts the provided counter to the counter implementation of this provider.
         /// </summary>
         /// <exception cref="ArgumentException">If the counter was not created by the AppMetrics
-        /// provider (<see cref="CreateDriverMetricsProvider"/>).</exception>
+        /// provider (<see cref="CreateDriverMetricsProvider(App.Metrics.IMetricsRoot)"/>).</exception>
         public static IAppMetricsCounter ToAppMetricsCounter(this IDriverCounter counter)
         {
             MetricsExtensions.ThrowIfNull(counter, nameof(counter));
@@ -135,7 +143,7 @@ namespace Cassandra
         /// Casts the provided gauge to the gauge implementation of this provider.
         /// </summary>
         /// <exception cref="ArgumentException">If the gauge was not created by the AppMetrics
-        /// provider (<see cref="CreateDriverMetricsProvider"/>).</exception>
+        /// provider (<see cref="CreateDriverMetricsProvider(App.Metrics.IMetricsRoot)"/>).</exception>
         public static IAppMetricsGauge ToAppMetricsGauge(this IDriverGauge gauge)
         {
             MetricsExtensions.ThrowIfNull(gauge, nameof(gauge));
@@ -153,7 +161,7 @@ namespace Cassandra
         /// Casts the provided meter to the meter implementation of this provider.
         /// </summary>
         /// <exception cref="ArgumentException">If the meter was not created by the AppMetrics
-        /// provider (<see cref="CreateDriverMetricsProvider"/>).</exception>
+        /// provider (<see cref="CreateDriverMetricsProvider(App.Metrics.IMetricsRoot)"/>).</exception>
         public static IAppMetricsMeter ToAppMetricsMeter(this IDriverMeter meter)
         {
             MetricsExtensions.ThrowIfNull(meter, nameof(meter));
@@ -171,7 +179,7 @@ namespace Cassandra
         /// Casts the provided timer to the timer implementation of this provider.
         /// </summary>
         /// <exception cref="ArgumentException">If the timer was not created by the AppMetrics
-        /// provider (<see cref="CreateDriverMetricsProvider"/>).</exception>
+        /// provider (<see cref="CreateDriverMetricsProvider(App.Metrics.IMetricsRoot)"/>).</exception>
         public static IAppMetricsTimer ToAppMetricsTimer(this IDriverTimer timer)
         {
             MetricsExtensions.ThrowIfNull(timer, nameof(timer));

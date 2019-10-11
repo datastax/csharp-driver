@@ -21,13 +21,13 @@ using Cassandra.Observers.Abstractions;
 
 namespace Cassandra.Observers
 {
-    internal class ConnectionObserver : IConnectionObserver
+    internal class MetricsConnectionObserver : IConnectionObserver
     {
-        private static readonly Logger Logger = new Logger(typeof(ConnectionObserver));
+        private static readonly Logger Logger = new Logger(typeof(MetricsConnectionObserver));
         private readonly ISessionMetrics _sessionMetrics;
         private readonly INodeMetrics _nodeMetrics;
 
-        public ConnectionObserver(ISessionMetrics sessionMetrics, INodeMetrics nodeMetrics)
+        public MetricsConnectionObserver(ISessionMetrics sessionMetrics, INodeMetrics nodeMetrics)
         {
             _sessionMetrics = sessionMetrics;
             _nodeMetrics = nodeMetrics;
@@ -82,7 +82,7 @@ namespace Cassandra.Observers
 
         public IOperationObserver CreateOperationObserver()
         {
-            return new OperationObserver(_nodeMetrics);
+            return new MetricsOperationObserver(_nodeMetrics);
         }
 
         private static void LogError(Exception ex)

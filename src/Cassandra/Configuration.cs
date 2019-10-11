@@ -235,7 +235,7 @@ namespace Cassandra
             SessionName = sessionName;
             MetricsEnabled = driverMetricsProvider != null;
 
-            ObserverFactoryBuilder = observerFactoryBuilder ?? new ObserverFactoryBuilder();
+            ObserverFactoryBuilder = observerFactoryBuilder ?? (MetricsEnabled ? (IObserverFactoryBuilder)new MetricsObserverFactoryBuilder() : new NullObserverFactoryBuilder());
             RequestHandlerFactory = requestHandlerFactory ?? new RequestHandlerFactory();
             HostConnectionPoolFactory = hostConnectionPoolFactory ?? new HostConnectionPoolFactory();
             RequestExecutionFactory = requestExecutionFactory ?? new RequestExecutionFactory();

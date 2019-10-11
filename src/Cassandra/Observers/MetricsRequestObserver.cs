@@ -15,7 +15,7 @@
 //
 
 using System;
-
+using System.Diagnostics;
 using Cassandra.Metrics.Abstractions;
 using Cassandra.Metrics.Internal;
 using Cassandra.Metrics.Providers.Null;
@@ -25,15 +25,15 @@ using Cassandra.Requests;
 
 namespace Cassandra.Observers
 {
-    internal class RequestObserver : IRequestObserver
+    internal class MetricsRequestObserver : IRequestObserver
     {
-        private static readonly Logger Logger = new Logger(typeof(RequestObserver));
+        private static readonly Logger Logger = new Logger(typeof(MetricsRequestObserver));
 
         private readonly IMetricsManager _manager;
         private readonly IDriverTimer _requestTimer;
         private IDriverTimerMeasurement _driverTimerMeasurement;
 
-        public RequestObserver(IMetricsManager manager, IDriverTimer requestTimer)
+        public MetricsRequestObserver(IMetricsManager manager, IDriverTimer requestTimer)
         {
             _manager = manager;
             _requestTimer = requestTimer;
@@ -129,27 +129,43 @@ namespace Cassandra.Observers
 
         public void OnRequestStart()
         {
+            if (!_manager.IsSessionTimerMetricsEnabled())
+            {
+                return;
+            }
+
             try
             {
-                _driverTimerMeasurement = _requestTimer.StartMeasuring();
+                _driverTimerMeasurement = _requestTimer.StartMeasuring(Stopwatch.GetTimestamp());
             }
             catch (Exception ex)
             {
                 LogError(ex);
-                _driverTimerMeasurement = NullDriverTimerMeasurement.Instance;
+                _driverTimerMeasurement = null;
             }
         }
 
         public void OnRequestFinish(Exception exception)
         {
+            if (!_manager.IsSessionTimerMetricsEnabled())
+            {
+                return;
+            }
+
             try
             {
-                _driverTimerMeasurement.StopMeasuring();
+                if (_driverTimerMeasurement == null)
+                {
+                    MetricsRequestObserver.Logger.Warning("Found null measurement");
+                    return;
+                }
+                _driverTimerMeasurement.StopMeasuring(Stopwatch.GetTimestamp());
                 _driverTimerMeasurement = null;
             }
             catch (Exception ex)
             {
                 LogError(ex);
+                _driverTimerMeasurement = null;
             }
         }
 

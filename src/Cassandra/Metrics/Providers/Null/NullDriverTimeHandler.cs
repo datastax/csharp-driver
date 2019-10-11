@@ -28,7 +28,7 @@ namespace Cassandra.Metrics.Providers.Null
         }
 
         /// <inheritdoc/>
-        public void StopMeasuring()
+        public void StopMeasuring(long timestamp)
         {
         }
     }

@@ -28,6 +28,6 @@ namespace Cassandra.Metrics.Abstractions
         /// </summary>
         /// <returns>An instance of <see cref="IDriverTimerMeasurement"/> that can be used to stop the timer for this measurement
         /// and add the value to the metric value.</returns>
-        IDriverTimerMeasurement StartMeasuring();
+        IDriverTimerMeasurement StartMeasuring(long timestamp);
     }
 }

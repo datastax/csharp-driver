@@ -24,6 +24,6 @@ namespace Cassandra.Metrics.Abstractions
         /// <summary>
         /// Stops measuring and adds the measurement to the related metric.
         /// </summary>
-        void StopMeasuring();
+        void StopMeasuring(long timestamp);
     }
 }

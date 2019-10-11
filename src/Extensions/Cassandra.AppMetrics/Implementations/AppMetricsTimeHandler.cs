@@ -14,25 +14,33 @@
 //   limitations under the License.
 //
 
+using System;
+using System.Diagnostics;
+using App.Metrics;
 using App.Metrics.Timer;
+
 using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.Implementations
 {
-    /// <inheritdoc/>
+    /// <inheritdoc cref="IDriverTimerMeasurement" />
     internal class AppMetricsTimerMeasurement : IDriverTimerMeasurement
     {
-        private TimerContext _timerContext;
+        private static readonly long Factor = 1000L * 1000L * 1000L / Stopwatch.Frequency;
 
-        public AppMetricsTimerMeasurement(TimerContext timerContext)
+        private readonly ITimer _timer;
+        private readonly long _start;
+
+        public AppMetricsTimerMeasurement(ITimer timer, long timestamp)
         {
-            _timerContext = timerContext;
+            _timer = timer;
+            _start = timestamp;
         }
-        
+
         /// <inheritdoc/>
-        public void StopMeasuring()
+        public void StopMeasuring(long timestamp)
         {
-            _timerContext.Dispose();
+            _timer.Record((timestamp - _start) * Factor, TimeUnit.Nanoseconds);
         }
     }
 }

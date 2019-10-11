@@ -19,11 +19,11 @@ using Cassandra.Observers.Abstractions;
 
 namespace Cassandra.Observers
 {
-    internal class ObserverFactoryBuilder : IObserverFactoryBuilder
+    internal class MetricsObserverFactoryBuilder : IObserverFactoryBuilder
     {
         public IObserverFactory Build(IMetricsManager manager)
         {
-            return new ObserverFactory(manager);
+            return new MetricsObserverFactory(manager);
         }
     }
 }

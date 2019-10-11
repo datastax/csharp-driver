@@ -24,8 +24,8 @@ namespace Cassandra.Observers.Abstractions
     /// </summary>
     internal interface IOperationObserver
     {
-        void OnOperationSend(long requestSize);
+        void OnOperationSend(long requestSize, long timestamp);
 
-        void OnOperationReceive(IRequestError exception, Response response);
+        void OnOperationReceive(IRequestError exception, Response response, long timestamp);
     }
 }

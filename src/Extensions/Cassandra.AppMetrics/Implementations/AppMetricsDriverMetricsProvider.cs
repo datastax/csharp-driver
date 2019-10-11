@@ -30,10 +30,12 @@ namespace Cassandra.AppMetrics.Implementations
     internal class AppMetricsDriverMetricsProvider : IDriverMetricsProvider
     {
         private readonly IMetricsRoot _metricsRoot;
+        private readonly DriverAppMetricsOptions _options;
 
-        public AppMetricsDriverMetricsProvider(IMetricsRoot appMetrics)
+        public AppMetricsDriverMetricsProvider(IMetricsRoot appMetrics, DriverAppMetricsOptions options)
         {
             _metricsRoot = appMetrics ?? throw new ArgumentNullException(nameof(appMetrics));
+            _options = options;
         }
         
         /// <inheritdoc />
@@ -46,7 +48,13 @@ namespace Cassandra.AppMetrics.Implementations
                     Name = metric.Path,
                     Context = bucket,
                     MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
-                    DurationUnit = timeUnit.ToAppMetricsTimeUnit()
+                    DurationUnit = timeUnit.ToAppMetricsTimeUnit(),
+                    Reservoir = 
+                        () => new HdrHistogramReservoir(
+                        1, 
+                        // timer records value in nanoseconds, convert limit value from ms to ns
+                        ((long)_options.HighestLatencyMilliseconds)*1000*1000,
+                        _options.SignificantDigits)
                 }),
                 bucket,
                 metric.Path,
@@ -62,7 +70,7 @@ namespace Cassandra.AppMetrics.Implementations
                 {
                     Name = metric.Path,
                     Context = bucket,
-                    MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
+                    MeasurementUnit = measurementUnit.ToAppMetricsUnit()
                 }),
                 bucket,
                 metric.Path,
@@ -95,7 +103,7 @@ namespace Cassandra.AppMetrics.Implementations
                     {
                         Context = bucket,
                         Name = metric.Path,
-                        MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
+                        MeasurementUnit = measurementUnit.ToAppMetricsUnit()
                     },
                     () => _metricsRoot.Build.Gauge.Build(() => valueProvider() ?? double.NaN)),
                 bucket,

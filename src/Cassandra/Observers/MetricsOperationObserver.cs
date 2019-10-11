@@ -24,46 +24,54 @@ using Cassandra.Responses;
 
 namespace Cassandra.Observers
 {
-    internal class OperationObserver : IOperationObserver
+    internal class MetricsOperationObserver : IOperationObserver
     {
-        private static readonly Logger Logger = new Logger(typeof(OperationObserver));
+        private static readonly Logger Logger = new Logger(typeof(MetricsOperationObserver));
 
         private readonly IDriverTimer _operationTimer;
         private IDriverTimerMeasurement _driverTimerMeasurement;
 
-        public OperationObserver(INodeMetrics nodeMetrics)
+        public MetricsOperationObserver(INodeMetrics nodeMetrics)
         {
             _operationTimer = nodeMetrics.CqlMessages;
         }
 
-        public void OnOperationSend(long requestSize)
+        public void OnOperationSend(long requestSize, long timestamp)
         {
             try
             {
-                _driverTimerMeasurement = _operationTimer.StartMeasuring();
+                _driverTimerMeasurement = _operationTimer.StartMeasuring(timestamp);
             }
             catch (Exception ex)
             {
-                LogError(ex);
-                _driverTimerMeasurement = NullDriverTimerMeasurement.Instance;
+                MetricsOperationObserver.LogError(ex);
+                _driverTimerMeasurement = null;
             }
         }
 
-        public void OnOperationReceive(IRequestError error, Response response)
+        public void OnOperationReceive(IRequestError error, Response response, long timestamp)
         {
             try
             {
-                _driverTimerMeasurement.StopMeasuring();
+                if (_driverTimerMeasurement == null)
+                {
+                    MetricsOperationObserver.Logger.Warning("Found null measurement");
+                    return;
+                }
+
+                _driverTimerMeasurement.StopMeasuring(timestamp);
+                _driverTimerMeasurement = null;
             }
             catch (Exception ex)
             {
-                OperationObserver.LogError(ex);
+                MetricsOperationObserver.LogError(ex);
+                _driverTimerMeasurement = null;
             }
         }
 
         private static void LogError(Exception ex)
         {
-            OperationObserver.Logger.Warning("An error occured while recording metrics for a connection operation. Exception = {0}", ex.ToString());
+            MetricsOperationObserver.Logger.Warning("An error occured while recording metrics for a connection operation. Exception = {0}", ex.ToString());
         }
     }
 }

@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 
 using Cassandra.Collections;
@@ -37,6 +38,7 @@ namespace Cassandra.Metrics.Internal
         private readonly ISessionMetrics _sessionMetrics;
         private readonly CopyOnWriteDictionary<Host, IMetricsRegistry<NodeMetric>> _nodeMetricsRegistryCollection;
         private readonly CopyOnWriteDictionary<Host, INodeMetrics> _nodeMetricsCollection;
+        private readonly bool _disabledSessionTimerMetrics;
 
         public MetricsManager(IDriverMetricsProvider driverMetricsProvider, MetricsOptions metricsOptions, bool metricsEnabled, string sessionName)
         {
@@ -47,6 +49,7 @@ namespace Cassandra.Metrics.Internal
             _sessionMetrics = new SessionMetrics(_driverMetricsProvider, metricsOptions, metricsEnabled, _sessionContext);
             _nodeMetricsRegistryCollection = new CopyOnWriteDictionary<Host, IMetricsRegistry<NodeMetric>>();
             _nodeMetricsCollection = new CopyOnWriteDictionary<Host, INodeMetrics>();
+            _disabledSessionTimerMetrics = !metricsEnabled || metricsOptions.DisabledSessionMetrics.Contains(SessionMetric.Timers.CqlRequests);
         }
 
         /// <inheritdoc/>
@@ -114,6 +117,12 @@ namespace Cassandra.Metrics.Internal
             nodeMetrics.Dispose();
         }
 
+        /// <inheritdoc />
+        public bool IsSessionTimerMetricsEnabled()
+        {
+            return !_disabledSessionTimerMetrics;
+        }
+        
         /// <inheritdoc />
         public ISessionMetrics GetSessionMetrics()
         {

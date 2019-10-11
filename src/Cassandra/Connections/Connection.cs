@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -25,6 +26,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Cassandra.Compression;
+using Cassandra.Metrics;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 using Cassandra.Responses;
@@ -86,6 +88,7 @@ namespace Cassandra.Connections
         private int _writeState = Connection.WriteStateInit;
         private int _inFlight;
         private readonly IConnectionObserver _connectionObserver;
+        private readonly bool _timerEnabled;
 
         /// <summary>
         /// The event that represents a event RESPONSE from a Cassandra node
@@ -191,6 +194,8 @@ namespace Cassandra.Connections
             _tcpSocket = new TcpSocket(endPoint, configuration.SocketOptions, configuration.ProtocolOptions.SslOptions);
             _idleTimer = new Timer(IdleTimeoutHandler, null, Timeout.Infinite, Timeout.Infinite);
             _connectionObserver = connectionObserver;
+            _timerEnabled = configuration.MetricsEnabled
+                            && !configuration.MetricsOptions.DisabledNodeMetrics.Contains(NodeMetric.Timers.CqlMessages);
         }
 
         private void IncrementInFlight()
@@ -357,7 +362,7 @@ namespace Cassandra.Connections
             }
         }
 
-        private void EventHandler(IRequestError error, Response response)
+        private void EventHandler(IRequestError error, Response response, long timestamp)
         {
             if (!(response is EventResponse))
             {
@@ -554,7 +559,7 @@ namespace Cassandra.Connections
                 return false;
             }
 
-            var operationCallbacks = new LinkedList<Action<MemoryStream>>();
+            var operationCallbacks = new LinkedList<Action<MemoryStream, long>>();
             var offset = 0;
             while (offset < length)
             {
@@ -592,7 +597,7 @@ namespace Cassandra.Connections
                 stream = stream ?? Configuration.BufferPool.GetStream(Connection.StreamReadTag);
 
                 // Get callback
-                Action<IRequestError, Response> callback;
+                Action<IRequestError, Response, long> callback;
                 if (header.Opcode == EventResponse.OpCode)
                 {
                     callback = EventHandler;
@@ -615,7 +620,7 @@ namespace Cassandra.Connections
             }
 
             // Invoke callbacks with read stream
-            return Connection.InvokeReadCallbacks(stream, operationCallbacks);
+            return Connection.InvokeReadCallbacks(stream, operationCallbacks, GetTimestamp());
         }
 
         /// <summary>
@@ -684,11 +689,11 @@ namespace Cassandra.Connections
         /// <summary>
         /// Returns an action that capture the parameters closure
         /// </summary>
-        private Action<MemoryStream> CreateResponseAction(FrameHeader header, Action<IRequestError, Response> callback)
+        private Action<MemoryStream, long> CreateResponseAction(FrameHeader header, Action<IRequestError, Response, long> callback)
         {
             var compressor = Compressor;
 
-            void DeserializeResponseStream(MemoryStream stream)
+            void DeserializeResponseStream(MemoryStream stream, long timestamp)
             {
                 Response response = null;
                 IRequestError error = null;
@@ -714,7 +719,7 @@ namespace Cassandra.Connections
                 }
                 //We must advance the position of the stream manually in case it was not correctly parsed
                 stream.Position = nextPosition;
-                callback(error, response);
+                callback(error, response, timestamp);
             }
 
             return DeserializeResponseStream;
@@ -724,7 +729,7 @@ namespace Cassandra.Connections
         /// Invokes the callbacks using the default TaskScheduler.
         /// </summary>
         /// <returns>Returns true if one or more callback has been invoked.</returns>
-        private static bool InvokeReadCallbacks(MemoryStream stream, ICollection<Action<MemoryStream>> operationCallbacks)
+        private static bool InvokeReadCallbacks(MemoryStream stream, ICollection<Action<MemoryStream, long>> operationCallbacks, long timestamp)
         {
             if (operationCallbacks.Count == 0)
             {
@@ -737,7 +742,7 @@ namespace Cassandra.Connections
                 stream.Position = 0;
                 foreach (var cb in operationCallbacks)
                 {
-                    cb(stream);
+                    cb(stream, timestamp);
                 }
                 stream.Dispose();
             }, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
@@ -817,11 +822,17 @@ namespace Cassandra.Connections
             Task.Factory.StartNew(RunWriteQueueAction, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
         }
 
+        private long GetTimestamp()
+        {
+            return _timerEnabled ? Stopwatch.GetTimestamp() : 0;
+        }
+
         private void RunWriteQueueAction()
         {
             //Dequeue all items until threshold is passed
             long totalLength = 0;
             RecyclableMemoryStream stream = null;
+            var timestamp = GetTimestamp();
             while (totalLength < Connection.CoalescingThreshold)
             {
                 OperationState state;
@@ -842,7 +853,7 @@ namespace Cassandra.Connections
                 Connection.Logger.Verbose("Sending #{0} for {1} to {2}", streamId, state.Request.GetType().Name, EndPoint.EndpointFriendlyName);
                 if (_isCanceled)
                 {
-                    state.InvokeCallback(RequestError.CreateClientError(new SocketException((int)SocketError.NotConnected), true));
+                    state.InvokeCallback(RequestError.CreateClientError(new SocketException((int)SocketError.NotConnected), true), timestamp);
                     break;
                 }
                 _pendingOperations.AddOrUpdate(streamId, state, (k, oldValue) => state);
@@ -851,7 +862,7 @@ namespace Cassandra.Connections
                 {
                     //lazy initialize the stream
                     stream = stream ?? (RecyclableMemoryStream)Configuration.BufferPool.GetStream(Connection.StreamWriteTag);
-                    var frameLength = state.WriteFrame(streamId, stream, _serializer);
+                    var frameLength = state.WriteFrame(streamId, stream, _serializer, timestamp);
                     _connectionObserver.OnBytesSent(frameLength);
                     totalLength += frameLength;
                     if (state.TimeoutMillis > 0)
@@ -867,7 +878,7 @@ namespace Cassandra.Connections
                     //The request was not written, clear it from pending operations
                     RemoveFromPending(streamId);
                     //Callback with the Exception
-                    state.InvokeCallback(RequestError.CreateClientError(ex, true));
+                    state.InvokeCallback(RequestError.CreateClientError(ex, true), timestamp);
 
                     //Reset the stream to before we started writing this frame
                     stream?.SetLength(startLength);
@@ -973,7 +984,7 @@ namespace Cassandra.Connections
             var ex = new OperationTimedOutException(EndPoint, state.TimeoutMillis);
             //Invoke if it hasn't been invoked yet
             //Once the response is obtained, we decrement the timed out counter
-            var timedout = state.MarkAsTimedOut(ex, () => Interlocked.Decrement(ref _timedOutOperations));
+            var timedout = state.MarkAsTimedOut(ex, () => Interlocked.Decrement(ref _timedOutOperations), GetTimestamp());
             if (!timedout)
             {
                 //The response was obtained since the timer elapsed, move on
@@ -982,7 +993,7 @@ namespace Cassandra.Connections
             //Increase timed-out counter
             Interlocked.Increment(ref _timedOutOperations);
         }
-
+        
         /// <summary>
         /// Method that gets executed when a write request has been completed.
         /// </summary>

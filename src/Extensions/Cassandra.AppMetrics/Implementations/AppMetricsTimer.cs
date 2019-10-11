@@ -39,9 +39,9 @@ namespace Cassandra.AppMetrics.Implementations
         }
 
         /// <inheritdoc/>
-        public IDriverTimerMeasurement StartMeasuring()
+        public IDriverTimerMeasurement StartMeasuring(long timestamp)
         {
-            return new AppMetricsTimerMeasurement(_timer.NewContext());
+            return new AppMetricsTimerMeasurement(_timer, timestamp);
         }
         
         /// <inheritdoc/>

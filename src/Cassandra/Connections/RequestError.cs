@@ -19,7 +19,7 @@ using Cassandra.Responses;
 
 namespace Cassandra.Connections
 {
-    internal struct RequestError : IRequestError
+    internal class RequestError : IRequestError
     {
         private RequestError(Exception ex, bool isServerError, bool unsent)
         {

@@ -19,23 +19,23 @@ using Cassandra.Observers.Abstractions;
 
 namespace Cassandra.Observers
 {
-    internal class ObserverFactory : IObserverFactory
+    internal class MetricsObserverFactory : IObserverFactory
     {
         private readonly IMetricsManager _metricsManager;
 
-        public ObserverFactory(IMetricsManager metricsManager)
+        public MetricsObserverFactory(IMetricsManager metricsManager)
         {
             _metricsManager = metricsManager;
         }
 
         public IRequestObserver CreateRequestObserver()
         {
-            return new RequestObserver(_metricsManager, _metricsManager.GetSessionMetrics().CqlRequests);
+            return new MetricsRequestObserver(_metricsManager, _metricsManager.GetSessionMetrics().CqlRequests);
         }
 
         public IConnectionObserver CreateConnectionObserver(Host host)
         {
-            return new ConnectionObserver(_metricsManager.GetSessionMetrics(), _metricsManager.GetOrCreateNodeMetrics(host));
+            return new MetricsConnectionObserver(_metricsManager.GetSessionMetrics(), _metricsManager.GetOrCreateNodeMetrics(host));
         }
     }
 }
