@@ -39,6 +39,7 @@ namespace Cassandra.Metrics.Internal
         private readonly CopyOnWriteDictionary<Host, IMetricsRegistry<NodeMetric>> _nodeMetricsRegistryCollection;
         private readonly CopyOnWriteDictionary<Host, INodeMetrics> _nodeMetricsCollection;
         private readonly bool _disabledSessionTimerMetrics;
+        private readonly bool _disabledNodeTimerMetrics;
 
         public MetricsManager(IDriverMetricsProvider driverMetricsProvider, MetricsOptions metricsOptions, bool metricsEnabled, string sessionName)
         {
@@ -50,6 +51,7 @@ namespace Cassandra.Metrics.Internal
             _nodeMetricsRegistryCollection = new CopyOnWriteDictionary<Host, IMetricsRegistry<NodeMetric>>();
             _nodeMetricsCollection = new CopyOnWriteDictionary<Host, INodeMetrics>();
             _disabledSessionTimerMetrics = !metricsEnabled || metricsOptions.DisabledSessionMetrics.Contains(SessionMetric.Timers.CqlRequests);
+            _disabledNodeTimerMetrics = !metricsEnabled || metricsOptions.DisabledNodeMetrics.Contains(NodeMetric.Timers.CqlMessages);
         }
 
         /// <inheritdoc/>
@@ -118,10 +120,10 @@ namespace Cassandra.Metrics.Internal
         }
 
         /// <inheritdoc />
-        public bool IsSessionTimerMetricsEnabled()
-        {
-            return !_disabledSessionTimerMetrics;
-        }
+        public bool AreSessionTimerMetricsEnabled => !_disabledSessionTimerMetrics;
+        
+        /// <inheritdoc />
+        public bool AreNodeTimerMetricsEnabled => !_disabledNodeTimerMetrics;
         
         /// <inheritdoc />
         public ISessionMetrics GetSessionMetrics()

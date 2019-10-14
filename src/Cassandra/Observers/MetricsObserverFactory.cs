@@ -35,7 +35,10 @@ namespace Cassandra.Observers
 
         public IConnectionObserver CreateConnectionObserver(Host host)
         {
-            return new MetricsConnectionObserver(_metricsManager.GetSessionMetrics(), _metricsManager.GetOrCreateNodeMetrics(host));
+            return new MetricsConnectionObserver(
+                _metricsManager.GetSessionMetrics(), 
+                _metricsManager.GetOrCreateNodeMetrics(host), 
+                _metricsManager.AreNodeTimerMetricsEnabled);
         }
     }
 }

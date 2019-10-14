@@ -27,19 +27,26 @@ namespace Cassandra.Observers
 {
     internal class MetricsOperationObserver : IOperationObserver
     {
+        private readonly bool _enabledNodeTimerMetrics;
         private static readonly Logger Logger = new Logger(typeof(MetricsOperationObserver));
         private static readonly long Factor = 1000L * 1000L * 1000L / Stopwatch.Frequency;
 
         private readonly IDriverTimer _operationTimer;
         private long _startTimestamp;
 
-        public MetricsOperationObserver(INodeMetrics nodeMetrics)
+        public MetricsOperationObserver(INodeMetrics nodeMetrics, bool enabledNodeTimerMetrics)
         {
+            _enabledNodeTimerMetrics = enabledNodeTimerMetrics;
             _operationTimer = nodeMetrics.CqlMessages;
         }
 
         public void OnOperationSend(long requestSize, long timestamp)
         {
+            if (!_enabledNodeTimerMetrics)
+            {
+                return;
+            }
+
             try
             {
                 Volatile.Write(ref _startTimestamp, timestamp);
@@ -52,6 +59,11 @@ namespace Cassandra.Observers
 
         public void OnOperationReceive(IRequestError error, Response response, long timestamp)
         {
+            if (!_enabledNodeTimerMetrics)
+            {
+                return;
+            }
+
             try
             {
                 var startTimestamp = Volatile.Read(ref _startTimestamp);

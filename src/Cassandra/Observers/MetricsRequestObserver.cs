@@ -130,7 +130,7 @@ namespace Cassandra.Observers
 
         public void OnRequestStart()
         {
-            if (!_manager.IsSessionTimerMetricsEnabled())
+            if (!_manager.AreSessionTimerMetricsEnabled)
             {
                 return;
             }
@@ -140,7 +140,7 @@ namespace Cassandra.Observers
 
         public void OnRequestFinish(Exception exception)
         {
-            if (!_manager.IsSessionTimerMetricsEnabled())
+            if (!_manager.AreSessionTimerMetricsEnabled)
             {
                 return;
             }

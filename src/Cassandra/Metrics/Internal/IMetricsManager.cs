@@ -46,6 +46,11 @@ namespace Cassandra.Metrics.Internal
         /// <summary>
         /// Whether SessionMetrics of type Timer are enabled.
         /// </summary>
-        bool IsSessionTimerMetricsEnabled();
+        bool AreSessionTimerMetricsEnabled { get; }
+        
+        /// <summary>
+        /// Whether NodeMetrics of type Timer are enabled.
+        /// </summary>
+        bool AreNodeTimerMetricsEnabled { get; }
     }
 }

@@ -26,11 +26,13 @@ namespace Cassandra.Observers
         private static readonly Logger Logger = new Logger(typeof(MetricsConnectionObserver));
         private readonly ISessionMetrics _sessionMetrics;
         private readonly INodeMetrics _nodeMetrics;
+        private readonly bool _enabledNodeTimerMetrics;
 
-        public MetricsConnectionObserver(ISessionMetrics sessionMetrics, INodeMetrics nodeMetrics)
+        public MetricsConnectionObserver(ISessionMetrics sessionMetrics, INodeMetrics nodeMetrics, bool enabledNodeTimerMetrics)
         {
             _sessionMetrics = sessionMetrics;
             _nodeMetrics = nodeMetrics;
+            _enabledNodeTimerMetrics = enabledNodeTimerMetrics;
         }
 
         public void OnBytesSent(long size)
@@ -82,7 +84,7 @@ namespace Cassandra.Observers
 
         public IOperationObserver CreateOperationObserver()
         {
-            return new MetricsOperationObserver(_nodeMetrics);
+            return new MetricsOperationObserver(_nodeMetrics, _enabledNodeTimerMetrics);
         }
 
         private static void LogError(Exception ex)

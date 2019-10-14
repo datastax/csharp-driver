@@ -15,7 +15,7 @@ namespace Cassandra.Tests
                 (error, response) => action(error?.Exception, response), 
                 null, 
                 0, 
-                new MetricsOperationObserver(new NodeMetrics(new NullDriverMetricsProvider(), new MetricsOptions(), false, "c")));
+                new MetricsOperationObserver(new NodeMetrics(new NullDriverMetricsProvider(), new MetricsOptions(), false, "c"), false));
         }
     }
 }
