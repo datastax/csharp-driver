@@ -26,11 +26,9 @@ namespace Cassandra.Metrics.Providers.Null
         private NullDriverTimer()
         {
         }
-
-        /// <inheritdoc/>
-        public IDriverTimerMeasurement StartMeasuring(long timestamp)
+        
+        public void Record(long elapsedNanoseconds)
         {
-            return NullDriverTimerMeasurement.Instance;
         }
     }
 }

@@ -39,7 +39,7 @@ namespace Cassandra.AppMetrics.Implementations
         }
         
         /// <inheritdoc />
-        public IDriverTimer Timer(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit, DriverTimeUnit timeUnit)
+        public IDriverTimer Timer(string bucket, IMetric metric)
         {
             return new AppMetricsTimer(
                 _metricsRoot,
@@ -47,8 +47,7 @@ namespace Cassandra.AppMetrics.Implementations
                 {
                     Name = metric.Path,
                     Context = bucket,
-                    MeasurementUnit = measurementUnit.ToAppMetricsUnit(),
-                    DurationUnit = timeUnit.ToAppMetricsTimeUnit(),
+                    DurationUnit = _options.TimersTimeUnit,
                     Reservoir = 
                         () => new HdrHistogramReservoir(
                         1, 
@@ -57,44 +56,39 @@ namespace Cassandra.AppMetrics.Implementations
                         _options.SignificantDigits)
                 }),
                 bucket,
-                metric.Path,
-                measurementUnit);
+                metric.Path);
         }
         
         /// <inheritdoc />
-        public IDriverMeter Meter(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit)
+        public IDriverMeter Meter(string bucket, IMetric metric)
         {
             return new AppMetricsMeter(
                 _metricsRoot,
                 _metricsRoot.Provider.Meter.Instance(new MeterOptions
                 {
                     Name = metric.Path,
-                    Context = bucket,
-                    MeasurementUnit = measurementUnit.ToAppMetricsUnit()
+                    Context = bucket
                 }),
                 bucket,
-                metric.Path,
-                measurementUnit);
+                metric.Path);
         }
         
         /// <inheritdoc />
-        public IDriverCounter Counter(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit)
+        public IDriverCounter Counter(string bucket, IMetric metric)
         {
             return new AppMetricsCounter(
                 _metricsRoot,
                 _metricsRoot.Provider.Counter.Instance(new CounterOptions
                 {
                     Name = metric.Path,
-                    Context = bucket,
-                    MeasurementUnit = measurementUnit.ToAppMetricsUnit()
+                    Context = bucket
                 }),
                 bucket,
-                metric.Path,
-                measurementUnit);
+                metric.Path);
         }
         
         /// <inheritdoc />
-        public IDriverGauge Gauge(string bucket, IMetric metric, Func<double?> valueProvider, DriverMeasurementUnit measurementUnit)
+        public IDriverGauge Gauge(string bucket, IMetric metric, Func<double?> valueProvider)
         {
             return new AppMetricsGauge(
                 _metricsRoot,
@@ -102,13 +96,11 @@ namespace Cassandra.AppMetrics.Implementations
                     new GaugeOptions
                     {
                         Context = bucket,
-                        Name = metric.Path,
-                        MeasurementUnit = measurementUnit.ToAppMetricsUnit()
+                        Name = metric.Path
                     },
                     () => _metricsRoot.Build.Gauge.Build(() => valueProvider() ?? double.NaN)),
                 bucket,
-                metric.Path,
-                measurementUnit);
+                metric.Path);
         }
         
         /// <inheritdoc />

@@ -34,14 +34,18 @@ namespace Cassandra.Requests
 
         public void TrySetResult(RowSet result)
         {
-            _taskCompletionSource.TrySetResult(result);
-            _requestObserver.OnRequestFinish(exception: null);
+            if (_taskCompletionSource.TrySetResult(result))
+            {
+                _requestObserver.OnRequestFinish(null);
+            }
         }
 
         public void TrySetException(Exception exception)
         {
-            _taskCompletionSource.TrySetException(exception);
-            _requestObserver.OnRequestFinish(exception);
+            if (_taskCompletionSource.TrySetException(exception))
+            {
+                _requestObserver.OnRequestFinish(exception);
+            }
         }
 
         public Task<RowSet> Task => _taskCompletionSource.Task;

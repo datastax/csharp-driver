@@ -22,11 +22,11 @@ namespace Cassandra.Metrics.Registries
     {
         public RetryPolicyOnRetryMetrics(IInternalMetricsRegistry<NodeMetric> nodeMetricsRegistry, string context)
         {
-            ReadTimeout = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.RetriesOnReadTimeout, DriverMeasurementUnit.Requests);
-            WriteTimeout = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.RetriesOnWriteTimeout, DriverMeasurementUnit.Requests);
-            Unavailable = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.RetriesOnUnavailable, DriverMeasurementUnit.Requests);
-            Other = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.RetriesOnOtherError, DriverMeasurementUnit.Requests);
-            Total = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.Retries, DriverMeasurementUnit.Requests);
+            ReadTimeout = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.RetriesOnReadTimeout);
+            WriteTimeout = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.RetriesOnWriteTimeout);
+            Unavailable = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.RetriesOnUnavailable);
+            Other = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.RetriesOnOtherError);
+            Total = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.Retries);
         }
 
         public IDriverCounter ReadTimeout { get; }

@@ -24,10 +24,8 @@ namespace Cassandra.Metrics.Abstractions
     public interface IDriverTimer : IDriverMetric
     {
         /// <summary>
-        /// Starts the timer for a single measurement.
+        /// Records an individual measurement in nanoseconds.
         /// </summary>
-        /// <returns>An instance of <see cref="IDriverTimerMeasurement"/> that can be used to stop the timer for this measurement
-        /// and add the value to the metric value.</returns>
-        IDriverTimerMeasurement StartMeasuring(long timestamp);
+        void Record(long elapsedNanoseconds);
     }
 }

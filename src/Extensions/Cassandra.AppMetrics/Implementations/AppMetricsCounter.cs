@@ -28,13 +28,12 @@ namespace Cassandra.AppMetrics.Implementations
         private readonly ICounter _counter;
 
         public AppMetricsCounter(
-            IMetrics metrics, ICounter counter, string bucket, string path, DriverMeasurementUnit measurementUnit)
+            IMetrics metrics, ICounter counter, string bucket, string path)
         {
             _metrics = metrics;
             _counter = counter;
             Context = bucket;
             Name = path;
-            MeasurementUnit = measurementUnit.ToAppMetricsUnit();
         }
 
         /// <inheritdoc />
@@ -54,10 +53,7 @@ namespace Cassandra.AppMetrics.Implementations
 
         /// <inheritdoc />
         public string Name { get; }
-
-        /// <inheritdoc />
-        public Unit MeasurementUnit { get; }
-
+        
         /// <inheritdoc />
         public long GetValue()
         {

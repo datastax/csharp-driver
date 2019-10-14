@@ -16,9 +16,9 @@
 
 using App.Metrics;
 using App.Metrics.Timer;
+
 using Cassandra.AppMetrics.MetricTypes;
 using Cassandra.AppMetrics.MetricValues;
-using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.Implementations
 {
@@ -29,29 +29,25 @@ namespace Cassandra.AppMetrics.Implementations
         private readonly ITimer _timer;
 
         public AppMetricsTimer(
-            IMetrics appMetrics, ITimer timer, string bucket, string path, DriverMeasurementUnit measurementUnit)
+            IMetrics appMetrics, ITimer timer, string bucket, string path)
         {
             _appMetrics = appMetrics;
             _timer = timer;
             Name = path;
             Context = bucket;
-            MeasurementUnit = measurementUnit.ToAppMetricsUnit();
         }
 
         /// <inheritdoc/>
-        public IDriverTimerMeasurement StartMeasuring(long timestamp)
+        public void Record(long nanoseconds)
         {
-            return new AppMetricsTimerMeasurement(_timer, timestamp);
+            _timer.Record(nanoseconds, TimeUnit.Nanoseconds);
         }
-        
+
         /// <inheritdoc/>
         public string Context { get; }
 
         /// <inheritdoc/>
         public string Name { get; }
-        
-        /// <inheritdoc/>
-        public Unit MeasurementUnit { get; }
 
         /// <inheritdoc/>
         public IAppMetricsTimerValue GetValue()

@@ -15,9 +15,10 @@
 //
 
 using System;
+using System.Diagnostics;
+using System.Threading;
 using Cassandra.Connections;
 using Cassandra.Metrics.Abstractions;
-using Cassandra.Metrics.Providers.Null;
 using Cassandra.Metrics.Registries;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Responses;
@@ -27,9 +28,10 @@ namespace Cassandra.Observers
     internal class MetricsOperationObserver : IOperationObserver
     {
         private static readonly Logger Logger = new Logger(typeof(MetricsOperationObserver));
+        private static readonly long Factor = 1000L * 1000L * 1000L / Stopwatch.Frequency;
 
         private readonly IDriverTimer _operationTimer;
-        private IDriverTimerMeasurement _driverTimerMeasurement;
+        private long _startTimestamp;
 
         public MetricsOperationObserver(INodeMetrics nodeMetrics)
         {
@@ -40,12 +42,11 @@ namespace Cassandra.Observers
         {
             try
             {
-                _driverTimerMeasurement = _operationTimer.StartMeasuring(timestamp);
+                Volatile.Write(ref _startTimestamp, timestamp);
             }
             catch (Exception ex)
             {
                 MetricsOperationObserver.LogError(ex);
-                _driverTimerMeasurement = null;
             }
         }
 
@@ -53,19 +54,18 @@ namespace Cassandra.Observers
         {
             try
             {
-                if (_driverTimerMeasurement == null)
+                var startTimestamp = Volatile.Read(ref _startTimestamp);
+                if (startTimestamp == 0)
                 {
-                    MetricsOperationObserver.Logger.Warning("Found null measurement");
+                    MetricsOperationObserver.Logger.Warning("Start timestamp wasn't recorded, discarding this measurement.");
                     return;
                 }
 
-                _driverTimerMeasurement.StopMeasuring(timestamp);
-                _driverTimerMeasurement = null;
+                _operationTimer.Record((timestamp - startTimestamp) * MetricsOperationObserver.Factor);
             }
             catch (Exception ex)
             {
                 MetricsOperationObserver.LogError(ex);
-                _driverTimerMeasurement = null;
             }
         }
 

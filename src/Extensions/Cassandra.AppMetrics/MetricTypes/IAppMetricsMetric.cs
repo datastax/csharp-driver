@@ -36,11 +36,5 @@ namespace Cassandra.AppMetrics.MetricTypes
         /// see <see cref="NodeMetric.Path"/> or <see cref="SessionMetric.Path"/>.
         /// </summary>
         string Name { get; }
-
-        /// <summary>
-        /// Measurement unit provided to the AppMetrics library when creating metrics.
-        /// This will be set with the a value converted from <see cref="DriverMeasurementUnit"/>.
-        /// </summary>
-        Unit MeasurementUnit { get; }
     }
 }

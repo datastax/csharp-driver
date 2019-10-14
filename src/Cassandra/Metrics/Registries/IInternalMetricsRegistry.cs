@@ -26,13 +26,13 @@ namespace Cassandra.Metrics.Registries
     /// <typeparam name="TMetric"></typeparam>
     internal interface IInternalMetricsRegistry<TMetric> : IMetricsRegistry<TMetric> where TMetric : IMetric
     {
-        IDriverTimer Timer(string context, TMetric metric, DriverMeasurementUnit measurementUnit, DriverTimeUnit timeUnit);
+        IDriverTimer Timer(string context, TMetric metric);
         
-        IDriverMeter Meter(string context, TMetric metric, DriverMeasurementUnit measurementUnit);
+        IDriverMeter Meter(string context, TMetric metric);
 
-        IDriverCounter Counter(string context, TMetric metric, DriverMeasurementUnit measurementUnit);
+        IDriverCounter Counter(string context, TMetric metric);
 
-        IDriverGauge Gauge(string context, TMetric metric, Func<double?> valueProvider, DriverMeasurementUnit measurementUnit);
+        IDriverGauge Gauge(string context, TMetric metric, Func<double?> valueProvider);
 
         IDriverMetric GetMetric(TMetric metric);
 

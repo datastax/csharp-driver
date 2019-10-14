@@ -51,12 +51,12 @@ namespace Cassandra.Metrics.Registries
         {
             try
             {
-                CqlRequests = MetricsRegistry.Timer(_context, SessionMetric.Timers.CqlRequests, DriverMeasurementUnit.Requests, DriverTimeUnit.Milliseconds);
-                CqlClientTimeouts = MetricsRegistry.Counter(_context, SessionMetric.Counters.CqlClientTimeouts, DriverMeasurementUnit.None);
-                BytesSent = MetricsRegistry.Meter(_context, SessionMetric.Meters.BytesSent, DriverMeasurementUnit.Bytes);
-                BytesReceived = MetricsRegistry.Meter(_context, SessionMetric.Meters.BytesReceived, DriverMeasurementUnit.Bytes);
+                CqlRequests = MetricsRegistry.Timer(_context, SessionMetric.Timers.CqlRequests);
+                CqlClientTimeouts = MetricsRegistry.Counter(_context, SessionMetric.Counters.CqlClientTimeouts);
+                BytesSent = MetricsRegistry.Meter(_context, SessionMetric.Meters.BytesSent);
+                BytesReceived = MetricsRegistry.Meter(_context, SessionMetric.Meters.BytesReceived);
                 ConnectedNodes = MetricsRegistry.Gauge(
-                    _context, SessionMetric.Gauges.ConnectedNodes, () => session.NumberOfConnectionPools, DriverMeasurementUnit.None);
+                    _context, SessionMetric.Gauges.ConnectedNodes, () => session.NumberOfConnectionPools);
 
                 MetricsRegistry.OnMetricsAdded();
             }

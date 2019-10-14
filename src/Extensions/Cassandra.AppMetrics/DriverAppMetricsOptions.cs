@@ -14,6 +14,7 @@
 //    limitations under the License.
 
 using System;
+using App.Metrics;
 
 namespace Cassandra.AppMetrics
 {
@@ -24,7 +25,7 @@ namespace Cassandra.AppMetrics
     public class DriverAppMetricsOptions
     {
         /// <summary>
-        /// See <see cref="HighestLatencyMilliseconds"/> for information about this property.
+        /// See <see cref="SetHighestLatencyMilliseconds"/> for information about this property.
         /// </summary>
         public int HighestLatencyMilliseconds { get; private set; } = SocketOptions.DefaultReadTimeoutMillis + 1000;
         
@@ -32,6 +33,11 @@ namespace Cassandra.AppMetrics
         /// See <see cref="SetSignificantDigits"/> for information about this property.
         /// </summary>
         public int SignificantDigits { get; private set; } = 3;
+
+        /// <summary>
+        /// See <see cref="SetTimersTimeUnit"/> for information about this property.
+        /// </summary>
+        public TimeUnit TimersTimeUnit { get; private set; } = TimeUnit.Nanoseconds;
 
         /// <summary>
         /// <para>
@@ -71,6 +77,15 @@ namespace Cassandra.AppMetrics
             }
 
             SignificantDigits = digits;
+            return this;
+        }
+
+        /// <summary>
+        /// Time unit to use for Timer metrics. This property defaults to <see cref="TimeUnit.Nanoseconds"/>.
+        /// </summary>
+        public DriverAppMetricsOptions SetTimersTimeUnit(TimeUnit timeUnit)
+        {
+            TimersTimeUnit = timeUnit;
             return this;
         }
     }

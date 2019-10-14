@@ -27,13 +27,12 @@ namespace Cassandra.AppMetrics.Implementations
         private readonly IMetrics _metrics;
         private readonly IGauge _gauge;
 
-        public AppMetricsGauge(IMetrics metrics, IGauge gauge, string bucket, string path, DriverMeasurementUnit measurementUnit)
+        public AppMetricsGauge(IMetrics metrics, IGauge gauge, string bucket, string path)
         {
             _metrics = metrics;
             _gauge = gauge;
             Context = bucket;
             Name = path;
-            MeasurementUnit = measurementUnit.ToAppMetricsUnit();
         }
 
         /// <inheritdoc />
@@ -41,9 +40,6 @@ namespace Cassandra.AppMetrics.Implementations
 
         /// <inheritdoc />
         public string Name { get; }
-
-        /// <inheritdoc />
-        public Unit MeasurementUnit { get; }
 
         /// <inheritdoc />
         public double? GetValue()

@@ -22,27 +22,27 @@ namespace Cassandra.Metrics.Providers.Null
 {
     internal class NullDriverMetricsProvider : IDriverMetricsProvider
     {
-        public IDriverTimer Timer(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit, DriverTimeUnit timeUnit)
+        public IDriverTimer Timer(string bucket, IMetric metric)
         {
             return NullDriverTimer.Instance;
         }
         
-        public IDriverMeter Meter(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit)
+        public IDriverMeter Meter(string bucket, IMetric metric)
         {
             return NullDriverMeter.Instance;
         }
 
-        public IDriverCounter Counter(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit)
+        public IDriverCounter Counter(string bucket, IMetric metric)
         {
             return NullDriverCounter.Instance;
         }
 
-        public IDriverGauge Gauge(string bucket, IMetric metric, Func<double?> valueProvider, DriverMeasurementUnit measurementUnit)
+        public IDriverGauge Gauge(string bucket, IMetric metric, Func<double?> valueProvider)
         {
             return NullDriverGauge.Instance;
         }
 
-        public IDriverGauge Gauge(string bucket, IMetric metric, DriverMeasurementUnit measurementUnit)
+        public IDriverGauge Gauge(string bucket, IMetric metric)
         {
             return NullDriverGauge.Instance;
         }

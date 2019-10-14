@@ -22,16 +22,16 @@ namespace Cassandra.Metrics.Registries
     {
         public RequestErrorMetrics(IInternalMetricsRegistry<NodeMetric> nodeMetricsRegistry, string context)
         {
-            Aborted = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.AbortedRequests, DriverMeasurementUnit.Requests);
-            ReadTimeout = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.ReadTimeouts, DriverMeasurementUnit.Requests);
-            WriteTimeout = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.WriteTimeouts, DriverMeasurementUnit.Requests);
-            Unavailable = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.UnavailableErrors, DriverMeasurementUnit.Requests);
-            Other = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.OtherErrors, DriverMeasurementUnit.Requests);
-            Total = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.Errors, DriverMeasurementUnit.Requests);
-            Unsent = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.UnsentRequests, DriverMeasurementUnit.Requests);
-            ClientTimeout = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.ClientTimeouts, DriverMeasurementUnit.Requests);
-            ConnectionInitErrors = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.ConnectionInitErrors, DriverMeasurementUnit.Requests);
-            AuthenticationErrors = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.AuthenticationErrors, DriverMeasurementUnit.Requests);
+            Aborted = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.AbortedRequests);
+            ReadTimeout = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.ReadTimeouts);
+            WriteTimeout = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.WriteTimeouts);
+            Unavailable = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.UnavailableErrors);
+            Other = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.OtherErrors);
+            Total = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.Errors);
+            Unsent = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.UnsentRequests);
+            ClientTimeout = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.ClientTimeouts);
+            ConnectionInitErrors = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.ConnectionInitErrors);
+            AuthenticationErrors = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.AuthenticationErrors);
         }
 
         public IDriverCounter Aborted { get; }

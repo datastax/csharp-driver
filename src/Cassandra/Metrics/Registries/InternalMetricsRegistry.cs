@@ -60,7 +60,7 @@ namespace Cassandra.Metrics.Registries
         /// <inheritdoc />
         public IReadOnlyDictionary<TMetric, IDriverMetric> Metrics => _metrics;
 
-        public IDriverTimer Timer(string context, TMetric metric, DriverMeasurementUnit measurementUnit, DriverTimeUnit timeUnit)
+        public IDriverTimer Timer(string context, TMetric metric)
         {
             ThrowIfInitialized();
             if (!IsMetricEnabled(metric))
@@ -68,13 +68,13 @@ namespace Cassandra.Metrics.Registries
                 return NullDriverTimer.Instance;
             }
 
-            var timer = _driverMetricsProvider.Timer(context, metric, measurementUnit, timeUnit);
+            var timer = _driverMetricsProvider.Timer(context, metric);
             _timers.Add(metric, timer);
             _metrics.Add(metric, timer);
             return timer;
         }
         
-        public IDriverMeter Meter(string context, TMetric metric, DriverMeasurementUnit measurementUnit)
+        public IDriverMeter Meter(string context, TMetric metric)
         {
             ThrowIfInitialized();
             if (!IsMetricEnabled(metric))
@@ -82,13 +82,13 @@ namespace Cassandra.Metrics.Registries
                 return NullDriverMeter.Instance;
             }
 
-            var meter = _driverMetricsProvider.Meter(context, metric, measurementUnit);
+            var meter = _driverMetricsProvider.Meter(context, metric);
             _meters.Add(metric, meter);
             _metrics.Add(metric, meter);
             return meter;
         }
 
-        public IDriverCounter Counter(string context, TMetric metric, DriverMeasurementUnit measurementUnit)
+        public IDriverCounter Counter(string context, TMetric metric)
         {
             ThrowIfInitialized();
             if (!IsMetricEnabled(metric))
@@ -96,13 +96,13 @@ namespace Cassandra.Metrics.Registries
                 return NullDriverCounter.Instance;
             }
 
-            var counter = _driverMetricsProvider.Counter(context, metric, measurementUnit);
+            var counter = _driverMetricsProvider.Counter(context, metric);
             _counters.Add(metric, counter);
             _metrics.Add(metric, counter);
             return counter;
         }
 
-        public IDriverGauge Gauge(string context, TMetric metric, Func<double?> valueProvider, DriverMeasurementUnit measurementUnit)
+        public IDriverGauge Gauge(string context, TMetric metric, Func<double?> valueProvider)
         {
             ThrowIfInitialized();
             if (!IsMetricEnabled(metric))
@@ -110,7 +110,7 @@ namespace Cassandra.Metrics.Registries
                 return NullDriverGauge.Instance;
             }
 
-            var gauge = _driverMetricsProvider.Gauge(context, metric, valueProvider, measurementUnit);
+            var gauge = _driverMetricsProvider.Gauge(context, metric, valueProvider);
             _gauges.Add(metric, gauge);
             _metrics.Add(metric, gauge);
             return gauge;

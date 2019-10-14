@@ -24,60 +24,6 @@ namespace Cassandra.AppMetrics.Implementations
 {
     internal static class AppMetricsExtensions
     {
-        public static Unit ToAppMetricsUnit(this DriverMeasurementUnit measurementUnit)
-        {
-            switch (measurementUnit)
-            {
-                case DriverMeasurementUnit.Bytes:
-                    return Unit.Bytes;
-
-                case DriverMeasurementUnit.Errors:
-                    return Unit.Errors;
-
-                case DriverMeasurementUnit.Requests:
-                    return Unit.Requests;
-
-                case DriverMeasurementUnit.Connections:
-                    return Unit.Connections;
-
-                case DriverMeasurementUnit.None:
-                    return Unit.None;
-
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(measurementUnit), measurementUnit, null);
-            }
-        }
-
-        public static TimeUnit ToAppMetricsTimeUnit(this DriverTimeUnit timeUnit)
-        {
-            switch (timeUnit)
-            {
-                case DriverTimeUnit.Days:
-                    return TimeUnit.Days;
-
-                case DriverTimeUnit.Hours:
-                    return TimeUnit.Hours;
-
-                case DriverTimeUnit.Microseconds:
-                    return TimeUnit.Microseconds;
-
-                case DriverTimeUnit.Milliseconds:
-                    return TimeUnit.Milliseconds;
-
-                case DriverTimeUnit.Minutes:
-                    return TimeUnit.Minutes;
-
-                case DriverTimeUnit.Nanoseconds:
-                    return TimeUnit.Nanoseconds;
-
-                case DriverTimeUnit.Seconds:
-                    return TimeUnit.Seconds;
-
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(timeUnit), timeUnit, null);
-            }
-        }
-
         public static DriverTimeUnit ToDriverTimeUnit(this TimeUnit timeUnit)
         {
             switch (timeUnit)

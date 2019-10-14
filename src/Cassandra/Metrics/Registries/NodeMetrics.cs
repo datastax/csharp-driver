@@ -64,21 +64,20 @@ namespace Cassandra.Metrics.Registries
             try
             {
                 SpeculativeExecutions = MetricsRegistry.Counter(
-                    _context, NodeMetric.Counters.SpeculativeExecutions, DriverMeasurementUnit.Requests);
-                BytesSent = MetricsRegistry.Meter(_context, NodeMetric.Meters.BytesSent, DriverMeasurementUnit.Bytes);
-                BytesReceived = MetricsRegistry.Meter(_context, NodeMetric.Meters.BytesReceived, DriverMeasurementUnit.Bytes);
-                CqlMessages = MetricsRegistry.Timer(
-                    _context, NodeMetric.Timers.CqlMessages, DriverMeasurementUnit.Requests, DriverTimeUnit.Milliseconds);
+                    _context, NodeMetric.Counters.SpeculativeExecutions);
+                BytesSent = MetricsRegistry.Meter(_context, NodeMetric.Meters.BytesSent);
+                BytesReceived = MetricsRegistry.Meter(_context, NodeMetric.Meters.BytesReceived);
+                CqlMessages = MetricsRegistry.Timer(_context, NodeMetric.Timers.CqlMessages);
 
                 Errors = new RequestErrorMetrics(MetricsRegistry, _context);
                 Retries = new RetryPolicyOnRetryMetrics(MetricsRegistry, _context);
                 Ignores = new RetryPolicyOnIgnoreMetrics(MetricsRegistry, _context);
 
                 OpenConnections = MetricsRegistry.Gauge(
-                    _context, NodeMetric.Gauges.OpenConnections, () => _hostConnectionPool?.OpenConnections, DriverMeasurementUnit.None);
+                    _context, NodeMetric.Gauges.OpenConnections, () => _hostConnectionPool?.OpenConnections);
                 
                 InFlight = MetricsRegistry.Gauge(
-                    _context, NodeMetric.Gauges.InFlight, () => _hostConnectionPool?.InFlight, DriverMeasurementUnit.None);
+                    _context, NodeMetric.Gauges.InFlight, () => _hostConnectionPool?.InFlight);
 
                 MetricsRegistry.OnMetricsAdded();
             }

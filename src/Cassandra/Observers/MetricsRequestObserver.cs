@@ -16,9 +16,9 @@
 
 using System;
 using System.Diagnostics;
+using System.Threading;
 using Cassandra.Metrics.Abstractions;
 using Cassandra.Metrics.Internal;
-using Cassandra.Metrics.Providers.Null;
 using Cassandra.Metrics.Registries;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
@@ -28,17 +28,18 @@ namespace Cassandra.Observers
     internal class MetricsRequestObserver : IRequestObserver
     {
         private static readonly Logger Logger = new Logger(typeof(MetricsRequestObserver));
+        private static readonly long Factor = 1000L * 1000L * 1000L / Stopwatch.Frequency;
 
         private readonly IMetricsManager _manager;
         private readonly IDriverTimer _requestTimer;
-        private IDriverTimerMeasurement _driverTimerMeasurement;
+        private long _startTimestamp;
 
         public MetricsRequestObserver(IMetricsManager manager, IDriverTimer requestTimer)
         {
             _manager = manager;
             _requestTimer = requestTimer;
         }
-        
+
         public void OnSpeculativeExecution(Host host, long delay)
         {
             _manager.GetOrCreateNodeMetrics(host).SpeculativeExecutions.Increment(1);
@@ -117,7 +118,7 @@ namespace Cassandra.Observers
                 case RequestErrorType.Unsent:
                     metricsRegistry.Unsent.Increment();
                     break;
-                
+
                 case RequestErrorType.ClientTimeout:
                     metricsRegistry.ClientTimeout.Increment();
                     break;
@@ -134,15 +135,7 @@ namespace Cassandra.Observers
                 return;
             }
 
-            try
-            {
-                _driverTimerMeasurement = _requestTimer.StartMeasuring(Stopwatch.GetTimestamp());
-            }
-            catch (Exception ex)
-            {
-                LogError(ex);
-                _driverTimerMeasurement = null;
-            }
+            Volatile.Write(ref _startTimestamp, Stopwatch.GetTimestamp());
         }
 
         public void OnRequestFinish(Exception exception)
@@ -154,18 +147,18 @@ namespace Cassandra.Observers
 
             try
             {
-                if (_driverTimerMeasurement == null)
+                var startTimestamp = Volatile.Read(ref _startTimestamp);
+                if (startTimestamp == 0)
                 {
-                    MetricsRequestObserver.Logger.Warning("Found null measurement");
+                    MetricsRequestObserver.Logger.Warning("Start timestamp wasn't recorded, discarding this measurement.");
                     return;
                 }
-                _driverTimerMeasurement.StopMeasuring(Stopwatch.GetTimestamp());
-                _driverTimerMeasurement = null;
+
+                _requestTimer.Record((Stopwatch.GetTimestamp() - startTimestamp) * MetricsRequestObserver.Factor);
             }
             catch (Exception ex)
             {
                 LogError(ex);
-                _driverTimerMeasurement = null;
             }
         }
 
