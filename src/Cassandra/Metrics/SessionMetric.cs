@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Cassandra.Metrics
 {
@@ -80,17 +81,24 @@ namespace Cassandra.Metrics
             return string.Equals(Path, other.Path);
         }
 
-        public static readonly IEnumerable<SessionMetric> AllSessionMetrics = new[]
+        /// <summary>
+        /// A collection with all session metrics except Timers.
+        /// </summary>
+        public static readonly IEnumerable<SessionMetric> DefaultSessionMetrics = new[]
         {
             Meters.BytesSent,
             Meters.BytesReceived,
 
             Counters.CqlClientTimeouts,
 
-            Timers.CqlRequests,
-
             Gauges.ConnectedNodes
         };
+        
+        /// <summary>
+        /// A collection with all session metrics including Timers.
+        /// </summary>
+        public static readonly IEnumerable<SessionMetric> AllSessionMetrics =
+            SessionMetric.DefaultSessionMetrics.Union(new[] { SessionMetric.Timers.CqlRequests });
 
         public static class Timers
         {

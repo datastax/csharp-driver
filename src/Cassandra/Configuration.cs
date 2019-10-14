@@ -146,7 +146,7 @@ namespace Cassandra
 
         internal IDriverMetricsProvider MetricsProvider { get; }
 
-        internal MetricsOptions MetricsOptions { get; }
+        internal DriverMetricsOptions MetricsOptions { get; }
 
         internal string SessionName { get; }
 
@@ -204,7 +204,7 @@ namespace Cassandra
                                MetadataSyncOptions metadataSyncOptions,
                                IEndPointResolver endPointResolver,
                                IDriverMetricsProvider driverMetricsProvider,
-                               MetricsOptions metricsOptions,
+                               DriverMetricsOptions metricsOptions,
                                string sessionName,
                                IRequestHandlerFactory requestHandlerFactory = null,
                                IHostConnectionPoolFactory hostConnectionPoolFactory = null,
@@ -230,7 +230,7 @@ namespace Cassandra
             MetadataSyncOptions = metadataSyncOptions?.Clone() ?? new MetadataSyncOptions();
             DnsResolver = new DnsResolver();
             EndPointResolver = endPointResolver ?? new EndPointResolver(DnsResolver, protocolOptions);
-            MetricsOptions = metricsOptions ?? new MetricsOptions();
+            MetricsOptions = metricsOptions ?? new DriverMetricsOptions();
             MetricsProvider = driverMetricsProvider ?? new NullDriverMetricsProvider();
             SessionName = sessionName;
             MetricsEnabled = driverMetricsProvider != null;

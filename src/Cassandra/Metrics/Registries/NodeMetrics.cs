@@ -15,7 +15,7 @@
 //
 
 using System;
-
+using System.Linq;
 using Cassandra.Connections;
 using Cassandra.Metrics.Abstractions;
 
@@ -29,11 +29,12 @@ namespace Cassandra.Metrics.Registries
 
         private IHostConnectionPool _hostConnectionPool = null;
 
-        public NodeMetrics(IDriverMetricsProvider driverMetricsProvider, MetricsOptions metricOptions, bool metricsEnabled, string context)
+        public NodeMetrics(IDriverMetricsProvider driverMetricsProvider, DriverMetricsOptions metricOptions, bool metricsEnabled, string context)
         {
             _driverMetricsProvider = driverMetricsProvider;
             _context = context;
-            MetricsRegistry = new InternalMetricsRegistry<NodeMetric>(driverMetricsProvider, metricOptions.DisabledNodeMetrics, metricsEnabled);
+            MetricsRegistry = new InternalMetricsRegistry<NodeMetric>(
+                driverMetricsProvider, NodeMetric.AllNodeMetrics.Except(metricOptions.EnabledNodeMetrics), metricsEnabled);
 
             InitializeMetrics();
         }

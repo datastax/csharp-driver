@@ -32,7 +32,7 @@ namespace Cassandra.Metrics.Internal
         private static readonly Logger Logger = new Logger(typeof(MetricsManager));
 
         private readonly IDriverMetricsProvider _driverMetricsProvider;
-        private readonly MetricsOptions _metricsOptions;
+        private readonly DriverMetricsOptions _metricsOptions;
         private readonly bool _metricsEnabled;
         private readonly string _sessionContext;
         private readonly ISessionMetrics _sessionMetrics;
@@ -41,7 +41,7 @@ namespace Cassandra.Metrics.Internal
         private readonly bool _disabledSessionTimerMetrics;
         private readonly bool _disabledNodeTimerMetrics;
 
-        public MetricsManager(IDriverMetricsProvider driverMetricsProvider, MetricsOptions metricsOptions, bool metricsEnabled, string sessionName)
+        public MetricsManager(IDriverMetricsProvider driverMetricsProvider, DriverMetricsOptions metricsOptions, bool metricsEnabled, string sessionName)
         {
             _driverMetricsProvider = driverMetricsProvider;
             _metricsOptions = metricsOptions;
@@ -50,8 +50,8 @@ namespace Cassandra.Metrics.Internal
             _sessionMetrics = new SessionMetrics(_driverMetricsProvider, metricsOptions, metricsEnabled, _sessionContext);
             _nodeMetricsRegistryCollection = new CopyOnWriteDictionary<Host, IMetricsRegistry<NodeMetric>>();
             _nodeMetricsCollection = new CopyOnWriteDictionary<Host, INodeMetrics>();
-            _disabledSessionTimerMetrics = !metricsEnabled || metricsOptions.DisabledSessionMetrics.Contains(SessionMetric.Timers.CqlRequests);
-            _disabledNodeTimerMetrics = !metricsEnabled || metricsOptions.DisabledNodeMetrics.Contains(NodeMetric.Timers.CqlMessages);
+            _disabledSessionTimerMetrics = !metricsEnabled || !metricsOptions.EnabledSessionMetrics.Contains(SessionMetric.Timers.CqlRequests);
+            _disabledNodeTimerMetrics = !metricsEnabled || !metricsOptions.EnabledNodeMetrics.Contains(NodeMetric.Timers.CqlMessages);
         }
 
         /// <inheritdoc/>

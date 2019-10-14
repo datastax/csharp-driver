@@ -75,7 +75,7 @@ namespace Cassandra.Tests
 
         public IObserverFactoryBuilder ObserverFactoryBuilder { get; set; } = new MetricsObserverFactoryBuilder();
 
-        public MetricsOptions MetricsOptions { get; set; } = new MetricsOptions();
+        public DriverMetricsOptions MetricsOptions { get; set; } = new DriverMetricsOptions();
 
         public string SessionName { get; set; }
 

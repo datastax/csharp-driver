@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Cassandra.Metrics
 {
@@ -80,12 +81,13 @@ namespace Cassandra.Metrics
             return string.Equals(Path, other.Path);
         }
 
-        public static readonly IEnumerable<NodeMetric> AllNodeMetrics = new[]
+        /// <summary>
+        /// A collection with all node metrics except Timers.
+        /// </summary>
+        public static readonly IEnumerable<NodeMetric> DefaultNodeMetrics = new List<NodeMetric>
         {
             Meters.BytesSent,
             Meters.BytesReceived,
-
-            Timers.CqlMessages,
 
             Gauges.OpenConnections,
             Gauges.InFlight,
@@ -115,6 +117,12 @@ namespace Cassandra.Metrics
             Counters.IgnoresOnWriteTimeout,
             Counters.Ignores
         };
+
+        /// <summary>
+        /// A collection with all node metrics including Timers.
+        /// </summary>
+        public static readonly IEnumerable<NodeMetric> AllNodeMetrics =
+            NodeMetric.DefaultNodeMetrics.Union(new[] { NodeMetric.Timers.CqlMessages });
 
         public static class Counters
         {

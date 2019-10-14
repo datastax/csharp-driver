@@ -195,7 +195,7 @@ namespace Cassandra.Connections
             _idleTimer = new Timer(IdleTimeoutHandler, null, Timeout.Infinite, Timeout.Infinite);
             _connectionObserver = connectionObserver;
             _timerEnabled = configuration.MetricsEnabled
-                            && !configuration.MetricsOptions.DisabledNodeMetrics.Contains(NodeMetric.Timers.CqlMessages);
+                            && configuration.MetricsOptions.EnabledNodeMetrics.Contains(NodeMetric.Timers.CqlMessages);
         }
 
         private void IncrementInFlight()

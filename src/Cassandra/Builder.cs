@@ -68,7 +68,7 @@ namespace Cassandra
         private MetadataSyncOptions _metadataSyncOptions;
         private IEndPointResolver _endPointResolver;
         private IDriverMetricsProvider _driverMetricsProvider;
-        private MetricsOptions _metricsOptions;
+        private DriverMetricsOptions _metricsOptions;
         private string _sessionName;
 
         /// <summary>
@@ -713,7 +713,7 @@ namespace Cassandra
         /// </para>
         /// <para>
         /// This method enables all individual metrics without a path prefix (besides session name). To customize these options,
-        /// use <see cref="WithMetrics(IDriverMetricsProvider, MetricsOptions)"/>.
+        /// use <see cref="WithMetrics(IDriverMetricsProvider, DriverMetricsOptions)"/>.
         /// </para>
         /// </summary>
         /// <param name="driverMetricsProvider">Metrics Provider implementation.</param>
@@ -733,19 +733,23 @@ namespace Cassandra
         /// </para>
         /// <para>
         /// This method enables all individual metrics without a path prefix (besides session name). To customize these settings,
-        /// use <see cref="WithMetrics(IDriverMetricsProvider, MetricsOptions)"/>. For explanations on these settings,
-        /// see the API docs of the <see cref="MetricsOptions"/> class.
+        /// use <see cref="WithMetrics(IDriverMetricsProvider, DriverMetricsOptions)"/>. For explanations on these settings,
+        /// see the API docs of the <see cref="DriverMetricsOptions"/> class.
+        /// </para> 
+        /// <para>
+        /// The AppMetrics provider also has some settings that can be customized, check out the API docs of
+        /// Cassandra.AppMetrics.DriverAppMetricsOptions.
         /// <para>
         /// Here is an example:
         /// <code>
         /// var cluster = 
         ///     Cluster.Builder()
         ///            .WithMetrics(
-        ///                new AppMetricsDriverMetricsProvider(metrics),
-        ///                new MetricsOptions()
-        ///                    .SetDisabledNodeMetrics(new[] { NodeMetrics.Counters.BytesSent })
-        ///                    .SetDisabledSessionMetrics(
-        ///                        SessionMetrics.AllSessionMetrics.Except(new[] { SessionMetrics.CqlRequests }))
+        ///                metrics.CreateDriverMetricsProvider(new DriverAppMetricsOptions()),
+        ///                new DriverMetricsOptions()
+        ///                    .SetEnabledNodeMetrics(NodeMetric.DefaultNodeMetrics.Except(new [] { NodeMetric.Meters.BytesSent }))
+        ///                    .SetEnabledSessionMetrics(
+        ///                        SessionMetric.DefaultSessionMetrics.Except(new[] { SessionMetric.Meters.BytesReceived }))
         ///                    .SetPathPrefix("web.app"))
         ///            .Build();
         /// </code>
@@ -755,7 +759,7 @@ namespace Cassandra
         /// <param name="driverMetricsProvider">Metrics Provider implementation.</param>
         /// <param name="metricsOptions">Metrics Provider implementation.</param>
         /// <returns>This builder</returns>
-        public Builder WithMetrics(IDriverMetricsProvider driverMetricsProvider, MetricsOptions metricsOptions)
+        public Builder WithMetrics(IDriverMetricsProvider driverMetricsProvider, DriverMetricsOptions metricsOptions)
         {
             _driverMetricsProvider = driverMetricsProvider ?? throw new ArgumentNullException(nameof(driverMetricsProvider));
             _metricsOptions = metricsOptions?.Clone() ?? throw new ArgumentNullException(nameof(metricsOptions));

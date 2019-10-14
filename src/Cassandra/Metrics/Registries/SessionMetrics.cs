@@ -15,7 +15,7 @@
 //
 
 using System;
-
+using System.Linq;
 using Cassandra.Metrics.Abstractions;
 using Cassandra.SessionManagement;
 
@@ -27,11 +27,12 @@ namespace Cassandra.Metrics.Registries
         private readonly IDriverMetricsProvider _driverMetricsProvider;
         private readonly string _context;
 
-        public SessionMetrics(IDriverMetricsProvider driverMetricsProvider, MetricsOptions metricsOptions, bool metricsEnabled, string context)
+        public SessionMetrics(IDriverMetricsProvider driverMetricsProvider, DriverMetricsOptions metricsOptions, bool metricsEnabled, string context)
         {
             _driverMetricsProvider = driverMetricsProvider;
             _context = context;
-            MetricsRegistry = new InternalMetricsRegistry<SessionMetric>(driverMetricsProvider, metricsOptions.DisabledSessionMetrics, metricsEnabled);
+            MetricsRegistry = new InternalMetricsRegistry<SessionMetric>(
+                driverMetricsProvider, SessionMetric.AllSessionMetrics.Except(metricsOptions.EnabledSessionMetrics), metricsEnabled);
         }
 
         public IDriverTimer CqlRequests { get; private set; }

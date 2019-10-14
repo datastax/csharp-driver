@@ -21,46 +21,55 @@ namespace Cassandra.Metrics
 {
     /// <summary>
     /// This class is used to customize options related to Metrics. It is used in 
-    /// <see cref="Builder.WithMetrics(Cassandra.Metrics.Abstractions.IDriverMetricsProvider,Cassandra.Metrics.MetricsOptions)"/>.
+    /// <see cref="Builder.WithMetrics(Cassandra.Metrics.Abstractions.IDriverMetricsProvider,DriverMetricsOptions)"/>.
     /// </summary>
-    public class MetricsOptions
+    public class DriverMetricsOptions
     {
         /// <summary>
-        /// See <see cref="SetDisabledNodeMetrics"/> for more information.
+        /// See <see cref="SetEnabledNodeMetrics"/> for more information. Defaults to <see cref="NodeMetric.DefaultNodeMetrics"/>.
         /// </summary>
-        public IEnumerable<NodeMetric> DisabledNodeMetrics { get; private set; } = new List<NodeMetric>();
-        
+        public IEnumerable<NodeMetric> EnabledNodeMetrics { get; private set; } = NodeMetric.DefaultNodeMetrics;
+
         /// <summary>
-        /// See <see cref="SetDisabledSessionMetrics"/> for more information.
+        /// See <see cref="SetEnabledSessionMetrics"/> for more information. Defaults to <see cref="SessionMetric.DefaultSessionMetrics"/>.
         /// </summary>
-        public IEnumerable<SessionMetric> DisabledSessionMetrics { get; private set; } = new List<SessionMetric>();
+        public IEnumerable<SessionMetric> EnabledSessionMetrics { get; private set; } = SessionMetric.DefaultSessionMetrics;
         
         /// <summary>
         /// See <see cref="SetPathPrefix"/> for more information.
         /// </summary>
         public string PathPrefix { get; private set; }
+
+        /// <summary>
+        /// Builds an instance with the default options. Check each method's API docs for information about the default value for each option.
+        /// </summary>
+        public DriverMetricsOptions()
+        {
+        }
         
         /// <summary>
-        /// Disables specific node metrics. The available node metrics can be found as static readonly properties in
+        /// Enables specific node metrics. The available node metrics can be found as static readonly properties in
         /// the <see cref="NodeMetric"/> class, e.g., <see cref="NodeMetric.Meters.BytesSent"/>.
-        /// There is also a property that returns a collection with all node metrics: <see cref="NodeMetric.AllNodeMetrics"/>.
+        /// There is also a property that returns a collection with the default node metrics (<see cref="NodeMetric.DefaultNodeMetrics"/>)
+        /// and one with all node metrics (<see cref="NodeMetric.AllNodeMetrics"/>).
         /// </summary>
         /// <returns>This instance.</returns>
-        public MetricsOptions SetDisabledNodeMetrics(IEnumerable<NodeMetric> disabledNodeMetrics)
+        public DriverMetricsOptions SetEnabledNodeMetrics(IEnumerable<NodeMetric> enabledNodeMetrics)
         {
-            DisabledNodeMetrics = disabledNodeMetrics;
+            EnabledNodeMetrics = enabledNodeMetrics;
             return this;
         }
         
         /// <summary>
-        /// Disables specific session metrics. The available session metrics can be found as static readonly properties in
+        /// Enables specific session metrics. The available session metrics can be found as static readonly properties in
         /// the <see cref="SessionMetric"/> class, e.g., <see cref="SessionMetric.Meters.BytesSent"/>.
-        /// There is also a property that returns a collection with all node metrics: <see cref="SessionMetric.AllSessionMetrics"/>.
+        /// There is also a property that returns a collection with the default session metrics (<see cref="SessionMetric.DefaultSessionMetrics"/>)
+        /// and one with all session metrics (<see cref="SessionMetric.AllSessionMetrics"/>).
         /// </summary>
         /// <returns>This instance.</returns>
-        public MetricsOptions SetDisabledSessionMetrics(IEnumerable<SessionMetric> disabledSessionMetrics)
+        public DriverMetricsOptions SetEnabledSessionMetrics(IEnumerable<SessionMetric> enabledSessionMetrics)
         {
-            DisabledSessionMetrics = disabledSessionMetrics;
+            EnabledSessionMetrics = enabledSessionMetrics;
             return this;
         }
 
@@ -89,18 +98,18 @@ namespace Cassandra.Metrics
         /// </summary>
         /// <param name="pathPrefix"></param>
         /// <returns></returns>
-        public MetricsOptions SetPathPrefix(string pathPrefix)
+        public DriverMetricsOptions SetPathPrefix(string pathPrefix)
         {
             PathPrefix = pathPrefix;
             return this;
         }
 
-        internal MetricsOptions Clone()
+        internal DriverMetricsOptions Clone()
         {
-            return new MetricsOptions
+            return new DriverMetricsOptions
             {
-                DisabledNodeMetrics = DisabledNodeMetrics,
-                DisabledSessionMetrics = DisabledSessionMetrics,
+                EnabledNodeMetrics = EnabledNodeMetrics,
+                EnabledSessionMetrics = EnabledSessionMetrics,
                 PathPrefix = PathPrefix
             };
         }
