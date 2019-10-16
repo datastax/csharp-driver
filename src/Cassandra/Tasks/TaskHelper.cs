@@ -109,8 +109,7 @@ namespace Cassandra.Tasks
         /// </summary>
         public static void WaitToCompleteWithMetrics(IMetricsManager manager, Task task, int timeout = Timeout.Infinite)
         {
-            var sessionMetrics = manager?.GetSessionMetrics();
-            if (sessionMetrics == null)
+            if (!(manager?.AreMetricsEnabled ?? false))
             {
                 TaskHelper.WaitToComplete(task, timeout);
                 return;
@@ -122,7 +121,7 @@ namespace Cassandra.Tasks
             }
             catch (TimeoutException)
             {
-                sessionMetrics.CqlClientTimeouts.Increment();
+                manager.GetSessionMetrics().CqlClientTimeouts.Increment();
                 throw;
             }
         }

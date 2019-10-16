@@ -190,11 +190,10 @@ namespace Cassandra
         /// <summary>
         /// Asynchronously marks the provided operations as completed and invoke the callbacks with the exception.
         /// </summary>
-        internal static void CallbackMultiple(IEnumerable<OperationState> ops, IRequestError error)
+        internal static void CallbackMultiple(IEnumerable<OperationState> ops, IRequestError error, long timestamp)
         {
             Task.Factory.StartNew(() =>
             {
-                var timestamp = Stopwatch.GetTimestamp();
                 foreach (var state in ops)
                 {
                     var callback = state.SetCompleted();

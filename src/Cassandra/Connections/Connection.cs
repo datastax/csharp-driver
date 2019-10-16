@@ -342,7 +342,7 @@ namespace Cassandra.Connections
                 }
             }
             Interlocked.MemoryBarrier();
-            OperationState.CallbackMultiple(ops, RequestError.CreateClientError(ex, false));
+            OperationState.CallbackMultiple(ops, RequestError.CreateClientError(ex, false), GetTimestamp());
             Interlocked.Exchange(ref _inFlight, 0);
         }
 
@@ -824,7 +824,7 @@ namespace Cassandra.Connections
 
         private long GetTimestamp()
         {
-            return _timerEnabled ? Stopwatch.GetTimestamp() : 0;
+            return _timerEnabled ? Stopwatch.GetTimestamp() : 0L;
         }
 
         private void RunWriteQueueAction()

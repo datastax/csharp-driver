@@ -59,6 +59,9 @@ namespace Cassandra.Metrics.Internal
         
         /// <inheritdoc/>
         public IReadOnlyDictionary<Host, IMetricsRegistry<NodeMetric>> NodeMetrics => _nodeMetricsRegistryCollection;
+        
+        /// <inheritdoc/>
+        public bool AreMetricsEnabled => _metricsEnabled;
 
         /// <inheritdoc />
         public TMetricType GetNodeMetric<TMetricType>(Host host, NodeMetric nodeMetric) where TMetricType : class, IDriverMetric
