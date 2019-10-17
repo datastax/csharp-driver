@@ -27,24 +27,16 @@ namespace Cassandra.Metrics
     {
         private readonly int _hashCode;
 
-        private NodeMetric(string path)
+        private NodeMetric(string name)
         {
-            Path = path ?? throw new ArgumentNullException(nameof(path));
-            _hashCode = path.GetHashCode();
+            Name = name ?? throw new ArgumentNullException(nameof(name));
+            _hashCode = name.GetHashCode();
         }
 
         /// <summary>
-        /// Metric path.
-        /// Here is what this property will return for <see cref="NodeMetric.Counters.ReadTimeouts"/>:
-        /// <code>
-        /// // Assume this is the full metric path for the NodeMetric.Counters.ReadTimeouts metric (using the AppMetricsProvider):
-        /// web.app.session.nodes.127_0_0_1:9042.errors.request.read-timeout
-        ///
-        /// // NodeMetric.Path property will return
-        /// errors.request.read-timeout
-        /// </code>
+        /// Metric name. For example, <see cref="Gauges.OpenConnections"/> returns "pool.open-connections".
         /// </summary>
-        public string Path { get; }
+        public string Name { get; }
 
         public bool Equals(NodeMetric other)
         {
@@ -68,7 +60,7 @@ namespace Cassandra.Metrics
 
         public override string ToString()
         {
-            return Path;
+            return Name;
         }
 
         private bool StrictEquals(object obj)
@@ -78,7 +70,7 @@ namespace Cassandra.Metrics
 
         private bool StrictEqualsNotNull(NodeMetric other)
         {
-            return string.Equals(Path, other.Path);
+            return string.Equals(Name, other.Name);
         }
 
         /// <summary>

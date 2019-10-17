@@ -27,7 +27,7 @@ using Cassandra.Tests;
 
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests
+namespace Cassandra.IntegrationTests.Metrics
 {
     public class MetricsTests : SharedClusterTest
     {

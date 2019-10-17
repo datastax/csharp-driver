@@ -16,9 +16,9 @@
 
 using App.Metrics;
 using App.Metrics.Meter;
+
 using Cassandra.AppMetrics.MetricTypes;
 using Cassandra.AppMetrics.MetricValues;
-using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.Implementations
 {
@@ -29,26 +29,26 @@ namespace Cassandra.AppMetrics.Implementations
         private readonly IMeter _meter;
 
         public AppMetricsMeter(
-            IMetrics metrics, IMeter meter, string bucket, string path)
+            IMetrics metrics, IMeter meter, string bucket, string name)
         {
             _metrics = metrics;
             _meter = meter;
             Context = bucket;
-            Name = path;
+            Name = name;
         }
-        
+
         /// <inheritdoc />
         public void Mark(long amount)
         {
             _meter.Mark(amount);
         }
-        
+
         /// <inheritdoc />
         public string Context { get; }
-        
+
         /// <inheritdoc />
         public string Name { get; }
-        
+
         /// <inheritdoc />
         public IAppMetricsMeterValue GetValue()
         {

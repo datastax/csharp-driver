@@ -22,8 +22,8 @@ namespace Cassandra.Metrics
     public interface IMetric
     {
         /// <summary>
-        /// Metric path.
+        /// Metric name.
         /// </summary>
-        string Path { get; }
+        string Name { get; }
     }
 }

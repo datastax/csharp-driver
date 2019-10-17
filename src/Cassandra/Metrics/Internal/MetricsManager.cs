@@ -34,7 +34,7 @@ namespace Cassandra.Metrics.Internal
         private readonly IDriverMetricsProvider _driverMetricsProvider;
         private readonly DriverMetricsOptions _metricsOptions;
         private readonly bool _metricsEnabled;
-        private readonly string _sessionContext;
+        private readonly string _sessionBucket;
         private readonly ISessionMetrics _sessionMetrics;
         private readonly CopyOnWriteDictionary<Host, IMetricsRegistry<NodeMetric>> _nodeMetricsRegistryCollection;
         private readonly CopyOnWriteDictionary<Host, INodeMetrics> _nodeMetricsCollection;
@@ -46,8 +46,8 @@ namespace Cassandra.Metrics.Internal
             _driverMetricsProvider = driverMetricsProvider;
             _metricsOptions = metricsOptions;
             _metricsEnabled = metricsEnabled;
-            _sessionContext = metricsOptions.PathPrefix != null ? $"{metricsOptions.PathPrefix}.{sessionName}" : sessionName;
-            _sessionMetrics = new SessionMetrics(_driverMetricsProvider, metricsOptions, metricsEnabled, _sessionContext);
+            _sessionBucket = metricsOptions.BucketPrefix != null ? $"{metricsOptions.BucketPrefix}.{sessionName}" : sessionName;
+            _sessionMetrics = new SessionMetrics(_driverMetricsProvider, metricsOptions, metricsEnabled, _sessionBucket);
             _nodeMetricsRegistryCollection = new CopyOnWriteDictionary<Host, IMetricsRegistry<NodeMetric>>();
             _nodeMetricsCollection = new CopyOnWriteDictionary<Host, INodeMetrics>();
             _disabledSessionTimerMetrics = !metricsEnabled || !metricsOptions.EnabledSessionMetrics.Contains(SessionMetric.Timers.CqlRequests);
@@ -74,13 +74,13 @@ namespace Cassandra.Metrics.Internal
             var metric = nodeMetrics.MetricsRegistry.GetMetric(nodeMetric);
             if (metric == null)
             {
-                throw new ArgumentException("Could not find the provided metric: ", nodeMetric.Path);
+                throw new ArgumentException("Could not find the provided metric: ", nodeMetric.Name);
             }
 
             if (!(metric is TMetricType typedMetric))
             {
                 throw new ArgumentException(
-                    $"Node Metric {nodeMetric.Path} is not of type {typeof(TMetricType).Name}. Its type is {metric.GetType().Name}.");
+                    $"Node Metric {nodeMetric.Name} is not of type {typeof(TMetricType).Name}. Its type is {metric.GetType().Name}.");
             }
 
             return typedMetric;
@@ -92,13 +92,13 @@ namespace Cassandra.Metrics.Internal
             var metric = _sessionMetrics.MetricsRegistry.GetMetric(sessionMetric);
             if (metric == null)
             {
-                throw new ArgumentException("Could not find the provided session metric: ", sessionMetric.Path);
+                throw new ArgumentException("Could not find the provided session metric: ", sessionMetric.Name);
             }
 
             if (!(metric is TMetricType typedMetric))
             {
                 throw new ArgumentException(
-                    $"Session Metric {sessionMetric.Path} is not of type {typeof(TMetricType).Name}. Its type is {metric.GetType().Name}.");
+                    $"Session Metric {sessionMetric.Name} is not of type {typeof(TMetricType).Name}. Its type is {metric.GetType().Name}.");
             }
 
             return typedMetric;
@@ -139,9 +139,9 @@ namespace Cassandra.Metrics.Internal
         {
             var value = _nodeMetricsCollection.GetOrAdd(host, h =>
             {
-                var nodeContext = $"{_sessionContext}.nodes.{MetricsManager.BuildHostAddressMetricPath(host.Address)}";
+                var nodeBucket = $"{_sessionBucket}.nodes.{MetricsManager.BuildHostAddressMetricPath(host.Address)}";
 
-                var newRegistry = new NodeMetrics(_driverMetricsProvider, _metricsOptions, _metricsEnabled, nodeContext);
+                var newRegistry = new NodeMetrics(_driverMetricsProvider, _metricsOptions, _metricsEnabled, nodeBucket);
                 _nodeMetricsRegistryCollection.Add(host, newRegistry.MetricsRegistry);
 
                 return newRegistry;

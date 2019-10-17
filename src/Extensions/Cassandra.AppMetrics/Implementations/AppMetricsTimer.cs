@@ -29,11 +29,11 @@ namespace Cassandra.AppMetrics.Implementations
         private readonly ITimer _timer;
 
         public AppMetricsTimer(
-            IMetrics appMetrics, ITimer timer, string bucket, string path)
+            IMetrics appMetrics, ITimer timer, string bucket, string name)
         {
             _appMetrics = appMetrics;
             _timer = timer;
-            Name = path;
+            Name = name;
             Context = bucket;
         }
 

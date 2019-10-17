@@ -21,7 +21,7 @@ namespace Cassandra.Metrics
 {
     /// <summary>
     /// This class is used to customize options related to Metrics. It is used in 
-    /// <see cref="Builder.WithMetrics(Cassandra.Metrics.Abstractions.IDriverMetricsProvider,DriverMetricsOptions)"/>.
+    /// <see cref="Builder.WithMetrics(IDriverMetricsProvider,DriverMetricsOptions)"/>.
     /// </summary>
     public class DriverMetricsOptions
     {
@@ -36,9 +36,9 @@ namespace Cassandra.Metrics
         public IEnumerable<SessionMetric> EnabledSessionMetrics { get; private set; } = SessionMetric.DefaultSessionMetrics;
         
         /// <summary>
-        /// See <see cref="SetPathPrefix"/> for more information.
+        /// See <see cref="SetBucketPrefix"/> for more information.
         /// </summary>
-        public string PathPrefix { get; private set; }
+        public string BucketPrefix { get; private set; }
 
         /// <summary>
         /// Builds an instance with the default options. Check each method's API docs for information about the default value for each option.
@@ -74,13 +74,14 @@ namespace Cassandra.Metrics
         }
 
         /// <summary>
-        /// Prepends context components to all metrics. The way these strings are used depends on the <see cref="IDriverMetricsProvider"/>
-        /// that is provided to the builder. In the case of the provider based on App.Metrics available in the CassandraCSharpDriver.AppMetrics package,
-        /// the context components will be concatenated with a dot separating each one, which makes the full metric path like this:
+        /// Prepends a prefix to the bucket name for all metrics. The way the bucket name and metric name parameters
+        /// are used depends on the <see cref="IDriverMetricsProvider"/> that is provided to the builder.
+        /// In the case of the provider based on App.Metrics available in the CassandraCSharpDriver.AppMetrics package,
+        /// the bucket name will be concatenated with the metric name (separated by a dot), which makes the full metric path like this:
         /// <code>
-        /// Format: &lt;path-prefix&gt;.&lt;session-name&gt;.nodes.&lt;node-address&gt;.&lt;metric-path&gt;
+        /// Format: &lt;bucket-prefix&gt;.&lt;bucket-name&gt;.&lt;metric-name&gt;
         /// </code>
-        /// Here is how the full metric name will look like for <see cref="NodeMetric.Counters.Retries"/> in practice:
+        /// Here is how the full metric path will look like for <see cref="NodeMetric.Counters.Retries"/> in practice with the AppMetrics provider:
         /// <code>
         /// // Set metric prefix
         /// var cluster = 
@@ -88,19 +89,17 @@ namespace Cassandra.Metrics
         ///            .AddContactPoint("127.0.0.1")
         ///            .WithSessionName("session")
         ///            .WithMetrics(
-        ///                new AppMetricsDriverMetricsProvider(metrics),
-        ///                new MetricsOptions().SetPathPrefix("web.app"))
+        ///                metrics.CreateDriverMetricsProvider(),
+        ///                new DriverMetricsOptions().SetBucketPrefix("web.app"))
         ///            .Build();
         ///
         /// // Resulting metric name for the NodeMetric.Counters.Retries metric:
         /// web.app.session.nodes.127_0_0_1:9042.retries.total
         /// </code>
         /// </summary>
-        /// <param name="pathPrefix"></param>
-        /// <returns></returns>
-        public DriverMetricsOptions SetPathPrefix(string pathPrefix)
+        public DriverMetricsOptions SetBucketPrefix(string bucketPrefix)
         {
-            PathPrefix = pathPrefix;
+            BucketPrefix = bucketPrefix;
             return this;
         }
 
@@ -110,7 +109,7 @@ namespace Cassandra.Metrics
             {
                 EnabledNodeMetrics = EnabledNodeMetrics,
                 EnabledSessionMetrics = EnabledSessionMetrics,
-                PathPrefix = PathPrefix
+                BucketPrefix = BucketPrefix
             };
         }
     }

@@ -25,14 +25,15 @@ namespace Cassandra.Metrics.Registries
     internal class NodeMetrics : INodeMetrics
     {
         private readonly IDriverMetricsProvider _driverMetricsProvider;
-        private readonly string _context;
+        private readonly string _bucketName;
 
         private IHostConnectionPool _hostConnectionPool = null;
 
-        public NodeMetrics(IDriverMetricsProvider driverMetricsProvider, DriverMetricsOptions metricOptions, bool metricsEnabled, string context)
+        public NodeMetrics(
+            IDriverMetricsProvider driverMetricsProvider, DriverMetricsOptions metricOptions, bool metricsEnabled, string bucketName)
         {
             _driverMetricsProvider = driverMetricsProvider;
-            _context = context;
+            _bucketName = bucketName;
             MetricsRegistry = new InternalMetricsRegistry<NodeMetric>(
                 driverMetricsProvider, NodeMetric.AllNodeMetrics.Except(metricOptions.EnabledNodeMetrics), metricsEnabled);
 
@@ -65,20 +66,20 @@ namespace Cassandra.Metrics.Registries
             try
             {
                 SpeculativeExecutions = MetricsRegistry.Counter(
-                    _context, NodeMetric.Counters.SpeculativeExecutions);
-                BytesSent = MetricsRegistry.Meter(_context, NodeMetric.Meters.BytesSent);
-                BytesReceived = MetricsRegistry.Meter(_context, NodeMetric.Meters.BytesReceived);
-                CqlMessages = MetricsRegistry.Timer(_context, NodeMetric.Timers.CqlMessages);
+                    _bucketName, NodeMetric.Counters.SpeculativeExecutions);
+                BytesSent = MetricsRegistry.Meter(_bucketName, NodeMetric.Meters.BytesSent);
+                BytesReceived = MetricsRegistry.Meter(_bucketName, NodeMetric.Meters.BytesReceived);
+                CqlMessages = MetricsRegistry.Timer(_bucketName, NodeMetric.Timers.CqlMessages);
 
-                Errors = new RequestErrorMetrics(MetricsRegistry, _context);
-                Retries = new RetryPolicyOnRetryMetrics(MetricsRegistry, _context);
-                Ignores = new RetryPolicyOnIgnoreMetrics(MetricsRegistry, _context);
+                Errors = new RequestErrorMetrics(MetricsRegistry, _bucketName);
+                Retries = new RetryPolicyOnRetryMetrics(MetricsRegistry, _bucketName);
+                Ignores = new RetryPolicyOnIgnoreMetrics(MetricsRegistry, _bucketName);
 
                 OpenConnections = MetricsRegistry.Gauge(
-                    _context, NodeMetric.Gauges.OpenConnections, () => _hostConnectionPool?.OpenConnections);
+                    _bucketName, NodeMetric.Gauges.OpenConnections, () => _hostConnectionPool?.OpenConnections);
                 
                 InFlight = MetricsRegistry.Gauge(
-                    _context, NodeMetric.Gauges.InFlight, () => _hostConnectionPool?.InFlight);
+                    _bucketName, NodeMetric.Gauges.InFlight, () => _hostConnectionPool?.InFlight);
 
                 MetricsRegistry.OnMetricsAdded();
             }
@@ -97,7 +98,7 @@ namespace Cassandra.Metrics.Registries
 
         public void Dispose()
         {
-            _driverMetricsProvider.ShutdownMetricsBucket(_context);
+            _driverMetricsProvider.ShutdownMetricsBucket(_bucketName);
         }
     }
 }

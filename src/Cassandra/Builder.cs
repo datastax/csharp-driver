@@ -712,7 +712,7 @@ namespace Cassandra
         /// Alternatively, you can implement your own provider that implements <see cref="IDriverMetricsProvider"/>.
         /// </para>
         /// <para>
-        /// This method enables all individual metrics without a path prefix (besides session name). To customize these options,
+        /// This method enables all individual metrics without a bucket prefix. To customize these options,
         /// use <see cref="WithMetrics(IDriverMetricsProvider, DriverMetricsOptions)"/>.
         /// </para>
         /// </summary>
@@ -732,7 +732,7 @@ namespace Cassandra
         /// Alternatively, you can implement your own provider that implements <see cref="IDriverMetricsProvider"/>.
         /// </para>
         /// <para>
-        /// This method enables all individual metrics without a path prefix (besides session name). To customize these settings,
+        /// This method enables all individual metrics without a bucket prefix. To customize these settings,
         /// use <see cref="WithMetrics(IDriverMetricsProvider, DriverMetricsOptions)"/>. For explanations on these settings,
         /// see the API docs of the <see cref="DriverMetricsOptions"/> class.
         /// </para> 
@@ -750,7 +750,7 @@ namespace Cassandra
         ///                    .SetEnabledNodeMetrics(NodeMetric.DefaultNodeMetrics.Except(new [] { NodeMetric.Meters.BytesSent }))
         ///                    .SetEnabledSessionMetrics(
         ///                        SessionMetric.DefaultSessionMetrics.Except(new[] { SessionMetric.Meters.BytesReceived }))
-        ///                    .SetPathPrefix("web.app"))
+        ///                    .SetBucketPrefix("web.app"))
         ///            .Build();
         /// </code>
         /// </para>

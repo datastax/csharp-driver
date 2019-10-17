@@ -27,24 +27,16 @@ namespace Cassandra.Metrics
     {
         private readonly int _hashCode;
 
-        internal SessionMetric(string path)
+        internal SessionMetric(string name)
         {
-            Path = path ?? throw new ArgumentNullException(nameof(path));
-            _hashCode = path.GetHashCode();
+            Name = name ?? throw new ArgumentNullException(nameof(name));
+            _hashCode = name.GetHashCode();
         }
 
         /// <summary>
-        /// Metric path.
-        /// Here is what this property will return for <see cref="SessionMetric.Counters.CqlClientTimeouts"/>:
-        /// <code>
-        /// // Assume this ist the full metric path for the SessionMetric.Counters.CqlClientTimeouts metric (using AppMetricsProvider):
-        /// web.app.session.cql-client-timeouts
-        ///
-        /// // The SessionMetric.Path property will return
-        /// cql-client-timeouts
-        /// </code>
+        /// Metric name. For example, <see cref="Counters.CqlClientTimeouts"/> returns "cql-client-timeouts".
         /// </summary>
-        public string Path { get; }
+        public string Name { get; }
 
         public bool Equals(SessionMetric other)
         {
@@ -68,7 +60,7 @@ namespace Cassandra.Metrics
 
         public override string ToString()
         {
-            return Path;
+            return Name;
         }
 
         private bool StrictEquals(object obj)
@@ -78,7 +70,7 @@ namespace Cassandra.Metrics
 
         private bool StrictEqualsNotNull(SessionMetric other)
         {
-            return string.Equals(Path, other.Path);
+            return string.Equals(Name, other.Name);
         }
 
         /// <summary>

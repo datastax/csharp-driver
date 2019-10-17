@@ -45,7 +45,7 @@ namespace Cassandra.AppMetrics.Implementations
                 _metricsRoot,
                 _metricsRoot.Provider.Timer.Instance(new TimerOptions
                 {
-                    Name = metric.Path,
+                    Name = metric.Name,
                     Context = bucket,
                     DurationUnit = _options.TimersTimeUnit,
                     Reservoir = 
@@ -56,7 +56,7 @@ namespace Cassandra.AppMetrics.Implementations
                         _options.SignificantDigits)
                 }),
                 bucket,
-                metric.Path);
+                metric.Name);
         }
         
         /// <inheritdoc />
@@ -66,11 +66,11 @@ namespace Cassandra.AppMetrics.Implementations
                 _metricsRoot,
                 _metricsRoot.Provider.Meter.Instance(new MeterOptions
                 {
-                    Name = metric.Path,
+                    Name = metric.Name,
                     Context = bucket
                 }),
                 bucket,
-                metric.Path);
+                metric.Name);
         }
         
         /// <inheritdoc />
@@ -80,11 +80,11 @@ namespace Cassandra.AppMetrics.Implementations
                 _metricsRoot,
                 _metricsRoot.Provider.Counter.Instance(new CounterOptions
                 {
-                    Name = metric.Path,
+                    Name = metric.Name,
                     Context = bucket
                 }),
                 bucket,
-                metric.Path);
+                metric.Name);
         }
         
         /// <inheritdoc />
@@ -96,11 +96,11 @@ namespace Cassandra.AppMetrics.Implementations
                     new GaugeOptions
                     {
                         Context = bucket,
-                        Name = metric.Path
+                        Name = metric.Name
                     },
                     () => _metricsRoot.Build.Gauge.Build(() => valueProvider() ?? double.NaN)),
                 bucket,
-                metric.Path);
+                metric.Name);
         }
         
         /// <inheritdoc />

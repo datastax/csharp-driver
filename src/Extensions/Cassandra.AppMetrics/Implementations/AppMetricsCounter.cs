@@ -16,8 +16,8 @@
 
 using App.Metrics;
 using App.Metrics.Counter;
+
 using Cassandra.AppMetrics.MetricTypes;
-using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.Implementations
 {
@@ -28,12 +28,12 @@ namespace Cassandra.AppMetrics.Implementations
         private readonly ICounter _counter;
 
         public AppMetricsCounter(
-            IMetrics metrics, ICounter counter, string bucket, string path)
+            IMetrics metrics, ICounter counter, string bucket, string name)
         {
             _metrics = metrics;
             _counter = counter;
             Context = bucket;
-            Name = path;
+            Name = name;
         }
 
         /// <inheritdoc />
@@ -53,7 +53,7 @@ namespace Cassandra.AppMetrics.Implementations
 
         /// <inheritdoc />
         public string Name { get; }
-        
+
         /// <inheritdoc />
         public long GetValue()
         {

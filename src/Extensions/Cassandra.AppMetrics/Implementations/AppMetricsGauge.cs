@@ -16,8 +16,8 @@
 
 using App.Metrics;
 using App.Metrics.Gauge;
+
 using Cassandra.AppMetrics.MetricTypes;
-using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.Implementations
 {
@@ -27,12 +27,12 @@ namespace Cassandra.AppMetrics.Implementations
         private readonly IMetrics _metrics;
         private readonly IGauge _gauge;
 
-        public AppMetricsGauge(IMetrics metrics, IGauge gauge, string bucket, string path)
+        public AppMetricsGauge(IMetrics metrics, IGauge gauge, string bucket, string name)
         {
             _metrics = metrics;
             _gauge = gauge;
             Context = bucket;
-            Name = path;
+            Name = name;
         }
 
         /// <inheritdoc />
