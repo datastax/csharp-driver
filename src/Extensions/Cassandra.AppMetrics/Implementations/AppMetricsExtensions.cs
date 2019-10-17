@@ -14,46 +14,15 @@
 //   limitations under the License.
 //
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using App.Metrics;
-using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.Implementations
 {
     internal static class AppMetricsExtensions
     {
-        public static DriverTimeUnit ToDriverTimeUnit(this TimeUnit timeUnit)
-        {
-            switch (timeUnit)
-            {
-                case TimeUnit.Days:
-                    return DriverTimeUnit.Days;
-
-                case TimeUnit.Hours:
-                    return DriverTimeUnit.Hours;
-
-                case TimeUnit.Microseconds:
-                    return DriverTimeUnit.Microseconds;
-
-                case TimeUnit.Milliseconds:
-                    return DriverTimeUnit.Milliseconds;
-
-                case TimeUnit.Minutes:
-                    return DriverTimeUnit.Minutes;
-
-                case TimeUnit.Nanoseconds:
-                    return DriverTimeUnit.Nanoseconds;
-
-                case TimeUnit.Seconds:
-                    return DriverTimeUnit.Seconds;
-
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(timeUnit), timeUnit, null);
-            }
-        }
-
         public static T ValueFor<T>(this IEnumerable<MetricValueSourceBase<T>> values, string metricName)
         {
             var selectedValues = values.Where(t => t.Name == metricName).Select(t => t.Value).Take(2).ToList();

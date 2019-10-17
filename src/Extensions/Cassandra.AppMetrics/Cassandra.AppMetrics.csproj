@@ -9,7 +9,6 @@
     <Authors>DataStax</Authors>
     <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">netstandard2.0;net461</TargetFrameworks>
     <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True'">netstandard2.0</TargetFrameworks>
-    <NoWarn>$(NoWarn);1591</NoWarn>
     <Authors>DataStax</Authors>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

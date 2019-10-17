@@ -13,9 +13,10 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+using App.Metrics;
 using App.Metrics.Meter;
+
 using Cassandra.AppMetrics.MetricValues;
-using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.Implementations
 {
@@ -38,6 +39,6 @@ namespace Cassandra.AppMetrics.Implementations
 
         public double OneMinuteRate => _rate.OneMinuteRate;
 
-        public DriverTimeUnit RateUnit => _rate.RateUnit.ToDriverTimeUnit();
+        public TimeUnit RateUnit => _rate.RateUnit;
     }
 }

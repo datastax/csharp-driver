@@ -45,7 +45,7 @@
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
-    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Appveyor.TestLogger" Version="2.0.0" />

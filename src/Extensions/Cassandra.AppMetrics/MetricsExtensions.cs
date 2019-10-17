@@ -23,6 +23,9 @@ using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra
 {
+    /// <summary>
+    /// Extension methods to integrate App.Metrics with the DataStax C# Drivers.
+    /// </summary>
     public static class MetricsExtensions
     {
         /// <summary>

@@ -15,7 +15,6 @@
 
 using App.Metrics;
 using App.Metrics.Timer;
-using Cassandra.Metrics.Abstractions;
 
 namespace Cassandra.AppMetrics.MetricValues
 {
@@ -24,12 +23,18 @@ namespace Cassandra.AppMetrics.MetricValues
     /// </summary>
     public interface IAppMetricsTimerValue
     {
+        /// <summary>
+        /// Histogram value for this timer metric.
+        /// </summary>
         IAppMetricsHistogramValue Histogram { get; }
 
+        /// <summary>
+        /// Meter value for this timer metric.
+        /// </summary>
         IAppMetricsMeterValue Rate { get; }
 
         /// <summary>
-        /// This is converted from <see cref="DriverTimeUnit"/>.
+        /// This is obtained from <see cref="DriverAppMetricsOptions.TimersTimeUnit"/>.
         /// </summary>
         TimeUnit DurationUnit { get; }
     }
