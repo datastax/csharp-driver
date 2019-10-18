@@ -67,7 +67,7 @@ namespace Cassandra.AppMetrics
         /// The number of significant decimal digits to which internal structures will maintain
         /// value resolution and separation (for example, 3 means that recordings up to 1 second will be recorded with a
         /// resolution of 1 millisecond or better).
-        /// This must be between 0 and 5. If the value is out of range, it defaults to 3 and a warning is logged.
+        /// This must be between 0 and 5. If the value is out of range, an exception is thrown.
         /// </summary>
         public DriverAppMetricsOptions SetSignificantDigits(int digits)
         {

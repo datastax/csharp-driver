@@ -18,6 +18,7 @@ Cassandra (1.2+) using exclusively Cassandra's binary protocol and Cassandra Que
 - [Cluster and schema metadata](metadata)
 - [Metrics](metrics)
     - [App.Metrics Provider](metrics/app-metrics)
+    - [List of metrics](metrics/metrics-list)
 - [Native protocol](native-protocol)
 - [Parametrized queries](parametrized-queries)
 - [Query warnings](query-warnings)

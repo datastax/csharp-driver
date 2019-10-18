@@ -90,8 +90,8 @@ namespace Cassandra.AppMetrics.Implementations
             if (value > _highestTrackableValue)
             {
                 HdrHistogramReservoir.Logger.Warning(
-                    "Value {0} ns is higher than highestTrackableValue {1} ns. Discarding this measurement. " +
-                    "Consider increasing this limit in MetricOptions.",
+                    "Value {0} ns is higher than the configured HighestLatency {1} ns. Discarding this measurement. " +
+                    "Consider increasing this limit in DriverAppMetricsOptions.",
                     value,
                     _highestTrackableValue);
                 return;

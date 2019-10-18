@@ -92,7 +92,6 @@ namespace Cassandra.Observers
 
         private void OnRequestError(IRequestErrorMetrics metricsRegistry, RequestErrorType errorType)
         {
-            metricsRegistry.Total.Increment();
             switch (errorType)
             {
                 case RequestErrorType.Unavailable:

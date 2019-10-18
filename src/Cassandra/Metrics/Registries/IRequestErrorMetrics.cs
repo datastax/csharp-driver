@@ -37,8 +37,6 @@ namespace Cassandra.Metrics.Registries
 
         IDriverCounter Unsent { get; }
 
-        IDriverCounter Total { get; }
-
         IDriverCounter ConnectionInitErrors { get; }
 
         IDriverCounter AuthenticationErrors { get; }

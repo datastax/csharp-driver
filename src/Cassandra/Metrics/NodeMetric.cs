@@ -27,7 +27,7 @@ namespace Cassandra.Metrics
     {
         private readonly int _hashCode;
 
-        private NodeMetric(string name)
+        internal NodeMetric(string name)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             _hashCode = name.GetHashCode();
@@ -95,7 +95,6 @@ namespace Cassandra.Metrics
             Counters.UnsentRequests,
             Counters.WriteTimeouts,
             Counters.ClientTimeouts,
-            Counters.Errors,
 
             Counters.RetriesOnUnavailable,
             Counters.RetriesOnOtherError,
@@ -186,27 +185,22 @@ namespace Cassandra.Metrics
             /// <summary>
             /// Number of server side read timeout errors.
             /// </summary>
-            public static readonly NodeMetric ReadTimeouts = new NodeMetric("errors.request.read-timeout");
+            public static readonly NodeMetric ReadTimeouts = new NodeMetric("errors.request.read-timeouts");
             
             /// <summary>
             /// Number of server side write timeout errors.
             /// </summary>
-            public static readonly NodeMetric WriteTimeouts = new NodeMetric("errors.request.write-timeout");
+            public static readonly NodeMetric WriteTimeouts = new NodeMetric("errors.request.write-timeouts");
             
             /// <summary>
             /// Number of server side unavailable errors.
             /// </summary>
-            public static readonly NodeMetric UnavailableErrors = new NodeMetric("errors.request.unavailable");
+            public static readonly NodeMetric UnavailableErrors = new NodeMetric("errors.request.unavailables");
             
             /// <summary>
             /// Number of server side errors other than Unavailable, ReadTimeout or WriteTimeout.
             /// </summary>
-            public static readonly NodeMetric OtherErrors = new NodeMetric("errors.request.other");
-            
-            /// <summary>
-            /// Number of total errors.
-            /// </summary>
-            public static readonly NodeMetric Errors = new NodeMetric("errors.request.total");
+            public static readonly NodeMetric OtherErrors = new NodeMetric("errors.request.others");
             
             /// <summary>
             /// Number of failed requests without a server response.
@@ -221,7 +215,7 @@ namespace Cassandra.Metrics
             /// <summary>
             /// Number of failed requests due to socket timeout.
             /// </summary>
-            public static readonly NodeMetric ClientTimeouts = new NodeMetric("errors.request.client-timeout");
+            public static readonly NodeMetric ClientTimeouts = new NodeMetric("errors.request.client-timeouts");
         }
 
         public static class Gauges

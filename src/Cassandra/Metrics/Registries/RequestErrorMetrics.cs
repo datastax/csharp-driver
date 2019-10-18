@@ -27,7 +27,6 @@ namespace Cassandra.Metrics.Registries
             WriteTimeout = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.WriteTimeouts);
             Unavailable = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.UnavailableErrors);
             Other = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.OtherErrors);
-            Total = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.Errors);
             Unsent = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.UnsentRequests);
             ClientTimeout = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.ClientTimeouts);
             ConnectionInitErrors = nodeMetricsRegistry.Counter(context, NodeMetric.Counters.ConnectionInitErrors);
@@ -51,7 +50,5 @@ namespace Cassandra.Metrics.Registries
         public IDriverCounter ConnectionInitErrors { get; }
 
         public IDriverCounter AuthenticationErrors { get; }
-
-        public IDriverCounter Total { get; }
     }
 }

@@ -33,7 +33,6 @@ namespace Cassandra.IntegrationTests.Metrics
     {
         private static readonly NodeMetric[] Counters = new[]
         {
-            NodeMetric.Counters.Errors,
             NodeMetric.Counters.AuthenticationErrors,
             NodeMetric.Counters.ClientTimeouts,
             NodeMetric.Counters.ConnectionInitErrors,
@@ -149,7 +148,7 @@ namespace Cassandra.IntegrationTests.Metrics
         }
 
         [Test]
-        public void Should_AlltMetricsHaveValidValues()
+        public void Should_AllMetricsHaveValidValues()
         {
             var metricsRoot = new App.Metrics.MetricsBuilder().Build();
             try
@@ -161,8 +160,8 @@ namespace Cassandra.IntegrationTests.Metrics
                             .SetEnabledNodeMetrics(NodeMetric.AllNodeMetrics)
                             .SetEnabledSessionMetrics(SessionMetric.AllSessionMetrics)));
                 var session = cluster.Connect();
-                Assert.AreEqual(26, NodeMetric.AllNodeMetrics.Count());
-                Assert.AreEqual(26,
+                Assert.AreEqual(25, NodeMetric.AllNodeMetrics.Count());
+                Assert.AreEqual(25,
                     MetricsTests.Counters.Concat(MetricsTests.Gauges.Concat(MetricsTests.Timers.Concat(MetricsTests.Meters)))
                                 .Union(NodeMetric.DefaultNodeMetrics).Count());
                 Assert.AreEqual(1, MetricsTests.Timers.Length);
@@ -212,7 +211,7 @@ namespace Cassandra.IntegrationTests.Metrics
             {
                 var cluster = GetNewCluster(b => b.WithMetrics(metricsRoot.CreateDriverMetricsProvider()));
                 var session = cluster.Connect();
-                Assert.AreEqual(25, NodeMetric.DefaultNodeMetrics.Count());
+                Assert.AreEqual(24, NodeMetric.DefaultNodeMetrics.Count());
                 Assert.IsTrue(NodeMetric.DefaultNodeMetrics.SequenceEqual(NodeMetric.DefaultNodeMetrics.Distinct()));
                 Assert.AreEqual(NodeMetric.Timers.CqlMessages, NodeMetric.AllNodeMetrics.Except(NodeMetric.DefaultNodeMetrics).Single());
                 Assert.IsTrue(NodeMetric.DefaultNodeMetrics.SequenceEqual(NodeMetric.DefaultNodeMetrics.Intersect(NodeMetric.AllNodeMetrics)));
