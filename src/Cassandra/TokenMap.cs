@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -135,9 +136,9 @@ namespace Cassandra
                         allSorted.Add(token);
                         primaryReplicas[token] = host;
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        TokenMap.Logger.Error($"Token {tokenStr} could not be parsed using {partitioner} partitioner implementation");
+                        TokenMap.Logger.Error($"Token {tokenStr} could not be parsed using {partitioner} partitioner implementation. Exception: {ex}");
                     }
                 }
             }
