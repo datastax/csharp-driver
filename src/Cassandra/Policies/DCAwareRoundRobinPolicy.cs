@@ -37,6 +37,8 @@ namespace Cassandra
             "The usedHostsPerRemoteDc parameter will be removed in the next major release of the driver. " +
             "DC failover should not be done in the driver, which does not have the necessary context to know " +
             "what makes sense considering application semantics. See https://datastax-oss.atlassian.net/browse/CSHARP-722";
+        
+        private static readonly Logger Logger = new Logger(typeof(DCAwareRoundRobinPolicy));
 
         private string _localDc;
         private readonly int _usedHostsPerRemoteDc;
@@ -117,25 +119,36 @@ namespace Cassandra
         public void Initialize(ICluster cluster)
         {
             _cluster = cluster;
+
             //When the pool changes, it should clear the local cache
             _cluster.HostAdded += _ => ClearHosts();
             _cluster.HostRemoved += _ => ClearHosts();
+
+            var availableDcs = _cluster.AllHosts().Select(h => h.Datacenter).Where(dc => dc != null).Distinct().ToList();
+            var availableDcsStr = string.Join(", ", availableDcs);
+
             if (_localDc == null)
             {
+                DCAwareRoundRobinPolicy.Logger.Warning(
+                    "Local datacenter was not specified. In the next major release of the driver " +
+                    "applications will be required to specify the local datacenter in the load balancing policy. " +
+                    $"Available datacenters: {availableDcsStr}.");
+
                 var host = GetLocalHost();
                 if (host == null)
                 {
                     throw new DriverInternalError("Local datacenter could not be determined");
                 }
+
                 _localDc = host.Datacenter;
                 return;
             }
+
             //Check that the datacenter exists
-            if (_cluster.AllHosts().FirstOrDefault(h => h.Datacenter == _localDc) == null)
+            if (!availableDcs.Contains(_localDc))
             {
-                var availableDcs = string.Join(", ", _cluster.AllHosts().Select(h => h.Datacenter));
-                throw new ArgumentException(string.Format(
-                    "Datacenter {0} does not match any of the nodes, available datacenters: {1}.", _localDc, availableDcs));
+                throw new ArgumentException(
+                    $"Datacenter {_localDc} does not match any of the nodes, available datacenters: {availableDcs}.");
             }
         }
 

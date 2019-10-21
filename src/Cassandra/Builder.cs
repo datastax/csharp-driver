@@ -342,11 +342,18 @@ namespace Cassandra
         }
 
         /// <summary>
-        ///  Configure the load balancing policy to use for the new cluster. <p> If no
-        ///  load balancing policy is set through this method,
-        ///  <link>Policies.DefaultLoadBalancingPolicy</link> will be used instead.</p>
+        /// <para>
+        /// Configure the load balancing policy to use for the new cluster.
+        /// </para>
+        /// <para>
+        /// If no load balancing policy is set through this method, <see cref="Policies.DefaultLoadBalancingPolicy"/> will be used instead.
+        /// </para>
+        /// <para>
+        /// To specify the local datacenter with the default load balancing policy, use the following method to create a
+        /// new policy instance: <see cref="Policies.NewDefaultLoadBalancingPolicy"/>.
+        /// </para>
         /// </summary>
-        /// <param name="policy"> the load balancing policy to use </param>
+        /// <param name="policy"> the load balancing policy to use.</param>
         /// <returns>this Builder</returns>
         public Builder WithLoadBalancingPolicy(ILoadBalancingPolicy policy)
         {
