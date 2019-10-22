@@ -57,9 +57,15 @@ builder.WithMetrics(provider, new DriverMetricsOptions()
 
 The `provider` parameter must be an implementation of `IDriverMetricsProvider`. As was mentioned previouly, DataStax offers an [App.Metrics based implementation on a separate  extension nuget package].
 
+## Exporting metrics
+
+With our App.Metrics provider, you can use the features offered by App.Metrics to export metrics. There are several reporter plugins that extend App.Metrics and these are available usually as nuget packages. For more information, see [the manual section related to this provider].
+
 ## Retrieving metrics
 
-The driver's API for retrieving metrics is mostly an abstraction. The available methods on each metric type will depend on the provider that is plugged in to the driver.
+The driver exposes an API to retrieve metrics but this API consists of mostly abstractions. The available methods on each metric type will depend on the provider that is used (if the provider exposes such methods).
+
+Note that if you are using our App.Metrics provider, you most likely don't need this API since App.Metrics offers built in reporters that export metrics to technologies like Graphite, InfluxDB, Elasticsearch and many others.
 
 ### Generic API for retrieving metrics
 

@@ -24,7 +24,63 @@ var cluster = Cluster
     .Build();
 ```
 
+## Exporting
+
+[App.Metrics] offers a variety of integrations available through extension nuget packages. There are extensions to help you integrate App.Metrics with Graphite, Prometheus, InfluxDB, Elasticsearch and more. There's also an extension to integrate App.Metrics with ASP .NET Core.
+
+For more information, check out the [official App.Metrics documentation].
+
+Here's a small example to export metrics to Graphite every 5 seconds:
+
+```csharp
+var metricsRoot = new MetricsBuilder()
+    .Report.ToGraphite("net.tcp://127.0.0.1:2003")
+    .Build();
+
+var cluster = Cluster
+    .Builder()
+    .AddContactPoint("127.0.0.1")
+    .WithMetrics(metricsRoot.CreateDriverMetricsProvider())
+    .Build();
+
+var scheduler = new AppMetricsTaskScheduler(
+    TimeSpan.FromMilliseconds(5000),
+    async () => { await Task.WhenAll(metricsRoot.ReportRunner.RunAllAsync()); });
+
+scheduler.Start();
+```
+
+## Advanced configuration for Timer metrics
+
+This provider uses a custom implementation of `App.Metrics.ReservoirSampling.IReservoir` when creating `Timer` metrics. This custom implementation is based on [HdrHistogram].
+
+There are some parameters that can be set when creating `HdrHistogram` objects and these parameters can be customized with an alternative extension method:
+
+```csharp
+var metricsRoot = new App.Metrics.MetricsBuilder().Build();
+
+var cluster = Cluster
+    .Builder()
+    .AddContactPoint("127.0.0.1")
+    .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(10000))
+    .WithMetrics(metricsRoot.CreateDriverMetricsProvider(
+        new DriverAppMetricsOptions()
+            .SetHighestLatencyMilliseconds(12000) // should be set to slightly higher than the configured timeout
+            .SetSignificantDigits(3)
+            .SetTimersTimeUnit(TimeUnit.Nanoseconds) // which unit should be used for the Timer metrics
+    ))
+    .Build();
+```
+
+`HighestLatencyMilliseconds` should be set to a slightly higher value than the configured timeouts (`SocketOptions.ReadTimeoutMillis` or `Builder.WithQueryAbortTimeout`). This is used to scale internal data structures and whenever a measurement exceeds this value, a warning will be logged and the measurement will be discarded.
+
+`SignificantDigits` is the number of significant decimal digits to which internal structures will maintain value resolution and separation (for example, 3 means that recordings up to 1 second will be recorded with a resolution of 1 millisecond or better). This must be between 0 and 5. If the value is out of range, an exception is thrown. It defaults to 3.
+
+`TimersTimeUnit` is the `App.Metrics.TimeUnit` value that will be passed to `App.Metrics` when creating `Timer` metrics. This will determine the unit of the exported timer values.
+
 ## Retrieving metrics
+
+The API that was described in the previous [section](#Exporting) is usually enough for most use cases. In addition to that, we expose an API to manually retrieve metrics which is covered in this section.
 
 ### Retrieving metrics with the provider's interfaces
 
@@ -79,60 +135,6 @@ public static IAppMetricsGauge ToAppMetricsGauge(this IDriverGauge gauge);
 public static IAppMetricsMeter ToAppMetricsMeter(this IDriverMeter meter);
 public static IAppMetricsTimer ToAppMetricsTimer(this IDriverTimer timer);
 ```
-
-## Exporting
-
-[App.Metrics] offers a variety of integrations available through extension nuget packages. There are extensions to help you integrate App.Metrics with Graphite, Prometheus, InfluxDB, Elasticsearch and more. There's also an extension to integrate App.Metrics with ASP .NET Core.
-
-For more information, check out the [official App.Metrics documentation].
-
-Here's a small example to export metrics to Graphite every 5 seconds:
-
-```csharp
-var metricsRoot = new MetricsBuilder()
-    .Report.ToGraphite("net.tcp://127.0.0.1:2003")
-    .Build();
-
-var cluster = Cluster
-    .Builder()
-    .AddContactPoint("127.0.0.1")
-    .WithMetrics(metricsRoot.CreateDriverMetricsProvider())
-    .Build();
-
-var scheduler = new AppMetricsTaskScheduler(
-    TimeSpan.FromMilliseconds(5000),
-    async () => { await Task.WhenAll(metricsRoot.ReportRunner.RunAllAsync()); });
-
-scheduler.Start();
-```
-
-## Advanced configuration for Timer metrics
-
-This provider uses a custom implementation of `App.Metrics.ReservoirSampling.IReservoir` when creating `Timer` metrics. This custom implementation is based on [HdrHistogram].
-
-There are some parameters that can be set when creating `HdrHistogram` objects and these parameters can be customized with an alternative extension method:
-
-```csharp
-var metricsRoot = new App.Metrics.MetricsBuilder().Build();
-
-var cluster = Cluster
-    .Builder()
-    .AddContactPoint("127.0.0.1")
-    .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(10000))
-    .WithMetrics(metricsRoot.CreateDriverMetricsProvider(
-        new DriverAppMetricsOptions()
-            .SetHighestLatencyMilliseconds(12000) // should be set to slightly higher than the configured timeout
-            .SetSignificantDigits(3)
-            .SetTimersTimeUnit(TimeUnit.Nanoseconds) // which unit should be used for the Timer metrics
-    ))
-    .Build();
-```
-
-`HighestLatencyMilliseconds` should be set to a slightly higher value than the configured timeouts (`SocketOptions.ReadTimeoutMillis` or `Builder.WithQueryAbortTimeout`). This is used to scale internal data structures and whenever a measurement exceeds this value, a warning will be logged and the measurement will be discarded.
-
-`SignificantDigits` is the number of significant decimal digits to which internal structures will maintain value resolution and separation (for example, 3 means that recordings up to 1 second will be recorded with a resolution of 1 millisecond or better). This must be between 0 and 5. If the value is out of range, an exception is thrown. It defaults to 3.
-
-`TimersTimeUnit` is the `App.Metrics.TimeUnit` value that will be passed to `App.Metrics` when creating `Timer` metrics. This will determine the unit of the exported timer values.
 
 [CassandraCSharpDriver.AppMetrics nuget package]: https://www.nuget.org/packages/CassandraCSharpDriver.AppMetrics/
 [HdrHistogram]: https://github.com/HdrHistogram/HdrHistogram.NET
