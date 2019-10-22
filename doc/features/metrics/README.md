@@ -31,9 +31,9 @@ Here are the same examples but with a bucket prefix set in the `Builder`:
 
 ## Configuration
 
-By default, if `Builder.WithMetrics` is not called by the client application, metrics are disabled.
+Metrics are disabled by default. To enable them, use `Builder.WithMetrics()` method when creating the session.
 
-If `Builder.WithMetrics(provider)` is called, the default metrics will be enabled. The default metrics are every metrics except those of type `Timer`. The reasoning behind this is the fact that enabling `Timer` metrics have the potential effect of reducing the throughput of the driver so it's recommended to benchmark the client application with `Timer` metrics enabled before enabling them in production.
+When `Builder.WithMetrics(provider)` is called, the default metrics will be enabled. The default metrics are composed of every metric except those of type `Timer`. The reasoning behind this is the fact that enabling `Timer` metrics might increase CPU usage and impact throughput of the driver, so it's recommended to benchmark the client application with `Timer` metrics enabled before enabling them in production.
 
 `Builder.WithMetrics(IDriverMetricsProvider,DriverMetricsOptions)` can be used to customize options related to metrics. `DriverMetricsOptions.SetEnabledNodeMetrics()` and `DriverMetricsOptions.SetEnabledSessionMetrics()` can be used to specify which metrics should be enabled. **Note that this will override the default enabled metrics**, i.e., if you want to enable `Timer` metrics on top of the default metrics then all metrics must be specified. `SessionMetric` and `NodeMetric` have a couple of `static` properties to make it easier to specify which metrics to enable. Here are some examples:
 
