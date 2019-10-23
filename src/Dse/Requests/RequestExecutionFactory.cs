@@ -14,15 +14,17 @@
 //   limitations under the License.
 //
 
+using Dse.Observers.Abstractions;
 using Dse.SessionManagement;
 
 namespace Dse.Requests
 {
     internal class RequestExecutionFactory : IRequestExecutionFactory
     {
-        public IRequestExecution Create(IRequestHandler parent, IInternalSession session, IRequest request)
+        public IRequestExecution Create(
+            IRequestHandler parent, IInternalSession session, IRequest request, IRequestObserver requestObserver)
         {
-            return new RequestExecution(parent, session, request);
+            return new RequestExecution(parent, session, request, requestObserver);
         }
     }
 }

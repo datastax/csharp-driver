@@ -9,6 +9,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dse.Test.Unit", "Dse.Test.U
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dse.Test.Integration", "Dse.Test.Integration\Dse.Test.Integration.csproj", "{88FDF885-499B-41CF-95B0-E8E3485499B7}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Extensions", "Extensions", "{1DD8734B-BFF3-4E88-A5DD-13D385547497}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Driver", "Driver", "{343488BE-0304-44B0-B19C-5D6FA2B1186E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dse.AppMetrics", "Extensions\Dse.AppMetrics\Dse.AppMetrics.csproj", "{0F3D85BA-8B43-4ECF-8265-228C79D14DF0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,9 +33,19 @@ Global
 		{88FDF885-499B-41CF-95B0-E8E3485499B7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{88FDF885-499B-41CF-95B0-E8E3485499B7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{88FDF885-499B-41CF-95B0-E8E3485499B7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0F3D85BA-8B43-4ECF-8265-228C79D14DF0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0F3D85BA-8B43-4ECF-8265-228C79D14DF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0F3D85BA-8B43-4ECF-8265-228C79D14DF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0F3D85BA-8B43-4ECF-8265-228C79D14DF0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{1CD08D85-A65F-48D3-9CAA-088B59E4ACB7} = {343488BE-0304-44B0-B19C-5D6FA2B1186E}
+		{84D8963A-D83F-463F-8DC4-EA2DF25AB0CE} = {343488BE-0304-44B0-B19C-5D6FA2B1186E}
+		{88FDF885-499B-41CF-95B0-E8E3485499B7} = {343488BE-0304-44B0-B19C-5D6FA2B1186E}
+		{0F3D85BA-8B43-4ECF-8265-228C79D14DF0} = {1DD8734B-BFF3-4E88-A5DD-13D385547497}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B8534DFA-1600-4E72-A2FB-AEC7DB33CD01}

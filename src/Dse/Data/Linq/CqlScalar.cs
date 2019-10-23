@@ -35,7 +35,7 @@ namespace Dse.Data.Linq
         
         public new TEntity Execute(string executionProfile)
         {
-            return TaskHelper.WaitToComplete(ExecuteAsync(executionProfile), QueryAbortTimeout);
+            return WaitToCompleteWithMetrics(ExecuteAsync(executionProfile), QueryAbortTimeout);
         }
 
         public new CqlScalar<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)

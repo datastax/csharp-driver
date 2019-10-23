@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Net;
 using Dse.Connections;
 using Dse.ExecutionProfiles;
+using Dse.Observers;
 using Dse.Requests;
 using Dse.Responses;
 using Dse.Serialization;
@@ -54,7 +55,7 @@ namespace Dse.Test.Unit
             Mock.Get(mockRequestExecution)
                 .Setup(m => m.GetNextValidHost(It.IsAny<Dictionary<IPEndPoint, Exception>>()))
                 .Throws(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>()));
-            var sut = new RequestExecution(mockRequestExecution, mockSession, mockRequest);
+            var sut = new RequestExecution(mockRequestExecution, mockSession, mockRequest, NullRequestObserver.Instance);
 
             Assert.Throws<NoHostAvailableException>(() => sut.Start(currentHostRetry));
         }
@@ -89,7 +90,7 @@ namespace Dse.Test.Unit
                 .SetupSequence(m => m.GetNextValidHost(It.IsAny<Dictionary<IPEndPoint, Exception>>()))
                 .Returns(validHost)
                 .Throws(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>()));
-            var sut = new RequestExecution(mockRequestExecution, mockSession, mockRequest);
+            var sut = new RequestExecution(mockRequestExecution, mockSession, mockRequest, NullRequestObserver.Instance);
 
             sut.Start(currentHostRetry);
         }
@@ -130,7 +131,7 @@ namespace Dse.Test.Unit
             Mock.Get(mockParent)
                 .Setup(m => m.RequestOptions)
                 .Returns(config.DefaultRequestOptions);
-            var sut = new RequestExecution(mockParent, mockSession, mockRequest);
+            var sut = new RequestExecution(mockParent, mockSession, mockRequest, NullRequestObserver.Instance);
 
             sut.Start(currentHostRetry);
             TestHelper.RetryAssert(
@@ -138,7 +139,7 @@ namespace Dse.Test.Unit
                 {
                     Mock.Get(connection)
                         .Verify(
-                            c => c.Send(mockRequest, It.IsAny<Action<Exception, Response>>(), It.IsAny<int>()),
+                            c => c.Send(mockRequest, It.IsAny<Action<IRequestError, Response>>(), It.IsAny<int>()),
                             Times.Once);
                 });
         }
@@ -210,7 +211,7 @@ namespace Dse.Test.Unit
                 .Setup(m => m.RequestOptions)
                 .Returns(config.DefaultRequestOptions);
 
-            var sut = new RequestExecution(mockParent, mockSession, mockRequest);
+            var sut = new RequestExecution(mockParent, mockSession, mockRequest, NullRequestObserver.Instance);
             sut.Start(false);
 
             // Validate request is sent
@@ -218,7 +219,7 @@ namespace Dse.Test.Unit
                 () =>
                 {
                     Mock.Get(connection).Verify(
-                        c => c.Send(mockRequest, It.IsAny<Action<Exception, Response>>(), It.IsAny<int>()),
+                        c => c.Send(mockRequest, It.IsAny<Action<IRequestError, Response>>(), It.IsAny<int>()),
                         Times.Once);
                 });
 

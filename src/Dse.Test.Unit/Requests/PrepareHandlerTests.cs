@@ -467,7 +467,7 @@ namespace Dse.Test.Unit.Requests
             config.Policies.LoadBalancingPolicy.Initialize(cluster);
             
             // create session
-            var session = new Session(cluster, config, null, Serializer.Default);
+            var session = new Session(cluster, config, null, Serializer.Default, null);
 
             // create prepare handler
             var prepareHandler = new PrepareHandler(new Serializer(ProtocolVersion.V3));

@@ -14,6 +14,9 @@ using System.Threading.Tasks;
 using Dse.Connections;
 using Dse.ExecutionProfiles;
 using Dse.Graph;
+using Dse.Metrics;
+using Dse.Metrics.Internal;
+using Dse.Observers.Abstractions;
 using Dse.SessionManagement;
 using Dse.Tasks;
 
@@ -107,6 +110,8 @@ namespace Dse
             get { return _coreSession.UserDefinedTypes; }
         }
 
+        public string SessionName => _coreSession.SessionName;
+
         public DseSession(IInternalSession coreSession, IInternalDseCluster cluster)
         {
             _cluster = cluster ?? throw new ArgumentNullException(nameof(cluster));
@@ -131,7 +136,7 @@ namespace Dse
         /// <inheritdoc />
         public GraphResultSet ExecuteGraph(IGraphStatement statement, string executionProfileName)
         {
-            return TaskHelper.WaitToComplete(ExecuteGraphAsync(statement, executionProfileName));
+            return TaskHelper.WaitToCompleteWithMetrics(MetricsManager, ExecuteGraphAsync(statement, executionProfileName));
         }
 
         /// <inheritdoc />
@@ -297,6 +302,12 @@ namespace Dse
             return _coreSession.GetRequestOptions(executionProfileName);
         }
 
+        public int NumberOfConnectionPools => _coreSession.NumberOfConnectionPools;
+
+        public IMetricsManager MetricsManager => _coreSession.MetricsManager;
+
+        public IObserverFactory ObserverFactory => _coreSession.ObserverFactory;
+
         public PreparedStatement Prepare(string cqlQuery)
         {
             return _coreSession.Prepare(cqlQuery);
@@ -336,6 +347,11 @@ namespace Dse
                                                     IDictionary<string, byte[]> customPayload)
         {
             return _coreSession.PrepareAsync(cqlQuery, keyspace, customPayload);
+        }
+
+        public IDriverMetrics GetMetrics()
+        {
+            return _coreSession.GetMetrics();
         }
 
         public void WaitForSchemaAgreement(RowSet rs)

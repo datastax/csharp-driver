@@ -6,14 +6,18 @@
 //
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+
+using Dse.Collections;
 using Dse.Connections;
 using Dse.ExecutionProfiles;
+using Dse.Metrics;
+using Dse.Metrics.Internal;
+using Dse.Observers.Abstractions;
 using Dse.Requests;
 using Dse.Serialization;
 using Dse.SessionManagement;
@@ -27,10 +31,12 @@ namespace Dse
         private readonly Serializer _serializer;
         private ISessionManager _sessionManager;
         private static readonly Logger Logger = new Logger(typeof(Session));
-        private readonly ConcurrentDictionary<IPEndPoint, IHostConnectionPool> _connectionPool;
+        private readonly IThreadSafeDictionary<IPEndPoint, IHostConnectionPool> _connectionPool;
         private readonly IInternalCluster _cluster;
         private int _disposed;
         private volatile string _keyspace;
+        private readonly IMetricsManager _metricsManager;
+        private readonly IObserverFactory _observerFactory;
 
         internal IInternalSession InternalRef => this;
 
@@ -40,6 +46,10 @@ namespace Dse
         public ICluster Cluster => _cluster;
 
         IInternalCluster IInternalSession.InternalCluster => _cluster;
+
+        IMetricsManager IInternalSession.MetricsManager => _metricsManager;
+
+        IObserverFactory IInternalSession.ObserverFactory => _observerFactory;
 
         /// <summary>
         /// Gets the cluster configuration
@@ -72,21 +82,27 @@ namespace Dse
         /// <inheritdoc />
         public UdtMappingDefinitions UserDefinedTypes { get; private set; }
 
+        public string SessionName { get; }
+
         public Policies Policies => Configuration.Policies;
 
         internal Session(
             IInternalCluster cluster,
             Configuration configuration,
             string keyspace,
-            Serializer serializer)
+            Serializer serializer,
+            string sessionName)
         {
             _serializer = serializer;
             _cluster = cluster;
             Configuration = configuration;
             Keyspace = keyspace;
+            SessionName = sessionName;
             UserDefinedTypes = new UdtMappingDefinitions(this, serializer);
-            _connectionPool = new ConcurrentDictionary<IPEndPoint, IHostConnectionPool>();
+            _connectionPool = new CopyOnWriteDictionary<IPEndPoint, IHostConnectionPool>();
             _cluster.HostRemoved += OnHostRemoved;
+            _metricsManager = new MetricsManager(configuration.MetricsProvider, Configuration.MetricsOptions, Configuration.MetricsEnabled, SessionName);
+            _observerFactory = configuration.ObserverFactoryBuilder.Build(_metricsManager);
         }
 
         /// <inheritdoc />
@@ -167,6 +183,8 @@ namespace Dse
 
             _sessionManager?.OnShutdownAsync().GetAwaiter().GetResult();
 
+            _metricsManager?.Dispose();
+
             _cluster.HostRemoved -= OnHostRemoved;
 
             var pools = _connectionPool.ToArray();
@@ -175,7 +193,7 @@ namespace Dse
                 pool.Value.Dispose();
             }
         }
-        
+
         /// <inheritdoc />
         Task IInternalSession.Init()
         {
@@ -186,6 +204,8 @@ namespace Dse
         async Task IInternalSession.Init(ISessionManager sessionManager)
         {
             _sessionManager = sessionManager;
+
+            _metricsManager.InitializeMetrics(this);
 
             if (Configuration.GetPoolingOptions(_serializer.ProtocolVersion).GetWarmup())
             {
@@ -244,7 +264,7 @@ namespace Dse
         public RowSet EndExecute(IAsyncResult ar)
         {
             var task = (Task<RowSet>)ar;
-            TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
             return task.Result;
         }
 
@@ -252,7 +272,7 @@ namespace Dse
         public PreparedStatement EndPrepare(IAsyncResult ar)
         {
             var task = (Task<PreparedStatement>)ar;
-            TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
             return task.Result;
         }
 
@@ -260,16 +280,14 @@ namespace Dse
         public RowSet Execute(IStatement statement, string executionProfileName)
         {
             var task = ExecuteAsync(statement, executionProfileName);
-            TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
             return task.Result;
         }
 
         /// <inheritdoc />
         public RowSet Execute(IStatement statement)
         {
-            var task = ExecuteAsync(statement);
-            TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
-            return task.Result;
+            return Execute(statement, Configuration.DefaultExecutionProfileName);
         }
 
         /// <inheritdoc />
@@ -307,7 +325,7 @@ namespace Dse
         {
             return InternalRef.ExecuteAsync(statement, InternalRef.GetRequestOptions(executionProfileName));
         }
-        
+
         /// <inheritdoc />
         Task<RowSet> IInternalSession.ExecuteAsync(IStatement statement, IRequestOptions requestOptions)
         {
@@ -321,9 +339,10 @@ namespace Dse
         {
             var hostPool = _connectionPool.GetOrAdd(host.Address, address =>
             {
-                var newPool = Configuration.HostConnectionPoolFactory.Create(host, Configuration, _serializer);
+                var newPool = Configuration.HostConnectionPoolFactory.Create(host, Configuration, _serializer, _observerFactory);
                 newPool.AllConnectionClosed += InternalRef.OnAllConnectionClosed;
                 newPool.SetDistance(distance);
+                _metricsManager.GetOrCreateNodeMetrics(host).InitializePoolGauges(newPool);
                 return newPool;
             });
             return hostPool;
@@ -332,7 +351,7 @@ namespace Dse
         /// <inheritdoc />
         IEnumerable<KeyValuePair<IPEndPoint, IHostConnectionPool>> IInternalSession.GetPools()
         {
-            return _connectionPool.ToArray().Select(kvp => new KeyValuePair<IPEndPoint, IHostConnectionPool>(kvp.Key, kvp.Value));
+            return _connectionPool.Select(kvp => new KeyValuePair<IPEndPoint, IHostConnectionPool>(kvp.Key, kvp.Value));
         }
 
         void IInternalSession.OnAllConnectionClosed(Host host, IHostConnectionPool pool)
@@ -354,6 +373,14 @@ namespace Dse
                 // Only attempt reconnection with 1 connection pool
                 pool.ScheduleReconnection();
             }
+        }
+
+        /// <inheritdoc/>
+        int IInternalSession.NumberOfConnectionPools => _connectionPool.Count;
+
+        public IDriverMetrics GetMetrics()
+        {
+            return _metricsManager;
         }
 
         bool IInternalSession.HasConnections(Host host)
@@ -387,15 +414,13 @@ namespace Dse
         {
             return Prepare(cqlQuery, null, null);
         }
-        
+
         /// <inheritdoc />
         public PreparedStatement Prepare(string cqlQuery, IDictionary<string, byte[]> customPayload)
         {
-            var task = PrepareAsync(cqlQuery, customPayload);
-            TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
-            return task.Result;
+            return Prepare(cqlQuery, null, customPayload);
         }
-        
+
         /// <inheritdoc />
         public PreparedStatement Prepare(string cqlQuery, string keyspace)
         {
@@ -406,7 +431,7 @@ namespace Dse
         public PreparedStatement Prepare(string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload)
         {
             var task = PrepareAsync(cqlQuery, keyspace, customPayload);
-            TaskHelper.WaitToComplete(task, Configuration.ClientOptions.QueryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, Configuration.ClientOptions.QueryAbortTimeout);
             return task.Result;
         }
 
@@ -427,7 +452,7 @@ namespace Dse
         {
             return PrepareAsync(cqlQuery, keyspace, null);
         }
-        
+
         /// <inheritdoc />
         public async Task<PreparedStatement> PrepareAsync(string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload)
         {
@@ -441,7 +466,7 @@ namespace Dse
             var request = new InternalPrepareRequest(cqlQuery, keyspace, customPayload);
             return await _cluster.Prepare(this, _serializer, request).ConfigureAwait(false);
         }
-        
+
         public void WaitForSchemaAgreement(RowSet rs)
         {
         }
@@ -469,6 +494,7 @@ namespace Dse
 
         private void OnHostRemoved(Host host)
         {
+            _metricsManager.RemoveNodeMetrics(host);
             if (_connectionPool.TryRemove(host.Address, out var pool))
             {
                 pool.OnHostRemoved();

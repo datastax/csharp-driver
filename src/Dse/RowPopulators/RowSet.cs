@@ -11,6 +11,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Dse.Metrics.Internal;
 using Dse.Tasks;
 
 // ReSharper disable DoNotCallOverridableMethodsInConstructor
@@ -50,6 +51,7 @@ namespace Dse
         private volatile Task _currentFetchNextPageTask;
         private volatile int _pageSyncAbortTimeout = Timeout.Infinite;
         private volatile bool _autoPage;
+        private volatile IMetricsManager _metricsManager;
 
         /// <summary>
         /// Determines if when dequeuing, it will automatically fetch the following result pages.
@@ -63,7 +65,7 @@ namespace Dse
         /// <summary>
         /// Sets the method that is called to get the next page.
         /// </summary>
-        internal void SetFetchNextPageHandler(Func<byte[], Task<RowSet>> handler, int pageSyncAbortTimeout)
+        internal void SetFetchNextPageHandler(Func<byte[], Task<RowSet>> handler, int pageSyncAbortTimeout, IMetricsManager metricsManager)
         {
             if (_fetchNextPage != null)
             {
@@ -71,6 +73,7 @@ namespace Dse
             }
             _fetchNextPage = handler;
             _pageSyncAbortTimeout = pageSyncAbortTimeout;
+            _metricsManager = metricsManager;
         }
 
         /// <summary>
@@ -299,7 +302,7 @@ namespace Dse
         /// </summary>
         protected virtual void PageNext()
         {
-            TaskHelper.WaitToComplete(FetchMoreResultsAsync(), _pageSyncAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, FetchMoreResultsAsync(), _pageSyncAbortTimeout);
         }
 
         /// <summary>

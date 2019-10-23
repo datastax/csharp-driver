@@ -53,7 +53,7 @@ namespace Dse.SessionManagement
             where TSession : IInternalSession;
 
         Task<bool> OnInitializeAsync();
-        
+
         Task<bool> OnShutdownAsync(int timeoutMs = Timeout.Infinite);
 
         IReadOnlyDictionary<string, IEnumerable<IPEndPoint>> GetResolvedEndpoints();

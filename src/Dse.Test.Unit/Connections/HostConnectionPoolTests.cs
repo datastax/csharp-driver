@@ -18,6 +18,10 @@ using System;
 using System.Net;
 using System.Threading.Tasks;
 using Dse.Connections;
+using Dse.Metrics;
+using Dse.Metrics.Internal;
+using Dse.Metrics.Providers.Null;
+using Dse.Observers;
 using Dse.Serialization;
 using Moq;
 using NUnit.Framework;
@@ -76,7 +80,9 @@ namespace Dse.Test.Unit.Connections
                         new AtomicMonotonicTimestampGenerator()), 
                     PoolingOptions = PoolingOptions.Create(ProtocolVersion.V4).SetCoreConnectionsPerHost(HostDistance.Local, 2)
                 }.Build(), 
-                Serializer.Default);
+                Serializer.Default,
+                new MetricsObserverFactory(new MetricsManager(new NullDriverMetricsProvider(), new DriverMetricsOptions(), false, "s1"))
+                );
             pool.SetDistance(HostDistance.Local); // set expected connections length
             return pool;
         }

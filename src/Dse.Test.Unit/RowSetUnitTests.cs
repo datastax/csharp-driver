@@ -15,6 +15,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Reflection;
+using Dse.Metrics.Internal;
 using Moq;
 
 namespace Dse.Test.Unit
@@ -128,7 +129,7 @@ namespace Dse.Test.Unit
             {
                 counter++;
                 throw new TestException();
-            }, int.MaxValue);
+            }, int.MaxValue, Mock.Of<IMetricsManager>());
 
             //use linq to iterate and map it to a list
             //The row set should throw an exception when getting the next page.
@@ -663,7 +664,7 @@ namespace Dse.Test.Unit
 
         private static void SetFetchNextMethod(RowSet rs, Func<byte[], Task<RowSet>> handler)
         {
-            rs.SetFetchNextPageHandler(handler, 10000);
+            rs.SetFetchNextPageHandler(handler, 10000, Mock.Of<IMetricsManager>());
         }
 
         private static void SetFetchNextMethod(RowSet rs, Func<byte[], RowSet> handler)

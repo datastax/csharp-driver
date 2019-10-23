@@ -18,9 +18,16 @@ The driver includes these implementations:
 
 ### Default load-balancing policy
 
-The default load-balancing policy is the `TokenAwarePolicy` with `DCAwareRoundRobinPolicy` as a child policy. It may
-seem complex but it actually isn't: The policy yields local replicas for a given key and, if not available,
-it yields nodes of the local datacenter in a round-robin manner.
+The default load-balancing policy is the `DseLoadBalancingPolicy`. It may seem complex but it actually isn't: The policy yields local replicas for a given key and, if not available, it yields nodes of the local datacenter in a round-robin manner.
+
+To specify the **local datacenter** with the default load-balancing policy you can do this:
+
+```csharp
+DseCluster.Builder()
+       .AddContactPoint("127.0.0.1")
+       .WithLoadBalancingPolicy(DseLoadBalancingPolicy.CreateDefault("datacenter1"))
+       .Build();
+```
 
 ## Reconnection policy
 

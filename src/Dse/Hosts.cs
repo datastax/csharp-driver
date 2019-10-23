@@ -7,7 +7,6 @@
 
 using System;
 using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Linq;
@@ -18,18 +17,22 @@ namespace Dse
     internal class Hosts : IEnumerable<Host>
     {
         private readonly CopyOnWriteDictionary<IPEndPoint, Host> _hosts = new CopyOnWriteDictionary<IPEndPoint, Host>();
+
         /// <summary>
         /// Event that gets triggered when a host is considered as DOWN (not available)
         /// </summary>
         internal event Action<Host> Down;
+
         /// <summary>
         /// Event that gets triggered when a host is considered back UP (available for queries)
         /// </summary>
         internal event Action<Host> Up;
+
         /// <summary>
         /// Event that gets triggered when a new host has been added to the pool
         /// </summary>
         internal event Action<Host> Added;
+
         /// <summary>
         /// Event that gets triggered when a host has been removed
         /// </summary>

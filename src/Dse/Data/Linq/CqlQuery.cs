@@ -140,7 +140,7 @@ namespace Dse.Data.Linq
                 throw new ArgumentNullException(nameof(executionProfile));
             }
             
-            return TaskHelper.WaitToComplete(ExecutePagedAsync(executionProfile), QueryAbortTimeout);
+            return WaitToCompleteWithMetrics(ExecutePagedAsync(executionProfile), QueryAbortTimeout);
         }
         
         /// <summary>

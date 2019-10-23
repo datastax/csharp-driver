@@ -9,7 +9,6 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
-using Dse.Connections;
 
 namespace Dse
 {
@@ -260,7 +259,7 @@ namespace Dse
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != this.GetType()) return false;
-            return Equals((Host) obj);
+            return Equals((Host)obj);
         }
 
         /// <summary>
@@ -268,7 +267,7 @@ namespace Dse
         /// </summary>
         internal void SetDistance(HostDistance distance)
         {
-            var previousDistance = (HostDistance) Interlocked.Exchange(ref _distance, (int)distance);
+            var previousDistance = (HostDistance)Interlocked.Exchange(ref _distance, (int)distance);
             if (previousDistance != distance && DistanceChanged != null)
             {
                 DistanceChanged(previousDistance, distance);

@@ -7,13 +7,18 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
+using Dse.Metrics.Internal;
+using Dse.SessionManagement;
 using Dse.Tasks;
 
 namespace Dse.Data.Linq
 {
     public abstract class Batch : Statement
     {
+        private readonly IMetricsManager _metricsManager;
+
         protected readonly ISession _session;
 
         protected BatchType _batchType;
@@ -36,6 +41,7 @@ namespace Dse.Data.Linq
         internal Batch(ISession session, BatchType batchType)
         {
             _session = session;
+            _metricsManager = (session as IInternalSession)?.MetricsManager;
             _batchType = batchType;
             QueryAbortTimeout = session.Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
         }
@@ -70,7 +76,7 @@ namespace Dse.Data.Linq
         
         public void Execute(string executionProfile)
         {
-            TaskHelper.WaitToComplete(InternalExecuteAsync(executionProfile), QueryAbortTimeout);
+            WaitToCompleteWithMetrics(InternalExecuteAsync(executionProfile), QueryAbortTimeout);
         }
 
         protected abstract Task<RowSet> InternalExecuteAsync();
@@ -109,6 +115,11 @@ namespace Dse.Data.Linq
                 default:
                     throw new ArgumentException();
             }
+        }
+
+        internal T WaitToCompleteWithMetrics<T>(Task<T> task, int timeout = Timeout.Infinite)
+        {
+            return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, timeout);
         }
     }
 }

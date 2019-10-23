@@ -17,6 +17,9 @@
 using System.Collections.Generic;
 using Dse.Connections;
 using Dse.ExecutionProfiles;
+using Dse.Metrics;
+using Dse.Metrics.Providers.Null;
+using Dse.Observers;
 using Dse.ProtocolEvents;
 using Dse.Requests;
 using Dse.SessionManagement;
@@ -69,6 +72,12 @@ namespace Dse.Test.Unit
 
         public IEndPointResolver EndPointResolver { get; set; } = new EndPointResolver(new DnsResolver(), new ProtocolOptions());
 
+        public IObserverFactoryBuilder ObserverFactoryBuilder { get; set; } = new MetricsObserverFactoryBuilder();
+
+        public DriverMetricsOptions MetricsOptions { get; set; } = new DriverMetricsOptions();
+
+        public string SessionName { get; set; }
+
         public Configuration Build()
         {
             return new Configuration(
@@ -87,13 +96,17 @@ namespace Dse.Test.Unit
                 RequestOptionsMapper,
                 MetadataSyncOptions,
                 EndPointResolver,
+                new NullDriverMetricsProvider(),
+                MetricsOptions,
+                SessionName,
                 RequestHandlerFactory,
                 HostConnectionPoolFactory,
                 RequestExecutionFactory,
                 ConnectionFactory,
                 ControlConnectionFactory,
                 PrepareHandlerFactory,
-                TimerFactory);
+                TimerFactory,
+                ObserverFactoryBuilder);
         }
     }
 }

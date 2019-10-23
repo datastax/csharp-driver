@@ -17,31 +17,23 @@ namespace Dse.Collections
     /// A thread-safe variant of Dictionary{TKey, TValue} in which all mutative operations (Add and Remove) are implemented by making a copy of the underlying dictionary,
     /// intended to provide safe enumeration of its items.
     /// </summary>
-    internal class CopyOnWriteDictionary<TKey, TValue> : IDictionary<TKey, TValue>
+    internal class CopyOnWriteDictionary<TKey, TValue> : IThreadSafeDictionary<TKey, TValue>, IReadOnlyDictionary<TKey, TValue>
     {
         private static readonly Dictionary<TKey, TValue> Empty = new Dictionary<TKey, TValue>();
         private volatile Dictionary<TKey, TValue> _map;
         private readonly object _writeLock = new object();
 
-        public int Count
-        {
-            get { return _map.Count; }
-        }
+        public int Count => _map.Count;
 
-        public bool IsReadOnly
-        {
-            get { return false; }
-        }
+        public bool IsReadOnly => false;
 
-        public ICollection<TKey> Keys
-        {
-            get { return _map.Keys; }
-        }
+        public ICollection<TKey> Keys => _map.Keys;
 
-        public ICollection<TValue> Values
-        {
-            get { return _map.Values; }
-        }
+        IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
+
+        IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys;
+
+        public ICollection<TValue> Values => _map.Values;
 
         public CopyOnWriteDictionary()
         {
@@ -90,6 +82,12 @@ namespace Dse.Collections
         /// </returns>
         public TValue GetOrAdd(TKey key, TValue value)
         {
+            // optimistic scenario: return before lock
+            if (_map.TryGetValue(key, out var outPutValue))
+            {
+                return outPutValue;
+            }
+
             lock (_writeLock)
             {
                 TValue existingValue;
@@ -173,6 +171,29 @@ namespace Dse.Collections
                 _map = newMap;
                 newMap.Remove(key);
                 return true;
+            }
+        }
+
+        public TValue GetOrAdd(TKey key, Func<TKey, TValue> valueFactory)
+        {
+            // optimistic scenario: return before lock
+            if (_map.TryGetValue(key, out var outputValue))
+            {
+                return outputValue;
+            }
+
+            lock (_writeLock)
+            {
+                TValue existingValue;
+                if (_map.TryGetValue(key, out existingValue))
+                {
+                    return existingValue;
+                }
+                var newMap = new Dictionary<TKey, TValue>(_map);
+                var value = valueFactory(key);
+                newMap.Add(key, value);
+                _map = newMap;
+                return value;
             }
         }
 

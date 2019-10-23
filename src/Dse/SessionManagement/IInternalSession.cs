@@ -17,8 +17,11 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+
 using Dse.Connections;
 using Dse.ExecutionProfiles;
+using Dse.Metrics.Internal;
+using Dse.Observers.Abstractions;
 
 namespace Dse.SessionManagement
 {
@@ -31,7 +34,7 @@ namespace Dse.SessionManagement
         /// Initialize the session
         /// </summary>
         Task Init(ISessionManager sessionManager);
-        
+
         /// <summary>
         /// Initialize the session without a session manager
         /// </summary>
@@ -45,7 +48,7 @@ namespace Dse.SessionManagement
         /// <summary>
         /// Gets a snapshot of the connection pools
         /// </summary>
-        IEnumerable<KeyValuePair<IPEndPoint, IHostConnectionPool>>  GetPools();
+        IEnumerable<KeyValuePair<IPEndPoint, IHostConnectionPool>> GetPools();
 
         /// <summary>
         /// Gets the existing connection pool for this host and session or null when it does not exists
@@ -71,10 +74,19 @@ namespace Dse.SessionManagement
         /// Executes a query asynchronously with the provided request options.
         /// </summary>
         Task<RowSet> ExecuteAsync(IStatement statement, IRequestOptions requestOptions);
-        
+
         /// <summary>
         /// Fetches the request options that were mapped from the provided execution profile's name.
         /// </summary>
         IRequestOptions GetRequestOptions(string executionProfileName);
+
+        /// <summary>
+        /// Returns the number of connection pools. Can be used as a way to fetch the number of connected nodes.
+        /// </summary>
+        int NumberOfConnectionPools { get; }
+
+        IMetricsManager MetricsManager { get; }
+
+        IObserverFactory ObserverFactory { get; }
     }
 }

@@ -11,6 +11,8 @@ using System.Linq;
 using System.Net;
 using Dse.Connections;
 using Dse.ExecutionProfiles;
+using Dse.Metrics;
+using Dse.Metrics.Abstractions;
 using Dse.Requests;
 using Dse.Serialization;
 using Dse.SessionManagement;
@@ -55,11 +57,14 @@ namespace Dse
         private IRequestOptionsMapper _requestOptionsMapper = new RequestOptionsMapper();
         private MetadataSyncOptions _metadataSyncOptions;
         private IEndPointResolver _endPointResolver;
+        private IDriverMetricsProvider _driverMetricsProvider;
+        private DriverMetricsOptions _metricsOptions;
+        private string _sessionName;
 
         /// <summary>
         ///  The pooling options used by this builder.
         /// </summary>
-        /// 
+        ///
         /// <returns>the pooling options that will be used by this builder. You can use
         ///  the returned object to define the initial pooling options for the built
         ///  cluster.</returns>
@@ -71,7 +76,7 @@ namespace Dse
         /// <summary>
         ///  The socket options used by this builder.
         /// </summary>
-        /// 
+        ///
         /// <returns>the socket options that will be used by this builder. You can use
         ///  the returned object to define the initial socket options for the built
         ///  cluster.</returns>
@@ -99,7 +104,7 @@ namespace Dse
         ///  not be used by the cluster build. Instead, you should use the other methods
         ///  of this <c>Builder</c></p>.
         /// </summary>
-        /// 
+        ///
         /// <returns>the configuration to use for the new cluster.</returns>
         public Configuration GetConfiguration()
         {
@@ -110,7 +115,7 @@ namespace Dse
                 _speculativeExecutionPolicy,
                 _timestampGenerator);
 
-            var protocolOptions = 
+            var protocolOptions =
                 new ProtocolOptions(_port, _sslOptions)
                     .SetCompression(_compression)
                     .SetCustomCompressor(_customCompressor)
@@ -119,7 +124,7 @@ namespace Dse
                     .SetMaxSchemaAgreementWaitSeconds(_maxSchemaAgreementWaitSeconds);
 
             var clientOptions = new ClientOptions(_withoutRowSetBuffering, _queryAbortTimeout, _defaultKeyspace);
-            
+
             var config = new Configuration(
                 policies,
                 protocolOptions,
@@ -135,7 +140,11 @@ namespace Dse
                 _profiles,
                 _requestOptionsMapper,
                 _metadataSyncOptions,
-                _endPointResolver);
+                _endPointResolver,
+                _driverMetricsProvider,
+                _metricsOptions,
+                _sessionName);
+
             if (_typeSerializerDefinitions != null)
             {
                 config.TypeSerializers = _typeSerializerDefinitions.Definitions;
@@ -160,10 +169,9 @@ namespace Dse
             return this;
         }
 
-
         /// <summary>
         /// Sets the QueryOptions to use for the newly created Cluster.
-        /// 
+        ///
         /// If no query options are set through this method, default query
         /// options will be used.
         /// </summary>
@@ -207,16 +215,16 @@ namespace Dse
         ///  won't be able to initialize itself correctly.
         /// </summary>
         /// <remarks>
-        ///  However, this can be useful if the Cassandra nodes are behind a router and 
-        ///  are not accessed directly. Note that if you are in this situation 
-        ///  (Cassandra nodes are behind a router, not directly accessible), you almost 
-        ///  surely want to provide a specific <c>IAddressTranslator</c> 
-        ///  (through <link>Builder.WithAddressTranslater</link>) to translate actual 
-        ///  Cassandra node addresses to the addresses the driver should use, otherwise 
-        ///  the driver will not be able to auto-detect new nodes (and will generally not 
+        ///  However, this can be useful if the Cassandra nodes are behind a router and
+        ///  are not accessed directly. Note that if you are in this situation
+        ///  (Cassandra nodes are behind a router, not directly accessible), you almost
+        ///  surely want to provide a specific <c>IAddressTranslator</c>
+        ///  (through <link>Builder.WithAddressTranslater</link>) to translate actual
+        ///  Cassandra node addresses to the addresses the driver should use, otherwise
+        ///  the driver will not be able to auto-detect new nodes (and will generally not
         ///  function optimally).
         /// </remarks>
-        /// <param name="address">the address of the node to connect to</param> 
+        /// <param name="address">the address of the node to connect to</param>
         /// <returns>this Builder</returns>
         public Builder AddContactPoint(string address)
         {
@@ -228,7 +236,7 @@ namespace Dse
         ///  Add contact point. See <see cref="Builder.AddContactPoint(string)"/> for more details
         ///  on contact points.
         /// </summary>
-        /// <param name="address"> address of the node to add as contact point</param> 
+        /// <param name="address"> address of the node to add as contact point</param>
         /// <returns>this Builder</returns>
         public Builder AddContactPoint(IPAddress address)
         {
@@ -242,7 +250,7 @@ namespace Dse
         ///  Add contact point. See <see cref="Builder.AddContactPoint(string)"/> for more details
         ///  on contact points.
         /// </summary>
-        /// <param name="address"> address of the node to add as contact point</param> 
+        /// <param name="address"> address of the node to add as contact point</param>
         /// <returns>this Builder</returns>
         public Builder AddContactPoint(IPEndPoint address)
         {
@@ -254,7 +262,7 @@ namespace Dse
         ///  Add contact points. See <see cref="Builder.AddContactPoint(string)"/> for more details
         ///  on contact points.
         /// </summary>
-        /// <param name="addresses"> addresses of the nodes to add as contact point</param> 
+        /// <param name="addresses"> addresses of the nodes to add as contact point</param>
         /// <returns>this Builder </returns>
         public Builder AddContactPoints(params string[] addresses)
         {
@@ -310,7 +318,7 @@ namespace Dse
         /// </summary>
         /// <param name="addresses"> addresses of the nodes to add as contact point
         ///  </param>
-        /// 
+        ///
         /// <returns>this Builder</returns>
         public Builder AddContactPoints(params IPEndPoint[] addresses)
         {
@@ -324,7 +332,7 @@ namespace Dse
         /// </summary>
         /// <param name="addresses"> addresses of the nodes to add as contact point
         ///  </param>
-        /// 
+        ///
         /// <returns>this Builder</returns>
         public Builder AddContactPoints(IEnumerable<IPEndPoint> addresses)
         {
@@ -333,11 +341,18 @@ namespace Dse
         }
 
         /// <summary>
-        ///  Configure the load balancing policy to use for the new cluster. <p> If no
-        ///  load balancing policy is set through this method,
-        ///  <link>Policies.DefaultLoadBalancingPolicy</link> will be used instead.</p>
+        /// <para>
+        /// Configure the load balancing policy to use for the new cluster.
+        /// </para>
+        /// <para>
+        /// If no load balancing policy is set through this method, <see cref="Policies.DefaultLoadBalancingPolicy"/> will be used instead.
+        /// </para>
+        /// <para>
+        /// To specify the local datacenter with the default load balancing policy, use the following method to create a
+        /// new policy instance: <see cref="Policies.NewDefaultLoadBalancingPolicy"/>.
+        /// </para>
         /// </summary>
-        /// <param name="policy"> the load balancing policy to use </param>
+        /// <param name="policy"> the load balancing policy to use.</param>
         /// <returns>this Builder</returns>
         public Builder WithLoadBalancingPolicy(ILoadBalancingPolicy policy)
         {
@@ -351,7 +366,7 @@ namespace Dse
         ///  <link>Policies.DefaultReconnectionPolicy</link> will be used instead.</p>
         /// </summary>
         /// <param name="policy"> the reconnection policy to use </param>
-        /// 
+        ///
         /// <returns>this Builder</returns>
         public Builder WithReconnectionPolicy(IReconnectionPolicy policy)
         {
@@ -378,8 +393,8 @@ namespace Dse
         }
 
         /// <summary>
-        ///  Configure the speculative execution to use for the new cluster. 
-        /// <para> 
+        ///  Configure the speculative execution to use for the new cluster.
+        /// <para>
         /// If no speculative execution policy is set through this method, <see cref="Policies.DefaultSpeculativeExecutionPolicy"/> will be used instead.
         /// </para>
         /// </summary>
@@ -394,7 +409,7 @@ namespace Dse
         /// <summary>
         /// Configures the generator that will produce the client-side timestamp sent with each query.
         /// <para>
-        /// This feature is only available with protocol version 3 or above of the native protocol. 
+        /// This feature is only available with protocol version 3 or above of the native protocol.
         /// With earlier versions, timestamps are always generated server-side, and setting a generator
         /// through this method will have no effect.
         /// </para>
@@ -412,10 +427,10 @@ namespace Dse
         }
 
         /// <summary>
-        ///  Configure the cluster by applying settings from ConnectionString. 
+        ///  Configure the cluster by applying settings from ConnectionString.
         /// </summary>
         /// <param name="connectionString"> the ConnectionString to use </param>
-        /// 
+        ///
         /// <returns>this Builder</returns>
         public Builder WithConnectionString(string connectionString)
         {
@@ -439,7 +454,6 @@ namespace Dse
             return this;
         }
 
-
         /// <summary>
         ///  Use the specified AuthProvider when connecting to Cassandra hosts. <p> Use
         ///  this method when a custom authentication scheme is in place. You shouldn't
@@ -458,7 +472,7 @@ namespace Dse
         ///  Disables row set buffering for the created cluster (row set buffering is enabled by
         ///  default otherwise).
         /// </summary>
-        /// 
+        ///
         /// <returns>this builder</returns>
         public Builder WithoutRowSetBuffering()
         {
@@ -469,7 +483,7 @@ namespace Dse
         /// <summary>
         /// Specifies the number of milliseconds that the driver should wait for the response before the query times out in a synchronous operation.
         /// <para>
-        /// This will cause that synchronous operations like <see cref="ISession.Execute(string)"/> to throw a <see cref="System.TimeoutException"/> 
+        /// This will cause that synchronous operations like <see cref="ISession.Execute(string)"/> to throw a <see cref="System.TimeoutException"/>
         /// after the specified number of milliseconds.
         /// </para>
         /// Default timeout value is set to <code>20,000</code> (20 seconds).
@@ -512,7 +526,7 @@ namespace Dse
         }
 
         /// <summary>
-        ///  Enables the use of SSL for the created Cluster. Calling this method will use default SSL options. 
+        ///  Enables the use of SSL for the created Cluster. Calling this method will use default SSL options.
         /// </summary>
         /// <remarks>
         /// If SSL is enabled, the driver will not connect to any
@@ -528,7 +542,7 @@ namespace Dse
         }
 
         /// <summary>
-        ///  Enables the use of SSL for the created Cluster using the provided options. 
+        ///  Enables the use of SSL for the created Cluster using the provided options.
         /// </summary>
         /// <remarks>
         /// If SSL is enabled, the driver will not connect to any
@@ -537,7 +551,7 @@ namespace Dse
         /// SSL in the driver. Note that SSL certificate common name(CN) on Cassandra node must match Cassandra node hostname.
         /// </remarks>
         /// <param name="sslOptions">SSL options to use.</param>
-        /// <returns>this builder</returns>        
+        /// <returns>this builder</returns>
         public Builder WithSSL(SSLOptions sslOptions)
         {
             _sslOptions = sslOptions;
@@ -567,7 +581,7 @@ namespace Dse
         /// cluster upon establishing the first connection.
         /// </para>
         /// <para>
-        /// Useful when connecting to a cluster that contains nodes with different major/minor versions 
+        /// Useful when connecting to a cluster that contains nodes with different major/minor versions
         /// of Cassandra. For example, preparing for a rolling upgrade of the Cluster.
         /// </para>
         /// </summary>
@@ -593,7 +607,7 @@ namespace Dse
         /// cluster upon establishing the first connection.
         /// </para>
         /// <para>
-        /// Useful when connecting to a cluster that contains nodes with different major/minor versions 
+        /// Useful when connecting to a cluster that contains nodes with different major/minor versions
         /// of Cassandra. For example, preparing for a rolling upgrade of the Cluster.
         /// </para>
         /// </summary>
@@ -690,7 +704,68 @@ namespace Dse
 
         /// <summary>
         /// <para>
-        /// Adds Execution Profiles to the Cluster instance. 
+        /// Enables metrics. DataStax provides an implementation based on a third party library (App.Metrics)
+        /// on a separate NuGet package: CassandraCSharpDriver.AppMetrics
+        /// Alternatively, you can implement your own provider that implements <see cref="IDriverMetricsProvider"/>.
+        /// </para>
+        /// <para>
+        /// This method enables all individual metrics without a bucket prefix. To customize these options,
+        /// use <see cref="WithMetrics(IDriverMetricsProvider, DriverMetricsOptions)"/>.
+        /// </para>
+        /// </summary>
+        /// <param name="driverMetricsProvider">Metrics Provider implementation.</param>
+        /// <returns>This builder</returns>
+        public Builder WithMetrics(IDriverMetricsProvider driverMetricsProvider)
+        {
+            _driverMetricsProvider = driverMetricsProvider ?? throw new ArgumentNullException(nameof(driverMetricsProvider));
+            _metricsOptions = null;
+            return this;
+        }
+        
+        /// <summary>
+        /// <para>
+        /// Enables metrics. DataStax provides an implementation based on a third party library (App.Metrics)
+        /// on a separate NuGet package: CassandraCSharpDriver.AppMetrics
+        /// Alternatively, you can implement your own provider that implements <see cref="IDriverMetricsProvider"/>.
+        /// </para>
+        /// <para>
+        /// This method enables all individual metrics without a bucket prefix. To customize these settings,
+        /// use <see cref="WithMetrics(IDriverMetricsProvider, DriverMetricsOptions)"/>. For explanations on these settings,
+        /// see the API docs of the <see cref="DriverMetricsOptions"/> class.
+        /// </para> 
+        /// <para>
+        /// The AppMetrics provider also has some settings that can be customized, check out the API docs of
+        /// Cassandra.AppMetrics.DriverAppMetricsOptions.
+        /// <para>
+        /// Here is an example:
+        /// <code>
+        /// var cluster = 
+        ///     Cluster.Builder()
+        ///            .WithMetrics(
+        ///                metrics.CreateDriverMetricsProvider(new DriverAppMetricsOptions()),
+        ///                new DriverMetricsOptions()
+        ///                    .SetEnabledNodeMetrics(NodeMetric.DefaultNodeMetrics.Except(new [] { NodeMetric.Meters.BytesSent }))
+        ///                    .SetEnabledSessionMetrics(
+        ///                        SessionMetric.DefaultSessionMetrics.Except(new[] { SessionMetric.Meters.BytesReceived }))
+        ///                    .SetBucketPrefix("web.app"))
+        ///            .Build();
+        /// </code>
+        /// </para>
+        /// </para>
+        /// </summary>
+        /// <param name="driverMetricsProvider">Metrics Provider implementation.</param>
+        /// <param name="metricsOptions">Metrics Provider implementation.</param>
+        /// <returns>This builder</returns>
+        public Builder WithMetrics(IDriverMetricsProvider driverMetricsProvider, DriverMetricsOptions metricsOptions)
+        {
+            _driverMetricsProvider = driverMetricsProvider ?? throw new ArgumentNullException(nameof(driverMetricsProvider));
+            _metricsOptions = metricsOptions?.Clone() ?? throw new ArgumentNullException(nameof(metricsOptions));
+            return this;
+        }
+
+        /// <summary>
+        /// <para>
+        /// Adds Execution Profiles to the Cluster instance.
         /// </para>
         /// <para>
         /// Execution profiles are like configuration presets, multiple methods
@@ -724,7 +799,7 @@ namespace Dse
             _profiles = profileOptions.GetProfiles();
             return this;
         }
-        
+
         /// <summary>
         /// <para>
         /// If not set through this method, the default value options will be used (metadata synchronization is enabled by default). The api reference of <see cref="MetadataSyncOptions"/>
@@ -732,13 +807,13 @@ namespace Dse
         /// </para>
         /// <para>
         /// In case you disable Metadata synchronization, please ensure you invoke <see cref="ICluster.RefreshSchemaAsync"/> in order to keep the token metadata up to date
-        /// otherwise you will not be getting everything you can out of token aware routing, i.e. <see cref="TokenAwarePolicy"/>, which is enabled by the default. 
+        /// otherwise you will not be getting everything you can out of token aware routing, i.e. <see cref="TokenAwarePolicy"/>, which is enabled by the default.
         /// </para>
         /// <para>
         /// Disabling this feature has the following impact:
-        /// 
+        ///
         /// <list type="bullet">
-        /// 
+        ///
         /// <item><description>
         /// Token metadata will not be computed and stored.
         /// This means that token aware routing (<see cref="TokenAwarePolicy"/>, enabled by default) will only work correctly
@@ -746,17 +821,17 @@ namespace Dse
         /// If you wish to go this route of manually refreshing the metadata then
         /// it's recommended to refresh only the keyspaces that this application will use, by passing the <code>keyspace</code> parameter.
         /// </description></item>
-        /// 
+        ///
         /// <item><description>
         /// Keyspace metadata will not be cached by the driver. Every time you call methods like <see cref="Metadata.GetTable"/>, <see cref="Metadata.GetKeyspace"/>
         /// and other similar methods of the <see cref="Metadata"/> class, the driver will query that data on demand and will not cache it.
         /// </description></item>
-        /// 
+        ///
         /// <item><description>
         /// The driver will not handle <code>SCHEMA_CHANGED</code> responses. This means that when you execute schema changing statements through the driver, it will
         /// not update the schema or topology metadata automatically before returning.
         /// </description></item>
-        /// 
+        ///
         /// </list>
         /// </para>
         /// </summary>
@@ -767,6 +842,34 @@ namespace Dse
         public Builder WithMetadataSyncOptions(MetadataSyncOptions metadataSyncOptions)
         {
             _metadataSyncOptions = metadataSyncOptions;
+            return this;
+        }
+
+        /// <summary>
+        /// <see cref="ISession"/> objects created through the <see cref="ICluster"/> built from this builder will have <see cref="ISession.SessionName"/>
+        /// set to the value provided in this method.
+        /// The first session created by this cluster instance will have its name set exactly as it is provided in this method.
+        /// Any session created by the <see cref="ICluster"/> built from this builder after the first one will have its name set as a concatenation
+        /// of the provided value plus a counter.
+        /// <code>
+        ///         var cluster = Cluster.Builder().WithSessionName("main-session").Build();
+        ///         var session = cluster.Connect(); // session.SessionName == "main-session"
+        ///         var session1 = cluster.Connect(); // session1.SessionName == "main-session1"
+        ///         var session2 = cluster.Connect(); // session2.SessionName == "main-session2"
+        /// </code>
+        /// If this setting is not set, the default session names will be "s0", "s1", "s2", etc.
+        /// <code>
+        ///         var cluster = Cluster.Builder().Build();
+        ///         var session = cluster.Connect(); // session.SessionName == "s0"
+        ///         var session1 = cluster.Connect(); // session1.SessionName == "s1"
+        ///         var session2 = cluster.Connect(); // session2.SessionName == "s2"
+        /// </code>
+        /// </summary>
+        /// <param name="sessionName"></param>
+        /// <returns></returns>
+        public Builder WithSessionName(string sessionName)
+        {
+            _sessionName = sessionName ?? throw new ArgumentNullException(nameof(sessionName));
             return this;
         }
 

@@ -15,12 +15,21 @@
 //
 //
 
+using Dse.Observers.Abstractions;
 using Dse.Serialization;
 
 namespace Dse.Connections
 {
     internal interface IConnectionFactory
     {
-        IConnection Create(Serializer serializer, IConnectionEndPoint endPoint, Configuration configuration);
+        /// <summary>
+        /// Create an observed connection. Usually used for <see cref="IHostConnectionPool"/> connections.
+        /// </summary>
+        IConnection Create(Serializer serializer, IConnectionEndPoint endPoint, Configuration configuration, IConnectionObserver connectionObserver);
+
+        /// <summary>
+        /// Create an unobserved connection (without a <see cref="IConnectionObserver"/>). Usually used for control connections.
+        /// </summary>
+        IConnection CreateUnobserved(Serializer serializer, IConnectionEndPoint endPoint, Configuration configuration);
     }
 }

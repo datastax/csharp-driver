@@ -18,6 +18,8 @@ using System;
 using System.Collections.Concurrent;
 using System.Net;
 using Dse.Connections;
+using Dse.Observers;
+using Dse.Observers.Abstractions;
 using Dse.Serialization;
 using Moq;
 
@@ -44,13 +46,18 @@ namespace Dse.Test.Unit.Connections
             _func = func;
         }
 
-        public IConnection Create(Serializer serializer, IConnectionEndPoint endpoint, Configuration configuration)
+        public IConnection Create(Serializer serializer, IConnectionEndPoint endpoint, Configuration configuration, IConnectionObserver connectionObserver)
         {
             var connection = _func(endpoint.GetHostIpEndPointWithFallback());
             var queue = CreatedConnections.GetOrAdd(endpoint.GetHostIpEndPointWithFallback(), _ => new ConcurrentQueue<IConnection>());
             queue.Enqueue(connection);
             OnCreate?.Invoke(connection);
             return connection;
+        }
+
+        public IConnection CreateUnobserved(Serializer serializer, IConnectionEndPoint endPoint, Configuration configuration)
+        {
+            return Create(serializer, endPoint, configuration, NullConnectionObserver.Instance);
         }
     }
 }

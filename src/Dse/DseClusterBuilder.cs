@@ -12,6 +12,8 @@ using System.Reflection;
 using Dse.Auth;
 using Dse.ExecutionProfiles;
 using Dse.Graph;
+using Dse.Metrics;
+using Dse.Metrics.Abstractions;
 using Dse.Requests;
 using Dse.Serialization;
 using Dse.Serialization.Geometry;
@@ -294,6 +296,10 @@ namespace Dse
         /// <para>
         /// If no load balancing policy is set through this method, <see cref="DseLoadBalancingPolicy"/>
         /// will be used instead.
+        /// </para>
+        /// <para>
+        /// To specify the local datacenter, use the following method <see cref="DseLoadBalancingPolicy.CreateDefault(string)"/>
+        /// to create an instance of the default policy with a specific local datacenter.
         /// </para>
         /// </summary>
         /// <param name="policy"> the load balancing policy to use </param>
@@ -679,6 +685,93 @@ namespace Dse
         public new DseClusterBuilder WithMetadataSyncOptions(MetadataSyncOptions metadataSyncOptions)
         {
             base.WithMetadataSyncOptions(metadataSyncOptions);
+            return this;
+        }
+        
+        /// <summary>
+        /// <para>
+        /// Enables metrics. DataStax provides an implementation based on a third party library (App.Metrics)
+        /// on a separate NuGet package: Dse.AppMetrics
+        /// Alternatively, you can implement your own provider that implements <see cref="IDriverMetricsProvider"/>.
+        /// </para>
+        /// <para>
+        /// This method enables all individual metrics without a bucket prefix. To customize these options,
+        /// use <see cref="WithMetrics(IDriverMetricsProvider, DriverMetricsOptions)"/>.
+        /// </para>
+        /// </summary>
+        /// <param name="driverMetricsProvider">Metrics Provider implementation.</param>
+        /// <returns>This builder</returns>
+        public new DseClusterBuilder WithMetrics(IDriverMetricsProvider driverMetricsProvider)
+        {
+            base.WithMetrics(driverMetricsProvider);
+            return this;
+        }
+        
+        /// <summary>
+        /// <para>
+        /// Enables metrics. DataStax provides an implementation based on a third party library (App.Metrics)
+        /// on a separate NuGet package: Dse.AppMetrics
+        /// Alternatively, you can implement your own provider that implements <see cref="IDriverMetricsProvider"/>.
+        /// </para>
+        /// <para>
+        /// This method enables all individual metrics without a bucket prefix. To customize these settings,
+        /// use <see cref="WithMetrics(IDriverMetricsProvider, DriverMetricsOptions)"/>. For explanations on these settings,
+        /// see the API docs of the <see cref="DriverMetricsOptions"/> class.
+        /// </para> 
+        /// <para>
+        /// The AppMetrics provider also has some settings that can be customized, check out the API docs of
+        /// Dse.AppMetrics.DriverAppMetricsOptions.
+        /// <para>
+        /// Here is an example:
+        /// <code>
+        /// var cluster = 
+        ///     DseCluster.Builder()
+        ///            .WithMetrics(
+        ///                metrics.CreateDriverMetricsProvider(new DriverAppMetricsOptions()),
+        ///                new DriverMetricsOptions()
+        ///                    .SetEnabledNodeMetrics(NodeMetric.DefaultNodeMetrics.Except(new [] { NodeMetric.Meters.BytesSent }))
+        ///                    .SetEnabledSessionMetrics(
+        ///                        SessionMetric.DefaultSessionMetrics.Except(new[] { SessionMetric.Meters.BytesReceived }))
+        ///                    .SetBucketPrefix("web.app"))
+        ///            .Build();
+        /// </code>
+        /// </para>
+        /// </para>
+        /// </summary>
+        /// <param name="driverMetricsProvider">Metrics Provider implementation.</param>
+        /// <param name="metricsOptions">Metrics Provider implementation.</param>
+        /// <returns>This builder</returns>
+        public new DseClusterBuilder WithMetrics(IDriverMetricsProvider driverMetricsProvider, DriverMetricsOptions metricsOptions)
+        {
+            base.WithMetrics(driverMetricsProvider, metricsOptions);
+            return this;
+        }
+        
+        /// <summary>
+        /// <see cref="IDseSession"/> objects created through the <see cref="IDseCluster"/> built from this builder will have <see cref="ISession.SessionName"/>
+        /// set to the value provided in this method.
+        /// The first session created by this cluster instance will have its name set exactly as it is provided in this method.
+        /// Any session created by the <see cref="IDseCluster"/> built from this builder after the first one will have its name set as a concatenation
+        /// of the provided value plus a counter.
+        /// <code>
+        ///         var cluster = DseCluster.Builder().WithSessionName("main-session").Build();
+        ///         var session = cluster.Connect(); // session.SessionName == "main-session"
+        ///         var session1 = cluster.Connect(); // session1.SessionName == "main-session1"
+        ///         var session2 = cluster.Connect(); // session2.SessionName == "main-session2"
+        /// </code>
+        /// If this setting is not set, the default session names will be "s0", "s1", "s2", etc.
+        /// <code>
+        ///         var cluster = DseCluster.Builder().Build();
+        ///         var session = cluster.Connect(); // session.SessionName == "s0"
+        ///         var session1 = cluster.Connect(); // session1.SessionName == "s1"
+        ///         var session2 = cluster.Connect(); // session2.SessionName == "s2"
+        /// </code>
+        /// </summary>
+        /// <param name="sessionName"></param>
+        /// <returns></returns>
+        public new DseClusterBuilder WithSessionName(string sessionName)
+        {
+            base.WithSessionName(sessionName);
             return this;
         }
 

@@ -22,7 +22,7 @@ namespace Dse.Data.Linq
         private readonly CqlCommand _origin;
 
         internal CqlConditionalCommand(CqlCommand origin, MapperFactory mapperFactory)
-            : base(origin.Expression, origin.Table, origin.StatementFactory, origin.PocoData)
+            : base(origin.Expression, origin.Table, origin.InternalRef.StatementFactory, origin.PocoData)
         {
             _mapperFactory = mapperFactory;
             _origin = origin;
@@ -65,7 +65,7 @@ namespace Dse.Data.Linq
             object[] values;
             var cql = GetCql(out values);
             var session = GetTable().GetSession();
-            var stmt = await StatementFactory.GetStatementAsync(
+            var stmt = await InternalRef.StatementFactory.GetStatementAsync(
                 session, 
                 Cql.New(cql, values).WithExecutionProfile(executionProfile)).ConfigureAwait(false);
             this.CopyQueryPropertiesTo(stmt);
@@ -85,7 +85,7 @@ namespace Dse.Data.Linq
             }
             
             var queryAbortTimeout = GetTable().GetSession().Cluster.Configuration.ClientOptions.QueryAbortTimeout;
-            return TaskHelper.WaitToComplete(ExecuteAsync(executionProfile), queryAbortTimeout);
+            return WaitToCompleteWithMetrics(ExecuteAsync(executionProfile), queryAbortTimeout);
         }
         
         public new CqlConditionalCommand<TEntity> SetConsistencyLevel(ConsistencyLevel? consistencyLevel)

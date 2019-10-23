@@ -18,6 +18,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Dse.Observers;
 
 namespace Dse.Test.Unit.MetadataHelpers.TestHelpers
 {
@@ -25,7 +26,8 @@ namespace Dse.Test.Unit.MetadataHelpers.TestHelpers
     {
         private readonly ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces;
 
-        public FakeSchemaParser(ConcurrentDictionary<string, KeyspaceMetadata> keyspaces) : base(new Metadata(new Configuration()))
+        public FakeSchemaParser(
+            ConcurrentDictionary<string, KeyspaceMetadata> keyspaces) : base(new Metadata(new Configuration()))
         {
             _keyspaces = keyspaces;
         }

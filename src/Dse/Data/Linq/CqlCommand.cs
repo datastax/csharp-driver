@@ -11,6 +11,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dse.Mapping;
 using Dse.Mapping.Statements;
+using Dse.Metrics.Internal;
+using Dse.SessionManagement;
 using Dse.Tasks;
 
 namespace Dse.Data.Linq
@@ -18,18 +20,21 @@ namespace Dse.Data.Linq
     /// <summary>
     /// Represents a Linq query (UPDATE/INSERT/DELETE) that gets evaluated as a CQL statement.
     /// </summary>
-    public abstract class CqlCommand : SimpleStatement
+    public abstract class CqlCommand : SimpleStatement, IInternalStatement
     {
         private readonly Expression _expression;
         private readonly StatementFactory _statementFactory;
         protected DateTimeOffset? _timestamp;
         protected int? _ttl;
         private QueryTrace _queryTrace;
+        private IMetricsManager _metricsManager;
 
         protected int QueryAbortTimeout { get; private set; }
 
         internal PocoData PocoData { get; }
         internal ITable Table { get; }
+
+        internal IInternalStatement InternalRef => this;
 
         /// <inheritdoc />
         public override string QueryString
@@ -53,7 +58,7 @@ namespace Dse.Data.Linq
             }
         }
 
-        internal StatementFactory StatementFactory => _statementFactory;
+        StatementFactory IInternalStatement.StatementFactory => _statementFactory;
 
         public Expression Expression => _expression;
 
@@ -78,6 +83,7 @@ namespace Dse.Data.Linq
             _statementFactory = stmtFactory;
             PocoData = pocoData;
             QueryAbortTimeout = table.GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
+            _metricsManager = (table.GetSession() as IInternalSession)?.MetricsManager;
         }
 
         protected internal abstract string GetCql(out object[] values);
@@ -99,7 +105,7 @@ namespace Dse.Data.Linq
             {
                 throw new ArgumentNullException(nameof(executionProfile));
             }
-            return TaskHelper.WaitToComplete(ExecuteAsync(executionProfile), QueryAbortTimeout);
+            return WaitToCompleteWithMetrics(ExecuteAsync(executionProfile), QueryAbortTimeout);
         }
 
         public void SetQueryTrace(QueryTrace trace)
@@ -196,6 +202,11 @@ namespace Dse.Data.Linq
         {
             var task = (Task<RowSet>)ar;
             task.Wait();
+        }
+
+        internal T WaitToCompleteWithMetrics<T>(Task<T> task, int timeout = Timeout.Infinite)
+        {
+            return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, timeout);
         }
     }
 }

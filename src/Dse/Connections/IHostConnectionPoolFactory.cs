@@ -14,12 +14,13 @@
 //   limitations under the License.
 //
 
+using Dse.Observers.Abstractions;
 using Dse.Serialization;
 
 namespace Dse.Connections
 {
     internal interface IHostConnectionPoolFactory
     {
-        IHostConnectionPool Create(Host host, Configuration config, Serializer serializer);
+        IHostConnectionPool Create(Host host, Configuration config, Serializer serializer, IObserverFactory observerFactory);
     }
 }

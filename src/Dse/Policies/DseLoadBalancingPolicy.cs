@@ -76,6 +76,15 @@ namespace Dse
         {
             return new DseLoadBalancingPolicy(Policies.DefaultLoadBalancingPolicy);
         }
+        
+        /// <summary>
+        /// Creates the default load balancing policy, using 
+        /// <see cref="Policies.NewDefaultLoadBalancingPolicy"/> to create the child policy.
+        /// </summary>
+        public static DseLoadBalancingPolicy CreateDefault(string localDc)
+        {
+            return new DseLoadBalancingPolicy(Policies.NewDefaultLoadBalancingPolicy(localDc));
+        }
 
         /// <summary>
         /// Returns the distance as determined by the child policy.

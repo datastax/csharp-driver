@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Dse.Mapping;
+using Dse.Metrics.Internal;
 using Dse.Tasks;
 using Dse.Test.Unit.Mapping.Pocos;
 using Dse.Test.Unit.Mapping.TestData;
@@ -444,7 +445,7 @@ namespace Dse.Test.Unit.Mapping
 
         private static void SetFetchNextMethod(RowSet rs, Func<byte[], RowSet> handler)
         {
-            rs.SetFetchNextPageHandler(pagingState => Task.FromResult(handler(pagingState)), 10000);
+            rs.SetFetchNextPageHandler(pagingState => Task.FromResult(handler(pagingState)), 10000, Mock.Of<IMetricsManager>());
         }
     }
 }

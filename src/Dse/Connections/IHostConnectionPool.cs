@@ -31,7 +31,7 @@ namespace Dse.Connections
         /// Gets the total of in-flight requests on all connections. 
         /// </summary>
         int InFlight { get; }
-
+        
         /// <summary>
         /// Determines whether the connection pool has opened connections using snapshot semantics.
         /// </summary>
@@ -43,7 +43,7 @@ namespace Dse.Connections
         /// Gets a snapshot of the current state of the pool.
         /// </summary>
         IConnection[] ConnectionsSnapshot { get; }
-
+        
         /// <summary>
         /// Gets an open connection from the host pool (creating if necessary).
         /// It returns null if the load balancing policy didn't allow connections to this host.

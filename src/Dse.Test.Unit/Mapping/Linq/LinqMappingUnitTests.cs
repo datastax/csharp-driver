@@ -11,6 +11,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Dse.Data.Linq;
 using Dse.Mapping;
+using Dse.Metrics.Internal;
 using Dse.Tasks;
 using Dse.Test.Unit.Mapping.Pocos;
 using Dse.Test.Unit.Mapping.TestData;
@@ -158,7 +159,7 @@ namespace Dse.Test.Unit.Mapping.Linq
                     rs2.PagingState = new byte[] { 0, 0, (byte)counter };
                 }
                 return Task.FromResult(rs2);
-            }, int.MaxValue);
+            }, int.MaxValue, Mock.Of<IMetricsManager>());
             var table = new Table<int>(sessionMock.Object);
             IEnumerable<int> results = table.Execute();
             Assert.True(stmt.AutoPage);

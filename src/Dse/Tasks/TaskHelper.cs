@@ -9,6 +9,9 @@ using System;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Dse.Connections;
+using Dse.Metrics.Internal;
+using Dse.SessionManagement;
 
 namespace Dse.Tasks
 {
@@ -88,7 +91,38 @@ namespace Dse.Tasks
         /// <exception cref="AggregateException" />
         public static T WaitToComplete<T>(Task<T> task, int timeout = Timeout.Infinite)
         {
-            WaitToComplete((Task) task, timeout);
+            TaskHelper.WaitToComplete((Task) task, timeout);
+            return task.Result;
+        }
+        
+        /// <summary>
+        /// Increments session client timeout counter in case of timeout.
+        /// </summary>
+        public static void WaitToCompleteWithMetrics(IMetricsManager manager, Task task, int timeout = Timeout.Infinite)
+        {
+            if (!(manager?.AreMetricsEnabled ?? false))
+            {
+                TaskHelper.WaitToComplete(task, timeout);
+                return;
+            }
+
+            try
+            {
+                TaskHelper.WaitToComplete(task, timeout);
+            }
+            catch (TimeoutException)
+            {
+                manager.GetSessionMetrics().CqlClientTimeouts.Increment();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Increments session client timeout counter in case of timeout.
+        /// </summary>
+        public static T WaitToCompleteWithMetrics<T>(IMetricsManager manager, Task<T> task, int timeout = Timeout.Infinite)
+        {
+            TaskHelper.WaitToCompleteWithMetrics(manager, (Task) task, timeout);
             return task.Result;
         }
 
@@ -168,6 +202,21 @@ namespace Dse.Tasks
             if (ex != null)
             {
                 tcs.TrySetException(ex);
+            }
+            else
+            {
+                tcs.TrySetResult(result);
+            }
+        }
+        
+        /// <summary>
+        /// Attempts to transition the underlying Task to RanToCompletion or Faulted state.
+        /// </summary>
+        public static void TrySetRequestError<T>(this TaskCompletionSource<T> tcs, IRequestError error, T result)
+        {
+            if (error?.Exception != null)
+            {
+                tcs.TrySetException(error.Exception);
             }
             else
             {

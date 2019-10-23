@@ -15,6 +15,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dse.Connections;
 using Dse.ExecutionProfiles;
+using Dse.Metrics;
+using Dse.Metrics.Internal;
+using Dse.Metrics.Providers.Null;
+using Dse.Observers;
 using Dse.Requests;
 using Dse.Serialization;
 using Dse.SessionManagement;
@@ -58,7 +62,12 @@ namespace Dse.Test.Unit
             {
                 config = GetConfig();
             }
-            return new Connection(new Serializer(ProtocolVersion.MaxSupported), config.EndPointResolver.GetOrResolveContactPointAsync(GetIpEndPoint(lastIpByte)).Result.Single(), config);
+            return new Connection(
+                new Serializer(ProtocolVersion.MaxSupported), 
+                config.EndPointResolver.GetOrResolveContactPointAsync(GetIpEndPoint(lastIpByte)).Result.Single(), 
+                config,
+                new StartupRequestFactory(config.StartupOptionsFactory), 
+                NullConnectionObserver.Instance);
         }
 
         private static Mock<HostConnectionPool> GetPoolMock(Host host = null, Configuration config = null)
@@ -71,7 +80,11 @@ namespace Dse.Test.Unit
             {
                 config = GetConfig();
             }
-            return new Mock<HostConnectionPool>(host, config, new Serializer(ProtocolVersion.MaxSupported));
+            return new Mock<HostConnectionPool>(
+                host, 
+                config, 
+                new Serializer(ProtocolVersion.MaxSupported), 
+                new MetricsObserverFactory(new MetricsManager(new NullDriverMetricsProvider(), new DriverMetricsOptions(), false, "s1")));
         }
 
         private static Configuration GetConfig(int coreConnections = 3, int maxConnections = 8, IReconnectionPolicy rp = null)
@@ -96,14 +109,23 @@ namespace Dse.Test.Unit
                 new Dictionary<string, IExecutionProfile>(),
                 new RequestOptionsMapper(),
                 null,
+                null,
+                null,
+                null,
                 null);
             return config;
         }
 
         private static IConnection GetConnectionMock(int inflight, int timedOutOperations = 0)
         {
+            var config = new Configuration();
             var connectionMock = new Mock<Connection>(
-                MockBehavior.Loose, new Serializer(ProtocolVersion.MaxSupported), new ConnectionEndPoint(HostConnectionPoolTests.Address, null), new Configuration());
+                MockBehavior.Loose, 
+                new Serializer(ProtocolVersion.MaxSupported), 
+                new ConnectionEndPoint(HostConnectionPoolTests.Address, null), 
+                config, 
+                new StartupRequestFactory(config.StartupOptionsFactory),
+                NullConnectionObserver.Instance);
             connectionMock.Setup(c => c.InFlight).Returns(inflight);
             connectionMock.Setup(c => c.TimedOutOperations).Returns(timedOutOperations);
             return connectionMock.Object;

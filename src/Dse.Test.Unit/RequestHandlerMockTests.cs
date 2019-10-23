@@ -19,6 +19,11 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using Dse.ExecutionProfiles;
+using Dse.Metrics;
+using Dse.Metrics.Internal;
+using Dse.Metrics.Providers.Null;
+using Dse.Observers;
+using Dse.Observers.Abstractions;
 using Dse.Requests;
 using Dse.Serialization;
 using Dse.SessionManagement;
@@ -32,6 +37,15 @@ namespace Dse.Test.Unit
     [SuppressMessage("ReSharper", "PossibleMultipleEnumeration")]
     public class RequestHandlerMockTests
     {
+        private static IInternalSession GetMockInternalSession()
+        {
+            var sessionMock = new Mock<IInternalSession>();
+            var clusterMock = new Mock<IInternalCluster>();
+            sessionMock.Setup(x => x.InternalCluster).Returns(clusterMock.Object);
+            sessionMock.Setup(x => x.ObserverFactory)
+                       .Returns(new MetricsObserverFactory(new MetricsManager(new NullDriverMetricsProvider(), new DriverMetricsOptions(), true, "s1")));
+            return sessionMock.Object;
+        }
         private static Configuration GetConfig(ILoadBalancingPolicy lbp)
         {
             var requestExecutionFactory = Mock.Of<IRequestExecutionFactory>();
@@ -39,7 +53,8 @@ namespace Dse.Test.Unit
                 .Setup(m => m.Create(
                     It.IsAny<IRequestHandler>(),
                     It.IsAny<IInternalSession>(),
-                    It.IsAny<IRequest>()))
+                    It.IsAny<IRequest>(),
+                    It.IsAny<IRequestObserver>()))
                 .Returns(Mock.Of<IRequestExecution>());
 
             return new Configuration(new Dse.Policies(lbp, null, null),
@@ -57,13 +72,16 @@ namespace Dse.Test.Unit
                 new RequestOptionsMapper(),
                 null,
                 null,
+                null,
+                null,
+                null,
                 requestExecutionFactory: requestExecutionFactory);
         }
 
         [Test]
         public void Should_ThrowNoHostAvailableException_When_QueryPlanMoveNextReturnsFalse()
         {
-            var sessionMock = Mock.Of<IInternalSession>();
+            var sessionMock = GetMockInternalSession();
             var lbpMock = Mock.Of<ILoadBalancingPolicy>();
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
             var enumerable = Mock.Of<IEnumerable<Host>>();
@@ -83,7 +101,7 @@ namespace Dse.Test.Unit
         [Test]
         public void Should_ThrowNoHostAvailableException_When_QueryPlanMoveNextReturnsTrueButCurrentReturnsNull()
         {
-            var sessionMock = Mock.Of<IInternalSession>();
+            var sessionMock = GetMockInternalSession();
             var lbpMock = Mock.Of<ILoadBalancingPolicy>();
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
             var enumerable = Mock.Of<IEnumerable<Host>>();
@@ -104,12 +122,11 @@ namespace Dse.Test.Unit
         [Test]
         public void Should_ReturnHost_When_QueryPlanMoveNextReturnsTrueAndCurrentReturnsHost()
         {
-            var sessionMock = Mock.Of<IInternalSession>();
+            var sessionMock = GetMockInternalSession();
             var lbpMock = Mock.Of<ILoadBalancingPolicy>();
             Mock.Get(sessionMock).SetupGet(m => m.Cluster.Configuration).Returns(RequestHandlerMockTests.GetConfig(lbpMock));
             var enumerable = Mock.Of<IEnumerable<Host>>();
             var enumerator = Mock.Of<IEnumerator<Host>>();
-
             var host = new Host(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9047));
             Mock.Get(enumerator).Setup(m => m.MoveNext()).Returns(true);
             Mock.Get(enumerator).SetupGet(m => m.Current).Returns(host);

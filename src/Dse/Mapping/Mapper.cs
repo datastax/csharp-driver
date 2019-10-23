@@ -9,7 +9,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+
 using Dse.Mapping.Statements;
+using Dse.Metrics.Internal;
+using Dse.SessionManagement;
 using Dse.Tasks;
 
 namespace Dse.Mapping
@@ -23,6 +26,7 @@ namespace Dse.Mapping
     public class Mapper : IMapper
     {
         private readonly ISession _session;
+        private readonly IMetricsManager _metricsManager;
         private readonly MapperFactory _mapperFactory;
         private readonly StatementFactory _statementFactory;
         private readonly CqlGenerator _cqlGenerator;
@@ -33,10 +37,9 @@ namespace Dse.Mapping
         /// </summary>
         /// <param name="session">Session to be used to execute the statements</param>
         /// <param name="config">Mapping definitions for the POCOs</param>
-        public Mapper(ISession session, MappingConfiguration config) 
+        public Mapper(ISession session, MappingConfiguration config)
             : this(session, config.MapperFactory, config.StatementFactory, new CqlGenerator(config.MapperFactory.PocoDataFactory))
         {
-
         }
 
         /// <summary>
@@ -44,12 +47,12 @@ namespace Dse.Mapping
         /// </summary>
         public Mapper(ISession session) : this(session, MappingConfiguration.Global)
         {
-            
         }
 
         internal Mapper(ISession session, MapperFactory mapperFactory, StatementFactory statementFactory, CqlGenerator cqlGenerator)
         {
             _session = session ?? throw new ArgumentNullException(nameof(session));
+            _metricsManager = (session as IInternalSession)?.MetricsManager;
             _mapperFactory = mapperFactory ?? throw new ArgumentNullException(nameof(mapperFactory));
             _statementFactory = statementFactory ?? throw new ArgumentNullException(nameof(statementFactory));
             _cqlGenerator = cqlGenerator ?? throw new ArgumentNullException(nameof(cqlGenerator));
@@ -237,7 +240,7 @@ namespace Dse.Mapping
             {
                 throw new ArgumentNullException(nameof(executionProfile));
             }
-            
+
             var pocoData = _mapperFactory.PocoDataFactory.GetPocoData<T>();
             var queryIdentifier = $"INSERT ID {pocoData.KeyspaceName}/{pocoData.TableName}";
             var getBindValues = _mapperFactory.GetValueCollector<T>(queryIdentifier);
@@ -249,7 +252,7 @@ namespace Dse.Mapping
 
             return ExecuteAsync(cqlInstance);
         }
-        
+
         /// <inheritdoc />
         public Task<AppliedInfo<T>> InsertIfNotExistsAsync<T>(T poco, CqlQueryOptions queryOptions = null)
         {
@@ -287,7 +290,7 @@ namespace Dse.Mapping
             {
                 throw new ArgumentNullException(nameof(executionProfile));
             }
-            
+
             var pocoData = _mapperFactory.PocoDataFactory.GetPocoData<T>();
             var queryIdentifier = $"INSERT ID {pocoData.KeyspaceName}/{pocoData.TableName}";
             var getBindValues = _mapperFactory.GetValueCollector<T>(queryIdentifier);
@@ -373,7 +376,7 @@ namespace Dse.Mapping
 
             return ExecuteAsync(cqlInstance);
         }
-        
+
         /// <inheritdoc />
         public Task DeleteAsync<T>(string cql, params object[] args)
         {
@@ -417,14 +420,14 @@ namespace Dse.Mapping
         public void Execute(ICqlBatch batch)
         {
             //Wait async method to be completed or throw
-            TaskHelper.WaitToComplete(ExecuteAsync(batch), _queryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, ExecuteAsync(batch), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
         public void Execute(ICqlBatch batch, string executionProfile)
         {
             //Wait async method to be completed or throw
-            TaskHelper.WaitToComplete(ExecuteAsync(batch, executionProfile), _queryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, ExecuteAsync(batch, executionProfile), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
@@ -440,7 +443,7 @@ namespace Dse.Mapping
             {
                 throw new ArgumentNullException(nameof(executionProfile));
             }
-            
+
             if (batch == null)
             {
                 throw new ArgumentNullException(nameof(batch));
@@ -452,7 +455,7 @@ namespace Dse.Mapping
 
             await ExecuteStatementAsync(batchStatement, executionProfile).ConfigureAwait(false);
         }
-        
+
         public TDatabase ConvertCqlArgument<TValue, TDatabase>(TValue value)
         {
             return _mapperFactory.TypeConverter.ConvertCqlArgument<TValue, TDatabase>(value);
@@ -467,7 +470,7 @@ namespace Dse.Mapping
         /// <inheritdoc />
         public AppliedInfo<T> DeleteIf<T>(Cql cql)
         {
-            return TaskHelper.WaitToComplete(DeleteIfAsync<T>(cql), _queryAbortTimeout);
+            return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, DeleteIfAsync<T>(cql), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
@@ -502,7 +505,7 @@ namespace Dse.Mapping
             //Use the async method
             var t = FetchAsync<T>(cql);
             //Wait for it to be completed or throw
-            TaskHelper.WaitToComplete(t, _queryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, t, _queryAbortTimeout);
             return t.Result;
         }
 
@@ -524,7 +527,7 @@ namespace Dse.Mapping
             //Use the async method
             var t = FetchPageAsync<T>(cql);
             //Wait for it to be completed or throw
-            TaskHelper.WaitToComplete(t, _queryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, t, _queryAbortTimeout);
             return t.Result;
         }
 
@@ -540,7 +543,7 @@ namespace Dse.Mapping
             //Use the async method
             var t = SingleAsync<T>(cql);
             //Wait for it to be completed or throw
-            TaskHelper.WaitToComplete(t, _queryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, t, _queryAbortTimeout);
             return t.Result;
         }
 
@@ -556,7 +559,7 @@ namespace Dse.Mapping
             //Use async method
             var t = SingleOrDefaultAsync<T>(cql);
             //Wait for it to be completed or throw
-            TaskHelper.WaitToComplete(t, _queryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, t, _queryAbortTimeout);
             return t.Result;
         }
 
@@ -572,7 +575,7 @@ namespace Dse.Mapping
             //Use async method
             var t = FirstAsync<T>(cql);
             //Wait for it to be completed or throw
-            TaskHelper.WaitToComplete(t, _queryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, t, _queryAbortTimeout);
             return t.Result;
         }
 
@@ -588,7 +591,7 @@ namespace Dse.Mapping
             //Use async method
             var t = FirstOrDefaultAsync<T>(cql);
             //Wait for it to be completed or throw
-            TaskHelper.WaitToComplete(t, _queryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, t, _queryAbortTimeout);
             return t.Result;
         }
 
@@ -629,9 +632,9 @@ namespace Dse.Mapping
             {
                 throw new ArgumentNullException(nameof(executionProfile));
             }
-            
+
             //Wait async method to be completed or throw
-            TaskHelper.WaitToComplete(InsertAsync(poco, executionProfile, insertNulls, ttl, queryOptions), _queryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, InsertAsync(poco, executionProfile, insertNulls, ttl, queryOptions), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
@@ -661,27 +664,27 @@ namespace Dse.Mapping
         /// <inheritdoc />
         public AppliedInfo<T> InsertIfNotExists<T>(T poco, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null)
         {
-            return TaskHelper.WaitToComplete(InsertIfNotExistsAsync(poco, insertNulls, ttl, queryOptions), _queryAbortTimeout);
+            return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, InsertIfNotExistsAsync(poco, insertNulls, ttl, queryOptions), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
         public AppliedInfo<T> InsertIfNotExists<T>(T poco, string executionProfile, bool insertNulls, int? ttl, CqlQueryOptions queryOptions = null)
         {
-            return TaskHelper.WaitToComplete(InsertIfNotExistsAsync(poco, executionProfile, insertNulls, ttl, queryOptions), _queryAbortTimeout);
+            return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, InsertIfNotExistsAsync(poco, executionProfile, insertNulls, ttl, queryOptions), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
         public void Update<T>(T poco, CqlQueryOptions queryOptions = null)
         {
             //Wait async method to be completed or throw
-            TaskHelper.WaitToComplete(UpdateAsync(poco, queryOptions), _queryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, UpdateAsync(poco, queryOptions), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
         public void Update<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null)
         {
             //Wait async method to be completed or throw
-            TaskHelper.WaitToComplete(UpdateAsync(poco, executionProfile, queryOptions), _queryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, UpdateAsync(poco, executionProfile, queryOptions), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
@@ -694,7 +697,7 @@ namespace Dse.Mapping
         public void Update<T>(Cql cql)
         {
             //Wait async method to be completed or throw
-            TaskHelper.WaitToComplete(UpdateAsync<T>(cql), _queryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, UpdateAsync<T>(cql), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
@@ -707,21 +710,21 @@ namespace Dse.Mapping
         public AppliedInfo<T> UpdateIf<T>(Cql cql)
         {
             //Wait async method to be completed or throw
-            return TaskHelper.WaitToComplete(UpdateIfAsync<T>(cql), _queryAbortTimeout);
+            return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, UpdateIfAsync<T>(cql), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
         public void Delete<T>(T poco, CqlQueryOptions queryOptions = null)
         {
             //Wait async method to be completed or throw
-            TaskHelper.WaitToComplete(DeleteAsync(poco, queryOptions), _queryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, DeleteAsync(poco, queryOptions), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
         public void Delete<T>(T poco, string executionProfile, CqlQueryOptions queryOptions = null)
         {
             //Wait async method to be completed or throw
-            TaskHelper.WaitToComplete(DeleteAsync(poco, executionProfile, queryOptions), _queryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, DeleteAsync(poco, executionProfile, queryOptions), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
@@ -734,7 +737,7 @@ namespace Dse.Mapping
         public void Delete<T>(Cql cql)
         {
             //Wait async method to be completed or throw
-            TaskHelper.WaitToComplete(DeleteAsync<T>(cql), _queryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, DeleteAsync<T>(cql), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
@@ -747,7 +750,7 @@ namespace Dse.Mapping
         public void Execute(Cql cql)
         {
             //Wait async method to be completed or throw
-            TaskHelper.WaitToComplete(ExecuteAsync(cql), _queryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, ExecuteAsync(cql), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
@@ -763,7 +766,7 @@ namespace Dse.Mapping
             {
                 throw new ArgumentNullException(nameof(executionProfile));
             }
-            
+
             if (batch == null)
             {
                 throw new ArgumentNullException(nameof(batch));
@@ -778,23 +781,23 @@ namespace Dse.Mapping
             var rs = await ExecuteStatementAsync(batchStatement, executionProfile).ConfigureAwait(false);
             return AppliedInfo<T>.FromRowSet(_mapperFactory, cqlString, rs);
         }
-        
+
         /// <inheritdoc />
         public AppliedInfo<T> ExecuteConditional<T>(ICqlBatch batch)
         {
-            return TaskHelper.WaitToComplete(ExecuteConditionalAsync<T>(batch), _queryAbortTimeout);
+            return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, ExecuteConditionalAsync<T>(batch), _queryAbortTimeout);
         }
 
         /// <inheritdoc />
         public AppliedInfo<T> ExecuteConditional<T>(ICqlBatch batch, string executionProfile)
         {
-            return TaskHelper.WaitToComplete(ExecuteConditionalAsync<T>(batch, executionProfile), _queryAbortTimeout);
+            return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, ExecuteConditionalAsync<T>(batch, executionProfile), _queryAbortTimeout);
         }
 
         private Task<RowSet> ExecuteStatementAsync(IStatement statement, string executionProfile)
         {
-            return executionProfile != null 
-                ? _session.ExecuteAsync(statement, executionProfile) 
+            return executionProfile != null
+                ? _session.ExecuteAsync(statement, executionProfile)
                 : _session.ExecuteAsync(statement);
         }
     }

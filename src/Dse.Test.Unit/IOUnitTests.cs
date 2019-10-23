@@ -40,18 +40,18 @@ namespace Dse.Test.Unit
                 {
                     Interlocked.Increment(ref clientCallbackCounter);
                 };
-                var state = new OperationState(clientCallback);
+                var state = OperationStateExtensions.CreateMock(clientCallback);
                 var actions = new Action[]
                 {
                     () =>
                     {
                         var timedout = state.MarkAsTimedOut(
-                            new OperationTimedOutException(new IPEndPoint(0, 1), 200), () => Interlocked.Increment(ref timedOutReceived));
+                            new OperationTimedOutException(new IPEndPoint(0, 1), 200), () => Interlocked.Increment(ref timedOutReceived), 0);
                         Interlocked.Add(ref expectedTimedout, timedout ? 1 : 0);
                     },
                     () =>
                     {
-                        state.InvokeCallback(null);
+                        state.InvokeCallback(null, 0);
                     }
                 };
                 if ((counter++)%2 == 0)
@@ -80,11 +80,11 @@ namespace Dse.Test.Unit
                     // ReSharper disable once AccessToModifiedClosure
                     Interlocked.Increment(ref clientCallbackCounter);
                 };
-                var state = new OperationState(clientCallback);
+                var state = OperationStateExtensions.CreateMock(clientCallback);
                 var actions = Enumerable.Repeat<Action>(() =>
                 {
                     var cb = state.SetCompleted();
-                    cb(null, null);
+                    cb(null, null, 0);
                 }, 2);
                 if ((counter++) % 2 == 0)
                 {
@@ -106,9 +106,9 @@ namespace Dse.Test.Unit
             {
                 Interlocked.Increment(ref clientCallbackCounter);
             };
-            var state = new OperationState(clientCallback);
+            var state = OperationStateExtensions.CreateMock(clientCallback);
             state.Cancel();
-            state.InvokeCallback(null);
+            state.InvokeCallback(null, 0);
             //Allow callbacks to be called using the default scheduler
             Thread.Sleep(20);
             Assert.AreEqual(0, clientCallbackCounter);

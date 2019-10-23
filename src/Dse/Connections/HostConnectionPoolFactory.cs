@@ -14,15 +14,16 @@
 //   limitations under the License.
 //
 
+using Dse.Observers.Abstractions;
 using Dse.Serialization;
 
 namespace Dse.Connections
 {
     internal class HostConnectionPoolFactory : IHostConnectionPoolFactory
     {
-        public IHostConnectionPool Create(Host host, Configuration config, Serializer serializer)
+        public IHostConnectionPool Create(Host host, Configuration config, Serializer serializer, IObserverFactory observerFactory)
         {
-            return new HostConnectionPool(host, config, serializer);
+            return new HostConnectionPool(host, config, serializer, observerFactory);
         }
     }
 }

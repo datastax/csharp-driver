@@ -12,6 +12,9 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
+using Dse.Metrics;
+using Dse.Metrics.Registries;
+using Dse.Observers;
 using NUnit.Framework;
 
 namespace Dse.Test.Unit
