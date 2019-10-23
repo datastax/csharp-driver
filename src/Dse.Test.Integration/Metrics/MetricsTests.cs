@@ -103,8 +103,18 @@ namespace Dse.Test.Integration.Metrics
                 Assert.True(context.IsNotEmpty());
                 Assert.AreEqual(2, context.Gauges.Count());
 
-                // remove host from cluster
-                TestCluster.DecommissionNode(2);
+                // remove host from cluster                
+                if (TestClusterManagement.TestClusterManager.DseVersion.Major < 5 ||
+                    (TestClusterManagement.TestClusterManager.DseVersion.Major == 5 && 
+                     TestClusterManagement.TestClusterManager.DseVersion.Minor < 1))
+                {
+                    TestCluster.DecommissionNode(2);
+                }
+                else
+                {
+                    TestCluster.DecommissionNodeForcefully(2);
+                }
+
                 TestCluster.Stop(2);
                 try
                 {
