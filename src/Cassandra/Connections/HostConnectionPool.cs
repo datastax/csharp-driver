@@ -20,6 +20,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Collections;
+using Cassandra.Observers.Abstractions;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
 
@@ -65,12 +66,13 @@ namespace Cassandra.Connections
             public const int Shutdown = 3;
         }
 
-        private readonly Host _host;
         private readonly Configuration _config;
         private readonly Serializer _serializer;
+        private readonly IObserverFactory _observerFactory;
         private readonly CopyOnWriteList<IConnection> _connections = new CopyOnWriteList<IConnection>();
         private readonly HashedWheelTimer _timer;
         private readonly SemaphoreSlim _allConnectionClosedEventLock = new SemaphoreSlim(1, 1);
+        private readonly Host _host;
         private volatile IReconnectionSchedule _reconnectionSchedule;
         private volatile int _expectedConnectionLength;
         private volatile int _maxInflightThresholdToConsiderResizing;
@@ -91,7 +93,7 @@ namespace Cassandra.Connections
 
         /// <inheritdoc />
         public int OpenConnections => _connections.Count;
-
+        
         /// <inheritdoc />
         public int InFlight => _connections.Sum(c => c.InFlight);
 
@@ -103,7 +105,8 @@ namespace Cassandra.Connections
         /// <inheritdoc />
         public IConnection[] ConnectionsSnapshot => _connections.GetSnapshot();
 
-        public HostConnectionPool(Host host, Configuration config, Serializer serializer)
+
+        public HostConnectionPool(Host host, Configuration config, Serializer serializer, IObserverFactory observerFactory)
         {
             _host = host;
             _host.Down += OnHostDown;
@@ -114,6 +117,7 @@ namespace Cassandra.Connections
                                         .GetPoolingOptions(serializer.ProtocolVersion)
                                         .GetMaxRequestsPerConnection();
             _serializer = serializer;
+            _observerFactory = observerFactory;
             _timer = config.Timer;
             _reconnectionSchedule = config.Policies.ReconnectionPolicy.NewSchedule();
             _expectedConnectionLength = 1;
@@ -260,7 +264,7 @@ namespace Cassandra.Connections
         public virtual async Task<IConnection> DoCreateAndOpen(bool isReconnection)
         {
             var endPoint = await _config.EndPointResolver.GetConnectionEndPointAsync(_host, isReconnection).ConfigureAwait(false);
-            var c = _config.ConnectionFactory.Create(_serializer, endPoint, _config);
+            var c = _config.ConnectionFactory.Create(_serializer, endPoint, _config, _observerFactory.CreateConnectionObserver(_host));
             try
             {
                 await c.Open().ConfigureAwait(false);

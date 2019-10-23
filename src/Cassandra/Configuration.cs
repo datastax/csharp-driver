@@ -17,8 +17,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Metrics;
+using Cassandra.Metrics.Abstractions;
+using Cassandra.Metrics.Providers.Null;
+using Cassandra.Observers;
 using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.Serialization;
@@ -38,6 +43,7 @@ namespace Cassandra
     public class Configuration
     {
         internal const string DefaultExecutionProfileName = "default";
+        internal const string DefaultSessionName = "s";
 
         /// <summary>
         ///  Gets the policies set for the cluster.
@@ -89,7 +95,7 @@ namespace Cassandra
         /// </summary>
         /// <returns>the address translator in use.</returns>
         public IAddressTranslator AddressTranslator { get; private set; }
-        
+
         /// <summary>
         /// Gets a read only key value map of execution profiles that were configured with
         /// <see cref="Builder.WithExecutionProfiles"/>. The keys are execution profile names and the values
@@ -119,7 +125,7 @@ namespace Cassandra
         internal ISessionFactoryBuilder<IInternalCluster, IInternalSession> SessionFactoryBuilder { get; }
 
         internal IRequestOptionsMapper RequestOptionsMapper { get; }
-        
+
         internal IRequestHandlerFactory RequestHandlerFactory { get; }
 
         internal IHostConnectionPoolFactory HostConnectionPoolFactory { get; }
@@ -127,7 +133,7 @@ namespace Cassandra
         internal IRequestExecutionFactory RequestExecutionFactory { get; }
 
         internal IConnectionFactory ConnectionFactory { get; }
-        
+
         internal IControlConnectionFactory ControlConnectionFactory { get; }
 
         internal IPrepareHandlerFactory PrepareHandlerFactory { get; }
@@ -137,7 +143,17 @@ namespace Cassandra
         internal IEndPointResolver EndPointResolver { get; }
 
         internal IDnsResolver DnsResolver { get; }
-        
+
+        internal IDriverMetricsProvider MetricsProvider { get; }
+
+        internal DriverMetricsOptions MetricsOptions { get; }
+
+        internal string SessionName { get; }
+
+        internal bool MetricsEnabled { get; }
+
+        internal IObserverFactoryBuilder ObserverFactoryBuilder { get; }
+
         /// <summary>
         /// The key is the execution profile name and the value is the IRequestOptions instance
         /// built from the execution profile with that key.
@@ -160,6 +176,9 @@ namespace Cassandra
                  new SessionFactoryBuilder(),
                  new Dictionary<string, IExecutionProfile>(),
                  new RequestOptionsMapper(),
+                 null,
+                 null,
+                 null,
                  null,
                  null)
         {
@@ -184,13 +203,17 @@ namespace Cassandra
                                IRequestOptionsMapper requestOptionsMapper,
                                MetadataSyncOptions metadataSyncOptions,
                                IEndPointResolver endPointResolver,
+                               IDriverMetricsProvider driverMetricsProvider,
+                               DriverMetricsOptions metricsOptions,
+                               string sessionName,
                                IRequestHandlerFactory requestHandlerFactory = null,
                                IHostConnectionPoolFactory hostConnectionPoolFactory = null,
                                IRequestExecutionFactory requestExecutionFactory = null,
                                IConnectionFactory connectionFactory = null,
                                IControlConnectionFactory controlConnectionFactory = null,
                                IPrepareHandlerFactory prepareHandlerFactory = null,
-                               ITimerFactory timerFactory = null)
+                               ITimerFactory timerFactory = null,
+                               IObserverFactoryBuilder observerFactoryBuilder = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -207,7 +230,12 @@ namespace Cassandra
             MetadataSyncOptions = metadataSyncOptions?.Clone() ?? new MetadataSyncOptions();
             DnsResolver = new DnsResolver();
             EndPointResolver = endPointResolver ?? new EndPointResolver(DnsResolver, protocolOptions);
+            MetricsOptions = metricsOptions ?? new DriverMetricsOptions();
+            MetricsProvider = driverMetricsProvider ?? new NullDriverMetricsProvider();
+            SessionName = sessionName;
+            MetricsEnabled = driverMetricsProvider != null;
 
+            ObserverFactoryBuilder = observerFactoryBuilder ?? (MetricsEnabled ? (IObserverFactoryBuilder)new MetricsObserverFactoryBuilder() : new NullObserverFactoryBuilder());
             RequestHandlerFactory = requestHandlerFactory ?? new RequestHandlerFactory();
             HostConnectionPoolFactory = hostConnectionPoolFactory ?? new HostConnectionPoolFactory();
             RequestExecutionFactory = requestExecutionFactory ?? new RequestExecutionFactory();
@@ -215,7 +243,7 @@ namespace Cassandra
             ControlConnectionFactory = controlConnectionFactory ?? new ControlConnectionFactory();
             PrepareHandlerFactory = prepareHandlerFactory ?? new PrepareHandlerFactory();
             TimerFactory = timerFactory ?? new TaskBasedTimerFactory();
-            
+
             RequestOptions = RequestOptionsMapper.BuildRequestOptionsDictionary(executionProfiles, policies, socketOptions, clientOptions, queryOptions);
             ExecutionProfiles = BuildExecutionProfilesDictionary(executionProfiles, RequestOptions);
 
@@ -225,7 +253,7 @@ namespace Cassandra
             BufferPool = new RecyclableMemoryStreamManager(16 * 1024, 256 * 1024, ProtocolOptions.MaximumFrameLength);
             Timer = new HashedWheelTimer();
         }
-        
+
         /// <summary>
         /// Clones (shallow) the provided execution profile dictionary and add the default profile if not there yet.
         /// </summary>

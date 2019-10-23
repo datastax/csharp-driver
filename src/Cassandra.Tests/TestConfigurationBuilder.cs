@@ -15,8 +15,12 @@
 //
 
 using System.Collections.Generic;
+
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Metrics;
+using Cassandra.Metrics.Providers.Null;
+using Cassandra.Observers;
 using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.SessionManagement;
@@ -69,6 +73,12 @@ namespace Cassandra.Tests
 
         public IEndPointResolver EndPointResolver { get; set; } = new EndPointResolver(new DnsResolver(), new ProtocolOptions());
 
+        public IObserverFactoryBuilder ObserverFactoryBuilder { get; set; } = new MetricsObserverFactoryBuilder();
+
+        public DriverMetricsOptions MetricsOptions { get; set; } = new DriverMetricsOptions();
+
+        public string SessionName { get; set; }
+
         public Configuration Build()
         {
             return new Configuration(
@@ -87,13 +97,17 @@ namespace Cassandra.Tests
                 RequestOptionsMapper,
                 MetadataSyncOptions,
                 EndPointResolver,
+                new NullDriverMetricsProvider(),
+                MetricsOptions,
+                SessionName,
                 RequestHandlerFactory,
                 HostConnectionPoolFactory,
                 RequestExecutionFactory,
                 ConnectionFactory,
                 ControlConnectionFactory,
                 PrepareHandlerFactory,
-                TimerFactory);
+                TimerFactory,
+                ObserverFactoryBuilder);
         }
     }
 }

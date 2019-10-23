@@ -24,6 +24,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Cassandra.Connections;
+using Cassandra.Observers;
 using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
@@ -467,7 +468,7 @@ namespace Cassandra.Tests.Requests
             config.Policies.LoadBalancingPolicy.Initialize(cluster);
             
             // create session
-            var session = new Session(cluster, config, null, Serializer.Default);
+            var session = new Session(cluster, config, null, Serializer.Default, null);
 
             // create prepare handler
             var prepareHandler = new PrepareHandler(new Serializer(ProtocolVersion.V3));

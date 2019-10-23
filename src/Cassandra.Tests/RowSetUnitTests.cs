@@ -24,6 +24,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Reflection;
+using Cassandra.Metrics.Internal;
 using Moq;
 
 namespace Cassandra.Tests
@@ -137,7 +138,7 @@ namespace Cassandra.Tests
             {
                 counter++;
                 throw new TestException();
-            }, int.MaxValue);
+            }, int.MaxValue, Mock.Of<IMetricsManager>());
 
             //use linq to iterate and map it to a list
             //The row set should throw an exception when getting the next page.
@@ -672,7 +673,7 @@ namespace Cassandra.Tests
 
         private static void SetFetchNextMethod(RowSet rs, Func<byte[], Task<RowSet>> handler)
         {
-            rs.SetFetchNextPageHandler(handler, 10000);
+            rs.SetFetchNextPageHandler(handler, 10000, Mock.Of<IMetricsManager>());
         }
 
         private static void SetFetchNextMethod(RowSet rs, Func<byte[], RowSet> handler)

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="14.0">
   <PropertyGroup>
     <!-- The configuration and platform will be used to determine which
          assemblies to include from solution and project documentation
@@ -8,21 +8,22 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{25634bea-e0e7-4910-8527-1b1a29461a2d}</ProjectGuid>
-    <SHFBSchemaVersion>1.9.9.0</SHFBSchemaVersion>
+    <SHFBSchemaVersion>2017.9.26.0</SHFBSchemaVersion>
     <!-- AssemblyName, Name, and RootNamespace are not used by SHFB but Visual
          Studio adds them anyway -->
     <AssemblyName>Documentation</AssemblyName>
     <RootNamespace>Documentation</RootNamespace>
     <Name>Documentation</Name>
     <!-- SHFB properties -->
-    <FrameworkVersion>.NET Framework 4.5</FrameworkVersion>
+    <FrameworkVersion>Cross-platform (.NET Core/.NET Standard)</FrameworkVersion>
     <OutputPath>api-docs\</OutputPath>
     <HtmlHelpName>Documentation</HtmlHelpName>
     <Language>en-US</Language>
     <DocumentationSources>
-      <DocumentationSource sourceFile="..\src\Cassandra\bin\Release\net45\Cassandra.dll" />
-      <DocumentationSource sourceFile="..\src\Cassandra\bin\Release\net45\Cassandra.xml" />
-    </DocumentationSources>
+      <DocumentationSource sourceFile="..\src\Cassandra\bin\Release\netstandard2.0\Cassandra.dll" />
+<DocumentationSource sourceFile="..\src\Cassandra\bin\Release\netstandard2.0\Cassandra.xml" />
+<DocumentationSource sourceFile="..\src\Extensions\Cassandra.AppMetrics\bin\Release\netstandard2.0\Cassandra.AppMetrics.dll" />
+<DocumentationSource sourceFile="..\src\Extensions\Cassandra.AppMetrics\bin\Release\netstandard2.0\Cassandra.AppMetrics.xml" /></DocumentationSources>
     <BuildAssemblerVerbosity>OnlyWarningsAndErrors</BuildAssemblerVerbosity>
     <HelpFileFormat>Website</HelpFileFormat>
     <IndentHtml>False</IndentHtml>
@@ -34,6 +35,17 @@
     <ComponentConfigurations>
     </ComponentConfigurations>
     <PlugInConfigurations>
+      <PlugInConfig id="Assembly Binding Redirection" enabled="True">
+        <configuration useGAC="false">
+          <assemblyBinding />
+          <ignoreIfUnresolved>
+            <assemblyIdentity name="App.Metrics.Abstractions" />
+            <assemblyIdentity name="App.Metrics.Concurrency" />
+            <assemblyIdentity name="BusinessObjects.Licensing.KeycodeDecoder" />
+            <assemblyIdentity name="Microsoft.VisualStudio.TestTools.UITest.Playback" />
+          </ignoreIfUnresolved>
+        </configuration>
+      </PlugInConfig>
     </PlugInConfigurations>
     <SyntaxFilters>C#</SyntaxFilters>
     <SdkLinkTarget>Blank</SdkLinkTarget>
@@ -44,18 +56,22 @@
     <HelpTitle>DataStax C# Driver for Apache Cassandra</HelpTitle>
     <ContentPlacement>BelowNamespaces</ContentPlacement>
     <NamespaceSummaries>
-      <NamespaceSummaryItem name="(global)" isDocumented="True">A modern, feature-rich and highly tunable C# client library for Apache Cassandra (1.2+) and DataStax Enterprise (3.1+) using exclusively Cassandra&apos;s binary protocol and Cassandra Query Language v3.</NamespaceSummaryItem>
-      <NamespaceSummaryItem name="Cassandra" isDocumented="True">The Cassandra namespace contains classes and interfaces to represent data types in the driver.</NamespaceSummaryItem>
-      <NamespaceSummaryItem name="Cassandra.Data" isDocumented="True">The Cassandra.Data namespace contains classes to support ADO.NET in the driver.</NamespaceSummaryItem>
-      <NamespaceSummaryItem name="Cassandra.Data.Linq" isDocumented="True">The Cassandra.Data.Linq namespace contains classes to handle Linq queries in the driver.</NamespaceSummaryItem>
-      <NamespaceSummaryItem name="Cassandra.Mapping" isDocumented="True">The Cassandra.Mapping namespace contains classes to handle CQL data to C# classes mapping in the driver.</NamespaceSummaryItem>
-      <NamespaceSummaryItem name="Cassandra.Mapping.Attributes" isDocumented="true">The Cassandra.Mapping.Attributes namespace contains attributes to describe CQL types to C# classes mapping.</NamespaceSummaryItem>
-      <NamespaceSummaryItem name="Cassandra.Mapping.TypeConversion" isDocumented="true">The Cassandra.Mapping.TypeConversion namespace handles type conversion for the Mapper.</NamespaceSummaryItem>
-      <NamespaceSummaryItem name="Cassandra.Mapping.Utils" isDocumented="False" />
-      <NamespaceSummaryItem name="Cassandra.Serialization" isDocumented="True">The Cassandra.Serialization namespace contains classes to handle serialization in the driver.</NamespaceSummaryItem>
-      <NamespaceSummaryItem name="Cassandra.Serialization.Primitive" isDocumented="False" />
-    </NamespaceSummaries>
-    <ProjectSummary>A modern, feature-rich and highly tunable C# client library for Apache Cassandra (1.2+) and DataStax Enterprise (3.1+) using exclusively Cassandra&apos;s binary protocol and Cassandra Query Language v3.</ProjectSummary>
+      <NamespaceSummaryItem name="(global)" isDocumented="True">A modern, feature-rich and highly tunable C# client library for Apache Cassandra (1.2+) and DataStax Enterprise (3.1+) using exclusively Cassandra's binary protocol and Cassandra Query Language v3.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra" isDocumented="True">The Cassandra namespace contains classes and interfaces to represent data types in the driver.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.Data" isDocumented="True">The Cassandra.Data namespace contains classes to support ADO.NET in the driver.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.Data.Linq" isDocumented="True">The Cassandra.Data.Linq namespace contains classes to handle Linq queries in the driver.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.Mapping" isDocumented="True">The Cassandra.Mapping namespace contains classes to handle CQL data to C# classes mapping in the driver.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.Mapping.Attributes" isDocumented="True">The Cassandra.Mapping.Attributes namespace contains attributes to describe CQL types to C# classes mapping.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.Mapping.TypeConversion" isDocumented="True">The Cassandra.Mapping.TypeConversion namespace handles type conversion for the Mapper.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.Mapping.Utils" isDocumented="False" />
+<NamespaceSummaryItem name="Cassandra.Serialization" isDocumented="True">The Cassandra.Serialization namespace contains classes to handle serialization in the driver.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.Serialization.Primitive" isDocumented="False" />
+<NamespaceSummaryItem name="Cassandra.AppMetrics" isDocumented="True">The Cassandra.AppMetrics namespace contains classes related to the App Metrics provider. This namespace is available on the CassandraCSharpDriver.AppMetrics package.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.AppMetrics.MetricTypes" isDocumented="True">The Cassandra.AppMetrics.MetricTypes namespace contains this provider's interfaces for each metric type. This namespace is available on the CassandraCSharpDriver.AppMetrics package.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.AppMetrics.MetricValues" isDocumented="True">The Cassandra.AppMetrics.MetricTypes namespace contains interfaces than represent the values for some of the metric types. This namespace is available on the CassandraCSharpDriver.AppMetrics package.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.Metrics" isDocumented="True">The Cassandra.Metrics namespace contains classes related to metrics without referring to a specific provider.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.Metrics.Abstractions" isDocumented="True">The Cassandra.Metrics.Abstractions namespace contains the provider interfaces that a metrics provider must implement.</NamespaceSummaryItem></NamespaceSummaries>
+    <ProjectSummary>A modern, feature-rich and highly tunable C# client library for Apache Cassandra %281.2+%29 and DataStax Enterprise %283.1+%29 using exclusively Cassandra&amp;#39%3bs binary protocol and Cassandra Query Language v3.</ProjectSummary>
     <ApiFilter>
       <Filter entryType="Namespace" fullName="Cassandra" isExposed="True">
         <Filter entryType="Class" fullName="Cassandra.BigIntegerTypeAdapter" filterName="BigIntegerTypeAdapter" isExposed="False" />
@@ -115,6 +131,7 @@
     <CollectionTocStyle>Flat</CollectionTocStyle>
     <MSHelp2SdkLinkType>Msdn</MSHelp2SdkLinkType>
     <IncludeStopWordList>True</IncludeStopWordList>
+    <SaveComponentCacheCapacity>100</SaveComponentCacheCapacity>
   </PropertyGroup>
   <!-- There are no properties for these groups.  AnyCPU needs to appear in
        order for Visual Studio to perform the build.  The others are optional

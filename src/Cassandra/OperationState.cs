@@ -14,17 +14,18 @@
 //   limitations under the License.
 //
 
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
-﻿using System.Threading;
-﻿using System.Threading.Tasks;
-﻿using Cassandra.Requests;
- using Cassandra.Responses;
- using Cassandra.Tasks;
-﻿using Microsoft.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using Cassandra.Connections;
+using Cassandra.Observers.Abstractions;
+using Cassandra.Requests;
+using Cassandra.Responses;
+using Cassandra.Serialization;
+using Cassandra.Tasks;
 
 namespace Cassandra
 {
@@ -33,34 +34,46 @@ namespace Cassandra
     /// </summary>
     internal class OperationState
     {
+        private static readonly Logger Logger = new Logger(typeof(OperationState));
+
+        private readonly IOperationObserver _operationObserver;
         private const int StateInit = 0;
         private const int StateCancelled = 1;
         private const int StateTimedout = 2;
         private const int StateCompleted = 3;
-        private Action<Exception, Response> _callback;
-        public static readonly Action<Exception, Response> Noop = (_, __) => { };
+        private Action<IRequestError, Response, long> _callback;
+        public static readonly Action<IRequestError, Response, long> Noop = (_, __, ___) => { };
         private volatile bool _timeoutCallbackSet;
         private int _state = StateInit;
         private volatile HashedWheelTimer.ITimeout _timeout;
-
-        /// <summary>
-        /// 8 byte header of the frame
-        /// </summary>
-        public FrameHeader Header { get; set; }
-
-        public IRequest Request { get; set; }
+        
+        public IRequest Request { get; private set; }
 
         /// <summary>
         /// Gets or sets the timeout in milliseconds for the request.
         /// </summary>
-        public int TimeoutMillis { get; set; }
+        public int TimeoutMillis { get; }
 
         /// <summary>
         /// Creates a new operation state with the provided callback
         /// </summary>
-        public OperationState(Action<Exception, Response> callback)
+        public OperationState(Action<IRequestError, Response> callback, IRequest request, int timeoutMillis, IOperationObserver operationObserver)
         {
-            Volatile.Write(ref _callback, callback);
+            Volatile.Write(ref _callback, (exception, response, timestamp) =>
+            {
+                try
+                {
+                    callback(exception, response);
+                    operationObserver.OnOperationReceive(exception, response, timestamp);
+                }
+                catch (Exception ex)
+                {
+                    OperationState.Logger.Warning("Exception thrown inside an operation callback: {0}", ex.ToString());
+                }
+            });
+            _operationObserver = operationObserver;
+            Request = request;
+            TimeoutMillis = timeoutMillis;
         }
 
         /// <summary>
@@ -71,19 +84,28 @@ namespace Cassandra
             _timeout = value;
         }
 
+        public long WriteFrame(short streamId, MemoryStream memoryStream, Serializer serializer, long timestamp)
+        {
+            var frameLength = Request.WriteFrame(streamId, memoryStream, serializer);
+            _operationObserver.OnOperationSend(frameLength, timestamp);
+            //We will not use the request any more, stop reference it.
+            Request = null;
+            return frameLength;
+        }
+
         /// <summary>
         /// Marks this operation as completed and returns the callback.
         /// Note that the returned callback might be a reference to <see cref="Noop"/>, as the original callback
         /// might be already called.
         /// </summary>
-        public Action<Exception, Response> SetCompleted()
+        public Action<IRequestError, Response, long> SetCompleted()
         {
             var previousState = Interlocked.CompareExchange(ref _state, StateCompleted, StateInit);
             if (previousState == StateCancelled || previousState == StateCompleted)
             {
                 return Noop;
             }
-            Action<Exception, Response> callback;
+            Action<IRequestError, Response, long> callback;
             if (previousState == StateInit)
             {
                 callback = Interlocked.Exchange(ref _callback, Noop);
@@ -110,7 +132,7 @@ namespace Cassandra
         /// Marks this operation as completed and invokes the callback with the exception using the default task scheduler.
         /// Its safe to call this method multiple times as the underlying callback will be invoked just once.
         /// </summary>
-        public void InvokeCallback(Exception ex)
+        public void InvokeCallback(IRequestError error, long timestamp)
         {
             var callback = SetCompleted();
             if (callback == Noop)
@@ -119,14 +141,14 @@ namespace Cassandra
             }
             //Invoke the callback in a new thread in the thread pool
             //This way we don't let the user block on a thread used by the Connection
-            Task.Factory.StartNew(() => callback(ex, null), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+            Task.Factory.StartNew(() => callback(error, null, timestamp), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
         }
 
         /// <summary>
         /// Marks this operation as timed-out, callbacks with the exception 
         /// and sets a handler when the response is received
         /// </summary>
-        public bool MarkAsTimedOut(OperationTimedOutException ex, Action onReceive)
+        public bool MarkAsTimedOut(OperationTimedOutException ex, Action onReceive, long timestamp)
         {
             var previousState = Interlocked.CompareExchange(ref _state, StateTimedout, StateInit);
             if (previousState != StateInit)
@@ -134,14 +156,14 @@ namespace Cassandra
                 return false;
             }
             //When the data is received, invoke on receive callback
-            var callback = Interlocked.Exchange(ref _callback, (_, __) => onReceive());
+            var callback = Interlocked.Exchange(ref _callback, (_, __, ___) => onReceive());
 #if !NETCORE
             Thread.MemoryBarrier();
 #else
             Interlocked.MemoryBarrier();
 #endif
             _timeoutCallbackSet = true;
-            Task.Factory.StartNew(() => callback(ex, null), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
+            Task.Factory.StartNew(() => callback(RequestError.CreateClientError(ex, false), null, timestamp), CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
             return true;
         }
 
@@ -168,14 +190,14 @@ namespace Cassandra
         /// <summary>
         /// Asynchronously marks the provided operations as completed and invoke the callbacks with the exception.
         /// </summary>
-        internal static void CallbackMultiple(IEnumerable<OperationState> ops, Exception ex)
+        internal static void CallbackMultiple(IEnumerable<OperationState> ops, IRequestError error, long timestamp)
         {
             Task.Factory.StartNew(() =>
             {
                 foreach (var state in ops)
                 {
                     var callback = state.SetCompleted();
-                    callback(ex, null);
+                    callback(error, null, timestamp);
                 }
             }, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
         }

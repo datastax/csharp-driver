@@ -24,6 +24,9 @@ using System.Threading.Tasks;
 using Cassandra.Collections;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Metrics;
+using Cassandra.Metrics.Internal;
+using Cassandra.Observers.Abstractions;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;
@@ -39,13 +42,14 @@ namespace Cassandra.Requests
         
         private readonly IRequest _request;
         private readonly IInternalSession _session;
-        private readonly TaskCompletionSource<RowSet> _tcs;
+        private readonly IRequestResultHandler _requestResultHandler;
         private long _state;
         private readonly IEnumerator<Host> _queryPlan;
         private readonly object _queryPlanLock = new object();
         private readonly ICollection<IRequestExecution> _running = new CopyOnWriteList<IRequestExecution>();
         private ISpeculativeExecutionPlan _executionPlan;
         private volatile HashedWheelTimer.ITimeout _nextExecutionTimeout;
+        private readonly IRequestObserver _requestObserver;
         public IExtendedRetryPolicy RetryPolicy { get; }
         public Serializer Serializer { get; }
         public IStatement Statement { get; }
@@ -54,10 +58,12 @@ namespace Cassandra.Requests
         /// <summary>
         /// Creates a new instance using a request, the statement and the execution profile.
         /// </summary>
-        public RequestHandler(IInternalSession session, Serializer serializer, IRequest request, IStatement statement, IRequestOptions requestOptions)
+        public RequestHandler(
+            IInternalSession session, Serializer serializer, IRequest request, IStatement statement, IRequestOptions requestOptions)
         {
-            _tcs = new TaskCompletionSource<RowSet>();
             _session = session ?? throw new ArgumentNullException(nameof(session));
+            _requestObserver = session.ObserverFactory.CreateRequestObserver();
+            _requestResultHandler = new TcsMetricsRequestResultHandler(_requestObserver);
             _request = request;
             Serializer = serializer ?? throw new ArgumentNullException(nameof(session));
             Statement = statement;
@@ -186,7 +192,7 @@ namespace Cassandra.Requests
             }
             if (ex != null)
             {
-                _tcs.TrySetException(ex);
+                _requestResultHandler.TrySetException(ex);
                 return true;
             }
             if (action != null)
@@ -197,16 +203,16 @@ namespace Cassandra.Requests
                     try
                     {
                         action();
-                        _tcs.TrySetResult(result);
+                        _requestResultHandler.TrySetResult(result);
                     }
                     catch (Exception actionEx)
                     {
-                        _tcs.TrySetException(actionEx);
+                        _requestResultHandler.TrySetException(actionEx);
                     }
                 });
                 return true;
             }
-            _tcs.TrySetResult(result);
+            _requestResultHandler.TrySetResult(result);
             return true;
         }
 
@@ -381,12 +387,12 @@ namespace Cassandra.Requests
         {
             if (_request == null)
             {
-                _tcs.TrySetException(new DriverException("request can not be null"));
-                return _tcs.Task;
+                _requestResultHandler.TrySetException(new DriverException("request can not be null"));
+                return _requestResultHandler.Task;
             }
 
             StartNewExecution();
-            return _tcs.Task;
+            return _requestResultHandler.Task;
         }
 
         /// <summary>
@@ -396,7 +402,7 @@ namespace Cassandra.Requests
         {
             try
             {
-                var execution = _session.Cluster.Configuration.RequestExecutionFactory.Create(this, _session, _request);
+                var execution = _session.Cluster.Configuration.RequestExecutionFactory.Create(this, _session, _request, _requestObserver);
                 var lastHost = execution.Start(false);
                 _running.Add(execution);
                 ScheduleNext(lastHost);
@@ -447,7 +453,9 @@ namespace Cassandra.Requests
                     {
                         return;
                     }
-                    RequestHandler.Logger.Info("Starting new speculative execution after {0}, last used host {1}", delay, currentHost.Address);
+
+                    RequestHandler.Logger.Info("Starting new speculative execution after {0} ms. Last used host: {1}", delay, currentHost.Address);
+                    _requestObserver.OnSpeculativeExecution(currentHost, delay);
                     StartNewExecution();
                 });
             }, null, delay);

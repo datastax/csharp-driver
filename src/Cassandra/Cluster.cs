@@ -23,9 +23,9 @@ using System.Net;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Cassandra.Collections;
 using Cassandra.Connections;
-using Cassandra.ExecutionProfiles;
 using Cassandra.Helpers;
 using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
@@ -48,6 +48,7 @@ namespace Cassandra
         private volatile bool _initialized;
         private volatile Exception _initException;
         private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
+        private long _sessionCounter = -1;
 
         private readonly Metadata _metadata;
         private readonly Serializer _serializer;
@@ -57,9 +58,10 @@ namespace Cassandra
 
         /// <inheritdoc />
         public event Action<Host> HostAdded;
+
         /// <inheritdoc />
         public event Action<Host> HostRemoved;
-        
+
         internal IInternalCluster InternalRef => this;
 
         /// <inheritdoc />
@@ -69,7 +71,7 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        ConcurrentDictionary<byte[], PreparedStatement> IInternalCluster.PreparedQueries { get; } 
+        ConcurrentDictionary<byte[], PreparedStatement> IInternalCluster.PreparedQueries { get; }
             = new ConcurrentDictionary<byte[], PreparedStatement>(new ByteArrayComparer());
 
         /// <summary>
@@ -85,7 +87,7 @@ namespace Cassandra
         {
             return BuildFrom(initializer, null, null, null);
         }
-        
+
         internal static Cluster BuildFrom(IInitializer initializer, IReadOnlyList<string> hostNames)
         {
             return BuildFrom(initializer, hostNames, null, null);
@@ -100,8 +102,8 @@ namespace Cassandra
             }
 
             return new Cluster(
-                initializer.ContactPoints.Cast<object>().Concat(hostNames), 
-                config ?? initializer.GetConfiguration(), 
+                initializer.ContactPoints.Cast<object>().Concat(hostNames),
+                config ?? initializer.GetConfiguration(),
                 manager);
         }
 
@@ -118,7 +120,7 @@ namespace Cassandra
         /// <summary>
         /// Gets or sets the maximum protocol version used by this driver.
         /// <para>
-        /// While property value is maintained for backward-compatibility, 
+        /// While property value is maintained for backward-compatibility,
         /// use <see cref="ProtocolOptions.SetMaxProtocolVersion(ProtocolVersion)"/> to set the maximum protocol version used by the driver.
         /// </para>
         /// <para>
@@ -135,7 +137,7 @@ namespace Cassandra
                     // Ignore
                     return;
                 }
-                _maxProtocolVersion = (ProtocolVersion) value;
+                _maxProtocolVersion = (ProtocolVersion)value;
             }
         }
 
@@ -242,11 +244,32 @@ namespace Cassandra
         async Task<TSession> IInternalCluster.ConnectAsync<TSession>(ISessionFactory<TSession> sessionFactory, string keyspace)
         {
             await Init().ConfigureAwait(false);
-            var session = await sessionFactory.CreateSessionAsync(keyspace, _serializer).ConfigureAwait(false);
+            var newSessionName = GetNewSessionName();
+            var session = await sessionFactory.CreateSessionAsync(keyspace, _serializer, newSessionName).ConfigureAwait(false);
             await session.Init().ConfigureAwait(false);
             _connectedSessions.Add(session);
             Cluster.Logger.Info("Session connected ({0})", session.GetHashCode());
             return session;
+        }
+
+        private string GetNewSessionName()
+        {
+            var sessionCounter = GetAndIncrementSessionCounter();
+            if (sessionCounter == 0 && Configuration.SessionName != null)
+            {
+                return Configuration.SessionName;
+            }
+
+            var prefix = Configuration.SessionName ?? Configuration.DefaultSessionName;
+            return prefix + sessionCounter;
+        }
+
+        private long GetAndIncrementSessionCounter()
+        {
+            var newCounter = Interlocked.Increment(ref _sessionCounter);
+
+            // Math.Abs just to avoid negative counters if it overflows
+            return newCounter < 0 ? Math.Abs(newCounter) : newCounter;
         }
 
         /// <inheritdoc />
@@ -277,7 +300,7 @@ namespace Cassandra
                     var initialAbortTimeout = Configuration.SocketOptions.ConnectTimeoutMillis * 2 * _metadata.Hosts.Count;
                     initialAbortTimeout = Math.Max(initialAbortTimeout, ControlConnection.MetadataAbortTimeout);
                     await _controlConnection.InitAsync().WaitToCompleteAsync(initialAbortTimeout).ConfigureAwait(false);
-                    
+
                     // Initialize policies
                     var loadBalancingPolicies = new HashSet<ILoadBalancingPolicy>(new ReferenceEqualityComparer<ILoadBalancingPolicy>());
                     var speculativeExecutionPolicies = new HashSet<ISpeculativeExecutionPolicy>(new ReferenceEqualityComparer<ISpeculativeExecutionPolicy>());
@@ -331,7 +354,6 @@ namespace Cassandra
             {
                 _initLock.Release();
             }
-
             return true;
         }
 
@@ -366,7 +388,7 @@ namespace Cassandra
             _protocolEventDebouncer.Dispose();
             _controlConnection.Dispose();
             Configuration.Timer.Dispose();
-            
+
             // Dispose policies
             var speculativeExecutionPolicies = new HashSet<ISpeculativeExecutionPolicy>(new ReferenceEqualityComparer<ISpeculativeExecutionPolicy>());
             foreach (var options in Configuration.RequestOptions.Values)
@@ -384,12 +406,12 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Creates new session on this cluster, and sets it to default keyspace. 
+        /// Creates new session on this cluster, and sets it to default keyspace.
         /// If default keyspace does not exist then it will be created and session will be set to it.
         /// Name of default keyspace can be specified during creation of cluster object with <c>Cluster.Builder().WithDefaultKeyspace("keyspace_name")</c> method.
         /// </summary>
-        /// <param name="replication">Replication property for this keyspace. To set it, refer to the <see cref="ReplicationStrategies"/> class methods. 
-        /// It is a dictionary of replication property sub-options where key is a sub-option name and value is a value for that sub-option. 
+        /// <param name="replication">Replication property for this keyspace. To set it, refer to the <see cref="ReplicationStrategies"/> class methods.
+        /// It is a dictionary of replication property sub-options where key is a sub-option name and value is a value for that sub-option.
         /// <p>Default value is <c>SimpleStrategy</c> with <c>'replication_factor' = 2</c></p></param>
         /// <param name="durableWrites">Whether to use the commit log for updates on this keyspace. Default is set to <c>true</c>.</param>
         /// <returns>a new session on this cluster set to default keyspace.</returns>
@@ -517,7 +539,7 @@ namespace Cassandra
 
             return ps;
         }
-        
+
         private async Task PrepareAllQueries(Host host)
         {
             ICollection<PreparedStatement> preparedQueries = InternalRef.PreparedQueries.Values;

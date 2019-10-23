@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Net;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Observers;
 using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
@@ -55,7 +56,7 @@ namespace Cassandra.Tests
             Mock.Get(mockRequestExecution)
                 .Setup(m => m.GetNextValidHost(It.IsAny<Dictionary<IPEndPoint, Exception>>()))
                 .Throws(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>()));
-            var sut = new RequestExecution(mockRequestExecution, mockSession, mockRequest);
+            var sut = new RequestExecution(mockRequestExecution, mockSession, mockRequest, NullRequestObserver.Instance);
 
             Assert.Throws<NoHostAvailableException>(() => sut.Start(currentHostRetry));
         }
@@ -90,7 +91,7 @@ namespace Cassandra.Tests
                 .SetupSequence(m => m.GetNextValidHost(It.IsAny<Dictionary<IPEndPoint, Exception>>()))
                 .Returns(validHost)
                 .Throws(new NoHostAvailableException(new Dictionary<IPEndPoint, Exception>()));
-            var sut = new RequestExecution(mockRequestExecution, mockSession, mockRequest);
+            var sut = new RequestExecution(mockRequestExecution, mockSession, mockRequest, NullRequestObserver.Instance);
 
             sut.Start(currentHostRetry);
         }
@@ -131,7 +132,7 @@ namespace Cassandra.Tests
             Mock.Get(mockParent)
                 .Setup(m => m.RequestOptions)
                 .Returns(config.DefaultRequestOptions);
-            var sut = new RequestExecution(mockParent, mockSession, mockRequest);
+            var sut = new RequestExecution(mockParent, mockSession, mockRequest, NullRequestObserver.Instance);
 
             sut.Start(currentHostRetry);
             TestHelper.RetryAssert(
@@ -139,7 +140,7 @@ namespace Cassandra.Tests
                 {
                     Mock.Get(connection)
                         .Verify(
-                            c => c.Send(mockRequest, It.IsAny<Action<Exception, Response>>(), It.IsAny<int>()),
+                            c => c.Send(mockRequest, It.IsAny<Action<IRequestError, Response>>(), It.IsAny<int>()),
                             Times.Once);
                 });
         }
@@ -211,7 +212,7 @@ namespace Cassandra.Tests
                 .Setup(m => m.RequestOptions)
                 .Returns(config.DefaultRequestOptions);
 
-            var sut = new RequestExecution(mockParent, mockSession, mockRequest);
+            var sut = new RequestExecution(mockParent, mockSession, mockRequest, NullRequestObserver.Instance);
             sut.Start(false);
 
             // Validate request is sent
@@ -219,7 +220,7 @@ namespace Cassandra.Tests
                 () =>
                 {
                     Mock.Get(connection).Verify(
-                        c => c.Send(mockRequest, It.IsAny<Action<Exception, Response>>(), It.IsAny<int>()),
+                        c => c.Send(mockRequest, It.IsAny<Action<IRequestError, Response>>(), It.IsAny<int>()),
                         Times.Once);
                 });
 

@@ -2,3 +2,17 @@ RecyclableMemoryStream and RecyclableMemoryStreamManager provided by Microsoft.I
 https://github.com/Microsoft/Microsoft.IO.RecyclableMemoryStream
 under The MIT License
 Copyright (c) 2015 Microsoft
+
+Code under the Cassandra.AppMetrics.HdrHistogram namespace provided by HdrHistogram.NET
+from https://github.com/HdrHistogram/HdrHistogram.NET
+under BSD 2-Clause License: https://raw.githubusercontent.com/HdrHistogram/HdrHistogram.NET/b47d6f55c6cf909cea3bb96943079e7a2f0d7576/LICENSE.txt
+Copyright (c) 2012, 2013, 2014 Gil Tene
+Copyright (c) 2014 Michael Barker 
+Copyright (c) 2016 Lee Campbell
+All rights reserved.
+
+HdrHistogramReservoir and HdrSnapshot provided by App.Metrics.Extensions.Reservoirs.HdrHistogram
+from https://github.com/alhardy/AppMetrics.Reservoirs/tree/3a1861386ac73b21b37e548c61575602eed67f89/src/App.Metrics.Extensions.Reservoirs.HdrHistogram
+under the Apache License, Version 2.0 https://github.com/alhardy/AppMetrics.Reservoirs/blob/3a1861386ac73b21b37e548c61575602eed67f89/LICENSE
+Copyright (c) Allan Hardy. 
+All rights reserved.

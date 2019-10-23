@@ -21,6 +21,6 @@ namespace Cassandra.SessionManagement
 {
     internal interface ISessionFactory<TSession> where TSession : IInternalSession
     {
-        Task<TSession> CreateSessionAsync(string keyspace, Serializer serializer);
+        Task<TSession> CreateSessionAsync(string keyspace, Serializer serializer, string sessionName);
     }
 }

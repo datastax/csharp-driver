@@ -25,6 +25,7 @@ using System.Threading.Tasks;
 
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Observers;
 using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
@@ -277,7 +278,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             config.Policies.LoadBalancingPolicy.Initialize(cluster);
 
             // create session
-            var session = new Session(cluster, config, null, Serializer.Default);
+            var session = new Session(cluster, config, null, Serializer.Default, null);
 
             // create request handler
             var options = profile != null
@@ -294,8 +295,8 @@ namespace Cassandra.Tests.ExecutionProfiles
 
             // mock connection send
             Mock.Get(connection)
-                .Setup(c => c.Send(It.IsAny<IRequest>(), It.IsAny<Action<Exception, Response>>(), It.IsAny<int>()))
-                .Returns<IRequest, Action<Exception, Response>, int>((req, act, timeout) =>
+                .Setup(c => c.Send(It.IsAny<IRequest>(), It.IsAny<Action<IRequestError, Response>>(), It.IsAny<int>()))
+                .Returns<IRequest, Action<IRequestError, Response>, int>((req, act, timeout) =>
                 {
                     mockResult.SendResults.Enqueue(new ConnectionSendResult { Request = req, TimeoutMillis = timeout });
                     Task.Run(async () =>
@@ -316,15 +317,11 @@ namespace Cassandra.Tests.ExecutionProfiles
                             }
                             finally
                             {
-                                act(new OverloadedException(string.Empty), null);
+                                act(RequestError.CreateServerError(new OverloadedException(string.Empty)), null);
                             }
                         }
                     });
-                    return new OperationState(act)
-                    {
-                        Request = req,
-                        TimeoutMillis = timeout
-                    };
+                    return new OperationState(act, req, timeout, NullOperationObserver.Instance);
                 });
             Mock.Get(connection)
                 .SetupGet(c => c.EndPoint)

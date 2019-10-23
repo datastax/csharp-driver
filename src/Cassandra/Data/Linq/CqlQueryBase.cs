@@ -22,13 +22,16 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
+using Cassandra.Metrics.Internal;
+using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
 namespace Cassandra.Data.Linq
 {
-    public abstract class CqlQueryBase<TEntity> : Statement
+    public abstract class CqlQueryBase<TEntity> : Statement, IInternalStatement
     {
         private QueryTrace _queryTrace;
+        private IMetricsManager _metricsManager;
 
         protected int QueryAbortTimeout { get; private set; }
 
@@ -58,6 +61,9 @@ namespace Cassandra.Data.Linq
         internal MapperFactory MapperFactory { get; set; }
 
         internal StatementFactory StatementFactory { get; set; }
+
+        StatementFactory IInternalStatement.StatementFactory => this.StatementFactory;
+
         /// <summary>
         /// The information associated with the TEntity
         /// </summary>
@@ -85,6 +91,7 @@ namespace Cassandra.Data.Linq
             StatementFactory = stmtFactory;
             PocoData = pocoData;
             QueryAbortTimeout = table.GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
+            _metricsManager = (table.GetSession() as IInternalSession)?.MetricsManager;
         }
 
         public ITable GetTable()
@@ -172,7 +179,7 @@ namespace Cassandra.Data.Linq
         
         private IEnumerable<TEntity> ExecuteCqlQuery(string executionProfile)
         {
-            return TaskHelper.WaitToComplete(ExecuteCqlQueryAsync(executionProfile), QueryAbortTimeout);
+            return WaitToCompleteWithMetrics(ExecuteCqlQueryAsync(executionProfile), QueryAbortTimeout);
         }
         
         private async Task<IEnumerable<TEntity>> ExecuteCqlQueryAsync(string executionProfile)
@@ -182,6 +189,11 @@ namespace Cassandra.Data.Linq
             var cql = visitor.GetSelect(Expression, out values);
             var rs = await InternalExecuteWithProfileAsync(executionProfile, cql, values).ConfigureAwait(false);
             return AdaptResult(cql, rs);
+        }
+
+        internal T WaitToCompleteWithMetrics<T>(Task<T> task, int timeout = Timeout.Infinite)
+        {
+            return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, timeout);
         }
     }
 }

@@ -24,6 +24,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.MetadataHelpers;
+using Cassandra.Observers;
 using Cassandra.ProtocolEvents;
 using Cassandra.Tests.Connections;
 using Cassandra.Tests.MetadataHelpers.TestHelpers;

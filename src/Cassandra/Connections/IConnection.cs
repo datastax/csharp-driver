@@ -61,7 +61,7 @@ namespace Cassandra.Connections
         /// Determines the amount of operations that are not finished.
         /// </summary>
         int InFlight { get; }
-
+        
         /// <summary>
         /// Determines if there isn't any operations pending to be written or inflight.
         /// </summary>
@@ -101,11 +101,11 @@ namespace Cassandra.Connections
         /// Sends a new request if possible. If it is not possible it queues it up.
         /// </summary>
         Task<Response> Send(IRequest request, int timeoutMillis);
-
+        
         /// <summary>
         /// Sends a new request if possible and executes the callback when the response is parsed. If it is not possible it queues it up.
         /// </summary>
-        OperationState Send(IRequest request, Action<Exception, Response> callback, int timeoutMillis);
+        OperationState Send(IRequest request, Action<IRequestError, Response> callback, int timeoutMillis);
 
         /// <summary>
         /// Sends a new request if possible with the default timeout. If it is not possible it queues it up.
@@ -115,7 +115,7 @@ namespace Cassandra.Connections
         /// <summary>
         /// Sends a new request if possible and executes the callback when the response is parsed with the default timeout. If it is not possible it queues it up.
         /// </summary>
-        OperationState Send(IRequest request, Action<Exception, Response> callback);
+        OperationState Send(IRequest request, Action<IRequestError, Response> callback);
 
         /// <summary>
         /// Sets the keyspace of the connection.

@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Net;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Observers;
 using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.SessionManagement;
@@ -140,6 +141,9 @@ namespace Cassandra.Tests
                  new SessionFactoryBuilder(),
                  new Dictionary<string, IExecutionProfile>(),
                  new RequestOptionsMapper(),
+                 null,
+                 null,
+                 null,
                  null,
                  null);
             var cc = NewInstance(config, metadata);

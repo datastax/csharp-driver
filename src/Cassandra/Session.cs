@@ -21,12 +21,19 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Collections;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Metrics;
+using Cassandra.Metrics.Internal;
+using Cassandra.Metrics.Registries;
+using Cassandra.Observers;
+using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;
+using TimeoutException = System.TimeoutException;
 
 namespace Cassandra
 {
@@ -36,10 +43,12 @@ namespace Cassandra
         private readonly Serializer _serializer;
         private ISessionManager _sessionManager;
         private static readonly Logger Logger = new Logger(typeof(Session));
-        private readonly ConcurrentDictionary<IPEndPoint, IHostConnectionPool> _connectionPool;
+        private readonly IThreadSafeDictionary<IPEndPoint, IHostConnectionPool> _connectionPool;
         private readonly IInternalCluster _cluster;
         private int _disposed;
         private volatile string _keyspace;
+        private readonly IMetricsManager _metricsManager;
+        private readonly IObserverFactory _observerFactory;
 
         internal IInternalSession InternalRef => this;
 
@@ -49,6 +58,10 @@ namespace Cassandra
         public ICluster Cluster => _cluster;
 
         IInternalCluster IInternalSession.InternalCluster => _cluster;
+
+        IMetricsManager IInternalSession.MetricsManager => _metricsManager;
+
+        IObserverFactory IInternalSession.ObserverFactory => _observerFactory;
 
         /// <summary>
         /// Gets the cluster configuration
@@ -81,21 +94,27 @@ namespace Cassandra
         /// <inheritdoc />
         public UdtMappingDefinitions UserDefinedTypes { get; private set; }
 
+        public string SessionName { get; }
+
         public Policies Policies => Configuration.Policies;
 
         internal Session(
             IInternalCluster cluster,
             Configuration configuration,
             string keyspace,
-            Serializer serializer)
+            Serializer serializer,
+            string sessionName)
         {
             _serializer = serializer;
             _cluster = cluster;
             Configuration = configuration;
             Keyspace = keyspace;
+            SessionName = sessionName;
             UserDefinedTypes = new UdtMappingDefinitions(this, serializer);
-            _connectionPool = new ConcurrentDictionary<IPEndPoint, IHostConnectionPool>();
+            _connectionPool = new CopyOnWriteDictionary<IPEndPoint, IHostConnectionPool>();
             _cluster.HostRemoved += OnHostRemoved;
+            _metricsManager = new MetricsManager(configuration.MetricsProvider, Configuration.MetricsOptions, Configuration.MetricsEnabled, SessionName);
+            _observerFactory = configuration.ObserverFactoryBuilder.Build(_metricsManager);
         }
 
         /// <inheritdoc />
@@ -176,6 +195,8 @@ namespace Cassandra
 
             _sessionManager?.OnShutdownAsync().GetAwaiter().GetResult();
 
+            _metricsManager?.Dispose();
+
             _cluster.HostRemoved -= OnHostRemoved;
 
             var pools = _connectionPool.ToArray();
@@ -195,6 +216,8 @@ namespace Cassandra
         async Task IInternalSession.Init(ISessionManager sessionManager)
         {
             _sessionManager = sessionManager;
+
+            _metricsManager.InitializeMetrics(this);
 
             if (Configuration.GetPoolingOptions(_serializer.ProtocolVersion).GetWarmup())
             {
@@ -253,7 +276,7 @@ namespace Cassandra
         public RowSet EndExecute(IAsyncResult ar)
         {
             var task = (Task<RowSet>)ar;
-            TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
             return task.Result;
         }
 
@@ -261,7 +284,7 @@ namespace Cassandra
         public PreparedStatement EndPrepare(IAsyncResult ar)
         {
             var task = (Task<PreparedStatement>)ar;
-            TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
             return task.Result;
         }
 
@@ -269,16 +292,14 @@ namespace Cassandra
         public RowSet Execute(IStatement statement, string executionProfileName)
         {
             var task = ExecuteAsync(statement, executionProfileName);
-            TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
             return task.Result;
         }
 
         /// <inheritdoc />
         public RowSet Execute(IStatement statement)
         {
-            var task = ExecuteAsync(statement);
-            TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
-            return task.Result;
+            return Execute(statement, Configuration.DefaultExecutionProfileName);
         }
 
         /// <inheritdoc />
@@ -330,9 +351,10 @@ namespace Cassandra
         {
             var hostPool = _connectionPool.GetOrAdd(host.Address, address =>
             {
-                var newPool = Configuration.HostConnectionPoolFactory.Create(host, Configuration, _serializer);
+                var newPool = Configuration.HostConnectionPoolFactory.Create(host, Configuration, _serializer, _observerFactory);
                 newPool.AllConnectionClosed += InternalRef.OnAllConnectionClosed;
                 newPool.SetDistance(distance);
+                _metricsManager.GetOrCreateNodeMetrics(host).InitializePoolGauges(newPool);
                 return newPool;
             });
             return hostPool;
@@ -341,7 +363,7 @@ namespace Cassandra
         /// <inheritdoc />
         IEnumerable<KeyValuePair<IPEndPoint, IHostConnectionPool>> IInternalSession.GetPools()
         {
-            return _connectionPool.ToArray().Select(kvp => new KeyValuePair<IPEndPoint, IHostConnectionPool>(kvp.Key, kvp.Value));
+            return _connectionPool.Select(kvp => new KeyValuePair<IPEndPoint, IHostConnectionPool>(kvp.Key, kvp.Value));
         }
 
         void IInternalSession.OnAllConnectionClosed(Host host, IHostConnectionPool pool)
@@ -363,6 +385,14 @@ namespace Cassandra
                 // Only attempt reconnection with 1 connection pool
                 pool.ScheduleReconnection();
             }
+        }
+        
+        /// <inheritdoc/>
+        int IInternalSession.NumberOfConnectionPools => _connectionPool.Count;
+
+        public IDriverMetrics GetMetrics()
+        {
+            return _metricsManager;
         }
 
         bool IInternalSession.HasConnections(Host host)
@@ -401,7 +431,7 @@ namespace Cassandra
         public PreparedStatement Prepare(string cqlQuery, IDictionary<string, byte[]> customPayload)
         {
             var task = PrepareAsync(cqlQuery, customPayload);
-            TaskHelper.WaitToComplete(task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
+            TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
             return task.Result;
         }
         
@@ -449,6 +479,7 @@ namespace Cassandra
 
         private void OnHostRemoved(Host host)
         {
+            _metricsManager.RemoveNodeMetrics(host);
             if (_connectionPool.TryRemove(host.Address, out var pool))
             {
                 pool.OnHostRemoved();

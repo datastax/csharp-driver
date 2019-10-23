@@ -21,6 +21,7 @@ using System.Threading.Tasks;
 
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
+using Cassandra.Metrics.Internal;
 using Cassandra.Tasks;
 using Cassandra.Tests.Mapping.Pocos;
 using Cassandra.Tests.Mapping.TestData;
@@ -169,7 +170,7 @@ namespace Cassandra.Tests.Mapping.Linq
                     rs2.PagingState = new byte[] { 0, 0, (byte)counter };
                 }
                 return Task.FromResult(rs2);
-            }, int.MaxValue);
+            }, int.MaxValue, Mock.Of<IMetricsManager>());
             var table = new Table<int>(sessionMock.Object);
             IEnumerable<int> results = table.Execute();
             Assert.True(stmt.AutoPage);

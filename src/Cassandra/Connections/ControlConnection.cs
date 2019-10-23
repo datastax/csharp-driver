@@ -103,7 +103,7 @@ namespace Cassandra.Connections
         /// <inheritdoc />
         public async Task InitAsync()
         {
-            ControlConnection._logger.Info("Trying to connect the ControlConnection");
+            _logger.Info("Trying to connect the ControlConnection");
             await Connect(true).ConfigureAwait(false);
         }
         
@@ -177,7 +177,7 @@ namespace Cassandra.Connections
             foreach (var endPointTask in endPointTasks)
             {
                 var endPoint = await endPointTask.ConfigureAwait(false);
-                var connection = _config.ConnectionFactory.Create(_serializer, endPoint, _config);
+                var connection = _config.ConnectionFactory.CreateUnobserved(_serializer, endPoint, _config);
                 try
                 {
                     var version = _serializer.ProtocolVersion;
@@ -252,7 +252,7 @@ namespace Cassandra.Connections
 
             previousConnection.Dispose();
 
-            var c = _config.ConnectionFactory.Create(_serializer, previousConnection.EndPoint, _config);
+            var c = _config.ConnectionFactory.CreateUnobserved(_serializer, previousConnection.EndPoint, _config);
             try
             {
                 await c.Open().ConfigureAwait(false);

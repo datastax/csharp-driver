@@ -14,16 +14,30 @@
 //   limitations under the License.
 //
 
-using System.Net;
+using Cassandra.Observers;
+using Cassandra.Observers.Abstractions;
+using Cassandra.Requests;
 using Cassandra.Serialization;
 
 namespace Cassandra.Connections
 {
     internal class ConnectionFactory : IConnectionFactory
     {
-        public IConnection Create(Serializer serializer, IConnectionEndPoint endPoint, Configuration configuration)
+        public IConnection Create(
+            Serializer serializer, IConnectionEndPoint endPoint, Configuration configuration, IConnectionObserver connectionObserver)
         {
-            return new Connection(serializer, endPoint, configuration);
+            return new Connection(
+                serializer, endPoint, configuration, new StartupRequestFactory(configuration.StartupOptionsFactory), connectionObserver);
+        }
+
+        public IConnection CreateUnobserved(Serializer serializer, IConnectionEndPoint endPoint, Configuration configuration)
+        {
+            return new Connection(
+                serializer, 
+                endPoint, 
+                configuration, 
+                new StartupRequestFactory(configuration.StartupOptionsFactory), 
+                NullConnectionObserver.Instance);
         }
     }
 }

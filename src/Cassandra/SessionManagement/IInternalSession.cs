@@ -19,6 +19,9 @@ using System.Net;
 using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Metrics;
+using Cassandra.Metrics.Internal;
+using Cassandra.Observers.Abstractions;
 
 namespace Cassandra.SessionManagement
 {
@@ -31,7 +34,7 @@ namespace Cassandra.SessionManagement
         /// Initialize the session
         /// </summary>
         Task Init(ISessionManager sessionManager);
-        
+
         /// <summary>
         /// Initialize the session without a session manager
         /// </summary>
@@ -45,7 +48,7 @@ namespace Cassandra.SessionManagement
         /// <summary>
         /// Gets a snapshot of the connection pools
         /// </summary>
-        IEnumerable<KeyValuePair<IPEndPoint, IHostConnectionPool>>  GetPools();
+        IEnumerable<KeyValuePair<IPEndPoint, IHostConnectionPool>> GetPools();
 
         /// <summary>
         /// Gets the existing connection pool for this host and session or null when it does not exists
@@ -76,5 +79,14 @@ namespace Cassandra.SessionManagement
         /// Fetches the request options that were mapped from the provided execution profile's name.
         /// </summary>
         IRequestOptions GetRequestOptions(string executionProfileName);
+
+        /// <summary>
+        /// Returns the number of connection pools. Can be used as a way to fetch the number of connected nodes.
+        /// </summary>
+        int NumberOfConnectionPools { get; }
+
+        IMetricsManager MetricsManager { get; }
+
+        IObserverFactory ObserverFactory { get; }
     }
 }

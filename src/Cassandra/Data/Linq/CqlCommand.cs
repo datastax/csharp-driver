@@ -21,6 +21,8 @@ using System.Threading.Tasks;
 
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
+using Cassandra.Metrics.Internal;
+using Cassandra.SessionManagement;
 using Cassandra.Tasks;
 
 namespace Cassandra.Data.Linq
@@ -28,18 +30,21 @@ namespace Cassandra.Data.Linq
     /// <summary>
     /// Represents a Linq query (UPDATE/INSERT/DELETE) that gets evaluated as a CQL statement.
     /// </summary>
-    public abstract class CqlCommand : SimpleStatement
+    public abstract class CqlCommand : SimpleStatement, IInternalStatement
     {
         private readonly Expression _expression;
         private readonly StatementFactory _statementFactory;
         protected DateTimeOffset? _timestamp;
         protected int? _ttl;
         private QueryTrace _queryTrace;
+        private IMetricsManager _metricsManager;
 
         protected int QueryAbortTimeout { get; private set; }
 
         internal PocoData PocoData { get; }
         internal ITable Table { get; }
+
+        internal IInternalStatement InternalRef => this;
 
         /// <inheritdoc />
         public override string QueryString
@@ -63,7 +68,7 @@ namespace Cassandra.Data.Linq
             }
         }
 
-        internal StatementFactory StatementFactory => _statementFactory;
+        StatementFactory IInternalStatement.StatementFactory => _statementFactory;
 
         public Expression Expression => _expression;
 
@@ -88,6 +93,7 @@ namespace Cassandra.Data.Linq
             _statementFactory = stmtFactory;
             PocoData = pocoData;
             QueryAbortTimeout = table.GetSession().Cluster.Configuration.DefaultRequestOptions.QueryAbortTimeout;
+            _metricsManager = (table.GetSession() as IInternalSession)?.MetricsManager;
         }
 
         protected internal abstract string GetCql(out object[] values);
@@ -109,7 +115,7 @@ namespace Cassandra.Data.Linq
             {
                 throw new ArgumentNullException(nameof(executionProfile));
             }
-            return TaskHelper.WaitToComplete(ExecuteAsync(executionProfile), QueryAbortTimeout);
+            return WaitToCompleteWithMetrics(ExecuteAsync(executionProfile), QueryAbortTimeout);
         }
 
         public void SetQueryTrace(QueryTrace trace)
@@ -206,6 +212,11 @@ namespace Cassandra.Data.Linq
         {
             var task = (Task<RowSet>)ar;
             task.Wait();
+        }
+
+        internal T WaitToCompleteWithMetrics<T>(Task<T> task, int timeout = Timeout.Infinite)
+        {
+            return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, timeout);
         }
     }
 }

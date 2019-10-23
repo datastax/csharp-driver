@@ -14,12 +14,14 @@
 //   limitations under the License.
 //
 
+using Cassandra.Observers.Abstractions;
 using Cassandra.SessionManagement;
 
 namespace Cassandra.Requests
 {
     internal interface IRequestExecutionFactory
     {
-        IRequestExecution Create(IRequestHandler parent, IInternalSession session, IRequest request);
+        IRequestExecution Create(
+            IRequestHandler parent, IInternalSession session, IRequest request, IRequestObserver reqObserver);
     }
 }

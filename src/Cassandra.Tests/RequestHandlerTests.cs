@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Requests;
 using Cassandra.Serialization;
@@ -57,6 +58,9 @@ namespace Cassandra.Tests
                 new SessionFactoryBuilder(),
                 new Dictionary<string, IExecutionProfile>(),
                 new RequestOptionsMapper(),
+                null,
+                null,
+                null,
                 null,
                 null);
         }
@@ -195,31 +199,31 @@ namespace Cassandra.Tests
             var statement = new SimpleStatement("SELECT WILL FAIL");
             //Using default retry policy the decision will always be to rethrow on read/write timeout
             var expected = RetryDecision.RetryDecisionType.Rethrow;
-            var decision = RequestExecution.GetRetryDecision(
+            var decision = GetRetryDecisionFromServerError(
                 new ReadTimeoutException(ConsistencyLevel.Quorum, 1, 2, true), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
 
-            decision = RequestExecution.GetRetryDecision(
+            decision = GetRetryDecisionFromServerError(
                 new WriteTimeoutException(ConsistencyLevel.Quorum, 1, 2, "SIMPLE"), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
 
-            decision = RequestExecution.GetRetryDecision(
+            decision = GetRetryDecisionFromServerError(
                 new UnavailableException(ConsistencyLevel.Quorum, 2, 1), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
 
-            decision = RequestExecution.GetRetryDecision(
+            decision = GetRetryDecisionFromClientError(
                 new Exception(), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
 
             //Expecting to retry when a Cassandra node is Bootstrapping/overloaded
             expected = RetryDecision.RetryDecisionType.Retry;
-            decision = RequestExecution.GetRetryDecision(
+            decision = GetRetryDecisionFromServerError(
                 new OverloadedException(null), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
-            decision = RequestExecution.GetRetryDecision(
+            decision = GetRetryDecisionFromServerError(
                 new IsBootstrappingException(null), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
-            decision = RequestExecution.GetRetryDecision(
+            decision = GetRetryDecisionFromServerError(
                 new TruncateException(null), policy, statement, config, 0);
             Assert.AreEqual(expected, decision.DecisionType);
         }
@@ -626,6 +630,16 @@ namespace Cassandra.Tests
             }
 
             return flags;
+        }
+
+        internal static RetryDecision GetRetryDecisionFromServerError(Exception ex, IExtendedRetryPolicy policy, IStatement statement, Configuration config, int retryCount)
+        {
+            return RequestExecution.GetRetryDecisionWithReason(RequestError.CreateServerError(ex), policy, statement, config, retryCount).Decision;
+        }
+        
+        internal static RetryDecision GetRetryDecisionFromClientError(Exception ex, IExtendedRetryPolicy policy, IStatement statement, Configuration config, int retryCount)
+        {
+            return RequestExecution.GetRetryDecisionWithReason(RequestError.CreateClientError(ex, false), policy, statement, config, retryCount).Decision;
         }
 
         /// <summary>

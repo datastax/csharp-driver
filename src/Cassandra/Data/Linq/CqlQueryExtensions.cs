@@ -17,25 +17,27 @@
 using System;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
+using Cassandra.Mapping;
 
 namespace Cassandra.Data.Linq
 {
     public static class CqlQueryExtensions
     {
-        internal static void CopyQueryPropertiesTo(this Statement src, Statement dst)
+        internal static void CopyQueryPropertiesTo(this IStatement src, IStatement dst)
         {
             dst.EnableTracing(src.IsTracing)
                .SetConsistencyLevel(src.ConsistencyLevel)
                .SetPageSize(src.PageSize)
                .SetPagingState(src.PagingState)
-               .SetRetryPolicy(src.RetryPolicy).
-                SetAutoPage(src.AutoPage);
+               .SetRetryPolicy(src.RetryPolicy)
+               .SetAutoPage(src.AutoPage);
             if (src.SerialConsistencyLevel != ConsistencyLevel.Any)
             {
                 dst.SetSerialConsistencyLevel(src.SerialConsistencyLevel);
             }
         }
-
+        
         /// <summary>
         /// Projects each element of a sequence into a new form.
         /// </summary>

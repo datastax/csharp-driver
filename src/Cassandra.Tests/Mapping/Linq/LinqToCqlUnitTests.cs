@@ -24,6 +24,7 @@ using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
+using Cassandra.Observers;
 using Cassandra.Serialization;
 using Cassandra.Tests.Mapping.Pocos;
 using Moq;

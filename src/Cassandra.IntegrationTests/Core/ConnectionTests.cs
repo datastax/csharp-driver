@@ -26,6 +26,9 @@ using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Metrics;
+using Cassandra.Metrics.Registries;
+using Cassandra.Observers;
 using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
@@ -438,6 +441,9 @@ namespace Cassandra.IntegrationTests.Core
                 new Dictionary<string, IExecutionProfile>(),
                 new RequestOptionsMapper(),
                 null,
+                null,
+                null,
+                null,
                 null);
             using (var connection = CreateConnection(GetProtocolVersion(), config))
             {
@@ -637,13 +643,34 @@ namespace Cassandra.IntegrationTests.Core
                 new Dictionary<string, IExecutionProfile>(),
                 new RequestOptionsMapper(),
                 null,
+                null,
+                null,
+                null,
                 null);
-            using (var connection = new Connection(new Serializer(GetProtocolVersion()), config.EndPointResolver.GetOrResolveContactPointAsync(new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042)).Result.Single(), config))
+            using (var connection = 
+                new Connection(
+                    new Serializer(GetProtocolVersion()), 
+                    config.EndPointResolver
+                          .GetOrResolveContactPointAsync(new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042))
+                          .Result
+                          .Single(), 
+                    config, 
+                    new StartupRequestFactory(config.StartupOptionsFactory), 
+                    NullConnectionObserver.Instance))
             {
                 var ex = Assert.Throws<SocketException>(() => TaskHelper.WaitToComplete(connection.Open()));
                 Assert.AreEqual(SocketError.TimedOut, ex.SocketErrorCode);
             }
-            using (var connection = new Connection(new Serializer(GetProtocolVersion()), config.EndPointResolver.GetOrResolveContactPointAsync(new IPEndPoint(new IPAddress(new byte[] { 255, 255, 255, 255 }), 9042)).Result.Single(), config))
+            using (var connection = 
+                new Connection(
+                    new Serializer(GetProtocolVersion()), 
+                    config.EndPointResolver
+                          .GetOrResolveContactPointAsync(new IPEndPoint(new IPAddress(new byte[] { 255, 255, 255, 255 }), 9042))
+                          .Result
+                          .Single(), 
+                    config, 
+                    new StartupRequestFactory(config.StartupOptionsFactory), 
+                    NullConnectionObserver.Instance))
             {
                 Assert.Throws<SocketException>(() => TaskHelper.WaitToComplete(connection.Open()));
             }
@@ -845,6 +872,9 @@ namespace Cassandra.IntegrationTests.Core
                 new Dictionary<string, IExecutionProfile>(),
                 new RequestOptionsMapper(),
                 null,
+                null,
+                null,
+                null,
                 null);
             return CreateConnection(GetProtocolVersion(), config);
         }
@@ -852,7 +882,14 @@ namespace Cassandra.IntegrationTests.Core
         private Connection CreateConnection(ProtocolVersion protocolVersion, Configuration config)
         {
             Trace.TraceInformation("Creating test connection using protocol v{0}", protocolVersion);
-            return new Connection(new Serializer(protocolVersion), config.EndPointResolver.GetOrResolveContactPointAsync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042)).Result.Single(), config);
+            return new Connection(
+                new Serializer(protocolVersion), 
+                config.EndPointResolver
+                      .GetOrResolveContactPointAsync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042))
+                      .Result.Single(), 
+                config, 
+                new StartupRequestFactory(config.StartupOptionsFactory), 
+                NullConnectionObserver.Instance);
         }
 
         private Task<Response> Query(Connection connection, string query, QueryProtocolOptions options = null)

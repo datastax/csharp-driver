@@ -20,6 +20,7 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Cassandra.Connections;
+using Cassandra.Observers;
 using Moq;
 using NUnit.Framework;
 

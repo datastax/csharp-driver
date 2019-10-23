@@ -18,7 +18,6 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
-using Cassandra.Connections;
 
 namespace Cassandra
 {
@@ -29,7 +28,7 @@ namespace Cassandra
     {
         private static readonly Logger Logger = new Logger(typeof(Host));
         private long _isUpNow = 1;
-        private int _distance = (int) HostDistance.Ignored;
+        private int _distance = (int)HostDistance.Ignored;
 
         /// <summary>
         /// Event that gets raised when the host is set as DOWN (not available) by the driver, after being UP.
@@ -115,7 +114,7 @@ namespace Cassandra
         public Host(IPEndPoint address, IReconnectionPolicy reconnectionPolicy) : this(address)
         {
         }
-        
+
         internal Host(IPEndPoint address)
         {
             Address = address ?? throw new ArgumentNullException(nameof(address));
@@ -218,7 +217,7 @@ namespace Cassandra
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != this.GetType()) return false;
-            return Equals((Host) obj);
+            return Equals((Host)obj);
         }
 
         /// <summary>
@@ -226,7 +225,7 @@ namespace Cassandra
         /// </summary>
         internal void SetDistance(HostDistance distance)
         {
-            var previousDistance = (HostDistance) Interlocked.Exchange(ref _distance, (int)distance);
+            var previousDistance = (HostDistance)Interlocked.Exchange(ref _distance, (int)distance);
             if (previousDistance != distance && DistanceChanged != null)
             {
                 DistanceChanged(previousDistance, distance);

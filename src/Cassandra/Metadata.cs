@@ -17,12 +17,11 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Cassandra.Connections;
 using Cassandra.MetadataHelpers;
 using Cassandra.Requests;
@@ -44,7 +43,7 @@ namespace Cassandra
         private volatile SchemaParser _schemaParser;
 
         private readonly int _queryAbortTimeout;
-        
+
         public event HostsEventHandler HostsEvent;
 
         public event SchemaChangedEventHandler SchemaChangedEvent;
@@ -71,7 +70,7 @@ namespace Cassandra
 
         internal Hosts Hosts { get; private set; }
 
-        internal IReadOnlyDictionary<string, IEnumerable<IPEndPoint>> ResolvedContactPoints { get; private set; } = 
+        internal IReadOnlyDictionary<string, IEnumerable<IPEndPoint>> ResolvedContactPoints { get; private set; } =
             new Dictionary<string, IEnumerable<IPEndPoint>>();
 
         internal IReadOnlyTokenMap TokenToReplicasMap => _tokenMap;
@@ -189,7 +188,7 @@ namespace Cassandra
             _keyspaces = keyspaces;
             _tokenMap = tokenMap;
         }
-        
+
         /// <summary>
         /// this method should be called by the event debouncer
         /// </summary>
@@ -204,14 +203,14 @@ namespace Cassandra
         internal async Task<KeyspaceMetadata> UpdateTokenMapForKeyspace(string name)
         {
             var keyspaceMetadata = await _schemaParser.GetKeyspaceAsync(name).ConfigureAwait(false);
-            
+
             var dropped = false;
             var updated = false;
             if (_tokenMap == null)
             {
                 await RebuildTokenMapAsync(false, false).ConfigureAwait(false);
             }
-                    
+
             if (keyspaceMetadata == null)
             {
                 Metadata.Logger.Verbose("Removing keyspace metadata: " + name);
@@ -234,7 +233,7 @@ namespace Cassandra
 
                 _tokenMap.UpdateKeyspace(keyspaceMetadata);
             }
-            
+
             if (Configuration.MetadataSyncOptions.MetadataSyncEnabled)
             {
                 if (dropped)
@@ -317,8 +316,8 @@ namespace Cassandra
         {
             if (Configuration.MetadataSyncOptions.MetadataSyncEnabled)
             {
-                return !_keyspaces.TryGetValue(keyspace, out var ksMetadata) 
-                    ? new string[0] 
+                return !_keyspaces.TryGetValue(keyspace, out var ksMetadata)
+                    ? new string[0]
                     : ksMetadata.GetTablesNames();
             }
 
@@ -340,7 +339,7 @@ namespace Cassandra
         {
             if (Configuration.MetadataSyncOptions.MetadataSyncEnabled)
             {
-                return !_keyspaces.TryGetValue(keyspace, out var ksMetadata) 
+                return !_keyspaces.TryGetValue(keyspace, out var ksMetadata)
                     ? Task.FromResult<TableMetadata>(null)
                     : ksMetadata.GetTableMetadataAsync(tableName);
             }
@@ -358,8 +357,8 @@ namespace Cassandra
         {
             if (Configuration.MetadataSyncOptions.MetadataSyncEnabled)
             {
-                return !_keyspaces.TryGetValue(keyspace, out var ksMetadata) 
-                    ? null 
+                return !_keyspaces.TryGetValue(keyspace, out var ksMetadata)
+                    ? null
                     : ksMetadata.GetMaterializedViewMetadata(name);
             }
 
@@ -381,8 +380,8 @@ namespace Cassandra
         {
             if (Configuration.MetadataSyncOptions.MetadataSyncEnabled)
             {
-                return !_keyspaces.TryGetValue(keyspace, out var ksMetadata) 
-                    ? Task.FromResult<UdtColumnInfo>(null) 
+                return !_keyspaces.TryGetValue(keyspace, out var ksMetadata)
+                    ? Task.FromResult<UdtColumnInfo>(null)
                     : ksMetadata.GetUdtDefinitionAsync(typeName);
             }
 
@@ -397,8 +396,8 @@ namespace Cassandra
         {
             if (Configuration.MetadataSyncOptions.MetadataSyncEnabled)
             {
-                return !_keyspaces.TryGetValue(keyspace, out var ksMetadata) 
-                    ? null 
+                return !_keyspaces.TryGetValue(keyspace, out var ksMetadata)
+                    ? null
                     : ksMetadata.GetFunction(name, signature);
             }
 
@@ -414,11 +413,11 @@ namespace Cassandra
         {
             if (Configuration.MetadataSyncOptions.MetadataSyncEnabled)
             {
-                return !_keyspaces.TryGetValue(keyspace, out var ksMetadata) 
-                    ? null 
+                return !_keyspaces.TryGetValue(keyspace, out var ksMetadata)
+                    ? null
                     : ksMetadata.GetAggregate(name, signature);
             }
-            
+
             var signatureString = SchemaParser.ComputeFunctionSignatureString(signature);
             return TaskHelper.WaitToComplete(SchemaParser.GetAggregateAsync(keyspace, name, signatureString), _queryAbortTimeout);
         }
@@ -440,7 +439,6 @@ namespace Cassandra
         {
             return TaskHelper.WaitToComplete(RefreshSchemaAsync(keyspace, table), Configuration.DefaultRequestOptions.QueryAbortTimeout * 2);
         }
-        
 
         /// <summary>
         /// Updates the keyspace and token information
@@ -466,7 +464,7 @@ namespace Cassandra
             }
             return true;
         }
-        
+
         public void ShutDown(int timeoutMs = Timeout.Infinite)
         {
             //it is really not required to be called, left as it is part of the public API
@@ -488,7 +486,7 @@ namespace Cassandra
             FireSchemaChangedEvent(SchemaChangedEventArgs.Kind.Dropped, name, null, this);
             return true;
         }
-        
+
         /// <summary>
         /// this method should be called by the event debouncer
         /// </summary>
@@ -536,7 +534,7 @@ namespace Cassandra
         /// Once they have settled on a common version, we say that they are in agreement.
         /// <para/>
         /// This method does not perform retries so
-        /// <see cref="ProtocolOptions.MaxSchemaAgreementWaitSeconds"/> does not apply. 
+        /// <see cref="ProtocolOptions.MaxSchemaAgreementWaitSeconds"/> does not apply.
         /// </summary>
         /// <returns>True if schema agreement was successful and false if it was not successful.</returns>
         public async Task<bool> CheckSchemaAgreementAsync()
