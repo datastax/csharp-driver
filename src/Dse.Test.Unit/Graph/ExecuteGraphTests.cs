@@ -5,6 +5,8 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
+
+using Dse.Metrics.Internal;
 #if !NO_MOCKS
 using System;
 using System.Collections.Generic;
@@ -149,6 +151,7 @@ namespace Dse.Test.Unit.Graph
             var coreSessionMock = new Mock<IInternalSession>(MockBehavior.Strict);
             var requestOptions = Mock.Of<IRequestOptions>();
             Mock.Get(requestOptions).SetupGet(s => s.GraphOptions).Returns(new GraphOptions());
+            coreSessionMock.Setup(s => s.MetricsManager).Returns(Mock.Of<IMetricsManager>());
             coreSessionMock.Setup(s => s.GetRequestOptions("default")).Returns(requestOptions);
             coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>(), It.IsAny<IRequestOptions>()))
                 .Returns(TaskOf(rsMock.Object))
@@ -266,6 +269,7 @@ namespace Dse.Test.Unit.Graph
             var coreSessionMock = new Mock<IInternalSession>(MockBehavior.Strict);
             var requestOptions = Mock.Of<IRequestOptions>();
             Mock.Get(requestOptions).SetupGet(s => s.GraphOptions).Returns(new GraphOptions());
+            coreSessionMock.Setup(s => s.MetricsManager).Returns(Mock.Of<IMetricsManager>());
             coreSessionMock.Setup(s => s.GetRequestOptions("default")).Returns(requestOptions);
             coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>(), It.IsAny<IRequestOptions>()))
                            .Returns(TaskOf(new RowSet()))
@@ -386,6 +390,7 @@ namespace Dse.Test.Unit.Graph
             var requestOptions = Mock.Of<IRequestOptions>();
             Mock.Get(requestOptions).SetupGet(x => x.GraphOptions).Returns(graphOptions ?? new GraphOptions());
             var coreSessionMock = new Mock<IInternalSession>(MockBehavior.Strict);
+            coreSessionMock.Setup(s => s.MetricsManager).Returns(Mock.Of<IMetricsManager>());
             coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>(), requestOptions))
                 .Returns(TaskOf(rs ?? new RowSet()))
                 .Callback<SimpleStatement, IRequestOptions>((stmt, opts) => executeCallback(stmt))
