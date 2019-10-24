@@ -54,16 +54,15 @@ namespace Dse.Test.Unit.Insights
         {
             listener = new TestTraceListener();
             Trace.Listeners.Add(listener);
-            Dse.Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
+            Dse.Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
 
             var cluster = GetCluster(false);
             var session = GetSession(cluster);
             using (var target = InsightsClientTests.GetInsightsClient(cluster, session))
             {
                 Expression<Func<IControlConnection, Task<Response>>> mockExpression =
-                    cc => cc.SendQueryRequestAsync(
+                    cc => cc.UnsafeSendQueryRequestAsync(
                         "CALL InsightsRpc.reportInsight(?)",
-                        It.IsAny<bool>(),
                         It.IsAny<QueryProtocolOptions>());
                 Mock.Get(cluster.Metadata.ControlConnection).Setup(mockExpression).ReturnsAsync((Response)null);
 
@@ -88,16 +87,15 @@ namespace Dse.Test.Unit.Insights
         {
             listener = new TestTraceListener();
             Trace.Listeners.Add(listener);
-            Dse.Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
+            Dse.Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
 
             var cluster = GetCluster(false);
             var session = GetSession(cluster);
             using (var target = InsightsClientTests.GetInsightsClient(cluster, session))
             {
                 Expression<Func<IControlConnection, Task<Response>>> mockExpression =
-                    cc => cc.SendQueryRequestAsync(
+                    cc => cc.UnsafeSendQueryRequestAsync(
                         "CALL InsightsRpc.reportInsight(?)",
-                        It.IsAny<bool>(),
                         It.IsAny<QueryProtocolOptions>());
                 Mock.Get(cluster.Metadata.ControlConnection)
                     .SetupSequence(mockExpression)
@@ -240,12 +238,11 @@ namespace Dse.Test.Unit.Insights
             using (var target = InsightsClientTests.GetInsightsClient(cluster, session))
             {
                 var queryProtocolOptions = new ConcurrentQueue<QueryProtocolOptions>();
-                Mock.Get(cluster.Metadata.ControlConnection).Setup(cc => cc.SendQueryRequestAsync(
+                Mock.Get(cluster.Metadata.ControlConnection).Setup(cc => cc.UnsafeSendQueryRequestAsync(
                         "CALL InsightsRpc.reportInsight(?)",
-                        It.IsAny<bool>(),
                         It.IsAny<QueryProtocolOptions>()))
                     .ReturnsAsync(new FakeResultResponse(ResultResponse.ResultResponseKind.Void))
-                    .Callback<string, bool, QueryProtocolOptions>((query, retry, opts) => { queryProtocolOptions.Enqueue(opts); });
+                    .Callback<string, QueryProtocolOptions>((query, opts) => { queryProtocolOptions.Enqueue(opts); });
 
                 target.Init();
 
@@ -365,12 +362,11 @@ namespace Dse.Test.Unit.Insights
             using (var target = InsightsClientTests.GetInsightsClient(cluster, session))
             {
                 var queryProtocolOptions = new ConcurrentQueue<QueryProtocolOptions>();
-                Mock.Get(cluster.Metadata.ControlConnection).Setup(cc => cc.SendQueryRequestAsync(
+                Mock.Get(cluster.Metadata.ControlConnection).Setup(cc => cc.UnsafeSendQueryRequestAsync(
                         "CALL InsightsRpc.reportInsight(?)",
-                        It.IsAny<bool>(),
                         It.IsAny<QueryProtocolOptions>()))
                     .ReturnsAsync(new FakeResultResponse(ResultResponse.ResultResponseKind.Void))
-                    .Callback<string, bool, QueryProtocolOptions>((query, retry, opts) => { queryProtocolOptions.Enqueue(opts); });
+                    .Callback<string, QueryProtocolOptions>((query, opts) => { queryProtocolOptions.Enqueue(opts); });
 
                 target.Init();
 
@@ -403,12 +399,11 @@ namespace Dse.Test.Unit.Insights
             using (var target = InsightsClientTests.GetInsightsClient(cluster, session))
             {
                 var queryProtocolOptions = new ConcurrentQueue<QueryProtocolOptions>();
-                Mock.Get(cluster.Metadata.ControlConnection).Setup(cc => cc.SendQueryRequestAsync(
+                Mock.Get(cluster.Metadata.ControlConnection).Setup(cc => cc.UnsafeSendQueryRequestAsync(
                         "CALL InsightsRpc.reportInsight(?)",
-                        It.IsAny<bool>(),
                         It.IsAny<QueryProtocolOptions>()))
                     .ReturnsAsync(new FakeResultResponse(ResultResponse.ResultResponseKind.Void))
-                    .Callback<string, bool, QueryProtocolOptions>((query, retry, opts) => { queryProtocolOptions.Enqueue(opts); });
+                    .Callback<string, QueryProtocolOptions>((query, opts) => { queryProtocolOptions.Enqueue(opts); });
 
                 target.Init();
 

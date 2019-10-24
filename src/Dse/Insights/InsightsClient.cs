@@ -68,7 +68,7 @@ namespace Dse.Insights
                 }
 
                 _errorCount++;
-                InsightsClient.Logger.Info("Could not send insights startup event. Exception: {0}", ex.ToString());
+                InsightsClient.Logger.Verbose("Could not send insights startup event. Exception: {0}", ex.ToString());
                 return false;
             }
         }
@@ -89,7 +89,7 @@ namespace Dse.Insights
                 }
 
                 _errorCount++;
-                InsightsClient.Logger.Info("Could not send insights status event. Exception: {0}", ex.ToString());
+                InsightsClient.Logger.Verbose("Could not send insights status event. Exception: {0}", ex.ToString());
                 return false;
             }
         }
@@ -163,10 +163,10 @@ namespace Dse.Insights
             }
             catch (Exception ex)
             {
-                InsightsClient.Logger.Error("Unhandled exception in Insights task. Insights metrics will not be sent to the server anymore.", ex);
+                InsightsClient.Logger.Verbose("Unhandled exception in Insights task. Insights metrics will not be sent to the server anymore.", ex);
             }
 
-            InsightsClient.Logger.Info("Insights task is ending.");
+            InsightsClient.Logger.Verbose("Insights task is ending.");
         }
 
         private async Task SendJsonMessageAsync<T>(T message)
@@ -179,8 +179,8 @@ namespace Dse.Insights
                 null,
                 ConsistencyLevel.Any);
 
-            var response = await _cluster.Metadata.ControlConnection.SendQueryRequestAsync(
-                InsightsClient.ReportInsightRpc, false, queryProtocolOptions).ConfigureAwait(false);
+            var response = await _cluster.Metadata.ControlConnection.UnsafeSendQueryRequestAsync(
+                InsightsClient.ReportInsightRpc, queryProtocolOptions).ConfigureAwait(false);
 
             if (response == null)
             {
