@@ -31,7 +31,6 @@ namespace Dse
         private volatile TokenMap _tokenMap;
         private volatile ConcurrentDictionary<string, KeyspaceMetadata> _keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
         private volatile SchemaParser _schemaParser;
-
         private readonly int _queryAbortTimeout;
 
         public event HostsEventHandler HostsEvent;
@@ -43,6 +42,11 @@ namespace Dse
         /// </summary>
         /// <returns>the Cassandra name of currently connected cluster.</returns>
         public String ClusterName { get; internal set; }
+
+        /// <summary>
+        /// Determines whether the cluster is provided as a service (DataStax Apollo).
+        /// </summary>
+        public bool IsDbaas { get; private set; } = false;
 
         /// <summary>
         /// Gets the configuration associated with this instance.
@@ -628,6 +632,11 @@ namespace Dse
         internal void SetCassandraVersion(Version version)
         {
             _schemaParser = SchemaParser.GetInstance(version, this, GetUdtDefinitionAsync, _schemaParser);
+        }
+
+        internal void SetProductTypeAsDbaas()
+        {
+            IsDbaas = true;
         }
     }
 }

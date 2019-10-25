@@ -21,6 +21,7 @@ namespace Dse
 
         /// <summary>
         /// The default consistency level for queries: <c>ConsistencyLevel.LocalOne</c>.
+        /// For DataStax Apollo, this constant should be ignored as the default is LocalQuorum.
         /// </summary>    
         public const ConsistencyLevel DefaultConsistencyLevel = ConsistencyLevel.LocalOne;
 
@@ -39,9 +40,10 @@ namespace Dse
         /// </summary>
         public const bool DefaultRetryOnTimeout = true;
 
-        private ConsistencyLevel _consistency = DefaultConsistencyLevel;
+        private ConsistencyLevel? _consistency;
+        private ConsistencyLevel _defaultConsistencyLevel = QueryOptions.DefaultConsistencyLevel;
         private int _pageSize = DefaultPageSize;
-        private ConsistencyLevel _serialConsistency = DefaultSerialConsistencyLevel;
+        private ConsistencyLevel _serialConsistency = QueryOptions.DefaultSerialConsistencyLevel;
         private bool _retryOnTimeout = DefaultRetryOnTimeout;
         private bool _defaultIdempotence = false;
         private bool _prepareOnAllHosts = true;
@@ -70,6 +72,10 @@ namespace Dse
             return this;
         }
 
+        internal void SetDefaultConsistencyLevel(ConsistencyLevel consistencyLevel)
+        {
+            _defaultConsistencyLevel = consistencyLevel;
+        }
 
         /// <summary>
         ///  The default consistency level used by queries.
@@ -77,7 +83,7 @@ namespace Dse
         /// <returns>the default consistency level used by queries.</returns>
         public ConsistencyLevel GetConsistencyLevel()
         {
-            return _consistency;
+            return _consistency ?? _defaultConsistencyLevel;
         }
 
 
@@ -97,8 +103,7 @@ namespace Dse
             _serialConsistency = serialConsistencyLevel;
             return this;
         }
-
-
+        
         /// <summary>
         /// The default serial consistency level used by queries.
         /// </summary>

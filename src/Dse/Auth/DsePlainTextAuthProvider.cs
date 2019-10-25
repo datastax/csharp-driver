@@ -30,7 +30,6 @@ namespace Dse.Auth
     {
         private static readonly byte[] Mechanism = Encoding.UTF8.GetBytes("PLAIN");
         private static readonly byte[] InitialServerChallenge = Encoding.UTF8.GetBytes("PLAIN-START");
-        private readonly string _username;
         private readonly string _password;
         private readonly string _authorizationId;
         private string _name;
@@ -55,15 +54,20 @@ namespace Dse.Auth
         /// </param>
         public DsePlainTextAuthProvider(string username, string password, string authorizationId)
         {
-            _username = username;
+            Username = username;
             _password = password;
             _authorizationId = authorizationId;
         }
 
+        /// <summary>
+        /// For testing purposes.
+        /// </summary>
+        internal string Username { get; }
+
         /// <inheritdoc />
         public IAuthenticator NewAuthenticator(IPEndPoint host)
         {
-            return new PlainTextAuthenticator(_name, _username, _password, _authorizationId);
+            return new PlainTextAuthenticator(_name, Username, _password, _authorizationId);
         }
 
         /// <inheritdoc />

@@ -271,5 +271,13 @@ namespace Dse
             PoolingOptions = PoolingOptions.Create(protocolVersion);
             return PoolingOptions;
         }
+
+        /// <summary>
+        /// Sets the default consistency level.
+        /// </summary>
+        internal void SetDefaultConsistencyLevel(ConsistencyLevel consistencyLevel)
+        {
+            QueryOptions.SetDefaultConsistencyLevel(consistencyLevel);
+        }
     }
 }

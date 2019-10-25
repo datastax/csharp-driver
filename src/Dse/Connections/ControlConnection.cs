@@ -32,6 +32,8 @@ namespace Dse.Connections
 {
     internal class ControlConnection : IControlConnection
     {
+        private const string SupportedProductTypeKey = "PRODUCT_TYPE";
+        private const string SupportedDbaas = "DATASTAX_APOLLO";
         private const string SelectPeers = "SELECT * FROM system.peers";
         private const string SelectLocal = "SELECT * FROM system.local WHERE key='local'";
         private const CassandraEventType CassandraEventTypes = CassandraEventType.TopologyChange | CassandraEventType.StatusChange | CassandraEventType.SchemaChange;
@@ -196,6 +198,11 @@ namespace Dse.Connections
                                  $"version {_serializer.ProtocolVersion:D}");
                     _connection = connection;
 
+                    if (isInitializing)
+                    {
+                        await ApplySupportedOptionsAsync().ConfigureAwait(false);
+                    }
+
                     await RefreshNodeList(endPoint).ConfigureAwait(false);
 
                     var commonVersion = ProtocolVersion.GetHighestCommon(_metadata.Hosts);
@@ -221,6 +228,42 @@ namespace Dse.Connections
                 }
             }
             throw new NoHostAvailableException(triedHosts);
+        }
+
+        private async Task ApplySupportedOptionsAsync()
+        {
+            var request = new OptionsRequest();
+            var response = await _connection.Send(request).ConfigureAwait(false);
+
+            if (response == null)
+            {
+                throw new NullReferenceException("Response can not be null");
+            }
+
+            if (!(response is SupportedResponse supportedResponse))
+            {
+                throw new DriverInternalError("Expected SupportedResponse, obtained " + response.GetType().FullName);
+            }
+
+            ApplyProductTypeOption(supportedResponse.Output.Options);
+        }
+
+        private void ApplyProductTypeOption(IDictionary<string, string[]> options)
+        {
+            if (!options.TryGetValue(ControlConnection.SupportedProductTypeKey, out var productTypeOptions))
+            {
+                return;
+            }
+
+            if (productTypeOptions.Length <= 0)
+            {
+                return;
+            }
+
+            if (string.Compare(productTypeOptions[0], ControlConnection.SupportedDbaas, StringComparison.OrdinalIgnoreCase) == 0)
+            {
+                _metadata.SetProductTypeAsDbaas();
+            }
         }
 
         private async Task<IConnection> ChangeProtocolVersion(ProtocolVersion nextVersion, IConnection previousConnection,

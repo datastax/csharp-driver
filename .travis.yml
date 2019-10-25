@@ -2,23 +2,23 @@ language: csharp
 sudo: required
 mono: none
 dist: xenial
-dotnet: 2.2.204
-
+  
 branches:
   except:
     - 1.0
     - 2.0
     - 2.1
     - dse_3.1
-    
-env:
-  global:
-    - BuildCoreOnly=True
-  matrix:
-    - TARGETF="netcoreapp2.1" BUILD_EXAMPLES="1"
-    - TARGETF="netcoreapp2.0" BUILD_EXAMPLES="0"
+
+matrix:
+  include:
+    - dotnet: 2.2.204
+      env: TARGETF="netcoreapp2.1" NETCORE_RUNTIME=2.1 BuildCoreOnly=True
+    - dotnet: 2.1.202
+      env: TARGETF="netcoreapp2.0" NETCORE_RUNTIME=2.0 BuildCoreOnly=True
 
 script:
+  - dotnet --info
   - dotnet restore src
   - dotnet build src/Dse.Test.Unit/Dse.Test.Unit.csproj --no-restore -c Release
   - dotnet test src/Dse.Test.Unit/Dse.Test.Unit.csproj --no-restore --no-build -v n -c Release -f $TARGETF

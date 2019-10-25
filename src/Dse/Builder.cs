@@ -9,6 +9,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
+using Dse.Cloud;
 using Dse.Connections;
 using Dse.ExecutionProfiles;
 using Dse.Metrics;
@@ -24,6 +28,8 @@ namespace Dse
     /// </summary>
     public class Builder : IInitializer
     {
+        private static readonly Logger Logger = new Logger(typeof(Builder));
+
         private readonly List<IPEndPoint> _addresses = new List<IPEndPoint>();
         private readonly List<string> _hostNames = new List<string>();
         private readonly ICoreClusterFactory _coreClusterFactory = new CoreClusterFactory();
@@ -60,6 +66,11 @@ namespace Dse
         private IDriverMetricsProvider _driverMetricsProvider;
         private DriverMetricsOptions _metricsOptions;
         private string _sessionName;
+        private string _bundlePath;
+        private bool _addedSsl;
+        private bool _addedContactPoints;
+        private bool _addedAuth;
+        private bool _addedLbp;
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -108,6 +119,11 @@ namespace Dse
         /// <returns>the configuration to use for the new cluster.</returns>
         public Configuration GetConfiguration()
         {
+            if (_bundlePath != null)
+            {
+                ConfigureCloudCluster(_bundlePath);
+            }
+
             var policies = new Policies(
                 _loadBalancingPolicy,
                 _reconnectionPolicy,
@@ -228,6 +244,7 @@ namespace Dse
         /// <returns>this Builder</returns>
         public Builder AddContactPoint(string address)
         {
+            _addedContactPoints = true;
             _hostNames.Add(address ?? throw new ArgumentNullException(nameof(address)));
             return this;
         }
@@ -240,6 +257,7 @@ namespace Dse
         /// <returns>this Builder</returns>
         public Builder AddContactPoint(IPAddress address)
         {
+            _addedContactPoints = true;
             // Avoid creating IPEndPoint entries using the current port,
             // as the user might provide a different one by calling WithPort() after this call
             AddContactPoint(address.ToString());
@@ -254,6 +272,7 @@ namespace Dse
         /// <returns>this Builder</returns>
         public Builder AddContactPoint(IPEndPoint address)
         {
+            _addedContactPoints = true;
             _addresses.Add(address);
             return this;
         }
@@ -266,6 +285,7 @@ namespace Dse
         /// <returns>this Builder </returns>
         public Builder AddContactPoints(params string[] addresses)
         {
+            _addedContactPoints = true;
             AddContactPoints(addresses.AsEnumerable());
             return this;
         }
@@ -278,6 +298,7 @@ namespace Dse
         /// <returns>this Builder</returns>
         public Builder AddContactPoints(IEnumerable<string> addresses)
         {
+            _addedContactPoints = true;
             foreach (var address in addresses)
             {
                 AddContactPoint(address);
@@ -293,6 +314,7 @@ namespace Dse
         /// <returns>this Builder</returns>
         public Builder AddContactPoints(params IPAddress[] addresses)
         {
+            _addedContactPoints = true;
             AddContactPoints(addresses.AsEnumerable());
             return this;
         }
@@ -305,6 +327,7 @@ namespace Dse
         /// <returns>this Builder</returns>
         public Builder AddContactPoints(IEnumerable<IPAddress> addresses)
         {
+            _addedContactPoints = true;
             foreach (var address in addresses)
             {
                 AddContactPoint(address);
@@ -322,6 +345,7 @@ namespace Dse
         /// <returns>this Builder</returns>
         public Builder AddContactPoints(params IPEndPoint[] addresses)
         {
+            _addedContactPoints = true;
             AddContactPoints(addresses.AsEnumerable());
             return this;
         }
@@ -336,6 +360,7 @@ namespace Dse
         /// <returns>this Builder</returns>
         public Builder AddContactPoints(IEnumerable<IPEndPoint> addresses)
         {
+            _addedContactPoints = true;
             _addresses.AddRange(addresses);
             return this;
         }
@@ -356,6 +381,7 @@ namespace Dse
         /// <returns>this Builder</returns>
         public Builder WithLoadBalancingPolicy(ILoadBalancingPolicy policy)
         {
+            _addedLbp = true;
             _loadBalancingPolicy = policy;
             return this;
         }
@@ -449,6 +475,7 @@ namespace Dse
         /// <returns>this Builder</returns>
         public Builder WithCredentials(String username, String password)
         {
+            _addedAuth = true;
             _authInfoProvider = new SimpleAuthInfoProvider().Add("username", username).Add("password", password);
             _authProvider = new PlainTextAuthProvider(username, password);
             return this;
@@ -464,6 +491,7 @@ namespace Dse
         /// <returns>this Builder</returns>
         public Builder WithAuthProvider(IAuthProvider authProvider)
         {
+            _addedAuth = true;
             _authProvider = authProvider;
             return this;
         }
@@ -537,6 +565,7 @@ namespace Dse
         /// <returns>this builder</returns>
         public Builder WithSSL()
         {
+            _addedSsl = true;
             _sslOptions = new SSLOptions();
             return this;
         }
@@ -554,6 +583,7 @@ namespace Dse
         /// <returns>this builder</returns>
         public Builder WithSSL(SSLOptions sslOptions)
         {
+            _addedSsl = true;
             _sslOptions = sslOptions;
             return this;
         }
@@ -844,7 +874,7 @@ namespace Dse
             _metadataSyncOptions = metadataSyncOptions;
             return this;
         }
-
+        
         /// <summary>
         /// <see cref="ISession"/> objects created through the <see cref="ICluster"/> built from this builder will have <see cref="ISession.SessionName"/>
         /// set to the value provided in this method.
@@ -874,6 +904,33 @@ namespace Dse
         }
 
         /// <summary>
+        /// <para>
+        /// Configures a Cluster using the Cloud Secure Connection Bundle.
+        /// Using this method will configure this builder with specific contact points, SSL options, credentials and load balancing policy.
+        /// When needed, you can specify custom settings by calling other builder methods. 
+        /// </para>
+        /// <para>
+        /// In case you need to specify a different set of credentials from the one in the bundle, here is an example:        /// <code>
+        ///         Cluster.Builder()
+        ///                   .WithCloudSecureConnectionBundle("/path/to/bundle.zip")
+        ///                   .WithCredentials("username", "password")
+        ///                   .Build();
+        /// </code>
+        /// </para> 
+        /// <para>
+        /// <see cref="Build"/> will throw <see cref="InvalidOperationException"/> when an error occurs that is not related to
+        /// connectivity and <see cref="NoHostAvailableException"/> when an error occurs while trying to obtain the cluster metadata from the remote endpoint.
+        /// </para>
+        /// </summary>
+        /// <param name="bundlePath">Path of the secure connection bundle.</param>
+        /// <returns>A preconfigured builder ready for use.</returns>
+        public Builder WithCloudSecureConnectionBundle(string bundlePath)
+        {
+            _bundlePath = bundlePath;
+            return this;
+        }
+
+        /// <summary>
         ///  Build the cluster with the configured set of initial contact points and policies.
         /// </summary>
         /// <exception cref="NoHostAvailableException">Throws a NoHostAvailableException when no host could be resolved.</exception>
@@ -881,9 +938,106 @@ namespace Dse
         /// <returns>the newly build Cluster instance. </returns>
         public Cluster Build()
         {
-            return _coreClusterFactory.Create(this, HostNames, null, null);
+            return _coreClusterFactory.Create(this, HostNames, GetConfiguration(), null);
         }
 
         internal IReadOnlyList<string> HostNames => _hostNames;
+        
+        /// <summary>
+        /// Clear and set contact points.
+        /// </summary>
+        private Builder SetContactPoints(IEnumerable<string> addresses)
+        {
+            _hostNames.Clear();
+            _addresses.Clear();
+            AddContactPoints(addresses);
+            return this;
+        }
+        
+        private Builder ConfigureCloudCluster(string bundlePath)
+        {
+            if (_addedSsl)
+            {
+                throw new ArgumentException("SSL options can not be set when a secure connection bundle is provided.");
+            }
+            
+            if (_addedContactPoints)
+            {
+                throw new ArgumentException("Contact points can not be set when a secure connection bundle is provided.");
+            }
+
+            SecureConnectionBundle bundle;
+            try
+            {
+                bundle = new SecureConnectionBundleParser().ParseBundle(bundlePath);
+            }
+            catch (Exception ex2)
+            {
+                throw new InvalidOperationException(
+                    "Failed to load or parse the secure connection bundle. See inner exception for more details.", ex2);
+            }
+
+            return ConfigureCloudCluster(bundle);
+        }
+
+        private Builder ConfigureCloudCluster(SecureConnectionBundle bundle)
+        {
+            var certificateValidator = new CustomCaCertificateValidator(bundle.CaCert, bundle.Config.Host);
+            var sslOptions = new SSLOptions(
+                SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls,
+                false,
+                (sender, certificate, chain, errors) => certificateValidator.Validate(certificate, chain, errors));
+
+            if (bundle.ClientCert != null)
+            {
+                sslOptions = sslOptions.SetCertificateCollection(new X509Certificate2Collection(new[] { bundle.ClientCert }));
+            }
+
+            var metadata = new CloudMetadataService();
+            var clusterMetadata = Task.Run(
+                () => metadata.GetClusterMetadataAsync(
+                    $"https://{bundle.Config.Host}:{bundle.Config.Port}/metadata", 
+                    this.SocketOptions,
+                    sslOptions)).GetAwaiter().GetResult();
+
+            var proxyAddress = clusterMetadata.ContactInfo.SniProxyAddress;
+            var separatorIndex = proxyAddress.IndexOf(':');
+
+            if (separatorIndex == -1)
+            {
+                throw new InvalidOperationException($"The SNI endpoint address should contain ip/name and port. Address received: {proxyAddress}");
+            }
+
+            var ipOrName = proxyAddress.Substring(0, separatorIndex);
+            var port = int.Parse(proxyAddress.Substring(separatorIndex + 1));
+            var isIp = IPAddress.TryParse(ipOrName, out var address);
+            var sniOptions = new SniOptions(address, port, isIp ? null : ipOrName);
+            
+            var builder = this.SetContactPoints(clusterMetadata.ContactInfo.ContactPoints);
+            
+            if (!_addedAuth && bundle.Config.Password != null && bundle.Config.Username != null)
+            {
+                builder = builder.WithCredentials(bundle.Config.Username, bundle.Config.Password);
+            }
+
+            if (!_addedLbp)
+            {
+                if (clusterMetadata.ContactInfo.LocalDc == null)
+                {
+                    Builder.Logger.Warning("Not setting localDc property of DCAwareRoundRobinPolicy because the driver could not" +
+                                                     "obtain it from the cluster metadata.");
+                    builder = builder.WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy()));
+                }
+                else
+                {
+                    builder = builder.WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(clusterMetadata.ContactInfo.LocalDc)));
+                }
+            } 
+            
+            builder = builder.WithSSL(sslOptions);
+
+            return builder
+                .WithEndPointResolver(new SniEndPointResolver(new DnsResolver(), sniOptions));
+        }
     }
 }

@@ -14,7 +14,7 @@ namespace Dse.Test.Integration
     /// </summary>
     public abstract class SharedDseClusterTest : SharedClusterTest
     {
-        protected new IDseCluster Cluster { get; private set; }
+        protected new IDseCluster Cluster { get; set; }
 
         protected new IDseSession Session { get { return (IDseSession) base.Session; } }
 
