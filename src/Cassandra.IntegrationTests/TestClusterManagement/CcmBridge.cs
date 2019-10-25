@@ -192,7 +192,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// <summary>
         /// Spawns a new process (platform independent)
         /// </summary>
-        public static ProcessOutput ExecuteProcess(string processName, string args, int timeout = DefaultCmdTimeout)
+        public static ProcessOutput ExecuteProcess(
+            string processName, 
+            string args, 
+            int timeout = DefaultCmdTimeout, 
+            IReadOnlyDictionary<string, string> envVariables = null, 
+            string workDir = null)
         {
             var output = new ProcessOutput();
             using (var process = new Process())
@@ -207,6 +212,19 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 #if !NETCORE
                 process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
 #endif
+                
+                if (envVariables != null)
+                {
+                    foreach (var envVar in envVariables)
+                    {
+                        process.StartInfo.EnvironmentVariables[envVar.Key] = envVar.Value;
+                    }
+                }
+
+                if (workDir != null)
+                {
+                    process.StartInfo.WorkingDirectory = workDir;
+                }
 
                 using (var outputWaitHandle = new AutoResetEvent(false))
                 using (var errorWaitHandle = new AutoResetEvent(false))
@@ -247,8 +265,15 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                             output.OutputText.AppendLine(e.Data);
                         }
                     };
-
-                    process.Start();
+                    
+                    try
+                    {
+                        process.Start();
+                    }
+                    catch (Exception exception)
+                    {
+                        Trace.TraceInformation("Process start failure: " + exception.Message);
+                    }
 
                     process.BeginOutputReadLine();
                     process.BeginErrorReadLine();

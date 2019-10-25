@@ -265,5 +265,120 @@ namespace Cassandra.Tests
                                  .GetConfiguration();
             Assert.AreEqual(expected, config.ProtocolOptions.MaxSchemaAgreementWaitSeconds);
         }
+
+        [Test]
+        public void Should_ThrowException_When_ContactPointAndBundleAreProvided()
+        {
+            const string exceptionMsg = "Contact points can not be set when a secure connection bundle is provided.";
+            var builder = Cluster.Builder()
+                                .AddContactPoint("192.168.1.10")
+                                .WithCloudSecureConnectionBundle("bundle");
+
+            var ex = Assert.Throws<ArgumentException>(() => builder.Build());
+            Assert.AreEqual(exceptionMsg, ex.Message);
+            
+            builder = Cluster.Builder()
+                                 .AddContactPoint(IPAddress.Parse("192.168.1.10"))
+                                 .WithCloudSecureConnectionBundle("bundle");
+
+            ex = Assert.Throws<ArgumentException>(() => builder.Build());
+            Assert.AreEqual(exceptionMsg, ex.Message);
+            
+            builder = Cluster.Builder()
+                             .AddContactPoint(new IPEndPoint(IPAddress.Parse("192.168.1.10"), 9042))
+                             .WithCloudSecureConnectionBundle("bundle");
+
+            ex = Assert.Throws<ArgumentException>(() => builder.Build());
+            Assert.AreEqual(exceptionMsg, ex.Message);
+            
+            builder = Cluster.Builder()
+                             .AddContactPoints(new IPEndPoint(IPAddress.Parse("192.168.1.10"), 9042))
+                             .WithCloudSecureConnectionBundle("bundle");
+
+            ex = Assert.Throws<ArgumentException>(() => builder.Build());
+            Assert.AreEqual(exceptionMsg, ex.Message);
+
+            builder = Cluster.Builder()
+                             .AddContactPoint(IPAddress.Parse("192.168.1.10"))
+                             .WithCloudSecureConnectionBundle("bundle");
+
+            ex = Assert.Throws<ArgumentException>(() => builder.Build());
+            Assert.AreEqual(exceptionMsg, ex.Message);
+
+            builder = Cluster.Builder()
+                             .WithCloudSecureConnectionBundle("bundle")
+                             .AddContactPoint(IPAddress.Parse("192.168.1.10"));
+            
+            ex = Assert.Throws<ArgumentException>(() => builder.Build());
+            Assert.AreEqual(exceptionMsg, ex.Message);
+        }
+        
+        [Test]
+        public void Should_ThrowException_When_SslOptionsAndBundleAreProvided()
+        {
+            const string exceptionMsg = "SSL options can not be set when a secure connection bundle is provided.";
+            var builder = Cluster.Builder()
+                                .WithSSL()
+                                .WithCloudSecureConnectionBundle("bundle");
+
+            var ex = Assert.Throws<ArgumentException>(() => builder.Build());
+            Assert.AreEqual(exceptionMsg, ex.Message);
+            
+            builder = Cluster.Builder()
+                             .WithSSL()
+                             .WithCloudSecureConnectionBundle("bundle");
+
+            ex = Assert.Throws<ArgumentException>(() => builder.Build());
+            Assert.AreEqual(exceptionMsg, ex.Message);
+            
+            builder = Cluster.Builder()
+                             .WithSSL()
+                             .WithCloudSecureConnectionBundle("bundle");
+
+            ex = Assert.Throws<ArgumentException>(() => builder.Build());
+            Assert.AreEqual(exceptionMsg, ex.Message);
+            
+            builder = Cluster.Builder()
+                             .WithSSL()
+                             .WithCloudSecureConnectionBundle("bundle");
+
+            ex = Assert.Throws<ArgumentException>(() => builder.Build());
+            Assert.AreEqual(exceptionMsg, ex.Message);
+
+            builder = Cluster.Builder()
+                             .WithSSL()
+                             .WithCloudSecureConnectionBundle("bundle");
+
+            ex = Assert.Throws<ArgumentException>(() => builder.Build());
+            Assert.AreEqual(exceptionMsg, ex.Message);
+
+            builder = Cluster.Builder()
+                             .WithCloudSecureConnectionBundle("bundle")
+                             .WithSSL();
+            
+            ex = Assert.Throws<ArgumentException>(() => builder.Build());
+            Assert.AreEqual(exceptionMsg, ex.Message);
+        }
+        
+        [Test]
+        public void Should_ThrowException_When_SslOptionsAndContactPointAndBundleAreProvided()
+        {
+            const string exceptionMsg = "SSL options can not be set when a secure connection bundle is provided.";
+            var builder = Cluster.Builder()
+                                 .AddContactPoints("127.0.0.1")
+                                 .WithSSL()
+                                 .WithCloudSecureConnectionBundle("bundle");
+
+            var ex = Assert.Throws<ArgumentException>(() => builder.Build());
+            Assert.AreEqual(exceptionMsg, ex.Message);
+            
+            builder = Cluster.Builder()
+                             .WithSSL()
+                             .AddContactPoints("127.0.0.1")
+                             .WithCloudSecureConnectionBundle("bundle");
+
+            ex = Assert.Throws<ArgumentException>(() => builder.Build());
+            Assert.AreEqual(exceptionMsg, ex.Message);
+        }
     }
 }

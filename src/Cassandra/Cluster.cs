@@ -322,6 +322,9 @@ namespace Cassandra
                     {
                         sep.Initialize(this);
                     }
+
+                    // Set metadata dependent options
+                    SetMetadataDependentOptions();
                 }
                 catch (NoHostAvailableException)
                 {
@@ -355,6 +358,14 @@ namespace Cassandra
                 _initLock.Release();
             }
             return true;
+        }
+
+        private void SetMetadataDependentOptions()
+        {
+            if (_metadata.IsDbaas)
+            {
+                Configuration.SetDefaultConsistencyLevel(ConsistencyLevel.LocalQuorum);
+            }
         }
 
         /// <inheritdoc />

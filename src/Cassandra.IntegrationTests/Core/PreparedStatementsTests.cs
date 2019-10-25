@@ -41,7 +41,7 @@ namespace Cassandra.IntegrationTests.Core
         public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
-            Session.WaitForSchemaAgreement(Session.Execute(String.Format(TestUtils.CreateTableAllTypes, AllTypesTableName)));
+            Session.Execute(string.Format(TestUtils.CreateTableAllTypes, AllTypesTableName));
         }
 
         [Test]
@@ -443,7 +443,7 @@ namespace Cassandra.IntegrationTests.Core
             var pageSize = 10;
             var totalRowLength = 1003;
             var table = "table" + Guid.NewGuid().ToString("N").ToLower();
-            Session.WaitForSchemaAgreement(Session.Execute(String.Format(TestUtils.CreateTableAllTypes, table)));
+            Session.Execute(string.Format(TestUtils.CreateTableAllTypes, table));
             for (var i = 0; i < totalRowLength; i++)
             {
                 Session.Execute(String.Format("INSERT INTO {0} (id, text_sample) VALUES ({1}, '{2}')", table, Guid.NewGuid(), "value" + i));

@@ -34,6 +34,8 @@ dotnet:
   - 'netcoreapp2.1'
 build:
   - script: |
+      export CASS_VERSION_SNI='3.11'
+      
       # Set the Java paths (for CCM)
       export JAVA_HOME=$CCM_JAVA_HOME
       export PATH=$JAVA_HOME/bin:$PATH
@@ -41,11 +43,26 @@ build:
 
       # Define Cassandra runtime
       echo "========== Setting Apache Cassandra Version =========="
+      export CASSANDRA_VERSION_ORIGINAL=$CASSANDRA_VERSION
       export CASSANDRA_VERSION=$CCM_CASSANDRA_VERSION
 
       echo "========== Copying ssl files to $HOME/ssl =========="
       cp -r /home/jenkins/ccm/ssl $HOME/ssl
-
+      
+      if [ $CASSANDRA_VERSION_ORIGINAL = $CASS_VERSION_SNI ]; then  
+          export SNI_ENABLED="true"
+          export SINGLE_ENDPOINT_PATH="${HOME}/proxy/run.sh"
+          export SNI_CERTIFICATE_PATH="${HOME}/proxy/certs/client_key.pfx"
+          export SNI_CA_PATH="${HOME}/proxy/certs/root.crt"
+      fi
+      
+      echo $SNI_ENABLED
+      echo $SINGLE_ENDPOINT_PATH
+      echo $SNI_CERTIFICATE_PATH
+      echo $SNI_CA_PATH
+      
+      ls "${HOME}/proxy/"
+ 
       # Download and uncompress saxon
       mkdir saxon
       curl -L -o saxon/saxon9he.jar http://central.maven.org/maven2/net/sf/saxon/Saxon-HE/9.8.0-12/Saxon-HE-9.8.0-12.jar

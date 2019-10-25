@@ -44,6 +44,7 @@ install:
   - ps: .\build\appveyor_install.ps1
 
 build_script:
+  - ps: dotnet --info
   - ps: dotnet restore src
   - ps: dotnet build src\Cassandra.sln -c Release
 
