@@ -72,6 +72,17 @@ namespace Dse
         private bool _addedAuth;
         private bool _addedLbp;
 
+        public Builder()
+        {
+        }
+
+        internal Builder(ILoadBalancingPolicy lbp, IRetryPolicy retryPolicy)
+        {
+            // don't use With methods so that "_added*" flags are not set
+            _loadBalancingPolicy = lbp;
+            _retryPolicy = retryPolicy;
+        }
+
         /// <summary>
         ///  The pooling options used by this builder.
         /// </summary>
@@ -385,7 +396,7 @@ namespace Dse
             _loadBalancingPolicy = policy;
             return this;
         }
-
+        
         /// <summary>
         ///  Configure the reconnection policy to use for the new cluster. <p> If no
         ///  reconnection policy is set through this method,

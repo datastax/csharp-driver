@@ -59,10 +59,9 @@ namespace Dse
         /// <summary>
         /// Creates a new instance of <see cref="DseClusterBuilder"/>.
         /// </summary>
-        public DseClusterBuilder()
+        public DseClusterBuilder() 
+            : base(DseLoadBalancingPolicy.CreateDefault(), new IdempotenceAwareRetryPolicy(new DefaultRetryPolicy()))
         {
-            base.WithLoadBalancingPolicy(DseLoadBalancingPolicy.CreateDefault());
-            base.WithRetryPolicy(new IdempotenceAwareRetryPolicy(new DefaultRetryPolicy()));
         }
 
         /// <summary>
