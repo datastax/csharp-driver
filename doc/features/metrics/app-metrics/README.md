@@ -65,14 +65,14 @@ var cluster = Cluster
     .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(10000))
     .WithMetrics(metricsRoot.CreateDriverMetricsProvider(
         new DriverAppMetricsOptions()
-            .SetHighestLatencyMilliseconds(12000) // should be set to slightly higher than the configured timeout
+            .SetHighestLatencyMilliseconds(15000) // should be set to a value that is higher than the configured timeout
             .SetSignificantDigits(3)
             .SetTimersTimeUnit(TimeUnit.Nanoseconds) // which unit should be used for the Timer metrics
     ))
     .Build();
 ```
 
-`HighestLatencyMilliseconds` should be set to a slightly higher value than the configured timeouts (`SocketOptions.ReadTimeoutMillis` or `Builder.WithQueryAbortTimeout`). This is used to scale internal data structures and whenever a measurement exceeds this value, a warning will be logged and the measurement will be discarded.
+`HighestLatencyMilliseconds` should be set to a higher value than the configured timeouts (`SocketOptions.ReadTimeoutMillis` or `Builder.WithQueryAbortTimeout`). This is used to scale internal data structures and whenever a measurement exceeds this value, a warning will be logged and the measurement will be discarded. It defaults to 30000, i.e., 30 seconds.
 
 `SignificantDigits` is the number of significant decimal digits to which internal structures will maintain value resolution and separation (for example, 3 means that recordings up to 1 second will be recorded with a resolution of 1 millisecond or better). This must be between 0 and 5. If the value is out of range, an exception is thrown. It defaults to 3.
 
