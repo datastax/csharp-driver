@@ -388,7 +388,7 @@ namespace Cassandra
         }
         
         /// <inheritdoc/>
-        int IInternalSession.NumberOfConnectionPools => _connectionPool.Count;
+        int IInternalSession.ConnectedNodes => _connectionPool.Count(kvp => kvp.Value.HasConnections);
 
         public IDriverMetrics GetMetrics()
         {
