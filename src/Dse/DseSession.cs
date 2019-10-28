@@ -302,7 +302,7 @@ namespace Dse
             return _coreSession.GetRequestOptions(executionProfileName);
         }
 
-        public int NumberOfConnectionPools => _coreSession.NumberOfConnectionPools;
+        public int ConnectedNodes => _coreSession.ConnectedNodes;
 
         public IMetricsManager MetricsManager => _coreSession.MetricsManager;
 
