@@ -57,7 +57,7 @@ namespace Dse.Metrics.Registries
                 BytesSent = MetricsRegistry.Meter(_context, SessionMetric.Meters.BytesSent);
                 BytesReceived = MetricsRegistry.Meter(_context, SessionMetric.Meters.BytesReceived);
                 ConnectedNodes = MetricsRegistry.Gauge(
-                    _context, SessionMetric.Gauges.ConnectedNodes, () => session.NumberOfConnectionPools);
+                    _context, SessionMetric.Gauges.ConnectedNodes, () => session.ConnectedNodes);
 
                 MetricsRegistry.OnMetricsAdded();
             }

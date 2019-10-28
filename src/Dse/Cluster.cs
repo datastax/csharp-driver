@@ -591,7 +591,12 @@ namespace Dse
                 }
                 catch (Exception ex)
                 {
-                    PrepareHandler.Logger.Error($"There was an error when re-preparing queries on {host.Address}", ex);
+                    PrepareHandler.Logger.Info(
+                        "There was an error when re-preparing queries on {0}. " +
+                        "The driver will re-prepare the queries individually the next time they are sent to this node. " +
+                        "Exception: {1}", 
+                        host.Address, 
+                        ex);
                 }
             }
         }

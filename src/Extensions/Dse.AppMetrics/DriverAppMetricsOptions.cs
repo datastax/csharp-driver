@@ -27,7 +27,7 @@ namespace Dse.AppMetrics
         /// <summary>
         /// See <see cref="SetHighestLatencyMilliseconds"/> for information about this property.
         /// </summary>
-        public int HighestLatencyMilliseconds { get; private set; } = SocketOptions.DefaultReadTimeoutMillis + 1000;
+        public int HighestLatencyMilliseconds { get; private set; } = 30000;
         
         /// <summary>
         /// See <see cref="SetSignificantDigits"/> for information about this property.
@@ -52,7 +52,7 @@ namespace Dse.AppMetrics
         /// runtime, it is discarded and a warning is logged.
         /// </para>
         /// <para>
-        /// This property defaults to <see cref="SocketOptions.DefaultReadTimeoutMillis"/> + 1000 milliseconds.
+        /// This property defaults to 30000 milliseconds, i.e., 30 seconds.
         /// </para>
         /// </summary>
         /// <param name="highestLatencyMilliseconds"></param>
