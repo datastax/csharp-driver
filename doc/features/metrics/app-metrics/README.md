@@ -65,7 +65,7 @@ var cluster = Cluster
     .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(10000))
     .WithMetrics(metricsRoot.CreateDriverMetricsProvider(
         new DriverAppMetricsOptions()
-            .SetHighestLatencyMilliseconds(15000) // should be set to a value that is higher than the configured timeout
+            .SetHighestLatencyMilliseconds(30000) // should be set to a value that is higher than the configured timeout
             .SetSignificantDigits(3)
             .SetTimersTimeUnit(TimeUnit.Nanoseconds) // which unit should be used for the Timer metrics
     ))
