@@ -173,7 +173,7 @@ var mainPhone = userAddress.Phones.First();
 Console.WriteLine("User main phone is {0}", mainPhone.Alias);
 ```
 
-## Prefer Frozen UDTs and Collections when the entire entity is provided when executing `INSERT` and `UPDATE` requests
+## Frozen UDTs and Collections
 
 If you provide the whole object when inserting and updating entities, it is recommended to use frozen UDTs over non-frozen UDTs. If you are using Mapper or Linq2Cql, this is the case when you use `Mapper.Insert<T>(T obj)`, `Mapper.Update<T>(T obj)` or`Table<T>.Insert(T obj)`. The same applies to frozen collections over non-frozen collections.
 
