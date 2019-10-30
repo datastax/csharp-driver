@@ -139,7 +139,7 @@ namespace Dse
             if (!availableDcs.Contains(_localDc))
             {
                 throw new ArgumentException(
-                    $"Datacenter {_localDc} does not match any of the nodes, available datacenters: {availableDcs}.");
+                    $"Datacenter {_localDc} does not match any of the nodes, available datacenters: {availableDcsStr}.");
             }
         }
 

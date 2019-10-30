@@ -2,6 +2,23 @@
 
 Changelog for the DataStax Enterprise C# Driver.
 
+## 2.9.0
+
+2019-10-30
+
+### Features
+
+*   [[CSHARP-685](https://datastax-oss.atlassian.net/browse/CSHARP-685)] - Expose metrics
+*   [[CSHARP-754](https://datastax-oss.atlassian.net/browse/CSHARP-754)] - DataStax Apollo support
+*   [[CSHARP-595](https://datastax-oss.atlassian.net/browse/CSHARP-595)] - DcAwareLoadBalancingPolicy: Warn when the local datacenter is not specified
+*   [[CSHARP-788](https://datastax-oss.atlassian.net/browse/CSHARP-788)] - Add list of reserved keywords and add double quotes when they are used as identifiers
+*   [[CSHARP-802](https://datastax-oss.atlassian.net/browse/CSHARP-802)] - Session.Warmup should mark host as down if no connection can be opened to that host
+
+### Bug Fixes
+
+*   [[CSHARP-770](https://datastax-oss.atlassian.net/browse/CSHARP-770)] - Insights errors are showing up in logs with severity ERROR
+*   [[CSHARP-807](https://datastax-oss.atlassian.net/browse/CSHARP-807)] - Exception isn't logged when an exception is thrown while parsing a host token
+
 ## 2.8.0
 
 2019-07-22
