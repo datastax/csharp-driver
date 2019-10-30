@@ -21,9 +21,10 @@
     <Language>en-US</Language>
     <DocumentationSources>
       <DocumentationSource sourceFile="..\src\Cassandra\bin\Release\netstandard2.0\Cassandra.dll" />
-<DocumentationSource sourceFile="..\src\Cassandra\bin\Release\netstandard2.0\Cassandra.xml" />
-<DocumentationSource sourceFile="..\src\Extensions\Cassandra.AppMetrics\bin\Release\netstandard2.0\Cassandra.AppMetrics.dll" />
-<DocumentationSource sourceFile="..\src\Extensions\Cassandra.AppMetrics\bin\Release\netstandard2.0\Cassandra.AppMetrics.xml" /></DocumentationSources>
+      <DocumentationSource sourceFile="..\src\Cassandra\bin\Release\netstandard2.0\Cassandra.xml" />
+      <DocumentationSource sourceFile="..\src\Extensions\Cassandra.AppMetrics\bin\Release\netstandard2.0\Cassandra.AppMetrics.dll" />
+      <DocumentationSource sourceFile="..\src\Extensions\Cassandra.AppMetrics\bin\Release\netstandard2.0\Cassandra.AppMetrics.xml" />
+    </DocumentationSources>
     <BuildAssemblerVerbosity>OnlyWarningsAndErrors</BuildAssemblerVerbosity>
     <HelpFileFormat>Website</HelpFileFormat>
     <IndentHtml>False</IndentHtml>
@@ -43,6 +44,7 @@
             <assemblyIdentity name="App.Metrics.Concurrency" />
             <assemblyIdentity name="BusinessObjects.Licensing.KeycodeDecoder" />
             <assemblyIdentity name="Microsoft.VisualStudio.TestTools.UITest.Playback" />
+            <assemblyIdentity name="Newtonsoft.Json" />
           </ignoreIfUnresolved>
         </configuration>
       </PlugInConfig>
@@ -57,20 +59,21 @@
     <ContentPlacement>BelowNamespaces</ContentPlacement>
     <NamespaceSummaries>
       <NamespaceSummaryItem name="(global)" isDocumented="True">A modern, feature-rich and highly tunable C# client library for Apache Cassandra (1.2+) and DataStax Enterprise (3.1+) using exclusively Cassandra's binary protocol and Cassandra Query Language v3.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Cassandra" isDocumented="True">The Cassandra namespace contains classes and interfaces to represent data types in the driver.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Cassandra.Data" isDocumented="True">The Cassandra.Data namespace contains classes to support ADO.NET in the driver.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Cassandra.Data.Linq" isDocumented="True">The Cassandra.Data.Linq namespace contains classes to handle Linq queries in the driver.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Cassandra.Mapping" isDocumented="True">The Cassandra.Mapping namespace contains classes to handle CQL data to C# classes mapping in the driver.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Cassandra.Mapping.Attributes" isDocumented="True">The Cassandra.Mapping.Attributes namespace contains attributes to describe CQL types to C# classes mapping.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Cassandra.Mapping.TypeConversion" isDocumented="True">The Cassandra.Mapping.TypeConversion namespace handles type conversion for the Mapper.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Cassandra.Mapping.Utils" isDocumented="False" />
-<NamespaceSummaryItem name="Cassandra.Serialization" isDocumented="True">The Cassandra.Serialization namespace contains classes to handle serialization in the driver.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Cassandra.Serialization.Primitive" isDocumented="False" />
-<NamespaceSummaryItem name="Cassandra.AppMetrics" isDocumented="True">The Cassandra.AppMetrics namespace contains classes related to the App Metrics provider. This namespace is available on the CassandraCSharpDriver.AppMetrics package.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Cassandra.AppMetrics.MetricTypes" isDocumented="True">The Cassandra.AppMetrics.MetricTypes namespace contains this provider's interfaces for each metric type. This namespace is available on the CassandraCSharpDriver.AppMetrics package.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Cassandra.AppMetrics.MetricValues" isDocumented="True">The Cassandra.AppMetrics.MetricTypes namespace contains interfaces than represent the values for some of the metric types. This namespace is available on the CassandraCSharpDriver.AppMetrics package.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Cassandra.Metrics" isDocumented="True">The Cassandra.Metrics namespace contains classes related to metrics without referring to a specific provider.</NamespaceSummaryItem>
-<NamespaceSummaryItem name="Cassandra.Metrics.Abstractions" isDocumented="True">The Cassandra.Metrics.Abstractions namespace contains the provider interfaces that a metrics provider must implement.</NamespaceSummaryItem></NamespaceSummaries>
+      <NamespaceSummaryItem name="Cassandra" isDocumented="True">The Cassandra namespace contains classes and interfaces to represent data types in the driver.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Cassandra.Data" isDocumented="True">The Cassandra.Data namespace contains classes to support ADO.NET in the driver.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Cassandra.Data.Linq" isDocumented="True">The Cassandra.Data.Linq namespace contains classes to handle Linq queries in the driver.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Cassandra.Mapping" isDocumented="True">The Cassandra.Mapping namespace contains classes to handle CQL data to C# classes mapping in the driver.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Cassandra.Mapping.Attributes" isDocumented="True">The Cassandra.Mapping.Attributes namespace contains attributes to describe CQL types to C# classes mapping.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Cassandra.Mapping.TypeConversion" isDocumented="True">The Cassandra.Mapping.TypeConversion namespace handles type conversion for the Mapper.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Cassandra.Mapping.Utils" isDocumented="False" />
+      <NamespaceSummaryItem name="Cassandra.Serialization" isDocumented="True">The Cassandra.Serialization namespace contains classes to handle serialization in the driver.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Cassandra.Serialization.Primitive" isDocumented="False" />
+      <NamespaceSummaryItem name="Cassandra.AppMetrics" isDocumented="True">The Cassandra.AppMetrics namespace contains classes related to the App Metrics provider. This namespace is available on the CassandraCSharpDriver.AppMetrics package.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Cassandra.AppMetrics.MetricTypes" isDocumented="True">The Cassandra.AppMetrics.MetricTypes namespace contains this provider's interfaces for each metric type. This namespace is available on the CassandraCSharpDriver.AppMetrics package.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Cassandra.AppMetrics.MetricValues" isDocumented="True">The Cassandra.AppMetrics.MetricTypes namespace contains interfaces than represent the values for some of the metric types. This namespace is available on the CassandraCSharpDriver.AppMetrics package.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Cassandra.Metrics" isDocumented="True">The Cassandra.Metrics namespace contains classes related to metrics without referring to a specific provider.</NamespaceSummaryItem>
+      <NamespaceSummaryItem name="Cassandra.Metrics.Abstractions" isDocumented="True">The Cassandra.Metrics.Abstractions namespace contains the provider interfaces that a metrics provider must implement.</NamespaceSummaryItem>
+    </NamespaceSummaries>
     <ProjectSummary>A modern, feature-rich and highly tunable C# client library for Apache Cassandra %281.2+%29 and DataStax Enterprise %283.1+%29 using exclusively Cassandra&amp;#39%3bs binary protocol and Cassandra Query Language v3.</ProjectSummary>
     <ApiFilter>
       <Filter entryType="Namespace" fullName="Cassandra" isExposed="True">
