@@ -25,6 +25,7 @@ namespace Dse.Cloud
     /// </summary>
     internal class CustomCaCertificateValidator : ICertificateValidator
     {
+        private static readonly Logger Logger = new Logger(typeof(CustomCaCertificateValidator));
         private readonly X509Certificate2 _trustedRootCertificateAuthority;
         private readonly string _hostname;
 
@@ -40,6 +41,12 @@ namespace Dse.Cloud
             if (errors == SslPolicyErrors.None)
             {
                 return true;
+            }
+
+            if ((errors & SslPolicyErrors.RemoteCertificateNotAvailable) != 0)
+            {
+                CustomCaCertificateValidator.Logger.Error("SSL validation failed due to SslPolicyErrors.RemoteCertificateNotAvailable.");
+                return false;
             }
 
             // validate server certificate's CN against the provided hostname
@@ -62,29 +69,41 @@ namespace Dse.Cloud
 
                 if (cn != _hostname)
                 {
+                    CustomCaCertificateValidator.Logger.Error(
+                        "Failed to validate the server certificate's CN. Expected {0} but found {1}.", 
+                        _hostname, 
+                        cn ?? "null");
                     return false;
                 }
             }
 
-            // verify if the chain is correct
-            foreach (var status in chain.ChainStatus)
+            if ((errors & SslPolicyErrors.RemoteCertificateChainErrors) != 0)
             {
-                if (status.Status == X509ChainStatusFlags.NoError || status.Status == X509ChainStatusFlags.UntrustedRoot)
+                // verify if the chain is correct
+                foreach (var status in chain.ChainStatus)
                 {
-                    //Acceptable Status
+                    if (status.Status == X509ChainStatusFlags.NoError || status.Status == X509ChainStatusFlags.UntrustedRoot)
+                    {
+                        //Acceptable Status
+                    }
+                    else
+                    {
+                        CustomCaCertificateValidator.Logger.Error(
+                            "Certificate chain validation failed. Found chain status {0} ({1}).", status.Status, status.StatusInformation);
+                        return false;
+                    }
                 }
-                else
+
+                //Now that we have tested to see if the cert builds properly, we now will check if the thumbprint of the root ca matches our trusted one
+                var rootCertThumbprint = chain.ChainElements[chain.ChainElements.Count - 1].Certificate.Thumbprint;
+                if (rootCertThumbprint != _trustedRootCertificateAuthority.Thumbprint)
                 {
+                    CustomCaCertificateValidator.Logger.Error(
+                        "Root certificate thumbprint mismatch. Expected {0} but found {1}.", _trustedRootCertificateAuthority.Thumbprint, rootCertThumbprint);
                     return false;
                 }
             }
-
-            //Now that we have tested to see if the cert builds properly, we now will check if the thumbprint of the root ca matches our trusted one
-            if (chain.ChainElements[chain.ChainElements.Count - 1].Certificate.Thumbprint != _trustedRootCertificateAuthority.Thumbprint)
-            {
-                return false;
-            }
-
+            
             return true;
         }
     }

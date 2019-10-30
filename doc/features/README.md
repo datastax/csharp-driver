@@ -31,6 +31,7 @@ The DataStax Enterprise C# Driver is feature-rich and highly tunable C# client l
 - [Routing queries](routing-queries)
 - [Speculative executions](speculative-retries)
 - [Tuning policies](tuning-policies)
+- [TLS/SSL](tls)
 - [User-defined functions and aggregates](udfs)
 - [User-defined types](udts)
 

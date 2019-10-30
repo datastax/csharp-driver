@@ -19,6 +19,7 @@ schedules:
   adhoc:
     # Adhoc job for non-primary braches that doesn't have a schedule but may be used to run all configs.
     schedule: adhoc
+    enable_pull_requests: true
     branches:
       exclude: ["/((\\d+(\\.[\\dx]+)+)|dse|master)/"]
 os:
