@@ -48,7 +48,7 @@ the .NET Tracing API.
 // Specify the minimum trace level you want to see
 Dse.Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
 // Add a standard .NET trace listener
-Dse.Listeners.Add(new ConsoleTraceListener());
+Trace.Listeners.Add(new ConsoleTraceListener());
 ```
 
 ## What is the recommended number of queries that a batch should contain?
