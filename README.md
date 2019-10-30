@@ -36,7 +36,7 @@ PM> Install-Package CassandraCSharpDriver
 
 ## Getting Help
 
-You can use the project [Mailing list][mailinglist] or create a ticket on the [Jira issue tracker][jira]. Additionally, you can use the `#datastax-drivers` channel in the [DataStax Academy Slack][slack].
+You can use the project [Mailing list][mailinglist] or create a ticket on the [Jira issue tracker][jira]. Additionally, you can ask questions on [DataStax Community][community].
 
 ## Upgrading from previous versions
 
@@ -253,5 +253,5 @@ Unless required by applicable law or agreed to in writing, software distributed 
   [upgrade-guide]: https://docs.datastax.com/en/developer/csharp-driver/latest/upgrade-guide/
   [survey]: https://goo.gl/forms/3BxcP8nKs6
   [dse-driver]: https://docs.datastax.com/en/developer/csharp-driver-dse/latest/
-  [slack]: https://academy.datastax.com/slack
+  [community]: https://community.datastax.com
   [dse]: https://www.datastax.com/products/datastax-enterprise

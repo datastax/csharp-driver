@@ -27,5 +27,6 @@ Cassandra (1.2+) using exclusively Cassandra's binary protocol and Cassandra Que
 - [Routing queries](routing-queries)
 - [Speculative executions](speculative-retries)
 - [Tuning policies](tuning-policies)
+- [TLS/SSL](tls)
 - [User-defined functions and aggregates](udfs)
 - [User-defined types](udts)
