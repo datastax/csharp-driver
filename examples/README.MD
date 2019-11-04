@@ -17,6 +17,8 @@ You should also visit the [Documentation][doc-index] and [FAQ][faq].
   - Client and Server Auth
     - [Loading a root certificate and client certificates in code](Ssl/SslTwoWayAuth/LoadingCertificateManuallyExample.cs)
     - [Using certificates from the certificate store](Ssl/SslTwoWayAuth/WindowsCertificateStoreExample.cs)
+- Metrics
+  - [Graphite and Grafana integration with App.Metrics](Metrics/AppMetricsGraphite/Program.cs)
 
 Each example is generally structured in a way where the `Cluster` and `Session` are connected at the beginning and shutdown/disposed at the end.
 While this is suitable for example console applications, you should reuse the `Session` and `Cluster` instances and only call `cluster.ShutdownAsync()` / `cluster.Dispose()` when exiting your application.
