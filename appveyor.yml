@@ -22,6 +22,10 @@ environment:
       PROJECT: Cassandra.Tests
     - TARGET: net452
       CASSANDRA_VERSION: 3.11.2
+      CI_TYPE: INTEGRATION
+      PROJECT: Cassandra.IntegrationTests      
+    - TARGET: net461
+      CASSANDRA_VERSION: 3.11.2
       CI_TYPE: INTEGRATION_FULL
       PROJECT: Cassandra.IntegrationTests
     - TARGET: netcoreapp2.0

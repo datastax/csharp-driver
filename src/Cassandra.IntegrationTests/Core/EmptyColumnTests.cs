@@ -28,6 +28,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Core
 {
     [TestFixture]
+    [Category("short")]
     public class EmptyColumnTests : TestGlobals
     {
         [Test]

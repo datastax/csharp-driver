@@ -18,7 +18,7 @@
 using System;
 using System.Linq;
 using System.Net;
-using System.Reflection.Metadata;
+
 using App.Metrics;
 using App.Metrics.Gauge;
 
@@ -29,6 +29,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Metrics
 {
+    [Category("short")]
     public class MetricsTests : SharedClusterTest
     {
         private static readonly NodeMetric[] Counters = new[]
