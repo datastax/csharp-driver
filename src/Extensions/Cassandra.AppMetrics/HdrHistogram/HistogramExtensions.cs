@@ -36,8 +36,14 @@ namespace Cassandra.AppMetrics.HdrHistogram
         /// <returns>the mean value (in value units) of the histogram data</returns>
         public static double GetMean(this HistogramBase histogram)
         {
+            var totalCount = histogram.TotalCount;
+            if (totalCount == 0)
+            {
+                return 0;
+            }
+
             var totalValue = histogram.RecordedValues().Select(hiv => hiv.TotalValueToThisValue).LastOrDefault();
-            return (totalValue * 1.0) / histogram.TotalCount;
+            return (totalValue * 1.0) / totalCount;
         }
 
         /// <summary>
@@ -46,6 +52,12 @@ namespace Cassandra.AppMetrics.HdrHistogram
         /// <returns>the standard deviation (in value units) of the histogram data</returns>
         public static double GetStdDeviation(this HistogramBase histogram)
         {
+            var totalCount = histogram.TotalCount;
+            if (totalCount == 0)
+            {
+                return 0;
+            }
+
             var mean = histogram.GetMean();
             var geometricDeviationTotal = 0.0;
             foreach (var iterationValue in histogram.RecordedValues())
@@ -53,7 +65,7 @@ namespace Cassandra.AppMetrics.HdrHistogram
                 double deviation = (histogram.MedianEquivalentValue(iterationValue.ValueIteratedTo) * 1.0) - mean;
                 geometricDeviationTotal += (deviation * deviation) * iterationValue.CountAddedInThisIterationStep;
             }
-            var stdDeviation = Math.Sqrt(geometricDeviationTotal / histogram.TotalCount);
+            var stdDeviation = Math.Sqrt(geometricDeviationTotal / totalCount);
             return stdDeviation;
         }
 

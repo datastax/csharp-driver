@@ -37,6 +37,8 @@ namespace Cassandra.AppMetrics.HdrHistogram
     /// </remarks>
     internal abstract class HistogramBase : IRecorder
     {
+        private static Logger Logger = new Logger(typeof(HistogramBase));
+
         private static readonly Regex TagValidation = new Regex("[, \\r\\n]", RegexOptions.Compiled);
         private static long _instanceIdSequencer = -1;
 
@@ -357,10 +359,16 @@ namespace Cassandra.AppMetrics.HdrHistogram
         /// </summary>
         /// <param name="percentile">The percentile to get the value for</param>
         /// <returns>The value a given percentage of all recorded value entries in the histogram fall below.</returns>
-        public long GetValueAtPercentile(double percentile)
+        public double GetValueAtPercentile(double percentile)
         {
+            var totalCount = TotalCount;
+            if (totalCount == 0)
+            {
+                return 0;
+            }
+
             var requestedPercentile = Math.Min(percentile, 100.0); // Truncate down to 100%
-            var countAtPercentile = (long)(((requestedPercentile / 100.0) * TotalCount) + 0.5); // round to nearest
+            var countAtPercentile = (long)(((requestedPercentile / 100.0) * totalCount) + 0.5); // round to nearest
             countAtPercentile = Math.Max(countAtPercentile, 1); // Make sure we at least reach the first recorded entry
             long runningCount = 0;
             for (var i = 0; i < BucketCount; i++)
@@ -376,7 +384,9 @@ namespace Cassandra.AppMetrics.HdrHistogram
                     }
                 }
             }
-            throw new ArgumentOutOfRangeException(nameof(percentile), "percentile value not found in range"); // should not reach here.
+
+            HistogramBase.Logger.Warning("Could not retrieve percentile {0}, returning NaN. TotalCount = {1}.", percentile, totalCount);
+            return double.NaN;
         }
 
         /// <summary>
