@@ -35,7 +35,7 @@ namespace Cassandra.Tests.TestAttributes
 
         private bool CloudSupported()
         {
-#if NET452
+#if NETFRAMEWORK
             return true;
 #else
             return PlatformHelper.RuntimeSupportsCloudTlsSettings();

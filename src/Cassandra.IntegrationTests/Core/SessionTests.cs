@@ -388,7 +388,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(0, Volatile.Read(ref isDown));
         }
 
-#if NET452
+#if NETFRAMEWORK
         [Test, Apartment(ApartmentState.STA)]
         public void Session_Connect_And_ShutDown_SupportsSTA()
         {
