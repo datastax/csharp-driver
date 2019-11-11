@@ -1,5 +1,13 @@
 # ChangeLog - DataStax C# Driver
 
+## CassandraCSharpDriver.AppMetrics 1.0.1
+
+2019-11-11
+
+### Bug fixes
+
+*   [[CSHARP-817](https://datastax-oss.atlassian.net/browse/CSHARP-817)] - App.Metrics snapshot fails when timer metrics don't have any recorded values
+
 ## 3.12.0
 
 2019-10-30
