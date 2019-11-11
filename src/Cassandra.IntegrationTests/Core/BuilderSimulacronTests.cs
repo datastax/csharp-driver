@@ -17,6 +17,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
+    [Category("short")]
     internal class BuilderSimulacronTests : SharedSimulacronTests
     {
         public BuilderSimulacronTests() : base(1, false)

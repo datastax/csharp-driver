@@ -24,6 +24,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.TestBase
 {
+    [TestFixture]
     public class TestGlobals
     {
         public const int DefaultCassandraPort = 9042;
