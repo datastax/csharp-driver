@@ -58,7 +58,11 @@ namespace Dse.Test.Integration
         
         protected SimulacronOptions Options { get; set; }
 
-        protected SharedSimulacronTests(int amountOfNodes = 1, bool createSession = true)
+        public SharedSimulacronTests() : this(1, true)
+        {
+        }
+
+        protected SharedSimulacronTests(int amountOfNodes, bool createSession)
         {
             AmountOfNodes = amountOfNodes;
             Options = new SimulacronOptions { Nodes = amountOfNodes.ToString() };

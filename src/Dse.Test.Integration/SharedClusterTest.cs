@@ -23,7 +23,6 @@ namespace Dse.Test.Integration
     /// With a shared session and cluster.
     /// </para>
     /// </summary>
-    [TestFixture]
     public abstract class SharedClusterTest : TestGlobals
     {
         private static ITestCluster _reusableInstance;

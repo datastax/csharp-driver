@@ -154,7 +154,7 @@ namespace Dse.Test.Integration.Core
             }
         }
 
-#if NET452
+#if NETFRAMEWORK
 
         [Test]
         [TestCassandraVersion(2, 0)]

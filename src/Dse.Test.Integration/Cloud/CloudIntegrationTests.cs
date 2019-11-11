@@ -342,7 +342,7 @@ namespace Dse.Test.Integration.Cloud
             var ex3 = ex2.InnerException;
             Assert.IsTrue(ex2 is HttpRequestException, ex2.ToString());
             Assert.IsTrue(ex2.Message.Contains("The SSL connection could not be established"), ex2.Message);
-#elif NET452
+#elif NETFRAMEWORK
             if (TestHelper.IsMono)
             {
                 var ex2 = ex.InnerException;
@@ -361,7 +361,7 @@ namespace Dse.Test.Integration.Cloud
 
         private void AssertIsSslError(NoHostAvailableException ex)
         {
-#if NET452
+#if NETFRAMEWORK
             if (TestHelper.IsMono)
             {
                 var ex2 = ex.InnerException;

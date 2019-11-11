@@ -46,9 +46,9 @@ namespace Dse.Test.Unit
 
             Assert.AreEqual(".NETStandard,Version=v1.5", framework);
         }
-#elif NET452
+#elif NETFRAMEWORK
         [Test]
-        public void Should_TargetNet45_When_TestsTargetNet452()
+        public void Should_TargetNet45_When_TestsTargetNetFramework()
         {
             var framework = Assembly
                             .GetAssembly(typeof(ISession))?

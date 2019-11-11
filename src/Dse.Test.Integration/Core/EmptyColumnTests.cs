@@ -28,6 +28,7 @@ using NUnit.Framework;
 namespace Dse.Test.Integration.Core
 {
     [TestFixture]
+    [Category("short")]
     public class EmptyColumnTests : TestGlobals
     {
         [Test]

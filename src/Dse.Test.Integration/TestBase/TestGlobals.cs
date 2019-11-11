@@ -15,6 +15,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.TestClusterManagement
 {
+    [TestFixture]
     public class TestGlobals
     {
         public const int DefaultCassandraPort = 9042;

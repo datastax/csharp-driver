@@ -17,6 +17,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
 {
+    [Category("short")]
     internal class BuilderSimulacronTests : SharedSimulacronTests
     {
         public BuilderSimulacronTests() : base(1, false)

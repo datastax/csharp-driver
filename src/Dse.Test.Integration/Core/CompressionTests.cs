@@ -6,7 +6,7 @@
 //
 
 
-#if NET452
+#if NETFRAMEWORK
 using System;
 using System.Linq;
 using System.Threading.Tasks;
