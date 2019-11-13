@@ -11,13 +11,13 @@ environment:
   matrix:
     - TARGET: net452
       CI_TYPE: UNIT
-      PROJECT: Dse.Test.Unit
+      PROJECT: Cassandra.Tests
     - TARGET: netcoreapp2.0
       CI_TYPE: UNIT
-      PROJECT: Dse.Test.Unit
+      PROJECT: Cassandra.Tests
     - TARGET: netcoreapp2.1
       CI_TYPE: UNIT
-      PROJECT: Dse.Test.Unit
+      PROJECT: Cassandra.Tests
 
 install:
   - ps: choco install -y xmlstarlet
@@ -25,7 +25,7 @@ install:
 build_script:
   - ps: dotnet --info
   - ps: dotnet restore src
-  - ps: dotnet build src\Dse.sln -c Release
+  - ps: dotnet build src\Cassandra.sln -c Release
 
 test_script:
   - ps: dotnet test src\${env:PROJECT}\${env:PROJECT}.csproj -c Release -f $env:TARGET --logger:Appveyor

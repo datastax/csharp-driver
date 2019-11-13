@@ -20,5 +20,5 @@ matrix:
 script:
   - dotnet --info
   - dotnet restore src
-  - dotnet build src/Dse.Test.Unit/Dse.Test.Unit.csproj --no-restore -c Release
-  - dotnet test src/Dse.Test.Unit/Dse.Test.Unit.csproj --no-restore --no-build -v n -c Release -f $TARGETF
+  - dotnet build src/Cassandra.Tests/Cassandra.Tests.csproj --no-restore -c Release
+  - dotnet test src/Cassandra.Tests/Cassandra.Tests.csproj --no-restore --no-build -v n -c Release -f $TARGETF
