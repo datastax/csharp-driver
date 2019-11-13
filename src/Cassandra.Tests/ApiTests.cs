@@ -16,9 +16,9 @@ namespace Cassandra.Tests
     public class ApiTests : BaseUnitTest
     {
         [Test]
-        public void Dse_Auth_Namespace_Public_Test()
+        public void Cassandra_Auth_Namespace_Public_Test()
         {
-            var types = GetTypesInNamespace("Dse.Auth", true);
+            var types = GetTypesInNamespace("Cassandra.Auth", true);
             CollectionAssert.AreEquivalent(
                 new[]
                 {
@@ -31,41 +31,41 @@ namespace Cassandra.Tests
         }
 
         [Test]
-        public void Dse_Single_Root_Namespace()
+        public void Cassandra_Single_Root_Namespace()
         {
             var assembly = typeof(IDseSession).GetTypeInfo().Assembly;
             var types = assembly.GetTypes();
             var set = new SortedSet<string>(
                 types.Where(t => t.GetTypeInfo().IsPublic).Select(t => t.Namespace.Split('.')[0]));
             Assert.AreEqual(1, set.Count);
-            Assert.AreEqual("Dse", set.First());
+            Assert.AreEqual("Cassandra", set.First());
         }
 
         [Test]
-        public void Dse_Exported_Namespaces()
+        public void Cassandra_Exported_Namespaces()
         {
             var assembly = typeof(IDseSession).GetTypeInfo().Assembly;
             var types = assembly.GetTypes();
             var set = new SortedSet<string>(types.Where(t => t.GetTypeInfo().IsPublic).Select(t => t.Namespace));
             CollectionAssert.AreEqual(new[]
             {
-                "Dse",
-                "Dse.Auth",
+                "Cassandra",
+                "Cassandra.Auth",
 #if !NETCORE
-                "Dse.Auth.Sspi",
+                "Cassandra.Auth.Sspi",
 #endif
-                "Dse.Data",
-                "Dse.Data.Linq",
-                "Dse.Geometry",
-                "Dse.Graph",
-                "Dse.Mapping",
-                "Dse.Mapping.Attributes",
-                "Dse.Mapping.TypeConversion",
-                "Dse.Mapping.Utils",
-                "Dse.Metrics",
-                "Dse.Metrics.Abstractions",
-                "Dse.Search",
-                "Dse.Serialization"
+                "Cassandra.Data",
+                "Cassandra.Data.Linq",
+                "Cassandra.Geometry",
+                "Cassandra.Graph",
+                "Cassandra.Mapping",
+                "Cassandra.Mapping.Attributes",
+                "Cassandra.Mapping.TypeConversion",
+                "Cassandra.Mapping.Utils",
+                "Cassandra.Metrics",
+                "Cassandra.Metrics.Abstractions",
+                "Cassandra.Search",
+                "Cassandra.Serialization"
             }, set);
         }
 

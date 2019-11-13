@@ -56,7 +56,7 @@ namespace Cassandra.Tests
 
             var linqAttributes = typeof (Cassandra.Data.Linq.TableAttribute).GetTypeInfo().Assembly.GetTypes()
                 .Select(t => t.GetTypeInfo())
-                .Where(t => t.IsPublic && t.IsSubclassOf(typeof(Attribute)) && t.Namespace == "Dse.Data.Linq")
+                .Where(t => t.IsPublic && t.IsSubclassOf(typeof(Attribute)) && t.Namespace == "Cassandra.Data.Linq")
                 .ToArray();
             Assert.Greater(linqAttributes.Length, 5);
             foreach (var attr in linqAttributes)

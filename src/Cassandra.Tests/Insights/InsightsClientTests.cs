@@ -181,13 +181,13 @@ namespace Cassandra.Tests.Insights
                             "\"readTimeout\":1505," +
                             "\"retry\":{" +
                                 "\"type\":\"DowngradingConsistencyRetryPolicy\"," +
-                                "\"namespace\":\"Dse\"}," +
+                                "\"namespace\":\"Cassandra\"}," +
                             "\"loadBalancing\":{" +
                                 "\"type\":\"RoundRobinPolicy\"," +
-                                "\"namespace\":\"Dse\"}," +
+                                "\"namespace\":\"Cassandra\"}," +
                             "\"speculativeExecution\":{" +
                                 "\"type\":\"ConstantSpeculativeExecutionPolicy\"," +
-                                "\"namespace\":\"Dse\"," +
+                                "\"namespace\":\"Cassandra\"," +
                                 "\"options\":{" +
                                     "\"delay\":1213," +
                                     "\"maxSpeculativeExecutions\":10}}," +
@@ -207,13 +207,13 @@ namespace Cassandra.Tests.Insights
                     "\"compression\":\"SNAPPY\"," +
                     "\"reconnectionPolicy\":{" +
                         "\"type\":\"ConstantReconnectionPolicy\"," +
-                        "\"namespace\":\"Dse\"," +
+                        "\"namespace\":\"Cassandra\"," +
                         "\"options\":{" +
                             "\"constantDelayMs\":150}}," +
                     "\"ssl\":{\"enabled\":false}," +
                     "\"authProvider\":{" +
                         "\"type\":\"NoneAuthProvider\"," +
-                        "\"namespace\":\"Dse\"}," +
+                        "\"namespace\":\"Cassandra\"}," +
                     "\"configAntiPatterns\":{" +
                         "\"downgradingConsistency\":\"Downgrading consistency retry policy in use\"}," +
                     "\"periodicStatusInterval\":5," +
@@ -277,13 +277,13 @@ namespace Cassandra.Tests.Insights
                             "\"readTimeout\":1505," +
                             "\"retry\":{" +
                                 "\"type\":\"DowngradingConsistencyRetryPolicy\"," +
-                                "\"namespace\":\"Dse\"}," +
+                                "\"namespace\":\"Cassandra\"}," +
                             "\"loadBalancing\":{" +
                                 "\"type\":\"RoundRobinPolicy\"," +
-                                "\"namespace\":\"Dse\"}," +
+                                "\"namespace\":\"Cassandra\"}," +
                             "\"speculativeExecution\":{" +
                                 "\"type\":\"ConstantSpeculativeExecutionPolicy\"," +
-                                "\"namespace\":\"Dse\"," +
+                                "\"namespace\":\"Cassandra\"," +
                                 "\"options\":{" +
                                     "\"delay\":1213," +
                                     "\"maxSpeculativeExecutions\":10}}," +
@@ -300,21 +300,21 @@ namespace Cassandra.Tests.Insights
                             "\"readTimeout\":501," +
                             "\"retry\":{" +
                                 "\"type\":\"IdempotenceAwareRetryPolicy\"," +
-                                "\"namespace\":\"Dse\"," +
+                                "\"namespace\":\"Cassandra\"," +
                                 "\"options\":{" +
                                     "\"childPolicy\":{" +
                                         "\"type\":\"DefaultRetryPolicy\"," +
-                                        "\"namespace\":\"Dse\"}}}," +
+                                        "\"namespace\":\"Cassandra\"}}}," +
                             "\"loadBalancing\":{" +
                                 "\"type\":\"TokenAwarePolicy\"," +
-                                "\"namespace\":\"Dse\"," +
+                                "\"namespace\":\"Cassandra\"," +
                                 "\"options\":{" +
                                     "\"childPolicy\":{" +
                                         "\"type\":\"RoundRobinPolicy\"," +
-                                        "\"namespace\":\"Dse\"}}}," +
+                                        "\"namespace\":\"Cassandra\"}}}," +
                             "\"speculativeExecution\":{" +
                                 "\"type\":\"ConstantSpeculativeExecutionPolicy\"," +
-                                "\"namespace\":\"Dse\"," +
+                                "\"namespace\":\"Cassandra\"," +
                                 "\"options\":{" +
                                     "\"delay\":230," +
                                     "\"maxSpeculativeExecutions\":5}}," +
@@ -331,13 +331,13 @@ namespace Cassandra.Tests.Insights
                     "\"compression\":\"SNAPPY\"," +
                     "\"reconnectionPolicy\":{" +
                         "\"type\":\"ConstantReconnectionPolicy\"," +
-                        "\"namespace\":\"Dse\"," +
+                        "\"namespace\":\"Cassandra\"," +
                         "\"options\":{" +
                             "\"constantDelayMs\":150}}," +
                     "\"ssl\":{\"enabled\":false}," +
                     "\"authProvider\":{" +
                         "\"type\":\"NoneAuthProvider\"," +
-                        "\"namespace\":\"Dse\"}," +
+                        "\"namespace\":\"Cassandra\"}," +
                     "\"configAntiPatterns\":{" +
                         "\"downgradingConsistency\":\"Downgrading consistency retry policy in use\"}," +
                     "\"periodicStatusInterval\":5," +
