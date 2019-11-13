@@ -1,0 +1,21 @@
+﻿// 
+//       Copyright (C) DataStax, Inc.
+// 
+//     Please see the license for details:
+//     http://www.datastax.com/terms/datastax-dse-driver-license-terms
+// 
+
+using Newtonsoft.Json;
+
+namespace Cassandra.Insights.Schema
+{
+    [JsonObject]
+    internal class Insight<T>
+    {
+        [JsonProperty("metadata")]
+        public InsightsMetadata Metadata;
+        
+        [JsonProperty("data")]
+        public T Data;
+    }
+}

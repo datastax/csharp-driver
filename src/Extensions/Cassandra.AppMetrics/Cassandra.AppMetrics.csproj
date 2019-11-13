@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>This package builds on the DataStax Enterprise C# driver and DataStax C# Driver for Apache Cassandra, adding a metrics provider implementation using App Metrics.</Description>
+    <Copyright>Copyright © by DataStax</Copyright>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.1.0</FileVersion>
+    <VersionPrefix>1.0.1</VersionPrefix>
+    <Authors>DataStax</Authors>
+    <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">netstandard2.0;net461</TargetFrameworks>
+    <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True'">netstandard2.0</TargetFrameworks>
+    <Authors>DataStax</Authors>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AssemblyName>Cassandra.AppMetrics</AssemblyName>
+    <Product>DataStax Enterprise C# Driver's App Metrics Extension</Product>
+    <AssemblyOriginatorKeyFile>../../../build/datastax.snk</AssemblyOriginatorKeyFile>
+    <SignAssembly>true</SignAssembly>
+    <PackageId>Cassandra.AppMetrics</PackageId>
+    <Title>DataStax Enterprise C# Driver's App Metrics Extension</Title>
+    <PackageTags>cassandra;apache;datastax;dse;driver;client;metrics;appmetricsdatabase;nosql;dotnet;netcore;db</PackageTags>
+    <PackageLicenseUrl>http://www.datastax.com/terms/datastax-dse-driver-license-terms</PackageLicenseUrl>
+    <PackageProjectUrl>http://docs.datastax.com/en/developer/csharp-driver-dse/latest/</PackageProjectUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="App.Metrics.Abstractions" Version="3.*" />
+    <PackageReference Include="App.Metrics.Concurrency" Version="2.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Cassandra\Cassandra.csproj" />
+  </ItemGroup>
+
+</Project>

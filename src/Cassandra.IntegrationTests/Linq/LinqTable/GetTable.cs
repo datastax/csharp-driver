@@ -1,0 +1,49 @@
+//
+//  Copyright (C) DataStax, Inc.
+//
+//  Please see the license for details:
+//  http://www.datastax.com/terms/datastax-dse-driver-license-terms
+//
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Cassandra.Data.Linq;
+using Cassandra.IntegrationTests.Linq.Structures;
+using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Mapping;
+using NUnit.Framework;
+
+namespace Cassandra.IntegrationTests.Linq.LinqTable
+{
+    /// <summary>
+    /// NOTE: The GetTable() method is deprecated.
+    /// </summary>
+    [Category("short"), Category("realcluster")]
+    public class GetTable : SharedClusterTest
+    {
+        string _uniqueKsName;
+
+        public override void OneTimeSetUp()
+        {
+            base.OneTimeSetUp();
+            _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
+            Session.CreateKeyspace(_uniqueKsName);
+            TestUtils.WaitForSchemaAgreement(Session.Cluster);
+            Session.ChangeKeyspace(_uniqueKsName);
+        }
+
+        /// <summary>
+        /// Get table using GetTable, validate that the resultant table object functions as expected
+        /// </summary>
+        [Test]
+        public void LinqTable_GetTable()
+        {
+            // Test
+            Table<AllDataTypesEntity> table = Session.GetTable<AllDataTypesEntity>();
+            table.Create();
+            AllDataTypesEntity.WriteReadValidate(table);
+        }
+    }
+}
