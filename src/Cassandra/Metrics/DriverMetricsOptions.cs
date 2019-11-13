@@ -76,7 +76,7 @@ namespace Cassandra.Metrics
         /// <summary>
         /// Prepends a prefix to the bucket name for all metrics. The way the bucket name and metric name parameters
         /// are used depends on the <see cref="IDriverMetricsProvider"/> that is provided to the builder.
-        /// In the case of the provider based on App.Metrics available in the Dse.AppMetrics package,
+        /// In the case of the provider based on App.Metrics available in the Cassandra.AppMetrics package,
         /// the bucket name will be concatenated with the metric name (separated by a dot), which makes the full metric path like this:
         /// <code>
         /// Format: &lt;bucket-prefix&gt;.&lt;bucket-name&gt;.&lt;metric-name&gt;
