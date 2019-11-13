@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Built on top of DataStax C# driver for Apache Cassandra, it provides additional features designed for DataStax Enterprise.</Description>
+    <Description>A modern, feature-rich and highly tunable C# client library for Apache Cassandra and DataStax Enterprise</Description>
     <Copyright>Copyright © by DataStax</Copyright>
-    <AssemblyTitle>DataStax Enterprise C# Driver</AssemblyTitle>
-    <AssemblyVersion>2.0.0.0</AssemblyVersion>
-    <FileVersion>2.9.0.0</FileVersion>
-    <VersionPrefix>2.9.0</VersionPrefix>
+    <AssemblyTitle>DataStax C# Driver for Apache Cassandra</AssemblyTitle>
+    <AssemblyVersion>3.99.0.0</AssemblyVersion>
+    <FileVersion>3.12.0.0</FileVersion>
+    <VersionPrefix>3.12.0</VersionPrefix>
     <Authors>DataStax</Authors>
     <TargetFrameworks Condition="'$(BuildCoreOnly)' != 'True'">net45;netstandard1.5;netstandard2.0</TargetFrameworks>
     <TargetFrameworks Condition="'$(BuildCoreOnly)' == 'True'">netstandard1.5;netstandard2.0</TargetFrameworks>
@@ -13,14 +13,15 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyName>Cassandra</AssemblyName>
-    <Product>DataStax Enterprise C# Driver</Product>
+    <Product>DataStax C# Driver for Apache Cassandra</Product>
     <AssemblyOriginatorKeyFile>../../build/datastax.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
-    <PackageId>Dse</PackageId>
-    <Title>DataStax Enterprise C# Driver</Title>
-    <PackageTags>cassandra;dse;datastax;driver;client;database;nosql;dotnet;netcore;db</PackageTags>
-    <PackageLicenseUrl>http://www.datastax.com/terms/datastax-dse-driver-license-terms</PackageLicenseUrl>
-    <PackageProjectUrl>http://docs.datastax.com/en/developer/csharp-driver-dse/latest/</PackageProjectUrl>
+    <PackageId>CassandraCSharpDriver</PackageId>
+    <Title>DataStax C# Driver for Apache Cassandra</Title>
+    <PackageTags>cassandra;apache;dse;datastax;driver;client;database;nosql;dotnet;netcore;db</PackageTags>
+    <PackageLicenseUrl>https://github.com/datastax/csharp-driver/blob/master/LICENSE</PackageLicenseUrl>
+    <RepositoryUrl>https://github.com/datastax/csharp-driver</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/datastax/csharp-driver</PackageProjectUrl>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard1.5' ">
     <DefineConstants>$(DefineConstants);NETCORE</DefineConstants>

@@ -13,14 +13,15 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyName>Cassandra.AppMetrics</AssemblyName>
-    <Product>DataStax Enterprise C# Driver's App Metrics Extension</Product>
+    <Product>DataStax C# Drivers App Metrics Extension</Product>
     <AssemblyOriginatorKeyFile>../../../build/datastax.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
-    <PackageId>Cassandra.AppMetrics</PackageId>
-    <Title>DataStax Enterprise C# Driver's App Metrics Extension</Title>
+    <PackageId>CassandraCSharpDriver.AppMetrics</PackageId>
+    <Title>DataStax C# Drivers App Metrics Extension</Title>
     <PackageTags>cassandra;apache;datastax;dse;driver;client;metrics;appmetricsdatabase;nosql;dotnet;netcore;db</PackageTags>
-    <PackageLicenseUrl>http://www.datastax.com/terms/datastax-dse-driver-license-terms</PackageLicenseUrl>
-    <PackageProjectUrl>http://docs.datastax.com/en/developer/csharp-driver-dse/latest/</PackageProjectUrl>
+    <PackageLicenseUrl>https://github.com/datastax/csharp-driver/blob/master/LICENSE</PackageLicenseUrl>
+    <RepositoryUrl>https://github.com/datastax/csharp-driver</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/datastax/csharp-driver</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>
