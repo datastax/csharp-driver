@@ -52,7 +52,7 @@ namespace Cassandra.Tests
             //without specifying load balancing policy
             IDseCluster cluster = DseCluster.Builder().AddContactPoint("192.168.1.159").Build();
             Assert.NotNull(cluster.Configuration);
-            Assert.IsInstanceOf<DseLoadBalancingPolicy>(
+            Assert.IsInstanceOf<DefaultLoadBalancingPolicy>(
                 cluster.Configuration.CassandraConfiguration.Policies.LoadBalancingPolicy);
         }
 

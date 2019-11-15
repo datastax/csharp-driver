@@ -141,7 +141,7 @@ namespace Cassandra.IntegrationTests.Graph
             Trace.TraceInformation("GraphMultiNodeTests: FindSparkMaster");
             using (var cluster = DseCluster.Builder()
                         .AddContactPoint(TestClusterManager.InitialContactPoint)
-                        .WithLoadBalancingPolicy(DseLoadBalancingPolicy.CreateDefault())
+                        .WithLoadBalancingPolicy(DefaultLoadBalancingPolicy.CreateDefault())
                         .Build())
             {
                 var session = cluster.Connect();
@@ -164,7 +164,7 @@ namespace Cassandra.IntegrationTests.Graph
             using (var cluster = DseCluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
-                .WithLoadBalancingPolicy(DseLoadBalancingPolicy.CreateDefault())
+                .WithLoadBalancingPolicy(DefaultLoadBalancingPolicy.CreateDefault())
                 .Build())
             {
                 var session = cluster.Connect();

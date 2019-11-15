@@ -42,10 +42,10 @@ namespace Cassandra.Insights.InfoProviders.StartupMessage
                     }
                 },
                 {
-                    typeof(DseLoadBalancingPolicy),
+                    typeof(DefaultLoadBalancingPolicy),
                     (policy, reconnectionPolicyInfoMapper) =>
                     {
-                        var typedPolicy = (DseLoadBalancingPolicy) policy;
+                        var typedPolicy = (DefaultLoadBalancingPolicy) policy;
                         return new Dictionary<string, object>
                         {
                             { "childPolicy", LoadBalancingPolicyInfoProvider.GetLoadBalancingPolicyInfo(typedPolicy.ChildPolicy, reconnectionPolicyInfoMapper) }

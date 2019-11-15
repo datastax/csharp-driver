@@ -23,24 +23,14 @@ namespace Cassandra.ExecutionProfiles
     /// <inheritdoc />
     internal class RequestOptionsMapper : IRequestOptionsMapper
     {
-        private readonly GraphOptions _graphOptions = new GraphOptions();
-        
-        public RequestOptionsMapper()
-        {
-        }
-
-        public RequestOptionsMapper(GraphOptions graphOptions)
-        {
-            _graphOptions = graphOptions;
-        }
-
         /// <inheritdoc />
         public IReadOnlyDictionary<string, IRequestOptions> BuildRequestOptionsDictionary(
             IReadOnlyDictionary<string, IExecutionProfile> executionProfiles,
             Policies policies,
             SocketOptions socketOptions,
             ClientOptions clientOptions,
-            QueryOptions queryOptions)
+            QueryOptions queryOptions,
+            GraphOptions graphOptions)
         {
             executionProfiles.TryGetValue(Configuration.DefaultExecutionProfileName, out var defaultProfile);
             var requestOptions =
@@ -48,11 +38,11 @@ namespace Cassandra.ExecutionProfiles
                     .Where(kvp => kvp.Key != Configuration.DefaultExecutionProfileName)
                     .ToDictionary<KeyValuePair<string, IExecutionProfile>, string, IRequestOptions>(
                         kvp => kvp.Key,
-                        kvp => new RequestOptions(kvp.Value, defaultProfile, policies, socketOptions, queryOptions, clientOptions, _graphOptions));
+                        kvp => new RequestOptions(kvp.Value, defaultProfile, policies, socketOptions, queryOptions, clientOptions, graphOptions));
 
             requestOptions.Add(
                 Configuration.DefaultExecutionProfileName, 
-                new RequestOptions(null, defaultProfile, policies, socketOptions, queryOptions, clientOptions, _graphOptions));
+                new RequestOptions(null, defaultProfile, policies, socketOptions, queryOptions, clientOptions, graphOptions));
             return requestOptions;
         }
     }

@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Collections.Generic;
 using Cassandra.Helpers;
 
@@ -26,11 +27,26 @@ namespace Cassandra.Requests
         public const string NoCompactOption = "NO_COMPACT";
         public const string DriverNameOption = "DRIVER_NAME";
         public const string DriverVersionOption = "DRIVER_VERSION";
+        
+        public const string ApplicationNameOption = "APPLICATION_NAME";
+        public const string ApplicationVersionOption = "APPLICATION_VERSION";
+        public const string ClientIdOption = "CLIENT_ID";
 
         public const string CqlVersion = "3.0.0";
         public const string SnappyCompression = "snappy";
         public const string Lz4Compression = "lz4";
 
+        private readonly string _appName;
+        private readonly string _appVersion;
+        private readonly Guid _clusterId;
+
+        public StartupOptionsFactory(Guid clusterId, string appVersion, string appName)
+        {
+            _appName = appName;
+            _appVersion = appVersion;
+            _clusterId = clusterId;
+        }
+        
         public IReadOnlyDictionary<string, string> CreateStartupOptions(ProtocolOptions options)
         {
             var startupOptions = new Dictionary<string, string>
@@ -62,7 +78,18 @@ namespace Cassandra.Requests
             startupOptions.Add(StartupOptionsFactory.DriverNameOption, AssemblyHelpers.GetAssemblyTitle(typeof(StartupOptionsFactory)));
             startupOptions.Add(
                 StartupOptionsFactory.DriverVersionOption, AssemblyHelpers.GetAssemblyInformationalVersion(typeof(StartupOptionsFactory)));
+            
+            if (_appName != null)
+            {
+                startupOptions[StartupOptionsFactory.ApplicationNameOption] = _appName;
+            }
 
+            if (_appVersion != null)
+            {
+                startupOptions[StartupOptionsFactory.ApplicationVersionOption] = _appVersion;
+            }
+            
+            startupOptions[StartupOptionsFactory.ClientIdOption] = _clusterId.ToString();
             return startupOptions;
         }
     }

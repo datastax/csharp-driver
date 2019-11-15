@@ -23,33 +23,30 @@ namespace Cassandra
     {
         /// <summary>
         /// <para>
-        /// DEPRECATED: 
+        /// DEPRECATED: Use <see cref="NewDefaultLoadBalancingPolicy"/> instead. Providing the local datacenter will be mandatory
+        /// in the next major version of the driver.
         /// </para>
         /// <para>
         /// The default load balancing policy.
         /// </para>  
         /// <para> 
-        /// The default load balancing policy is <see cref="TokenAwarePolicy"/> with <see cref="DCAwareRoundRobinPolicy"/> as child policy.
+        /// The default load balancing policy is <see cref="DefaultLoadBalancingPolicy"/> as a wrapper around
+        /// <see cref="TokenAwarePolicy"/> with <see cref="DCAwareRoundRobinPolicy"/> as child policy.
         /// </para>
         /// </summary>
-        public static ILoadBalancingPolicy DefaultLoadBalancingPolicy
-        {
-            get
-            {
-                return new TokenAwarePolicy(new DCAwareRoundRobinPolicy());
-            }
-        }
+        public static ILoadBalancingPolicy DefaultLoadBalancingPolicy => 
+            new DefaultLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy()));
 
         /// <summary>
         /// Creates a new instance of the default load balancing policy with the provided local datacenter.
         /// This is equivalent to:
         /// <code>
-        /// new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc))
+        /// new DefaultLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc)))
         /// </code>
         /// </summary>
         public static ILoadBalancingPolicy NewDefaultLoadBalancingPolicy(string localDc)
         {
-            return new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc));
+            return new DefaultLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc)));
         }
 
         /// <summary>

@@ -24,10 +24,13 @@ using System.Threading.Tasks;
 using Cassandra.Cloud;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Graph;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Abstractions;
 using Cassandra.Requests;
 using Cassandra.Serialization;
+using Cassandra.Serialization.Geometry;
+using Cassandra.Serialization.Search;
 using Cassandra.SessionManagement;
 
 namespace Cassandra
@@ -37,6 +40,8 @@ namespace Cassandra
     /// </summary>
     public class Builder : IInitializer
     {
+        public const string DefaultApplicationName = "Default .NET Application";
+
         private static readonly Logger Logger = new Logger(typeof(Builder));
 
         private readonly List<IPEndPoint> _addresses = new List<IPEndPoint>();
@@ -66,14 +71,12 @@ namespace Cassandra
         private TypeSerializerDefinitions _typeSerializerDefinitions;
         private bool _noCompact;
         private int _maxSchemaAgreementWaitSeconds = ProtocolOptions.DefaultMaxSchemaAgreementWaitSeconds;
-        private IStartupOptionsFactory _startupOptionsFactory = new StartupOptionsFactory();
-        private ISessionFactoryBuilder<IInternalCluster, IInternalSession> _sessionFactoryBuilder = new SessionFactoryBuilder();
         private IReadOnlyDictionary<string, IExecutionProfile> _profiles = new Dictionary<string, IExecutionProfile>();
-        private IRequestOptionsMapper _requestOptionsMapper = new RequestOptionsMapper();
         private MetadataSyncOptions _metadataSyncOptions;
         private IEndPointResolver _endPointResolver;
         private IDriverMetricsProvider _driverMetricsProvider;
         private DriverMetricsOptions _metricsOptions;
+        private MonitorReportingOptions _monitorReportingOptions = new MonitorReportingOptions();
         private string _sessionName;
         private string _bundlePath;
         private bool _addedSsl;
@@ -91,6 +94,26 @@ namespace Cassandra
             _loadBalancingPolicy = lbp;
             _retryPolicy = retryPolicy;
         }
+
+        /// <summary>
+        /// The version of the application using the created cluster instance.
+        /// </summary>
+        public string ApplicationVersion { get; private set; }
+
+        /// <summary>
+        /// The name of the application using the created cluster instance.
+        /// </summary>
+        public string ApplicationName { get; private set; }
+
+        /// <summary>
+        /// A unique identifier for the created cluster instance.
+        /// </summary>
+        public Guid? ClusterId { get; private set; }
+
+        /// <summary>
+        /// Gets the DSE Graph options.
+        /// </summary>
+        public GraphOptions GraphOptions { get; private set; }
 
         /// <summary>
         ///  The pooling options used by this builder.
@@ -143,6 +166,16 @@ namespace Cassandra
             {
                 ConfigureCloudCluster(_bundlePath);
             }
+            
+            var typeSerializerDefinitions = _typeSerializerDefinitions ?? new TypeSerializerDefinitions();
+            typeSerializerDefinitions
+                .Define(new DateRangeSerializer())
+                .Define(new DurationSerializer(true))
+                .Define(new LineStringSerializer())
+                .Define(new PointSerializer())
+                .Define(new PolygonSerializer());
+
+            _typeSerializerDefinitions = typeSerializerDefinitions;
 
             var policies = new Policies(
                 _loadBalancingPolicy,
@@ -171,15 +204,17 @@ namespace Cassandra
                 _authInfoProvider,
                 _queryOptions,
                 _addressTranslator,
-                _startupOptionsFactory,
-                _sessionFactoryBuilder,
                 _profiles,
-                _requestOptionsMapper,
                 _metadataSyncOptions,
                 _endPointResolver,
                 _driverMetricsProvider,
                 _metricsOptions,
-                _sessionName);
+                _sessionName,
+                GraphOptions,
+                ClusterId,
+                ApplicationVersion,
+                ApplicationName,
+                _monitorReportingOptions);
 
             if (_typeSerializerDefinitions != null)
             {
@@ -187,6 +222,61 @@ namespace Cassandra
             }
 
             return config;
+        }
+        
+        /// <summary>
+        /// <para>
+        /// An optional configuration for providing a unique identifier for the created cluster instance.
+        /// </para>
+        /// If not provided, an id will generated.
+        /// <para>
+        /// This value is passed to the server as a startup option and is useful as metadata for describing a client connection.
+        /// </para>
+        /// </summary>
+        /// <param name="id">The id to assign to this cluster instance.</param>
+        /// <returns>this instance</returns>
+        public Builder WithClusterId(Guid id)
+        {
+            ClusterId = id;
+            return this;
+        }
+
+        /// <summary>
+        /// <para>
+        /// An optional configuration identifying the name of the application using this cluster instance.
+        /// </para>
+        /// This value is passed to the server as a startup option and is useful as metadata for describing a client connection.
+        /// </summary>
+        /// <param name="name">The name of the application using this cluster.</param>
+        /// <returns>this instance</returns>
+        public Builder WithApplicationName(string name)
+        {
+            ApplicationName = name ?? throw new ArgumentNullException(nameof(name));
+            return this;
+        }
+
+        /// <summary>
+        /// <para>
+        /// An optional configuration identifying the version of the application using this cluster instance.
+        /// </para>
+        /// This value is passed to the server as a startup option and is useful as metadata for describing a client connection.
+        /// </summary>
+        /// <param name="version">The version of the application using this cluster.</param>
+        /// <returns>this instance</returns>
+        public Builder WithApplicationVersion(string version)
+        {
+            ApplicationVersion = version ?? throw new ArgumentNullException(nameof(version));
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the DataStax Graph options.
+        /// </summary>
+        /// <returns>this instance</returns>
+        public Builder WithGraphOptions(GraphOptions options)
+        {
+            GraphOptions = options;
+            return this;
         }
 
         /// <summary>
@@ -711,19 +801,7 @@ namespace Cassandra
             _typeSerializerDefinitions = definitions;
             return this;
         }
-
-        internal Builder WithStartupOptionsFactory(IStartupOptionsFactory startupOptionsFactory)
-        {
-            _startupOptionsFactory = startupOptionsFactory ?? throw new ArgumentNullException(nameof(startupOptionsFactory));
-            return this;
-        }
-
-        internal Builder WithRequestOptionsMapper(IRequestOptionsMapper requestOptionsMapper)
-        {
-            _requestOptionsMapper = requestOptionsMapper ?? throw new ArgumentNullException(nameof(requestOptionsMapper));
-            return this;
-        }
-
+        
         internal Builder WithEndPointResolver(IEndPointResolver endPointResolver)
         {
             _endPointResolver = endPointResolver ?? throw new ArgumentNullException(nameof(endPointResolver));
@@ -947,6 +1025,27 @@ namespace Cassandra
         public Builder WithCloudSecureConnectionBundle(string bundlePath)
         {
             _bundlePath = bundlePath;
+            return this;
+        }
+
+        /// <summary>
+        /// Configures options related to Monitor Reporting for the new cluster.
+        /// By default, Monitor Reporting is enabled.
+        /// </summary>
+        /// <returns>This Builder.</returns>
+        public Builder WithMonitorReporting(bool enabled)
+        {
+            return WithMonitorReporting(_monitorReportingOptions.SetMonitorReportingEnabled(enabled));
+        }
+
+        /// <summary>
+        /// Configures options related to Monitor Reporting for the new cluster.
+        /// By default, Monitor Reporting is enabled.
+        /// </summary>
+        /// <returns>This Builder.</returns>
+        internal Builder WithMonitorReporting(MonitorReportingOptions options)
+        {
+            _monitorReportingOptions = options;
             return this;
         }
 

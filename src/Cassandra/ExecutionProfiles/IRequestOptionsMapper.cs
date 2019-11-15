@@ -15,6 +15,7 @@
 //
 
 using System.Collections.Generic;
+using Cassandra.Graph;
 
 namespace Cassandra.ExecutionProfiles
 {
@@ -32,6 +33,7 @@ namespace Cassandra.ExecutionProfiles
             Policies policies,
             SocketOptions socketOptions,
             ClientOptions clientOptions,
-            QueryOptions queryOptions);
+            QueryOptions queryOptions,
+            GraphOptions graphOptions);
     }
 }

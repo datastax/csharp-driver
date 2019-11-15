@@ -10,13 +10,13 @@ The driver versions follow semantic versioning.
 
 ### Major releases
 
-Example: `2.0.0`
+Example: `3.0.0`
 
 Regarding `major` releases, any public component of the driver might be changed or removed although we will always try to avoid introducing significant changes that would make it significantly harder for an application to upgrade to the new `major` version.
 
 ### Minor releases
 
-Example: `2.7.0`
+Example: `3.10.0`
 
 For `minor` releases, it's a little more complicated because we don't want to be forced into bumping the `major` version every time we want to add a new client facing feature to the driver. For this reason, we group public interfaces of the driver in two categories. Here we refer to them as _mockable_ and _implementable_ but these names are here just to make it easier to explain them in this section.
 
@@ -47,13 +47,23 @@ If you need to implement a wrapper class to provide functionality on top of the 
 
 ### Patch releases
 
-Example: `2.1.1`
+Example: `3.4.1`
 
 These releases only contain bug fixes so they will never contain changes to the driver's public API.
 
-## 2.7
+## Moving from the DataStax Enterprise C# Driver
 
-A lot of new methods were added to some interfaces on this release, mostly to `ISession`, `IMapper` and `ICluster`. Note that `IDseCluster` inherits from `ICluster` and `IDseSession` inherits from `ISession` so these are affected as well. We are also taking this opportunity to clarify our stance on breaking changes. To read about our policy on public API changes read the first section on the top of this page.
+The default retry policy in `DseClusterBuilder` was `new IdempotencyAwareRetryPolicy(new DefaultRetryPolicy())`. With `Builder` the default is `new DefaultRetryPolicy()`.
+
+`DseLoadBalancingPolicy` is now `DefaultLoadBalancingPolicy`. `DseLoadBalancingPolicy.CreateDefault` is replaced by `Policies.DefaultLoadBalancingPolicy` and `Policies.NewDefaultLoadBalancingPolicy`.
+
+`DseClusterBuilder` has been removed. These builder methods were moved to `Builder`.
+
+`DseConfiguration` has been removed. These class properties were moved to `Configuration`.
+
+## 3.10
+
+A lot of new methods were added to some interfaces on this release, mostly to `ISession`, `IMapper` and `ICluster`. We are also taking this opportunity to clarify our stance on breaking changes. To read about our policy on public API changes read the first section on the top of this page.
 
 ### New methods with execution profile support
 
@@ -126,7 +136,7 @@ A new optional parameter `keyspace` was added to the following method:
 
 - `public static UdtMap<T> For<T>(string udtName = null, string keyspace = null)`
 
-## 2.6
+## 3.9
 
 The `usedHostsPerRemoteDc` parameter on `DCAwareRoundRobinPolicy` is now deprecated. It will be removed in the following major version of the driver.
 
@@ -137,7 +147,7 @@ This parameter can give the indication that the driver will handle DC failover f
 
 A good write up on DC failover describing some of these considerations can be found [here](https://medium.com/@foundev/cassandra-local-quorum-should-stay-local-c174d555cc57).
 
-## 2.3
+## 3.6
 
 The `DowngradingConsistencyRetryPolicy` is now deprecated. It will be removed in the following major version of the 
 driver.
@@ -158,4 +168,123 @@ should they decide that the downgrading behavior of `DowngradingConsistencyRetry
 use cases, they will now have to implement this logic themselves, either at application level, or alternatively at
 driver level, by rolling out their own downgrading retry policy.
 
+## 2.5
+
+### API changes
+
+1. `Host.Address` field is now an `IPEndPoint` (IP address and port number) instead of an `IPAddress`.
+
+1. There is one assembly delivered in the package (Cassandra.dll) and it is now strong-named.
+
+1. Linq changes (see below).
+
+### Linq changes
+
+Even though there are no breaking changes regarding Linq in 2.5, it is important that you read this guide in order to
+understand the new ways to use Linq and the Mapper components.
+
+#### Fluent mapping definitions
+
+Previously, the only way to provide mapping information to the Linq component was using class and method attribute decoration.
+Now, you can define mapping using a fluent interface.
+
+```csharp
+MappingConfiguration.Global.
+  Define(new Map<User>().TableName("users"));
+```
+
+Additionally, you can now share the same mapping configuration between the new Mapper and Linq.
+
+#### Case sensitivity
+
+Prior to version 2.5, Linq component used case-sensitive identifiers when generating CQL code. Now, the case 
+sensitivity can be specified on the mapping information.
+
+Using fluent configuration:
+
+```csharp
+var map = new Map<User>.TableName("Users").CaseSensitive();
+MappingConfiguration.Global.Define(map);
+```
+
+#### Mapping attributes
+
+Even though using the fluent interface over attribute decoration for mapping definition is encouraged, there are a
+new set of attributes declared in the `Cassandra.Mapping.Attributes` namespace that can be used to define mapping
+between your objects and Cassandra tables. These attributes can provide the Mapper and Linq components with all the
+necessary information.
+
+The former set of attributes located in the `Cassandra.Data.Linq` namespace are still present in version 2.5 of the
+driver but they are only valid for the Linq component and they are now deprecated.
+
+#### Linq IQueryable instance
+
+There is a new way to obtain IQueryable instances that can be used to query Cassandra, that is using the `Table<T>`
+constructor. Using the `Table<T>` constructor is an inexpensive operation and `Table<T>` instances can be created and
+dereferenced without much overhead.
+
+Example 1:
+
+Creates a new instance of the Linq IQueryProvider using the global mapping configuration.
+
+```csharp
+var users = new Table<User>(session);
+```
+
+Example 2:
+
+Creates a new instance of the Linq `IQueryProvider` using the mapping configuration provided.
+
+```csharp
+var config = new MappingConfiguration();
+var users = new Table<User>(session, config);
+```
+
+The `ISession` extension method  `GetTable<T>()` used to obtain a `IQueryable` instance prior to 2.5 is still available,
+internally it will call the new `Table<T>` constructors.
+
+## 2.0
+
+We used the opportunity of a major version bump to incorporate your feedback, improve the API and to fix a number
+of inconsistencies. Unfortunately this means there are some breaking changes, but the new API should be both simpler
+and more complete.
+
+### Breaking API Changes
+
+1. The `Query` class has been renamed into `SimpleStatement`.
+
+1. Created the interface `IStatement` which `SimpleStatement`, `BoundStatement` and `BatchStatement` implement.
+The main `Session.Execute` and `Session.ExecuteAsync` methods use `IStatement` as parameter.
+
+1.  `RowSet` uses a queue internally and it dequeues items as you iterate through the rows .
+
+    This behaviour enables to have a stable memory use when paging through a large result.
+
+    If you still want to consume the `RowSet` as a list, you can use [.NET Enumerable.ToList][enum-tolist] extension 
+    method, for example: `var rowList = rs.ToList();`.
+
+1. `Session` implements `ISession` interface, to make unit test and mocking easier. `Cluster.Connect` now returns a
+`ISession` (it will still be a `Session` instance).
+
+1. Policies (load balancing and retry policies) depend on `IStatement` and `ICluster` interfaces instead of solid
+classes. This would only affect you only if you implemented a custom Policy.
+
+1. `Context` class, the implementation of the Entity Framework [ObjectContext][context] that used to be under the
+`Cassandra.Data.Linq` namespace is now moved to the `Cassandra.Data.EntityContext` namespace and it is published in
+a separate Nuget package, named [CassandraEntityContext][entitynuget].
+
+1. `RowSet` is now `IEnumerable<Row>`. You can iterate through the rows using the RowSet without having to invoke
+`RowSet.GetRows` method.
+
+1. The is no need to call to the `Dispose` method of `RowSet`. `Dispose` method is now marked as obsolete and it will
+be removed in future versions.
+
+1. Paging results: SELECT queries are now "paged" under the hood. In other words, if a query yields a very large result,
+only an initial amount of rows will be fetched (according to the page size), the rest of the rows will be fetched
+"on-demand" as you iterate through it.
+
+
 [mailing-list]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
+[context]: https://msdn.microsoft.com/en-us/library/system.data.objects.objectcontext(v=vs.110).aspx
+[entitynuget]: https://www.nuget.org/packages/CassandraEntityContext/
+[enum-tolist]: https://msdn.microsoft.com/en-us/library/bb342261(v=vs.110).aspx

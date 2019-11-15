@@ -53,10 +53,10 @@ namespace Cassandra.Insights.InfoProviders.StartupMessage
                     }
                 },
                 { 
-                    typeof(DseLoadBalancingPolicy), 
+                    typeof(DefaultLoadBalancingPolicy), 
                     (obj, antiPatterns) =>
                     {
-                        var typedPolicy = (DseLoadBalancingPolicy) obj;
+                        var typedPolicy = (DefaultLoadBalancingPolicy) obj;
                         return ConfigAntiPatternsInfoProvider.AddAntiPatterns(typedPolicy.ChildPolicy, antiPatterns);
                     }
                 },

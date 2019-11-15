@@ -27,30 +27,25 @@ namespace Cassandra
     ///  previously obtained by driver as first host in the query plan.
     /// </para>
     /// </summary>
-    public class DseLoadBalancingPolicy : ILoadBalancingPolicy
+    public class DefaultLoadBalancingPolicy : ILoadBalancingPolicy
     {
         private const string UsedHostsPerRemoteDcObsoleteMessage =
             "The usedHostsPerRemoteDc parameter will be removed in the next major release of the driver. " +
             "DC failover should not be done in the driver, which does not have the necessary context to know " +
             "what makes sense considering application semantics. See https://datastax-oss.atlassian.net/browse/CSHARP-722";
 
-        private readonly ILoadBalancingPolicy _childPolicy;
         private volatile Host _lastPreferredHost;
 
         /// <summary>
-        /// Creates a new instance of <see cref="DseLoadBalancingPolicy"/> wrapping the provided child policy.
+        /// Creates a new instance of <see cref="DefaultLoadBalancingPolicy"/> wrapping the provided child policy.
         /// </summary>
-        public DseLoadBalancingPolicy(ILoadBalancingPolicy childPolicy)
+        public DefaultLoadBalancingPolicy(ILoadBalancingPolicy childPolicy)
         {
-            if (childPolicy == null)
-            {
-                throw new ArgumentNullException("childPolicy");
-            }
-            _childPolicy = childPolicy;
+            ChildPolicy = childPolicy ?? throw new ArgumentNullException(nameof(childPolicy));
         }
 
         /// <summary>
-        /// Creates a new instance of <see cref="DseLoadBalancingPolicy"/> given the name of the local datacenter and
+        /// Creates a new instance of <see cref="DefaultLoadBalancingPolicy"/> given the name of the local datacenter and
         /// the amount of host per remote datacenter to use for failover for the local hosts.
         /// </summary>
         /// <param name="localDc">The name of the local datacenter (case-sensitive)</param>
@@ -58,43 +53,25 @@ namespace Cassandra
         /// The amount of host per remote datacenter that the policy should yield in a new query plan after the local
         /// nodes. Note that this parameter will be removed in the next major version of the driver.
         /// </param>
-        [Obsolete(DseLoadBalancingPolicy.UsedHostsPerRemoteDcObsoleteMessage)]
-        public DseLoadBalancingPolicy(string localDc, int usedHostsPerRemoteDc)
+        [Obsolete(DefaultLoadBalancingPolicy.UsedHostsPerRemoteDcObsoleteMessage)]
+        public DefaultLoadBalancingPolicy(string localDc, int usedHostsPerRemoteDc)
         {
 #pragma warning disable 618
-            _childPolicy = new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc, usedHostsPerRemoteDc));
+            ChildPolicy = new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc, usedHostsPerRemoteDc));
 #pragma warning restore 618
         }
 
         /// <summary>
-        /// Creates a new instance of <see cref="DseLoadBalancingPolicy"/> given the name of the local datacenter.
+        /// Creates a new instance of <see cref="DefaultLoadBalancingPolicy"/> given the name of the local datacenter.
         /// </summary>
         /// <param name="localDc">The name of the local datacenter (case-sensitive)</param>
-        public DseLoadBalancingPolicy(string localDc)
+        public DefaultLoadBalancingPolicy(string localDc)
         {
-            _childPolicy = new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc));
+            ChildPolicy = new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc));
         }
 
-        internal ILoadBalancingPolicy ChildPolicy => _childPolicy;
-
-        /// <summary>
-        /// Creates the default load balancing policy, using 
-        /// <see cref="Policies.DefaultLoadBalancingPolicy"/> as child policy.
-        /// </summary>
-        public static DseLoadBalancingPolicy CreateDefault()
-        {
-            return new DseLoadBalancingPolicy(Policies.DefaultLoadBalancingPolicy);
-        }
+        internal ILoadBalancingPolicy ChildPolicy { get; }
         
-        /// <summary>
-        /// Creates the default load balancing policy, using 
-        /// <see cref="Policies.NewDefaultLoadBalancingPolicy"/> to create the child policy.
-        /// </summary>
-        public static DseLoadBalancingPolicy CreateDefault(string localDc)
-        {
-            return new DseLoadBalancingPolicy(Policies.NewDefaultLoadBalancingPolicy(localDc));
-        }
-
         /// <summary>
         /// Returns the distance as determined by the child policy.
         /// </summary>
@@ -107,7 +84,8 @@ namespace Cassandra
                 // It's somewhat "hacky" but ensures that the pool for the graph analytics host has the appropriate size
                 return HostDistance.Local;
             }
-            return _childPolicy.Distance(host);
+
+            return ChildPolicy.Distance(host);
         }
 
         /// <summary>
@@ -115,7 +93,7 @@ namespace Cassandra
         /// </summary>
         public void Initialize(ICluster cluster)
         {
-            _childPolicy.Initialize(cluster);
+            ChildPolicy.Initialize(cluster);
         }
 
         /// <summary>
@@ -123,19 +101,19 @@ namespace Cassandra
         /// </summary>
         public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement statement)
         {
-            var targettedStatement = statement as TargettedSimpleStatement;
-            if (targettedStatement != null && targettedStatement.PreferredHost != null)
+            if (statement is TargettedSimpleStatement targetedStatement && targetedStatement.PreferredHost != null)
             {
-                _lastPreferredHost = targettedStatement.PreferredHost;
-                return YieldPreferred(keyspace, targettedStatement);
+                _lastPreferredHost = targetedStatement.PreferredHost;
+                return YieldPreferred(keyspace, targetedStatement);
             }
-            return _childPolicy.NewQueryPlan(keyspace, statement);
+
+            return ChildPolicy.NewQueryPlan(keyspace, statement);
         }
 
         private IEnumerable<Host> YieldPreferred(string keyspace, TargettedSimpleStatement statement)
         {
             yield return statement.PreferredHost;
-            foreach (var h in _childPolicy.NewQueryPlan(keyspace, statement))
+            foreach (var h in ChildPolicy.NewQueryPlan(keyspace, statement))
             {
                 yield return h;
             }
