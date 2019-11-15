@@ -19,8 +19,9 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using Cassandra.Auth;
+
 using Cassandra.IntegrationTests.TestClusterManagement;
+
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Auth
@@ -33,7 +34,9 @@ namespace Cassandra.IntegrationTests.Auth
     {
         // Test cluster objects to be shared by tests in this class only
         private Lazy<ITestCluster> _testClusterForAuthTesting;
+
         private Lazy<ITestCluster> _testClusterForDseAuthTesting;
+        private ICluster _cluster;
 
         [OneTimeSetUp]
         public void OneTimeSetUp()
@@ -55,16 +58,26 @@ namespace Cassandra.IntegrationTests.Auth
             });
         }
 
+        [TearDown]
+        public void TearDown()
+        {
+            _cluster?.Dispose();
+            _cluster = null;
+        }
+
         [OneTimeTearDown]
         public void TestFixtureTearDown()
         {
             if (_testClusterForAuthTesting.IsValueCreated)
             {
-                _testClusterForAuthTesting.Value.Remove();
+                _testClusterForAuthTesting.Value.SwitchToThisCluster();
+                TestClusterManager.TryRemove();
             }
+
             if (_testClusterForDseAuthTesting.IsValueCreated)
             {
-                _testClusterForDseAuthTesting.Value.Remove();
+                _testClusterForDseAuthTesting.Value.SwitchToThisCluster();
+                TestClusterManager.TryRemove();
             }
         }
 
@@ -72,7 +85,7 @@ namespace Cassandra.IntegrationTests.Auth
         {
             if (dse)
             {
-                return 
+                return
                     TestClusterManager.CreateNew(1, new TestClusterOptions
                     {
                         DseYaml = new[] { "authentication_options.default_scheme: internal", "authentication_options.enabled: true" },
@@ -93,9 +106,9 @@ namespace Cassandra.IntegrationTests.Auth
             var builder = DseCluster.Builder()
                 .AddContactPoint(_testClusterForAuthTesting.Value.InitialContactPoint)
                 .WithCredentials("cassandra", "cassandra");
-            var cluster = builder.Build();
+            _cluster = builder.Build();
 
-            var session = cluster.Connect();
+            var session = _cluster.Connect();
             var rs = session.Execute("SELECT * FROM system.local");
             Assert.Greater(rs.Count(), 0);
         }
@@ -142,9 +155,9 @@ namespace Cassandra.IntegrationTests.Auth
             var builder = DseCluster.Builder()
                 .AddContactPoint(_testClusterForDseAuthTesting.Value.InitialContactPoint)
                 .WithCredentials("cassandra", "cassandra");
-            var cluster = builder.Build();
+            _cluster = builder.Build();
 
-            var session = cluster.Connect();
+            var session = _cluster.Connect();
             var rs = session.Execute("SELECT * FROM system.local");
             Assert.Greater(rs.Count(), 0);
         }

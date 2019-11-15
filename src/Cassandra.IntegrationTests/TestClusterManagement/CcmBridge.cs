@@ -68,8 +68,16 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
             if (string.IsNullOrEmpty(_dseInstallPath))
             {
-                ExecuteCcm(string.Format(
-                    "create {0} --dse -v {1} {2}", Name, Version, sslParams));
+                if (TestClusterManager.IsDse)
+                {
+                    ExecuteCcm(string.Format(
+                        "create {0} --dse -v {1} {2}", Name, Version, sslParams));
+                }
+                else
+                {
+                    ExecuteCcm(string.Format(
+                        "create {0} -v {1} {2}", Name, Version, sslParams));
+                }
             }
             else
             {
@@ -190,7 +198,14 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void BootstrapNode(int n, string dc, bool start = true)
         {
-            ExecuteCcm(string.Format("add node{0} -i {1}{2} -j {3} -b -s {4} --dse", n, IpPrefix, n, 7000 + 100 * n, dc != null ? "-d " + dc : null));
+            var cmd = "add node{0} -i {1}{2} -j {3} -b -s {4}";
+            if (TestClusterManager.IsDse)
+            {
+                cmd += " --dse";
+            }
+
+            ExecuteCcm(string.Format(cmd, n, IpPrefix, n, 7000 + 100 * n, dc != null ? "-d " + dc : null));
+
             if (start)
             {
                 Start(n);
@@ -221,6 +236,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void UpdateDseConfig(params string[] configs)
         {
+            if (!TestClusterManager.IsDse)
+            {
+                throw new InvalidOperationException("Cant update dse config on an oss cluster.");
+            }
+
             if (configs == null)
             {
                 return;
@@ -233,6 +253,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void SetNodeWorkloads(int nodeId, string[] workloads)
         {
+            if (!TestClusterManager.IsDse)
+            {
+                throw new InvalidOperationException("Cant set workloads on an oss cluster.");
+            }
+
             ExecuteCcm(string.Format("node{0} setworkload {1}", nodeId, string.Join(",", workloads)));
         }
 
@@ -241,6 +266,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// </summary>
         public void SetWorkloads(int nodeLength, string[] workloads)
         {
+            if (!TestClusterManager.IsDse)
+            {
+                throw new InvalidOperationException("Cant set workloads on an oss cluster.");
+            }
+
             if (workloads == null || workloads.Length == 0)
             {
                 return;

@@ -38,8 +38,11 @@ namespace Cassandra.IntegrationTests.Core
         [OneTimeSetUp]
         public void SetupFixture()
         {
-            if (CassandraVersion < Version.Parse("2.2"))
+            if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("2.2"), Comparison.LessThan))
+            {
                 Assert.Ignore("Requires Cassandra version >= 2.2");
+                return;
+            }
 
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
 

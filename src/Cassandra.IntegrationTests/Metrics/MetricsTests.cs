@@ -14,8 +14,9 @@
 //   limitations under the License.
 //
 
-#if !NET452
 
+using Cassandra.IntegrationTests.TestClusterManagement;
+#if !NET452
 using System;
 using System.Linq;
 using System.Net;
@@ -116,9 +117,7 @@ namespace Cassandra.IntegrationTests.Metrics
             Assert.AreEqual(2, context.Gauges.Count());
 
                 // remove host from cluster                
-                if (TestClusterManagement.TestClusterManager.DseVersion.Major < 5 ||
-                    (TestClusterManagement.TestClusterManager.DseVersion.Major == 5 && 
-                     TestClusterManagement.TestClusterManager.DseVersion.Minor < 1))
+                if (!TestClusterManager.SupportsDecommissionForcefully())
                 {
                     TestCluster.DecommissionNode(2);
                 }

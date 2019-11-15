@@ -16,11 +16,8 @@
 //
 
 using System;
-using System.Diagnostics;
-using System.Reflection;
-using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.IntegrationTests.TestClusterManagement;
+
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement
@@ -32,16 +29,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public const int DefaultMaxClusterCreateRetries = 2;
         public const string DefaultLocalIpPrefix = "127.0.0.";
         public const string DefaultInitialContactPoint = DefaultLocalIpPrefix + "1";
-        public const int ClusterInitSleepMsPerIteration = 500;
-        public const int ClusterInitSleepMsMax = 60 * 1000;
-
-        private static TestClusterManager _clusterManager;
-        private static bool _clusterManagerIsInitializing;
-        private static bool _clusterManagerIsInitalized;
-
-        public Version CassandraVersion => TestClusterManager.CassandraVersion;
-
-        public Version DseVersion => TestClusterManager.DseVersion;
 
         /// <summary>
         /// Determines if we are running on AppVeyor.
@@ -53,12 +40,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// </summary>
         public ProtocolVersion GetProtocolVersion()
         {
-            if (DseVersion >= Version.Parse("6.0"))
+            if (TestClusterManager.CheckDseVersion(Version.Parse("6.0"), Comparison.GreaterThanOrEqualsTo))
             {
                 return ProtocolVersion.DseV2;
             }
 
-            var cassandraVersion = CassandraVersion;
+            var cassandraVersion = TestClusterManager.CassandraVersion;
             var protocolVersion = ProtocolVersion.V1;
             if (cassandraVersion >= Version.Parse("2.2"))
             {
@@ -73,53 +60,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 protocolVersion = ProtocolVersion.V2;
             }
             return protocolVersion;
-        }
-        
-        public bool UseCtool { get; set; }
-        
-        public string DefaultIpPrefix { get; set; }
-        
-        public bool UseLogger { get; set; }
-        
-        public string LogLevel { get; set; }
-        
-        public string SSHHost { get; set; }
-        
-        public int SSHPort { get; set; }
-        
-        public string SSHUser { get; set; }
-        
-        public string SSHPassword { get; set; }
-        
-        public bool UseCompression { get; set; }
-        
-        public bool NoUseBuffering { get; set; }
-
-        public TestClusterManager TestClusterManager
-        {
-            get
-            {
-                if (_clusterManagerIsInitalized)
-                    return _clusterManager;
-                else if (_clusterManagerIsInitializing)
-                {
-                    while (_clusterManagerIsInitializing)
-                    {
-                        int SleepMs = 1000;
-                        Trace.TraceInformation(
-                            $"Shared {_clusterManagerIsInitializing.GetType().Name} object is initializing. Sleeping {SleepMs} MS ... ");
-                        Thread.Sleep(SleepMs);
-                    }
-                }
-                else
-                {
-                    _clusterManagerIsInitializing = true;
-                    _clusterManager = new TestClusterManager();
-                    _clusterManagerIsInitializing = false;
-                    _clusterManagerIsInitalized = true;
-                }
-                return _clusterManager;
-            }
         }
 
         public static async Task Connect(Cluster cluster, bool asyncConnect, Action<ISession> action)
@@ -146,6 +86,5 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 }
             }
         }
-
     }
 }

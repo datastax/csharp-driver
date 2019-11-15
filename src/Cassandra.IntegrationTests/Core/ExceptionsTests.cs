@@ -407,7 +407,7 @@ namespace Cassandra.IntegrationTests.Core
 
             _simulacronCluster.Prime(primeQuery);
             var rs = _session.Execute(new SimpleStatement(string.Format(TestUtils.SELECT_ALL_FORMAT, _table)).SetPageSize(1));
-            if (CassandraVersion.Major < 2)
+            if (TestClusterManager.CheckCassandraVersion(false, new Version(2, 0), Comparison.LessThan))
             {
                 //Paging should be ignored in 1.x
                 //But setting the page size should work

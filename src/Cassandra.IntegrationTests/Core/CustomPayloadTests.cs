@@ -36,8 +36,11 @@ namespace Cassandra.IntegrationTests.Core
         [OneTimeSetUp]
         public void SetupFixture()
         {
-            if (CassandraVersion < Version.Parse("2.2.0"))
+            if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("2.2.0"), Comparison.LessThan))
+            {
                 Assert.Ignore("Requires Cassandra version >= 2.2");
+                return;
+            }
 
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
             //Using a mirroring handler, the server will reply providing the same payload that was sent

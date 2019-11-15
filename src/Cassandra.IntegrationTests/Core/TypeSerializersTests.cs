@@ -16,14 +16,12 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Text;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Serialization;
-using Cassandra.Tests;
 using Cassandra.Tests.Extensions.Serializers;
+
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
@@ -41,15 +39,14 @@ namespace Cassandra.IntegrationTests.Core
                                               "i=>org.apache.cassandra.db.marshal.Int32Type)";
         
         private const string CustomTypeName2 = "org.apache.cassandra.db.marshal.DynamicCompositeType(" +
-                                              "i=>org.apache.cassandra.db.marshal.Int32Type," +
-                                              "s=>org.apache.cassandra.db.marshal.UTF8Type)";
-
+                                               "i=>org.apache.cassandra.db.marshal.Int32Type," +
+                                               "s=>org.apache.cassandra.db.marshal.UTF8Type)";
 
         protected override string[] SetupQueries
         {
             get
             {
-                return new []
+                return new[]
                 {
                     "CREATE TABLE tbl_decimal (id uuid PRIMARY KEY, text_value text, value1 decimal, value2 decimal)",
                     "CREATE TABLE tbl_decimal_key (id decimal PRIMARY KEY)",
@@ -188,7 +185,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     var statement = ps.Bind(v);
                     Assert.NotNull(statement.RoutingKey);
-                    CollectionAssert.AreEqual(new BigDecimalSerializer().Serialize((ushort) session.BinaryProtocolVersion, v), statement.RoutingKey.RawRoutingKey);
+                    CollectionAssert.AreEqual(new BigDecimalSerializer().Serialize((ushort)session.BinaryProtocolVersion, v), statement.RoutingKey.RawRoutingKey);
                     session.Execute(statement);
                     var row = session.Execute(new SimpleStatement("SELECT * FROM tbl_decimal_key WHERE id = ?", v)).First();
                     Assert.AreEqual(row.GetValue<BigDecimal>("id"), v);
@@ -199,9 +196,9 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_Use_Custom_TypeSerializers()
         {
-            var typeSerializerName = TestClusterManager.DseVersion <= new Version(6, 8)
-                ? TypeSerializersTests.CustomTypeName
-                : TypeSerializersTests.CustomTypeName2;
+            var typeSerializerName = TestClusterManager.CheckDseVersion(new Version(6, 8), Comparison.GreaterThanOrEqualsTo)
+                ? TypeSerializersTests.CustomTypeName2
+                : TypeSerializersTests.CustomTypeName;
 
             var builder = Cluster.Builder()
                                  .AddContactPoint(TestCluster.InitialContactPoint)
@@ -222,7 +219,7 @@ namespace Cassandra.IntegrationTests.Core
                 foreach (var item in values)
                 {
                     var id = item[0];
-                    var customValue = (DummyCustomType) item[1];
+                    var customValue = (DummyCustomType)item[1];
                     session.Execute(ps.Bind(id, item[1]));
                     var row = session.Execute(new SimpleStatement(CustomSelectQuery, id)).First();
                     Assert.AreEqual(row.GetValue<DummyCustomType>("value").Buffer, customValue.Buffer);

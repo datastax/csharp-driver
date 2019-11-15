@@ -157,7 +157,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             var uniqueTableName = TestUtils.GetUniqueTableName();
             var uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
-            if (TestClusterManager.DseVersion < new Version(6, 8))
+            if (!TestClusterManager.SchemaManipulatingQueriesThrowInvalidQueryException())
             {
                 Assert.Throws<InvalidConfigurationInQueryException>(() => table.Create());
             }
@@ -177,7 +177,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             var uniqueTableName = TestUtils.GetUniqueTableName();
             var uniqueKsName = TestUtils.GetUniqueKeyspaceName();
             var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
-            if (TestClusterManager.DseVersion < new Version(6, 8))
+            if (!TestClusterManager.SchemaManipulatingQueriesThrowInvalidQueryException())
             {
                 Assert.Throws<InvalidConfigurationInQueryException>(() => table.CreateIfNotExists());
             }

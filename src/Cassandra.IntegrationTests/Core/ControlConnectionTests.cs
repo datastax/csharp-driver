@@ -51,7 +51,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_Use_Maximum_Protocol_Version_Provided()
         {
             var version = ProtocolVersion.V2;
-            if (CassandraVersion >= Version.Parse("3.0"))
+            if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("3.0"), Comparison.GreaterThanOrEqualsTo))
             {
                 //protocol 2 is not supported in Cassandra 3.0+
                 version = ProtocolVersion.V3;

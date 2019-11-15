@@ -125,7 +125,7 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(3, clusterMax.Configuration.ProtocolOptions.MaxProtocolVersion);
                 await Connect(clusterMax, asyncConnect, session =>
                 {
-                    if (CassandraVersion < Version.Parse("2.1"))
+                    if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("2.1"), Comparison.LessThan))
                         Assert.AreEqual(2, session.BinaryProtocolVersion);
                     else
                         Assert.AreEqual(3, session.BinaryProtocolVersion);
@@ -200,7 +200,7 @@ namespace Cassandra.IntegrationTests.Core
                 await Connect(cluster, false, session =>
                 {
                     Assert.AreEqual(numberOfNodes, cluster.AllHosts().Count);
-                    if (TestClusterManager.DseVersion >= Version.Parse("5.1.0"))
+                    if (TestClusterManager.SupportsDecommissionForcefully())
                     {
                         testCluster.DecommissionNodeForcefully(numberOfNodes);
                     }

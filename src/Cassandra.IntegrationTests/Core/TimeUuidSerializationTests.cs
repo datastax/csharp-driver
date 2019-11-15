@@ -44,7 +44,7 @@ namespace Cassandra.IntegrationTests.Core
             base.OneTimeSetUp();
             var insertQuery = $"INSERT INTO {AllTypesTableName} (id, timeuuid_sample) VALUES (?, ?)";
             var selectQuery = $"SELECT id, timeuuid_sample, dateOf(timeuuid_sample) FROM {AllTypesTableName} WHERE id = ?";
-            if (CassandraVersion >= new Version(2, 2))
+            if (TestClusterManager.CheckCassandraVersion(false, new Version(2, 2), Comparison.GreaterThanOrEqualsTo))
             {
                 selectQuery =
                     $"SELECT id, timeuuid_sample, toTimestamp(timeuuid_sample) as timeuuid_date_value FROM {AllTypesTableName} WHERE id = ?";

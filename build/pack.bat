@@ -1,2 +1,2 @@
-dotnet pack src\Dse -c Release
-dotnet pack src\Extensions\Dse.AppMetrics -c Release
+dotnet pack src\Cassandra -c Release
+dotnet pack src\Extensions\Cassandra.AppMetrics -c Release

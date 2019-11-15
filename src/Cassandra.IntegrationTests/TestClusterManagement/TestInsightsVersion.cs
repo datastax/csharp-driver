@@ -29,6 +29,13 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
     {
         public void ApplyToTest(NUnit.Framework.Internal.Test test)
         {
+            if (!TestClusterManager.IsDse)
+            {
+                test.RunState = RunState.Ignored;
+                test.Properties.Set("_SKIPREASON", $"Test designed to run with DSE version that supports Insights (executing OSS {TestClusterManager.CassandraVersion})");
+                return;
+            }
+
             var executingVersion = TestClusterManager.DseVersion;
             var insightsSupportVerifier = new InsightsSupportVerifier();
             if (insightsSupportVerifier.DseVersionSupportsInsights(executingVersion))

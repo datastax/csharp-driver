@@ -270,7 +270,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(columns, String.Join(", ", preparedStatement.Metadata.Columns.Select(c => c.Name)));
             var id = Guid.NewGuid();
 
-            if (CassandraVersion < Version.Parse("2.2"))
+            if (TestClusterManager.CheckCassandraVersion(false, new Version(2, 2), Comparison.LessThan))
             {
                 //For previous Cassandra versions, all parameters must be specified
                 Assert.Throws<InvalidQueryException>(() => Session.Execute(preparedStatement.Bind(id)));
@@ -431,7 +431,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var query = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
             var preparedStatement = Session.Prepare(query);
-            if (CassandraVersion < new Version(2, 2))
+            if (TestClusterManager.CheckCassandraVersion(false, new Version(2, 2), Comparison.LessThan))
             {
                 //For older versions, there is no way to determine that my_id is actually id column
                 Assert.Null(preparedStatement.RoutingIndexes);   
@@ -737,7 +737,7 @@ namespace Cassandra.IntegrationTests.Core
             //With another query, named parameters are different
             ps = Session.Prepare("SELECT * FROM tbl_ps_multiple_pk_named WHERE b = :nice_name_b AND a = :nice_name_a AND c = :nice_name_c");
             //Parameters names are different from partition keys
-            if (CassandraVersion < new Version(2, 2))
+            if (TestClusterManager.CheckCassandraVersion(false, new Version(2, 2), Comparison.LessThan))
             {
                 //For older versions, there is no way to determine that nice_name_a is actually partition column
                 Assert.Null(ps.RoutingIndexes);
@@ -938,7 +938,7 @@ namespace Cassandra.IntegrationTests.Core
 
             // Parameters names are different from partition keys
             ps = Session.Prepare("SELECT * FROM tbl_ps_multiple_pk WHERE b = :nice_name1 AND a = :nice_name2 AND c = :nice_name3");
-            if (CassandraVersion < new Version(2, 2))
+            if (TestClusterManager.CheckCassandraVersion(false, new Version(2, 2), Comparison.LessThan))
             {
                 //For older versions, there is no way to determine that nice_name_a is actually partition column
                 Assert.Null(ps.RoutingIndexes);

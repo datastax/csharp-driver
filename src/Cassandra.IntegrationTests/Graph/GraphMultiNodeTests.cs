@@ -78,7 +78,7 @@ namespace Cassandra.IntegrationTests.Graph
                     ".option('graph.replication_config').set(replicationConfig)" +
                     ".option('graph.system_replication_config').set(replicationConfig)" +
                     ".ifNotExists()" + 
-                    (TestClusterManager.DseVersion < new Version(6, 8) ? string.Empty : ".engine(Classic)") +
+                    (!TestClusterManager.SupportsNextGenGraph() ? string.Empty : ".engine(Classic)") +
                     ".create()", 
                     new {name = GraphName, replicationConfig = replicationConfigStr}));
                 Trace.TraceInformation("GraphMultiNodeTests: Created graph");
@@ -179,7 +179,7 @@ namespace Cassandra.IntegrationTests.Graph
         [Test, Order(1)]
         public void Should_Parse_Dse_Workload()
         {
-            TestUtils.VerifyCurrentClusterWorkloads(DseVersion >= Version.Parse("5.1")
+            TestUtils.VerifyCurrentClusterWorkloads(TestClusterManager.CheckDseVersion(Version.Parse("5.1"), Comparison.GreaterThanOrEqualsTo)
                 ? new[] {"Analytics", "Cassandra", "Graph"}
                 : new[] {"Analytics"});
         }

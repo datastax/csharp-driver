@@ -60,19 +60,13 @@ namespace Cassandra.IntegrationTests
 
         protected const string MakeStrict = "schema.config().option(\"graph.schema_mode\").set(\"production\");";
         protected const string AllowScans = "schema.config().option(\"graph.allow_scan\").set(\"true\");";
-
-
-        public Version DseVersion
-        {
-            get { return TestClusterManager.DseVersion; }
-        }
-
+        
         /// <summary>
         /// Creates a graph using the current session
         /// </summary>
         public void CreateClassicGraph(IDseSession session, string name)
         {
-            session.ExecuteGraph(TestClusterManager.DseVersion < new Version(6, 8)
+            session.ExecuteGraph(!TestClusterManager.SupportsNextGenGraph()
                 ? new SimpleGraphStatement($"system.graph('{name}').ifNotExists().create()")
                 : new SimpleGraphStatement($"system.graph('{name}').ifNotExists().engine(Classic).create()"));
             session.ExecuteGraph(new SimpleGraphStatement(AllowScans).SetGraphName(name));

@@ -37,11 +37,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
         {
             Nodes = "1";
             Version = TestClusterManager.CassandraVersion.ToString();
-            DseVersion = TestClusterManager.DseVersion?.ToString();
+            DseVersion = TestClusterManager.IsDse ? TestClusterManager.DseVersion.ToString() : null;
             Name = TestUtils.GetTestClusterNameBasedOnTime();
             ActivityLog = true;
             NumberOfTokens = 1;
-            IsDse = false;
+            IsDse = TestClusterManager.IsDse;
         }
 
         public string GetCassandraVersion()

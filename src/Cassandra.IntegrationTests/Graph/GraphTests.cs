@@ -62,7 +62,7 @@ namespace Cassandra.IntegrationTests.Graph
         [Test]
         public void Should_Parse_Dse_Workload()
         {
-            TestUtils.VerifyCurrentClusterWorkloads(DseVersion >= Version.Parse("5.1")
+            TestUtils.VerifyCurrentClusterWorkloads(TestClusterManager.CheckDseVersion(Version.Parse("5.1"), Comparison.GreaterThanOrEqualsTo)
                 ? new[] { "Cassandra", "Graph" }
                 : new[] { "Cassandra"});
         }
@@ -655,7 +655,7 @@ namespace Cassandra.IntegrationTests.Graph
         public void Should_Support_Point()
         {
             var type = "Point()";
-            if (TestClusterManager.DseVersion >= Version.Parse("5.1.0"))
+            if (TestClusterManager.CheckDseVersion(Version.Parse("5.1.0"), Comparison.GreaterThanOrEqualsTo))
             {
                 type = "Point().withBounds(-40, -40, 40, 40)";
             }
@@ -667,7 +667,7 @@ namespace Cassandra.IntegrationTests.Graph
         public void Should_Support_Line()
         {
             var type = "Linestring()";
-            if (TestClusterManager.DseVersion >= Version.Parse("5.1.0"))
+            if (TestClusterManager.CheckDseVersion(Version.Parse("5.1.0"), Comparison.GreaterThanOrEqualsTo))
             {
                 type = "Linestring().withGeoBounds()";
             }
@@ -679,7 +679,7 @@ namespace Cassandra.IntegrationTests.Graph
         public void Should_Support_Polygon()
         {
             var type = "Polygon()";
-            if (TestClusterManager.DseVersion >= Version.Parse("5.1.0"))
+            if (TestClusterManager.CheckDseVersion(Version.Parse("5.1.0"), Comparison.GreaterThanOrEqualsTo))
             {
                 type = "Polygon().withGeoBounds()";
             }

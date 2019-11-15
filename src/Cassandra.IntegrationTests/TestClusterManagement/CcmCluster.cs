@@ -15,6 +15,7 @@
 //
 //
 
+using System;
 using System.Diagnostics;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement
@@ -51,8 +52,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             _ccm.Create(options.UseSsl);
             _ccm.Populate(nodeLength, options.Dc2NodeLength, options.UseVNodes);
             _ccm.UpdateConfig(options.CassandraYaml);
-            _ccm.UpdateDseConfig(options.DseYaml);
-            _ccm.SetWorkloads(nodeLength, options.Workloads);
+
+            if (TestClusterManager.IsDse)
+            {
+                _ccm.UpdateDseConfig(options.DseYaml);
+                _ccm.SetWorkloads(nodeLength, options.Workloads);
+            }
         }
 
         public void InitClient()
@@ -141,6 +146,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void SetNodeWorkloads(int nodeId, string[] workloads)
         {
+            if (!TestClusterManager.IsDse)
+            {
+                throw new InvalidOperationException("Cant set workloads on an oss cluster.");
+            }
+
             _ccm.SetNodeWorkloads(nodeId, workloads);
         }
 

@@ -51,7 +51,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
             Assert.AreEqual(metadataSync ? 3 : 1, replicas.Count);
             Assert.AreEqual(3, ClusterObj.Metadata.Hosts.Count);
             var oldTokenMap = ClusterObj.Metadata.TokenToReplicasMap;
-            if (TestClusterManager.DseVersion >= Version.Parse("5.1.0"))
+            if (TestClusterManager.SupportsDecommissionForcefully())
             {
                 this.TestCluster.DecommissionNodeForcefully(1);
             }

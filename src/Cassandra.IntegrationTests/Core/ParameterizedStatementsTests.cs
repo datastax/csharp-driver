@@ -50,7 +50,7 @@ namespace Cassandra.IntegrationTests.Core
                     }
                 };
 
-                if (CassandraVersion < Version40)
+                if (TestClusterManager.CheckCassandraVersion(false, new Version(4, 0), Comparison.LessThan))
                 {
                     setupQueries.Add($"CREATE TABLE {TableCompactStorage} (key blob PRIMARY KEY, bar int, baz uuid)" +
                                      $" WITH COMPACT STORAGE");
@@ -545,9 +545,10 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(3, 11)]
         public void SimpleStatement_With_No_Compact_Enabled_Should_Reveal_Non_Schema_Columns()
         {
-            if (CassandraVersion >= Version40)
+            if (TestClusterManager.CheckCassandraVersion(false, new Version(4, 0), Comparison.GreaterThanOrEqualsTo))
             {
                 Assert.Ignore("COMPACT STORAGE is only supported by C* versions prior to 4.0");
+                return;
             }
 
             var builder = DseCluster.Builder().WithNoCompact().AddContactPoint(TestCluster.InitialContactPoint);
@@ -565,9 +566,10 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(3, 11)]
         public void SimpleStatement_With_No_Compact_Disabled_Should_Not_Reveal_Non_Schema_Columns()
         {
-            if (CassandraVersion >= Version40)
+            if (TestClusterManager.CheckCassandraVersion(false, new Version(4, 0), Comparison.GreaterThanOrEqualsTo))
             {
                 Assert.Ignore("COMPACT STORAGE is only supported by C* versions prior to 4.0");
+                return;
             }
 
             var builder = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint);

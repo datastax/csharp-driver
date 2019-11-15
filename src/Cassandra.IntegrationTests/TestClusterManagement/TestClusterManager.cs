@@ -26,7 +26,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
     /// <summary>
     /// Test Helper class for keeping track of multiple CCM (Cassandra Cluster Manager) instances
     /// </summary>
-    public class TestClusterManager
+    public static class TestClusterManager
     {
         public static ITestCluster LastInstance { get; private set; }
         public static TestClusterOptions LastOptions { get; private set; }
@@ -55,29 +55,34 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         {
             get
             {
-                var dseVersion = DseVersion;
-                if (dseVersion < Version4Dot7)
+                if (IsDse)
                 {
-                    // C* 2.0
-                    return Version2Dot0;
+                    var dseVersion = DseVersion;
+                    if (dseVersion < Version4Dot7)
+                    {
+                        // C* 2.0
+                        return Version2Dot0;
+                    }
+                    if (dseVersion < Version5Dot0)
+                    {
+                        // C* 2.1
+                        return Version2Dot1;
+                    }
+                    if (dseVersion < Version5Dot1)
+                    {
+                        // C* 3.0
+                        return Version3Dot0;
+                    }
+                    if (dseVersion < Version6Dot0)
+                    {
+                        // C* 3.11
+                        return Version3Dot11;
+                    }
+                    // C* 4.0
+                    return Version4Dot0;
                 }
-                if (dseVersion < Version5Dot0)
-                {
-                    // C* 2.1
-                    return Version2Dot1;
-                }
-                if (dseVersion < Version5Dot1)
-                {
-                    // C* 3.0
-                    return Version3Dot0;
-                }
-                if (dseVersion < Version6Dot0)
-                {
-                    // C* 3.11
-                    return Version3Dot11;
-                }
-                // C* 4.0
-                return Version4Dot0;
+
+                return new Version(TestClusterManager.CassandraVersionString);
             }
         }
 
@@ -107,9 +112,58 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             get { return Environment.GetEnvironmentVariable("DSE_VERSION") ?? "5.0.0"; }
         }
 
+        private static string CassandraVersionString
+        {
+            get { return Environment.GetEnvironmentVariable("CASSANDRA_VERSION") ?? "3.11.0"; }
+        }
+
+        public static bool IsDse
+        {
+            get { return Environment.GetEnvironmentVariable("DSE_VERSION") != null 
+                         || Environment.GetEnvironmentVariable("CASSANDRA_VERSION") == null; }
+        }
+        
         public static Version DseVersion
         {
-            get { return new Version(DseVersionString); }
+            get { return IsDse ? new Version(DseVersionString) : TestClusterManager.GetDseVersion(new Version(CassandraVersionString)); }
+        }
+
+        public static bool SupportsDecommissionForcefully()
+        {
+            return TestClusterManager.CheckDseVersion(new Version(5, 1), Comparison.GreaterThanOrEqualsTo);
+        }
+
+        public static bool SupportsNextGenGraph()
+        {
+            return TestClusterManager.CheckDseVersion(new Version(6, 8), Comparison.GreaterThanOrEqualsTo);
+        }
+
+        public static bool SchemaManipulatingQueriesThrowInvalidQueryException()
+        {
+            return TestClusterManager.CheckDseVersion(new Version(6, 8), Comparison.GreaterThanOrEqualsTo);
+        }
+
+        public static bool CheckDseVersion(Version version, Comparison comparison)
+        {
+            if (!TestClusterManager.IsDse)
+            {
+                return false;
+            }
+
+            return TestDseVersion.VersionMatch(version, TestClusterManager.DseVersion, comparison);
+        }
+
+        public static bool CheckCassandraVersion(bool requiresOss, Version version, Comparison comparison)
+        {
+            if (requiresOss && TestClusterManager.IsDse)
+            {
+                return false;
+            }
+
+            var runningVersion = TestClusterManager.IsDse ? TestClusterManager.DseVersion : TestClusterManager.CassandraVersion;
+            var expectedVersion = TestClusterManager.IsDse ? TestClusterManager.GetDseVersion(version) : version;
+
+            return TestDseVersion.VersionMatch(expectedVersion, runningVersion, comparison);
         }
 
         /// <summary>
@@ -123,7 +177,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 {
                     return _executor;
                 }
-                var dseRemote = bool.Parse(Environment.GetEnvironmentVariable("DSE_IN_REMOTE_SERVER") ?? "true");
+                var dseRemote = bool.Parse(Environment.GetEnvironmentVariable("DSE_IN_REMOTE_SERVER") ?? "false");
                 if (!dseRemote)
                 {
                     _executor = LocalCcmProcessExecuter.Instance;
@@ -181,7 +235,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 DsePath, 
                 Executor,
                 DefaultKeyspaceName,
-                DseVersionString);
+                IsDse ? DseVersionString : CassandraVersionString);
             testCluster.Create(nodeLength, options);
             if (startCluster)
             {
@@ -236,7 +290,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// <summary>
         /// Deprecated, use <see cref="TestClusterManager.CreateNew"/> method instead
         /// </summary>
-        public ITestCluster GetTestCluster(int dc1NodeCount, int maxTries = 1, bool startCluster = true, bool initClient = true)
+        public static ITestCluster GetTestCluster(int dc1NodeCount, int maxTries = 1, bool startCluster = true, bool initClient = true)
         {
             return GetTestCluster(dc1NodeCount, 0, true, maxTries, startCluster, initClient);
         }

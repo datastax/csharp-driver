@@ -27,7 +27,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
-    [Category("short"), Category("realcluster"), TestDseVersion(5, 1)]
+    [Category("short"), Category("realcluster"), TestCassandraVersion(3, 10)]
     public class GroupByTests : SharedClusterTest
     {
         protected override string[] SetupQueries

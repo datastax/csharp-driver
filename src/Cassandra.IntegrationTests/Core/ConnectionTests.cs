@@ -367,7 +367,7 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual("test_events_kp", (eventArgs as SchemaChangeEventArgs).Keyspace);
                 Assert.AreEqual("test_table", (eventArgs as SchemaChangeEventArgs).Table);
 
-                if (CassandraVersion >= Version.Parse("2.1"))
+                if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("2.1"), Comparison.GreaterThanOrEqualsTo))
                 {
                     Query(connection, "CREATE TYPE test_events_kp.test_type (street text, city text, zip int);").Wait(1000);
                     eventHandle.WaitOne(2000);

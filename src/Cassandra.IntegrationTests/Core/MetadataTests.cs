@@ -368,9 +368,10 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void TableMetadataNestedCollectionsTest()
         {
-            if (CassandraVersion < Version.Parse("2.1.3"))
+            if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("2.1.3"), Comparison.LessThan))
             {
                 Assert.Ignore("Nested frozen collections are supported in 2.1.3 and above");
+                return;
             }
             var keyspaceName = TestUtils.GetUniqueKeyspaceName();
             const string tableName = "tbl_nested_cols_meta";
@@ -427,7 +428,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void TableMetadataCassandra22Types()
         {
-            if (CassandraVersion < Version.Parse("2.2"))
+            if (TestClusterManager.CheckCassandraVersion(false, new Version(2, 2), Comparison.LessThan))
             {
                 Assert.Ignore("Date, Time, SmallInt and TinyInt are supported in 2.2 and above");
             }

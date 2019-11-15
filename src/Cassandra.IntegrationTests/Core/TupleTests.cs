@@ -33,7 +33,7 @@ namespace Cassandra.IntegrationTests.Core
         public override void OneTimeSetUp()
         {
             base.OneTimeSetUp();
-            if (CassandraVersion < new Version(2, 1))
+            if (TestClusterManager.CheckCassandraVersion(false, new Version(2, 1), Comparison.LessThan))
             {
                 return;
             }

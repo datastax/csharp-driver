@@ -47,7 +47,7 @@ namespace Cassandra.IntegrationTests.Core
         [OneTimeSetUp]
         public void TestFixtureSetup()
         {
-            if (CassandraVersion < Version.Parse("2.2"))
+            if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("2.2"), Comparison.LessThan))
             {
                 return;
             }
@@ -67,7 +67,7 @@ namespace Cassandra.IntegrationTests.Core
                     "CREATE AGGREGATE ks_udf.sum(bigint) SFUNC plus STYPE bigint INITCOND 2"
                 };
 
-                if (DseVersion >= new Version(6, 0))
+                if (TestClusterManager.CheckDseVersion(new Version(6, 0), Comparison.GreaterThanOrEqualsTo))
                 {
                     queries.Add("CREATE FUNCTION ks_udf.deterministic(dividend int, divisor int) " +
                                 "CALLED ON NULL INPUT RETURNS int DETERMINISTIC LANGUAGE java AS " +

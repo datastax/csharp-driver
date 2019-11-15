@@ -253,7 +253,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
 
             var err = Assert.Throws<InvalidQueryException>(() => mapper.Fetch<ClassWithTwoPartitionKeys>("SELECT * from \"" + table.Name + "\" where \"PartitionKey1\" = '" + instance.PartitionKey1 + "'"));
             string expectedErrMsg = "Partition key part(s:)? PartitionKey2 must be restricted (since preceding part is|as other parts are)";
-            if (CassandraVersion >= Version.Parse("3.10"))
+            if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("3.10"), Comparison.GreaterThanOrEqualsTo))
             {
                 expectedErrMsg = "Cannot execute this query as it might involve data filtering and thus may have unpredictable performance. If you want to execute this query despite the performance unpredictability, use ALLOW FILTERING";
             }
@@ -351,7 +351,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             string cqlCamelCasePartitionKey = "SELECT * from " + typeof (lowercaseclassnamepkcamelcase).Name + " where \"SomePartitionKey\" = 'doesntmatter'";
             var ex = Assert.Throws<InvalidQueryException>(() => _session.Execute(cqlCamelCasePartitionKey));
             var expectedErrMsg = "Undefined name SomePartitionKey in where clause";
-            if (CassandraVersion >= Version.Parse("3.10"))
+            if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("3.10"), Comparison.GreaterThanOrEqualsTo))
             {
                 expectedErrMsg = "Undefined column name \"SomePartitionKey\"";
             }
@@ -379,7 +379,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             // Validate expected exception
             var ex = Assert.Throws<InvalidQueryException>(() => cqlClient.Insert(pocoWithCustomAttributes));
             var expectedMessage = "Unknown identifier someotherstring";
-            if (CassandraVersion >= Version.Parse("3.10"))
+            if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("3.10"), Comparison.GreaterThanOrEqualsTo))
             {
                 expectedMessage = "Undefined column name someotherstring";
             }
@@ -695,7 +695,5 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             public string SomeString = "someStringValue";
             public string SomeOtherString = "someOtherStringValue";
         }
-
-
     }
 }

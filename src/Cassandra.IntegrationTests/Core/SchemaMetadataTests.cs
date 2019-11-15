@@ -37,7 +37,7 @@ namespace Cassandra.IntegrationTests.Core
                 var queries = new List<string>();
                 queries.Add("CREATE TABLE tbl_default_options (a int PRIMARY KEY, b text)");
 
-                if (DseVersion >= new Version(6, 0))
+                if (TestClusterManager.CheckDseVersion(new Version(6, 0), Comparison.GreaterThanOrEqualsTo))
                 {
                     queries.Add("CREATE TABLE tbl_nodesync_true (a int PRIMARY KEY, b text) " +
                                 "WITH nodesync={'enabled': 'true', 'deadline_target_sec': '86400'}");
@@ -148,7 +148,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(keyspaceName, c1.Keyspace);
             Assert.IsFalse(c1.IsFrozen);
             Assert.IsFalse(c1.IsReversed);
-            if (TestClusterManager.DseVersion >= new Version(6, 8))
+            if (TestClusterManager.CheckDseVersion(new Version(6, 8), Comparison.GreaterThanOrEqualsTo))
             {
                 Assert.AreEqual(typeName3, typeInfo1.CustomTypeName);
             }
@@ -644,9 +644,10 @@ namespace Cassandra.IntegrationTests.Core
         [Test, TestCase(true), TestCase(false), TestCassandraVersion(3, 0)]
         public void ColumnClusteringOrderReversedTest(bool metadataSync)
         {
-            if (CassandraVersion >= Version.Parse("4.0"))
+            if (TestClusterManager.CheckCassandraVersion(false, new Version(4, 0), Comparison.GreaterThanOrEqualsTo))
             {
                 Assert.Ignore("Compact table test designed for C* 3.0");
+                return;
             }
             var keyspaceName = TestUtils.GetUniqueKeyspaceName();
             var tableName = TestUtils.GetUniqueTableName().ToLower();
