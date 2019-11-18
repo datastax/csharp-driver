@@ -92,7 +92,6 @@ namespace Cassandra.Tests.ExecutionProfiles
                     }
                 }
             }.Build();
-            var testDseConfig = new TestDseConfigurationBuilder(testConfig).Build();
             var initializerMock = Mock.Of<IInitializer>();
             Mock.Get(initializerMock)
                 .Setup(i => i.ContactPoints)
@@ -101,7 +100,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                 .Setup(i => i.GetConfiguration())
                 .Returns(testConfig);
             
-            var dseCluster = new DseCluster(initializerMock, new List<string>(), testDseConfig, new DseCoreClusterFactory());
+            var dseCluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
             dseCluster.Connect();
             
             Assert.IsTrue(lbps.All(lbp => lbp.InitializeCount == 1));
@@ -124,7 +123,6 @@ namespace Cassandra.Tests.ExecutionProfiles
                     sep, 
                     new AtomicMonotonicTimestampGenerator())
             }.Build();
-            var testDseConfig = new TestDseConfigurationBuilder(testConfig).Build();
             var initializerMock = Mock.Of<IInitializer>();
             Mock.Get(initializerMock)
                 .Setup(i => i.ContactPoints)
@@ -133,7 +131,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                 .Setup(i => i.GetConfiguration())
                 .Returns(testConfig);
             
-            var dseCluster = new DseCluster(initializerMock, new List<string>(), testDseConfig, new DseCoreClusterFactory());
+            var dseCluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
             dseCluster.Connect();
 
             Assert.AreEqual(1, lbp.InitializeCount);
@@ -195,7 +193,6 @@ namespace Cassandra.Tests.ExecutionProfiles
                     }
                 }
             }.Build();
-            var testDseConfig = new TestDseConfigurationBuilder(testConfig).Build();
             var initializerMock = Mock.Of<IInitializer>();
             Mock.Get(initializerMock)
                 .Setup(i => i.ContactPoints)
@@ -204,7 +201,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                 .Setup(i => i.GetConfiguration())
                 .Returns(testConfig);
             
-            var dseCluster = new DseCluster(initializerMock, new List<string>(), testDseConfig, new DseCoreClusterFactory());
+            var dseCluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
             dseCluster.Connect();
             dseCluster.Dispose();
 
@@ -227,7 +224,6 @@ namespace Cassandra.Tests.ExecutionProfiles
                     sep, 
                     new AtomicMonotonicTimestampGenerator())
             }.Build();
-            var testDseConfig = new TestDseConfigurationBuilder(testConfig).Build();
             var initializerMock = Mock.Of<IInitializer>();
             Mock.Get(initializerMock)
                 .Setup(i => i.ContactPoints)
@@ -236,7 +232,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                 .Setup(i => i.GetConfiguration())
                 .Returns(testConfig);
             
-            var dseCluster = new DseCluster(initializerMock, new List<string>(), testDseConfig, new DseCoreClusterFactory());
+            var dseCluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
             dseCluster.Connect();
             dseCluster.Dispose();
 

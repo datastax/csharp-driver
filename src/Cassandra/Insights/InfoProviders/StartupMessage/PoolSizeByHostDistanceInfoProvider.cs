@@ -21,18 +21,16 @@ namespace Cassandra.Insights.InfoProviders.StartupMessage
 {
     internal class PoolSizeByHostDistanceInfoProvider : IInsightsInfoProvider<PoolSizeByHostDistance>
     {
-        public PoolSizeByHostDistance GetInformation(IInternalDseCluster cluster, IInternalDseSession dseSession)
+        public PoolSizeByHostDistance GetInformation(IInternalCluster cluster, IInternalSession session)
         {
             return new PoolSizeByHostDistance
             {
                 Local = cluster
                         .Configuration
-                        .CassandraConfiguration
                         .GetPoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
                         .GetCoreConnectionsPerHost(HostDistance.Local),
                 Remote = cluster
                          .Configuration
-                         .CassandraConfiguration
                          .GetPoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
                          .GetCoreConnectionsPerHost(HostDistance.Remote)
             };

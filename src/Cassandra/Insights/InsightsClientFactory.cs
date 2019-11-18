@@ -34,9 +34,9 @@ namespace Cassandra.Insights
             _statusMessageFactory = statusMessageFactory;
         }
 
-        public IInsightsClient Create(IInternalDseCluster cluster, IInternalDseSession dseSession)
+        public IInsightsClient Create(IInternalCluster cluster, IInternalSession session)
         {
-            return new InsightsClient(cluster, dseSession, _startupMessageFactory, _statusMessageFactory);
+            return new InsightsClient(cluster, session, _startupMessageFactory, _statusMessageFactory);
         }
     }
 }

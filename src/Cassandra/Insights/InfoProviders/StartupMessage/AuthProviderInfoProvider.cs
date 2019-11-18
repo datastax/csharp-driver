@@ -21,9 +21,9 @@ namespace Cassandra.Insights.InfoProviders.StartupMessage
 {
     internal class AuthProviderInfoProvider : IInsightsInfoProvider<AuthProviderInfo>
     {
-        public AuthProviderInfo GetInformation(IInternalDseCluster cluster, IInternalDseSession dseSession)
+        public AuthProviderInfo GetInformation(IInternalCluster cluster, IInternalSession session)
         {
-            var type = cluster.Configuration.CassandraConfiguration.AuthProvider.GetType();
+            var type = cluster.Configuration.AuthProvider.GetType();
             return new AuthProviderInfo
             {
                 Namespace = type.Namespace,

@@ -19,19 +19,13 @@ using Cassandra.Serialization;
 
 namespace Cassandra.SessionManagement
 {
-    internal class SessionFactory : ISessionFactory<IInternalSession>
+    internal class SessionFactory : ISessionFactory
     {
-        private readonly IInternalCluster _cluster;
-
-        public SessionFactory(IInternalCluster cluster)
-        {
-            _cluster = cluster;
-        }
-
-        public Task<IInternalSession> CreateSessionAsync(string keyspace, Serializer serializer, string sessionName)
+        public Task<IInternalSession> CreateSessionAsync(
+            IInternalCluster cluster, string keyspace, Serializer serializer, string sessionName)
         {
             return Task.FromResult(
-                new Session(_cluster, _cluster.Configuration, keyspace, serializer, sessionName).InternalRef);
+                new Session(cluster, cluster.Configuration, keyspace, serializer, sessionName).InternalRef);
         }
     }
 }

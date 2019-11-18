@@ -17,17 +17,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Management;
 using System.Net;
 using System.Runtime.InteropServices;
+
 using Cassandra.Connections;
-using Cassandra.ExecutionProfiles;
 using Cassandra.Graph;
-using Cassandra.Insights;
 using Cassandra.Insights.Schema;
 using Cassandra.Insights.Schema.StartupMessage;
-using Cassandra.Requests;
 using Cassandra.SessionManagement;
+
 using Moq;
 
 using NUnit.Framework;
@@ -41,10 +39,10 @@ namespace Cassandra.Tests.Insights.MessageFactories
         public void Should_ReturnCorrectMetadata_When_CreateStartupMessageIsCalled()
         {
             var cluster = GetCluster();
-            var target = DseConfiguration.DefaultInsightsStartupMessageFactory;
+            var target = Configuration.DefaultInsightsStartupMessageFactory;
             var timestamp = (long)(DateTimeOffset.UtcNow - new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero)).TotalMilliseconds;
 
-            var act = target.CreateMessage(cluster, Mock.Of<IInternalDseSession>());
+            var act = target.CreateMessage(cluster, Mock.Of<IInternalSession>());
 
             Assert.AreEqual(InsightType.Event, act.Metadata.InsightType);
             Assert.AreEqual("v1", act.Metadata.InsightMappingId);
@@ -53,15 +51,15 @@ namespace Cassandra.Tests.Insights.MessageFactories
             Assert.AreEqual(1, act.Metadata.Tags.Count);
             Assert.AreEqual("csharp", act.Metadata.Tags["language"]);
         }
-        
+
         [Test]
         public void Should_ReturnCorrectMetadata_When_CreateStatusMessageIsCalled()
         {
             var cluster = GetCluster();
-            var target = DseConfiguration.DefaultInsightsStatusMessageFactory;
+            var target = Configuration.DefaultInsightsStatusMessageFactory;
             var timestamp = (long)(DateTimeOffset.UtcNow - new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero)).TotalMilliseconds;
 
-            var act = target.CreateMessage(cluster, Mock.Of<IInternalDseSession>());
+            var act = target.CreateMessage(cluster, Mock.Of<IInternalSession>());
 
             Assert.AreEqual(InsightType.Event, act.Metadata.InsightType);
             Assert.AreEqual("v1", act.Metadata.InsightMappingId);
@@ -75,7 +73,7 @@ namespace Cassandra.Tests.Insights.MessageFactories
         public void Should_ReturnCorrectData_When_CreateStatusMessageIsCalled()
         {
             var cluster = GetCluster();
-            var session = Mock.Of<IInternalDseSession>();
+            var session = Mock.Of<IInternalSession>();
             var mockPool1 = Mock.Of<IHostConnectionPool>();
             var mockPool2 = Mock.Of<IHostConnectionPool>();
             Mock.Get(mockPool1).SetupGet(m => m.InFlight).Returns(1);
@@ -94,7 +92,7 @@ namespace Cassandra.Tests.Insights.MessageFactories
             Mock.Get(session).Setup(s => s.GetPools()).Returns(pools.ToArray());
             Mock.Get(session).Setup(m => m.Cluster).Returns(cluster);
             Mock.Get(session).SetupGet(m => m.InternalSessionId).Returns(Guid.Parse("E21EAB96-D91E-4790-80BD-1D5FB5472258"));
-            var target = DseConfiguration.DefaultInsightsStatusMessageFactory;
+            var target = Configuration.DefaultInsightsStatusMessageFactory;
 
             var act = target.CreateMessage(cluster, session);
 
@@ -112,9 +110,9 @@ namespace Cassandra.Tests.Insights.MessageFactories
         public void Should_ReturnCorrectData_When_CreateStartupMessageIsCalled()
         {
             var cluster = GetCluster();
-            var target = DseConfiguration.DefaultInsightsStartupMessageFactory;
+            var target = Configuration.DefaultInsightsStartupMessageFactory;
 
-            var session = Mock.Of<IInternalDseSession>();
+            var session = Mock.Of<IInternalSession>();
             Mock.Get(session).SetupGet(m => m.InternalSessionId).Returns(Guid.Parse("E21EAB96-D91E-4790-80BD-1D5FB5472258"));
             var act = target.CreateMessage(cluster, session);
 
@@ -229,11 +227,11 @@ namespace Cassandra.Tests.Insights.MessageFactories
             Assert.AreEqual(1213, defaultProfile.SpeculativeExecution.Options["delay"]);
         }
 
-        private IInternalDseCluster GetCluster()
+        private IInternalCluster GetCluster()
         {
-            var cluster = Mock.Of<IInternalDseCluster>();
+            var cluster = Mock.Of<IInternalCluster>();
             var config = GetConfig();
-            var metadata = new Metadata(config.CassandraConfiguration)
+            var metadata = new Metadata(config)
             {
                 ControlConnection = Mock.Of<IControlConnection>()
             };
@@ -253,49 +251,36 @@ namespace Cassandra.Tests.Insights.MessageFactories
             return cluster;
         }
 
-        private DseConfiguration GetConfig()
+        private Configuration GetConfig()
         {
-            return new DseConfiguration(
-                new Configuration(
-                    new Cassandra.Policies(
-                        new RoundRobinPolicy(),
-                        new ConstantReconnectionPolicy(150),
+            return new TestConfigurationBuilder
+            {
+                Policies = new Cassandra.Policies(
+                    new RoundRobinPolicy(),
+                    new ConstantReconnectionPolicy(150),
 #pragma warning disable 618
-                        DowngradingConsistencyRetryPolicy.Instance,
+                    DowngradingConsistencyRetryPolicy.Instance,
 #pragma warning restore 618
-                        new ConstantSpeculativeExecutionPolicy(1213, 10),
-                        null),
-                    new ProtocolOptions().SetCompression(CompressionType.Snappy),
-                    new PoolingOptions()
-                        .SetCoreConnectionsPerHost(HostDistance.Remote, 5)
-                        .SetCoreConnectionsPerHost(HostDistance.Local, 1)
-                        .SetHeartBeatInterval(10000),
-                    new SocketOptions().SetReadTimeoutMillis(1505),
-                    new ClientOptions(),
-                    new NoneAuthProvider(),
-                    new SimpleAuthInfoProvider(),
-                    new QueryOptions()
-                        .SetConsistencyLevel(ConsistencyLevel.All)
-                        .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial),
-                    new DefaultAddressTranslator(),
-                    new StartupOptionsFactory(),
-                    new SessionFactoryBuilder(),
-                    new Dictionary<string, IExecutionProfile>(),
-                    new RequestOptionsMapper(new GraphOptions()),
-                    null,
-                    null,
-                    null,
-                    null,
+                    new ConstantSpeculativeExecutionPolicy(1213, 10),
                     null),
-                new GraphOptions(),
-                Guid.Parse("BECFE098-E462-47E7-B6A7-A21CD316D4C0"),
-                "appv1",
-                "appname",
-                new MonitorReportingOptions().SetMonitorReportingEnabled(true).SetStatusEventDelayMilliseconds(2000),
-                new IdentityAddressTranslator(),
-                new InsightsSupportVerifier(),
-                DseConfiguration.DefaultDseSessionManagerFactory,
-                DseConfiguration.GetDefaultDseSessionFactoryBuilder(new SessionFactoryBuilder()));
+                ProtocolOptions = new ProtocolOptions().SetCompression(CompressionType.Snappy),
+                PoolingOptions = new PoolingOptions()
+                                  .SetCoreConnectionsPerHost(HostDistance.Remote, 5)
+                                  .SetCoreConnectionsPerHost(HostDistance.Local, 1)
+                                  .SetHeartBeatInterval(10000),
+                AuthProvider = new NoneAuthProvider(),
+                AuthInfoProvider = new SimpleAuthInfoProvider(),
+                SocketOptions = new SocketOptions().SetReadTimeoutMillis(1505),
+                QueryOptions = new QueryOptions()
+                               .SetConsistencyLevel(ConsistencyLevel.All)
+                               .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial),
+                ExecutionProfiles = new Dictionary<string, IExecutionProfile>(),
+                GraphOptions = new GraphOptions(),
+                ClusterId = Guid.Parse("BECFE098-E462-47E7-B6A7-A21CD316D4C0"),
+                ApplicationVersion = "appv1",
+                ApplicationName = "appname",
+                MonitorReportingOptions = new MonitorReportingOptions().SetMonitorReportingEnabled(true).SetStatusEventDelayMilliseconds(2000),
+            }.Build();
         }
     }
 }

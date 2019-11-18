@@ -64,7 +64,7 @@ namespace Cassandra.IntegrationTests
         /// <summary>
         /// Creates a graph using the current session
         /// </summary>
-        public void CreateClassicGraph(IDseSession session, string name)
+        public void CreateClassicGraph(ISession session, string name)
         {
             session.ExecuteGraph(!TestClusterManager.SupportsNextGenGraph()
                 ? new SimpleGraphStatement($"system.graph('{name}').ifNotExists().create()")
@@ -79,7 +79,7 @@ namespace Cassandra.IntegrationTests
         /// </summary>
         public void CreateClassicGraph(string contactPoint, string name)
         {
-            using (var cluster = DseCluster.Builder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
+            using (var cluster = Cluster.Builder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
             {
                 CreateClassicGraph(cluster.Connect(), name);
             }

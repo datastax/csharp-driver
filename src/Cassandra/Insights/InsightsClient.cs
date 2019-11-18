@@ -36,8 +36,8 @@ namespace Cassandra.Insights
 
         private static readonly Logger Logger = new Logger(typeof(InsightsClient));
 
-        private readonly IInternalDseCluster _cluster;
-        private readonly IInternalDseSession _dseSession;
+        private readonly IInternalCluster _cluster;
+        private readonly IInternalSession _session;
         private readonly MonitorReportingOptions _monitorReportingOptions;
         private readonly IInsightsMessageFactory<InsightsStartupData> _startupMessageFactory;
         private readonly IInsightsMessageFactory<InsightsStatusData> _statusMessageFactory;
@@ -47,13 +47,13 @@ namespace Cassandra.Insights
         private volatile int _errorCount = 0;
 
         public InsightsClient(
-            IInternalDseCluster cluster,
-            IInternalDseSession dseSession,
+            IInternalCluster cluster,
+            IInternalSession session,
             IInsightsMessageFactory<InsightsStartupData> startupMessageFactory,
             IInsightsMessageFactory<InsightsStatusData> statusMessageFactory)
         {
             _cluster = cluster;
-            _dseSession = dseSession;
+            _session = session;
             _monitorReportingOptions = cluster.Configuration.MonitorReportingOptions;
             _startupMessageFactory = startupMessageFactory;
             _statusMessageFactory = statusMessageFactory;
@@ -65,7 +65,7 @@ namespace Cassandra.Insights
         {
             try
             {
-                await SendJsonMessageAsync(_startupMessageFactory.CreateMessage(_cluster, _dseSession)).ConfigureAwait(false);
+                await SendJsonMessageAsync(_startupMessageFactory.CreateMessage(_cluster, _session)).ConfigureAwait(false);
                 _errorCount = 0;
                 return true;
             }
@@ -86,7 +86,7 @@ namespace Cassandra.Insights
         {
             try
             {
-                await SendJsonMessageAsync(_statusMessageFactory.CreateMessage(_cluster, _dseSession)).ConfigureAwait(false);
+                await SendJsonMessageAsync(_statusMessageFactory.CreateMessage(_cluster, _session)).ConfigureAwait(false);
                 _errorCount = 0;
                 return true;
             }

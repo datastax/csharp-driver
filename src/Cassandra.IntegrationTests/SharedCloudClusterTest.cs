@@ -81,30 +81,9 @@ namespace Cassandra.IntegrationTests
             return cluster;
         }
         
-        protected IDseCluster CreateDseCluster(string creds = "creds-v1.zip", Action<DseClusterBuilder> act = null)
-        {
-            var builder = DseCluster.Builder();
-            act?.Invoke(builder);
-            builder = builder
-                      .WithCloudSecureConnectionBundle(
-                          Path.Combine(((CloudCluster) TestCluster).SniHomeDirectory, "certs", "bundles", creds))
-                      .WithPoolingOptions(
-                          new PoolingOptions().SetHeartBeatInterval(200))
-                      .WithReconnectionPolicy(new ConstantReconnectionPolicy(100));
-            var cluster = builder.Build();
-            ClusterInstances.Add(cluster);
-
-            return cluster;
-        }
-
         protected Task<ISession> CreateSessionAsync(string creds = "creds-v1.zip", Action<Builder> act = null)
         {
             return CreateCluster(creds, act).ConnectAsync();
-        }
-
-        protected Task<IDseSession> CreateDseSessionAsync(string creds = "creds-v1.zip", Action<DseClusterBuilder> act = null)
-        {
-            return CreateDseCluster(creds, act).ConnectAsync();
         }
 
         protected override ITestCluster CreateNew(int nodeLength, TestClusterOptions options, bool startCluster)

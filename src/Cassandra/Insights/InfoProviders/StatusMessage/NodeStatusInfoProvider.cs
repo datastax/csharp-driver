@@ -23,10 +23,10 @@ namespace Cassandra.Insights.InfoProviders.StatusMessage
 {
     internal class NodeStatusInfoProvider : IInsightsInfoProvider<Dictionary<string, NodeStatusInfo>>
     {
-        public Dictionary<string, NodeStatusInfo> GetInformation(IInternalDseCluster cluster, IInternalDseSession dseSession)
+        public Dictionary<string, NodeStatusInfo> GetInformation(IInternalCluster cluster, IInternalSession session)
         {
             var nodeStatusDictionary = new Dictionary<string, NodeStatusInfo>();
-            var state = dseSession.GetState();
+            var state = session.GetState();
             var connectedHosts = state.GetConnectedHosts();
 
             foreach (var h in connectedHosts)

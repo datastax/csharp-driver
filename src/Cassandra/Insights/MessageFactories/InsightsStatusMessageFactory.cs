@@ -39,7 +39,7 @@ namespace Cassandra.Insights.MessageFactories
             _connectedNodesInfoProvider = connectedNodesInfoProvider;
         }
 
-        public Insight<InsightsStatusData> CreateMessage(IInternalDseCluster cluster, IInternalDseSession dseSession)
+        public Insight<InsightsStatusData> CreateMessage(IInternalCluster cluster, IInternalSession session)
         {
             var metadata = _insightsMetadataFactory.CreateInsightsMetadata(
                 InsightsStatusMessageFactory.StatusMessageName, InsightsStatusMessageFactory.StatusV1MappingId, InsightType.Event);
@@ -47,9 +47,9 @@ namespace Cassandra.Insights.MessageFactories
             var data = new InsightsStatusData
             {
                 ClientId = cluster.Configuration.ClusterId.ToString(),
-                SessionId = dseSession.InternalSessionId.ToString(),
+                SessionId = session.InternalSessionId.ToString(),
                 ControlConnection = cluster.Metadata.ControlConnection.EndPoint?.GetHostIpEndPointWithFallback().ToString(),
-                ConnectedNodes = _connectedNodesInfoProvider.GetInformation(cluster, dseSession)
+                ConnectedNodes = _connectedNodesInfoProvider.GetInformation(cluster, session)
             };
 
             return new Insight<InsightsStatusData>

@@ -24,6 +24,8 @@ using System.Threading.Tasks;
 using Cassandra.Collections;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Graph;
+using Cassandra.Insights;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Internal;
 using Cassandra.Observers.Abstractions;
@@ -38,7 +40,6 @@ namespace Cassandra
     public class Session : IInternalSession
     {
         private readonly Serializer _serializer;
-        private ISessionManager _sessionManager;
         private static readonly Logger Logger = new Logger(typeof(Session));
         private readonly IThreadSafeDictionary<IPEndPoint, IHostConnectionPool> _connectionPool;
         private readonly IInternalCluster _cluster;
@@ -46,6 +47,7 @@ namespace Cassandra
         private volatile string _keyspace;
         private readonly IMetricsManager _metricsManager;
         private readonly IObserverFactory _observerFactory;
+        private readonly IInsightsClient _insightsClient;
 
         internal IInternalSession InternalRef => this;
 
@@ -95,6 +97,9 @@ namespace Cassandra
 
         public Policies Policies => Configuration.Policies;
 
+        /// <inheritdoc />
+        public Guid InternalSessionId { get; } = Guid.NewGuid();
+
         internal Session(
             IInternalCluster cluster,
             Configuration configuration,
@@ -112,6 +117,7 @@ namespace Cassandra
             _cluster.HostRemoved += OnHostRemoved;
             _metricsManager = new MetricsManager(configuration.MetricsProvider, Configuration.MetricsOptions, Configuration.MetricsEnabled, SessionName);
             _observerFactory = configuration.ObserverFactoryBuilder.Build(_metricsManager);
+            _insightsClient = configuration.InsightsClientFactory.Create(cluster, this);
         }
 
         /// <inheritdoc />
@@ -146,7 +152,7 @@ namespace Cassandra
         public void CreateKeyspace(string keyspace, Dictionary<string, string> replication = null, bool durableWrites = true)
         {
             WaitForSchemaAgreement(Execute(CqlQueryTools.GetCreateKeyspaceCql(keyspace, replication, durableWrites, false)));
-            Logger.Info("Keyspace [" + keyspace + "] has been successfully CREATED.");
+            Session.Logger.Info("Keyspace [" + keyspace + "] has been successfully CREATED.");
         }
 
         /// <inheritdoc />
@@ -158,7 +164,7 @@ namespace Cassandra
             }
             catch (AlreadyExistsException)
             {
-                Logger.Info(string.Format("Cannot CREATE keyspace:  {0}  because it already exists.", keyspaceName));
+                Session.Logger.Info(string.Format("Cannot CREATE keyspace:  {0}  because it already exists.", keyspaceName));
             }
         }
 
@@ -177,7 +183,7 @@ namespace Cassandra
             }
             catch (InvalidQueryException)
             {
-                Logger.Info(string.Format("Cannot DELETE keyspace:  {0}  because it not exists.", keyspaceName));
+                Session.Logger.Info(string.Format("Cannot DELETE keyspace:  {0}  because it not exists.", keyspaceName));
             }
         }
 
@@ -190,7 +196,7 @@ namespace Cassandra
                 return;
             }
 
-            _sessionManager?.OnShutdownAsync().GetAwaiter().GetResult();
+            _insightsClient?.ShutdownAsync().GetAwaiter().GetResult();
 
             _metricsManager?.Dispose();
 
@@ -204,16 +210,8 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        Task IInternalSession.Init()
+        async Task IInternalSession.Init()
         {
-            return InternalRef.Init(null);
-        }
-
-        /// <inheritdoc />
-        async Task IInternalSession.Init(ISessionManager sessionManager)
-        {
-            _sessionManager = sessionManager;
-
             _metricsManager.InitializeMetrics(this);
 
             if (Configuration.GetPoolingOptions(_serializer.ProtocolVersion).GetWarmup())
@@ -227,13 +225,10 @@ namespace Cassandra
                 var handler = Configuration.RequestHandlerFactory.Create(this, _serializer);
                 await handler.GetNextConnectionAsync(new Dictionary<IPEndPoint, Exception>()).ConfigureAwait(false);
             }
-
-            if (_sessionManager != null)
-            {
-                await _sessionManager.OnInitializationAsync().ConfigureAwait(false);
-            }
+            
+            _insightsClient.Init();
         }
-
+        
         /// <summary>
         /// Creates the required connections on all hosts in the local DC.
         /// Returns a Task that is marked as completed after all pools were warmed up.
@@ -265,7 +260,7 @@ namespace Cassandra
                 }
 
                 // Log and continue as the ControlConnection is connected
-                Logger.Error($"Connection pools for {hosts.Length} host(s) failed to be warmed up");
+                Session.Logger.Error($"Connection pools for {hosts.Length} host(s) failed to be warmed up");
             }
         }
 
@@ -412,7 +407,7 @@ namespace Cassandra
         {
             if (!_connectionPool.TryGetValue(host.Address, out var pool))
             {
-                Logger.Error("Internal error: No host connection pool found");
+                Session.Logger.Error("Internal error: No host connection pool found");
                 return;
             }
             pool.CheckHealth(connection);
@@ -509,6 +504,82 @@ namespace Cassandra
                 pool.OnHostRemoved();
                 pool.Dispose();
             }
+        }
+        
+        /// <inheritdoc />
+        public GraphResultSet ExecuteGraph(IGraphStatement statement)
+        {
+            return ExecuteGraph(statement, Configuration.DefaultExecutionProfileName);
+        }
+
+        /// <inheritdoc />
+        public Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement graphStatement)
+        {
+            return ExecuteGraphAsync(graphStatement, Configuration.DefaultExecutionProfileName);
+        }
+
+        /// <inheritdoc />
+        public GraphResultSet ExecuteGraph(IGraphStatement statement, string executionProfileName)
+        {
+            return TaskHelper.WaitToCompleteWithMetrics(_metricsManager, ExecuteGraphAsync(statement, executionProfileName));
+        }
+
+        /// <inheritdoc />
+        public async Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement graphStatement, string executionProfileName)
+        {
+            var requestOptions = InternalRef.GetRequestOptions(executionProfileName);
+            var stmt = graphStatement.ToIStatement(requestOptions.GraphOptions);
+            await GetAnalyticsMaster(stmt, graphStatement, requestOptions).ConfigureAwait(false);
+            var rs = await InternalRef.ExecuteAsync(stmt, requestOptions).ConfigureAwait(false);
+            return GraphResultSet.CreateNew(rs, graphStatement, requestOptions.GraphOptions);
+        }
+
+        private async Task<IStatement> GetAnalyticsMaster(
+            IStatement statement, IGraphStatement graphStatement, IRequestOptions requestOptions)
+        {
+            if (!(statement is TargettedSimpleStatement) || !requestOptions.GraphOptions.IsAnalyticsQuery(graphStatement))
+            {
+                return statement;
+            }
+
+            var targetedSimpleStatement = (TargettedSimpleStatement)statement;
+
+            RowSet rs;
+            try
+            {
+                rs = await InternalRef.ExecuteAsync(
+                    new SimpleStatement("CALL DseClientTool.getAnalyticsGraphServer()"), requestOptions).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Session.Logger.Verbose("Error querying graph analytics server, query will not be routed optimally: {0}", ex);
+                return statement;
+            }
+
+            return AdaptRpcMasterResult(rs, targetedSimpleStatement);
+        }
+
+        private IStatement AdaptRpcMasterResult(RowSet rowSet, TargettedSimpleStatement statement)
+        {
+            var row = rowSet.FirstOrDefault();
+            if (row == null)
+            {
+                Session.Logger.Verbose("Empty response querying graph analytics server, query will not be routed optimally");
+                return statement;
+            }
+            var resultField = row.GetValue<IDictionary<string, string>>("result");
+            if (resultField == null || !resultField.ContainsKey("location") || resultField["location"] == null)
+            {
+                Session.Logger.Verbose("Could not extract graph analytics server location from RPC, query will not be routed optimally");
+                return statement;
+            }
+            var location = resultField["location"];
+            var hostName = location.Substring(0, location.LastIndexOf(':'));
+            var address = Configuration.AddressTranslator.Translate(
+                new IPEndPoint(IPAddress.Parse(hostName), Configuration.ProtocolOptions.Port));
+            var host = Cluster.GetHost(address);
+            statement.PreferredHost = host;
+            return statement;
         }
     }
 }

@@ -26,7 +26,7 @@ namespace Cassandra.Insights.InfoProviders.StartupMessage
 {
     internal class PlatformInfoProvider : IInsightsInfoProvider<InsightsPlatformInfo>
     {
-        public InsightsPlatformInfo GetInformation(IInternalDseCluster cluster, IInternalDseSession dseSession)
+        public InsightsPlatformInfo GetInformation(IInternalCluster cluster, IInternalSession session)
         {
             var cpuInfo = PlatformHelper.GetCpuInfo();
             var dependencies = typeof(PlatformInfoProvider).GetTypeInfo().Assembly.GetReferencedAssemblies().Select(name =>

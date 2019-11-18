@@ -20,6 +20,6 @@ namespace Cassandra.Insights
 {
     internal interface IInsightsClientFactory
     {
-        IInsightsClient Create(IInternalDseCluster cluster, IInternalDseSession dseSession);
+        IInsightsClient Create(IInternalCluster cluster, IInternalSession session);
     }
 }

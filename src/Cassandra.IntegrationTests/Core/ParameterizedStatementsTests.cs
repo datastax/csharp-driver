@@ -551,8 +551,8 @@ namespace Cassandra.IntegrationTests.Core
                 return;
             }
 
-            var builder = DseCluster.Builder().WithNoCompact().AddContactPoint(TestCluster.InitialContactPoint);
-            using (IDseCluster cluster = builder.Build())
+            var builder = Cluster.Builder().WithNoCompact().AddContactPoint(TestCluster.InitialContactPoint);
+            using (ICluster cluster = builder.Build())
             {
                 var session = cluster.Connect(KeyspaceName);
                 var rs = session.Execute($"SELECT * FROM {TableCompactStorage} LIMIT 1");

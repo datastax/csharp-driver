@@ -42,7 +42,7 @@ namespace Cassandra.Tests
         [Test]
         public void Cassandra_Single_Root_Namespace()
         {
-            var assembly = typeof(IDseSession).GetTypeInfo().Assembly;
+            var assembly = typeof(ISession).GetTypeInfo().Assembly;
             var types = assembly.GetTypes();
             var set = new SortedSet<string>(
                 types.Where(t => t.GetTypeInfo().IsPublic).Select(t => t.Namespace.Split('.')[0]));
@@ -53,7 +53,7 @@ namespace Cassandra.Tests
         [Test]
         public void Cassandra_Exported_Namespaces()
         {
-            var assembly = typeof(IDseSession).GetTypeInfo().Assembly;
+            var assembly = typeof(ISession).GetTypeInfo().Assembly;
             var types = assembly.GetTypes();
             var set = new SortedSet<string>(types.Where(t => t.GetTypeInfo().IsPublic).Select(t => t.Namespace));
             CollectionAssert.AreEqual(new[]
@@ -85,7 +85,7 @@ namespace Cassandra.Tests
             {
                 isMatch = n => n == nameSpace;
             }
-            var assembly = typeof (IDseSession).GetTypeInfo().Assembly;
+            var assembly = typeof (ISession).GetTypeInfo().Assembly;
             return assembly.GetTypes().Where(t => t.GetTypeInfo().IsPublic && isMatch(t.Namespace));
         }
     }

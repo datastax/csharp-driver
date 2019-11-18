@@ -21,13 +21,12 @@ namespace Cassandra.Insights.InfoProviders.StartupMessage
 {
     internal class DataCentersInfoProvider : IInsightsInfoProvider<HashSet<string>>
     {
-        public HashSet<string> GetInformation(IInternalDseCluster cluster, IInternalDseSession dseSession)
+        public HashSet<string> GetInformation(IInternalCluster cluster, IInternalSession session)
         {
             var dataCenters = new HashSet<string>();
             var remoteConnectionsLength =
                 cluster
                     .Configuration
-                    .CassandraConfiguration
                     .GetPoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
                     .GetCoreConnectionsPerHost(HostDistance.Remote);
 
@@ -38,7 +37,7 @@ namespace Cassandra.Insights.InfoProviders.StartupMessage
                     continue;
                 }
 
-                var distance = cluster.Configuration.CassandraConfiguration.Policies.LoadBalancingPolicy.Distance(h);
+                var distance = cluster.Configuration.Policies.LoadBalancingPolicy.Distance(h);
                 if (distance == HostDistance.Local || (distance == HostDistance.Remote && remoteConnectionsLength > 0))
                 {
                     dataCenters.Add(h.Datacenter);

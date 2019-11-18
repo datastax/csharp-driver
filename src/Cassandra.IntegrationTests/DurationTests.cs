@@ -24,7 +24,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests
 {
     [Category("short"), TestDseVersion(5, 1)]
-    public class DurationTests : SharedDseClusterTest
+    public class DurationTests : SharedClusterTest
     {
         public static readonly string[] Values = 
         {

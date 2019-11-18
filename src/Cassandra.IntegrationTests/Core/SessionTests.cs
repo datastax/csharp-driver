@@ -486,10 +486,10 @@ namespace Cassandra.IntegrationTests.Core
         {
             const string query = "SELECT * FROM local";
             // Using a default keyspace
-            using (var cluster = DseCluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
+            using (var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
                                            .WithDefaultKeyspace("system").Build())
             {
-                IDseSession session = await cluster.ConnectAsync().ConfigureAwait(false);
+                ISession session = await cluster.ConnectAsync().ConfigureAwait(false);
                 Assert.DoesNotThrowAsync(async () =>
                     await session.ExecuteAsync(new SimpleStatement(query)).ConfigureAwait(false));
                 Assert.DoesNotThrowAsync(async () =>
@@ -498,9 +498,9 @@ namespace Cassandra.IntegrationTests.Core
             }
 
             // Setting the keyspace on ConnectAsync
-            using (var cluster = DseCluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
+            using (var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
             {
-                IDseSession session = await cluster.ConnectAsync("system").ConfigureAwait(false);
+                ISession session = await cluster.ConnectAsync("system").ConfigureAwait(false);
                 Assert.DoesNotThrowAsync(async () =>
                     await session.ExecuteAsync(new SimpleStatement(query)).ConfigureAwait(false));
                 Assert.DoesNotThrowAsync(async () =>
@@ -509,9 +509,9 @@ namespace Cassandra.IntegrationTests.Core
             }
 
             // Without setting the keyspace
-            using (var cluster = DseCluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
+            using (var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
             {
-                IDseSession session = await cluster.ConnectAsync().ConfigureAwait(false);
+                ISession session = await cluster.ConnectAsync().ConfigureAwait(false);
                 Assert.DoesNotThrowAsync(async () =>
                     await session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local"))
                                  .ConfigureAwait(false));

@@ -26,7 +26,7 @@ namespace Cassandra.Insights
         private static readonly Version MinDse51Version = new Version(5, 1, 13);
         private static readonly Version Dse600Version = new Version(6, 0, 0);
 
-        public bool SupportsInsights(IInternalDseCluster cluster)
+        public bool SupportsInsights(IInternalCluster cluster)
         {
             var allHosts = cluster.AllHosts();
             return allHosts.Count != 0 && allHosts.All(h => DseVersionSupportsInsights(h.DseVersion));

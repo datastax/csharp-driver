@@ -21,7 +21,7 @@ namespace Cassandra.Insights.InfoProviders.StartupMessage
 {
     internal class HostnameInfoProvider : IInsightsInfoProvider<string>
     {
-        public string GetInformation(IInternalDseCluster cluster, IInternalDseSession dseSession)
+        public string GetInformation(IInternalCluster cluster, IInternalSession session)
         {
             return Dns.GetHostName();
         }

@@ -103,7 +103,7 @@ namespace Cassandra.IntegrationTests.Auth
         public void StandardCreds_AuthSuccess()
         {
             _testClusterForAuthTesting.Value.SwitchToThisCluster();
-            var builder = DseCluster.Builder()
+            var builder = Cluster.Builder()
                 .AddContactPoint(_testClusterForAuthTesting.Value.InitialContactPoint)
                 .WithCredentials("cassandra", "cassandra");
             _cluster = builder.Build();
@@ -117,7 +117,7 @@ namespace Cassandra.IntegrationTests.Auth
         public void StandardCreds_AuthFail()
         {
             _testClusterForAuthTesting.Value.SwitchToThisCluster();
-            using (var cluster = DseCluster
+            using (var cluster = Cluster
                 .Builder()
                 .AddContactPoint(_testClusterForAuthTesting.Value.InitialContactPoint)
                 .WithCredentials("wrong_username", "password")
@@ -136,7 +136,7 @@ namespace Cassandra.IntegrationTests.Auth
         public void StandardCreds_AuthOmitted()
         {
             _testClusterForAuthTesting.Value.SwitchToThisCluster();
-            using (var cluster = DseCluster
+            using (var cluster = Cluster
                 .Builder()
                 .AddContactPoint(_testClusterForAuthTesting.Value.InitialContactPoint)
                 .Build())
@@ -152,7 +152,7 @@ namespace Cassandra.IntegrationTests.Auth
         public void StandardCreds_DseAuth_AuthSuccess()
         {
             _testClusterForDseAuthTesting.Value.SwitchToThisCluster();
-            var builder = DseCluster.Builder()
+            var builder = Cluster.Builder()
                 .AddContactPoint(_testClusterForDseAuthTesting.Value.InitialContactPoint)
                 .WithCredentials("cassandra", "cassandra");
             _cluster = builder.Build();
@@ -166,7 +166,7 @@ namespace Cassandra.IntegrationTests.Auth
         public void StandardCreds_DseAuth_AuthFail()
         {
             _testClusterForDseAuthTesting.Value.SwitchToThisCluster();
-            using (var cluster = DseCluster
+            using (var cluster = Cluster
                 .Builder()
                 .AddContactPoint(_testClusterForDseAuthTesting.Value.InitialContactPoint)
                 .WithCredentials("wrong_username", "password")
@@ -183,7 +183,7 @@ namespace Cassandra.IntegrationTests.Auth
         public void StandardCreds_DseAuth_AuthOmitted()
         {
             _testClusterForDseAuthTesting.Value.SwitchToThisCluster();
-            using (var cluster = DseCluster
+            using (var cluster = Cluster
                 .Builder()
                 .AddContactPoint(_testClusterForDseAuthTesting.Value.InitialContactPoint)
                 .Build())

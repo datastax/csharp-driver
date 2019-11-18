@@ -23,9 +23,9 @@ using System.Net;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Cassandra.Collections;
 using Cassandra.Connections;
-using Cassandra.ExecutionProfiles;
 using Cassandra.Helpers;
 using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
@@ -52,8 +52,6 @@ namespace Cassandra
 
         private readonly Metadata _metadata;
         private readonly Serializer _serializer;
-        private readonly ISessionFactory<IInternalSession> _sessionFactory;
-        private readonly IClusterLifecycleManager _lifecycleManager;
         private readonly IProtocolEventDebouncer _protocolEventDebouncer;
 
         /// <inheritdoc />
@@ -85,15 +83,15 @@ namespace Cassandra
         /// <returns>the newly created Cluster instance </returns>
         public static Cluster BuildFrom(IInitializer initializer)
         {
-            return BuildFrom(initializer, null, null, null);
+            return BuildFrom(initializer, null, null);
         }
 
         internal static Cluster BuildFrom(IInitializer initializer, IReadOnlyList<string> hostNames)
         {
-            return BuildFrom(initializer, hostNames, null, null);
+            return BuildFrom(initializer, hostNames, null);
         }
 
-        internal static Cluster BuildFrom(IInitializer initializer, IReadOnlyList<string> hostNames, Configuration config, IClusterLifecycleManager manager)
+        internal static Cluster BuildFrom(IInitializer initializer, IReadOnlyList<string> hostNames, Configuration config)
         {
             hostNames = hostNames ?? new string[0];
             if (initializer.ContactPoints.Count == 0 && hostNames.Count == 0)
@@ -103,8 +101,7 @@ namespace Cassandra
 
             return new Cluster(
                 initializer.ContactPoints.Cast<object>().Concat(hostNames),
-                config ?? initializer.GetConfiguration(),
-                manager);
+                config ?? initializer.GetConfiguration());
         }
 
         /// <summary>
@@ -156,7 +153,7 @@ namespace Cassandra
             }
         }
 
-        private Cluster(IEnumerable<object> contactPoints, Configuration configuration, IClusterLifecycleManager lifecycleManager)
+        private Cluster(IEnumerable<object> contactPoints, Configuration configuration)
         {
             Configuration = configuration;
             _metadata = new Metadata(configuration);
@@ -176,109 +173,17 @@ namespace Cassandra
 
             _metadata.ControlConnection = _controlConnection;
             _serializer = _controlConnection.Serializer;
-            _sessionFactory = configuration.SessionFactoryBuilder.BuildWithCluster(this);
-            _lifecycleManager = lifecycleManager ?? new ClusterLifecycleManager(this);
         }
 
         /// <summary>
         /// Initializes once (Thread-safe) the control connection and metadata associated with the Cluster instance
         /// </summary>
-        private Task Init()
-        {
-            return _lifecycleManager.InitializeAsync();
-        }
-
-        private static string GetAssemblyInfo()
-        {
-            var assembly = typeof(ISession).GetTypeInfo().Assembly;
-            var info = FileVersionInfo.GetVersionInfo(assembly.Location);
-            return $"{info.ProductName} v{info.FileVersion}";
-        }
-
-        IReadOnlyDictionary<string, IEnumerable<IPEndPoint>> IInternalCluster.GetResolvedEndpoints()
-        {
-            return _metadata.ResolvedContactPoints;
-        }
-
-        /// <inheritdoc />
-        public ICollection<Host> AllHosts()
-        {
-            //Do not connect at first
-            return _metadata.AllHosts();
-        }
-
-        /// <summary>
-        /// Creates a new session on this cluster.
-        /// </summary>
-        public ISession Connect()
-        {
-            return Connect(Configuration.ClientOptions.DefaultKeyspace);
-        }
-
-        /// <summary>
-        /// Creates a new session on this cluster.
-        /// </summary>
-        public Task<ISession> ConnectAsync()
-        {
-            return ConnectAsync(Configuration.ClientOptions.DefaultKeyspace);
-        }
-
-        /// <summary>
-        /// Creates a new session on this cluster and using a keyspace an existing keyspace.
-        /// </summary>
-        /// <param name="keyspace">Case-sensitive keyspace name to use</param>
-        public ISession Connect(string keyspace)
-        {
-            return TaskHelper.WaitToComplete(ConnectAsync(keyspace));
-        }
-
-        /// <summary>
-        /// Creates a new session on this cluster and using a keyspace an existing keyspace.
-        /// </summary>
-        /// <param name="keyspace">Case-sensitive keyspace name to use</param>
-        public async Task<ISession> ConnectAsync(string keyspace)
-        {
-            return await InternalRef.ConnectAsync(_sessionFactory, keyspace).ConfigureAwait(false);
-        }
-
-        async Task<TSession> IInternalCluster.ConnectAsync<TSession>(ISessionFactory<TSession> sessionFactory, string keyspace)
-        {
-            await Init().ConfigureAwait(false);
-            var newSessionName = GetNewSessionName();
-            var session = await sessionFactory.CreateSessionAsync(keyspace, _serializer, newSessionName).ConfigureAwait(false);
-            await session.Init().ConfigureAwait(false);
-            _connectedSessions.Add(session);
-            Cluster.Logger.Info("Session connected ({0})", session.GetHashCode());
-            return session;
-        }
-
-        private string GetNewSessionName()
-        {
-            var sessionCounter = GetAndIncrementSessionCounter();
-            if (sessionCounter == 0 && Configuration.SessionName != null)
-            {
-                return Configuration.SessionName;
-            }
-
-            var prefix = Configuration.SessionName ?? Configuration.DefaultSessionName;
-            return prefix + sessionCounter;
-        }
-
-        private long GetAndIncrementSessionCounter()
-        {
-            var newCounter = Interlocked.Increment(ref _sessionCounter);
-
-            // Math.Abs just to avoid negative counters if it overflows
-            return newCounter < 0 ? Math.Abs(newCounter) : newCounter;
-        }
-
-        /// <inheritdoc />
-        async Task<bool> IInternalCluster.OnInitializeAsync()
+        private async Task Init()
         {
             if (_initialized)
             {
                 //It was already initialized
-                return false;
+                return;
             }
             await _initLock.WaitAsync().ConfigureAwait(false);
             try
@@ -286,7 +191,7 @@ namespace Cassandra
                 if (_initialized)
                 {
                     //It was initialized when waiting on the lock
-                    return false;
+                    return;
                 }
                 if (_initException != null)
                 {
@@ -357,7 +262,88 @@ namespace Cassandra
             {
                 _initLock.Release();
             }
-            return true;
+
+            Cluster.Logger.Info("Cluster [" + Metadata.ClusterName + "] has been initialized.");
+            return;
+        }
+
+        private static string GetAssemblyInfo()
+        {
+            var assembly = typeof(ISession).GetTypeInfo().Assembly;
+            var info = FileVersionInfo.GetVersionInfo(assembly.Location);
+            return $"{info.ProductName} v{info.FileVersion}";
+        }
+
+        IReadOnlyDictionary<string, IEnumerable<IPEndPoint>> IInternalCluster.GetResolvedEndpoints()
+        {
+            return _metadata.ResolvedContactPoints;
+        }
+
+        /// <inheritdoc />
+        public ICollection<Host> AllHosts()
+        {
+            //Do not connect at first
+            return _metadata.AllHosts();
+        }
+
+        /// <summary>
+        /// Creates a new session on this cluster.
+        /// </summary>
+        public ISession Connect()
+        {
+            return Connect(Configuration.ClientOptions.DefaultKeyspace);
+        }
+
+        /// <summary>
+        /// Creates a new session on this cluster.
+        /// </summary>
+        public Task<ISession> ConnectAsync()
+        {
+            return ConnectAsync(Configuration.ClientOptions.DefaultKeyspace);
+        }
+
+        /// <summary>
+        /// Creates a new session on this cluster and using a keyspace an existing keyspace.
+        /// </summary>
+        /// <param name="keyspace">Case-sensitive keyspace name to use</param>
+        public ISession Connect(string keyspace)
+        {
+            return TaskHelper.WaitToComplete(ConnectAsync(keyspace));
+        }
+
+        /// <summary>
+        /// Creates a new session on this cluster and using a keyspace an existing keyspace.
+        /// </summary>
+        /// <param name="keyspace">Case-sensitive keyspace name to use</param>
+        public async Task<ISession> ConnectAsync(string keyspace)
+        {
+            await Init().ConfigureAwait(false);
+            var newSessionName = GetNewSessionName();
+            var session = await Configuration.SessionFactory.CreateSessionAsync(this, keyspace, _serializer, newSessionName).ConfigureAwait(false);
+            await session.Init().ConfigureAwait(false);
+            _connectedSessions.Add(session);
+            Cluster.Logger.Info("Session connected ({0})", session.GetHashCode());
+            return session;
+        }
+
+        private string GetNewSessionName()
+        {
+            var sessionCounter = GetAndIncrementSessionCounter();
+            if (sessionCounter == 0 && Configuration.SessionName != null)
+            {
+                return Configuration.SessionName;
+            }
+
+            var prefix = Configuration.SessionName ?? Configuration.DefaultSessionName;
+            return prefix + sessionCounter;
+        }
+
+        private long GetAndIncrementSessionCounter()
+        {
+            var newCounter = Interlocked.Increment(ref _sessionCounter);
+
+            // Math.Abs just to avoid negative counters if it overflows
+            return newCounter < 0 ? Math.Abs(newCounter) : newCounter;
         }
 
         private void SetMetadataDependentOptions()
@@ -366,54 +352,6 @@ namespace Cassandra
             {
                 Configuration.SetDefaultConsistencyLevel(ConsistencyLevel.LocalQuorum);
             }
-        }
-
-        /// <inheritdoc />
-        async Task<bool> IInternalCluster.OnShutdownAsync(int timeoutMs)
-        {
-            if (!_initialized)
-            {
-                return false;
-            }
-            var sessions = _connectedSessions.ClearAndGet();
-            try
-            {
-                var task = Task.Run(() =>
-                {
-                    foreach (var s in sessions)
-                    {
-                        s.Dispose();
-                    }
-                }).WaitToCompleteAsync(timeoutMs);
-                await task.ConfigureAwait(false);
-            }
-            catch (AggregateException ex)
-            {
-                if (ex.InnerExceptions.Count == 1)
-                {
-                    throw ex.InnerExceptions[0];
-                }
-                throw;
-            }
-            _metadata.ShutDown(timeoutMs);
-            _protocolEventDebouncer.Dispose();
-            _controlConnection.Dispose();
-            Configuration.Timer.Dispose();
-
-            // Dispose policies
-            var speculativeExecutionPolicies = new HashSet<ISpeculativeExecutionPolicy>(new ReferenceEqualityComparer<ISpeculativeExecutionPolicy>());
-            foreach (var options in Configuration.RequestOptions.Values)
-            {
-                speculativeExecutionPolicies.Add(options.SpeculativeExecutionPolicy);
-            }
-
-            speculativeExecutionPolicies.Add(Configuration.Policies.SpeculativeExecutionPolicy);
-            foreach (var sep in speculativeExecutionPolicies)
-            {
-                sep.Dispose();
-            }
-
-            return true;
         }
 
         /// <summary>
@@ -517,9 +455,52 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        public Task ShutdownAsync(int timeoutMs = Timeout.Infinite)
+        public async Task ShutdownAsync(int timeoutMs = Timeout.Infinite)
         {
-            return _lifecycleManager.ShutdownAsync(timeoutMs);
+            if (!_initialized)
+            {
+                return;
+            }
+            var sessions = _connectedSessions.ClearAndGet();
+            try
+            {
+                var task = Task.Run(() =>
+                {
+                    foreach (var s in sessions)
+                    {
+                        s.Dispose();
+                    }
+                }).WaitToCompleteAsync(timeoutMs);
+                await task.ConfigureAwait(false);
+            }
+            catch (AggregateException ex)
+            {
+                if (ex.InnerExceptions.Count == 1)
+                {
+                    throw ex.InnerExceptions[0];
+                }
+                throw;
+            }
+            _metadata.ShutDown(timeoutMs);
+            _protocolEventDebouncer.Dispose();
+            _controlConnection.Dispose();
+            Configuration.Timer.Dispose();
+
+            // Dispose policies
+            var speculativeExecutionPolicies = new HashSet<ISpeculativeExecutionPolicy>(new ReferenceEqualityComparer<ISpeculativeExecutionPolicy>());
+            foreach (var options in Configuration.RequestOptions.Values)
+            {
+                speculativeExecutionPolicies.Add(options.SpeculativeExecutionPolicy);
+            }
+
+            speculativeExecutionPolicies.Add(Configuration.Policies.SpeculativeExecutionPolicy);
+            foreach (var sep in speculativeExecutionPolicies)
+            {
+                sep.Dispose();
+            }
+
+            Cluster.Logger.Info("Cluster [" + Metadata.ClusterName + "] has been shut down.");
+            return;
         }
 
         /// <summary>
@@ -603,8 +584,8 @@ namespace Cassandra
                     PrepareHandler.Logger.Info(
                         "There was an error when re-preparing queries on {0}. " +
                         "The driver will re-prepare the queries individually the next time they are sent to this node. " +
-                        "Exception: {1}", 
-                        host.Address, 
+                        "Exception: {1}",
+                        host.Address,
                         ex);
                 }
             }

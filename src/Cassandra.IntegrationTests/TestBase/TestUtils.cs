@@ -649,7 +649,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public static void VerifyCurrentClusterWorkloads(string[] expectedWorkloads)
         {
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .Build())
             {

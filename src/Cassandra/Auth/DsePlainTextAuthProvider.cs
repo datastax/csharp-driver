@@ -29,7 +29,7 @@ namespace Cassandra.Auth
     /// <example>
     /// Creating a auth-enabled Cluster instance:
     /// <code>
-    /// var cluster = DseCluster.Builder()
+    /// var cluster = Cluster.Builder()
     ///     .AddContactPoint(h1)
     ///     .WithAuthProvider(new DsePlainTextAuthProvider("user", "p@sword1"))
     ///     .Build();

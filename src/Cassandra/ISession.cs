@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+using Cassandra.Graph;
 using Cassandra.Metrics;
 
 namespace Cassandra
@@ -259,6 +260,56 @@ namespace Cassandra
         /// Retrieves the driver metrics for this session.
         /// </summary>
         IDriverMetrics GetMetrics();
+        
+        /// <summary>
+        /// Executes a graph statement.
+        /// </summary>
+        /// <param name="statement">The graph statement containing the query</param>
+        /// <example>
+        /// <code>
+        /// GraphResultSet rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
+        /// </code>
+        /// </example>
+        GraphResultSet ExecuteGraph(IGraphStatement statement);
+
+        /// <summary>
+        /// Executes a graph statement.
+        /// </summary>
+        /// <param name="statement">The graph statement containing the query</param>
+        /// <example>
+        /// <code>
+        /// Task&lt;GraphResultSet$gt; task = session.ExecuteGraphAsync(new SimpleGraphStatement("g.V()"));
+        /// </code>
+        /// </example>
+        Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement statement);
+
+        /// <summary>
+        /// Executes a graph statement with the provided execution profile.
+        /// The execution profile must have been added previously to the DseCluster
+        /// using <see cref="Builder.WithExecutionProfiles"/>.
+        /// </summary>
+        /// <param name="statement">The graph statement containing the query</param>
+        /// <param name="executionProfileName">The graph execution profile name to use while executing this statement.</param>
+        /// <example>
+        /// <code>
+        /// GraphResultSet rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"), "graphProfile");
+        /// </code>
+        /// </example>
+        GraphResultSet ExecuteGraph(IGraphStatement statement, string executionProfileName);
+        
+        /// <summary>
+        /// Executes a graph statement asynchronously with the provided graph execution profile.
+        /// The graph execution profile must have been added previously to the DseCluster
+        /// using <see cref="Builder.WithExecutionProfiles"/>.
+        /// </summary>
+        /// <param name="statement">The graph statement containing the query</param>
+        /// <param name="executionProfileName">The graph execution profile name to use while executing this statement.</param>
+        /// <example>
+        /// <code>
+        /// Task&lt;GraphResultSet$gt; task = session.ExecuteGraphAsync(new SimpleGraphStatement("g.V()"), "graphProfile");
+        /// </code>
+        /// </example>
+        Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement statement, string executionProfileName);
 
         [Obsolete("Method deprecated. The driver internally waits for schema agreement when there is an schema change. See ProtocolOptions.MaxSchemaAgreementWaitSeconds for more info.")]
         void WaitForSchemaAgreement(RowSet rs);

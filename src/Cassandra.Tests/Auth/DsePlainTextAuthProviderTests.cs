@@ -47,10 +47,17 @@ namespace Cassandra.Tests.Auth
         }
 
         [Test]
-        public void Should_CreateDsePlainTextAuthProvider_When_WithCredentialsIsCalled()
+        public void Should_CreatePlainTextAuthProvider_When_WithCredentialsIsCalled()
         {
-            var cluster = DseCluster.Builder().AddContactPoint("127.0.0.1").WithCredentials("cassandra", "cassandra").Build();
-            Assert.AreEqual(typeof(DsePlainTextAuthProvider), cluster.Configuration.CassandraConfiguration.AuthProvider.GetType());
+            var cluster = Cluster.Builder().AddContactPoint("127.0.0.1").WithCredentials("cassandra", "cassandra").Build();
+            Assert.AreEqual(typeof(PlainTextAuthProvider), cluster.Configuration.AuthProvider.GetType());
+        }
+        
+        [Test]
+        public void Should_SetDsePlainTextAuthProvider_When_WithAuthProviderIsCalled()
+        {
+            var cluster = Cluster.Builder().AddContactPoint("127.0.0.1").WithAuthProvider(new DsePlainTextAuthProvider("cassandra", "cassandra")).Build();
+            Assert.AreEqual(typeof(DsePlainTextAuthProvider), cluster.Configuration.AuthProvider.GetType());
         }
     }
 }

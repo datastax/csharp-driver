@@ -427,24 +427,12 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Ssl_Connect_With_Ssl_Disabled_Host()
         {
-            var config = new Configuration(Cassandra.Policies.DefaultPolicies, 
-                new ProtocolOptions(ProtocolOptions.DefaultPort, new SSLOptions()),
-                new PoolingOptions(),
-                new SocketOptions().SetConnectTimeoutMillis(200),
-                new ClientOptions(),
-                NoneAuthProvider.Instance,
-                null,
-                new QueryOptions(),
-                new DefaultAddressTranslator(),
-                new StartupOptionsFactory(),
-                new SessionFactoryBuilder(),
-                new Dictionary<string, IExecutionProfile>(),
-                new RequestOptionsMapper(),
-                null,
-                null,
-                null,
-                null,
-                null);
+            var config = new TestConfigurationBuilder
+            {
+                SocketOptions = new SocketOptions().SetConnectTimeoutMillis(200),
+                ProtocolOptions = new ProtocolOptions(ProtocolOptions.DefaultPort, new SSLOptions())
+            }.Build();
+
             using (var connection = CreateConnection(GetProtocolVersion(), config))
             {
                 var ex = Assert.Throws<AggregateException>(() => connection.Open().Wait(10000));
@@ -628,25 +616,11 @@ namespace Cassandra.IntegrationTests.Core
         {
             var socketOptions = new SocketOptions();
             socketOptions.SetConnectTimeoutMillis(1000);
-            var config = new Configuration(
-                new Cassandra.Policies(), 
-                new ProtocolOptions(), 
-                new PoolingOptions(), 
-                socketOptions, 
-                new ClientOptions(), 
-                NoneAuthProvider.Instance,
-                null,
-                new QueryOptions(),
-                new DefaultAddressTranslator(),
-                new StartupOptionsFactory(),
-                new SessionFactoryBuilder(),
-                new Dictionary<string, IExecutionProfile>(),
-                new RequestOptionsMapper(),
-                null,
-                null,
-                null,
-                null,
-                null);
+            var config = new TestConfigurationBuilder
+            {
+                SocketOptions = socketOptions
+            }.Build();
+
             using (var connection = 
                 new Connection(
                     new Serializer(GetProtocolVersion()), 
@@ -857,25 +831,14 @@ namespace Cassandra.IntegrationTests.Core
             {
                 protocolOptions = new ProtocolOptions();
             }
-            var config = new Configuration(
-                new Cassandra.Policies(),
-                protocolOptions,
-                poolingOptions,
-                socketOptions,
-                new ClientOptions(false, 20000, null),
-                NoneAuthProvider.Instance,
-                null,
-                new QueryOptions(),
-                new DefaultAddressTranslator(),
-                new StartupOptionsFactory(),
-                new SessionFactoryBuilder(),
-                new Dictionary<string, IExecutionProfile>(),
-                new RequestOptionsMapper(),
-                null,
-                null,
-                null,
-                null,
-                null);
+
+            var config = new TestConfigurationBuilder
+            {
+                ProtocolOptions = protocolOptions,
+                PoolingOptions = poolingOptions,
+                SocketOptions = socketOptions,
+                ClientOptions = new ClientOptions(false, 20000, null)
+            }.Build();
             return CreateConnection(GetProtocolVersion(), config);
         }
 

@@ -20,6 +20,6 @@ namespace Cassandra.Insights.InfoProviders
 {
     internal interface IInsightsInfoProvider<out T>
     {
-        T GetInformation(IInternalDseCluster cluster, IInternalDseSession dseSession);
+        T GetInformation(IInternalCluster cluster, IInternalSession session);
     }
 }

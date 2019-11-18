@@ -56,9 +56,9 @@ namespace Cassandra.Insights.InfoProviders.StartupMessage
 
         public static IReadOnlyDictionary<Type, Func<IReconnectionPolicy, Dictionary<string, object>>> PolicyOptionsProviders { get; }
 
-        public PolicyInfo GetInformation(IInternalDseCluster cluster, IInternalDseSession dseSession)
+        public PolicyInfo GetInformation(IInternalCluster cluster, IInternalSession session)
         {
-            var policy = cluster.Configuration.CassandraConfiguration.Policies.ReconnectionPolicy;
+            var policy = cluster.Configuration.Policies.ReconnectionPolicy;
             var type = policy.GetType();
             ReconnectionPolicyInfoProvider.PolicyOptionsProviders.TryGetValue(type, out var optionsProvider);
             return new PolicyInfo

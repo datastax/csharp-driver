@@ -23,6 +23,12 @@ using Cassandra.ExecutionProfiles;
 using Cassandra.Graph;
 using Cassandra.Helpers;
 using Cassandra.Insights;
+using Cassandra.Insights.InfoProviders;
+using Cassandra.Insights.InfoProviders.StartupMessage;
+using Cassandra.Insights.InfoProviders.StatusMessage;
+using Cassandra.Insights.MessageFactories;
+using Cassandra.Insights.Schema.StartupMessage;
+using Cassandra.Insights.Schema.StatusMessage;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Abstractions;
 using Cassandra.Metrics.Providers.Null;
@@ -125,7 +131,7 @@ namespace Cassandra
 
         internal IStartupOptionsFactory StartupOptionsFactory { get; }
 
-        internal ISessionFactoryBuilder<IInternalCluster, IInternalSession> SessionFactoryBuilder { get; }
+        internal ISessionFactory SessionFactory { get; }
 
         internal IRequestOptionsMapper RequestOptionsMapper { get; }
 
@@ -200,9 +206,46 @@ namespace Cassandra
 
         internal IInsightsSupportVerifier InsightsSupportVerifier { get; }
 
+        internal IInsightsClientFactory InsightsClientFactory { get; }
+
         internal IRequestOptions DefaultRequestOptions => RequestOptions[Configuration.DefaultExecutionProfileName];
         
         internal static IInsightsSupportVerifier DefaultInsightsSupportVerifier => new InsightsSupportVerifier();
+        
+        internal static IInsightsClientFactory DefaultInsightsClientFactory =>
+            new InsightsClientFactory(
+                Configuration.DefaultInsightsStartupMessageFactory, Configuration.DefaultInsightsStatusMessageFactory);
+
+        internal static IInsightsMessageFactory<InsightsStartupData> DefaultInsightsStartupMessageFactory =>
+            new InsightsStartupMessageFactory(
+                Configuration.DefaultInsightsMetadataFactory,
+                Configuration.DefaultInsightsInfoProvidersCollection
+            );
+
+        internal static IInsightsMessageFactory<InsightsStatusData> DefaultInsightsStatusMessageFactory =>
+            new InsightsStatusMessageFactory(
+                Configuration.DefaultInsightsMetadataFactory,
+                new NodeStatusInfoProvider()
+            );
+
+        internal static IInsightsMetadataFactory DefaultInsightsMetadataFactory =>
+            new InsightsMetadataFactory(new InsightsMetadataTimestampGenerator());
+
+        internal static InsightsInfoProvidersCollection DefaultInsightsInfoProvidersCollection =>
+            new InsightsInfoProvidersCollection(
+                new PlatformInfoProvider(),
+                new ExecutionProfileInfoProvider(
+                    new LoadBalancingPolicyInfoProvider(new ReconnectionPolicyInfoProvider()),
+                    new SpeculativeExecutionPolicyInfoProvider(),
+                    new RetryPolicyInfoProvider()),
+                new PoolSizeByHostDistanceInfoProvider(),
+                new AuthProviderInfoProvider(),
+                new DataCentersInfoProvider(),
+                new OtherOptionsInfoProvider(),
+                new ConfigAntiPatternsInfoProvider(),
+                new ReconnectionPolicyInfoProvider(),
+                new DriverInfoProvider(),
+                new HostnameInfoProvider());
 
         internal Configuration() :
             this(Policies.DefaultPolicies,
@@ -252,7 +295,7 @@ namespace Cassandra
                                string appVersion,
                                string appName,
                                MonitorReportingOptions monitorReportingOptions,
-                               ISessionFactoryBuilder<IInternalCluster, IInternalSession> sessionFactoryBuilder = null,
+                               ISessionFactory sessionFactory = null,
                                IRequestOptionsMapper requestOptionsMapper = null,
                                IStartupOptionsFactory startupOptionsFactory = null,
                                IInsightsSupportVerifier insightsSupportVerifier = null,
@@ -263,7 +306,8 @@ namespace Cassandra
                                IControlConnectionFactory controlConnectionFactory = null,
                                IPrepareHandlerFactory prepareHandlerFactory = null,
                                ITimerFactory timerFactory = null,
-                               IObserverFactoryBuilder observerFactoryBuilder = null)
+                               IObserverFactoryBuilder observerFactoryBuilder = null,
+                               IInsightsClientFactory insightsClientFactory = null)
         {
             AddressTranslator = addressTranslator ?? throw new ArgumentNullException(nameof(addressTranslator));
             QueryOptions = queryOptions ?? throw new ArgumentNullException(nameof(queryOptions));
@@ -282,7 +326,7 @@ namespace Cassandra
             AuthProvider = authProvider;
             AuthInfoProvider = authInfoProvider;
             StartupOptionsFactory = startupOptionsFactory ?? new StartupOptionsFactory(ClusterId, ApplicationVersion, ApplicationName);
-            SessionFactoryBuilder = sessionFactoryBuilder ?? new SessionFactoryBuilder();
+            SessionFactory = sessionFactory ?? new SessionFactory();
             RequestOptionsMapper = requestOptionsMapper ?? new RequestOptionsMapper();
             MetadataSyncOptions = metadataSyncOptions?.Clone() ?? new MetadataSyncOptions();
             DnsResolver = new DnsResolver();
@@ -306,6 +350,7 @@ namespace Cassandra
             
             MonitorReportingOptions = monitorReportingOptions ?? new MonitorReportingOptions();
             InsightsSupportVerifier = insightsSupportVerifier ?? Configuration.DefaultInsightsSupportVerifier;
+            InsightsClientFactory = insightsClientFactory ?? Configuration.DefaultInsightsClientFactory;
 
             // Create the buffer pool with 16KB for small buffers and 256Kb for large buffers.
             // The pool does not eagerly reserve the buffers, so it doesn't take unnecessary memory

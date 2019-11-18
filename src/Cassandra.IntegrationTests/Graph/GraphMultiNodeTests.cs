@@ -52,7 +52,7 @@ namespace Cassandra.IntegrationTests.Graph
         private void PrepareForSparkTest(ITestCluster testCluster)
         {
             const string replicationConfigStr = "{'class' : 'SimpleStrategy', 'replication_factor' : 2}";
-            using (var cluster = DseCluster.Builder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
+            using (var cluster = Cluster.Builder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
             {
                 WaitForWorkers(1);
 
@@ -139,9 +139,9 @@ namespace Cassandra.IntegrationTests.Graph
         public string FindSparkMaster()
         {
             Trace.TraceInformation("GraphMultiNodeTests: FindSparkMaster");
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                         .AddContactPoint(TestClusterManager.InitialContactPoint)
-                        .WithLoadBalancingPolicy(DefaultLoadBalancingPolicy.CreateDefault())
+                        .WithLoadBalancingPolicy(Cassandra.Policies.DefaultLoadBalancingPolicy)
                         .Build())
             {
                 var session = cluster.Connect();
@@ -161,10 +161,10 @@ namespace Cassandra.IntegrationTests.Graph
             Trace.TraceInformation("GraphMultiNodeTests: Should_Contact_Spark_Master_Directly");
             var sparkHost = FindSparkMaster();
 
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
-                .WithLoadBalancingPolicy(DefaultLoadBalancingPolicy.CreateDefault())
+                .WithLoadBalancingPolicy(Cassandra.Policies.DefaultLoadBalancingPolicy)
                 .Build())
             {
                 var session = cluster.Connect();

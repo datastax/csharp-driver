@@ -16,21 +16,19 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Cassandra.Search;
-using Cassandra.IntegrationTests.Core;
+
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Search;
+
 using Newtonsoft.Json;
+
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Search
 {
     [Category("short"), TestDseVersion(5, 1)]
-    public class DateRangeTests : SharedDseClusterTest
+    public class DateRangeTests : SharedClusterTest
     {
         private static readonly string[] Values = new[]
         {
@@ -212,7 +210,7 @@ namespace Cassandra.IntegrationTests.Search
         }
     }
 
-    class UdtDataRange
+    internal class UdtDataRange
     {
         public int Id { get; set; }
 

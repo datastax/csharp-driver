@@ -51,9 +51,9 @@ namespace Cassandra.IntegrationTests.Insights
         private static readonly string applicationName = "app 1";
         private static readonly string applicationVersion = "v1.2";
 
-        private static DseCluster BuildCluster(SimulacronCluster simulacronCluster, int statusEventDelay)
+        private static Cluster BuildCluster(SimulacronCluster simulacronCluster, int statusEventDelay)
         {
-            return DseCluster.Builder()
+            return Cluster.Builder()
                           .AddContactPoint(simulacronCluster.InitialContactPoint)
                           .WithApplicationName(InsightsIntegrationTests.applicationName)
                           .WithApplicationVersion(InsightsIntegrationTests.applicationVersion)
@@ -76,7 +76,7 @@ namespace Cassandra.IntegrationTests.Insights
                 using (var cluster = InsightsIntegrationTests.BuildCluster(simulacronCluster, 500))
                 {
                     Assert.AreEqual(0, simulacronCluster.GetQueries("CALL InsightsRpc.reportInsight(?)").Count);
-                    var session = (IInternalDseSession)cluster.Connect();
+                    var session = (IInternalSession)cluster.Connect();
                     dynamic query = null;
                     TestHelper.RetryAssert(
                         () =>
@@ -142,7 +142,7 @@ namespace Cassandra.IntegrationTests.Insights
                 using (var cluster = InsightsIntegrationTests.BuildCluster(simulacronCluster, 50))
                 {
                     Assert.AreEqual(0, simulacronCluster.GetQueries("CALL InsightsRpc.reportInsight(?)").Count);
-                    var session = (IInternalDseSession) cluster.Connect();
+                    var session = (IInternalSession) cluster.Connect();
                     IList<dynamic> queries = null;
                     TestHelper.RetryAssert(
                         () =>

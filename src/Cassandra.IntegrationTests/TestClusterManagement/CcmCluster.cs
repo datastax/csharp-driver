@@ -65,7 +65,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             Cluster?.Shutdown();
             if (Builder == null)
             {
-                Builder = new DseClusterBuilder();   
+                Builder = new Builder();   
             }
             Cluster = Builder.AddContactPoint(InitialContactPoint).Build();
             Session = Cluster.Connect();

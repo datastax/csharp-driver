@@ -14,9 +14,12 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Collections.Generic;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
+using Cassandra.Graph;
+using Cassandra.Insights;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Providers.Null;
 using Cassandra.Observers;
@@ -48,11 +51,11 @@ namespace Cassandra.Tests
 
         public MetadataSyncOptions MetadataSyncOptions { get; set; } = new MetadataSyncOptions();
 
-        public IStartupOptionsFactory StartupOptionsFactory { get; set; } = new StartupOptionsFactory();
+        public IStartupOptionsFactory StartupOptionsFactory { get; set; } = new StartupOptionsFactory(Guid.NewGuid(), Configuration.DefaultApplicationVersion, Builder.DefaultApplicationName);
 
         public IRequestOptionsMapper RequestOptionsMapper { get; set; } = new RequestOptionsMapper();
 
-        public ISessionFactoryBuilder<IInternalCluster, IInternalSession> SessionFactoryBuilder { get; set; } = new SessionFactoryBuilder();
+        public ISessionFactory SessionFactory { get; set; } = new SessionFactory();
 
         public IReadOnlyDictionary<string, IExecutionProfile> ExecutionProfiles { get; set; } = new Dictionary<string, IExecutionProfile>();
 
@@ -76,7 +79,23 @@ namespace Cassandra.Tests
 
         public DriverMetricsOptions MetricsOptions { get; set; } = new DriverMetricsOptions();
 
-        public string SessionName { get; set; }
+        public string SessionName { get; set; } = Configuration.DefaultSessionName;
+
+        public string ApplicationVersion { get; set; } = Configuration.DefaultApplicationVersion;
+
+        public string ApplicationName { get; set; } = Builder.DefaultApplicationName;
+
+        public Guid ClusterId { get; set; } = Guid.NewGuid();
+
+        public GraphOptions GraphOptions { get; set; } = new GraphOptions();
+        
+        public MonitorReportingOptions MonitorReportingOptions { get; set; } = new MonitorReportingOptions();
+
+        public IInsightsSupportVerifier InsightsSupportVerifier { get; set; } = new InsightsSupportVerifier();
+
+        public IInsightsClientFactory InsightsClientFactory { get; set; } = 
+            new InsightsClientFactory(
+                Configuration.DefaultInsightsStartupMessageFactory, Configuration.DefaultInsightsStatusMessageFactory);
 
         public Configuration Build()
         {
@@ -90,15 +109,21 @@ namespace Cassandra.Tests
                 AuthInfoProvider,
                 QueryOptions,
                 AddressTranslator,
-                StartupOptionsFactory,
-                SessionFactoryBuilder,
                 ExecutionProfiles,
-                RequestOptionsMapper,
                 MetadataSyncOptions,
                 EndPointResolver,
                 new NullDriverMetricsProvider(),
                 MetricsOptions,
                 SessionName,
+                GraphOptions,
+                ClusterId,
+                ApplicationVersion,
+                ApplicationName,
+                MonitorReportingOptions,
+                SessionFactory,
+                RequestOptionsMapper,
+                StartupOptionsFactory,
+                InsightsSupportVerifier,
                 RequestHandlerFactory,
                 HostConnectionPoolFactory,
                 RequestExecutionFactory,
@@ -106,7 +131,8 @@ namespace Cassandra.Tests
                 ControlConnectionFactory,
                 PrepareHandlerFactory,
                 TimerFactory,
-                ObserverFactoryBuilder);
+                ObserverFactoryBuilder,
+                InsightsClientFactory);
         }
     }
 }

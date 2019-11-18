@@ -107,7 +107,7 @@ namespace Cassandra.Insights.InfoProviders.StartupMessage
 
         public static IReadOnlyDictionary<Type, Func<object, Dictionary<string, string>, Dictionary<string, string>>> AntiPatternsProviders { get; }
 
-        public Dictionary<string, string> GetInformation(IInternalDseCluster cluster, IInternalDseSession dseSession)
+        public Dictionary<string, string> GetInformation(IInternalCluster cluster, IInternalSession session)
         {
             var antiPatterns = new Dictionary<string, string>();
 
@@ -119,10 +119,10 @@ namespace Cassandra.Insights.InfoProviders.StartupMessage
                 antiPatterns["contactPointsMultipleDCs"] = "Contact points contain hosts from multiple data centers";
             }
 
-            var loadBalancingPolicy = cluster.Configuration.CassandraConfiguration.Policies.LoadBalancingPolicy;
+            var loadBalancingPolicy = cluster.Configuration.Policies.LoadBalancingPolicy;
             antiPatterns = ConfigAntiPatternsInfoProvider.AddAntiPatterns(loadBalancingPolicy, antiPatterns);
 
-            var retryPolicy = cluster.Configuration.CassandraConfiguration.Policies.RetryPolicy;
+            var retryPolicy = cluster.Configuration.Policies.RetryPolicy;
             antiPatterns = ConfigAntiPatternsInfoProvider.AddAntiPatterns(retryPolicy, antiPatterns);
 
             return antiPatterns;

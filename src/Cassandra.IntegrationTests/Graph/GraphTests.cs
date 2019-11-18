@@ -37,15 +37,15 @@ namespace Cassandra.IntegrationTests.Graph
         private const string GraphSON1Language = "gremlin-groovy";
         private const string GraphSON2Language = "bytecode-json";
         private int _idGenerator;
-        private IDseCluster _cluster;
-        private IDseSession _session;
+        private ICluster _cluster;
+        private ISession _session;
 
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
             TestClusterManager.CreateNew(1, new TestClusterOptions {Workloads = new[] {"graph"}});
             CreateClassicGraph(TestClusterManager.InitialContactPoint, GraphName);
-            _cluster = DseCluster.Builder()
+            _cluster = Cluster.Builder()
                                     .AddContactPoint(TestClusterManager.InitialContactPoint)
                                     .WithGraphOptions(new GraphOptions().SetName(GraphName))
                                     .Build();
@@ -70,7 +70,7 @@ namespace Cassandra.IntegrationTests.Graph
         [Test]
         public void Should_Get_Vertices_Of_Classic_Schema()
         {
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
@@ -92,7 +92,7 @@ namespace Cassandra.IntegrationTests.Graph
         [Test]
         public void Should_Retrieve_Graph_Vertices()
         {
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
@@ -114,7 +114,7 @@ namespace Cassandra.IntegrationTests.Graph
         [Test]
         public void Should_Retrieve_Graph_Edges()
         {
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
@@ -136,7 +136,7 @@ namespace Cassandra.IntegrationTests.Graph
         [Test]
         public void Should_Retrieve_Graph_Multiple_Properties()
         {
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                                            .AddContactPoint(TestClusterManager.InitialContactPoint)
                                            .WithGraphOptions(new GraphOptions().SetName(GraphName))
                                            .Build())
@@ -159,7 +159,7 @@ namespace Cassandra.IntegrationTests.Graph
         [Test]
         public void Should_Support_Named_Parameters()
         {
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
@@ -181,7 +181,7 @@ namespace Cassandra.IntegrationTests.Graph
         public void Should_Support_List_As_Parameter()
         {
             var names = new[] { "Mario", "Luigi", "Toad", "Bowser", "Peach", "Wario", "Waluigi" };
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
@@ -216,7 +216,7 @@ namespace Cassandra.IntegrationTests.Graph
             var field = "Physics";
             var citizenship = new[] { "Kingdom of Württemberg", "Switzerland", "Austria", "Germany", "United States" };
 
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
@@ -272,7 +272,7 @@ namespace Cassandra.IntegrationTests.Graph
         [Test]
         public void Should_Support_Dictionary_As_Parameter()
         {
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
@@ -295,7 +295,7 @@ namespace Cassandra.IntegrationTests.Graph
         [Test]
         public void Should_Support_Multiple_Named_Parameters()
         {
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
@@ -314,7 +314,7 @@ namespace Cassandra.IntegrationTests.Graph
         [Test]
         public void Should_Handle_Vertex_Id_As_Parameter()
         {
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
@@ -343,7 +343,7 @@ namespace Cassandra.IntegrationTests.Graph
         [Test]
         public void Should_Handle_Edge_Id_As_Parameter()
         {
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
@@ -376,7 +376,7 @@ namespace Cassandra.IntegrationTests.Graph
                                      "[\"outE\",\"hasLabel\",\"created\"],[\"as\",\"e\",\"f\",\"g\"],[\"inV\"],[\"as\", \"h\"],[\"path\"]]}}")]
         public void Should_Retrieve_Path_With_Labels(string graphsonLanguage, string graphQuery)
         {
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName).SetLanguage(graphsonLanguage))
                 .Build())
@@ -458,7 +458,7 @@ namespace Cassandra.IntegrationTests.Graph
         [Test]
         public void Should_Return_Zero_Results()
         {
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
@@ -476,7 +476,7 @@ namespace Cassandra.IntegrationTests.Graph
         {
             const int timeout = 2000;
             const int timeoutThreshold = timeout / 10; //10%
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName).SetReadTimeoutMillis(timeout))
                 .Build())
@@ -500,7 +500,7 @@ namespace Cassandra.IntegrationTests.Graph
         public void Should_Have_The_Different_ReadTimeout_Per_Statement()
         {
             const int timeout = 2000;
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName).SetReadTimeoutMillis(timeout))
                 .Build())
@@ -532,7 +532,7 @@ namespace Cassandra.IntegrationTests.Graph
             const int timeoutThreshold = timeout / 10; //10%
             const long stmtSleep = 10000L;
             const long stmtSleepThreashold = stmtSleep / 10; //10%
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName).SetReadTimeoutMillis(timeout))
                 .Build())
@@ -557,7 +557,7 @@ namespace Cassandra.IntegrationTests.Graph
         [Test]
         public void Should_Get_Path_With_Labels()
         {
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
@@ -612,7 +612,7 @@ namespace Cassandra.IntegrationTests.Graph
                                                      string expectedString, bool verifyToString = true)
         {
             IVertex vertex;
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                 .AddContactPoint(TestClusterManager.InitialContactPoint)
                 .WithGraphOptions(new GraphOptions().SetName(GraphName))
                 .Build())
@@ -781,7 +781,7 @@ namespace Cassandra.IntegrationTests.Graph
                 new Duration(1, 0, 0),
                 new Duration(-1, 0, 0)
             };
-            using (var cluster = DseCluster.Builder()
+            using (var cluster = Cluster.Builder()
                                            .AddContactPoint(TestClusterManager.InitialContactPoint)
                                            .WithGraphOptions(new GraphOptions().SetName(GraphName))
                                            .Build())

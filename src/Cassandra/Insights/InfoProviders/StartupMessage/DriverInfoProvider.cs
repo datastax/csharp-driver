@@ -21,7 +21,7 @@ namespace Cassandra.Insights.InfoProviders.StartupMessage
 {
     internal class DriverInfoProvider : IInsightsInfoProvider<DriverInfo>
     {
-        public DriverInfo GetInformation(IInternalDseCluster cluster, IInternalDseSession dseSession)
+        public DriverInfo GetInformation(IInternalCluster cluster, IInternalSession session)
         {
             return new DriverInfo
             {

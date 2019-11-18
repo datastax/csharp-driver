@@ -21,7 +21,7 @@ namespace Cassandra.Insights
 {
     internal interface IInsightsSupportVerifier
     {
-        bool SupportsInsights(IInternalDseCluster cluster);
+        bool SupportsInsights(IInternalCluster cluster);
 
         bool DseVersionSupportsInsights(Version dseVersion);
     }

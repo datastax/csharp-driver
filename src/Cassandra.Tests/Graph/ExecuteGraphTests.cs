@@ -14,36 +14,37 @@
 //   limitations under the License.
 //
 
-
 using Cassandra.Metrics.Internal;
+using Cassandra.Serialization;
+
 #if !NO_MOCKS
+
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Numerics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra;
+
 using Cassandra.ExecutionProfiles;
 using Cassandra.Graph;
 using Cassandra.SessionManagement;
+
 using Moq;
+
 using NUnit.Framework;
 
 namespace Cassandra.Tests.Graph
 {
     public class ExecuteGraphTests : BaseUnitTest
     {
-        private static DseSession NewInstance(IInternalSession coreSession)
+        private static Session NewInstance(IInternalSession coreSession)
         {
-            //Cassandra Configuration does not have a public constructor
-            //Create a dummy Cluster instance
-            using (var cluster = DseCluster.Builder().AddContactPoint("127.0.0.1").Build())
+            using (var cluster = Cluster.Builder().AddContactPoint("127.0.0.1").Build())
             {
-                return new DseSession(coreSession, cluster);   
+                return new Session(cluster, new TestConfigurationBuilder().Build(), null, Serializer.Default, Configuration.DefaultSessionName);
             }
         }
 
@@ -149,7 +150,7 @@ namespace Cassandra.Tests.Graph
             rowMock1.Setup(r => r.GetValue<string>(It.Is<string>(n => n == "gremlin"))).Returns("{\"result\": 100}");
             var rowMock2 = new Mock<Row>();
             rowMock2.Setup(r => r.GetValue<string>(It.Is<string>(n => n == "gremlin"))).Returns("{\"result\": 101}");
-            IEnumerable<Row> rows = new []
+            IEnumerable<Row> rows = new[]
             {
                 rowMock1.Object,
                 rowMock2.Object
@@ -165,14 +166,14 @@ namespace Cassandra.Tests.Graph
             coreSessionMock.Setup(s => s.ExecuteAsync(It.IsAny<IStatement>(), It.IsAny<IRequestOptions>()))
                 .Returns(TaskOf(rsMock.Object))
                 .Verifiable();
-            coreSessionMock.Setup(s => s.Cluster).Returns((ICluster) null);
+            coreSessionMock.Setup(s => s.Cluster).Returns((ICluster)null);
             var session = NewInstance(coreSessionMock.Object);
             var rsGraph = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
             coreSessionMock.Verify();
             Assert.NotNull(rsGraph);
             var resultArray = rsGraph.ToArray();
             Assert.AreEqual(2, resultArray.Length);
-            CollectionAssert.AreEqual(new[] {100, 101}, resultArray.Select(g => g.ToInt32()));
+            CollectionAssert.AreEqual(new[] { 100, 101 }, resultArray.Select(g => g.ToInt32()));
         }
 
         [Test]
@@ -194,7 +195,7 @@ namespace Cassandra.Tests.Graph
         {
             SimpleStatement coreStatement = null;
             var coreSessionMock = GetCoreSessionMock(
-                stmt => coreStatement = stmt, 
+                stmt => coreStatement = stmt,
                 new GraphOptions()
                     .SetName("name1")
                     .SetSource("My source!")
@@ -308,8 +309,8 @@ namespace Cassandra.Tests.Graph
                         var rowMock = new Mock<Row>();
                         rowMock
                             .Setup(r => r.GetValue<IDictionary<string, string>>(It.Is<string>(c => c == "result")))
-                            .Returns(new Dictionary<string, string> { {"location", "1.2.3.4:8888"} });
-                        var rows = new []
+                            .Returns(new Dictionary<string, string> { { "location", "1.2.3.4:8888" } });
+                        var rows = new[]
                         {
                             rowMock.Object
                         };
@@ -346,7 +347,7 @@ namespace Cassandra.Tests.Graph
             Assert.NotNull(targettedStatement);
             Assert.Null(targettedStatement.PreferredHost);
         }
-        
+
         [Test]
         public void Should_Identity_Timeout_Infinite_ReadTimeout()
         {
@@ -371,7 +372,7 @@ namespace Cassandra.Tests.Graph
             var session = NewInstance(coreSessionMock.Object);
             var graphStatement = new SimpleGraphStatement("g.V()").SetGraphLanguage(GraphOptions.DefaultLanguage);
             var result = await session.ExecuteGraphAsync(graphStatement);
-            Assert.That(result.To<int>(), Is.EquivalentTo(new [] { 1, 2, 2, 3, 3, 3, 4 }));
+            Assert.That(result.To<int>(), Is.EquivalentTo(new[] { 1, 2, 2, 3, 3, 3, 4 }));
         }
 
         [Test]
@@ -385,7 +386,7 @@ namespace Cassandra.Tests.Graph
             var session = NewInstance(coreSessionMock.Object);
             var graphStatement = new SimpleGraphStatement("g.V()").SetGraphLanguage(GraphOptions.GraphSON2Language);
             var result = await session.ExecuteGraphAsync(graphStatement);
-            Assert.That(result.To<int>(), Is.EquivalentTo(new [] { 1, 2, 2, 3, 3, 3, 10 }));
+            Assert.That(result.To<int>(), Is.EquivalentTo(new[] { 1, 2, 2, 3, 3, 3, 10 }));
         }
 
         private static byte[] ToBuffer(long value)
@@ -412,7 +413,7 @@ namespace Cassandra.Tests.Graph
 
         private static RowSet GetRowSet(params string[] gremlin)
         {
-            var rows = gremlin.Select(g => new[] {new KeyValuePair<string, object>("gremlin", g)}).ToArray();
+            var rows = gremlin.Select(g => new[] { new KeyValuePair<string, object>("gremlin", g) }).ToArray();
             return TestHelper.CreateRowSet(rows);
         }
 
@@ -427,4 +428,5 @@ namespace Cassandra.Tests.Graph
         }
     }
 }
+
 #endif

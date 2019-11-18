@@ -135,11 +135,14 @@ namespace Cassandra.Tests.Insights
         [Test]
         public void Should_ReturnCompletedTask_When_InitIsCalledAndInsightsMonitoringEnabledIsFalse()
         {
-            var cluster = Mock.Of<IInternalDseCluster>();
-            var session = Mock.Of<IInternalDseSession>();
-            var dseConfig = new DseConfiguration(new Configuration(), new GraphOptions());
-            dseConfig.MonitorReportingOptions.SetMonitorReportingEnabled(false);
-            Mock.Get(cluster).SetupGet(c => c.Configuration).Returns(dseConfig);
+            var cluster = Mock.Of<IInternalCluster>();
+            var session = Mock.Of<IInternalSession>();
+            var config = new TestConfigurationBuilder
+            {
+                GraphOptions = new GraphOptions()
+            }.Build();
+            config.MonitorReportingOptions.SetMonitorReportingEnabled(false);
+            Mock.Get(cluster).SetupGet(c => c.Configuration).Returns(config);
 
             var insightsClient = new InsightsClient(
                 cluster, session, Mock.Of<IInsightsMessageFactory<InsightsStartupData>>(), Mock.Of<IInsightsMessageFactory<InsightsStatusData>>());
@@ -153,11 +156,14 @@ namespace Cassandra.Tests.Insights
         [TestCase(false)]
         public void Should_ReturnCompletedTask_When_InitIsNotCalled(bool enabled)
         {
-            var cluster = Mock.Of<IInternalDseCluster>();
-            var session = Mock.Of<IInternalDseSession>();
-            var dseConfig = new DseConfiguration(new Configuration(), new GraphOptions());
-            dseConfig.MonitorReportingOptions.SetMonitorReportingEnabled(enabled);
-            Mock.Get(cluster).SetupGet(c => c.Configuration).Returns(dseConfig);
+            var cluster = Mock.Of<IInternalCluster>();
+            var session = Mock.Of<IInternalSession>();
+            var config = new TestConfigurationBuilder
+            {
+                GraphOptions = new GraphOptions()
+            }.Build();
+            config.MonitorReportingOptions.SetMonitorReportingEnabled(enabled);
+            Mock.Get(cluster).SetupGet(c => c.Configuration).Returns(config);
 
             var insightsClient = new InsightsClient(
                 cluster, session, Mock.Of<IInsightsMessageFactory<InsightsStartupData>>(), Mock.Of<IInsightsMessageFactory<InsightsStatusData>>());
@@ -423,7 +429,7 @@ namespace Cassandra.Tests.Insights
             }
         }
 
-        private static InsightsClient GetInsightsClient(IInternalDseCluster cluster, IInternalDseSession session)
+        private static InsightsClient GetInsightsClient(IInternalCluster cluster, IInternalSession session)
         {
             var hostnameInfoMock = Mock.Of<IInsightsInfoProvider<string>>();
             var driverInfoMock = Mock.Of<IInsightsInfoProvider<DriverInfo>>();
@@ -487,9 +493,9 @@ namespace Cassandra.Tests.Insights
             return target;
         }
 
-        private IInternalDseSession GetSession(IInternalDseCluster cluster)
+        private IInternalSession GetSession(IInternalCluster cluster)
         {
-            var session = Mock.Of<IInternalDseSession>();
+            var session = Mock.Of<IInternalSession>();
             var mockPool1 = Mock.Of<IHostConnectionPool>();
             var mockPool2 = Mock.Of<IHostConnectionPool>();
             Mock.Get(mockPool1).SetupGet(m => m.InFlight).Returns(1);
@@ -511,11 +517,11 @@ namespace Cassandra.Tests.Insights
             return session;
         }
 
-        private IInternalDseCluster GetCluster(bool withProfiles, int eventDelayMilliseconds = 5)
+        private IInternalCluster GetCluster(bool withProfiles, int eventDelayMilliseconds = 5)
         {
-            var cluster = Mock.Of<IInternalDseCluster>();
+            var cluster = Mock.Of<IInternalCluster>();
             var config = GetConfig(eventDelayMilliseconds, withProfiles);
-            var metadata = new Metadata(config.CassandraConfiguration)
+            var metadata = new Metadata(config)
             {
                 ControlConnection = Mock.Of<IControlConnection>()
             };
@@ -537,74 +543,60 @@ namespace Cassandra.Tests.Insights
             return cluster;
         }
 
-        private DseConfiguration GetConfig(int eventDelayMilliseconds, bool withProfiles)
+        private Configuration GetConfig(int eventDelayMilliseconds, bool withProfiles)
         {
             var graphOptions = new GraphOptions().SetName("testGraphName").SetReadConsistencyLevel(ConsistencyLevel.All);
             var supportVerifier = Mock.Of<IInsightsSupportVerifier>();
-            Mock.Get(supportVerifier).Setup(m => m.SupportsInsights(It.IsAny<IInternalDseCluster>())).Returns(true);
-            return new DseConfiguration(
-                new Configuration(
-                    new Cassandra.Policies(
-                        new RoundRobinPolicy(),
-                        new ConstantReconnectionPolicy(150),
+            Mock.Get(supportVerifier).Setup(m => m.SupportsInsights(It.IsAny<IInternalCluster>())).Returns(true);
+            return new TestConfigurationBuilder
+            {
+                Policies = new Cassandra.Policies(
+                    new RoundRobinPolicy(),
+                    new ConstantReconnectionPolicy(150),
 #pragma warning disable 618
-                        DowngradingConsistencyRetryPolicy.Instance,
+                    DowngradingConsistencyRetryPolicy.Instance,
 #pragma warning restore 618
-                        new ConstantSpeculativeExecutionPolicy(1213, 10),
-                        null),
-                    new ProtocolOptions().SetCompression(CompressionType.Snappy),
-                    new PoolingOptions()
-                        .SetCoreConnectionsPerHost(HostDistance.Remote, 5)
-                        .SetCoreConnectionsPerHost(HostDistance.Local, 1)
-                        .SetHeartBeatInterval(10000),
-                    new SocketOptions().SetReadTimeoutMillis(1505),
-                    new ClientOptions(),
-                    new NoneAuthProvider(),
-                    new SimpleAuthInfoProvider(),
-                    new QueryOptions()
-                        .SetConsistencyLevel(ConsistencyLevel.All)
-                        .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial),
-                    new DefaultAddressTranslator(),
-                    new StartupOptionsFactory(),
-                    new SessionFactoryBuilder(),
-                    withProfiles 
-                        ? new Dictionary<string, IExecutionProfile>
-                        {
-                            {
-                                "profile2",
-                                new ExecutionProfileBuilder()
-                                    .WithReadTimeoutMillis(501)
-                                    .WithSpeculativeExecutionPolicy(new ConstantSpeculativeExecutionPolicy(230, 5))
-                                    .WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
-                                    .WithRetryPolicy(new IdempotenceAwareRetryPolicy(new DefaultRetryPolicy()))
-                                    .WithSerialConsistencyLevel(ConsistencyLevel.Serial)
-                                    .CastToClass()
-                                    .Build()
-                            },
-                            {
-                                "profile3",
-                                new ExecutionProfileBuilder()
-                                    .WithConsistencyLevel(ConsistencyLevel.EachQuorum)
-                                    .CastToClass()
-                                    .Build()
-                            }
-                        }
-                        : new Dictionary<string, IExecutionProfile>(),
-                    new RequestOptionsMapper(graphOptions),
-                    null,
-                    null,
-                    null,
-                    null,
+                    new ConstantSpeculativeExecutionPolicy(1213, 10),
                     null),
-                graphOptions,
-                Guid.Parse("BECFE098-E462-47E7-B6A7-A21CD316D4C0"),
-                "appv1",
-                "appname",
-                new MonitorReportingOptions().SetMonitorReportingEnabled(true).SetStatusEventDelayMilliseconds(eventDelayMilliseconds),
-                new IdentityAddressTranslator(),
-                supportVerifier,
-                DseConfiguration.DefaultDseSessionManagerFactory,
-                DseConfiguration.GetDefaultDseSessionFactoryBuilder(new SessionFactoryBuilder()));
+                ProtocolOptions = new ProtocolOptions().SetCompression(CompressionType.Snappy),
+                PoolingOptions =  new PoolingOptions()
+                                  .SetCoreConnectionsPerHost(HostDistance.Remote, 5)
+                                  .SetCoreConnectionsPerHost(HostDistance.Local, 1)
+                                  .SetHeartBeatInterval(10000),
+                SocketOptions = new SocketOptions().SetReadTimeoutMillis(1505),
+                QueryOptions = new QueryOptions()
+                               .SetConsistencyLevel(ConsistencyLevel.All)
+                               .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial),
+                ExecutionProfiles = withProfiles 
+                    ? new Dictionary<string, IExecutionProfile>
+                    {
+                        {
+                            "profile2",
+                            new ExecutionProfileBuilder()
+                                .WithReadTimeoutMillis(501)
+                                .WithSpeculativeExecutionPolicy(new ConstantSpeculativeExecutionPolicy(230, 5))
+                                .WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy()))
+                                .WithRetryPolicy(new IdempotenceAwareRetryPolicy(new DefaultRetryPolicy()))
+                                .WithSerialConsistencyLevel(ConsistencyLevel.Serial)
+                                .CastToClass()
+                                .Build()
+                        },
+                        {
+                            "profile3",
+                            new ExecutionProfileBuilder()
+                                .WithConsistencyLevel(ConsistencyLevel.EachQuorum)
+                                .CastToClass()
+                                .Build()
+                        }
+                    }
+                    : new Dictionary<string, IExecutionProfile>(),
+                GraphOptions = graphOptions,
+                ClusterId = Guid.Parse("BECFE098-E462-47E7-B6A7-A21CD316D4C0"),
+                ApplicationVersion = "appv1",
+                ApplicationName = "appname",
+                MonitorReportingOptions = new MonitorReportingOptions().SetMonitorReportingEnabled(true).SetStatusEventDelayMilliseconds(eventDelayMilliseconds),
+                InsightsSupportVerifier = supportVerifier
+            }.Build();
         }
     }
 
