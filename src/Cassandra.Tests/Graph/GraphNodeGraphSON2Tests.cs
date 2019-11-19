@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Numerics;
@@ -115,10 +116,10 @@ namespace Cassandra.Tests.Graph
         [TestCase("\"something\"", "something")]
         [TestCase("true", true)]
         [TestCase("false", false)]
-        [TestCase("{\"@type\": \"g:Int32\", \"@value\": 12356}", 12356)]
-        [TestCase("{\"@type\": \"g:Int64\", \"@value\": 456}", 456L)]
-        [TestCase("{\"@type\": \"g:Float\", \"@value\": 123.1}", 123.1f)]
-        [TestCase("{\"@type\": \"g:Double\", \"@value\": 456.12}", 456.12D)]
+        [TestCase("{\"@type\": \"g:Int32\", \"@value\": 12356}", "12356")]
+        [TestCase("{\"@type\": \"g:Int64\", \"@value\": 456}", "456")]
+        [TestCase("{\"@type\": \"g:Float\", \"@value\": 123.1}", "123.1")]
+        [TestCase("{\"@type\": \"g:Double\", \"@value\": 456.12}", "456.12")]
         public void ToString_Should_Return_The_String_Representation_Of_Scalars(string json, object value)
         {
             var node = GetGraphNode(json);
@@ -204,7 +205,7 @@ namespace Cassandra.Tests.Graph
         [TestCase("{\"@type\": \"gx:BigDecimal\", \"@value\": \"123.12\"}", "123.12")]
         public void To_Should_Parse_Decimal_Values(string json, string stringValue)
         {
-            TestToTypeParsing(json, stringValue, decimal.Parse);
+            TestToTypeParsing(json, stringValue, str => decimal.Parse(str, CultureInfo.InvariantCulture));
         }
 
         [TestCase("{\"@type\": \"g:UUID\", \"@value\": \"e86925f6-a066-4202-935b-a3e391223d91\"}", 

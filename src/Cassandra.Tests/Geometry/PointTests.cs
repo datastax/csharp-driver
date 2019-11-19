@@ -15,6 +15,7 @@
 //
 
 using System;
+using System.Globalization;
 using System.Linq;
 using Cassandra.Geometry;
 using Cassandra.Serialization.Geometry;
@@ -38,7 +39,7 @@ namespace Cassandra.Tests.Geometry
         {
             foreach (var point in Values)
             {
-                var expected = string.Format("{{\"type\":\"Point\",\"coordinates\":[{0},{1}]}}", point.X, point.Y);
+                var expected = string.Format("{{\"type\":\"Point\",\"coordinates\":[{0},{1}]}}", point.X.ToString(CultureInfo.InvariantCulture), point.Y.ToString(CultureInfo.InvariantCulture));
 #if NET452
                 // Default serialization to JSON is GeoJson
                 var json = JsonConvert.SerializeObject(point);

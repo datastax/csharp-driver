@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
@@ -280,11 +281,22 @@ namespace Cassandra.Serialization.Graph.GraphSON2
         /// </summary>
         public override string ToString()
         {
-            if (_token is JValue)
+            if (_token is JValue val)
             {
-                return _token.ToString();
+                return val.ToString(CultureInfo.InvariantCulture);
             }
-            return _token[ValueKey]?.ToString() ?? "";
+
+            var tokenValue = _token[GraphSON2Node.ValueKey];
+
+            switch (tokenValue)
+            {
+                case null:
+                    return string.Empty;
+                case JValue tokenValueVal:
+                    return tokenValueVal.ToString(CultureInfo.InvariantCulture);
+                default:
+                    return tokenValue.ToString();
+            }
         }
 
         public void WriteJson(JsonWriter writer, JsonSerializer serializer)

@@ -17,6 +17,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
@@ -116,7 +117,7 @@ namespace Cassandra.Geometry
             {
                 return "LINESTRING EMPTY";
             }
-            return string.Format("LINESTRING ({0})", string.Join(", ", Points.Select(p => p.X + " " + p.Y)));
+            return string.Format("LINESTRING ({0})", string.Join(", ", Points.Select(p => p.X.ToString(CultureInfo.InvariantCulture) + " " + p.Y.ToString(CultureInfo.InvariantCulture))));
         }
 
         /// <summary>
@@ -159,7 +160,7 @@ namespace Cassandra.Geometry
                 {
                     throw InvalidFormatException(textValue);
                 }
-                points[i] = new Point(Convert.ToDouble(xyText[0]), Convert.ToDouble(xyText[1]));
+                points[i] = new Point(Convert.ToDouble(xyText[0], CultureInfo.InvariantCulture), Convert.ToDouble(xyText[1], CultureInfo.InvariantCulture));
             }
             return points;
         }
