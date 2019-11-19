@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
@@ -290,6 +291,11 @@ namespace Dse.Serialization.Graph.GraphSON1
         /// </summary>
         public override string ToString()
         {
+            if (_token is JValue val)
+            {
+                return val.ToString(CultureInfo.InvariantCulture);
+            }
+
             return _token.ToString();
         }
 

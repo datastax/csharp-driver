@@ -6,6 +6,7 @@
 //
 
 using System;
+using System.Globalization;
 using System.Linq;
 using Dse.Geometry;
 using Dse.Serialization.Geometry;
@@ -30,7 +31,7 @@ namespace Dse.Test.Unit.Geometry
             foreach (var line in Values)
             {
                 var expected = string.Format("{{\"type\":\"LineString\",\"coordinates\":[{0}]}}",
-                    string.Join(",", line.Points.Select(p => "[" + p.X + "," + p.Y + "]")));
+                    string.Join(",", line.Points.Select(p => "[" + p.X.ToString(CultureInfo.InvariantCulture) + "," + p.Y.ToString(CultureInfo.InvariantCulture) + "]")));
 #if NET452
                 // Default serialization to JSON is GeoJson
                 var json = JsonConvert.SerializeObject(line);

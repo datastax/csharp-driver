@@ -7,6 +7,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
@@ -91,7 +92,7 @@ namespace Dse.Geometry
         /// </summary>
         public override string ToString()
         {
-            return string.Format("POINT ({0} {1})", X, Y);
+            return string.Format("POINT ({0} {1})", X.ToString(CultureInfo.InvariantCulture), Y.ToString(CultureInfo.InvariantCulture));
         }
 
         /// <summary>
@@ -110,7 +111,7 @@ namespace Dse.Geometry
             {
                 throw InvalidFormatException(textValue);
             }
-            return new Point(Convert.ToDouble(match.Groups[1].Value), Convert.ToDouble(match.Groups[2].Value));
+            return new Point(Convert.ToDouble(match.Groups[1].Value, CultureInfo.InvariantCulture), Convert.ToDouble(match.Groups[2].Value, CultureInfo.InvariantCulture));
         }
     }
 }
