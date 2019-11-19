@@ -57,25 +57,11 @@ namespace Cassandra.Tests
                     It.IsAny<IRequestObserver>()))
                 .Returns(Mock.Of<IRequestExecution>());
 
-            return new Configuration(new Cassandra.Policies(lbp, null, null),
-                new ProtocolOptions(),
-                null,
-                new SocketOptions(),
-                new ClientOptions(),
-                NoneAuthProvider.Instance,
-                null,
-                new QueryOptions(),
-                new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>(),
-                new SessionFactoryBuilder(),
-                new Dictionary<string, IExecutionProfile>(),
-                new RequestOptionsMapper(),
-                null,
-                null,
-                null,
-                null,
-                null,
-                requestExecutionFactory: requestExecutionFactory);
+            return new TestConfigurationBuilder
+            {
+                Policies = new Cassandra.Policies(lbp, null, null),
+                RequestExecutionFactory = requestExecutionFactory
+            }.Build();
         }
 
         [Test]

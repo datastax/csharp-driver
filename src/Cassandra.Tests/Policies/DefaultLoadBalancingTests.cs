@@ -23,7 +23,7 @@ using NUnit.Framework;
 
 namespace Cassandra.Tests.Policies
 {
-    public class DseLoadBalancingTests : BaseUnitTest
+    public class DefaultLoadBalancingTests : BaseUnitTest
     {
         [Test]
         public void Should_Yield_Preferred_Host_First()

@@ -57,6 +57,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                 QueryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalSerial),
                 SocketOptions = new SocketOptions().SetReadTimeoutMillis(60000)
             }.Build();
+            Mock.Get(clusterMock).Setup(c => c.Configuration).Returns(config);
             Mock.Get(requestHandlerMock).Setup(r => r.SendAsync()).Returns(Task.FromResult(new RowSet()));
 
             var session = new Session(clusterMock, config, null, serializer, null);
@@ -102,6 +103,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                 QueryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalSerial),
                 SocketOptions = new SocketOptions().SetReadTimeoutMillis(60000)
             }.Build();
+            Mock.Get(clusterMock).Setup(c => c.Configuration).Returns(config);
             Mock.Get(requestHandlerMock).Setup(r => r.SendAsync()).Returns(Task.FromResult(new RowSet()));
 
             var session = new Session(clusterMock, config, null, serializer, null);

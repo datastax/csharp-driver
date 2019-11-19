@@ -31,7 +31,7 @@ namespace Cassandra.Tests.Insights
         [Test]
         public void Should_ReturnFalse_When_OneNode_6_0_4_AndOneNode_6_0_5()
         {
-            var cluster = Mock.Of<IInternalDseCluster>();
+            var cluster = Mock.Of<IInternalCluster>();
             Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(GetHosts("6.0.4", "6.0.5"));
 
             var target = new InsightsSupportVerifier();
@@ -42,7 +42,7 @@ namespace Cassandra.Tests.Insights
         [Test]
         public void Should_ReturnFalse_When_OneNode_6_0_5_AndOneNode_6_0_4()
         {
-            var cluster = Mock.Of<IInternalDseCluster>();
+            var cluster = Mock.Of<IInternalCluster>();
             Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(GetHosts("6.0.5", "6.0.4"));
 
             var target = new InsightsSupportVerifier();
@@ -53,7 +53,7 @@ namespace Cassandra.Tests.Insights
         [Test]
         public void Should_ReturnTrue_When_OneNode_6_1_0_AndOneNode_6_0_5()
         {
-            var cluster = Mock.Of<IInternalDseCluster>();
+            var cluster = Mock.Of<IInternalCluster>();
             Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(GetHosts("6.1.0", "6.0.5"));
 
             var target = new InsightsSupportVerifier();
@@ -64,7 +64,7 @@ namespace Cassandra.Tests.Insights
         [Test]
         public void Should_ReturnTrue_When_TwoNodes_6_0_5()
         {
-            var cluster = Mock.Of<IInternalDseCluster>();
+            var cluster = Mock.Of<IInternalCluster>();
             Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(GetHosts("6.0.5", "6.0.5"));
 
             var target = new InsightsSupportVerifier();
@@ -75,7 +75,7 @@ namespace Cassandra.Tests.Insights
         [Test]
         public void Should_ReturnFalse_When_TwoNodes_6_0_4()
         {
-            var cluster = Mock.Of<IInternalDseCluster>();
+            var cluster = Mock.Of<IInternalCluster>();
             Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(GetHosts("6.0.4", "6.0.4"));
 
             var target = new InsightsSupportVerifier();
@@ -86,7 +86,7 @@ namespace Cassandra.Tests.Insights
         [Test]
         public void Should_ReturnFalse_When_OneNode5_1_12()
         {
-            var cluster = Mock.Of<IInternalDseCluster>();
+            var cluster = Mock.Of<IInternalCluster>();
             Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(GetHosts("5.1.12"));
 
             var target = new InsightsSupportVerifier();
@@ -97,7 +97,7 @@ namespace Cassandra.Tests.Insights
         [Test]
         public void Should_ReturnTrue_When_OneNode5_1_13()
         {
-            var cluster = Mock.Of<IInternalDseCluster>();
+            var cluster = Mock.Of<IInternalCluster>();
             Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(GetHosts("5.1.13"));
 
             var target = new InsightsSupportVerifier();
@@ -108,7 +108,7 @@ namespace Cassandra.Tests.Insights
         [Test]
         public void Should_ReturnTrue_When_OneNode5_2_0()
         {
-            var cluster = Mock.Of<IInternalDseCluster>();
+            var cluster = Mock.Of<IInternalCluster>();
             Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(GetHosts("5.2.0"));
 
             var target = new InsightsSupportVerifier();
@@ -119,7 +119,7 @@ namespace Cassandra.Tests.Insights
         [Test]
         public void Should_ReturnTrue_When_OneNode6_0_5()
         {
-            var cluster = Mock.Of<IInternalDseCluster>();
+            var cluster = Mock.Of<IInternalCluster>();
             Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(GetHosts("6.0.5"));
 
             var target = new InsightsSupportVerifier();
@@ -130,7 +130,7 @@ namespace Cassandra.Tests.Insights
         [Test]
         public void Should_ReturnTrue_When_OneNode6_0_5_alpha()
         {
-            var cluster = Mock.Of<IInternalDseCluster>();
+            var cluster = Mock.Of<IInternalCluster>();
             Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(GetHosts("6.0.5-alpha"));
 
             var target = new InsightsSupportVerifier();
@@ -141,7 +141,7 @@ namespace Cassandra.Tests.Insights
         [Test]
         public void Should_ReturnFalse_When_OneNode6_0_4()
         {
-            var cluster = Mock.Of<IInternalDseCluster>();
+            var cluster = Mock.Of<IInternalCluster>();
             Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(GetHosts("6.0.4"));
 
             var target = new InsightsSupportVerifier();
@@ -152,7 +152,7 @@ namespace Cassandra.Tests.Insights
         [Test]
         public void Should_ReturnTrue_When_OneNode6_1_0()
         {
-            var cluster = Mock.Of<IInternalDseCluster>();
+            var cluster = Mock.Of<IInternalCluster>();
             Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(GetHosts("6.1.0"));
 
             var target = new InsightsSupportVerifier();
@@ -163,7 +163,7 @@ namespace Cassandra.Tests.Insights
         [Test]
         public void Should_ReturnFalse_When_OneNode5_0_99()
         {
-            var cluster = Mock.Of<IInternalDseCluster>();
+            var cluster = Mock.Of<IInternalCluster>();
             Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(GetHosts("5.0.99"));
 
             var target = new InsightsSupportVerifier();
@@ -174,7 +174,7 @@ namespace Cassandra.Tests.Insights
         [Test]
         public void Should_ReturnFalse_When_OneNode5_0_0()
         {
-            var cluster = Mock.Of<IInternalDseCluster>();
+            var cluster = Mock.Of<IInternalCluster>();
             Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(GetHosts("5.0.0"));
 
             var target = new InsightsSupportVerifier();
@@ -185,7 +185,7 @@ namespace Cassandra.Tests.Insights
         [Test]
         public void Should_ReturnFalse_When_OneNode4_8_0()
         {
-            var cluster = Mock.Of<IInternalDseCluster>();
+            var cluster = Mock.Of<IInternalCluster>();
             Mock.Get(cluster).Setup(c => c.AllHosts()).Returns(GetHosts("4.8.0"));
 
             var target = new InsightsSupportVerifier();

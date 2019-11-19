@@ -16,8 +16,10 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Net;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
+using Cassandra.Tests.Connections;
 using Moq;
 using NUnit.Framework;
 
@@ -38,10 +40,17 @@ namespace Cassandra.Tests
 
             var config = new TestConfigurationBuilder
             {
-                SessionFactory = sessionFactoryMock
+                Policies = new Cassandra.Policies(
+                    new RoundRobinPolicy(), 
+                    new ConstantReconnectionPolicy(100), 
+                    new DefaultRetryPolicy()),
+                SessionFactory = sessionFactoryMock,
+                ControlConnectionFactory = new FakeControlConnectionFactory(),
+                ConnectionFactory = new FakeConnectionFactory()
             }.Build();
 
             var initializer = Mock.Of<IInitializer>();
+            Mock.Get(initializer).Setup(i => i.ContactPoints).Returns(new IPEndPoint[0]);
             Mock.Get(initializer).Setup(i => i.GetConfiguration()).Returns(config);
             using (var cluster = Cluster.BuildFrom(initializer, new[] { "127.0.0.1" }, config))
             {

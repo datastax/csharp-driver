@@ -51,7 +51,11 @@ Example: `3.4.1`
 
 These releases only contain bug fixes so they will never contain changes to the driver's public API.
 
-## Moving from the DataStax Enterprise C# Driver
+## TBD - Driver unification
+
+This release introduced several additions to the public API of the driver. These new classes, methods and properties were merged to this driver from the DataStax Enterprise C# Driver as part of our initiative to unify both drivers.
+
+### Moving from the DataStax Enterprise C# Driver
 
 The default retry policy in `DseClusterBuilder` was `new IdempotencyAwareRetryPolicy(new DefaultRetryPolicy())`. With `Builder` the default is `new DefaultRetryPolicy()`.
 
@@ -60,6 +64,12 @@ The default retry policy in `DseClusterBuilder` was `new IdempotencyAwareRetryPo
 `DseClusterBuilder` has been removed. These builder methods were moved to `Builder`.
 
 `DseConfiguration` has been removed. These class properties were moved to `Configuration`.
+
+`IDseSession` has been removed. `ExecuteGraph` and `ExecuteGraphAsync` methods were moved to `ISession`.
+
+`IDseCluster` has been removed. Use `ICluster` instead.
+
+`DseClusterBuilder.WithCredentials` added an instance of `DsePlainTextAuthenticator` but `Builder.WithCredentials` adds an instance of `PlainTextAuthenticator`. If you wish to use `DsePlainTextAuthenticator` you need to use another builder method: `Builder.WithAuthProvider(new DsePlainTextAuthenticator(username, password))`.
 
 ## 3.10
 

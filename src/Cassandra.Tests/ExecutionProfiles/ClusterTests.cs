@@ -12,7 +12,7 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-//
+// 
 
 using System.Collections.Generic;
 using System.Linq;
@@ -30,32 +30,14 @@ namespace Cassandra.Tests.ExecutionProfiles
         [Test]
         public void Should_OnlyInitializePoliciesOnce_When_MultiplePoliciesAreProvidedWithExecutionProfiles()
         {
-            var lbps = Enumerable.Range(1, 4).Select(i => new FakeLoadBalancingPolicy()).ToArray();
-            var seps = Enumerable.Range(1, 4).Select(i => new FakeSpeculativeExecutionPolicy()).ToArray();
-            var profile1Builder = new ExecutionProfileBuilder();
-            profile1Builder.
-                WithSpeculativeExecutionPolicy(seps[1])
-                .WithLoadBalancingPolicy(lbps[1]);
-            var profile1 = profile1Builder.Build();
-
-            var profile2Builder = new ExecutionProfileBuilder();
-            profile2Builder.WithSpeculativeExecutionPolicy(seps[2]);
-            var profile2 = profile2Builder.Build();
-
-            var profile3Builder = new ExecutionProfileBuilder();
-            profile3Builder.WithLoadBalancingPolicy(lbps[2]);
-            var profile3 = profile3Builder.Build();
-
-            var profile4 = new ExecutionProfileBuilder().Build();
-
-            var profile5 = new ExecutionProfileBuilder().Build();
-
-            var defaultProfileBuilder = new ExecutionProfileBuilder();
-            defaultProfileBuilder
-                .WithLoadBalancingPolicy(lbps[3])
-                .WithSpeculativeExecutionPolicy(seps[3]);
-            var defaultProfile = defaultProfileBuilder.Build();
-
+            var lbps = Enumerable.Range(1, 5).Select(i => new FakeLoadBalancingPolicy()).ToArray();
+            var seps = Enumerable.Range(1, 5).Select(i => new FakeSpeculativeExecutionPolicy()).ToArray();
+            var profile1 =
+                new ExecutionProfileBuilder()
+                                .WithSpeculativeExecutionPolicy(seps[1])
+                                .WithLoadBalancingPolicy(lbps[1])
+                                .CastToClass()
+                                .Build();
             var testConfig = new TestConfigurationBuilder
             {
                 ControlConnectionFactory = new FakeControlConnectionFactory(),
@@ -69,11 +51,45 @@ namespace Cassandra.Tests.ExecutionProfiles
                 ExecutionProfiles = new Dictionary<string, IExecutionProfile>
                 {
                     { "profile1", profile1 },
-                    { "profile2", profile2 },
-                    { "profile3", profile3 },
-                    { "profile4", profile4 },
-                    { "profile5", new ExecutionProfile(profile1, profile5) },
-                    { "default", defaultProfile }
+                    {
+                        "profile2",
+                        new ExecutionProfileBuilder()
+                                        .WithSpeculativeExecutionPolicy(seps[2])
+                                        .CastToClass()
+                                        .Build()
+                    },
+                    {
+                        "profile3",
+                        new ExecutionProfileBuilder()
+                                        .WithLoadBalancingPolicy(lbps[2])
+                                        .CastToClass()
+                                        .Build()
+                    },
+                    {
+                        "profile4",
+                        new ExecutionProfileBuilder()
+                                        .Build()
+                    },
+                    {
+                        "profile5",
+                        new ExecutionProfile(profile1, new ExecutionProfileBuilder().Build())
+                    },
+                    { 
+                        "graphProfile1",
+                        new ExecutionProfileBuilder()
+                            .WithLoadBalancingPolicy(lbps[4])
+                            .WithSpeculativeExecutionPolicy(seps[4])
+                            .CastToClass()
+                            .Build()
+                    },
+                    {
+                        "default",
+                        new ExecutionProfileBuilder()
+                            .WithLoadBalancingPolicy(lbps[3])
+                            .WithSpeculativeExecutionPolicy(seps[3])
+                            .CastToClass()
+                            .Build()
+                    }
                 }
             }.Build();
             var initializerMock = Mock.Of<IInitializer>();
@@ -83,9 +99,9 @@ namespace Cassandra.Tests.ExecutionProfiles
             Mock.Get(initializerMock)
                 .Setup(i => i.GetConfiguration())
                 .Returns(testConfig);
-
-            var cluster = Cluster.BuildFrom(initializerMock, new List<string>());
-            cluster.Connect();
+            
+            var dseCluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
+            dseCluster.Connect();
             
             Assert.IsTrue(lbps.All(lbp => lbp.InitializeCount == 1));
             Assert.IsTrue(seps.All(sep => sep.InitializeCount == 1));
@@ -114,9 +130,9 @@ namespace Cassandra.Tests.ExecutionProfiles
             Mock.Get(initializerMock)
                 .Setup(i => i.GetConfiguration())
                 .Returns(testConfig);
-
-            var cluster = Cluster.BuildFrom(initializerMock, new List<string>());
-            cluster.Connect();
+            
+            var dseCluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
+            dseCluster.Connect();
 
             Assert.AreEqual(1, lbp.InitializeCount);
             Assert.AreEqual(1, sep.InitializeCount);
@@ -126,22 +142,13 @@ namespace Cassandra.Tests.ExecutionProfiles
         public void Should_OnlyDisposePoliciesOnce_When_MultiplePoliciesAreProvidedWithExecutionProfiles()
         {
             var lbps = Enumerable.Range(1, 2).Select(i => new FakeLoadBalancingPolicy()).ToArray();
-            var seps = Enumerable.Range(1, 3).Select(i => new FakeSpeculativeExecutionPolicy()).ToArray();
-            var profile1Builder = new ExecutionProfileBuilder();
-            profile1Builder
-                .WithSpeculativeExecutionPolicy(seps[1])
-                .WithLoadBalancingPolicy(lbps[1]);
-            var profile1 = profile1Builder.Build();
-            
-            var profile2Builder = new ExecutionProfileBuilder();
-            profile2Builder.WithSpeculativeExecutionPolicy(seps[1]);
-            var profile2 = profile2Builder.Build();
-
-            var defaultProfileBuilder = new ExecutionProfileBuilder();
-            defaultProfileBuilder
-                .WithSpeculativeExecutionPolicy(seps[2]);
-            var defaultProfile = defaultProfileBuilder.Build();
-
+            var seps = Enumerable.Range(1, 4).Select(i => new FakeSpeculativeExecutionPolicy()).ToArray();
+            var profile1 =
+                new ExecutionProfileBuilder()
+                                .WithSpeculativeExecutionPolicy(seps[1])
+                                .WithLoadBalancingPolicy(lbps[1])
+                                .CastToClass()
+                                .Build();
             var testConfig = new TestConfigurationBuilder
             {
                 ControlConnectionFactory = new FakeControlConnectionFactory(),
@@ -155,13 +162,35 @@ namespace Cassandra.Tests.ExecutionProfiles
                 ExecutionProfiles = new Dictionary<string, IExecutionProfile>
                 {
                     { "profile1", profile1 },
-                    { "profile2", profile2 },
-                    { "profile4", new ExecutionProfileBuilder().Build() },
+                    {
+                        "profile2",
+                        new ExecutionProfileBuilder()
+                                        .WithSpeculativeExecutionPolicy(seps[1])
+                                        .CastToClass()
+                                        .Build()
+                    },
+                    {
+                        "profile4",
+                        new ExecutionProfileBuilder()
+                                        .Build()
+                    },
                     {
                         "profile5",
                         new ExecutionProfile(profile1, new ExecutionProfileBuilder().Build())
                     },
-                    { "default", defaultProfile }
+                    { 
+                        "graphProfile1", 
+                        new ExecutionProfileBuilder()
+                            .WithSpeculativeExecutionPolicy(seps[3])
+                            .CastToClass()
+                            .Build() },
+                    {
+                        "default",
+                        new ExecutionProfileBuilder()
+                            .WithSpeculativeExecutionPolicy(seps[2])
+                            .CastToClass()
+                            .Build()
+                    }
                 }
             }.Build();
             var initializerMock = Mock.Of<IInitializer>();
@@ -171,10 +200,10 @@ namespace Cassandra.Tests.ExecutionProfiles
             Mock.Get(initializerMock)
                 .Setup(i => i.GetConfiguration())
                 .Returns(testConfig);
-
-            var cluster = Cluster.BuildFrom(initializerMock, new List<string>());
-            cluster.Connect();
-            cluster.Dispose();
+            
+            var dseCluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
+            dseCluster.Connect();
+            dseCluster.Dispose();
 
             Assert.IsTrue(seps.All(sep => sep.DisposeCount == 1));
         }
@@ -202,10 +231,10 @@ namespace Cassandra.Tests.ExecutionProfiles
             Mock.Get(initializerMock)
                 .Setup(i => i.GetConfiguration())
                 .Returns(testConfig);
-
-            var cluster = Cluster.BuildFrom(initializerMock, new List<string>());
-            cluster.Connect();
-            cluster.Dispose();
+            
+            var dseCluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
+            dseCluster.Connect();
+            dseCluster.Dispose();
 
             Assert.AreEqual(1, sep.DisposeCount);
         }

@@ -103,23 +103,12 @@ namespace Cassandra.Tests
                 .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 1500)
                 .SetMaxConnectionsPerHost(HostDistance.Local, maxConnections);
             var policies = new Cassandra.Policies(null, rp, null, null, null);
-            var config = new Configuration(
-                policies,
-                new ProtocolOptions(),
-                pooling,
-                new SocketOptions(),
-                new ClientOptions(),
-                NoneAuthProvider.Instance,
-                null,
-                new QueryOptions(),
-                new DefaultAddressTranslator(),
-                new SessionFactory(),
-                new Dictionary<string, IExecutionProfile>(),
-                null,
-                null,
-                null,
-                null,
-                null);
+            var config = new TestConfigurationBuilder
+            {
+                Policies = policies,
+                PoolingOptions = pooling
+            }.Build();
+
             return config;
         }
 

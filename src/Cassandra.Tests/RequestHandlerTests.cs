@@ -40,24 +40,12 @@ namespace Cassandra.Tests
 
         private static Configuration GetConfig(QueryOptions queryOptions = null, Cassandra.Policies policies = null, PoolingOptions poolingOptions = null)
         {
-            return new Configuration(policies ?? new Cassandra.Policies(),
-                new ProtocolOptions(),
-                poolingOptions,
-                new SocketOptions(),
-                new ClientOptions(),
-                NoneAuthProvider.Instance,
-                null,
-                queryOptions ?? DefaultQueryOptions,
-                new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>(),
-                new SessionFactoryBuilder(),
-                new Dictionary<string, IExecutionProfile>(),
-                new RequestOptionsMapper(),
-                null,
-                null,
-                null,
-                null,
-                null);
+            return new TestConfigurationBuilder
+            {
+                Policies = policies ?? new Cassandra.Policies(),
+                PoolingOptions = poolingOptions,
+                QueryOptions = queryOptions ?? DefaultQueryOptions
+            }.Build();
         }
 
         private static IRequestOptions GetRequestOptions(QueryOptions queryOptions = null, Cassandra.Policies policies = null)

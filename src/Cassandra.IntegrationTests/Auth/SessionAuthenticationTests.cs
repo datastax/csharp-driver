@@ -30,7 +30,7 @@ namespace Cassandra.IntegrationTests.Auth
     /// Test Cassandra Authentication.
     /// </summary>
     [TestFixture, Category("short")]
-    public class DseSessionAuthenticationTests : TestGlobals
+    public class SessionAuthenticationTests : TestGlobals
     {
         // Test cluster objects to be shared by tests in this class only
         private Lazy<ITestCluster> _testClusterForAuthTesting;
