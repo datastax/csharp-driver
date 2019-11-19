@@ -25,6 +25,7 @@ using Cassandra.Metrics.Providers.Null;
 using Cassandra.Observers;
 using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
+using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 
 namespace Cassandra.Tests
@@ -97,6 +98,8 @@ namespace Cassandra.Tests
             new InsightsClientFactory(
                 Configuration.DefaultInsightsStartupMessageFactory, Configuration.DefaultInsightsStatusMessageFactory);
 
+        public TypeSerializerDefinitions TypeSerializerDefinitions { get; set; } = new TypeSerializerDefinitions();
+
         public Configuration Build()
         {
             return new Configuration(
@@ -120,6 +123,7 @@ namespace Cassandra.Tests
                 ApplicationVersion,
                 ApplicationName,
                 MonitorReportingOptions,
+                TypeSerializerDefinitions,
                 SessionFactory,
                 RequestOptionsMapper,
                 StartupOptionsFactory,

@@ -70,12 +70,7 @@ namespace Cassandra.SessionManagement
         new string Keyspace { get; set; }
 
         IInternalCluster InternalCluster { get; }
-
-        /// <summary>
-        /// Executes a query asynchronously with the provided request options.
-        /// </summary>
-        Task<RowSet> ExecuteAsync(IStatement statement, IRequestOptions requestOptions);
-
+        
         /// <summary>
         /// Fetches the request options that were mapped from the provided execution profile's name.
         /// </summary>

@@ -267,6 +267,7 @@ namespace Cassandra
                  null,
                  null,
                  null,
+                 null,
                  null)
         {
         }
@@ -295,6 +296,7 @@ namespace Cassandra
                                string appVersion,
                                string appName,
                                MonitorReportingOptions monitorReportingOptions,
+                               TypeSerializerDefinitions typeSerializerDefinitions,
                                ISessionFactory sessionFactory = null,
                                IRequestOptionsMapper requestOptionsMapper = null,
                                IStartupOptionsFactory startupOptionsFactory = null,
@@ -335,6 +337,7 @@ namespace Cassandra
             MetricsProvider = driverMetricsProvider ?? new NullDriverMetricsProvider();
             SessionName = sessionName;
             MetricsEnabled = driverMetricsProvider != null;
+            TypeSerializers = typeSerializerDefinitions?.Definitions;
             
             ObserverFactoryBuilder = observerFactoryBuilder ?? (MetricsEnabled ? (IObserverFactoryBuilder)new MetricsObserverFactoryBuilder() : new NullObserverFactoryBuilder());
             RequestHandlerFactory = requestHandlerFactory ?? new RequestHandlerFactory();

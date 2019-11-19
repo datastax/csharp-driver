@@ -76,7 +76,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 if (e.Data == null) return;
                 Trace.TraceError(e.Data);
                 errorMessage = $"Simulacron start error: {e.Data}";
-                eventWaitHandler.Set();
             };
             _simulacronProcess.Start();
 

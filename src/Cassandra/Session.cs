@@ -327,11 +327,10 @@ namespace Cassandra
         /// <inheritdoc />
         public Task<RowSet> ExecuteAsync(IStatement statement, string executionProfileName)
         {
-            return InternalRef.ExecuteAsync(statement, InternalRef.GetRequestOptions(executionProfileName));
+            return ExecuteAsync(statement, InternalRef.GetRequestOptions(executionProfileName));
         }
 
-        /// <inheritdoc />
-        Task<RowSet> IInternalSession.ExecuteAsync(IStatement statement, IRequestOptions requestOptions)
+        private Task<RowSet> ExecuteAsync(IStatement statement, IRequestOptions requestOptions)
         {
             return Configuration.RequestHandlerFactory
                                 .Create(this, _serializer, statement, requestOptions)
@@ -530,7 +529,7 @@ namespace Cassandra
             var requestOptions = InternalRef.GetRequestOptions(executionProfileName);
             var stmt = graphStatement.ToIStatement(requestOptions.GraphOptions);
             await GetAnalyticsMaster(stmt, graphStatement, requestOptions).ConfigureAwait(false);
-            var rs = await InternalRef.ExecuteAsync(stmt, requestOptions).ConfigureAwait(false);
+            var rs = await ExecuteAsync(stmt, requestOptions).ConfigureAwait(false);
             return GraphResultSet.CreateNew(rs, graphStatement, requestOptions.GraphOptions);
         }
 
@@ -547,7 +546,7 @@ namespace Cassandra
             RowSet rs;
             try
             {
-                rs = await InternalRef.ExecuteAsync(
+                rs = await ExecuteAsync(
                     new SimpleStatement("CALL DseClientTool.getAnalyticsGraphServer()"), requestOptions).ConfigureAwait(false);
             }
             catch (Exception ex)

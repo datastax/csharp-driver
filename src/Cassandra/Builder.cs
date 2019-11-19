@@ -150,7 +150,7 @@ namespace Cassandra
         {
             get { return _addresses; }
         }
-
+        
         /// <summary>
         ///  The configuration that will be used for the new cluster. <p> You <b>should
         ///  not</b> modify this object directly as change made to the returned object may
@@ -167,14 +167,13 @@ namespace Cassandra
             }
             
             var typeSerializerDefinitions = _typeSerializerDefinitions ?? new TypeSerializerDefinitions();
-            typeSerializerDefinitions
-                .Define(new DateRangeSerializer())
-                .Define(new DurationSerializer(true))
-                .Define(new LineStringSerializer())
-                .Define(new PointSerializer())
-                .Define(new PolygonSerializer());
 
-            _typeSerializerDefinitions = typeSerializerDefinitions;
+            typeSerializerDefinitions
+                .DefineIfNotExists(new DateRangeSerializer())
+                .DefineIfNotExists(new DurationSerializer(true))
+                .DefineIfNotExists(new LineStringSerializer())
+                .DefineIfNotExists(new PointSerializer())
+                .DefineIfNotExists(new PolygonSerializer());
 
             var policies = new Policies(
                 _loadBalancingPolicy,
@@ -213,12 +212,8 @@ namespace Cassandra
                 ClusterId,
                 ApplicationVersion,
                 ApplicationName,
-                _monitorReportingOptions);
-
-            if (_typeSerializerDefinitions != null)
-            {
-                config.TypeSerializers = _typeSerializerDefinitions.Definitions;
-            }
+                _monitorReportingOptions,
+                typeSerializerDefinitions);
 
             return config;
         }
@@ -787,17 +782,14 @@ namespace Cassandra
         /// <returns>this instance</returns>
         public Builder WithTypeSerializers(TypeSerializerDefinitions definitions)
         {
-            if (definitions == null)
-            {
-                throw new ArgumentNullException("definitions");
-            }
             if (_typeSerializerDefinitions != null)
             {
                 const string message = "TypeSerializers definitions were already set." +
                     "Use a single TypeSerializerDefinitions instance and call Define() multiple times";
                 throw new InvalidOperationException(message);
             }
-            _typeSerializerDefinitions = definitions;
+
+            _typeSerializerDefinitions = definitions ?? throw new ArgumentNullException(nameof(definitions));
             return this;
         }
         
