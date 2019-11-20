@@ -20,7 +20,6 @@ using System.Linq;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests

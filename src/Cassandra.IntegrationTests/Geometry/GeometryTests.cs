@@ -19,7 +19,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Geometry

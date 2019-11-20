@@ -20,7 +20,6 @@ using System.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.Mapping.Structures;
 using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Attributes;
 using NUnit.Framework;

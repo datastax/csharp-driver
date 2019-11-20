@@ -19,7 +19,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Mapping;
 using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;

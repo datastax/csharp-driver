@@ -22,7 +22,6 @@ using Cassandra.Mapping;
 using Cassandra.Data.Linq;
 using System.Linq;
 using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Tests.Mapping.Pocos;
 using NUnit.Framework;
 

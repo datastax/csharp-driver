@@ -19,7 +19,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core

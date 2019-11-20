@@ -20,7 +20,6 @@ using System.Linq;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
-
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Auth

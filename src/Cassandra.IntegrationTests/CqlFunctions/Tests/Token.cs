@@ -20,7 +20,6 @@ using System.Linq;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.CqlFunctions.Structures;
 using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Mapping;
 using NUnit.Framework;
 #pragma warning disable 612

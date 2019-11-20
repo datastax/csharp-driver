@@ -18,7 +18,6 @@ using System;
 using System.Text;
 using Cassandra.Data;
 using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Data
