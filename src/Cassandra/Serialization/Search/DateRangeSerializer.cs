@@ -16,7 +16,7 @@
 
 using System;
 using System.Collections.Generic;
-using Cassandra.Search;
+using Cassandra.DataStax.Search;
 
 namespace Cassandra.Serialization.Search
 {

@@ -65,15 +65,15 @@ namespace Cassandra.Tests
 #endif
                 "Cassandra.Data",
                 "Cassandra.Data.Linq",
+                "Cassandra.DataStax.Graph",
+                "Cassandra.DataStax.Search",
                 "Cassandra.Geometry",
-                "Cassandra.Graph",
                 "Cassandra.Mapping",
                 "Cassandra.Mapping.Attributes",
                 "Cassandra.Mapping.TypeConversion",
                 "Cassandra.Mapping.Utils",
                 "Cassandra.Metrics",
                 "Cassandra.Metrics.Abstractions",
-                "Cassandra.Search",
                 "Cassandra.Serialization"
             }, set);
         }

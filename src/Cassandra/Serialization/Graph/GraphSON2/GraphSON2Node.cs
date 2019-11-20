@@ -21,7 +21,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
-using Cassandra.Graph;
+using Cassandra.DataStax.Graph;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 

@@ -23,9 +23,9 @@ using System.Threading.Tasks;
 
 using Cassandra.Collections;
 using Cassandra.Connections;
+using Cassandra.DataStax.Graph;
+using Cassandra.DataStax.Insights;
 using Cassandra.ExecutionProfiles;
-using Cassandra.Graph;
-using Cassandra.Insights;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Internal;
 using Cassandra.Observers.Abstractions;

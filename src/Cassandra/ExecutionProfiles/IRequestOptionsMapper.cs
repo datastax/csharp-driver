@@ -15,7 +15,7 @@
 //
 
 using System.Collections.Generic;
-using Cassandra.Graph;
+using Cassandra.DataStax.Graph;
 
 namespace Cassandra.ExecutionProfiles
 {

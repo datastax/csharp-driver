@@ -14,8 +14,8 @@
 //   limitations under the License.
 //
 
+using Cassandra.DataStax.Graph;
 using Cassandra.ExecutionProfiles;
-using Cassandra.Graph;
 using NUnit.Framework;
 
 namespace Cassandra.Tests.ExecutionProfiles

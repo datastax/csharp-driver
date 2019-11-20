@@ -18,7 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using Cassandra.Graph;
+using Cassandra.DataStax.Graph;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 

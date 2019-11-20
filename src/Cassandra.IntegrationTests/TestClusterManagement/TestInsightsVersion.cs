@@ -14,8 +14,7 @@
 //   limitations under the License.
 //
 
-using Cassandra.Insights;
-
+using Cassandra.DataStax.Insights;
 using NUnit.Framework;
 using NUnit.Framework.Interfaces;
 

@@ -18,7 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
-using Cassandra.Graph;
+using Cassandra.DataStax.Graph;
 using Cassandra.Metrics;
 
 namespace Cassandra

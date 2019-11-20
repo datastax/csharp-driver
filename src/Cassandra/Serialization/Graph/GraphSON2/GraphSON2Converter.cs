@@ -18,8 +18,8 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Numerics;
+using Cassandra.DataStax.Graph;
 using Cassandra.Geometry;
-using Cassandra.Graph;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 

@@ -18,7 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using Cassandra.Graph;
+using Cassandra.DataStax.Graph;
 using NUnit.Framework;
 
 namespace Cassandra.Tests

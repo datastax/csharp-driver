@@ -126,7 +126,7 @@ namespace Cassandra
 
         /// <summary>
         /// Gets the DSE version the server is running.
-        /// This property might be null on older server versions.
+        /// This property might be null when using Apache Cassandra or legacy DSE server versions.
         /// </summary>
         public Version DseVersion { get; private set; }
         

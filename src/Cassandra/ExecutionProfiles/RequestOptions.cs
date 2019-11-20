@@ -16,7 +16,7 @@
 
 using System;
 using System.Threading;
-using Cassandra.Graph;
+using Cassandra.DataStax.Graph;
 
 namespace Cassandra.ExecutionProfiles
 {

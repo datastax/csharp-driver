@@ -51,25 +51,36 @@ Example: `3.4.1`
 
 These releases only contain bug fixes so they will never contain changes to the driver's public API.
 
-## TBD - Driver unification
+## 3.13 - Driver unification
 
 This release introduced several additions to the public API of the driver. These new classes, methods and properties were merged to this driver from the DataStax Enterprise C# Driver as part of our initiative to unify both drivers.
 
 ### Moving from the DataStax Enterprise C# Driver
 
+#### Changes to default settings
+
 The default retry policy in `DseClusterBuilder` was `new IdempotencyAwareRetryPolicy(new DefaultRetryPolicy())`. With `Builder` the default is `new DefaultRetryPolicy()`.
 
-`DseLoadBalancingPolicy` is now `DefaultLoadBalancingPolicy`. `DseLoadBalancingPolicy.CreateDefault` is replaced by `Policies.DefaultLoadBalancingPolicy` and `Policies.NewDefaultLoadBalancingPolicy`.
+#### Removed classes and interfaces
 
-`DseClusterBuilder` has been removed. These builder methods were moved to `Builder`.
+`DseLoadBalancingPolicy` is now `DefaultLoadBalancingPolicy`. 
+
+`DseLoadBalancingPolicy.CreateDefault` has been replaced by `Policies.DefaultLoadBalancingPolicy` and `Policies.NewDefaultLoadBalancingPolicy`.
+
+`DseClusterBuilder` has been removed. These builder methods were moved to `Builder`. Note that `DseClusterBuilder.WithCredentials` added an instance of `DsePlainTextAuthenticator` but `Builder.WithCredentials` adds an instance of `PlainTextAuthenticator`. If you wish to use `DsePlainTextAuthenticator` you need to use another builder method: `Builder.WithAuthProvider(new DsePlainTextAuthenticator(username, password))`.
 
 `DseConfiguration` has been removed. These class properties were moved to `Configuration`.
 
-`IDseSession` has been removed. `ExecuteGraph` and `ExecuteGraphAsync` methods were moved to `ISession`.
+`IDseSession`/`DseSession` has been removed. `ExecuteGraph` and `ExecuteGraphAsync` methods were moved to `ISession`/`Session`.
 
-`IDseCluster` has been removed. Use `ICluster` instead.
+`IDseCluster`/`DseCluster` have been removed. Use `ICluster`/`Cluster` instead.
 
-`DseClusterBuilder.WithCredentials` added an instance of `DsePlainTextAuthenticator` but `Builder.WithCredentials` adds an instance of `PlainTextAuthenticator`. If you wish to use `DsePlainTextAuthenticator` you need to use another builder method: `Builder.WithAuthProvider(new DsePlainTextAuthenticator(username, password))`.
+The namespaces associated with Graph and Search were moved:
+
+|`Dse` namespace  | `Cassandra` namespace  |
+|--|--|
+|`Dse.Graph`|`Cassandra.DataStax.Graph`|
+|`Dse.Search`|`Cassandra.DataStax.Search`|
 
 ## 3.10
 
