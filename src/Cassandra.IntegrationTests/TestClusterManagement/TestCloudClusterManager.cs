@@ -16,6 +16,7 @@
 
 using System;
 using System.Diagnostics;
+using Cassandra.IntegrationTests.TestBase;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement
 {

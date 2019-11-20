@@ -20,7 +20,7 @@ using System.Linq;
 using System.Net;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.TestClusterManagement
+namespace Cassandra.IntegrationTests.TestBase
 {
     internal static class QueryTools
     {
@@ -35,7 +35,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             var ret = session.Execute(query, consistency);
             if (expectedValues != null)
             {
-                valueComparator(ret, expectedValues);
+                QueryTools.valueComparator(ret, expectedValues);
             }
         }
 

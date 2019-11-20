@@ -21,6 +21,7 @@ using System.Numerics;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using System.Reflection;
+using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core

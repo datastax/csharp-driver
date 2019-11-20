@@ -16,10 +16,10 @@
 
 using System;
 using System.Threading.Tasks;
-using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 
-namespace Cassandra.IntegrationTests.TestClusterManagement
+namespace Cassandra.IntegrationTests.TestBase
 {
     [TestFixture]
     public class TestGlobals
@@ -27,7 +27,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public const int DefaultCassandraPort = 9042;
         public const int DefaultMaxClusterCreateRetries = 2;
         public const string DefaultLocalIpPrefix = "127.0.0.";
-        public const string DefaultInitialContactPoint = DefaultLocalIpPrefix + "1";
+        public const string DefaultInitialContactPoint = TestGlobals.DefaultLocalIpPrefix + "1";
 
         /// <summary>
         /// Determines if we are running on AppVeyor.

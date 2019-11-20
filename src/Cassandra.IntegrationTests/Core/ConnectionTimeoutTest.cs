@@ -20,6 +20,7 @@ using System.Diagnostics;
 using System.Linq.Expressions;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using System.Threading.Tasks;
+using Cassandra.IntegrationTests.TestBase;
 
 namespace Cassandra.IntegrationTests.Core
 {

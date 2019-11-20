@@ -21,6 +21,7 @@ using System.IO;
 using System.Text;
 using System.Linq;
 using System.Threading;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Tests;
 using NUnit.Framework;

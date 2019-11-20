@@ -16,6 +16,7 @@
 
 using System;
 using System.Threading;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Newtonsoft.Json;

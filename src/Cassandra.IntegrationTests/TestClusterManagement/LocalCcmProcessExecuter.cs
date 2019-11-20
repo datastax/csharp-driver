@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using Cassandra.IntegrationTests.TestBase;
+
 namespace Cassandra.IntegrationTests.TestClusterManagement
 {
     public class LocalCcmProcessExecuter : CcmProcessExecuter

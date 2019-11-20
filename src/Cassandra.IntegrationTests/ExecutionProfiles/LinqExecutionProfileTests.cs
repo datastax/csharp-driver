@@ -21,6 +21,7 @@ using System.Threading.Tasks;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
 using Cassandra.IntegrationTests.Linq.Structures;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
