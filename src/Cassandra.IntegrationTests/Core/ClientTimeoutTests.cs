@@ -231,7 +231,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_Use_Statement_ReadTimeout()
         {
             const int generalReadTimeout = 100;
-            const int statementReadTimeout = 6000;
+            const int statementReadTimeout = 10000;
             _testCluster = SimulacronCluster.CreateNew(1);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(generalReadTimeout);
             var queryOptions = new QueryOptions().SetRetryOnTimeout(false);
@@ -253,7 +253,7 @@ namespace Cassandra.IntegrationTests.Core
                     then = new
                     {
                         result = "success",
-                        delay_in_ms = 12000,
+                        delay_in_ms = 20000,
                         rows = new[] { new { key = "123" } },
                         column_types = new { key = "ascii" },
                         ignore_on_prepare = false
@@ -264,8 +264,8 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.Throws<OperationTimedOutException>(() => session.Execute("SELECT key FROM system.local"));
                 stopWatch.Stop();
                 //precision of the timer is not guaranteed
-                Assert.Greater(stopWatch.ElapsedMilliseconds, generalReadTimeout - 2000);
-                Assert.Less(stopWatch.ElapsedMilliseconds, generalReadTimeout + 2000);
+                Assert.Greater(stopWatch.ElapsedMilliseconds, generalReadTimeout - 4500);
+                Assert.Less(stopWatch.ElapsedMilliseconds, generalReadTimeout + 4500);
 
                 //Try with an specified timeout at Statement level
                 var stmt = new SimpleStatement("SELECT key FROM system.local")
@@ -274,8 +274,8 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.Throws<OperationTimedOutException>(() => session.Execute(stmt));
                 stopWatch.Stop();
                 //precision of the timer is not guaranteed
-                Assert.Greater(stopWatch.ElapsedMilliseconds, statementReadTimeout - 2000);
-                Assert.Less(stopWatch.ElapsedMilliseconds, statementReadTimeout + 2000);
+                Assert.Greater(stopWatch.ElapsedMilliseconds, statementReadTimeout - 4500);
+                Assert.Less(stopWatch.ElapsedMilliseconds, statementReadTimeout + 4500);
             }
         }
 
