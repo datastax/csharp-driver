@@ -102,7 +102,10 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        public abstract string Keyspace { get; }
+        public virtual string Keyspace
+        {
+            get { return null; }
+        }
 
         /// <summary>
         /// Gets the host configured on this <see cref="Statement"/>, or <c>null</c> if none is configured.

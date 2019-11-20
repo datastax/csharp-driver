@@ -16,6 +16,9 @@
 
 namespace Cassandra.Data.Linq
 {
+    /// <summary>
+    /// Represents the different phases during the parsing a Linq expressions.
+    /// </summary>
     internal enum ParsePhase
     {
         None,
@@ -54,5 +57,5 @@ namespace Cassandra.Data.Linq
         /// GroupBy() method calls.
         /// </summary>
         GroupBy
-    };
+    }
 }

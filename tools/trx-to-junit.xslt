@@ -152,8 +152,4 @@
   <xsl:variable name="duration_hours" select="substring($durationstr, 1, 2)"/>
   <xsl:value-of select="$duration_hours*3600 + $duration_minutes*60 + $duration_seconds"/>
  </xsl:template>
-
- <xsl:template name="getTotalTime">
-   <xsl:text>0</xsl:text>
- </xsl:template>
 </xsl:stylesheet>

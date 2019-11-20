@@ -113,7 +113,7 @@ namespace Cassandra
 
             foreach (var host in hosts)
             {
-                if (host.DseVersion >= Version60)
+                if (host.DseVersion != null && host.DseVersion >= Version60)
                 {
                     v3Requirement = true;
                     maxVersion = Math.Min((byte)ProtocolVersion.DseV2, maxVersion);

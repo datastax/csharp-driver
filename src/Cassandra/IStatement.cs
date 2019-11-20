@@ -125,10 +125,19 @@ namespace Cassandra
         bool? IsIdempotent { get; }
 
         /// <summary>
-        /// Gets the keyspace this query operates on. The returned value should not be <c>null</c> only when the
-        /// <see cref="IStatement"/> applies to a different keyspace to the logged keyspace of the
-        /// <see cref="ISession"/>.
+        /// Returns the keyspace this query operates on.
+        /// <para>
+        /// Note that not all <see cref="Statement"/> implementations specify on which keyspace they operate on
+        /// so this method can return null. If null, it will operate on the default keyspace set during initialization (if it was set).
+        /// </para>
+        /// <para>
+        /// The keyspace returned is used as a hint for token-aware routing.
+        /// </para>
         /// </summary>
+        /// <remarks>
+        /// Consider using a <see cref="ISession"/> connected to single keyspace using 
+        /// <see cref="ICluster.Connect(string)"/>.
+        /// </remarks>
         string Keyspace { get; }
 
         /// <summary>
