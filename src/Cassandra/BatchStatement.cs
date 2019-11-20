@@ -148,9 +148,11 @@ namespace Cassandra
         {
             if (_queries.Count >= ushort.MaxValue)
             {
+                //see BatchMessage.codec field in BatchMessage.java in server code, and BatchRequest.GetFrame in this driver
                 throw new ArgumentOutOfRangeException(
-                    string.Format("Batch statement cannot contain more than {0} statements", short.MaxValue));
+                    $"There can be only {short.MaxValue} child statement in a batch statement according to the cassandra native protocol");
             }
+
             if (statement.OutgoingPayload != null && statement.OutgoingPayload.ContainsKey(ProxyExecuteKey))
             {
                 throw new ArgumentException("Batch statement cannot contain statements with proxy execution." +
