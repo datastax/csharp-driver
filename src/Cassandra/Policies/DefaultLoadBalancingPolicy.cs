@@ -20,11 +20,14 @@ using System.Collections.Generic;
 namespace Cassandra
 {
     /// <summary>
-    /// A load balancing policy designed to run against DSE cluster.
+    /// A load balancing policy designed to run against both DSE and Apache Cassandra clusters.
     /// <para>
-    ///  For most executions, the query plan will be determined by the child load balancing policy.
-    ///  Except for some cases, like graph analytics queries, for which it uses the preferred analytics graph server
-    ///  previously obtained by driver as first host in the query plan.
+    ///  For most workloads, the query plan will be determined by the child load balancing policy (by default, TokenAwarePolicy(DCAwareRoundRobinPolicy)).
+    /// </para>
+    /// <para>
+    ///  For graph analytics queries, this policy sets the preferred analytics graph server
+    ///  previously obtained by driver as the first host in the query plan. After this host, the query plan is the same as the one
+    /// returned by the child policy.
     /// </para>
     /// </summary>
     public class DefaultLoadBalancingPolicy : ILoadBalancingPolicy

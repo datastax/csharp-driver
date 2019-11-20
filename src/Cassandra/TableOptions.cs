@@ -151,7 +151,7 @@ namespace Cassandra
         /// <summary>
         /// Represents the nodesync options for this table.
         /// <para>
-        /// For DSE versions prior to 6.0.0, this method always returns <c>null</c>.  If nodesync
+        /// For DSE versions prior to 6.0.0 and Apache Cassandra clusters, this method always returns <c>null</c>.  If nodesync
         /// was not explicitly configured for this table this method will also return <c>null</c>.
         /// </para>
         /// </summary>

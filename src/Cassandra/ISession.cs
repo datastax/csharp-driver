@@ -215,6 +215,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="cqlQuery">Cql query to prepare</param>
         /// <param name="keyspace">The keyspace to prepare this query with</param>
+        /// <remarks>Setting the keyspace parameter is only available with protocol v5 (not supported by the driver yet) or DSE 6.0+.</remarks>
         PreparedStatement Prepare(string cqlQuery, string keyspace);
 
         /// <summary>
@@ -224,6 +225,7 @@ namespace Cassandra
         /// <param name="cqlQuery">Cql query to prepare</param>
         /// <param name="keyspace">The keyspace to prepare this query with</param>
         /// <param name="customPayload">Custom outgoing payload to send with the prepare request</param>
+        /// <remarks>Setting the keyspace parameter is only available with protocol v5 (not supported by the driver yet) or DSE 6.0+.</remarks>
         PreparedStatement Prepare(string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload);
 
         /// <summary>
@@ -244,6 +246,7 @@ namespace Cassandra
         /// </summary>
         /// <param name="cqlQuery">Cql query to prepare</param>
         /// <param name="keyspace">The keyspace to prepare this query with</param>
+        /// <remarks>Setting the keyspace parameter is only available with protocol v5 (not supported by the driver yet) or DSE 6.0+.</remarks>
         Task<PreparedStatement> PrepareAsync(string cqlQuery, string keyspace);
 
         /// <summary>
@@ -253,8 +256,8 @@ namespace Cassandra
         /// <param name="cqlQuery">Cql query to prepare</param>
         /// <param name="keyspace">The keyspace to prepare this query with</param>
         /// <param name="customPayload">Custom outgoing payload to send with the prepare request</param>
-        Task<PreparedStatement> PrepareAsync(string cqlQuery, string keyspace,
-                                             IDictionary<string, byte[]> customPayload);
+        /// <remarks>Setting the keyspace parameter is only available with protocol v5 (not supported by the driver yet) or DSE 6.0+.</remarks>
+        Task<PreparedStatement> PrepareAsync(string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload);
 
         /// <summary>
         /// Retrieves the driver metrics for this session.
@@ -285,7 +288,7 @@ namespace Cassandra
 
         /// <summary>
         /// Executes a graph statement with the provided execution profile.
-        /// The execution profile must have been added previously to the DseCluster
+        /// The execution profile must have been added previously to the Cluster
         /// using <see cref="Builder.WithExecutionProfiles"/>.
         /// </summary>
         /// <param name="statement">The graph statement containing the query</param>
@@ -299,7 +302,7 @@ namespace Cassandra
         
         /// <summary>
         /// Executes a graph statement asynchronously with the provided graph execution profile.
-        /// The graph execution profile must have been added previously to the DseCluster
+        /// The graph execution profile must have been added previously to the Cluster
         /// using <see cref="Builder.WithExecutionProfiles"/>.
         /// </summary>
         /// <param name="statement">The graph statement containing the query</param>

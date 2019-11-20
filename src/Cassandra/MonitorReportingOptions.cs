@@ -18,6 +18,8 @@ namespace Cassandra
 {
     /// <summary>
     /// Options related to Monitor Reporting.
+    /// This feature is not supported with Apache Cassandra clusters for now, so in that case this feature will
+    /// always be disabled even if it is set as enabled with <see cref="SetMonitorReportingEnabled"/>.
     /// </summary>
     public sealed class MonitorReportingOptions
     {
@@ -33,7 +35,7 @@ namespace Cassandra
         public bool MonitorReportingEnabled { get; private set; } = MonitorReportingOptions.DefaultMonitorReportingEnabled;
         
         /// <summary>
-        /// Determines whether or not events are sent to the connected DSE cluster for monitor reporting.
+        /// Determines whether or not events are sent to the connected cluster for monitor reporting.
         /// </summary>
         /// <remarks>If not set through this method, the default value (<code>true</code>) will be used.</remarks>
         /// <param name="monitorReportingEnabled">Flag that controls whether monitor reporting is enabled or disabled.</param>
