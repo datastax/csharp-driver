@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,8 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
-﻿using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Serialization;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using NUnit.Framework;

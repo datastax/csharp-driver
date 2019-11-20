@@ -1,4 +1,4 @@
-//
+﻿//
 //      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,8 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-﻿using Cassandra.Serialization;
+using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Serialization;
 
 namespace Cassandra.IntegrationTests.Core
 {

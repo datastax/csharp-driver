@@ -26,6 +26,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.Policies.Util;
+using Cassandra.IntegrationTests.TestBase;
 
 namespace Cassandra.IntegrationTests.Core
 {

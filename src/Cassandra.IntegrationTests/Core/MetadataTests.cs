@@ -24,6 +24,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using Cassandra.IntegrationTests.TestBase;
 using SortOrder = Cassandra.DataCollectionMetadata.SortOrder;
 
 namespace Cassandra.IntegrationTests.Core

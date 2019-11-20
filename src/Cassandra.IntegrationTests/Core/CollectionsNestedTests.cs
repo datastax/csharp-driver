@@ -18,6 +18,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 #pragma warning disable 618

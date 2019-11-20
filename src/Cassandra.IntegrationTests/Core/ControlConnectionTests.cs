@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using Cassandra.Connections;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.ProtocolEvents;
 using NUnit.Framework;
 using Cassandra.IntegrationTests.TestClusterManagement;

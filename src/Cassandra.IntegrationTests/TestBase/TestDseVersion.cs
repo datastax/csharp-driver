@@ -14,11 +14,13 @@
 //   limitations under the License.
 //
 //
+
 using System;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 using NUnit.Framework.Interfaces;
 
-namespace Cassandra.IntegrationTests.TestClusterManagement
+namespace Cassandra.IntegrationTests.TestBase
 {
     /// <summary>
     /// An attribute that filters the test to execute according to the current DSE version.
@@ -88,7 +90,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 test.RunState = RunState.Ignored;
                 var message = string.Format("Test designed to run with DSE {0} v{1} (executing OSS {2})", 
-                    GetComparisonText(Comparison), 
+                    TestDseVersion.GetComparisonText(Comparison), 
                     expectedVersion, 
                     TestClusterManager.CassandraVersion);
                 test.Properties.Set("_SKIPREASON", message);
@@ -96,11 +98,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
 
             var executingVersion = TestClusterManager.IsDse ? TestClusterManager.DseVersion : TestClusterManager.CassandraVersion;
-            if (!VersionMatch(expectedVersion, executingVersion, Comparison))
+            if (!TestDseVersion.VersionMatch(expectedVersion, executingVersion, Comparison))
             {
                 test.RunState = RunState.Ignored;
                 var message = string.Format("Test designed to run with DSE {0} v{1} (executing {2})", 
-                    GetComparisonText(Comparison), 
+                    TestDseVersion.GetComparisonText(Comparison), 
                     expectedVersion, 
                     executingVersion);
                 test.Properties.Set("_SKIPREASON", message);

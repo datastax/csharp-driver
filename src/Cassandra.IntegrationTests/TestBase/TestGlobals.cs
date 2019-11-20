@@ -17,7 +17,7 @@
 
 using System;
 using System.Threading.Tasks;
-
+using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement

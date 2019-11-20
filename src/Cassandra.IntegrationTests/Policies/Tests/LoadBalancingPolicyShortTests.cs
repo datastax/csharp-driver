@@ -22,6 +22,7 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using Cassandra.IntegrationTests.Policies.Util;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Serialization;
 using NUnit.Framework;

@@ -27,6 +27,7 @@ using System.Threading;
 using Cassandra;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Graph;
+using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Graph

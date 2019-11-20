@@ -18,6 +18,7 @@
 using System;
 using System.Linq;
 using System.Numerics;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Serialization;
 using Cassandra.Tests.Extensions.Serializers;

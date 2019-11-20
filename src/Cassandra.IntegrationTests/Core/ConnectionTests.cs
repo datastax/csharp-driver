@@ -28,6 +28,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Observers;
 using Cassandra.Tasks;
 using Cassandra.Tests;

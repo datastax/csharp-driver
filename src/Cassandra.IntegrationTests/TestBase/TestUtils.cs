@@ -26,6 +26,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Cassandra.IntegrationTests.Core;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Tests;
 using NUnit.Framework;

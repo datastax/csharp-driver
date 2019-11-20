@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement

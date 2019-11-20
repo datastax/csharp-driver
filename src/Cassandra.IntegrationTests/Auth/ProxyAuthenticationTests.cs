@@ -18,6 +18,7 @@
 using System;
 using System.Linq;
 using Cassandra.Auth;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 

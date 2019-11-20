@@ -14,9 +14,10 @@
 //   limitations under the License.
 //
 //
+
 using System;
 
-namespace Cassandra.IntegrationTests.TestClusterManagement
+namespace Cassandra.IntegrationTests.TestBase
 {
     /// <summary>
     /// Represents an error on the infrastructure setup
