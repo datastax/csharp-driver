@@ -19,7 +19,7 @@ using System.Numerics;
 
 namespace Cassandra.Serialization.Primitive
 {
-    internal class DecimalSerializer : TypeSerializer<decimal>
+    public class DecimalSerializer : TypeSerializer<decimal>
     {
         public override ColumnTypeCode CqlType
         {

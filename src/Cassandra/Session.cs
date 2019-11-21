@@ -98,7 +98,7 @@ namespace Cassandra
         public Policies Policies => Configuration.Policies;
 
         /// <inheritdoc />
-        public Guid InternalSessionId { get; } = Guid.NewGuid();
+        Guid IInternalSession.InternalSessionId { get; } = Guid.NewGuid();
 
         internal Session(
             IInternalCluster cluster,
