@@ -35,7 +35,9 @@ namespace Cassandra
         /// </para>
         /// </summary>
         public static ILoadBalancingPolicy DefaultLoadBalancingPolicy => 
+#pragma warning disable 618
             new DefaultLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy()));
+#pragma warning restore 618
 
         /// <summary>
         /// Creates a new instance of the default load balancing policy with the provided local datacenter.
@@ -46,7 +48,9 @@ namespace Cassandra
         /// </summary>
         public static ILoadBalancingPolicy NewDefaultLoadBalancingPolicy(string localDc)
         {
+#pragma warning disable 618
             return new DefaultLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc)));
+#pragma warning restore 618
         }
 
         /// <summary>

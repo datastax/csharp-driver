@@ -28,7 +28,9 @@ namespace Cassandra.Tests.Policies
         [Test]
         public void Should_Yield_Preferred_Host_First()
         {
+#pragma warning disable 618
             var lbp = new DefaultLoadBalancingPolicy(new TestLoadBalancingPolicy());
+#pragma warning restore 618
             var statement = new TargettedSimpleStatement("Q");
             statement.PreferredHost = new Host(new IPEndPoint(201, 9042), ReconnectionPolicy);
             var hosts = lbp.NewQueryPlan(null, statement);
@@ -40,7 +42,9 @@ namespace Cassandra.Tests.Policies
         [Test]
         public void Should_Yield_Child_Hosts_When_No_Preferred_Host_Defined()
         {
+#pragma warning disable 618
             var lbp = new DefaultLoadBalancingPolicy(new TestLoadBalancingPolicy());
+#pragma warning restore 618
             var statement = new TargettedSimpleStatement("Q");
             var hosts = lbp.NewQueryPlan(null, statement);
             CollectionAssert.AreEqual(
@@ -51,7 +55,9 @@ namespace Cassandra.Tests.Policies
         [Test]
         public void Should_Set_Distance_For_Preferred_Host_To_Local()
         {
+#pragma warning disable 618
             var lbp = new DefaultLoadBalancingPolicy(new TestLoadBalancingPolicy(HostDistance.Ignored));
+#pragma warning restore 618
             Assert.AreEqual(HostDistance.Ignored, lbp.Distance(new Host(new IPEndPoint(200L, 9042), ReconnectionPolicy)));
             var statement = new TargettedSimpleStatement("Q");
             // Use 201 as preferred

@@ -17,7 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Cassandra.Auth;
+using Cassandra.DataStax.Auth;
 using NUnit.Framework;
 
 namespace Cassandra.Tests
@@ -27,12 +27,12 @@ namespace Cassandra.Tests
         [Test]
         public void Cassandra_Auth_Namespace_Public_Test()
         {
-            var types = GetTypesInNamespace("Cassandra.Auth", true);
+            var types = GetTypesInNamespace("Cassandra.DataStax.Auth", true);
             CollectionAssert.AreEquivalent(
                 new[]
                 {
 #if !NETCORE
-                    typeof(Cassandra.Auth.Sspi.SspiException), typeof(DseGssapiAuthProvider),
+                    typeof(Cassandra.DataStax.Auth.Sspi.SspiException), typeof(DseGssapiAuthProvider),
 #endif
                     typeof(DsePlainTextAuthProvider)
                 },
@@ -59,12 +59,12 @@ namespace Cassandra.Tests
             CollectionAssert.AreEqual(new[]
             {
                 "Cassandra",
-                "Cassandra.Auth",
-#if !NETCORE
-                "Cassandra.Auth.Sspi",
-#endif
                 "Cassandra.Data",
                 "Cassandra.Data.Linq",
+                "Cassandra.DataStax.Auth",
+#if !NETCORE
+                "Cassandra.DataStax.Auth.Sspi",
+#endif
                 "Cassandra.DataStax.Graph",
                 "Cassandra.DataStax.Search",
                 "Cassandra.Geometry",

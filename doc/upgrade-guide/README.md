@@ -55,6 +55,8 @@ These releases only contain bug fixes so they will never contain changes to the 
 
 This release introduced several additions to the public API of the driver. These new classes, methods and properties were merged to this driver from the DataStax Enterprise C# Driver as part of our initiative to unify both drivers.
 
+The default load balancing policy has been changed. See the first paragraph of [this section](#removed-classes-and-interfaces) for more information.
+
 ### Moving from the DataStax Enterprise C# Driver
 
 #### Changes to default settings
@@ -63,9 +65,11 @@ The default retry policy in `DseClusterBuilder` was `new IdempotencyAwareRetryPo
 
 #### Removed classes and interfaces
 
-`DseLoadBalancingPolicy` is now `DefaultLoadBalancingPolicy`. 
+`DseLoadBalancingPolicy` is now `DefaultLoadBalancingPolicy`. This is the new default load balancing policy in this driver. The behavior is the same as the previous default policy except for DSE workloads so there is no impact for existing applications.
 
-`DseLoadBalancingPolicy.CreateDefault` has been replaced by `Policies.DefaultLoadBalancingPolicy` and `Policies.NewDefaultLoadBalancingPolicy`.
+`DefaultLoadBalancingPolicy.CreateDefault` has been replaced by `Policies.DefaultLoadBalancingPolicy` and `Policies.NewDefaultLoadBalancingPolicy`.
+
+The constructor of `DefaultLoadBalancingPolicy` that receives a child policy has been deprecated and marked with the `Obsolete` attribute. In the next major version of the driver, it won't be possible to pass a custom child load balancing policy to the `DefaultLoadBalancingPolicy`.
 
 `DseClusterBuilder` has been removed. These builder methods were moved to `Builder`. Note that `DseClusterBuilder.WithCredentials` added an instance of `DsePlainTextAuthenticator` but `Builder.WithCredentials` adds an instance of `PlainTextAuthenticator`. If you wish to use `DsePlainTextAuthenticator` you need to use another builder method: `Builder.WithAuthProvider(new DsePlainTextAuthenticator(username, password))`.
 
@@ -75,10 +79,11 @@ The default retry policy in `DseClusterBuilder` was `new IdempotencyAwareRetryPo
 
 `IDseCluster`/`DseCluster` have been removed. Use `ICluster`/`Cluster` instead.
 
-The namespaces associated with Graph and Search were moved:
+The namespaces associated with Auth, Graph and Search were moved:
 
 |`Dse` namespace  | `Cassandra` namespace  |
 |--|--|
+|`Dse.Auth`|`Cassandra.DataStax.Auth`|
 |`Dse.Graph`|`Cassandra.DataStax.Graph`|
 |`Dse.Search`|`Cassandra.DataStax.Search`|
 

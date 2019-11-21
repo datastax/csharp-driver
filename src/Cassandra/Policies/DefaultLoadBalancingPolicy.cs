@@ -32,6 +32,10 @@ namespace Cassandra
     /// </summary>
     public class DefaultLoadBalancingPolicy : ILoadBalancingPolicy
     {
+        private const string ChildPolicyMessage =
+            "The ability to provide a custom child policy to the default load balancing policy is going away" +
+            "in the next major version of the driver.";
+
         private const string UsedHostsPerRemoteDcObsoleteMessage =
             "The usedHostsPerRemoteDc parameter will be removed in the next major release of the driver. " +
             "DC failover should not be done in the driver, which does not have the necessary context to know " +
@@ -42,6 +46,7 @@ namespace Cassandra
         /// <summary>
         /// Creates a new instance of <see cref="DefaultLoadBalancingPolicy"/> wrapping the provided child policy.
         /// </summary>
+        [Obsolete(DefaultLoadBalancingPolicy.ChildPolicyMessage)]
         public DefaultLoadBalancingPolicy(ILoadBalancingPolicy childPolicy)
         {
             ChildPolicy = childPolicy ?? throw new ArgumentNullException(nameof(childPolicy));
