@@ -190,13 +190,22 @@ namespace Cassandra
         /// <inheritdoc />
         public void Dispose()
         {
+            ShutdownAsync().GetAwaiter().GetResult();
+        }
+        
+        /// <inheritdoc />
+        public async Task ShutdownAsync()
+        {
             //Only dispose once
             if (Interlocked.Increment(ref _disposed) != 1)
             {
                 return;
             }
 
-            _insightsClient?.ShutdownAsync().GetAwaiter().GetResult();
+            if (_insightsClient != null)
+            {
+                await _insightsClient.ShutdownAsync().ConfigureAwait(false);
+            }
 
             _metricsManager?.Dispose();
 

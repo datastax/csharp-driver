@@ -100,13 +100,13 @@ namespace Cassandra.ProtocolEvents
         }
 
         /// <inheritdoc />
-        public void Dispose()
+        public async Task ShutdownAsync()
         {
             _enqueueBlock.Complete();
-            _enqueueBlock.Completion.GetAwaiter().GetResult();
+            await _enqueueBlock.Completion.ConfigureAwait(false);
             _timer.Dispose();
             _processQueueBlock.Complete();
-            _processQueueBlock.Completion.GetAwaiter().GetResult();
+            await _processQueueBlock.Completion.ConfigureAwait(false);
         }
 
         // for tests

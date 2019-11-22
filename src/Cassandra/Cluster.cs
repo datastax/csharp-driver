@@ -451,7 +451,7 @@ namespace Cassandra
         /// <inheritdoc />
         public void Shutdown(int timeoutMs = Timeout.Infinite)
         {
-            ShutdownAsync(timeoutMs).Wait();
+            ShutdownAsync(timeoutMs).GetAwaiter().GetResult();
         }
 
         /// <inheritdoc />
@@ -464,11 +464,11 @@ namespace Cassandra
             var sessions = _connectedSessions.ClearAndGet();
             try
             {
-                var task = Task.Run(() =>
+                var task = Task.Run(async () =>
                 {
                     foreach (var s in sessions)
                     {
-                        s.Dispose();
+                        await s.ShutdownAsync().ConfigureAwait(false);
                     }
                 }).WaitToCompleteAsync(timeoutMs);
                 await task.ConfigureAwait(false);
@@ -482,7 +482,7 @@ namespace Cassandra
                 throw;
             }
             _metadata.ShutDown(timeoutMs);
-            _protocolEventDebouncer.Dispose();
+            await _protocolEventDebouncer.ShutdownAsync().WaitToCompleteAsync(timeoutMs).ConfigureAwait(false);
             _controlConnection.Dispose();
             Configuration.Timer.Dispose();
 

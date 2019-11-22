@@ -314,6 +314,11 @@ namespace Cassandra
         /// </example>
         Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement statement, string executionProfileName);
 
+        /// <summary>
+        /// Disposes the session asynchronously.
+        /// </summary>
+        Task ShutdownAsync();
+
         [Obsolete("Method deprecated. The driver internally waits for schema agreement when there is an schema change. See ProtocolOptions.MaxSchemaAgreementWaitSeconds for more info.")]
         void WaitForSchemaAgreement(RowSet rs);
         [Obsolete("Method deprecated. The driver internally waits for schema agreement when there is an schema change. See ProtocolOptions.MaxSchemaAgreementWaitSeconds for more info.")]
