@@ -1,9 +1,9 @@
 # Graph support
 
-`IDseSession` has dedicated methods to execute graph queries:
+`ISession` has dedicated methods to execute graph queries:
 
 ```csharp
-using Dse.Graph;
+using Cassandra.DataStax.Graph;
 ```
 
 ```csharp
@@ -34,19 +34,16 @@ foreach (IVertex vertex in rs.To<IVertex>())
 
 ## Graph options
 
-You can set default graph options when initializing the cluster. They will be used for all graph statements. For
-example, to avoid repeating `SetGraphName("demo")` on each statement:
+You can set default graph options when initializing the cluster. They will be used for all graph statements. For example, to avoid repeating `SetGraphName("demo")` on each statement:
 
 ```csharp
-IDseCluster dseCluster = DseCluster.Builder()
+ICluster cluster = Cluster.Builder()
     .AddContactPoint("127.0.0.1")
     .WithGraphOptions(new GraphOptions().SetName("demo"))
     .Build();
 ```
 
-If an option is set manually on a `GraphStatement`, it always takes precedence; otherwise the default option is used.
-This might be a problem if a default graph name is set, but you explicitly want to execute a statement targeting
-`system`, for which no graph name must be set. In that situation, use `GraphStatement.SetSystemQuery()`:
+If an option is set manually on a `GraphStatement`, it always takes precedence; otherwise the default option is used. This might be a problem if a default graph name is set, but you explicitly want to execute a statement targeting `system`, for which no graph name must be set. In that situation, use `GraphStatement.SetSystemQuery()`:
 
 ```csharp
 GraphStatement s = new SimpleGraphStatement("system.createGraph('demo').ifNotExist().build()")
@@ -77,7 +74,7 @@ foreach (IGraphNode r in rs)
 ```
 
 `IGraphNode` represents a response item returned by the server. Each item can be converted to the expected type:
-                                                              
+
 ```csharp
 GraphResultSet rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
 IVertex vertex = rs.First().To<IVertex>();
@@ -93,8 +90,7 @@ foreach (IVertex vertex in rs.To<IVertex>())
 }
 ```
 
-`GraphNode` provides [implicit conversion operators][implicit] to `string`, `int`, `long` and others in order to 
-improve code readability, allowing the following C# syntax:
+`GraphNode` provides [implicit conversion operators][implicit] to `string`, `int`, `long` and others in order to improve code readability, allowing the following C# syntax:
 
 ```csharp
 var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V().has('name', 'marko').values('location')"));
@@ -104,8 +100,7 @@ foreach (string location in rs)
 }
 ```
 
-`GraphNode` inherits from [`DynamicObject`][dynamic], allowing you to consume it using the `dynamic` keyword and/or
-as a dictionary. 
+`GraphNode` inherits from [`DynamicObject`][dynamic], allowing you to consume it using the `dynamic` keyword and/or as a dictionary. 
 
 ```csharp
 dynamic r = session.ExecuteGraph(new SimpleGraphStatement("g.V()")).First();
@@ -122,8 +117,7 @@ Console.WriteLine(vertex.GetProperty("age").Value.ToInt32());
 
 ## Parameters
 
-Graph query parameters are always named. Parameter bindings are passed as an anonymous type or as a
-`IDictionary<string, object>` alongside the query:
+Graph query parameters are always named. Parameter bindings are passed as an anonymous type or as a `IDictionary<string, object>` alongside the query:
 
 ```csharp
 session.ExecuteGraph("g.addV(label, vertexLabel)", new { vertexLabel = "test_vertex_2" });
@@ -133,7 +127,7 @@ Note that, unlike in CQL, Gremlin placeholders are not prefixed with ":".
 
 ## Prepared statements
 
-Prepared graph statements are not supported by DSE Graph yet (they will be added in the near future).
+Prepared graph statements are not supported by DSE Graph.
 
 [modern-graph]: http://tinkerpop.apache.org/docs/3.1.1-incubating/reference/#_the_graph_structure
 [dynamic]: https://msdn.microsoft.com/en-us/library/dd264736.aspx

@@ -1,13 +1,13 @@
-# DataStax Metrics Provider based on App.Metrics
+# App.Metrics Provider
 
 This documentation refers to our provider based on App.Metrics. The code examples shown here only apply if this provider is used.
 
 ## Installation
 
-This provider is available on the [Dse.AppMetrics nuget package].
+This provider is available on the [CassandraCSharpDriver.AppMetrics nuget package].
 
 ```
-PM> Install-Package Dse.AppMetrics
+PM> Install-Package CassandraCSharpDriver.AppMetrics
 ```
 
 ## Using this provider to enable metrics
@@ -17,7 +17,7 @@ This package exposes an extension method of `App.Metrics.IMetricsRoot` that can 
 ```csharp
 var metricsRoot = new App.Metrics.MetricsBuilder().Build();
 
-var cluster = DseCluster
+var cluster = Cluster
     .Builder()
     .AddContactPoint("127.0.0.1")
     .WithMetrics(metricsRoot.CreateDriverMetricsProvider())
@@ -37,7 +37,7 @@ var metricsRoot = new MetricsBuilder()
     .Report.ToGraphite("net.tcp://127.0.0.1:2003")
     .Build();
 
-var cluster = DseCluster
+var cluster = Cluster
     .Builder()
     .AddContactPoint("127.0.0.1")
     .WithMetrics(metricsRoot.CreateDriverMetricsProvider())
@@ -59,7 +59,7 @@ There are some parameters that can be set when creating `HdrHistogram` objects a
 ```csharp
 var metricsRoot = new App.Metrics.MetricsBuilder().Build();
 
-var cluster = DseCluster
+var cluster = Cluster
     .Builder()
     .AddContactPoint("127.0.0.1")
     .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(10000))
@@ -136,7 +136,7 @@ public static IAppMetricsMeter ToAppMetricsMeter(this IDriverMeter meter);
 public static IAppMetricsTimer ToAppMetricsTimer(this IDriverTimer timer);
 ```
 
-[Dse.AppMetrics nuget package]: https://www.nuget.org/packages/Dse.AppMetrics/
+[CassandraCSharpDriver.AppMetrics nuget package]: https://www.nuget.org/packages/CassandraCSharpDriver.AppMetrics/
 [HdrHistogram]: https://github.com/HdrHistogram/HdrHistogram.NET
 [official App.Metrics documentation]: https://www.app-metrics.io/
 [App.Metrics]: https://github.com/AppMetrics/AppMetrics

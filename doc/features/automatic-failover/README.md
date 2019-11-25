@@ -1,10 +1,8 @@
 # Automatic failover
 
-If a DSE node fails or becomes unreachable, the C# driver automatically and transparently tries other nodes in
-the cluster and schedules reconnections to the dead nodes in the background.
+If a node fails or becomes unreachable, the C# driver automatically and transparently tries other nodes in the cluster and schedules reconnections to the dead nodes in the background.
 
-How the driver handles failover is determined by which retry and reconnection policies are used when building a
-`Cluster` instance.
+How the driver handles failover is determined by which retry and reconnection policies are used when building a `Cluster` instance.
 
 For more information on how to change the Policies used by the driver check out the ["Tuning policies" page](../tuning-policies).
 

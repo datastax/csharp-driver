@@ -1,23 +1,18 @@
 # Linq component
 
-The Linq component of the driver is an implementation of LINQ `IQueryProvider` and `IQueryable<T>` interfaces that 
-allows you to write CQL queries in Linq and read the results using your object model.
+The Linq component of the driver is an implementation of LINQ `IQueryProvider` and `IQueryable<T>` interfaces that allows you to write CQL queries in Linq and read the results using your object model.
 
-When you execute a Linq statement, the component translates language-integrated queries into CQL and sends them to
-the cluster for execution. When the cluster returns the results, the LINQ component translates them back into objects
-that you can work with in C#.
+When you execute a Linq statement, the component translates language-integrated queries into CQL and sends them to the cluster for execution. When the cluster returns the results, the LINQ component translates them back into objects that you can work with in C#.
 
-Linq query execution involves expression evaluation which brings an additional overhead each time a Linq query
-is executed.
+Linq query execution involves expression evaluation which brings an additional overhead each time a Linq query is executed.
 
 1.- Add a using statement to your class:
 
 ```csharp
-using Dse.Data.Linq;
+using Cassandra.Data.Linq;
 ```
 
-2.- Retrieve an `ISession` instance in the usual way and reuse that session within all the classes in your client
-application.
+2.- Retrieve an `ISession` instance in the usual way and reuse that session within all the classes in your client application.
 
 3.- You can get an IQueryable instance of using the Table constructor:
 
@@ -25,8 +20,7 @@ application.
 var users = new Table<User>(session);
 ```
 
-New `Table<T>` (`IQueryable`) instances can be created each time they are needed, as short-lived instances, as long as
-you are reusing the same `ISession` instance and mapping configuration.
+New `Table<T>` (`IQueryable`) instances can be created each time they are needed, as short-lived instances, as long as you are reusing the same `ISession` instance and mapping configuration.
 
 ## Example
 
@@ -38,7 +32,7 @@ public class User
    public string Group { get; set; }
 }
 
-// Get a list of users from DSE using a Linq query
+// Get a list of users from Cassandra/DSE using a Linq query
 IEnumerable<User> adminUsers = 
       (from user in users where user.Group == "admin" select user).Execute();
 ```
@@ -55,8 +49,7 @@ The Linq component creates new instances of your classes using its parameter-les
 
 ## Configuring mappings
  
-In many scenarios, you need more control over how your class maps to a CQL table. You have two ways of configuring
-with Linq:
+In many scenarios, you need more control over how your class maps to a CQL table. You have two ways of configuring with Linq:
 
 - decorate your classes with attributes
 - define mappings in code using the fluent interface
@@ -96,19 +89,13 @@ Then, you can assign the mappings class in your configuration.
 MappingConfiguration.Global.Define<MyMappings>();
 ```
 
-You should map one C# class per table. The Linq component of the driver will use the configuration defined 
-when creating the `Table<T>` instance to determine to which keyspace and table it maps to, using 
-`MappingConfiguration.Global` when not specified.
+You should map one C# class per table. The Linq component of the driver will use the configuration defined when creating the `Table<T>` instance to determine to which keyspace and table it maps to, using `MappingConfiguration.Global` when not specified.
 
 ## Linq API examples
 
-The simple query example is great, but the Linq component has a lot of other methods for doing Inserts, Updates,
-Deletes, and even Create table. Including Linq operations `Where()`, `Select()`, `OrderBy()`, `OrderByDescending()`, 
-`First()`, `Count()`, and `Take()`, it translates into the most efficient CQL query possible, trying to retrieve as
-less data possible.
+The simple query example is great, but the Linq component has a lot of other methods for doing Inserts, Updates, Deletes, and even Create table. Including Linq operations `Where()`, `Select()`, `OrderBy()`, `OrderByDescending()`, `First()`, `Count()`, and `Take()`, it translates into the most efficient CQL query possible, trying to retrieve as less data possible.
 
-For example, the following query only retrieves the username from the cluster to fill in a lazy list of string on the
-client side.
+For example, the following query only retrieves the username from the cluster to fill in a lazy list of string on the client side.
 
 ```csharp
 IEnumerable<string> userNames = ( from user in users where user.Group == "admin" select user.Name).Execute();
@@ -142,7 +129,7 @@ users.Where(u => u.UserId == "john")
       .Delete()
       .Execute();
 
-// Delete If (Cassandra 2.1+) 
+// Delete If (Cassandra 2.1+)
 users.Where(u => u.UserId == "john")
       .DeleteIf(u => u.LastAccess == value)
       .Execute();

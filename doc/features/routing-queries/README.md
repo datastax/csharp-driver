@@ -1,13 +1,12 @@
 # Routing queries
 
-When using the default load-balancing policy (`DseLoadBalancingPolicy`) or `TokenAwarePolicy`, the driver uses the `RoutingKey` to determine which node is used as coordinator for a given statement.
+When using the default load-balancing policy (`DefaultLoadBalancingPolicy`) or `TokenAwarePolicy`, the driver uses the `RoutingKey` to determine which node is used as coordinator for a given statement.
 
 Note that the internal `TokenMap` must be up to date in order for this feature to work correctly. If metadata synchronization is enabled (which it is by default), then the driver will automatically keep it up to date. For more information on metadata synchronization, [check out this page](../metadata).
 
 ## Prepared statements
 
-When using prepared statements, the driver will determine which of the query parameters compose the partition
-key based on the prepared statement metadata.
+When using prepared statements, the driver will determine which of the query parameters compose the partition key based on the prepared statement metadata.
 
 Consider a table users that has a single partition key, id.
 
@@ -25,7 +24,7 @@ session.Execute(bound);
 
 As a rule of thumb, **use prepared statements and the driver does all the routing for you**.
 
-## Simple statements 
+## Simple statements
 
 If you need to use a simple statement with routing, you must specify the routing values.
 

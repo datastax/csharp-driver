@@ -20,7 +20,7 @@ by default to generate the request timestamps.
 You can provide a different generator when building the `ICluster` instance:
 
 ```csharp
-var cluster = DseCluster.Builder()
+var cluster = Cluster.Builder()
                         .WithTimestampGenerator(generator)
                         .AddContactPoint("host1")
                         .Build()

@@ -11,12 +11,10 @@ cqlsh> CREATE TABLE points_of_interest(name text PRIMARY KEY, coords 'PointType'
 cqlsh> INSERT INTO points_of_interest (name, coords) VALUES ('Eiffel Tower', 'POINT(48.8582 2.2945)');
 ```
 
-The DSE driver includes C# representations of these types in the `Dse.Geometry` namespace that can be used directly
-as parameters in queries. All C# geospatial types implement `ToString()`, that returns the string representation
-in [Well-known text][wkt] format.
+The driver includes C# representations of these types in the `Cassandra.Geometry` namespace that can be used directly as parameters in queries. All C# geospatial types implement `ToString()`, that returns the string representation in [Well-known text][wkt] format.
 
 ```csharp
-using Dse.Geometry;
+using Cassandra.Geometry;
 ```
 
 ```csharp
@@ -24,7 +22,7 @@ Row row = session.Execute("SELECT coords FROM points_of_interest WHERE name = 'E
 Point coords = row.GetValue<Point>("coords");
 
 var statement = new SimpleStatement("INSERT INTO points_of_interest (name, coords) VALUES (?, ?)",
-    "Washington Monument", 
+    "Washington Monument",
     new Point(38.8895, 77.0352));
 session.Execute(statement);
 ```

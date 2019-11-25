@@ -1,4 +1,10 @@
-# DSE Authentication
+# Authentication and Authorization
+
+## Password Authenticator
+
+The `PlainTextAuthProvider` is included to connect to a Apache Cassandra cluster secured with `PasswordAuthenticator`.
+
+## DSE Authenticator
 
 Two authentication providers are included to connect to a DSE cluster secured with `DseAuthenticator`:
 
@@ -8,11 +14,11 @@ Two authentication providers are included to connect to a DSE cluster secured wi
 To configure a provider, pass it when initializing the cluster:
 
 ```csharp
-using Dse.Auth;
+using Cassandra.DataStax.Auth;
 ```
 
 ```csharp
-var cluster = DseCluster.builder()
+var cluster = Cluster.builder()
     .AddContactPoint("host1")
     .WithAuthProvider(new DseGssapiAuthProvider())
     .Build();
@@ -22,15 +28,12 @@ var cluster = DseCluster.builder()
 
 With DSE 5.1+, unified Authentication allows you to:
 
-- Proxy Login: Authenticate using a fixed set of authentication credentials but allow authorization of resources
-based on another user id.
-- Proxy Execute: Authenticate using a fixed set of authentication credentials but execute requests based on
-another user id.
+- Proxy Login: Authenticate using a fixed set of authentication credentials but allow authorization of resources based on another user id.
+- Proxy Execute: Authenticate using a fixed set of authentication credentials but execute requests based on another user id.
 
 ### Proxy Login
 
-Proxy login allows you to authenticate with a user but act as another one. You need to ensure the authenticated
-user has the permission to use the authorization of resources of the other user. 
+Proxy login allows you to authenticate with a user but act as another one. You need to ensure the authenticated user has the permission to use the authorization of resources of the other user.
 
 In the following example, we allow user "ben" to authenticate but use the authorization of "alice".
 
@@ -44,7 +47,7 @@ Once "ben" is granted proxy login as "alice":
 
 ```csharp
 var authProvider = new DsePlainTextAuthProvider("ben", "ben", "alice");
-var cluster = DseCluster.builder()
+var cluster = Cluster.builder()
     .AddContactPoint("host1")
     .WithAuthProvider(authProvider)
     .Build();
@@ -55,8 +58,7 @@ session.Execute(query);
 
 ### Proxy Execute
 
-Proxy execute allows you to execute requests as another user than the authenticated one. You need to ensure the 
-authenticated user has the permission to use the authorization of resources of the specified user.
+Proxy execute allows you to execute requests as another user than the authenticated one. You need to ensure the authenticated user has the permission to use the authorization of resources of the specified user.
 
 In the following example will allow the user "ben" to execute requests as "alice":
 
@@ -68,10 +70,9 @@ GRANT PROXY.EXECUTE ON ROLE 'alice' TO 'ben'
 
 Once "ben" is granted permission to execute queries as "alice":
 
-
 ```csharp
 var authProvider = new DsePlainTextAuthProvider("ben", "ben");
-var cluster = DseCluster.builder()
+var cluster = Cluster.builder()
     .AddContactPoint("host1")
     .WithAuthProvider(authProvider)
     .Build();

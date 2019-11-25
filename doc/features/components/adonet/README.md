@@ -1,12 +1,10 @@
 # ADO.NET
 
-Implementation of the ADO.NET interfaces and common abstract classes present in the `System.Data` namespace of the 
-.NET Framework: `IDbConnection`, `IDbCommand`, and `IDbDataAdapter`.
+Implementation of the ADO.NET interfaces and common abstract classes present in the `System.Data` namespace of the .NET Framework: `IDbConnection`, `IDbCommand`, and `IDbDataAdapter`.
 
-It allows users to interact with a DSE cluster using a common .NET data access pattern.
+It allows users to interact with a cluster using a common .NET data access pattern.
 
-ADO.NET design limits how you can interact with DSE clusters (sync only, open / close pattern), for that reason
-**it is recommended that you use the [Core component](../core) of the driver instead**.
+ADO.NET design limits how you can interact with the cluster (sync only, open / close pattern), for that reason **it is recommended that you use the other components of the driver instead**.
 
 ## Example
 

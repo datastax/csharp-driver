@@ -33,11 +33,12 @@ Instead of manually adjusting the options on every request, you can create execu
 
 ```csharp
 var cluster =
-   DseCluster.Builder()
+   Cluster.Builder()
           .AddContactPoint("127.0.0.1")
           .WithExecutionProfiles(opts => opts
             .WithProfile("default", profile => profile
-                .WithLoadBalancingPolicy(new DseLoadBalancingPolicy(localDc: "dc1")))
+                .WithLoadBalancingPolicy(
+                    Policies.NewDefaultLoadBalancingPolicy("dc1")))
             .WithProfile("login", profile => profile
                 .WithConsistencyLevel(ConsistencyLevel.LocalOne)
                 .WithSpeculativeExecutionPolicy(new ConstantSpeculativeExecutionPolicy(delay: 100, maxSpeculativeExecutions: 1)))
@@ -61,7 +62,7 @@ var cql = Cql.New("SELECT * FROM users WHERE username = ?", username).WithExecut
 var fetchResult = await mapper.FetchAsync<User>(cql).ConfigureAwait(false);
 ```
 
-And here's the same operation with a `PreparedStatement` and `DseSession.ExecuteAsync`:
+And here's the same operation with a `PreparedStatement` and `ISession.ExecuteAsync`:
 
 ```csharp
 // on startup
@@ -77,16 +78,16 @@ var fetchResult = await session.ExecuteAsync(statement, "login").ConfigureAwait(
 
 The name `default` is reserved for the default execution profile. This profile will be the one that is going to be used whenever no profile is specified in a request.
 
-You can change the default profile either by the legacy parameters on `DseCluster.Builder` or by changing the execution profile itself with `DseClusterBuilder.WithExecutionProfiles`.
+You can change the default profile either by the legacy parameters on `Builder` or by changing the execution profile itself with `Builder.WithExecutionProfiles`.
 
-The following code snippet illustrates two `DseCluster` instances being built with the same configuration parameters:
+The following code snippet illustrates two `Cluster` instances being built with the same configuration parameters:
 
 - `cluster1` uses the legacy configuration
 - `cluster2` uses the new Execution Profile API for the same parameters as `cluster1`
 
 ```csharp
 var cluster2 = 
-   DseCluster.Builder()
+   Cluster.Builder()
           .AddContactPoint("127.0.0.1")
           .WithQueryOptions(
               new QueryOptions()
@@ -98,7 +99,7 @@ var cluster2 =
           .Build();
 
 var cluster2 = 
-   DseCluster.Builder()
+   Cluster.Builder()
           .AddContactPoint("127.0.0.1")
           .WithExecutionProfiles(opts => opts
             .WithProfile("default", profile => profile
@@ -114,7 +115,7 @@ var cluster2 =
 
 This is an advanced feature that might be useful in some cases. You can create derived profiles that inherit parameters from base profiles. A similar behavior is the way every execution profile inherits parameters from the `default` profile.
 
-Let's say an application needs 2 execution profiles for its operations but it also implements datacenter failover. In this case it will need 2 more execution profiles that will basically be the same except for the `localDc` parameter of `DseLoadBalancingPolicy` and for the delay used in `ISpeculativeExecutionPolicy`.
+Let's say an application needs 2 execution profiles for its operations but it also implements datacenter failover. In this case it will need 2 more execution profiles that will basically be the same except for the `localDc` parameter of `DefaultLoadBalancingPolicy` and for the delay used in `ISpeculativeExecutionPolicy`.
 
 | Scenario       | Speculative Execution Policy    | Consistency  | Local Datacenter |
 |----------------|------------------|--------------|-----------------|
@@ -126,19 +127,19 @@ Let's say an application needs 2 execution profiles for its operations but it al
 Here is how this looks in code (note that `local-quorum` is not created with `WithDerivedProfile`, because the `default` profile inheritance happens by default):
 
 ```csharp
-var cluster = 
-   DseCluster.Builder()
+var cluster =
+   Cluster.Builder()
           .AddContactPoint("127.0.0.1")
           .WithExecutionProfiles(opts => opts
             .WithProfile("default", profile => profile
-                .WithLoadBalancingPolicy(new DseLoadBalancingPolicy(localDc: "dc1"))
+                .WithLoadBalancingPolicy(Policies.NewDefaultLoadBalancingPolicy("dc1"))
                 .WithConsistencyLevel(ConsistencyLevel.LocalOne)
                 .WithSpeculativeExecutionPolicy(new ConstantSpeculativeExecutionPolicy(delay: 50, maxSpeculativeExecutions: 1)))
             .WithProfile("local-quorum", profile => profile
                 .WithConsistencyLevel(ConsistencyLevel.LocalQuorum)
                 .WithSpeculativeExecutionPolicy(new ConstantSpeculativeExecutionPolicy(delay: 100, maxSpeculativeExecutions: 1)))
             .WithProfile("remote-one", profile => profile
-                .WithLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc: "dc2")))
+                .WithLoadBalancingPolicy(Policies.NewDefaultLoadBalancingPolicy("dc2")))
                 .WithConsistencyLevel(ConsistencyLevel.LocalOne)
                 .WithSpeculativeExecutionPolicy(new ConstantSpeculativeExecutionPolicy(delay: 2000, maxSpeculativeExecutions: 1)))
             .WithDerivedProfile("remote-quorum", "remote-one", profile => profile
@@ -152,10 +153,10 @@ var cluster =
 You can obtain `IReadOnlyDictionary` of immutable `IExecutionProfile` instances via the `Configuration.ExecutionProfiles` property.
 
 ```csharp
-var profiles = cluster.Configuration.CassandraConfiguration.ExecutionProfiles;
+var profiles = cluster.Configuration.ExecutionProfiles;
 ```
 
-Note that you can access the `IDseCluster` instance through `IDseSession`:
+Note that you can access the `ICluster` instance through `ISession`:
 
 ```csharp
 var profiles = session.Cluster.Configuration.ExecutionProfiles;

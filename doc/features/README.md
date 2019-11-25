@@ -1,6 +1,6 @@
 # Features
 
-The DataStax Enterprise C# Driver is feature-rich and highly tunable C# client library for [DataStax Enterprise][dse].
+The DataStax C# Driver for Apache Cassandra and DataStax Enterprise is a feature-rich and highly tunable C# client library for Apache Cassandra (2.0+) and DataStax Enterprise (4.5+) using Cassandra's binary protocol and Cassandra Query Language v3.
 
 ## Usage
 
@@ -8,11 +8,11 @@ The DataStax Enterprise C# Driver is feature-rich and highly tunable C# client l
 - [Authentication](auth)
 - [Automatic failover](automatic-failover)
 - [Components](components)
-    - [Core](components/core)
-    - [Linq](components/linq)
-    - [Mapper](components/mapper)
-    - [ADO.NET](components/adonet)
-- [Connecting to DataStax Apollo database](cloud)
+  - [Core](components/core)
+  - [Linq](components/linq)
+  - [Mapper](components/mapper)
+  - [ADO.NET](components/adonet)
+- [Connecting to DataStax Apollo](cloud)
 - [Connection heartbeat](connection-heartbeat)
 - [Connection pooling](connection-pooling)
 - [CQL data types to C# types](datatypes)
@@ -21,8 +21,8 @@ The DataStax Enterprise C# Driver is feature-rich and highly tunable C# client l
 - [Geospatial types support](geotypes)
 - [Graph support](graph-support)
 - [Metrics](metrics)
-    - [App.Metrics Provider](metrics/app-metrics)
-    - [List of metrics](metrics/metrics-list)
+  - [App.Metrics Provider](metrics/app-metrics)
+  - [List of metrics](metrics/metrics-list)
 - [Native protocol](native-protocol)
 - [Parametrized queries](parametrized-queries)
 - [Query timestamps](query-timestamps)
@@ -34,6 +34,3 @@ The DataStax Enterprise C# Driver is feature-rich and highly tunable C# client l
 - [TLS/SSL](tls)
 - [User-defined functions and aggregates](udfs)
 - [User-defined types](udts)
-
-
-[dse]: http://www.datastax.com/products/datastax-enterprise

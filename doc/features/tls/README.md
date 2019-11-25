@@ -1,18 +1,20 @@
 # TLS/SSL
 
-You can secure traffic between the driver and DataStax Enterprise (DSE) with TLS/SSL. There are two aspects to that:
+You can secure traffic between the driver and Apache Cassandra or DataStax Enterprise (DSE) with TLS/SSL. There are two aspects to that:
 
-- Client-to-node encryption, where the traffic is encrypted and the client verifies the identity of the DSE nodes it connects to.
+- Client-to-node encryption, where the traffic is encrypted and the client verifies the identity of the nodes it connects to.
 - Optional client certificate authentication, where DSE nodes also verify the identity of the client.
 
-This section describes the driver-side configuration, it assumes that you've already configured SSL encryption in DSE, you can checkout the [server documentation that covers the basic procedures][client-to-node].
+This section describes the driver-side configuration, it assumes that you've already configured SSL encryption in the server. If you're using DSE, you can checkout the [server documentation that covers the basic procedures to setup SSL with DSE][client-to-node-dse]. If you're using Apache Cassandra, you can checkout the [documentation that covers the setup with Apache Cassandra][client-to-node].
+
+You can find SSL examples on how to configure the driver for both server and client auth in the driver's [Github repository].
 
 ## Driver configuration
 
-Use `DseClusterBuilder.WithSSL()` method to enable client TLS/SSL encryption:
+Use `Builder.WithSSL()` method to enable client TLS/SSL encryption:
 
 ```csharp
-var cluster = DseCluster.Builder()
+var cluster = Cluster.Builder()
     .AddContactPoints(...)
     .WithSSL()
     .Build();
@@ -29,7 +31,7 @@ var cluster = Cluster.Builder()
 
 ### Server authentication
 
-By default, `DseClusterBuilder.WithSSL()` adds a `RemoteCertificateValidationCallback` that logs any errors returned by .NET's SSL API.
+By default, `Builder.WithSSL()` adds a `RemoteCertificateValidationCallback` that logs any errors returned by .NET's SSL API.
 
 If you have a custom (untrusted) root certificate, then there are two ways to provide it: using the system/user store or loading it manually in code.
 
@@ -47,7 +49,7 @@ Here is an example (`CustomValidator` here is a class that you would have to imp
 // custom validator
 var certificateValidator = new CustomValidator(new X509Certificate2(@"C:\path\to\ca.crt"));
 
-var cluster = DseCluster.Builder()
+var cluster = Cluster.Builder()
     .AddContactPoints("...")
     .WithSSL(new SSLOptions().SetRemoteCertValidationCallback(
         (sender, certificate, chain, errors) => certificateValidator.Validate(sender, certificate, chain, errors)))
@@ -59,7 +61,7 @@ var cluster = DseCluster.Builder()
 To enable client authentication, you need to provide the driver the client certificate(s):
 
 ```csharp
-var cluster = DseCluster.Builder()
+var cluster = Cluster.Builder()
     .AddContactPoints("...")
     .WithSSL(new SSLOptions()
         // set client certificate collection
@@ -85,12 +87,13 @@ using (var store = new X509Store(StoreLocation.LocalMachine))
     collection = store.Certificates;
 }
 
-var cluster = DseCluster.Builder()
+var cluster = Cluster.Builder()
     .AddContactPoints("...")
     .WithSSL(new SSLOptions().SetCertificateCollection(collection))
     .Build();
 ```
 
 [certstore]: #certificate-store
-[client-to-node]: https://docs.datastax.com/en/security/6.7/security/encryptClientNodeSSL.html
+[client-to-node-dse]: https://docs.datastax.com/en/security/6.7/security/encryptClientNodeSSL.html
+[client-to-node]: https://docs.datastax.com/en/cassandra/3.0/cassandra/configuration/secureSSLClientToNode.html
 [Github repository]: https://github.com/datastax/csharp-driver/tree/master/examples/Ssl

@@ -1,29 +1,28 @@
 # FAQ
 
-### Which versions of DSE does the driver support?
+## Which versions of Apache Cassandra does the driver support?
+
+The driver supports any Apache Cassandra version from 2.0+.
+
+## Which versions of DSE does the driver support?
 
 The driver supports any [DataStax Enterprise][dse] version from 4.8+.
 
-### How can I upgrade from the Apache Cassandra driver to the DSE driver?
+## How can I upgrade from the DSE driver to the unified DataStax C# driver?
 
-There is a section in the [Getting Started](../getting-started/) page.
+There is a section in the [Upgrade Guide](../upgrade-guide/) to help you in that process.
 
-## Should I create multiple `IDseSession` instances in my client application?
+## Should I create multiple `ISession` instances in my client application?
 
-Normally you should use one `IDseSession` instance per application. You should share that instance between classes within
-your application. In the case you are using CQL and Graph workloads on a single application, it is recommended that
-you use 2 different instances.
+Normally you should use one `ISession` instance per application. You should share that instance between classes within your application. In the case you are using CQL and Graph workloads on a single application, it is recommended that you use different execution profiles on the same session.
 
-### Can I use a single `IDseCluster` and `IDseSession` instance for graph and CQL?
+## Can I use a single `ICluster` and `ISession` instance for graph and CQL?
 
-It's currently not recommended, as different different workloads should be distributed across different datacenters
-and the load balancing policy should select the appropriate coordinator for each workload.
-We are planning to introduce execution profiles, that will allow you to use the same `IDseSession` instance
-for all workloads.
+We recommend using a single session with different execution profiles for each workload, as different different workloads should be distributed across different datacenters and the load balancing policy should select the appropriate coordinator for each workload.
 
-### Should I dispose or shut down `IDseCluster` or `IDseSession` instances after executing a query?
+## Should I dispose or shut down `ICluster` or `ISession` instances after executing a query?
 
-No, only call `cluster.Shutdown()` once in your application's lifetime, normally when you shutdown your application.
+No, only call `cluster.Shutdown()` once in your application's lifetime, normally when you shutdown your application. Note that there is an async version, i.e., `cluster.ShutDownAsync()` which is like an async `Dispose`. Shutting down the `cluster` will automatically shutdown all session instances created by this `cluster`.
 
 ## How can I enable logging in the driver?
 
@@ -35,8 +34,9 @@ You should set the provider before initializing the cluster, using the `Diagnost
 ```csharp
 // Use the provider you prefer, in this case NLog
 ILoggerProvider provider = new NLogLoggerProvider();
+
 // Add it before initializing the Cluster
-Dse.Diagnostics.AddLoggerProvider(provider);
+Cassandra.Diagnostics.AddLoggerProvider(provider);
 ```
 
 You can configure the log levels you want to output using the provider API.
@@ -46,9 +46,10 @@ the .NET Tracing API.
 
 ```csharp
 // Specify the minimum trace level you want to see
-Dse.Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
+Cassandra.Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
+
 // Add a standard .NET trace listener
-Trace.Listeners.Add(new ConsoleTraceListener());
+Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
 ```
 
 ## What is the recommended number of queries that a batch should contain?

@@ -1,8 +1,14 @@
-title:    "DataStax Enterprise C# Driver"
-summary:  "A C# driver built for DataStax Enterprise"
+title:    DataStax C# Driver
+summary:  DataStax C# Driver for Apache Cassandra
 theme:    datastax
 swiftype_drivers: csharpdrivers
 sections:
+  - title:    Changelog
+    prefix:   /changelog
+    type:     markdown
+    files:    'CHANGELOG.md'
+    type:     markdown
+    files:    'doc/features/**/*.md'
   - title:    Features
     prefix:   /features
     type:     markdown
@@ -15,58 +21,65 @@ sections:
     prefix:   /upgrade-guide
     type:     markdown
     files:    'doc/upgrade-guide/**/*.md'
-  - title:    Getting started
-    prefix:   /getting-started
+  - title:    Examples
+    prefix:   /examples
     type:     markdown
-    files:    'doc/getting-started/**/*.md'
-  - title:    Changelog
-    prefix:   /changelog
-    type:     markdown
-    files:    'doc/changelog/**/*.md'
+    files:    'doc/examples/**/*.md'
 links:
+  - title: Code
+    href:  https://github.com/datastax/csharp-driver/
+  - title: API docs
+    href:  http://docs.datastax.com/en/latest-csharp-driver-api/html/N_Cassandra.htm
   - title: Issues
     href:  https://datastax-oss.atlassian.net/projects/CSHARP/issues
   - title: Mailing List
     href:  https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
-  - title: Slack Channel
-    href:  https://academy.datastax.com/slack
+  - title: IRC Channel
+    href:  irc://irc.freenode.net/datastax-drivers
   - title: Nuget
-    href:  https://www.nuget.org/packages/Dse
+    href:  https://www.nuget.org/packages/CassandraCSharpDriver
 api_docs:
-  '1.0': http://docs.datastax.com/en/drivers/csharp-dse/1.0
-  '1.1': http://docs.datastax.com/en/drivers/csharp-dse/1.1
-  '2.0': http://docs.datastax.com/en/drivers/csharp-dse/2.0
-  '2.1': http://docs.datastax.com/en/drivers/csharp-dse/2.1
-  '2.2': http://docs.datastax.com/en/drivers/csharp-dse/2.2
-  '2.3': http://docs.datastax.com/en/drivers/csharp-dse/2.3
-  '2.4': http://docs.datastax.com/en/drivers/csharp-dse/2.4
-  '2.5': http://docs.datastax.com/en/drivers/csharp-dse/2.5
-  '2.6': http://docs.datastax.com/en/drivers/csharp-dse/2.6
-  '2.7': http://docs.datastax.com/en/drivers/csharp-dse/2.7
-  '2.8': http://docs.datastax.com/en/drivers/csharp-dse/2.8
-  '2.9': http://docs.datastax.com/en/drivers/csharp-dse/2.9
+  '3.0': http://docs.datastax.com/en/drivers/csharp/3.0
+  '3.1': http://docs.datastax.com/en/drivers/csharp/3.1
+  '3.2': http://docs.datastax.com/en/drivers/csharp/3.2
+  '3.3': http://docs.datastax.com/en/drivers/csharp/3.3
+  '3.4': http://docs.datastax.com/en/drivers/csharp/3.4
+  '3.5': http://docs.datastax.com/en/drivers/csharp/3.5
+  '3.6': http://docs.datastax.com/en/drivers/csharp/3.6
+  '3.7': http://docs.datastax.com/en/drivers/csharp/3.7
+  '3.8': http://docs.datastax.com/en/drivers/csharp/3.8
+  '3.9': http://docs.datastax.com/en/drivers/csharp/3.9
+  '3.10': http://docs.datastax.com/en/drivers/csharp/3.10
+  '3.11': http://docs.datastax.com/en/drivers/csharp/3.11
+  '3.12': http://docs.datastax.com/en/drivers/csharp/3.12
+checks:
+  external_links:
+    exclude:
+      - 'https://ci.appveyor.com/api/projects/status/ri1olv8bl7b7yk7y/branch/master?svg=true'
 versions:
-  - name: '2.9'
-    ref: '2.9'
-  - name: '2.8'
-    ref: '2.8'
-  - name: '2.7'
-    ref: '2.7'
-  - name: '2.6'
-    ref: '2.6'
-  - name: '2.5'
-    ref: '2.5'
-  - name: '2.4'
-    ref: '2.4'
-  - name: '2.3'
-    ref: '2.3'
-  - name: '2.2'
-    ref: '2.2'
-  - name: '2.1'
-    ref: '2.1'
-  - name: '2.0'
-    ref: '2.0'
-  - name: '1.1'
-    ref: '1.1'
-  - name: '1.0'
-    ref: '1.0'
+  - name: '3.12'
+    ref: '3.12'
+  - name: '3.11'
+    ref: '3.11'
+  - name: '3.10'
+    ref: '3.10'
+  - name: '3.9'
+    ref: '3.9'
+  - name: '3.8'
+    ref: '3.8'
+  - name: '3.7'
+    ref: '3.7'
+  - name: '3.6'
+    ref: '3.6'
+  - name: '3.5'
+    ref: '3.5'
+  - name: '3.4'
+    ref: '3.4'
+  - name: '3.3'
+    ref: '3.3'
+  - name: '3.2'
+    ref: '3.2'
+  - name: '3.1'
+    ref: '3.1'
+  - name: '3.0'
+    ref: '3.0'

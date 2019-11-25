@@ -1,9 +1,6 @@
 # Speculative query execution
 
-Sometimes a DSE node might be experiencing difficulties (for example, long GC pause) and take longer than
-usual to reply. Queries sent to that node experience bad latency. One thing we can do to improve that is pre-emptively
-start a second execution of the query against another node, before the first node has replied or errored out.
-If that second node replies faster, we can send the response back to the client (we also cancel the first query):
+Sometimes a node might be experiencing difficulties (for example, long GC pause) and take longer than usual to reply. Queries sent to that node experience bad latency. One thing we can do to improve that is pre-emptively start a second execution of the query against another node, before the first node has replied or errored out. If that second node replies faster, we can send the response back to the client (we also cancel the first query):
 
 ```
 client           driver          exec1  exec2
@@ -26,8 +23,7 @@ client           driver          exec1  exec2
   |                |------------->|
 ```
 
-Or the first node could reply just after the second execution was started. In this case, we cancel the second execution.
-In other words, whichever node replies faster wins and completes the client query:
+Or the first node could reply just after the second execution was started. In this case, we cancel the second execution. In other words, whichever node replies faster wins and completes the client query:
 
 ```
 client           driver          exec1  exec2
@@ -50,15 +46,11 @@ client           driver          exec1  exec2
   |                |-------------------->|
 ```
 
-Speculative executions are disabled by default. The following sections cover the practical details and how to
-enable them.
+Speculative executions are disabled by default. The following sections cover the practical details and how to enable them.
 
 ## Query idempotence
 
-One important aspect to consider is whether queries are idempotent, (that is, whether they can be applied multiple
-times without changing the result beyond the initial application). If a query is not idempotent, the driver never
-schedules speculative executions for it, because there is no way to guarantee that only one node will apply the
-mutation.
+One important aspect to consider is whether queries are idempotent, (that is, whether they can be applied multiple times without changing the result beyond the initial application). If a query is not idempotent, the driver never schedules speculative executions for it, because there is no way to guarantee that only one node will apply the mutation.
 
 Examples of queries that are not idempotent are:
 
@@ -66,9 +58,7 @@ Examples of queries that are not idempotent are:
 - prepending or appending to a list column
 - using non-idempotent CQL functions, like `now()` or `uuid()`
 
-In the driver, this is determined by [`Statement.IsIdempotent()`][isidempotent-api]. Because the driver does not parse
-query strings, in most cases, it has no information about what the query actually does. Therefore, for all other types
-of statements, it defaults to `false`. You must set it manually with one of the mechanisms described below.
+In the driver, this is determined by [`Statement.IsIdempotent()`][isidempotent-api]. Because the driver does not parse query strings, in most cases, it has no information about what the query actually does. Therefore, for all other types of statements, it defaults to `false`. You must set it manually with one of the mechanisms described below.
 
 You can override the value on each statement:
 
@@ -77,9 +67,7 @@ var s = new SimpleStatement("SELECT * FROM users WHERE id = 1");
 s.SetIdempotence(true);
 ```
 
-Note: This also works for built statements (and it overrides the computed value). Additionally, if you know for a fact
-that your application does not use any of the non-idempotent CQL queries listed above, you can change the default
-cluster-wide:
+Note: This also works for built statements (and it overrides the computed value). Additionally, if you know for a fact that your application does not use any of the non-idempotent CQL queries listed above, you can change the default cluster-wide:
 
 ```csharp
 // Make all statements idempotent by default:
@@ -90,7 +78,7 @@ var cluster = Cluster.Builder()
     .Build();
 ```
 
-## Enabling speculative execution 
+## Enabling speculative execution
 
 Speculative executions are controlled by an instance of `ISpeculativeExecutionPolicy` provided when initializing the
 Cluster. This policy defines the threshold after which a new speculative execution is triggered.

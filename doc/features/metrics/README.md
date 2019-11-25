@@ -13,7 +13,7 @@ There are two categories of metrics:
 
 **Metric names** are path-like, dot-separated strings. An example is `errors.connection.init`. Metrics are represented by the classes `SessionMetric` and `NodeMetric`. These classes have `public static readonly` properties with all individual metrics that can be enabled on the driver. For instance, `NodeMetric.Counters.ConnectionInitErrors` is a `NodeMetric` object with a `Name` property that returns `errors.connection.init`.
 
-Metrics are grouped into **buckets** and each bucket has a name. The most common scenario is to concatenate the bucket name with the metric name which is what the [App.Metrics provider] does. The bucket name is the name of the session (see `DseClusterBuilder.WithSessionName()`) and, in the case of node-level metrics, nodes followed by a textual representation of the node’s address. If the client application specifies a bucket prefix with `DriverMetricsOptions.SetBucketPrefix()`, the driver will prepend that prefix to the bucket name.
+Metrics are grouped into **buckets** and each bucket has a name. The most common scenario is to concatenate the bucket name with the metric name which is what the [App.Metrics provider] does. The bucket name is the name of the session (see `Builder.WithSessionName()`) and, in the case of node-level metrics, nodes followed by a textual representation of the node’s address. If the client application specifies a bucket prefix with `DriverMetricsOptions.SetBucketPrefix()`, the driver will prepend that prefix to the bucket name.
 
 Here is an example of a session metric and a node metric without a bucket prefix and how their structure looks like:
 
@@ -31,11 +31,11 @@ Here are the same examples but with a bucket prefix set in the `Builder`:
 
 ## Configuration
 
-Metrics are disabled by default. To enable them, use `DseClusterBuilder.WithMetrics()` method when creating the session.
+Metrics are disabled by default. To enable them, use `Builder.WithMetrics()` method when creating the session.
 
-When `DseClusterBuilder.WithMetrics(provider)` is called, the default metrics will be enabled. The default metrics are composed of every metric except those of type `Timer`. The reasoning behind this is the fact that enabling `Timer` metrics might increase CPU usage and impact throughput of the driver, so it's recommended to benchmark the client application with `Timer` metrics enabled before enabling them in production.
+When `Builder.WithMetrics(provider)` is called, the default metrics will be enabled. The default metrics are composed of every metric except those of type `Timer`. The reasoning behind this is the fact that enabling `Timer` metrics might increase CPU usage and impact throughput of the driver, so it's recommended to benchmark the client application with `Timer` metrics enabled before enabling them in production.
 
-`DseClusterBuilder.WithMetrics(IDriverMetricsProvider,DriverMetricsOptions)` can be used to customize options related to metrics. `DriverMetricsOptions.SetEnabledNodeMetrics()` and `DriverMetricsOptions.SetEnabledSessionMetrics()` can be used to specify which metrics should be enabled. **Note that this will override the default enabled metrics**, i.e., if you want to enable `Timer` metrics on top of the default metrics then all metrics must be specified. `SessionMetric` and `NodeMetric` have a couple of `static` properties to make it easier to specify which metrics to enable. Here are some examples:
+`Builder.WithMetrics(IDriverMetricsProvider,DriverMetricsOptions)` can be used to customize options related to metrics. `DriverMetricsOptions.SetEnabledNodeMetrics()` and `DriverMetricsOptions.SetEnabledSessionMetrics()` can be used to specify which metrics should be enabled. **Note that this will override the default enabled metrics**, i.e., if you want to enable `Timer` metrics on top of the default metrics then all metrics must be specified. `SessionMetric` and `NodeMetric` have a couple of `static` properties to make it easier to specify which metrics to enable. Here are some examples:
 
 ```csharp
 // Enable all session metrics
@@ -111,6 +111,8 @@ long bytesSent = counterAppMetrics.GetValue();
 
 ## Providing your own implementation of `IDriverMetricsProvider`
 
+If you want to use the driver's metrics feature with another third party library or even your own metrics implementation, you can look at our [provider's code] as an example on how to implement a provider.
+
 There is no specific requirement for the implementation but note that the performance of the methods declared in `IDriverMetricsProvider` will affect the performance of the driver if metrics are enabled.
 
 The instances returned by the `IDriverMetricsProvider` methods will be exposed by the generic API described in the [previous section](#Retrieving-Metrics).
@@ -120,3 +122,4 @@ The instances returned by the `IDriverMetricsProvider` methods will be exposed b
 [App.Metrics provider]: app-metrics
 [App.Metrics based implementation on a separate extension nuget package]: app-metrics
 [the manual section related to this provider]: app-metrics
+[provider's code]: https://github.com/datastax/csharp-driver/tree/master/src/Extensions/Cassandra.AppMetrics
