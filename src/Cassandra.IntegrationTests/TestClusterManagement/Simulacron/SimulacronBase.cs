@@ -115,10 +115,14 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             return Get(GetPath("log"));
         }
 
+        public Task<dynamic> PrimeAsync(dynamic body)
+        {
+            return Post(GetPath("prime"), body);
+        }
+
         public dynamic Prime(dynamic body)
         {
-            Task<dynamic> task = Post(GetPath("prime"), body);
-            return TaskHelper.WaitToComplete(task);
+            return TaskHelper.WaitToComplete(PrimeAsync(body));
         }
 
         protected string GetPath(string endpoint)

@@ -464,14 +464,13 @@ namespace Cassandra
             var sessions = _connectedSessions.ClearAndGet();
             try
             {
-                var task = Task.Run(async () =>
+                var tasks = new List<Task>();
+                foreach (var s in sessions)
                 {
-                    foreach (var s in sessions)
-                    {
-                        await s.ShutdownAsync().ConfigureAwait(false);
-                    }
-                }).WaitToCompleteAsync(timeoutMs);
-                await task.ConfigureAwait(false);
+                    tasks.Add(s.ShutdownAsync());
+                }
+
+                await Task.WhenAll(tasks).WaitToCompleteAsync(timeoutMs).ConfigureAwait(false);
             }
             catch (AggregateException ex)
             {
