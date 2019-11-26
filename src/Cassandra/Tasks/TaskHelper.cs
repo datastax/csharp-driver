@@ -181,6 +181,12 @@ namespace Cassandra.Tasks
         public static async Task WaitToCompleteAsync(this Task task, int timeout = Timeout.Infinite)
         {
             //It should wait and throw any exception
+            if (timeout == Timeout.Infinite)
+            {
+                await task.ConfigureAwait(false);
+                return;
+            }
+
             try
             {
                 var timeoutTask = Task.Delay(TimeSpan.FromMilliseconds(timeout));

@@ -481,8 +481,8 @@ namespace Cassandra
                 throw;
             }
             _metadata.ShutDown(timeoutMs);
-            await _protocolEventDebouncer.ShutdownAsync().WaitToCompleteAsync(timeoutMs).ConfigureAwait(false);
             _controlConnection.Dispose();
+            await _protocolEventDebouncer.ShutdownAsync().ConfigureAwait(false);
             Configuration.Timer.Dispose();
 
             // Dispose policies
