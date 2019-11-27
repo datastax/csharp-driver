@@ -21,9 +21,9 @@ You can provide a different generator when building the `ICluster` instance:
 
 ```csharp
 var cluster = Cluster.Builder()
-                        .WithTimestampGenerator(generator)
-                        .AddContactPoint("host1")
-                        .Build()
+                     .WithTimestampGenerator(generator)
+                     .AddContactPoint("host1")
+                     .Build()
 ```
 
 To implement a custom timestamp generator, you must implement `ITimestampGenerator` interface.

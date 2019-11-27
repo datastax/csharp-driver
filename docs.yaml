@@ -7,8 +7,6 @@ sections:
     prefix:   /changelog
     type:     markdown
     files:    'CHANGELOG.md'
-    type:     markdown
-    files:    'doc/features/**/*.md'
   - title:    Features
     prefix:   /features
     type:     markdown

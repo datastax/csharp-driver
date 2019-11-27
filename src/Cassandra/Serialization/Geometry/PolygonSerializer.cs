@@ -17,7 +17,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Cassandra;
 using Cassandra.Geometry;
 
 namespace Cassandra.Serialization.Geometry

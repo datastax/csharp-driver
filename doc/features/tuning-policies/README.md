@@ -10,6 +10,7 @@ The load balancing policy interface consists of three methods:
 
 The driver includes these implementations:
 
+- `DefaultLoadBalancingPolicy`
 - `DCAwareRoundRobinPolicy`
 - `RoundRobinPolicy`
 - `TokenAwarePolicy`

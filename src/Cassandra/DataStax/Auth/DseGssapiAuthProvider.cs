@@ -61,7 +61,7 @@ namespace Cassandra.DataStax.Auth
         public IAuthenticator NewAuthenticator(IPEndPoint host)
         {
             var hostName = _hostNameResolver(host);
-            return new GssapiAuthenticator(_name, hostName, _service);
+            return new GssapiDseAuthenticator(_name, hostName, _service);
         }
 
         /// <inheritdoc />
@@ -91,13 +91,13 @@ namespace Cassandra.DataStax.Auth
             return hostEntry.HostName;
         }
 
-        private class GssapiAuthenticator : BaseAuthenticator, IDisposable
+        private class GssapiDseAuthenticator : BaseDseAuthenticator, IDisposable
         {
             private readonly string _hostName;
             private readonly string _service;
             private readonly IGssapiClient _client;
 
-            public GssapiAuthenticator(string authenticatorName, string hostName, string service) : 
+            public GssapiDseAuthenticator(string authenticatorName, string hostName, string service) : 
                 base(authenticatorName)
             {
                 _hostName = hostName;

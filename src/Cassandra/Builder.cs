@@ -1021,7 +1021,7 @@ namespace Cassandra
 
         /// <summary>
         /// Configures options related to Monitor Reporting for the new cluster.
-        /// By default, Monitor Reporting is enabled.
+        /// By default, Monitor Reporting is enabled for server types and versions that support it.
         /// </summary>
         /// <returns>This Builder.</returns>
         public Builder WithMonitorReporting(bool enabled)
@@ -1031,7 +1031,7 @@ namespace Cassandra
 
         /// <summary>
         /// Configures options related to Monitor Reporting for the new cluster.
-        /// By default, Monitor Reporting is enabled.
+        /// By default, Monitor Reporting is enabled server types and versions that support it.
         /// </summary>
         /// <returns>This Builder.</returns>
         internal Builder WithMonitorReporting(MonitorReportingOptions options)

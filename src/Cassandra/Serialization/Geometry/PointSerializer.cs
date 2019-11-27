@@ -15,7 +15,6 @@
 //
 
 using System;
-using Cassandra;
 using Cassandra.Geometry;
 
 namespace Cassandra.Serialization.Geometry

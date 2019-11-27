@@ -22,57 +22,33 @@ namespace Cassandra
     /// <summary>
     /// A load balancing policy designed to run against both DSE and Apache Cassandra clusters.
     /// <para>
-    ///  For most workloads, the query plan will be determined by the child load balancing policy (by default, TokenAwarePolicy(DCAwareRoundRobinPolicy)).
+    ///  For most workloads, the query plan will be determined in a similar way to TokenAwarePolicy(DCAwareRoundRobinPolicy).
     /// </para>
     /// <para>
     ///  For graph analytics queries, this policy sets the preferred analytics graph server
     ///  previously obtained by driver as the first host in the query plan. After this host, the query plan is the same as the one
-    /// returned by the child policy.
+    /// returned for other workloads.
     /// </para>
     /// </summary>
     public class DefaultLoadBalancingPolicy : ILoadBalancingPolicy
     {
-        private const string ChildPolicyMessage =
-            "The ability to provide a custom child policy to the default load balancing policy is going away" +
-            "in the next major version of the driver.";
-
-        private const string UsedHostsPerRemoteDcObsoleteMessage =
-            "The usedHostsPerRemoteDc parameter will be removed in the next major release of the driver. " +
-            "DC failover should not be done in the driver, which does not have the necessary context to know " +
-            "what makes sense considering application semantics. See https://datastax-oss.atlassian.net/browse/CSHARP-722";
-
         private volatile Host _lastPreferredHost;
 
         /// <summary>
         /// Creates a new instance of <see cref="DefaultLoadBalancingPolicy"/> wrapping the provided child policy.
         /// </summary>
-        [Obsolete(DefaultLoadBalancingPolicy.ChildPolicyMessage)]
-        public DefaultLoadBalancingPolicy(ILoadBalancingPolicy childPolicy)
+        internal DefaultLoadBalancingPolicy(ILoadBalancingPolicy childPolicy)
         {
             ChildPolicy = childPolicy ?? throw new ArgumentNullException(nameof(childPolicy));
         }
-
+        
         /// <summary>
-        /// Creates a new instance of <see cref="DefaultLoadBalancingPolicy"/> given the name of the local datacenter and
-        /// the amount of host per remote datacenter to use for failover for the local hosts.
+        ///  Creates a new datacenter aware round robin policy given the name of the local
+        ///  datacenter. <p> The name of the local datacenter provided must be the local
+        ///  datacenter name as known by the server. </p><p> The policy created will ignore all
+        ///  remote hosts.</p>
         /// </summary>
-        /// <param name="localDc">The name of the local datacenter (case-sensitive)</param>
-        /// <param name="usedHostsPerRemoteDc">
-        /// The amount of host per remote datacenter that the policy should yield in a new query plan after the local
-        /// nodes. Note that this parameter will be removed in the next major version of the driver.
-        /// </param>
-        [Obsolete(DefaultLoadBalancingPolicy.UsedHostsPerRemoteDcObsoleteMessage)]
-        public DefaultLoadBalancingPolicy(string localDc, int usedHostsPerRemoteDc)
-        {
-#pragma warning disable 618
-            ChildPolicy = new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc, usedHostsPerRemoteDc));
-#pragma warning restore 618
-        }
-
-        /// <summary>
-        /// Creates a new instance of <see cref="DefaultLoadBalancingPolicy"/> given the name of the local datacenter.
-        /// </summary>
-        /// <param name="localDc">The name of the local datacenter (case-sensitive)</param>
+        /// <param name="localDc"> the name of the local datacenter (as known by Cassandra).</param>
         public DefaultLoadBalancingPolicy(string localDc)
         {
             ChildPolicy = new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc));
@@ -81,8 +57,12 @@ namespace Cassandra
         internal ILoadBalancingPolicy ChildPolicy { get; }
         
         /// <summary>
-        /// Returns the distance as determined by the child policy.
+        ///  Return the HostDistance for the provided host. This policy consider nodes
+        ///  in the local datacenter as <c>Local</c> and the rest
+        ///  is <c>Ignored</c>.
         /// </summary>
+        /// <param name="host"> the host of which to return the distance of. </param>
+        /// <returns>the HostDistance to <c>host</c>.</returns>
         public HostDistance Distance(Host host)
         {
             var lastPreferredHost = _lastPreferredHost;

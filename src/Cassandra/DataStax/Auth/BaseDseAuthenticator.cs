@@ -20,12 +20,12 @@ namespace Cassandra.DataStax.Auth
     /// Base class for Authenticator implementations that want to make use of
     /// the authentication scheme negotiation in the DseAuthenticator
     /// </summary>
-    internal abstract class BaseAuthenticator : IAuthenticator
+    internal abstract class BaseDseAuthenticator : IAuthenticator
     {
         private readonly string _name;
         private const string DseAuthenticatorName = "com.datastax.bdp.cassandra.auth.DseAuthenticator";
 
-        protected BaseAuthenticator(string name)
+        protected BaseDseAuthenticator(string name)
         {
             _name = name;
         }
@@ -49,7 +49,7 @@ namespace Cassandra.DataStax.Auth
 
         protected bool IsDseAuthenticator()
         {
-            return _name == BaseAuthenticator.DseAuthenticatorName;
+            return _name == BaseDseAuthenticator.DseAuthenticatorName;
         }
     }
 }

@@ -14,8 +14,6 @@
 //   limitations under the License.
 //
 
-using Cassandra.Serialization;
-
 namespace Cassandra.Serialization.Geometry
 {
     internal abstract class GeometrySerializer<T> : TypeSerializer<T>

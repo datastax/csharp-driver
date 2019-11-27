@@ -75,7 +75,7 @@ namespace Cassandra.DataStax.Auth
         /// <inheritdoc />
         public IAuthenticator NewAuthenticator(IPEndPoint host)
         {
-            return new PlainTextAuthenticator(_name, Username, _password, _authorizationId);
+            return new PlainTextDseAuthenticator(_name, Username, _password, _authorizationId);
         }
 
         /// <inheritdoc />
@@ -84,13 +84,13 @@ namespace Cassandra.DataStax.Auth
             _name = name;
         }
 
-        private class PlainTextAuthenticator : BaseAuthenticator
+        private class PlainTextDseAuthenticator : BaseDseAuthenticator
         {
             private readonly byte[] _username;
             private readonly byte[] _password;
             private readonly byte[] _authorizationId = new byte[0];
 
-            public PlainTextAuthenticator(string authenticatorName, string username, string password,
+            public PlainTextDseAuthenticator(string authenticatorName, string username, string password,
                 string authorizationId) : base(authenticatorName)
             {
                 _username = Encoding.UTF8.GetBytes(username);

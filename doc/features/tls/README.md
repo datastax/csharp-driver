@@ -3,7 +3,7 @@
 You can secure traffic between the driver and Apache Cassandra or DataStax Enterprise (DSE) with TLS/SSL. There are two aspects to that:
 
 - Client-to-node encryption, where the traffic is encrypted and the client verifies the identity of the nodes it connects to.
-- Optional client certificate authentication, where DSE nodes also verify the identity of the client.
+- Optional client certificate authentication, where server nodes also verify the identity of the client.
 
 This section describes the driver-side configuration, it assumes that you've already configured SSL encryption in the server. If you're using DSE, you can checkout the [server documentation that covers the basic procedures to setup SSL with DSE][client-to-node-dse]. If you're using Apache Cassandra, you can checkout the [documentation that covers the setup with Apache Cassandra][client-to-node].
 
