@@ -51,41 +51,13 @@ Example: `3.4.1`
 
 These releases only contain bug fixes so they will never contain changes to the driver's public API.
 
-## 3.13 - Driver unification
+## TBD - Unified driver
 
-This release introduced several additions to the public API of the driver. These new classes, methods and properties were merged to this driver from the DataStax Enterprise C# Driver as part of our initiative to unify both drivers.
+A new load balancing policy has been added: `DefaultLoadBalancingPolicy`. This is the new default load balancing policy in the driver. The behavior is the same as the previous default policy except for some DSE specific workloads so there is no impact for existing applications.
 
-The default load balancing policy has been changed. See the first paragraph of [this section](#removed-classes-and-interfaces) for more information.
+This driver now supports all DataStax products and features, such as Unified Authentication, Kerberos, geo types and graph traversal executions, allowing you to use a single driver for Apache Cassandra, DSE or other DataStax products.
 
-### Moving from the DataStax Enterprise C# Driver
-
-#### Changes to default settings
-
-The default retry policy in `DseClusterBuilder` was `new IdempotencyAwareRetryPolicy(new DefaultRetryPolicy())`. With `Builder` the default is `new DefaultRetryPolicy()`.
-
-#### Removed classes and interfaces
-
-`DseLoadBalancingPolicy` is now `DefaultLoadBalancingPolicy`. This is the new default load balancing policy in this driver. The behavior is the same as the previous default policy except for DSE workloads so there is no impact for existing applications.
-
-`DefaultLoadBalancingPolicy.CreateDefault` has been replaced by `Policies.DefaultLoadBalancingPolicy` and `Policies.NewDefaultLoadBalancingPolicy`.
-
-The constructor of `DefaultLoadBalancingPolicy` that receives a child policy has been deprecated and marked with the `Obsolete` attribute. In the next major version of the driver, it won't be possible to pass a custom child load balancing policy to the `DefaultLoadBalancingPolicy`.
-
-`DseClusterBuilder` has been removed. These builder methods were moved to `Builder`. Note that `DseClusterBuilder.WithCredentials` added an instance of `DsePlainTextAuthenticator` but `Builder.WithCredentials` adds an instance of `PlainTextAuthenticator`. If you wish to use `DsePlainTextAuthenticator` you need to use another builder method: `Builder.WithAuthProvider(new DsePlainTextAuthenticator(username, password))`.
-
-`DseConfiguration` has been removed. These class properties were moved to `Configuration`.
-
-`IDseSession`/`DseSession` has been removed. `ExecuteGraph` and `ExecuteGraphAsync` methods were moved to `ISession`/`Session`.
-
-`IDseCluster`/`DseCluster` have been removed. Use `ICluster`/`Cluster` instead.
-
-The namespaces associated with Auth, Graph and Search were moved:
-
-|`Dse` namespace  | `Cassandra` namespace  |
-|--|--|
-|`Dse.Auth`|`Cassandra.DataStax.Auth`|
-|`Dse.Graph`|`Cassandra.DataStax.Graph`|
-|`Dse.Search`|`Cassandra.DataStax.Search`|
+If you're upgrading from the DSE driver, checkout [this guide](upgrade-from-dse-driver)
 
 ## 3.10
 
