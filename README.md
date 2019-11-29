@@ -1,6 +1,8 @@
 # DataStax C# Driver for Apache Cassandra
 
-A modern, [feature-rich][features] and highly tunable C# client library for Apache Cassandra (2.0+) using exclusively Cassandra's binary protocol and Cassandra Query Language v3. It also provides additional features for [DataStax Enterprise][dse]:
+A modern, [feature-rich][features] and highly tunable C# client library for Apache Cassandra (2.0+) using Cassandra's binary protocol and Cassandra Query Language v3.
+
+It also provides additional features for [DataStax Enterprise][dse]:
 
 - `IAuthenticator` implementations that use the authentication scheme negotiation in the server-side `DseAuthenticator`.
 - [DSE graph][dse-graph] integration.
@@ -48,7 +50,7 @@ You can use the project [Mailing list][mailinglist] or create a ticket on the [J
 
 If you are upgrading from previous versions of the driver, [visit the Upgrade Guide][upgrade-guide].
 
-If you are transitioning to this driver from the [DSE C# driver][dse-driver] (which has been unified with this driver), there's also a section related to this on the [Upgrade Guide][upgrade-guide].
+If you are upgrading from the [DSE C# driver][dse-driver] (which has been unified with this driver), there's also a section related to this on the [Upgrade Guide][upgrade-guide-dse].
 
 ## Basic Usage
 
@@ -410,6 +412,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 [components]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/components/
 [policies]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/tuning-policies/
 [upgrade-guide]: https://docs.datastax.com/en/developer/csharp-driver/latest/upgrade-guide/
+[upgrade-guide-dse]: https://docs.datastax.com/en/developer/csharp-driver/latest/upgrade-guide/upgrade-from-dse-driver/
 [survey]: https://goo.gl/forms/3BxcP8nKs6
 [dse-driver]: https://docs.datastax.com/en/developer/csharp-driver-dse/latest/
 [community]: https://community.datastax.com
