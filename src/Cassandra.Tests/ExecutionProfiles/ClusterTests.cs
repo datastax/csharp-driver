@@ -100,8 +100,8 @@ namespace Cassandra.Tests.ExecutionProfiles
                 .Setup(i => i.GetConfiguration())
                 .Returns(testConfig);
             
-            var dseCluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
-            dseCluster.Connect();
+            var cluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
+            cluster.Connect();
             
             Assert.IsTrue(lbps.All(lbp => lbp.InitializeCount == 1));
             Assert.IsTrue(seps.All(sep => sep.InitializeCount == 1));
@@ -131,8 +131,8 @@ namespace Cassandra.Tests.ExecutionProfiles
                 .Setup(i => i.GetConfiguration())
                 .Returns(testConfig);
             
-            var dseCluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
-            dseCluster.Connect();
+            var cluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
+            cluster.Connect();
 
             Assert.AreEqual(1, lbp.InitializeCount);
             Assert.AreEqual(1, sep.InitializeCount);
@@ -201,9 +201,9 @@ namespace Cassandra.Tests.ExecutionProfiles
                 .Setup(i => i.GetConfiguration())
                 .Returns(testConfig);
             
-            var dseCluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
-            dseCluster.Connect();
-            dseCluster.Dispose();
+            var cluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
+            cluster.Connect();
+            cluster.Dispose();
 
             Assert.IsTrue(seps.All(sep => sep.DisposeCount == 1));
         }
@@ -232,9 +232,9 @@ namespace Cassandra.Tests.ExecutionProfiles
                 .Setup(i => i.GetConfiguration())
                 .Returns(testConfig);
             
-            var dseCluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
-            dseCluster.Connect();
-            dseCluster.Dispose();
+            var cluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
+            cluster.Connect();
+            cluster.Dispose();
 
             Assert.AreEqual(1, sep.DisposeCount);
         }

@@ -10,7 +10,7 @@ The driver supports any [DataStax Enterprise][dse] version from 4.8+.
 
 ## How can I upgrade from the DSE driver to the unified DataStax C# driver?
 
-There is a section in the [Upgrade Guide](../upgrade-guide/) to help you in that process.
+There is a section in the [Upgrade Guide](../upgrade-guide/upgrade-from-dse-driver) to help you in that process.
 
 ## Should I create multiple `ISession` instances in my client application?
 
