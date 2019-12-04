@@ -93,7 +93,7 @@ namespace Cassandra.Tests
             return new Mock<HostConnectionPool>(
                 host, 
                 config, 
-                new SerializerManager(ProtocolVersion.MaxSupported), 
+                new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer(), 
                 new MetricsObserverFactory(new MetricsManager(new NullDriverMetricsProvider(), new DriverMetricsOptions(), false, "s1")));
         }
 
@@ -131,7 +131,7 @@ namespace Cassandra.Tests
             var config = new Configuration();
             var connectionMock = new Mock<Connection>(
                 MockBehavior.Loose, 
-                new SerializerManager(ProtocolVersion.MaxSupported), 
+                new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer(), 
                 new ConnectionEndPoint(HostConnectionPoolTests.Address, null), 
                 config, 
                 new StartupRequestFactory(config.StartupOptionsFactory),
