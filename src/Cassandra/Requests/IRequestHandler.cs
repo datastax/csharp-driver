@@ -33,7 +33,7 @@ namespace Cassandra.Requests
 
         IExtendedRetryPolicy RetryPolicy { get; }
 
-        Serializer Serializer { get; }
+        ISerializer Serializer { get; }
 
         IStatement Statement { get; }
 

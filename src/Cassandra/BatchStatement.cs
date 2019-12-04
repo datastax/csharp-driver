@@ -72,7 +72,7 @@ namespace Cassandra
                 var serializer = Serializer;
                 if (serializer == null)
                 {
-                    serializer = Serializer.Default;
+                    serializer = Serialization.SerializerManager.Default.GetCurrentSerializer();
                     Logger.Warning(
                         "Calculating routing key before executing is not supported for BatchStatement instances, " +
                         "using default serializer.");
@@ -104,7 +104,7 @@ namespace Cassandra
             }
         }
 
-        internal Serializer Serializer { get; set; }
+        internal ISerializer Serializer { get; set; }
 
         /// <summary>
         ///  Set the routing key for this query. <p> This method allows to manually

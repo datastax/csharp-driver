@@ -32,9 +32,9 @@ namespace Cassandra
         private readonly ConcurrentDictionary<Type, UdtMap> _udtByNetType;
         private readonly IInternalCluster _cluster;
         private readonly IInternalSession _session;
-        private readonly Serializer _serializer;
+        private readonly ISerializerManager _serializer;
 
-        internal UdtMappingDefinitions(IInternalSession session, Serializer serializer)
+        internal UdtMappingDefinitions(IInternalSession session, ISerializerManager serializer)
         {
             _udtByNetType = new ConcurrentDictionary<Type, UdtMap>();
             _cluster = session.InternalCluster;
@@ -76,7 +76,7 @@ namespace Cassandra
             foreach (var map in udtMaps)
             {
                 var udtDefition = await GetDefinitionAsync(map.Keyspace ?? sessionKeyspace, map).ConfigureAwait(false);
-                map.SetSerializer(_serializer);
+                map.SetSerializer(_serializer.GetCurrentSerializer());
                 map.Build(udtDefition);
                 _serializer.SetUdtMap(udtDefition.Name, map);
                 _udtByNetType.AddOrUpdate(map.NetType, map, (k, oldValue) => map);

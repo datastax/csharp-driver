@@ -98,7 +98,7 @@ namespace Cassandra.Tests
                 .Returns(enumerable);
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
-            var sut = new RequestHandler(sessionMock, new Serializer(ProtocolVersion.V4));
+            var sut = new RequestHandler(sessionMock, new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer());
             Assert.Throws<NoHostAvailableException>(() => sut.GetNextValidHost(triedHosts));
         }
 
@@ -119,7 +119,7 @@ namespace Cassandra.Tests
                 .Returns(enumerable);
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
-            var sut = new RequestHandler(sessionMock, new Serializer(ProtocolVersion.V4));
+            var sut = new RequestHandler(sessionMock, new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer());
             Assert.Throws<NoHostAvailableException>(() => sut.GetNextValidHost(triedHosts));
         }
 
@@ -141,7 +141,7 @@ namespace Cassandra.Tests
             Mock.Get(lbpMock).Setup(m => m.Distance(host)).Returns(HostDistance.Local);
             var triedHosts = new Dictionary<IPEndPoint, Exception>();
 
-            var sut = new RequestHandler(sessionMock, new Serializer(ProtocolVersion.V4));
+            var sut = new RequestHandler(sessionMock, new SerializerManager(ProtocolVersion.V4).GetCurrentSerializer());
             var validHost = sut.GetNextValidHost(triedHosts);
             Assert.NotNull(validHost);
             Assert.AreEqual(host, validHost.Host);

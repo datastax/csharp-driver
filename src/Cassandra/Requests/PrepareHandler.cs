@@ -33,9 +33,9 @@ namespace Cassandra.Requests
     {
         internal static readonly Logger Logger = new Logger(typeof(PrepareHandler));
 
-        private readonly Serializer _serializer;
+        private readonly ISerializer _serializer;
 
-        public PrepareHandler(Serializer serializer)
+        public PrepareHandler(ISerializer serializer)
         {
             _serializer = serializer;
         }

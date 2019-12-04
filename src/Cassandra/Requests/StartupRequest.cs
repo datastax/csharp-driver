@@ -32,7 +32,7 @@ namespace Cassandra.Requests
             _options = startupOptions ?? throw new ArgumentNullException(nameof(startupOptions));
         }
 
-        public int WriteFrame(short streamId, MemoryStream stream, Serializer serializer)
+        public int WriteFrame(short streamId, MemoryStream stream, ISerializer serializer)
         {
             var wb = new FrameWriter(stream, serializer);
             wb.WriteFrameHeader(0x00, streamId, StartupRequest.OpCode);

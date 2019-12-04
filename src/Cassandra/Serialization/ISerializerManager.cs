@@ -14,18 +14,23 @@
 //   limitations under the License.
 //
 
-using Cassandra.ExecutionProfiles;
-using Cassandra.Serialization;
-using Cassandra.SessionManagement;
-
-namespace Cassandra.Requests
+namespace Cassandra.Serialization
 {
-    internal interface IRequestHandlerFactory
+    internal interface ISerializerManager
     {
-        IRequestHandler Create(IInternalSession session, ISerializer serializer, IRequest request, IStatement statement, IRequestOptions options);
+        ProtocolVersion CurrentProtocolVersion { get; }
 
-        IRequestHandler Create(IInternalSession session, ISerializer serializer, IStatement statement, IRequestOptions options);
+        void ChangeProtocolVersion(ProtocolVersion version);
 
-        IRequestHandler Create(IInternalSession session, ISerializer serializer);
+        /// <summary>
+        /// Get a serializer for the current protocol version.
+        /// </summary>
+        /// <returns></returns>
+        ISerializer GetCurrentSerializer();
+
+        ///// <summary>
+        ///// Adds a UDT mapping definition
+        ///// </summary>
+        void SetUdtMap(string name, UdtMap map);
     }
 }

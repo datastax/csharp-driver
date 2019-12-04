@@ -67,7 +67,7 @@ namespace Cassandra.Connections
         }
 
         private readonly Configuration _config;
-        private readonly Serializer _serializer;
+        private readonly ISerializer _serializer;
         private readonly IObserverFactory _observerFactory;
         private readonly CopyOnWriteList<IConnection> _connections = new CopyOnWriteList<IConnection>();
         private readonly HashedWheelTimer _timer;
@@ -106,7 +106,7 @@ namespace Cassandra.Connections
         public IConnection[] ConnectionsSnapshot => _connections.GetSnapshot();
 
 
-        public HostConnectionPool(Host host, Configuration config, Serializer serializer, IObserverFactory observerFactory)
+        public HostConnectionPool(Host host, Configuration config, ISerializer serializer, IObserverFactory observerFactory)
         {
             _host = host;
             _host.Down += OnHostDown;

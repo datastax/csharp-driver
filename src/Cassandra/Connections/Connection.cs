@@ -48,7 +48,6 @@ namespace Cassandra.Connections
 
         private static readonly Logger Logger = new Logger(typeof(Connection));
 
-        private readonly Serializer _serializer;
         private readonly IStartupRequestFactory _startupRequestFactory;
         private readonly ITcpSocket _tcpSocket;
         private long _disposed;
@@ -82,7 +81,7 @@ namespace Cassandra.Connections
         /// </summary>
         private byte[] _minHeaderBuffer;
 
-        private byte _frameHeaderSize;
+        private int _frameHeaderSize;
         private MemoryStream _readStream;
         private FrameHeader _receivingHeader;
         private int _writeState = Connection.WriteStateInit;
@@ -112,6 +111,8 @@ namespace Cassandra.Connections
 
         private const string IdleQuery = "SELECT key from system.local";
         private const long CoalescingThreshold = 8000;
+
+        public ISerializer Serializer { get; private set; }
 
         public IFrameCompressor Compressor { get; set; }
 
@@ -166,7 +167,7 @@ namespace Cassandra.Connections
         {
             get
             {
-                if (!_serializer.ProtocolVersion.Uses2BytesStreamIds())
+                if (!Serializer.ProtocolVersion.Uses2BytesStreamIds())
                 {
                     return 128;
                 }
@@ -182,13 +183,13 @@ namespace Cassandra.Connections
         public Configuration Configuration { get; set; }
 
         internal Connection(
-            Serializer serializer,
+            ISerializer serializer,
             IConnectionEndPoint endPoint,
             Configuration configuration,
             IStartupRequestFactory startupRequestFactory,
             IConnectionObserver connectionObserver)
         {
-            _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
+            Serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
             Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _startupRequestFactory = startupRequestFactory ?? throw new ArgumentNullException(nameof(startupRequestFactory));
             _tcpSocket = new TcpSocket(endPoint, configuration.SocketOptions, configuration.ProtocolOptions.SslOptions);
@@ -217,7 +218,7 @@ namespace Cassandra.Connections
         {
             //Determine which authentication flow to use.
             //Check if its using a C* 1.2 with authentication patched version (like DSE 3.1)
-            var protocolVersion = _serializer.ProtocolVersion;
+            var protocolVersion = Serializer.ProtocolVersion;
             var isPatchedVersion = protocolVersion == ProtocolVersion.V1 &&
                 !(Configuration.AuthProvider is NoneAuthProvider) && Configuration.AuthInfoProvider == null;
             if (protocolVersion == ProtocolVersion.V1 && !isPatchedVersion)
@@ -465,7 +466,7 @@ namespace Cassandra.Connections
             //Read and write event handlers are going to be invoked using IO Threads
             _tcpSocket.Read += ReadHandler;
             _tcpSocket.WriteCompleted += WriteCompletedHandler;
-            var protocolVersion = _serializer.ProtocolVersion;
+            var protocolVersion = Serializer.ProtocolVersion;
             await _tcpSocket.Connect().ConfigureAwait(false);
             Response response;
             try
@@ -478,7 +479,7 @@ namespace Cassandra.Connections
                 // There is no other way than checking the error message from Cassandra
                 if (ex.Message.Contains("Invalid or unsupported protocol version"))
                 {
-                    throw new UnsupportedProtocolVersionException(protocolVersion, ex);
+                    throw new UnsupportedProtocolVersionException(protocolVersion, Serializer.ProtocolVersion, ex);
                 }
                 throw;
             }
@@ -536,18 +537,21 @@ namespace Cassandra.Connections
 
             // Check if protocol version has already been determined (first message)
             ProtocolVersion protocolVersion;
-            var headerLength = Volatile.Read(ref _frameHeaderSize);
+            var headerLength = _frameHeaderSize;
             if (headerLength == 0)
             {
                 // The server replies the first message with the max protocol version supported
                 protocolVersion = FrameHeader.GetProtocolVersion(buffer);
-                _serializer.ProtocolVersion = protocolVersion;
-                headerLength = FrameHeader.GetSize(protocolVersion);
-                Volatile.Write(ref _frameHeaderSize, headerLength);
+                var serializer = Serializer.CloneWithProtocolVersion(protocolVersion);
+                headerLength = protocolVersion.GetHeaderSize();
+
+                Serializer = serializer;
+                _frameHeaderSize = headerLength;
+                Interlocked.MemoryBarrier();
             }
             else
             {
-                protocolVersion = _serializer.ProtocolVersion;
+                protocolVersion = Serializer.ProtocolVersion;
             }
 
             // Use _readStream to buffer between messages, when the body is not contained in a single read call
@@ -706,7 +710,7 @@ namespace Cassandra.Connections
                         plainTextStream = compressor.Decompress(new WrappedStream(stream, header.BodyLength));
                         plainTextStream.Position = 0;
                     }
-                    response = FrameParser.Parse(new Frame(header, plainTextStream, _serializer));
+                    response = FrameParser.Parse(new Frame(header, plainTextStream, Serializer));
                 }
                 catch (Exception caughtException)
                 {
@@ -862,7 +866,7 @@ namespace Cassandra.Connections
                 {
                     //lazy initialize the stream
                     stream = stream ?? (RecyclableMemoryStream)Configuration.BufferPool.GetStream(Connection.StreamWriteTag);
-                    var frameLength = state.WriteFrame(streamId, stream, _serializer, timestamp);
+                    var frameLength = state.WriteFrame(streamId, stream, Serializer, timestamp);
                     _connectionObserver.OnBytesSent(frameLength);
                     totalLength += frameLength;
                     if (state.TimeoutMillis > 0)
@@ -954,7 +958,7 @@ namespace Cassandra.Connections
                 }
                 // CAS operation won, this is the only thread changing the keyspace
                 Connection.Logger.Info("Connection to host {0} switching to keyspace {1}", EndPoint.EndpointFriendlyName, value);
-                var request = new QueryRequest(_serializer.ProtocolVersion, $"USE \"{value}\"", false, QueryProtocolOptions.Default);
+                var request = new QueryRequest(Serializer.ProtocolVersion, $"USE \"{value}\"", false, QueryProtocolOptions.Default);
                 Exception sendException = null;
                 try
                 {
@@ -1006,7 +1010,7 @@ namespace Cassandra.Connections
             //There is no need for synchronization here
             //Only 1 thread can be here at the same time.
             //Set the idle timeout to avoid idle disconnects
-            var heartBeatInterval = Configuration.GetPoolingOptions(_serializer.ProtocolVersion).GetHeartBeatInterval() ?? 0;
+            var heartBeatInterval = Configuration.GetPoolingOptions(Serializer.ProtocolVersion).GetHeartBeatInterval() ?? 0;
             if (heartBeatInterval > 0 && !_isCanceled)
             {
                 try

@@ -20,6 +20,7 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using Cassandra.Requests;
 using Cassandra.Responses;
+using Cassandra.Serialization;
 
 namespace Cassandra.Connections
 {
@@ -47,6 +48,8 @@ namespace Cassandra.Connections
         /// Event that gets raised the connection is being closed.
         /// </summary>
         event Action<IConnection> Closing;
+
+        ISerializer Serializer { get; }
 
         IFrameCompressor Compressor { get; set; }
 

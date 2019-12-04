@@ -29,14 +29,14 @@ namespace Cassandra.Tests
     public class FrameParserTests
     {
         private const ProtocolVersion Version = ProtocolVersion.MaxSupported;
-        private static readonly Serializer Serializer = new Serializer(Version);
+        private static readonly ISerializerManager Serializer = new SerializerManager(Version);
         
         [Test]
         public void Should_Parse_ErrorResponse_Of_Syntax_Error()
         {
             var body = GetErrorBody(0x2000, "Test syntax error");
             var header = FrameHeader.ParseResponseHeader(Version, GetHeaderBuffer(body.Length), 0);
-            var response = FrameParser.Parse(new Frame(header, new MemoryStream(body), Serializer));
+            var response = FrameParser.Parse(new Frame(header, new MemoryStream(body), Serializer.GetCurrentSerializer()));
             var ex = IsErrorResponse<SyntaxError>(response);
             Assert.AreEqual("Test syntax error", ex.Message);
         }
@@ -48,7 +48,7 @@ namespace Cassandra.Tests
             var warningBuffers = BeConverter.GetBytes((ushort)1).Concat(GetProtocolString("Test warning"));
             var body = warningBuffers.Concat(GetErrorBody(0x2000, "Test syntax error")).ToArray();
             var header = FrameHeader.ParseResponseHeader(Version, GetHeaderBuffer(body.Length, HeaderFlag.Warning), 0);
-            var response = FrameParser.Parse(new Frame(header, new MemoryStream(body), Serializer));
+            var response = FrameParser.Parse(new Frame(header, new MemoryStream(body), Serializer.GetCurrentSerializer()));
             var ex = IsErrorResponse<SyntaxError>(response);
             Assert.AreEqual("Test syntax error", ex.Message);
         }
