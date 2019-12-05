@@ -81,6 +81,7 @@ namespace Cassandra.Connections
         /// </summary>
         private byte[] _minHeaderBuffer;
 
+        private ISerializer _serializer;
         private int _frameHeaderSize;
         private MemoryStream _readStream;
         private FrameHeader _receivingHeader;
@@ -88,6 +89,7 @@ namespace Cassandra.Connections
         private int _inFlight;
         private readonly IConnectionObserver _connectionObserver;
         private readonly bool _timerEnabled;
+        private readonly int _heartBeatInterval;
 
         /// <summary>
         /// The event that represents a event RESPONSE from a Cassandra node
@@ -112,7 +114,7 @@ namespace Cassandra.Connections
         private const string IdleQuery = "SELECT key from system.local";
         private const long CoalescingThreshold = 8000;
 
-        public ISerializer Serializer { get; private set; }
+        public ISerializer Serializer => Volatile.Read(ref _serializer);
 
         public IFrameCompressor Compressor { get; set; }
 
@@ -159,25 +161,7 @@ namespace Cassandra.Connections
                 return _keyspace;
             }
         }
-
-        /// <summary>
-        /// Gets the amount of concurrent requests depending on the protocol version
-        /// </summary>
-        public int MaxConcurrentRequests
-        {
-            get
-            {
-                if (!Serializer.ProtocolVersion.Uses2BytesStreamIds())
-                {
-                    return 128;
-                }
-                //Protocol 3 supports up to 32K concurrent request without waiting a response
-                //Allowing larger amounts of concurrent requests will cause large memory consumption
-                //Limit to 2K per connection sounds reasonable.
-                return 2048;
-            }
-        }
-
+        
         public ProtocolOptions Options => Configuration.ProtocolOptions;
 
         public Configuration Configuration { get; set; }
@@ -189,9 +173,10 @@ namespace Cassandra.Connections
             IStartupRequestFactory startupRequestFactory,
             IConnectionObserver connectionObserver)
         {
-            Serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
+            _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
             Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _startupRequestFactory = startupRequestFactory ?? throw new ArgumentNullException(nameof(startupRequestFactory));
+            _heartBeatInterval = configuration.GetHeartBeatInterval() ?? 0;
             _tcpSocket = new TcpSocket(endPoint, configuration.SocketOptions, configuration.ProtocolOptions.SslOptions);
             _idleTimer = new Timer(IdleTimeoutHandler, null, Timeout.Infinite, Timeout.Infinite);
             _connectionObserver = connectionObserver;
@@ -207,6 +192,21 @@ namespace Cassandra.Connections
         private void DecrementInFlight()
         {
             Interlocked.Decrement(ref _inFlight);
+        }
+        
+        /// <summary>
+        /// Gets the amount of concurrent requests depending on the protocol version
+        /// </summary>
+        public int GetMaxConcurrentRequests(ISerializer serializer)
+        {
+            if (!serializer.ProtocolVersion.Uses2BytesStreamIds())
+            {
+                return 128;
+            }
+            //Protocol 3 supports up to 32K concurrent request without waiting a response
+            //Allowing larger amounts of concurrent requests will cause large memory consumption
+            //Limit to 2K per connection sounds reasonable.
+            return 2048;
         }
 
         /// <summary>
@@ -438,7 +438,7 @@ namespace Cassandra.Connections
         /// <exception cref="UnsupportedProtocolVersionException"></exception>
         public async Task<Response> DoOpen()
         {
-            _freeOperations = new ConcurrentStack<short>(Enumerable.Range(0, MaxConcurrentRequests).Select(s => (short)s).Reverse());
+            _freeOperations = new ConcurrentStack<short>(Enumerable.Range(0, GetMaxConcurrentRequests(Serializer)).Select(s => (short)s).Reverse());
             _pendingOperations = new ConcurrentDictionary<short, OperationState>();
             _writeQueue = new ConcurrentQueue<OperationState>();
 
@@ -537,21 +537,22 @@ namespace Cassandra.Connections
 
             // Check if protocol version has already been determined (first message)
             ProtocolVersion protocolVersion;
-            var headerLength = _frameHeaderSize;
+            var headerLength = Volatile.Read(ref _frameHeaderSize);
+            var serializer = Volatile.Read(ref _serializer);
             if (headerLength == 0)
             {
                 // The server replies the first message with the max protocol version supported
                 protocolVersion = FrameHeader.GetProtocolVersion(buffer);
-                var serializer = Serializer.CloneWithProtocolVersion(protocolVersion);
+                serializer = serializer.CloneWithProtocolVersion(protocolVersion);
                 headerLength = protocolVersion.GetHeaderSize();
 
-                Serializer = serializer;
+                Volatile.Write(ref _serializer, serializer);
+                Volatile.Write(ref _frameHeaderSize, headerLength);
                 _frameHeaderSize = headerLength;
-                Interlocked.MemoryBarrier();
             }
             else
             {
-                protocolVersion = Serializer.ProtocolVersion;
+                protocolVersion = serializer.ProtocolVersion;
             }
 
             // Use _readStream to buffer between messages, when the body is not contained in a single read call
@@ -618,7 +619,7 @@ namespace Cassandra.Connections
                 stream.Write(buffer, offset, remainingBodyLength);
 
                 // Add callback with deserialize from stream
-                operationCallbacks.AddLast(CreateResponseAction(header, callback));
+                operationCallbacks.AddLast(CreateResponseAction(serializer, header, callback));
 
                 offset += remainingBodyLength;
             }
@@ -693,7 +694,7 @@ namespace Cassandra.Connections
         /// <summary>
         /// Returns an action that capture the parameters closure
         /// </summary>
-        private Action<MemoryStream, long> CreateResponseAction(FrameHeader header, Action<IRequestError, Response, long> callback)
+        private Action<MemoryStream, long> CreateResponseAction(ISerializer serializer, FrameHeader header, Action<IRequestError, Response, long> callback)
         {
             var compressor = Compressor;
 
@@ -710,7 +711,7 @@ namespace Cassandra.Connections
                         plainTextStream = compressor.Decompress(new WrappedStream(stream, header.BodyLength));
                         plainTextStream.Position = 0;
                     }
-                    response = FrameParser.Parse(new Frame(header, plainTextStream, Serializer));
+                    response = FrameParser.Parse(new Frame(header, plainTextStream, serializer));
                 }
                 catch (Exception caughtException)
                 {
@@ -1010,12 +1011,11 @@ namespace Cassandra.Connections
             //There is no need for synchronization here
             //Only 1 thread can be here at the same time.
             //Set the idle timeout to avoid idle disconnects
-            var heartBeatInterval = Configuration.GetPoolingOptions(Serializer.ProtocolVersion).GetHeartBeatInterval() ?? 0;
-            if (heartBeatInterval > 0 && !_isCanceled)
+            if (_heartBeatInterval > 0 && !_isCanceled)
             {
                 try
                 {
-                    _idleTimer.Change(heartBeatInterval, Timeout.Infinite);
+                    _idleTimer.Change(_heartBeatInterval, Timeout.Infinite);
                 }
                 catch (ObjectDisposedException)
                 {

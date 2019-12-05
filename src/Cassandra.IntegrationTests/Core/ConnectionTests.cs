@@ -296,7 +296,7 @@ namespace Cassandra.IntegrationTests.Core
                 var taskList = new List<Task>();
                 //Run the query more times than the max allowed
                 var selectQuery = "SELECT id FROM ks_conn_consume.tbl1 WHERE id = " + id;
-                for (var i = 0; i < connection.MaxConcurrentRequests * 1.2; i++)
+                for (var i = 0; i < connection.GetMaxConcurrentRequests(connection.Serializer) * 1.2; i++)
                 {
                     taskList.Add(Query(connection, selectQuery, QueryProtocolOptions.Default));
                 }

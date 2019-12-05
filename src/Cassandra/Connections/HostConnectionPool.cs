@@ -85,6 +85,7 @@ namespace Cassandra.Connections
         private TaskCompletionSource<IConnection> _connectionOpenTcs;
         private int _connectionIndex;
         private readonly int _maxRequestsPerConnection;
+        private readonly PoolingOptions _poolingOptions;
 
         public event Action<Host, HostConnectionPool> AllConnectionClosed;
 
@@ -113,9 +114,8 @@ namespace Cassandra.Connections
             _host.Up += OnHostUp;
             _host.DistanceChanged += OnDistanceChanged;
             _config = config ?? throw new ArgumentNullException(nameof(config));
-            _maxRequestsPerConnection = config
-                                        .GetPoolingOptions(serializer.ProtocolVersion)
-                                        .GetMaxRequestsPerConnection();
+            _poolingOptions = config.GetOrCreatePoolingOptions(serializer.ProtocolVersion);
+            _maxRequestsPerConnection = _poolingOptions.GetMaxRequestsPerConnection();
             _serializer = serializer;
             _observerFactory = observerFactory;
             _timer = config.Timer;
@@ -274,7 +274,7 @@ namespace Cassandra.Connections
                 c.Dispose();
                 throw;
             }
-            if (_config.GetPoolingOptions(_serializer.ProtocolVersion).GetHeartBeatInterval() > 0)
+            if (_poolingOptions.GetHeartBeatInterval() > 0)
             {
                 c.OnIdleRequestException += ex => OnIdleRequestException(c, ex);
             }
@@ -810,10 +810,9 @@ namespace Cassandra.Connections
 
         public void SetDistance(HostDistance distance)
         {
-            var poolingOptions = _config.GetPoolingOptions(_serializer.ProtocolVersion);
-            _expectedConnectionLength = poolingOptions.GetCoreConnectionsPerHost(distance);
-            _maxInflightThresholdToConsiderResizing =  poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(distance);
-            _maxConnectionLength = poolingOptions.GetMaxConnectionPerHost(distance);
+            _expectedConnectionLength = _poolingOptions.GetCoreConnectionsPerHost(distance);
+            _maxInflightThresholdToConsiderResizing =  _poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(distance);
+            _maxConnectionLength = _poolingOptions.GetMaxConnectionPerHost(distance);
         }
 
         /// <summary>

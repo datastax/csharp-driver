@@ -88,7 +88,7 @@ namespace Cassandra.Connections
         /// <summary>
         /// Gets the amount of concurrent requests depending on the protocol version
         /// </summary>
-        int MaxConcurrentRequests { get; }
+        int GetMaxConcurrentRequests(ISerializer serializer);
 
         ProtocolOptions Options { get; }
         

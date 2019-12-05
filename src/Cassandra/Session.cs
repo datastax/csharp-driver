@@ -216,7 +216,7 @@ namespace Cassandra
 
             _metricsManager.InitializeMetrics(this);
 
-            if (Configuration.GetPoolingOptions(_serializer.ProtocolVersion).GetWarmup())
+            if (Configuration.GetOrCreatePoolingOptions(_serializer.ProtocolVersion).GetWarmup())
             {
                 await Warmup().ConfigureAwait(false);
             }

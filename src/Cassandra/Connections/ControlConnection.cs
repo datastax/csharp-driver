@@ -229,6 +229,7 @@ namespace Cassandra.Connections
                     await _metadata.RebuildTokenMapAsync(false, _config.MetadataSyncOptions.MetadataSyncEnabled).ConfigureAwait(false);
 
                     _host.Down += OnHostDown;
+
                     return;
                 }
                 catch (Exception ex)

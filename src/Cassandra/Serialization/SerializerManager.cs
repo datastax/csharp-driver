@@ -33,7 +33,7 @@ namespace Cassandra.Serialization
         internal static readonly byte[] UnsetBuffer = new byte[0];
 
         private readonly GenericSerializer _genericSerializer;
-        private ISerializer _serializer;
+        private volatile ISerializer _serializer;
 
         internal SerializerManager(ProtocolVersion protocolVersion, IEnumerable<ITypeSerializer> typeSerializers = null)
         {
@@ -46,7 +46,6 @@ namespace Cassandra.Serialization
         public void ChangeProtocolVersion(ProtocolVersion version)
         {
             _serializer = new Serializer(version, _genericSerializer);
-            Interlocked.MemoryBarrier();
         }
 
         public ISerializer GetCurrentSerializer()
