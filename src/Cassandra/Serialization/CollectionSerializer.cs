@@ -57,7 +57,7 @@ namespace Cassandra.Serialization
             for (var i = 0; i < count; i++)
             {
                 var itemLength = DecodeCollectionLength((ProtocolVersion)protocolVersion, buffer, ref offset);
-                result.SetValue(DeserializeChild(buffer, offset, itemLength, childTypeCode.Value, childTypeInfo), i);
+                result.SetValue(DeserializeChild(protocolVersion, buffer, offset, itemLength, childTypeCode.Value, childTypeInfo), i);
                 offset += itemLength;
             }
             return result;
@@ -91,7 +91,7 @@ namespace Cassandra.Serialization
                 {
                     throw new ArgumentNullException(null, "Null values are not supported inside collections");
                 }
-                var itemBuffer = SerializeChild(item);
+                var itemBuffer = SerializeChild(protocolVersion, item);
                 var lengthBuffer = EncodeCollectionLength(protocolVersion, itemBuffer.Length);
                 bufferList.AddLast(lengthBuffer);
                 bufferList.AddLast(itemBuffer);

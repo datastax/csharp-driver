@@ -160,7 +160,7 @@ namespace Cassandra.Tests.Mapping
         /// </summary>
         protected PreparedStatement GetPrepared(string query = null)
         {
-            return new PreparedStatement(null, null, query, null, new Serializer(ProtocolVersion.MaxSupported));
+            return new PreparedStatement(null, null, query, null, new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer());
         }
 
         protected void TestQueryTrace(Func<Table<AllTypesEntity>, QueryTrace> queryExecutor)

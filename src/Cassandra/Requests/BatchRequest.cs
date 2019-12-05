@@ -88,7 +88,7 @@ namespace Cassandra.Requests
             return timestamp != long.MinValue ? (long?) timestamp : null;
         }
 
-        public int WriteFrame(short streamId, MemoryStream stream, Serializer serializer)
+        public int WriteFrame(short streamId, MemoryStream stream, ISerializer serializer)
         {
             //protocol v2: <type><n><query_1>...<query_n><consistency>
             //protocol v3: <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>]

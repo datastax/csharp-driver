@@ -296,7 +296,7 @@ namespace Cassandra.IntegrationTests.Core
                 var taskList = new List<Task>();
                 //Run the query more times than the max allowed
                 var selectQuery = "SELECT id FROM ks_conn_consume.tbl1 WHERE id = " + id;
-                for (var i = 0; i < connection.MaxConcurrentRequests * 1.2; i++)
+                for (var i = 0; i < connection.GetMaxConcurrentRequests(connection.Serializer) * 1.2; i++)
                 {
                     taskList.Add(Query(connection, selectQuery, QueryProtocolOptions.Default));
                 }
@@ -649,7 +649,7 @@ namespace Cassandra.IntegrationTests.Core
                 null);
             using (var connection = 
                 new Connection(
-                    new Serializer(GetProtocolVersion()), 
+                    new SerializerManager(GetProtocolVersion()).GetCurrentSerializer(), 
                     config.EndPointResolver
                           .GetOrResolveContactPointAsync(new IPEndPoint(new IPAddress(new byte[] { 1, 1, 1, 1 }), 9042))
                           .Result
@@ -663,7 +663,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             using (var connection = 
                 new Connection(
-                    new Serializer(GetProtocolVersion()), 
+                    new SerializerManager(GetProtocolVersion()).GetCurrentSerializer(), 
                     config.EndPointResolver
                           .GetOrResolveContactPointAsync(new IPEndPoint(new IPAddress(new byte[] { 255, 255, 255, 255 }), 9042))
                           .Result
@@ -823,7 +823,7 @@ namespace Cassandra.IntegrationTests.Core
             var ex = new Exception("Test exception");
             var requestMock = new Mock<IRequest>(MockBehavior.Strict);
             // Create a request that throws an exception when writing the frame
-            requestMock.Setup(r => r.WriteFrame(It.IsAny<short>(), It.IsAny<MemoryStream>(), It.IsAny<Serializer>()))
+            requestMock.Setup(r => r.WriteFrame(It.IsAny<short>(), It.IsAny<MemoryStream>(), It.IsAny<ISerializer>()))
                        .Throws(ex);
 
             using (var connection = CreateConnection())
@@ -883,7 +883,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             Trace.TraceInformation("Creating test connection using protocol v{0}", protocolVersion);
             return new Connection(
-                new Serializer(protocolVersion), 
+                new SerializerManager(protocolVersion).GetCurrentSerializer(), 
                 config.EndPointResolver
                       .GetOrResolveContactPointAsync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042))
                       .Result.Single(), 

@@ -146,7 +146,7 @@ namespace Cassandra.Serialization
     /// <typeparam name="T">CLR type for this serializer</typeparam>
     public abstract class TypeSerializer<T> : TypeSerializer, ITypeSerializer
     {
-        private Serializer _serializer;
+        private IGenericSerializer _serializer;
         /// <summary>
         /// Gets the CLR type for this serializer.
         /// </summary>
@@ -201,13 +201,13 @@ namespace Cassandra.Serialization
         /// <param name="value">The object to encode.</param>
         public abstract byte[] Serialize(ushort protocolVersion, T value);
 
-        internal object DeserializeChild(byte[] buffer, int offset, int length, ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        internal object DeserializeChild(ushort protocolVersion, byte[] buffer, int offset, int length, ColumnTypeCode typeCode, IColumnInfo typeInfo)
         {
             if (_serializer == null)
             {
                 throw new NullReferenceException("Child serializer can not be null");
             }
-            return _serializer.Deserialize(buffer, offset, length, typeCode, typeInfo);
+            return _serializer.Deserialize((ProtocolVersion)protocolVersion, buffer, offset, length, typeCode, typeInfo);
         }
 
         internal Type GetClrType(ColumnTypeCode typeCode, IColumnInfo typeInfo)
@@ -219,16 +219,16 @@ namespace Cassandra.Serialization
             return _serializer.GetClrType(typeCode, typeInfo);
         }
 
-        internal byte[] SerializeChild(object obj)
+        internal byte[] SerializeChild(ushort protocolVersion, object obj)
         {
             if (_serializer == null)
             {
                 throw new NullReferenceException("Child serializer can not be null");
             }
-            return _serializer.Serialize(obj);
+            return _serializer.Serialize((ProtocolVersion)protocolVersion, obj);
         }
 
-        internal void SetChildSerializer(Serializer serializer)
+        internal void SetChildSerializer(IGenericSerializer serializer)
         {
             _serializer = serializer;
         }

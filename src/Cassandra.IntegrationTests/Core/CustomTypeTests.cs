@@ -68,7 +68,7 @@ namespace Cassandra.IntegrationTests.Core
 
         private byte[] serializeForDynamicType(params object[] vals)
         {
-            var elt = new FrameWriter(new MemoryStream(), new Serializer(ProtocolVersion.V1));
+            var elt = new FrameWriter(new MemoryStream(), new SerializerManager(ProtocolVersion.V1).GetCurrentSerializer());
             foreach (object p in vals)
             {
                 if (p is int)

@@ -25,11 +25,11 @@ namespace Cassandra.Connections
         /// <summary>
         /// Create an observed connection. Usually used for <see cref="IHostConnectionPool"/> connections.
         /// </summary>
-        IConnection Create(Serializer serializer, IConnectionEndPoint endPoint, Configuration configuration, IConnectionObserver connectionObserver);
+        IConnection Create(ISerializer serializer, IConnectionEndPoint endPoint, Configuration configuration, IConnectionObserver connectionObserver);
 
         /// <summary>
         /// Create an unobserved connection (without a <see cref="IConnectionObserver"/>). Usually used for control connections.
         /// </summary>
-        IConnection CreateUnobserved(Serializer serializer, IConnectionEndPoint endPoint, Configuration configuration);
+        IConnection CreateUnobserved(ISerializer serializer, IConnectionEndPoint endPoint, Configuration configuration);
     }
 }

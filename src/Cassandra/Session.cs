@@ -15,32 +15,29 @@
 //
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Cassandra.Collections;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Internal;
-using Cassandra.Metrics.Registries;
-using Cassandra.Observers;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 using Cassandra.Tasks;
-using TimeoutException = System.TimeoutException;
 
 namespace Cassandra
 {
     /// <inheritdoc cref="Cassandra.ISession" />
     public class Session : IInternalSession
     {
-        private readonly Serializer _serializer;
+        private readonly ISerializer _serializer;
         private ISessionManager _sessionManager;
         private static readonly Logger Logger = new Logger(typeof(Session));
         private readonly IThreadSafeDictionary<IPEndPoint, IHostConnectionPool> _connectionPool;
@@ -102,10 +99,10 @@ namespace Cassandra
             IInternalCluster cluster,
             Configuration configuration,
             string keyspace,
-            Serializer serializer,
+            ISerializerManager serializer,
             string sessionName)
         {
-            _serializer = serializer;
+            _serializer = serializer.GetCurrentSerializer();
             _cluster = cluster;
             Configuration = configuration;
             Keyspace = keyspace;
@@ -205,7 +202,7 @@ namespace Cassandra
                 pool.Value.Dispose();
             }
         }
-        
+
         /// <inheritdoc />
         Task IInternalSession.Init()
         {
@@ -219,7 +216,7 @@ namespace Cassandra
 
             _metricsManager.InitializeMetrics(this);
 
-            if (Configuration.GetPoolingOptions(_serializer.ProtocolVersion).GetWarmup())
+            if (Configuration.GetOrCreatePoolingOptions(_serializer.ProtocolVersion).GetWarmup())
             {
                 await Warmup().ConfigureAwait(false);
             }
@@ -337,7 +334,7 @@ namespace Cassandra
         {
             return InternalRef.ExecuteAsync(statement, InternalRef.GetRequestOptions(executionProfileName));
         }
-        
+
         /// <inheritdoc />
         Task<RowSet> IInternalSession.ExecuteAsync(IStatement statement, IRequestOptions requestOptions)
         {
@@ -345,7 +342,7 @@ namespace Cassandra
                                 .Create(this, _serializer, statement, requestOptions)
                                 .SendAsync();
         }
-        
+
         /// <inheritdoc />
         IHostConnectionPool IInternalSession.GetOrCreateConnectionPool(Host host, HostDistance distance)
         {
@@ -386,7 +383,7 @@ namespace Cassandra
                 pool.ScheduleReconnection();
             }
         }
-        
+
         /// <inheritdoc/>
         int IInternalSession.ConnectedNodes => _connectionPool.Count(kvp => kvp.Value.HasConnections);
 
@@ -426,7 +423,7 @@ namespace Cassandra
         {
             return Prepare(cqlQuery, null);
         }
-        
+
         /// <inheritdoc />
         public PreparedStatement Prepare(string cqlQuery, IDictionary<string, byte[]> customPayload)
         {
@@ -434,13 +431,13 @@ namespace Cassandra
             TaskHelper.WaitToCompleteWithMetrics(_metricsManager, task, Configuration.DefaultRequestOptions.QueryAbortTimeout);
             return task.Result;
         }
-        
+
         /// <inheritdoc />
         public Task<PreparedStatement> PrepareAsync(string query)
         {
             return PrepareAsync(query, null);
         }
-        
+
         /// <inheritdoc />
         public async Task<PreparedStatement> PrepareAsync(string query, IDictionary<string, byte[]> customPayload)
         {
@@ -451,7 +448,7 @@ namespace Cassandra
 
             return await _cluster.Prepare(this, _serializer, request).ConfigureAwait(false);
         }
-        
+
         public void WaitForSchemaAgreement(RowSet rs)
         {
         }

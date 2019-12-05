@@ -503,9 +503,9 @@ namespace Cassandra.Tests
             }
         }
 
-        private static Serializer NewInstance(ProtocolVersion protocolVersion = ProtocolVersion.MaxSupported)
+        private static ISerializer NewInstance(ProtocolVersion protocolVersion = ProtocolVersion.MaxSupported)
         {
-            return new Serializer(protocolVersion);
+            return new SerializerManager(protocolVersion).GetCurrentSerializer();
         }
 
         /// <summary>
@@ -549,12 +549,12 @@ namespace Cassandra.Tests
 
     public static class SerializedExtensions
     {
-        internal static object Deserialize(this Serializer serializer, byte[] buffer, ColumnTypeCode typeCode, IColumnInfo typeInfo)
+        internal static object Deserialize(this ISerializer serializer, byte[] buffer, ColumnTypeCode typeCode, IColumnInfo typeInfo)
         {
             return serializer.Deserialize(buffer, 0, buffer.Length, typeCode, typeInfo);
         }
 
-        internal static ColumnTypeCode GetCqlTypeForPrimitive(this Serializer serializer, Type type)
+        internal static ColumnTypeCode GetCqlTypeForPrimitive(this IGenericSerializer serializer, Type type)
         {
             IColumnInfo dummyInfo;
             return serializer.GetCqlType(type, out dummyInfo);

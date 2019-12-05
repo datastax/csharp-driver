@@ -23,7 +23,7 @@ namespace Cassandra
     internal class Frame
     {
         private readonly Stream _body;
-        private readonly Serializer _serializer;
+        private readonly ISerializer _serializer;
         private readonly FrameHeader _header;
 
         /// <summary>
@@ -45,12 +45,12 @@ namespace Cassandra
         /// <summary>
         /// Gets the serializer instance to be used for this frame
         /// </summary>
-        public Serializer Serializer
+        public ISerializer Serializer
         {
             get { return _serializer; }
         }
 
-        public Frame(FrameHeader header, Stream body, Serializer serializer)
+        public Frame(FrameHeader header, Stream body, ISerializer serializer)
         {
             if (header == null)
             {

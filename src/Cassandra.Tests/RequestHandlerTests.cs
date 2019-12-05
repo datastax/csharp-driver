@@ -35,7 +35,7 @@ namespace Cassandra.Tests
     [TestFixture]
     public class RequestHandlerTests
     {
-        private static readonly Serializer Serializer = new Serializer(ProtocolVersion.MaxSupported);
+        private static readonly ISerializer Serializer = new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer();
 
         private static Configuration GetConfig(QueryOptions queryOptions = null, Policies policies = null, PoolingOptions poolingOptions = null)
         {
@@ -269,7 +269,7 @@ namespace Cassandra.Tests
                 Policies.DefaultSpeculativeExecutionPolicy, new NoTimestampGenerator());
             var config = RequestHandlerTests.GetConfig(new QueryOptions(), policies, PoolingOptions.Create());
 
-            var request = RequestHandler.GetRequest(statement, Serializer.Default, config.DefaultRequestOptions);
+            var request = RequestHandler.GetRequest(statement, Serialization.SerializerManager.Default.GetCurrentSerializer(), config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
             // The query request is composed by:
@@ -437,7 +437,7 @@ namespace Cassandra.Tests
             var batch = new BatchStatement();
             batch.Add(new SimpleStatement(query))
                  .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
-            var serializer = new Serializer(ProtocolVersion.V2);
+            var serializer = new SerializerManager(ProtocolVersion.V2).GetCurrentSerializer();
 
             var request = RequestHandler.GetRequest(batch, serializer, new Configuration().DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request, serializer);
@@ -581,7 +581,7 @@ namespace Cassandra.Tests
             Assert.That((ConsistencyLevel)BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
         }
 
-        private static byte[] GetBodyBuffer(IRequest request, Serializer serializer = null)
+        private static byte[] GetBodyBuffer(IRequest request, ISerializer serializer = null)
         {
             if (serializer == null)
             {
@@ -590,7 +590,7 @@ namespace Cassandra.Tests
 
             var stream = new MemoryStream();
             request.WriteFrame(1, stream, serializer);
-            var headerSize = FrameHeader.GetSize(serializer.ProtocolVersion);
+            var headerSize = serializer.ProtocolVersion.GetHeaderSize();
             var bodyBuffer = new byte[stream.Length - headerSize];
             stream.Position = headerSize;
             stream.Read(bodyBuffer, 0, bodyBuffer.Length);
@@ -612,7 +612,7 @@ namespace Cassandra.Tests
             Assert.That((ConsistencyLevel)BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
         }
 
-        private static QueryFlags GetQueryFlags(byte[] bodyBuffer, ref int offset, Serializer serializer = null)
+        private static QueryFlags GetQueryFlags(byte[] bodyBuffer, ref int offset, ISerializer serializer = null)
         {
             if (serializer == null)
             {
