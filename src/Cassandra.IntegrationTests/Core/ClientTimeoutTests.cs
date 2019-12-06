@@ -20,7 +20,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-
+using Cassandra.IntegrationTests.SimulacronAPI;
+using Cassandra.IntegrationTests.SimulacronAPI.Then;
+using Cassandra.IntegrationTests.SimulacronAPI.When;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Tests;
@@ -61,18 +63,11 @@ namespace Cassandra.IntegrationTests.Core
                 TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local"), 10);
                 var nodes = _testCluster.GetNodes().ToList();
                 var node = nodes[0];
-                node.Prime(new
-                {
-                    when = new { query = "SELECT key FROM system.local" },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 2000,
-                        rows = new[] { new { key = "123" } },
-                        column_types = new { key = "ascii" },
-                        ignore_on_prepare = false
-                    }
-                });
+                node.PrimeFluent()
+                    .WhenQuery("SELECT key FROM system.local")
+                    .ThenRowsSuccess(new [] { ("key", "ascii") }, rows => rows.WithRow("123"))
+                    .WithDelayInMs(2000)
+                    .Apply();
                 TestHelper.Invoke(() =>
                 {
                     var rs = session.Execute("SELECT key FROM system.local");

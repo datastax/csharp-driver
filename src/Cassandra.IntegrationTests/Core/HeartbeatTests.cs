@@ -32,11 +32,7 @@ namespace Cassandra.IntegrationTests.Core
         public void OneTimeSetup()
         {
             _testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "1"});
-            _testCluster.Prime(new
-            {
-                when = new { query = Query },
-                then = new { result = "success" }
-            });
+            _testCluster.PrimeFluent().WhenQuery(HeartbeatTests.Query).ThenVoidSuccess().Apply();
         }
 
         [OneTimeTearDown]

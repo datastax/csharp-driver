@@ -21,6 +21,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.Tasks;
 using Newtonsoft.Json.Linq;
 
@@ -163,6 +164,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
                    .SelectMany<dynamic, dynamic>(n => n.queries)
                    .Where(q => (q.type == queryType || queryType == null) && (q.query == query || query == null))
                    .ToArray();
+        }
+
+        public IPrimeRequestFluent PrimeFluent()
+        {
+            return new PrimeRequestFluent(this);
         }
     }
 }

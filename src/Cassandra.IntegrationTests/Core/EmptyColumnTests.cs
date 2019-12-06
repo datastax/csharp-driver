@@ -19,6 +19,9 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Cassandra.Data.Linq;
+using Cassandra.IntegrationTests.SimulacronAPI;
+using Cassandra.IntegrationTests.SimulacronAPI.Then;
+using Cassandra.IntegrationTests.SimulacronAPI.When;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Mapping;
@@ -210,42 +213,15 @@ namespace Cassandra.IntegrationTests.Core
                     }
                 });
                 
-                simulacronCluster.Prime(new
-                {
-                    when = new
-                    {
-                        query = "SELECT \"\", \" \" FROM testks.testtable WHERE \"\" = ? AND \" \" = ?",
-                        @params = new
-                        {
-                            column1 = "testval",
-                            column2 = "testval2"
-                        },
-                        param_types = new 
-                        {
-                            column1 = "ascii",
-                            column2 = "ascii"
-                        }
-                    },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 0,
-                        rows = new[]
-                        {
-                                new Dictionary<string, string>
-                                {
-                                    {"", "testval"},
-                                    {" ", "testval2"}
-                                }
-                            },
-                        column_types = new Dictionary<string, string>
-                            {
-                                {"", "ascii"},
-                                {" ", "ascii"}
-                            },
-                        ignore_on_prepare = false
-                    }
-                });
+                simulacronCluster
+                    .PrimeFluent()
+                    .WhenQuery(
+                        "SELECT \"\", \" \" FROM testks.testtable WHERE \"\" = ? AND \" \" = ?",
+                        query => query.WithParam("column1", "ascii", "testval").WithParam("column2", "ascii", "testval2"))
+                    .ThenRowsSuccess(
+                        new [] { ("", "ascii"), (" ", "ascii") }, 
+                        rows => rows.WithRow("testval", "testval2"))
+                    .Apply();
 
                 var mapConfig = new MappingConfiguration();
                 mapConfig.Define(
