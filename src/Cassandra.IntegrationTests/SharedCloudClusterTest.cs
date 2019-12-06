@@ -47,6 +47,7 @@ namespace Cassandra.IntegrationTests
         public override void OneTimeTearDown()
         {
             base.OneTimeTearDown();
+            TestCloudClusterManager.TryRemove();
         }
 
         protected override void CreateCommonSession()
