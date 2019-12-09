@@ -64,7 +64,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var cql = string.Format(TestUtils.CreateKeyspaceSimpleFormat, _keyspace, 1);
             
-            _simulacronCluster.PrimeFluent().WhenQuery(cql).ThenAlreadyExists(_keyspace, "").Apply();
+            _simulacronCluster.PrimeFluent(b => b.WhenQuery(cql).ThenAlreadyExists(_keyspace, ""));
 
             var ex = Assert.Throws<AlreadyExistsException>(() => _session.Execute(cql));
             Assert.AreEqual(ex.Keyspace, _keyspace);
@@ -73,7 +73,7 @@ namespace Cassandra.IntegrationTests.Core
             
             var cqlTable = string.Format(TestUtils.CreateTableSimpleFormat, _table);
             
-            _simulacronCluster.PrimeFluent().WhenQuery(cqlTable).ThenAlreadyExists(_keyspace, _table).Apply();
+            _simulacronCluster.PrimeFluent(b => b.WhenQuery(cqlTable).ThenAlreadyExists(_keyspace, _table));
             var e = Assert.Throws<AlreadyExistsException>(() => _session.Execute(cqlTable));
             Assert.AreEqual(e.Keyspace, _keyspace);
             Assert.AreEqual(e.Table, _table);
@@ -111,7 +111,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var cql = string.Format(TestUtils.SELECT_ALL_FORMAT, _table);
 
-            _simulacronCluster.PrimeFluent().WhenQuery(cql).ThenReadTimeout(5, 1, 2, true).Apply();
+            _simulacronCluster.PrimeFluent(b => b.WhenQuery(cql).ThenReadTimeout(5, 1, 2, true));
             var ex = Assert.Throws<ReadTimeoutException>(() =>
                 _session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.All)));
             Assert.AreEqual(ex.ConsistencyLevel, ConsistencyLevel.All);
@@ -202,7 +202,7 @@ namespace Cassandra.IntegrationTests.Core
         public void UnavailableException()
         {
             var cql = string.Format(TestUtils.SELECT_ALL_FORMAT, _table);
-            _simulacronCluster.PrimeFluent().WhenQuery(cql).ThenUnavailable("unavailable", 5, 2, 1).Apply();
+            _simulacronCluster.PrimeFluent(b => b.WhenQuery(cql).ThenUnavailable("unavailable", 5, 2, 1));
             var ex = Assert.Throws<UnavailableException>(() =>
                 _session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.All)));
             Assert.AreEqual(ex.Consistency, ConsistencyLevel.All);
@@ -219,7 +219,7 @@ namespace Cassandra.IntegrationTests.Core
         public void WriteTimeoutException()
         {
             var cql = string.Format(TestUtils.SELECT_ALL_FORMAT, _table);
-            _simulacronCluster.PrimeFluent().WhenQuery(cql).ThenWriteTimeout("write_timeout", 5, 1, 2, "SIMPLE").Apply();
+            _simulacronCluster.PrimeFluent(b => b.WhenQuery(cql).ThenWriteTimeout("write_timeout", 5, 1, 2, "SIMPLE"));
             var ex = Assert.Throws<WriteTimeoutException>(() =>
                 _session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.All)));
             Assert.AreEqual(ex.ConsistencyLevel, ConsistencyLevel.All);
@@ -231,7 +231,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void PreserveStackTraceTest()
         {
-            _simulacronCluster.PrimeFluent().WhenQuery("SELECT WILL FAIL").ThenSyntaxError("syntax_error").Apply();
+            _simulacronCluster.PrimeFluent(b => b.WhenQuery("SELECT WILL FAIL").ThenSyntaxError("syntax_error"));
             var ex = Assert.Throws<SyntaxError>(() => _session.Execute("SELECT WILL FAIL"));
 #if !NETCORE || DEBUG
             // On .NET Core using Release compilation, the stack trace is limited
@@ -245,10 +245,9 @@ namespace Cassandra.IntegrationTests.Core
         {
             var cql = string.Format(TestUtils.SELECT_ALL_FORMAT, _table);
             _simulacronCluster
-                .PrimeFluent().WhenQuery(cql).ThenRowsSuccess(
-                    new [] { ("id", "uuid"), ("value", "varchar") }, 
-                    rows => rows.WithRow(Guid.NewGuid(), "value"))
-                .Apply();
+                .PrimeFluent(b => b.WhenQuery(cql).ThenRowsSuccess(
+                    new[] { ("id", "uuid"), ("value", "varchar") },
+                    rows => rows.WithRow(Guid.NewGuid(), "value")));
 
             var rowset = _session.Execute(new SimpleStatement(cql)).GetRows();
             Assert.NotNull(rowset);
@@ -263,10 +262,9 @@ namespace Cassandra.IntegrationTests.Core
             var cql = string.Format(TestUtils.SELECT_ALL_FORMAT, _table);
 
             _simulacronCluster
-                .PrimeFluent().WhenQuery(cql).ThenRowsSuccess(
-                    new [] { ("id", "uuid"), ("value", "varchar") }, 
-                    rows => rows.WithRow(Guid.NewGuid(), "value"))
-                .Apply();
+                .PrimeFluent(b => b.WhenQuery(cql).ThenRowsSuccess(
+                    new[] { ("id", "uuid"), ("value", "varchar") },
+                    rows => rows.WithRow(Guid.NewGuid(), "value")));
 
             var rs = _session.Execute(new SimpleStatement(string.Format(TestUtils.SELECT_ALL_FORMAT, _table)).SetPageSize(1));
             if (CassandraVersion.Major < 2)
@@ -290,14 +288,13 @@ namespace Cassandra.IntegrationTests.Core
         {
             var cql = string.Format(TestUtils.SELECT_ALL_FORMAT, _table);
             _simulacronCluster
-                .PrimeFluent().WhenQuery(cql).ThenWriteFailure(
+                .PrimeFluent(b => b.WhenQuery(cql).ThenWriteFailure(
                     5,
                     1,
                     2,
                     "write_failure",
                     new Dictionary<string, int> { { "127.0.0.1", 0 } },
-                    "SIMPLE")
-                .Apply();
+                    "SIMPLE"));
 
             var ex = Assert.Throws<WriteFailureException>(() =>
                 _session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.All)));
@@ -324,14 +321,13 @@ namespace Cassandra.IntegrationTests.Core
             const string cql = "SELECT * FROM ks1.table_for_read_failure_test";
 
             _simulacronCluster
-                .PrimeFluent().WhenQuery(cql).ThenReadFailure(
-                    (int) consistencyLevel, 
-                    received, 
-                    required, 
-                    "read_failure", 
+                .PrimeFluent(b => b.WhenQuery(cql).ThenReadFailure(
+                    (int) consistencyLevel,
+                    received,
+                    required,
+                    "read_failure",
                     new Dictionary<string, int> { { "127.0.0.1", 0 } },
-                    dataPresent)
-                .Apply();
+                    dataPresent));
 
             var ex = Assert.Throws<ReadFailureException>(() =>
                 _session.Execute(new SimpleStatement(cql).SetConsistencyLevel(consistencyLevel)));
@@ -348,9 +344,8 @@ namespace Cassandra.IntegrationTests.Core
             const string cql = "SELECT ks_func.div(v1,v2) FROM ks_func.tbl1 where id = 1";
 
             _simulacronCluster
-                .PrimeFluent().WhenQuery(cql).ThenFunctionFailure(
-                    "ks_func", "div", new [] {"text"}, "function_failure")
-                .Apply();
+                .PrimeFluent(b => b.WhenQuery(cql).ThenFunctionFailure(
+                    "ks_func", "div", new[] { "text" }, "function_failure"));
 
             Assert.Throws<FunctionFailureException>(() => _session.Execute(cql));
         }

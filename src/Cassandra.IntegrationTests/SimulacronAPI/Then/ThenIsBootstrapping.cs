@@ -15,17 +15,16 @@
 
 namespace Cassandra.IntegrationTests.SimulacronAPI.Then
 {
-    public class ServerError
+    public class ThenIsBootstrapping : BaseThen
     {
-        private ServerError(string value)
+        public override object Render()
         {
-            Value = value;
+            return new
+            {
+                result = "is_bootstrapping",
+                delay_in_ms = DelayInMs,
+                ignore_on_prepare = IgnoreOnPrepare
+            };
         }
-
-        public string Value { get; }
-
-        public static ServerError IsBootstrapping { get; } = new ServerError("is_bootstrapping");
-        
-        public static ServerError Overloaded { get; } = new ServerError("overloaded");
     }
 }

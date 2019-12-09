@@ -40,31 +40,13 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = builder.Build())
             {
                 var session = cluster.Connect();
+                
+                simulacronCluster.PrimeFluent(b => 
+                    b.WhenQuery(query)
+                     .ThenRowsSuccess(
+                         new []{("id","uuid"),("value","varchar")}, 
+                         rows => rows.WithRow(Guid.NewGuid(), "value")));
 
-                var primeQuery = new
-                {
-                    when = new { query = query },
-                    then = new
-                    {
-                        result = "success", 
-                        delay_in_ms = 0,
-                        rows = new []
-                        {
-                            new
-                            {
-                                id = Guid.NewGuid(),
-                                value = "value"
-                            }
-                        },
-                        column_types = new
-                        {
-                            id = "uuid",
-                            value = "varchar"
-                        }
-                    }
-                };
-
-                simulacronCluster.Prime(primeQuery);
                 var result = session.Execute(query);
                 var firstRow = result.FirstOrDefault();
                 Assert.NotNull(firstRow);

@@ -17,7 +17,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.Then
 {
     public interface IRowsResult
     {
-        IRowsResult WithRows(params string[][] columnNamesToValues);
+        IRowsResult WithRows(params object[][] columnNamesToValues);
 
         IRowsResult WithRow(params object[] values);
     }

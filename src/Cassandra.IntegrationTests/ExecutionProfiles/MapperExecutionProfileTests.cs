@@ -21,6 +21,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Cassandra.IntegrationTests.Linq.Structures;
+using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Mapping;
@@ -72,50 +73,43 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
             _simulacronCluster.Remove().Wait();
         }
 
-        private object CreatePrimeObject(Movie movie)
+        private object[] CreatePrimeObject(Movie movie)
         {
-            return new
+            return new object[]
             {
-                MainActor = movie.MainActor,
-                MovieMaker = movie.MovieMaker,
-                Title = movie.Title,
-                ExampleSet = movie.ExampleSet.ToArray(),
-                Director = movie.Director,
-                Year = movie.Year
+                movie.MainActor,
+                movie.MovieMaker,
+                movie.Title,
+                movie.ExampleSet.ToArray(),
+                movie.Director,
+                movie.Year
             };
         }
 
-        private object CreateThenForPrimeSelect(IEnumerable<Movie> movies)
+        private IThenFluent CreateThenForPrimeSelect(IWhenFluent when, IEnumerable<Movie> movies)
         {
-            return new
-            {
-                result = "success",
-                delay_in_ms = 0,
-                rows = movies.Select(CreatePrimeObject).ToArray(),
-                column_types = new
+            return when.ThenRowsSuccess(
+                new[]
                 {
-                    MainActor = "ascii",
-                    MovieMaker = "ascii",
-                    Title = "ascii",
-                    ExampleSet = "list<ascii>",
-                    Director = "ascii",
-                    Year = "int"
+                    ("MainActor", "ascii"),
+                    ("MovieMaker", "ascii"),
+                    ("Title", "ascii"),
+                    ("ExampleSet", "list<ascii>"),
+                    ("Director", "ascii"),
+                    ("Year", "int")
                 },
-                ignore_on_prepare = true
-            };
+                rows => rows.WithRows(movies.Select(CreatePrimeObject).ToArray())).WithIgnoreOnPrepare(true);
         }
 
         private void PrimeSelect(IEnumerable<Movie> movies, string consistencyLevel, string query = null)
         {
-            var primeQuery = new
-            {
-                when = new
-                {
-                    query = (query ?? "SELECT MainActor, MovieMaker, Title, ExampleSet, Director, Year") + $" FROM {_keyspace}.Movie",
-                    consistency_level = new[] { consistencyLevel }
-                },
-                then = CreateThenForPrimeSelect(movies)
-            };
+            var primeQuery =
+                CreateThenForPrimeSelect(SimulacronBase
+                    .PrimeBuilder()
+                    .WhenQuery(
+                        (query ?? "SELECT MainActor, MovieMaker, Title, ExampleSet, Director, Year") + $" FROM {_keyspace}.Movie",
+                        when => when.WithConsistency(consistencyLevel)),
+                movies).BuildRequest();
             _simulacronCluster.Prime(primeQuery);
         }
 

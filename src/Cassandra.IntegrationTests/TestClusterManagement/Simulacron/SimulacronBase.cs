@@ -36,9 +36,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             Id = id;
         }
 
-        protected static async Task<dynamic> Post(string url, dynamic body)
+        protected static async Task<JObject> Post(string url, object body)
         {
-            var bodyStr = GetJsonFromDynamic(body);
+            var bodyStr = SimulacronBase.GetJsonFromObject(body);
             var content = new StringContent(bodyStr, Encoding.UTF8, "application/json");
 
             using (var client = new HttpClient())
@@ -56,7 +56,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             }
         }
 
-        private static string GetJsonFromDynamic(dynamic body)
+        private static string GetJsonFromObject(object body)
         {
             var bodyStr = string.Empty;
             if (body != null)
@@ -66,9 +66,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             return bodyStr;
         }
 
-        protected static async Task<dynamic> Put(string url, dynamic body)
+        protected static async Task<JObject> Put(string url, object body)
         {
-            var bodyStr = GetJsonFromDynamic(body);
+            var bodyStr = SimulacronBase.GetJsonFromObject(body);
             var content = new StringContent(bodyStr, Encoding.UTF8, "application/json");
 
             using (var client = new HttpClient())
@@ -117,10 +117,20 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             return Get(GetPath("log"));
         }
 
-        public dynamic Prime(dynamic body)
+        public dynamic PrimeDynamic(dynamic body)
         {
             Task<dynamic> task = Post(GetPath("prime"), body);
             return TaskHelper.WaitToComplete(task);
+        }
+
+        public Task<JObject> PrimeAsync(IPrimeRequest request)
+        {
+            return SimulacronBase.Post(GetPath("prime"), request.Render());
+        }
+        
+        public JObject Prime(IPrimeRequest request)
+        {
+            return TaskHelper.WaitToComplete(PrimeAsync(request));
         }
 
         protected string GetPath(string endpoint)
@@ -138,7 +148,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             return Delete(GetPath("listener") + "?after=" + attempts + "&type=" + type);
         }
 
-        public Task<dynamic> EnableConnectionListener(int attempts = 0, string type = "unbind")
+        public Task<JObject> EnableConnectionListener(int attempts = 0, string type = "unbind")
         {
             return Put(GetPath("listener") + "?after=" + attempts + "&type=" + type, null);
         }
@@ -166,9 +176,20 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
                    .ToArray();
         }
 
-        public IPrimeRequestFluent PrimeFluent()
+        public JObject PrimeFluent(Func<IPrimeRequestFluent, IThenFluent> builder)
         {
-            return new PrimeRequestFluent(this);
+            return TaskHelper.WaitToComplete(PrimeFluentAsync(builder));
+        }
+        
+        public Task<JObject> PrimeFluentAsync(Func<IPrimeRequestFluent, IThenFluent> builder)
+        {
+            var prime = SimulacronBase.PrimeBuilder();
+            return builder(prime).ApplyAsync(this);
+        }
+
+        public static IPrimeRequestFluent PrimeBuilder()
+        {
+            return new PrimeRequestFluent();
         }
     }
 }

@@ -13,19 +13,15 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-namespace Cassandra.IntegrationTests.SimulacronAPI.Then
+using System;
+using Cassandra.IntegrationTests.SimulacronAPI.When;
+
+namespace Cassandra.IntegrationTests.SimulacronAPI
 {
-    public class ServerError
+    public interface IPrimeRequestFluent
     {
-        private ServerError(string value)
-        {
-            Value = value;
-        }
+        IWhenFluent WhenQuery(string cql);
 
-        public string Value { get; }
-
-        public static ServerError IsBootstrapping { get; } = new ServerError("is_bootstrapping");
-        
-        public static ServerError Overloaded { get; } = new ServerError("overloaded");
+        IWhenFluent WhenQuery(string cql, Action<IWhenQueryFluent> whenAction);
     }
 }

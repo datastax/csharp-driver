@@ -23,6 +23,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.When
         private readonly string _query;
         private readonly List<(string, string)> _namesToTypes = new List<(string, string)>();
         private readonly List<object> _values = new List<object>();
+        private string[] _consistency;
 
         public WhenQueryFluent(string query)
         {
@@ -36,8 +37,19 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.When
             return this;
         }
 
+        public IWhenQueryFluent WithConsistency(params string[] consistencyLevels)
+        {
+            _consistency = consistencyLevels;
+            return this;
+        }
+
         public object Render()
         {
+            var dictionary = new Dictionary<string, object>()
+            {
+                { "query", _query }
+            };
+
             if (_namesToTypes != null && _values != null)
             {
                 var parameters = 
@@ -45,15 +57,16 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.When
                         .Zip(_values, (tuple, value) => (tuple.Item1, value))
                         .ToDictionary(kvp => kvp.Item1, kvp => kvp.value);
 
-                return new
-                {
-                    query = _query,
-                    @params = parameters,
-                    param_types = _namesToTypes.ToDictionary(tuple => tuple.Item1, tuple => tuple.Item2)
-                };
+                dictionary.Add("params", parameters);
+                dictionary.Add("param_types", _namesToTypes.ToDictionary(tuple => tuple.Item1, tuple => tuple.Item2));
             }
 
-            return new { query = _query };
+            if (_consistency != null)
+            {
+                dictionary.Add("consistency_level", _consistency);
+            }
+            
+            return dictionary;
         }
     }
 }

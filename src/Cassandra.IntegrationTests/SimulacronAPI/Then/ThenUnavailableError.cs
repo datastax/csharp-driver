@@ -15,18 +15,15 @@
 
 namespace Cassandra.IntegrationTests.SimulacronAPI.Then
 {
-    public class ThenConsistencyError : BaseThen
+    public class ThenUnavailableError : BaseThen
     {
-        private readonly ServerError _error;
         private readonly string _message;
         private readonly int _consistencyLevel;
         private readonly int _required;
         private readonly int _alive;
 
-        public ThenConsistencyError(
-            ServerError error, string message, int consistencyLevel, int required, int alive)
+        public ThenUnavailableError(string message, int consistencyLevel, int required, int alive)
         {
-            _error = error;
             _message = message;
             _consistencyLevel = consistencyLevel;
             _required = required;
@@ -37,7 +34,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.Then
         {
             return new
             {
-                result = _error.Value,
+                result = "unavailable",
                 consistency_level = _consistencyLevel,
                 required = _required,
                 alive = _alive,

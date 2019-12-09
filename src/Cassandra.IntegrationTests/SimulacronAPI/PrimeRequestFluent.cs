@@ -15,23 +15,20 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Cassandra.IntegrationTests.SimulacronAPI.Then;
 using Cassandra.IntegrationTests.SimulacronAPI.When;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Cassandra.IntegrationTests.SimulacronAPI
 {
     public class PrimeRequestFluent : IWhenFluent, IThenFluent, IPrimeRequestFluent
     {
-        private readonly SimulacronBase _simulacron;
         private IThen _then;
         private IWhen _when;
-
-        public PrimeRequestFluent(SimulacronBase simulacron)
-        {
-            _simulacron = simulacron;
-        }
-
+        
         public IThenFluent ThenVoidSuccess()
         {
             _then = new ThenVoidSuccess();
@@ -42,6 +39,13 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
         {
             var rows = new RowsResult(columnNamesToTypes);
             rowsBuilder(rows);
+            _then = new ThenRowsSuccess(rows);
+            return this;
+        }
+
+        public IThenFluent ThenRowsSuccess((string, string)[] columnNamesToTypes)
+        {
+            var rows = new RowsResult(columnNamesToTypes);
             _then = new ThenRowsSuccess(rows);
             return this;
         }
@@ -60,7 +64,8 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
 
         public IThenFluent ThenUnavailable(string message, int consistencyLevel, int required, int alive)
         {
-            return ThenServerError(ServerError.Unavailable, message, consistencyLevel, required, alive);
+            _then = new ThenUnavailableError(message, consistencyLevel, required, alive);
+            return this;
         }
 
         public IThenFluent ThenWriteTimeout(string message, int consistencyLevel, int received, int blockFor, string writeType)
@@ -94,12 +99,24 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
             return this;
         }
 
-        private IThenFluent ThenServerError(ServerError error, string message, int cl, int required, int alive)
+        public IThenFluent ThenIsBootstrapping()
         {
-            _then = new ThenConsistencyError(error, message, cl, required, alive);
+            _then = new ThenIsBootstrapping();
             return this;
         }
 
+        public IThenFluent ThenOverloaded(string testOverloadedError)
+        {
+            _then = new ThenServerError(ServerError.Overloaded, testOverloadedError);
+            return this;
+        }
+
+        public IThenFluent ThenServerError(ServerError resultError, string message)
+        {
+            _then = new ThenServerError(resultError, message);
+            return this;
+        }
+        
         public IWhenFluent WhenQuery(string cql)
         {
             _when = new WhenQueryFluent(cql);
@@ -126,64 +143,14 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
             return this;
         }
 
-        public void Apply()
+        public IPrimeRequest BuildRequest()
         {
-            _simulacron.Prime(new
-            {
-                when = _when.Render(),
-                then = _then.Render()
-            });
+            return new PrimeRequest(_when, _then);
         }
-    }
 
-    public interface IPrimeRequestFluent
-    {
-        IWhenFluent WhenQuery(string cql);
-
-        IWhenFluent WhenQuery(string cql, Action<IWhenQueryFluent> whenAction);
-    }
-
-    public interface IThenFluent
-    {
-        IThenFluent WithDelayInMs(int delay);
-
-        IThenFluent WithIgnoreOnPrepare(bool ignoreOnPrepare);
-
-        void Apply();
-    }
-
-    public interface IWhenFluent
-    {
-        IThenFluent ThenVoidSuccess();
-
-        IThenFluent ThenRowsSuccess((string, string)[] columnNamesToTypes, Action<IRowsResult> rowsBuilder);
-
-        IThenFluent ThenAlreadyExists(string keyspace, string table);
-
-        IThenFluent ThenReadTimeout(int consistencyLevel, int received, int blockFor, bool dataPresent);
-
-        IThenFluent ThenUnavailable(string message, int consistencyLevel, int required, int alive);
-
-        IThenFluent ThenWriteTimeout(string message, int consistencyLevel, int received, int blockFor, string writeType);
-
-        IThenFluent ThenSyntaxError(string message);
-
-        IThenFluent ThenWriteFailure(
-            int consistencyLevel,
-            int received,
-            int blockFor,
-            string message,
-            IDictionary<string, int> failureReasons,
-            string writeType);
-
-        IThenFluent ThenReadFailure(
-            int consistencyLevel, 
-            int received, 
-            int blockFor, 
-            string message, 
-            IDictionary<string, int> failureReasons, 
-            bool dataPresent);
-
-        IThenFluent ThenFunctionFailure(string keyspace, string function, string[] argTypes, string detail);
+        public Task<JObject> ApplyAsync(SimulacronBase simulacron)
+        {
+            return simulacron.PrimeAsync(BuildRequest());
+        }
     }
 }

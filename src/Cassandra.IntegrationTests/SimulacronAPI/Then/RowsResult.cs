@@ -30,7 +30,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.Then
             _rows = new List<(string, object)[]>();
         }
 
-        public IRowsResult WithRows(params string[][] columnNamesToValues)
+        public IRowsResult WithRows(params object[][] columnNamesToValues)
         {
             var result = this as IRowsResult;
 

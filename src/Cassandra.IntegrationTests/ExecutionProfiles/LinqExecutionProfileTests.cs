@@ -15,12 +15,14 @@
 //
 //
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
+using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Mapping;
@@ -200,44 +202,26 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
             Assert.IsTrue(newQueries.All(q => q.consistency_level == "TWO"));
         }
         
-        private object CreatePrimeObject(AllDataTypesEntity allData)
+        private object[] CreatePrimeObject(AllDataTypesEntity allData)
         {
-            return new
-            {
-                StringType = allData.StringType,
-                GuidType = allData.GuidType,
-                IntType = allData.IntType
-            };
+            return new object [] { allData.StringType, allData.GuidType, allData.IntType };
         }
 
-        private object CreateThenForPrimeSelect(IEnumerable<AllDataTypesEntity> allData)
+        private IThenFluent CreateThenForPrimeSelect(IWhenFluent when, IEnumerable<AllDataTypesEntity> allData)
         {
-            return new
-            {
-                result = "success",
-                delay_in_ms = 0,
-                rows = allData.Select(CreatePrimeObject).ToArray(),
-                column_types = new
-                {
-                    StringType = "ascii",
-                    GuidType = "uuid",
-                    IntType = "int"
-                },
-                ignore_on_prepare = true
-            };
+            return when.ThenRowsSuccess(
+                           new[] { ("StringType", "ascii"), ("GuidType", "uuid"), ("IntType", "int") },
+                           rows => rows.WithRows(allData.Select(CreatePrimeObject).ToArray()))
+                       .WithIgnoreOnPrepare(true);
         }
 
         private void PrimeSelect(IEnumerable<AllDataTypesEntity> allData, string consistencyLevel, string query)
         {
-            var primeQuery = new
-            {
-                when = new
-                {
-                    query = query,
-                    consistency_level = new[] { consistencyLevel }
-                },
-                then = CreateThenForPrimeSelect(allData)
-            };
+            var primeQuery = 
+                CreateThenForPrimeSelect(
+                        SimulacronBase.PrimeBuilder().WhenQuery(query, when => when.WithConsistency(consistencyLevel)), 
+                        allData)
+                    .BuildRequest();
             _simulacronCluster.Prime(primeQuery);
         }
 

@@ -36,17 +36,9 @@ namespace Cassandra.IntegrationTests.Core
         public void OneTimeSetup()
         {
             _testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3"});
-            _testCluster.Prime(new
-            {
-                when = new {query = Query},
-                then = new
-                {
-                    result = "success",
-                    delay_in_ms = 20,
-                    rows = new[] {new {id = Guid.NewGuid()}},
-                    column_types = new {id = "uuid"}
-                }
-            });
+            _testCluster.PrimeFluent(b =>
+                b.WhenQuery(Query)
+                 .ThenRowsSuccess(new[] { ("id", "uuid") }, rows => rows.WithRow(Guid.NewGuid())).WithDelayInMs(20));
         }
 
         [OneTimeTearDown]

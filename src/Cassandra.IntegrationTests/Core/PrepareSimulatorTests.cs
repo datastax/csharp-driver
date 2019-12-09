@@ -18,8 +18,10 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Tests;
+
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
@@ -29,34 +31,27 @@ namespace Cassandra.IntegrationTests.Core
     {
         private const string Query = "SELECT * FROM ks1.prepare_table1";
 
-        private static object QueryPrime(int delay = 0) => new
+        private static IPrimeRequest QueryPrime(int delay = 0)
         {
-            when = new {query = Query},
-            then = new
-            {
-                result = "success",
-                delay_in_ms = delay,
-                rows = new[] {new {id = Guid.NewGuid()}},
-                column_types = new {id = "uuid"},
-                ignore_on_prepare = false
-            }
-        };
+            return SimulacronBase
+                   .PrimeBuilder()
+                   .WhenQuery(PrepareSimulatorTests.Query)
+                   .ThenRowsSuccess(new[] { ("id", "uuid") }, rows => rows.WithRow(Guid.NewGuid()))
+                   .WithDelayInMs(delay)
+                   .BuildRequest();
+        }
 
-        private static readonly object IsBootstrapingPrime = new
-        {
-            when = new {query = Query},
-            then = new
-            {
-                result = "is_bootstrapping",
-                delay_in_ms = 0,
-                ignore_on_prepare = false
-            }
-        };
-        
+        private static IPrimeRequest IsBootstrappingPrime =>
+            SimulacronBase
+                .PrimeBuilder()
+                .WhenQuery(PrepareSimulatorTests.Query)
+                .ThenIsBootstrapping()
+                .BuildRequest();
+
         [Test]
         public void Should_Prepare_On_First_Node()
         {
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint)
                                         .WithQueryOptions(new QueryOptions().SetPrepareOnAllHosts(false))
@@ -80,7 +75,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_Prepare_On_All_Nodes_By_Default()
         {
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint)
                                         .WithLoadBalancingPolicy(new TestHelper.OrderedLoadBalancingPolicy()).Build())
@@ -92,7 +87,7 @@ namespace Cassandra.IntegrationTests.Core
                 // Executed on each node
                 foreach (var node in simulacronCluster.DataCenters[0].Nodes)
                 {
-                    Assert.AreEqual(1, node.GetQueries(Query, "PREPARE").Count);   
+                    Assert.AreEqual(1, node.GetQueries(Query, "PREPARE").Count);
                 }
                 // Executed on all nodes
                 Assert.AreEqual(3, simulacronCluster.GetQueries(Query, "PREPARE").Count);
@@ -102,7 +97,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_Reuse_The_Same_Instance()
         {
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = Cluster.Builder().AddContactPoint(simulacronCluster.InitialContactPoint).Build())
             {
                 var session = cluster.Connect();
@@ -117,7 +112,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_Failover_When_First_Node_Fails()
         {
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint)
                                         .WithQueryOptions(new QueryOptions().SetPrepareOnAllHosts(false))
@@ -128,7 +123,7 @@ namespace Cassandra.IntegrationTests.Core
                 foreach (var h in cluster.AllHosts())
                 {
                     var node = simulacronCluster.GetNode(h.Address);
-                    node.Prime(h == firstHost ? IsBootstrapingPrime : QueryPrime());
+                    node.Prime(h == firstHost ? PrepareSimulatorTests.IsBootstrappingPrime : QueryPrime());
                 }
                 var ps = session.Prepare(Query);
                 Assert.NotNull(ps);
@@ -140,7 +135,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_Prepare_On_All_Ignoring_Individual_Failures()
         {
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint)
                                         .WithLoadBalancingPolicy(new TestHelper.OrderedLoadBalancingPolicy()).Build())
@@ -150,7 +145,7 @@ namespace Cassandra.IntegrationTests.Core
                 foreach (var h in cluster.AllHosts())
                 {
                     var node = simulacronCluster.GetNode(h.Address);
-                    node.Prime(h == secondHost ? IsBootstrapingPrime : QueryPrime());
+                    node.Prime(h == secondHost ? PrepareSimulatorTests.IsBootstrappingPrime : QueryPrime());
                 }
                 var ps = session.Prepare(Query);
                 Assert.NotNull(ps);
@@ -162,7 +157,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_Failover_When_First_Node_Timeouts()
         {
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint)
                                         .WithQueryOptions(new QueryOptions().SetPrepareOnAllHosts(false))
@@ -186,7 +181,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public async Task Should_Reprepare_On_Up_Node()
         {
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint)
                                         .WithReconnectionPolicy(new ConstantReconnectionPolicy(500))
