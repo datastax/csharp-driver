@@ -311,11 +311,44 @@ namespace Cassandra.IntegrationTests.Core
                             .WithSocketOptions(socketOptions)
                             .Build()).ToList();
 
+            decimal initialMemory = GC.GetTotalMemory(true);
+
             try
             {
-                decimal initialMemory = GC.GetTotalMemory(true);
-                const int length = 100;
                 var tasks = clusters.Select(c => Task.Run(async () =>
+                {
+                    try
+                    {
+                        await c.ConnectAsync().ConfigureAwait(false);
+                    }
+                    catch (NoHostAvailableException ex)
+                    {
+                        Assert.AreEqual(1, ex.Errors.Count);
+                        return;
+                    }
+
+                    Assert.Fail();
+                })).ToArray();
+
+                Task.WaitAll(tasks);
+
+                foreach (var t in tasks)
+                {
+                    t.Dispose();
+                }
+
+                tasks = null;
+                
+                GC.Collect();
+                Thread.Sleep(1000);
+                Assert.Less(GC.GetTotalMemory(true) / initialMemory, 1.2M,
+                    "Should not exceed a 30% (1.3) more than was previously allocated");
+
+                initialMemory = GC.GetTotalMemory(true);
+                
+                const int length = 100;
+                
+                tasks = clusters.Select(c => Task.Run(async () =>
                 {
                     for (var i = 0; i < length; i++)
                     {
@@ -334,18 +367,11 @@ namespace Cassandra.IntegrationTests.Core
                 })).ToArray();
 
                 Task.WaitAll(tasks);
-
-                foreach (var t in tasks)
-                {
-                    t.Dispose();
-                }
-
-                tasks = null;
-
+                
                 GC.Collect();
                 Thread.Sleep(1000);
-                Assert.Less(GC.GetTotalMemory(true) / initialMemory, 1.5M,
-                    "Should not exceed a 50% (1.5) more than was previously allocated");
+                Assert.Less(GC.GetTotalMemory(true) / initialMemory, 1.2M,
+                    "Should not exceed a 30% (1.3) more than was previously allocated");
 
             }
             finally
