@@ -341,7 +341,7 @@ namespace Cassandra.IntegrationTests.Core
                 
                 GC.Collect();
                 Thread.Sleep(1000);
-                Assert.Less(GC.GetTotalMemory(true) / initialMemory, 1.2M,
+                Assert.Less(GC.GetTotalMemory(true) / initialMemory, 1.3M,
                     "Should not exceed a 30% (1.3) more than was previously allocated");
 
                 initialMemory = GC.GetTotalMemory(true);
@@ -368,9 +368,16 @@ namespace Cassandra.IntegrationTests.Core
 
                 Task.WaitAll(tasks);
                 
+                foreach (var t in tasks)
+                {
+                    t.Dispose();
+                }
+
+                tasks = null;
+                
                 GC.Collect();
                 Thread.Sleep(1000);
-                Assert.Less(GC.GetTotalMemory(true) / initialMemory, 1.2M,
+                Assert.Less(GC.GetTotalMemory(true) / initialMemory, 1.3M,
                     "Should not exceed a 30% (1.3) more than was previously allocated");
 
             }
