@@ -114,8 +114,8 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
                               ("gc_grace_seconds", "int"),
                               ("dclocal_read_repair_chance", "double"),
                               ("read_repair_chance", "double"),
-                              ("local_read_repair_chance", "double"),
                               ("keyspace_name", "ascii"),
+                              ("local_read_repair_chance", "double"),
                               ("comparator", "ascii")
                           },
                           rows =>
@@ -124,7 +124,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
                                   "comment", 60000, 0.1, 0.1, keyspace, 0.1, "")));
 
             simulacronCluster.PrimeFluent(
-                b => b.WhenQuery("SELECT * FROM system_schema.keyspaces")
+                b => b.WhenQuery("SELECT * FROM system.schema_keyspaces")
                       .ThenRowsSuccess(
                           new[]
                           {
@@ -134,19 +134,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
                               ("durable_writes", "boolean")
                           },
                           rows => rows.WithRow("{\"replication_factor\":\"1\"}", "SimpleStrategy", keyspace, true)));
-
-            simulacronCluster.PrimeFluent(
-                b => b.WhenQuery($"SELECT * FROM system_schema.indexes WHERE table_name='{table}' AND keyspace_name='{keyspace}'")
-                      .ThenRowsSuccess(
-                          new[]
-                          {
-                              ("keyspace_name", "ascii"),
-                              ("table_name", "ascii"),
-                              ("index_name", "ascii"),
-                              ("kind", "ascii"),
-                              ("options", "map<ascii,ascii>")
-                          }));
-
+            
             simulacronCluster.PrimeFluent(
                 b => b.WhenQuery($"SELECT * FROM system.schema_columns WHERE columnfamily_name='{table}' AND keyspace_name='{keyspace}'")
                       .ThenRowsSuccess(new[]
@@ -169,8 +157,8 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
                                   .Select(col =>
                                       new object[]
                                       {
-                                          keyspace, table, col.name, "none", Encoding.UTF8.GetBytes(col.name), col.kind, 0,
-                                          col.type, "validator", "", "", "{}"
+                                          keyspace, table, col.name, "none", SystemTablePrimeHelper.ByteArrayToString(Encoding.UTF8.GetBytes(col.name)), col.kind, 0,
+                                          col.type, "validator", null, null, null
                                       })
                                   .ToArray())));
         }
