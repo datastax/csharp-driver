@@ -344,8 +344,8 @@ namespace Cassandra.IntegrationTests.Core
 
                 GC.Collect();
                 Thread.Sleep(1000);
-                Assert.Less(GC.GetTotalMemory(true) / initialMemory, 1.3M,
-                    "Should not exceed a 30% (1.3) more than was previously allocated");
+                Assert.Less(GC.GetTotalMemory(true) / initialMemory, 1.5M,
+                    "Should not exceed a 50% (1.5) more than was previously allocated");
 
             }
             finally
