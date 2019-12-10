@@ -14,14 +14,11 @@
 //   limitations under the License.
 //
 
-
 using System;
-using System.Collections.Generic;
-using System.Dynamic;
 using System.Linq;
-using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.IntegrationTests.SimulacronAPI.Models;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
-using Newtonsoft.Json.Linq;
+
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
@@ -33,18 +30,18 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_CreateSimulacronCluster()
         {
             const string query = "SELECT * FROM system.traces";
-            var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } );
+            var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" });
             var contactPoint = simulacronCluster.InitialContactPoint;
             var builder = Cluster.Builder()
                                  .AddContactPoint(contactPoint);
             using (var cluster = builder.Build())
             {
                 var session = cluster.Connect();
-                
-                simulacronCluster.PrimeFluent(b => 
+
+                simulacronCluster.PrimeFluent(b =>
                     b.WhenQuery(query)
                      .ThenRowsSuccess(
-                         new []{("id","uuid"),("value","varchar")}, 
+                         new[] { ("id", "uuid"), ("value", "varchar") },
                          rows => rows.WithRow(Guid.NewGuid(), "value")));
 
                 var result = session.Execute(query);
@@ -53,15 +50,10 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual("value", firstRow["value"]);
 
                 var logs = simulacronCluster.GetLogs();
-                var dcLogs = logs.data_centers as IEnumerable<dynamic>;
+                var dcLogs = logs.DataCenters;
                 Assert.NotNull(dcLogs);
-                Assert.True(
-                    dcLogs.Any(dc =>
-                        (dc.nodes as IEnumerable<dynamic>).Any(node => 
-                            (node.queries as IEnumerable<dynamic>).Any(q => 
-                                q.query.ToString() == query)))
-                    );
-            }   
+                Assert.True(logs.HasQueryBeenExecuted(query));
+            }
         }
     }
 }

@@ -22,7 +22,11 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.SimulacronAPI;
+using Cassandra.IntegrationTests.SimulacronAPI.Models;
+using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder;
 using Cassandra.Tasks;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
@@ -45,12 +49,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             {
                 client.BaseAddress = SimulacronManager.BaseAddress;
                 var response = await client.PostAsync(url, content).ConfigureAwait(false);
-                if (!response.IsSuccessStatusCode)
-                {
-                    // Get the error message
-                    throw new InvalidOperationException(await response.Content.ReadAsStringAsync()
-                                                                      .ConfigureAwait(false));
-                }
+                await SimulacronBase.EnsureSuccessStatusCode(response).ConfigureAwait(false);
                 var dataStr = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 return JObject.Parse(dataStr);
             }
@@ -75,7 +74,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             {
                 client.BaseAddress = SimulacronManager.BaseAddress;
                 var response = await client.PutAsync(url, content).ConfigureAwait(false);
-                response.EnsureSuccessStatusCode();
+                await SimulacronBase.EnsureSuccessStatusCode(response).ConfigureAwait(false);
                 var dataStr = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 if (string.IsNullOrEmpty(dataStr))
                 {
@@ -84,16 +83,16 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
                 return JObject.Parse(dataStr);
             }
         }
-
-        protected static async Task<dynamic> Get(string url)
+        
+        protected static async Task<T> Get<T>(string url)
         {
             using (var client = new HttpClient())
             {
                 client.BaseAddress = SimulacronManager.BaseAddress;
                 var response = await client.GetAsync(url).ConfigureAwait(false);
-                response.EnsureSuccessStatusCode();
+                await SimulacronBase.EnsureSuccessStatusCode(response).ConfigureAwait(false);
                 var dataStr = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                return JObject.Parse(dataStr);
+                return JsonConvert.DeserializeObject<T>(dataStr);
             }
         }
 
@@ -103,26 +102,29 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             {
                 client.BaseAddress = SimulacronManager.BaseAddress;
                 var response = await client.DeleteAsync(url).ConfigureAwait(false);
-                response.EnsureSuccessStatusCode();
+                await SimulacronBase.EnsureSuccessStatusCode(response).ConfigureAwait(false);
             }
         }
 
-        public dynamic GetLogs()
+        private static async Task EnsureSuccessStatusCode(HttpResponseMessage response)
+        {
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception($"Invalid status code received {response.StatusCode}.{Environment.NewLine}" +
+                                    $"{await response.Content.ReadAsStringAsync().ConfigureAwait(false)}");
+            }
+        }
+
+        public SimulacronLogs GetLogs()
         {
             return TaskHelper.WaitToComplete(GetLogsAsync());
         }
 
-        public Task<dynamic> GetLogsAsync()
+        public Task<SimulacronLogs> GetLogsAsync()
         {
-            return Get(GetPath("log"));
+            return SimulacronBase.Get<SimulacronLogs>(GetPath("log"));
         }
-
-        public dynamic PrimeDynamic(dynamic body)
-        {
-            Task<dynamic> task = Post(GetPath("prime"), body);
-            return TaskHelper.WaitToComplete(task);
-        }
-
+        
         public Task<JObject> PrimeAsync(IPrimeRequest request)
         {
             return SimulacronBase.Post(GetPath("prime"), request.Render());
@@ -140,7 +142,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public dynamic GetConnections()
         {
-            return TaskHelper.WaitToComplete(Get(GetPath("connections")));
+            return TaskHelper.WaitToComplete(SimulacronBase.Get<dynamic>(GetPath("connections")));
         }
 
         public Task DisableConnectionListener(int attempts = 0, string type = "unbind")
@@ -153,26 +155,26 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             return Put(GetPath("listener") + "?after=" + attempts + "&type=" + type, null);
         }
 
-        public IList<dynamic> GetQueries(string query, string queryType = "QUERY")
+        public IList<SimulacronLogsQuery> GetQueries(string query, string queryType = "QUERY")
         {
             return TaskHelper.WaitToComplete(GetQueriesAsync(query, queryType));
         }
 
-        public async Task<IList<dynamic>> GetQueriesAsync(string query, string queryType = "QUERY")
+        public async Task<IList<SimulacronLogsQuery>> GetQueriesAsync(string query, string queryType = "QUERY")
         {
             var response = await GetLogsAsync().ConfigureAwait(false);
-            IEnumerable<dynamic> dcInfo = response?.data_centers;
+            var dcInfo = response?.DataCenters;
             if (dcInfo == null)
             {
-                return new List<dynamic>(0);
+                return new List<SimulacronLogsQuery>();
             }
             return dcInfo
-                   .Select(dc => dc.nodes)
+                   .Select(dc => dc.Nodes)
                    .Where(nodes => nodes != null)
-                   .SelectMany<dynamic, dynamic>(nodes => nodes)
-                   .Where(n => n.queries != null)
-                   .SelectMany<dynamic, dynamic>(n => n.queries)
-                   .Where(q => (q.type == queryType || queryType == null) && (q.query == query || query == null))
+                   .SelectMany(nodes => nodes)
+                   .Where(n => n.Queries != null)
+                   .SelectMany(n => n.Queries)
+                   .Where(q => (q.Type == queryType || queryType == null) && (q.Query == query || query == null))
                    .ToArray();
         }
 

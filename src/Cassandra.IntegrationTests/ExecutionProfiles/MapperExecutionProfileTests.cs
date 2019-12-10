@@ -22,6 +22,7 @@ using System.Threading.Tasks;
 
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.SimulacronAPI;
+using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Mapping;
@@ -249,7 +250,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
             }
             var newQueries = _simulacronCluster.GetQueries(insert, "EXECUTE");
             Assert.AreEqual(queries.Count + 3, newQueries.Count);
-            Assert.IsTrue(newQueries.All(q => q.consistency_level == "TWO"));
+            Assert.IsTrue(newQueries.All(q => q.ConsistencyLevel == ConsistencyLevel.Two));
         }
 
         [Test]
@@ -282,7 +283,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
 
             var newQueries = _simulacronCluster.GetQueries(insertIfNotExists, "EXECUTE");
             Assert.AreEqual(queries.Count + 3, newQueries.Count);
-            Assert.IsTrue(newQueries.All(q => q.consistency_level == "TWO"));
+            Assert.IsTrue(newQueries.All(q => q.ConsistencyLevel == ConsistencyLevel.Two));
         }
 
         [Test]
@@ -313,7 +314,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
 
             var newQueries = _simulacronCluster.GetQueries(delete, "EXECUTE");
             Assert.AreEqual(queries.Count + 2, newQueries.Count);
-            Assert.IsTrue(newQueries.All(q => q.consistency_level == "TWO"));
+            Assert.IsTrue(newQueries.All(q => q.ConsistencyLevel == ConsistencyLevel.Two));
         }
 
         [Test]
@@ -342,7 +343,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
 
             var newQueries = _simulacronCluster.GetQueries(delete, "EXECUTE");
             Assert.AreEqual(queries.Count + 1, newQueries.Count);
-            Assert.IsTrue(newQueries.All(q => q.consistency_level == "TWO"));
+            Assert.IsTrue(newQueries.All(q => q.ConsistencyLevel == ConsistencyLevel.Two));
         }
 
         [Test]
@@ -376,7 +377,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
             }
             var newQueries = _simulacronCluster.GetQueries(update, "EXECUTE");
             Assert.AreEqual(queries.Count + 2, newQueries.Count);
-            Assert.IsTrue(newQueries.All(q => q.consistency_level == "TWO"));
+            Assert.IsTrue(newQueries.All(q => q.ConsistencyLevel == ConsistencyLevel.Two));
         }
 
         [Test]
@@ -408,7 +409,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
             }
             var newQueries = _simulacronCluster.GetQueries(update, "EXECUTE");
             Assert.AreEqual(queries.Count + 1, newQueries.Count);
-            Assert.IsTrue(newQueries.All(q => q.consistency_level == "TWO"));
+            Assert.IsTrue(newQueries.All(q => q.ConsistencyLevel == ConsistencyLevel.Two));
         }
         
         [Test]
@@ -438,7 +439,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
 
             var newQueries = _simulacronCluster.GetQueries(null, "BATCH");
             Assert.AreEqual(queries.Count + 1, newQueries.Count);
-            Assert.AreEqual("TWO", newQueries.Last().frame.message.consistency.ToString());
+            Assert.AreEqual(ConsistencyLevel.Two, newQueries.Last().Frame.GetBatchMessage().ConsistencyLevel);
         }
         
         [Test]
@@ -468,7 +469,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
 
             var newQueries = _simulacronCluster.GetQueries(null, "BATCH");
             Assert.AreEqual(queries.Count + 1, newQueries.Count);
-            Assert.AreEqual("TWO", newQueries.Last().frame.message.consistency.ToString());
+            Assert.AreEqual(ConsistencyLevel.Two, newQueries.Last().Frame.GetBatchMessage().ConsistencyLevel);
         }
     }
 }

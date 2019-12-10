@@ -21,8 +21,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.SimulacronAPI;
-using Cassandra.IntegrationTests.SimulacronAPI.Then;
-using Cassandra.IntegrationTests.SimulacronAPI.When;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Tests;

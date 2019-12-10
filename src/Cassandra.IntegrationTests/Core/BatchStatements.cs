@@ -24,7 +24,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), Category("realcluster")]
+    [Category("short")]
     public class BatchStatements : SharedClusterTest
     {
         private readonly string _tableName = "tbl" + Guid.NewGuid().ToString("N").ToLower();
@@ -46,6 +46,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [Category("realcluster")]
         [TestCassandraVersion(2, 0)]
         public void Batch_PreparedStatement()
         {
@@ -66,6 +67,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [Category("realcluster")]
         [TestCassandraVersion(2, 0)]
         public void Batch_PreparedStatement_With_Unprepared_Flow()
         {
@@ -93,6 +95,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [Category("realcluster")]
         [TestCassandraVersion(2, 0)]
         public void Batch_PreparedStatement_AsyncTest()
         {
@@ -108,6 +111,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [Category("realcluster")]
         [TestCassandraVersion(2, 0)]
         public void Batch_SimpleStatementSingle()
         {
@@ -126,6 +130,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [Category("realcluster")]
         [TestCassandraVersion(2, 0)]
         public void Batch_SimpleStatement_Bound()
         {
@@ -144,6 +149,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [Category("realcluster")]
         [TestCassandraVersion(2, 0)]
         public void Batch_SimpleStatement_Multiple()
         {
@@ -165,6 +171,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [Category("realcluster")]
         [TestCassandraVersion(2, 0)]
         public void Batch_UsingTwoTables()
         {
@@ -186,6 +193,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [Category("realcluster")]
         [TestCassandraVersion(2, 0)]
         public void Batch_UsingTwoTables_OneInvalidTable()
         {
@@ -198,6 +206,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [Category("realcluster")]
         [TestCassandraVersion(2, 0)]
         public void Batch_MixedStatement()
         {
@@ -215,6 +224,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [Category("realcluster")]
         [TestCassandraVersion(2, 1)]
         public void Batch_SerialConsistency()
         {
@@ -260,7 +270,7 @@ namespace Cassandra.IntegrationTests.Core
                 var executedArray = executed.ToArray();
                 Assert.AreEqual(1, executedArray.Length);
                 var log = executedArray[0];
-                var logtimestamp = (long) log.client_timestamp;
+                var logtimestamp = log.ClientTimestamp;
                 Assert.AreEqual(timestamp, logtimestamp);
             }
         }
@@ -282,12 +292,13 @@ namespace Cassandra.IntegrationTests.Core
                 var executedArray = executed.ToArray();
                 Assert.AreEqual(1, executedArray.Length);
                 var log = executedArray[0];
-                var logtimestamp = (long) log.client_timestamp;
+                var logtimestamp = log.ClientTimestamp;
                 Assert.Greater(logtimestamp, oldTimestamp);
             }
         }
 
         [Test]
+        [Category("realcluster")]
         [TestCassandraVersion(2, 1)]
         public void Batch_Timestamp()
         {
@@ -307,6 +318,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [Category("realcluster")]
         [TestCassandraVersion(2, 0, Comparison.Equal)]
         public void Batch_PreparedStatements_FlagsNotSupportedInC2_0()
         {
@@ -317,6 +329,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [Category("realcluster")]
         [TestCassandraVersion(1, 9, Comparison.LessThan)]
         public void Batch_PreparedStatements_NotSupportedInC1_2()
         {
@@ -336,6 +349,7 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [Category("realcluster")]
         [TestCassandraVersion(2, 0)]
         public void Batch_PreparedStatement_Large()
         {
