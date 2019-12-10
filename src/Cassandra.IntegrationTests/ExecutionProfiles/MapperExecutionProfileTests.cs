@@ -92,12 +92,12 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
             return when.ThenRowsSuccess(
                 new[]
                 {
-                    ("MainActor", "ascii"),
-                    ("MovieMaker", "ascii"),
-                    ("Title", "ascii"),
-                    ("ExampleSet", "list<ascii>"),
-                    ("Director", "ascii"),
-                    ("Year", "int")
+                    ("MainActor", DataType.Ascii),
+                    ("MovieMaker", DataType.Ascii),
+                    ("Title", DataType.Ascii),
+                    ("ExampleSet", DataType.List(DataType.Ascii)),
+                    ("Director", DataType.Ascii),
+                    ("Year", DataType.Int)
                 },
                 rows => rows.WithRows(movies.Select(CreatePrimeObject).ToArray())).WithIgnoreOnPrepare(true);
         }
@@ -212,9 +212,9 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 rows = new object[0],
                 column_types = new
                 {
-                    Id = "uuid",
-                    Title = "ascii",
-                    Artist = "ascii",
+                    Id = DataType.Uuid,
+                    Title = DataType.Ascii,
+                    Artist = DataType.Ascii,
                     ReleaseDate = "timestamp"
                 },
                 ignore_on_prepare = true

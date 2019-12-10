@@ -22,6 +22,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.IntegrationTests.Policies.Util;
+using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 using Cassandra.IntegrationTests.TestClusterManagement;
@@ -60,7 +61,7 @@ namespace Cassandra.IntegrationTests.Core
                     var session = (IInternalSession)cluster.Connect();
                     testCluster.PrimeFluent(
                         b => b.WhenQuery("SELECT * FROM ks1.table1 WHERE id1 = ?, id2 = ?")
-                              .ThenRowsSuccess(new[] { ("id1", "int"), ("id2", "int") }, rows => rows.WithRow(2, 3)).WithIgnoreOnPrepare(true));
+                              .ThenRowsSuccess(new[] { ("id1", DataType.Int), ("id2", DataType.Int) }, rows => rows.WithRow(2, 3)).WithIgnoreOnPrepare(true));
                     var ps = session.Prepare("SELECT * FROM ks1.table1 WHERE id1 = ?, id2 = ?");
                     var t = ExecuteMultiple(testCluster, session, ps, false, 1, 100);
                     t.Wait();

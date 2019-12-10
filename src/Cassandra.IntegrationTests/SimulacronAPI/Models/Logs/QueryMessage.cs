@@ -14,18 +14,16 @@
 //   limitations under the License.
 //
 
-using System.Collections.Generic;
-using Cassandra.IntegrationTests.SimulacronAPI.Models.Converters;
 using Newtonsoft.Json;
 
-namespace Cassandra.IntegrationTests.SimulacronAPI.Models
+namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Logs
 {
-    public class SimulacronLogs
+    public class QueryMessage : BaseMessage
     {
-        [JsonProperty("id")]
-        public long Id { get; set; }
-
-        [JsonProperty("data_centers")]
-        public List<SimulacronLogsDatacenter> DataCenters { get; set; }
+        [JsonProperty("query")]
+        public string Query { get; set; }
+        
+        [JsonProperty("options")]
+        public QueryMessageOptions Options { get; set; }
     }
 }

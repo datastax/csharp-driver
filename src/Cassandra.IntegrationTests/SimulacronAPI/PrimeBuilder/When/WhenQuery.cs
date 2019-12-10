@@ -30,9 +30,17 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When
             this._query = query;
         }
         
-        public IWhenQueryFluent WithParam(string name, string type, object value)
+        public IWhenQueryFluent WithNamedParam(string name, DataType type, object value)
         {
-            _namesToTypes.Add((name, type));
+            _namesToTypes.Add((name, type.Value));
+            _values.Add(value);
+            return this;
+        }
+        
+        
+        public IWhenQueryFluent WithParam(DataType type, object value)
+        {
+            _namesToTypes.Add(($"column{_namesToTypes.Count}", type.Value));
             _values.Add(value);
             return this;
         }

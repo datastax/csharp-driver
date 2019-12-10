@@ -14,19 +14,17 @@
 //   limitations under the License.
 //
 
+using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace Cassandra.IntegrationTests.SimulacronAPI.Models
+namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Logs
 {
-    public class BaseMessage
+    public class SimulacronNodeLogs
     {
-        [JsonProperty("opcode")]
-        public int OpCode { get; set; }
-        
-        [JsonProperty("is_response")]
-        public bool IsResponse { get; set; }
+        [JsonProperty("id")]
+        public long NodeId { get; set; }
 
-        [JsonProperty("type")]
-        public string Type { get; set; }
+        [JsonProperty("queries")]
+        public List<RequestLog> Queries { get; set; }
     }
 }

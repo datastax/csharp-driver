@@ -18,7 +18,7 @@ using System.Collections.Generic;
 using Cassandra.IntegrationTests.SimulacronAPI.Models.Converters;
 using Newtonsoft.Json;
 
-namespace Cassandra.IntegrationTests.SimulacronAPI.Models
+namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Logs
 {
     public class QueryMessageOptions
     {

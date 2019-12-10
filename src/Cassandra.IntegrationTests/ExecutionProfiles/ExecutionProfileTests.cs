@@ -17,7 +17,7 @@
 
 using System.Linq;
 using System.Threading.Tasks;
-
+using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 
 using NUnit.Framework;
@@ -92,7 +92,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
 
                 _simulacron.PrimeFluent(
                     b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency("TWO"))
-                          .ThenRowsSuccess(new[] { ("text", "ascii") }, r => r.WithRow("test6").WithRow("test5")));
+                          .ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, r => r.WithRow("test6").WithRow("test5")));
 
                 var rs = async
                     ? await session.ExecuteAsync(new SimpleStatement("SELECT * from test.test"), "read").ConfigureAwait(false)
@@ -125,7 +125,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
 
                 _simulacron.PrimeFluent(
                     b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency("ONE"))
-                          .ThenRowsSuccess(new[] { ("text", "ascii") }, r => r.WithRow("test10").WithRow("test60")));
+                          .ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, r => r.WithRow("test10").WithRow("test60")));
                 
                 _simulacron.PrimeFluent(
                     b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency("TWO"))
@@ -167,11 +167,11 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
 
                 _simulacron.PrimeFluent(
                     b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency("ONE"))
-                          .ThenRowsSuccess(new[] { ("text", "ascii") }, r => r.WithRow("test10").WithRow("test60")));
+                          .ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, r => r.WithRow("test10").WithRow("test60")));
                 
                 _simulacron.PrimeFluent(
                     b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency("TWO"))
-                          .ThenRowsSuccess(new[] { ("text", "ascii") }, r => r.WithRow("test12").WithRow("test62")));
+                          .ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, r => r.WithRow("test12").WithRow("test62")));
                 
                 _simulacron.PrimeFluent(
                     b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency("QUORUM"))

@@ -24,9 +24,9 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then
         private readonly (string, string)[] _columnNamesToTypes;
         private readonly List<(string, object)[]> _rows;
 
-        public RowsResult(params (string, string)[] columnNamesToTypes)
+        public RowsResult(params (string, DataType)[] columnNamesToTypes)
         {
-            _columnNamesToTypes = columnNamesToTypes;
+            _columnNamesToTypes = columnNamesToTypes.Select(tuple => (tuple.Item1, tuple.Item2.Value)).ToArray();
             _rows = new List<(string, object)[]>();
         }
 

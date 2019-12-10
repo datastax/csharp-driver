@@ -37,7 +37,7 @@ namespace Cassandra.IntegrationTests.Core
             return SimulacronBase
                    .PrimeBuilder()
                    .WhenQuery(PrepareSimulatorTests.Query)
-                   .ThenRowsSuccess(new[] { ("id", "uuid") }, rows => rows.WithRow(Guid.NewGuid()))
+                   .ThenRowsSuccess(new[] { ("id", DataType.Uuid) }, rows => rows.WithRow(Guid.NewGuid()))
                    .WithDelayInMs(delay)
                    .BuildRequest();
         }

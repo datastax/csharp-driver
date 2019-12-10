@@ -17,14 +17,14 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Converters
+namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Logs
 {
-    public class SimulacronLogsDatacenter
+    public class SimulacronClusterLogs
     {
         [JsonProperty("id")]
         public long Id { get; set; }
 
-        [JsonProperty("nodes")]
-        public List<SimulacronLogsNode> Nodes { get; set; }
+        [JsonProperty("data_centers")]
+        public List<SimulacronDatacenterLogs> DataCenters { get; set; }
     }
 }

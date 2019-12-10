@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
@@ -110,7 +111,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
 
                     queryPlan[1].PrimeFluent(
                         b => b.WhenQuery(cql).
-                               ThenRowsSuccess(new[] { ("text", "ascii") }, rows => rows.WithRow("test1").WithRow("test2")));
+                               ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, rows => rows.WithRow("test1").WithRow("test2")));
 
                     if (async)
                     {
@@ -169,7 +170,7 @@ namespace Cassandra.IntegrationTests.Policies.Tests
 
                     nodes[1].PrimeFluent(
                         b => b.WhenQuery(cql).
-                               ThenRowsSuccess(new[] { ("text", "ascii") }, rows => rows.WithRow("test1").WithRow("test2")));
+                               ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, rows => rows.WithRow("test1").WithRow("test2")));
 
                     if (async)
                     {

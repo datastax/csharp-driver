@@ -23,6 +23,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.SimulacronAPI.Models;
+using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder;
 using Cassandra.Tasks;
 using Newtonsoft.Json;
@@ -115,14 +116,14 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             }
         }
 
-        public SimulacronLogs GetLogs()
+        public SimulacronClusterLogs GetLogs()
         {
             return TaskHelper.WaitToComplete(GetLogsAsync());
         }
 
-        public Task<SimulacronLogs> GetLogsAsync()
+        public Task<SimulacronClusterLogs> GetLogsAsync()
         {
-            return SimulacronBase.Get<SimulacronLogs>(GetPath("log"));
+            return SimulacronBase.Get<SimulacronClusterLogs>(GetPath("log"));
         }
         
         public Task<JObject> PrimeAsync(IPrimeRequest request)
@@ -155,18 +156,18 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             return Put(GetPath("listener") + "?after=" + attempts + "&type=" + type, null);
         }
 
-        public IList<SimulacronLogsQuery> GetQueries(string query, string queryType = "QUERY")
+        public IList<RequestLog> GetQueries(string query, string queryType = "QUERY")
         {
             return TaskHelper.WaitToComplete(GetQueriesAsync(query, queryType));
         }
 
-        public async Task<IList<SimulacronLogsQuery>> GetQueriesAsync(string query, string queryType = "QUERY")
+        public async Task<IList<RequestLog>> GetQueriesAsync(string query, string queryType = "QUERY")
         {
             var response = await GetLogsAsync().ConfigureAwait(false);
             var dcInfo = response?.DataCenters;
             if (dcInfo == null)
             {
-                return new List<SimulacronLogsQuery>();
+                return new List<RequestLog>();
             }
             return dcInfo
                    .Select(dc => dc.Nodes)

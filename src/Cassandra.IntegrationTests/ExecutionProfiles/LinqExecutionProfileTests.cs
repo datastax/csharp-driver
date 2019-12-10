@@ -211,7 +211,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         private IThenFluent CreateThenForPrimeSelect(IWhenFluent when, IEnumerable<AllDataTypesEntity> allData)
         {
             return when.ThenRowsSuccess(
-                           new[] { ("StringType", "ascii"), ("GuidType", "uuid"), ("IntType", "int") },
+                           new[] { ("StringType", DataType.Ascii), ("GuidType", DataType.Uuid), ("IntType", DataType.Int) },
                            rows => rows.WithRows(allData.Select(CreatePrimeObject).ToArray()))
                        .WithIgnoreOnPrepare(true);
         }

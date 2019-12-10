@@ -244,7 +244,7 @@ namespace Cassandra.IntegrationTests.Core
             var cql = string.Format(TestUtils.SELECT_ALL_FORMAT, _table);
             _simulacronCluster
                 .PrimeFluent(b => b.WhenQuery(cql).ThenRowsSuccess(
-                    new[] { ("id", "uuid"), ("value", "varchar") },
+                    new[] { ("id", DataType.Uuid), ("value", DataType.Varchar) },
                     rows => rows.WithRow(Guid.NewGuid(), "value")));
 
             var rowset = _session.Execute(new SimpleStatement(cql)).GetRows();
@@ -261,7 +261,7 @@ namespace Cassandra.IntegrationTests.Core
 
             _simulacronCluster
                 .PrimeFluent(b => b.WhenQuery(cql).ThenRowsSuccess(
-                    new[] { ("id", "uuid"), ("value", "varchar") },
+                    new[] { ("id", DataType.Uuid), ("value", DataType.Varchar) },
                     rows => rows.WithRow(Guid.NewGuid(), "value")));
 
             var rs = _session.Execute(new SimpleStatement(string.Format(TestUtils.SELECT_ALL_FORMAT, _table)).SetPageSize(1));

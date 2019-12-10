@@ -20,6 +20,7 @@ using System.Linq;
 using System.Text;
 
 using Cassandra.Data.Linq;
+using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.SimulacronAPI.SystemTables;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
@@ -46,14 +47,14 @@ namespace Cassandra.IntegrationTests.Core
 
                 simulacronCluster.PrimeFluent(
                     b => b.WhenQuery("SELECT \"\", \" \" FROM testks.testtable")
-                          .ThenRowsSuccess(new[] { ("", "ascii"), (" ", "ascii") }, rows => rows.WithRow("testval", "testval2")));
+                          .ThenRowsSuccess(new[] { ("", DataType.Ascii), (" ", DataType.Ascii) }, rows => rows.WithRow("testval", "testval2")));
 
                 simulacronCluster.PrimeFluent(
                     b => b.WhenQuery(
                               "SELECT \"\", \" \" FROM testks.testtable WHERE \"\" = ? AND \" \" = ?",
-                              query => query.WithParam("column1", "ascii", "testval").WithParam("column2", "ascii", "testval2"))
+                              query => query.WithParam(DataType.Ascii, "testval").WithParam(DataType.Ascii, "testval2"))
                           .ThenRowsSuccess(
-                              new[] { ("", "ascii"), (" ", "ascii") },
+                              new[] { ("", DataType.Ascii), (" ", DataType.Ascii) },
                               rows => rows.WithRow("testval", "testval2")));
 
                 var mapConfig = new MappingConfiguration();
@@ -106,14 +107,14 @@ namespace Cassandra.IntegrationTests.Core
 
                 simulacronCluster.PrimeFluent(
                     b => b.WhenQuery("SELECT \"\", \" \" FROM testks.testtable")
-                          .ThenRowsSuccess(new[] { ("", "ascii"), (" ", "ascii") }, rows => rows.WithRow("testval", "testval2")));
+                          .ThenRowsSuccess(new[] { ("", DataType.Ascii), (" ", DataType.Ascii) }, rows => rows.WithRow("testval", "testval2")));
 
                 simulacronCluster.PrimeFluent(
                     b => b.WhenQuery(
                               "SELECT \"\", \" \" FROM testks.testtable WHERE \"\" = ? AND \" \" = ?",
-                              query => query.WithParam("column1", "ascii", "testval").WithParam("column2", "ascii", "testval2"))
+                              query => query.WithParam(DataType.Ascii, "testval").WithParam(DataType.Ascii, "testval2"))
                           .ThenRowsSuccess(
-                              new[] { ("", "ascii"), (" ", "ascii") },
+                              new[] { ("", DataType.Ascii), (" ", DataType.Ascii) },
                               rows => rows.WithRow("testval", "testval2")));
 
                 var mapConfig = new MappingConfiguration();

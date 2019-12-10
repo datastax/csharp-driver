@@ -1,12 +1,12 @@
-﻿// 
+﻿//
 //       Copyright (C) DataStax Inc.
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //       http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,7 +15,7 @@
 
 using System.Linq;
 using System.Text;
-using Cassandra.IntegrationTests.Core;
+
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 
 namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
@@ -35,15 +35,15 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
                       .ThenRowsSuccess(
                           new[]
                           {
-                              ("compression", "map<ascii, ascii>"),
-                              ("compaction", "map<ascii, ascii>"),
-                              ("bloom_filter_fp_chance", "double"),
-                              ("caching", "map<ascii, ascii>"),
-                              ("comment", "ascii"),
-                              ("gc_grace_seconds", "int"),
-                              ("dclocal_read_repair_chance", "double"),
-                              ("read_repair_chance", "double"),
-                              ("keyspace_name", "ascii")
+                              ("compression", DataType.Map(DataType.Ascii, DataType.Ascii)),
+                              ("compaction", DataType.Map(DataType.Ascii, DataType.Ascii)),
+                              ("bloom_filter_fp_chance", DataType.Double),
+                              ("caching", DataType.Map(DataType.Ascii, DataType.Ascii)),
+                              ("comment", DataType.Ascii),
+                              ("gc_grace_seconds", DataType.Int),
+                              ("dclocal_read_repair_chance", DataType.Double),
+                              ("read_repair_chance", DataType.Double),
+                              ("keyspace_name", DataType.Ascii)
                           },
                           rows =>
                               rows.WithRow(
@@ -55,9 +55,9 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
                       .ThenRowsSuccess(
                           new[]
                           {
-                              ("replication", "map<ascii, ascii>"),
-                              ("keyspace_name", "ascii"),
-                              ("durable_writes", "boolean")
+                              ("replication", DataType.Map(DataType.Ascii, DataType.Ascii)),
+                              ("keyspace_name", DataType.Ascii),
+                              ("durable_writes", DataType.Boolean)
                           },
                           rows => rows.WithRow(new { @class = "SimpleStrategy", replication_factor = "1" }, keyspace, true)));
 
@@ -66,25 +66,25 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
                       .ThenRowsSuccess(
                           new[]
                           {
-                              ("keyspace_name", "ascii"),
-                              ("table_name", "ascii"),
-                              ("index_name", "ascii"),
-                              ("kind", "ascii"),
-                              ("options", "map<ascii,ascii>")
+                              ("keyspace_name", DataType.Ascii),
+                              ("table_name", DataType.Ascii),
+                              ("index_name", DataType.Ascii),
+                              ("kind", DataType.Ascii),
+                              ("options", DataType.Map(DataType.Ascii, DataType.Ascii))
                           }));
 
             simulacronCluster.PrimeFluent(
                 b => b.WhenQuery($"SELECT * FROM system_schema.columns WHERE table_name='{table}' AND keyspace_name='{keyspace}'")
                       .ThenRowsSuccess(new[]
                           {
-                              ("keyspace_name", "ascii"),
-                              ("table_name", "ascii"),
-                              ("column_name", "ascii"),
-                              ("clustering_order", "ascii"),
-                              ("column_name_bytes", "blob"),
-                              ("kind", "ascii"),
-                              ("position", "int"),
-                              ("type", "ascii")
+                              ("keyspace_name", DataType.Ascii),
+                              ("table_name", DataType.Ascii),
+                              ("column_name", DataType.Ascii),
+                              ("clustering_order", DataType.Ascii),
+                              ("column_name_bytes", DataType.Blob),
+                              ("kind", DataType.Ascii),
+                              ("position", DataType.Int),
+                              ("type", DataType.Ascii)
                           },
                           rows => rows.WithRows(
                               columns
@@ -104,19 +104,19 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
                       .ThenRowsSuccess(
                           new[]
                           {
-                              ("compression", "ascii"),
-                              ("compression_parameters", "ascii"),
-                              ("compaction_strategy_class",  "ascii"),
-                              ("compaction_strategy_options", "ascii"),
-                              ("bloom_filter_fp_chance", "double"),
-                              ("caching", "ascii"),
-                              ("comment", "ascii"),
-                              ("gc_grace_seconds", "int"),
-                              ("dclocal_read_repair_chance", "double"),
-                              ("read_repair_chance", "double"),
-                              ("keyspace_name", "ascii"),
-                              ("local_read_repair_chance", "double"),
-                              ("comparator", "ascii")
+                              ("compression", DataType.Ascii),
+                              ("compression_parameters", DataType.Ascii),
+                              ("compaction_strategy_class",  DataType.Ascii),
+                              ("compaction_strategy_options", DataType.Ascii),
+                              ("bloom_filter_fp_chance", DataType.Double),
+                              ("caching", DataType.Ascii),
+                              ("comment", DataType.Ascii),
+                              ("gc_grace_seconds", DataType.Int),
+                              ("dclocal_read_repair_chance", DataType.Double),
+                              ("read_repair_chance", DataType.Double),
+                              ("keyspace_name", DataType.Ascii),
+                              ("local_read_repair_chance", DataType.Double),
+                              ("comparator", DataType.Ascii)
                           },
                           rows =>
                               rows.WithRow(
@@ -128,29 +128,29 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
                       .ThenRowsSuccess(
                           new[]
                           {
-                              ("strategy_options", "ascii"),
-                              ("strategy_class", "ascii"),
-                              ("keyspace_name", "ascii"),
-                              ("durable_writes", "boolean")
+                              ("strategy_options", DataType.Ascii),
+                              ("strategy_class", DataType.Ascii),
+                              ("keyspace_name", DataType.Ascii),
+                              ("durable_writes", DataType.Boolean)
                           },
                           rows => rows.WithRow("{\"replication_factor\":\"1\"}", "SimpleStrategy", keyspace, true)));
-            
+
             simulacronCluster.PrimeFluent(
                 b => b.WhenQuery($"SELECT * FROM system.schema_columns WHERE columnfamily_name='{table}' AND keyspace_name='{keyspace}'")
                       .ThenRowsSuccess(new[]
                           {
-                              ("keyspace_name", "ascii"),
-                              ("columnfamily_name", "ascii"),
-                              ("column_name", "ascii"),
-                              ("clustering_order", "ascii"),
-                              ("column_name_bytes", "blob"),
-                              ("kind", "ascii"),
-                              ("position", "int"),
-                              ("type", "ascii"),
-                              ("validator", "ascii"),
-                              ("index_name", "ascii"),
-                              ("index_type", "ascii"),
-                              ("index_options", "ascii")
+                              ("keyspace_name", DataType.Ascii),
+                              ("columnfamily_name", DataType.Ascii),
+                              ("column_name", DataType.Ascii),
+                              ("clustering_order", DataType.Ascii),
+                              ("column_name_bytes", DataType.Blob),
+                              ("kind", DataType.Ascii),
+                              ("position", DataType.Int),
+                              ("type", DataType.Ascii),
+                              ("validator", DataType.Ascii),
+                              ("index_name", DataType.Ascii),
+                              ("index_type", DataType.Ascii),
+                              ("index_options", DataType.Ascii)
                           },
                           rows => rows.WithRows(
                               columns

@@ -14,32 +14,40 @@
 //   limitations under the License.
 //
 
-using System.Collections.Generic;
 using Cassandra.IntegrationTests.SimulacronAPI.Models.Converters;
 using Newtonsoft.Json;
 
-namespace Cassandra.IntegrationTests.SimulacronAPI.Models
+namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Logs
 {
-    public class BatchMessage : BaseMessage
+    public class RequestLog
     {
-        [JsonProperty("queries_or_ids")]
-        public List<string> QueriesOrIds { get; set; }
+        [JsonProperty("query")]
+        public string Query { get; set; }
         
-        [JsonProperty("values")]
-        public List<List<string>> Values { get; set; }
-        
-        [JsonProperty("consistency")]
+        [JsonProperty("consistency_level")]
         [JsonConverter(typeof(ConsistencyLevelEnumConverter))]
-        public ConsistencyLevel ConsistencyLevel { get; set; }
-
-        [JsonProperty("serial_consistency")]
+        public ConsistencyLevel? ConsistencyLevel { get; set; }
+        
+        [JsonProperty("serial_consistency_level")]
         [JsonConverter(typeof(ConsistencyLevelEnumConverter))]
         public ConsistencyLevel? SerialConsistencyLevel { get; set; }
 
-        [JsonProperty("default_timestamp")]
-        public long DefaultTimestamp { get; set; }
+        [JsonProperty("connection")]
+        public string Connection { get; set; }
 
-        [JsonProperty("keyspace")]
-        public string Keyspace { get; set; }
+        [JsonProperty("received_timestamp")]
+        public long ReceivedTimestamp { get; set; }
+        
+        [JsonProperty("client_timestamp")]
+        public long ClientTimestamp { get; set; }
+        
+        [JsonProperty("primed")]
+        public bool Primed { get; set; }
+        
+        [JsonProperty("type")]
+        public string Type { get; set; }
+        
+        [JsonProperty("frame")]
+        public Frame Frame { get; set; }
     }
 }

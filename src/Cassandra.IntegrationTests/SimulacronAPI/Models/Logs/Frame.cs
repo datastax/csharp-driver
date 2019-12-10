@@ -18,9 +18,9 @@ using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace Cassandra.IntegrationTests.SimulacronAPI.Models
+namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Logs
 {
-    public class SimulacronLogsQueryFrame
+    public class Frame
     {
         [JsonProperty("protocol_version")]
         public int ProtocolVersion { get; set; }

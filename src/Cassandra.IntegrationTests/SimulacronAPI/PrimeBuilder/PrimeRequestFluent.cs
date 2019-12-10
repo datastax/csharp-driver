@@ -34,7 +34,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder
             return this;
         }
 
-        public IThenFluent ThenRowsSuccess((string, string)[] columnNamesToTypes, Action<IRowsResult> rowsBuilder)
+        public IThenFluent ThenRowsSuccess((string, DataType)[] columnNamesToTypes, Action<IRowsResult> rowsBuilder)
         {
             var rows = new RowsResult(columnNamesToTypes);
             rowsBuilder(rows);
@@ -42,7 +42,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder
             return this;
         }
 
-        public IThenFluent ThenRowsSuccess((string, string)[] columnNamesToTypes)
+        public IThenFluent ThenRowsSuccess((string, DataType)[] columnNamesToTypes)
         {
             var rows = new RowsResult(columnNamesToTypes);
             _then = new ThenRowsSuccess(rows);

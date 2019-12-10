@@ -40,7 +40,7 @@ namespace Cassandra.IntegrationTests.Core
             SimulacronBase
                 .PrimeBuilder()
                 .WhenQuery(SchemaAgreementSimulacronTests.LocalSchemaVersionQuery)
-                .ThenRowsSuccess(new[] { ("schema_version", "uuid") }, rows => rows.WithRow(version))
+                .ThenRowsSuccess(new[] { ("schema_version", DataType.Uuid) }, rows => rows.WithRow(version))
                 .BuildRequest();
 
         private static IPrimeRequest PeersSchemaVersionQueryPrime(IEnumerable<Guid> versions) =>
@@ -48,7 +48,7 @@ namespace Cassandra.IntegrationTests.Core
                 .PrimeBuilder()
                 .WhenQuery(SchemaAgreementSimulacronTests.PeersSchemaVersionQuery)
                 .ThenRowsSuccess(
-                    new[] { ("schema_version", "uuid") },
+                    new[] { ("schema_version", DataType.Uuid) },
                     rows => rows.WithRows(versions.Select(v => new object[] { v }).ToArray()))
                 .BuildRequest();
 
@@ -108,7 +108,7 @@ namespace Cassandra.IntegrationTests.Core
                 SimulacronBase
                     .PrimeBuilder()
                     .WhenQuery(selectStatement)
-                    .ThenRowsSuccess(new[] { ("test", "ascii") }, rows => rows.WithRow("123"))
+                    .ThenRowsSuccess(new[] { ("test", DataType.Ascii) }, rows => rows.WithRow("123"))
                     .BuildRequest();
 
             using (var simulacronCluster = SimulacronCluster.CreateNew(3))

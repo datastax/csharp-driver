@@ -63,7 +63,7 @@ namespace Cassandra.IntegrationTests.Core
                 var node = nodes[0];
                 node.PrimeFluent(b => b
                     .WhenQuery("SELECT key FROM system.local")
-                    .ThenRowsSuccess(new [] { ("key", "ascii") }, rows => rows.WithRow("123"))
+                    .ThenRowsSuccess(new [] { ("key", DataType.Ascii) }, rows => rows.WithRow("123"))
                     .WithDelayInMs(2000));
                 TestHelper.Invoke(() =>
                 {
@@ -90,7 +90,7 @@ namespace Cassandra.IntegrationTests.Core
                 var node = nodes[0];
                 node.PrimeFluent(
                     b => b.WhenQuery("SELECT key FROM system.local")
-                          .ThenRowsSuccess(new [] { ("key", "ascii") }, rows => rows.WithRow("123"))
+                          .ThenRowsSuccess(new [] { ("key", DataType.Ascii) }, rows => rows.WithRow("123"))
                           .WithDelayInMs(2000));
                 TestHelper.Invoke(() =>
                 {
@@ -140,7 +140,7 @@ namespace Cassandra.IntegrationTests.Core
                 var node = nodes[1];
                 node.PrimeFluent(
                     b => b.WhenQuery("SELECT key FROM system.local")
-                          .ThenRowsSuccess(new [] { ("key", "ascii") }, rows => rows.WithRow("123"))
+                          .ThenRowsSuccess(new [] { ("key", DataType.Ascii) }, rows => rows.WithRow("123"))
                           .WithDelayInMs(2000));
                 var coordinators = new HashSet<string>();
                 var exceptions = new List<OperationTimedOutException>();
@@ -171,7 +171,7 @@ namespace Cassandra.IntegrationTests.Core
                 const string cql = "SELECT key FROM system.local";
                 simulacronCluster.PrimeFluent(
                     b => b.WhenQuery(cql)
-                          .ThenRowsSuccess(new [] { ("key", "ascii") }, rows => rows.WithRow("123"))
+                          .ThenRowsSuccess(new [] { ("key", DataType.Ascii) }, rows => rows.WithRow("123"))
                           .WithDelayInMs(30000));
 
                 using (var cluster = Cluster.Builder().AddContactPoint(simulacronCluster.InitialContactPoint).WithSocketOptions(socketOptions).Build())
@@ -218,7 +218,7 @@ namespace Cassandra.IntegrationTests.Core
                 var node = nodes[0];
                 node.PrimeFluent(
                     b => b.WhenQuery("SELECT key FROM system.local")
-                          .ThenRowsSuccess(new [] { ("key", "ascii") }, rows => rows.WithRow("123"))
+                          .ThenRowsSuccess(new [] { ("key", DataType.Ascii) }, rows => rows.WithRow("123"))
                           .WithDelayInMs(10000));
                 var stopWatch = new Stopwatch();
                 stopWatch.Start();
@@ -264,7 +264,7 @@ namespace Cassandra.IntegrationTests.Core
                 TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local"), 10);
                 _testCluster.PrimeFluent(
                     b => b.WhenQuery("SELECT key FROM system.local")
-                          .ThenRowsSuccess(new [] { ("key", "ascii") }, rows => rows.WithRow("123"))
+                          .ThenRowsSuccess(new [] { ("key", DataType.Ascii) }, rows => rows.WithRow("123"))
                           .WithDelayInMs(10000));
                 var ex = Assert.Throws<NoHostAvailableException>(() => session.Execute("SELECT key FROM system.local"));
                 Assert.AreEqual(2, ex.Errors.Count);

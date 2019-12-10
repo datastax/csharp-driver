@@ -16,6 +16,7 @@
 
 using System;
 using System.Linq;
+using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.SimulacronAPI.Models;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 
@@ -41,7 +42,7 @@ namespace Cassandra.IntegrationTests.Core
                 simulacronCluster.PrimeFluent(b =>
                     b.WhenQuery(query)
                      .ThenRowsSuccess(
-                         new[] { ("id", "uuid"), ("value", "varchar") },
+                         new[] { ("id", DataType.Uuid), ("value", DataType.Varchar) },
                          rows => rows.WithRow(Guid.NewGuid(), "value")));
 
                 var result = session.Execute(query);

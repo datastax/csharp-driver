@@ -16,14 +16,17 @@
 
 using Newtonsoft.Json;
 
-namespace Cassandra.IntegrationTests.SimulacronAPI.Models
+namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Logs
 {
-    public class QueryMessage : BaseMessage
+    public class BaseMessage
     {
-        [JsonProperty("query")]
-        public string Query { get; set; }
+        [JsonProperty("opcode")]
+        public int OpCode { get; set; }
         
-        [JsonProperty("options")]
-        public QueryMessageOptions Options { get; set; }
+        [JsonProperty("is_response")]
+        public bool IsResponse { get; set; }
+
+        [JsonProperty("type")]
+        public string Type { get; set; }
     }
 }

@@ -24,9 +24,11 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Linq.Structures
 {
     [AllowFiltering]
-    [Table("allDataTypes")]
+    [Table(AllDataTypesEntity.TableName)]
     public class AllDataTypesEntity : IAllDataTypesEntity
     {
+        public const string TableName = "allDataTypes";
+
         public const int DefaultListLength = 5;
 
         [PartitionKey]
