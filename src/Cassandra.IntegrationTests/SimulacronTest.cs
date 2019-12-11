@@ -13,11 +13,14 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+using System;
+using System.Linq;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests
 {
+    [TestFixture, Category("short")]
     public class SimulacronTest
     {
         private readonly bool _shared;
@@ -34,6 +37,28 @@ namespace Cassandra.IntegrationTests
         protected ISession Session { get; private set; }
 
         protected SimulacronCluster TestCluster { get; private set; }
+        
+        protected void VerifyBoundStatement(string cql, int count, params object[] positionalParameters)
+        {
+            var serializer = Session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer();
+            var queries = TestCluster.GetQueries(cql, "EXECUTE");
+
+            var paramBytes = positionalParameters.Select(obj => Convert.ToBase64String(serializer.Serialize(obj))).ToList();
+            var filteredQueries = queries.Where(q => q.Frame.GetQueryMessage().Options.PositionalValues.SequenceEqual(paramBytes));
+            Assert.AreEqual(count, filteredQueries.Count());
+        }
+
+        protected void VerifyBatchStatement(int count, string[] queries, object[][] parameters)
+        {
+            var serializer = Session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer();
+            var logs = TestCluster.GetQueries(null, "BATCH");
+
+            var paramBytes = parameters.SelectMany(obj => obj.Select(o => Convert.ToBase64String(serializer.Serialize(o)))).ToArray();
+            var filteredQueries = logs.Where(q => 
+                q.Frame.GetBatchMessage().Values.SelectMany(l => l).SequenceEqual(paramBytes)
+                && q.Frame.GetBatchMessage().QueriesOrIds.SequenceEqual(queries));
+            Assert.AreEqual(count, filteredQueries.Count());
+        }
 
         [OneTimeSetUp]
         public virtual void OneTimeSetup()

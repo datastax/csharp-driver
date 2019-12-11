@@ -27,5 +27,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then
         public static ServerError IsBootstrapping { get; } = new ServerError("is_bootstrapping");
         
         public static ServerError Overloaded { get; } = new ServerError("overloaded");
+        
+        public static ServerError Invalid { get; } = new ServerError("invalid");
     }
 }

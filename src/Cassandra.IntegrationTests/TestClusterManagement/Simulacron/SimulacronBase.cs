@@ -179,6 +179,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
                    .ToArray();
         }
 
+        public void PrimeDelete()
+        {
+            TaskHelper.WaitToComplete(SimulacronBase.Delete(GetPath("prime")));
+        }
+
         public JObject PrimeFluent(Func<IPrimeRequestFluent, IThenFluent> builder)
         {
             return TaskHelper.WaitToComplete(PrimeFluentAsync(builder));

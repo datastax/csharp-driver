@@ -27,6 +27,8 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder
         IThenFluent ThenRowsSuccess((string, DataType)[] columnNamesToTypes, Action<IRowsResult> rowsBuilder);
 
         IThenFluent ThenRowsSuccess((string, DataType)[] columnNamesToTypes);
+        
+        IThenFluent ThenRowsSuccess(RowsResult result);
 
         IThenFluent ThenAlreadyExists(string keyspace, string table);
 

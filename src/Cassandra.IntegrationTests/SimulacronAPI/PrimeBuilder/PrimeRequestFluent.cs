@@ -49,6 +49,12 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder
             return this;
         }
 
+        public IThenFluent ThenRowsSuccess(RowsResult result)
+        {
+            _then = new ThenRowsSuccess(result);
+            return this;
+        }
+
         public IThenFluent ThenAlreadyExists(string keyspace, string table)
         {
             _then = new ThenAlreadyExists(keyspace, table);
