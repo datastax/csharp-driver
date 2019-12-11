@@ -21,13 +21,18 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then
 {
     public class RowsResult : IRowsResult
     {
-        private readonly (string, string)[] _columnNamesToTypes;
-        private readonly List<(string, object)[]> _rows;
+        private readonly string[] _columnNames;
+        private (string, string)[] _columnNamesToTypes;
+        private readonly List<(string, object)[]> _rows = new List<(string, object)[]>();
+        
+        public RowsResult(params string[] columnNames)
+        {
+            _columnNames = columnNames;
+        }
 
         public RowsResult(params (string, DataType)[] columnNamesToTypes)
         {
             _columnNamesToTypes = columnNamesToTypes.Select(tuple => (tuple.Item1, tuple.Item2.Value)).ToArray();
-            _rows = new List<(string, object)[]>();
         }
 
         public IRowsResult WithRows(params object[][] columnNamesToValues)
@@ -39,6 +44,11 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then
 
         public IRowsResult WithRow(params object[] values)
         {
+            if (_columnNamesToTypes == null || _columnNamesToTypes.Length == 0)
+            {
+                _columnNamesToTypes = _columnNames.Zip(values, (name, val) => (name, DataType.GetDataType(val).Value)).ToArray();
+            }
+
             if (values.Length != _columnNamesToTypes.Length)
             {
                 throw new ArgumentException("Number of values don't match columns.");

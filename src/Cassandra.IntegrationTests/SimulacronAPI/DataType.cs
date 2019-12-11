@@ -14,6 +14,9 @@
 //   limitations under the License.
 //
 
+using System;
+using System.Collections.Generic;
+
 namespace Cassandra.IntegrationTests.SimulacronAPI
 {
     public class DataType
@@ -24,6 +27,8 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
         {
             Value = value;
         }
+        
+        public static readonly DataType Text = new DataType("text");
 
         public static readonly DataType Ascii = new DataType("ascii");
 
@@ -78,6 +83,67 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
         public static DataType Map(DataType dataTypeKey, DataType dataTypeValue)
         {
             return new DataType($"map<{dataTypeKey.Value},{dataTypeValue.Value}>");
+        }
+        
+        private static readonly Dictionary<Type, DataType> CqlTypeNames = new Dictionary<Type, DataType>
+        {
+            {typeof (Int32), DataType.Int},
+            {typeof (Int64), DataType.BigInt},
+            {typeof (string), DataType.Ascii},
+            {typeof (byte[]), DataType.Blob},
+            {typeof (Boolean), DataType.Boolean},
+            {typeof (Decimal), DataType.Decimal},
+            {typeof (Double), DataType.Double},
+            {typeof (Single), DataType.Float},
+            {typeof (Guid), DataType.Uuid},
+            {typeof (TimeUuid), DataType.TimeUuid},
+            {typeof (DateTimeOffset), DataType.Timestamp},
+            {typeof (DateTime), DataType.Timestamp},
+        };
+
+        public static DataType GetDataType(object obj)
+        {
+            var type = obj.GetType();
+            if (type.Name.Equals("Nullable`1"))
+            {
+                return DataType.GetDataType(type.GetGenericArguments()[0]);
+            }
+
+            if (DataType.CqlTypeNames.ContainsKey(type))
+            {
+                return DataType.CqlTypeNames[type];
+            }
+
+            if (type.IsGenericType)
+            {
+                if (type.Name.Equals("Nullable`1"))
+                {
+                    return DataType.GetDataType(type.GetGenericArguments()[0]);
+                }
+
+                if (type.GetInterface("ISet`1") != null)
+                {
+                    return DataType.Set(DataType.GetDataType(type.GetGenericArguments()[0]));
+                }
+
+                if (type.GetInterface("IDictionary`2") != null)
+                {
+                    return DataType.Map(
+                        DataType.GetDataType(type.GetGenericArguments()[0]),
+                        DataType.GetDataType(type.GetGenericArguments()[1]));
+                }
+
+                if (type.GetInterface("IEnumerable`1") != null)
+                {
+                    return DataType.List(DataType.GetDataType(type.GetGenericArguments()[0]));
+                }
+            }
+            else if (type.Name == "BigDecimal")
+            {
+                return DataType.Decimal;
+            }
+
+            throw new ArgumentException("no type found for dotnet type " + type.Name);
         }
 
         // missing types:

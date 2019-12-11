@@ -14,111 +14,96 @@
 //   limitations under the License.
 //
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
+
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
-    [Category("short"), Category("realcluster")]
-    public class Delete : SharedClusterTest
+    [Category("short")]
+    public class Delete : SimulacronTest
     {
-        ISession _session;
         private List<AllDataTypesEntity> _entityList;
         private readonly string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
         private Table<AllDataTypesEntity> _table;
 
         [SetUp]
-        public void SetupTest()
+        public override void SetupTest()
         {
-            _session = Session;
-            _session.CreateKeyspace(_uniqueKsName);
-            _session.ChangeKeyspace(_uniqueKsName);
-
-            _entityList = AllDataTypesEntity.SetupDefaultTable(_session);
-            _table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
-
+            base.SetupTest();
+            _entityList = AllDataTypesEntity.GetDefaultAllDataTypesList();
+            _table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
         }
-
-        [TearDown]
-        public void TeardownTest()
-        {
-            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
-        }
-
+        
+        [TestCase(true)]
+        [TestCase(false)]
         [Test]
-        public void Delete_DeleteOneEquals_Sync()
+        public void Delete_DeleteOneEquals(bool async)
         {
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
+
+            AllDataTypesEntity.PrimeCountQuery(TestCluster, _entityList.Count);
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
+
             AllDataTypesEntity entityToDelete = _entityList[0];
 
             var selectQuery = table.Select(m => m).Where(m => m.StringType == entityToDelete.StringType);
             var deleteQuery = selectQuery.Delete();
 
-            deleteQuery.Execute();
+            if (async)
+            {
+                deleteQuery.ExecuteAsync().GetAwaiter().GetResult();
+            }
+            else
+            {
+                deleteQuery.Execute();
+            }
+
+            VerifyBoundStatement(
+                $"DELETE FROM \"{AllDataTypesEntity.TableName}\" WHERE \"string_type\" = ?", 1, entityToDelete.StringType);
+            
+            TestCluster.PrimeDelete();
+            AllDataTypesEntity.PrimeCountQuery(TestCluster, _entityList.Count - 1);
+
             count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count - 1, count);
+            TestCluster.PrimeFluent(b => entityToDelete.When(TestCluster, b).ThenVoidSuccess());
             Assert.AreEqual(0, selectQuery.Execute().ToList().Count);
         }
-
+        
+        [TestCase(true)]
+        [TestCase(false)]
         [Test]
-        public void Delete_DeleteOneViaEquals_Async()
+        public void Delete_DeleteMultipleContains(bool async)
         {
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
-            var count = table.Count().Execute();
-            Assert.AreEqual(_entityList.Count, count);
-            AllDataTypesEntity entityToDelete = _entityList[0];
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
 
-            var selectQuery = table.Select(m => m).Where(m => m.StringType == entityToDelete.StringType);
-            var deleteQuery = selectQuery.Delete();
-
-            deleteQuery.ExecuteAsync().Result.ToList();
-            count = table.Count().Execute();
-            Assert.AreEqual(_entityList.Count - 1, count);
-            Assert.AreEqual(0, selectQuery.Execute().ToList().Count);
-        }
-
-        [Test]
-        public void Delete_DeleteMultipleContains_Sync()
-        {
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
-            var count = table.Count().Execute();
-            Assert.AreEqual(_entityList.Count, count);
-
-            List<string> uniqueStringKeys = _entityList.Select(m => m.StringType).ToList();
+            var uniqueStringKeys = _entityList.Select(m => m.StringType).ToList();
             var deleteRequest = table.Where(m => uniqueStringKeys.Contains(m.StringType)).Delete();
-            deleteRequest.Execute();
-            count = table.Count().Execute();
-            Assert.AreEqual(0, count);
-        }
+            if (async)
+            {
+                deleteRequest.ExecuteAsync().GetAwaiter().GetResult();
+            }
+            else
+            {
+                deleteRequest.Execute();
+            }
 
-        [Test]
-        public void Delete_DeleteMultipleContains_Async()
-        {
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
-            var count = table.Count().Execute();
-            Assert.AreEqual(_entityList.Count, count);
-
-            List<string> uniqueStringKeys = _entityList.Select(m => m.StringType).ToList();
-            var deleteRequest = table.Where(m => uniqueStringKeys.Contains(m.StringType)).Delete();
-            deleteRequest.ExecuteAsync().Result.ToList();
-            count = table.Count().Execute();
-            Assert.AreEqual(0, count);
+            VerifyBoundStatement(
+                $"DELETE FROM \"{AllDataTypesEntity.TableName}\" WHERE \"string_type\" IN ?", 1, uniqueStringKeys);
         }
 
         [Test]
         public void Delete_MissingKey_Sync()
         {
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
 
@@ -131,7 +116,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         [Test]
         public void Delete_NoSuchRecord()
         {
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
             AllDataTypesEntity entityToDelete = _entityList[0];
@@ -145,7 +130,6 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             List<AllDataTypesEntity> rows = table.Select(m => m).Where(m => m.StringType == entityToDelete.StringType).Execute().ToList();
             Assert.AreEqual(1, rows.Count);
         }
-
 
         /// <summary>
         /// Attempt to delete from a table without specifying a WHERE limiter.  Assert expected failure.
@@ -173,7 +157,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         [Test, TestCassandraVersion(2, 0)]
         public void Delete_IfExists()
         {
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
             AllDataTypesEntity entityToDelete = _entityList[0];
@@ -188,12 +172,12 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         /// <summary>
-        /// Successfully delete a record using the IfExists condition, when the row doesn't exist.  
+        /// Successfully delete a record using the IfExists condition, when the row doesn't exist.
         /// </summary>
         [Test, TestCassandraVersion(2, 0)]
         public void Delete_IfExists_RowDoesntExist()
         {
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
             AllDataTypesEntity entityToDelete = _entityList[0];
@@ -211,16 +195,15 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count - 1, count);
             Assert.AreEqual(0, selectQuery.Execute().ToList().Count);
-
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
-        [Test, TestCassandraVersion(2,1,2)]
+        [Test, TestCassandraVersion(2, 1, 2)]
         public void Delete_IfExists_ClusteringKeyOmitted()
         {
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
             AllDataTypesEntity entityToDelete = _entityList[0];
@@ -235,14 +218,13 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             Assert.AreEqual(_entityList.Count, count);
         }
 
-
         [TestCase(BatchType.Unlogged)]
         [TestCase(BatchType.Logged)]
         [TestCase(null)]
         [TestCassandraVersion(2, 0)]
         public void Delete_BatchType(BatchType batchType)
         {
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
             AllDataTypesEntity entityToDelete = _entityList[0];
@@ -253,12 +235,11 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             var selectQuery2 = table.Select(m => m).Where(m => m.StringType == entityToDelete2.StringType);
             var deleteQuery2 = selectQuery2.Delete();
 
-
             var batch = table.GetSession().CreateBatch(batchType);
             batch.Append(deleteQuery);
             batch.Append(deleteQuery2);
             batch.Execute();
-            
+
             count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count - 2, count);
             Assert.AreEqual(0, selectQuery.Execute().ToList().Count);
