@@ -14,9 +14,12 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using Cassandra.Data.Linq;
+using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
 using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 #pragma warning disable 618
@@ -24,9 +27,11 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Linq.Structures
 {
     [AllowFiltering]
-    [Table("coolMovies")]
+    [Table(Movie.TableName)]
     public class Movie
     {
+        public const string TableName = "coolMovies";
+
         [Column("mainGuy")]
         public string MainActor;
 
@@ -123,7 +128,47 @@ namespace Cassandra.IntegrationTests.Linq.Structures
                                   resMovie.Title, resMovie.Director, resMovie.MainActor, resMovie.Year);
             }
         }
+        
+        private static readonly IDictionary<string, Func<Movie, object>> ColumnMappings =
+            new Dictionary<string, Func<Movie, object>>
+            {
+                { "mainGuy", entity => entity.MainActor },
+                { "movie_maker", entity => entity.MovieMaker },
+                { "unique_movie_title", entity => entity.Title },
+                { "list", entity => entity.ExampleSet },
+                { "director", entity => entity.Director },
+                { "yearMade", entity => entity.Year }
+            };
+        
+        public static RowsResult GetEmptyRowsResult()
+        {
+            return new RowsResult(Movie.ColumnMappings.Keys.ToArray());
+        }
+        
+        public static RowsResult GetEmptyAppliedInfoRowsResult()
+        {
+            return new RowsResult(Movie.ColumnMappings.Keys.Concat(new [] { "[applied]" }).ToArray());
+        }
 
+        public RowsResult CreateAppliedInfoRowsResult()
+        {
+            return AddAppliedInfoRow(Movie.GetEmptyAppliedInfoRowsResult());
+        }
+        
+        public RowsResult AddRow(RowsResult result)
+        {
+            return (RowsResult) result.WithRow(Movie.ColumnMappings.Values.Select(func => func(this)).ToArray());
+        }
 
+        public static RowsResult AddRows(IEnumerable<Movie> data)
+        {
+            return data.Aggregate(Movie.GetEmptyRowsResult(), (current, c) => c.AddRow(current));
+        }
+        
+        public RowsResult AddAppliedInfoRow(RowsResult result)
+        {
+            return (RowsResult) result.WithRow(
+                Movie.ColumnMappings.Values.Select(func => func(this)).Concat(new object [] { false }).ToArray());
+        }
     }
 }

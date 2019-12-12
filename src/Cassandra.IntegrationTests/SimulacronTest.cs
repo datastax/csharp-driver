@@ -14,6 +14,7 @@
 //    limitations under the License.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using NUnit.Framework;
@@ -37,6 +38,18 @@ namespace Cassandra.IntegrationTests
         protected ISession Session { get; private set; }
 
         protected SimulacronCluster TestCluster { get; private set; }
+
+        protected IEnumerable<List<object>> GetBoundStatementExecutionParameters(string cql)
+        {
+            var queries = TestCluster.GetQueries(cql, "EXECUTE");
+            return queries.Select(q => q.Frame.GetQueryMessage().Options.PositionalValues);
+        }
+
+        protected string SerializeParameter(object parameter)
+        {
+            var serializer = Session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer();
+            return Convert.ToBase64String(serializer.Serialize(parameter));
+        }
         
         protected void VerifyBoundStatement(string cql, int count, params object[] positionalParameters)
         {

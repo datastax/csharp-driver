@@ -183,7 +183,7 @@ namespace Cassandra.Data.Linq
 
             if (ifExists)
             {
-                query.Append(" IF EXISTS ");
+                query.Append(" IF EXISTS");
             }
 
             if (_ifClause.Count > 0 && ifExists)

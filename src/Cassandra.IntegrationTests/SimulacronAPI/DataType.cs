@@ -89,7 +89,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
         {
             {typeof (Int32), DataType.Int},
             {typeof (Int64), DataType.BigInt},
-            {typeof (string), DataType.Ascii},
+            {typeof (String), DataType.Ascii},
             {typeof (byte[]), DataType.Blob},
             {typeof (Boolean), DataType.Boolean},
             {typeof (Decimal), DataType.Decimal},
@@ -104,6 +104,11 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
         public static DataType GetDataType(object obj)
         {
             var type = obj.GetType();
+            return DataType.GetDataType(type);
+        }
+
+        public static DataType GetDataType(Type type)
+        {
             if (type.Name.Equals("Nullable`1"))
             {
                 return DataType.GetDataType(type.GetGenericArguments()[0]);
