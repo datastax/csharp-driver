@@ -50,7 +50,7 @@ namespace Cassandra.IntegrationTests.Core
         public void TearDown()
         {
             _session.Cluster.Shutdown();
-            _simulacronCluster.Remove();
+            _simulacronCluster.Dispose();
         }
 
         /// <summary>

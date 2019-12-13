@@ -34,7 +34,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public Task Stop()
         {
-            return Delete($"/listener/{Id}?type=stop");
+            return SimulacronBase.DeleteAsync($"/listener/{Id}?type=stop");
         }
 
         public Task Start()

@@ -97,7 +97,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             }
         }
 
-        protected static async Task Delete(string url)
+        protected static async Task DeleteAsync(string url)
         {
             using (var client = new HttpClient())
             {
@@ -148,7 +148,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public Task DisableConnectionListener(int attempts = 0, string type = "unbind")
         {
-            return Delete(GetPath("listener") + "?after=" + attempts + "&type=" + type);
+            return SimulacronBase.DeleteAsync(GetPath("listener") + "?after=" + attempts + "&type=" + type);
         }
 
         public Task<JObject> EnableConnectionListener(int attempts = 0, string type = "unbind")
@@ -181,7 +181,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public void PrimeDelete()
         {
-            TaskHelper.WaitToComplete(SimulacronBase.Delete(GetPath("prime")));
+            TaskHelper.WaitToComplete(PrimeDeleteAsync());
+        }
+
+        public Task PrimeDeleteAsync()
+        {
+            return SimulacronBase.DeleteAsync(GetPath("prime"));
         }
 
         public JObject PrimeFluent(Func<IPrimeRequestFluent, IThenFluent> builder)

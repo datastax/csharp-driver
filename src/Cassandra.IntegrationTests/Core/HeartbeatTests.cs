@@ -38,7 +38,7 @@ namespace Cassandra.IntegrationTests.Core
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {
-            _testCluster.Remove().Wait();
+            _testCluster.RemoveAsync().Wait();
         }
 
         [TestCase(true)]

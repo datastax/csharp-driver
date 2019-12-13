@@ -38,10 +38,7 @@ namespace Cassandra.IntegrationTests.Core
         [TearDown]
         public void TestTearDown()
         {
-            if (_testCluster != null)
-            {
-                _testCluster.Remove();
-            }
+            _testCluster?.Dispose();
         }
 
         [Test]

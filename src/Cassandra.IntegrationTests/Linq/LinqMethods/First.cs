@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -23,7 +24,7 @@ using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
-
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 #pragma warning disable 612
@@ -51,19 +52,26 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         [Test]
         public void First_ExecuteAsync(bool async)
         {
-            var expectedMovie = _movieList.First();
-            TestCluster.PrimeFluent(
-                b => b.WhenQuery(
-                          "SELECT \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"list\", \"director\", \"yearMade\" " +
-                          $"FROM \"{Movie.TableName}\" WHERE \"unique_movie_title\" = ? AND \"movie_maker\" = ? LIMIT ? ALLOW FILTERING",
-                          rows => rows.WithParams(expectedMovie.Title, expectedMovie.MovieMaker, 1))
-                      .ThenRowsSuccess(expectedMovie.CreateRowsResult()));
+            try
+            {
+                var expectedMovie = _movieList.First();
+                TestCluster.PrimeFluent(
+                    b => b.WhenQuery(
+                              "SELECT \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"list\", \"director\", \"yearMade\" " +
+                              $"FROM \"{Movie.TableName}\" WHERE \"unique_movie_title\" = ? AND \"movie_maker\" = ? LIMIT ? ALLOW FILTERING",
+                              rows => rows.WithParams(expectedMovie.Title, expectedMovie.MovieMaker, 1))
+                          .ThenRowsSuccess(expectedMovie.CreateRowsResult()));
 
-            var actualMovieQuery =
-                _movieTable.First(m => m.Title == expectedMovie.Title && m.MovieMaker == expectedMovie.MovieMaker);
+                var actualMovieQuery =
+                    _movieTable.First(m => m.Title == expectedMovie.Title && m.MovieMaker == expectedMovie.MovieMaker);
 
-            var actualMovie = async ? actualMovieQuery.ExecuteAsync().Result : actualMovieQuery.Execute();
-            Movie.AssertEquals(expectedMovie, actualMovie);
+                var actualMovie = async ? actualMovieQuery.ExecuteAsync().Result : actualMovieQuery.Execute();
+                Movie.AssertEquals(expectedMovie, actualMovie);
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail(ex + Environment.NewLine + JsonConvert.SerializeObject(TestCluster.GetLogs()));
+            }
         }
 
         [Test]

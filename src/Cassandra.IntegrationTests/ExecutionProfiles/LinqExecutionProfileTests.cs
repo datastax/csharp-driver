@@ -71,7 +71,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         public void OneTimeTearDown()
         {
             _session.Cluster.Dispose();
-            _simulacronCluster.Remove().Wait();
+            _simulacronCluster.RemoveAsync().Wait();
         }
 
         [Test]

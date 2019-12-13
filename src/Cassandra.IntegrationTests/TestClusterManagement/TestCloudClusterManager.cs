@@ -40,7 +40,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         {
             TryRemove();
             var testCluster = new CloudCluster(
-                TestUtils.GetTestClusterNameBasedOnTime(), 
+                TestUtils.GetTestClusterNameBasedOnRandomString(), 
                 VersionString,
                 enableCert);
             testCluster.Create(3, null);
