@@ -70,7 +70,10 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             }
             catch (Exception ex)
             {
-                Assert.Fail(ex + Environment.NewLine + JsonConvert.SerializeObject(TestCluster.GetLogs()));
+                Assert.Fail(
+                    string.Join(",", typeof(Movie).GetFields().Select(f => f.Name)
+                                 .Union(typeof(Movie).GetProperties().Select(p => p.Name))) + 
+                                   ex + Environment.NewLine + JsonConvert.SerializeObject(TestCluster.GetLogs()));
             }
         }
 
