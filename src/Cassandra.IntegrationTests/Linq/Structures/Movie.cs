@@ -35,7 +35,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         [Column("mainGuy")]
         public string MainActor;
 
-        [PartitionKey(5)]
+        [PartitionKey(2)]
         [Column("movie_maker")]
         public string MovieMaker;
 
