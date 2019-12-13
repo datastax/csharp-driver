@@ -1,7 +1,7 @@
 language: csharp
 sudo: required
 mono: none
-dist: xenial
+dist: bionic
   
 branches:
   except:
