@@ -202,25 +202,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
             Assert.IsNotNull(movie);
             Assert.IsTrue(new MovieComparer().Compare(_movieList.Skip(2).First(), movie) == 0);
         }
-
-        private object CreateThenForPrimeMutation()
-        {
-            return new
-            {
-                result = "success",
-                delay_in_ms = 0,
-                rows = new object[0],
-                column_types = new
-                {
-                    Id = DataType.Uuid,
-                    Title = DataType.Ascii,
-                    Artist = DataType.Ascii,
-                    ReleaseDate = "timestamp"
-                },
-                ignore_on_prepare = true
-            };
-        }
-
+        
         [Test]
         [TestCase(true)]
         [TestCase(false)]

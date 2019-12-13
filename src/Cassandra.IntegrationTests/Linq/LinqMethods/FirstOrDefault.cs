@@ -50,7 +50,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
-                          "SELECT \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"list\", \"director\", \"yearMade\" " +
+                          "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
                           $"FROM \"{Movie.TableName}\" WHERE \"director\" = ? AND \"unique_movie_title\" = ? AND \"movie_maker\" = ? LIMIT ? ALLOW FILTERING",
                           rows => rows.WithParams(expectedMovie.Director, expectedMovie.Title, expectedMovie.MovieMaker, 1))
                       .ThenRowsSuccess(expectedMovie.CreateRowsResult()));
@@ -72,7 +72,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             var randomStr = ConstantReturningHelper.FromObj(Randomm.RandomAlphaNum(10));
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
-                          "SELECT \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"list\", \"director\", \"yearMade\" " +
+                          "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
                           $"FROM \"{Movie.TableName}\" WHERE \"director\" = ? LIMIT ? ALLOW FILTERING",
                           rows => rows.WithParams("non_existant_" + randomStr.Get(), 1))
                       .ThenVoidSuccess());

@@ -57,7 +57,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                 var expectedMovie = _movieList.First();
                 TestCluster.PrimeFluent(
                     b => b.WhenQuery(
-                              "SELECT \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"list\", \"director\", \"yearMade\" " +
+                              "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
                               $"FROM \"{Movie.TableName}\" WHERE \"unique_movie_title\" = ? AND \"movie_maker\" = ? LIMIT ? ALLOW FILTERING",
                               rows => rows.WithParams(expectedMovie.Title, expectedMovie.MovieMaker, 1))
                           .ThenRowsSuccess(expectedMovie.CreateRowsResult()));
@@ -84,7 +84,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             string randomStr = "somethingrandom_" + Randomm.RandomAlphaNum(10);
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
-                          "SELECT \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"list\", \"director\", \"yearMade\" " +
+                          "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
                           $"FROM \"{Movie.TableName}\" WHERE \"unique_movie_title\" = ? AND \"movie_maker\" = ? LIMIT ? ALLOW FILTERING",
                           rows => rows.WithParams(existingMovie.Title, randomStr, 1))
                       .ThenVoidSuccess());
@@ -93,7 +93,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             Assert.Null(foundMovie);
             
             VerifyBoundStatement(
-                "SELECT \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"list\", \"director\", \"yearMade\" " +
+                "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
                 $"FROM \"{Movie.TableName}\" WHERE \"unique_movie_title\" = ? AND \"movie_maker\" = ? LIMIT ? ALLOW FILTERING",
                 1,
                 existingMovie.Title, randomStr, 1);
@@ -117,7 +117,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             //No partition key in Query
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
-                          "SELECT \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"list\", \"director\", \"yearMade\" " +
+                          "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
                           $"FROM \"{Movie.TableName}\" WHERE \"yearMade\" = ? LIMIT ? ALLOW FILTERING",
                           rows => rows.WithParams(100, 1))
                       .ThenServerError(ServerError.Invalid, "msg"));
@@ -126,7 +126,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
-                          "SELECT \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"list\", \"director\", \"yearMade\" " +
+                          "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
                           $"FROM \"{Movie.TableName}\" WHERE \"mainGuy\" = ? LIMIT ? ALLOW FILTERING",
                           rows => rows.WithParam(DataType.Ascii, null).WithParam(DataType.Int, 1))
                       .ThenServerError(ServerError.Invalid, "msg"));
@@ -140,7 +140,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             var expectedMovie = _movieList.First();
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
-                          "SELECT \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"list\", \"director\", \"yearMade\" " +
+                          "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
                           $"FROM \"{Movie.TableName}\" LIMIT ? ALLOW FILTERING",
                           rows => rows.WithParams(1))
                       .ThenRowsSuccess(expectedMovie.CreateRowsResult()));
@@ -165,7 +165,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             var randomStr = "somethingrandom_" + Randomm.RandomAlphaNum(10);
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
-                          "SELECT \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"list\", \"director\", \"yearMade\" " +
+                          "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
                           $"FROM \"{Movie.TableName}\" WHERE \"unique_movie_title\" = ? LIMIT ? ALLOW FILTERING",
                           rows => rows.WithParams(randomStr, 1))
                       .ThenServerError(ServerError.Invalid, expectedErrMsg));

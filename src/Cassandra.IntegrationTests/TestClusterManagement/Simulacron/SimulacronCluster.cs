@@ -142,7 +142,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public async Task RemoveAsync()
         {
-            await PrimeDeleteAsync().ConfigureAwait(false);
             await SimulacronBase.DeleteAsync(GetPath("cluster")).ConfigureAwait(false);
         }
 
