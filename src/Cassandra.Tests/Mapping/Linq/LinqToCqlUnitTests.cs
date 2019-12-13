@@ -288,7 +288,7 @@ APPLY BATCH".Replace("\r", ""));
             var table = SessionExtensions.GetTable<LinqDecoratedEntity>(GetSession((_,__) => {}));
 
             Assert.AreEqual(
-               (table.Insert(new LinqDecoratedEntity() { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" })).IfNotExists().ToString(),
+               (table.Insert(new LinqDecoratedEntity { ck1 = 1, ck2 = 2, f1 = 3, pk = "x" })).IfNotExists().ToString(),
                @"INSERT INTO ""x_t"" (""x_pk"", ""x_ck1"", ""x_ck2"", ""x_f1"") VALUES (?, ?, ?, ?) IF NOT EXISTS");
 
             Assert.AreEqual((from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select new { f1 = 1223 }).UpdateIf((a) => a.f1 == 123).ToString(),
@@ -298,7 +298,7 @@ APPLY BATCH".Replace("\r", ""));
                 @"DELETE FROM ""x_t"" WHERE ""x_ck2"" IN ? IF ""x_f1"" = ?");
 
             Assert.AreEqual((from ent in table where new int[] { 10, 30, 40 }.Contains(ent.ck2) select ent).Delete().IfExists().ToString(),
-                @"DELETE FROM ""x_t"" WHERE ""x_ck2"" IN ? IF EXISTS ");
+                @"DELETE FROM ""x_t"" WHERE ""x_ck2"" IN ? IF EXISTS");
         }
 
         [Test]

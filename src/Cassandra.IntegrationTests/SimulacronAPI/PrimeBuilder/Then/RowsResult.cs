@@ -54,7 +54,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then
                 throw new ArgumentException("Number of values don't match columns.");
             }
 
-            _rows.Add(_columnNamesToTypes.Zip(values, (val1, val2) => (val1.Item1, val2)).ToArray());
+            _rows.Add(_columnNamesToTypes.Zip(values, (val1, val2) => (val1.Item1, AdaptValue(val2))).ToArray());
             return this;
         }
 
@@ -66,6 +66,19 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then
         public object RenderColumnTypes()
         {
             return _columnNamesToTypes.ToDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
+        }
+
+        internal static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
+
+        private object AdaptValue(object value)
+        {
+            if (value is DateTimeOffset dateTimeOffset)
+            {
+                var ticks = (dateTimeOffset - UnixStart).Ticks;
+                return ticks / TimeSpan.TicksPerMillisecond;
+            }
+
+            return value;
         }
     }
 }

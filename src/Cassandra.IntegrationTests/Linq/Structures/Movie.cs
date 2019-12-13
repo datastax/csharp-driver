@@ -155,6 +155,11 @@ namespace Cassandra.IntegrationTests.Linq.Structures
             return AddAppliedInfoRow(Movie.GetEmptyAppliedInfoRowsResult());
         }
         
+        public RowsResult CreateRowsResult()
+        {
+            return AddRow(Movie.GetEmptyRowsResult());
+        }
+        
         public RowsResult AddRow(RowsResult result)
         {
             return (RowsResult) result.WithRow(Movie.ColumnMappings.Values.Select(func => func(this)).ToArray());

@@ -28,6 +28,10 @@ namespace Cassandra.IntegrationTests
         private readonly SimulacronOptions _options;
         private readonly bool _connect;
 
+        public SimulacronTest() : this(false, null, true)
+        {
+        }
+
         public SimulacronTest(bool shared = false, SimulacronOptions options = null, bool connect = true)
         {
             _shared = shared;
@@ -74,7 +78,7 @@ namespace Cassandra.IntegrationTests
         }
 
         [OneTimeSetUp]
-        public virtual void OneTimeSetup()
+        public virtual void OneTimeSetUp()
         {
             if (_shared)
             {

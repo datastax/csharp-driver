@@ -28,7 +28,6 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
-    [Category("short")]
     public class Delete : SimulacronTest
     {
         private List<AllDataTypesEntity> _entityList;

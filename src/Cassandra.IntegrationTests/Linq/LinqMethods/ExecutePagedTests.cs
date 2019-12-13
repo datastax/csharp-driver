@@ -17,18 +17,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+
 using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Linq.Structures;
-using NUnit.Framework;
 using Cassandra.IntegrationTests.TestBase;
-using Cassandra.Tests.Mapping.Pocos;
-using Cassandra.Tests.Mapping.TestData;
 using Cassandra.Mapping;
+using Cassandra.Tests.Mapping.Pocos;
+
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
+    /// <summary>
+    /// No support for paging state in simulacron yet.
+    /// </summary>
     [Category("short"), Category("realcluster")]
     public class ExecutePagedTests : SharedClusterTest
     {
