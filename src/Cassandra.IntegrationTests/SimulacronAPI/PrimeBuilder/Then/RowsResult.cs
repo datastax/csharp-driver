@@ -67,15 +67,12 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then
         {
             return _columnNamesToTypes.ToDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
         }
-
-        internal static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
-
+        
         private object AdaptValue(object value)
         {
             if (value is DateTimeOffset dateTimeOffset)
             {
-                var ticks = (dateTimeOffset - UnixStart).Ticks;
-                return ticks / TimeSpan.TicksPerMillisecond;
+                return DataType.GetTimestamp(dateTimeOffset);
             }
 
             return value;

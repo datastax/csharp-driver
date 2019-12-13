@@ -15,6 +15,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using NUnit.Framework;
@@ -27,18 +28,20 @@ namespace Cassandra.IntegrationTests
         private readonly bool _shared;
         private readonly SimulacronOptions _options;
         private readonly bool _connect;
+        private readonly string _keyspace;
 
-        public SimulacronTest() : this(false, null, true)
+        public SimulacronTest() : this(false, null, true, null)
         {
         }
 
-        public SimulacronTest(bool shared = false, SimulacronOptions options = null, bool connect = true)
+        public SimulacronTest(bool shared = false, SimulacronOptions options = null, bool connect = true, string keyspace = null)
         {
             _shared = shared;
             _options = options ?? new SimulacronOptions();
             _connect = connect;
+            _keyspace = keyspace;
         }
-
+        
         protected ISession Session { get; private set; }
 
         protected SimulacronCluster TestCluster { get; private set; }
@@ -60,8 +63,9 @@ namespace Cassandra.IntegrationTests
             var serializer = Session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer();
             var queries = TestCluster.GetQueries(cql, "EXECUTE");
 
-            var paramBytes = positionalParameters.Select(obj => Convert.ToBase64String(serializer.Serialize(obj))).ToList();
+            var paramBytes = positionalParameters.Select(obj => obj == null ? null : Convert.ToBase64String(serializer.Serialize(obj))).ToList();
             var filteredQueries = queries.Where(q => q.Frame.GetQueryMessage().Options.PositionalValues.SequenceEqual(paramBytes));
+
             Assert.AreEqual(count, filteredQueries.Count());
         }
 
@@ -70,7 +74,7 @@ namespace Cassandra.IntegrationTests
             var serializer = Session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer();
             var logs = TestCluster.GetQueries(null, "BATCH");
 
-            var paramBytes = parameters.SelectMany(obj => obj.Select(o => Convert.ToBase64String(serializer.Serialize(o)))).ToArray();
+            var paramBytes = parameters.SelectMany(obj => obj.Select(o => o == null ? null : Convert.ToBase64String(serializer.Serialize(o)))).ToArray();
             var filteredQueries = logs.Where(q => 
                 q.Frame.GetBatchMessage().Values.SelectMany(l => l).SequenceEqual(paramBytes)
                 && q.Frame.GetBatchMessage().QueriesOrIds.SequenceEqual(queries));
@@ -96,7 +100,7 @@ namespace Cassandra.IntegrationTests
         }
 
         [SetUp]
-        public virtual void SetupTest()
+        public virtual void SetUp()
         {
             if (!_shared)
             {
@@ -119,6 +123,10 @@ namespace Cassandra.IntegrationTests
             if (_connect)
             {
                 Session = CreateSession();
+                if (_keyspace != null)
+                {
+                    Session.ChangeKeyspace(_keyspace);
+                }
             }
         }
 

@@ -63,6 +63,8 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
         public static readonly DataType Date = new DataType("date");
 
         public static readonly DataType Time = new DataType("time");
+        
+        public static readonly DataType Empty = new DataType("empty");
 
         public static readonly DataType SmallInt = new DataType("smallint");
 
@@ -103,12 +105,22 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
 
         public static DataType GetDataType(object obj)
         {
+            if (obj == null)
+            {
+                return DataType.Ascii;
+            }
+
             var type = obj.GetType();
             return DataType.GetDataType(type);
         }
 
         public static DataType GetDataType(Type type)
         {
+            if (type == null)
+            {
+                return DataType.Ascii;
+            }
+
             if (type.Name.Equals("Nullable`1"))
             {
                 return DataType.GetDataType(type.GetGenericArguments()[0]);
@@ -149,6 +161,19 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
             }
 
             throw new ArgumentException("no type found for dotnet type " + type.Name);
+        }
+        
+        internal static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
+
+        public static long GetTimestamp(DateTimeOffset dt)
+        {
+            return DataType.GetMicroSecondsTimestamp(dt) / 1000;
+        }
+        
+        public static long GetMicroSecondsTimestamp(DateTimeOffset dt)
+        {
+            var ticks = (dt - UnixStart).Ticks;
+            return ticks / (TimeSpan.TicksPerMillisecond / 1000);
         }
 
         // missing types:

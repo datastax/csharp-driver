@@ -35,9 +35,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         private Table<AllDataTypesEntity> _table;
 
         [SetUp]
-        public override void SetupTest()
+        public override void SetUp()
         {
-            base.SetupTest();
+            base.SetUp();
             _entityList = AllDataTypesEntity.GetDefaultAllDataTypesList();
             _table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
         }

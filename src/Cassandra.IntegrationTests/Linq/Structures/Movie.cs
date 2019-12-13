@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Cassandra.Data.Linq;
+using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
 using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
@@ -119,24 +120,15 @@ namespace Cassandra.IntegrationTests.Linq.Structures
             movieList.Add(new Movie("title4", "actor2", "director4", "maker4", 1988));
             return movieList;
         }
-
-        public static void DisplayMovies(IEnumerable<Movie> result)
-        {
-            foreach (Movie resMovie in result)
-            {
-                Trace.TraceInformation("Movie={0} Director={1} MainActor={2}, Year={3}",
-                                  resMovie.Title, resMovie.Director, resMovie.MainActor, resMovie.Year);
-            }
-        }
         
         private static readonly IDictionary<string, Func<Movie, object>> ColumnMappings =
             new Dictionary<string, Func<Movie, object>>
             {
+                { "director", entity => entity.Director },
+                { "list", entity => entity.ExampleSet },
                 { "mainGuy", entity => entity.MainActor },
                 { "movie_maker", entity => entity.MovieMaker },
                 { "unique_movie_title", entity => entity.Title },
-                { "list", entity => entity.ExampleSet },
-                { "director", entity => entity.Director },
                 { "yearMade", entity => entity.Year }
             };
         
@@ -147,7 +139,14 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         
         public static RowsResult GetEmptyAppliedInfoRowsResult()
         {
-            return new RowsResult(Movie.ColumnMappings.Keys.Concat(new [] { "[applied]" }).ToArray());
+            return new RowsResult(
+                ("director", DataType.GetDataType(typeof(string))),
+                ("list", DataType.GetDataType(typeof(List<string>))),
+                ("mainGuy", DataType.GetDataType(typeof(string))),
+                ("movie_maker", DataType.GetDataType(typeof(string))),
+                ("unique_movie_title", DataType.GetDataType(typeof(string))),
+                ("yearMade", DataType.GetDataType(typeof(int?))),
+                ("[applied]", DataType.GetDataType(typeof(bool))));
         }
 
         public RowsResult CreateAppliedInfoRowsResult()
@@ -162,7 +161,18 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         
         public RowsResult AddRow(RowsResult result)
         {
-            return (RowsResult) result.WithRow(Movie.ColumnMappings.Values.Select(func => func(this)).ToArray());
+            return (RowsResult) result.WithRow(GetParameters());
+        }
+
+        public object[] GetParameters(bool withNulls = true)
+        {
+            var parameters = Movie.ColumnMappings.Values.Select(func => func(this));
+            if (!withNulls)
+            {
+                parameters = parameters.Where(o => o != null);
+            }
+
+            return parameters.ToArray();
         }
 
         public static RowsResult AddRows(IEnumerable<Movie> data)

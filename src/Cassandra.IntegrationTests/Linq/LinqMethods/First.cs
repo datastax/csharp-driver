@@ -37,9 +37,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         private readonly List<Movie> _movieList = Movie.GetDefaultMovieList();
         private Table<Movie> _movieTable;
 
-        public override void SetupTest()
+        public override void SetUp()
         {
-            base.SetupTest();
+            base.SetUp();
             
             MappingConfiguration movieMappingConfig = new MappingConfiguration();
             movieMappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(Movie),
