@@ -208,9 +208,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             var query3Actual = query1Actual.Where(i => i.TimeColumn <= time);
             query3Actual = query3Actual.OrderByDescending(i => i.TimeColumn);
 
-            var query1Expected = "SELECT \"user\", \"date\", \"time\" FROM \"test1\" WHERE \"user\" = ? AND \"date\" = ? ALLOW FILTERING";
-            var query2Expected = "SELECT \"user\", \"date\", \"time\" FROM \"test1\" WHERE \"user\" = ? AND \"date\" = ? AND \"time\" >= ? ORDER BY \"time\" ALLOW FILTERING";
-            var query3Expected = "SELECT \"user\", \"date\", \"time\" FROM \"test1\" WHERE \"user\" = ? AND \"date\" = ? AND \"time\" <= ? ORDER BY \"time\" DESC ALLOW FILTERING";
+            var query1Expected = "SELECT \"date\", \"time\", \"user\" FROM \"test1\" WHERE \"user\" = ? AND \"date\" = ? ALLOW FILTERING";
+            var query2Expected = "SELECT \"date\", \"time\", \"user\" FROM \"test1\" WHERE \"user\" = ? AND \"date\" = ? AND \"time\" >= ? ORDER BY \"time\" ALLOW FILTERING";
+            var query3Expected = "SELECT \"date\", \"time\", \"user\" FROM \"test1\" WHERE \"user\" = ? AND \"date\" = ? AND \"time\" <= ? ORDER BY \"time\" DESC ALLOW FILTERING";
 
             Assert.AreEqual(query1Expected, query1Actual.ToString());
             Assert.AreEqual(query2Expected, query2Actual.ToString());

@@ -215,7 +215,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 Title = "Substitute",
                 ReleaseDate = DateTimeOffset.UtcNow
             };
-            var insert = $"INSERT INTO {_keyspace}.song_insert (Id, Title, Artist, ReleaseDate) VALUES (?, ?, ?, ?)";
+            var insert = $"INSERT INTO {_keyspace}.song_insert (Artist, Id, ReleaseDate, Title) VALUES (?, ?, ?, ?)";
             var queries = _simulacronCluster.GetQueries(insert, "EXECUTE");
 
             if (async)
@@ -247,7 +247,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 Title = "Substitute",
                 ReleaseDate = DateTimeOffset.UtcNow
             };
-            var insertIfNotExists = $"INSERT INTO {_keyspace}.song_insert (Id, Title, Artist, ReleaseDate) VALUES (?, ?, ?, ?) IF NOT EXISTS";
+            var insertIfNotExists = $"INSERT INTO {_keyspace}.song_insert (Artist, Id, ReleaseDate, Title) VALUES (?, ?, ?, ?) IF NOT EXISTS";
             var queries = _simulacronCluster.GetQueries(insertIfNotExists, "EXECUTE");
 
             if (async)
@@ -340,21 +340,21 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 Title = "Substitute",
                 ReleaseDate = DateTimeOffset.UtcNow
             };
-            var update = $"UPDATE {_keyspace}.song_insert SET Title = ?, Artist = ?, ReleaseDate = ? WHERE Id = ?";
+            var update = $"UPDATE {_keyspace}.song_insert SET Artist = ?, ReleaseDate = ?, Title = ? WHERE Id = ?";
             var queries = _simulacronCluster.GetQueries(update, "EXECUTE");
 
             if (async)
             {
                 await _mapper.UpdateAsync(song, "testProfile").ConfigureAwait(false);
                 await _mapper.UpdateAsync<Song>(
-                    Cql.New("SET Title = ?, Artist = ?, ReleaseDate = ? WHERE Id = ?", song.Title, song.Artist, song.ReleaseDate, song.Id)
+                    Cql.New("SET Artist = ?, ReleaseDate = ?, Title = ? WHERE Id = ?", song.Title, song.Artist, song.ReleaseDate, song.Id)
                        .WithExecutionProfile("testProfile")).ConfigureAwait(false);
             }
             else
             {
                 _mapper.Update(song, "testProfile");
                 _mapper.Update<Song>(
-                    Cql.New("SET Title = ?, Artist = ?, ReleaseDate = ? WHERE Id = ?", song.Title, song.Artist, song.ReleaseDate, song.Id)
+                    Cql.New("SET Artist = ?, ReleaseDate = ?, Title = ? WHERE Id = ?", song.Title, song.Artist, song.ReleaseDate, song.Id)
                        .WithExecutionProfile("testProfile"));
             }
             var newQueries = _simulacronCluster.GetQueries(update, "EXECUTE");
