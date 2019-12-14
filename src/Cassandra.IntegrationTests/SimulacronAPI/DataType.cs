@@ -107,7 +107,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
         {
             if (obj == null)
             {
-                return DataType.Ascii;
+                throw new InvalidOperationException("object can't be null in order for type inference to work");
             }
 
             var type = obj.GetType();
@@ -118,7 +118,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
         {
             if (type == null)
             {
-                return DataType.Ascii;
+                throw new InvalidOperationException("object can't be null in order for type inference to work");
             }
 
             if (type.Name.Equals("Nullable`1"))

@@ -131,7 +131,19 @@ namespace Cassandra.IntegrationTests.Linq.Structures
                 { "unique_movie_title", entity => entity.Title },
                 { "yearMade", entity => entity.Year }
             };
-        
+
+        private static readonly IDictionary<string, DataType> ColumnToDataTypes =
+            new Dictionary<string, DataType>
+            {
+                { "director", DataType.GetDataType(typeof(string)) },
+                { "list", DataType.GetDataType(typeof(List<string>)) },
+                { "mainGuy", DataType.GetDataType(typeof(string)) },
+                { "movie_maker", DataType.GetDataType(typeof(string)) },
+                { "unique_movie_title", DataType.GetDataType(typeof(string)) },
+                { "yearMade", DataType.GetDataType(typeof(int?)) },
+                { "[applied]", DataType.GetDataType(typeof(bool)) }
+            };
+
         public static RowsResult GetEmptyRowsResult()
         {
             return new RowsResult(Movie.ColumnMappings.Keys.ToArray());
@@ -139,14 +151,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         
         public static RowsResult GetEmptyAppliedInfoRowsResult()
         {
-            return new RowsResult(
-                ("director", DataType.GetDataType(typeof(string))),
-                ("list", DataType.GetDataType(typeof(List<string>))),
-                ("mainGuy", DataType.GetDataType(typeof(string))),
-                ("movie_maker", DataType.GetDataType(typeof(string))),
-                ("unique_movie_title", DataType.GetDataType(typeof(string))),
-                ("yearMade", DataType.GetDataType(typeof(int?))),
-                ("[applied]", DataType.GetDataType(typeof(bool))));
+            return new RowsResult(ColumnToDataTypes.Select(kvp => (kvp.Key, kvp.Value)).ToArray());
         }
 
         public RowsResult CreateAppliedInfoRowsResult()
@@ -164,6 +169,17 @@ namespace Cassandra.IntegrationTests.Linq.Structures
             return (RowsResult) result.WithRow(GetParameters());
         }
 
+        public (DataType, object)[] GetParametersWithTypes(bool withNulls = true)
+        {
+            var parameters = Movie.ColumnMappings.Values.Select(func => func(this)).Zip(ColumnToDataTypes, (obj, v2) => (v2.Value, obj));
+            if (!withNulls)
+            {
+                parameters = parameters.Where(o => o.obj != null);
+            }
+
+            return parameters.ToArray();
+        }
+
         public object[] GetParameters(bool withNulls = true)
         {
             var parameters = Movie.ColumnMappings.Values.Select(func => func(this));
@@ -175,7 +191,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
             return parameters.ToArray();
         }
 
-        public static RowsResult AddRows(IEnumerable<Movie> data)
+        public static RowsResult CreateRowsResult(IEnumerable<Movie> data)
         {
             return data.Aggregate(Movie.GetEmptyRowsResult(), (current, c) => c.AddRow(current));
         }

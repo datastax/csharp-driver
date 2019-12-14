@@ -61,6 +61,17 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When
             return @this;
         }
 
+        public IWhenQueryFluent WithParams(params (DataType, object)[] values)
+        {
+            IWhenQueryFluent @this = this;
+            foreach (var v in values)
+            {
+                @this = this.WithParam(v.Item1, v.Item2);
+            }
+
+            return @this;
+        }
+
         public IWhenQueryFluent WithConsistency(params string[] consistencyLevels)
         {
             _consistency = consistencyLevels;

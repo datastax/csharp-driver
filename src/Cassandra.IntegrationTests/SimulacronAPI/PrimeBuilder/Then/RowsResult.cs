@@ -75,6 +75,11 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then
                 return DataType.GetTimestamp(dateTimeOffset);
             }
 
+            if (value is DateTime dt)
+            {
+                return DataType.GetTimestamp(new DateTimeOffset(dt));
+            }
+
             return value;
         }
     }

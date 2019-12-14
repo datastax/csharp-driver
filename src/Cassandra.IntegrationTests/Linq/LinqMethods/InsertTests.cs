@@ -187,7 +187,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
                           $"INSERT INTO \"{Movie.TableName}\" (\"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\") VALUES (?, ?, ?, ?, ?, ?)",
-                          when => when.WithParams(objectMissingPartitionKey.GetParameters()))
+                          when => when.WithParams(objectMissingPartitionKey.GetParametersWithTypes()))
                       .ThenServerError(ServerError.Invalid, "msg"));
 
             Assert.Throws<InvalidQueryException>(() => table.Insert(objectMissingPartitionKey).Execute());
@@ -202,7 +202,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             TestCluster.PrimeFluent(
                 b => b.WhenQuery(
                           $"INSERT INTO \"{Movie.TableName}\" (\"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\") VALUES (?, ?, ?, ?, ?, ?)",
-                          when => when.WithParams(objectMissingPartitionKey.GetParameters()))
+                          when => when.WithParams(objectMissingPartitionKey.GetParametersWithTypes()))
                       .ThenServerError(ServerError.Invalid, "msg"));
 
             try

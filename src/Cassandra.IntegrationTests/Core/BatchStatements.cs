@@ -25,6 +25,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Core
 {
     [Category("short")]
+    [Category("realcluster")]
     public class BatchStatements : SharedClusterTest
     {
         private readonly string _tableName = "tbl" + Guid.NewGuid().ToString("N").ToLower();
@@ -46,7 +47,6 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [Category("realcluster")]
         [TestCassandraVersion(2, 0)]
         public void Batch_PreparedStatement()
         {
@@ -67,7 +67,6 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [Category("realcluster")]
         [TestCassandraVersion(2, 0)]
         public void Batch_PreparedStatement_With_Unprepared_Flow()
         {
@@ -95,7 +94,6 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [Category("realcluster")]
         [TestCassandraVersion(2, 0)]
         public void Batch_PreparedStatement_AsyncTest()
         {
@@ -111,7 +109,6 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [Category("realcluster")]
         [TestCassandraVersion(2, 0)]
         public void Batch_SimpleStatementSingle()
         {
@@ -130,7 +127,6 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [Category("realcluster")]
         [TestCassandraVersion(2, 0)]
         public void Batch_SimpleStatement_Bound()
         {
@@ -149,7 +145,6 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [Category("realcluster")]
         [TestCassandraVersion(2, 0)]
         public void Batch_SimpleStatement_Multiple()
         {
@@ -171,7 +166,6 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [Category("realcluster")]
         [TestCassandraVersion(2, 0)]
         public void Batch_UsingTwoTables()
         {
@@ -193,7 +187,6 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [Category("realcluster")]
         [TestCassandraVersion(2, 0)]
         public void Batch_UsingTwoTables_OneInvalidTable()
         {
@@ -206,7 +199,6 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [Category("realcluster")]
         [TestCassandraVersion(2, 0)]
         public void Batch_MixedStatement()
         {
@@ -224,7 +216,6 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [Category("realcluster")]
         [TestCassandraVersion(2, 1)]
         public void Batch_SerialConsistency()
         {
@@ -252,54 +243,6 @@ namespace Cassandra.IntegrationTests.Core
 
         [Test]
         [TestCassandraVersion(2, 1)]
-        public void Batch_GeneratedTimestamp()
-        {
-            var query = new SimpleStatement($"INSERT INTO {_tableName} (id) values (-99999)");
-            var generator = new MockTimestampGenerator();
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions()))
-            using (var cluster = Cluster.Builder()
-                                        .AddContactPoint(simulacronCluster.InitialContactPoint)
-                                        .WithTimestampGenerator(generator).Build())
-            {
-                var session = cluster.Connect();
-                var batchStatement = new BatchStatement().Add(query);
-                session.Execute(batchStatement);
-                var timestamp = generator.Next();
-                var executed = simulacronCluster.GetQueries(null, "BATCH");
-                Assert.IsNotEmpty(executed);
-                var executedArray = executed.ToArray();
-                Assert.AreEqual(1, executedArray.Length);
-                var log = executedArray[0];
-                var logtimestamp = log.ClientTimestamp;
-                Assert.AreEqual(timestamp, logtimestamp);
-            }
-        }
-
-        [Test]
-        [TestCassandraVersion(2, 1)]
-        public void Batch_DefaultGeneratedTimestamp()
-        {
-            var query = new SimpleStatement($"INSERT INTO {_tableName} (id) values (-99999)");
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions()))
-            using (var cluster = Cluster.Builder().AddContactPoint(simulacronCluster.InitialContactPoint).Build())
-            {
-                var session = cluster.Connect();
-                var oldTimestamp = cluster.Configuration.Policies.TimestampGenerator.Next();
-                var batchStatement = new BatchStatement().Add(query);
-                session.Execute(batchStatement);
-                var executed = simulacronCluster.GetQueries(null, "BATCH");
-                Assert.IsNotEmpty(executed);
-                var executedArray = executed.ToArray();
-                Assert.AreEqual(1, executedArray.Length);
-                var log = executedArray[0];
-                var logtimestamp = log.ClientTimestamp;
-                Assert.Greater(logtimestamp, oldTimestamp);
-            }
-        }
-
-        [Test]
-        [Category("realcluster")]
-        [TestCassandraVersion(2, 1)]
         public void Batch_Timestamp()
         {
             var query = new SimpleStatement($"INSERT INTO {_tableName} (id) values (-99999)");
@@ -318,7 +261,6 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [Category("realcluster")]
         [TestCassandraVersion(2, 0, Comparison.Equal)]
         public void Batch_PreparedStatements_FlagsNotSupportedInC2_0()
         {
@@ -329,7 +271,6 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [Category("realcluster")]
         [TestCassandraVersion(1, 9, Comparison.LessThan)]
         public void Batch_PreparedStatements_NotSupportedInC1_2()
         {
@@ -349,7 +290,6 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
-        [Category("realcluster")]
         [TestCassandraVersion(2, 0)]
         public void Batch_PreparedStatement_Large()
         {
