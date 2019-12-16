@@ -207,6 +207,13 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         [Test]
         public void LinqWhere_With_LocalSerial_ConsistencyLevel_Does_Not_Throw()
         {
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
+                          $"FROM \"{Movie.TableName}\" WHERE \"movie_maker\" = ? AND \"unique_movie_title\" = ? ALLOW FILTERING",
+                          rows => rows.WithParams("dum", "doesnt_matter").WithConsistency(ConsistencyLevel.LocalSerial))
+                      .ThenRowsSuccess(Movie.GetColumns()));
+
             Assert.DoesNotThrow(() =>
                 _movieTable.Where(m => m.MovieMaker == "dum" && m.Title == "doesnt_matter")
                     .SetConsistencyLevel(ConsistencyLevel.LocalSerial).Execute());
