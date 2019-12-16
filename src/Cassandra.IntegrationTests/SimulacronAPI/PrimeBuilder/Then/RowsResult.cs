@@ -80,6 +80,11 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then
                 return DataType.GetTimestamp(new DateTimeOffset(dt));
             }
 
+            if (value is TimeUuid)
+            {
+                return value.ToString();
+            }
+
             return value;
         }
     }

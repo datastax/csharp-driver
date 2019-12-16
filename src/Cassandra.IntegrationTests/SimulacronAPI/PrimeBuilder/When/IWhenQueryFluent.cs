@@ -27,6 +27,6 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When
 
         IWhenQueryFluent WithParams(params (DataType, object)[] values);
 
-        IWhenQueryFluent WithConsistency(params string[] consistencyLevels);
+        IWhenQueryFluent WithConsistency(params ConsistencyLevel[] consistencyLevels);
     }
 }

@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Cassandra.IntegrationTests.SimulacronAPI
 {
@@ -87,6 +88,11 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
             return new DataType($"map<{dataTypeKey.Value},{dataTypeValue.Value}>");
         }
         
+        public static DataType Tuple(params DataType[] dataTypes)
+        {
+            return new DataType($"tuple<{string.Join(",", dataTypes.Select(d => d.Value))}>");
+        }
+        
         private static readonly Dictionary<Type, DataType> CqlTypeNames = new Dictionary<Type, DataType>
         {
             {typeof (Int32), DataType.Int},
@@ -136,6 +142,11 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
                 if (type.Name.Equals("Nullable`1"))
                 {
                     return DataType.GetDataType(type.GetGenericArguments()[0]);
+                }
+                
+                if (type.Name.StartsWith("Tuple"))
+                {
+                    return DataType.Tuple(type.GetGenericArguments().Select(DataType.GetDataType).ToArray());
                 }
 
                 if (type.GetInterface("ISet`1") != null)

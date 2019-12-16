@@ -50,7 +50,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder
             return this;
         }
 
-        public IThenFluent ThenRowsSuccess((string, DataType)[] columnNamesToTypes)
+        public IThenFluent ThenRowsSuccess(params (string, DataType)[] columnNamesToTypes)
         {
             var rows = new RowsResult(columnNamesToTypes);
             _then = new ThenRowsSuccess(rows);

@@ -216,7 +216,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                        .WithIgnoreOnPrepare(true);
         }
 
-        private void PrimeSelect(IEnumerable<AllDataTypesEntity> allData, string consistencyLevel, string query)
+        private void PrimeSelect(IEnumerable<AllDataTypesEntity> allData, ConsistencyLevel consistencyLevel, string query)
         {
             var primeQuery = 
                 CreateThenForPrimeSelect(
@@ -232,7 +232,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         public async Task Should_ExecuteFetchWithProvidedExecutionProfile_When_ExecutionProfileIsProvided(bool async)
         {
             var cql = $"SELECT IntType FROM {_keyspace}.all_data";
-            PrimeSelect(_entityList, "TWO", cql);
+            PrimeSelect(_entityList, ConsistencyLevel.Two, cql);
             var queries = _simulacronCluster.GetQueries(cql, "EXECUTE");
             var selectQuery = _table
                               .Select(m => new AllDataTypesEntity { IntType = m.IntType });
@@ -258,7 +258,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         public async Task Should_ExecuteFetchPagedWithProvidedExecutionProfile_When_ExecutionProfileIsProvided(bool async)
         {
             var cql = $"SELECT IntType FROM {_keyspace}.all_data";
-            PrimeSelect(_entityList, "TWO", cql);
+            PrimeSelect(_entityList, ConsistencyLevel.Two, cql);
             var queries = _simulacronCluster.GetQueries(cql, "EXECUTE");
             var selectQuery = _table.Select(m => new AllDataTypesEntity { IntType = m.IntType });
 
@@ -310,7 +310,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         public async Task Should_ExecuteFirstElementWithProvidedExecutionProfile_When_ExecutionProfileIsProvided(bool async)
         {
             var cql = $"SELECT IntType FROM {_keyspace}.all_data LIMIT ?";
-            PrimeSelect(_entityList, "TWO", cql);
+            PrimeSelect(_entityList, ConsistencyLevel.Two, cql);
             var queries = _simulacronCluster.GetQueries(cql, "EXECUTE");
             var selectQuery = _table
                               .Select(m => new AllDataTypesEntity { IntType = m.IntType })

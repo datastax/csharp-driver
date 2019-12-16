@@ -87,7 +87,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                           "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
                           $"FROM \"{Movie.TableName}\" WHERE \"unique_movie_title\" = ? AND \"movie_maker\" = ? LIMIT ? ALLOW FILTERING",
                           rows => rows.WithParams(existingMovie.Title, randomStr, 1))
-                      .ThenVoidSuccess());
+                      .ThenRowsSuccess(Movie.GetColumns()));
 
             Movie foundMovie = _movieTable.First(m => m.Title == existingMovie.Title && m.MovieMaker == randomStr).Execute();
             Assert.Null(foundMovie);

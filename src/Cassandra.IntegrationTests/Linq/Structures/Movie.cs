@@ -154,6 +154,12 @@ namespace Cassandra.IntegrationTests.Linq.Structures
             return new RowsResult(ColumnToDataTypes.Select(kvp => (kvp.Key, kvp.Value)).ToArray());
         }
 
+        public static RowsResult CreateAppliedInfoRowsResultWithoutMovie(bool applied)
+        {
+            var result = new RowsResult("[applied]");
+            return (RowsResult) result.WithRow(applied);
+        }
+
         public RowsResult CreateAppliedInfoRowsResult()
         {
             return AddAppliedInfoRow(Movie.GetEmptyAppliedInfoRowsResult());
@@ -167,6 +173,11 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         public RowsResult AddRow(RowsResult result)
         {
             return (RowsResult) result.WithRow(GetParameters());
+        }
+
+        public static (string, DataType)[] GetColumns()
+        {
+            return Movie.ColumnToDataTypes.Select(kvp => (kvp.Key, kvp.Value)).ToArray();
         }
 
         public (DataType, object)[] GetParametersWithTypes(bool withNulls = true)

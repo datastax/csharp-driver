@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 
 namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Converters
@@ -59,5 +60,10 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Converters
         }
 
         public override bool CanWrite => false;
+
+        public static string ConvertConsistencyLevelToString(ConsistencyLevel cl)
+        {
+            return ConsistencyLevelEnumConverter.Map.Single(kvp => kvp.Value == cl).Key;
+        }
     }
 }

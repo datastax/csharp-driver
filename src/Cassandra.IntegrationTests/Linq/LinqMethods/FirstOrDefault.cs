@@ -75,7 +75,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                           "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
                           $"FROM \"{Movie.TableName}\" WHERE \"director\" = ? LIMIT ? ALLOW FILTERING",
                           rows => rows.WithParams("non_existant_" + randomStr.Get(), 1))
-                      .ThenVoidSuccess());
+                      .ThenRowsSuccess(Movie.GetColumns()));
 
             var firstQuery = _movieTable.FirstOrDefault(m => m.Director == "non_existant_" + randomStr.Get());
             var first = async ? firstQuery.ExecuteAsync().Result : firstQuery.Execute();

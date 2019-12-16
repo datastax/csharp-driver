@@ -14,14 +14,11 @@
 //   limitations under the License.
 //
 
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.Mapping;
+
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.LinqTable
@@ -29,30 +26,85 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
     /// <summary>
     /// NOTE: The GetTable() method is deprecated.
     /// </summary>
-    [Category("short"), Category("realcluster")]
-    public class GetTable : SharedClusterTest
+    public class GetTable : SimulacronTest
     {
-        string _uniqueKsName;
+        private const string InsertCql = 
+            "INSERT INTO \"allDataTypes\" (\"boolean_type\", \"date_time_offset_type\", " +
+                "\"date_time_type\", \"decimal_type\", \"double_type\", \"float_type\", " +
+                "\"guid_type\", \"int_type\", \"int64_type\", \"list_of_guids_type\", " +
+                "\"list_of_strings_type\", \"map_type_string_long_type\", \"map_type_string_string_type\", " +
+                "\"nullable_date_time_type\", \"nullable_int_type\", \"nullable_time_uuid_type\", " +
+                "\"string_type\", \"time_uuid_type\") " + 
+            "VALUES " + 
+                "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        public override void OneTimeSetUp()
-        {
-            base.OneTimeSetUp();
-            _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            Session.CreateKeyspace(_uniqueKsName);
-            TestUtils.WaitForSchemaAgreement(Session.Cluster);
-            Session.ChangeKeyspace(_uniqueKsName);
-        }
+        private const string SelectCql = 
+            "SELECT \"boolean_type\", \"date_time_offset_type\", \"date_time_type\", " + 
+                "\"decimal_type\", \"double_type\", \"float_type\", \"guid_type\", \"int_type\", " + 
+                "\"int64_type\", \"list_of_guids_type\", \"list_of_strings_type\", \"map_type_string_long_type\"," + 
+                " \"map_type_string_string_type\", \"nullable_date_time_type\", \"nullable_int_type\", " + 
+                "\"nullable_time_uuid_type\", \"string_type\", \"time_uuid_type\" FROM \"allDataTypes\" " + 
+            "WHERE \"string_type\" = ? " + 
+            "ALLOW FILTERING";
 
         /// <summary>
         /// Get table using GetTable, validate that the resultant table object functions as expected
         /// </summary>
         [Test]
-        public void LinqTable_GetTable()
+        public void LinqTable_GetTable_Batch()
         {
             // Test
-            Table<AllDataTypesEntity> table = Session.GetTable<AllDataTypesEntity>();
-            table.Create();
-            AllDataTypesEntity.WriteReadValidate(table);
+            var table = Session.GetTable<AllDataTypesEntity>();
+
+            var batch = table.GetSession().CreateBatch();
+            var expectedDataTypesEntityRow = AllDataTypesEntity.GetRandomInstance();
+            var uniqueKey = expectedDataTypesEntityRow.StringType;
+
+            batch.Append(table.Insert(expectedDataTypesEntityRow));
+            batch.Execute();
+
+            VerifyBatchStatement(
+                1,
+                new[] { GetTable.InsertCql },
+                new[] { expectedDataTypesEntityRow.GetColumnValues() });
+
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(GetTable.SelectCql, p => p.WithParam(uniqueKey))
+                      .ThenRowsSuccess(expectedDataTypesEntityRow.CreateRowsResult()));
+
+            var listOfAllDataTypesObjects =
+                (from x in table where x.StringType.Equals(uniqueKey) select x).Execute().ToList();
+            Assert.NotNull(listOfAllDataTypesObjects);
+            Assert.AreEqual(1, listOfAllDataTypesObjects.Count);
+            var actualDataTypesEntityRow = listOfAllDataTypesObjects.First();
+            expectedDataTypesEntityRow.AssertEquals(actualDataTypesEntityRow);
+        }
+
+        [Test]
+        public void LinqTable_GetTable_RegularStatement()
+        {
+            var table = Session.GetTable<AllDataTypesEntity>();
+            var expectedDataTypesEntityRow = AllDataTypesEntity.GetRandomInstance();
+            var uniqueKey = expectedDataTypesEntityRow.StringType;
+
+            // insert record
+            table.GetSession().Execute(table.Insert(expectedDataTypesEntityRow));
+
+            VerifyStatement("QUERY", GetTable.InsertCql, 1, expectedDataTypesEntityRow.GetColumnValues());
+
+            TestCluster.PrimeDelete();
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(GetTable.SelectCql, p => p.WithParam(uniqueKey))
+                      .ThenRowsSuccess(expectedDataTypesEntityRow.CreateRowsResult()));
+
+            // select record
+            var listOfAllDataTypesObjects =
+                (from x in table where x.StringType.Equals(uniqueKey) select x).Execute().ToList();
+            Assert.NotNull(listOfAllDataTypesObjects);
+            Assert.AreEqual(1, listOfAllDataTypesObjects.Count);
+            var actualDataTypesEntityRow = listOfAllDataTypesObjects.First();
+
+            expectedDataTypesEntityRow.AssertEquals(actualDataTypesEntityRow);
         }
     }
 }

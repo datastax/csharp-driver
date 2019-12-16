@@ -102,7 +102,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 rows => rows.WithRows(movies.Select(CreatePrimeObject).ToArray())).WithIgnoreOnPrepare(true);
         }
 
-        private void PrimeSelect(IEnumerable<Movie> movies, string consistencyLevel, string query = null)
+        private void PrimeSelect(IEnumerable<Movie> movies, ConsistencyLevel consistencyLevel, string query = null)
         {
             var primeQuery =
                 CreateThenForPrimeSelect(SimulacronBase
@@ -119,7 +119,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         [TestCase(false)]
         public void Should_ExecuteFetchWithExecutionProfile_When_ExecutionProfileIsProvided(bool async)
         {
-            PrimeSelect(_movieList, "TWO", "SELECT MainActor");
+            PrimeSelect(_movieList, ConsistencyLevel.Two, "SELECT MainActor");
 
             var movies = async
                 ? _mapper.FetchAsync<Movie>(Cql.New($"SELECT MainActor FROM {_keyspace}.Movie").WithExecutionProfile("testProfile")).Result.ToList()
@@ -133,7 +133,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         [TestCase(false)]
         public void Should_ExecuteFetchPageWithExecutionProfile_When_ExecutionProfileIsProvided(bool async)
         {
-            PrimeSelect(new List<Movie> { _movieList.First() }, "ONE", "SELECT MovieMaker");
+            PrimeSelect(new List<Movie> { _movieList.First() }, ConsistencyLevel.One, "SELECT MovieMaker");
 
             var movies = async
                 ? _mapper.FetchPageAsync<Movie>(Cql.New($"SELECT MovieMaker FROM {_keyspace}.Movie").WithExecutionProfile("testDerivedProfile")).Result.ToList()
@@ -148,7 +148,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         [TestCase(false)]
         public void Should_ExecuteFirstWithExecutionProfile_When_ExecutionProfileIsProvided(bool async)
         {
-            PrimeSelect(new List<Movie> { _movieList.Skip(1).First() }, "TWO", "SELECT Title");
+            PrimeSelect(new List<Movie> { _movieList.Skip(1).First() }, ConsistencyLevel.Two, "SELECT Title");
 
             var movie = async
                 ? _mapper.FirstAsync<Movie>(Cql.New($"SELECT Title FROM {_keyspace}.Movie").WithExecutionProfile("testProfile")).Result
@@ -163,7 +163,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         [TestCase(false)]
         public void Should_ExecuteFirstOrDefaultWithExecutionProfile_When_ExecutionProfileIsProvided(bool async)
         {
-            PrimeSelect(new List<Movie> { _movieList.First() }, "TWO", "SELECT Year");
+            PrimeSelect(new List<Movie> { _movieList.First() }, ConsistencyLevel.Two, "SELECT Year");
 
             var movie = async
                 ? _mapper.FirstOrDefaultAsync<Movie>(Cql.New($"SELECT Year FROM {_keyspace}.Movie").WithExecutionProfile("testProfile")).Result
@@ -178,7 +178,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         [TestCase(false)]
         public void Should_ExecuteSingletWithExecutionProfile_When_ExecutionProfileIsProvided(bool async)
         {
-            PrimeSelect(new List<Movie> { _movieList.Skip(1).First() }, "TWO", "SELECT ExampleSet");
+            PrimeSelect(new List<Movie> { _movieList.Skip(1).First() }, ConsistencyLevel.Two, "SELECT ExampleSet");
 
             var movie = async
                 ? _mapper.SingleAsync<Movie>(Cql.New($"SELECT ExampleSet FROM {_keyspace}.Movie").WithExecutionProfile("testProfile")).Result
@@ -193,7 +193,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
         [TestCase(false)]
         public void Should_ExecuteSingleOrDefaultWithExecutionProfile_When_ExecutionProfileIsProvided(bool async)
         {
-            PrimeSelect(new List<Movie> { _movieList.Skip(2).First() }, "TWO", "SELECT Director");
+            PrimeSelect(new List<Movie> { _movieList.Skip(2).First() }, ConsistencyLevel.Two, "SELECT Director");
 
             var movie = async
                 ? _mapper.SingleOrDefaultAsync<Movie>(Cql.New($"SELECT Director FROM {_keyspace}.Movie").WithExecutionProfile("testProfile")).Result

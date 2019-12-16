@@ -60,8 +60,13 @@ namespace Cassandra.IntegrationTests
         
         protected void VerifyBoundStatement(string cql, int count, params object[] positionalParameters)
         {
+            VerifyStatement("EXECUTE", cql, count, positionalParameters);
+        }
+        
+        protected void VerifyStatement(string type, string cql, int count, params object[] positionalParameters)
+        {
             var serializer = Session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer();
-            var queries = TestCluster.GetQueries(cql, "EXECUTE");
+            var queries = TestCluster.GetQueries(cql, type);
 
             var paramBytes = positionalParameters.Select(obj => obj == null ? null : Convert.ToBase64String(serializer.Serialize(obj))).ToList();
             var filteredQueries = queries.Where(q => q.Frame.GetQueryMessage().Options.PositionalValues.SequenceEqual(paramBytes));

@@ -15,6 +15,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using Cassandra.IntegrationTests.SimulacronAPI.Models.Converters;
 
 namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When
 {
@@ -72,9 +73,9 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When
             return @this;
         }
 
-        public IWhenQueryFluent WithConsistency(params string[] consistencyLevels)
+        public IWhenQueryFluent WithConsistency(params ConsistencyLevel[] consistencyLevels)
         {
-            _consistency = consistencyLevels;
+            _consistency = consistencyLevels.Select(ConsistencyLevelEnumConverter.ConvertConsistencyLevelToString).ToArray();
             return this;
         }
 

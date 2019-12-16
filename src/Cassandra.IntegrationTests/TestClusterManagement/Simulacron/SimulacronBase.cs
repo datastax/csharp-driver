@@ -16,18 +16,17 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using Cassandra.IntegrationTests.SimulacronAPI;
-using Cassandra.IntegrationTests.SimulacronAPI.Models;
+
+using Cassandra.IntegrationTests.SimulacronAPI.Models.Converters;
 using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder;
 using Cassandra.Tasks;
+
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
@@ -61,7 +60,15 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             var bodyStr = string.Empty;
             if (body != null)
             {
-                bodyStr = JObject.FromObject(body).ToString();
+                var jsonSerializerSettings = new JsonSerializerSettings
+                {
+                    Converters = new List<JsonConverter>
+                    {
+                        new ConsistencyLevelEnumConverter(),
+                        new TupleConverter()
+                    }
+                };
+                bodyStr = JsonConvert.SerializeObject(body, jsonSerializerSettings);
             }
             return bodyStr;
         }
@@ -84,7 +91,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
                 return JObject.Parse(dataStr);
             }
         }
-        
+
         protected static async Task<T> Get<T>(string url)
         {
             using (var client = new HttpClient())
@@ -125,12 +132,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
         {
             return SimulacronBase.Get<SimulacronClusterLogs>(GetPath("log"));
         }
-        
+
         public Task<JObject> PrimeAsync(IPrimeRequest request)
         {
             return SimulacronBase.Post(GetPath("prime"), request.Render());
         }
-        
+
         public JObject Prime(IPrimeRequest request)
         {
             return TaskHelper.WaitToComplete(PrimeAsync(request));
@@ -193,7 +200,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
         {
             return TaskHelper.WaitToComplete(PrimeFluentAsync(builder));
         }
-        
+
         public Task<JObject> PrimeFluentAsync(Func<IPrimeRequestFluent, IThenFluent> builder)
         {
             var prime = SimulacronBase.PrimeBuilder();

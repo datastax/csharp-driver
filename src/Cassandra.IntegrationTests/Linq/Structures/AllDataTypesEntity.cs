@@ -173,45 +173,6 @@ namespace Cassandra.IntegrationTests.Linq.Structures
             return allDataTypesRandomList;
         }
 
-        public static AllDataTypesEntity WriteReadValidate(Table<AllDataTypesEntity> table)
-        {
-            WriteReadValidateUsingSessionBatch(table);
-            return WriteReadValidateUsingTableMethods(table);
-        }
-
-        private static AllDataTypesEntity WriteReadValidateUsingTableMethods(Table<AllDataTypesEntity> table)
-        {
-            AllDataTypesEntity expectedDataTypesEntityRow = AllDataTypesEntity.GetRandomInstance();
-            string uniqueKey = expectedDataTypesEntityRow.StringType;
-
-            // insert record
-            table.GetSession().Execute(table.Insert(expectedDataTypesEntityRow));
-
-            // select record
-            List<AllDataTypesEntity> listOfAllDataTypesObjects = (from x in table where x.StringType.Equals(uniqueKey) select x).Execute().ToList();
-            Assert.NotNull(listOfAllDataTypesObjects);
-            Assert.AreEqual(1, listOfAllDataTypesObjects.Count);
-            AllDataTypesEntity actualDataTypesEntityRow = listOfAllDataTypesObjects.First();
-            expectedDataTypesEntityRow.AssertEquals(actualDataTypesEntityRow);
-            return expectedDataTypesEntityRow;
-        }
-
-        private static AllDataTypesEntity WriteReadValidateUsingSessionBatch(Table<AllDataTypesEntity> table)
-        {
-            Batch batch = table.GetSession().CreateBatch();
-            AllDataTypesEntity expectedDataTypesEntityRow = AllDataTypesEntity.GetRandomInstance();
-            string uniqueKey = expectedDataTypesEntityRow.StringType;
-            batch.Append(table.Insert(expectedDataTypesEntityRow));
-            batch.Execute();
-
-            List<AllDataTypesEntity> listOfAllDataTypesObjects = (from x in table where x.StringType.Equals(uniqueKey) select x).Execute().ToList();
-            Assert.NotNull(listOfAllDataTypesObjects);
-            Assert.AreEqual(1, listOfAllDataTypesObjects.Count);
-            AllDataTypesEntity actualDataTypesEntityRow = listOfAllDataTypesObjects.First();
-            expectedDataTypesEntityRow.AssertEquals(actualDataTypesEntityRow);
-            return expectedDataTypesEntityRow;
-        }
-
         public static (string, DataType)[] GetColumnsWithTypes()
         {
             return AllDataTypesEntity.ColumnMappings.Keys.Zip(ColumnnsToDataTypes, (key, kvp) => (key, kvp.Value)).ToArray();
@@ -264,11 +225,11 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         }
 
         public const string InsertCql =
-            "INSERT INTO \"allDataTypes\" (\"string_type\", \"guid_type\", " +
-                "\"date_time_type\", \"nullable_date_time_type\", \"date_time_offset_type\", " +
-                "\"boolean_type\", \"decimal_type\", \"double_type\", \"float_type\", \"nullable_int_type\", " +
-                "\"int_type\", \"int64_type\", \"time_uuid_type\", \"nullable_time_uuid_type\", \"map_type_string_long_type\", " +
-                "\"map_type_string_string_type\", \"list_of_guids_type\", \"list_of_strings_type\") " +
+            "INSERT INTO \"allDataTypes\" (\"boolean_type\", \"date_time_offset_type\", \"date_time_type\", " +
+            "\"decimal_type\", \"double_type\", \"float_type\", \"guid_type\"," +
+            " \"int_type\", \"int64_type\", \"list_of_guids_type\", \"list_of_strings_type\"," +
+            " \"map_type_string_long_type\", \"map_type_string_string_type\", \"nullable_date_time_type\"," +
+            " \"nullable_int_type\", \"nullable_time_uuid_type\", \"string_type\", \"time_uuid_type\") " +
             "VALUES " +
                 "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
@@ -281,7 +242,12 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         
         public RowsResult AddRow(RowsResult result)
         {
-            return (RowsResult) result.WithRow(AllDataTypesEntity.ColumnMappings.Values.Select(func => func(this)).ToArray());
+            return (RowsResult) result.WithRow(GetColumnValues());
+        }
+
+        public object[] GetColumnValues()
+        {
+            return AllDataTypesEntity.ColumnMappings.Values.Select(func => func(this)).ToArray();
         }
 
         public static RowsResult AddRows(IEnumerable<AllDataTypesEntity> data)

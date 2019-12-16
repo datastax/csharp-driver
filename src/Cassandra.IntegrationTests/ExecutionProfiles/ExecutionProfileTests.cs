@@ -62,7 +62,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 var session = cluster.Connect();
 
                 _simulacron.PrimeFluent(
-                    b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency("TWO"))
+                    b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency(ConsistencyLevel.Two))
                           .ThenUnavailable("unavailable", (int)ConsistencyLevel.Two, 3, 2));
 
                 var exception = async
@@ -91,7 +91,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 var session = cluster.Connect();
 
                 _simulacron.PrimeFluent(
-                    b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency("TWO"))
+                    b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency(ConsistencyLevel.Two))
                           .ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, r => r.WithRow("test6").WithRow("test5")));
 
                 var rs = async
@@ -124,11 +124,11 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 var session = cluster.Connect();
 
                 _simulacron.PrimeFluent(
-                    b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency("ONE"))
+                    b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency(ConsistencyLevel.One))
                           .ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, r => r.WithRow("test10").WithRow("test60")));
                 
                 _simulacron.PrimeFluent(
-                    b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency("TWO"))
+                    b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency(ConsistencyLevel.Two))
                           .ThenUnavailable("unavailable", (int)ConsistencyLevel.Two, 2, 1));
                 
                 var rs = async
@@ -166,15 +166,15 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 var session = cluster.Connect();
 
                 _simulacron.PrimeFluent(
-                    b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency("ONE"))
+                    b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency(ConsistencyLevel.One))
                           .ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, r => r.WithRow("test10").WithRow("test60")));
                 
                 _simulacron.PrimeFluent(
-                    b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency("TWO"))
+                    b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency(ConsistencyLevel.Two))
                           .ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, r => r.WithRow("test12").WithRow("test62")));
                 
                 _simulacron.PrimeFluent(
-                    b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency("QUORUM"))
+                    b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency(ConsistencyLevel.Quorum))
                           .ThenUnavailable("unavailable", (int)ConsistencyLevel.Two, 2, 1));
 
                 var rs = async

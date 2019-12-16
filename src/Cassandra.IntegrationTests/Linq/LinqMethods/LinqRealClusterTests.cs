@@ -20,6 +20,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Cassandra.Data.Linq;
+using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
 using Cassandra.Tests.Mapping.Pocos;
@@ -29,16 +30,18 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
     /// <summary>
-    /// No support for paging state in simulacron yet.
+    /// No support for paging state or traces in simulacron yet.
     /// </summary>
     [Category("short"), Category("realcluster")]
-    public class ExecutePagedTests : SharedClusterTest
+    public class LinqRealClusterTests : SharedClusterTest
     {
         private ISession _session;
         private readonly string _keyspace = TestUtils.GetUniqueKeyspaceName().ToLower();
         private readonly string _tableName = TestUtils.GetUniqueTableName().ToLower();
         private readonly MappingConfiguration _mappingConfig = new MappingConfiguration().Define(new Map<Song>().PartitionKey(s => s.Id));
+        private Table<Movie> _movieTable;
         private const int TotalRows = 100;
+        private readonly List<Movie> _movieList = Movie.GetDefaultMovieList();
 
         private Table<Song> GetTable()
         {
@@ -64,6 +67,14 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                 }).ExecuteAsync());
             }
             Assert.True(Task.WaitAll(tasks.ToArray(), 10000));
+
+            var movieMappingConfig = new MappingConfiguration();
+            _movieTable = new Table<Movie>(_session, movieMappingConfig);
+            _movieTable.Create();
+            
+            //Insert some data
+            foreach (var movie in _movieList)
+                _movieTable.Insert(movie).Execute();
         }
 
         [Test]
@@ -137,6 +148,23 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                 }
             }
             Assert.AreEqual(TotalRows, fullList.Count);
+        }
+
+        [Test]
+        public void LinqWhere_ExecuteSync_Trace()
+        {
+            var expectedMovie = _movieList.First();
+
+            // test
+            var linqWhere = _movieTable.Where(m => m.Title == expectedMovie.Title && m.MovieMaker == expectedMovie.MovieMaker);
+            linqWhere.EnableTracing();
+            var movies = linqWhere.Execute().ToList();
+            Assert.AreEqual(1, movies.Count);
+            var actualMovie = movies.First();
+            Movie.AssertEquals(expectedMovie, actualMovie);
+            var trace = linqWhere.QueryTrace;
+            Assert.NotNull(trace);
+            Assert.AreEqual(TestCluster.InitialContactPoint, trace.Coordinator.ToString());
         }
     }
 }

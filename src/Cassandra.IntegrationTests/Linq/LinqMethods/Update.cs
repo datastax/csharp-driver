@@ -16,63 +16,65 @@
 
 using System.Collections.Generic;
 using System.Linq;
+
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
+
 using NUnit.Framework;
+
 #pragma warning disable 612
 
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
-    [Category("short"), Category("realcluster")]
-    public class Update : SharedClusterTest
+    public class Update : SimulacronTest
     {
-        ISession _session;
-        private List<Movie> _movieList = Movie.GetDefaultMovieList();
-        string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-        private Table<Movie> _movieTable;
+        private readonly List<Movie> _movieList = Movie.GetDefaultMovieList();
+        private readonly string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
 
-        public override void OneTimeSetUp()
+        public override void SetUp()
         {
-            base.OneTimeSetUp();
-            _session = Session;
-            _session.CreateKeyspace(_uniqueKsName);
-            _session.ChangeKeyspace(_uniqueKsName);
-
-            // drop table if exists, re-create
-            var movieMappingConfig = new MappingConfiguration();
-            movieMappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(Movie),
-                 () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(Movie)));
-            _movieTable = new Table<Movie>(_session, movieMappingConfig);
-            _movieTable.Create();
-
-            //Insert some data
-            foreach (var movie in _movieList)
-                _movieTable.Insert(movie).Execute();
+            base.SetUp();
+            Session.ChangeKeyspace(_uniqueKsName);
         }
 
         /// <summary>
         /// Successfully update multiple records using a single (non-batch) update
         /// </summary>
+        [TestCase(true), TestCase(false)]
         [Test]
-        public void LinqUpdate_Single()
+        public void LinqUpdate_Single(bool async)
         {
             // Setup
-            var table = new Table<Movie>(_session, new MappingConfiguration());
-            table.CreateIfNotExists();
+            var table = new Table<Movie>(Session, new MappingConfiguration());
             var movieToUpdate = _movieList[1];
 
             var expectedMovie = new Movie(movieToUpdate.Title, movieToUpdate.Director, "something_different_" + Randomm.RandomAlphaNum(10), movieToUpdate.MovieMaker, 1212);
-            table.Where(m => m.Title == movieToUpdate.Title && m.MovieMaker == movieToUpdate.MovieMaker && m.Director == movieToUpdate.Director)
-                 .Select(m => new Movie { Year = expectedMovie.Year, MainActor = expectedMovie.MainActor })
-                 .Update()
-                 .Execute();
+            var updateQuery =
+                table.Where(m => m.Title == movieToUpdate.Title && m.MovieMaker == movieToUpdate.MovieMaker && m.Director == movieToUpdate.Director)
+                     .Select(m => new Movie { Year = expectedMovie.Year, MainActor = expectedMovie.MainActor })
+                     .Update();
 
-            var actualMovieList = table.Execute().ToList();
-            Assert.AreEqual(_movieList.Count, actualMovieList.Count());
-            Assert.IsFalse(Movie.ListContains(_movieList, expectedMovie));
-            Movie.AssertListContains(actualMovieList, expectedMovie);
+            if (async)
+            {
+                updateQuery.ExecuteAsync().GetAwaiter().GetResult();
+            }
+            else
+            {
+                updateQuery.Execute();
+            }
+
+            VerifyBoundStatement(
+                $"UPDATE \"{Movie.TableName}\" " +
+                "SET \"yearMade\" = ?, \"mainGuy\" = ? " +
+                "WHERE \"unique_movie_title\" = ? AND \"movie_maker\" = ? AND \"director\" = ?",
+                1,
+                expectedMovie.Year,
+                expectedMovie.MainActor,
+                movieToUpdate.Title,
+                movieToUpdate.MovieMaker,
+                movieToUpdate.Director);
         }
 
         /// <summary>
@@ -82,42 +84,32 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         public void LinqUpdate_IfExists()
         {
             // Setup
-            var table = new Table<Movie>(_session, new MappingConfiguration());
-            table.CreateIfNotExists();
+            var table = new Table<Movie>(Session, new MappingConfiguration());
 
             var unexistingMovie = new Movie("Unexisting movie title", "Unexisting movie director", "Unexisting movie actor", "Unexisting movie maker", 1212);
+
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          $"UPDATE \"{Movie.TableName}\" " +
+                          "SET \"yearMade\" = ?, \"mainGuy\" = ? " +
+                          "WHERE \"unique_movie_title\" = ? AND \"movie_maker\" = ? AND \"director\" = ? IF EXISTS",
+                          when => when.WithParams(unexistingMovie.Year, unexistingMovie.MainActor, unexistingMovie.Title, unexistingMovie.MovieMaker,
+                              unexistingMovie.Director))
+                      .ThenRowsSuccess(Movie.CreateAppliedInfoRowsResultWithoutMovie(false)));
+
             var cql = table.Where(m => m.Title == unexistingMovie.Title && m.MovieMaker == unexistingMovie.MovieMaker && m.Director == unexistingMovie.Director)
                            .Select(m => new Movie { Year = unexistingMovie.Year, MainActor = unexistingMovie.MainActor })
                            .UpdateIfExists();
             var appliedInfo = cql.Execute();
 
             Assert.IsFalse(appliedInfo.Applied);
-            var actualMovieList = table.Execute().ToList();
-            Assert.AreEqual(_movieList.Count, actualMovieList.Count());
-            Assert.IsFalse(Movie.ListContains(actualMovieList, unexistingMovie));
-        }
 
-        /// <summary>
-        /// Successfully update multiple records using a single (non-batch) update, using async execute
-        /// </summary>
-        [Test]
-        public void LinqUpdate_Single_Async()
-        {
-            // Setup
-            var table = new Table<Movie>(_session, new MappingConfiguration());
-            table.CreateIfNotExists();
-            var movieToUpdate = _movieList[1];
-
-            var expectedMovie = new Movie(movieToUpdate.Title, movieToUpdate.Director, "something_different_" + Randomm.RandomAlphaNum(10), movieToUpdate.MovieMaker, 1212);
-            table.Where(m => m.Title == movieToUpdate.Title && m.MovieMaker == movieToUpdate.MovieMaker && m.Director == movieToUpdate.Director)
-                 .Select(m => new Movie { Year = expectedMovie.Year, MainActor = expectedMovie.MainActor })
-                 .Update()
-                 .Execute();
-
-            var actualMovieList = table.ExecuteAsync().Result.ToList();
-            Assert.AreEqual(_movieList.Count, actualMovieList.Count());
-            Assert.IsFalse(Movie.ListContains(_movieList, expectedMovie));
-            Movie.AssertListContains(actualMovieList, expectedMovie);
+            VerifyBoundStatement(
+                $"UPDATE \"{Movie.TableName}\" " +
+                "SET \"yearMade\" = ?, \"mainGuy\" = ? " +
+                "WHERE \"unique_movie_title\" = ? AND \"movie_maker\" = ? AND \"director\" = ? IF EXISTS",
+                1,
+                unexistingMovie.Year, unexistingMovie.MainActor, unexistingMovie.Title, unexistingMovie.MovieMaker, unexistingMovie.Director);
         }
 
         /// <summary>
@@ -127,8 +119,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         public void LinqUpdate_Batch()
         {
             // Setup
-            var table = new Table<Movie>(_session, new MappingConfiguration());
-            table.CreateIfNotExists();
+            var table = new Table<Movie>(Session, new MappingConfiguration());
             var movieToUpdate1 = _movieList[1];
             var movieToUpdate2 = _movieList[2];
 
@@ -148,24 +139,32 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
 
             table.GetSession().Execute(batch);
 
-            var actualMovieList = table.Execute().ToList();
-            Assert.AreEqual(_movieList.Count, actualMovieList.Count());
-            Assert.AreNotEqual(expectedMovie1.MainActor, expectedMovie2.MainActor);
-            Assert.IsFalse(Movie.ListContains(_movieList, expectedMovie1));
-            Assert.IsFalse(Movie.ListContains(_movieList, expectedMovie2));
-            Movie.AssertListContains(actualMovieList, expectedMovie1);
-            Movie.AssertListContains(actualMovieList, expectedMovie2);
+            VerifyBatchStatement(
+                1,
+                new[]
+                {
+                    $"UPDATE \"{Movie.TableName}\" " +
+                        "SET \"yearMade\" = ?, \"mainGuy\" = ? " +
+                        "WHERE \"unique_movie_title\" = ? AND \"movie_maker\" = ? AND \"director\" = ?",
+                    $"UPDATE \"{Movie.TableName}\" " +
+                        "SET \"yearMade\" = ?, \"mainGuy\" = ? " +
+                        "WHERE \"unique_movie_title\" = ? AND \"movie_maker\" = ? AND \"director\" = ?"
+                },
+                new[]
+                {
+                    new object[] { expectedMovie1.Year, expectedMovie1.MainActor, movieToUpdate1.Title, movieToUpdate1.MovieMaker, movieToUpdate1.Director },
+                    new object[] { expectedMovie2.Year, expectedMovie2.MainActor, movieToUpdate2.Title, movieToUpdate2.MovieMaker, movieToUpdate2.Director }
+                });
         }
 
         [TestCase(BatchType.Unlogged)]
         [TestCase(BatchType.Logged)]
-        [TestCase(null)]
+        [TestCase(default(BatchType))]
         [TestCassandraVersion(2, 0)]
         public void LinqUpdate_UpdateBatchType(BatchType batchType)
         {
             // Setup
-            var table = new Table<Movie>(_session, new MappingConfiguration());
-            table.CreateIfNotExists();
+            var table = new Table<Movie>(Session, new MappingConfiguration());
             var movieToUpdate1 = _movieList[1];
             var movieToUpdate2 = _movieList[2];
 
@@ -185,13 +184,22 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
 
             batch.Execute();
 
-            var actualMovieList = table.Execute().ToList();
-            Assert.AreEqual(_movieList.Count, actualMovieList.Count);
-            Assert.AreNotEqual(expectedMovie1.MainActor, expectedMovie2.MainActor);
-            Assert.IsFalse(Movie.ListContains(_movieList, expectedMovie1));
-            Assert.IsFalse(Movie.ListContains(_movieList, expectedMovie2));
-            Movie.AssertListContains(actualMovieList, expectedMovie1);
-            Movie.AssertListContains(actualMovieList, expectedMovie2);
+            VerifyBatchStatement(
+                1,
+                new[]
+                {
+                    $"UPDATE \"{Movie.TableName}\" " +
+                    "SET \"yearMade\" = ?, \"mainGuy\" = ? " +
+                    "WHERE \"unique_movie_title\" = ? AND \"movie_maker\" = ? AND \"director\" = ?",
+                    $"UPDATE \"{Movie.TableName}\" " +
+                    "SET \"yearMade\" = ?, \"mainGuy\" = ? " +
+                    "WHERE \"unique_movie_title\" = ? AND \"movie_maker\" = ? AND \"director\" = ?"
+                },
+                new[]
+                {
+                    new object[] { expectedMovie1.Year, expectedMovie1.MainActor, movieToUpdate1.Title, movieToUpdate1.MovieMaker, movieToUpdate1.Director },
+                    new object[] { expectedMovie2.Year, expectedMovie2.MainActor, movieToUpdate2.Title, movieToUpdate2.MovieMaker, movieToUpdate2.Director }
+                });
         }
     }
 }
