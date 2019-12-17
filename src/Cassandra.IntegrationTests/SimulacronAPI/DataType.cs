@@ -36,6 +36,8 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
         {
             DataType.SingleFqTypeNames = new Dictionary<DataType, string>
             {
+                {DataType.Text, "org.apache.cassandra.db.marshal.UTF8Type"},
+                {DataType.Ascii, "org.apache.cassandra.db.marshal.AsciiType"},
                 {DataType.Varchar, "org.apache.cassandra.db.marshal.UTF8Type"},
                 {DataType.Uuid, "org.apache.cassandra.db.marshal.UUIDType"},
                 {DataType.TimeUuid, "org.apache.cassandra.db.marshal.TimeUUIDType"},

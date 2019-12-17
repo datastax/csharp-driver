@@ -322,9 +322,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
 
                 VerifyStatement(
                     QueryType.Query,
-                    $"CREATE KEYSPACE \"{newUniqueKsName}\" " + Environment.NewLine +
-                    "  WITH replication = {'class' : 'SimpleStrategy', 'replication_factor' : '1'} " + Environment.NewLine +
-                    "   AND durable_writes = true",
+                    $"CREATE KEYSPACE \"{newUniqueKsName}\" " +
+                    "WITH replication = {'class' : 'SimpleStrategy', 'replication_factor' : '1'}" +
+                    " AND durable_writes = true",
                     1);
 
                 Assert.AreNotEqual(_uniqueKsName, newUniqueKsName);
