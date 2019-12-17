@@ -16,6 +16,7 @@
 
 using NUnit.Framework;
 using System.Linq;
+using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 
 namespace Cassandra.IntegrationTests.Core
@@ -183,7 +184,7 @@ namespace Cassandra.IntegrationTests.Core
                 var boundStmt = prepStmt.Bind(1);
                 var result = session.Execute(boundStmt);
                 Assert.AreEqual(consistencyLevel, result.Info.AchievedConsistency);
-                VerifyConsistency(simulacronCluster, prepQuery, consistencyLevel, null, "EXECUTE");
+                VerifyConsistency(simulacronCluster, prepQuery, consistencyLevel, null, QueryType.Execute);
             }
         }
 
@@ -203,7 +204,7 @@ namespace Cassandra.IntegrationTests.Core
                 var boundStmt = prepStmt.Bind(1);
                 var result = session.Execute(boundStmt);
                 Assert.AreEqual(ConsistencyLevel.LocalOne, result.Info.AchievedConsistency);
-                VerifyConsistency(simulacronCluster, prepQuery, ConsistencyLevel.LocalOne, consistencyLevel, "EXECUTE");
+                VerifyConsistency(simulacronCluster, prepQuery, ConsistencyLevel.LocalOne, consistencyLevel, QueryType.Execute);
             }
         }
 
@@ -228,12 +229,12 @@ namespace Cassandra.IntegrationTests.Core
                 var boundStmt = prepStmt.Bind(1).SetConsistencyLevel(consistencyLevel);
                 var result = session.Execute(boundStmt);
                 Assert.AreEqual(consistencyLevel, result.Info.AchievedConsistency);
-                VerifyConsistency(simulacronCluster, prepQuery, consistencyLevel, null, "EXECUTE");
+                VerifyConsistency(simulacronCluster, prepQuery, consistencyLevel, null, QueryType.Execute);
             }
         }
 
         private static void VerifyConsistency(SimulacronCluster simulacronCluster, string query, ConsistencyLevel consistency, 
-                                              ConsistencyLevel? serialConsistency = null, string queryType = "QUERY")
+                                              ConsistencyLevel? serialConsistency = null, QueryType queryType = QueryType.Query)
         {
             var executedQueries = simulacronCluster.GetQueries(query, queryType);
             Assert.NotNull(executedQueries);

@@ -43,7 +43,11 @@ namespace Cassandra.IntegrationTests.Core
                 simulacronCluster.PrimeSystemSchemaTablesV2(
                     "testks",
                     "testtable",
-                    new[] { ("", "partition_key", "ascii"), (" ", "clustering_key", "ascii") });
+                    new[] 
+                    { 
+                        new StubTableColumn("", StubColumnKind.PartitionKey, DataType.GetDataType(typeof(string))), 
+                        new StubTableColumn(" ", StubColumnKind.ClusteringKey, DataType.GetDataType(typeof(string)))
+                    });
 
                 simulacronCluster.PrimeFluent(
                     b => b.WhenQuery("SELECT \"\", \" \" FROM testks.testtable")
@@ -103,7 +107,11 @@ namespace Cassandra.IntegrationTests.Core
                 simulacronCluster.PrimeSystemSchemaTablesV1(
                     "testks",
                     "testtable",
-                    new[] { ("", "partition_key", "ascii"), (" ", "clustering_key", "ascii") });
+                    new[] 
+                    { 
+                        new StubTableColumn("", StubColumnKind.PartitionKey, DataType.GetDataType(typeof(string))), 
+                        new StubTableColumn(" ", StubColumnKind.ClusteringKey, DataType.GetDataType(typeof(string)))
+                    });
 
                 simulacronCluster.PrimeFluent(
                     b => b.WhenQuery("SELECT \"\", \" \" FROM testks.testtable")

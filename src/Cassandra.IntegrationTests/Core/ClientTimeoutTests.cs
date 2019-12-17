@@ -200,7 +200,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_Use_Statement_ReadTimeout()
         {
             const int generalReadTimeout = 100;
-            const int statementReadTimeout = 3000;
+            const int statementReadTimeout = 5000;
             _testCluster = SimulacronCluster.CreateNew(1);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(generalReadTimeout);
             var queryOptions = new QueryOptions().SetRetryOnTimeout(false);
@@ -219,7 +219,7 @@ namespace Cassandra.IntegrationTests.Core
                 node.PrimeFluent(
                     b => b.WhenQuery("SELECT key FROM system.local")
                           .ThenRowsSuccess(new [] { ("key", DataType.Ascii) }, rows => rows.WithRow("123"))
-                          .WithDelayInMs(10000));
+                          .WithDelayInMs(30000));
                 var stopWatch = new Stopwatch();
                 stopWatch.Start();
                 Assert.Throws<OperationTimedOutException>(() => session.Execute("SELECT key FROM system.local"));
@@ -235,8 +235,8 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.Throws<OperationTimedOutException>(() => session.Execute(stmt));
                 stopWatch.Stop();
                 //precision of the timer is not guaranteed
-                Assert.Greater(stopWatch.ElapsedMilliseconds, statementReadTimeout - 1000);
-                Assert.Less(stopWatch.ElapsedMilliseconds, statementReadTimeout + 1000);
+                Assert.Greater(stopWatch.ElapsedMilliseconds, statementReadTimeout - 2500);
+                Assert.Less(stopWatch.ElapsedMilliseconds, statementReadTimeout + 2500);
             }
         }
 
@@ -339,8 +339,8 @@ namespace Cassandra.IntegrationTests.Core
                 
                 GC.Collect();
                 Thread.Sleep(1000);
-                Assert.Less(GC.GetTotalMemory(true) / initialMemory, 1.3M,
-                    "Should not exceed a 30% (1.3) more than was previously allocated");
+                Assert.Less(GC.GetTotalMemory(true) / initialMemory, 1.5M,
+                    "Should not exceed a 50% (1.5) more than was previously allocated");
 
                 initialMemory = GC.GetTotalMemory(true);
                 
@@ -375,8 +375,8 @@ namespace Cassandra.IntegrationTests.Core
                 
                 GC.Collect();
                 Thread.Sleep(1000);
-                Assert.Less(GC.GetTotalMemory(true) / initialMemory, 1.3M,
-                    "Should not exceed a 30% (1.3) more than was previously allocated");
+                Assert.Less(GC.GetTotalMemory(true) / initialMemory, 1.5M,
+                    "Should not exceed a 50% (1.5) more than was previously allocated");
 
             }
             finally

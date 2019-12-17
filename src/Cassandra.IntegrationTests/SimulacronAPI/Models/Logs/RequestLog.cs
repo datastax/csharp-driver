@@ -45,7 +45,8 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Logs
         public bool Primed { get; set; }
         
         [JsonProperty("type")]
-        public string Type { get; set; }
+        [JsonConverter(typeof(QueryTypeEnumConverter))]
+        public QueryType? Type { get; set; }
         
         [JsonProperty("frame")]
         public Frame Frame { get; set; }

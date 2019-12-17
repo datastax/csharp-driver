@@ -17,6 +17,9 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
+using Cassandra.IntegrationTests.SimulacronAPI.SystemTables;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using NUnit.Framework;
 
@@ -44,11 +47,13 @@ namespace Cassandra.IntegrationTests
         
         protected ISession Session { get; private set; }
 
+        protected ICluster SessionCluster => Session?.Cluster;
+
         protected SimulacronCluster TestCluster { get; private set; }
 
         protected IEnumerable<List<object>> GetBoundStatementExecutionParameters(string cql)
         {
-            var queries = TestCluster.GetQueries(cql, "EXECUTE");
+            var queries = TestCluster.GetQueries(cql, QueryType.Execute);
             return queries.Select(q => q.Frame.GetQueryMessage().Options.PositionalValues);
         }
 
@@ -60,10 +65,10 @@ namespace Cassandra.IntegrationTests
         
         protected void VerifyBoundStatement(string cql, int count, params object[] positionalParameters)
         {
-            VerifyStatement("EXECUTE", cql, count, positionalParameters);
+            VerifyStatement(QueryType.Execute, cql, count, positionalParameters);
         }
         
-        protected void VerifyStatement(string type, string cql, int count, params object[] positionalParameters)
+        protected void VerifyStatement(QueryType type, string cql, int count, params object[] positionalParameters)
         {
             var serializer = Session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer();
             var queries = TestCluster.GetQueries(cql, type);
@@ -77,13 +82,42 @@ namespace Cassandra.IntegrationTests
         protected void VerifyBatchStatement(int count, string[] queries, object[][] parameters)
         {
             var serializer = Session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer();
-            var logs = TestCluster.GetQueries(null, "BATCH");
+            var logs = TestCluster.GetQueries(null, QueryType.Batch);
 
             var paramBytes = parameters.SelectMany(obj => obj.Select(o => o == null ? null : Convert.ToBase64String(serializer.Serialize(o)))).ToArray();
             var filteredQueries = logs.Where(q => 
                 q.Frame.GetBatchMessage().Values.SelectMany(l => l).SequenceEqual(paramBytes)
                 && q.Frame.GetBatchMessage().QueriesOrIds.SequenceEqual(queries));
             Assert.AreEqual(count, filteredQueries.Count());
+        }
+
+        protected void PrimeSystemSchemaUdt(string keyspace, string type, IEnumerable<StubTableColumn> columns)
+        {
+
+        }
+
+        protected void PrimeSystemSchemaTables(string keyspace, string table, IEnumerable<StubTableColumn> columns)
+        {
+            var version30 = new Version(3, 0);
+            var version40 = new Version(4, 0);
+            var cassandraVersion = TestClusterManager.CassandraVersion;
+
+            if (cassandraVersion >= version40)
+            {
+                throw new NotSupportedException("Priming system schema tables not implemented for c* 4.0+");
+            }
+            if (cassandraVersion >= version30)
+            {
+                TestCluster.PrimeSystemSchemaTablesV2(keyspace, table, columns);
+                return;
+            }
+            if (cassandraVersion < version30)
+            {
+                TestCluster.PrimeSystemSchemaTablesV1(keyspace, table, columns);
+                return;
+            }
+
+            throw new NotSupportedException("Unrecognized cassandra version: " + cassandraVersion);
         }
 
         [OneTimeSetUp]
@@ -143,7 +177,7 @@ namespace Cassandra.IntegrationTests
 
         private ISession CreateSession()
         {
-            return Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build().Connect();
+            return Cassandra.Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build().Connect();
         }
     }
 }

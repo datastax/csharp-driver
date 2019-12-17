@@ -18,7 +18,7 @@ using System.Linq;
 
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
-
+using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.LinqTable
@@ -90,7 +90,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             // insert record
             table.GetSession().Execute(table.Insert(expectedDataTypesEntityRow));
 
-            VerifyStatement("QUERY", GetTable.InsertCql, 1, expectedDataTypesEntityRow.GetColumnValues());
+            VerifyStatement(QueryType.Query, GetTable.InsertCql, 1, expectedDataTypesEntityRow.GetColumnValues());
 
             TestCluster.PrimeDelete();
             TestCluster.PrimeFluent(

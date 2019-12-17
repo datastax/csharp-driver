@@ -30,7 +30,6 @@ namespace Cassandra.IntegrationTests
         [OneTimeSetUp]
         public void SetupTestSuite()
         {
-            Environment.SetEnvironmentVariable("CASSANDRA_VERSION", "3.11.2");
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
             if (Environment.GetEnvironmentVariable("TEST_TRACE")?.ToUpper() == "ON")
             {

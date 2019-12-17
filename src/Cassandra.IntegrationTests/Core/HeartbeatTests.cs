@@ -16,6 +16,7 @@
 
 using System.Linq;
 using System.Threading.Tasks;
+using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using NUnit.Framework;
 
@@ -25,7 +26,7 @@ namespace Cassandra.IntegrationTests.Core
     public class HeartbeatTests
     {
         private SimulacronCluster _testCluster;
-        private const string OptionsQueryType = "OPTIONS";
+        private const QueryType OptionsQueryType = QueryType.Options;
         private const string Query = "SELECT id FROM dummy_table";
 
         [OneTimeSetUp]

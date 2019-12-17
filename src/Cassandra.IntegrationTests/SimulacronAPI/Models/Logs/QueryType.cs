@@ -13,23 +13,16 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then
+namespace Cassandra.IntegrationTests.SimulacronAPI.Models.Logs
 {
-    public class ServerError
+    public enum QueryType
     {
-        private ServerError(string value)
-        {
-            Value = value;
-        }
-
-        public string Value { get; }
-
-        public static ServerError IsBootstrapping { get; } = new ServerError("is_bootstrapping");
-        
-        public static ServerError Overloaded { get; } = new ServerError("overloaded");
-        
-        public static ServerError Invalid { get; } = new ServerError("invalid");
-        
-        public static ServerError ConfigError { get; } = new ServerError("config_error");
+        Query,
+        Prepare,
+        Execute,
+        Batch,
+        Options,
+        Startup,
+        Register
     }
 }

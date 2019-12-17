@@ -32,6 +32,6 @@ namespace Cassandra.Tests.Mapping.Pocos
 
         public DateTimeOffset PublishingDate { get; set; }
 
-        public List<Song> Songs { get; set; }
+        public List<Song2> Songs { get; set; }
     }
 }

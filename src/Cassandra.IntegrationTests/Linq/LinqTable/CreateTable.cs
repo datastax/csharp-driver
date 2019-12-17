@@ -18,6 +18,10 @@ using System;
 using System.Linq;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
+using Cassandra.IntegrationTests.SimulacronAPI;
+using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
+using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
+using Cassandra.IntegrationTests.SimulacronAPI.SystemTables;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
 using Cassandra.Tests.Mapping.Pocos;
@@ -27,21 +31,80 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.LinqTable
 {
-    [Category("short"), Category("realcluster")]
-    public class CreateTable : SharedClusterTest
+    public class CreateTable : SimulacronTest
     {
-        ISession _session;
-        string _uniqueKsName;
+        private const string CreateCqlColumns =
+            "\"boolean_type\" boolean, " +
+            "\"date_time_offset_type\" timestamp, " +
+            "\"date_time_type\" timestamp, " +
+            "\"decimal_type\" decimal, " +
+            "\"double_type\" double, " +
+            "\"float_type\" float, " +
+            "\"guid_type\" uuid, " +
+            "\"int_type\" int, " +
+            "\"int64_type\" bigint, " +
+            "\"list_of_guids_type\" list<uuid>, " +
+            "\"list_of_strings_type\" list<text>, " +
+            "\"map_type_string_long_type\" map<text, bigint>, " +
+            "\"map_type_string_string_type\" map<text, text>, " +
+            "\"nullable_date_time_type\" timestamp, " +
+            "\"nullable_int_type\" int, " +
+            "\"nullable_time_uuid_type\" timeuuid, " +
+            "\"string_type\" text, " +
+            "\"time_uuid_type\" timeuuid";
 
-        public override void OneTimeSetUp()
-        {
-            base.OneTimeSetUp();
-            _session = Session;
-            _uniqueKsName = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
-            _session.CreateKeyspace(_uniqueKsName);
-            _session.ChangeKeyspace(_uniqueKsName);
-        }
+        private const string CreateCqlDefaultColumns =
+            "BooleanType boolean, " +
+            "DateTimeOffsetType timestamp, " +
+            "DateTimeType timestamp, " +
+            "DecimalType decimal, " +
+            "DictionaryStringLongType map<text, bigint>, " +
+            "DictionaryStringStringType map<text, text>, " +
+            "DoubleType double, " +
+            "FloatType float, " +
+            "GuidType uuid, " +
+            "Int64Type bigint, " +
+            "IntType int, " +
+            "ListOfGuidsType list<uuid>, " +
+            "ListOfStringsType list<text>, " +
+            "NullableDateTimeType timestamp, " +
+            "NullableIntType int, " +
+            "NullableTimeUuidType timeuuid, " +
+            "StringType text, " +
+            "TimeUuidType timeuuid";
+        
+        private const string CreateCqlDefaultColumnsCaseSensitive =
+            "\"BooleanType\" boolean, " +
+            "\"DateTimeOffsetType\" timestamp, " +
+            "\"DateTimeType\" timestamp, " +
+            "\"DecimalType\" decimal, " +
+            "\"DictionaryStringLongType\" map<text, bigint>, " +
+            "\"DictionaryStringStringType\" map<text, text>, " +
+            "\"DoubleType\" double, " +
+            "\"FloatType\" float, " +
+            "\"GuidType\" uuid, " +
+            "\"Int64Type\" bigint, " +
+            "\"IntType\" int, " +
+            "\"ListOfGuidsType\" list<uuid>, " +
+            "\"ListOfStringsType\" list<text>, " +
+            "\"NullableDateTimeType\" timestamp, " +
+            "\"NullableIntType\" int, " +
+            "\"NullableTimeUuidType\" timeuuid, " +
+            "\"StringType\" text, " +
+            "\"TimeUuidType\" timeuuid";
 
+        private static readonly string CreateCql =
+            $"CREATE TABLE \"{AllDataTypesEntity.TableName}\" (" +
+                CreateTable.CreateCqlColumns + ", " +
+                "PRIMARY KEY (\"string_type\", \"guid_type\"))";
+        
+        private static readonly string CreateCqlFormatStr =
+            "CREATE TABLE {0} (" +
+            CreateTable.CreateCqlColumns + ", " +
+            "PRIMARY KEY (\"string_type\", \"guid_type\"))";
+
+        private readonly string _uniqueKsName = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
+        
         /// <summary>
         /// Create a table using the method CreateIfNotExists
         /// 
@@ -51,9 +114,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_CreateIfNotExist()
         {
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
             table.CreateIfNotExists();
-            WriteReadValidate(table);
+            VerifyStatement(QueryType.Query, CreateTable.CreateCql, 1);
         }
 
         /// <summary>
@@ -62,9 +125,9 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_Create()
         {
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
             table.Create();
-            WriteReadValidate(table);
+            VerifyStatement(QueryType.Query, CreateTable.CreateCql, 1);
         }
         
         [Test]
@@ -75,10 +138,13 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
                     .PartitionKey(a => a.TweetId)
                     .ClusteringKey(a => a.AuthorId, SortOrder.Descending)
                     .CompactStorage());
-            var table = new Table<Tweet>(_session, config);
+            var table = new Table<Tweet>(Session, config);
             table.Create();
-            table.ExecutePaged();
-            Assert.AreEqual(0, table.Execute().ToList().Count);
+            VerifyStatement(
+                QueryType.Query, 
+                "CREATE TABLE Tweet (AuthorId text, Body text, TweetId uuid, PRIMARY KEY (TweetId, AuthorId)) " +
+                "WITH CLUSTERING ORDER BY (AuthorId DESC) AND COMPACT STORAGE", 
+                1);
         }
 
         /// <summary>
@@ -89,11 +155,13 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         public void TableCreate_Create_NameOverride()
         {
             var uniqueTableName = TestUtils.GetUniqueTableName();
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration(), uniqueTableName);
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration(), uniqueTableName);
             Assert.AreEqual(uniqueTableName, table.Name);
             table.Create();
-            Assert.IsTrue(TestUtils.TableExists(_session, _uniqueKsName, uniqueTableName, true));
-            WriteReadValidate(table);
+            VerifyStatement(
+                QueryType.Query, 
+                CreateTable.CreateCql.Replace($"\"{AllDataTypesEntity.TableName}\"", $"\"{uniqueTableName}\""), 
+                1);
         }
 
         /// <summary>
@@ -102,10 +170,26 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_CreateTable_AlreadyExists()
         {
-            var config = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName("tbl_already_exists_1").PartitionKey(a => a.TimeUuidType));
-            var table = new Table<AllDataTypesEntity>(_session, config);
+            var tableName = "tbl_already_exists_1";
+            var config = new MappingConfiguration().Define(
+                new Map<AllDataTypesEntity>().TableName(tableName).PartitionKey(a => a.TimeUuidType));
+            var table = new Table<AllDataTypesEntity>(Session, config);
+
             table.Create();
-            Assert.Throws<AlreadyExistsException>(() => table.Create());
+            VerifyStatement(
+                QueryType.Query, 
+                $"CREATE TABLE {tableName} ({CreateTable.CreateCqlDefaultColumns}, PRIMARY KEY (TimeUuidType))", 
+                1);
+
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          $"CREATE TABLE {tableName} ({CreateTable.CreateCqlDefaultColumns}, PRIMARY KEY (TimeUuidType))")
+                      .ThenAlreadyExists(_uniqueKsName, tableName));
+
+            var ex = Assert.Throws<AlreadyExistsException>(() => table.Create());
+
+            Assert.AreEqual(tableName, ex.Table);
+            Assert.AreEqual(_uniqueKsName, ex.Keyspace);
         }
 
         /// <summary>
@@ -118,12 +202,25 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             // First table name creation works as expected
             const string staticTableName = "staticTableName_1";
             var mappingConfig1 = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(staticTableName).CaseSensitive().PartitionKey(c => c.StringType));
-            var allDataTypesTable = new Table<AllDataTypesEntity>(_session, mappingConfig1);
+            var allDataTypesTable = new Table<AllDataTypesEntity>(Session, mappingConfig1);
             allDataTypesTable.Create();
 
+            VerifyStatement(
+                QueryType.Query,
+                $"CREATE TABLE \"{staticTableName}\" ({CreateTable.CreateCqlDefaultColumnsCaseSensitive}, PRIMARY KEY (\"StringType\"))",
+                1);
+
             // Second creation attempt with same table name should fail
+
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          $"CREATE TABLE \"{staticTableName}\" (\"Director\" text, " +
+                            "\"ExampleSet\" list<text>, \"MainActor\" text, " +
+                            "\"MovieMaker\" text, \"Title\" text, \"Year\" int, " +
+                            "PRIMARY KEY (\"Title\"))")
+                      .ThenAlreadyExists(_uniqueKsName, staticTableName));
             var mappingConfig2 = new MappingConfiguration().Define(new Map<Movie>().TableName(staticTableName).CaseSensitive().PartitionKey(c => c.Title));
-            var movieTable = new Table<Movie>(_session, mappingConfig2);
+            var movieTable = new Table<Movie>(Session, mappingConfig2);
             Assert.Throws<AlreadyExistsException>(() => movieTable.Create());
         }
 
@@ -138,11 +235,24 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             // First table name creation works as expected
             const string staticTableName = "staticTableName_2";
             var mappingConfig = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(staticTableName).CaseSensitive().PartitionKey(c => c.StringType));
-            var allDataTypesTable = new Table<AllDataTypesEntity>(_session, mappingConfig);
+            var allDataTypesTable = new Table<AllDataTypesEntity>(Session, mappingConfig);
             allDataTypesTable.Create();
+            
+            VerifyStatement(
+                QueryType.Query,
+                $"CREATE TABLE \"{staticTableName}\" ({CreateTable.CreateCqlDefaultColumnsCaseSensitive}, PRIMARY KEY (\"StringType\"))",
+                1);
 
             // Second creation attempt with same table name should fail
-            var movieTable = new Table<Movie>(_session, new MappingConfiguration(), staticTableName);
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          $"CREATE TABLE \"{staticTableName}\" (" +
+                            "\"director\" text, \"list\" list<text>, \"mainGuy\" text, " +
+                            "\"movie_maker\" text, \"unique_movie_title\" text, " +
+                            "\"yearMade\" int, " +
+                            "PRIMARY KEY ((\"unique_movie_title\", \"movie_maker\"), \"director\"))")
+                      .ThenAlreadyExists(_uniqueKsName, staticTableName));
+            var movieTable = new Table<Movie>(Session, new MappingConfiguration(), staticTableName);
             Assert.Throws<AlreadyExistsException>(() => movieTable.Create());
         }
 
@@ -155,7 +265,12 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         {
             var uniqueTableName = TestUtils.GetUniqueTableName();
             var uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
+            
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(string.Format(CreateTable.CreateCqlFormatStr, $"\"{uniqueKsName}\".\"{uniqueTableName}\""))
+                      .ThenServerError(ServerError.ConfigError, "msg"));
+
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
             Assert.Throws<InvalidConfigurationInQueryException>(() => table.Create());
         }
 
@@ -168,7 +283,12 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         {
             var uniqueTableName = TestUtils.GetUniqueTableName();
             var uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
+            
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(string.Format(CreateTable.CreateCqlFormatStr, $"\"{uniqueKsName}\".\"{uniqueTableName}\""))
+                      .ThenServerError(ServerError.ConfigError, "msg"));
+
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
             Assert.Throws<InvalidConfigurationInQueryException>(() => table.CreateIfNotExists());
         }
 
@@ -182,24 +302,47 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             // Setup first table
             var sharedTableName = typeof (AllDataTypesEntity).Name;
             var mappingConfig = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(sharedTableName).CaseSensitive().PartitionKey(c => c.StringType));
-            var table1 = new Table<AllDataTypesEntity>(_session, mappingConfig);
+            var table1 = new Table<AllDataTypesEntity>(Session, mappingConfig);
             table1.Create();
-            Assert.IsTrue(TestUtils.TableExists(_session, _uniqueKsName, sharedTableName, true)); 
+            
+            VerifyStatement(
+                QueryType.Query,
+                $"CREATE TABLE \"{sharedTableName}\" ({CreateTable.CreateCqlDefaultColumnsCaseSensitive}, PRIMARY KEY (\"StringType\"))",
+                1);
+
             WriteReadValidate(table1);
 
             // Create second table with same name in new keyspace
             var newUniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            _session.CreateKeyspace(newUniqueKsName);
+            Session.CreateKeyspace(newUniqueKsName);
+
+            VerifyStatement(
+                QueryType.Query,
+                $"CREATE KEYSPACE \"{newUniqueKsName}\" " + Environment.NewLine + 
+                "  WITH replication = {'class' : 'SimpleStrategy', 'replication_factor' : '1'} " + Environment.NewLine +
+                "   AND durable_writes = true",
+                1);
+
             Assert.AreNotEqual(_uniqueKsName, newUniqueKsName);
-            var table2 = new Table<AllDataTypesEntity>(_session, mappingConfig, sharedTableName, newUniqueKsName);
+            var table2 = new Table<AllDataTypesEntity>(Session, mappingConfig, sharedTableName, newUniqueKsName);
             table2.Create();
-            Assert.IsTrue(TestUtils.TableExists(_session, newUniqueKsName, sharedTableName, true)); 
+            
+            VerifyStatement(
+                QueryType.Query,
+                $"CREATE TABLE \"{newUniqueKsName}\".\"{sharedTableName}\" ({CreateTable.CreateCqlDefaultColumnsCaseSensitive}, PRIMARY KEY (\"StringType\"))",
+                1);
+            
             WriteReadValidate(table2);
 
             // also use ChangeKeyspace and validate client functionality
-            _session.ChangeKeyspace(_uniqueKsName);
+            Session.ChangeKeyspace(_uniqueKsName);
+            VerifyStatement(QueryType.Query, $"USE \"{_uniqueKsName}\"", 1);
+
             WriteReadValidate(table1);
-            _session.ChangeKeyspace(newUniqueKsName);
+
+            Session.ChangeKeyspace(newUniqueKsName);
+            VerifyStatement(QueryType.Query, $"USE \"{newUniqueKsName}\"", 1);
+
             WriteReadValidate(table2);
         }
 
@@ -213,7 +356,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             var mappingConfig = new MappingConfiguration();
             mappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(PrivateClassMissingPartitionKey),
                  () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(PrivateClassMissingPartitionKey)));
-            var table = new Table<PrivateClassMissingPartitionKey>(_session, mappingConfig);
+            var table = new Table<PrivateClassMissingPartitionKey>(Session, mappingConfig);
 
             try
             {
@@ -234,7 +377,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             var mappingConfig = new MappingConfiguration();
             mappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(PrivateEmptyClass),
                  () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(PrivateEmptyClass)));
-            var table = new Table<PrivateEmptyClass>(_session, mappingConfig);
+            var table = new Table<PrivateEmptyClass>(Session, mappingConfig);
 
             try
             {
@@ -257,74 +400,28 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
                 .ExplicitColumns());
             var table = new Table<UdtAndTuplePoco>(Session, config);
             table.Create();
-            var tableMeta = Cluster.Metadata.GetTable(_uniqueKsName, "tbl_frozen_tuple");
+            
+            VerifyStatement(
+                QueryType.Query,
+                "CREATE TABLE tbl_frozen_tuple (Id1 uuid, t frozen<tuple<bigint, bigint, text>>, PRIMARY KEY (Id1))",
+                1);
+            
+            PrimeSystemSchemaTables(
+                _uniqueKsName, 
+                "tbl_frozen_tuple",
+                new []
+                {
+                    new StubTableColumn("Id1", StubColumnKind.PartitionKey, DataType.Uuid),
+                    new StubTableColumn("t", StubColumnKind.Regular, DataType.Frozen(DataType.Tuple(DataType.BigInt, DataType.BigInt, DataType.Text)))
+                });
+
+            SessionCluster.RefreshSchema(_uniqueKsName, "tbl_frozen_tuple");
+
+            var tableMeta = SessionCluster.Metadata.GetTable(_uniqueKsName, "tbl_frozen_tuple");
             Assert.NotNull(tableMeta);
             Assert.AreEqual(2, tableMeta.TableColumns.Length);
             var column = tableMeta.ColumnsByName["t"];
             Assert.AreEqual(ColumnTypeCode.Tuple, column.TypeCode);
-        }
-
-        [Test, TestCassandraVersion(2, 1)]
-        public void CreateTable_With_Frozen_Udt()
-        {
-            var config = new MappingConfiguration().Define(new Map<UdtAndTuplePoco>()
-                .PartitionKey(p => p.Id1)
-                .Column(p => p.Id1)
-                .Column(p => p.Udt1, cm => cm.WithName("u").AsFrozen())
-                .TableName("tbl_frozen_udt")
-                .ExplicitColumns());
-            Session.Execute("CREATE TYPE IF NOT EXISTS song (title text, releasedate timestamp, artist text)");
-            Session.UserDefinedTypes.Define(UdtMap.For<Song>());
-            var table = new Table<UdtAndTuplePoco>(Session, config);
-            table.Create();
-            var tableMeta = Cluster.Metadata.GetTable(_uniqueKsName, "tbl_frozen_udt");
-            Assert.AreEqual(2, tableMeta.TableColumns.Length);
-            var column = tableMeta.ColumnsByName["u"];
-            Assert.AreEqual(ColumnTypeCode.Udt, column.TypeCode);
-        }
-
-        [Test, TestCassandraVersion(2, 1)]
-        public void CreateTable_With_Frozen_Key()
-        {
-            var config = new MappingConfiguration().Define(new Map<UdtAndTuplePoco>()
-                .PartitionKey(p => p.Id1)
-                .Column(p => p.Id1)
-                .Column(p => p.UdtSet1, cm => cm.WithFrozenKey().WithName("s"))
-                .Column(p => p.TupleMapKey1, cm => cm.WithFrozenKey().WithName("m"))
-                .TableName("tbl_frozen_key")
-                .ExplicitColumns());
-            Session.Execute("CREATE TYPE IF NOT EXISTS song (title text, releasedate timestamp, artist text)");
-            Session.UserDefinedTypes.Define(UdtMap.For<Song>());
-            var table = new Table<UdtAndTuplePoco>(Session, config);
-            table.Create();
-            var tableMeta = Cluster.Metadata.GetTable(_uniqueKsName, "tbl_frozen_key");
-            Assert.AreEqual(3, tableMeta.TableColumns.Length);
-            var column = tableMeta.ColumnsByName["s"];
-            Assert.AreEqual(ColumnTypeCode.Set, column.TypeCode);
-            column = tableMeta.ColumnsByName["m"];
-            Assert.AreEqual(ColumnTypeCode.Map, column.TypeCode);
-        }
-
-        [Test, TestCassandraVersion(2, 1)]
-        public void CreateTable_With_Frozen_Value()
-        {
-            var config = new MappingConfiguration().Define(new Map<UdtAndTuplePoco>()
-                .PartitionKey(p => p.Id1)
-                .Column(p => p.Id1)
-                .Column(p => p.ListMapValue1, cm => cm.WithFrozenValue().WithName("m"))
-                .Column(p => p.UdtList1, cm => cm.WithFrozenValue().WithName("l"))
-                .TableName("tbl_frozen_value")
-                .ExplicitColumns());
-            Session.Execute("CREATE TYPE IF NOT EXISTS song (title text, releasedate timestamp, artist text)");
-            Session.UserDefinedTypes.Define(UdtMap.For<Song>());
-            var table = new Table<UdtAndTuplePoco>(Session, config);
-            table.Create();
-            var tableMeta = Cluster.Metadata.GetTable(_uniqueKsName, "tbl_frozen_value");
-            Assert.AreEqual(3, tableMeta.TableColumns.Length);
-            var column = tableMeta.ColumnsByName["l"];
-            Assert.AreEqual(ColumnTypeCode.List, column.TypeCode);
-            column = tableMeta.ColumnsByName["m"];
-            Assert.AreEqual(ColumnTypeCode.Map, column.TypeCode);
         }
 
         [Test, TestCassandraVersion(2, 0, 7)]
@@ -343,7 +440,28 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
                                                                                   .AsCounter()));
             var table = new Table<AllTypesEntity>(Session, config);
             table.Create();
-            var tableMeta = Cluster.Metadata.GetTable(_uniqueKsName, "tbl_with_counter_static");
+            
+            VerifyStatement(
+                QueryType.Query,
+                "CREATE TABLE tbl_with_counter_static (" +
+                "counter_col1 counter static, counter_col2 counter, id1 uuid, id2 text, " +
+                "PRIMARY KEY (id1, id2))",
+                1);
+
+            PrimeSystemSchemaTables(
+                _uniqueKsName, 
+                "tbl_with_counter_static",
+                new []
+                {
+                    new StubTableColumn("counter_col1", StubColumnKind.Regular, DataType.Counter),
+                    new StubTableColumn("counter_col2", StubColumnKind.Regular, DataType.Counter), 
+                    new StubTableColumn("id1", StubColumnKind.PartitionKey, DataType.Uuid), 
+                    new StubTableColumn("id2", StubColumnKind.ClusteringKey, DataType.Text)
+                });
+
+            SessionCluster.RefreshSchema(_uniqueKsName, "tbl_with_counter_static");
+
+            var tableMeta = SessionCluster.Metadata.GetTable(_uniqueKsName, "tbl_with_counter_static");
             Assert.AreEqual(4, tableMeta.TableColumns.Length);
         }
 
@@ -353,10 +471,15 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_CreateWithPropertyName()
         {
-            var table = new Table<TestEmptyClusteringColumnName>(_session, MappingConfiguration.Global);
+            var table = new Table<TestEmptyClusteringColumnName>(Session, MappingConfiguration.Global);
             table.CreateIfNotExists();
-            _session.Execute(new SimpleStatement("insert into test_empty_clustering_column_name (id, cluster, value) " +
-                                                 "values (1, 'c1','v1')"));
+            
+            VerifyStatement(
+                QueryType.Query,
+                "CREATE TABLE \"test_empty_clustering_column_name\" (" +
+                    "\"cluster\" text, \"id\" int, \"value\" text, " +
+                    "PRIMARY KEY (\"id\", \"cluster\"))",
+                1);
         }
 
         ///////////////////////////////////////////////
@@ -367,14 +490,40 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
 
         private void WriteReadValidateUsingTableMethods(Table<AllDataTypesEntity> table)
         {
+            TestCluster.PrimeDelete();
+            var ksAndTable =
+                table.KeyspaceName == null
+                    ? $"\"{table.Name}\""
+                    : $"\"{table.KeyspaceName}\".\"{table.Name}\"";
+
             var expectedDataTypesEntityRow = AllDataTypesEntity.GetRandomInstance();
             var uniqueKey = expectedDataTypesEntityRow.StringType;
 
             // insert record
-            _session.Execute(table.Insert(expectedDataTypesEntityRow));
+            Session.Execute(table.Insert(expectedDataTypesEntityRow));
+
+            VerifyStatement(
+                QueryType.Query,
+                string.Format(
+                    AllDataTypesEntity.InsertCqlDefaultColumnsFormatStr, 
+                    ksAndTable),
+                1,
+                expectedDataTypesEntityRow.GetColumnValuesForDefaultColumns());
 
             // select record
-            var listOfAllDataTypesObjects = (from x in table where x.StringType.Equals(uniqueKey) select x).Execute().ToList();
+            
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          string.Format(AllDataTypesEntity.SelectCqlDefaultColumnsFormatStr, ksAndTable),
+                          p => p.WithParam(uniqueKey))
+                      .ThenRowsSuccess(
+                          AllDataTypesEntity.GetDefaultColumns(),
+                          r => r.WithRow(expectedDataTypesEntityRow.GetColumnValuesForDefaultColumns())));
+
+
+            var listOfAllDataTypesObjects = 
+                (from x in table where x.StringType.Equals(uniqueKey) select x)
+                .Execute().ToList();
             Assert.NotNull(listOfAllDataTypesObjects);
             Assert.AreEqual(1, listOfAllDataTypesObjects.Count);
             var actualDataTypesEntityRow = listOfAllDataTypesObjects.First();
@@ -383,13 +532,37 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
 
         private void WriteReadValidateUsingSessionBatch(Table<AllDataTypesEntity> table)
         {
-            var batch = _session.CreateBatch();
+            TestCluster.PrimeDelete();
+            var ksAndTable = table.KeyspaceName == null
+                ? $"\"{table.Name}\""
+                : $"\"{table.KeyspaceName}\".\"{table.Name}\"";
+
+            var batch = Session.CreateBatch();
             var expectedDataTypesEntityRow = AllDataTypesEntity.GetRandomInstance();
             var uniqueKey = expectedDataTypesEntityRow.StringType;
             batch.Append(table.Insert(expectedDataTypesEntityRow));
             batch.Execute();
 
-            var listOfAllDataTypesObjects = (from x in table where x.StringType.Equals(uniqueKey) select x).Execute().ToList();
+            VerifyBatchStatement(
+                1,
+                new [] { string.Format(
+                    AllDataTypesEntity.InsertCqlDefaultColumnsFormatStr, 
+                    ksAndTable) },
+                new [] { expectedDataTypesEntityRow.GetColumnValuesForDefaultColumns() });
+
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          string.Format(AllDataTypesEntity.SelectCqlDefaultColumnsFormatStr, ksAndTable),
+                          p => p.WithParam(uniqueKey))
+                      .ThenRowsSuccess(
+                          AllDataTypesEntity.GetDefaultColumns(),
+                          r => r.WithRow(expectedDataTypesEntityRow.GetColumnValuesForDefaultColumns())));
+
+            var listOfAllDataTypesObjects = 
+                (from x in table 
+                 where x.StringType.Equals(uniqueKey) 
+                 select x)
+                .Execute().ToList();
             Assert.NotNull(listOfAllDataTypesObjects);
             Assert.AreEqual(1, listOfAllDataTypesObjects.Count);
             var actualDataTypesEntityRow = listOfAllDataTypesObjects.First();

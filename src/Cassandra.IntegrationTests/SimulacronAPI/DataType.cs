@@ -22,11 +22,87 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
 {
     public class DataType
     {
+        private const string ListTypeName = "org.apache.cassandra.db.marshal.ListType";
+        private const string SetTypeName = "org.apache.cassandra.db.marshal.SetType";
+        private const string MapTypeName = "org.apache.cassandra.db.marshal.MapType";
+        private const string UdtTypeName = "org.apache.cassandra.db.marshal.UserType";
+        private const string TupleTypeName = "org.apache.cassandra.db.marshal.TupleType";
+        private const string FrozenTypeName = "org.apache.cassandra.db.marshal.FrozenType";
+        private const string ReversedTypeName = "org.apache.cassandra.db.marshal.ReversedType";
+        private const string CompositeTypeName = "org.apache.cassandra.db.marshal.CompositeType";
+        private const string EmptyTypeName = "org.apache.cassandra.db.marshal.EmptyType";
+
+        static DataType()
+        {
+            DataType.SingleFqTypeNames = new Dictionary<DataType, string>
+            {
+                {DataType.Varchar, "org.apache.cassandra.db.marshal.UTF8Type"},
+                {DataType.Uuid, "org.apache.cassandra.db.marshal.UUIDType"},
+                {DataType.TimeUuid, "org.apache.cassandra.db.marshal.TimeUUIDType"},
+                {DataType.Int, "org.apache.cassandra.db.marshal.Int32Type"},
+                {DataType.Blob, "org.apache.cassandra.db.marshal.BytesType"},
+                {DataType.Float, "org.apache.cassandra.db.marshal.FloatType"},
+                {DataType.Double, "org.apache.cassandra.db.marshal.DoubleType"},
+                {DataType.Boolean, "org.apache.cassandra.db.marshal.BooleanType"},
+                {DataType.Inet, "org.apache.cassandra.db.marshal.InetAddressType"},
+                {DataType.Date, "org.apache.cassandra.db.marshal.SimpleDateType"},
+                {DataType.Time, "org.apache.cassandra.db.marshal.TimeType"},
+                {DataType.SmallInt, "org.apache.cassandra.db.marshal.ShortType"},
+                {DataType.TinyInt, "org.apache.cassandra.db.marshal.ByteType"},
+                {DataType.Timestamp, "org.apache.cassandra.db.marshal.TimestampType"},
+                {DataType.BigInt, "org.apache.cassandra.db.marshal.LongType"},
+                {DataType.Decimal, "org.apache.cassandra.db.marshal.DecimalType"},
+                {DataType.VarInt, "org.apache.cassandra.db.marshal.IntegerType"},
+                {DataType.Counter, "org.apache.cassandra.db.marshal.CounterColumnType"}
+            };
+        }
+
+        public string GetFqTypeName()
+        {
+            if (InnerTypes == null)
+            {
+                return DataType.SingleFqTypeNames[this];
+            }
+
+            if (Value.StartsWith("set<"))
+            {
+                return $"{DataType.SetTypeName}({InnerTypes.Single().GetFqTypeName()})";
+            }
+            else if (Value.StartsWith("map<"))
+            {
+                return $"{DataType.MapTypeName}({InnerTypes.First().GetFqTypeName()},{InnerTypes.Skip(1).First().GetFqTypeName()})";
+            }
+            else if (Value.StartsWith("list<"))
+            {
+                return $"{DataType.ListTypeName}({InnerTypes.Single().GetFqTypeName()})";
+            }
+            else if (Value.StartsWith("frozen<"))
+            {
+                return $"{DataType.FrozenTypeName}({InnerTypes.Single().GetFqTypeName()})";
+            }
+            else if (Value.StartsWith("tuple<"))
+            {
+                return $"{DataType.TupleTypeName}({string.Join(",", InnerTypes.Select(i => i.GetFqTypeName()))})";
+            }
+
+            throw new InvalidOperationException("Unrecognized data type.");
+        }
+
+        private static readonly Dictionary<DataType, string> SingleFqTypeNames;
+
+        private IEnumerable<DataType> InnerTypes { get; }
+
         public string Value { get; }
 
         public DataType(string value)
         {
             Value = value;
+        }
+        
+        private DataType(string value, params DataType[] innerTypes)
+        {
+            Value = value;
+            InnerTypes = innerTypes;
         }
         
         public static readonly DataType Text = new DataType("text");
@@ -72,25 +148,35 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
         public static readonly DataType TinyInt = new DataType("tinyint");
 
         public static readonly DataType Duration = new DataType("duration"); // v5+
+        
+        public static DataType Udt(string name)
+        {
+            return new DataType(name);
+        }
+
+        public static DataType Frozen(DataType dataType)
+        {
+            return new DataType($"frozen<{dataType.Value}>", dataType);
+        }
 
         public static DataType List(DataType dataType)
         {
-            return new DataType($"list<{dataType.Value}>");
+            return new DataType($"list<{dataType.Value}>", dataType);
         }
 
         public static DataType Set(DataType dataType)
         {
-            return new DataType($"set<{dataType.Value}>");
+            return new DataType($"set<{dataType.Value}>", dataType);
         }
 
         public static DataType Map(DataType dataTypeKey, DataType dataTypeValue)
         {
-            return new DataType($"map<{dataTypeKey.Value},{dataTypeValue.Value}>");
+            return new DataType($"map<{dataTypeKey.Value},{dataTypeValue.Value}>", dataTypeKey, dataTypeValue);
         }
         
         public static DataType Tuple(params DataType[] dataTypes)
         {
-            return new DataType($"tuple<{string.Join(",", dataTypes.Select(d => d.Value))}>");
+            return new DataType($"tuple<{string.Join(",", dataTypes.Select(d => d.Value))}>", dataTypes);
         }
         
         private static readonly Dictionary<Type, DataType> CqlTypeNames = new Dictionary<Type, DataType>
@@ -185,6 +271,31 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
         {
             var ticks = (dt - UnixStart).Ticks;
             return ticks / (TimeSpan.TicksPerMillisecond / 1000);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is DataType type &&
+                   (InnerTypes == null
+                       ? type.InnerTypes == null
+                       : (type.InnerTypes != null && InnerTypes.SequenceEqual(type.InnerTypes))) &&
+                   Value == type.Value;
+        }
+
+        public override int GetHashCode()
+        {
+            var hashCode = -1251219967;
+
+            if (InnerTypes != null)
+            {
+                foreach (var t in InnerTypes)
+                {
+                    hashCode = hashCode * -1521134295 + t.GetHashCode();
+                }
+            }
+
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Value);
+            return hashCode;
         }
 
         // missing types:

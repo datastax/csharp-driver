@@ -22,6 +22,7 @@ using System.Threading.Tasks;
 
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.SimulacronAPI;
+using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
@@ -216,7 +217,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 ReleaseDate = DateTimeOffset.UtcNow
             };
             var insert = $"INSERT INTO {_keyspace}.song_insert (Artist, Id, ReleaseDate, Title) VALUES (?, ?, ?, ?)";
-            var queries = _simulacronCluster.GetQueries(insert, "EXECUTE");
+            var queries = _simulacronCluster.GetQueries(insert, QueryType.Execute);
 
             if (async)
             {
@@ -230,7 +231,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 _mapper.Insert(song, "testProfile");
                 _mapper.Insert(song, "testProfile", true);
             }
-            var newQueries = _simulacronCluster.GetQueries(insert, "EXECUTE");
+            var newQueries = _simulacronCluster.GetQueries(insert, QueryType.Execute);
             Assert.AreEqual(queries.Count + 3, newQueries.Count);
             Assert.IsTrue(newQueries.All(q => q.ConsistencyLevel == ConsistencyLevel.Two));
         }
@@ -248,7 +249,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 ReleaseDate = DateTimeOffset.UtcNow
             };
             var insertIfNotExists = $"INSERT INTO {_keyspace}.song_insert (Artist, Id, ReleaseDate, Title) VALUES (?, ?, ?, ?) IF NOT EXISTS";
-            var queries = _simulacronCluster.GetQueries(insertIfNotExists, "EXECUTE");
+            var queries = _simulacronCluster.GetQueries(insertIfNotExists, QueryType.Execute);
 
             if (async)
             {
@@ -263,7 +264,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 _mapper.InsertIfNotExists(song, "testProfile", true);
             }
 
-            var newQueries = _simulacronCluster.GetQueries(insertIfNotExists, "EXECUTE");
+            var newQueries = _simulacronCluster.GetQueries(insertIfNotExists, QueryType.Execute);
             Assert.AreEqual(queries.Count + 3, newQueries.Count);
             Assert.IsTrue(newQueries.All(q => q.ConsistencyLevel == ConsistencyLevel.Two));
         }
@@ -281,7 +282,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 ReleaseDate = DateTimeOffset.UtcNow
             };
             var delete = $"DELETE FROM {_keyspace}.song_insert WHERE Id = ?";
-            var queries = _simulacronCluster.GetQueries(delete, "EXECUTE");
+            var queries = _simulacronCluster.GetQueries(delete, QueryType.Execute);
 
             if (async)
             {
@@ -294,7 +295,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 _mapper.Delete<Song>(Cql.New("WHERE Id = ?", song.Id).WithExecutionProfile("testProfile"));
             }
 
-            var newQueries = _simulacronCluster.GetQueries(delete, "EXECUTE");
+            var newQueries = _simulacronCluster.GetQueries(delete, QueryType.Execute);
             Assert.AreEqual(queries.Count + 2, newQueries.Count);
             Assert.IsTrue(newQueries.All(q => q.ConsistencyLevel == ConsistencyLevel.Two));
         }
@@ -312,7 +313,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 ReleaseDate = DateTimeOffset.UtcNow
             };
             var delete = $"DELETE FROM {_keyspace}.song_insert WHERE Id = ? IF EXISTS";
-            var queries = _simulacronCluster.GetQueries(delete, "EXECUTE");
+            var queries = _simulacronCluster.GetQueries(delete, QueryType.Execute);
 
             if (async)
             {
@@ -323,7 +324,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 _mapper.DeleteIf<Song>(Cql.New("WHERE Id = ? IF EXISTS", song.Id).WithExecutionProfile("testProfile"));
             }
 
-            var newQueries = _simulacronCluster.GetQueries(delete, "EXECUTE");
+            var newQueries = _simulacronCluster.GetQueries(delete, QueryType.Execute);
             Assert.AreEqual(queries.Count + 1, newQueries.Count);
             Assert.IsTrue(newQueries.All(q => q.ConsistencyLevel == ConsistencyLevel.Two));
         }
@@ -341,7 +342,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 ReleaseDate = DateTimeOffset.UtcNow
             };
             var update = $"UPDATE {_keyspace}.song_insert SET Artist = ?, ReleaseDate = ?, Title = ? WHERE Id = ?";
-            var queries = _simulacronCluster.GetQueries(update, "EXECUTE");
+            var queries = _simulacronCluster.GetQueries(update, QueryType.Execute);
 
             if (async)
             {
@@ -357,7 +358,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                     Cql.New("SET Artist = ?, ReleaseDate = ?, Title = ? WHERE Id = ?", song.Title, song.Artist, song.ReleaseDate, song.Id)
                        .WithExecutionProfile("testProfile"));
             }
-            var newQueries = _simulacronCluster.GetQueries(update, "EXECUTE");
+            var newQueries = _simulacronCluster.GetQueries(update, QueryType.Execute);
             Assert.AreEqual(queries.Count + 2, newQueries.Count);
             Assert.IsTrue(newQueries.All(q => q.ConsistencyLevel == ConsistencyLevel.Two));
         }
@@ -375,7 +376,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 ReleaseDate = DateTimeOffset.UtcNow
             };
             var update = $"UPDATE {_keyspace}.song_insert SET Title = ?, Artist = ?, ReleaseDate = ? WHERE Id = ? IF EXISTS";
-            var queries = _simulacronCluster.GetQueries(update, "EXECUTE");
+            var queries = _simulacronCluster.GetQueries(update, QueryType.Execute);
 
             if (async)
             {
@@ -389,7 +390,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                     Cql.New("SET Title = ?, Artist = ?, ReleaseDate = ? WHERE Id = ? IF EXISTS", song.Title, song.Artist, song.ReleaseDate, song.Id)
                        .WithExecutionProfile("testProfile"));
             }
-            var newQueries = _simulacronCluster.GetQueries(update, "EXECUTE");
+            var newQueries = _simulacronCluster.GetQueries(update, QueryType.Execute);
             Assert.AreEqual(queries.Count + 1, newQueries.Count);
             Assert.IsTrue(newQueries.All(q => q.ConsistencyLevel == ConsistencyLevel.Two));
         }
@@ -406,7 +407,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 Title = "Substitute",
                 ReleaseDate = DateTimeOffset.UtcNow
             };
-            var queries = _simulacronCluster.GetQueries(null, "BATCH");
+            var queries = _simulacronCluster.GetQueries(null, QueryType.Batch);
             var batch = _mapper.CreateBatch();
             batch.InsertIfNotExists(song);
 
@@ -419,7 +420,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 _mapper.Execute(batch, "testProfile");
             }
 
-            var newQueries = _simulacronCluster.GetQueries(null, "BATCH");
+            var newQueries = _simulacronCluster.GetQueries(null, QueryType.Batch);
             Assert.AreEqual(queries.Count + 1, newQueries.Count);
             Assert.AreEqual(ConsistencyLevel.Two, newQueries.Last().Frame.GetBatchMessage().ConsistencyLevel);
         }
@@ -436,7 +437,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 Title = "Substitute",
                 ReleaseDate = DateTimeOffset.UtcNow
             };
-            var queries = _simulacronCluster.GetQueries(null, "BATCH");
+            var queries = _simulacronCluster.GetQueries(null, QueryType.Batch);
             var batch = _mapper.CreateBatch();
             batch.InsertIfNotExists(song);
 
@@ -449,7 +450,7 @@ namespace Cassandra.IntegrationTests.ExecutionProfiles
                 _mapper.ExecuteConditional<Song>(batch, "testProfile");
             }
 
-            var newQueries = _simulacronCluster.GetQueries(null, "BATCH");
+            var newQueries = _simulacronCluster.GetQueries(null, QueryType.Batch);
             Assert.AreEqual(queries.Count + 1, newQueries.Count);
             Assert.AreEqual(ConsistencyLevel.Two, newQueries.Last().Frame.GetBatchMessage().ConsistencyLevel);
         }

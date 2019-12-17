@@ -24,6 +24,8 @@ using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using NUnit.Framework;
+using Guid = System.Guid;
+
 #pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.Linq.Structures
@@ -152,9 +154,9 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         public static List<AllDataTypesEntity> GetDefaultAllDataTypesList()
         {
             List<AllDataTypesEntity> objectList = new List<AllDataTypesEntity>();
-            for (int i = 0; i < DefaultListLength; i++)
+            for (int i = 0; i < AllDataTypesEntity.DefaultListLength; i++)
             {
-                objectList.Add(GetRandomInstance());
+                objectList.Add(AllDataTypesEntity.GetRandomInstance());
             }
             return objectList;
         }
@@ -165,7 +167,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
             var table = new Table<AllDataTypesEntity>(session, new Cassandra.Mapping.MappingConfiguration());
             table.Create();
 
-            List<AllDataTypesEntity> allDataTypesRandomList = GetDefaultAllDataTypesList();
+            List<AllDataTypesEntity> allDataTypesRandomList = AllDataTypesEntity.GetDefaultAllDataTypesList();
             //Insert some data
             foreach (var allDataTypesEntity in allDataTypesRandomList)
                 table.Insert(allDataTypesEntity).Execute();
@@ -175,12 +177,12 @@ namespace Cassandra.IntegrationTests.Linq.Structures
 
         public static (string, DataType)[] GetColumnsWithTypes()
         {
-            return AllDataTypesEntity.ColumnMappings.Keys.Zip(ColumnnsToDataTypes, (key, kvp) => (key, kvp.Value)).ToArray();
+            return AllDataTypesEntity.ColumnMappings.Keys.Zip(AllDataTypesEntity.ColumnnsToDataTypes, (key, kvp) => (key, kvp.Value)).ToArray();
         }
 
         public static RowsResult GetEmptyRowsResult()
         {
-            return new RowsResult(GetColumnsWithTypes());
+            return new RowsResult(AllDataTypesEntity.GetColumnsWithTypes());
         }
 
         public RowsResult CreateRowsResult()
@@ -201,6 +203,14 @@ namespace Cassandra.IntegrationTests.Linq.Structures
                 "\"nullable_time_uuid_type\", \"string_type\", \"time_uuid_type\" FROM \"allDataTypes\" " +
             "WHERE \"string_type\" = ? " +
             "ALLOW FILTERING";
+        
+        public const string SelectCqlDefaultColumnsFormatStr = 
+            "SELECT \"BooleanType\", \"DateTimeOffsetType\", \"DateTimeType\", \"DecimalType\", " +
+            "\"DictionaryStringLongType\", \"DictionaryStringStringType\", \"DoubleType\", " +
+            "\"FloatType\", \"GuidType\", \"Int64Type\", \"IntType\", \"ListOfGuidsType\", " +
+            "\"ListOfStringsType\", \"NullableDateTimeType\", \"NullableIntType\", " +
+            "\"NullableTimeUuidType\", \"StringType\", \"TimeUuidType\" FROM {0} " +
+            "WHERE \"StringType\" = ?";
 
         public const string SelectRangeCql =
             "SELECT " +
@@ -214,15 +224,34 @@ namespace Cassandra.IntegrationTests.Linq.Structures
 
         public void PrimeSelect(SimulacronCluster testCluster)
         {
-            testCluster.PrimeFluent(b => When(testCluster, b).ThenRowsSuccess(this.CreateRowsResult()));
+            testCluster.PrimeFluent(b => When(testCluster, b).ThenRowsSuccess(CreateRowsResult()));
         }
         
         public IWhenFluent When(SimulacronCluster testCluster, IPrimeRequestFluent builder)
         {
             return builder.WhenQuery(
                           AllDataTypesEntity.SelectCql,
-                          when => this.WithParams(when, "string_type"));
+                          when => WithParams(when, "string_type"));
         }
+        
+        public const string InsertCqlDefaultColumnsFormatStr =
+            "INSERT INTO {0} (" +
+                "\"BooleanType\", \"DateTimeOffsetType\", \"DateTimeType\", \"DecimalType\", " +
+                "\"DictionaryStringLongType\", \"DictionaryStringStringType\", \"DoubleType\", " +
+                "\"FloatType\", \"GuidType\", \"Int64Type\", \"IntType\", \"ListOfGuidsType\", " +
+                "\"ListOfStringsType\", \"NullableDateTimeType\", \"NullableIntType\", " +
+                "\"NullableTimeUuidType\", \"StringType\", \"TimeUuidType\") " +
+            "VALUES (" +
+                "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        public const string InsertCqlFormatStr =
+            "INSERT INTO {0} (\"boolean_type\", \"date_time_offset_type\", \"date_time_type\", " +
+            "\"decimal_type\", \"double_type\", \"float_type\", \"guid_type\"," +
+            " \"int_type\", \"int64_type\", \"list_of_guids_type\", \"list_of_strings_type\"," +
+            " \"map_type_string_long_type\", \"map_type_string_string_type\", \"nullable_date_time_type\"," +
+            " \"nullable_int_type\", \"nullable_time_uuid_type\", \"string_type\", \"time_uuid_type\") " +
+            "VALUES " +
+            "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         public const string InsertCql =
             "INSERT INTO \"allDataTypes\" (\"boolean_type\", \"date_time_offset_type\", \"date_time_type\", " +
@@ -236,8 +265,8 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         public void PrimeQuery(SimulacronCluster testCluster, string cql, params string[] paramNames)
         {
             testCluster.PrimeFluent(
-                b => b.WhenQuery(cql, when => this.WithParams(when, paramNames))
-                      .ThenRowsSuccess(this.CreateRowsResult()));
+                b => b.WhenQuery(cql, when => WithParams(when, paramNames))
+                      .ThenRowsSuccess(CreateRowsResult()));
         }
         
         public RowsResult AddRow(RowsResult result)
@@ -248,6 +277,56 @@ namespace Cassandra.IntegrationTests.Linq.Structures
         public object[] GetColumnValues()
         {
             return AllDataTypesEntity.ColumnMappings.Values.Select(func => func(this)).ToArray();
+        }
+
+        public static (string, DataType)[] GetDefaultColumns()
+        {
+            return new []
+            {
+                (nameof(AllDataTypesEntity.BooleanType), DataType.GetDataType(typeof(bool))),
+                (nameof(AllDataTypesEntity.DateTimeOffsetType), DataType.GetDataType(typeof(DateTimeOffset))),
+                (nameof(AllDataTypesEntity.DateTimeType), DataType.GetDataType(typeof(DateTime))),
+                (nameof(AllDataTypesEntity.DecimalType), DataType.GetDataType(typeof(decimal))),
+                (nameof(AllDataTypesEntity.DictionaryStringLongType), DataType.GetDataType(typeof(Dictionary<string, long>))),
+                (nameof(AllDataTypesEntity.DictionaryStringStringType), DataType.GetDataType(typeof(Dictionary<string, string>))),
+                (nameof(AllDataTypesEntity.DoubleType), DataType.GetDataType(typeof(double))),
+                (nameof(AllDataTypesEntity.FloatType), DataType.GetDataType(typeof(float))),
+                (nameof(AllDataTypesEntity.GuidType), DataType.GetDataType(typeof(Guid))),
+                (nameof(AllDataTypesEntity.Int64Type), DataType.GetDataType(typeof(long))),
+                (nameof(AllDataTypesEntity.IntType), DataType.GetDataType(typeof(int))),
+                (nameof(AllDataTypesEntity.ListOfGuidsType), DataType.GetDataType(typeof(List<Guid>))),
+                (nameof(AllDataTypesEntity.ListOfStringsType), DataType.GetDataType(typeof(List<string>))),
+                (nameof(AllDataTypesEntity.NullableDateTimeType), DataType.GetDataType(typeof(DateTime?))),
+                (nameof(AllDataTypesEntity.NullableIntType), DataType.GetDataType(typeof(int?))),
+                (nameof(AllDataTypesEntity.NullableTimeUuidType), DataType.GetDataType(typeof(TimeUuid?))),
+                (nameof(AllDataTypesEntity.StringType), DataType.GetDataType(typeof(string))),
+                (nameof(AllDataTypesEntity.TimeUuidType), DataType.GetDataType(typeof(TimeUuid)))
+            };
+        }
+        
+        public object[] GetColumnValuesForDefaultColumns()
+        {
+            return new object[]
+            {
+                BooleanType,
+                DateTimeOffsetType,
+                DateTimeType,
+                DecimalType,
+                DictionaryStringLongType,
+                DictionaryStringStringType,
+                DoubleType,
+                FloatType,
+                GuidType,
+                Int64Type,
+                IntType,
+                ListOfGuidsType,
+                ListOfStringsType,
+                NullableDateTimeType,
+                NullableIntType,
+                NullableTimeUuidType,
+                StringType,
+                TimeUuidType
+            };
         }
 
         public static RowsResult AddRows(IEnumerable<AllDataTypesEntity> data)
@@ -264,7 +343,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
 
         public static void PrimeRangeSelect(SimulacronCluster testCluster, IEnumerable<AllDataTypesEntity> data)
         {
-            testCluster.PrimeFluent(b => b.WhenQuery(AllDataTypesEntity.SelectRangeCql).ThenRowsSuccess(AddRows(data)));
+            testCluster.PrimeFluent(b => b.WhenQuery(AllDataTypesEntity.SelectRangeCql).ThenRowsSuccess(AllDataTypesEntity.AddRows(data)));
         }
     }
 }

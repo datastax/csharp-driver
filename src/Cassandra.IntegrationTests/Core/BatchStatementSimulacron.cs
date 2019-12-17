@@ -16,7 +16,7 @@
 
 using System;
 using System.Linq;
-
+using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 
@@ -41,7 +41,7 @@ namespace Cassandra.IntegrationTests.Core
                 var batchStatement = new BatchStatement().Add(query);
                 session.Execute(batchStatement);
                 var timestamp = generator.Next();
-                var executed = simulacronCluster.GetQueries(null, "BATCH");
+                var executed = simulacronCluster.GetQueries(null, QueryType.Batch);
                 Assert.IsNotEmpty(executed);
                 var executedArray = executed.ToArray();
                 Assert.AreEqual(1, executedArray.Length);
@@ -63,7 +63,7 @@ namespace Cassandra.IntegrationTests.Core
                 var oldTimestamp = cluster.Configuration.Policies.TimestampGenerator.Next();
                 var batchStatement = new BatchStatement().Add(query);
                 session.Execute(batchStatement);
-                var executed = simulacronCluster.GetQueries(null, "BATCH");
+                var executed = simulacronCluster.GetQueries(null, QueryType.Batch);
                 Assert.IsNotEmpty(executed);
                 var executedArray = executed.ToArray();
                 Assert.AreEqual(1, executedArray.Length);

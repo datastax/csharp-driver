@@ -156,10 +156,10 @@ namespace Cassandra.Tests.Mapping
                 Id = Guid.NewGuid(),
                 Name = "Images and Words",
                 PublishingDate = DateTimeOffset.Now,
-                Songs = new List<Song>
+                Songs = new List<Song2>
                 {
-                    new Song {Artist = "Dream Theater", Title = "Pull me under"},
-                    new Song {Artist = "Dream Theater", Title = "Under a glass moon"}
+                    new Song2 {Artist = "Dream Theater", Title = "Pull me under"},
+                    new Song2 {Artist = "Dream Theater", Title = "Under a glass moon"}
                 }
             };
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);

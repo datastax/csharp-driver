@@ -19,6 +19,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.SimulacronAPI;
+using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Tests;
@@ -67,9 +68,9 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.NotNull(firstRow);
                 var node = simulacronCluster.GetNode(cluster.AllHosts().First().Address);
                 // Executed on first node
-                Assert.AreEqual(1, node.GetQueries(Query, "PREPARE").Count);
+                Assert.AreEqual(1, node.GetQueries(Query, QueryType.Prepare).Count);
                 // Only executed on the first node
-                Assert.AreEqual(1, simulacronCluster.GetQueries(Query, "PREPARE").Count);
+                Assert.AreEqual(1, simulacronCluster.GetQueries(Query, QueryType.Prepare).Count);
             }
         }
 
@@ -88,10 +89,10 @@ namespace Cassandra.IntegrationTests.Core
                 // Executed on each node
                 foreach (var node in simulacronCluster.DataCenters[0].Nodes)
                 {
-                    Assert.AreEqual(1, node.GetQueries(Query, "PREPARE").Count);
+                    Assert.AreEqual(1, node.GetQueries(Query, QueryType.Prepare).Count);
                 }
                 // Executed on all nodes
-                Assert.AreEqual(3, simulacronCluster.GetQueries(Query, "PREPARE").Count);
+                Assert.AreEqual(3, simulacronCluster.GetQueries(Query, QueryType.Prepare).Count);
             }
         }
 
@@ -129,7 +130,7 @@ namespace Cassandra.IntegrationTests.Core
                 var ps = session.Prepare(Query);
                 Assert.NotNull(ps);
                 // Should have been executed in the first node (failed) and in the second one (succeeded)
-                Assert.AreEqual(2, simulacronCluster.GetQueries(Query, "PREPARE").Count);
+                Assert.AreEqual(2, simulacronCluster.GetQueries(Query, QueryType.Prepare).Count);
             }
         }
 
@@ -150,7 +151,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
                 var ps = session.Prepare(Query);
                 Assert.NotNull(ps);
-                Assert.AreEqual(3, simulacronCluster.GetQueries(Query, "PREPARE").Count);
+                Assert.AreEqual(3, simulacronCluster.GetQueries(Query, QueryType.Prepare).Count);
             }
         }
 
@@ -175,7 +176,7 @@ namespace Cassandra.IntegrationTests.Core
                 var ps = session.Prepare(Query);
                 Assert.NotNull(ps);
                 // Should have been executed in the first node (timed out) and in the second one (succeeded)
-                Assert.AreEqual(2, simulacronCluster.GetQueries(Query, "PREPARE").Count);
+                Assert.AreEqual(2, simulacronCluster.GetQueries(Query, QueryType.Prepare).Count);
             }
         }
 
@@ -192,19 +193,19 @@ namespace Cassandra.IntegrationTests.Core
                 simulacronCluster.Prime(QueryPrime());
                 var ps = await session.PrepareAsync(Query).ConfigureAwait(false);
                 Assert.NotNull(ps);
-                Assert.AreEqual(3, simulacronCluster.GetQueries(Query, "PREPARE").Count);
+                Assert.AreEqual(3, simulacronCluster.GetQueries(Query, QueryType.Prepare).Count);
                 var node = simulacronCluster.GetNodes().Skip(1).First();
                 // It should have been prepared once on the node we are about to stop
-                Assert.AreEqual(1, node.GetQueries(Query, "PREPARE").Count);
+                Assert.AreEqual(1, node.GetQueries(Query, QueryType.Prepare).Count);
                 await node.Stop().ConfigureAwait(false);
                 await TestHelper.WaitUntilAsync(() => cluster.AllHosts().Any(h => !h.IsUp)).ConfigureAwait(false);
                 Assert.AreEqual(1, cluster.AllHosts().Count(h => !h.IsUp));
                 await node.Start().ConfigureAwait(false);
                 await TestHelper.WaitUntilAsync(() => cluster.AllHosts().All(h => h.IsUp)).ConfigureAwait(false);
                 Assert.AreEqual(0, cluster.AllHosts().Count(h => !h.IsUp));
-                TestHelper.WaitUntil(() => node.GetQueries(Query, "PREPARE").Count == 2);
+                TestHelper.WaitUntil(() => node.GetQueries(Query, QueryType.Prepare).Count == 2);
                 // It should be prepared 2 times
-                Assert.AreEqual(2, node.GetQueries(Query, "PREPARE").Count);
+                Assert.AreEqual(2, node.GetQueries(Query, QueryType.Prepare).Count);
             }
         }
     }

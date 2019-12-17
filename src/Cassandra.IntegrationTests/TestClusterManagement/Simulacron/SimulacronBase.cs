@@ -163,12 +163,12 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             return Put(GetPath("listener") + "?after=" + attempts + "&type=" + type, null);
         }
 
-        public IList<RequestLog> GetQueries(string query, string queryType = "QUERY")
+        public IList<RequestLog> GetQueries(string query, QueryType? queryType = QueryType.Query)
         {
             return TaskHelper.WaitToComplete(GetQueriesAsync(query, queryType));
         }
 
-        public async Task<IList<RequestLog>> GetQueriesAsync(string query, string queryType = "QUERY")
+        public async Task<IList<RequestLog>> GetQueriesAsync(string query, QueryType? queryType = QueryType.Query)
         {
             var response = await GetLogsAsync().ConfigureAwait(false);
             var dcInfo = response?.DataCenters;

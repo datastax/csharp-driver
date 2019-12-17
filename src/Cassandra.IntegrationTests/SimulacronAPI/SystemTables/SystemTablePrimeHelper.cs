@@ -13,9 +13,10 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-
+using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 
 namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
@@ -27,8 +28,79 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
             return "0x" + ba.Aggregate(string.Empty, (acc, b) => $"{acc}{b:x2}");
         }
 
-        public static void PrimeSystemSchemaTablesV2(this SimulacronBase simulacronCluster, string keyspace, string table, (string name, string kind, string type)[] columns)
+        public static void PrimeSystemSchemaKeyspaceV2(this SimulacronBase simulacronCluster, string keyspace)
         {
+            simulacronCluster.PrimeFluent(
+                b => b.WhenQuery($"SELECT * FROM system_schema.keyspaces WHERE keyspace_name = '{keyspace}'")
+                      .ThenRowsSuccess(
+                          new[]
+                          {
+                              ("replication", DataType.Map(DataType.Ascii, DataType.Ascii)),
+                              ("keyspace_name", DataType.Ascii),
+                              ("durable_writes", DataType.Boolean)
+                          },
+                          rows => rows.WithRow(new { @class = "SimpleStrategy", replication_factor = "1" }, keyspace, true)));
+
+            simulacronCluster.PrimeFluent(
+                b => b.WhenQuery("SELECT * FROM system_schema.keyspaces")
+                      .ThenRowsSuccess(
+                          new[]
+                          {
+                              ("replication", DataType.Map(DataType.Ascii, DataType.Ascii)),
+                              ("keyspace_name", DataType.Ascii),
+                              ("durable_writes", DataType.Boolean)
+                          },
+                          rows => rows.WithRow(new { @class = "SimpleStrategy", replication_factor = "1" }, keyspace, true)));
+        }
+
+        public static void PrimeSystemSchemaColumnsV2(
+            this SimulacronBase simulacronCluster, string keyspace, string table, IEnumerable<StubTableColumn> columns)
+        {
+            var pkIndex = 0;
+            var ckIndex = 0;
+            simulacronCluster.PrimeFluent(
+                b => b.WhenQuery($"SELECT * FROM system_schema.columns WHERE table_name='{table}' AND keyspace_name='{keyspace}'")
+                      .ThenRowsSuccess(new[]
+                          {
+                              ("keyspace_name", DataType.Ascii),
+                              ("table_name", DataType.Ascii),
+                              ("column_name", DataType.Ascii),
+                              ("clustering_order", DataType.Ascii),
+                              ("column_name_bytes", DataType.Blob),
+                              ("kind", DataType.Ascii),
+                              ("position", DataType.Int),
+                              ("type", DataType.Ascii)
+                          },
+                          rows => rows.WithRows(
+                              columns
+                                  .Select(col =>
+                                  {
+                                      var position = -1;
+                                      if (col.Kind == StubColumnKind.ClusteringKey)
+                                      {
+                                          position = ckIndex;
+                                          ckIndex++;
+                                      }
+                                      else if (col.Kind == StubColumnKind.PartitionKey)
+                                      {
+                                          position = pkIndex;
+                                          pkIndex++;
+                                      }
+
+                                      return new object[]
+                                      {
+                                          keyspace, table, col.Name, col.ClusteringOrder.Value,
+                                          SystemTablePrimeHelper.ByteArrayToString(Encoding.UTF8.GetBytes(col.Name)), col.Kind.Value, position,
+                                          col.Type.Value
+                                      };
+                                  })
+                                  .ToArray())));
+        }
+
+        public static void PrimeSystemSchemaTablesV2(this SimulacronBase simulacronCluster, string keyspace, string table, IEnumerable<StubTableColumn> columns)
+        {
+            simulacronCluster.PrimeSystemSchemaKeyspaceV2(keyspace);
+
             simulacronCluster.PrimeFluent(
                 b => b.WhenQuery(
                           $"SELECT * FROM system_schema.tables WHERE table_name='{table}' AND keyspace_name='{keyspace}'")
@@ -50,16 +122,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
                                   new { }, new { }, 0.1, new { keys = "ALL", rows_per_partition = "NONE" },
                                   "comment", 60000, 0.1, 0.1, keyspace)));
 
-            simulacronCluster.PrimeFluent(
-                b => b.WhenQuery("SELECT * FROM system_schema.keyspaces")
-                      .ThenRowsSuccess(
-                          new[]
-                          {
-                              ("replication", DataType.Map(DataType.Ascii, DataType.Ascii)),
-                              ("keyspace_name", DataType.Ascii),
-                              ("durable_writes", DataType.Boolean)
-                          },
-                          rows => rows.WithRow(new { @class = "SimpleStrategy", replication_factor = "1" }, keyspace, true)));
+            simulacronCluster.PrimeSystemSchemaColumnsV2(keyspace, table, columns);
 
             simulacronCluster.PrimeFluent(
                 b => b.WhenQuery($"SELECT * FROM system_schema.indexes WHERE table_name='{table}' AND keyspace_name='{keyspace}'")
@@ -72,31 +135,81 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
                               ("kind", DataType.Ascii),
                               ("options", DataType.Map(DataType.Ascii, DataType.Ascii))
                           }));
-
+        }
+        
+        public static void PrimeSystemSchemaKeyspaceV1(this SimulacronBase simulacronCluster, string keyspace)
+        {
             simulacronCluster.PrimeFluent(
-                b => b.WhenQuery($"SELECT * FROM system_schema.columns WHERE table_name='{table}' AND keyspace_name='{keyspace}'")
+                b => b.WhenQuery("SELECT * FROM system.schema_keyspaces")
+                      .ThenRowsSuccess(
+                          new[]
+                          {
+                              ("strategy_options", DataType.Ascii),
+                              ("strategy_class", DataType.Ascii),
+                              ("keyspace_name", DataType.Ascii),
+                              ("durable_writes", DataType.Boolean)
+                          },
+                          rows => rows.WithRow("{\"replication_factor\":\"1\"}", "SimpleStrategy", keyspace, true)));
+            
+            simulacronCluster.PrimeFluent(
+                b => b.WhenQuery($"SELECT * FROM system.schema_keyspaces WHERE keyspace_name = '{keyspace}'")
+                      .ThenRowsSuccess(
+                          new[]
+                          {
+                              ("strategy_options", DataType.Ascii),
+                              ("strategy_class", DataType.Ascii),
+                              ("keyspace_name", DataType.Ascii),
+                              ("durable_writes", DataType.Boolean)
+                          },
+                          rows => rows.WithRow("{\"replication_factor\":\"1\"}", "SimpleStrategy", keyspace, true)));
+        }
+        
+        public static void PrimeSystemSchemaColumnsV1(
+            this SimulacronBase simulacronCluster, string keyspace, string table, IEnumerable<StubTableColumn> columns)
+        {
+            var pkIndex = 0;
+            var ckIndex = 0;
+            simulacronCluster.PrimeFluent(
+                b => b.WhenQuery($"SELECT * FROM system.schema_columns WHERE columnfamily_name='{table}' AND keyspace_name='{keyspace}'")
                       .ThenRowsSuccess(new[]
                           {
                               ("keyspace_name", DataType.Ascii),
-                              ("table_name", DataType.Ascii),
+                              ("columnfamily_name", DataType.Ascii),
                               ("column_name", DataType.Ascii),
-                              ("clustering_order", DataType.Ascii),
-                              ("column_name_bytes", DataType.Blob),
-                              ("kind", DataType.Ascii),
-                              ("position", DataType.Int),
-                              ("type", DataType.Ascii)
+                              ("component_index", DataType.Int),
+                              ("type", DataType.Ascii),
+                              ("validator", DataType.Ascii),
+                              ("index_name", DataType.Ascii),
+                              ("index_type", DataType.Ascii),
+                              ("index_options", DataType.Ascii)
                           },
                           rows => rows.WithRows(
                               columns
                                   .Select(col =>
-                                      new object[]
+                                  {
+                                      var position = -1;
+                                      if (col.Kind == StubColumnKind.ClusteringKey)
                                       {
-                                          keyspace, table, col.name, "none", SystemTablePrimeHelper.ByteArrayToString(Encoding.UTF8.GetBytes(col.name)), col.kind, 0, col.type
-                                      })
+                                          position = ckIndex;
+                                          ckIndex++;
+                                      }
+                                      else if (col.Kind == StubColumnKind.PartitionKey)
+                                      {
+                                          position = pkIndex;
+                                          pkIndex++;
+                                      }
+                                      
+                                      return new object[]
+                                      {
+                                          keyspace, table, col.Name,
+                                          position,
+                                          col.Kind.Value, col.Type.GetFqTypeName(), null, null, null
+                                      };
+                                  })
                                   .ToArray())));
         }
 
-        public static void PrimeSystemSchemaTablesV1(this SimulacronBase simulacronCluster, string keyspace, string table, (string name, string kind, string type)[] columns)
+        public static void PrimeSystemSchemaTablesV1(this SimulacronBase simulacronCluster, string keyspace, string table, IEnumerable<StubTableColumn> columns)
         {
             simulacronCluster.PrimeFluent(
                 b => b.WhenQuery(
@@ -123,44 +236,28 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
                                   "{}", "{}", "compaction", "{}", 0.1, "{\"keys\":\"ALL\", \"rows_per_partition\":\"NONE\"}",
                                   "comment", 60000, 0.1, 0.1, keyspace, 0.1, "")));
 
-            simulacronCluster.PrimeFluent(
-                b => b.WhenQuery("SELECT * FROM system.schema_keyspaces")
+            simulacronCluster.PrimeSystemSchemaKeyspaceV1(keyspace);
+
+            simulacronCluster.PrimeSystemSchemaColumnsV1(keyspace, table, columns);
+        }
+
+        public static void PrimeSystemSchemaUdtV2(this SimulacronBase simulacron, string keyspace, string type, IEnumerable<StubUdtField> fields)
+        {
+            var names = fields.Select(c => c.Name);
+            var types = fields.Select(c => c.Type.Value);
+            simulacron.PrimeFluent(
+                b => b.WhenQuery(
+                          $"SELECT * FROM system_schema.types WHERE keyspace_name='{keyspace}' AND type_name = '{type}'")
                       .ThenRowsSuccess(
                           new[]
                           {
-                              ("strategy_options", DataType.Ascii),
-                              ("strategy_class", DataType.Ascii),
-                              ("keyspace_name", DataType.Ascii),
-                              ("durable_writes", DataType.Boolean)
+                              ("field_names", DataType.Frozen(DataType.List(DataType.Text))),
+                              ("field_types", DataType.Frozen(DataType.List(DataType.Text))),
+                              ("keyspace_name", DataType.Text),
+                              ("type_name", DataType.Text)
                           },
-                          rows => rows.WithRow("{\"replication_factor\":\"1\"}", "SimpleStrategy", keyspace, true)));
-
-            simulacronCluster.PrimeFluent(
-                b => b.WhenQuery($"SELECT * FROM system.schema_columns WHERE columnfamily_name='{table}' AND keyspace_name='{keyspace}'")
-                      .ThenRowsSuccess(new[]
-                          {
-                              ("keyspace_name", DataType.Ascii),
-                              ("columnfamily_name", DataType.Ascii),
-                              ("column_name", DataType.Ascii),
-                              ("clustering_order", DataType.Ascii),
-                              ("column_name_bytes", DataType.Blob),
-                              ("kind", DataType.Ascii),
-                              ("position", DataType.Int),
-                              ("type", DataType.Ascii),
-                              ("validator", DataType.Ascii),
-                              ("index_name", DataType.Ascii),
-                              ("index_type", DataType.Ascii),
-                              ("index_options", DataType.Ascii)
-                          },
-                          rows => rows.WithRows(
-                              columns
-                                  .Select(col =>
-                                      new object[]
-                                      {
-                                          keyspace, table, col.name, "none", SystemTablePrimeHelper.ByteArrayToString(Encoding.UTF8.GetBytes(col.name)), col.kind, 0,
-                                          col.type, "validator", null, null, null
-                                      })
-                                  .ToArray())));
+                          rows =>
+                              rows.WithRow(names, types, keyspace, type)));
         }
     }
 }
