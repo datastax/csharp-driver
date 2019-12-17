@@ -25,6 +25,7 @@ using Cassandra.IntegrationTests.SimulacronAPI.SystemTables;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
 using Cassandra.Tests.Mapping.Pocos;
+using Newtonsoft.Json;
 using NUnit.Framework;
 #pragma warning disable 612
 #pragma warning disable 618
@@ -299,51 +300,60 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         [Test, TestCassandraVersion(2, 0)]
         public void TableCreate_Create_TwoTablesSameName_TwoKeyspacesDifferentNames_KeyspaceOverride()
         {
-            // Setup first table
-            var sharedTableName = typeof (AllDataTypesEntity).Name;
-            var mappingConfig = new MappingConfiguration().Define(new Map<AllDataTypesEntity>().TableName(sharedTableName).CaseSensitive().PartitionKey(c => c.StringType));
-            var table1 = new Table<AllDataTypesEntity>(Session, mappingConfig);
-            table1.Create();
-            
-            VerifyStatement(
-                QueryType.Query,
-                $"CREATE TABLE \"{sharedTableName}\" ({CreateTable.CreateCqlDefaultColumnsCaseSensitive}, PRIMARY KEY (\"StringType\"))",
-                1);
+            try
+            {
+                // Setup first table
+                var sharedTableName = typeof(AllDataTypesEntity).Name;
+                var mappingConfig = new MappingConfiguration().Define(new Map<AllDataTypesEntity>()
+                                                                      .TableName(sharedTableName).CaseSensitive().PartitionKey(c => c.StringType));
+                var table1 = new Table<AllDataTypesEntity>(Session, mappingConfig);
+                table1.Create();
 
-            WriteReadValidate(table1);
+                VerifyStatement(
+                    QueryType.Query,
+                    $"CREATE TABLE \"{sharedTableName}\" ({CreateTable.CreateCqlDefaultColumnsCaseSensitive}, PRIMARY KEY (\"StringType\"))",
+                    1);
 
-            // Create second table with same name in new keyspace
-            var newUniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            Session.CreateKeyspace(newUniqueKsName);
+                WriteReadValidate(table1);
 
-            VerifyStatement(
-                QueryType.Query,
-                $"CREATE KEYSPACE \"{newUniqueKsName}\" " + Environment.NewLine + 
-                "  WITH replication = {'class' : 'SimpleStrategy', 'replication_factor' : '1'} " + Environment.NewLine +
-                "   AND durable_writes = true",
-                1);
+                // Create second table with same name in new keyspace
+                var newUniqueKsName = TestUtils.GetUniqueKeyspaceName();
+                Session.CreateKeyspace(newUniqueKsName);
 
-            Assert.AreNotEqual(_uniqueKsName, newUniqueKsName);
-            var table2 = new Table<AllDataTypesEntity>(Session, mappingConfig, sharedTableName, newUniqueKsName);
-            table2.Create();
-            
-            VerifyStatement(
-                QueryType.Query,
-                $"CREATE TABLE \"{newUniqueKsName}\".\"{sharedTableName}\" ({CreateTable.CreateCqlDefaultColumnsCaseSensitive}, PRIMARY KEY (\"StringType\"))",
-                1);
-            
-            WriteReadValidate(table2);
+                VerifyStatement(
+                    QueryType.Query,
+                    $"CREATE KEYSPACE \"{newUniqueKsName}\" " + Environment.NewLine +
+                    "  WITH replication = {'class' : 'SimpleStrategy', 'replication_factor' : '1'} " + Environment.NewLine +
+                    "   AND durable_writes = true",
+                    1);
 
-            // also use ChangeKeyspace and validate client functionality
-            Session.ChangeKeyspace(_uniqueKsName);
-            VerifyStatement(QueryType.Query, $"USE \"{_uniqueKsName}\"", 1);
+                Assert.AreNotEqual(_uniqueKsName, newUniqueKsName);
+                var table2 = new Table<AllDataTypesEntity>(Session, mappingConfig, sharedTableName, newUniqueKsName);
+                table2.Create();
 
-            WriteReadValidate(table1);
+                VerifyStatement(
+                    QueryType.Query,
+                    $"CREATE TABLE \"{newUniqueKsName}\".\"{sharedTableName}\" ({CreateTable.CreateCqlDefaultColumnsCaseSensitive}, PRIMARY KEY (\"StringType\"))",
+                    1);
 
-            Session.ChangeKeyspace(newUniqueKsName);
-            VerifyStatement(QueryType.Query, $"USE \"{newUniqueKsName}\"", 1);
+                WriteReadValidate(table2);
 
-            WriteReadValidate(table2);
+                // also use ChangeKeyspace and validate client functionality
+                Session.ChangeKeyspace(_uniqueKsName);
+                VerifyStatement(QueryType.Query, $"USE \"{_uniqueKsName}\"", 1);
+
+                WriteReadValidate(table1);
+
+                Session.ChangeKeyspace(newUniqueKsName);
+                VerifyStatement(QueryType.Query, $"USE \"{newUniqueKsName}\"", 1);
+
+                WriteReadValidate(table2);
+
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail(ex + Environment.NewLine + JsonConvert.SerializeObject(TestCluster.GetLogs()));
+            }
         }
 
         /// <summary>
