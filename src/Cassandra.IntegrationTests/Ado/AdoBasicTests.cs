@@ -39,6 +39,12 @@ namespace Cassandra.IntegrationTests.Data
             _connection = new CqlConnection(cb.ToString());
         }
 
+        public override void TearDown()
+        {
+            _connection?.Dispose();
+            base.TearDown();
+        }
+
         [Test]
         public void ExecuteNonQueryInsertAndSelectTest()
         {
