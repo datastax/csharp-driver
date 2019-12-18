@@ -78,7 +78,7 @@ namespace Cassandra.IntegrationTests
         {
             var serializer = Session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer();
             var paramBytes = positionalParameters.Select(obj => obj == null ? null : Convert.ToBase64String(serializer.Serialize(obj))).ToList();
-            var filteredQueries = logs.Where(q => q.Query.Equals(cql) && q.Frame.GetQueryMessage().Options.PositionalValues.SequenceEqual(paramBytes));
+            var filteredQueries = logs.Where(q => (q.Query == cql || cql == null) && q.Frame.GetQueryMessage().Options.PositionalValues.SequenceEqual(paramBytes));
 
             Assert.AreEqual(count, filteredQueries.Count());
         }
