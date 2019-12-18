@@ -156,6 +156,11 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
             return new DataType(name);
         }
 
+        public static DataType Custom(string type)
+        {
+            return new DataType($"'{type}'");
+        }
+
         public static DataType Frozen(DataType dataType)
         {
             return new DataType($"frozen<{dataType.Value}>", dataType);

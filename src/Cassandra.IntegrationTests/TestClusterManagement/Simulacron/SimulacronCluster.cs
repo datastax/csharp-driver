@@ -145,6 +145,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             await SimulacronBase.DeleteAsync(GetPath("cluster")).ConfigureAwait(false);
         }
 
+        public SimulacronNode GetNode(int index)
+        {
+            return DataCenters.SelectMany(dc => dc.Nodes).ElementAt(index);
+        }
+
         public SimulacronNode GetNode(string endpoint)
         {
             return DataCenters.SelectMany(dc => dc.Nodes).FirstOrDefault(n => n.ContactPoint == endpoint);

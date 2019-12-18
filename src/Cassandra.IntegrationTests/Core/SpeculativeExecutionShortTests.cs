@@ -20,25 +20,27 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.IntegrationTests.TestBase;
+
+using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Tests;
+
 using NUnit.Framework;
+
 #pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short"), Category("realcluster"), TestTimeout(60000)]
-    public class SpeculativeExecutionShortTests : SharedClusterTest
+    [TestTimeout(60000)]
+    public class SpeculativeExecutionShortTests : SimulacronTest
     {
         private const string QueryLocal = "SELECT key FROM system.local";
         private readonly List<ICluster> _clusters = new List<ICluster>();
         private IPAddress _addressNode2;
 
         private ISession GetSession(
-            ISpeculativeExecutionPolicy speculativeExecutionPolicy = null, bool warmup = true, 
+            ISpeculativeExecutionPolicy speculativeExecutionPolicy = null, bool warmup = true,
             ILoadBalancingPolicy lbp = null, PoolingOptions pooling = null)
         {
             var builder = Cluster.Builder()
@@ -64,23 +66,17 @@ namespace Cassandra.IntegrationTests.Core
         /// <summary>
         /// Use 2 nodes
         /// </summary>
-        public SpeculativeExecutionShortTests() : base(2)
+        public SpeculativeExecutionShortTests() : base(false, new SimulacronOptions { Nodes = "2" }, false)
         {
-   
         }
-
-        [TearDown]
-        public void TestTearDown()
+        
+        public override void SetUp()
         {
-            //Resume both nodes before each test
-            TestCluster.ResumeNode(1);
-            TestCluster.ResumeNode(2);
-        }
-
-        public override void OneTimeSetUp()
-        {
-            base.OneTimeSetUp();
-            _addressNode2 = IPAddress.Parse(TestCluster.ClusterIpPrefix + "2");
+            base.SetUp();
+            var contactPoint = TestCluster.GetNode(1).ContactPoint;
+            var separatorIndex = contactPoint.IndexOf(":", StringComparison.Ordinal);
+            var address = contactPoint.Substring(0, separatorIndex);
+            _addressNode2 = IPAddress.Parse(address);
         }
 
         public override void OneTimeTearDown()
@@ -96,31 +92,33 @@ namespace Cassandra.IntegrationTests.Core
         public void SpeculativeExecution_Should_Execute_On_Next_Node()
         {
             var session = GetSession(new ConstantSpeculativeExecutionPolicy(50L, 1));
-            TestCluster.PauseNode(2);
-            Trace.TraceInformation("Node 2 paused");
+
+            TestCluster.GetNode(1).PrimeFluent(
+                b => b.WhenQuery(QueryLocal)
+                      .ThenRowsSuccess(new[] { "key" }, r => r.WithRow("local")).WithDelayInMs(10000));
+
             TestHelper.ParallelInvoke(() =>
             {
                 var rs = session.Execute(new SimpleStatement(QueryLocal).SetIdempotence(true));
                 Assert.AreNotEqual(_addressNode2, rs.Info.QueriedHost.Address);
             }, 10);
-            TestCluster.ResumeNode(2);
         }
 
         [Test]
         public async Task SpeculativeExecution_Should_Not_Execute_On_Next_Node_When_Not_Idempotent()
         {
-            var lbp = new OrderedLoadBalancingPolicy(2, 1);
+            var lbp = new OrderedLoadBalancingPolicy(
+                TestCluster.GetNode(1).Address.ToString(), TestCluster.GetNode(0).Address.ToString());
             var session = GetSession(new ConstantSpeculativeExecutionPolicy(50L, 1), true, lbp);
-            TestCluster.PauseNode(2);
-            var t = session.ExecuteAsync(new SimpleStatement(QueryLocal).SetIdempotence(false));
-            await Task.Delay(200).ConfigureAwait(false);
-            Assert.AreEqual(TaskStatus.WaitingForActivation, t.Status);
 
-            TestCluster.ResumeNode(2);
-            var rs = await t.ConfigureAwait(false);
+            TestCluster.GetNode(1).PrimeFluent(
+                b => b.WhenQuery(QueryLocal)
+                      .ThenRowsSuccess(new[] {"key"}, r => r.WithRow("local")).WithDelayInMs(1000));
+
+            var rs = await session.ExecuteAsync(new SimpleStatement(QueryLocal).SetIdempotence(false)).ConfigureAwait(false);
 
             // Used the first host in the query plan
-            Assert.AreEqual(2, TestHelper.GetLastAddressByte(rs.Info.QueriedHost));
+            Assert.AreEqual(TestCluster.GetNode(1).IpEndPoint, rs.Info.QueriedHost);
         }
 
         [Test]
@@ -154,12 +152,10 @@ namespace Cassandra.IntegrationTests.Core
 
             public void Dispose()
             {
-                
             }
 
             public void Initialize(ICluster cluster)
             {
-
             }
 
             public ISpeculativeExecutionPlan NewPlan(string keyspace, IStatement statement)
@@ -171,6 +167,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 private readonly LoggedSpeculativeExecutionPolicy _policy;
                 private int _executions;
+
                 public LoggedSpeculativeExecutionPlan(LoggedSpeculativeExecutionPolicy policy)
                 {
                     _policy = policy;
@@ -190,7 +187,7 @@ namespace Cassandra.IntegrationTests.Core
 
         private class OrderedLoadBalancingPolicy : ILoadBalancingPolicy
         {
-            private readonly int[] _lastOctets;
+            private readonly string[] _addresses;
             private ICluster _cluster;
             private int _hostYielded;
 
@@ -199,9 +196,9 @@ namespace Cassandra.IntegrationTests.Core
                 get { return Volatile.Read(ref _hostYielded); }
             }
 
-            public OrderedLoadBalancingPolicy(params int[] lastOctets)
+            public OrderedLoadBalancingPolicy(params string[] addresses)
             {
-                _lastOctets = lastOctets;
+                _addresses = addresses;
             }
 
             public void Initialize(ICluster cluster)
@@ -217,9 +214,9 @@ namespace Cassandra.IntegrationTests.Core
             public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
             {
                 var hosts = _cluster.AllHosts().ToArray();
-                foreach (var lastOctet in _lastOctets)
+                foreach (var addr in _addresses)
                 {
-                    var host = hosts.First(h => TestHelper.GetLastAddressByte(h) == lastOctet);
+                    var host = hosts.Single(h => h.Address.Address.ToString() == addr);
                     Interlocked.Increment(ref _hostYielded);
                     yield return host;
                 }

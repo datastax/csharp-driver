@@ -26,7 +26,27 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
     public class SimulacronNode : SimulacronBase
     {
         public string ContactPoint { get; set; }
-        
+
+        public IPEndPoint IpEndPoint
+        {
+            get
+            {
+                var separatorIndex = ContactPoint.IndexOf(":", StringComparison.Ordinal);
+                var address = ContactPoint.Substring(0, separatorIndex);
+                return new IPEndPoint(IPAddress.Parse(address), int.Parse(ContactPoint.Substring(separatorIndex + 1, ContactPoint.Length - address.Length - 1)));
+            }
+        }
+
+        public IPAddress Address
+        {
+            get
+            {
+                var separatorIndex = ContactPoint.IndexOf(":", StringComparison.Ordinal);
+                var address = ContactPoint.Substring(0, separatorIndex);
+                return IPAddress.Parse(address);
+            }
+        }
+
         public SimulacronNode(string id) : base(id)
         {
 
