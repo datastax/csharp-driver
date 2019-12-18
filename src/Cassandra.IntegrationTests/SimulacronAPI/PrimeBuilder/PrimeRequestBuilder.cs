@@ -23,7 +23,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder
 {
-    public class PrimeRequestFluent : IWhenFluent, IThenFluent, IPrimeRequestFluent
+    public class PrimeRequestBuilder : IWhenFluent, IThenFluent, IPrimeRequestBuilder
     {
         private IThen _then;
         private IWhen _when;
@@ -129,16 +129,24 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder
             _then = new ThenServerError(resultError, message);
             return this;
         }
-        
-        public IWhenFluent WhenQuery(string cql)
+
+        public IWhenFluent WhenBatch(Action<IWhenBatchBuilder> whenAction)
         {
-            _when = new WhenQueryFluent(cql);
+            var when = new WhenBatchBuilder();
+            whenAction(when);
+            _when = when;
             return this;
         }
 
-        public IWhenFluent WhenQuery(string cql, Action<IWhenQueryFluent> whenAction)
+        public IWhenFluent WhenQuery(string cql)
         {
-            var when = new WhenQueryFluent(cql);
+            _when = new WhenQueryBuilder(cql);
+            return this;
+        }
+
+        public IWhenFluent WhenQuery(string cql, Action<IWhenQueryBuilder> whenAction)
+        {
+            var when = new WhenQueryBuilder(cql);
             whenAction(when);
             _when = when;
             return this;

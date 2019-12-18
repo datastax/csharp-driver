@@ -16,18 +16,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Cassandra.IntegrationTests.TestClusterManagement;
+
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 
 namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
 {
     public static class SystemTablePrimeHelper
     {
-        private static string ByteArrayToString(byte[] ba)
-        {
-            return "0x" + ba.Aggregate(string.Empty, (acc, b) => $"{acc}{b:x2}");
-        }
-
         public static void PrimeSystemSchemaKeyspaceV2(this SimulacronBase simulacronCluster, string keyspace)
         {
             simulacronCluster.PrimeFluent(
@@ -90,7 +85,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
                                       return new object[]
                                       {
                                           keyspace, table, col.Name, col.ClusteringOrder.Value,
-                                          SystemTablePrimeHelper.ByteArrayToString(Encoding.UTF8.GetBytes(col.Name)), col.Kind.Value, position,
+                                          DataType.ByteArrayToString(Encoding.UTF8.GetBytes(col.Name)), col.Kind.Value, position,
                                           col.Type.Value
                                       };
                                   })
@@ -136,7 +131,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
                               ("options", DataType.Map(DataType.Ascii, DataType.Ascii))
                           }));
         }
-        
+
         public static void PrimeSystemSchemaKeyspaceV1(this SimulacronBase simulacronCluster, string keyspace)
         {
             simulacronCluster.PrimeFluent(
@@ -150,7 +145,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
                               ("durable_writes", DataType.Boolean)
                           },
                           rows => rows.WithRow("{\"replication_factor\":\"1\"}", "SimpleStrategy", keyspace, true)));
-            
+
             simulacronCluster.PrimeFluent(
                 b => b.WhenQuery($"SELECT * FROM system.schema_keyspaces WHERE keyspace_name = '{keyspace}'")
                       .ThenRowsSuccess(
@@ -163,7 +158,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
                           },
                           rows => rows.WithRow("{\"replication_factor\":\"1\"}", "SimpleStrategy", keyspace, true)));
         }
-        
+
         public static void PrimeSystemSchemaColumnsV1(
             this SimulacronBase simulacronCluster, string keyspace, string table, IEnumerable<StubTableColumn> columns)
         {
@@ -198,7 +193,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.SystemTables
                                           position = pkIndex;
                                           pkIndex++;
                                       }
-                                      
+
                                       return new object[]
                                       {
                                           keyspace, table, col.Name,

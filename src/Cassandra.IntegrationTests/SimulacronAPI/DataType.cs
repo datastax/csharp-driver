@@ -16,7 +16,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Numerics;
+using Cassandra.Tests.Extensions.Serializers;
 
 namespace Cassandra.IntegrationTests.SimulacronAPI
 {
@@ -200,6 +203,8 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
             {typeof (TimeUuid), DataType.TimeUuid},
             {typeof (DateTimeOffset), DataType.Timestamp},
             {typeof (DateTime), DataType.Timestamp},
+            {typeof (BigDecimal), DataType.Decimal},
+            {typeof (BigInteger), DataType.VarInt},
         };
 
         public static DataType GetDataType(object obj)
@@ -259,15 +264,51 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
                     return DataType.List(DataType.GetDataType(type.GetGenericArguments()[0]));
                 }
             }
-            else if (type.Name == "BigDecimal")
-            {
-                return DataType.Decimal;
-            }
 
             throw new ArgumentException("no type found for dotnet type " + type.Name);
         }
         
         internal static readonly DateTimeOffset UnixStart = new DateTimeOffset(1970, 1, 1, 0, 0, 0, 0, TimeSpan.Zero);
+
+        public static string ByteArrayToString(byte[] ba)
+        {
+            return "0x" + ba.Aggregate(string.Empty, (acc, b) => $"{acc}{b:x2}");
+        }
+
+        public static object AdaptForSimulacronPrime(object value)
+        {
+            if (value is DateTimeOffset dateTimeOffset)
+            {
+                return DataType.GetTimestamp(dateTimeOffset);
+            }
+
+            if (value is DateTime dt)
+            {
+                return DataType.GetTimestamp(new DateTimeOffset(dt));
+            }
+
+            if (value is TimeUuid)
+            {
+                return value.ToString();
+            }
+
+            if (value is byte[] v)
+            {
+                return DataType.ByteArrayToString(v);
+            }
+
+            if (value is decimal v1)
+            {
+                return v1.ToString(CultureInfo.InvariantCulture);
+            }
+
+            if (value is BigDecimal v2)
+            {
+                return v2.ToString();
+            }
+
+            return value;
+        }
 
         public static long GetTimestamp(DateTimeOffset dt)
         {

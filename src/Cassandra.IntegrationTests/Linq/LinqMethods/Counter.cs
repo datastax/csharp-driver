@@ -321,22 +321,22 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             [Cassandra.Data.Linq.PartitionKey(2)]
             public Decimal KeyPart2;
 
-            public static IWhenQueryFluent WithParams(IWhenQueryFluent fluent, params (string, CounterEntityWithLinqAttributes)[] parameters)
+            public static IWhenQueryBuilder WithParams(IWhenQueryBuilder builder, params (string, CounterEntityWithLinqAttributes)[] parameters)
             {
                 foreach (var (name, value) in parameters)
                 {
                     switch (name)
                     {
                         case nameof(CounterEntityWithLinqAttributes.Counter):
-                            fluent = fluent.WithParam(DataType.Counter, value.Counter);
+                            builder = builder.WithParam(DataType.Counter, value.Counter);
                             break;
 
                         case nameof(CounterEntityWithLinqAttributes.KeyPart1):
-                            fluent = fluent.WithParam(DataType.Uuid, value.KeyPart1);
+                            builder = builder.WithParam(DataType.Uuid, value.KeyPart1);
                             break;
 
                         case nameof(CounterEntityWithLinqAttributes.KeyPart2):
-                            fluent = fluent.WithParam(DataType.Decimal, value.KeyPart2);
+                            builder = builder.WithParam(DataType.Decimal, value.KeyPart2);
                             break;
 
                         default:
@@ -344,12 +344,12 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                     }
                 }
 
-                return fluent;
+                return builder;
             }
 
-            public IWhenQueryFluent WithParams(IWhenQueryFluent fluent, params string[] parameters)
+            public IWhenQueryBuilder WithParams(IWhenQueryBuilder builder, params string[] parameters)
             {
-                return WithParams(fluent, parameters.Select(p => (p, this)).ToArray());
+                return WithParams(builder, parameters.Select(p => (p, this)).ToArray());
             }
 
             public RowsResult CreateRowsResult()

@@ -70,16 +70,37 @@ namespace Cassandra.IntegrationTests
         
         protected void VerifyStatement(QueryType type, string cql, int count, params object[] positionalParameters)
         {
-            var serializer = Session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer();
-            var queries = TestCluster.GetQueries(cql, type);
+            var queries = TestCluster.GetQueries(null, type);
+            VerifyStatement(queries, cql, count, positionalParameters);
+        }
 
+        protected void VerifyStatement(IList<RequestLog> logs, string cql, int count, params object[] positionalParameters)
+        {
+            var serializer = Session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer();
             var paramBytes = positionalParameters.Select(obj => obj == null ? null : Convert.ToBase64String(serializer.Serialize(obj))).ToList();
-            var filteredQueries = queries.Where(q => q.Frame.GetQueryMessage().Options.PositionalValues.SequenceEqual(paramBytes));
+            var filteredQueries = logs.Where(q => q.Query.Equals(cql) && q.Frame.GetQueryMessage().Options.PositionalValues.SequenceEqual(paramBytes));
 
             Assert.AreEqual(count, filteredQueries.Count());
         }
 
-        protected void VerifyBatchStatement(int count, string[] queries, object[][] parameters)
+        protected void VerifyBatchStatement(int count, byte[][] ids, params object[][] parameters)
+        {
+            VerifyBatchStatement(count, ids.Select(Convert.ToBase64String).ToArray(), parameters);
+        }
+
+        protected void VerifyBatchStatement(int count, string[] queries, params object[][] parameters)
+        {
+            var serializer = Session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer();
+            var logs = TestCluster.GetQueries(null, QueryType.Batch);
+
+            var paramBytes = parameters.SelectMany(obj => obj.Select(o => o == null ? null : Convert.ToBase64String(serializer.Serialize(o)))).ToArray();
+            var filteredQueries = logs.Where(q =>
+                q.Frame.GetBatchMessage().Values.SelectMany(l => l).SequenceEqual(paramBytes)
+                && q.Frame.GetBatchMessage().QueriesOrIds.SequenceEqual(queries));
+            Assert.AreEqual(count, filteredQueries.Count());
+        }
+
+        protected void VerifyBatchStatement(int count, string[] queries, Func<BatchMessage, bool> func, params object[][] parameters)
         {
             var serializer = Session.Cluster.Metadata.ControlConnection.Serializer.GetCurrentSerializer();
             var logs = TestCluster.GetQueries(null, QueryType.Batch);
@@ -87,7 +108,8 @@ namespace Cassandra.IntegrationTests
             var paramBytes = parameters.SelectMany(obj => obj.Select(o => o == null ? null : Convert.ToBase64String(serializer.Serialize(o)))).ToArray();
             var filteredQueries = logs.Where(q => 
                 q.Frame.GetBatchMessage().Values.SelectMany(l => l).SequenceEqual(paramBytes)
-                && q.Frame.GetBatchMessage().QueriesOrIds.SequenceEqual(queries));
+                && q.Frame.GetBatchMessage().QueriesOrIds.SequenceEqual(queries) 
+                && func(q.Frame.GetBatchMessage()));
             Assert.AreEqual(count, filteredQueries.Count());
         }
 

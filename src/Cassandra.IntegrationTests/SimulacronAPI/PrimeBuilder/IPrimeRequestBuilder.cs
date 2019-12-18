@@ -18,10 +18,12 @@ using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When;
 
 namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder
 {
-    public interface IPrimeRequestFluent
+    public interface IPrimeRequestBuilder
     {
+        IWhenFluent WhenBatch(Action<IWhenBatchBuilder> whenAction);
+
         IWhenFluent WhenQuery(string cql);
 
-        IWhenFluent WhenQuery(string cql, Action<IWhenQueryFluent> whenAction);
+        IWhenFluent WhenQuery(string cql, Action<IWhenQueryBuilder> whenAction);
     }
 }

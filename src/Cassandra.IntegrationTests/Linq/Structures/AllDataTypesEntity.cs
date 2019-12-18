@@ -190,7 +190,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
             return AddRow(AllDataTypesEntity.GetEmptyRowsResult());
         }
 
-        private IWhenQueryFluent WithParams(IWhenQueryFluent when, params string[] columns)
+        private IWhenQueryBuilder WithParams(IWhenQueryBuilder when, params string[] columns)
         {
             return columns.Aggregate(when, (current, c) => current.WithParam(AllDataTypesEntity.ColumnMappings[c](this)));
         }
@@ -227,7 +227,7 @@ namespace Cassandra.IntegrationTests.Linq.Structures
             testCluster.PrimeFluent(b => When(testCluster, b).ThenRowsSuccess(CreateRowsResult()));
         }
         
-        public IWhenFluent When(SimulacronCluster testCluster, IPrimeRequestFluent builder)
+        public IWhenFluent When(SimulacronCluster testCluster, IPrimeRequestBuilder builder)
         {
             return builder.WhenQuery(
                           AllDataTypesEntity.SelectCql,

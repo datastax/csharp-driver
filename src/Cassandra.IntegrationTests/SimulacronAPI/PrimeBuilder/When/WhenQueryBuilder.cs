@@ -19,19 +19,19 @@ using Cassandra.IntegrationTests.SimulacronAPI.Models.Converters;
 
 namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When
 {
-    public class WhenQueryFluent : IWhen, IWhenQueryFluent
+    public class WhenQueryBuilder : IWhen, IWhenQueryBuilder
     {
         private readonly string _query;
         private readonly List<(string, string)> _namesToTypes = new List<(string, string)>();
         private readonly List<object> _values = new List<object>();
         private string[] _consistency;
 
-        public WhenQueryFluent(string query)
+        public WhenQueryBuilder(string query)
         {
             this._query = query;
         }
         
-        public IWhenQueryFluent WithNamedParam(string name, DataType type, object value)
+        public IWhenQueryBuilder WithNamedParam(string name, DataType type, object value)
         {
             _namesToTypes.Add((name, type.Value));
             _values.Add(value);
@@ -39,21 +39,21 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When
         }
         
         
-        public IWhenQueryFluent WithParam(DataType type, object value)
+        public IWhenQueryBuilder WithParam(DataType type, object value)
         {
             _namesToTypes.Add(($"column{_namesToTypes.Count}", type.Value));
             _values.Add(value);
             return this;
         }
         
-        public IWhenQueryFluent WithParam(object value)
+        public IWhenQueryBuilder WithParam(object value)
         {
             return WithParam(DataType.GetDataType(value), value);
         }
 
-        public IWhenQueryFluent WithParams(params object[] values)
+        public IWhenQueryBuilder WithParams(params object[] values)
         {
-            IWhenQueryFluent @this = this;
+            IWhenQueryBuilder @this = this;
             foreach (var v in values)
             {
                 @this = this.WithParam(v);
@@ -62,9 +62,9 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When
             return @this;
         }
 
-        public IWhenQueryFluent WithParams(params (DataType, object)[] values)
+        public IWhenQueryBuilder WithParams(params (DataType, object)[] values)
         {
-            IWhenQueryFluent @this = this;
+            IWhenQueryBuilder @this = this;
             foreach (var v in values)
             {
                 @this = this.WithParam(v.Item1, v.Item2);
@@ -73,7 +73,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When
             return @this;
         }
 
-        public IWhenQueryFluent WithConsistency(params ConsistencyLevel[] consistencyLevels)
+        public IWhenQueryBuilder WithConsistency(params ConsistencyLevel[] consistencyLevels)
         {
             _consistency = consistencyLevels.Select(ConsistencyLevelEnumConverter.ConvertConsistencyLevelToString).ToArray();
             return this;
@@ -83,6 +83,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When
         {
             var dictionary = new Dictionary<string, object>()
             {
+                { "request", "query" },
                 { "query", _query }
             };
 

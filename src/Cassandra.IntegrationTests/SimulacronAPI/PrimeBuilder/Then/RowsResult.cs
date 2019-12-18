@@ -15,7 +15,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using Cassandra.Tests.Extensions.Serializers;
 
 namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then
 {
@@ -54,7 +56,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then
                 throw new ArgumentException("Number of values don't match columns.");
             }
 
-            _rows.Add(_columnNamesToTypes.Zip(values, (val1, val2) => (val1.Item1, AdaptValue(val2))).ToArray());
+            _rows.Add(_columnNamesToTypes.Zip(values, (val1, val2) => (val1.Item1, DataType.AdaptForSimulacronPrime(val2))).ToArray());
             return this;
         }
 
@@ -66,26 +68,6 @@ namespace Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then
         public object RenderColumnTypes()
         {
             return _columnNamesToTypes.ToDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
-        }
-        
-        private object AdaptValue(object value)
-        {
-            if (value is DateTimeOffset dateTimeOffset)
-            {
-                return DataType.GetTimestamp(dateTimeOffset);
-            }
-
-            if (value is DateTime dt)
-            {
-                return DataType.GetTimestamp(new DateTimeOffset(dt));
-            }
-
-            if (value is TimeUuid)
-            {
-                return value.ToString();
-            }
-
-            return value;
         }
     }
 }

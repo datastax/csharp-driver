@@ -196,20 +196,20 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             return SimulacronBase.DeleteAsync(GetPath("prime"));
         }
 
-        public JObject PrimeFluent(Func<IPrimeRequestFluent, IThenFluent> builder)
+        public JObject PrimeFluent(Func<IPrimeRequestBuilder, IThenFluent> builder)
         {
             return TaskHelper.WaitToComplete(PrimeFluentAsync(builder));
         }
 
-        public Task<JObject> PrimeFluentAsync(Func<IPrimeRequestFluent, IThenFluent> builder)
+        public Task<JObject> PrimeFluentAsync(Func<IPrimeRequestBuilder, IThenFluent> builder)
         {
             var prime = SimulacronBase.PrimeBuilder();
             return builder(prime).ApplyAsync(this);
         }
 
-        public static IPrimeRequestFluent PrimeBuilder()
+        public static IPrimeRequestBuilder PrimeBuilder()
         {
-            return new PrimeRequestFluent();
+            return new PrimeRequestBuilder();
         }
     }
 }
