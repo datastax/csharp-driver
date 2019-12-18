@@ -138,7 +138,7 @@ namespace Cassandra.IntegrationTests.Core
                 {
                     cluster.Connect("system");
                     Assert.IsTrue(
-                        cluster.AllHosts().Any(h => h.Address.Address.Equals(TestCluster.InitialContactPoint.Address)), 
+                        cluster.AllHosts().Any(h => addressList.Contains(h.Address.Address)), 
                         string.Join(";", cluster.AllHosts().Select(h => h.Address.ToString())) + " | " + TestCluster.InitialContactPoint.Address);
                 }
                 catch (NoHostAvailableException ex)
