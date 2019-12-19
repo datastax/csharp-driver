@@ -220,7 +220,12 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
             return ManyDataTypesPoco.Columns.Values.Select(func => func(this)).ToArray();
         }
 
-        public static string GetColumnsString()
+        public static string GetCaseSensitiveColumnNamesStr()
+        {
+            return string.Join(", ", GetColumnNames().Select(s => $"\"{s}\""));
+        }
+
+        public static string GetColumnNamesStr()
         {
             return string.Join(", ", GetColumnNames());
         }
@@ -231,6 +236,11 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
         }
 
         public static (string, DataType)[] GetColumnsAndTypes()
+        {
+            return ManyDataTypesPoco.ColumnsToTypes.Select(kvp => (kvp.Key.ToLowerInvariant(), kvp.Value)).ToArray();
+        }
+
+        public static (string, DataType)[] GetColumnsAndTypesForCreate()
         {
             return ManyDataTypesPoco.ColumnsToTypes.Select(kvp => (kvp.Key, kvp.Value)).ToArray();
         }

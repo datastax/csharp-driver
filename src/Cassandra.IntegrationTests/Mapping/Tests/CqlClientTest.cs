@@ -16,10 +16,12 @@
 
 using System.Collections.Generic;
 using System.Linq;
+
 using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
+
 using NUnit.Framework;
+
 #pragma warning disable 618
 #pragma warning disable 612
 
@@ -54,7 +56,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             cqlClient1.Insert(poco1);
 
             VerifyBoundStatement(
-                "INSERT INTO poco1 (SomeDouble1, somestring1) VALUES (?, ?)", 
+                "INSERT INTO poco1 (SomeDouble1, somestring1) VALUES (?, ?)",
                 1,
                 poco1.SomeDouble1, poco1.SomeString1);
 
@@ -71,7 +73,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
 
             TestCluster.PrimeFluent(
                 b => b.WhenQuery("SELECT * from poco1")
-                      .ThenRowsSuccess(new[] {"SomeDouble1", "somestring1"}, r => r.WithRow(poco1.SomeDouble1, poco1.SomeString1)));
+                      .ThenRowsSuccess(new[] { "SomeDouble1", "somestring1" }, r => r.WithRow(poco1.SomeDouble1, poco1.SomeString1)));
 
             List<Poco1> poco1s = cqlClient1.Fetch<Poco1>(cqlSelectAll1).ToList();
             Assert.AreEqual(1, poco1s.Count);
@@ -101,7 +103,6 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             Assert.AreEqual(1, poco2s.Count);
             Assert.AreEqual(poco2.SomeString2, poco2s[0].SomeString2);
             Assert.AreEqual(poco2.SomeDouble2, poco2s[0].SomeDouble2);
-
         }
 
         ////////////////////////////////////////////////////
@@ -132,7 +133,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             public double SomeDouble2 = 2;
         }
 
-        class Poco1Mapping : Map<Poco1>
+        private class Poco1Mapping : Map<Poco1>
         {
             public Poco1Mapping()
             {
@@ -142,7 +143,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             }
         }
 
-        class Poco2Mapping : Map<Poco2>
+        private class Poco2Mapping : Map<Poco2>
         {
             public Poco2Mapping()
             {
@@ -151,8 +152,5 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
                 Column(u => u.SomeString2, cm => cm.WithName("somestring2"));
             }
         }
-
-
-
     }
 }
