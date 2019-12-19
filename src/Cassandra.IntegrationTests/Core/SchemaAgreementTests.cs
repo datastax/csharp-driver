@@ -34,9 +34,7 @@ namespace Cassandra.IntegrationTests.Core
         private Cluster _cluster;
         private Session _session;
 
-        private const int MaxSchemaAgreementWaitSeconds = 30;
-
-        private const int MaxTestSchemaAgreementRetries = 240;
+        private const int MaxSchemaAgreementWaitSeconds = 5;
 
         public override void OneTimeSetUp()
         {
@@ -52,6 +50,7 @@ namespace Cassandra.IntegrationTests.Core
             _session.ChangeKeyspace(KeyspaceName);
         }
 
+        // ordering for efficiency, it's not required
         [Test, Order(1)]
         public async Task Should_CheckSchemaAgreementReturnTrueAndSchemaInAgreementReturnTrue_When_AllNodesUp()
         {
@@ -70,6 +69,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.IsTrue(await _cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false));
         }
 
+        // ordering for efficiency, it's not required
         [Test, Order(2)]
         public async Task Should_CheckSchemaAgreementReturnFalseAndSchemaInAgreementReturnFalse_When_OneNodeIsDown()
         {
@@ -85,15 +85,8 @@ namespace Cassandra.IntegrationTests.Core
             Assert.IsFalse(await _cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false));
         }
 
-        [TearDown]
-        public void TearDown()
-        {
-            TestUtils.WaitForSchemaAgreement(_cluster, false, true, MaxTestSchemaAgreementRetries);
-        }
-
         public override void OneTimeTearDown()
         {
-            _session.Dispose();
             _cluster.Dispose();
             base.OneTimeTearDown();
         }
