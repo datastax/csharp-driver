@@ -283,6 +283,11 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
                 }
             }
 
+            if (type.IsArray)
+            {
+                return DataType.List(DataType.GetDataType(type.GetElementType()));
+            }
+
             throw new ArgumentException("no type found for dotnet type " + type.Name);
         }
         
