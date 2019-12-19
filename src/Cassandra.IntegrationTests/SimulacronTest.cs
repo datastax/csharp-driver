@@ -67,7 +67,12 @@ namespace Cassandra.IntegrationTests
         {
             VerifyStatement(QueryType.Execute, cql, count, positionalParameters);
         }
-        
+
+        protected void VerifyQuery(string cql, int count, params object[] positionalParameters)
+        {
+            VerifyStatement(QueryType.Query, cql, count, positionalParameters);
+        }
+
         protected void VerifyStatement(QueryType type, string cql, int count, params object[] positionalParameters)
         {
             var queries = TestCluster.GetQueries(null, type);

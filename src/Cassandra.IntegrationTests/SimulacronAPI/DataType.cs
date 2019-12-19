@@ -62,6 +62,17 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
             };
         }
 
+        private enum DataTypeEnum
+        {
+            Map,
+            Set,
+            List,
+            Tuple,
+            Frozen
+        }
+
+        private DataTypeEnum? _dataTypeEnum;
+
         public string GetFqTypeName()
         {
             if (InnerTypes == null)
@@ -103,11 +114,18 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
         {
             Value = value;
         }
-        
-        private DataType(string value, params DataType[] innerTypes)
+
+        private DataType(string value, DataTypeEnum dataTypeEnum)
+        {
+            Value = value;
+            _dataTypeEnum = dataTypeEnum;
+        }
+
+        private DataType(string value, DataTypeEnum dataTypeEnum, params DataType[] innerTypes)
         {
             Value = value;
             InnerTypes = innerTypes;
+            _dataTypeEnum = dataTypeEnum;
         }
         
         public static readonly DataType Text = new DataType("text");
@@ -166,27 +184,27 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
 
         public static DataType Frozen(DataType dataType)
         {
-            return new DataType($"frozen<{dataType.Value}>", dataType);
+            return new DataType($"frozen<{dataType.Value}>", DataTypeEnum.Frozen, dataType);
         }
 
         public static DataType List(DataType dataType)
         {
-            return new DataType($"list<{dataType.Value}>", dataType);
+            return new DataType($"list<{dataType.Value}>", DataTypeEnum.List, dataType);
         }
 
         public static DataType Set(DataType dataType)
         {
-            return new DataType($"set<{dataType.Value}>", dataType);
+            return new DataType($"set<{dataType.Value}>", DataTypeEnum.Set, dataType);
         }
 
         public static DataType Map(DataType dataTypeKey, DataType dataTypeValue)
         {
-            return new DataType($"map<{dataTypeKey.Value},{dataTypeValue.Value}>", dataTypeKey, dataTypeValue);
+            return new DataType($"map<{dataTypeKey.Value}, {dataTypeValue.Value}>", DataTypeEnum.Map, dataTypeKey, dataTypeValue);
         }
         
         public static DataType Tuple(params DataType[] dataTypes)
         {
-            return new DataType($"tuple<{string.Join(",", dataTypes.Select(d => d.Value))}>", dataTypes);
+            return new DataType($"tuple<{string.Join(", ", dataTypes.Select(d => d.Value))}>", DataTypeEnum.Tuple, dataTypes);
         }
         
         private static readonly Dictionary<Type, DataType> CqlTypeNames = new Dictionary<Type, DataType>
@@ -275,7 +293,7 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
             return "0x" + ba.Aggregate(string.Empty, (acc, b) => $"{acc}{b:x2}");
         }
 
-        public static object AdaptForSimulacronPrime(object value)
+        public static object AdaptValueForSimulacronPrime(object value)
         {
             if (value is DateTimeOffset dateTimeOffset)
             {
@@ -344,6 +362,35 @@ namespace Cassandra.IntegrationTests.SimulacronAPI
 
             hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Value);
             return hashCode;
+        }
+        
+        public DataType AdaptForSimulacron()
+        {
+            if (Value == DataType.Text.Value)
+            {
+                return DataType.Ascii;
+            }
+
+            if (_dataTypeEnum == null)
+            {
+                return this;
+            }
+
+            switch (_dataTypeEnum)
+            {
+                case DataTypeEnum.Frozen:
+                    return DataType.Frozen(InnerTypes.Single().AdaptForSimulacron());
+                case DataTypeEnum.List:
+                    return DataType.List(InnerTypes.Single().AdaptForSimulacron());
+                case DataTypeEnum.Map:
+                    return DataType.Map(InnerTypes.First().AdaptForSimulacron(), InnerTypes.ElementAt(1).AdaptForSimulacron());
+                case DataTypeEnum.Set:
+                    return DataType.Set(InnerTypes.Single().AdaptForSimulacron());
+                case DataTypeEnum.Tuple:
+                    return DataType.Tuple(InnerTypes.Select(t => t.AdaptForSimulacron()).ToArray());
+                default:
+                    throw new InvalidOperationException("Unrecognized data type enum");
+            }
         }
 
         // missing types:
