@@ -36,7 +36,7 @@ namespace Cassandra.Tests
             Mock.Get(sessionFactoryMock).Setup(s =>
                     s.CreateSessionAsync(It.IsAny<IInternalCluster>(), It.IsAny<string>(), It.IsAny<ISerializerManager>(), It.IsAny<string>()))
                 .ReturnsAsync(Mock.Of<IInternalSession>())
-                .Callback<IInternalCluster, string, Serializer, string>((c, ks, serializer, name) => { sessionNames.Enqueue(name); });
+                .Callback<IInternalCluster, string, ISerializerManager, string>((c, ks, serializer, name) => { sessionNames.Enqueue(name); });
 
             var config = new TestConfigurationBuilder
             {
