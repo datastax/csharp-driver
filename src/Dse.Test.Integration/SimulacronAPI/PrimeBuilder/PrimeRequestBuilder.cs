@@ -27,7 +27,13 @@ namespace Dse.Test.Integration.SimulacronAPI.PrimeBuilder
     {
         private IThen _then;
         private IWhen _when;
-        
+
+        public IThenFluent ThenVoid()
+        {
+            _then = new ThenVoid();
+            return this;
+        }
+
         public IThenFluent ThenVoidSuccess()
         {
             _then = new ThenVoidSuccess();

@@ -28,7 +28,7 @@ namespace Dse.Test.Integration.Insights
     public class InsightsIntegrationTests
     {
         private static IPrimeRequest InsightsRpcPrime() =>
-            new PrimeRequestBuilder().WhenQuery("CALL InsightsRpc.reportInsight(?)").ThenVoidSuccess().BuildRequest();
+            new PrimeRequestBuilder().WhenQuery("CALL InsightsRpc.reportInsight(?)").ThenVoid().BuildRequest();
 
         private static readonly Guid clusterId = Guid.NewGuid();
         private static readonly string applicationName = "app 1";
@@ -60,7 +60,7 @@ namespace Dse.Test.Integration.Insights
                 {
                     Assert.AreEqual(0, simulacronCluster.GetQueries("CALL InsightsRpc.reportInsight(?)").Count);
                     var session = (IInternalDseSession)cluster.Connect();
-                    dynamic query = null;
+                    RequestLog query = null;
                     TestHelper.RetryAssert(
                         () =>
                         {
@@ -75,7 +75,7 @@ namespace Dse.Test.Integration.Insights
                     {
                         json = Encoding.UTF8.GetString(
                             Convert.FromBase64String(
-                                (string) query.frame.message.options.positional_values[0].Value));
+                                (string) query.Frame.GetQueryMessage().Options.PositionalValues[0]));
                         message = JsonConvert.DeserializeObject<Insight<InsightsStartupData>>(json);
                     }
                     catch (JsonReaderException ex)

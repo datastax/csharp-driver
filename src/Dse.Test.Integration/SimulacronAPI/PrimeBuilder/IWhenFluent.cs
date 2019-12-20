@@ -22,6 +22,8 @@ namespace Dse.Test.Integration.SimulacronAPI.PrimeBuilder
 {
     public interface IWhenFluent
     {
+        IThenFluent ThenVoid();
+
         IThenFluent ThenVoidSuccess();
 
         IThenFluent ThenRowsSuccess((string, DataType)[] columnNamesToTypes, Action<IRowsResult> rowsBuilder);
