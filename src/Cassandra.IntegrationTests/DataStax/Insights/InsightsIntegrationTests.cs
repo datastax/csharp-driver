@@ -21,6 +21,8 @@ using System.Text;
 using Cassandra.DataStax.Insights.Schema;
 using Cassandra.DataStax.Insights.Schema.StartupMessage;
 using Cassandra.DataStax.Insights.Schema.StatusMessage;
+using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
+using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.SessionManagement;
@@ -33,18 +35,8 @@ namespace Cassandra.IntegrationTests.DataStax.Insights
     [TestFixture, Category("short")]
     public class InsightsIntegrationTests
     {
-        private static object InsightsRpcPrime() => new
-        {
-            when = new
-            {
-                query = "CALL InsightsRpc.reportInsight(?)"
-            },
-            then = new
-            {
-                result = "void",
-                delay_in_ms = 0
-            }
-        };
+        private static IPrimeRequest InsightsRpcPrime() =>
+            new PrimeRequestBuilder().WhenQuery("CALL InsightsRpc.reportInsight(?)").ThenVoidSuccess().BuildRequest();
 
         private static readonly Guid clusterId = Guid.NewGuid();
         private static readonly string applicationName = "app 1";
@@ -142,7 +134,7 @@ namespace Cassandra.IntegrationTests.DataStax.Insights
                 {
                     Assert.AreEqual(0, simulacronCluster.GetQueries("CALL InsightsRpc.reportInsight(?)").Count);
                     var session = (IInternalSession) cluster.Connect();
-                    IList<dynamic> queries = null;
+                    IList<RequestLog> queries = null;
                     TestHelper.RetryAssert(
                         () =>
                         {
@@ -160,7 +152,7 @@ namespace Cassandra.IntegrationTests.DataStax.Insights
                     {
                         json = Encoding.UTF8.GetString(
                             Convert.FromBase64String(
-                                (string) queries[1].frame.message.options.positional_values[0].Value));
+                                (string) queries[1].Frame.GetQueryMessage().Options.PositionalValues[0]));
                         message = JsonConvert.DeserializeObject<Insight<InsightsStatusData>>(json);
                     }
                     catch (JsonReaderException ex)

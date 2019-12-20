@@ -13,21 +13,15 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-
-﻿using System;
-using System.Collections.Generic;
+using System;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using System.Globalization;
-using System.Threading;
-﻿using Cassandra.IntegrationTests.TestClusterManagement;
-﻿using NUnit.Framework;
+
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), Category("realcluster")]
-    public class SessionExecuteAsyncTests : SharedClusterTest
+    public class SessionExecuteAsyncTests : SimulacronTest
     {
         [Test]
         public void SessionExecuteAsyncCQLQueryToSync()
@@ -41,7 +35,13 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void SessionExecuteAsyncPreparedToSync()
         {
-            var statement = Session.Prepare("SELECT * FROM system.local WHERE key= ?");
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          "SELECT key FROM system.local WHERE key = ?", 
+                          when => when.WithParam("local"))
+                      .ThenRowsSuccess(new[] {"key"}, r => r.WithRow("local")));
+
+            var statement = Session.Prepare("SELECT key FROM system.local WHERE key = ?");
             var task = Session.ExecuteAsync(statement.Bind("local"));
             //forcing it to execute sync for testing purposes
             var rowset = task.Result;
@@ -51,7 +51,11 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void SessionExecuteAsyncSyntaxErrorQuery()
         {
-            //Execute an invalid query 
+            //Execute an invalid query
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery("SELECT WILL FAIL")
+                      .ThenSyntaxError("msg"));
+
             var task = Session.ExecuteAsync(new SimpleStatement("SELECT WILL FAIL"));
             task.ContinueWith(t =>
             {

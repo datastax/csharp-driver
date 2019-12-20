@@ -24,12 +24,17 @@ namespace Cassandra.IntegrationTests.TestAttributes
     {
         public void ApplyToTest(NUnit.Framework.Internal.Test test)
         {
-            var envVariable = Environment.GetEnvironmentVariable("SNI_ENABLED");
-            if (envVariable == null || !envVariable.Equals("true", StringComparison.OrdinalIgnoreCase))
+            if (!SniEnabledOnlyAttribute.IsSniEnabled())
             {
                 test.RunState = RunState.Ignored;
                 test.Properties.Set("_SKIPREASON", "Test designed to run with SNI Enabled environments (SNI_ENABLED env variable must be set to TRUE)");
             }
+        }
+
+        public static bool IsSniEnabled()
+        {
+            var envVariable = Environment.GetEnvironmentVariable("SNI_ENABLED");
+            return !(envVariable == null || !envVariable.Equals("true", StringComparison.OrdinalIgnoreCase));
         }
     }
 }

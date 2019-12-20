@@ -16,7 +16,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Cassandra.Data.Linq;
+using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 #pragma warning disable 618
@@ -24,9 +26,11 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests.Linq.Structures
 {
     [AllowFiltering]
-    [Table("ManyDataTypesEntity")]
+    [Table(ManyDataTypesEntity.TableName)]
     public class ManyDataTypesEntity
     {
+        public const string TableName = "ManyDataTypesEntity";
+
         public const int DefaultListLength = 5;
 
         [PartitionKey]
@@ -148,7 +152,60 @@ namespace Cassandra.IntegrationTests.Linq.Structures
             foreach (var expectedEntity in expectedEntities)
                 Assert.IsTrue(ListContains(actualEntities, expectedEntity));
         }
+        
+        private static readonly IDictionary<string, Func<ManyDataTypesEntity, object>> ColumnMappings =
+            new Dictionary<string, Func<ManyDataTypesEntity, object>>
+            {
+                { "BooleanType", entity => entity.BooleanType },
+                { "DateTimeOffsetType", entity => entity.DateTimeOffsetType },
+                { "DateTimeType", entity => entity.DateTimeType },
+                { "DecimalType", entity => entity.DecimalType },
+                { "DictionaryStringLongType", entity => entity.DictionaryStringLongType },
+                { "DictionaryStringStringType", entity => entity.DictionaryStringStringType },
+                { "DoubleType", entity => entity.DoubleType },
+                { "FloatType", entity => entity.FloatType },
+                { "GuidType", entity => entity.GuidType },
+                { "Int64Type", entity => entity.Int64Type },
+                { "IntType", entity => entity.IntType },
+                { "ListOfGuidsType", entity => entity.ListOfGuidsType },
+                { "ListOfStringsType", entity => entity.ListOfStringsType },
+                { "NullableIntType", entity => entity.NullableIntType },
+                { "StringType", entity => entity.StringType }
+            };
+        
+        private static readonly IDictionary<string, DataType> ColumnsToTypes =
+            new Dictionary<string, DataType>
+            {
+                { "BooleanType", DataType.GetDataType(typeof(bool)) },
+                { "DateTimeOffsetType", DataType.GetDataType(typeof(DateTimeOffset)) },
+                { "DateTimeType", DataType.GetDataType(typeof(DateTime)) },
+                { "DecimalType", DataType.GetDataType(typeof(decimal)) },
+                { "DictionaryStringLongType", DataType.GetDataType(typeof(Dictionary<string, long>)) },
+                { "DictionaryStringStringType", DataType.GetDataType(typeof(Dictionary<string, string>)) },
+                { "DoubleType", DataType.GetDataType(typeof(double)) },
+                { "FloatType", DataType.GetDataType(typeof(float)) },
+                { "GuidType", DataType.GetDataType(typeof(Guid)) },
+                { "Int64Type", DataType.GetDataType(typeof(long)) },
+                { "IntType", DataType.GetDataType(typeof(int)) },
+                { "ListOfGuidsType", DataType.GetDataType(typeof(List<Guid>)) },
+                { "ListOfStringsType", DataType.GetDataType(typeof(List<string>)) },
+                { "NullableIntType", DataType.GetDataType(typeof(int?)) },
+                { "StringType", DataType.GetDataType(typeof(string)) }
+            };
 
+        public static string[] GetColumns()
+        {
+            return ManyDataTypesEntity.ColumnMappings.Keys.ToArray();
+        }
 
+        public object[] GetColumnValues()
+        {
+            return ManyDataTypesEntity.ColumnMappings.Values.Select(c => c.Invoke(this)).ToArray();
+        }
+
+        public static (string, DataType)[] GetColumnsWithTypes()
+        {
+            return ManyDataTypesEntity.ColumnMappings.Keys.Zip(ManyDataTypesEntity.ColumnsToTypes, (key, kvp) => (key, kvp.Value)).ToArray();
+        }
     }
 }

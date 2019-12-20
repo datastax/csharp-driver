@@ -17,66 +17,64 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
+using Cassandra.IntegrationTests.SimulacronAPI;
+using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
+using Newtonsoft.Json;
 using NUnit.Framework;
-using NUnit.Framework.Constraints;
+
 #pragma warning disable 612
 
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
-    [Category("short"), Category("realcluster"), TestCassandraVersion(2,0)]
-    public class First : SharedClusterTest
+    [TestCassandraVersion(2, 0)]
+    public class First : SimulacronTest
     {
-        ISession _session = null;
-        private List<Movie> _movieList = Movie.GetDefaultMovieList();
-        private string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
+        private readonly List<Movie> _movieList = Movie.GetDefaultMovieList();
         private Table<Movie> _movieTable;
 
-        public override void OneTimeSetUp()
+        public override void SetUp()
         {
-            base.OneTimeSetUp();
-            _session = Session;
-            _session.CreateKeyspace(_uniqueKsName);
-            _session.ChangeKeyspace(_uniqueKsName);
-
-            // drop table if exists, re-create
+            base.SetUp();
+            
             MappingConfiguration movieMappingConfig = new MappingConfiguration();
             movieMappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(Movie),
                  () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(Movie)));
-            _movieTable = new Table<Movie>(_session, movieMappingConfig);
-            _movieTable.Create();
-
-            //Insert some data
-            foreach (var movie in _movieList)
-                _movieTable.Insert(movie).Execute();
-
-            // Wait for data to be query-able
-            DateTime futureDateTime = DateTime.Now.AddSeconds(2); // it should not take very long for these records to become available for querying!
-            while (DateTime.Now < futureDateTime && _movieTable.Count().Execute() < _movieList.Count)
-                Thread.Sleep(200);
-            Assert.AreEqual(_movieList.Count(), _movieTable.Count().Execute(), "Setup failure: Expected number of records are not query-able");
+            _movieTable = new Table<Movie>(Session, movieMappingConfig);
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
         [Test]
-        public void First_ExecuteAsync()
+        public void First_ExecuteAsync(bool async)
         {
-            var expectedMovie = _movieList.First();
+            try
+            {
+                var expectedMovie = _movieList.First();
+                TestCluster.PrimeFluent(
+                    b => b.WhenQuery(
+                              "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
+                              $"FROM \"{Movie.TableName}\" WHERE \"unique_movie_title\" = ? AND \"movie_maker\" = ? LIMIT ? ALLOW FILTERING",
+                              rows => rows.WithParams(expectedMovie.Title, expectedMovie.MovieMaker, 1))
+                          .ThenRowsSuccess(expectedMovie.CreateRowsResult()));
 
-            var actualMovie = _movieTable.First(m => m.Title == expectedMovie.Title && m.MovieMaker == expectedMovie.MovieMaker).ExecuteAsync().Result;
-            Movie.AssertEquals(expectedMovie, actualMovie);
-        }
+                var actualMovieQuery =
+                    _movieTable.First(m => m.Title == expectedMovie.Title && m.MovieMaker == expectedMovie.MovieMaker);
 
-        [Test]
-        public void First_ExecuteSync()
-        {
-            var expectedMovie = _movieList.First();
-
-            var actualMovie = _movieTable.First(m => m.Title == expectedMovie.Title && m.MovieMaker == expectedMovie.MovieMaker).Execute();
-            Movie.AssertEquals(expectedMovie, actualMovie);
+                var actualMovie = async ? actualMovieQuery.ExecuteAsync().Result : actualMovieQuery.Execute();
+                Movie.AssertEquals(expectedMovie, actualMovie);
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail(
+                    string.Join(",", typeof(Movie).GetFields().Select(f => f.Name)
+                                 .Union(typeof(Movie).GetProperties().Select(p => p.Name))) + 
+                                   ex + Environment.NewLine + JsonConvert.SerializeObject(TestCluster.GetLogs()));
+            }
         }
 
         [Test]
@@ -84,9 +82,21 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         {
             Movie existingMovie = _movieList.Last();
             string randomStr = "somethingrandom_" + Randomm.RandomAlphaNum(10);
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
+                          $"FROM \"{Movie.TableName}\" WHERE \"unique_movie_title\" = ? AND \"movie_maker\" = ? LIMIT ? ALLOW FILTERING",
+                          rows => rows.WithParams(existingMovie.Title, randomStr, 1))
+                      .ThenRowsSuccess(Movie.GetColumns()));
 
             Movie foundMovie = _movieTable.First(m => m.Title == existingMovie.Title && m.MovieMaker == randomStr).Execute();
             Assert.Null(foundMovie);
+            
+            VerifyBoundStatement(
+                "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
+                $"FROM \"{Movie.TableName}\" WHERE \"unique_movie_title\" = ? AND \"movie_maker\" = ? LIMIT ? ALLOW FILTERING",
+                1,
+                existingMovie.Title, randomStr, 1);
         }
 
         ///////////////////////////////////////////////
@@ -105,14 +115,37 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         public void First_NoPartitionKey()
         {
             //No partition key in Query
-            Assert.Throws<InvalidQueryException>(() => _movieTable.First(m => m.Year == 100).Execute());
-            Assert.Throws<InvalidQueryException>(() => _movieTable.First(m => m.MainActor == null).Execute());
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
+                          $"FROM \"{Movie.TableName}\" WHERE \"yearMade\" = ? LIMIT ? ALLOW FILTERING",
+                          rows => rows.WithParams(100, 1))
+                      .ThenServerError(ServerError.Invalid, "msg"));
+            var ex = Assert.Throws<InvalidQueryException>(() => _movieTable.First(m => m.Year == 100).Execute());
+            Assert.AreEqual("msg", ex.Message);
+            
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
+                          $"FROM \"{Movie.TableName}\" WHERE \"mainGuy\" = ? LIMIT ? ALLOW FILTERING",
+                          rows => rows.WithParam(DataType.Ascii, null).WithParam(DataType.Int, 1))
+                      .ThenServerError(ServerError.Invalid, "msg"));
+            ex = Assert.Throws<InvalidQueryException>(() => _movieTable.First(m => m.MainActor == null).Execute());
+            Assert.AreEqual("msg", ex.Message);
         }
 
         [Test]
         public void First_With_Serial_ConsistencyLevel()
         {
-            Assert.DoesNotThrow(() => _movieTable.First().SetConsistencyLevel(ConsistencyLevel.Serial).Execute());
+            var expectedMovie = _movieList.First();
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
+                          $"FROM \"{Movie.TableName}\" LIMIT ? ALLOW FILTERING",
+                          rows => rows.WithParams(1))
+                      .ThenRowsSuccess(expectedMovie.CreateRowsResult()));
+            var actualMovie = _movieTable.First().SetConsistencyLevel(ConsistencyLevel.Serial).Execute();
+            Movie.AssertEquals(expectedMovie, actualMovie);
         }
 
         /// <summary>
@@ -128,7 +161,14 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         [TestCassandraVersion(3, 9, Comparison.LessThan)]
         public void First_MissingPartitionKey()
         {
+            string expectedErrMsg = "Partition key part(s:)? movie_maker must be restricted (since preceding part is|as other parts are)";
             var randomStr = "somethingrandom_" + Randomm.RandomAlphaNum(10);
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
+                          $"FROM \"{Movie.TableName}\" WHERE \"unique_movie_title\" = ? LIMIT ? ALLOW FILTERING",
+                          rows => rows.WithParams(randomStr, 1))
+                      .ThenServerError(ServerError.Invalid, expectedErrMsg));
 
             try
             {
@@ -137,8 +177,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
             }
             catch (InvalidQueryException e)
             {
-                string expectedErrMsg = "Partition key part(s:)? movie_maker must be restricted (since preceding part is|as other parts are)";
-                StringAssert.IsMatch(expectedErrMsg, e.Message);
+                Assert.AreEqual(expectedErrMsg, e.Message);
             }
         }
     }

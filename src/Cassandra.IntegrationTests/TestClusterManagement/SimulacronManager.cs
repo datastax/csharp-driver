@@ -81,7 +81,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             _simulacronProcess.BeginOutputReadLine();
             _simulacronProcess.BeginErrorReadLine();
 
-            eventWaitHandler.WaitOne(20000);
+            eventWaitHandler.WaitOne(30000);
             if (!started)
             {
                 Trace.TraceError(errorMessage);

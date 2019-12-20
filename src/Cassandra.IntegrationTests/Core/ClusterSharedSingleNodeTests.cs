@@ -14,18 +14,22 @@
 //   limitations under the License.
 //
 
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Threading.Tasks;
-using Cassandra.IntegrationTests.TestClusterManagement;
-using Cassandra.Tasks;
-using NUnit.Framework;
+using System;
+using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [Category("short"), Category("realcluster")]
-    public class ClusterSharedSingleNodeTests : SharedClusterTest
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Net;
+    using System.Threading.Tasks;
+
+    using Cassandra.IntegrationTests.TestClusterManagement;
+    using Cassandra.Tasks;
+
+    using NUnit.Framework;
+
+    public class ClusterSharedSingleNodeTests : SimulacronTest
     {
         [Test]
         public void Cluster_Should_Ignore_IpV6_Addresses_For_Not_Valid_Hosts()
@@ -96,13 +100,17 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Cluster_Connect_With_Wrong_Keyspace_Name_Test()
         {
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery("USE \"MY_WRONG_KEYSPACE\"").ThenServerError(ServerError.Invalid, "msg"));
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery("USE \"ANOTHER_THAT_DOES_NOT_EXIST\"").ThenServerError(ServerError.Invalid, "msg"));
+
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(TestCluster.InitialContactPoint)
                                         //using a keyspace that does not exists
                                         .WithDefaultKeyspace("MY_WRONG_KEYSPACE")
                                         .Build())
             {
-
                 Assert.Throws<InvalidQueryException>(() => cluster.Connect());
                 Assert.Throws<InvalidQueryException>(() => cluster.Connect("ANOTHER_THAT_DOES_NOT_EXIST"));
             }
@@ -121,18 +129,22 @@ namespace Cassandra.IntegrationTests.Core
             {
                 Assert.Ignore("Test uses localhost and host name could not be resolved");
             }
-            var contactPoint = IPAddress.Parse(TestClusterManager.IpPrefix + "1");
-            if (!addressList.Contains(contactPoint))
-            {
-                Assert.Ignore("Test uses localhost but contact point is not localhost");
-            }
 
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint("localhost")
                                         .Build())
             {
-                cluster.Connect("system");
-                Assert.AreEqual(contactPoint, cluster.AllHosts().First().Address.Address);
+                try
+                {
+                    cluster.Connect("system");
+                    Assert.IsTrue(
+                        cluster.AllHosts().Any(h => addressList.Contains(h.Address.Address)), 
+                        string.Join(";", cluster.AllHosts().Select(h => h.Address.ToString())) + " | " + TestCluster.InitialContactPoint.Address);
+                }
+                catch (NoHostAvailableException ex)
+                {
+                    Assert.IsTrue(ex.Errors.Keys.Select(k => k.Address).OrderBy(a => a.ToString()).SequenceEqual(addressList.OrderBy(a => a.ToString())));
+                }
             }
         }
     }

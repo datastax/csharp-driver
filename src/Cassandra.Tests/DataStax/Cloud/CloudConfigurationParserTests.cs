@@ -28,31 +28,36 @@ namespace Cassandra.Tests.DataStax.Cloud
         [Test]
         public void Should_ParseCorrectly_When_AllPropertiesAreThereAndMore()
         {
+            var randomString = Guid.NewGuid().ToString().Replace("-", "");
+            var randomString2 = Guid.NewGuid().ToString().Replace("-", "");
+            var randomString3 = Guid.NewGuid().ToString().Replace("-", "");
+            var randomString4 = Guid.NewGuid().ToString().Replace("-", "");
+            var randomString5 = Guid.NewGuid().ToString().Replace("-", "");
             var a = 
-@"{
-   ""username"": ""joaoreis"",
-   ""password"": ""joaoreis123"",
-   ""host"": ""ea20d9d5-f69e-46ad-8eb1-f32f33a7472e.us-east-1.dse.datastax.com"",
-   ""port"": 30443,
-   ""keyspace"": ""joaoreisks"",
-   ""localDC"": ""aws-us-east-1"",
-   ""caCertLocation"": ""./ca.crt"",
-   ""keyLocation"": ""./key"",
-   ""certLocation"": ""./cert"",
-   ""keyStoreLocation"": ""./identity.jks"",
-   ""keyStorePassword"": ""2VuA5qDGkPt7xS1B8"",
-   ""trustStoreLocation"": ""./trustStore.jks"",
-   ""trustStorePassword"": ""X4V0xOzGu1Tsy6JZ3"",
-   ""csvLocation"": ""./data""
-}";
+"{" +
+   $"\"username\": \"{randomString}\"," + 
+   $"\"password\": \"{randomString2}\"," +
+   "\"host\": \"ea20d9d5-f69e-46ad-8eb1-f32f33a7472e.us-east-1.dse.datastax.com\"," +
+   "\"port\": 30443," +
+   $"\"keyspace\": \"{randomString3}\"," +
+   "\"localDC\": \"aws-us-east-1\"," +
+   "\"caCertLocation\": \"./ca.crt\"," +
+   "\"keyLocation\": \"./key\"," +
+   "\"certLocation\": \"./cert\"," +
+   "\"keyStoreLocation\": \"./identity.jks\"," +
+   $"\"keyStorePassword\": \"{randomString4}\"," +
+   "\"trustStoreLocation\": \"./trustStore.jks\"," +
+   $"\"trustStorePassword\": \"{randomString5}\"," +
+   "\"csvLocation\": \"./data\"" +
+"}";
             var stream = new MemoryStream(Encoding.Default.GetBytes(a));
             var target = new CloudConfigurationParser();
             
             var config = target.ParseConfig(stream);
             
             Assert.AreEqual(30443, config.Port);
-            Assert.AreEqual("joaoreis123", config.Password);
-            Assert.AreEqual("joaoreis", config.Username);
+            Assert.AreEqual(randomString2, config.Password);
+            Assert.AreEqual(randomString, config.Username);
             Assert.AreEqual("ea20d9d5-f69e-46ad-8eb1-f32f33a7472e.us-east-1.dse.datastax.com", config.Host);
         }
         
@@ -79,37 +84,43 @@ namespace Cassandra.Tests.DataStax.Cloud
         [Test]
         public void Should_ParseCorrectly_When_AllPropertiesAreThere()
         {
+            var randomString = Guid.NewGuid().ToString().Replace("-", "");
+            var randomString2 = Guid.NewGuid().ToString().Replace("-", "");
+            var randomString3 = Guid.NewGuid().ToString().Replace("-", "");
             var a = 
-@"{
-   ""username"": ""joaoreis"",
-   ""password"": ""joaoreis123"",
-   ""host"": ""ea20d9d5-f69e-46ad-8eb1-f32f33a7472e.us-east-1.dse.datastax.com"",
-   ""port"": 30443,
-   ""keyspace"": ""joaoreisks"",
-   ""localDC"": ""aws-us-east-1""
-}";
+@"{" +
+   $"\"username\": \"{randomString}\"," +
+   $"\"password\": \"{randomString2}\"," +
+   "\"host\": \"ea20d9d5-f69e-46ad-8eb1-f32f33a7472e.us-east-1.dse.datastax.com\"," +
+   "\"port\": 30443," +
+   $"\"keyspace\": \"{randomString3}\"," +
+   "\"localDC\": \"aws-us-east-1\"" +
+"}";
             var stream = new MemoryStream(Encoding.Default.GetBytes(a));
             var target = new CloudConfigurationParser();
             
             var config = target.ParseConfig(stream);
             
             Assert.AreEqual(30443, config.Port);
-            Assert.AreEqual("joaoreis123", config.Password);
-            Assert.AreEqual("joaoreis", config.Username);
+            Assert.AreEqual(randomString2, config.Password);
+            Assert.AreEqual(randomString, config.Username);
             Assert.AreEqual("ea20d9d5-f69e-46ad-8eb1-f32f33a7472e.us-east-1.dse.datastax.com", config.Host);
         }
         
         [Test]
         public void Should_ThrowException_When_HostIsNotThere()
         {
+            var randomString = Guid.NewGuid().ToString().Replace("-", "");
+            var randomString2 = Guid.NewGuid().ToString().Replace("-", "");
+            var randomString3 = Guid.NewGuid().ToString().Replace("-", "");
             var a = 
-@"{
-   ""username"": ""joaoreis"",
-   ""password"": ""joaoreis123"",
-   ""port"": 30443,
-   ""keyspace"": ""joaoreisks"",
-   ""localDC"": ""aws-us-east-1""
-}";
+"{" +
+   $"\"username\": \"{randomString}\"," +
+   $"\"password\": \"{randomString2}\"," +
+   "\"port\": 30443," +
+   $"\"keyspace\": \"{randomString3}\"," +
+   "\"localDC\": \"aws-us-east-1\"" +
+"}";
             var stream = new MemoryStream(Encoding.Default.GetBytes(a));
             var target = new CloudConfigurationParser();
             
@@ -121,14 +132,17 @@ namespace Cassandra.Tests.DataStax.Cloud
         [Test]
         public void Should_ThrowException_When_PortIsNotThere()
         {
+            var randomString = Guid.NewGuid().ToString().Replace("-", "");
+            var randomString2 = Guid.NewGuid().ToString().Replace("-", "");
+            var randomString3 = Guid.NewGuid().ToString().Replace("-", "");
             var a = 
-@"{
-   ""username"": ""joaoreis"",
-   ""password"": ""joaoreis123"",
-   ""host"": ""ea20d9d5-f69e-46ad-8eb1-f32f33a7472e.us-east-1.dse.datastax.com"",
-   ""keyspace"": ""joaoreisks"",
-   ""localDC"": ""aws-us-east-1""
-}";
+"{" +
+   $"\"username\": \"{randomString}\"," +
+   $"\"password\": \"{randomString2}\"," +
+   "\"host\": \"ea20d9d5-f69e-46ad-8eb1-f32f33a7472e.us-east-1.dse.datastax.com\"," +
+   $"\"keyspace\": \"{randomString3}\"," +
+   "\"localDC\": \"aws-us-east-1\"" +
+"}";
             var stream = new MemoryStream(Encoding.Default.GetBytes(a));
             var target = new CloudConfigurationParser();
             

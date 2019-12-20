@@ -233,7 +233,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             TryRemove();
             options = options ?? new TestClusterOptions();
             var testCluster = new CcmCluster(
-                TestUtils.GetTestClusterNameBasedOnTime(), 
+                TestUtils.GetTestClusterNameBasedOnRandomString(), 
                 IpPrefix, 
                 DsePath, 
                 Executor,

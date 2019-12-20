@@ -14,10 +14,13 @@
 //   limitations under the License.
 //
 
-using System.Collections.Generic;
+using System;
 using System.Linq;
+using System.Text;
 
 using Cassandra.Data.Linq;
+using Cassandra.IntegrationTests.SimulacronAPI;
+using Cassandra.IntegrationTests.SimulacronAPI.SystemTables;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
 using Cassandra.IntegrationTests.TestClusterManagement;
@@ -37,215 +40,26 @@ namespace Cassandra.IntegrationTests.Core
         {
             using (var simulacronCluster = SimulacronCluster.CreateNew(3))
             {
-                simulacronCluster.Prime(new
-                {
-                    when = new
-                    {
-                        query = "SELECT * FROM system_schema.tables WHERE table_name='testtable' AND keyspace_name='testks'"
-                    },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 0,
-                        rows = new[]
-                        {
-                                new
-                                {
-                                    compression = new { },
-                                    compaction = new { },
-                                    bloom_filter_fp_chance = 0.1,
-                                    caching = new { keys = "ALL", rows_per_partition = "NONE" },
-                                    comment = "comment",
-                                    gc_grace_seconds = 60000,
-                                    dclocal_read_repair_chance = 0.1,
-                                    read_repair_chance = 0.1,
-                                    keyspace_name = "testks"
-                                }
-                            },
-                        column_types = new
-                        {
-                            compression = "map<ascii, ascii>",
-                            compaction = "map<ascii, ascii>",
-                            bloom_filter_fp_chance = "double",
-                            caching = "map<ascii, ascii>",
-                            comment = "ascii",
-                            gc_grace_seconds = "int",
-                            dclocal_read_repair_chance = "double",
-                            read_repair_chance = "double",
-                            keyspace_name = "ascii"
-                        },
-                        ignore_on_prepare = false
-                    }
-                });
+                simulacronCluster.PrimeSystemSchemaTablesV2(
+                    "testks",
+                    "testtable",
+                    new[] 
+                    { 
+                        new StubTableColumn("", StubColumnKind.PartitionKey, DataType.GetDataType(typeof(string))), 
+                        new StubTableColumn(" ", StubColumnKind.ClusteringKey, DataType.GetDataType(typeof(string)))
+                    });
 
-                simulacronCluster.Prime(new
-                {
-                    when = new
-                    {
-                        query = "SELECT * FROM system_schema.keyspaces"
-                    },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 0,
-                        rows = new[]
-                        {
-                                new
-                                {
-                                    replication = new
-                                    {
-                                        @class = "SimpleStrategy",
-                                        replication_factor = "1"
-                                    },
-                                    keyspace_name = "testks",
-                                    durable_writes = true
-                                }
-                            },
-                        column_types = new
-                        {
-                            replication = "map<ascii, ascii>",
-                            keyspace_name = "ascii",
-                            durable_writes = "boolean"
-                        },
-                        ignore_on_prepare = false
-                    }
-                });
+                simulacronCluster.PrimeFluent(
+                    b => b.WhenQuery("SELECT \"\", \" \" FROM testks.testtable")
+                          .ThenRowsSuccess(new[] { ("", DataType.Ascii), (" ", DataType.Ascii) }, rows => rows.WithRow("testval", "testval2")));
 
-                simulacronCluster.Prime(new
-                {
-                    when = new
-                    {
-                        query = "SELECT * FROM system_schema.indexes WHERE table_name='testtable' AND keyspace_name='testks'"
-                    },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 0,
-                        rows = new[]
-                        {
-                                new
-                                {
-                                    keyspace_name = "ascii",
-                                    table_name = "ascii",
-                                    index_name = "ascii",
-                                    kind = "ascii",
-                                    options = new { target = "Custom" }
-                                }
-                            },
-                        column_types = new
-                        {
-                            keyspace_name = "ascii",
-                            table_name = "ascii",
-                            index_name = "ascii",
-                            kind = "ascii",
-                            options = "map<ascii,ascii>"
-                        },
-                        ignore_on_prepare = false
-                    }
-                });
-
-                simulacronCluster.Prime(new
-                {
-                    when = new
-                    {
-                        query = "SELECT * FROM system_schema.columns WHERE table_name='testtable' AND keyspace_name='testks'"
-                    },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 0,
-                        rows = new[]
-                        {
-                                new
-                                {
-                                    keyspace_name ="testks",
-                                    table_name = "testtable",
-                                    column_name = "",
-                                    clustering_order = "none",
-                                    column_name_bytes = 0x12,
-                                    kind = "partition_key",
-                                    position = 0,
-                                    type = "text"
-                                }
-                            },
-                        column_types = new
-                        {
-                            keyspace_name = "ascii",
-                            table_name = "ascii",
-                            column_name = "ascii",
-                            clustering_order = "ascii",
-                            column_name_bytes = "blob",
-                            kind = "ascii",
-                            position = "int",
-                            type = "ascii"
-                        },
-                        ignore_on_prepare = false
-                    }
-                });
-
-                simulacronCluster.Prime(new
-                {
-                    when = new
-                    {
-                        query = "SELECT \"\", \" \" FROM testks.testtable"
-                    },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 0,
-                        rows = new[]
-                        {
-                            new Dictionary<string, string>
-                            {
-                                {"", "testval"},
-                                {" ", "testval2"}
-                            }
-                        },
-                        column_types = new Dictionary<string, string>
-                        {
-                            {"", "ascii"},
-                            {" ", "ascii"}
-                        },
-                        ignore_on_prepare = false
-                    }
-                });
-
-                simulacronCluster.Prime(new
-                {
-                    when = new
-                    {
-                        query = "SELECT \"\", \" \" FROM testks.testtable WHERE \"\" = ? AND \" \" = ?",
-                        @params = new
-                        {
-                            column1 = "testval",
-                            column2 = "testval2"
-                        },
-                        param_types = new
-                        {
-                            column1 = "ascii",
-                            column2 = "ascii"
-                        }
-                    },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 0,
-                        rows = new[]
-                        {
-                                new Dictionary<string, string>
-                                {
-                                    {"", "testval"},
-                                    {" ", "testval2"}
-                                }
-                            },
-                        column_types = new Dictionary<string, string>
-                            {
-                                {"", "ascii"},
-                                {" ", "ascii"}
-                            },
-                        ignore_on_prepare = false
-                    }
-                });
+                simulacronCluster.PrimeFluent(
+                    b => b.WhenQuery(
+                              "SELECT \"\", \" \" FROM testks.testtable WHERE \"\" = ? AND \" \" = ?",
+                              query => query.WithParam(DataType.Ascii, "testval").WithParam(DataType.Ascii, "testval2"))
+                          .ThenRowsSuccess(
+                              new[] { ("", DataType.Ascii), (" ", DataType.Ascii) },
+                              rows => rows.WithRow("testval", "testval2")));
 
                 var mapConfig = new MappingConfiguration();
                 mapConfig.Define(
@@ -290,196 +104,26 @@ namespace Cassandra.IntegrationTests.Core
         {
             using (var simulacronCluster = SimulacronCluster.CreateNew(3))
             {
-                simulacronCluster.Prime(new
-                {
-                    when = new
-                    {
-                        query = "SELECT * FROM system.schema_keyspaces"
-                    },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 0,
-                        rows = new[]
-                        {
-                            new
-                            {
-                                strategy_options = "{\"replication_factor\":\"1\"}",
-                                strategy_class = "SimpleStrategy",
-                                keyspace_name = "testks",
-                                durable_writes = true
-                            }
-                        },
-                        column_types = new
-                        {
-                            strategy_options = "ascii",
-                            keyspace_name = "ascii",
-                            durable_writes = "boolean",
-                            strategy_class = "ascii"
-                        },
-                        ignore_on_prepare = false
-                    }
-                });
+                simulacronCluster.PrimeSystemSchemaTablesV1(
+                    "testks",
+                    "testtable",
+                    new[] 
+                    { 
+                        new StubTableColumn("", StubColumnKind.PartitionKey, DataType.GetDataType(typeof(string))), 
+                        new StubTableColumn(" ", StubColumnKind.ClusteringKey, DataType.GetDataType(typeof(string)))
+                    });
 
-                simulacronCluster.Prime(new
-                {
-                    when = new
-                    {
-                        query = "SELECT * FROM system.schema_columnfamilies WHERE columnfamily_name='testtable' AND keyspace_name='testks'"
-                    },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 0,
-                        rows = new[]
-                        {
-                            new
-                            {
-                                compression = "{}",
-                                compression_parameters = "{}",
-                                compaction_strategy_class = "compaction",
-                                compaction_strategy_options = "{}",
-                                bloom_filter_fp_chance = 0.1,
-                                caching = "{\"keys\":\"ALL\", \"rows_per_partition\":\"NONE\"}",
-                                comment = "comment",
-                                gc_grace_seconds = 60000,
-                                dclocal_read_repair_chance = 0.1,
-                                read_repair_chance = 0.1,
-                                keyspace_name = "testks",
-                                local_read_repair_chance = 0.1,
-                                comparator = ""
-                            }
-                        },
-                        column_types = new
-                        {
-                            compression = "ascii",
-                            compression_parameters = "ascii",
-                            compaction_strategy_class = "ascii",
-                            compaction_strategy_options = "ascii",
-                            bloom_filter_fp_chance = "double",
-                            caching = "ascii",
-                            comment = "ascii",
-                            gc_grace_seconds = "int",
-                            dclocal_read_repair_chance = "double",
-                            read_repair_chance = "double",
-                            local_read_repair_chance = "double",
-                            keyspace_name = "ascii",
-                            comparator = "ascii"
-                        },
-                        ignore_on_prepare = false
-                    }
-                });
+                simulacronCluster.PrimeFluent(
+                    b => b.WhenQuery("SELECT \"\", \" \" FROM testks.testtable")
+                          .ThenRowsSuccess(new[] { ("", DataType.Ascii), (" ", DataType.Ascii) }, rows => rows.WithRow("testval", "testval2")));
 
-                simulacronCluster.Prime(new
-                {
-                    when = new
-                    {
-                        query = "SELECT * FROM system.schema_columns WHERE columnfamily_name='testtable' AND keyspace_name='testks'"
-                    },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 0,
-                        rows = new[]
-                        {
-                                new
-                                {
-                                    keyspace_name ="testks",
-                                    columnfamily_name = "testtable",
-                                    column_name = "",
-                                    clustering_order = "none",
-                                    column_name_bytes = 0x12,
-                                    kind = "partition_key",
-                                    position = 0,
-                                    type = "text",
-                                    validator = "validator",
-                                    index_name = "",
-                                    index_type = "",
-                                    index_options = "{}"
-                                }
-                            },
-                        column_types = new
-                        {
-                            keyspace_name = "ascii",
-                            columnfamily_name = "ascii",
-                            column_name = "ascii",
-                            clustering_order = "ascii",
-                            column_name_bytes = "blob",
-                            kind = "ascii",
-                            position = "int",
-                            type = "ascii",
-                            validator = "ascii",
-                            index_name = "ascii",
-                            index_type = "ascii",
-                            index_options = "ascii"
-                        },
-                        ignore_on_prepare = false
-                    }
-                });
-
-                simulacronCluster.Prime(new
-                {
-                    when = new
-                    {
-                        query = "SELECT \"\", \" \" FROM testks.testtable"
-                    },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 0,
-                        rows = new[]
-                        {
-                                new Dictionary<string, string>
-                                {
-                                    {"", "testval"},
-                                    {" ", "testval2"}
-                                }
-                            },
-                        column_types = new Dictionary<string, string>
-                            {
-                                {"", "ascii"},
-                                {" ", "ascii"}
-                            },
-                        ignore_on_prepare = false
-                    }
-                });
-
-                simulacronCluster.Prime(new
-                {
-                    when = new
-                    {
-                        query = "SELECT \"\", \" \" FROM testks.testtable WHERE \"\" = ? AND \" \" = ?",
-                        @params = new
-                        {
-                            column1 = "testval",
-                            column2 = "testval2"
-                        },
-                        param_types = new
-                        {
-                            column1 = "ascii",
-                            column2 = "ascii"
-                        }
-                    },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 0,
-                        rows = new[]
-                        {
-                            new Dictionary<string, string>
-                            {
-                                {"", "testval"},
-                                {" ", "testval2"}
-                            }
-                        },
-                        column_types = new Dictionary<string, string>
-                        {
-                            {"", "ascii"},
-                            {" ", "ascii"}
-                        },
-                        ignore_on_prepare = false
-                    }
-                });
+                simulacronCluster.PrimeFluent(
+                    b => b.WhenQuery(
+                              "SELECT \"\", \" \" FROM testks.testtable WHERE \"\" = ? AND \" \" = ?",
+                              query => query.WithParam(DataType.Ascii, "testval").WithParam(DataType.Ascii, "testval2"))
+                          .ThenRowsSuccess(
+                              new[] { ("", DataType.Ascii), (" ", DataType.Ascii) },
+                              rows => rows.WithRow("testval", "testval2")));
 
                 var mapConfig = new MappingConfiguration();
                 mapConfig.Define(
