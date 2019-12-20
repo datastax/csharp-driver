@@ -83,7 +83,7 @@ namespace Cassandra
         protected readonly Dictionary<string, PropertyInfo> _fieldNameToProperty;
         protected readonly Dictionary<PropertyInfo, string> _propertyToFieldName;
         // ReSharper enable InconsistentNaming
-        private Serializer _serializer;
+        private ISerializer _serializer;
         internal static TypeConverter TypeConverter = new DefaultTypeConverter();
 
         public const BindingFlags PropertyFlags =
@@ -118,7 +118,7 @@ namespace Cassandra
             _propertyToFieldName = new Dictionary<PropertyInfo, string>();
         }
 
-        internal void SetSerializer(Serializer serializer)
+        internal void SetSerializer(ISerializer serializer)
         {
             _serializer = serializer;
         }

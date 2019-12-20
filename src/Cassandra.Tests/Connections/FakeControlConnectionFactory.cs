@@ -50,7 +50,7 @@ namespace Cassandra.Tests.Connections
                     }
                 }
             }));
-            Mock.Get(cc).Setup(c => c.Serializer).Returns(new Serializer(ProtocolVersion.V3));
+            Mock.Get(cc).Setup(c => c.Serializer).Returns(new SerializerManager(ProtocolVersion.V3));
             return cc;
         }
 

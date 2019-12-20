@@ -35,17 +35,17 @@ namespace Cassandra.Tests.Requests
             _rs = rs ?? (stmt => new RowSet());
         }
 
-        public IRequestHandler Create(IInternalSession session, Serializer serializer, IRequest request, IStatement statement, IRequestOptions options)
+        public IRequestHandler Create(IInternalSession session, ISerializer serializer, IRequest request, IStatement statement, IRequestOptions options)
         {
             return CreateMockHandler(statement);
         }
 
-        public IRequestHandler Create(IInternalSession session, Serializer serializer, IStatement statement, IRequestOptions options)
+        public IRequestHandler Create(IInternalSession session, ISerializer serializer, IStatement statement, IRequestOptions options)
         {
             return CreateMockHandler(statement);
         }
 
-        public IRequestHandler Create(IInternalSession session, Serializer serializer)
+        public IRequestHandler Create(IInternalSession session, ISerializer serializer)
         {
             return CreateMockHandler();
         }

@@ -32,7 +32,7 @@ namespace Cassandra.Tests
         private static PreparedStatement GetPrepared(string query = Query, RowSetMetadata metadata = null)
         {
             return new PreparedStatement(metadata, new byte[0], null, query, null,
-                new Serializer(ProtocolVersion.MaxSupported));
+                new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer());
         }
 
         [Test]
@@ -163,7 +163,7 @@ namespace Cassandra.Tests
             Assert.Null(ps.RoutingKey);
             var bound = ps.Bind("dummy name", 1000);
             Assert.NotNull(bound.RoutingKey);
-            CollectionAssert.AreEqual(new Serializer(ProtocolVersion.MaxSupported).Serialize(1000), bound.RoutingKey.RawRoutingKey);
+            CollectionAssert.AreEqual(new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer().Serialize(1000), bound.RoutingKey.RawRoutingKey);
         }
 
         [Test]
@@ -196,7 +196,7 @@ namespace Cassandra.Tests
             Assert.Null(ps.RoutingKey);
             var bound = ps.Bind(2001, 1001);
             Assert.NotNull(bound.RoutingKey);
-            var serializer = new Serializer(ProtocolVersion.MaxSupported);
+            var serializer = new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer();
             var expectedRoutingKey = new byte[0]
                 .Concat(new byte[] {0, 4})
                 .Concat(serializer.Serialize(1001))
@@ -213,7 +213,7 @@ namespace Cassandra.Tests
             var stmt = new SimpleStatement(Query, "id1");
             Assert.Null(stmt.RoutingKey);
             stmt.SetRoutingValues("id1");
-            stmt.Serializer = new Serializer(ProtocolVersion.MaxSupported);
+            stmt.Serializer = new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer();
             CollectionAssert.AreEqual(stmt.Serializer.Serialize("id1"), stmt.RoutingKey.RawRoutingKey);
         }
 
@@ -223,7 +223,7 @@ namespace Cassandra.Tests
             var stmt = new SimpleStatement(Query, "id1", "id2", "val1");
             Assert.Null(stmt.RoutingKey);
             stmt.SetRoutingValues("id1", "id2");
-            stmt.Serializer = new Serializer(ProtocolVersion.MaxSupported);
+            stmt.Serializer = new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer();
             var expectedRoutingKey = new byte[0]
                 .Concat(new byte[] { 0, 3 })
                 .Concat(stmt.Serializer.Serialize("id1"))
@@ -240,7 +240,7 @@ namespace Cassandra.Tests
             var batch = new BatchStatement();
             Assert.Null(batch.RoutingKey);
             batch.SetRoutingValues("id1-value");
-            batch.Serializer = new Serializer(ProtocolVersion.MaxSupported);
+            batch.Serializer = new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer();
             CollectionAssert.AreEqual(batch.Serializer.Serialize("id1-value"), batch.RoutingKey.RawRoutingKey);
         }
 
@@ -250,7 +250,7 @@ namespace Cassandra.Tests
             var batch = new BatchStatement();
             Assert.Null(batch.RoutingKey);
             batch.SetRoutingValues("id11", "id22");
-            batch.Serializer = new Serializer(ProtocolVersion.MaxSupported);
+            batch.Serializer = new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer();
             var expectedRoutingKey = new byte[0]
                 .Concat(new byte[] { 0, 4 })
                 .Concat(batch.Serializer.Serialize("id11"))

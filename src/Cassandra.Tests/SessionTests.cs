@@ -34,7 +34,7 @@ namespace Cassandra.Tests
             var sessionNames = new ConcurrentQueue<string>();
             var sessionFactoryMock = Mock.Of<ISessionFactory>();
             Mock.Get(sessionFactoryMock).Setup(s =>
-                    s.CreateSessionAsync(It.IsAny<IInternalCluster>(), It.IsAny<string>(), It.IsAny<Serializer>(), It.IsAny<string>()))
+                    s.CreateSessionAsync(It.IsAny<IInternalCluster>(), It.IsAny<string>(), It.IsAny<ISerializerManager>(), It.IsAny<string>()))
                 .ReturnsAsync(Mock.Of<IInternalSession>())
                 .Callback<IInternalCluster, string, Serializer, string>((c, ks, serializer, name) => { sessionNames.Enqueue(name); });
 

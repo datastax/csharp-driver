@@ -64,7 +64,7 @@ namespace Cassandra.DataStax.Insights.MessageFactories
                 HeartbeatInterval = 
                     cluster
                         .Configuration
-                        .GetPoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
+                        .GetOrCreatePoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
                         .GetHeartBeatInterval() ?? 0,
                 Compression = cluster.Configuration.ProtocolOptions.Compression,
                 ReconnectionPolicy = _infoProviders.ReconnectionPolicyInfoProvider.GetInformation(cluster, session),

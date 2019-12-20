@@ -32,14 +32,14 @@ namespace Cassandra
         /// </summary>
         private readonly byte[] _buffer = new byte[4];
         private readonly Stream _stream;
-        private readonly Serializer _serializer;
+        private readonly ISerializer _serializer;
 
-        internal Serializer Serializer
+        internal ISerializer Serializer
         {
             get { return _serializer; }
         }
 
-        public FrameReader(Stream stream, Serializer serializer)
+        public FrameReader(Stream stream, ISerializer serializer)
         {
             _stream = stream;
             _serializer = serializer;

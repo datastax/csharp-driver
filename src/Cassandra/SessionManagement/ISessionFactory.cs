@@ -22,6 +22,6 @@ namespace Cassandra.SessionManagement
     internal interface ISessionFactory
     {
         Task<IInternalSession> CreateSessionAsync(
-            IInternalCluster cluster, string keyspace, Serializer serializer, string sessionName);
+            IInternalCluster cluster, string keyspace, ISerializerManager serializer, string sessionName);
     }
 }

@@ -31,7 +31,7 @@ namespace Cassandra.Requests
             _credentials = credentials;
         }
 
-        public int WriteFrame(short streamId, MemoryStream stream, Serializer serializer)
+        public int WriteFrame(short streamId, MemoryStream stream, ISerializer serializer)
         {
             if (serializer.ProtocolVersion != ProtocolVersion.V1)
             {

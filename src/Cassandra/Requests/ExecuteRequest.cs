@@ -81,7 +81,7 @@ namespace Cassandra.Requests
             }
         }
 
-        public int WriteFrame(short streamId, MemoryStream stream, Serializer serializer)
+        public int WriteFrame(short streamId, MemoryStream stream, ISerializer serializer)
         {
             var wb = new FrameWriter(stream, serializer);
             var protocolVersion = serializer.ProtocolVersion;

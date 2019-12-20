@@ -22,7 +22,7 @@ namespace Cassandra.SessionManagement
     internal class SessionFactory : ISessionFactory
     {
         public Task<IInternalSession> CreateSessionAsync(
-            IInternalCluster cluster, string keyspace, Serializer serializer, string sessionName)
+            IInternalCluster cluster, string keyspace, ISerializerManager serializer, string sessionName)
         {
             return Task.FromResult(
                 new Session(cluster, cluster.Configuration, keyspace, serializer, sessionName).InternalRef);

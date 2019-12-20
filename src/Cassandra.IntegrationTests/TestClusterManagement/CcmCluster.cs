@@ -16,6 +16,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Linq;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement
 {
@@ -161,10 +162,15 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public void UpdateConfig(params string[] yamlChanges)
         {
             if (yamlChanges == null) return;
-            foreach (var setting in yamlChanges)
-            {
-                _ccm.ExecuteCcm($"updateconf \"{setting}\"");
-            }
+            var joinedChanges = string.Join(" ", yamlChanges.Select(s => $"\"{s}\""));
+            _ccm.ExecuteCcm($"updateconf {joinedChanges}");
+        }
+
+        public void UpdateConfig(int nodeId, params string[] yamlChanges)
+        {
+            if (yamlChanges == null) return;
+            var joinedChanges = string.Join(" ", yamlChanges.Select(s => $"\"{s}\""));
+            _ccm.ExecuteCcm($"node{nodeId} updateconf {joinedChanges}");
         }
     }
 }

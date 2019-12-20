@@ -39,7 +39,7 @@ namespace Cassandra
     /// <inheritdoc cref="Cassandra.ISession" />
     public class Session : IInternalSession
     {
-        private readonly Serializer _serializer;
+        private readonly ISerializer _serializer;
         private static readonly Logger Logger = new Logger(typeof(Session));
         private readonly IThreadSafeDictionary<IPEndPoint, IHostConnectionPool> _connectionPool;
         private readonly IInternalCluster _cluster;
@@ -104,10 +104,10 @@ namespace Cassandra
             IInternalCluster cluster,
             Configuration configuration,
             string keyspace,
-            Serializer serializer,
+            ISerializerManager serializer,
             string sessionName)
         {
-            _serializer = serializer;
+            _serializer = serializer.GetCurrentSerializer();
             _cluster = cluster;
             Configuration = configuration;
             Keyspace = keyspace;
@@ -223,7 +223,7 @@ namespace Cassandra
         {
             _metricsManager.InitializeMetrics(this);
 
-            if (Configuration.GetPoolingOptions(_serializer.ProtocolVersion).GetWarmup())
+            if (Configuration.GetOrCreatePoolingOptions(_serializer.ProtocolVersion).GetWarmup())
             {
                 await Warmup().ConfigureAwait(false);
             }

@@ -124,11 +124,11 @@ namespace Cassandra.Tests.Mapping.Linq
                 table.Where(t => t.Int64Value == 1).ToString());
         }
 
-        private static Mock<ISession> GetSessionMock(Serializer serializer = null)
+        private static Mock<ISession> GetSessionMock(ISerializerManager serializer = null)
         {
             if (serializer == null)
             {
-                serializer = new Serializer(ProtocolVersion.MaxSupported);
+                serializer = new SerializerManager(ProtocolVersion.MaxSupported);
             }
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             var config = new Configuration();

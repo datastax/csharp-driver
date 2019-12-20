@@ -27,11 +27,11 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
             {
                 Local = cluster
                         .Configuration
-                        .GetPoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
+                        .GetOrCreatePoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
                         .GetCoreConnectionsPerHost(HostDistance.Local),
                 Remote = cluster
                          .Configuration
-                         .GetPoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
+                         .GetOrCreatePoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
                          .GetCoreConnectionsPerHost(HostDistance.Remote)
             };
         }

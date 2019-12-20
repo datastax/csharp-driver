@@ -148,7 +148,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
             Assert.IsNotNull(Session.Cluster.Configuration.AuthProvider.GetType());
             Assert.AreEqual(typeof(PlainTextAuthProvider), Session.Cluster.Configuration.AuthProvider.GetType());
             var provider = (PlainTextAuthProvider)Session.Cluster.Configuration.AuthProvider;
-            Assert.AreEqual("cassandra", provider.Username);
+            Assert.AreEqual("user1", provider.Username);
         }
 
         [Test]
@@ -284,8 +284,8 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
             Assert.IsFalse(string.IsNullOrWhiteSpace(scb.Config.CertificatePassword));
             Assert.IsTrue(scb.ClientCert.HasPrivateKey);
             Assert.AreEqual(30443, scb.Config.Port);
-            Assert.AreEqual("cassandra", scb.Config.Password);
-            Assert.AreEqual("cassandra", scb.Config.Username);
+            Assert.AreEqual("user1", scb.Config.Password);
+            Assert.AreEqual("user1", scb.Config.Username);
             Assert.AreEqual("localhost", scb.Config.Host);
         }
 
@@ -295,7 +295,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
             var session = await CreateSessionAsync(act: b => b
                 .WithExecutionProfiles(opt => opt
                     .WithProfile("default", profile =>
-                        profile.WithConsistencyLevel(ConsistencyLevel.All))
+                        profile.WithConsistencyLevel(ConsistencyLevel.Any))
                     .WithProfile("profile", profile =>
                         profile.WithSerialConsistencyLevel(ConsistencyLevel.LocalSerial))
                     .WithDerivedProfile("derived", "profile", profile =>

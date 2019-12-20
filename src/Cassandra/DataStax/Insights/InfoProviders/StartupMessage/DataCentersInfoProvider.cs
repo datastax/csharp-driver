@@ -27,7 +27,7 @@ namespace Cassandra.DataStax.Insights.InfoProviders.StartupMessage
             var remoteConnectionsLength =
                 cluster
                     .Configuration
-                    .GetPoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
+                    .GetOrCreatePoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
                     .GetCoreConnectionsPerHost(HostDistance.Remote);
 
             foreach (var h in cluster.AllHosts()) 

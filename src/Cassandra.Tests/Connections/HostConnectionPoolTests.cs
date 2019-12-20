@@ -116,7 +116,7 @@ namespace Cassandra.Tests.Connections
                         new AtomicMonotonicTimestampGenerator()), 
                     PoolingOptions = PoolingOptions.Create(ProtocolVersion.V4).SetCoreConnectionsPerHost(HostDistance.Local, 2)
                 }.Build(), 
-                Serializer.Default,
+                SerializerManager.Default.GetCurrentSerializer(),
                 new MetricsObserverFactory(new MetricsManager(new NullDriverMetricsProvider(), new DriverMetricsOptions(), false, "s1"))
                 );
             pool.SetDistance(HostDistance.Local); // set expected connections length

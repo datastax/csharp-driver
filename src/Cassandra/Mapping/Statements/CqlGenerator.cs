@@ -245,7 +245,7 @@ namespace Cassandra.Mapping.Statements
             cql.SetStatement($"DELETE FROM {CqlGenerator.CqlIdentifierHelper.EscapeTableNameIfNecessary(pocoData, pocoData.KeyspaceName, pocoData.TableName)} {cql.Statement}");
         }
 
-        private static string GetTypeString(Serializer serializer, PocoColumn column)
+        private static string GetTypeString(ISerializer serializer, PocoColumn column)
         {
             string typeName;
 
@@ -270,7 +270,7 @@ namespace Cassandra.Mapping.Statements
         /// <summary>
         /// Gets the CQL queries involved in a table creation (CREATE TABLE, CREATE INDEX)
         /// </summary>
-        public static List<string> GetCreate(Serializer serializer, PocoData pocoData, string tableName, string keyspaceName, bool ifNotExists)
+        public static List<string> GetCreate(ISerializer serializer, PocoData pocoData, string tableName, string keyspaceName, bool ifNotExists)
         {
             if (pocoData == null)
             {

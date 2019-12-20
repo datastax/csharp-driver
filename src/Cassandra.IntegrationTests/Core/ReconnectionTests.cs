@@ -35,12 +35,20 @@ namespace Cassandra.IntegrationTests.Core
     public class ReconnectionTests : TestGlobals
     {
         private SimulacronCluster _testCluster;
+        private Lazy<ITestCluster> _realCluster = new Lazy<ITestCluster>(() => TestClusterManagement.TestClusterManager.CreateNew(2));
 
         [TearDown]
         public void TearDown()
         {
             _testCluster?.Dispose();
             _testCluster = null;
+
+            if (_realCluster.IsValueCreated)
+            {
+                _realCluster.Value.ShutDown();
+                _realCluster = new Lazy<ITestCluster>(
+                    () => TestClusterManagement.TestClusterManager.CreateNew(2, new TestClusterOptions { UseVNodes = true}));
+            }
         }
 
         /// Tests that reconnection attempts are made multiple times in the background
@@ -285,8 +293,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_UseNewHostInQueryPlans_When_HostIsDecommissionedAndJoinsAgain()
         {
-            var testCluster = TestClusterManager.CreateNew(2);
-
+            var testCluster = _realCluster.Value;
             using (var cluster = 
                  Cluster.Builder()
                         .AddContactPoint(testCluster.InitialContactPoint)
@@ -360,6 +367,86 @@ namespace Cassandra.IntegrationTests.Core
                 pool2 = session.GetExistingPool(removedHost.Address);
                 Assert.IsNotNull(pool2);
                 Assert.AreEqual(2, pool2.OpenConnections);
+            }
+        }
+
+        [Category("realcluster")]
+        [Test]
+        public void Should_UpdateHosts_When_HostIpChanges()
+        {
+            var oldIp = $"{_realCluster.Value.ClusterIpPrefix}3";
+            var newIp = $"{_realCluster.Value.ClusterIpPrefix}4";
+            var oldEndPoint = new IPEndPoint(IPAddress.Parse(oldIp), ProtocolOptions.DefaultPort);
+            var newEndPoint = new IPEndPoint(IPAddress.Parse(newIp), ProtocolOptions.DefaultPort);
+            var addresses = new[]
+            {
+                $"{_realCluster.Value.ClusterIpPrefix}1",
+                $"{_realCluster.Value.ClusterIpPrefix}2",
+                oldIp
+            };
+            
+            var newAddresses = new[]
+            {
+                $"{_realCluster.Value.ClusterIpPrefix}1",
+                $"{_realCluster.Value.ClusterIpPrefix}2",
+                newIp
+            };
+
+            _realCluster.Value.BootstrapNode(3);
+
+            using (var cluster = Cluster.Builder().AddContactPoint(_realCluster.Value.InitialContactPoint).Build())
+            {
+                var session = (IInternalSession)cluster.Connect();
+                session.CreateKeyspaceIfNotExists("ks1");
+                var hosts = session.Cluster.AllHosts().OrderBy(h => h.Address.ToString()).ToArray();
+                Assert.AreEqual(3, hosts.Length);
+                Assert.AreEqual(3, session.GetPools().Count());
+                Assert.IsNotNull(session.GetExistingPool(oldEndPoint));
+                Assert.IsTrue(hosts.Select(h => h.Address.Address.ToString()).SequenceEqual(addresses));
+                var tokenMap = session.Cluster.Metadata.TokenToReplicasMap;
+                var oldHostTokens = tokenMap.GetByKeyspace("ks1")
+                                     .Where(kvp =>
+                                         kvp.Value.First().Address.Address.ToString().Equals(oldIp));
+
+                _realCluster.Value.Stop(3);
+                _realCluster.Value.UpdateConfig(
+                    3, 
+                    $"listen_address: {_realCluster.Value.ClusterIpPrefix}4", 
+                    $"rpc_address: {_realCluster.Value.ClusterIpPrefix}4");
+
+                _realCluster.Value.Start(3, "--skip-wait-other-notice");
+
+                TestHelper.RetryAssert(
+                    () =>
+                    {
+                        Assert.AreEqual(1,
+                            session.Cluster.AllHosts()
+                                   .Count(h => h.Address.Address.ToString().Equals($"{_realCluster.Value.ClusterIpPrefix}4")),
+                            string.Join(";", session.Cluster.AllHosts().Select(h => h.Address.Address.ToString())));
+                        Assert.AreNotSame(tokenMap, session.Cluster.Metadata.TokenToReplicasMap);
+                    },
+                    100,
+                    100);
+                
+                var newTokenMap = session.Cluster.Metadata.TokenToReplicasMap;
+                var newHostTokens = newTokenMap.GetByKeyspace("ks1")
+                                            .Where(kvp =>
+                                                kvp.Value.First().Address.Address.ToString().Equals(newIp)).ToList();
+
+                hosts = session.Cluster.AllHosts().ToArray();
+                Assert.AreEqual(3, hosts.Length);
+                Assert.IsTrue(hosts.Select(h => h.Address.Address.ToString()).SequenceEqual(newAddresses));
+                Assert.IsTrue(newHostTokens.Select(h => h.Key).SequenceEqual(oldHostTokens.Select(h => h.Key)));
+
+                // force session to open connection to the new node
+                foreach (var i in Enumerable.Range(0, 5))
+                {
+                    session.Execute("SELECT * FROM system.local");
+                }
+
+                Assert.AreEqual(3, session.GetPools().Count());
+                Assert.IsNull(session.GetExistingPool(oldEndPoint));
+                Assert.IsNotNull(session.GetExistingPool(newEndPoint));
             }
         }
     }

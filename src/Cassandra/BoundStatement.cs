@@ -31,7 +31,7 @@ namespace Cassandra
     {
         private readonly PreparedStatement _preparedStatement;
         private RoutingKey _routingKey;
-        private readonly Serializer _serializer;
+        private readonly ISerializer _serializer;
         private readonly string _keyspace;
 
         /// <summary>
@@ -97,7 +97,7 @@ namespace Cassandra
             }
         }
 
-        internal BoundStatement(PreparedStatement statement, Serializer serializer) : this(statement)
+        internal BoundStatement(PreparedStatement statement, ISerializer serializer) : this(statement)
         {
             _serializer = serializer;
         }

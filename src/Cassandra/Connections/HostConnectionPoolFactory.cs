@@ -21,7 +21,7 @@ namespace Cassandra.Connections
 {
     internal class HostConnectionPoolFactory : IHostConnectionPoolFactory
     {
-        public IHostConnectionPool Create(Host host, Configuration config, Serializer serializer, IObserverFactory observerFactory)
+        public IHostConnectionPool Create(Host host, Configuration config, ISerializer serializer, IObserverFactory observerFactory)
         {
             return new HostConnectionPool(host, config, serializer, observerFactory);
         }
