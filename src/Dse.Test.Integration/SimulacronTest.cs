@@ -126,18 +126,14 @@ namespace Dse.Test.Integration
         protected void PrimeSystemSchemaTables(string keyspace, string table, IEnumerable<StubTableColumn> columns)
         {
             var version30 = new Version(3, 0);
-            var version40 = new Version(4, 0);
             var cassandraVersion = TestClusterManager.CassandraVersion;
 
-            if (cassandraVersion >= version40)
-            {
-                throw new NotSupportedException("Priming system schema tables not implemented for c* 4.0+");
-            }
             if (cassandraVersion >= version30)
             {
                 TestCluster.PrimeSystemSchemaTablesV2(keyspace, table, columns);
                 return;
             }
+
             if (cassandraVersion < version30)
             {
                 TestCluster.PrimeSystemSchemaTablesV1(keyspace, table, columns);
