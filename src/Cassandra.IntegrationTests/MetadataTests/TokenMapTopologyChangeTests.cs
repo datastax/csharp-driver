@@ -77,6 +77,8 @@ namespace Cassandra.IntegrationTests.MetadataTests
                 this.TestCluster.DecommissionNode(1);
             }
 
+            this.TestCluster.Remove(1);
+
             TestHelper.RetryAssert(() =>
             {
                 Assert.AreEqual(2, ClusterObjSync.Metadata.Hosts.Count);
