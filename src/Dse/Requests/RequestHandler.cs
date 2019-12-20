@@ -28,7 +28,7 @@ namespace Dse.Requests
         private static readonly Logger Logger = new Logger(typeof(Session));
         public const long StateInit = 0;
         public const long StateCompleted = 1;
-        
+
         private readonly IRequest _request;
         private readonly IInternalSession _session;
         private readonly IRequestResultHandler _requestResultHandler;
@@ -40,7 +40,7 @@ namespace Dse.Requests
         private volatile HashedWheelTimer.ITimeout _nextExecutionTimeout;
         private readonly IRequestObserver _requestObserver;
         public IExtendedRetryPolicy RetryPolicy { get; }
-        public Serializer Serializer { get; }
+        public ISerializer Serializer { get; }
         public IStatement Statement { get; }
         public IRequestOptions RequestOptions { get; }
 
@@ -48,7 +48,7 @@ namespace Dse.Requests
         /// Creates a new instance using a request, the statement and the execution profile.
         /// </summary>
         public RequestHandler(
-            IInternalSession session, Serializer serializer, IRequest request, IStatement statement, IRequestOptions requestOptions)
+            IInternalSession session, ISerializer serializer, IRequest request, IStatement statement, IRequestOptions requestOptions)
         {
             _session = session ?? throw new ArgumentNullException(nameof(session));
             _requestObserver = session.ObserverFactory.CreateRequestObserver();
@@ -72,7 +72,7 @@ namespace Dse.Requests
         /// Creates a new instance using the statement to build the request.
         /// Statement can not be null.
         /// </summary>
-        public RequestHandler(IInternalSession session, Serializer serializer, IStatement statement, IRequestOptions requestOptions)
+        public RequestHandler(IInternalSession session, ISerializer serializer, IStatement statement, IRequestOptions requestOptions)
             : this(session, serializer, RequestHandler.GetRequest(statement, serializer, requestOptions), statement, requestOptions)
         {
         }
@@ -80,7 +80,7 @@ namespace Dse.Requests
         /// <summary>
         /// Creates a new instance with no request, suitable for getting a connection.
         /// </summary>
-        public RequestHandler(IInternalSession session, Serializer serializer)
+        public RequestHandler(IInternalSession session, ISerializer serializer)
             : this(session, serializer, null, null, session.Cluster.Configuration.DefaultRequestOptions)
         {
         }
@@ -109,7 +109,7 @@ namespace Dse.Requests
         /// <summary>
         /// Gets the Request to send to a cassandra node based on the statement type
         /// </summary>
-        internal static IRequest GetRequest(IStatement statement, Serializer serializer, IRequestOptions requestOptions)
+        internal static IRequest GetRequest(IStatement statement, ISerializer serializer, IRequestOptions requestOptions)
         {
             ICqlRequest request = null;
             if (statement.IsIdempotent == null)
@@ -141,7 +141,7 @@ namespace Dse.Requests
             }
             if (request == null)
             {
-                throw new NotSupportedException("Statement of type " + statement.GetType().FullName + " not supported");   
+                throw new NotSupportedException("Statement of type " + statement.GetType().FullName + " not supported");
             }
             //Set the outgoing payload for the request
             request.Payload = statement.OutgoingPayload;
@@ -254,7 +254,7 @@ namespace Dse.Requests
 
             throw new NoHostAvailableException(triedHosts);
         }
-        
+
         /// <summary>
         /// Checks if the host is a valid candidate for the purpose of obtaining a connection.
         /// This method obtains the <see cref="HostDistance"/> from the load balancing policy.
@@ -301,7 +301,7 @@ namespace Dse.Requests
             {
                 return null;
             }
-            
+
             var c = await GetConnectionToValidHostAsync(validHost, triedHosts).ConfigureAwait(false);
             return c;
         }
@@ -405,7 +405,7 @@ namespace Dse.Requests
                     //There isn't any host available, yield it to the user
                     SetCompleted(ex);
                 }
-                //Let's wait for the other executions 
+                //Let's wait for the other executions
             }
             catch (Exception ex)
             {

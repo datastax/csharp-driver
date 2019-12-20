@@ -64,7 +64,7 @@ namespace Dse
                 var serializer = Serializer;
                 if (serializer == null)
                 {
-                    serializer = Serializer.Default;
+                    serializer = Serialization.SerializerManager.Default.GetCurrentSerializer();
                     Logger.Warning(
                         "Calculating routing key before executing is not supported for BatchStatement instances, " +
                         "using default serializer.");
@@ -98,7 +98,7 @@ namespace Dse
 
         public override string Keyspace => _keyspace;
 
-        internal Serializer Serializer { get; set; }
+        internal ISerializer Serializer { get; set; }
 
         /// <summary>
         ///  Set the routing key for this query. <p> This method allows to manually
@@ -134,13 +134,13 @@ namespace Dse
         /// </summary>
         /// <param name="statement">Statement to add to the batch</param>
         /// <returns>The Batch statement</returns>
-        /// <exception cref="System.ArgumentOutOfRangeException">Thrown when trying to add more than <c>short.MaxValue</c> Statements</exception>
+        /// <exception cref="System.ArgumentOutOfRangeException">Thrown when trying to add more than <c>ushort.MaxValue</c> Statements</exception>
         public BatchStatement Add(Statement statement)
         {
             if (_queries.Count >= ushort.MaxValue)
             {
-                throw new ArgumentOutOfRangeException(
-                    string.Format("Batch statement cannot contain more than {0} statements", short.MaxValue));
+                //see BatchMessage.codec field in BatchMessage.java in server code, and BatchRequest.GetFrame in this driver
+                throw new ArgumentOutOfRangeException(string.Format("There can be only {0} child statement in a batch statement accordung to the cassandra native protocol", ushort.MaxValue));
             }
             if (statement.OutgoingPayload != null && statement.OutgoingPayload.ContainsKey(ProxyExecuteKey))
             {

@@ -33,7 +33,7 @@ namespace Dse.Requests
             }
         }
 
-        public int WriteFrame(short streamId, MemoryStream stream, Serializer serializer)
+        public int WriteFrame(short streamId, MemoryStream stream, ISerializer serializer)
         {
             var wb = new FrameWriter(stream, serializer);
             wb.WriteFrameHeader(0x00, streamId, OpCode);

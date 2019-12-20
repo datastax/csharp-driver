@@ -22,18 +22,18 @@ namespace Dse.Requests
 {
     internal class RequestHandlerFactory : IRequestHandlerFactory
     {
-        public IRequestHandler Create(IInternalSession session, Serializer serializer, IRequest request, IStatement statement, IRequestOptions options)
+        public IRequestHandler Create(IInternalSession session, ISerializer serializer, IRequest request, IStatement statement, IRequestOptions options)
         {
             return new RequestHandler(session, serializer, request, statement, options);
         }
 
         public IRequestHandler Create(
-            IInternalSession session, Serializer serializer, IStatement statement, IRequestOptions options)
+            IInternalSession session, ISerializer serializer, IStatement statement, IRequestOptions options)
         {
             return new RequestHandler(session, serializer, statement, options);
         }
 
-        public IRequestHandler Create(IInternalSession session, Serializer serializer)
+        public IRequestHandler Create(IInternalSession session, ISerializer serializer)
         {
             return new RequestHandler(session, serializer);
         }

@@ -40,7 +40,7 @@ namespace Dse.Test.Unit
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.Create(
                     It.IsAny<IInternalSession>(), 
-                    It.IsAny<Serializer>(), 
+                    It.IsAny<ISerializer>(), 
                     It.IsAny<IRequest>(),
                     It.IsAny<IStatement>(),
                     It.IsAny<IRequestOptions>()))
@@ -68,7 +68,7 @@ namespace Dse.Test.Unit
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.Create(
                     It.IsAny<IInternalSession>(), 
-                    It.IsAny<Serializer>(), 
+                    It.IsAny<ISerializer>(), 
                     It.IsAny<IRequest>(),
                     It.IsAny<IStatement>(),
                     It.IsAny<IRequestOptions>()))
@@ -103,7 +103,7 @@ namespace Dse.Test.Unit
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.Create(
                     It.IsAny<IInternalSession>(), 
-                    It.IsAny<Serializer>(), 
+                    It.IsAny<ISerializer>(), 
                     It.IsAny<IRequest>(),
                     It.IsAny<IStatement>(),
                     It.IsAny<IRequestOptions>()))
@@ -152,7 +152,7 @@ namespace Dse.Test.Unit
             Mock.Get(requestHandlerFactory)
                 .Setup(r => r.Create(
                     It.IsAny<IInternalSession>(), 
-                    It.IsAny<Serializer>(), 
+                    It.IsAny<ISerializer>(), 
                     It.IsAny<IRequest>(),
                     It.IsAny<IStatement>(),
                     It.IsAny<IRequestOptions>()))

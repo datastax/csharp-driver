@@ -31,7 +31,7 @@ namespace Dse.Test.Unit
     public class FrameParserTests
     {
         private const ProtocolVersion Version = ProtocolVersion.MaxSupported;
-        private static readonly Serializer Serializer = new Serializer(Version);
+        private static readonly ISerializerManager Serializer = new SerializerManager(Version);
         private const int ReadFailureErrorCode = 0x1300;
         private const int WriteFailureErrorCode = 0x1500;
 
@@ -40,7 +40,7 @@ namespace Dse.Test.Unit
         {
             var body = GetErrorBody(0x2000, "Test syntax error");
             var header = FrameHeader.ParseResponseHeader(Version, GetHeaderBuffer(body.Length), 0);
-            var response = FrameParser.Parse(new Frame(header, new MemoryStream(body), Serializer));
+            var response = FrameParser.Parse(new Frame(header, new MemoryStream(body), Serializer.GetCurrentSerializer()));
             var ex = IsErrorResponse<SyntaxError>(response);
             Assert.AreEqual("Test syntax error", ex.Message);
         }
@@ -52,7 +52,7 @@ namespace Dse.Test.Unit
             var warningBuffers = BeConverter.GetBytes((ushort)1).Concat(GetProtocolString("Test warning"));
             var body = warningBuffers.Concat(GetErrorBody(0x2000, "Test syntax error")).ToArray();
             var header = FrameHeader.ParseResponseHeader(Version, GetHeaderBuffer(body.Length, HeaderFlag.Warning), 0);
-            var response = FrameParser.Parse(new Frame(header, new MemoryStream(body), Serializer));
+            var response = FrameParser.Parse(new Frame(header, new MemoryStream(body), Serializer.GetCurrentSerializer()));
             var ex = IsErrorResponse<SyntaxError>(response);
             Assert.AreEqual("Test syntax error", ex.Message);
         }
@@ -170,7 +170,7 @@ namespace Dse.Test.Unit
         private static Response GetResponse(byte[] body, ProtocolVersion version = Version)
         {
             var header = FrameHeader.ParseResponseHeader(version, GetHeaderBuffer(body.Length), 0);
-            return FrameParser.Parse(new Frame(header, new MemoryStream(body), new Serializer(version)));
+            return FrameParser.Parse(new Frame(header, new MemoryStream(body), new SerializerManager(version).GetCurrentSerializer()));
         }
 
         private static byte[] GetProtocolString(string value)

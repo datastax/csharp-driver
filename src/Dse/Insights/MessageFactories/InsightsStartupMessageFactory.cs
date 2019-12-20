@@ -56,7 +56,7 @@ namespace Dse.Insights.MessageFactories
                     cluster
                         .Configuration
                         .CassandraConfiguration
-                        .GetPoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
+                        .GetOrCreatePoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
                         .GetHeartBeatInterval() ?? 0,
                 Compression = cluster.Configuration.CassandraConfiguration.ProtocolOptions.Compression,
                 ReconnectionPolicy = _infoProviders.ReconnectionPolicyInfoProvider.GetInformation(cluster, dseSession),

@@ -14,13 +14,23 @@
 //   limitations under the License.
 //
 
-using System.Threading.Tasks;
-using Dse.Serialization;
-
-namespace Dse.SessionManagement
+namespace Dse.Serialization
 {
-    internal interface ISessionFactory<TSession> where TSession : IInternalSession
+    internal interface ISerializerManager
     {
-        Task<TSession> CreateSessionAsync(string keyspace, ISerializerManager serializer, string sessionName);
+        ProtocolVersion CurrentProtocolVersion { get; }
+
+        void ChangeProtocolVersion(ProtocolVersion version);
+
+        /// <summary>
+        /// Get a serializer for the current protocol version.
+        /// </summary>
+        /// <returns></returns>
+        ISerializer GetCurrentSerializer();
+
+        ///// <summary>
+        ///// Adds a UDT mapping definition
+        ///// </summary>
+        void SetUdtMap(string name, UdtMap map);
     }
 }

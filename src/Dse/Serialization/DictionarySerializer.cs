@@ -29,11 +29,11 @@ namespace Dse.Serialization
             for (var i = 0; i < count; i++)
             {
                 var keyLength = DecodeCollectionLength((ProtocolVersion)protocolVersion, buffer, ref offset);
-                var key = DeserializeChild(buffer, offset, keyLength, mapInfo.KeyTypeCode, mapInfo.KeyTypeInfo);
+                var key = DeserializeChild(protocolVersion, buffer, offset, keyLength, mapInfo.KeyTypeCode, mapInfo.KeyTypeInfo);
                 offset += keyLength;
 
                 var valueLength = DecodeCollectionLength((ProtocolVersion)protocolVersion, buffer, ref offset);
-                var value = DeserializeChild(buffer, offset, valueLength, mapInfo.ValueTypeCode, mapInfo.ValueTypeInfo);
+                var value = DeserializeChild(protocolVersion, buffer, offset, valueLength, mapInfo.ValueTypeCode, mapInfo.ValueTypeInfo);
                 offset += valueLength;
 
                 result.Add(key, value);
@@ -72,7 +72,7 @@ namespace Dse.Serialization
 
         public int AddItem(LinkedList<byte[]> bufferList, ushort protocolVersion, object item)
         {
-            var keyBuffer = SerializeChild(item);
+            var keyBuffer = SerializeChild(protocolVersion, item);
             var keyLengthBuffer = EncodeCollectionLength(protocolVersion, keyBuffer.Length);
             bufferList.AddLast(keyLengthBuffer);
             bufferList.AddLast(keyBuffer);

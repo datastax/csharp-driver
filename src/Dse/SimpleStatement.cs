@@ -54,7 +54,7 @@ namespace Dse
                 var serializer = Serializer;
                 if (serializer == null)
                 {
-                    serializer = Serializer.Default;
+                    serializer = Serialization.SerializerManager.Default.GetCurrentSerializer();
                     Logger.Warning("Calculating routing key before executing is not supported for SimpleStatement " +
                                    "instances, using default serializer.");
                 }

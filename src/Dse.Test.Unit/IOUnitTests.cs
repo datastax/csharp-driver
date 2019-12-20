@@ -125,7 +125,7 @@ namespace Dse.Test.Unit
             {
                 for (var i = 0; i < iterations; i++)
                 {
-                    var writer = new FrameWriter(stream, new Serializer(protocolVersion));
+                    var writer = new FrameWriter(stream, new SerializerManager(protocolVersion).GetCurrentSerializer());
                     writer.WriteFrameHeader(0, 127, 8);
                     writer.WriteUInt16(Convert.ToUInt16(0x0900 + i));
                     var length = writer.Close();

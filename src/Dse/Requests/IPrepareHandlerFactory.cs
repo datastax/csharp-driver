@@ -23,6 +23,6 @@ namespace Dse.Requests
 {
     internal interface IPrepareHandlerFactory
     {
-        IPrepareHandler Create(Serializer serializer);
+        IPrepareHandler Create(ISerializer serializer);
     }
 }

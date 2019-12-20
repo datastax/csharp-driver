@@ -47,6 +47,7 @@ namespace Dse.Test.Integration
         public override void OneTimeTearDown()
         {
             base.OneTimeTearDown();
+            TestCloudClusterManager.TryRemove();
         }
 
         protected override void CreateCommonSession()

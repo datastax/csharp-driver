@@ -19,12 +19,12 @@ namespace Dse.Insights.InfoProviders.StartupMessage
                 Local = cluster
                         .Configuration
                         .CassandraConfiguration
-                        .GetPoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
+                        .GetOrCreatePoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
                         .GetCoreConnectionsPerHost(HostDistance.Local),
                 Remote = cluster
                          .Configuration
                          .CassandraConfiguration
-                         .GetPoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
+                         .GetOrCreatePoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
                          .GetCoreConnectionsPerHost(HostDistance.Remote)
             };
         }

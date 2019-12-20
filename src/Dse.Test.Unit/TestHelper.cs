@@ -42,7 +42,7 @@ namespace Dse.Test.Unit
         {
             var columns = new List<CqlColumn>();
             var rowValues = new List<object>();
-            var serializer = new Serializer(ProtocolVersion.MaxSupported);
+            var serializer = new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer();
             foreach (var kv in valueMap)
             {
                 if (kv.Value != null)
@@ -70,7 +70,7 @@ namespace Dse.Test.Unit
         {
             var columns = new CqlColumn[rowValues.Count];
             var index = 0;
-            var serializer = new Serializer(ProtocolVersion.MaxSupported);
+            var serializer = new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer();
             foreach (var kv in rowValues)
             {
                 CqlColumn c;

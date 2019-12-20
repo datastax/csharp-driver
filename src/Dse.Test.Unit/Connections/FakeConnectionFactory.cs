@@ -61,7 +61,7 @@ namespace Dse.Test.Unit.Connections
             _func = endpoint => func(endpoint.SocketIpEndPoint);
         }
 
-        public IConnection Create(Serializer serializer, IConnectionEndPoint endpoint, Configuration configuration, IConnectionObserver connectionObserver)
+        public IConnection Create(ISerializer serializer, IConnectionEndPoint endpoint, Configuration configuration, IConnectionObserver connectionObserver)
         {
             var connection = _func(endpoint);
             var queue = CreatedConnections.GetOrAdd(endpoint.GetHostIpEndPointWithFallback(), _ => new ConcurrentQueue<IConnection>());
@@ -70,7 +70,7 @@ namespace Dse.Test.Unit.Connections
             return connection;
         }
 
-        public IConnection CreateUnobserved(Serializer serializer, IConnectionEndPoint endPoint, Configuration configuration)
+        public IConnection CreateUnobserved(ISerializer serializer, IConnectionEndPoint endPoint, Configuration configuration)
         {
             return Create(serializer, endPoint, configuration, NullConnectionObserver.Instance);
         }

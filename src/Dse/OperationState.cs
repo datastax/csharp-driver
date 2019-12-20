@@ -75,7 +75,7 @@ namespace Dse
             _timeout = value;
         }
 
-        public long WriteFrame(short streamId, MemoryStream memoryStream, Serializer serializer, long timestamp)
+        public long WriteFrame(short streamId, MemoryStream memoryStream, ISerializer serializer, long timestamp)
         {
             var frameLength = Request.WriteFrame(streamId, memoryStream, serializer);
             _operationObserver.OnOperationSend(frameLength, timestamp);

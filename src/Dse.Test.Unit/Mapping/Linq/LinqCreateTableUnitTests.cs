@@ -426,7 +426,7 @@ namespace Dse.Test.Unit.Mapping.Linq
         public void Create_With_Frozen_Udt()
         {
             string createQuery = null;
-            var serializer = new Serializer(ProtocolVersion.MaxSupported);
+            var serializer = new SerializerManager(ProtocolVersion.MaxSupported);
             var sessionMock = GetSessionMock(serializer);
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
@@ -442,7 +442,7 @@ namespace Dse.Test.Unit.Mapping.Linq
             udtInfo.Fields.Add(new ColumnDesc { Name = "title", TypeCode = ColumnTypeCode.Ascii });
             udtInfo.Fields.Add(new ColumnDesc { Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp });
             var udtMap = UdtMap.For<Song>().SetIgnoreCase(false);
-            udtMap.SetSerializer(serializer);
+            udtMap.SetSerializer(serializer.GetCurrentSerializer());
             udtMap.Build(udtInfo);
             serializer.SetUdtMap("song", udtMap);
             var table = GetTable<UdtAndTuplePoco>(sessionMock.Object, definition);
@@ -474,7 +474,7 @@ namespace Dse.Test.Unit.Mapping.Linq
         public void Create_With_Frozen_Collection_Key()
         {
             string createQuery = null;
-            var serializer = new Serializer(ProtocolVersion.MaxSupported);
+            var serializer = new SerializerManager(ProtocolVersion.MaxSupported);
             var sessionMock = GetSessionMock(serializer);
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
@@ -491,7 +491,7 @@ namespace Dse.Test.Unit.Mapping.Linq
             udtInfo.Fields.Add(new ColumnDesc { Name = "title", TypeCode = ColumnTypeCode.Ascii });
             udtInfo.Fields.Add(new ColumnDesc { Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp });
             var udtMap = UdtMap.For<Song>();
-            udtMap.SetSerializer(serializer);
+            udtMap.SetSerializer(serializer.GetCurrentSerializer());
             udtMap.Build(udtInfo);
             serializer.SetUdtMap("song", udtMap);
             var table = GetTable<UdtAndTuplePoco>(sessionMock.Object, definition);
@@ -503,7 +503,7 @@ namespace Dse.Test.Unit.Mapping.Linq
         public void Create_With_Frozen_Collection_Value()
         {
             string createQuery = null;
-            var serializer = new Serializer(ProtocolVersion.MaxSupported);
+            var serializer = new SerializerManager(ProtocolVersion.MaxSupported);
             var sessionMock = GetSessionMock(serializer);
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
@@ -520,7 +520,7 @@ namespace Dse.Test.Unit.Mapping.Linq
             udtInfo.Fields.Add(new ColumnDesc { Name = "title", TypeCode = ColumnTypeCode.Ascii });
             udtInfo.Fields.Add(new ColumnDesc { Name = "releasedate", TypeCode = ColumnTypeCode.Timestamp });
             var udtMap = UdtMap.For<Song>();
-            udtMap.SetSerializer(serializer);
+            udtMap.SetSerializer(serializer.GetCurrentSerializer());
             udtMap.Build(udtInfo);
             serializer.SetUdtMap("song", udtMap);
             var table = GetTable<UdtAndTuplePoco>(sessionMock.Object, definition);
@@ -532,7 +532,7 @@ namespace Dse.Test.Unit.Mapping.Linq
         public void Create_With_Attribute_Defined_Mappings()
         {
             string createQuery = null;
-            var serializer = new Serializer(ProtocolVersion.MaxSupported);
+            var serializer = new SerializerManager(ProtocolVersion.MaxSupported);
             var sessionMock = GetSessionMock(serializer);
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
@@ -547,7 +547,7 @@ namespace Dse.Test.Unit.Mapping.Linq
         public void Create_With_Static_Counter()
         {
             string createQuery = null;
-            var serializer = new Serializer(ProtocolVersion.MaxSupported);
+            var serializer = new SerializerManager(ProtocolVersion.MaxSupported);
             var sessionMock = GetSessionMock(serializer);
             sessionMock
                 .Setup(s => s.Execute(It.IsAny<string>()))
@@ -572,11 +572,11 @@ namespace Dse.Test.Unit.Mapping.Linq
                             " PRIMARY KEY (id1, id2))", createQuery);
         }
 
-        private static Mock<ISession> GetSessionMock(Serializer serializer = null)
+        private static Mock<ISession> GetSessionMock(ISerializerManager serializer = null)
         {
             if (serializer == null)
             {
-                serializer = new Serializer(ProtocolVersion.MaxSupported);
+                serializer = new SerializerManager(ProtocolVersion.MaxSupported);
             }
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             var config = new Configuration();

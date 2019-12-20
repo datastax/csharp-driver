@@ -20,7 +20,7 @@ namespace Dse
     internal class FrameWriter
     {
         private readonly MemoryStream _stream;
-        private readonly Serializer _serializer;
+        private readonly ISerializer _serializer;
         private readonly long _offset;
         private readonly ProtocolVersion _version;
 
@@ -29,7 +29,7 @@ namespace Dse
             get { return _stream.Length; }
         }
 
-        internal Serializer Serializer
+        internal ISerializer Serializer
         {
             get { return _serializer; }
         }
@@ -45,7 +45,7 @@ namespace Dse
             return buffer;
         }
 
-        public FrameWriter(MemoryStream stream, Serializer serializer)
+        public FrameWriter(MemoryStream stream, ISerializer serializer)
         {
             _stream = stream;
             _serializer = serializer;
@@ -124,7 +124,7 @@ namespace Dse
                 WriteInt32(-1);
                 return;
             }
-            if (buffer == Serializer.UnsetBuffer)
+            if (buffer == Serialization.SerializerManager.UnsetBuffer)
             {
                 WriteInt32(-2);
                 return;
@@ -219,7 +219,7 @@ namespace Dse
             //Set the length in the header
             //MemoryStream implementation length and offset are ints, so cast is safe
             var frameLength = Convert.ToInt32(_stream.Length - _offset);
-            var lengthBytes = BeConverter.GetBytes(frameLength - FrameHeader.GetSize(_version));
+            var lengthBytes = BeConverter.GetBytes(frameLength - _version.GetHeaderSize());
             //The length could start at the 4th or 5th position
             long lengthOffset = 4;
             if (_version.Uses2BytesStreamIds())

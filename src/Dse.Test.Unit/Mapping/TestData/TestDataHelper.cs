@@ -42,10 +42,10 @@ namespace Dse.Test.Unit.Mapping.TestData
         /// </summary>
         public static RowSet GetSingleColumnRowSet<T>(string columnName, T[] values)
         {
-            var serializer = new Serializer(ProtocolVersion.MaxSupported);
+            var serializer = new SerializerManager(ProtocolVersion.MaxSupported);
             var rs = new RowSet();
             IColumnInfo typeInfo;
-            var typeCode = serializer.GetCqlType(typeof (T), out typeInfo);
+            var typeCode = serializer.GetCurrentSerializer().GetCqlType(typeof (T), out typeInfo);
             rs.Columns = new[]
             {
                 new CqlColumn { Name = columnName, TypeCode = typeCode, TypeInfo = typeInfo, Type = typeof(T), Index = 0}
@@ -70,7 +70,7 @@ namespace Dse.Test.Unit.Mapping.TestData
 
         public static RowSet CreateMultipleValuesRowSet<T>(string[] columnNames, T[] genericValues, int rowLength = 1)
         {
-            var serializer = new Serializer(ProtocolVersion.MaxSupported);
+            var serializer = new SerializerManager(ProtocolVersion.MaxSupported);
             var rs = new RowSet();
             rs.Columns = new CqlColumn[columnNames.Length];
             for (var i = 0; i < columnNames.Length; i++)
@@ -86,7 +86,7 @@ namespace Dse.Test.Unit.Mapping.TestData
                     }
                     type = genericValues[i].GetType();
                 }
-                var typeCode = serializer.GetCqlType(type, out typeInfo);
+                var typeCode = serializer.GetCurrentSerializer().GetCqlType(type, out typeInfo);
                 rs.Columns[i] = new CqlColumn
                 {
                     Name = columnNames[i],

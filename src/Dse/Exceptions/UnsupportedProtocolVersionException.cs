@@ -16,10 +16,16 @@ namespace Dse
         /// </summary>
         public ProtocolVersion ProtocolVersion { get; }
 
-        public UnsupportedProtocolVersionException(ProtocolVersion protocolVersion, Exception innerException) : 
-            base(string.Format("Protocol version {0} not supported", protocolVersion), innerException)
+        /// <summary>
+        /// The version with which the server replied.
+        /// </summary>
+        public ProtocolVersion ResponseProtocolVersion { get; }
+
+        public UnsupportedProtocolVersionException(ProtocolVersion protocolVersion, ProtocolVersion responseProtocolVersion, Exception innerException) :
+            base($"Protocol version {protocolVersion} not supported", innerException)
         {
             ProtocolVersion = protocolVersion;
+            ResponseProtocolVersion = responseProtocolVersion;
         }
     }
 }
