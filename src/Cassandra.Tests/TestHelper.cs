@@ -666,46 +666,31 @@ namespace Cassandra.Tests
 
         internal class TestLoggerHandler : Logger.ILoggerHandler
         {
-            private readonly ConcurrentQueue<Tuple<string, string, object[]>> _messages =
-                new ConcurrentQueue<Tuple<string, string, object[]>>();
+            public long WarningCount = 0;
 
             public void Error(Exception ex)
             {
-                _messages.Enqueue(Tuple.Create("error", (string)null, new object[] { ex }));
             }
 
             public void Error(string message, Exception ex = null)
             {
-                _messages.Enqueue(Tuple.Create("error", message, new object[] { ex }));
             }
 
             public void Error(string message, params object[] args)
             {
-                _messages.Enqueue(Tuple.Create("error", message, args));
             }
 
             public void Verbose(string message, params object[] args)
             {
-                _messages.Enqueue(Tuple.Create("verbose", message, args));
             }
 
             public void Info(string message, params object[] args)
             {
-                _messages.Enqueue(Tuple.Create("info", message, args));
             }
 
             public void Warning(string message, params object[] args)
             {
-                _messages.Enqueue(Tuple.Create("warning", message, args));
-            }
-
-            public IEnumerable<Tuple<string, string, object[]>> DequeueAllMessages()
-            {
-                Tuple<string, string, object[]> value;
-                while (_messages.TryDequeue(out value))
-                {
-                    yield return value;
-                }
+                Interlocked.Increment(ref WarningCount);
             }
         }
 
