@@ -14,11 +14,7 @@
 //   limitations under the License.
 //
 
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Dse.Test.Unit.Mapping.Pocos
 {
@@ -31,5 +27,18 @@ namespace Dse.Test.Unit.Mapping.Pocos
         public TimeUuid Timestamp { get; set; }
 
         public double Value { get; set; }
+
+        public static IEnumerable<SensorData> GetDefaultEntities()
+        {
+            return new List<SensorData>
+            {
+                new SensorData { Bucket = "bucket1", Id = "sensor1", Timestamp = TimeUuid.NewId(), Value = 1.5 },
+                new SensorData { Bucket = "bucket1", Id = "sensor1", Timestamp = TimeUuid.NewId(), Value = 2 },
+                new SensorData { Bucket = "bucket1", Id = "sensor1", Timestamp = TimeUuid.NewId(), Value = 2.5 },
+                new SensorData { Bucket = "bucket2", Id = "sensor1", Timestamp = TimeUuid.NewId(), Value = 1 },
+                new SensorData { Bucket = "bucket2", Id = "sensor1", Timestamp = TimeUuid.NewId(), Value = 1.5 },
+                new SensorData { Bucket = "bucket2", Id = "sensor1", Timestamp = TimeUuid.NewId(), Value = 0.5 }
+            };
+        }
     }
 }

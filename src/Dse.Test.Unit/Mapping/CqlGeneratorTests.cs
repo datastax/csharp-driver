@@ -27,7 +27,7 @@ namespace Dse.Test.Unit.Mapping
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
             var cql = cqlGenerator.GenerateUpdate<ExplicitColumnsUser>();
-            Assert.AreEqual("UPDATE users SET Name = ?, AGE = ? WHERE UserId = ?", cql);
+            Assert.AreEqual("UPDATE users SET AGE = ?, Name = ? WHERE UserId = ?", cql);
         }
 
         [Test]
@@ -42,7 +42,7 @@ namespace Dse.Test.Unit.Mapping
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
             var cql = cqlGenerator.GenerateUpdate<ExplicitColumnsUser>();
-            Assert.AreEqual(@"UPDATE ""users"" SET ""Name"" = ?, ""AGE"" = ? WHERE ""UserId"" = ?", cql);
+            Assert.AreEqual(@"UPDATE ""users"" SET ""AGE"" = ?, ""Name"" = ? WHERE ""UserId"" = ?", cql);
         }
 
         [Test]
@@ -57,7 +57,7 @@ namespace Dse.Test.Unit.Mapping
             var pocoFactory = new PocoDataFactory(types);
             var cqlGenerator = new CqlGenerator(pocoFactory);
             var cql = cqlGenerator.GenerateUpdate<ExplicitColumnsUser>();
-            Assert.AreEqual("UPDATE keyspace1.users SET Name = ?, AGE = ? WHERE UserId = ?", cql);
+            Assert.AreEqual("UPDATE keyspace1.users SET AGE = ?, Name = ? WHERE UserId = ?", cql);
         }
 
         [Test]
@@ -111,7 +111,7 @@ namespace Dse.Test.Unit.Mapping
             var cqlGenerator = new CqlGenerator(pocoFactory);
             var cql = Cql.New("WHERE UserId = ?", Guid.Empty);
             cqlGenerator.AddSelect<ExplicitColumnsUser>(cql);
-            Assert.AreEqual("SELECT UserId, Name, AGE FROM users WHERE UserId = ?", cql.Statement);
+            Assert.AreEqual("SELECT AGE, Name, UserId FROM users WHERE UserId = ?", cql.Statement);
         }
 
         [Test]
@@ -126,7 +126,7 @@ namespace Dse.Test.Unit.Mapping
             var cqlGenerator = new CqlGenerator(pocoFactory);
             var cql = Cql.New("WHERE UserId = ?", Guid.Empty);
             cqlGenerator.AddSelect<ExplicitColumnsUser>(cql);
-            Assert.AreEqual("SELECT UserId, Name, AGE FROM keyspace1.users WHERE UserId = ?", cql.Statement);
+            Assert.AreEqual("SELECT AGE, Name, UserId FROM keyspace1.users WHERE UserId = ?", cql.Statement);
         }
 
         [Test]
@@ -142,7 +142,7 @@ namespace Dse.Test.Unit.Mapping
             var cqlGenerator = new CqlGenerator(pocoFactory);
             var cql = Cql.New(@"WHERE ""UserId"" = ?", Guid.Empty);
             cqlGenerator.AddSelect<ExplicitColumnsUser>(cql);
-            Assert.AreEqual(@"SELECT ""UserId"", ""Name"", ""AGE"" FROM ""users"" WHERE ""UserId"" = ?", cql.Statement);
+            Assert.AreEqual(@"SELECT ""AGE"", ""Name"", ""UserId"" FROM ""users"" WHERE ""UserId"" = ?", cql.Statement);
         }
 
         [Test]
@@ -300,7 +300,7 @@ namespace Dse.Test.Unit.Mapping
             var cqlGenerator = new CqlGenerator(pocoFactory);
             object[] queryParameters;
             var cql = cqlGenerator.GenerateInsert<ExplicitColumnsUser>(true, new object[0], out queryParameters);
-            Assert.AreEqual(@"INSERT INTO ""USERS"" (""UserId"", ""Name"", ""UserAge"") VALUES (?, ?, ?)", cql);
+            Assert.AreEqual(@"INSERT INTO ""USERS"" (""Name"", ""UserAge"", ""UserId"") VALUES (?, ?, ?)", cql);
         }
     }
 }

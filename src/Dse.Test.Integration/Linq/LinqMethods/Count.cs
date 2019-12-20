@@ -5,45 +5,28 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Dse.Data.Linq;
 using Dse.Test.Integration.Linq.Structures;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Mapping;
+using Dse.Test.Integration.SimulacronAPI;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Linq.LinqMethods
 {
-    [Category("short"), Category("realcluster")]
-    public class Count : SharedClusterTest
+    public class Count : SimulacronTest
     {
-        ISession _session;
-        private List<AllDataTypesEntity> _entityList = AllDataTypesEntity.GetDefaultAllDataTypesList();
-        private readonly string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-
-        [SetUp]
-        public void SetupTest()
-        {
-            _session = Session;
-            _session.CreateKeyspace(_uniqueKsName);
-            _session.ChangeKeyspace(_uniqueKsName);
-
-            _entityList = AllDataTypesEntity.SetupDefaultTable(_session);
-
-        }
-
-        [TearDown]
-        public void TeardownTest()
-        {
-            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
-        }
+        private readonly List<AllDataTypesEntity> _entityList = AllDataTypesEntity.GetDefaultAllDataTypesList();
 
         [Test]
         public void LinqCount_Sync()
         {
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery($"SELECT count(*) FROM \"{AllDataTypesEntity.TableName}\" ALLOW FILTERING")
+                      .ThenRowsSuccess(new[] { ("count", DataType.BigInt) }, rows => rows.WithRow(_entityList.Count)));
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
         }
@@ -51,8 +34,16 @@ namespace Dse.Test.Integration.Linq.LinqMethods
         [Test]
         public void LinqCount_Where_Sync()
         {
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             AllDataTypesEntity expectedEntity = _entityList[1];
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          $"SELECT count(*) FROM \"{AllDataTypesEntity.TableName}\" " +
+                          "WHERE \"string_type\" = ? AND \"guid_type\" = ? " +
+                          "ALLOW FILTERING",
+                          when => when.WithParam(DataType.Ascii, expectedEntity.StringType)
+                                      .WithParam(DataType.Uuid, expectedEntity.GuidType))
+                      .ThenRowsSuccess(new[] { ("count", DataType.BigInt) }, rows => rows.WithRow(1)));
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
             long count = table.Where(e => e.StringType == expectedEntity.StringType && e.GuidType == expectedEntity.GuidType).Count().Execute();
             Assert.AreEqual(1, count);
         }
@@ -69,23 +60,24 @@ namespace Dse.Test.Integration.Linq.LinqMethods
                 .PartitionKey(t => t.AuthorId)
                 .ClusteringKey(t => t.TweetId)
                 .TableName("tweets"));
-            var table = new Table<Tweet>(_session, mapping);
-            table.Create();
-            table.Insert(new Tweet { AuthorId = "1", Body = "I like", TweetId = Guid.NewGuid() }).Execute();
-            table.Insert(new Tweet { AuthorId = "1", Body = "to tweet", TweetId = Guid.NewGuid() }).Execute();
-            table.Insert(new Tweet { AuthorId = "1", Body = "a lot", TweetId = Guid.NewGuid() }).Execute();
-            table.Insert(new Tweet { AuthorId = "1", Body = "a lot", TweetId = Guid.NewGuid() }).Execute();
-            table.Insert(new Tweet { AuthorId = "1", Body = "a lot", TweetId = Guid.NewGuid() }).Execute();
+            var table = new Table<Tweet>(Session, mapping);
 
-            Assert.Throws<InvalidQueryException>(() => { table.Where(e => e.Body == "a lot").Count().Execute(); });
-            long count = table.Where(e => e.Body == "a lot").AllowFiltering().Count().Execute();
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery("SELECT count(*) FROM tweets WHERE Body = ? ALLOW FILTERING",
+                          when => when.WithParam(DataType.Ascii, "a lot"))
+                      .ThenRowsSuccess(new[] { ("count", DataType.BigInt) }, rows => rows.WithRow(3)));
+
+            var count = table.Where(e => e.Body == "a lot").AllowFiltering().Count().Execute();
             Assert.AreEqual(3, count);
         }
 
         [Test]
         public void LinqCount_Async()
         {
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery($"SELECT count(*) FROM \"{AllDataTypesEntity.TableName}\" ALLOW FILTERING")
+                      .ThenRowsSuccess(new[] { ("count", DataType.BigInt) }, rows => rows.WithRow(_entityList.Count)));
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
             var count = table.Count().Execute();
             Assert.AreEqual(_entityList.Count, count);
         }
@@ -93,8 +85,16 @@ namespace Dse.Test.Integration.Linq.LinqMethods
         [Test]
         public void LinqCount_Where_Async()
         {
-            var table = new Table<AllDataTypesEntity>(_session, new MappingConfiguration());
             AllDataTypesEntity expectedEntity = _entityList[2];
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          $"SELECT count(*) FROM \"{AllDataTypesEntity.TableName}\" " +
+                          "WHERE \"string_type\" = ? AND \"guid_type\" = ? " +
+                          "ALLOW FILTERING",
+                          when => when.WithParam(DataType.Ascii, expectedEntity.StringType)
+                                      .WithParam(DataType.Uuid, expectedEntity.GuidType))
+                      .ThenRowsSuccess(new[] { ("count", DataType.BigInt) }, rows => rows.WithRow(1)));
+            var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration());
             long count = table.Where(e => e.StringType == expectedEntity.StringType && e.GuidType == expectedEntity.GuidType).Count().ExecuteAsync().Result;
             Assert.AreEqual(1, count);
         }

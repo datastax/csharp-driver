@@ -39,7 +39,7 @@ namespace Dse.Test.Integration.Cloud
 {
     [SniEnabledOnly]
     [CloudSupported(Supported = true)]
-    [TestFixture, Category("short"), Category("cloud")]
+    [TestFixture, Category("short"), Category("cloud"), Category("realcluster")]
     public class CloudIntegrationTests : SharedCloudClusterTest
     {
         [Test]

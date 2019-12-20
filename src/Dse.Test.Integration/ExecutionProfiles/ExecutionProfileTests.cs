@@ -17,7 +17,7 @@
 
 using System.Linq;
 using System.Threading.Tasks;
-
+using Dse.Test.Integration.SimulacronAPI;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
 
 using NUnit.Framework;
@@ -60,21 +60,10 @@ namespace Dse.Test.Integration.ExecutionProfiles
                        .Build())
             {
                 var session = cluster.Connect();
-                var primeQuery = new
-            {
-                when = new { query = "SELECT * from test.test", consistency_level = new[] { "TWO" } },
-                then = new
-                {
-                    result = "unavailable",
-                    consistency_level = (int)ConsistencyLevel.All,
-                    required = 3,
-                    alive = 2,
-                    delay_in_ms = 0,
-                    message = "unavailable",
-                    ignore_on_prepare = false
-                }
-            };
-                _simulacron.Prime(primeQuery);
+
+                _simulacron.PrimeFluent(
+                    b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency(ConsistencyLevel.Two))
+                          .ThenUnavailable("unavailable", (int)ConsistencyLevel.Two, 3, 2));
 
                 var exception = async
                     ? Assert.ThrowsAsync<UnavailableException>(() => session.ExecuteAsync(new SimpleStatement("SELECT * from test.test"), "read"))
@@ -100,19 +89,10 @@ namespace Dse.Test.Integration.ExecutionProfiles
                        .Build())
             {
                 var session = cluster.Connect();
-                var primeQuery = new
-                {
-                    when = new { query = "SELECT * from test.test", consistency_level = new[] { "TWO" } },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 0,
-                        rows = new[] { "test6", "test5" }.Select(v => new { text = v }).ToArray(),
-                        column_types = new { text = "ascii" },
-                        ignore_on_prepare = false
-                    }
-                };
-                _simulacron.Prime(primeQuery);
+
+                _simulacron.PrimeFluent(
+                    b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency(ConsistencyLevel.Two))
+                          .ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, r => r.WithRow("test6").WithRow("test5")));
 
                 var rs = async
                     ? await session.ExecuteAsync(new SimpleStatement("SELECT * from test.test"), "read").ConfigureAwait(false)
@@ -143,36 +123,14 @@ namespace Dse.Test.Integration.ExecutionProfiles
             {
                 var session = cluster.Connect();
 
-                var primeQuery = new
-                {
-                    when = new { query = "SELECT * from test.test", consistency_level = new[] { "ONE" } },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 0,
-                        rows = new[] { "test10", "test60" }.Select(v => new { text = v }).ToArray(),
-                        column_types = new { text = "ascii" },
-                        ignore_on_prepare = false
-                    }
-                };
-                _simulacron.Prime(primeQuery);
-
-                var secondPrimeQuery = new
-                {
-                    when = new { query = "SELECT * from test.test", consistency_level = new[] { "TWO" } },
-                    then = new
-                    {
-                        result = "unavailable",
-                        consistency_level = (int)ConsistencyLevel.Two,
-                        required = 2,
-                        alive = 1,
-                        delay_in_ms = 0,
-                        message = "unavailable",
-                        ignore_on_prepare = false
-                    }
-                };
-                _simulacron.Prime(secondPrimeQuery);
-
+                _simulacron.PrimeFluent(
+                    b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency(ConsistencyLevel.One))
+                          .ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, r => r.WithRow("test10").WithRow("test60")));
+                
+                _simulacron.PrimeFluent(
+                    b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency(ConsistencyLevel.Two))
+                          .ThenUnavailable("unavailable", (int)ConsistencyLevel.Two, 2, 1));
+                
                 var rs = async
                     ? await session.ExecuteAsync(new SimpleStatement("SELECT * from test.test")).ConfigureAwait(false)
                     : session.Execute("SELECT * from test.test");
@@ -207,49 +165,17 @@ namespace Dse.Test.Integration.ExecutionProfiles
             {
                 var session = cluster.Connect();
 
-                var primeQuery = new
-                {
-                    when = new { query = "SELECT * from test.test", consistency_level = new[] { "ONE" } },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 0,
-                        rows = new[] { "test10", "test60" }.Select(v => new { text = v }).ToArray(),
-                        column_types = new { text = "ascii" },
-                        ignore_on_prepare = false
-                    }
-                };
-                _simulacron.Prime(primeQuery);
-
-                var secondPrimeQuery = new
-                {
-                    when = new { query = "SELECT * from test.test", consistency_level = new[] { "TWO" } },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 0,
-                        rows = new[] { "test12", "test62" }.Select(v => new { text = v }).ToArray(),
-                        column_types = new { text = "ascii" },
-                        ignore_on_prepare = false
-                    }
-                };
-                _simulacron.Prime(secondPrimeQuery);
-
-                var thirdPrimeQuery = new
-                {
-                    when = new { query = "SELECT * from test.test", consistency_level = new[] { "QUORUM" } },
-                    then = new
-                    {
-                        result = "unavailable",
-                        consistency_level = (int)ConsistencyLevel.Two,
-                        required = 2,
-                        alive = 1,
-                        delay_in_ms = 0,
-                        message = "unavailable",
-                        ignore_on_prepare = false
-                    }
-                };
-                _simulacron.Prime(thirdPrimeQuery);
+                _simulacron.PrimeFluent(
+                    b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency(ConsistencyLevel.One))
+                          .ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, r => r.WithRow("test10").WithRow("test60")));
+                
+                _simulacron.PrimeFluent(
+                    b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency(ConsistencyLevel.Two))
+                          .ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, r => r.WithRow("test12").WithRow("test62")));
+                
+                _simulacron.PrimeFluent(
+                    b => b.WhenQuery("SELECT * from test.test", query => query.WithConsistency(ConsistencyLevel.Quorum))
+                          .ThenUnavailable("unavailable", (int)ConsistencyLevel.Two, 2, 1));
 
                 var rs = async
                     ? await session.ExecuteAsync(new SimpleStatement("SELECT * from test.test"), "read").ConfigureAwait(false)

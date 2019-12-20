@@ -72,7 +72,7 @@ namespace Dse.Test.Integration.TestClusterManagement
             _simulacronProcess.BeginOutputReadLine();
             _simulacronProcess.BeginErrorReadLine();
 
-            eventWaitHandler.WaitOne(10000);
+            eventWaitHandler.WaitOne(30000);
             if (!started)
             {
                 Trace.TraceError(errorMessage);

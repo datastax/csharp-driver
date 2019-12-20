@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using Dse.Test.Integration.SimulacronAPI;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
 
@@ -40,7 +41,7 @@ namespace Dse.Test.Integration.Core
         public void TearDown()
         {
             _session.Cluster.Shutdown();
-            _simulacronCluster.Remove();
+            _simulacronCluster.Dispose();
         }
 
         /// <summary>
@@ -51,46 +52,17 @@ namespace Dse.Test.Integration.Core
         public void AlreadyExistsException()
         {
             var cql = string.Format(TestUtils.CreateKeyspaceSimpleFormat, _keyspace, 1);
-
-            var primeQuery = new
-            {
-                when = new { query = cql },
-                then = new
-                {
-                    result = "already_exists",
-                    delay_in_ms = 0,
-                    message = "already_exists",
-                    keyspace = _keyspace,
-                    table = "",
-                    ignore_on_prepare = false
-                }
-            };
-
-            _simulacronCluster.Prime(primeQuery);
+            
+            _simulacronCluster.PrimeFluent(b => b.WhenQuery(cql).ThenAlreadyExists(_keyspace, ""));
 
             var ex = Assert.Throws<AlreadyExistsException>(() => _session.Execute(cql));
             Assert.AreEqual(ex.Keyspace, _keyspace);
             Assert.AreEqual(ex.Table, null);
             Assert.AreEqual(ex.WasTableCreation, false);
-
-
+            
             var cqlTable = string.Format(TestUtils.CreateTableSimpleFormat, _table);
-
-            var primeQueryTable = new
-            {
-                when = new { query = cqlTable },
-                then = new
-                {
-                    result = "already_exists",
-                    delay_in_ms = 0,
-                    message = "already_exists",
-                    table = _table,
-                    keyspace = _keyspace,
-                    ignore_on_prepare = false
-                }
-            };
-
-            _simulacronCluster.Prime(primeQueryTable);
+            
+            _simulacronCluster.PrimeFluent(b => b.WhenQuery(cqlTable).ThenAlreadyExists(_keyspace, _table));
             var e = Assert.Throws<AlreadyExistsException>(() => _session.Execute(cqlTable));
             Assert.AreEqual(e.Keyspace, _keyspace);
             Assert.AreEqual(e.Table, _table);
@@ -127,26 +99,8 @@ namespace Dse.Test.Integration.Core
         public void ReadTimeoutException()
         {
             var cql = string.Format(TestUtils.SELECT_ALL_FORMAT, _table);
-            var primeQuery = new
-            {
-                when = new
-                {
-                    query = cql
-                },
-                then = new
-                {
-                    result = "read_timeout",
-                    consistency_level = 5,
-                    received = 1,
-                    block_for = 2,
-                    data_present = true,
-                    delay_in_ms = 0,
-                    message = "read_timeout",
-                    ignore_on_prepare = false
-                }
-            };
 
-            _simulacronCluster.Prime(primeQuery);
+            _simulacronCluster.PrimeFluent(b => b.WhenQuery(cql).ThenReadTimeout(5, 1, 2, true));
             var ex = Assert.Throws<ReadTimeoutException>(() =>
                 _session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.All)));
             Assert.AreEqual(ex.ConsistencyLevel, ConsistencyLevel.All);
@@ -237,25 +191,7 @@ namespace Dse.Test.Integration.Core
         public void UnavailableException()
         {
             var cql = string.Format(TestUtils.SELECT_ALL_FORMAT, _table);
-            var primeQuery = new
-            {
-                when = new
-                {
-                    query = cql
-                },
-                then = new
-                {
-                    result = "unavailable",
-                    consistency_level = 5,
-                    required = 2,
-                    alive = 1,
-                    delay_in_ms = 0,
-                    message = "unavailable",
-                    ignore_on_prepare = false
-                }
-            };
-
-            _simulacronCluster.Prime(primeQuery);
+            _simulacronCluster.PrimeFluent(b => b.WhenQuery(cql).ThenUnavailable("unavailable", 5, 2, 1));
             var ex = Assert.Throws<UnavailableException>(() =>
                 _session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.All)));
             Assert.AreEqual(ex.Consistency, ConsistencyLevel.All);
@@ -272,26 +208,7 @@ namespace Dse.Test.Integration.Core
         public void WriteTimeoutException()
         {
             var cql = string.Format(TestUtils.SELECT_ALL_FORMAT, _table);
-            var primeQuery = new
-            {
-                when = new
-                {
-                    query = cql
-                },
-                then = new
-                {
-                    result = "write_timeout",
-                    consistency_level = 5,
-                    received = 1,
-                    block_for = 2,
-                    delay_in_ms = 0,
-                    message = "write_timeout",
-                    ignore_on_prepare = false,
-                    write_type = "SIMPLE"
-                }
-            };
-
-            _simulacronCluster.Prime(primeQuery);
+            _simulacronCluster.PrimeFluent(b => b.WhenQuery(cql).ThenWriteTimeout("write_timeout", 5, 1, 2, "SIMPLE"));
             var ex = Assert.Throws<WriteTimeoutException>(() =>
                 _session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.All)));
             Assert.AreEqual(ex.ConsistencyLevel, ConsistencyLevel.All);
@@ -303,22 +220,7 @@ namespace Dse.Test.Integration.Core
         [Test]
         public void PreserveStackTraceTest()
         {
-            var primeQuery = new
-            {
-                when = new
-                {
-                    query = "SELECT WILL FAIL"
-                },
-                then = new
-                {
-                    result = "syntax_error",
-                    delay_in_ms = 0,
-                    message = "syntax_error",
-                    ignore_on_prepare = false,
-                }
-            };
-
-            _simulacronCluster.Prime(primeQuery);
+            _simulacronCluster.PrimeFluent(b => b.WhenQuery("SELECT WILL FAIL").ThenSyntaxError("syntax_error"));
             var ex = Assert.Throws<SyntaxError>(() => _session.Execute("SELECT WILL FAIL"));
 #if !NETCORE || DEBUG
             // On .NET Core using Release compilation, the stack trace is limited
@@ -331,33 +233,11 @@ namespace Dse.Test.Integration.Core
         public void RowSetIteratedTwice()
         {
             var cql = string.Format(TestUtils.SELECT_ALL_FORMAT, _table);
-            var primeQuery = new
-            {
-                when = new
-                {
-                    query = cql
-                },
-                then = new
-                {
-                    result = "success",
-                    delay_in_ms = 0,
-                    rows = new[]
-                    {
-                        new
-                        {
-                            id = Guid.NewGuid(),
-                            value = "value"
-                        }
-                    },
-                    column_types = new
-                    {
-                        id = "uuid",
-                        value = "varchar"
-                    }
-                }
-            };
+            _simulacronCluster
+                .PrimeFluent(b => b.WhenQuery(cql).ThenRowsSuccess(
+                    new[] { ("id", DataType.Uuid), ("value", DataType.Varchar) },
+                    rows => rows.WithRow(Guid.NewGuid(), "value")));
 
-            _simulacronCluster.Prime(primeQuery);
             var rowset = _session.Execute(new SimpleStatement(cql)).GetRows();
             Assert.NotNull(rowset);
             //Linq Count iterates
@@ -369,33 +249,12 @@ namespace Dse.Test.Integration.Core
         public void RowSetPagingAfterSessionDispose()
         {
             var cql = string.Format(TestUtils.SELECT_ALL_FORMAT, _table);
-            var primeQuery = new
-            {
-                when = new
-                {
-                    query = cql
-                },
-                then = new
-                {
-                    result = "success",
-                    delay_in_ms = 0,
-                    rows = new[]
-                    {
-                        new
-                        {
-                            id = Guid.NewGuid(),
-                            value = "value"
-                        }
-                    },
-                    column_types = new
-                    {
-                        id = "uuid",
-                        value = "varchar"
-                    }
-                }
-            };
 
-            _simulacronCluster.Prime(primeQuery);
+            _simulacronCluster
+                .PrimeFluent(b => b.WhenQuery(cql).ThenRowsSuccess(
+                    new[] { ("id", DataType.Uuid), ("value", DataType.Varchar) },
+                    rows => rows.WithRow(Guid.NewGuid(), "value")));
+
             var rs = _session.Execute(new SimpleStatement(string.Format(TestUtils.SELECT_ALL_FORMAT, _table)).SetPageSize(1));
             if (CassandraVersion.Major < 2)
             {
@@ -417,27 +276,15 @@ namespace Dse.Test.Integration.Core
         public void WriteFailureExceptionTest()
         {
             var cql = string.Format(TestUtils.SELECT_ALL_FORMAT, _table);
-            var primeQuery = new
-            {
-                when = new
-                {
-                    query = cql
-                },
-                then = new
-                {
-                    result = "write_failure",
-                    consistency_level = 5,
-                    received = 1,
-                    block_for = 2,
-                    delay_in_ms = 0,
-                    message = "write_failure",
-                    ignore_on_prepare = false,
-                    failure_reasons = new Dictionary<string, int> { { "127.0.0.1", 0 } },
-                    write_type = "SIMPLE"
-                }
-            };
+            _simulacronCluster
+                .PrimeFluent(b => b.WhenQuery(cql).ThenWriteFailure(
+                    5,
+                    1,
+                    2,
+                    "write_failure",
+                    new Dictionary<string, int> { { "127.0.0.1", 0 } },
+                    "SIMPLE"));
 
-            _simulacronCluster.Prime(primeQuery);
             var ex = Assert.Throws<WriteFailureException>(() =>
                 _session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.All)));
             Assert.AreEqual(ex.ConsistencyLevel, ConsistencyLevel.All);
@@ -461,27 +308,16 @@ namespace Dse.Test.Integration.Core
 
             const string baseMessage = "Server failure during read query at consistency ";
             const string cql = "SELECT * FROM ks1.table_for_read_failure_test";
-            var primeQuery = new
-            {
-                when = new
-                {
-                    query = cql
-                },
-                then = new
-                {
-                    result = "read_failure",
-                    consistency_level = (int) consistencyLevel,
-                    received,
-                    block_for = required,
-                    delay_in_ms = 0,
-                    data_present = dataPresent,
-                    message = "read_failure",
-                    ignore_on_prepare = false,
-                    failure_reasons = new Dictionary<string, int> { { "127.0.0.1", 0 } }
-                }
-            };
 
-            _simulacronCluster.Prime(primeQuery);
+            _simulacronCluster
+                .PrimeFluent(b => b.WhenQuery(cql).ThenReadFailure(
+                    (int) consistencyLevel,
+                    received,
+                    required,
+                    "read_failure",
+                    new Dictionary<string, int> { { "127.0.0.1", 0 } },
+                    dataPresent));
+
             var ex = Assert.Throws<ReadFailureException>(() =>
                 _session.Execute(new SimpleStatement(cql).SetConsistencyLevel(consistencyLevel)));
             Assert.AreEqual(consistencyLevel, ex.ConsistencyLevel);
@@ -495,22 +331,10 @@ namespace Dse.Test.Integration.Core
         public void FunctionFailureExceptionTest()
         {
             const string cql = "SELECT ks_func.div(v1,v2) FROM ks_func.tbl1 where id = 1";
-            var primeQuery = new
-            {
-                when = new { query = cql },
-                then = new
-                {
-                    result = "function_failure",
-                    keyspace = "ks_func",
-                    function = "div",
-                    arg_types = new [] {"text"},
-                    detail = "function_failure",
-                    delay_in_ms = 0,
-                    ignore_on_prepare = false
-                }
-            };
 
-            _simulacronCluster.Prime(primeQuery);
+            _simulacronCluster
+                .PrimeFluent(b => b.WhenQuery(cql).ThenFunctionFailure(
+                    "ks_func", "div", new[] { "text" }, "function_failure"));
 
             Assert.Throws<FunctionFailureException>(() => _session.Execute(cql));
         }

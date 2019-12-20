@@ -11,7 +11,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-
+using Dse.Test.Integration.SimulacronAPI;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
 using Dse.Test.Unit;
@@ -52,18 +52,10 @@ namespace Dse.Test.Integration.Core
                 TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local"), 10);
                 var nodes = _testCluster.GetNodes().ToList();
                 var node = nodes[0];
-                node.Prime(new
-                {
-                    when = new { query = "SELECT key FROM system.local" },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 2000,
-                        rows = new[] { new { key = "123" } },
-                        column_types = new { key = "ascii" },
-                        ignore_on_prepare = false
-                    }
-                });
+                node.PrimeFluent(b => b
+                    .WhenQuery("SELECT key FROM system.local")
+                    .ThenRowsSuccess(new [] { ("key", DataType.Ascii) }, rows => rows.WithRow("123"))
+                    .WithDelayInMs(2000));
                 TestHelper.Invoke(() =>
                 {
                     var rs = session.Execute("SELECT key FROM system.local");
@@ -87,18 +79,10 @@ namespace Dse.Test.Integration.Core
                 TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local"), 10);
                 var nodes = _testCluster.GetNodes().ToList();
                 var node = nodes[0];
-                node.Prime(new
-                {
-                    when = new { query = "SELECT key FROM system.local" },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 2000,
-                        rows = new[] { new { key = "123" } },
-                        column_types = new { key = "ascii" },
-                        ignore_on_prepare = false
-                    }
-                });
+                node.PrimeFluent(
+                    b => b.WhenQuery("SELECT key FROM system.local")
+                          .ThenRowsSuccess(new [] { ("key", DataType.Ascii) }, rows => rows.WithRow("123"))
+                          .WithDelayInMs(2000));
                 TestHelper.Invoke(() =>
                 {
                     var rs = session.Execute(ps.Bind());
@@ -145,18 +129,10 @@ namespace Dse.Test.Integration.Core
                 TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local"), 10);
                 var nodes = _testCluster.GetNodes().ToList();
                 var node = nodes[1];
-                node.Prime(new
-                {
-                    when = new { query = "SELECT key FROM system.local" },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 2000,
-                        rows = new[] { new { key = "123" } },
-                        column_types = new { key = "ascii" },
-                        ignore_on_prepare = false
-                    }
-                });
+                node.PrimeFluent(
+                    b => b.WhenQuery("SELECT key FROM system.local")
+                          .ThenRowsSuccess(new [] { ("key", DataType.Ascii) }, rows => rows.WithRow("123"))
+                          .WithDelayInMs(2000));
                 var coordinators = new HashSet<string>();
                 var exceptions = new List<OperationTimedOutException>();
                 TestHelper.Invoke(() =>
@@ -184,18 +160,10 @@ namespace Dse.Test.Integration.Core
             using (var simulacronCluster = SimulacronCluster.CreateNew(3))
             {
                 const string cql = "SELECT key FROM system.local";
-                simulacronCluster.Prime(new
-                {
-                    when = new { query = cql },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 30000,
-                        rows = new[] { new { key = "123" } },
-                        column_types = new { key = "ascii" },
-                        ignore_on_prepare = false
-                    }
-                });
+                simulacronCluster.PrimeFluent(
+                    b => b.WhenQuery(cql)
+                          .ThenRowsSuccess(new [] { ("key", DataType.Ascii) }, rows => rows.WithRow("123"))
+                          .WithDelayInMs(30000));
 
                 using (var cluster = Cluster.Builder().AddContactPoint(simulacronCluster.InitialContactPoint).WithSocketOptions(socketOptions).Build())
                 {
@@ -223,7 +191,7 @@ namespace Dse.Test.Integration.Core
         public void Should_Use_Statement_ReadTimeout()
         {
             const int generalReadTimeout = 100;
-            const int statementReadTimeout = 3000;
+            const int statementReadTimeout = 5000;
             _testCluster = SimulacronCluster.CreateNew(1);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(generalReadTimeout);
             var queryOptions = new QueryOptions().SetRetryOnTimeout(false);
@@ -239,18 +207,10 @@ namespace Dse.Test.Integration.Core
                 TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local"), 10);
                 var nodes = _testCluster.GetNodes().ToList();
                 var node = nodes[0];
-                node.Prime(new
-                {
-                    when = new { query = "SELECT key FROM system.local" },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 10000,
-                        rows = new[] { new { key = "123" } },
-                        column_types = new { key = "ascii" },
-                        ignore_on_prepare = false
-                    }
-                });
+                node.PrimeFluent(
+                    b => b.WhenQuery("SELECT key FROM system.local")
+                          .ThenRowsSuccess(new [] { ("key", DataType.Ascii) }, rows => rows.WithRow("123"))
+                          .WithDelayInMs(30000));
                 var stopWatch = new Stopwatch();
                 stopWatch.Start();
                 Assert.Throws<OperationTimedOutException>(() => session.Execute("SELECT key FROM system.local"));
@@ -266,8 +226,8 @@ namespace Dse.Test.Integration.Core
                 Assert.Throws<OperationTimedOutException>(() => session.Execute(stmt));
                 stopWatch.Stop();
                 //precision of the timer is not guaranteed
-                Assert.Greater(stopWatch.ElapsedMilliseconds, statementReadTimeout - 1000);
-                Assert.Less(stopWatch.ElapsedMilliseconds, statementReadTimeout + 1000);
+                Assert.Greater(stopWatch.ElapsedMilliseconds, statementReadTimeout - 2500);
+                Assert.Less(stopWatch.ElapsedMilliseconds, statementReadTimeout + 2500);
             }
         }
 
@@ -293,18 +253,10 @@ namespace Dse.Test.Integration.Core
                 var session = cluster.Connect();
                 //warmup
                 TestHelper.Invoke(() => session.Execute("SELECT key FROM system.local"), 10);
-                _testCluster.Prime(new
-                {
-                    when = new { query = "SELECT key FROM system.local" },
-                    then = new
-                    {
-                        result = "success",
-                        delay_in_ms = 10000,
-                        rows = new[] { new { key = "123" } },
-                        column_types = new { key = "ascii" },
-                        ignore_on_prepare = false
-                    }
-                });
+                _testCluster.PrimeFluent(
+                    b => b.WhenQuery("SELECT key FROM system.local")
+                          .ThenRowsSuccess(new [] { ("key", DataType.Ascii) }, rows => rows.WithRow("123"))
+                          .WithDelayInMs(10000));
                 var ex = Assert.Throws<NoHostAvailableException>(() => session.Execute("SELECT key FROM system.local"));
                 Assert.AreEqual(2, ex.Errors.Count);
                 foreach (var innerException in ex.Errors.Values)
@@ -339,25 +291,91 @@ namespace Dse.Test.Integration.Core
         {
             _testCluster = SimulacronCluster.CreateNew(1);
             var socketOptions = new SocketOptions().SetReadTimeoutMillis(1).SetConnectTimeoutMillis(1);
-            var builder = Cluster.Builder()
-                                 .AddContactPoint(_testCluster.InitialContactPoint)
-                                 .WithSocketOptions(socketOptions);
 
             var node = _testCluster.GetNodes().First();
             node.DisableConnectionListener(0, "reject_startup").GetAwaiter().GetResult();
-            const int length = 1000;
-            using (var cluster = builder.Build())
+            var clusters = Enumerable.Range(0, 100).Select(
+                b => Cluster.Builder()
+                            .AddContactPoint(_testCluster.InitialContactPoint)
+                            .WithSocketOptions(socketOptions)
+                            .Build()).ToList();
+
+            decimal initialMemory = GC.GetTotalMemory(true);
+
+            try
             {
-                decimal initialLength = GC.GetTotalMemory(true);
-                for (var i = 0; i < length; i++)
+                var tasks = clusters.Select(c => Task.Run(async () =>
                 {
-                    var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
-                    Assert.AreEqual(1, ex.Errors.Count);
+                    try
+                    {
+                        await c.ConnectAsync().ConfigureAwait(false);
+                    }
+                    catch (NoHostAvailableException ex)
+                    {
+                        Assert.AreEqual(1, ex.Errors.Count);
+                        return;
+                    }
+
+                    Assert.Fail();
+                })).ToArray();
+
+                Task.WaitAll(tasks);
+
+                foreach (var t in tasks)
+                {
+                    t.Dispose();
                 }
+
+                tasks = null;
+                
                 GC.Collect();
                 Thread.Sleep(1000);
-                Assert.Less(GC.GetTotalMemory(true) / initialLength, 1.3M,
-                    "Should not exceed a 30% (1.3) more than was previously allocated");
+                Assert.Less(GC.GetTotalMemory(true) / initialMemory, 1.5M,
+                    "Should not exceed a 50% (1.5) more than was previously allocated");
+
+                initialMemory = GC.GetTotalMemory(true);
+                
+                const int length = 100;
+                
+                tasks = clusters.Select(c => Task.Run(async () =>
+                {
+                    for (var i = 0; i < length; i++)
+                    {
+                        try
+                        {
+                            await c.ConnectAsync().ConfigureAwait(false);
+                        }
+                        catch (NoHostAvailableException ex)
+                        {
+                            Assert.AreEqual(1, ex.Errors.Count);
+                            continue;
+                        }
+
+                        Assert.Fail();
+                    }
+                })).ToArray();
+
+                Task.WaitAll(tasks);
+                
+                foreach (var t in tasks)
+                {
+                    t.Dispose();
+                }
+
+                tasks = null;
+                
+                GC.Collect();
+                Thread.Sleep(1000);
+                Assert.Less(GC.GetTotalMemory(true) / initialMemory, 1.5M,
+                    "Should not exceed a 50% (1.5) more than was previously allocated");
+
+            }
+            finally
+            {
+                foreach (var c in clusters)
+                {
+                    c.Dispose();
+                }
             }
         }
     }

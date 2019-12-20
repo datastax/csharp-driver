@@ -40,21 +40,7 @@ namespace Dse.Test.Integration.Policies.Tests
                                         .Build())
             {
                 var session = cluster.Connect();
-                simulacronCluster.Prime(new
-                {
-                    when = new { query = cql },
-                    then = new
-                    {
-                        result = "write_timeout",
-                        consistency_level = 5,
-                        received = 1,
-                        block_for = 2,
-                        delay_in_ms = 0,
-                        message = "write_timeout",
-                        ignore_on_prepare = false,
-                        write_type = "SIMPLE"
-                    }
-                });
+                simulacronCluster.PrimeFluent(b => b.WhenQuery(cql).ThenWriteTimeout("write_timeout", 5, 1, 2, "SIMPLE"));
 
                 var testPolicy = new TestRetryPolicy();
                 var policy = new IdempotenceAwareRetryPolicy(testPolicy);

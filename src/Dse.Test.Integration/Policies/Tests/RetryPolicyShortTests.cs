@@ -15,30 +15,31 @@
 //
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
+using Dse.Test.Integration.SimulacronAPI;
+using Dse.Test.Integration.SimulacronAPI.PrimeBuilder.Then;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
 using Newtonsoft.Json;
+
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Policies.Tests
 {
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Threading.Tasks;
-
     [TestFixture, Category("short")]
     public class RetryPolicyShortTests : TestGlobals
     {
-        [OneTimeTearDown]
-        public void OnTearDown()
+        public static object[] RetryPolicyExtendedData =
         {
-            TestClusterManager.TryRemove();
-        }
+            new object[] { ServerError.IsBootstrapping, typeof(IsBootstrappingException) },
+            new object[] { ServerError.Overloaded, typeof(OverloadedException) }
+        };
 
-        [TestCase("overloaded", typeof(OverloadedException))]
-        [TestCase("is_bootstrapping", typeof(IsBootstrappingException))]
-        public void RetryPolicy_Extended(string resultError, Type exceptionType)
+        [TestCaseSource(nameof(RetryPolicyShortTests.RetryPolicyExtendedData))]
+        public void RetryPolicy_Extended(ServerError resultError, Type exceptionType)
         {
             using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions()))
             {
@@ -53,19 +54,7 @@ namespace Dse.Test.Integration.Policies.Tests
                     var session = (Session)cluster.Connect();
                     const string cql = "select * from table1";
 
-                    var primeQuery = new
-                    {
-                        when = new { query = cql },
-                        then = new
-                        {
-                            result = resultError,
-                            delay_in_ms = 0,
-                            message = resultError,
-                            ignore_on_prepare = false
-                        }
-                    };
-
-                    simulacronCluster.Prime(primeQuery);
+                    simulacronCluster.PrimeFluent(b => b.WhenQuery(cql).ThenServerError(resultError, resultError.Value));
                     Exception throwedException = null;
                     try
                     {
@@ -118,21 +107,10 @@ namespace Dse.Test.Integration.Policies.Tests
                 {
                     var session = (Session)cluster.Connect();
                     const string cql = "select * from table2";
-                    
-                    var primeQuerySecondNode = new
-                    {
-                        when = new { query = cql },
-                        then = new
-                        {
-                            result = "success",
-                            delay_in_ms = 0,
-                            rows = new[] { "test1", "test2" }.Select(v => new { text = v }).ToArray(),
-                            column_types = new { text = "ascii" },
-                            ignore_on_prepare = false
-                        }
-                    };
 
-                    queryPlan[1].Prime(primeQuerySecondNode);
+                    queryPlan[1].PrimeFluent(
+                        b => b.WhenQuery(cql).
+                               ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, rows => rows.WithRow("test1").WithRow("test2")));
 
                     if (async)
                     {
@@ -143,14 +121,14 @@ namespace Dse.Test.Integration.Policies.Tests
                     {
                         session.Execute(new SimpleStatement(cql).SetConsistencyLevel(ConsistencyLevel.One));
                     }
-                    
+
                     var queriesFirstNode = await queryPlan[0].GetQueriesAsync(cql).ConfigureAwait(false);
                     var queriesFirstNodeString = string.Join(Environment.NewLine, queriesFirstNode.Select<dynamic, string>(obj => JsonConvert.SerializeObject(obj)));
                     var queriesSecondNode = await queryPlan[1].GetQueriesAsync(cql).ConfigureAwait(false);
                     var queriesSecondNodeString = string.Join(Environment.NewLine, queriesSecondNode.Select<dynamic, string>(obj => JsonConvert.SerializeObject(obj)));
                     var queriesThirdNode = await queryPlan[2].GetQueriesAsync(cql).ConfigureAwait(false);
                     var queriesThirdNodeString = string.Join(Environment.NewLine, queriesThirdNode.Select<dynamic, string>(obj => JsonConvert.SerializeObject(obj)));
-                    var allQueries = new {First = queriesFirstNodeString, Second = queriesSecondNodeString, Third = queriesThirdNodeString};
+                    var allQueries = new { First = queriesFirstNodeString, Second = queriesSecondNodeString, Third = queriesThirdNodeString };
                     var allQueriesString = JsonConvert.SerializeObject(allQueries);
 
                     Assert.AreEqual(0, currentHostRetryPolicy.RequestErrorCounter, allQueriesString);
@@ -185,33 +163,13 @@ namespace Dse.Test.Integration.Policies.Tests
                     var session = (Session)cluster.Connect();
                     const string cql = "select * from table2";
 
-                    var primeQueryFirstNode = new
-                    {
-                        when = new { query = cql },
-                        then = new
-                        {
-                            result = "overloaded",
-                            delay_in_ms = 0,
-                            message = "overloaded",
-                            ignore_on_prepare = false
-                        }
-                    };
+                    nodes[0].PrimeFluent(
+                        b => b.WhenQuery(cql).
+                               ThenOverloaded("overloaded"));
 
-                    var primeQuerySecondNode = new
-                    {
-                        when = new { query = cql },
-                        then = new
-                        {
-                            result = "success",
-                            delay_in_ms = 0,
-                            rows = new[] { "test1", "test2" }.Select(v => new { text = v }).ToArray(),
-                            column_types = new { text = "ascii" },
-                            ignore_on_prepare = false
-                        }
-                    };
-
-                    nodes[0].Prime(primeQueryFirstNode);
-                    nodes[1].Prime(primeQuerySecondNode);
+                    nodes[1].PrimeFluent(
+                        b => b.WhenQuery(cql).
+                               ThenRowsSuccess(new[] { ("text", DataType.Ascii) }, rows => rows.WithRow("test1").WithRow("test2")));
 
                     if (async)
                     {

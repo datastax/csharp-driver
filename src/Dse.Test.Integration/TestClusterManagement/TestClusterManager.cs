@@ -166,7 +166,7 @@ namespace Dse.Test.Integration.TestClusterManagement
             TryRemove();
             options = options ?? new TestClusterOptions();
             var testCluster = new CcmCluster(
-                TestUtils.GetTestClusterNameBasedOnTime(), 
+                TestUtils.GetTestClusterNameBasedOnRandomString(), 
                 IpPrefix, 
                 DsePath, 
                 Executor,

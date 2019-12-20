@@ -6,27 +6,34 @@
 //
 
 using System;
+using System.Linq;
 using System.Text;
 using Dse.Data;
+using Dse.Test.Integration.SimulacronAPI.Models.Logs;
 using Dse.Test.Integration.TestClusterManagement;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Data
 {
-    [TestFixture, Category("short"), Category("realcluster")]
-    public class AdoBasicTests : SharedClusterTest
+    public class AdoBasicTests : SimulacronTest
     {
         private CqlConnection _connection;
 
-        public override void OneTimeSetUp()
+        public override void SetUp()
         {
-            base.OneTimeSetUp();
+            base.SetUp();
             var cb = new CassandraConnectionStringBuilder
             {
-                ContactPoints = new[] { TestCluster.InitialContactPoint }, 
+                ContactPoints = new[] { TestCluster.InitialContactPoint.Address.ToString() }, 
                 Port = 9042
             };
             _connection = new CqlConnection(cb.ToString());
+        }
+
+        public override void TearDown()
+        {
+            _connection?.Dispose();
+            base.TearDown();
         }
 
         [Test]
@@ -39,32 +46,47 @@ namespace Dse.Test.Integration.Data
             cmd.CommandText = string.Format(TestUtils.CreateKeyspaceSimpleFormat, keyspaceName, 3);
             cmd.ExecuteNonQuery();
 
+            VerifyStatement(
+                QueryType.Query,
+                $"CREATE KEYSPACE \"{keyspaceName}\" WITH replication = {{ 'class' : 'SimpleStrategy', 'replication_factor' : {3} }}",
+                1);
+
             _connection.ChangeDatabase(keyspaceName);
 
+            VerifyStatement(QueryType.Query, $"USE \"{keyspaceName}\"", 1);
+
             string tableName = "table_ado_1";
-            cmd.CommandText = string.Format(@"
-                CREATE TABLE {0}(
-                tweet_id uuid,
-                author text,
-                body text,
-                isok boolean,
-                PRIMARY KEY(tweet_id))", tableName);
+            cmd.CommandText = string.Format("CREATE TABLE {0} (tweet_id uuid,author text,body text,isok boolean,PRIMARY KEY(tweet_id))", tableName);
             cmd.ExecuteNonQuery();
 
+            VerifyStatement(
+                QueryType.Query,
+                $"CREATE TABLE {tableName} (tweet_id uuid,author text,body text,isok boolean,PRIMARY KEY(tweet_id))",
+                1);
 
             var longQ = new StringBuilder();
             longQ.AppendLine("BEGIN BATCH ");
 
+            var guids = Enumerable.Range(0, 300).Select(i => Guid.NewGuid()).ToArray();
             int RowsNo = 300;
             for (int i = 0; i < RowsNo; i++)
             {
-                longQ.AppendFormat(@"
-                INSERT INTO {0} (tweet_id, author, isok, body)
-                VALUES ({1},'test{2}',{3},'body{2}');", tableName, Guid.NewGuid(), i, i%2 == 0 ? "false" : "true");
+                longQ.AppendFormat("INSERT INTO {0} (tweet_id, author, isok, body) VALUES ({1},'test{2}',{3},'body{2}');", tableName, guids[i], i, i%2 == 0 ? "false" : "true");
             }
             longQ.AppendLine("APPLY BATCH;");
             cmd.CommandText = longQ.ToString();
             cmd.ExecuteNonQuery();
+
+            VerifyStatement(
+                QueryType.Query,
+                longQ.ToString(),
+                1);
+
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery($"SELECT * from {tableName} LIMIT 10000;")
+                      .ThenRowsSuccess(
+                          new[] {"tweet_id", "author", "body", "isok"},
+                          r => r.WithRows(guids.Select((guid, idx) => new object[] { guid, $"test{idx}", $"body{idx}", idx % 2 != 0 }).ToArray())));
 
             cmd.CommandText = string.Format(@"SELECT * from {0} LIMIT 10000;", tableName);
             var reader = cmd.ExecuteReader();
@@ -84,6 +106,14 @@ namespace Dse.Test.Integration.Data
             _connection.Open();
             var cmd1 = _connection.CreateCommand();
             var cmd3 = _connection.CreateCommand();
+
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery("SELECT key FROM system.local")
+                      .ThenRowsSuccess(new [] { "key" }, r => r.WithRow("local")));
+
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery("SELECT * FROM system.local WHERE key = 'does not exist'")
+                      .ThenVoidSuccess());
 
             cmd1.CommandText = "SELECT key FROM system.local";
             cmd3.CommandText = "SELECT * FROM system.local WHERE key = 'does not exist'";
