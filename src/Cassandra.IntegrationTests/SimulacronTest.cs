@@ -26,7 +26,7 @@ using NUnit.Framework;
 namespace Cassandra.IntegrationTests
 {
     [TestFixture, Category("short")]
-    public class SimulacronTest
+    public abstract class SimulacronTest
     {
         private readonly bool _shared;
         private readonly SimulacronOptions _options;
