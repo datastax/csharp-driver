@@ -28,7 +28,7 @@ namespace Dse
     /// <inheritdoc cref="Dse.ISession" />
     public class Session : IInternalSession
     {
-        private readonly Serializer _serializer;
+        private readonly ISerializer _serializer;
         private ISessionManager _sessionManager;
         private static readonly Logger Logger = new Logger(typeof(Session));
         private readonly IThreadSafeDictionary<IPEndPoint, IHostConnectionPool> _connectionPool;
@@ -90,10 +90,10 @@ namespace Dse
             IInternalCluster cluster,
             Configuration configuration,
             string keyspace,
-            Serializer serializer,
+            ISerializerManager serializer,
             string sessionName)
         {
-            _serializer = serializer;
+            _serializer = serializer.GetCurrentSerializer();
             _cluster = cluster;
             Configuration = configuration;
             Keyspace = keyspace;
@@ -207,7 +207,7 @@ namespace Dse
 
             _metricsManager.InitializeMetrics(this);
 
-            if (Configuration.GetPoolingOptions(_serializer.ProtocolVersion).GetWarmup())
+            if (Configuration.GetOrCreatePoolingOptions(_serializer.ProtocolVersion).GetWarmup())
             {
                 await Warmup().ConfigureAwait(false);
             }

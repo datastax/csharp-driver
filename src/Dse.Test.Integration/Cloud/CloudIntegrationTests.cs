@@ -39,7 +39,7 @@ namespace Dse.Test.Integration.Cloud
 {
     [SniEnabledOnly]
     [CloudSupported(Supported = true)]
-    [TestFixture, Category("short"), Category("cloud")]
+    [TestFixture, Category("short"), Category("cloud"), Category("realcluster")]
     public class CloudIntegrationTests : SharedCloudClusterTest
     {
         [Test]
@@ -149,7 +149,7 @@ namespace Dse.Test.Integration.Cloud
             Assert.IsNotNull(Session.Cluster.Configuration.AuthProvider.GetType());
             Assert.AreEqual(typeof(PlainTextAuthProvider), Session.Cluster.Configuration.AuthProvider.GetType());
             var provider = (PlainTextAuthProvider)Session.Cluster.Configuration.AuthProvider;
-            Assert.AreEqual("cassandra", provider.Username);
+            Assert.AreEqual("user1", provider.Username);
         }
 
         [Test]
@@ -285,8 +285,8 @@ namespace Dse.Test.Integration.Cloud
             Assert.IsFalse(string.IsNullOrWhiteSpace(scb.Config.CertificatePassword));
             Assert.IsTrue(scb.ClientCert.HasPrivateKey);
             Assert.AreEqual(30443, scb.Config.Port);
-            Assert.AreEqual("cassandra", scb.Config.Password);
-            Assert.AreEqual("cassandra", scb.Config.Username);
+            Assert.AreEqual("user1", scb.Config.Password);
+            Assert.AreEqual("user1", scb.Config.Username);
             Assert.AreEqual("localhost", scb.Config.Host);
         }
 
@@ -296,7 +296,7 @@ namespace Dse.Test.Integration.Cloud
             var session = await CreateSessionAsync(act: b => b
                 .WithExecutionProfiles(opt => opt
                     .WithProfile("default", profile =>
-                        profile.WithConsistencyLevel(ConsistencyLevel.All))
+                        profile.WithConsistencyLevel(ConsistencyLevel.Any))
                     .WithProfile("profile", profile =>
                         profile.WithSerialConsistencyLevel(ConsistencyLevel.LocalSerial))
                     .WithDerivedProfile("derived", "profile", profile =>
@@ -414,7 +414,7 @@ namespace Dse.Test.Integration.Cloud
             Assert.IsNotNull(session.Cluster.Configuration.AuthProvider.GetType());
             Assert.AreEqual(typeof(PlainTextAuthProvider), session.Cluster.Configuration.AuthProvider.GetType());
             var provider = (PlainTextAuthProvider)session.Cluster.Configuration.AuthProvider;
-            Assert.AreEqual("cassandra", provider.Username);
+            Assert.AreEqual("user1", provider.Username);
         }
 
         [Test]
@@ -442,11 +442,11 @@ namespace Dse.Test.Integration.Cloud
         {
             var session = await CreateDseSessionAsync(act: b => b
                 .WithExecutionProfiles(opt => opt
-                    .WithProfile("default", profile => 
-                        profile.WithConsistencyLevel(ConsistencyLevel.All))
-                    .WithProfile("profile", profile => 
+                    .WithProfile("default", profile =>
+                        profile.WithConsistencyLevel(ConsistencyLevel.Any))
+                    .WithProfile("profile", profile =>
                         profile.WithSerialConsistencyLevel(ConsistencyLevel.LocalSerial))
-                    .WithDerivedProfile("derived", "profile", profile => 
+                    .WithDerivedProfile("derived", "profile", profile =>
                         profile.WithConsistencyLevel(ConsistencyLevel.LocalQuorum)))).ConfigureAwait(false);
             Assert.AreEqual(ConsistencyLevel.LocalQuorum, Cluster.Configuration.DefaultRequestOptions.ConsistencyLevel);
             Assert.AreEqual(ConsistencyLevel.LocalQuorum, Cluster.Configuration.QueryOptions.GetConsistencyLevel());
@@ -471,10 +471,10 @@ namespace Dse.Test.Integration.Cloud
 
             rs = session.Execute($"INSERT INTO {ks}.author(authorid) VALUES ('auth')", "derived");
             Assert.AreEqual(ConsistencyLevel.LocalQuorum, rs.Info.AchievedConsistency);
-            
+
             rs = session.Execute($"INSERT INTO {ks}.author(authorid) VALUES ('auth') IF NOT EXISTS", "derived");
             Assert.IsTrue(string.Compare(rs.First()["[applied]"].ToString(), "false", StringComparison.OrdinalIgnoreCase) == 0);
-            
+
             rs = session.Execute($"SELECT authorid FROM {ks}.author WHERE authorid = 'auth'", "derived");
             var row = rs.First();
             Assert.AreEqual(ConsistencyLevel.LocalQuorum, rs.Info.AchievedConsistency);

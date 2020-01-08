@@ -71,7 +71,7 @@ namespace Dse.Serialization
                 {
                     continue;
                 }
-                valuesList[i] = DeserializeChild(buffer, offset, itemLength, field.TypeCode, field.TypeInfo);
+                valuesList[i] = DeserializeChild(protocolVersion, buffer, offset, itemLength, field.TypeCode, field.TypeInfo);
                 offset += itemLength;
             }
             return map.ToObject(valuesList);
@@ -105,7 +105,7 @@ namespace Dse.Serialization
                                                fieldValue);
                     }
                 }
-                var itemBuffer = SerializeChild(fieldValue);
+                var itemBuffer = SerializeChild(protocolVersion, fieldValue);
                 bufferList.Add(itemBuffer);
                 if (fieldValue != null)
                 {

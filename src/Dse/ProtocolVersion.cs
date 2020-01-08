@@ -263,5 +263,15 @@ namespace Dse
         {
             return version >= ProtocolVersion.V4;
         }
+
+        public static int GetHeaderSize(this ProtocolVersion version)
+        {
+            if (version.Uses2BytesStreamIds())
+            {
+                return 9;
+            }
+
+            return 8;
+        }
     }
 }

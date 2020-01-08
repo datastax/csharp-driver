@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Dse.Test.Integration.SimulacronAPI;
+using Dse.Test.Integration.SimulacronAPI.PrimeBuilder;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
 using NUnit.Framework;
@@ -16,31 +18,21 @@ namespace Dse.Test.Integration.Core
         private const string LocalSchemaVersionQuery = "SELECT schema_version FROM system.local";
         private const string PeersSchemaVersionQuery = "SELECT schema_version FROM system.peers";
 
-        private static object LocalSchemaVersionQueryPrime(Guid version) => new
-        {
-            when = new { query = SchemaAgreementSimulacronTests.LocalSchemaVersionQuery },
-            then = new
-            {
-                result = "success",
-                delay_in_ms = 0,
-                rows = new[] { new { schema_version = version } },
-                column_types = new { schema_version = "uuid" },
-                ignore_on_prepare = false
-            }
-        };
+        private static IPrimeRequest LocalSchemaVersionQueryPrime(Guid version) =>
+            SimulacronBase
+                .PrimeBuilder()
+                .WhenQuery(SchemaAgreementSimulacronTests.LocalSchemaVersionQuery)
+                .ThenRowsSuccess(new[] { ("schema_version", DataType.Uuid) }, rows => rows.WithRow(version))
+                .BuildRequest();
 
-        private static object PeersSchemaVersionQueryPrime(IEnumerable<Guid> versions) => new
-        {
-            when = new { query = SchemaAgreementSimulacronTests.PeersSchemaVersionQuery },
-            then = new
-            {
-                result = "success",
-                delay_in_ms = 0,
-                rows = versions.Select(v => new { schema_version = v }).ToArray(),
-                column_types = new { schema_version = "uuid" },
-                ignore_on_prepare = false
-            }
-        };
+        private static IPrimeRequest PeersSchemaVersionQueryPrime(IEnumerable<Guid> versions) =>
+            SimulacronBase
+                .PrimeBuilder()
+                .WhenQuery(SchemaAgreementSimulacronTests.PeersSchemaVersionQuery)
+                .ThenRowsSuccess(
+                    new[] { ("schema_version", DataType.Uuid) },
+                    rows => rows.WithRows(versions.Select(v => new object[] { v }).ToArray()))
+                .BuildRequest();
 
         private static Cluster BuildCluster(SimulacronCluster simulacronCluster)
         {
@@ -94,18 +86,12 @@ namespace Dse.Test.Integration.Core
             var schemaVersion2 = Guid.NewGuid();
             var tableName = TestUtils.GetUniqueTableName().ToLower();
             var selectStatement = $"SELECT test FROM k.{tableName}";
-            var queryPrime = new
-            {
-                when = new { query = selectStatement },
-                then = new
-                {
-                    result = "success",
-                    delay_in_ms = 0,
-                    rows = new[] { new { test = "123" } },
-                    column_types = new { test = "ascii" },
-                    ignore_on_prepare = false
-                }
-            };
+            var queryPrime =
+                SimulacronBase
+                    .PrimeBuilder()
+                    .WhenQuery(selectStatement)
+                    .ThenRowsSuccess(new[] { ("test", DataType.Ascii) }, rows => rows.WithRow("123"))
+                    .BuildRequest();
 
             using (var simulacronCluster = SimulacronCluster.CreateNew(3))
             {

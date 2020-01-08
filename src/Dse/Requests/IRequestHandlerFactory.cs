@@ -22,10 +22,10 @@ namespace Dse.Requests
 {
     internal interface IRequestHandlerFactory
     {
-        IRequestHandler Create(IInternalSession session, Serializer serializer, IRequest request, IStatement statement, IRequestOptions options);
+        IRequestHandler Create(IInternalSession session, ISerializer serializer, IRequest request, IStatement statement, IRequestOptions options);
 
-        IRequestHandler Create(IInternalSession session, Serializer serializer, IStatement statement, IRequestOptions options);
+        IRequestHandler Create(IInternalSession session, ISerializer serializer, IStatement statement, IRequestOptions options);
 
-        IRequestHandler Create(IInternalSession session, Serializer serializer);
+        IRequestHandler Create(IInternalSession session, ISerializer serializer);
     }
 }

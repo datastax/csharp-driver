@@ -21,6 +21,6 @@ namespace Dse.Connections
 {
     internal interface IHostConnectionPoolFactory
     {
-        IHostConnectionPool Create(Host host, Configuration config, Serializer serializer, IObserverFactory observerFactory);
+        IHostConnectionPool Create(Host host, Configuration config, ISerializer serializer, IObserverFactory observerFactory);
     }
 }

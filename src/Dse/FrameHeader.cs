@@ -77,19 +77,6 @@ namespace Dse
         }
 
         /// <summary>
-        /// Gets the size of the protocol header, depending on the version of the protocol
-        /// </summary>
-        /// <param name="version">Version of the protocol used</param>
-        public static byte GetSize(ProtocolVersion version)
-        {
-            if (version.Uses2BytesStreamIds())
-            {
-                return 9;
-            }
-            return 8;
-        }
-
-        /// <summary>
         /// Parses the first 8 or 9 bytes and returns a FrameHeader
         /// </summary>
         public static FrameHeader ParseResponseHeader(ProtocolVersion version, byte[] buffer, int offset)

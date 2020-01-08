@@ -67,7 +67,7 @@ namespace Dse.Connections
         }
 
         private readonly Configuration _config;
-        private readonly Serializer _serializer;
+        private readonly ISerializer _serializer;
         private readonly IObserverFactory _observerFactory;
         private readonly CopyOnWriteList<IConnection> _connections = new CopyOnWriteList<IConnection>();
         private readonly HashedWheelTimer _timer;
@@ -85,6 +85,7 @@ namespace Dse.Connections
         private TaskCompletionSource<IConnection> _connectionOpenTcs;
         private int _connectionIndex;
         private readonly int _maxRequestsPerConnection;
+        private readonly PoolingOptions _poolingOptions;
 
         public event Action<Host, HostConnectionPool> AllConnectionClosed;
 
@@ -106,16 +107,15 @@ namespace Dse.Connections
         public IConnection[] ConnectionsSnapshot => _connections.GetSnapshot();
 
 
-        public HostConnectionPool(Host host, Configuration config, Serializer serializer, IObserverFactory observerFactory)
+        public HostConnectionPool(Host host, Configuration config, ISerializer serializer, IObserverFactory observerFactory)
         {
             _host = host;
             _host.Down += OnHostDown;
             _host.Up += OnHostUp;
             _host.DistanceChanged += OnDistanceChanged;
             _config = config ?? throw new ArgumentNullException(nameof(config));
-            _maxRequestsPerConnection = config
-                                        .GetPoolingOptions(serializer.ProtocolVersion)
-                                        .GetMaxRequestsPerConnection();
+            _poolingOptions = config.GetOrCreatePoolingOptions(serializer.ProtocolVersion);
+            _maxRequestsPerConnection = _poolingOptions.GetMaxRequestsPerConnection();
             _serializer = serializer;
             _observerFactory = observerFactory;
             _timer = config.Timer;
@@ -274,7 +274,7 @@ namespace Dse.Connections
                 c.Dispose();
                 throw;
             }
-            if (_config.GetPoolingOptions(_serializer.ProtocolVersion).GetHeartBeatInterval() > 0)
+            if (_poolingOptions.GetHeartBeatInterval() > 0)
             {
                 c.OnIdleRequestException += ex => OnIdleRequestException(c, ex);
             }
@@ -810,10 +810,9 @@ namespace Dse.Connections
 
         public void SetDistance(HostDistance distance)
         {
-            var poolingOptions = _config.GetPoolingOptions(_serializer.ProtocolVersion);
-            _expectedConnectionLength = poolingOptions.GetCoreConnectionsPerHost(distance);
-            _maxInflightThresholdToConsiderResizing =  poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(distance);
-            _maxConnectionLength = poolingOptions.GetMaxConnectionPerHost(distance);
+            _expectedConnectionLength = _poolingOptions.GetCoreConnectionsPerHost(distance);
+            _maxInflightThresholdToConsiderResizing =  _poolingOptions.GetMaxSimultaneousRequestsPerConnectionTreshold(distance);
+            _maxConnectionLength = _poolingOptions.GetMaxConnectionPerHost(distance);
         }
 
         /// <summary>

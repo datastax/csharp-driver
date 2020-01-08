@@ -7,6 +7,8 @@ namespace Dse.Test.Integration.Core
     [TestFixture, Category("short"), Category("realcluster")]
     public class SchemaAgreementTests : SharedClusterTest
     {
+        private volatile bool _paused = false;
+
         public SchemaAgreementTests() : base(2, false, true)
         {
         }
@@ -14,9 +16,7 @@ namespace Dse.Test.Integration.Core
         private Cluster _cluster;
         private Session _session;
 
-        private const int MaxSchemaAgreementWaitSeconds = 30;
-
-        private const int MaxTestSchemaAgreementRetries = 240;
+        private const int MaxSchemaAgreementWaitSeconds = 5;
 
         public override void OneTimeSetUp()
         {
@@ -32,22 +32,15 @@ namespace Dse.Test.Integration.Core
             _session.ChangeKeyspace(KeyspaceName);
         }
 
-        [Test]
-        public async Task Should_CheckSchemaAgreementReturnFalse_When_ADdlStatementIsExecutedAndOneNodeIsDown()
+        // ordering for efficiency, it's not required
+        [Test, Order(1)]
+        public async Task Should_CheckSchemaAgreementReturnTrueAndSchemaInAgreementReturnTrue_When_AllNodesUp()
         {
-            //// this test can't be done with simulacron because there's no support for schema_changed responses
-            TestCluster.PauseNode(2);
+            if (_paused)
+            {
+                TestCluster.ResumeNode(2);
+            }
 
-            var tableName = TestUtils.GetUniqueTableName().ToLower();
-            var cql = new SimpleStatement(
-                $"CREATE TABLE {tableName} (id int PRIMARY KEY, description text)");
-            await _session.ExecuteAsync(cql).ConfigureAwait(false);
-            Assert.IsFalse(await _cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false));
-        }
-
-        [Test]
-        public async Task Should_SchemaInAgreementReturnTrue_When_ADdlStatementIsExecutedAndAllNodesUp()
-        {
             //// this test can't be done with simulacron because there's no support for schema_changed responses
             var tableName = TestUtils.GetUniqueTableName().ToLower();
 
@@ -55,31 +48,27 @@ namespace Dse.Test.Integration.Core
                 $"CREATE TABLE {tableName} (id int PRIMARY KEY, description text)");
             var rowSet = await _session.ExecuteAsync(cql).ConfigureAwait(false);
             Assert.IsTrue(rowSet.Info.IsSchemaInAgreement);
+            Assert.IsTrue(await _cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false));
         }
 
-        [Test]
-        public async Task Should_SchemaInAgreementReturnFalse_When_ADdlStatementIsExecutedAndOneNodeIsDown()
+        // ordering for efficiency, it's not required
+        [Test, Order(2)]
+        public async Task Should_CheckSchemaAgreementReturnFalseAndSchemaInAgreementReturnFalse_When_OneNodeIsDown()
         {
             //// this test can't be done with simulacron because there's no support for schema_changed responses
+            _paused = true;
             TestCluster.PauseNode(2);
-            var tableName = TestUtils.GetUniqueTableName().ToLower();
 
+            var tableName = TestUtils.GetUniqueTableName().ToLower();
             var cql = new SimpleStatement(
                 $"CREATE TABLE {tableName} (id int PRIMARY KEY, description text)");
             var rowSet = await _session.ExecuteAsync(cql).ConfigureAwait(false);
             Assert.IsFalse(rowSet.Info.IsSchemaInAgreement);
+            Assert.IsFalse(await _cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false));
         }
 
-        [TearDown]
-        public void TearDown()
-        {
-            TestCluster.ResumeNode(2);
-            TestUtils.WaitForSchemaAgreement(_cluster, false, true, SchemaAgreementTests.MaxTestSchemaAgreementRetries);
-        }
-        
         public override void OneTimeTearDown()
         {
-            _session.Dispose();
             _cluster.Dispose();
             base.OneTimeTearDown();
         }

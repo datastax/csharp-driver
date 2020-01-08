@@ -31,7 +31,7 @@ namespace Dse.Test.Integration.Core
         public void Monitor_Should_Not_Leak_Connections_Test()
         {
             var presetQueryCassandraObjects = QueryBuilder.GetObjects(where => where.Namespace.Like("Cassandra*")
-                                                    & where.Namespace.NotLike("Cassandra*Tests"));
+                                                    & where.Namespace.NotLike("Dse.Test.Unit"));
             var memoryBeforeAll = dotMemory.Check(memory =>
             {
                 TestContext.WriteLine("Before cluster creation");

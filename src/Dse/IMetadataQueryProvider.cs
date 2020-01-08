@@ -40,7 +40,7 @@ namespace Dse
         /// </summary>
         IPEndPoint LocalAddress { get; }
 
-        Serializer Serializer { get; }
+        ISerializerManager Serializer { get; }
 
         Task<IEnumerable<Row>> QueryAsync(string cqlQuery, bool retry = false);
 

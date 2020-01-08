@@ -16,10 +16,8 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Dse.Test.Unit.TestAttributes;
@@ -40,8 +38,8 @@ namespace Dse.Test.Unit
         public void AtomicMonotonicTimestampGenerator_Next_Should_Return_Log_When_Drifting_Above_Threshold()
         {
             var loggerHandler = new TestHelper.TestLoggerHandler();
-            var generator = new AtomicMonotonicTimestampGenerator(80, 1000, new Logger(loggerHandler));
-            TimestampGeneratorLogDriftingTest(generator, loggerHandler);
+            var generator = new AtomicMonotonicTimestampGenerator(5, 2000, new Logger(loggerHandler));
+            TimestampGeneratorLogDriftingTest(generator, loggerHandler, 2000);
         }
 
         [Test]
@@ -53,6 +51,7 @@ namespace Dse.Test.Unit
         }
 
 #if !NETCORE
+
         [Test, WinOnly(6, 2)]
         public void AtomicMonotonicWinApiTimestampGenerator_Next_Should_Return_Increasing_Monotonic_Values()
         {
@@ -63,8 +62,8 @@ namespace Dse.Test.Unit
         public void AtomicMonotonicWinApiTimestampGenerator_Next_Should_Log_When_Drifting_Above_Threshold()
         {
             var loggerHandler = new TestHelper.TestLoggerHandler();
-            var generator = new AtomicMonotonicWinApiTimestampGenerator(80, 1000, new Logger(loggerHandler));
-            TimestampGeneratorLogDriftingTest(generator, loggerHandler);
+            var generator = new AtomicMonotonicWinApiTimestampGenerator(5, 2000, new Logger(loggerHandler));
+            TimestampGeneratorLogDriftingTest(generator, loggerHandler, 2000);
         }
 
         [Test, WinOnly(6, 2)]
@@ -83,6 +82,7 @@ namespace Dse.Test.Unit
             var generator2 = new AtomicMonotonicWinApiTimestampGenerator();
             Assert.Less(Math.Abs(generator1.Next() - generator2.Next()), 20000);
         }
+
 #endif
 
         private static void TimestampGeneratorMonitonicityTest(ITimestampGenerator generator)
@@ -102,37 +102,23 @@ namespace Dse.Test.Unit
                     values.TryAdd(value, true);
                 }
             }, threads);
-            Assert.AreEqual(iterations*threads, values.Count);
+            Assert.AreEqual(iterations * threads, values.Count);
         }
 
-        private static void TimestampGeneratorLogDriftingTest(ITimestampGenerator generator,
-                                                              TestHelper.TestLoggerHandler loggerHandler)
+        private static void TimestampGeneratorLogDriftingTest(
+            ITimestampGenerator generator, TestHelper.TestLoggerHandler loggerHandler, int logIntervalMs)
         {
-            // A little less than 3 seconds
+            // A little less than 3 * loginterval seconds
             // It should generate a warning initially and then next 2 after 1 second each
-            var maxElapsed = TimeSpan.FromSeconds(2.8);
-            var counter = 0;
-            TestHelper.ParallelInvoke(() =>
+            var maxElapsed = TimeSpan.FromMilliseconds((logIntervalMs * 3) - (logIntervalMs / 4));
+
+            var ct = new CancellationTokenSource(maxElapsed);
+            while (!ct.IsCancellationRequested)
             {
-                var stopWatch = new Stopwatch();
-                stopWatch.Start();
-                while (stopWatch.Elapsed < maxElapsed)
-                {
-                    for (var i = 0; i < 10000; i++)
-                    {
-                        generator.Next();
-                        Interlocked.Increment(ref counter);
-                    }
-                }
-            }, 2);
-            if (Volatile.Read(ref counter) < 5000000)
-            {
-                // if during this time, we weren't able to generate a lot of values, don't mind
-                Assert.Ignore("It was not able to generate 5M values");
+                generator.Next();
             }
 
-            Assert.That(loggerHandler.DequeueAllMessages().Count(i => i.Item1 == "warning"),
-                Is.GreaterThanOrEqualTo(3));
+            Assert.That(Interlocked.Read(ref loggerHandler.WarningCount), Is.EqualTo(3));
         }
 
         private static void TimestampGeneratorLogAfterCooldownTest(ITimestampGenerator generator,
@@ -163,16 +149,14 @@ namespace Dse.Test.Unit
                 Assert.Ignore("It was not able to generate 5M values");
             }
 
-            Assert.That(loggerHandler.DequeueAllMessages().Count(i => i.Item1 == "warning"),
-                Is.GreaterThanOrEqualTo(2));
+            Assert.That(Interlocked.Read(ref loggerHandler.WarningCount), Is.GreaterThanOrEqualTo(2));
 
             // Cooldown: make current time > last generated value
             Thread.Sleep(4000);
 
             // It should generate a warning initially
             TestHelper.ParallelInvoke(() => Action(TimeSpan.FromSeconds(0.8)), 2);
-            Assert.That(loggerHandler.DequeueAllMessages().Count(i => i.Item1 == "warning"),
-                Is.GreaterThanOrEqualTo(1));
+            Assert.That(Interlocked.Read(ref loggerHandler.WarningCount), Is.GreaterThanOrEqualTo(1));
         }
     }
 }

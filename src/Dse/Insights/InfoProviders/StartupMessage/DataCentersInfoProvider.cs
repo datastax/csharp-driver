@@ -19,7 +19,7 @@ namespace Dse.Insights.InfoProviders.StartupMessage
                 cluster
                     .Configuration
                     .CassandraConfiguration
-                    .GetPoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
+                    .GetOrCreatePoolingOptions(cluster.Metadata.ControlConnection.ProtocolVersion)
                     .GetCoreConnectionsPerHost(HostDistance.Remote);
 
             foreach (var h in cluster.AllHosts()) 

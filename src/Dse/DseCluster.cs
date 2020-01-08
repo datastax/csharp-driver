@@ -214,7 +214,7 @@ namespace Dse
         ConcurrentDictionary<byte[], PreparedStatement> IInternalCluster.PreparedQueries => _coreCluster.PreparedQueries;
 
         /// <inheritdoc />
-        Task<PreparedStatement> IInternalCluster.Prepare(IInternalSession session, Serializer serializer, InternalPrepareRequest request)
+        Task<PreparedStatement> IInternalCluster.Prepare(IInternalSession session, ISerializer serializer, InternalPrepareRequest request)
         {
             return _coreCluster.Prepare(session, serializer, request);
         }

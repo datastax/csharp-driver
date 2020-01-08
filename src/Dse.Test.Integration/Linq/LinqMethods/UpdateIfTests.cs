@@ -16,30 +16,22 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Linq.LinqMethods
 {
-    [Category("short"), Category("realcluster")]
-    public class UpdateIfTests : SharedClusterTest
+    public class UpdateIfTests : SimulacronTest
     {
-        private ISession _session;
-        private Table<Movie> _movieTable;
-
-        public override void OneTimeSetUp()
+        public override void SetUp()
         {
-            base.OneTimeSetUp();
-            _session = Session;
+            base.SetUp();
             var uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            _session.CreateKeyspace(uniqueKsName);
-            _session.ChangeKeyspace(uniqueKsName);
-
-            _movieTable = new Table<Movie>(_session, new MappingConfiguration());
-            _movieTable.Create();
+            Session.ChangeKeyspace(uniqueKsName);
         }
 
         [Test]
         [TestCassandraVersion(2, 0)]
         public void LinqTable_UpdateIf_AppliedInfo_Test()
         {
-            _movieTable.CreateIfNotExists();
-            var movie = new Movie()
+            var movieTable = new Table<Movie>(Session, new MappingConfiguration());
+
+            var movie = new Movie
             {
                 Title = "Dead Poets Society",
                 Year = 1989,
@@ -47,17 +39,16 @@ namespace Dse.Test.Integration.Linq.LinqMethods
                 Director = "Peter Weir",
                 MovieMaker = "Touchstone"
             };
-            _movieTable.Insert(movie).SetConsistencyLevel(ConsistencyLevel.Quorum).Execute();
+            
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          $"UPDATE \"{Movie.TableName}\" " +
+                          "SET \"mainGuy\" = ? " +
+                          "WHERE \"unique_movie_title\" = ? AND \"movie_maker\" = ? AND \"director\" = ? IF \"yearMade\" = ?",
+                          when => when.WithParams("Robin McLaurin Williams", movie.Title, movie.MovieMaker, movie.Director, movie.Year))
+                      .ThenRowsSuccess(Movie.CreateAppliedInfoRowsResultWithoutMovie(true)));
 
-            var retrievedMovie = _movieTable
-                .FirstOrDefault(m => m.Title == "Dead Poets Society" && m.MovieMaker == "Touchstone")
-                .Execute();
-            Movie.AssertEquals(movie, retrievedMovie);
-            Assert.NotNull(retrievedMovie);
-            Assert.AreEqual(1989, retrievedMovie.Year);
-            Assert.AreEqual("Robin Williams", retrievedMovie.MainActor);
-
-            var appliedInfo = _movieTable
+            var appliedInfo = movieTable
                 .Where(m => m.Title == "Dead Poets Society" && m.MovieMaker == "Touchstone" && m.Director == "Peter Weir")
                 .Select(m => new Movie { MainActor = "Robin McLaurin Williams" })
                 .UpdateIf(m => m.Year == 1989)
@@ -65,15 +56,25 @@ namespace Dse.Test.Integration.Linq.LinqMethods
             Assert.True(appliedInfo.Applied);
             Assert.Null(appliedInfo.Existing);
 
-            retrievedMovie = _movieTable
-                .FirstOrDefault(m => m.Title == "Dead Poets Society" && m.MovieMaker == "Touchstone")
-                .Execute();
-            Assert.NotNull(retrievedMovie);
-            Assert.AreEqual(1989, retrievedMovie.Year);
-            Assert.AreEqual("Robin McLaurin Williams", retrievedMovie.MainActor);
-
+            var existingMovie = new Movie
+            {
+                Title = "Dead Poets Society",
+                Year = 1989,
+                MainActor = "Robin McLaurin Williams",
+                Director = "Peter Weir",
+                MovieMaker = "Touchstone"
+            };
+            
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          $"UPDATE \"{Movie.TableName}\" " +
+                          "SET \"mainGuy\" = ? " +
+                          "WHERE \"unique_movie_title\" = ? AND \"movie_maker\" = ? AND \"director\" = ? IF \"yearMade\" = ?",
+                          when => when.WithParams("WHOEVER", movie.Title, movie.MovieMaker, movie.Director, 1500))
+                      .ThenRowsSuccess(existingMovie.CreateAppliedInfoRowsResult()));
+            
             //Should not update as the if clause is not satisfied
-            var updateIf = _movieTable
+            var updateIf = movieTable
                 .Where(m => m.Title == "Dead Poets Society" && m.MovieMaker == "Touchstone" && m.Director == "Peter Weir")
                 .Select(m => new Movie { MainActor = "WHOEVER" })
                 .UpdateIf(m => m.Year == 1500);
@@ -81,11 +82,6 @@ namespace Dse.Test.Integration.Linq.LinqMethods
             appliedInfo = updateIf.Execute();
             Assert.False(appliedInfo.Applied);
             Assert.AreEqual(1989, appliedInfo.Existing.Year);
-            retrievedMovie = _movieTable
-                .FirstOrDefault(m => m.Title == "Dead Poets Society" && m.MovieMaker == "Touchstone")
-                .Execute();
-            Assert.NotNull(retrievedMovie);
-            Assert.AreEqual("Robin McLaurin Williams", retrievedMovie.MainActor);
         }
     }
 }

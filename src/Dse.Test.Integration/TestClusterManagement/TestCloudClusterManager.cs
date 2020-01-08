@@ -21,6 +21,8 @@ namespace Dse.Test.Integration.TestClusterManagement
 {
     public class TestCloudClusterManager
     {
+        public static bool Created = false;
+
         public static string SniProxyEndPoint => Environment.GetEnvironmentVariable("SNI_PROXY_ENDPOINT") ?? "127.0.0.1:30002";
 
         public static string SniMetadataEndPoint => Environment.GetEnvironmentVariable("SNI_METADATA_ENDPOINT") ?? "127.0.0.1:30443";
@@ -37,15 +39,21 @@ namespace Dse.Test.Integration.TestClusterManagement
         {
             TryRemove();
             var testCluster = new CloudCluster(
-                TestUtils.GetTestClusterNameBasedOnTime(), 
+                TestUtils.GetTestClusterNameBasedOnRandomString(), 
                 VersionString,
                 enableCert);
             testCluster.Create(3, null);
+            TestCloudClusterManager.Created = true;
             return testCluster;
         }
 
         public static void TryRemove()
         {
+            if (!TestCloudClusterManager.Created)
+            {
+                return;
+            }
+
             try
             {
                 CloudCluster.DockerKill();

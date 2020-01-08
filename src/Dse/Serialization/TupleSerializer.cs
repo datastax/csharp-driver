@@ -40,7 +40,7 @@ namespace Dse.Serialization
                 {
                     continue;
                 }
-                tupleValues[i] = DeserializeChild(buffer, offset, itemLength, element.TypeCode, element.TypeInfo);
+                tupleValues[i] = DeserializeChild(protocolVersion, buffer, offset, itemLength, element.TypeCode, element.TypeInfo);
                 offset += itemLength;
             }
 
@@ -92,7 +92,7 @@ namespace Dse.Serialization
                 var prop = tupleType.GetTypeInfo().GetProperty("Item" + i);
                 if (prop != null)
                 {
-                    var buffer = SerializeChild(prop.GetValue(value, null));
+                    var buffer = SerializeChild(protocolVersion, prop.GetValue(value, null));
                     bufferList.Add(buffer);
                     if (buffer != null)
                     {

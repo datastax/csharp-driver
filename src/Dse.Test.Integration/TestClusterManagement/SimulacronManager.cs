@@ -66,14 +66,13 @@ namespace Dse.Test.Integration.TestClusterManagement
                 if (e.Data == null) return;
                 Trace.TraceError(e.Data);
                 errorMessage = $"Simulacron start error: {e.Data}";
-                eventWaitHandler.Set();
             };
             _simulacronProcess.Start();
 
             _simulacronProcess.BeginOutputReadLine();
             _simulacronProcess.BeginErrorReadLine();
 
-            eventWaitHandler.WaitOne(8000);
+            eventWaitHandler.WaitOne(30000);
             if (!started)
             {
                 Trace.TraceError(errorMessage);

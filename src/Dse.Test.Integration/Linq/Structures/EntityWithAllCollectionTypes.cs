@@ -27,7 +27,7 @@ namespace Dse.Test.Integration.Linq.Structures
 
         public static EntityWithAllCollectionTypes GetRandomInstance(int seed = 1)
         {
-            EntityWithAllCollectionTypes cte = new EntityWithAllCollectionTypes();
+            var cte = new EntityWithAllCollectionTypes();
             cte.Id = Guid.NewGuid().ToString();
             cte.ListType = new List<int>() { seed };
             cte.ArrayType = new string[] { seed.ToString() };
@@ -45,8 +45,8 @@ namespace Dse.Test.Integration.Linq.Structures
 
         public static List<EntityWithAllCollectionTypes> GetDefaultAllDataTypesList()
         {
-            List<EntityWithAllCollectionTypes> entityList = new List<EntityWithAllCollectionTypes>();
-            for (int i = 0; i < DefaultListLength; i++)
+            var entityList = new List<EntityWithAllCollectionTypes>();
+            for (var i = 0; i < DefaultListLength; i++)
             {
                 entityList.Add(GetRandomInstance(i));
             }
@@ -60,10 +60,10 @@ namespace Dse.Test.Integration.Linq.Structures
                 new Map<EntityWithAllCollectionTypes>()
                 .TableName("EntityWithAllCollectionTypes_" + Randomm.RandomAlphaNum(12))
                 .PartitionKey(u => u.Id));
-            Table<EntityWithAllCollectionTypes> table = new Table<EntityWithAllCollectionTypes>(session, config);
+            var table = new Table<EntityWithAllCollectionTypes>(session, config);
             table.Create();
 
-            List<EntityWithAllCollectionTypes> entityList = GetDefaultAllDataTypesList();
+            var entityList = GetDefaultAllDataTypesList();
             //Insert some data
             foreach (var singleEntity in entityList)
                 table.Insert(singleEntity).Execute();
@@ -71,9 +71,24 @@ namespace Dse.Test.Integration.Linq.Structures
             return new Tuple<Table<EntityWithAllCollectionTypes>, List<EntityWithAllCollectionTypes>>(table, entityList);
         }
 
+        public static Tuple<Table<EntityWithAllCollectionTypes>, List<EntityWithAllCollectionTypes>> GetDefaultTable(
+            ISession session, string tableName)
+        {
+            // create table
+            var config = new MappingConfiguration().Define(
+                new Map<EntityWithAllCollectionTypes>()
+                    .TableName(tableName)
+                    .PartitionKey(u => u.Id));
+            var table = new Table<EntityWithAllCollectionTypes>(session, config);
+
+            var entityList = EntityWithAllCollectionTypes.GetDefaultAllDataTypesList();
+
+            return new Tuple<Table<EntityWithAllCollectionTypes>, List<EntityWithAllCollectionTypes>>(table, entityList);
+        }
+
         public EntityWithAllCollectionTypes Clone()
         {
-            EntityWithAllCollectionTypes cte = new EntityWithAllCollectionTypes();
+            var cte = new EntityWithAllCollectionTypes();
             cte.Id = Id;
             cte.ListType = new List<int>();
             cte.ListType.AddRange(ListType);

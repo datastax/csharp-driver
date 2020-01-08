@@ -21,7 +21,7 @@ namespace Dse.SessionManagement
             _sessionFactory = sessionFactory;
         }
 
-        public async Task<IInternalDseSession> CreateSessionAsync(string keyspace, Serializer serializer, string sessionName)
+        public async Task<IInternalDseSession> CreateSessionAsync(string keyspace, ISerializerManager serializer, string sessionName)
         {
             return new DseSession(await _sessionFactory.CreateSessionAsync(keyspace, serializer, sessionName).ConfigureAwait(false), _dseCluster);
         }

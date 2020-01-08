@@ -42,7 +42,6 @@ namespace Dse
         private long _sessionCounter = -1;
 
         private readonly Metadata _metadata;
-        private readonly Serializer _serializer;
         private readonly ISessionFactory<IInternalSession> _sessionFactory;
         private readonly IClusterLifecycleManager _lifecycleManager;
         private readonly IProtocolEventDebouncer _protocolEventDebouncer;
@@ -166,7 +165,6 @@ namespace Dse
             _controlConnection = configuration.ControlConnectionFactory.Create(_protocolEventDebouncer, protocolVersion, Configuration, _metadata, contactPoints);
 
             _metadata.ControlConnection = _controlConnection;
-            _serializer = _controlConnection.Serializer;
             _sessionFactory = configuration.SessionFactoryBuilder.BuildWithCluster(this);
             _lifecycleManager = lifecycleManager ?? new ClusterLifecycleManager(this);
         }
@@ -236,7 +234,7 @@ namespace Dse
         {
             await Init().ConfigureAwait(false);
             var newSessionName = GetNewSessionName();
-            var session = await sessionFactory.CreateSessionAsync(keyspace, _serializer, newSessionName).ConfigureAwait(false);
+            var session = await sessionFactory.CreateSessionAsync(keyspace, _controlConnection.Serializer, newSessionName).ConfigureAwait(false);
             await session.Init().ConfigureAwait(false);
             _connectedSessions.Add(session);
             Cluster.Logger.Info("Session connected ({0})", session.GetHashCode());
@@ -338,7 +336,7 @@ namespace Dse
                     //Throw the actual exception for the first time
                     throw;
                 }
-                Cluster.Logger.Info("Cluster Connected using binary protocol version: [" + _serializer.ProtocolVersion + "]");
+                Cluster.Logger.Info("Cluster Connected using binary protocol version: [" + _controlConnection.Serializer.CurrentProtocolVersion + "]");
                 _initialized = true;
                 _metadata.Hosts.Added += OnHostAdded;
                 _metadata.Hosts.Removed += OnHostRemoved;
@@ -526,7 +524,7 @@ namespace Dse
 
         /// <inheritdoc />
         async Task<PreparedStatement> IInternalCluster.Prepare(
-            IInternalSession session, Serializer serializer, InternalPrepareRequest request)
+            IInternalSession session, ISerializer serializer, InternalPrepareRequest request)
         {
             var lbp = session.Cluster.Configuration.DefaultRequestOptions.LoadBalancingPolicy;
             var handler = InternalRef.Configuration.PrepareHandlerFactory.Create(serializer);

@@ -31,7 +31,7 @@ namespace Dse
         /// <summary>
         /// Gets or sets the serialized used
         /// </summary>
-        internal Serializer Serializer { get; set; }
+        internal ISerializer Serializer { get; set; }
 
         protected RegularStatement()
         {

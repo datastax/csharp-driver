@@ -27,7 +27,7 @@ namespace Dse.Test.Unit
     [TestFixture]
     public class RequestHandlerTests
     {
-        private static readonly Serializer Serializer = new Serializer(ProtocolVersion.MaxSupported);
+        private static readonly ISerializer Serializer = new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer();
 
         private static Configuration GetConfig(QueryOptions queryOptions = null, Dse.Policies policies = null, PoolingOptions poolingOptions = null)
         {
@@ -256,7 +256,7 @@ namespace Dse.Test.Unit
                 new NoTimestampGenerator());
             var config = RequestHandlerTests.GetConfig(new QueryOptions(), policies, PoolingOptions.Create());
 
-            var request = RequestHandler.GetRequest(statement, Serializer.Default, config.DefaultRequestOptions);
+            var request = RequestHandler.GetRequest(statement, Serialization.SerializerManager.Default.GetCurrentSerializer(), config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
             // The query request is composed by:
@@ -452,7 +452,7 @@ namespace Dse.Test.Unit
         {
             var batch = new BatchStatement();
             batch.Add(new SimpleStatement("QUERY")).SetKeyspace("test_keyspace");
-            var serializer = new Serializer(ProtocolVersion.V3);
+            var serializer = new SerializerManager(ProtocolVersion.V3).GetCurrentSerializer();
             var request = RequestHandler.GetRequest(batch, serializer, new Configuration().DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request, serializer);
 
@@ -474,7 +474,7 @@ namespace Dse.Test.Unit
             var batch = new BatchStatement();
             batch.Add(new SimpleStatement(query))
                  .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
-            var serializer = new Serializer(ProtocolVersion.V2);
+            var serializer = new SerializerManager(ProtocolVersion.V2).GetCurrentSerializer();
 
             var request = RequestHandler.GetRequest(batch, serializer, new Configuration().DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request, serializer);
@@ -631,7 +631,7 @@ namespace Dse.Test.Unit
         public void GetRequest_Query_With_Keyspace_On_Lower_Protocol_Version_Should_Ignore_Keyspace()
         {
             var statement = new SimpleStatement("QUERY").SetKeyspace("my_keyspace");
-            var serializer = new Serializer(ProtocolVersion.V3);
+            var serializer = new SerializerManager(ProtocolVersion.V3).GetCurrentSerializer();
             var request = RequestHandler.GetRequest(statement, serializer, new Configuration().DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request, serializer);
 
@@ -698,14 +698,14 @@ namespace Dse.Test.Unit
             var request = new InternalPrepareRequest(query, "my_keyspace");
 
             // The request only contains the query
-            var buffer = GetBodyBuffer(request, new Serializer(ProtocolVersion.V2));
+            var buffer = GetBodyBuffer(request, new SerializerManager(ProtocolVersion.V2).GetCurrentSerializer());
 
             var queryLength = BeConverter.ToInt32(buffer);
             Assert.AreEqual(query.Length, queryLength);
             Assert.AreEqual(4 + queryLength, buffer.Length);
         }
 
-        private static byte[] GetBodyBuffer(IRequest request, Serializer serializer = null)
+        private static byte[] GetBodyBuffer(IRequest request, ISerializer serializer = null)
         {
             if (serializer == null)
             {
@@ -714,7 +714,7 @@ namespace Dse.Test.Unit
 
             var stream = new MemoryStream();
             request.WriteFrame(1, stream, serializer);
-            var headerSize = FrameHeader.GetSize(serializer.ProtocolVersion);
+            var headerSize = serializer.ProtocolVersion.GetHeaderSize();
             var bodyBuffer = new byte[stream.Length - headerSize];
             stream.Position = headerSize;
             stream.Read(bodyBuffer, 0, bodyBuffer.Length);
@@ -736,7 +736,7 @@ namespace Dse.Test.Unit
             Assert.That((ConsistencyLevel)BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
         }
 
-        private static QueryFlags GetQueryFlags(byte[] bodyBuffer, ref int offset, Serializer serializer = null)
+        private static QueryFlags GetQueryFlags(byte[] bodyBuffer, ref int offset, ISerializer serializer = null)
         {
             if (serializer == null)
             {

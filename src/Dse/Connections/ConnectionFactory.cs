@@ -24,13 +24,13 @@ namespace Dse.Connections
     internal class ConnectionFactory : IConnectionFactory
     {
         public IConnection Create(
-            Serializer serializer, IConnectionEndPoint endPoint, Configuration configuration, IConnectionObserver connectionObserver)
+            ISerializer serializer, IConnectionEndPoint endPoint, Configuration configuration, IConnectionObserver connectionObserver)
         {
             return new Connection(
                 serializer, endPoint, configuration, new StartupRequestFactory(configuration.StartupOptionsFactory), connectionObserver);
         }
 
-        public IConnection CreateUnobserved(Serializer serializer, IConnectionEndPoint endPoint, Configuration configuration)
+        public IConnection CreateUnobserved(ISerializer serializer, IConnectionEndPoint endPoint, Configuration configuration)
         {
             return new Connection(
                 serializer, 

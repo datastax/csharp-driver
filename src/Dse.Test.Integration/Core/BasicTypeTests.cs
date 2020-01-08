@@ -12,6 +12,7 @@ using System.Numerics;
 using System.Threading.Tasks;
 using Dse.Test.Integration.TestClusterManagement;
 using System.Reflection;
+using Dse.Test.Integration.SimulacronAPI.Models.Logs;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Core
@@ -20,8 +21,7 @@ namespace Dse.Test.Integration.Core
     /// Validates the (de)serialization of CRL types and CQL types.
     /// Each test will upsert a value on specific CQL type and expect the correspondent CRL type. Should_Get(CRL type)_When_Upsert(CQL data type).
     /// </summary>
-    [Category("short"), Category("realcluster")]
-    public class BasicTypeTests : SharedClusterTest
+    public class BasicTypeTests : SimulacronTest
     {
         [Test]
         public void Should_GetTypeCounter_When_UpsertTypeCounter()
@@ -140,16 +140,16 @@ namespace Dse.Test.Integration.Core
         [Test]
         public void DecimalWithNegativeScaleTest()
         {
-            const string query = "CREATE TABLE decimal_neg_scale(id uuid PRIMARY KEY, value decimal);";
-            QueryTools.ExecuteSyncNonQuery(Session, query);
-
             const string insertQuery = @"INSERT INTO decimal_neg_scale (id, value) VALUES (?, ?)";
             var preparedStatement = Session.Prepare(insertQuery);
 
             const int scale = -1;
             var scaleBytes = BitConverter.GetBytes(scale);
             if (BitConverter.IsLittleEndian)
+            {
                 Array.Reverse(scaleBytes);
+            }
+
             var bytes = new byte[scaleBytes.Length + 1];
             Array.Copy(scaleBytes, bytes, scaleBytes.Length);
 
@@ -158,13 +158,19 @@ namespace Dse.Test.Integration.Core
             var firstRowValues = new object[] { Guid.NewGuid(), bytes };
             Session.Execute(preparedStatement.Bind(firstRowValues));
 
+            VerifyBoundStatement(
+                insertQuery,
+                1,
+                firstRowValues);
+
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery("SELECT * FROM decimal_neg_scale")
+                      .ThenRowsSuccess(new[] {"id", "value"}, r => r.WithRow(firstRowValues.First(), (decimal) 50)));
+
             var row = Session.Execute("SELECT * FROM decimal_neg_scale").First();
             var decValue = row.GetValue<decimal>("value");
             
             Assert.AreEqual(50, decValue);
-
-            const string  dropQuery = "DROP TABLE decimal_neg_scale;";
-            QueryTools.ExecuteSyncNonQuery(Session, dropQuery);
         }
 
         ////////////////////////////////////
@@ -190,6 +196,9 @@ namespace Dse.Test.Integration.Core
                 minimum = minimum.GetType().GetTypeInfo().GetMethod("ToString", new[] { typeof(string) }).Invoke(minimum, new object[1] { "r" });
                 maximum = maximum.GetType().GetTypeInfo().GetMethod("ToString", new[] { typeof(string) }).Invoke(maximum, new object[1] { "r" });
 
+                toInsertAndCheck[0][2] = minimum;
+                toInsertAndCheck[1][2] = maximum;
+
                 if (!sameOutput) //for ExceedingCassandra_FLOAT() test case
                 {
                     toInsertAndCheck[0][2] = Single.NegativeInfinity;
@@ -200,9 +209,9 @@ namespace Dse.Test.Integration.Core
             try
             {
                 QueryTools.ExecuteSyncNonQuery(Session,
-                    $"INSERT INTO {tableName}(tweet_id, label, number) VALUES ({toInsertAndCheck[0][0]}, '{toInsertAndCheck[0][1]}', {minimum});", null);
+                    $"INSERT INTO {tableName}(tweet_id, label, number) VALUES ({toInsertAndCheck[0][0]}, '{toInsertAndCheck[0][1]}', {toInsertAndCheck[0][2]});", null);
                 QueryTools.ExecuteSyncNonQuery(Session,
-                    $"INSERT INTO {tableName}(tweet_id, label, number) VALUES ({toInsertAndCheck[1][0]}, '{toInsertAndCheck[1][1]}', {maximum});", null);
+                    $"INSERT INTO {tableName}(tweet_id, label, number) VALUES ({toInsertAndCheck[1][0]}, '{toInsertAndCheck[1][1]}', {toInsertAndCheck[1][2]});", null);
             }
             catch (InvalidQueryException)
             {
@@ -210,7 +219,26 @@ namespace Dse.Test.Integration.Core
                 {
                     return;
                 }
+
+                throw;
             }
+
+            VerifyStatement(
+                QueryType.Query,
+                $"INSERT INTO {tableName}(tweet_id, label, number) VALUES ({toInsertAndCheck[0][0]}, '{toInsertAndCheck[0][1]}', {toInsertAndCheck[0][2]});",
+                1);
+
+            VerifyStatement(
+                QueryType.Query,
+                $"INSERT INTO {tableName}(tweet_id, label, number) VALUES ({toInsertAndCheck[1][0]}, '{toInsertAndCheck[1][1]}', {toInsertAndCheck[1][2]});",
+                1);
+
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery($"SELECT * FROM {tableName};", when => when.WithConsistency(ConsistencyLevel.One))
+                      .ThenRowsSuccess(
+                          new[] {"tweet_id", "label", "number"}, 
+                          r => r.WithRow(toInsertAndCheck[0][0], toInsertAndCheck[0][1], toInsertAndCheck[0][2])
+                                .WithRow(toInsertAndCheck[1][0], toInsertAndCheck[1][1], toInsertAndCheck[1][2])));
 
             QueryTools.ExecuteSyncQuery(Session, $"SELECT * FROM {tableName};", ConsistencyLevel.One, toInsertAndCheck);
         }
@@ -219,24 +247,33 @@ namespace Dse.Test.Integration.Core
         public void TestCounters()
         {
             var tableName = TestUtils.GetUniqueTableName();
-            try
-            {
-                var query = $"CREATE TABLE {tableName}(tweet_id uuid PRIMARY KEY, incdec counter);";
-                QueryTools.ExecuteSyncNonQuery(Session, query);
-            }
-            catch (AlreadyExistsException)
-            {
-            }
 
             var tweet_id = Guid.NewGuid();
 
-            Parallel.For(0, 100,
-                         i =>
-                         {
-                             QueryTools.ExecuteSyncNonQuery(Session,
-                                                            string.Format(@"UPDATE {0} SET incdec = incdec {2}  WHERE tweet_id = {1};", tableName,
-                                                                          tweet_id, (i % 2 == 0 ? "-" : "+") + i));
-                         });
+            var tasks = Enumerable.Range(0, 100).Select(i => Task.Factory.StartNew(
+                () =>
+                {
+                    QueryTools.ExecuteSyncNonQuery(Session,
+                        string.Format(@"UPDATE {0} SET incdec = incdec {2}  WHERE tweet_id = {1};", tableName,
+                            tweet_id, (i % 2 == 0 ? "-" : "+") + i));
+                },
+                TaskCreationOptions.LongRunning | TaskCreationOptions.HideScheduler));
+
+            Task.WaitAll(tasks.ToArray());
+
+            var logs = TestCluster.GetQueries(null, QueryType.Query).Where(l => l.Query.StartsWith("UPDATE")).ToList();
+
+            Assert.AreEqual(100, logs.Count);
+            foreach (var i in Enumerable.Range(0, 100))
+            {
+                var query = string.Format(@"UPDATE {0} SET incdec = incdec {2}  WHERE tweet_id = {1};", tableName,
+                    tweet_id, (i % 2 == 0 ? "-" : "+") + i);
+                VerifyStatement(logs, query, 1);
+            }
+
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery($"SELECT * FROM {tableName};", when => when.WithConsistency(ConsistencyLevel.LocalOne))
+                      .ThenRowsSuccess(new[] {"tweet_id", "incdec"}, r => r.WithRow(tweet_id, (Int64) 50)));
 
             QueryTools.ExecuteSyncQuery(Session, $"SELECT * FROM {tableName};",
                                         Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel(),
@@ -245,39 +282,52 @@ namespace Dse.Test.Integration.Core
 
         public void InsertingSingleValue(Type tp)
         {
-            var cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(tp);
             var tableName = TestUtils.GetUniqueTableName();
-            try
-            {
-                var query = $@"CREATE TABLE {tableName}(tweet_id uuid PRIMARY KEY, value {cassandraDataTypeName});";
-                QueryTools.ExecuteSyncNonQuery(Session, query);
-            }
-            catch (AlreadyExistsException)
-            {
-            }
 
             var toInsert = new List<object[]>(1);
             var val = Randomm.RandomVal(tp);
             if (tp == typeof(string))
+            {
                 val = "'" + val.ToString().Replace("'", "''") + "'";
+            }
+
             var row1 = new object[2] { Guid.NewGuid(), val };
             toInsert.Add(row1);
 
             var isFloatingPoint = false;
 
             if (row1[1].GetType() == typeof(string) || row1[1].GetType() == typeof(byte[]))
-                QueryTools.ExecuteSyncNonQuery(Session,
-                    $"INSERT INTO {tableName}(tweet_id,value) VALUES ({toInsert[0][0]}, {(row1[1].GetType() == typeof(byte[]) ? "0x" + CqlQueryTools.ToHex((byte[]) toInsert[0][1]) : "'" + toInsert[0][1] + "'")});", null);
+            {
+                var query =
+                    $"INSERT INTO {tableName}(tweet_id,value) VALUES (" +
+                        $"{toInsert[0][0]}, " +
+                        $"{(row1[1].GetType() == typeof(byte[]) ? "0x" + CqlQueryTools.ToHex((byte[]) toInsert[0][1]) : "'" + toInsert[0][1] + "'")}" +
+                        ");";
+                QueryTools.ExecuteSyncNonQuery(Session, query, null);
+                VerifyStatement(QueryType.Query, query, 1);
+            }
             else
             {
                 if (tp == typeof(Single) || tp == typeof(Double))
+                {
                     isFloatingPoint = true;
-                QueryTools.ExecuteSyncNonQuery(Session,
-                    $"INSERT INTO {tableName}(tweet_id,value) VALUES ({toInsert[0][0]}, {(!isFloatingPoint ? toInsert[0][1] : toInsert[0][1].GetType().GetMethod("ToString", new[] {typeof(string)}).Invoke(toInsert[0][1], new object[] {"r"}))});", null);
+                }
+
+                var query =
+                    $"INSERT INTO {tableName}(tweet_id,value) VALUES (" +
+                        $"{toInsert[0][0]}, " +
+                        $"{(!isFloatingPoint ? toInsert[0][1] : toInsert[0][1].GetType().GetMethod("ToString", new[] { typeof(string) }).Invoke(toInsert[0][1], new object[] { "r" }))}" +
+                        ");";
+                QueryTools.ExecuteSyncNonQuery(Session, query, null);
+                VerifyStatement(QueryType.Query, query, 1);
             }
 
-            QueryTools.ExecuteSyncQuery(Session, $"SELECT * FROM {tableName};",
-                                        Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel(), toInsert);
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery($"SELECT * FROM {tableName};", when => when.WithConsistency(ConsistencyLevel.LocalOne))
+                      .ThenRowsSuccess(new[] {"tweet_id", "value"}, r => r.WithRow(toInsert[0][0], toInsert[0][1])));
+
+            QueryTools.ExecuteSyncQuery(
+                Session, $"SELECT * FROM {tableName};", Session.Cluster.Configuration.QueryOptions.GetConsistencyLevel(), toInsert);
         }
 
         public void TimestampTest()

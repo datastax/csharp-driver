@@ -139,6 +139,11 @@ namespace Dse.Test.Integration.TestClusterManagement
             throw new System.NotImplementedException();
         }
 
+        public void UpdateConfig(int nodeId, params string[] yamlChanges)
+        {
+            throw new NotImplementedException();
+        }
+
         public void InitClient()
         {
             throw new System.NotImplementedException();

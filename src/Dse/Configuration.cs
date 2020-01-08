@@ -57,7 +57,7 @@ namespace Dse
         ///  The connection pooling configuration, defaults to null.
         /// </summary>
         /// <returns>the pooling options.</returns>
-        public PoolingOptions PoolingOptions { get; private set; }
+        public PoolingOptions PoolingOptions { get; }
 
         /// <summary>
         ///  The .net client additional options configuration.
@@ -259,17 +259,17 @@ namespace Dse
         }
 
         /// <summary>
-        /// Gets the pooling options. If not specified, gets the default by protocol version
+        /// Gets the pooling options. If not specified, creates a new instance with the default by protocol version.
+        /// This instance is not stored.
         /// </summary>
-        internal PoolingOptions GetPoolingOptions(ProtocolVersion protocolVersion)
+        internal PoolingOptions GetOrCreatePoolingOptions(ProtocolVersion protocolVersion)
         {
-            if (PoolingOptions != null)
-            {
-                return PoolingOptions;
-            }
+            return PoolingOptions ?? PoolingOptions.Create(protocolVersion);
+        }
 
-            PoolingOptions = PoolingOptions.Create(protocolVersion);
-            return PoolingOptions;
+        internal int? GetHeartBeatInterval()
+        {
+            return PoolingOptions != null ? PoolingOptions.GetHeartBeatInterval() : PoolingOptions.Create().GetHeartBeatInterval();
         }
 
         /// <summary>

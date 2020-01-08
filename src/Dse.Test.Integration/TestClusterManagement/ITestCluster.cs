@@ -66,6 +66,11 @@ namespace Dse.Test.Integration.TestClusterManagement
         /// Updates the yaml config
         /// </summary>
         void UpdateConfig(params string[] yamlChanges);
+        
+        /// <summary>
+        /// Updates the yaml config of a specific node
+        /// </summary>
+        void UpdateConfig(int nodeId, params string[] yamlChanges);
 
         /// <summary>
         /// Initialize the Builder, Cluster and Session objects associated with the current Test Cluster

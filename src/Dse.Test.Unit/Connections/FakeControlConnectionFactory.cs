@@ -29,7 +29,7 @@ namespace Dse.Test.Unit.Connections
         {
             var cc = Mock.Of<IControlConnection>();
             Mock.Get(cc).Setup(c => c.InitAsync()).Returns(TaskHelper.Completed);
-            Mock.Get(cc).Setup(c => c.Serializer).Returns(new Serializer(ProtocolVersion.V3));
+            Mock.Get(cc).Setup(c => c.Serializer).Returns(new SerializerManager(ProtocolVersion.V3));
             return cc;
         }
     }

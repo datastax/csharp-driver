@@ -28,12 +28,12 @@ namespace Dse.Test.Unit
         private static readonly IPEndPoint Address = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1000);
         private const int TestFrameLength = 12;
 
-        private static Mock<Connection> GetConnectionMock(Configuration config = null)
+        private static Mock<Connection> GetConnectionMock(Configuration config = null, ISerializerManager serializer = null)
         {
             config = config ?? new Configuration();
             return new Mock<Connection>(
                 MockBehavior.Loose, 
-                new Serializer(ProtocolVersion.MaxSupported), 
+                serializer?.GetCurrentSerializer() ?? new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer(), 
                 new ConnectionEndPoint(ConnectionTests.Address, null), 
                 config, 
                 new StartupRequestFactory(config.StartupOptionsFactory),
@@ -301,17 +301,56 @@ namespace Dse.Test.Unit
             await TestHelper.WaitUntilAsync(() => totalFrames == responses.Count, 100, 30).ConfigureAwait(false);
             Assert.AreEqual(totalFrames, responses.Count);
         }
+        
+        [Test]
+        public void Should_HandleDifferentProtocolVersionsInDifferentConnections_When_OneConnectionResponseVersionIsDifferentThanSerializer()
+        {
+            var serializer = new SerializerManager(ProtocolVersion.V4);
+            var connectionMock = GetConnectionMock(null, serializer);
+            var connectionMock2 = GetConnectionMock(null, serializer);
+            var streamIds = new List<short>();
+            var responses = new ConcurrentBag<Response>();
+            connectionMock.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
+                          .Callback<short>(id => streamIds.Add(id))
+                          .Returns(() => OperationStateExtensions.CreateMock((ex, r) => responses.Add(r)));
+            connectionMock2.Setup(c => c.RemoveFromPending(It.IsAny<short>()))
+                          .Callback<short>(id => streamIds.Add(id))
+                          .Returns(() => OperationStateExtensions.CreateMock((ex, r) => responses.Add(r)));
+            var connection = connectionMock.Object;
+            var buffer = GetResultBuffer(128, ProtocolVersion.V4);
+            connection.ReadParse(buffer, buffer.Length);
+            buffer = ConnectionTests.GetResultBuffer(100, ProtocolVersion.V2);
+            connectionMock2.Object.ReadParse(buffer, buffer.Length);
+            buffer = GetResultBuffer(129, ProtocolVersion.V4);
+            connection.ReadParse(buffer, buffer.Length);
+            CollectionAssert.AreEqual(new short[] { 128, 100, 129 }, streamIds);
+            TestHelper.WaitUntil(() => responses.Count == 3);
+            Assert.AreEqual(3, responses.Count);
+        }
 
         /// <summary>
         /// Gets a buffer containing 8 bytes for header and 4 bytes for the body.
         /// For result + void response message  (protocol v2)
         /// </summary>
-        private static byte[] GetResultBuffer(byte streamId = 0)
+        private static byte[] GetResultBuffer(short streamId, ProtocolVersion version = ProtocolVersion.V2)
         {
+            var header = (byte)((int)version | 0x80);
+            if (version.Uses2BytesStreamIds())
+            {
+                var bytes = BeConverter.GetBytes(streamId);
+                return new byte[]
+                {
+                    //header
+                    header, 0, bytes[0], bytes[1], ResultResponse.OpCode, 0, 0, 0, 4, 
+                    //body
+                    0, 0, 0, 1
+                };
+            }
+
             return new byte[]
             {
                 //header
-                0x82, 0, streamId, ResultResponse.OpCode, 0, 0, 0, 4, 
+                header, 0, (byte)streamId, ResultResponse.OpCode, 0, 0, 0, 4, 
                 //body
                 0, 0, 0, 1
             };

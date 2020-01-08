@@ -18,6 +18,9 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Dse.Test.Integration.SimulacronAPI;
+using Dse.Test.Integration.SimulacronAPI.Models.Logs;
+using Dse.Test.Integration.SimulacronAPI.PrimeBuilder;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
 using Dse.Test.Unit;
 using NUnit.Framework;
@@ -29,34 +32,27 @@ namespace Dse.Test.Integration.Core
     {
         private const string Query = "SELECT * FROM ks1.prepare_table1";
 
-        private static object QueryPrime(int delay = 0) => new
+        private static IPrimeRequest QueryPrime(int delay = 0)
         {
-            when = new {query = Query},
-            then = new
-            {
-                result = "success",
-                delay_in_ms = delay,
-                rows = new[] {new {id = Guid.NewGuid()}},
-                column_types = new {id = "uuid"},
-                ignore_on_prepare = false
-            }
-        };
+            return SimulacronBase
+                   .PrimeBuilder()
+                   .WhenQuery(PrepareSimulatorTests.Query)
+                   .ThenRowsSuccess(new[] { ("id", DataType.Uuid) }, rows => rows.WithRow(Guid.NewGuid()))
+                   .WithDelayInMs(delay)
+                   .BuildRequest();
+        }
 
-        private static readonly object IsBootstrapingPrime = new
-        {
-            when = new {query = Query},
-            then = new
-            {
-                result = "is_bootstrapping",
-                delay_in_ms = 0,
-                ignore_on_prepare = false
-            }
-        };
-        
+        private static IPrimeRequest IsBootstrappingPrime =>
+            SimulacronBase
+                .PrimeBuilder()
+                .WhenQuery(PrepareSimulatorTests.Query)
+                .ThenIsBootstrapping()
+                .BuildRequest();
+
         [Test]
         public void Should_Prepare_On_First_Node()
         {
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint)
                                         .WithQueryOptions(new QueryOptions().SetPrepareOnAllHosts(false))
@@ -71,16 +67,16 @@ namespace Dse.Test.Integration.Core
                 Assert.NotNull(firstRow);
                 var node = simulacronCluster.GetNode(cluster.AllHosts().First().Address);
                 // Executed on first node
-                Assert.AreEqual(1, node.GetQueries(Query, "PREPARE").Count);
+                Assert.AreEqual(1, node.GetQueries(Query, QueryType.Prepare).Count);
                 // Only executed on the first node
-                Assert.AreEqual(1, simulacronCluster.GetQueries(Query, "PREPARE").Count);
+                Assert.AreEqual(1, simulacronCluster.GetQueries(Query, QueryType.Prepare).Count);
             }
         }
 
         [Test]
         public void Should_Prepare_On_All_Nodes_By_Default()
         {
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint)
                                         .WithLoadBalancingPolicy(new TestHelper.OrderedLoadBalancingPolicy()).Build())
@@ -92,17 +88,17 @@ namespace Dse.Test.Integration.Core
                 // Executed on each node
                 foreach (var node in simulacronCluster.DataCenters[0].Nodes)
                 {
-                    Assert.AreEqual(1, node.GetQueries(Query, "PREPARE").Count);   
+                    Assert.AreEqual(1, node.GetQueries(Query, QueryType.Prepare).Count);
                 }
                 // Executed on all nodes
-                Assert.AreEqual(3, simulacronCluster.GetQueries(Query, "PREPARE").Count);
+                Assert.AreEqual(3, simulacronCluster.GetQueries(Query, QueryType.Prepare).Count);
             }
         }
 
         [Test]
         public void Should_Reuse_The_Same_Instance()
         {
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = Cluster.Builder().AddContactPoint(simulacronCluster.InitialContactPoint).Build())
             {
                 var session = cluster.Connect();
@@ -117,7 +113,7 @@ namespace Dse.Test.Integration.Core
         [Test]
         public void Should_Failover_When_First_Node_Fails()
         {
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint)
                                         .WithQueryOptions(new QueryOptions().SetPrepareOnAllHosts(false))
@@ -128,19 +124,19 @@ namespace Dse.Test.Integration.Core
                 foreach (var h in cluster.AllHosts())
                 {
                     var node = simulacronCluster.GetNode(h.Address);
-                    node.Prime(h == firstHost ? IsBootstrapingPrime : QueryPrime());
+                    node.Prime(h == firstHost ? PrepareSimulatorTests.IsBootstrappingPrime : QueryPrime());
                 }
                 var ps = session.Prepare(Query);
                 Assert.NotNull(ps);
                 // Should have been executed in the first node (failed) and in the second one (succeeded)
-                Assert.AreEqual(2, simulacronCluster.GetQueries(Query, "PREPARE").Count);
+                Assert.AreEqual(2, simulacronCluster.GetQueries(Query, QueryType.Prepare).Count);
             }
         }
 
         [Test]
         public void Should_Prepare_On_All_Ignoring_Individual_Failures()
         {
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint)
                                         .WithLoadBalancingPolicy(new TestHelper.OrderedLoadBalancingPolicy()).Build())
@@ -150,11 +146,11 @@ namespace Dse.Test.Integration.Core
                 foreach (var h in cluster.AllHosts())
                 {
                     var node = simulacronCluster.GetNode(h.Address);
-                    node.Prime(h == secondHost ? IsBootstrapingPrime : QueryPrime());
+                    node.Prime(h == secondHost ? PrepareSimulatorTests.IsBootstrappingPrime : QueryPrime());
                 }
                 var ps = session.Prepare(Query);
                 Assert.NotNull(ps);
-                Assert.AreEqual(3, simulacronCluster.GetQueries(Query, "PREPARE").Count);
+                Assert.AreEqual(3, simulacronCluster.GetQueries(Query, QueryType.Prepare).Count);
             }
         }
 
@@ -162,7 +158,7 @@ namespace Dse.Test.Integration.Core
         public void Should_Failover_When_First_Node_Timeouts()
         {
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint)
                                         .WithQueryOptions(new QueryOptions().SetPrepareOnAllHosts(false))
@@ -179,14 +175,14 @@ namespace Dse.Test.Integration.Core
                 var ps = session.Prepare(Query);
                 Assert.NotNull(ps);
                 // Should have been executed in the first node (timed out) and in the second one (succeeded)
-                Assert.AreEqual(2, simulacronCluster.GetQueries(Query, "PREPARE").Count);
+                Assert.AreEqual(2, simulacronCluster.GetQueries(Query, QueryType.Prepare).Count);
             }
         }
 
         [Test]
         public async Task Should_Reprepare_On_Up_Node()
         {
-            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" } ))
+            using (var simulacronCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3" }))
             using (var cluster = Cluster.Builder()
                                         .AddContactPoint(simulacronCluster.InitialContactPoint)
                                         .WithReconnectionPolicy(new ConstantReconnectionPolicy(500))
@@ -196,19 +192,19 @@ namespace Dse.Test.Integration.Core
                 simulacronCluster.Prime(QueryPrime());
                 var ps = await session.PrepareAsync(Query).ConfigureAwait(false);
                 Assert.NotNull(ps);
-                Assert.AreEqual(3, simulacronCluster.GetQueries(Query, "PREPARE").Count);
+                Assert.AreEqual(3, simulacronCluster.GetQueries(Query, QueryType.Prepare).Count);
                 var node = simulacronCluster.GetNodes().Skip(1).First();
                 // It should have been prepared once on the node we are about to stop
-                Assert.AreEqual(1, node.GetQueries(Query, "PREPARE").Count);
+                Assert.AreEqual(1, node.GetQueries(Query, QueryType.Prepare).Count);
                 await node.Stop().ConfigureAwait(false);
                 await TestHelper.WaitUntilAsync(() => cluster.AllHosts().Any(h => !h.IsUp)).ConfigureAwait(false);
                 Assert.AreEqual(1, cluster.AllHosts().Count(h => !h.IsUp));
                 await node.Start().ConfigureAwait(false);
                 await TestHelper.WaitUntilAsync(() => cluster.AllHosts().All(h => h.IsUp)).ConfigureAwait(false);
                 Assert.AreEqual(0, cluster.AllHosts().Count(h => !h.IsUp));
-                TestHelper.WaitUntil(() => node.GetQueries(Query, "PREPARE").Count == 2);
+                TestHelper.WaitUntil(() => node.GetQueries(Query, QueryType.Prepare).Count == 2);
                 // It should be prepared 2 times
-                Assert.AreEqual(2, node.GetQueries(Query, "PREPARE").Count);
+                Assert.AreEqual(2, node.GetQueries(Query, QueryType.Prepare).Count);
             }
         }
     }

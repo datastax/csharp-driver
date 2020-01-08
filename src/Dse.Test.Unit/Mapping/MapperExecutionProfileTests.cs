@@ -269,10 +269,10 @@ namespace Dse.Test.Unit.Mapping
                 mapperAndSession.Mapper.InsertIfNotExists(song, "testProfile", false, ttl);
             }
 
-            Assert.AreEqual("INSERT INTO Song (Id, Title, ReleaseDate) VALUES (?, ?, ?) IF NOT EXISTS USING TTL ?", query);
+            Assert.AreEqual("INSERT INTO Song (Id, ReleaseDate, Title) VALUES (?, ?, ?) IF NOT EXISTS USING TTL ?", query);
             Assert.AreEqual(song.Id, parameters[0]);
-            Assert.AreEqual(song.Title, parameters[1]);
-            Assert.AreEqual(song.ReleaseDate, parameters[2]);
+            Assert.AreEqual(song.ReleaseDate, parameters[1]);
+            Assert.AreEqual(song.Title, parameters[2]);
             Assert.AreEqual(ttl, parameters[3]);
             Mock.Get(mapperAndSession.Session).Verify(s => s.ExecuteAsync(It.IsAny<IStatement>(), "testProfile"), Times.Once);
             Mock.Get(mapperAndSession.Session).Verify(s => s.ExecuteAsync(It.IsAny<IStatement>()), Times.Never);

@@ -16,6 +16,7 @@
 
 using System.Linq;
 using System.Threading.Tasks;
+using Dse.Test.Integration.SimulacronAPI.Models.Logs;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
 using NUnit.Framework;
 
@@ -25,24 +26,20 @@ namespace Dse.Test.Integration.Core
     public class HeartbeatTests
     {
         private SimulacronCluster _testCluster;
-        private const string OptionsQueryType = "OPTIONS";
+        private const QueryType OptionsQueryType = QueryType.Options;
         private const string Query = "SELECT id FROM dummy_table";
 
         [OneTimeSetUp]
         public void OneTimeSetup()
         {
             _testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "1"});
-            _testCluster.Prime(new
-            {
-                when = new { query = Query },
-                then = new { result = "success" }
-            });
+            _testCluster.PrimeFluent(b => b.WhenQuery(HeartbeatTests.Query).ThenVoidSuccess());
         }
 
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {
-            _testCluster.Remove().Wait();
+            _testCluster.RemoveAsync().Wait();
         }
 
         [TestCase(true)]

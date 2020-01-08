@@ -13,6 +13,9 @@ using Dse.Insights.Schema;
 using Dse.Insights.Schema.StartupMessage;
 using Dse.Insights.Schema.StatusMessage;
 using Dse.SessionManagement;
+using Dse.Test.Integration.SimulacronAPI.Models.Logs;
+using Dse.Test.Integration.SimulacronAPI.PrimeBuilder;
+using Dse.Test.Integration.SimulacronAPI.PrimeBuilder.When;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Integration.TestClusterManagement.Simulacron;
 using Dse.Test.Unit;
@@ -24,18 +27,8 @@ namespace Dse.Test.Integration.Insights
     [TestFixture, Category("short")]
     public class InsightsIntegrationTests
     {
-        private static object InsightsRpcPrime() => new
-        {
-            when = new
-            {
-                query = "CALL InsightsRpc.reportInsight(?)"
-            },
-            then = new
-            {
-                result = "void",
-                delay_in_ms = 0
-            }
-        };
+        private static IPrimeRequest InsightsRpcPrime() =>
+            new PrimeRequestBuilder().WhenQuery("CALL InsightsRpc.reportInsight(?)").ThenVoid().BuildRequest();
 
         private static readonly Guid clusterId = Guid.NewGuid();
         private static readonly string applicationName = "app 1";
@@ -67,7 +60,7 @@ namespace Dse.Test.Integration.Insights
                 {
                     Assert.AreEqual(0, simulacronCluster.GetQueries("CALL InsightsRpc.reportInsight(?)").Count);
                     var session = (IInternalDseSession)cluster.Connect();
-                    dynamic query = null;
+                    RequestLog query = null;
                     TestHelper.RetryAssert(
                         () =>
                         {
@@ -82,7 +75,7 @@ namespace Dse.Test.Integration.Insights
                     {
                         json = Encoding.UTF8.GetString(
                             Convert.FromBase64String(
-                                (string) query.frame.message.options.positional_values[0].Value));
+                                (string) query.Frame.GetQueryMessage().Options.PositionalValues[0]));
                         message = JsonConvert.DeserializeObject<Insight<InsightsStartupData>>(json);
                     }
                     catch (JsonReaderException ex)
@@ -133,7 +126,7 @@ namespace Dse.Test.Integration.Insights
                 {
                     Assert.AreEqual(0, simulacronCluster.GetQueries("CALL InsightsRpc.reportInsight(?)").Count);
                     var session = (IInternalDseSession) cluster.Connect();
-                    IList<dynamic> queries = null;
+                    IList<RequestLog> queries = null;
                     TestHelper.RetryAssert(
                         () =>
                         {
@@ -151,7 +144,7 @@ namespace Dse.Test.Integration.Insights
                     {
                         json = Encoding.UTF8.GetString(
                             Convert.FromBase64String(
-                                (string) queries[1].frame.message.options.positional_values[0].Value));
+                                (string) queries[1].Frame.GetQueryMessage().Options.PositionalValues[0]));
                         message = JsonConvert.DeserializeObject<Insight<InsightsStatusData>>(json);
                     }
                     catch (JsonReaderException ex)

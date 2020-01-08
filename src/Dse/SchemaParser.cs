@@ -530,7 +530,7 @@ namespace Dse
             {
                 return null;
             }
-            return cc.Serializer.Deserialize(buffer, 0, buffer.Length, typeCode, typeInfo);
+            return cc.Serializer.GetCurrentSerializer().Deserialize(buffer, 0, buffer.Length, typeCode, typeInfo);
         }
     }
 

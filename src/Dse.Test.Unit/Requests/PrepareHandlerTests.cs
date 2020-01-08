@@ -467,10 +467,10 @@ namespace Dse.Test.Unit.Requests
             config.Policies.LoadBalancingPolicy.Initialize(cluster);
             
             // create session
-            var session = new Session(cluster, config, null, Serializer.Default, null);
+            var session = new Session(cluster, config, null, SerializerManager.Default, null);
 
             // create prepare handler
-            var prepareHandler = new PrepareHandler(new Serializer(ProtocolVersion.V3));
+            var prepareHandler = new PrepareHandler(new SerializerManager(ProtocolVersion.V3).GetCurrentSerializer());
 
             // create mock result object
             var mockResult = new PrepareHandlerMockResult(prepareHandler, session, factory);

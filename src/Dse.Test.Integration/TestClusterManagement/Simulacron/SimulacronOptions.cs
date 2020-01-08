@@ -28,7 +28,7 @@ namespace Dse.Test.Integration.TestClusterManagement.Simulacron
             Nodes = "1";
             Version = TestClusterManager.CassandraVersion.ToString();
             DseVersion = TestClusterManager.DseVersion?.ToString();
-            Name = TestUtils.GetTestClusterNameBasedOnTime();
+            Name = TestUtils.GetTestClusterNameBasedOnRandomString();
             ActivityLog = true;
             NumberOfTokens = 1;
             IsDse = false;
