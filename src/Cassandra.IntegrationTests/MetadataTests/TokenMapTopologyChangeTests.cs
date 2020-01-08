@@ -93,7 +93,7 @@ namespace Cassandra.IntegrationTests.MetadataTests
 
                 Assert.IsFalse(object.ReferenceEquals(ClusterObjNotSync.Metadata.TokenToReplicasMap, oldTokenMapNotSync));
                 Assert.IsFalse(object.ReferenceEquals(ClusterObjSync.Metadata.TokenToReplicasMap, oldTokenMapSync));
-            }, 100, 150);
+            }, 500, 360);
 
             oldTokenMapNotSync = ClusterObjNotSync.Metadata.TokenToReplicasMap;
             oldTokenMapSync = ClusterObjSync.Metadata.TokenToReplicasMap;

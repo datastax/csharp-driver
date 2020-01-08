@@ -308,9 +308,7 @@ namespace Cassandra.IntegrationTests.Core
                             .AddContactPoint(_testCluster.InitialContactPoint)
                             .WithSocketOptions(socketOptions)
                             .Build()).ToList();
-
-            decimal initialMemory = GC.GetTotalMemory(true);
-
+            
             try
             {
                 var tasks = clusters.Select(c => Task.Run(async () =>
@@ -339,10 +337,8 @@ namespace Cassandra.IntegrationTests.Core
                 
                 GC.Collect();
                 Thread.Sleep(1000);
-                Assert.Less(GC.GetTotalMemory(true) / initialMemory, 1.5M,
-                    "Should not exceed a 50% (1.5) more than was previously allocated");
 
-                initialMemory = GC.GetTotalMemory(true);
+                decimal initialMemory = GC.GetTotalMemory(true);
                 
                 const int length = 100;
                 
