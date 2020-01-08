@@ -112,7 +112,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public Task DropConnection(string ip, int port)
         {
-            return Delete(GetPath("connection") + "/" + ip + "/" + port);
+            return SimulacronBase.DeleteAsync(GetPath("connection") + "/" + ip + "/" + port);
         }
 
         public Task DropConnection(IPEndPoint endpoint)
@@ -140,9 +140,14 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
             return result;
         }
 
-        public Task Remove()
+        public async Task RemoveAsync()
         {
-            return Delete(GetPath("cluster"));
+            await SimulacronBase.DeleteAsync(GetPath("cluster")).ConfigureAwait(false);
+        }
+
+        public SimulacronNode GetNode(int index)
+        {
+            return DataCenters.SelectMany(dc => dc.Nodes).ElementAt(index);
         }
 
         public SimulacronNode GetNode(string endpoint)
@@ -162,7 +167,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
 
         public void Dispose()
         {
-            TaskHelper.WaitToComplete(Remove());
+            TaskHelper.WaitToComplete(RemoveAsync());
         }
     }
 }

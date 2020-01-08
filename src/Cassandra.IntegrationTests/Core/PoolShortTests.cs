@@ -22,6 +22,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.IntegrationTests.Policies.Util;
+using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 using Cassandra.IntegrationTests.TestClusterManagement;
@@ -58,32 +59,9 @@ namespace Cassandra.IntegrationTests.Core
                 using (var cluster = builder.Build())
                 {
                     var session = (IInternalSession)cluster.Connect();
-                    testCluster.Prime(new
-                    {
-                        when = new
-                        {
-                            query = "SELECT * FROM ks1.table1 WHERE id1 = ?, id2 = ?"
-                        },
-                        then = new
-                        {
-                            result = "success",
-                            delay_in_ms = 0,
-                            rows = new[]
-                            {
-                            new
-                            {
-                                id1 = 2,
-                                id2 = 3
-                            }
-                        },
-                            column_types = new
-                            {
-                                id1 = "int",
-                                id2 = "int"
-                            },
-                            ignore_on_prepare = true
-                        }
-                    });
+                    testCluster.PrimeFluent(
+                        b => b.WhenQuery("SELECT * FROM ks1.table1 WHERE id1 = ?, id2 = ?")
+                              .ThenRowsSuccess(new[] { ("id1", DataType.Int), ("id2", DataType.Int) }, rows => rows.WithRow(2, 3)).WithIgnoreOnPrepare(true));
                     var ps = session.Prepare("SELECT * FROM ks1.table1 WHERE id1 = ?, id2 = ?");
                     var t = ExecuteMultiple(testCluster, session, ps, false, 1, 100);
                     t.Wait();
@@ -452,11 +430,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = builder.AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 const string query = "SELECT * FROM simulated_ks.table1";
-                testCluster.Prime(new
-                {
-                    when = new { query },
-                    then = new { result = "success", delay_in_ms = 3000 }
-                });
+                testCluster.PrimeFluent(b => b.WhenQuery(query).ThenVoidSuccess().WithDelayInMs(3000));
 
                 var session = await cluster.ConnectAsync().ConfigureAwait(false);
                 var hosts = cluster.AllHosts().ToArray();
@@ -508,11 +482,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = builder.AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 const string query = "SELECT * FROM simulated_ks.table1";
-                testCluster.Prime(new
-                {
-                    when = new { query },
-                    then = new { result = "success", delay_in_ms = 3000 }
-                });
+                testCluster.PrimeFluent(b => b.WhenQuery(query).ThenVoidSuccess().WithDelayInMs(3000));
 
                 var session = await cluster.ConnectAsync().ConfigureAwait(false);
                 var hosts = cluster.AllHosts().ToArray();
@@ -690,11 +660,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = builder.AddContactPoint(testCluster.InitialContactPoint).Build())
             {
                 const string query = "SELECT * FROM simulated_ks.table1";
-                testCluster.Prime(new
-                {
-                    when = new { query },
-                    then = new { result = "overloaded", message = "Test overloaded error" }
-                });
+                testCluster.PrimeFluent(b => b.WhenQuery(query).ThenOverloaded("Test overloaded error"));
 
                 var session = cluster.Connect();
                 var host = cluster.AllHosts().Last();

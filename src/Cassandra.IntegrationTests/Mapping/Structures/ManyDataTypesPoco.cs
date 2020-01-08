@@ -18,19 +18,24 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+
 using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.Mapping.Tests;
+using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Mapping;
+
 using NUnit.Framework;
+
 #pragma warning disable 618
 
 namespace Cassandra.IntegrationTests.Mapping.Structures
 {
     [AllowFiltering]
-    [Table("allDataTypes")]
+    [Table(TableName)]
     public class ManyDataTypesPoco
     {
+        public const string TableName = "allDataTypes";
+
         public const int DefaultListLength = 5;
 
         public string StringType { get; set; }
@@ -57,7 +62,6 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
             Dictionary<string, string> dictionaryStringString = new Dictionary<string, string>() { { "key_" + Randomm.RandomAlphaNum(10), "value_" + Randomm.RandomAlphaNum(10) } };
             List<Guid> listOfGuidsType = new List<Guid>() { Guid.NewGuid(), Guid.NewGuid() };
             List<string> listOfStringsType = new List<string>() { Randomm.RandomAlphaNum(20), Randomm.RandomAlphaNum(12), "" };
-
 
             ManyDataTypesPoco randomRow = new ManyDataTypesPoco
             {
@@ -152,7 +156,6 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
                 Assert.IsTrue(ListContains(actualEntities, expectedEntity));
         }
 
-
         /// <summary>
         /// Test Assertion helper that will try the SELECT query a few times in case we need to wait for consistency
         /// </summary>
@@ -168,5 +171,78 @@ namespace Cassandra.IntegrationTests.Mapping.Structures
             AssertListEqualsList(expectedInstanceList, instancesQueried);
         }
 
+        public static readonly IDictionary<string, Func<ManyDataTypesPoco, object>> Columns = 
+            new Dictionary<string, Func<ManyDataTypesPoco, object>>
+        {
+            { "BooleanType", entity => entity.BooleanType },
+            { "DateTimeOffsetType", entity => entity.DateTimeOffsetType },
+            { "DateTimeType", entity => entity.DateTimeType },
+            { "DecimalType", entity => entity.DecimalType },
+            { "DictionaryStringLongType", entity => entity.DictionaryStringLongType },
+            { "DictionaryStringStringType", entity => entity.DictionaryStringStringType },
+            { "DoubleType", entity => entity.DoubleType },
+            { "FloatType", entity => entity.FloatType },
+            { "GuidType", entity => entity.GuidType },
+            { "Int64Type", entity => entity.Int64Type },
+            { "IntType", entity => entity.IntType },
+            { "ListOfGuidsType", entity => entity.ListOfGuidsType },
+            { "ListOfStringsType", entity => entity.ListOfStringsType },
+            { "NullableIntType", entity => entity.NullableIntType },
+            { "NullableTimeUuidType", entity => entity.NullableTimeUuidType },
+            { "StringType", entity => entity.StringType },
+            { "TimeUuidType", entity => entity.TimeUuidType }
+        };
+
+        public static readonly IDictionary<string, DataType> ColumnsToTypes =
+            new Dictionary<string, DataType>
+            {
+                { "BooleanType", DataType.GetDataType(typeof(bool)) },
+                { "DateTimeOffsetType", DataType.GetDataType(typeof(DateTimeOffset)) },
+                { "DateTimeType", DataType.GetDataType(typeof(DateTime)) },
+                { "DecimalType", DataType.GetDataType(typeof(decimal)) },
+                { "DictionaryStringLongType", DataType.Map(DataType.Text, DataType.BigInt) },
+                { "DictionaryStringStringType", DataType.Map(DataType.Text, DataType.Text) },
+                { "DoubleType", DataType.GetDataType(typeof(double)) },
+                { "FloatType", DataType.GetDataType(typeof(float)) },
+                { "GuidType", DataType.GetDataType(typeof(Guid)) },
+                { "Int64Type", DataType.GetDataType(typeof(long)) },
+                { "IntType", DataType.GetDataType(typeof(int)) },
+                { "ListOfGuidsType", DataType.GetDataType(typeof(List<Guid>)) },
+                { "ListOfStringsType", DataType.List(DataType.Text) },
+                { "NullableIntType", DataType.GetDataType(typeof(int?)) },
+                { "NullableTimeUuidType", DataType.GetDataType(typeof(TimeUuid?)) },
+                { "StringType", DataType.Text },
+                { "TimeUuidType", DataType.GetDataType(typeof(TimeUuid)) }
+            };
+        
+        public object[] GetParameters()
+        {
+            return ManyDataTypesPoco.Columns.Values.Select(func => func(this)).ToArray();
+        }
+
+        public static string GetCaseSensitiveColumnNamesStr()
+        {
+            return string.Join(", ", GetColumnNames().Select(s => $"\"{s}\""));
+        }
+
+        public static string GetColumnNamesStr()
+        {
+            return string.Join(", ", GetColumnNames());
+        }
+
+        public static string[] GetColumnNames()
+        {
+            return ManyDataTypesPoco.Columns.Keys.ToArray();
+        }
+
+        public static (string, DataType)[] GetColumnsAndTypes()
+        {
+            return ManyDataTypesPoco.ColumnsToTypes.Select(kvp => (kvp.Key.ToLowerInvariant(), kvp.Value)).ToArray();
+        }
+
+        public static (string, DataType)[] GetColumnsAndTypesForCreate()
+        {
+            return ManyDataTypesPoco.ColumnsToTypes.Select(kvp => (kvp.Key, kvp.Value)).ToArray();
+        }
     }
 }

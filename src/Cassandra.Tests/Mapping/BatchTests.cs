@@ -167,9 +167,8 @@ namespace Cassandra.Tests.Mapping
             batch.Update<InsertUser>("SET name = ? WHERE userid = ?", "SomeNewName", updateId);
             var queries = batch.Statements.Select(cql => cql.Statement).ToArray();
             Assert.AreEqual(3, queries.Length);
-            Assert.AreEqual("INSERT INTO users (userid, Name, Age, CreatedDate, IsActive, " +
-                            "LastLoginDate, LoginHistory, LuckyNumbers, ChildrenAges, " +
-                            "FavoriteColor, TypeOfUser, preferredcontactmethod, HairColor) VALUES " +
+            Assert.AreEqual("INSERT INTO users (Age, ChildrenAges, CreatedDate, FavoriteColor, HairColor, IsActive, " +
+                            "LastLoginDate, LoginHistory, LuckyNumbers, Name, preferredcontactmethod, TypeOfUser, userid) VALUES " +
                             "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", queries[0]);
             Assert.AreEqual("DELETE FROM users WHERE userid = ?", queries[1]);
             Assert.AreEqual("UPDATE users SET name = ? WHERE userid = ?", queries[2]);
@@ -193,7 +192,7 @@ namespace Cassandra.Tests.Mapping
             var parameters = batch.Statements.Select(cql => cql.Arguments).ToArray();
             Assert.AreEqual("INSERT INTO Song (Id, ReleaseDate) VALUES (?, ?)", queries[0]);
             Assert.AreEqual(2, parameters[0].Length);
-            Assert.AreEqual("INSERT INTO Song (Id, Title, Artist, ReleaseDate) VALUES (?, ?, ?, ?)", queries[1]);
+            Assert.AreEqual("INSERT INTO Song (Artist, Id, ReleaseDate, Title) VALUES (?, ?, ?, ?)", queries[1]);
             Assert.AreEqual(4, parameters[1].Length);
         }
 
@@ -234,7 +233,7 @@ namespace Cassandra.Tests.Mapping
             var parameters = batch.Statements.Select(cql => cql.Arguments).ToArray();
             Assert.AreEqual("INSERT INTO Song (Id, ReleaseDate) VALUES (?, ?)", queries[0]);
             Assert.AreEqual(2, parameters[0].Length);
-            Assert.AreEqual("INSERT INTO Song (Id, Title, Artist, ReleaseDate) VALUES (?, ?, ?, ?) USING TTL ?", queries[1]);
+            Assert.AreEqual("INSERT INTO Song (Artist, Id, ReleaseDate, Title) VALUES (?, ?, ?, ?) USING TTL ?", queries[1]);
             Assert.AreEqual(5, parameters[1].Length);
             Assert.AreEqual(ttl, parameters[1].Last());
         }

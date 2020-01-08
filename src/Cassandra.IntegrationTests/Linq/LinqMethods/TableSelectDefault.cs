@@ -16,50 +16,37 @@
 
 using System.Collections.Generic;
 using System.Linq;
+
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
+
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
-    [Category("short"), Category("realcluster")]
-    public class TableSelectDefault: SharedClusterTest
+    public class TableSelectDefault : SimulacronTest
     {
-        private ISession _session;
-        private List<Movie> _movieList = Movie.GetDefaultMovieList();
-        private string _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
+        private static readonly string UniqueKsName = TestUtils.GetUniqueKeyspaceName();
 
-        public override void OneTimeSetUp()
+        private readonly List<Movie> _movieList = Movie.GetDefaultMovieList();
+
+        public TableSelectDefault() : base(keyspace: UniqueKsName)
         {
-            base.OneTimeSetUp();
-            _session = Session;
-            _session.CreateKeyspace(_uniqueKsName);
-            _session.ChangeKeyspace(_uniqueKsName);
-
-            // drop table if exists, re-create
-            var table = _session.GetTable<Movie>();
-            table.Create();
-
-            //Insert some data
-            foreach (var movie in _movieList)
-                table.Insert(movie).Execute();
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
         [Test]
-        public void LinqTable_Sync()
+        public void LinqTable(bool async)
         {
-            var table = _session.GetTable<Movie>();
-            var movies = table.Execute().ToArray();
-            Assert.AreEqual(_movieList.Count, movies.Length);
-        }
-
-        [Test]
-        public void LinqTable_Async()
-        {
-            // insert new row
-            var table = _session.GetTable<Movie>();
-            var movies = table.ExecuteAsync().Result.ToArray();
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          "SELECT \"director\", \"list\", \"mainGuy\", \"movie_maker\", \"unique_movie_title\", \"yearMade\" " +
+                          $"FROM \"{Movie.TableName}\" ALLOW FILTERING")
+                      .ThenRowsSuccess(Movie.CreateRowsResult(_movieList)));
+            var table = Session.GetTable<Movie>();
+            var movies = async ? table.ExecuteAsync().GetAwaiter().GetResult().ToArray() : table.Execute().ToArray();
             Assert.AreEqual(_movieList.Count, movies.Length);
         }
     }

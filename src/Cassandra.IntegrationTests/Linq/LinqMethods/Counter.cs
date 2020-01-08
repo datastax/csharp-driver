@@ -17,187 +17,243 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
+
 using Cassandra.Data.Linq;
-using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.SimulacronAPI;
+using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
+using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.When;
 using Cassandra.Mapping;
+
 using NUnit.Framework;
+
 #pragma warning disable 618
 #pragma warning disable 612
 
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
-    [Category("short"), Category("realcluster")]
-    public class Counter : SharedClusterTest
+    public class Counter : SimulacronTest
     {
-        ISession _session;
-        string _uniqueKsName;
-
-        [SetUp]
-        public void SetupTest()
+        private void PrimeLinqCounterQuery(CounterEntityWithLinqAttributes counter)
         {
-            _session = Session;
-            _uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            _session.CreateKeyspace(_uniqueKsName);
-            _session.ChangeKeyspace(_uniqueKsName);
+            TestCluster.PrimeDelete();
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          "SELECT \"Counter\", \"KeyPart1\", \"KeyPart2\" " +
+                          "FROM \"CounterEntityWithLinqAttributes\" " +
+                          "WHERE \"KeyPart1\" = ? AND \"KeyPart2\" = ?",
+                          when => counter.WithParams(when, "KeyPart1", "KeyPart2"))
+                      .ThenRowsSuccess(counter.CreateRowsResult()));
         }
 
-        [TearDown]
-        public void TeardownTest()
+        private RowsResult AddRows(IEnumerable<CounterEntityWithLinqAttributes> counters)
         {
-            TestUtils.TryToDeleteKeyspace(_session, _uniqueKsName);
+            return counters.Aggregate(CounterEntityWithLinqAttributes.GetEmptyRowsResult(), (current, c) => c.AddRow(current));
         }
 
-        [Test, Category("short")]
-        public void LinqAttributes_Counter()
+        private void PrimeLinqCounterRangeQuery(
+            IEnumerable<CounterEntityWithLinqAttributes> counters, 
+            string tableName = "CounterEntityWithLinqAttributes", 
+            bool caseSensitive = true)
+        {
+            var cql = caseSensitive
+                ? $"SELECT \"Counter\", \"KeyPart1\", \"KeyPart2\" FROM \"{tableName}\""
+                : $"SELECT Counter, KeyPart1, KeyPart2 FROM {tableName}";
+
+            TestCluster.PrimeDelete();
+            TestCluster.PrimeFluent(b => b.WhenQuery(cql).ThenRowsSuccess(AddRows(counters)));
+        }
+
+        [Test]
+        public void LinqAttributes_Counter_SelectRange()
         {
             //var mapping = new Map<PocoWithCounter>();
             var mappingConfig = new MappingConfiguration();
             mappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(CounterEntityWithLinqAttributes),
                  () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(CounterEntityWithLinqAttributes)));
-            var table = new Table<CounterEntityWithLinqAttributes>(_session, mappingConfig);
+            var table = new Table<CounterEntityWithLinqAttributes>(Session, mappingConfig);
             table.Create();
 
-            List<CounterEntityWithLinqAttributes> counterPocos = new List<CounterEntityWithLinqAttributes>();
-            for (int i = 0; i < 10; i++)
+            var expectedCounters = new List<CounterEntityWithLinqAttributes>();
+            for (var i = 0; i < 10; i++)
             {
-                counterPocos.Add(
-                    new CounterEntityWithLinqAttributes()
+                expectedCounters.Add(
+                    new CounterEntityWithLinqAttributes
                     {
                         KeyPart1 = Guid.NewGuid(),
-                        KeyPart2 = (decimal)123,
+                        KeyPart2 = Guid.NewGuid().GetHashCode(),
+                        Counter = Guid.NewGuid().GetHashCode()
                     });
             }
 
-            int counterIncrements = 100;
-            string updateStr = String.Format("UPDATE \"{0}\" SET \"{1}\"=\"{1}\" + 1 WHERE \"{2}\"=? and \"{3}\"=?", typeof(CounterEntityWithLinqAttributes).Name, "Counter", "KeyPart1", "KeyPart2");
-            var updateSession = _session.Prepare(updateStr);
-            foreach (CounterEntityWithLinqAttributes pocoWithCounter in counterPocos)
-            {
-                var boundStatement = updateSession.Bind(new object[] { pocoWithCounter.KeyPart1, pocoWithCounter.KeyPart2 });
-                for (int j = 0; j < counterIncrements; j++)
-                    _session.Execute(boundStatement);
-                pocoWithCounter.Counter += counterIncrements;
-            }
+            PrimeLinqCounterRangeQuery(expectedCounters);
 
-            List<CounterEntityWithLinqAttributes> countersQueried = table.Select(m => m).Execute().ToList();
-            foreach (CounterEntityWithLinqAttributes pocoWithCounterExpected in counterPocos)
+            var countersQueried = table.Select(m => m).Execute().ToList();
+            Assert.AreEqual(10, countersQueried.Count);
+            foreach (var expectedCounter in expectedCounters)
             {
-                bool counterFound = false;
-                foreach (CounterEntityWithLinqAttributes pocoWithCounterActual in countersQueried)
-                {
-                    if (pocoWithCounterExpected.KeyPart1 == pocoWithCounterActual.KeyPart1)
-                    {
-                        Assert.AreEqual(pocoWithCounterExpected.KeyPart2, pocoWithCounterExpected.KeyPart2);
-                        Assert.AreEqual(pocoWithCounterExpected.Counter, pocoWithCounterExpected.Counter);
-                        counterFound = true;
-                    }
-                }
-                Assert.IsTrue(counterFound, "Counter with first key part: " + pocoWithCounterExpected.KeyPart1 + " was not found!");
+                var actualCounter = countersQueried.Single(c => c.KeyPart1 == expectedCounter.KeyPart1);
+                Assert.AreEqual(expectedCounter.KeyPart2, actualCounter.KeyPart2);
+                Assert.AreEqual(expectedCounter.Counter, actualCounter.Counter);
             }
         }
 
         /// <summary>
         /// Validate expected error message when attempting to insert a row that contains a counter
         /// </summary>
-        [Test, Category("short")]
+        [Test]
         public void LinqAttributes_Counter_AttemptInsert()
         {
             // Create config that uses linq based attributes
             var mappingConfig = new MappingConfiguration();
             mappingConfig.MapperFactory.PocoDataFactory.AddDefinitionDefault(typeof(CounterEntityWithLinqAttributes),
                  () => LinqAttributeBasedTypeDefinition.DetermineAttributes(typeof(CounterEntityWithLinqAttributes)));
-            var table = new Table<CounterEntityWithLinqAttributes>(_session, mappingConfig);
-            table.Create();
+            var table = new Table<CounterEntityWithLinqAttributes>(Session, mappingConfig);
 
             CounterEntityWithLinqAttributes pocoAndLinqAttributesLinqPocos = new CounterEntityWithLinqAttributes()
             {
                 KeyPart1 = Guid.NewGuid(),
-                KeyPart2 = (decimal) 123,
+                KeyPart2 = (decimal)123,
             };
 
-            // Validate Error Message
-            var e = Assert.Throws<InvalidQueryException>(() => _session.Execute(table.Insert(pocoAndLinqAttributesLinqPocos)));
-            string expectedErrMsg = "INSERT statement(s)? are not allowed on counter tables, use UPDATE instead";
-            StringAssert.IsMatch(expectedErrMsg, e.Message);
+            var expectedErrMsg = "INSERT statement(s)? are not allowed on counter tables, use UPDATE instead";
+
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          "INSERT INTO \"CounterEntityWithLinqAttributes\" (\"Counter\", \"KeyPart1\", \"KeyPart2\") VALUES (?, ?, ?)",
+                          when => pocoAndLinqAttributesLinqPocos.WithParams(when))
+                     .ThenServerError(
+                         ServerError.Invalid, expectedErrMsg));
+
+            var e = Assert.Throws<InvalidQueryException>(() => Session.Execute(table.Insert(pocoAndLinqAttributesLinqPocos)));
+            Assert.AreEqual(expectedErrMsg, e.Message);
         }
 
-
-        [TestCase(-21), Category("short")]
-        [TestCase(-13), Category("short")]
-        [TestCase(-8), Category("short")]
-        [TestCase(-5), Category("short")]
-        [TestCase(-3), Category("short")]
-        [TestCase(-2), Category("short")]
-        [TestCase(-1), Category("short")]
-        [TestCase(1), Category("short")]
-        [TestCase(2), Category("short")]
-        [TestCase(3), Category("short")]
-        [TestCase(5), Category("short")]
-        [TestCase(8), Category("short")]
-        [TestCase(13), Category("short")]
-        [TestCase(21), Category("short")]
+        [TestCase(-21)]
+        [TestCase(-13)]
+        [TestCase(-8)]
+        [TestCase(-5)]
+        [TestCase(-3)]
+        [TestCase(-2)]
+        [TestCase(-1)]
+        [TestCase(1)]
+        [TestCase(2)]
+        [TestCase(3)]
+        [TestCase(5)]
+        [TestCase(8)]
+        [TestCase(13)]
+        [TestCase(21)]
         public void LinqAttributes_Counter_Increments(int increment)
         {
             // Create config that uses linq based attributes
             var mappingConfig = new MappingConfiguration();
-            var counterTable = new Table<CounterEntityWithLinqAttributes>(_session, mappingConfig);
-            counterTable.CreateIfNotExists();
+            var counterTable = new Table<CounterEntityWithLinqAttributes>(Session, mappingConfig);
 
-            var counter = new CounterEntityWithLinqAttributes { KeyPart1 = Guid.NewGuid(), KeyPart2 = 1};
+            var counter = new CounterEntityWithLinqAttributes { KeyPart1 = Guid.NewGuid(), KeyPart2 = 1 };
 
+            var updateCounterCql =
+                "UPDATE \"CounterEntityWithLinqAttributes\" " +
+                "SET \"Counter\" = \"Counter\" + ? " +
+                "WHERE \"KeyPart1\" = ? AND \"KeyPart2\" = ?";
+
+            // first update
             counterTable
                 .Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2)
                 .Select(t => new CounterEntityWithLinqAttributes { Counter = increment })
-                .Update().Execute();
+                .Update()
+                .Execute();
 
-            var updatedCounter = counterTable.Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2).Execute().FirstOrDefault();
+            VerifyBoundStatement(updateCounterCql, 1, (long)increment, counter.KeyPart1, counter.KeyPart2);
+
+            counter.Counter = increment; // counter = increment
+            PrimeLinqCounterQuery(counter);
+
+            var updatedCounter =
+                counterTable.Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2)
+                            .Execute()
+                            .First();
+
             Assert.AreEqual(increment, updatedCounter.Counter);
 
+            // second update
             counterTable
                 .Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2)
                 .Select(t => new CounterEntityWithLinqAttributes { Counter = increment })
                 .Update().Execute();
 
-            updatedCounter = counterTable.Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2).Execute().FirstOrDefault();
-            Assert.AreEqual(increment*2, updatedCounter.Counter);
+            VerifyBoundStatement(updateCounterCql, 2, (long)increment, counter.KeyPart1, counter.KeyPart2);
 
-            counterTable
-                .Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2)
-                .Select(t => new CounterEntityWithLinqAttributes { Counter = increment })
-                .Update().Execute();
+            counter.Counter += increment; // counter = increment*2;
+            PrimeLinqCounterQuery(counter);
 
-            updatedCounter = counterTable.Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2).Execute().FirstOrDefault();
-            Assert.AreEqual(increment*3, updatedCounter.Counter);
-
-            //testing negative values
-            int negativeIncrement = -1*increment;
-            counterTable
-                .Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2)
-                .Select(t => new CounterEntityWithLinqAttributes { Counter = negativeIncrement })
-                .Update().Execute();
-
-            updatedCounter = counterTable.Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2).Execute().FirstOrDefault();
+            updatedCounter = counterTable.Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2)
+                                         .Execute().First();
             Assert.AreEqual(increment * 2, updatedCounter.Counter);
 
+            // third update
+            counterTable
+                .Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2)
+                .Select(t => new CounterEntityWithLinqAttributes { Counter = increment })
+                .Update().Execute();
+
+            VerifyBoundStatement(updateCounterCql, 3, (long)increment, counter.KeyPart1, counter.KeyPart2);
+
+            counter.Counter += increment; // counter = increment*3;
+            PrimeLinqCounterQuery(counter);
+
+            updatedCounter = counterTable.Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2)
+                                         .Execute().First();
+            Assert.AreEqual(increment * 3, updatedCounter.Counter);
+
+            // testing negative values
+            var negativeIncrement = -1 * increment;
+
+            // first negative update
             counterTable
                 .Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2)
                 .Select(t => new CounterEntityWithLinqAttributes { Counter = negativeIncrement })
                 .Update().Execute();
 
-            updatedCounter = counterTable.Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2).Execute().FirstOrDefault();
+            VerifyBoundStatement(updateCounterCql, 1, (long)negativeIncrement, counter.KeyPart1, counter.KeyPart2);
+
+            counter.Counter += negativeIncrement;
+            PrimeLinqCounterQuery(counter);
+
+            updatedCounter = counterTable.Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2)
+                                         .Execute().First();
+            Assert.AreEqual(increment * 2, updatedCounter.Counter);
+
+            // second negative update
+            counterTable
+                .Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2)
+                .Select(t => new CounterEntityWithLinqAttributes { Counter = negativeIncrement })
+                .Update().Execute();
+
+            VerifyBoundStatement(updateCounterCql, 2, (long)negativeIncrement, counter.KeyPart1, counter.KeyPart2);
+
+            counter.Counter += negativeIncrement; // counter -= increment = increment
+            PrimeLinqCounterQuery(counter);
+
+            updatedCounter = counterTable.Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2)
+                                         .Execute().First();
             Assert.AreEqual(increment, updatedCounter.Counter);
 
+            // third negative update
             counterTable
                 .Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2)
                 .Select(t => new CounterEntityWithLinqAttributes { Counter = negativeIncrement })
                 .Update().Execute();
 
-            updatedCounter = counterTable.Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2).Execute().FirstOrDefault();
+            VerifyBoundStatement(updateCounterCql, 3, (long)negativeIncrement, counter.KeyPart1, counter.KeyPart2);
+
+            counter.Counter += negativeIncrement; // counter -= increment = 0
+            PrimeLinqCounterQuery(counter);
+
+            updatedCounter = counterTable.Where(t => t.KeyPart1 == counter.KeyPart1 && t.KeyPart2 == counter.KeyPart2)
+                                         .Execute().First();
             Assert.AreEqual(0, updatedCounter.Counter);
         }
 
-        [Test, Category("short")]
+        [Test]
         public void LinqCounter_BatchTest()
         {
             var mappingConfig = new MappingConfiguration();
@@ -209,7 +265,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                 .PartitionKey(t => t.KeyPart1, t => t.KeyPart2)
                 .TableName("linqcounter_batchtest_table")
             );
-            var counterTable = new Table<CounterEntityWithLinqAttributes>(_session, mappingConfig);
+            var counterTable = new Table<CounterEntityWithLinqAttributes>(Session, mappingConfig);
             counterTable.CreateIfNotExists();
             var counter = new CounterEntityWithLinqAttributes { KeyPart1 = Guid.NewGuid(), KeyPart2 = 1, Counter = 1 };
             var counter2 = new CounterEntityWithLinqAttributes { KeyPart1 = counter.KeyPart1, KeyPart2 = 2, Counter = 2 };
@@ -231,6 +287,22 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
 
             batch.Execute();
 
+            VerifyBatchStatement(
+                1,
+                new[]
+                {
+                    "UPDATE linqcounter_batchtest_table SET Counter = Counter + ? WHERE KeyPart1 = ? AND KeyPart2 = ?",
+                    "UPDATE linqcounter_batchtest_table SET Counter = Counter + ? WHERE KeyPart1 = ? AND KeyPart2 = ?"
+                },
+                new[]
+                {
+                    new object[] { 1L, counter.KeyPart1, counter.KeyPart2 },
+                    new object[] { 2L, counter2.KeyPart1, counter2.KeyPart2 }
+                });
+
+            var expectedCounters = new[] { counter, counter2 };
+            PrimeLinqCounterRangeQuery(expectedCounters, "linqcounter_batchtest_table", false);
+
             var counters = counterTable.Execute().ToList();
             Assert.AreEqual(2, counters.Count);
             Assert.IsTrue(counters.Contains(counter));
@@ -238,15 +310,65 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         }
 
         [Cassandra.Data.Linq.Table]
-        class CounterEntityWithLinqAttributes
+        private class CounterEntityWithLinqAttributes
         {
             [Cassandra.Data.Linq.Counter]
             public long Counter;
+
             [Cassandra.Data.Linq.PartitionKey(1)]
             public Guid KeyPart1;
+
             [Cassandra.Data.Linq.PartitionKey(2)]
             public Decimal KeyPart2;
 
+            public static IWhenQueryBuilder WithParams(IWhenQueryBuilder builder, params (string, CounterEntityWithLinqAttributes)[] parameters)
+            {
+                foreach (var (name, value) in parameters)
+                {
+                    switch (name)
+                    {
+                        case nameof(CounterEntityWithLinqAttributes.Counter):
+                            builder = builder.WithParam(DataType.Counter, value.Counter);
+                            break;
+
+                        case nameof(CounterEntityWithLinqAttributes.KeyPart1):
+                            builder = builder.WithParam(DataType.Uuid, value.KeyPart1);
+                            break;
+
+                        case nameof(CounterEntityWithLinqAttributes.KeyPart2):
+                            builder = builder.WithParam(DataType.Decimal, value.KeyPart2);
+                            break;
+
+                        default:
+                            throw new ArgumentException("parameter not found");
+                    }
+                }
+
+                return builder;
+            }
+
+            public IWhenQueryBuilder WithParams(IWhenQueryBuilder builder, params string[] parameters)
+            {
+                return WithParams(builder, parameters.Select(p => (p, this)).ToArray());
+            }
+
+            public RowsResult CreateRowsResult()
+            {
+                return (RowsResult)AddRow(CounterEntityWithLinqAttributes.GetEmptyRowsResult());
+            }
+
+            public static RowsResult GetEmptyRowsResult()
+            {
+                return new RowsResult(
+                    (nameof(CounterEntityWithLinqAttributes.Counter), DataType.Counter),
+                    (nameof(CounterEntityWithLinqAttributes.KeyPart1), DataType.Uuid),
+                    (nameof(CounterEntityWithLinqAttributes.KeyPart2), DataType.Decimal));
+            }
+
+            public RowsResult AddRow(RowsResult rows)
+            {
+                return (RowsResult)rows.WithRow(Counter, KeyPart1, KeyPart2);
+            }
 
             public override bool Equals(object obj)
             {
@@ -269,7 +391,5 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                 return hash;
             }
         }
-
-
     }
 }

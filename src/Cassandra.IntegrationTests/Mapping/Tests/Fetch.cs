@@ -344,7 +344,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var mapper = new Mapper(_session, new MappingConfiguration());
             _session.Execute("CREATE TYPE song (id uuid, title text, artist text)");
             _session.Execute("CREATE TABLE albums (id uuid primary key, name text, songs list<frozen<song>>)");
-            _session.UserDefinedTypes.Define(UdtMap.For<Cassandra.Tests.Mapping.Pocos.Song>());
+            _session.UserDefinedTypes.Define(UdtMap.For<Song2>("song"));
             _session.Execute("INSERT INTO albums (id, name, songs) VALUES (uuid(), 'Legend', [{id: uuid(), title: 'Africa Unite', artist: 'Bob Marley'}])");
             var result = mapper.Fetch<Cassandra.Tests.Mapping.Pocos.Album>("SELECT * from albums LIMIT 1").ToList();
             Assert.AreEqual(1, result.Count);

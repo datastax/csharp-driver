@@ -48,5 +48,22 @@ namespace Cassandra.Tests.Mapping.Pocos
 
         [Column("decimal_value_col")]
         public decimal DecimalValue { get; set; }
+        
+        private static readonly IDictionary<string, Func<AttributeMappingClass, object>> ColumnMappings =
+            new Dictionary<string, Func<AttributeMappingClass, object>>
+            {
+                { "bool_value_col", entity => entity.BoolValue },
+                { "clustering_key_0", entity => entity.ClusteringKey0 },
+                { "clustering_key_1", entity => entity.ClusteringKey1 },
+                { "clustering_key_2", entity => entity.ClusteringKey2 },
+                { "decimal_value_col", entity => entity.DecimalValue },
+                { "float_value_col", entity => entity.FloatValue },
+                { "partition_key", entity => entity.PartitionKey }
+            };
+        
+        public object[] GetParameters()
+        {
+            return AttributeMappingClass.ColumnMappings.Values.Select(func => func(this)).ToArray();
+        }
     }
 }

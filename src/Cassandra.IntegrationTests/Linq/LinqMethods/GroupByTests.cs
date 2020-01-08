@@ -14,39 +14,23 @@
 //   limitations under the License.
 //
 
-using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using Cassandra.Mapping;
-using Cassandra.Data.Linq;
 using System.Linq;
+
+using Cassandra.Data.Linq;
+using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Mapping;
 using Cassandra.Tests.Mapping.Pocos;
+
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
-    [Category("short"), Category("realcluster"), TestCassandraVersion(3, 10)]
-    public class GroupByTests : SharedClusterTest
+    [TestCassandraVersion(3, 10)]
+    public class GroupByTests : SimulacronTest
     {
-        protected override string[] SetupQueries
-        {
-            get
-            {
-                return new []
-                {
-                    "CREATE TABLE sensor_data (sensor_id text, bucket text, timestamp timeuuid, value double," +
-                    " PRIMARY KEY ((sensor_id, bucket), timestamp))",
-                    "INSERT INTO sensor_data (sensor_id, bucket, timestamp, value) VALUES ('sensor1', 'bucket1', now(), 1.5)",
-                    "INSERT INTO sensor_data (sensor_id, bucket, timestamp, value) VALUES ('sensor1', 'bucket1', now(), 2)",
-                    "INSERT INTO sensor_data (sensor_id, bucket, timestamp, value) VALUES ('sensor1', 'bucket1', now(), 2.5)",
-                    "INSERT INTO sensor_data (sensor_id, bucket, timestamp, value) VALUES ('sensor1', 'bucket2', now(), 1)",
-                    "INSERT INTO sensor_data (sensor_id, bucket, timestamp, value) VALUES ('sensor1', 'bucket2', now(), 1.5)",
-                    "INSERT INTO sensor_data (sensor_id, bucket, timestamp, value) VALUES ('sensor1', 'bucket2', now(), 0.5)"
-                };
-            }
-        }
+        private const string TableName = "sensor_data";
 
         private static MappingConfiguration GetSensorDataMappingConfig()
         {
@@ -58,15 +42,28 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
                 .Column(t => t.Value)
                 .PartitionKey(t => t.Id, t => t.Bucket)
                 .ClusteringKey(t => t.Timestamp)
-                .TableName("sensor_data"));
+                .TableName(GroupByTests.TableName));
         }
 
         [Test]
         public void Should_Project_To_New_Anonymous_Type()
         {
             var table = new Table<SensorData>(Session, GetSensorDataMappingConfig());
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          "SELECT sensor_id, AVG(Value), COUNT(*), SUM(Value), MIN(Value), MAX(Value), Bucket " +
+                          $"FROM {GroupByTests.TableName} " +
+                          "WHERE sensor_id = ? AND Bucket = ? GROUP BY sensor_id, Bucket",
+                          when => when.WithParams("sensor1", "bucket1"))
+                      .ThenRowsSuccess(
+                          new[]
+                          {
+                              "sensor_id", "system.avg(value)", "count", "system.sum(value)", "system.min(value)",
+                              "system.max(value)", "bucket"
+                          },
+                          rows => rows.WithRow("sensor1", 2D, 3, 6D, 1.5D, 2.5D, "bucket1")));
             var linqQuery = table
-                .GroupBy(t => new {t.Id, t.Bucket})
+                .GroupBy(t => new { t.Id, t.Bucket })
                 .Select(g => new
                 {
                     g.Key.Id,
@@ -94,20 +91,32 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         public void Should_Project_To_Single_Type()
         {
             var table = new Table<SensorData>(Session, GetSensorDataMappingConfig());
-            var linqQuery = table.GroupBy(t => new {t.Id, t.Bucket}).Select(g => g.Max(i => i.Value));
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery($"SELECT MAX(Value) FROM {GroupByTests.TableName} GROUP BY sensor_id, Bucket")
+                      .ThenRowsSuccess(
+                          new[] { "system.max(value)" },
+                          rows => rows.WithRow(2.5D).WithRow(3D)));
+            var linqQuery = table.GroupBy(t => new { t.Id, t.Bucket }).Select(g => g.Max(i => i.Value));
             var results = linqQuery.Execute().ToArray();
             Assert.AreEqual(2, results.Length);
-            var max = results[0];
-            Assert.AreEqual(2.5, max);
+            Assert.AreEqual(2.5, results[0]);
+            Assert.AreEqual(3, results[1]);
         }
 
         [Test]
         public void Should_Project_To_Single_Type_With_Where_Clause()
         {
             var table = new Table<SensorData>(Session, GetSensorDataMappingConfig());
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery($"SELECT MIN(Value) FROM {GroupByTests.TableName} " +
+                                 "WHERE sensor_id = ? AND Bucket = ? GROUP BY sensor_id, Bucket",
+                          when => when.WithParams("sensor1", "bucket1"))
+                      .ThenRowsSuccess(
+                          new[] { "system.min(value)" },
+                          rows => rows.WithRow(1.5D)));
             var linqQuery = table
                 .Where(t => t.Id == "sensor1" && t.Bucket == "bucket1")
-                .GroupBy(t => new {t.Id, t.Bucket})
+                .GroupBy(t => new { t.Id, t.Bucket })
                 .Select(g => g.Min(i => i.Value));
             var results = linqQuery.Execute().ToArray();
             Assert.AreEqual(1, results.Length);
@@ -119,10 +128,17 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         public void Should_GroupBy_Clustering_Key_With_PK_On_Where_Clause()
         {
             var table = new Table<SensorData>(Session, GetSensorDataMappingConfig());
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery($"SELECT MIN(Value) FROM {GroupByTests.TableName} " +
+                                 "WHERE sensor_id = ? AND Bucket = ? GROUP BY Timestamp",
+                          when => when.WithParams("sensor1", "bucket2"))
+                      .ThenRowsSuccess(
+                          new[] { "system.min(value)" },
+                          rows => rows.WithRow(1.5D).WithRow(1.0D).WithRow(0.5D)));
             var linqQuery = table
                 .Where(t => t.Id == "sensor1" && t.Bucket == "bucket2")
                 //group by clustering key. PKs are in where clause (no need to be on group by)
-                .GroupBy(t => new { t.Timestamp }) 
+                .GroupBy(t => new { t.Timestamp })
                 .Select(g => g.Min(i => i.Value));
             var results = linqQuery.Execute().ToArray();
             Assert.AreEqual(3, results.Length);
@@ -132,6 +148,11 @@ namespace Cassandra.IntegrationTests.Linq.LinqMethods
         public void Should_Throw_Exception_When_GroupBy_With_Non_PK_Or_Clustering()
         {
             var table = new Table<SensorData>(Session, GetSensorDataMappingConfig());
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery($"SELECT MIN(Value) FROM {GroupByTests.TableName} " +
+                                 "WHERE sensor_id = ? AND Bucket = ? GROUP BY Value",
+                          when => when.WithParams("sensor1", "bucket2"))
+                      .ThenServerError(ServerError.Invalid, "msg"));
             var linqQuery = table
                 .Where(t => t.Id == "sensor1" && t.Bucket == "bucket2")
                 .GroupBy(t => new { t.Value })//no clustering key

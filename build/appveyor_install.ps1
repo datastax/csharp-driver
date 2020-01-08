@@ -133,7 +133,7 @@ If (!(Test-Path C:\Users\appveyor\.ccm\repository\$env:cassandra_version)) {
 #Download simulacron jar
 $simulacron_path = "$($dep_dir)\simulacron.jar"
 If (!(Test-Path $simulacron_path)) {
-  $simulacron_version = "0.8.2"
+  $simulacron_version = "0.9.0"
   Write-Host "Downloading simulacron jar version $simulacron_version"
   $url = "https://github.com/datastax/simulacron/releases/download/$($simulacron_version)/simulacron-standalone-$($simulacron_version).jar"
   (new-object System.Net.WebClient).DownloadFile($url, $simulacron_path)

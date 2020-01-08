@@ -102,7 +102,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         {
             TryRemove();
             options = options ?? new TestClusterOptions();
-            var testCluster = new CcmCluster(CassandraVersionText, TestUtils.GetTestClusterNameBasedOnTime(), IpPrefix, DefaultKeyspaceName);
+            var testCluster = new CcmCluster(CassandraVersionText, TestUtils.GetTestClusterNameBasedOnRandomString(), IpPrefix, DefaultKeyspaceName);
             testCluster.Create(nodeLength, options);
             if (startCluster)
             {

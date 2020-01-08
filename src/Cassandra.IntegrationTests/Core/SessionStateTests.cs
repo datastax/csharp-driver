@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 using Cassandra.Tests;
 using NUnit.Framework;
@@ -36,23 +37,15 @@ namespace Cassandra.IntegrationTests.Core
         public void OneTimeSetup()
         {
             _testCluster = SimulacronCluster.CreateNew(new SimulacronOptions { Nodes = "3"});
-            _testCluster.Prime(new
-            {
-                when = new {query = Query},
-                then = new
-                {
-                    result = "success",
-                    delay_in_ms = 20,
-                    rows = new[] {new {id = Guid.NewGuid()}},
-                    column_types = new {id = "uuid"}
-                }
-            });
+            _testCluster.PrimeFluent(b =>
+                b.WhenQuery(Query)
+                 .ThenRowsSuccess(new[] { ("id", DataType.Uuid) }, rows => rows.WithRow(Guid.NewGuid())).WithDelayInMs(20));
         }
 
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {
-            _testCluster.Remove().Wait();
+            _testCluster.RemoveAsync().Wait();
         }
 
         [Test]

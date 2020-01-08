@@ -31,6 +31,7 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short"), Category("realcluster")]
     public class PreparedStatementsTests : SharedClusterTest
     {
+        private readonly string _tableName = "tbl" + Guid.NewGuid().ToString("N").ToLower();
         private const string AllTypesTableName = "all_types_table_prepared";
 
         public PreparedStatementsTests() : base(3)
@@ -42,6 +43,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             base.OneTimeSetUp();
             Session.Execute(string.Format(TestUtils.CreateTableAllTypes, AllTypesTableName));
+            CreateTable(_tableName);
         }
 
         [Test]
@@ -858,6 +860,65 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+        [Test]
+        [TestCassandraVersion(2, 0)]
+        public void Batch_PreparedStatement_With_Unprepared_Flow()
+        {
+            // It should be unprepared on some of the nodes, we use a different table from the rest of the tests 
+            CreateTable("tbl_unprepared_flow");
+
+            // Use a dedicated cluster and table
+            using (var cluster = Cluster.Builder()
+                                        .AddContactPoint(TestCluster.InitialContactPoint)
+                                        .WithQueryOptions(new QueryOptions().SetPrepareOnAllHosts(false)).Build())
+            {
+                var session = cluster.Connect(KeyspaceName);
+                var ps1 = session.Prepare("INSERT INTO tbl_unprepared_flow (id, label) VALUES (?, ?)");
+                var ps2 = session.Prepare("UPDATE tbl_unprepared_flow SET label = ? WHERE id = ?");
+                session.Execute(new BatchStatement()
+                    .Add(ps1.Bind(1, "label1_u"))
+                    .Add(ps2.Bind("label2_u", 2)));
+                // Execute in multiple nodes
+                session.Execute(new BatchStatement()
+                    .Add(ps1.Bind(3, "label3_u"))
+                    .Add(ps2.Bind("label4_u", 4)));
+                var result = session.Execute("SELECT id, label FROM tbl_unprepared_flow")
+                                    .Select(r => new object[] { r.GetValue<int>(0), r.GetValue<string>(1) })
+                                    .OrderBy(arr => (int)arr[0])
+                                    .ToArray();
+                Assert.AreEqual(Enumerable.Range(1, 4).Select(i => new object[] { i, $"label{i}_u" }), result);
+            }
+        }
+        
+        [Test]
+        [TestCassandraVersion(2, 0, Comparison.Equal)]
+        public void Batch_PreparedStatements_FlagsNotSupportedInC2_0()
+        {
+            var ps = Session.Prepare($@"INSERT INTO {_tableName} (id, label, number) VALUES (?, ?, ?)");
+            var batch = new BatchStatement();
+            batch.Add(ps.Bind(1, "label1", 1));
+            Assert.Throws<NotSupportedException>(() => Session.Execute(batch.SetTimestamp(DateTime.Now)));
+        }
+
+        [Test]
+        [TestCassandraVersion(1, 9, Comparison.LessThan)]
+        public void Batch_PreparedStatements_NotSupportedInC1_2()
+        {
+            var ps = Session.Prepare($@"INSERT INTO {_tableName} (id, label, number) VALUES (?, ?, ?)");
+            var batch = new BatchStatement();
+            batch.Add(ps.Bind(1, "label1", 1));
+            try
+            {
+                Session.Execute(batch);
+                Assert.Fail("Cassandra version below 2.0, should not execute batches of prepared statements");
+            }
+            catch (NotSupportedException ex)
+            {
+                //This is OK
+                Assert.True(ex.Message.ToLower().Contains("batch"));
+            }
+        }
+
         public void InsertingSingleValuePrepared(Type tp, object value = null)
         {
             var cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(tp);
@@ -892,6 +953,21 @@ namespace Cassandra.IntegrationTests.Core
             }
 
             QueryTools.ExecuteSyncQuery(Session, string.Format("SELECT * FROM {0};", tableName), ConsistencyLevel.One, toInsert);
+        }
+
+        private void CreateTable(string tableName)
+        {
+            CreateTable(Session, tableName);
+        }
+
+        private void CreateTable(ISession session, string tableName)
+        {
+            QueryTools.ExecuteSyncNonQuery(session, $@"CREATE TABLE {tableName}(
+                                                                id int PRIMARY KEY,
+                                                                label text,
+                                                                number int
+                                                                );");
+            TestUtils.WaitForSchemaAgreement(session.Cluster);
         }
     }
 }

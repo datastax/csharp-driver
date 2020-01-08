@@ -17,24 +17,18 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.TestBase;
-using Cassandra.Mapping;
+
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
 {
-    [Category("short"), Category("realcluster")]
-    public class Append : SharedClusterTest
+    public class Append : SimulacronTest
     {
-        private ISession _session;
-
-        public override void OneTimeSetUp()
-        {
-            base.OneTimeSetUp();
-            _session = Session;
-        }
+        private readonly string _tableName = "EntityWithListType_" + Randomm.RandomAlphaNum(12);
 
         /// <summary>
         /// Validate that the a List can be appended to, then validate that the expected data exists in Cassandra
@@ -42,21 +36,21 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void Append_ToList()
         {
-            Tuple<Table<EntityWithListType>, List<EntityWithListType>> tupleListType = EntityWithListType.SetupDefaultTable(Session);
-            Table<EntityWithListType> table = tupleListType.Item1;
-            List<EntityWithListType> expectedEntities = tupleListType.Item2;
+            var (table, expectedEntities) = EntityWithListType.GetDefaultTable(Session, _tableName);
 
-            List<int> listToAdd = new List<int> { -1, 0, 5, 6 };
-            EntityWithListType singleEntity = expectedEntities.First();
-            EntityWithListType expectedEntity = singleEntity.Clone();
+            var listToAdd = new List<int> { -1, 0, 5, 6 };
+            var singleEntity = expectedEntities.First();
+            var expectedEntity = singleEntity.Clone();
             expectedEntity.ListType.AddRange(listToAdd);
             // Append the values
-            table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithListType { ListType = CqlOperator.Append(listToAdd) }).Update().Execute();
-            // Validate final state of the data
-            var entityList = table.Where(m => m.Id == singleEntity.Id).ExecuteAsync().Result.ToList();
-            Assert.AreEqual(1, entityList.Count);
-            Assert.AreNotEqual(expectedEntity.ListType, singleEntity.ListType);
-            expectedEntity.AssertEquals(entityList[0]);
+            table.Where(t => t.Id == singleEntity.Id)
+                 .Select(t => new EntityWithListType { ListType = CqlOperator.Append(listToAdd) })
+                 .Update().Execute();
+
+            VerifyBoundStatement(
+                $"UPDATE {_tableName} SET ListType = ListType + ? WHERE Id = ?",
+                1,
+                listToAdd, singleEntity.Id);
         }
 
         /// <summary>
@@ -65,25 +59,25 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void Append_ToList_StartsOutEmpty()
         {
-            Tuple<Table<EntityWithListType>, List<EntityWithListType>> tupleListType = EntityWithListType.SetupDefaultTable(_session);
-            Table<EntityWithListType> table = tupleListType.Item1;
-            List<EntityWithListType> expectedEntities = tupleListType.Item2;
+            var (table, expectedEntities) = EntityWithListType.GetDefaultTable(Session, _tableName);
 
             // overwrite the row we're querying with empty list
-            EntityWithListType singleEntity = expectedEntities.First();
+            var singleEntity = expectedEntities.First();
             singleEntity.ListType.Clear();
-            table.Insert(singleEntity).Execute();
-            EntityWithListType expectedEntity = singleEntity.Clone();
+            var expectedEntity = singleEntity.Clone();
 
-            List<int> listToAdd = new List<int> { -1, 0, 5, 6 };
+            var listToAdd = new List<int> { -1, 0, 5, 6 };
             expectedEntity.ListType.AddRange(listToAdd);
+
             // Append the values
-            table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithListType { ListType = CqlOperator.Append(listToAdd) }).Update().Execute();
-            // Validate final state of the data
-            var entityList = table.Where(m => m.Id == singleEntity.Id).ExecuteAsync().Result.ToList();
-            Assert.AreEqual(1, entityList.Count);
-            Assert.AreNotEqual(expectedEntity.ListType, singleEntity.ListType);
-            expectedEntity.AssertEquals(entityList[0]);
+            table.Where(t => t.Id == singleEntity.Id)
+                 .Select(t => new EntityWithListType { ListType = CqlOperator.Append(listToAdd) })
+                 .Update().Execute();
+
+            VerifyBoundStatement(
+                $"UPDATE {_tableName} SET ListType = ListType + ? WHERE Id = ?",
+                1,
+                listToAdd, singleEntity.Id);
         }
 
         /// <summary>
@@ -92,17 +86,18 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void Append_ToList_AppendEmptyList()
         {
-            Tuple<Table<EntityWithListType>, List<EntityWithListType>> tupleListType = EntityWithListType.SetupDefaultTable(_session);
-            Table<EntityWithListType> table = tupleListType.Item1;
-            List<EntityWithListType> expectedEntities = tupleListType.Item2;
+            var (table, expectedEntities) = EntityWithListType.GetDefaultTable(Session, _tableName);
 
-            List<int> listToAdd = new List<int> ();
-            EntityWithListType singleEntity = expectedEntities.First();
-            EntityWithListType expectedEntity = singleEntity.Clone();
-            table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithListType { ListType = CqlOperator.Append(listToAdd) }).Update().Execute();
-            var entityList = table.Where(m => m.Id == singleEntity.Id).ExecuteAsync().Result.ToList();
-            Assert.AreEqual(1, entityList.Count);
-            expectedEntity.AssertEquals(entityList[0]);
+            var listToAdd = new List<int>();
+            var singleEntity = expectedEntities.First();
+            table.Where(t => t.Id == singleEntity.Id)
+                 .Select(t => new EntityWithListType { ListType = CqlOperator.Append(listToAdd) })
+                 .Update().Execute();
+
+            VerifyBoundStatement(
+                $"UPDATE {_tableName} SET ListType = ListType + ? WHERE Id = ?",
+                1,
+                listToAdd, singleEntity.Id);
         }
 
         /// <summary>
@@ -111,52 +106,29 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void Append_ToArray()
         {
-            Tuple<Table<EntityWithArrayType>, List<EntityWithArrayType>> tupleArrayType = EntityWithArrayType.SetupDefaultTable(_session);
-            Table<EntityWithArrayType> table = tupleArrayType.Item1;
-            List<EntityWithArrayType> expectedEntities = tupleArrayType.Item2;
+            var (table, expectedEntities) = EntityWithArrayType.GetDefaultTable(Session, _tableName);
 
-            string[] arrToAdd = new string[] { "random_" + Randomm.RandomAlphaNum(10), "random_" + Randomm.RandomAlphaNum(10), "random_" + Randomm.RandomAlphaNum(10), };
-            EntityWithArrayType singleEntity = expectedEntities.First();
-            EntityWithArrayType expectedEntity = singleEntity.Clone();
-            List<string> strValsAsList = new List<string>();
+            var arrToAdd = new string[]
+            {
+                "random_" + Randomm.RandomAlphaNum(10),
+                "random_" + Randomm.RandomAlphaNum(10),
+                "random_" + Randomm.RandomAlphaNum(10),
+            };
+            var singleEntity = expectedEntities.First();
+            var expectedEntity = singleEntity.Clone();
+            var strValsAsList = new List<string>();
             strValsAsList.AddRange(expectedEntity.ArrayType);
             strValsAsList.AddRange(arrToAdd);
             expectedEntity.ArrayType = strValsAsList.ToArray();
             // Append the values
-            table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithArrayType { ArrayType = CqlOperator.Append(arrToAdd) }).Update().Execute();
-            // Validate the final state of the data
-            var entityList = table.Where(m => m.Id == singleEntity.Id).ExecuteAsync().Result.ToList();
-            Assert.AreEqual(1, entityList.Count);
-            Assert.AreNotEqual(expectedEntity.ArrayType, singleEntity.ArrayType);
-            expectedEntity.AssertEquals(entityList[0]);
-        }
+            table.Where(t => t.Id == singleEntity.Id)
+                 .Select(t => new EntityWithArrayType { ArrayType = CqlOperator.Append(arrToAdd) })
+                 .Update().Execute();
 
-        /// <summary>
-        /// Validate that the a List can be appended to, then validate that the expected data exists in Cassandra
-        /// This test exists as an extension of Append_ToArray so that the Append functionality could be tested
-        /// </summary>
-        [Test]
-        public void Append_ToArray_QueryUsingCql()
-        {
-            Tuple<Table<EntityWithArrayType>, List<EntityWithArrayType>> tupleArrayType = EntityWithArrayType.SetupDefaultTable(_session);
-            Table<EntityWithArrayType> table = tupleArrayType.Item1;
-            List<EntityWithArrayType> expectedEntities = tupleArrayType.Item2;
-
-            string[] arrToAdd = new string[] { "random_" + Randomm.RandomAlphaNum(10), "random_" + Randomm.RandomAlphaNum(10), "random_" + Randomm.RandomAlphaNum(10), };
-            EntityWithArrayType singleEntity = expectedEntities.First();
-            EntityWithArrayType expectedEntity = singleEntity.Clone();
-            List<string> strValsAsList = new List<string>();
-            strValsAsList.AddRange(expectedEntity.ArrayType);
-            strValsAsList.AddRange(arrToAdd);
-            expectedEntity.ArrayType = strValsAsList.ToArray();
-            // Append the values
-            table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithArrayType { ArrayType = CqlOperator.Append(arrToAdd) }).Update().Execute();
-            // Validate the final state of the data
-            List<Row> rows = _session.Execute("SELECT * from " + table.Name + " where id='" + expectedEntity.Id + "'").GetRows().ToList();
-            Assert.AreEqual(1, rows.Count);
-            Assert.AreNotEqual(expectedEntity.ArrayType, singleEntity.ArrayType);
-            string[] actualArr = rows[0].GetValue<string[]>("arraytype");
-            Assert.AreEqual(expectedEntity.ArrayType, actualArr);
+            VerifyBoundStatement(
+                $"UPDATE {_tableName} SET ArrayType = ArrayType + ? WHERE Id = ?",
+                1,
+                arrToAdd, singleEntity.Id);
         }
 
         /// <summary>
@@ -165,24 +137,25 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void Append_ToArray_AppendEmptyArray_QueryUsingCql()
         {
-            Tuple<Table<EntityWithArrayType>, List<EntityWithArrayType>> tupleArrayType = EntityWithArrayType.SetupDefaultTable(_session);
-            Table<EntityWithArrayType> table = tupleArrayType.Item1;
-            List<EntityWithArrayType> expectedEntities = tupleArrayType.Item2;
+            var (table, expectedEntities) = EntityWithArrayType.GetDefaultTable(Session, _tableName);
 
-            string[] arrToAdd = new string[] { };
-            EntityWithArrayType singleEntity = expectedEntities.First();
-            EntityWithArrayType expectedEntity = singleEntity.Clone();
-            List<string> strValsAsList = new List<string>();
+            var arrToAdd = new string[] { };
+            var singleEntity = expectedEntities.First();
+            var expectedEntity = singleEntity.Clone();
+            var strValsAsList = new List<string>();
             strValsAsList.AddRange(expectedEntity.ArrayType);
             strValsAsList.AddRange(arrToAdd);
             expectedEntity.ArrayType = strValsAsList.ToArray();
+
             // Append the values
-            table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithArrayType { ArrayType = CqlOperator.Append(arrToAdd) }).Update().Execute();
-            // Validate the final state of the data
-            List<Row> rows = _session.Execute("SELECT * from " + table.Name + " where id='" + expectedEntity.Id + "'").GetRows().ToList();
-            Assert.AreEqual(1, rows.Count);
-            string[] actualArr = rows[0].GetValue<string[]>("arraytype");
-            Assert.AreEqual(expectedEntity.ArrayType, actualArr);
+            table.Where(t => t.Id == singleEntity.Id)
+                 .Select(t => new EntityWithArrayType { ArrayType = CqlOperator.Append(arrToAdd) })
+                 .Update().Execute();
+
+            VerifyBoundStatement(
+                $"UPDATE {_tableName} SET ArrayType = ArrayType + ? WHERE Id = ?",
+                1,
+                arrToAdd, singleEntity.Id);
         }
 
         /// <summary>
@@ -191,26 +164,28 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void Append_ToDictionary()
         {
-            Tuple<Table<EntityWithDictionaryType>, List<EntityWithDictionaryType>> tupleDictionaryType = EntityWithDictionaryType.SetupDefaultTable(_session);
-            Table<EntityWithDictionaryType> table = tupleDictionaryType.Item1;
-            List<EntityWithDictionaryType> expectedEntities = tupleDictionaryType.Item2;
+            var (table, expectedEntities) = EntityWithDictionaryType.GetDefaultTable(Session, _tableName);
 
-            Dictionary<string, string> dictToAdd = new Dictionary<string, string>() { 
-                {"randomKey_" + Randomm.RandomAlphaNum(10), "randomVal_" + Randomm.RandomAlphaNum(10)}, 
-                {"randomKey_" + Randomm.RandomAlphaNum(10), "randomVal_" + Randomm.RandomAlphaNum(10)}, 
+            var dictToAdd = new Dictionary<string, string>() {
+                {"randomKey_" + Randomm.RandomAlphaNum(10), "randomVal_" + Randomm.RandomAlphaNum(10)},
+                {"randomKey_" + Randomm.RandomAlphaNum(10), "randomVal_" + Randomm.RandomAlphaNum(10)},
             };
-            EntityWithDictionaryType singleEntity = expectedEntities.First();
-            EntityWithDictionaryType expectedEntity = singleEntity.Clone();
+            var singleEntity = expectedEntities.First();
+            var expectedEntity = singleEntity.Clone();
             foreach (var keyValPair in dictToAdd)
+            {
                 expectedEntity.DictionaryType.Add(keyValPair.Key, keyValPair.Value);
+            }
 
             // Append the values
-            table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithDictionaryType { DictionaryType = CqlOperator.Append(dictToAdd) }).Update().Execute();
-            // Validate the final state of the data
-            var entityList = table.Where(m => m.Id == singleEntity.Id).ExecuteAsync().Result.ToList();
-            Assert.AreEqual(1, entityList.Count);
-            Assert.AreNotEqual(expectedEntity.DictionaryType, singleEntity.DictionaryType);
-            expectedEntity.AssertEquals(entityList[0]);
+            table.Where(t => t.Id == singleEntity.Id)
+                 .Select(t => new EntityWithDictionaryType { DictionaryType = CqlOperator.Append(dictToAdd) })
+                 .Update().Execute();
+
+            VerifyBoundStatement(
+                $"UPDATE {_tableName} SET DictionaryType = DictionaryType + ? WHERE Id = ?",
+                1,
+                dictToAdd, singleEntity.Id);
         }
 
         /// <summary>
@@ -219,45 +194,23 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void Append_ToDictionary_EmptyDictionary()
         {
-            Tuple<Table<EntityWithDictionaryType>, List<EntityWithDictionaryType>> tupleDictionaryType = EntityWithDictionaryType.SetupDefaultTable(_session);
-            Table<EntityWithDictionaryType> table = tupleDictionaryType.Item1;
-            List<EntityWithDictionaryType> expectedEntities = tupleDictionaryType.Item2;
+            var (table, expectedEntities) = EntityWithDictionaryType.GetDefaultTable(Session, _tableName);
 
-            Dictionary<string, string> dictToAdd = new Dictionary<string, string>() {};
-            EntityWithDictionaryType singleEntity = expectedEntities.First();
-            EntityWithDictionaryType expectedEntity = singleEntity.Clone();
+            var dictToAdd = new Dictionary<string, string>() { };
+            var singleEntity = expectedEntities.First();
+            var expectedEntity = singleEntity.Clone();
             foreach (var keyValPair in dictToAdd)
                 expectedEntity.DictionaryType.Add(keyValPair.Key, keyValPair.Value);
 
             // Append the values
-            table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithDictionaryType { DictionaryType = CqlOperator.Append(dictToAdd) }).Update().Execute();
-            // Validate the final state of the data
-            var entityList = table.Where(m => m.Id == singleEntity.Id).ExecuteAsync().Result.ToList();
-            Assert.AreEqual(1, entityList.Count);
-            expectedEntity.AssertEquals(entityList[0]);
-        }
+            table.Where(t => t.Id == singleEntity.Id)
+                 .Select(t => new EntityWithDictionaryType { DictionaryType = CqlOperator.Append(dictToAdd) })
+                 .Update().Execute();
 
-        /// <summary>
-        /// Validate that Map data does not change after attempting to append a duplicate dictionary key
-        /// </summary>
-        [Test]
-        public void Append_ToDictionary_DuplicateKey()
-        {
-            Tuple<Table<EntityWithDictionaryType>, List<EntityWithDictionaryType>> tupleDictionaryType = EntityWithDictionaryType.SetupDefaultTable(_session);
-            Table<EntityWithDictionaryType> table = tupleDictionaryType.Item1;
-            List<EntityWithDictionaryType> expectedEntities = tupleDictionaryType.Item2;
-
-            EntityWithDictionaryType singleEntity = expectedEntities.First();
-            EntityWithDictionaryType expectedEntity = singleEntity.Clone();
-            Assert.AreEqual(expectedEntity.DictionaryType, singleEntity.DictionaryType);
-
-            // Append the values
-            table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithDictionaryType { DictionaryType = CqlOperator.Append(singleEntity.DictionaryType) }).Update().Execute();
-
-            // Validate the final state of the data
-            var entityList = table.Where(m => m.Id == singleEntity.Id).ExecuteAsync().Result.ToList();
-            Assert.AreEqual(1, entityList.Count);
-            expectedEntity.AssertEquals(entityList[0]);
+            VerifyBoundStatement(
+                $"UPDATE {_tableName} SET DictionaryType = DictionaryType + ? WHERE Id = ?",
+                1,
+                dictToAdd, singleEntity.Id);
         }
 
         /// <summary>
@@ -266,30 +219,32 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void Append_ToDictionary_DuplicateAndNonDuplicateKey()
         {
-            Tuple<Table<EntityWithDictionaryType>, List<EntityWithDictionaryType>> tupleDictionaryType = EntityWithDictionaryType.SetupDefaultTable(_session);
-            Table<EntityWithDictionaryType> table = tupleDictionaryType.Item1;
-            List<EntityWithDictionaryType> expectedEntities = tupleDictionaryType.Item2;
+            var (table, expectedEntities) = EntityWithDictionaryType.GetDefaultTable(Session, _tableName);
 
-            EntityWithDictionaryType singleEntity = expectedEntities.First();
-            Dictionary<string, string> dictToAdd = new Dictionary<string, string>() { 
-                {"randomKey_" + Randomm.RandomAlphaNum(10), "randomVal_" + Randomm.RandomAlphaNum(10)}, 
-                {"randomKey_" + Randomm.RandomAlphaNum(10), "randomVal_" + Randomm.RandomAlphaNum(10)}, 
+            var singleEntity = expectedEntities.First();
+            var dictToAdd = new Dictionary<string, string>() {
+                {"randomKey_" + Randomm.RandomAlphaNum(10), "randomVal_" + Randomm.RandomAlphaNum(10)},
+                {"randomKey_" + Randomm.RandomAlphaNum(10), "randomVal_" + Randomm.RandomAlphaNum(10)},
                 { singleEntity.DictionaryType.First().Key, singleEntity.DictionaryType.First().Value }
             };
-            EntityWithDictionaryType expectedEntity = singleEntity.Clone();
+            var expectedEntity = singleEntity.Clone();
             foreach (var keyValPair in dictToAdd)
             {
                 if (!expectedEntity.DictionaryType.ContainsKey(keyValPair.Key))
+                {
                     expectedEntity.DictionaryType.Add(keyValPair.Key, keyValPair.Value);
+                }
             }
 
             // Append the values
-            table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithDictionaryType { DictionaryType = CqlOperator.Append(dictToAdd) }).Update().Execute();
-            // Validate the final state of the data
-            var entityList = table.Where(m => m.Id == singleEntity.Id).ExecuteAsync().Result.ToList();
-            Assert.AreEqual(1, entityList.Count);
-            Assert.AreNotEqual(expectedEntity.DictionaryType, singleEntity.DictionaryType);
-            expectedEntity.AssertEquals(entityList[0]);
+            table.Where(t => t.Id == singleEntity.Id)
+                 .Select(t => new EntityWithDictionaryType { DictionaryType = CqlOperator.Append(dictToAdd) })
+                 .Update().Execute();
+
+            VerifyBoundStatement(
+                $"UPDATE {_tableName} SET DictionaryType = DictionaryType + ? WHERE Id = ?",
+                1,
+                dictToAdd, singleEntity.Id);
         }
 
         /// <summary>
@@ -298,13 +253,31 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void Append_ToList_TableWithAllCollectionTypes()
         {
-            Tuple<Table<EntityWithAllCollectionTypes>, List<EntityWithAllCollectionTypes>> tupleAllCollectionTypes = EntityWithAllCollectionTypes.SetupDefaultTable(_session);
-            Table<EntityWithAllCollectionTypes> table = tupleAllCollectionTypes.Item1;
-            List<EntityWithAllCollectionTypes> expectedEntities = tupleAllCollectionTypes.Item2;
+            var (table, expectedEntities) = EntityWithAllCollectionTypes.GetDefaultTable(Session, _tableName);
 
-            EntityWithAllCollectionTypes singleEntity = expectedEntities.First();
+            var singleEntity = expectedEntities.First();
             var toAppend = new List<int> { 5, 6 };
-            table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithAllCollectionTypes { ListType = CqlOperator.Append(toAppend) }).Update().Execute();
+            table.Where(t => t.Id == singleEntity.Id)
+                 .Select(t => new EntityWithAllCollectionTypes { ListType = CqlOperator.Append(toAppend) })
+                 .Update().Execute();
+
+            VerifyBoundStatement(
+                $"UPDATE {_tableName} SET ListType = ListType + ? WHERE Id = ?",
+                1,
+                toAppend, singleEntity.Id);
+
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          $"SELECT ArrayType, DictionaryType, Id, ListType FROM {_tableName} WHERE Id = ?",
+                          when => when.WithParam(singleEntity.Id))
+                      .ThenRowsSuccess(
+                          new[] { "ArrayType", "DictionaryType", "Id", "ListType" },
+                          r => r.WithRow(
+                              singleEntity.ArrayType,
+                              singleEntity.DictionaryType,
+                              singleEntity.Id,
+                              singleEntity.ListType.Concat(toAppend))));
+
             var entityList = table.Where(m => m.Id == singleEntity.Id).ExecuteAsync().Result.ToList();
             Assert.AreEqual(1, entityList.Count);
             CollectionAssert.AreEqual(singleEntity.ListType.Concat(toAppend), entityList.First().ListType);
@@ -316,13 +289,31 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void Append_ToArray_TableWithAllCollectionTypes()
         {
-            Tuple<Table<EntityWithAllCollectionTypes>, List<EntityWithAllCollectionTypes>> tupleAllCollectionTypes = EntityWithAllCollectionTypes.SetupDefaultTable(_session);
-            Table<EntityWithAllCollectionTypes> table = tupleAllCollectionTypes.Item1;
-            List<EntityWithAllCollectionTypes> expectedEntities = tupleAllCollectionTypes.Item2;
+            var (table, expectedEntities) = EntityWithAllCollectionTypes.GetDefaultTable(Session, _tableName);
 
-            EntityWithAllCollectionTypes singleEntity = expectedEntities.First();
+            var singleEntity = expectedEntities.First();
             var toAppend = new string[] { "tag1", "tag2", "tag3" };
-            table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithAllCollectionTypes { ArrayType = CqlOperator.Append(toAppend) }).Update().Execute();
+            table.Where(t => t.Id == singleEntity.Id)
+                 .Select(t => new EntityWithAllCollectionTypes { ArrayType = CqlOperator.Append(toAppend) })
+                 .Update().Execute();
+
+            VerifyBoundStatement(
+                $"UPDATE {_tableName} SET ArrayType = ArrayType + ? WHERE Id = ?",
+                1,
+                toAppend, singleEntity.Id);
+
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          $"SELECT ArrayType, DictionaryType, Id, ListType FROM {_tableName} WHERE Id = ?",
+                          when => when.WithParam(singleEntity.Id))
+                      .ThenRowsSuccess(
+                          new[] { "ArrayType", "DictionaryType", "Id", "ListType" },
+                          r => r.WithRow(
+                              singleEntity.ArrayType.Concat(toAppend),
+                              singleEntity.DictionaryType,
+                              singleEntity.Id,
+                              singleEntity.ListType)));
+
             var entityList = table.Where(m => m.Id == singleEntity.Id).ExecuteAsync().Result.ToList();
             Assert.AreEqual(1, entityList.Count);
             CollectionAssert.AreEqual(singleEntity.ArrayType.Concat(toAppend), entityList.First().ArrayType);
@@ -334,20 +325,36 @@ namespace Cassandra.IntegrationTests.Linq.CqlOperatorTests
         [Test]
         public void Append_ToDictionary_TableWithAllCollectionTypes()
         {
-            Tuple<Table<EntityWithAllCollectionTypes>, List<EntityWithAllCollectionTypes>> tupleAllCollectionTypes = EntityWithAllCollectionTypes.SetupDefaultTable(_session);
-            Table<EntityWithAllCollectionTypes> table = tupleAllCollectionTypes.Item1;
-            List<EntityWithAllCollectionTypes> expectedEntities = tupleAllCollectionTypes.Item2;
+            var (table, expectedEntities) = EntityWithAllCollectionTypes.GetDefaultTable(Session, _tableName);
 
-            EntityWithAllCollectionTypes singleEntity = expectedEntities.First();
-            EntityWithAllCollectionTypes expectedEntity = singleEntity.Clone();
-            expectedEntity.DictionaryType.Add("key1","val1");
-            table.Where(t => t.Id == singleEntity.Id).Select(t => new EntityWithAllCollectionTypes { DictionaryType = CqlOperator.Append(expectedEntity.DictionaryType) }).Update().Execute();
+            var singleEntity = expectedEntities.First();
+            var expectedEntity = singleEntity.Clone();
+            expectedEntity.DictionaryType.Add("key1", "val1");
+            table.Where(t => t.Id == singleEntity.Id)
+                 .Select(t => new EntityWithAllCollectionTypes { DictionaryType = CqlOperator.Append(expectedEntity.DictionaryType) })
+                 .Update().Execute();
+
+            VerifyBoundStatement(
+                $"UPDATE {_tableName} SET DictionaryType = DictionaryType + ? WHERE Id = ?",
+                1,
+                expectedEntity.DictionaryType, singleEntity.Id);
+
+            TestCluster.PrimeFluent(
+                b => b.WhenQuery(
+                          $"SELECT ArrayType, DictionaryType, Id, ListType FROM {_tableName} WHERE Id = ?",
+                          when => when.WithParam(singleEntity.Id))
+                      .ThenRowsSuccess(
+                          new[] { "ArrayType", "DictionaryType", "Id", "ListType" },
+                          r => r.WithRow(
+                              expectedEntity.ArrayType,
+                              expectedEntity.DictionaryType,
+                              expectedEntity.Id,
+                              expectedEntity.ListType)));
+
             var entityList = table.Where(m => m.Id == singleEntity.Id).ExecuteAsync().Result.ToList();
             Assert.AreEqual(1, entityList.Count);
             CollectionAssert.AreEqual(expectedEntity.ArrayType, singleEntity.ArrayType);
             entityList.First().AssertEquals(expectedEntity);
         }
     }
-
-
 }

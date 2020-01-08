@@ -34,14 +34,15 @@ namespace Cassandra.IntegrationTests.Core
     public class ClusterTests : TestGlobals
     {
         private SimulacronCluster _testCluster;
+        private ITestCluster _realCluster;
 
         [TearDown]
         public void TestTearDown()
         {
-            if (_testCluster != null)
-            {
-                _testCluster.Remove();
-            }
+            _testCluster?.Dispose();
+            _testCluster = null;
+            _realCluster?.ShutDown();
+            _realCluster = null;
         }
 
         [Test]
@@ -155,17 +156,17 @@ namespace Cassandra.IntegrationTests.Core
         [Category("realcluster")]
         public async Task Should_Add_And_Query_Newly_Bootstrapped_Node()
         {
-            var testCluster = TestClusterManager.CreateNew();
+            _realCluster = TestClusterManager.CreateNew();
             using (var cluster = Cluster.Builder()
-                                        .AddContactPoint(testCluster.InitialContactPoint)
+                                        .AddContactPoint(_realCluster.InitialContactPoint)
                                         .Build())
             {
                 await Connect(cluster, false, session =>
                 {
                     Assert.AreEqual(1, cluster.AllHosts().Count);
-                    testCluster.BootstrapNode(2);
+                    _realCluster.BootstrapNode(2);
                     Trace.TraceInformation("Node bootstrapped");
-                    var newNodeAddress = testCluster.ClusterIpPrefix + 2;
+                    var newNodeAddress = _realCluster.ClusterIpPrefix + 2;
                     var newNodeIpAddress = IPAddress.Parse(newNodeAddress);
                     TestHelper.RetryAssert(() =>
                         {
@@ -200,20 +201,20 @@ namespace Cassandra.IntegrationTests.Core
         [Category("realcluster")]
         public async Task Should_Remove_Decommissioned_Node()
         {
-            var testCluster = TestClusterManager.CreateNew(2);
+            _realCluster = TestClusterManager.CreateNew(2);
             using (var cluster = Cluster.Builder()
-                                        .AddContactPoint(testCluster.InitialContactPoint)
+                                        .AddContactPoint(_realCluster.InitialContactPoint)
                                         .Build())
             {
                 await Connect(cluster, false, session =>
                 {
                     Assert.AreEqual(2, cluster.AllHosts().Count);
-                    testCluster.DecommissionNode(2);
+                    _realCluster.DecommissionNode(2);
                     Trace.TraceInformation("Node decommissioned");
                     string decommisionedNode = null;
                     TestHelper.RetryAssert(() =>
                     {
-                        decommisionedNode = testCluster.ClusterIpPrefix + 2;
+                        decommisionedNode = _realCluster.ClusterIpPrefix + 2;
                         Assert.False(TestUtils.IsNodeReachable(IPAddress.Parse(decommisionedNode)));
                     //New node should be part of the metadata
                     Assert.AreEqual(1, cluster.AllHosts().Count);
