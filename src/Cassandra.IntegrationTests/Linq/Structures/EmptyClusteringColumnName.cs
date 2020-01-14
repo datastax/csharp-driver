@@ -13,29 +13,33 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
+using Linq = Cassandra.Data.Linq;
+using Mapping = Cassandra.Mapping;
+
 #pragma warning disable 618
 namespace Cassandra.IntegrationTests.Linq.Structures
 {
-    [Cassandra.Data.Linq.Table("test_map_empty_clust_column_name")]
-    [Cassandra.Mapping.Attributes.Table("test_map_empty_clust_column_name")]
+    [Linq::Table("test_map_empty_clust_column_name")]
+    [Mapping::Attributes.Table("test_map_empty_clust_column_name")]
     // ReSharper disable once ClassNeverInstantiated.Local
     class EmptyClusteringColumnName
     {
-        [Cassandra.Data.Linq.PartitionKey]
-        [Cassandra.Data.Linq.Column("id")]
-        [Cassandra.Mapping.Attributes.PartitionKey]
-        [Cassandra.Mapping.Attributes.Column("id")]
+        [Linq::PartitionKey]
+        [Linq::Column("id")]
+        [Mapping::Attributes.PartitionKey]
+        [Mapping::Attributes.Column("id")]
         // ReSharper disable once UnusedMember.Local
         public int Id { get; set; }
 
-        [Cassandra.Data.Linq.ClusteringKey(1)]
-        [Cassandra.Mapping.Attributes.ClusteringKey(1)]
-        [Cassandra.Mapping.Attributes.Column]
+        [Linq::ClusteringKey(1)]
+        [Mapping::Attributes.ClusteringKey(1)]
+        [Mapping::Attributes.Column]
         // ReSharper disable once InconsistentNaming
         // ReSharper disable once UnusedMember.Local
         public string cluster { get; set; }
             
-        [Cassandra.Mapping.Attributes.Column]
+        [Mapping::Attributes.Column]
         // ReSharper disable once InconsistentNaming
         // ReSharper disable once UnusedMember.Local
         public string value { get; set; }

@@ -1,11 +1,11 @@
 # TLS/SSL
 
-You can secure traffic between the driver and Apache Cassandra with TLS/SSL. There are two aspects to that:
+You can secure traffic between the driver and Apache Cassandra or DataStax Enterprise (DSE) with TLS/SSL. There are two aspects to that:
 
-- Client-to-node encryption, where the traffic is encrypted and the client verifies the identity of the Apache Cassandra nodes it connects to.
-- Optional client certificate authentication, where Apache Cassandra nodes also verify the identity of the client.
+- Client-to-node encryption, where the traffic is encrypted and the client verifies the identity of the nodes it connects to.
+- Optional client certificate authentication, where server nodes also verify the identity of the client.
 
-This section describes the driver-side configuration, it assumes that you've already configured SSL encryption in Apache Cassandra, you can checkout the [server documentation that covers the basic procedures][client-to-node].
+This section describes the driver-side configuration, it assumes that you've already configured SSL encryption in the server. If you're using DSE, you can checkout the [server documentation that covers the basic procedures to setup SSL with DSE][client-to-node-dse]. If you're using Apache Cassandra, you can checkout the [documentation that covers the setup with Apache Cassandra][client-to-node].
 
 You can find SSL examples on how to configure the driver for both server and client auth in the driver's [Github repository].
 
@@ -94,5 +94,6 @@ var cluster = Cluster.Builder()
 ```
 
 [certstore]: #certificate-store
+[client-to-node-dse]: https://docs.datastax.com/en/security/6.7/security/encryptClientNodeSSL.html
 [client-to-node]: https://docs.datastax.com/en/cassandra/3.0/cassandra/configuration/secureSSLClientToNode.html
 [Github repository]: https://github.com/datastax/csharp-driver/tree/master/examples/Ssl

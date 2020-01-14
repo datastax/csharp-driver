@@ -21,7 +21,6 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-
 using Cassandra.Connections;
 using Cassandra.MetadataHelpers;
 using Cassandra.Requests;
@@ -616,8 +615,8 @@ namespace Cassandra
                     Task.WaitAll(queries, Configuration.DefaultRequestOptions.QueryAbortTimeout);
 
                     if (Metadata.CheckSchemaVersionResults(
-                        Connections.ControlConnection.GetRowSet(queries[0].Result),
-                        Connections.ControlConnection.GetRowSet(queries[1].Result)))
+                        Cassandra.Connections.ControlConnection.GetRowSet(queries[0].Result),
+                        Cassandra.Connections.ControlConnection.GetRowSet(queries[1].Result)))
                     {
                         return true;
                     }

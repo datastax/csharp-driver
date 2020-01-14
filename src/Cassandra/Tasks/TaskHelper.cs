@@ -181,6 +181,12 @@ namespace Cassandra.Tasks
         public static async Task WaitToCompleteAsync(this Task task, int timeout = Timeout.Infinite)
         {
             //It should wait and throw any exception
+            if (timeout == Timeout.Infinite)
+            {
+                await task.ConfigureAwait(false);
+                return;
+            }
+
             try
             {
                 var timeoutTask = Task.Delay(TimeSpan.FromMilliseconds(timeout));
@@ -477,6 +483,23 @@ namespace Cassandra.Tasks
         public static CancellationToken CancelTokenAfterDelay(TimeSpan timespan)
         {
             return new CancellationTokenSource(timespan).Token;
+        }
+
+        /// <summary>
+        /// Calls <code>Task.Delay</code> with a cancellation token.
+        /// </summary>
+        /// <returns><code>true</code> if delay ran to completion; <code>false</code> if delay was canceled.</returns>
+        public static async Task<bool> DelayWithCancellation(TimeSpan delayTimeSpan, CancellationToken token)
+        {
+            try
+            {
+                await Task.Delay(delayTimeSpan, token).ConfigureAwait(false);
+                return true;
+            }
+            catch (TaskCanceledException)
+            {
+                return false;
+            }
         }
 
         public static Func<Task> ActionToAsync(Action act)

@@ -15,10 +15,12 @@
 //
 
 using System;
+using Cassandra.Mapping.Attributes;
 
 namespace Cassandra.Mapping
 {
     /// <summary>
+    /// DEPRECATED (use <see cref="PartitionKeyAttribute"/> and <see cref="ClusteringKeyAttribute"/>).
     /// An attribute used to indicate the primary key column names for the table a POCO is mapped to.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class)]

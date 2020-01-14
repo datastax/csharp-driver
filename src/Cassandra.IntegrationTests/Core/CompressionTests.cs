@@ -19,6 +19,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Cassandra.IntegrationTests;
 using Cassandra.Tests;
 using NUnit.Framework;
 

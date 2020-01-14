@@ -33,21 +33,31 @@ namespace Cassandra.IntegrationTests.Core
         private const string Keyspace = "ks_client_warnings";
         private const string Table = Keyspace + ".tbl1";
 
+        private ITestCluster _testCluster;
+
         [OneTimeSetUp]
         public void SetupFixture()
         {
-            if (CassandraVersion < Version.Parse("2.2.0"))
+            if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("2.2"), Comparison.LessThan))
+            {
                 Assert.Ignore("Requires Cassandra version >= 2.2");
+                return;
+            }
 
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
-            
-            var testCluster = TestClusterManager.CreateNew(1, new TestClusterOptions
+
+            _testCluster = TestClusterManager.CreateNew(1, new TestClusterOptions
             {
+                CassandraYaml = new[]
+                        {
+                            "batch_size_warn_threshold_in_kb:5",
+                            "batch_size_fail_threshold_in_kb:50"
+                        },
                 //Using a mirroring handler, the server will reply providing the same payload that was sent
                 JvmArgs = new[] { "-Dcassandra.custom_query_handler_class=org.apache.cassandra.cql3.CustomPayloadMirroringQueryHandler" }
             });
-            testCluster.InitClient();
-            Session = testCluster.Session;
+            _testCluster.InitClient();
+            Session = _testCluster.Session;
             Session.Execute(String.Format(TestUtils.CreateKeyspaceSimpleFormat, Keyspace, 1));
             Session.Execute(String.Format(TestUtils.CreateTableSimpleFormat, Table));
         }
@@ -155,14 +165,14 @@ namespace Cassandra.IntegrationTests.Core
             StringAssert.Contains("exceeding", rs.Info.Warnings[0].ToLowerInvariant());
         }
 
-        private static SimpleStatement GetBatchAsSimpleStatement(int length)
+        private static IStatement GetBatchAsSimpleStatement(int length)
         {
             const string query = "BEGIN UNLOGGED BATCH" +
                                  " INSERT INTO {0} (k, t) VALUES ('key0', 'value0');" +
                                  " INSERT INTO {0} (k, t) VALUES ('{1}', '{2}');" +
                                  "APPLY BATCH";
-            return new SimpleStatement(
-                string.Format(query, Table, "key1", String.Join("", Enumerable.Repeat("a", length))));
+            return new SimpleStatement(string.Format(query, Table, "key1", String.Join("", Enumerable.Repeat("a", length))))
+                .SetConsistencyLevel(ConsistencyLevel.LocalQuorum);
         }
 
         private static IDictionary<string, byte[]> GetPayload()

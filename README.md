@@ -1,6 +1,12 @@
 # DataStax C# Driver for Apache Cassandra
 
-A modern, [feature-rich][features] and highly tunable C# client library for Apache Cassandra (1.2+) using exclusively Cassandra's binary protocol and Cassandra Query Language v3. _Use the [DSE C# driver][dse-driver] for better compatibility and support for DataStax Enterprise_.
+A modern, [feature-rich][features] and highly tunable C# client library for Apache Cassandra (2.0+) using Cassandra's binary protocol and Cassandra Query Language v3.
+
+It also provides additional features for [DataStax Enterprise][dse]:
+
+- `IAuthenticator` implementations that use the authentication scheme negotiation in the server-side `DseAuthenticator`.
+- [DSE graph][dse-graph] integration.
+- Serializers for geospatial types which integrate seamlessly with the driver.
 
 The driver supports .NET Framework 4.5+ and .NET Core 1+.
 
@@ -31,19 +37,20 @@ PM> Install-Package CassandraCSharpDriver
 ## Documentation
 
 - [Documentation index][docindex]
-- [Getting started guide][getting-started]
 - [API docs][apidocs]
+- [FAQ][faq]
+- [Version compatibility matrix][driver-matrix]
+- [Developing applications with DataStax drivers][dev-guide]
 
 ## Getting Help
 
 You can use the project [Mailing list][mailinglist] or create a ticket on the [Jira issue tracker][jira]. Additionally, you can ask questions on [DataStax Community][community].
 
-## Upgrading from previous versions
+## Upgrading from previous versions or from the DSE C# driver
 
 If you are upgrading from previous versions of the driver, [visit the Upgrade Guide][upgrade-guide].
 
-If you are upgrading to [DataStax Enterprise][dse], use the [DSE C# driver][dse-driver] for more features and better
-compatibility.
+If you are upgrading from the [DSE C# driver][dse-driver] (which has been unified with this driver), there's also a section related to this on the [Upgrade Guide][upgrade-guide-dse].
 
 ## Basic Usage
 
@@ -187,7 +194,6 @@ var userAddress = row.GetValue<Address>("address");
 Console.WriteLine("user lives on {0} Street", userAddress.Street);
 ```
 
-
 ### Setting cluster and statement execution options
 
 You can set the options on how the driver connects to the nodes and the execution options.
@@ -207,6 +213,162 @@ var statement = new SimpleStatement(query)
   .SetPageSize(1000);
 ```
 
+## Authentication
+
+If you are using the `PasswordAuthenticator` which is included in the default distribution of Apache Cassandra, you can use the `Builder.WithCredentials` method or you can explicitly create a `PlainTextAuthProvider` instance.
+
+For clients connecting to a DSE cluster secured with `DseAuthenticator`, two authentication providers are included (on the `Cassandra.DataStax.Auth` namespace):
+
+- `DsePlainTextAuthProvider`: plain-text authentication;
+- `DseGssapiAuthProvider`: GSSAPI authentication.
+
+To configure a provider, pass it when initializing the cluster:
+
+```csharp
+using Cassandra;
+using Cassandra.DataStax.Auth;
+```
+
+```csharp
+ICluster cluster = Cluster.Builder()
+    .AddContactPoint("127.0.0.1")
+    .WithAuthProvider(new DseGssapiAuthProvider())
+    .Build();
+```
+
+## DataStax Graph
+
+`ISession` has dedicated methods to execute graph queries:
+
+```csharp
+using Cassandra.DataStax.Graph;
+```
+
+```csharp
+session.ExecuteGraph("system.createGraph('demo').ifNotExist().build()");
+
+GraphStatement s1 = new SimpleGraphStatement("g.addV(label, 'test_vertex')").SetGraphName("demo");
+session.ExecuteGraph(s1);
+
+GraphStatement s2 = new SimpleGraphStatement("g.V()").SetGraphName("demo");
+GraphResultSet rs = session.ExecuteGraph(s2);
+
+IVertex vertex = rs.First().To<IVertex>();
+Console.WriteLine(vertex.Label);
+```
+
+### Graph options
+
+You can set default graph options when initializing the cluster. They will be used for all graph statements. For example, to avoid repeating `SetGraphName("demo")` on each statement:
+
+```csharp
+ICluster cluster = Cluster.Builder()
+    .AddContactPoint("127.0.0.1")
+    .WithGraphOptions(new GraphOptions().SetName("demo"))
+    .Build();
+```
+
+If an option is set manually on a `GraphStatement`, it always takes precedence; otherwise the default option is used.
+This might be a problem if a default graph name is set, but you explicitly want to execute a statement targeting `system`, for which no graph name must be set. In that situation, use `GraphStatement.SetSystemQuery()`:
+
+```csharp
+GraphStatement s = new SimpleGraphStatement("system.createGraph('demo').ifNotExist().build()")
+    .SetSystemQuery();
+session.ExecuteGraph(s);
+```
+
+### Query execution
+
+As explained, graph statements can be executed with the session's `ExecuteGraph` method. There is also an asynchronous equivalent called `ExecuteGraphAsync` that returns a `Task` that can be awaited upon.
+
+### Handling results
+
+Graph queries return a `GraphResultSet`, which is a sequence of `GraphNode` elements:
+
+```csharp
+GraphResultSet rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
+
+// Iterating as IGraphNode
+foreach (IGraphNode r in rs)
+{
+    Console.WriteLine(r);
+}
+```
+
+`IGraphNode` represents a response item returned by the server. Each item can be converted to the expected type:
+
+```csharp
+GraphResultSet rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
+IVertex vertex = rs.First().To<IVertex>();
+Console.WriteLine(vertex.Label);
+```
+
+Additionally, you can apply the conversion to all the sequence by using `GraphResultSet.To<T>()` method:
+
+```csharp
+foreach (IVertex vertex in rs.To<IVertex>())
+{
+    Console.WriteLine(vertex.Label);
+}
+```
+
+`GraphNode` provides [implicit conversion operators][implicit] to `string`, `int`, `long` and others in order to improve code readability, allowing the following C# syntax:
+
+```csharp
+var rs = session.ExecuteGraph(new SimpleGraphStatement("g.V().has('name', 'marko').values('location')"));
+foreach (string location in rs)
+{
+    Console.WriteLine(location);
+}
+```
+
+`GraphNode` inherits from [`DynamicObject`][dynamic], allowing you to consume it using the `dynamic` keyword and/or as a dictionary.
+
+```csharp
+dynamic r = session.ExecuteGraph(new SimpleGraphStatement("g.V()")).First();
+```
+
+### Parameters
+
+Graph query parameters are always named. Parameter bindings are passed as an anonymous type or as a
+`IDictionary<string, object>` alongside the query:
+
+```csharp
+session.ExecuteGraph("g.addV(label, vertexLabel)", new { vertexLabel = "test_vertex_2" });
+```
+
+Note that, unlike in CQL, Gremlin placeholders are not prefixed with ":".
+
+### Prepared statements with DSE Graph
+
+Prepared graph statements are not supported by DSE Graph.
+
+## Geospatial types
+
+DSE 5 comes with a set of additional types to represent geospatial data: `PointType`, `LineStringType` and
+`PolygonType`:
+
+```
+cqlsh> CREATE TABLE points_of_interest(name text PRIMARY KEY, coords 'PointType');
+cqlsh> INSERT INTO points_of_interest (name, coords) VALUES ('Eiffel Tower', 'POINT(48.8582 2.2945)');
+```
+
+The DSE driver includes C# representations of these types, that can be used directly in queries:
+
+```csharp
+using Cassandra.Geometry;
+```
+
+```csharp
+Row row = session.Execute("SELECT coords FROM points_of_interest WHERE name = 'Eiffel Tower'").First();
+Point coords = row.GetValue<Point>("coords");
+
+var statement = new SimpleStatement("INSERT INTO points_of_interest (name, coords) VALUES (?, ?)",
+    "Washington Monument",
+    new Point(38.8895, 77.0352));
+session.Execute(statement);
+```
+
 ## Compatibility
 
 - Apache Cassandra versions 2.0 and above.
@@ -221,7 +383,7 @@ Note: DataStax products do not support big-endian systems.
 
 ## Building and running the tests
 
-You can use Visual Studio or msbuild to build the solution. 
+You can use Visual Studio or msbuild to build the solution.
 
 [Check the documentation for building the driver from source and running the tests](https://github.com/datastax/csharp-driver/wiki/Building-and-running-tests).
 
@@ -231,27 +393,32 @@ You can use Visual Studio or msbuild to build the solution.
 
 Licensed under the Apache License, Version 2.0 (the “License”); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+<http://www.apache.org/licenses/LICENSE-2.0>
 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an “AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-
-
-  [apidocs]: https://docs.datastax.com/en/latest-csharp-driver-api/
-  [docindex]: https://docs.datastax.com/en/developer/csharp-driver/latest/
-  [features]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/
-  [getting-started]: https://academy.datastax.com/resources/getting-started-apache-cassandra-and-c-net
-  [nuget]: https://nuget.org/packages/CassandraCSharpDriver/
-  [mailinglist]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
-  [jira]: https://datastax-oss.atlassian.net/projects/CSHARP/issues
-  [udt]: https://docs.datastax.com/en/dse/6.0/cql/cql/cql_using/useInsertUDT.html
-  [poco]: http://en.wikipedia.org/wiki/Plain_Old_CLR_Object
-  [linq]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/components/linq/
-  [mapper]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/components/mapper/
-  [components]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/components/
-  [policies]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/tuning-policies/
-  [upgrade-guide]: https://docs.datastax.com/en/developer/csharp-driver/latest/upgrade-guide/
-  [survey]: https://goo.gl/forms/3BxcP8nKs6
-  [dse-driver]: https://docs.datastax.com/en/developer/csharp-driver-dse/latest/
-  [community]: https://community.datastax.com
-  [dse]: https://www.datastax.com/products/datastax-enterprise
+[apidocs]: https://docs.datastax.com/en/latest-csharp-driver-api/
+[docindex]: https://docs.datastax.com/en/developer/csharp-driver/latest/
+[features]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/
+[getting-started]: https://academy.datastax.com/resources/getting-started-apache-cassandra-and-c-net
+[faq]: https://docs.datastax.com/en/developer/csharp-driver/latest/faq/
+[nuget]: https://nuget.org/packages/CassandraCSharpDriver/
+[mailinglist]: https://groups.google.com/a/lists.datastax.com/forum/#!forum/csharp-driver-user
+[jira]: https://datastax-oss.atlassian.net/projects/CSHARP/issues
+[udt]: https://docs.datastax.com/en/dse/6.0/cql/cql/cql_using/useInsertUDT.html
+[poco]: http://en.wikipedia.org/wiki/Plain_Old_CLR_Object
+[linq]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/components/linq/
+[mapper]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/components/mapper/
+[components]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/components/
+[policies]: https://docs.datastax.com/en/developer/csharp-driver/latest/features/tuning-policies/
+[upgrade-guide]: https://docs.datastax.com/en/developer/csharp-driver/latest/upgrade-guide/
+[upgrade-guide-dse]: https://docs.datastax.com/en/developer/csharp-driver/latest/upgrade-guide/upgrade-from-dse-driver/
+[survey]: https://goo.gl/forms/3BxcP8nKs6
+[dse-driver]: https://docs.datastax.com/en/developer/csharp-driver-dse/latest/
+[community]: https://community.datastax.com
+[dse]: https://www.datastax.com/products/datastax-enterprise
+[implicit]: https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/implicit
+[dynamic]: https://msdn.microsoft.com/en-us/library/dd264736.aspx
+[dse-graph]: https://www.datastax.com/products/datastax-enterprise-graph
+[dev-guide]: https://docs.datastax.com/en/devapp/doc/devapp/aboutDrivers.html
+[driver-matrix]: https://docs.datastax.com/en/driver-matrix/doc/index.html

@@ -47,3 +47,5 @@ src/packages/*/
 
 # Visual Studio for Mac
 *.userprefs
+
+doc/api-docs/

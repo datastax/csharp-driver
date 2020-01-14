@@ -58,23 +58,37 @@
     <HelpTitle>DataStax C# Driver for Apache Cassandra</HelpTitle>
     <ContentPlacement>BelowNamespaces</ContentPlacement>
     <NamespaceSummaries>
-      <NamespaceSummaryItem name="(global)" isDocumented="True">A modern, feature-rich and highly tunable C# client library for Apache Cassandra (1.2+) and DataStax Enterprise (3.1+) using exclusively Cassandra's binary protocol and Cassandra Query Language v3.</NamespaceSummaryItem>
-      <NamespaceSummaryItem name="Cassandra" isDocumented="True">The Cassandra namespace contains classes and interfaces to represent data types in the driver.</NamespaceSummaryItem>
-      <NamespaceSummaryItem name="Cassandra.Data" isDocumented="True">The Cassandra.Data namespace contains classes to support ADO.NET in the driver.</NamespaceSummaryItem>
-      <NamespaceSummaryItem name="Cassandra.Data.Linq" isDocumented="True">The Cassandra.Data.Linq namespace contains classes to handle Linq queries in the driver.</NamespaceSummaryItem>
-      <NamespaceSummaryItem name="Cassandra.Mapping" isDocumented="True">The Cassandra.Mapping namespace contains classes to handle CQL data to C# classes mapping in the driver.</NamespaceSummaryItem>
-      <NamespaceSummaryItem name="Cassandra.Mapping.Attributes" isDocumented="True">The Cassandra.Mapping.Attributes namespace contains attributes to describe CQL types to C# classes mapping.</NamespaceSummaryItem>
-      <NamespaceSummaryItem name="Cassandra.Mapping.TypeConversion" isDocumented="True">The Cassandra.Mapping.TypeConversion namespace handles type conversion for the Mapper.</NamespaceSummaryItem>
-      <NamespaceSummaryItem name="Cassandra.Mapping.Utils" isDocumented="False" />
-      <NamespaceSummaryItem name="Cassandra.Serialization" isDocumented="True">The Cassandra.Serialization namespace contains classes to handle serialization in the driver.</NamespaceSummaryItem>
-      <NamespaceSummaryItem name="Cassandra.Serialization.Primitive" isDocumented="False" />
-      <NamespaceSummaryItem name="Cassandra.AppMetrics" isDocumented="True">The Cassandra.AppMetrics namespace contains classes related to the App Metrics provider. This namespace is available on the CassandraCSharpDriver.AppMetrics package.</NamespaceSummaryItem>
-      <NamespaceSummaryItem name="Cassandra.AppMetrics.MetricTypes" isDocumented="True">The Cassandra.AppMetrics.MetricTypes namespace contains this provider's interfaces for each metric type. This namespace is available on the CassandraCSharpDriver.AppMetrics package.</NamespaceSummaryItem>
-      <NamespaceSummaryItem name="Cassandra.AppMetrics.MetricValues" isDocumented="True">The Cassandra.AppMetrics.MetricTypes namespace contains interfaces than represent the values for some of the metric types. This namespace is available on the CassandraCSharpDriver.AppMetrics package.</NamespaceSummaryItem>
-      <NamespaceSummaryItem name="Cassandra.Metrics" isDocumented="True">The Cassandra.Metrics namespace contains classes related to metrics without referring to a specific provider.</NamespaceSummaryItem>
-      <NamespaceSummaryItem name="Cassandra.Metrics.Abstractions" isDocumented="True">The Cassandra.Metrics.Abstractions namespace contains the provider interfaces that a metrics provider must implement.</NamespaceSummaryItem>
-    </NamespaceSummaries>
-    <ProjectSummary>A modern, feature-rich and highly tunable C# client library for Apache Cassandra %281.2+%29 and DataStax Enterprise %283.1+%29 using exclusively Cassandra&amp;#39%3bs binary protocol and Cassandra Query Language v3.</ProjectSummary>
+      <NamespaceSummaryItem name="(global)" isDocumented="True">A modern, feature-rich and highly tunable C# client library for Apache Cassandra (2.0+) and DataStax Enterprise (4.5+) using Cassandra's binary protocol and Cassandra Query Language v3. It also provides the following extensions for DataStax Enterprise:
+&lt;ul&gt;
+&lt;li&gt;Authenticator implementations that use the authentication scheme negotiation in the server-side DseAuthenticator.&lt;/li&gt;
+&lt;li&gt;Serializers for geospatial types which integrate seamlessly with the driver.&lt;/li&gt;
+&lt;li&gt;DSE graph integration.&lt;/li&gt;
+&lt;/ul&gt;</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra" isDocumented="True">The Cassandra namespace contains classes and interfaces to represent data types in the driver.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.Data" isDocumented="True">The Cassandra.Data namespace contains classes to support ADO.NET in the driver.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.Data.Linq" isDocumented="True">The Cassandra.Data.Linq namespace contains classes to handle Linq queries in the driver.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.Mapping" isDocumented="True">The Cassandra.Mapping namespace contains classes to handle CQL data to C# classes mapping in the driver.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.Mapping.Attributes" isDocumented="True">The Cassandra.Mapping.Attributes namespace contains attributes to describe CQL types to C# classes mapping.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.Mapping.TypeConversion" isDocumented="True">The Cassandra.Mapping.TypeConversion namespace handles type conversion for the Mapper.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.Mapping.Utils" isDocumented="False" />
+<NamespaceSummaryItem name="Cassandra.Serialization" isDocumented="True">The Cassandra.Serialization namespace contains classes to handle serialization in the driver.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.Serialization.Primitive" isDocumented="False" />
+<NamespaceSummaryItem name="Cassandra.AppMetrics" isDocumented="True">The Cassandra.AppMetrics namespace contains classes related to the App Metrics provider. This namespace is available on the CassandraCSharpDriver.AppMetrics package.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.AppMetrics.MetricTypes" isDocumented="True">The Cassandra.AppMetrics.MetricTypes namespace contains this provider's interfaces for each metric type. This namespace is available on the CassandraCSharpDriver.AppMetrics package.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.AppMetrics.MetricValues" isDocumented="True">The Cassandra.AppMetrics.MetricTypes namespace contains interfaces than represent the values for some of the metric types. This namespace is available on the CassandraCSharpDriver.AppMetrics package.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.Metrics" isDocumented="True">The Cassandra.Metrics namespace contains classes related to metrics without referring to a specific provider.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.Metrics.Abstractions" isDocumented="True">The Cassandra.Metrics.Abstractions namespace contains the provider interfaces that a metrics provider must implement.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.DataStax.Auth" isDocumented="True">The Cassandra.DataStax.Auth namespace contains classes for authenticating against DSE clusters secured with DseAuthenticator.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.DataStax.Auth.Sspi" isDocumented="True">The Cassandra.DataStax.Auth.Sspi namespace exposes SspiException which is thrown when an exception occurs while interacting with SSPI during authentication.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.DataStax.Graph" isDocumented="True">The Cassandra.DataStax.Graph namespace contains classes for accessing graph data from DSE clusters.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.DataStax.Search" isDocumented="True">The Cassandra.DataStax.Search namespace contains classes to represent DSE Search types.</NamespaceSummaryItem>
+<NamespaceSummaryItem name="Cassandra.Geometry" isDocumented="True">The Cassandra.Geometry namespace contains classes to represent geospatial types.</NamespaceSummaryItem></NamespaceSummaries>
+    <ProjectSummary>A modern, feature-rich and highly tunable C# client library for Apache Cassandra %282.0+%29 and DataStax Enterprise %284.5+%29 using Cassandra&amp;#39%3bs binary protocol and Cassandra Query Language v3. It also provides the following extensions for DataStax Enterprise:
+&amp;lt%3bul&amp;gt%3b
+&amp;lt%3bli&amp;gt%3bAuthenticator implementations that use the authentication scheme negotiation in the server-side DseAuthenticator.&amp;lt%3b/li&amp;gt%3b
+&amp;lt%3bli&amp;gt%3bSerializers for geospatial types which integrate seamlessly with the driver.&amp;lt%3b/li&amp;gt%3b
+&amp;lt%3bli&amp;gt%3bDSE graph integration.&amp;lt%3b/li&amp;gt%3b
+&amp;lt%3b/ul&amp;gt%3b</ProjectSummary>
     <ApiFilter>
       <Filter entryType="Namespace" fullName="Cassandra" isExposed="True">
         <Filter entryType="Class" fullName="Cassandra.BigIntegerTypeAdapter" filterName="BigIntegerTypeAdapter" isExposed="False" />

@@ -47,7 +47,7 @@ namespace Cassandra.IntegrationTests.Core
         [OneTimeSetUp]
         public void TestFixtureSetup()
         {
-            if (CassandraVersion < Version.Parse("2.2"))
+            if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("2.2"), Comparison.LessThan))
             {
                 return;
             }
@@ -57,7 +57,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = Cluster.Builder().AddContactPoint(_testCluster.InitialContactPoint).Build())
             {
                 var session = cluster.Connect();
-                var queries = new[]
+                var queries = new List<string>
                 {
                     "CREATE KEYSPACE  ks_udf WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}",
                     "CREATE FUNCTION  ks_udf.return_one() RETURNS NULL ON NULL INPUT RETURNS int LANGUAGE java AS 'return 1;'",
@@ -66,9 +66,27 @@ namespace Cassandra.IntegrationTests.Core
                     "CREATE AGGREGATE ks_udf.sum(int) SFUNC plus STYPE int INITCOND 1",
                     "CREATE AGGREGATE ks_udf.sum(bigint) SFUNC plus STYPE bigint INITCOND 2"
                 };
+
+                if (TestClusterManager.CheckDseVersion(new Version(6, 0), Comparison.GreaterThanOrEqualsTo))
+                {
+                    queries.Add("CREATE FUNCTION ks_udf.deterministic(dividend int, divisor int) " +
+                                "CALLED ON NULL INPUT RETURNS int DETERMINISTIC LANGUAGE java AS " +
+                                "'return dividend / divisor;'");
+                    queries.Add("CREATE FUNCTION ks_udf.monotonic(dividend int, divisor int) " +
+                                "CALLED ON NULL INPUT RETURNS int MONOTONIC LANGUAGE java AS " +
+                                "'return dividend / divisor;'");
+                    queries.Add("CREATE FUNCTION ks_udf.md(dividend int, divisor int) " +
+                                "CALLED ON NULL INPUT RETURNS int DETERMINISTIC MONOTONIC LANGUAGE java AS " +
+                                "'return dividend / divisor;'");
+                    queries.Add("CREATE FUNCTION ks_udf.monotonic_on(dividend int, divisor int) " +
+                                "CALLED ON NULL INPUT RETURNS int MONOTONIC ON dividend LANGUAGE java AS " +
+                                "'return dividend / divisor;'");
+                    queries.Add("CREATE AGGREGATE ks_udf.deta(int) SFUNC plus STYPE int INITCOND 0 DETERMINISTIC;");
+                }
+
                 foreach (var q in queries)
                 {
-                    session.Execute(q);   
+                    session.Execute(q);
                 }
             }
         }
@@ -135,6 +153,9 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual("java", func.Language);
             Assert.AreEqual(ColumnTypeCode.Int, func.ReturnType.TypeCode);
             Assert.AreEqual(false, func.CalledOnNullInput);
+            Assert.False(func.Monotonic);
+            Assert.False(func.Deterministic);
+            Assert.AreEqual(func.MonotonicOn, new string[0]);
         }
 
         [Test, TestCase(true), TestCase(false), TestCassandraVersion(2, 2)]
@@ -232,6 +253,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(ColumnTypeCode.Bigint, aggregate.StateType.TypeCode);
             Assert.AreEqual("2", aggregate.InitialCondition);
             Assert.AreEqual("plus", aggregate.StateFunction);
+            Assert.False(aggregate.Deterministic);
         }
 
         [Test, TestCase(true), TestCase(false), TestCassandraVersion(2, 2)]
@@ -301,6 +323,38 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.IsNotNull(aggregate);
                 Assert.AreEqual("0", aggregate.InitialCondition); // event wasnt processed
             }
+        }
+
+        [Test, TestCase(true), TestCase(false)]
+        [TestDseVersion(6, 0)]
+        public void GetAggregate_Should_Retrieve_Metadata_Of_A_Determinitic_Cql_Aggregate(bool metadataSync)
+        {
+            var cluster = GetCluster(metadataSync);
+            var aggregate = cluster.Metadata.GetAggregate("ks_udf", "deta", new[] {"int"});
+            Assert.AreEqual("plus", aggregate.StateFunction);
+            Assert.True(aggregate.Deterministic);
+        }
+
+        [Test, TestCase(true), TestCase(false)]
+        [TestDseVersion(6, 0)]
+        public void GetFunction_Should_Retrieve_Metadata_Of_A_Determinitic_And_Monotonic_Cql_Function(bool metadataSync)
+        {
+            var cluster = GetCluster(metadataSync);
+            var fn = cluster.Metadata.GetFunction("ks_udf", "md", new[] {"int", "int"});
+            Assert.True(fn.Deterministic);
+            Assert.True(fn.Monotonic);
+            Assert.AreEqual(new []{ "dividend", "divisor"}, fn.MonotonicOn);
+        }
+
+        [Test, TestCase(true), TestCase(false)]
+        [TestDseVersion(6, 0)]
+        public void GetFunction_Should_Retrieve_Metadata_Of_Partially_Monotonic_Cql_Function(bool metadataSync)
+        {
+            var cluster = GetCluster(metadataSync);
+            var fn = cluster.Metadata.GetFunction("ks_udf", "monotonic_on", new[] {"int", "int"});
+            Assert.False(fn.Deterministic);
+            Assert.False(fn.Monotonic);
+            Assert.AreEqual(new []{ "dividend"}, fn.MonotonicOn);
         }
     }
 }

@@ -14,18 +14,18 @@
 //   limitations under the License.
 //
 
-using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
-using System.Diagnostics;
-using Cassandra.Tests;
-using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.SessionManagement;
-using Cassandra.Tasks;
+using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Tests;
+
+using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -34,7 +34,6 @@ namespace Cassandra.IntegrationTests.Core
     {
         public SessionTests() : base(2)
         {
-            
         }
 
         [Test]
@@ -228,7 +227,7 @@ namespace Cassandra.IntegrationTests.Core
                 var pool12 = localSession1.GetOrCreateConnectionPool(hosts1[1], HostDistance.Local);
                 Assert.That(pool11.OpenConnections, Is.EqualTo(3));
                 Assert.That(pool12.OpenConnections, Is.EqualTo(3));
-                
+
                 localCluster2 = Cluster.Builder()
                     .AddContactPoint(TestCluster.InitialContactPoint)
                     .WithPoolingOptions(new PoolingOptions().SetCoreConnectionsPerHost(HostDistance.Local, 1))
@@ -358,7 +357,6 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
-
         /// <summary>
         /// Checks that having a disposed Session created by the cluster does not affects other sessions
         /// </summary>
@@ -402,6 +400,7 @@ namespace Cassandra.IntegrationTests.Core
                 }
             });
         }
+
 #endif
 
         [Test]
@@ -479,6 +478,44 @@ namespace Cassandra.IntegrationTests.Core
             finally
             {
                 localCluster.Shutdown(1000);
+            }
+        }
+
+        [Test]
+        public async Task Cluster_ConnectAsync_Should_Create_A_Session_With_Keyspace_Set()
+        {
+            const string query = "SELECT * FROM local";
+            // Using a default keyspace
+            using (var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
+                                           .WithDefaultKeyspace("system").Build())
+            {
+                ISession session = await cluster.ConnectAsync().ConfigureAwait(false);
+                Assert.DoesNotThrowAsync(async () =>
+                    await session.ExecuteAsync(new SimpleStatement(query)).ConfigureAwait(false));
+                Assert.DoesNotThrowAsync(async () =>
+                    await session.ExecuteAsync(new SimpleStatement(query)).ConfigureAwait(false));
+                await cluster.ShutdownAsync().ConfigureAwait(false);
+            }
+
+            // Setting the keyspace on ConnectAsync
+            using (var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
+            {
+                ISession session = await cluster.ConnectAsync("system").ConfigureAwait(false);
+                Assert.DoesNotThrowAsync(async () =>
+                    await session.ExecuteAsync(new SimpleStatement(query)).ConfigureAwait(false));
+                Assert.DoesNotThrowAsync(async () =>
+                    await session.ExecuteAsync(new SimpleStatement(query)).ConfigureAwait(false));
+                await cluster.ShutdownAsync().ConfigureAwait(false);
+            }
+
+            // Without setting the keyspace
+            using (var cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint).Build())
+            {
+                ISession session = await cluster.ConnectAsync().ConfigureAwait(false);
+                Assert.DoesNotThrowAsync(async () =>
+                    await session.ExecuteAsync(new SimpleStatement("SELECT * FROM system.local"))
+                                 .ConfigureAwait(false));
+                await cluster.ShutdownAsync().ConfigureAwait(false);
             }
         }
     }

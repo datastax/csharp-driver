@@ -23,6 +23,7 @@ using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder.Then;
 using Cassandra.IntegrationTests.SimulacronAPI.SystemTables;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Mapping;
 using Cassandra.Tests.Mapping.Pocos;
 using Newtonsoft.Json;
@@ -131,7 +132,7 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
             VerifyStatement(QueryType.Query, CreateTable.CreateCql, 1);
         }
         
-        [Test]
+        [Test, TestCassandraVersion(4, 0, Comparison.LessThan)]
         public void Should_CreateTable_WhenClusteringOrderAndCompactOptionsAreSet()
         {
             var config = new MappingConfiguration().Define(
@@ -266,13 +267,28 @@ namespace Cassandra.IntegrationTests.Linq.LinqTable
         {
             var uniqueTableName = TestUtils.GetUniqueTableName();
             var uniqueKsName = TestUtils.GetUniqueKeyspaceName();
-            
-            TestCluster.PrimeFluent(
-                b => b.WhenQuery(string.Format(CreateTable.CreateCqlFormatStr, $"\"{uniqueKsName}\".\"{uniqueTableName}\""))
-                      .ThenServerError(ServerError.ConfigError, "msg"));
+            if (!TestClusterManager.SchemaManipulatingQueriesThrowInvalidQueryException())
+            {
+                TestCluster.PrimeFluent(
+                    b => b.WhenQuery(string.Format(CreateTable.CreateCqlFormatStr, $"\"{uniqueKsName}\".\"{uniqueTableName}\""))
+                          .ThenServerError(ServerError.ConfigError, "msg"));
+            }
+            else
+            {
+                TestCluster.PrimeFluent(
+                    b => b.WhenQuery(string.Format(CreateTable.CreateCqlFormatStr, $"\"{uniqueKsName}\".\"{uniqueTableName}\""))
+                          .ThenServerError(ServerError.Invalid, "msg"));
+            }
 
             var table = new Table<AllDataTypesEntity>(Session, new MappingConfiguration(), uniqueTableName, uniqueKsName);
-            Assert.Throws<InvalidConfigurationInQueryException>(() => table.Create());
+            if(!TestClusterManager.SchemaManipulatingQueriesThrowInvalidQueryException())
+            {
+                Assert.Throws<InvalidConfigurationInQueryException>(() => table.Create());
+            }
+            else
+            {
+                Assert.Throws<InvalidQueryException>(() => table.Create());
+            }
         }
 
         /// <summary>

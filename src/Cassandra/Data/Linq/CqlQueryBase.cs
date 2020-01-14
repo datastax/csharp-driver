@@ -74,6 +74,9 @@ namespace Cassandra.Data.Linq
             get { return null; }
         }
 
+        /// <inheritdoc />
+        public override string Keyspace => null;
+
         internal CqlQueryBase()
         {
         }

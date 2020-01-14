@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using Cassandra.DataStax.Graph;
 using Cassandra.ExecutionProfiles;
 using NUnit.Framework;
 
@@ -25,6 +26,7 @@ namespace Cassandra.Tests.ExecutionProfiles
         [Test]
         public void Should_GetAllSettingsFromBaseProfile_When_DerivedProfileHasNoSettings()
         { 
+            var go = new GraphOptions();
             var lbp = new RoundRobinPolicy();
             var sep = new ConstantSpeculativeExecutionPolicy(1000, 1);
             var rp = new LoggingRetryPolicy(new DefaultRetryPolicy());
@@ -35,6 +37,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                 .WithSerialConsistencyLevel(ConsistencyLevel.LocalSerial)
                 .WithConsistencyLevel(ConsistencyLevel.Quorum)
                 .WithReadTimeoutMillis(3000)
+                .WithGraphOptions(go)
                 .WithRetryPolicy(rp);
 
             var baseProfile = baseProfileBuilder.Build();
@@ -47,11 +50,14 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreEqual(3000, profile.ReadTimeoutMillis);
             Assert.AreEqual(ConsistencyLevel.LocalSerial, profile.SerialConsistencyLevel);
             Assert.AreEqual(ConsistencyLevel.Quorum, profile.ConsistencyLevel);
+            Assert.AreEqual(go, profile.GraphOptions);
         }
         
         [Test]
         public void Should_GetNoSettingFromBaseProfile_When_DerivedProfileHasAllSettings()
         { 
+            var go = new GraphOptions().SetName("ee");
+            var goProfile = new GraphOptions().SetName("tt");
             var lbp = new RoundRobinPolicy();
             var sep = new ConstantSpeculativeExecutionPolicy(1000, 1);
             var rp = new LoggingRetryPolicy(new DefaultRetryPolicy());
@@ -65,6 +71,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                 .WithSerialConsistencyLevel(ConsistencyLevel.LocalSerial)
                 .WithConsistencyLevel(ConsistencyLevel.Quorum)
                 .WithReadTimeoutMillis(3000)
+                .WithGraphOptions(go)
                 .WithRetryPolicy(rp);
 
             var baseProfile = baseProfileBuilder.Build();
@@ -76,6 +83,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                 .WithSerialConsistencyLevel(ConsistencyLevel.Serial)
                 .WithConsistencyLevel(ConsistencyLevel.LocalQuorum)
                 .WithReadTimeoutMillis(5000)
+                .WithGraphOptions(goProfile)
                 .WithRetryPolicy(rpProfile);
 
             var derivedProfile = derivedProfileBuilder.Build();
@@ -88,6 +96,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreEqual(5000, profile.ReadTimeoutMillis);
             Assert.AreEqual(ConsistencyLevel.Serial, profile.SerialConsistencyLevel);
             Assert.AreEqual(ConsistencyLevel.LocalQuorum, profile.ConsistencyLevel);
+            Assert.AreSame(goProfile, profile.GraphOptions);
         }
     }
 }

@@ -4,6 +4,11 @@ The purpose of this guide is to detail the changes made by the successive versio
 
 If you have any question or comment, you can [post it on the mailing list][mailing-list].
 
+## Upgrade guide for DSE driver users
+
+There's a dedicated [guide for DSE driver users that plan to migrate to the
+`CassandraCSharpDriver`](upgrade-from-dse-driver).
+
 ## Our policy regarding API changes and release versioning
 
 The driver versions follow semantic versioning.
@@ -50,6 +55,14 @@ If you need to implement a wrapper class to provide functionality on top of the 
 Example: `3.4.1`
 
 These releases only contain bug fixes so they will never contain changes to the driver's public API.
+
+## 3.13.0 - Unified driver
+
+A new load balancing policy has been added: `DefaultLoadBalancingPolicy`. This is the new default load balancing policy in the driver. The behavior is the same as the previous default policy except for some DSE specific workloads so there is no impact for existing applications.
+
+This driver now supports all DataStax products and features, such as Unified Authentication, Kerberos, geo types and graph traversal executions, allowing you to use a single driver for Apache Cassandra, DSE or other DataStax products.
+
+If you're upgrading from the DSE driver, checkout [this guide](upgrade-from-dse-driver)
 
 ## 3.10
 

@@ -29,6 +29,7 @@ namespace Cassandra.Requests
         public const byte OpCode = 0x0A;
         private FrameHeader.HeaderFlag _headerFlags;
         private readonly byte[] _id;
+        private readonly byte[] _resultMetadataId;
         private readonly QueryProtocolOptions _queryOptions;
 
         public ConsistencyLevel Consistency 
@@ -55,13 +56,15 @@ namespace Cassandra.Requests
 
         public IDictionary<string, byte[]> Payload { get; set; }
 
-        public ExecuteRequest(ProtocolVersion protocolVersion, byte[] id, RowSetMetadata metadata, bool tracingEnabled, QueryProtocolOptions queryOptions)
+        public ExecuteRequest(ProtocolVersion protocolVersion, byte[] id, RowSetMetadata metadata,
+                              byte[] resultMetadataId, bool tracingEnabled, QueryProtocolOptions queryOptions)
         {
             if (metadata != null && queryOptions.Values.Length != metadata.Columns.Length)
             {
                 throw new ArgumentException("Number of values does not match with number of prepared statement markers(?).");
             }
             _id = id;
+            _resultMetadataId = resultMetadataId;
             _queryOptions = queryOptions;
             if (tracingEnabled)
             {
@@ -81,6 +84,7 @@ namespace Cassandra.Requests
         public int WriteFrame(short streamId, MemoryStream stream, ISerializer serializer)
         {
             var wb = new FrameWriter(stream, serializer);
+            var protocolVersion = serializer.ProtocolVersion;
             if (Payload != null)
             {
                 _headerFlags |= FrameHeader.HeaderFlag.CustomPayload;
@@ -92,6 +96,12 @@ namespace Cassandra.Requests
                 wb.WriteBytesMap(Payload);
             }
             wb.WriteShortBytes(_id);
+
+            if (protocolVersion.SupportsResultMetadataId())
+            {
+                wb.WriteShortBytes(_resultMetadataId);
+            }
+
             _queryOptions.Write(wb, true);
             return wb.Close();
         }

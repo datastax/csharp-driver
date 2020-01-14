@@ -24,7 +24,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-
 using Cassandra.Compression;
 using Cassandra.Metrics;
 using Cassandra.Observers.Abstractions;
@@ -32,7 +31,6 @@ using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
-
 using Microsoft.IO;
 
 namespace Cassandra.Connections

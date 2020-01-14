@@ -14,13 +14,14 @@
 //   limitations under the License.
 //
 
- using System.Linq;
-﻿using Cassandra.IntegrationTests.TestBase;
-﻿using NUnit.Framework;
+using System.Linq;
+using Cassandra.IntegrationTests.TestClusterManagement;
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-﻿using Cassandra.Serialization;
+using Cassandra.IntegrationTests.TestBase;
+using Cassandra.Serialization;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -49,7 +50,7 @@ namespace Cassandra.IntegrationTests.Core
                     }
                 };
 
-                if (CassandraVersion < Version40)
+                if (TestClusterManager.CheckCassandraVersion(false, new Version(4, 0), Comparison.LessThan))
                 {
                     setupQueries.Add($"CREATE TABLE {TableCompactStorage} (key blob PRIMARY KEY, bar int, baz uuid)" +
                                      $" WITH COMPACT STORAGE");
@@ -516,16 +517,42 @@ namespace Cassandra.IntegrationTests.Core
         }
 
         [Test]
+        [TestCassandraVersion(4, 0)]
+        public void SimpleStatement_With_Keyspace_Defined_On_Protocol_Greater_Than_4()
+        {
+            if (Session.BinaryProtocolVersion <= 4)
+            {
+                Assert.Ignore("Test designed to run against C* 4.0 or above");
+            }
+            // It defaults to null
+            Assert.Null(new SimpleStatement("SELECT key FROM system.local").Keyspace);
+
+            var statement = new SimpleStatement("SELECT key FROM local").SetKeyspace("system");
+            Assert.AreEqual("system", statement.Keyspace);
+            Assert.AreEqual(1, Session.Execute(statement).Count());
+        }
+
+        [Test]
+        [TestCassandraVersion(4, 0, Comparison.LessThan)]
+        public void SimpleStatement_With_Keyspace_Defined_On_Lower_Protocol_Versions()
+        {
+            // It should fail as the keyspace from the session will be used
+            Assert.Throws<InvalidQueryException>(() =>
+                Session.Execute(new SimpleStatement("SELECT key FROM local").SetKeyspace("system")));
+        }
+
+        [Test]
         [TestCassandraVersion(3, 11)]
         public void SimpleStatement_With_No_Compact_Enabled_Should_Reveal_Non_Schema_Columns()
         {
-            if (CassandraVersion >= Version40)
+            if (TestClusterManager.CheckCassandraVersion(false, new Version(4, 0), Comparison.GreaterThanOrEqualsTo))
             {
                 Assert.Ignore("COMPACT STORAGE is only supported by C* versions prior to 4.0");
+                return;
             }
 
             var builder = Cluster.Builder().WithNoCompact().AddContactPoint(TestCluster.InitialContactPoint);
-            using (var cluster = builder.Build())
+            using (ICluster cluster = builder.Build())
             {
                 var session = cluster.Connect(KeyspaceName);
                 var rs = session.Execute($"SELECT * FROM {TableCompactStorage} LIMIT 1");
@@ -539,9 +566,10 @@ namespace Cassandra.IntegrationTests.Core
         [TestCassandraVersion(3, 11)]
         public void SimpleStatement_With_No_Compact_Disabled_Should_Not_Reveal_Non_Schema_Columns()
         {
-            if (CassandraVersion >= Version40)
+            if (TestClusterManager.CheckCassandraVersion(false, new Version(4, 0), Comparison.GreaterThanOrEqualsTo))
             {
                 Assert.Ignore("COMPACT STORAGE is only supported by C* versions prior to 4.0");
+                return;
             }
 
             var builder = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint);

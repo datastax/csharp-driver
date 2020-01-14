@@ -108,7 +108,7 @@ namespace Cassandra.Tests.Connections
                 {
                     EndPointResolver = _resolver,
                     ConnectionFactory = new FakeConnectionFactory(),
-                    Policies = new Policies(
+                    Policies = new Cassandra.Policies(
                         new RoundRobinPolicy(), 
                         new ConstantReconnectionPolicy(1), 
                         new DefaultRetryPolicy(), 

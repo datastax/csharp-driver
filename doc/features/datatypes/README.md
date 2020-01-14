@@ -28,5 +28,3 @@ tinyint|sbyte
 uuid|Guid
 varchar|string
 varint|BigInteger
-
-

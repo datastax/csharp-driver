@@ -17,18 +17,15 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Net;
-using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.MetadataHelpers;
-using Cassandra.Observers;
 using Cassandra.ProtocolEvents;
 using Cassandra.Tests.Connections;
 using Cassandra.Tests.MetadataHelpers.TestHelpers;
-using Moq;
+
 using NUnit.Framework;
 
 namespace Cassandra.Tests
@@ -371,7 +368,7 @@ namespace Cassandra.Tests
             //It should contain the first host and the second, even though the first host contains adjacent
             CollectionAssert.AreEqual(new byte[] { 1, 2 }, replicas.Select(TestHelper.GetLastAddressByte));
         }
-        
+
         [Test]
         public void Build_Should_OnlyCallOncePerReplicationConfiguration_When_MultipleKeyspacesWithSameReplicationOptions()
         {
@@ -524,8 +521,8 @@ namespace Cassandra.Tests
                                 var keyspaceName = $"ks_____{index}_____{j}";
                                 var ks = TokenTests.CreateSimpleKeyspace(keyspaceName, (index * j) % 10);
                                 keyspaces.AddOrUpdate(
-                                    keyspaceName, 
-                                    ks, 
+                                    keyspaceName,
+                                    ks,
                                     (s, keyspaceMetadata) => ks);
                                 metadata.ControlConnection.HandleKeyspaceRefreshLaterAsync(ks.Name).GetAwaiter().GetResult();
                                 ks = metadata.GetKeyspace(ks.Name);
@@ -549,8 +546,8 @@ namespace Cassandra.Tests
             var keyspaces = new ConcurrentDictionary<string, KeyspaceMetadata>();
             keyspaces.GetOrAdd("ks1", TokenTests.CreateSimpleKeyspace("ks1", 1));
             var schemaParser = new FakeSchemaParser(keyspaces);
-            var metadata = new Metadata(new Configuration(), schemaParser) {Partitioner = "Murmur3Partitioner"};
-            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.1"), 9042));;
+            var metadata = new Metadata(new Configuration(), schemaParser) { Partitioner = "Murmur3Partitioner" };
+            metadata.Hosts.Add(new IPEndPoint(IPAddress.Parse("192.168.0.1"), 9042)); ;
             metadata.Hosts.First().SetInfo(new TestHelper.DictionaryBasedRow(new Dictionary<string, object>
             {
                 { "data_center", "dc1"},

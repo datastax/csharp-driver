@@ -20,6 +20,7 @@ using System.Linq;
 using Cassandra.Data.Linq;
 using Cassandra.IntegrationTests.Mapping.Structures;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Mapping;
 using Cassandra.Tests.Mapping.FluentMappings;
 using Cassandra.Tests.Mapping.Pocos;
@@ -169,7 +170,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             var err = Assert.Throws<InvalidQueryException>(() => mapper.Fetch<Author>(cql).ToList());
             Assert.AreEqual("ANY ConsistencyLevel is only supported for writes", err.Message);
 
-            if (CassandraVersion < Version.Parse("3.0.0"))
+            if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("3.0"), Comparison.LessThan))
             {
                 cql = new Cql("SELECT * from " + table.Name).WithOptions(c => c.SetConsistencyLevel(ConsistencyLevel.EachQuorum));
                 err = Assert.Throws<InvalidQueryException>(() => mapper.Fetch<Author>(cql).ToList());
@@ -346,7 +347,7 @@ namespace Cassandra.IntegrationTests.Mapping.Tests
             _session.Execute("CREATE TABLE albums (id uuid primary key, name text, songs list<frozen<song>>)");
             _session.UserDefinedTypes.Define(UdtMap.For<Song2>("song"));
             _session.Execute("INSERT INTO albums (id, name, songs) VALUES (uuid(), 'Legend', [{id: uuid(), title: 'Africa Unite', artist: 'Bob Marley'}])");
-            var result = mapper.Fetch<Cassandra.Tests.Mapping.Pocos.Album>("SELECT * from albums LIMIT 1").ToList();
+            var result = mapper.Fetch<Album>("SELECT * from albums LIMIT 1").ToList();
             Assert.AreEqual(1, result.Count);
             var album = result[0];
             Assert.AreEqual("Legend", album.Name);

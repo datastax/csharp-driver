@@ -1,4 +1,4 @@
-# List of metrics provided by the driver
+# List of metrics
 
 In this section you can find a description of each metric type used by the driver and a list of all metrics provided by the driver.
 
@@ -16,10 +16,10 @@ In this section you can find a description of each metric type used by the drive
 | Name              | Type  | C# Property                            | Description               |
 |-------------------|-------|----------------------------------------|---------------------------|
 | `connected-nodes` | Gauge | `SessionMetric.Gauges.ConnectedNodes`  | The number of nodes to which the driver has at least one active connection. |
-| `cql-client-timeouts` | Counter | `SessionMetric.Counters.CqlClientTimeouts`  | The number of timeouts in synchronous API calls like `Session.Execute()` (related to `QueryAbortTimeout`). |
+| `cql-client-timeouts` | Counter | `SessionMetric.Counters.CqlClientTimeouts`  | The number of timeouts in synchronous API calls like `ISession.Execute()` (related to `QueryAbortTimeout`). |
 | `bytes-received` | Meter | `SessionMetric.Meters.BytesReceived`  | The number and rate of bytes received for the entire session.  |
 | `bytes-sent` | Meter | `SessionMetric.Meters.BytesSent`  | The number and rate of bytes sent for the entire session.  |
-| `cql-requests` | Timer | `SessionMetric.Timers.CqlRequests`  | The throughput and latency percentiles of CQL requests (overall duration of the `Session.Execute()` call). |
+| `cql-requests` | Timer | `SessionMetric.Timers.CqlRequests`  | The throughput and latency percentiles of CQL requests (overall duration of the `ISession.Execute()` call). |
 
 ## Node level metrics
 

@@ -14,7 +14,6 @@
 //   limitations under the License.
 //
 
-using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Tests;
 using NUnit.Framework;
@@ -26,6 +25,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.Policies.Util;
+using Cassandra.IntegrationTests.TestBase;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -67,7 +67,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 const int rowsPerId = 1000;
                 object insertQueryStatement = new SimpleStatement(insertQuery);
-                if (CassandraVersion.Major < 2)
+                if (TestClusterManager.CheckCassandraVersion(false, new Version(2, 0), Comparison.LessThan))
                 {
                     //Use prepared statements all the way as it is not possible to bind on a simple statement with C* 1.2
                     insertQueryStatement = session.Prepare(insertQuery);
@@ -124,7 +124,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 const int rowsPerId = 100;
                 object insertQueryStatement = new SimpleStatement(insertQuery);
-                if (CassandraVersion.Major < 2)
+                if (TestClusterManager.CheckCassandraVersion(false, new Version(2, 0), Comparison.LessThan))
                 {
                     //Use prepared statements all the way as it is not possible to bind on a simple statement with C* 1.2
                     insertQueryStatement = session.Prepare(insertQuery);

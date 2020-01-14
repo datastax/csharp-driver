@@ -46,6 +46,11 @@ namespace Cassandra
 
         Task<Response> SendQueryRequestAsync(string cqlQuery, bool retry, QueryProtocolOptions queryProtocolOptions);
 
+        /// <summary>
+        /// Send request without any retry or reconnection logic. Also exceptions are not caught or logged.
+        /// </summary>
+        Task<Response> UnsafeSendQueryRequestAsync(string cqlQuery, QueryProtocolOptions queryProtocolOptions);
+
         IEnumerable<Row> Query(string cqlQuery, bool retry = false);
     }
 }

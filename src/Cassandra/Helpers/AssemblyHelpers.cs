@@ -13,15 +13,19 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-//
 
 using System;
+using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace Cassandra.Helpers
 {
     internal static class AssemblyHelpers
     {
+        private static readonly Logger Logger = new Logger(typeof(AssemblyHelpers));
+
         public static Assembly GetAssembly(Type type)
         {
             return type.GetTypeInfo().Assembly;
@@ -57,5 +61,113 @@ namespace Cassandra.Helpers
         {
             return AssemblyHelpers.GetAssembly(type).GetCustomAttribute<AssemblyTitleAttribute>().Title;
         }
+
+        public static Assembly GetEntryAssembly()
+        {
+            AssemblyHelpers.Logger.Verbose("Attempting to get entry assembly.");
+            Assembly assembly = null;
+            try
+            {
+                assembly = Assembly.GetEntryAssembly();
+            }
+            catch (Exception ex)
+            {
+                AssemblyHelpers.Logger.Info("Could not get entry assembly by the default method. Exception: {0}", ex.ToString());
+            }
+
+#if !NETSTANDARD1_5
+            if (assembly == null)
+            {
+                AssemblyHelpers.Logger.Verbose("Attempting to get entry assembly by main module.");
+                try
+                {
+                    assembly = AssemblyHelpers.GetEntryAssemblyByMainModule();
+                }
+                catch (Exception ex)
+                {
+                    AssemblyHelpers.Logger.Info("Could not get entry assembly by main module. Exception: {0}", ex.ToString());
+                }
+            }
+
+            if (assembly == null)
+            {
+                AssemblyHelpers.Logger.Verbose("Attempting to get entry assembly by stack trace.");
+                try
+                {
+                    assembly = AssemblyHelpers.GetEntryAssemblyByStacktrace();
+                }
+                catch (Exception ex)
+                {
+                    AssemblyHelpers.Logger.Info("Could not get entry assembly by stack trace. Exception: {0}", ex.ToString());
+                }
+            }
+#endif
+
+            if (assembly == null)
+            {
+                AssemblyHelpers.Logger.Warning("Could not get entry assembly.");
+            }
+
+            return assembly;
+        }
+
+#if !NETSTANDARD1_5
+        private static Assembly GetEntryAssemblyByStacktrace()
+        {
+            var methodFrames = new StackTrace().GetFrames()?.Select(t => t.GetMethod()).ToArray();
+
+            if (methodFrames == null)
+            {
+                return null;
+            }
+
+            MethodBase entryMethod = null;
+            var firstInvokeMethod = 0;
+            for (var i = 0; i < methodFrames.Length; i++)
+            {
+                var method = methodFrames[i] as MethodInfo;
+                if (method == null)
+                {
+                    continue;
+                }
+                if (method.IsStatic &&
+                    method.Name == "Main" &&
+                    (
+                        method.ReturnType == typeof(void) ||
+                        method.ReturnType == typeof(int) ||
+                        method.ReturnType == typeof(Task) ||
+                        method.ReturnType == typeof(Task<int>)
+                    ))
+                {
+                    entryMethod = method;
+                }
+                else if (firstInvokeMethod == 0 &&
+                         method.IsStatic &&
+                         method.Name == "InvokeMethod" &&
+                         method.DeclaringType == typeof(RuntimeMethodHandle))
+                {
+                    firstInvokeMethod = i;
+                }
+            }
+
+            if (entryMethod == null)
+            {
+                entryMethod = firstInvokeMethod != 0 ? methodFrames[firstInvokeMethod - 1] : methodFrames.Last();
+            }
+
+            return entryMethod.Module.Assembly;
+        }
+
+        private static Assembly GetEntryAssemblyByMainModule()
+        {
+            var mainModule = Process.GetCurrentProcess().MainModule;
+            var entryAssembly = 
+                AppDomain
+                    .CurrentDomain
+                    .GetAssemblies()
+                    .SingleOrDefault(assembly => assembly.Location == mainModule.FileName);
+            return entryAssembly;
+        }
+#endif
     }
 }

@@ -21,7 +21,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-
 using Cassandra.Connections;
 using Cassandra.Responses;
 using Cassandra.Serialization;
@@ -68,7 +67,7 @@ namespace Cassandra.Requests
                     var result = await connection.Send(request).ConfigureAwait(false);
                     return new PrepareResult
                     {
-                        PreparedStatement = await GetPreparedStatement(result, request, connection.Keyspace, session.Cluster).ConfigureAwait(false),
+                        PreparedStatement = await GetPreparedStatement(result, request, request.Keyspace ?? connection.Keyspace, session.Cluster).ConfigureAwait(false),
                         TriedHosts = triedHosts,
                         HostAddress = host.Address
                     };
@@ -143,7 +142,8 @@ namespace Cassandra.Requests
                 throw new DriverInternalError("Expected prepared response, obtained " + output.GetType().FullName);
             }
             var prepared = (OutputPrepared)output;
-            var ps = new PreparedStatement(prepared.Metadata, prepared.QueryId, request.Query, keyspace, _serializer)
+            var ps = new PreparedStatement(prepared.Metadata, prepared.QueryId, prepared.ResultMetadataId,
+                request.Query, keyspace, _serializer)
             {
                 IncomingPayload = resultResponse.CustomPayload
             };

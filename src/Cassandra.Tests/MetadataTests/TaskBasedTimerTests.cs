@@ -20,9 +20,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.ProtocolEvents;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Internal;
-using Moq;
 using NUnit.Framework;
 
 namespace Cassandra.Tests.MetadataTests

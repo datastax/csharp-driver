@@ -13,7 +13,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-//
 
 using System;
 using System.Threading.Tasks;
@@ -27,7 +26,7 @@ namespace Cassandra.ProtocolEvents
     /// The entire queue will be processed once the timeout has passed without any more events coming in or after
     /// the max delay has passed.
     /// </summary>
-    internal interface IProtocolEventDebouncer : IDisposable
+    internal interface IProtocolEventDebouncer
     {
         /// <summary>
         /// Returned task will be complete when the event has been scheduled for processing.
@@ -38,5 +37,7 @@ namespace Cassandra.ProtocolEvents
         /// Returned task will be complete when the event has been processed.
         /// </summary>
         Task HandleEventAsync(ProtocolEvent ev, bool processNow);
+
+        Task ShutdownAsync();
     }
 }

@@ -22,9 +22,9 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.SessionManagement;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
-using Cassandra.SessionManagement;
 using Cassandra.Tests;
 using NUnit.Framework;
 
@@ -126,7 +126,7 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(3, clusterMax.Configuration.ProtocolOptions.MaxProtocolVersion);
                 await Connect(clusterMax, asyncConnect, session =>
                 {
-                    if (CassandraVersion < Version.Parse("2.1"))
+                    if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("2.1"), Comparison.LessThan))
                         Assert.AreEqual(2, session.BinaryProtocolVersion);
                     else
                         Assert.AreEqual(3, session.BinaryProtocolVersion);
@@ -171,20 +171,13 @@ namespace Cassandra.IntegrationTests.Core
                     TestHelper.RetryAssert(() =>
                         {
                             Assert.True(TestUtils.IsNodeReachable(newNodeIpAddress));
-                        //New node should be part of the metadata
-                        Assert.AreEqual(2, cluster.AllHosts().Count);
+                            //New node should be part of the metadata
+                            Assert.AreEqual(2, cluster.AllHosts().Count);
+                            var host = cluster.AllHosts().FirstOrDefault(h => h.Address.Address.Equals(newNodeIpAddress));
+                            Assert.IsNotNull(host);
                         },
                         2000,
-                        30);
-
-                    TestHelper.RetryAssert(() =>
-                    {
-                        var host = cluster.AllHosts().FirstOrDefault(h => h.Address.Address.Equals(newNodeIpAddress));
-                        Assert.IsNotNull(host);
-                        var count = host.Tokens?.Count();
-                        Assert.IsTrue(count.HasValue);
-                        Assert.IsTrue(count.Value > 0, "Tokens Count: " + count);
-                    });
+                        90);
 
                     TestHelper.RetryAssert(() =>
                         {
@@ -201,23 +194,29 @@ namespace Cassandra.IntegrationTests.Core
         [Category("realcluster")]
         public async Task Should_Remove_Decommissioned_Node()
         {
-            _realCluster = TestClusterManager.CreateNew(2);
-            using (var cluster = Cluster.Builder()
-                                        .AddContactPoint(_realCluster.InitialContactPoint)
-                                        .Build())
+            const int numberOfNodes = 2;
+            _realCluster = TestClusterManager.CreateNew(numberOfNodes);
+            using (var cluster = Cluster.Builder().AddContactPoint(_realCluster.InitialContactPoint).Build())
             {
                 await Connect(cluster, false, session =>
                 {
-                    Assert.AreEqual(2, cluster.AllHosts().Count);
-                    _realCluster.DecommissionNode(2);
+                    Assert.AreEqual(numberOfNodes, cluster.AllHosts().Count);
+                    if (TestClusterManager.SupportsDecommissionForcefully())
+                    {
+                        _realCluster.DecommissionNodeForcefully(numberOfNodes);
+                    }
+                    else
+                    {
+                        _realCluster.DecommissionNode(numberOfNodes);
+                    }
                     Trace.TraceInformation("Node decommissioned");
                     string decommisionedNode = null;
                     TestHelper.RetryAssert(() =>
                     {
                         decommisionedNode = _realCluster.ClusterIpPrefix + 2;
                         Assert.False(TestUtils.IsNodeReachable(IPAddress.Parse(decommisionedNode)));
-                    //New node should be part of the metadata
-                    Assert.AreEqual(1, cluster.AllHosts().Count);
+                        //New node should be part of the metadata
+                        Assert.AreEqual(1, cluster.AllHosts().Count);
                     }, 100, 100);
                     var queried = false;
                     for (var i = 0; i < 10; i++)
@@ -233,8 +232,8 @@ namespace Cassandra.IntegrationTests.Core
                 }).ConfigureAwait(false);
             }
         }
-
-        private class TestLoadBalancingPolicy : ILoadBalancingPolicy
+    
+    private class TestLoadBalancingPolicy : ILoadBalancingPolicy
         {
             private ICluster _cluster;
             public Host ControlConnectionHost { get; private set; }

@@ -19,11 +19,12 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 using System.Net;
 using System.Collections;
 using System.Threading;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core
@@ -157,6 +158,71 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual("", row.GetValue<string>("text_sample"));
         }
 
+        [Test]
+        public void PreparedStatement_With_Changing_Schema()
+        {
+            byte[] originalResultMetadataId = null;
+            // Use 2 different clusters as the prepared statement cache should be different
+            using (var cluster1 = Cluster.Builder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
+            using (var cluster2 = Cluster.Builder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
+            {
+                var session1 = cluster1.Connect();
+                var session2 = cluster2.Connect();
+
+                // Create schema and insert data
+                session1.Execute(
+                    "CREATE KEYSPACE ks1 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1}");
+                session1.ChangeKeyspace("ks1");
+                session2.ChangeKeyspace("ks1");
+                session1.Execute("CREATE TABLE table1 (id int PRIMARY KEY, a text, c text)");
+                var insertPs = session1.Prepare("INSERT INTO table1 (id, a, c) VALUES (?, ?, ?)");
+                session1.Execute(insertPs.Bind(1, "a value", "c value"));
+
+                // Prepare and execute a few requests
+                var selectPs1 = session1.Prepare("SELECT * FROM table1");
+                var selectPs2 = session2.Prepare("SELECT * FROM table1");
+
+                var protocolVersion = (ProtocolVersion)session1.BinaryProtocolVersion;
+                if (protocolVersion.SupportsResultMetadataId())
+                {
+                    originalResultMetadataId = selectPs1.ResultMetadataId;
+                    Assert.That(selectPs2.ResultMetadataId, Is.EquivalentTo(selectPs1.ResultMetadataId));
+                }
+
+                for (var i = 0; i < 10; i++)
+                {
+                    var rs1 = session1.Execute(selectPs1.Bind());
+                    var rs2 = session2.Execute(selectPs2.Bind());
+                    Assert.That(rs1.Columns.Select(c => c.Name), Does.Contain("a").And.Contain("c"));
+                    Assert.That(rs2.Columns.Select(c => c.Name), Does.Contain("a").And.Contain("c"));
+                }
+
+                // Alter table, adding a new column
+                session1.Execute("ALTER TABLE table1 ADD b text");
+
+                // Execute on all nodes on a single session1, causing UNPREPARE->PREPARE flow
+                for (var i = 0; i < 10; i++)
+                {
+                    var rs1 = session1.Execute(selectPs1.Bind());
+                    Assert.That(rs1.Columns.Select(c => c.Name), Does.Contain("a").And.Contain("b").And.Contain("c"));
+                }
+
+                // Execute on a different session causing metadata change
+                for (var i = 0; i < 10; i++)
+                {
+                    var rs2 = session2.Execute(selectPs2.Bind());
+                    Assert.That(rs2.Columns.Select(c => c.Name), Does.Contain("a").And.Contain("b").And.Contain("c"));
+                }
+
+                if (protocolVersion.SupportsResultMetadataId())
+                {
+                    // The ResultMetadataId changed and it's updated on both PreparedStatement instances
+                    Assert.That(selectPs1.ResultMetadataId, Is.Not.EquivalentTo(originalResultMetadataId));
+                    Assert.That(selectPs2.ResultMetadataId, Is.EquivalentTo(selectPs1.ResultMetadataId));
+                }
+            }
+        }
+
         [Test, TestCassandraVersion(2, 2)]
         public void Bound_Unset_Specified_Tests()
         {
@@ -206,7 +272,7 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(columns, String.Join(", ", preparedStatement.Metadata.Columns.Select(c => c.Name)));
             var id = Guid.NewGuid();
 
-            if (CassandraVersion < Version.Parse("2.2"))
+            if (TestClusterManager.CheckCassandraVersion(false, new Version(2, 2), Comparison.LessThan))
             {
                 //For previous Cassandra versions, all parameters must be specified
                 Assert.Throws<InvalidQueryException>(() => Session.Execute(preparedStatement.Bind(id)));
@@ -367,7 +433,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var query = String.Format("INSERT INTO {0} (text_sample, int_sample, bigint_sample, id) VALUES (:my_text, :my_int, :my_bigint, :my_id)", AllTypesTableName);
             var preparedStatement = Session.Prepare(query);
-            if (CassandraVersion < new Version(2, 2))
+            if (TestClusterManager.CheckCassandraVersion(false, new Version(2, 2), Comparison.LessThan))
             {
                 //For older versions, there is no way to determine that my_id is actually id column
                 Assert.Null(preparedStatement.RoutingIndexes);   
@@ -673,7 +739,7 @@ namespace Cassandra.IntegrationTests.Core
             //With another query, named parameters are different
             ps = Session.Prepare("SELECT * FROM tbl_ps_multiple_pk_named WHERE b = :nice_name_b AND a = :nice_name_a AND c = :nice_name_c");
             //Parameters names are different from partition keys
-            if (CassandraVersion < new Version(2, 2))
+            if (TestClusterManager.CheckCassandraVersion(false, new Version(2, 2), Comparison.LessThan))
             {
                 //For older versions, there is no way to determine that nice_name_a is actually partition column
                 Assert.Null(ps.RoutingIndexes);
@@ -757,6 +823,92 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        [TestCassandraVersion(4, 0)]
+        public void Session_Prepare_With_Keyspace_Defined_On_Protocol_Greater_Than_4(bool usePayload)
+        {
+            Assert.AreNotEqual("system", Session.Keyspace);
+            PreparedStatement ps;
+            if (!usePayload)
+            {
+                ps = Session.Prepare("SELECT key FROM local", "system");
+            }
+            else
+            {
+                ps = Session.Prepare("SELECT key FROM local", "system",
+                    new Dictionary<string, byte[]> {{"a", new byte[] {0, 0, 0, 1}}});
+            }
+            Assert.AreEqual("system", ps.Keyspace);
+
+            for (var i = 0; i < Cluster.AllHosts().Count; i++)
+            {
+                var boundStatement = ps.Bind();
+                Assert.AreEqual("system", boundStatement.Keyspace);
+                var row = Session.Execute(boundStatement).First();
+                Assert.NotNull(row.GetValue<string>("key"));
+            }
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        [TestCassandraVersion(4, 0)]
+        public async Task Session_PrepareAsync_With_Keyspace_Defined_On_Protocol_Greater_Than_4(bool usePayload)
+        {
+            Assert.AreNotEqual("system", Session.Keyspace);
+            PreparedStatement ps;
+            if (!usePayload)
+            {
+                ps = await Session.PrepareAsync("SELECT key FROM local", "system");
+            }
+            else
+            {
+                ps = await Session.PrepareAsync("SELECT key FROM local", "system",
+                    new Dictionary<string, byte[]> {{"a", new byte[] {0, 0, 0, 1}}});
+            }
+            Assert.AreEqual("system", ps.Keyspace);
+
+            await TestHelper.TimesLimit(async () =>
+            {
+                var boundStatement = ps.Bind();
+                Assert.AreEqual("system", boundStatement.Keyspace);
+                var rs = await Session.ExecuteAsync(boundStatement);
+                Assert.NotNull(rs.First().GetValue<string>("key"));
+                return rs;
+            }, Cluster.AllHosts().Count, Cluster.AllHosts().Count);
+        }
+
+        [Test]
+        [TestCassandraVersion(4, 0)]
+        public void Session_Prepare_With_Keyspace_Defined_On_Protocol_V4()
+        {
+            TestKeyspaceInPrepareNotSupported(true);
+        }
+
+        [Test]
+        [TestCassandraVersion(4, 0, Comparison.LessThan)]
+        public void Session_Prepare_With_Keyspace_Defined_On_Previuos_Cassandra_Versions()
+        {
+            TestKeyspaceInPrepareNotSupported(false);
+        }
+
+        private void TestKeyspaceInPrepareNotSupported(bool specifyProtocol)
+        {
+            var builder = Cluster.Builder().AddContactPoint(TestClusterManager.InitialContactPoint);
+            if (specifyProtocol)
+            {
+                builder.WithMaxProtocolVersion(ProtocolVersion.V4);
+            }
+
+            using (var cluster = builder.Build())
+            {
+                var session = cluster.Connect(KeyspaceName);
+
+                // Specifying the keyspace on lower protocol versions is explicitly not supported
+                Assert.Throws<NotSupportedException>(() => session.Prepare("SELECT key FROM local", "system"));
+            }
+        }
+
         [Test]
         [TestCassandraVersion(2, 0)]
         public void Prepared_With_Composite_Routing_Key()
@@ -788,7 +940,7 @@ namespace Cassandra.IntegrationTests.Core
 
             // Parameters names are different from partition keys
             ps = Session.Prepare("SELECT * FROM tbl_ps_multiple_pk WHERE b = :nice_name1 AND a = :nice_name2 AND c = :nice_name3");
-            if (CassandraVersion < new Version(2, 2))
+            if (TestClusterManager.CheckCassandraVersion(false, new Version(2, 2), Comparison.LessThan))
             {
                 //For older versions, there is no way to determine that nice_name_a is actually partition column
                 Assert.Null(ps.RoutingIndexes);
@@ -919,6 +1071,48 @@ namespace Cassandra.IntegrationTests.Core
             }
         }
 
+        [Test]
+        [TestCassandraVersion(4, 0)]
+        public void BatchStatement_With_Keyspace_Defined_On_Protocol_Greater_Than_4()
+        {
+            if (Session.BinaryProtocolVersion <= 4)
+            {
+                Assert.Ignore("Test designed to run against C* 4.0 or above");
+            }
+
+            using (var cluster = Cluster.Builder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
+            {
+                var session = cluster.Connect("system");
+                var value = new Random().Next();
+                var query = new SimpleStatement($@"INSERT INTO {_tableName} (id, number) VALUES (?, ?)", -1000, value);
+
+                // Use the keyspace specified in the BatchStatement
+                var batchStatement = new BatchStatement().Add(query).SetKeyspace(KeyspaceName);
+                Assert.AreEqual(KeyspaceName, batchStatement.Keyspace);
+                session.Execute(batchStatement);
+                var selectStatement = new SimpleStatement(
+                    $"SELECT number FROM {KeyspaceName}.{_tableName} WHERE id = ?", -1000);
+                var row = session.Execute(selectStatement).First();
+                Assert.AreEqual(value, row.GetValue<int>("number"));
+            }
+        }
+
+        [Test]
+        [TestCassandraVersion(4, 0, Comparison.LessThan)]
+        public void BatchStatement_With_Keyspace_Defined_On_Lower_Protocol_Versions()
+        {
+            using (var cluster = Cluster.Builder().AddContactPoint(TestClusterManager.InitialContactPoint).Build())
+            {
+                var session = cluster.Connect("system");
+                var query = new SimpleStatement(
+                    $@"INSERT INTO {_tableName} (id, label, number) VALUES (?, ?, ?)", -1000, "label", 1);
+
+                // It should fail as the keyspace from the session will be used
+                Assert.Throws<InvalidQueryException>(() =>
+                    session.Execute(new BatchStatement().Add(query).SetKeyspace(KeyspaceName)));
+            }
+        }
+        
         public void InsertingSingleValuePrepared(Type tp, object value = null)
         {
             var cassandraDataTypeName = QueryTools.convertTypeNameToCassandraEquivalent(tp);

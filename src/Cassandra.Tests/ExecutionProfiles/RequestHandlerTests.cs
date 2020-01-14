@@ -13,7 +13,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-//
 
 using System;
 using System.Collections.Concurrent;
@@ -78,7 +77,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                             .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
-                    builder.Policies = new Policies(
+                    builder.Policies = new Cassandra.Policies(
                         lbpCluster, new ConstantReconnectionPolicy(5), rpCluster, sepCluster, new AtomicMonotonicTimestampGenerator());
                 },
                 profile);
@@ -133,7 +132,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                             .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
-                    builder.Policies = new Policies(
+                    builder.Policies = new Cassandra.Policies(
                         lbpCluster, new ConstantReconnectionPolicy(5), rpCluster, sepCluster, new AtomicMonotonicTimestampGenerator());
                 },
                 profile);
@@ -179,7 +178,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                             .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
-                    builder.Policies = new Policies(
+                    builder.Policies = new Cassandra.Policies(
                         lbpCluster, new ConstantReconnectionPolicy(5), rpCluster, sepCluster, new AtomicMonotonicTimestampGenerator());
                 },
                 null);
@@ -260,7 +259,7 @@ namespace Cassandra.Tests.ExecutionProfiles
             var configBuilder = new TestConfigurationBuilder
             {
                 ConnectionFactory = new FakeConnectionFactory(() => connection),
-                Policies = new Policies(new RoundRobinPolicy(), new ConstantReconnectionPolicy(100), new DefaultRetryPolicy())
+                Policies = new Cassandra.Policies(new RoundRobinPolicy(), new ConstantReconnectionPolicy(100), new DefaultRetryPolicy())
             };
             configBuilderAct(configBuilder);
             var config = configBuilder.Build();

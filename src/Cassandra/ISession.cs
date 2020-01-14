@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+using Cassandra.DataStax.Graph;
 using Cassandra.Metrics;
 
 namespace Cassandra
@@ -210,6 +211,24 @@ namespace Cassandra
         PreparedStatement Prepare(string cqlQuery, IDictionary<string, byte[]> customPayload);
         
         /// <summary>
+        /// Prepares the query on the provided keyspace.
+        /// </summary>
+        /// <param name="cqlQuery">Cql query to prepare</param>
+        /// <param name="keyspace">The keyspace to prepare this query with</param>
+        /// <remarks>Setting the keyspace parameter is only available with protocol v5 (not supported by the driver yet) or DSE 6.0+.</remarks>
+        PreparedStatement Prepare(string cqlQuery, string keyspace);
+
+        /// <summary>
+        /// Prepares the provided query string asynchronously on the provided keyspace, sending the custom payload
+        /// as part of the request.
+        /// </summary>
+        /// <param name="cqlQuery">Cql query to prepare</param>
+        /// <param name="keyspace">The keyspace to prepare this query with</param>
+        /// <param name="customPayload">Custom outgoing payload to send with the prepare request</param>
+        /// <remarks>Setting the keyspace parameter is only available with protocol v5 (not supported by the driver yet) or DSE 6.0+.</remarks>
+        PreparedStatement Prepare(string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload);
+
+        /// <summary>
         /// Prepares the provided query string asynchronously.
         /// </summary>
         /// <param name="cqlQuery">cql query to prepare</param>
@@ -223,9 +242,82 @@ namespace Cassandra
         Task<PreparedStatement> PrepareAsync(string cqlQuery, IDictionary<string, byte[]> customPayload);
 
         /// <summary>
+        /// Prepares the query asynchronously on the provided keyspace.
+        /// </summary>
+        /// <param name="cqlQuery">Cql query to prepare</param>
+        /// <param name="keyspace">The keyspace to prepare this query with</param>
+        /// <remarks>Setting the keyspace parameter is only available with protocol v5 (not supported by the driver yet) or DSE 6.0+.</remarks>
+        Task<PreparedStatement> PrepareAsync(string cqlQuery, string keyspace);
+
+        /// <summary>
+        /// Prepares the provided query asynchronously on the provided keyspace, sending the custom payload
+        /// as part of the request.
+        /// </summary>
+        /// <param name="cqlQuery">Cql query to prepare</param>
+        /// <param name="keyspace">The keyspace to prepare this query with</param>
+        /// <param name="customPayload">Custom outgoing payload to send with the prepare request</param>
+        /// <remarks>Setting the keyspace parameter is only available with protocol v5 (not supported by the driver yet) or DSE 6.0+.</remarks>
+        Task<PreparedStatement> PrepareAsync(string cqlQuery, string keyspace, IDictionary<string, byte[]> customPayload);
+
+        /// <summary>
         /// Retrieves the driver metrics for this session.
         /// </summary>
         IDriverMetrics GetMetrics();
+        
+        /// <summary>
+        /// Executes a graph statement.
+        /// </summary>
+        /// <param name="statement">The graph statement containing the query</param>
+        /// <example>
+        /// <code>
+        /// GraphResultSet rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"));
+        /// </code>
+        /// </example>
+        GraphResultSet ExecuteGraph(IGraphStatement statement);
+
+        /// <summary>
+        /// Executes a graph statement.
+        /// </summary>
+        /// <param name="statement">The graph statement containing the query</param>
+        /// <example>
+        /// <code>
+        /// Task&lt;GraphResultSet$gt; task = session.ExecuteGraphAsync(new SimpleGraphStatement("g.V()"));
+        /// </code>
+        /// </example>
+        Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement statement);
+
+        /// <summary>
+        /// Executes a graph statement with the provided execution profile.
+        /// The execution profile must have been added previously to the Cluster
+        /// using <see cref="Builder.WithExecutionProfiles"/>.
+        /// </summary>
+        /// <param name="statement">The graph statement containing the query</param>
+        /// <param name="executionProfileName">The graph execution profile name to use while executing this statement.</param>
+        /// <example>
+        /// <code>
+        /// GraphResultSet rs = session.ExecuteGraph(new SimpleGraphStatement("g.V()"), "graphProfile");
+        /// </code>
+        /// </example>
+        GraphResultSet ExecuteGraph(IGraphStatement statement, string executionProfileName);
+        
+        /// <summary>
+        /// Executes a graph statement asynchronously with the provided graph execution profile.
+        /// The graph execution profile must have been added previously to the Cluster
+        /// using <see cref="Builder.WithExecutionProfiles"/>.
+        /// </summary>
+        /// <param name="statement">The graph statement containing the query</param>
+        /// <param name="executionProfileName">The graph execution profile name to use while executing this statement.</param>
+        /// <example>
+        /// <code>
+        /// Task&lt;GraphResultSet$gt; task = session.ExecuteGraphAsync(new SimpleGraphStatement("g.V()"), "graphProfile");
+        /// </code>
+        /// </example>
+        Task<GraphResultSet> ExecuteGraphAsync(IGraphStatement statement, string executionProfileName);
+
+        /// <summary>
+        /// Disposes the session asynchronously.
+        /// </summary>
+        Task ShutdownAsync();
 
         [Obsolete("Method deprecated. The driver internally waits for schema agreement when there is an schema change. See ProtocolOptions.MaxSchemaAgreementWaitSeconds for more info.")]
         void WaitForSchemaAgreement(RowSet rs);

@@ -32,6 +32,7 @@ namespace Cassandra
         private BatchType _batchType = BatchType.Logged;
         private RoutingKey _routingKey;
         private object[] _routingValues;
+        private string _keyspace;
 
         /// <summary>
         /// Gets the batch type
@@ -104,6 +105,8 @@ namespace Cassandra
             }
         }
 
+        public override string Keyspace => _keyspace;
+
         internal ISerializer Serializer { get; set; }
 
         /// <summary>
@@ -148,6 +151,12 @@ namespace Cassandra
                 //see BatchMessage.codec field in BatchMessage.java in server code, and BatchRequest.GetFrame in this driver
                 throw new ArgumentOutOfRangeException(string.Format("There can be only {0} child statement in a batch statement accordung to the cassandra native protocol", ushort.MaxValue));
             }
+
+            if (statement.OutgoingPayload != null && statement.OutgoingPayload.ContainsKey(ProxyExecuteKey))
+            {
+                throw new ArgumentException("Batch statement cannot contain statements with proxy execution." +
+                                            "Use ExecuteAs(...) on the batch statement instead");
+            }
             _queries.Add(statement);
             return this;
         }
@@ -165,6 +174,17 @@ namespace Cassandra
         internal override IQueryRequest CreateBatchRequest(ProtocolVersion protocolVersion)
         {
             throw new InvalidOperationException("Batches cannot be included recursively");
+        }
+
+        /// <summary>
+        /// Sets the keyspace this batch operates on. The keyspace should only be set when the statements in this
+        /// batch apply to a different keyspace to the logged keyspace of the <see cref="ISession"/>.
+        /// </summary>
+        /// <param name="name">The keyspace name.</param>
+        public BatchStatement SetKeyspace(string name)
+        {
+            _keyspace = name;
+            return this;
         }
     }
 }

@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using Cassandra.IntegrationTests.TestClusterManagement;
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -26,19 +28,15 @@ using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
 using Cassandra.IntegrationTests.TestBase;
-using Cassandra.Metrics;
-using Cassandra.Metrics.Registries;
 using Cassandra.Observers;
+using Cassandra.Tasks;
+using Cassandra.Tests;
 using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
-using Cassandra.Tasks;
-using Cassandra.Tests;
 
 using Moq;
-
-using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -46,12 +44,13 @@ namespace Cassandra.IntegrationTests.Core
     public class ConnectionTests : TestGlobals
     {
         private const string BasicQuery = "SELECT key FROM system.local";
+        private ITestCluster _testCluster;
 
         [OneTimeSetUp]
         public void SetupFixture()
         {
             // we just need to make sure that there is a query-able cluster
-            TestClusterManager.GetTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
+            _testCluster = TestClusterManager.GetTestCluster(1, DefaultMaxClusterCreateRetries, true, false);
         }
 
         public ConnectionTests()
@@ -131,7 +130,8 @@ namespace Cassandra.IntegrationTests.Core
                 var prepareOutput = ValidateResult<OutputPrepared>(task.Result);
 
                 //Execute the prepared query
-                var executeRequest = new ExecuteRequest(GetProtocolVersion(), prepareOutput.QueryId, null, false, QueryProtocolOptions.Default);
+                var executeRequest = new ExecuteRequest(GetProtocolVersion(), prepareOutput.QueryId, null,
+                    prepareOutput.ResultMetadataId, false, QueryProtocolOptions.Default);
                 task = connection.Send(executeRequest);
                 var output = ValidateResult<OutputRows>(task.Result);
                 var rs = output.RowSet;
@@ -154,7 +154,7 @@ namespace Cassandra.IntegrationTests.Core
 
                 var options = new QueryProtocolOptions(ConsistencyLevel.One, new object[] { "local" }, false, 100, null, ConsistencyLevel.Any);
 
-                var executeRequest = new ExecuteRequest(GetProtocolVersion(), prepareOutput.QueryId, null, false, options);
+                var executeRequest = new ExecuteRequest(GetProtocolVersion(), prepareOutput.QueryId, null, prepareOutput.ResultMetadataId, false, options);
                 task = connection.Send(executeRequest);
                 var output = ValidateResult<OutputRows>(task.Result);
 
@@ -367,7 +367,7 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual("test_events_kp", (eventArgs as SchemaChangeEventArgs).Keyspace);
                 Assert.AreEqual("test_table", (eventArgs as SchemaChangeEventArgs).Table);
 
-                if (CassandraVersion >= Version.Parse("2.1"))
+                if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("2.1"), Comparison.GreaterThanOrEqualsTo))
                 {
                     Query(connection, "CREATE TYPE test_events_kp.test_type (street text, city text, zip int);").Wait(1000);
                     eventHandle.WaitOne(2000);
@@ -427,24 +427,12 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Ssl_Connect_With_Ssl_Disabled_Host()
         {
-            var config = new Configuration(Cassandra.Policies.DefaultPolicies,
-                new ProtocolOptions(ProtocolOptions.DefaultPort, new SSLOptions()),
-                new PoolingOptions(),
-                new SocketOptions().SetConnectTimeoutMillis(200),
-                new ClientOptions(),
-                NoneAuthProvider.Instance,
-                null,
-                new QueryOptions(),
-                new DefaultAddressTranslator(),
-                new StartupOptionsFactory(),
-                new SessionFactoryBuilder(),
-                new Dictionary<string, IExecutionProfile>(),
-                new RequestOptionsMapper(),
-                null,
-                null,
-                null,
-                null,
-                null);
+            var config = new TestConfigurationBuilder
+            {
+                SocketOptions = new SocketOptions().SetConnectTimeoutMillis(200),
+                ProtocolOptions = new ProtocolOptions(ProtocolOptions.DefaultPort, new SSLOptions())
+            }.Build();
+
             using (var connection = CreateConnection(GetProtocolVersion(), config))
             {
                 var ex = Assert.Throws<AggregateException>(() => connection.Open().Wait(10000));
@@ -628,25 +616,11 @@ namespace Cassandra.IntegrationTests.Core
         {
             var socketOptions = new SocketOptions();
             socketOptions.SetConnectTimeoutMillis(1000);
-            var config = new Configuration(
-                new Cassandra.Policies(),
-                new ProtocolOptions(),
-                new PoolingOptions(),
-                socketOptions,
-                new ClientOptions(),
-                NoneAuthProvider.Instance,
-                null,
-                new QueryOptions(),
-                new DefaultAddressTranslator(),
-                new StartupOptionsFactory(),
-                new SessionFactoryBuilder(),
-                new Dictionary<string, IExecutionProfile>(),
-                new RequestOptionsMapper(),
-                null,
-                null,
-                null,
-                null,
-                null);
+            var config = new TestConfigurationBuilder
+            {
+                SocketOptions = socketOptions
+            }.Build();
+
             using (var connection = 
                 new Connection(
                     new SerializerManager(GetProtocolVersion()).GetCurrentSerializer(), 
@@ -857,25 +831,14 @@ namespace Cassandra.IntegrationTests.Core
             {
                 protocolOptions = new ProtocolOptions();
             }
-            var config = new Configuration(
-                new Cassandra.Policies(),
-                protocolOptions,
-                poolingOptions,
-                socketOptions,
-                new ClientOptions(false, 20000, null),
-                NoneAuthProvider.Instance,
-                null,
-                new QueryOptions(),
-                new DefaultAddressTranslator(),
-                new StartupOptionsFactory(),
-                new SessionFactoryBuilder(),
-                new Dictionary<string, IExecutionProfile>(),
-                new RequestOptionsMapper(),
-                null,
-                null,
-                null,
-                null,
-                null);
+
+            var config = new TestConfigurationBuilder
+            {
+                ProtocolOptions = protocolOptions,
+                PoolingOptions = poolingOptions,
+                SocketOptions = socketOptions,
+                ClientOptions = new ClientOptions(false, 20000, null)
+            }.Build();
             return CreateConnection(GetProtocolVersion(), config);
         }
 
@@ -885,7 +848,7 @@ namespace Cassandra.IntegrationTests.Core
             return new Connection(
                 new SerializerManager(protocolVersion).GetCurrentSerializer(), 
                 config.EndPointResolver
-                      .GetOrResolveContactPointAsync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9042))
+                      .GetOrResolveContactPointAsync(new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), 9042))
                       .Result.Single(), 
                 config, 
                 new StartupRequestFactory(config.StartupOptionsFactory), 

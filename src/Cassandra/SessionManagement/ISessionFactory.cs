@@ -19,8 +19,9 @@ using Cassandra.Serialization;
 
 namespace Cassandra.SessionManagement
 {
-    internal interface ISessionFactory<TSession> where TSession : IInternalSession
+    internal interface ISessionFactory
     {
-        Task<TSession> CreateSessionAsync(string keyspace, ISerializerManager serializer, string sessionName);
+        Task<IInternalSession> CreateSessionAsync(
+            IInternalCluster cluster, string keyspace, ISerializerManager serializer, string sessionName);
     }
 }

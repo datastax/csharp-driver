@@ -27,7 +27,6 @@ using Cassandra.ExecutionProfiles;
 using Cassandra.Metrics;
 using Cassandra.Metrics.Internal;
 using Cassandra.Metrics.Providers.Null;
-using Cassandra.Metrics.Registries;
 using Cassandra.Observers;
 using Cassandra.Requests;
 using Cassandra.Serialization;
@@ -103,26 +102,13 @@ namespace Cassandra.Tests
                 .SetCoreConnectionsPerHost(HostDistance.Local, coreConnections)
                 .SetMaxSimultaneousRequestsPerConnectionTreshold(HostDistance.Local, 1500)
                 .SetMaxConnectionsPerHost(HostDistance.Local, maxConnections);
-            var policies = new Policies(null, rp, null, null, null);
-            var config = new Configuration(
-                policies,
-                new ProtocolOptions(),
-                pooling,
-                new SocketOptions(),
-                new ClientOptions(),
-                NoneAuthProvider.Instance,
-                null,
-                new QueryOptions(),
-                new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>(),
-                new SessionFactoryBuilder(),
-                new Dictionary<string, IExecutionProfile>(),
-                new RequestOptionsMapper(),
-                null,
-                null,
-                null,
-                null,
-                null);
+            var policies = new Cassandra.Policies(null, rp, null, null, null);
+            var config = new TestConfigurationBuilder
+            {
+                Policies = policies,
+                PoolingOptions = pooling
+            }.Build();
+
             return config;
         }
 

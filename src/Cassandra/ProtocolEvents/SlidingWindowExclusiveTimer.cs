@@ -13,7 +13,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-//
 
 using System;
 using System.Diagnostics;
@@ -71,8 +70,13 @@ namespace Cassandra.ProtocolEvents
         
         public void SlideDelay(bool processNow)
         {
+            SlideDelayAsync(processNow).Forget();
+        }
+
+        public Task SlideDelayAsync(bool processNow)
+        {
             // delegate can't be async or shared exclusive scheduler is pointless
-            _timerTaskFactory.StartNew(() =>
+            return _timerTaskFactory.StartNew(() =>
             {
                 var currentTimestamp = Stopwatch.GetTimestamp();
                 var timeUntilNextTrigger = processNow ? TimeSpan.Zero : ComputeTimeUntilNextTrigger(currentTimestamp);
@@ -82,14 +86,13 @@ namespace Cassandra.ProtocolEvents
                 {
                     CancelExistingTimer();
                     _act();
-                    
+
                     _isRunning = false;
                     return;
                 }
 
                 _timer.Change(Fire, timeUntilNextTrigger);
-
-            }).Forget();
+            });
         }
 
         private TimeSpan ComputeTimeUntilNextTrigger(long currentTimestamp)

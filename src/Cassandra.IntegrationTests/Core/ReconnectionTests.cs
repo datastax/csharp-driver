@@ -23,9 +23,9 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.SessionManagement;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
-using Cassandra.SessionManagement;
 using Cassandra.Tests;
 using NUnit.Framework;
 
@@ -325,7 +325,14 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.AreEqual(2, set.Count);
                 
                 // Decommission node
-                testCluster.DecommissionNode(1);
+                if (!TestClusterManager.SupportsDecommissionForcefully())
+                {
+                    testCluster.DecommissionNode(1);
+                }
+                else
+                {
+                    testCluster.DecommissionNodeForcefully(1);
+                }
                 testCluster.Stop(1);
                 
                 // Assert that only one host is used in queries

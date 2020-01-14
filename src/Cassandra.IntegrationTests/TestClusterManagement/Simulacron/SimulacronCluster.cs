@@ -56,6 +56,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
         private SimulacronCluster(string id) : base(id)
         {
         }
+        
+        public static Task<SimulacronCluster> CreateNewAsync(int nodeLength)
+        {
+            return CreateNewAsync(new SimulacronOptions { Nodes = nodeLength.ToString() });
+        }
 
         /// <summary>
         /// Creates a single DC cluster with the amount of nodes provided.
@@ -64,15 +69,20 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
         {
             return CreateNew(new SimulacronOptions { Nodes = nodeLength.ToString() });
         }
-
-        public static SimulacronCluster CreateNew(SimulacronOptions options)
+        
+        public static async Task<SimulacronCluster> CreateNewAsync(SimulacronOptions options)
         {
             var simulacronManager = SimulacronManager.Instance;
             simulacronManager.Start();
             var path = string.Format(CreateClusterPathFormat, options.Nodes, options.GetCassandraVersion(),
                 options.GetDseVersion(), options.Name, options.ActivityLog, options.NumberOfTokens);
-            var data = TaskHelper.WaitToComplete(Post(path, null));
+            var data = await Post(path, null).ConfigureAwait(false);
             return CreateFromData(data);
+        }
+
+        public static SimulacronCluster CreateNew(SimulacronOptions options)
+        {
+            return TaskHelper.WaitToComplete(CreateNewAsync(options));
         }
 
         /// <summary>

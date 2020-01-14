@@ -16,6 +16,7 @@
 
 using System;
 using System.Threading;
+using Cassandra.DataStax.Graph;
 
 namespace Cassandra.ExecutionProfiles
 {
@@ -32,6 +33,8 @@ namespace Cassandra.ExecutionProfiles
         private readonly SocketOptions _socketOptions;
         private readonly QueryOptions _queryOptions;
         private readonly ClientOptions _clientOptions;
+
+        private readonly GraphOptions _graphOptions;
 
         /// <summary>
         /// Builds a request options object without any null settings.
@@ -72,6 +75,28 @@ namespace Cassandra.ExecutionProfiles
                 throw new ArgumentNullException(nameof(policies.ExtendedRetryPolicy));
             }
         }
+        
+        /// <summary>
+        /// Builds a request options object without any null settings.
+        /// </summary>
+        /// <param name="profile">Execution profile that was mapped into this instance. Can be null if it's the default profile.</param>
+        /// <param name="defaultProfile">Default execution profile. Can be null.</param>
+        /// <param name="policies">Must not be null and the inner policy settings must not be null either.</param>
+        /// <param name="socketOptions">Must not be null.</param>
+        /// <param name="queryOptions">Must not be null.</param>
+        /// <param name="clientOptions">Must not be null.</param>
+        /// <param name="graphOptions">Must not be null.</param>
+        public RequestOptions(
+            IExecutionProfile profile, 
+            IExecutionProfile defaultProfile, 
+            Policies policies, 
+            SocketOptions socketOptions, 
+            QueryOptions queryOptions, 
+            ClientOptions clientOptions,
+            GraphOptions graphOptions) : this(profile, defaultProfile, policies, socketOptions, queryOptions, clientOptions)
+        {
+            _graphOptions = graphOptions ?? throw new ArgumentNullException(nameof(graphOptions));
+        }
 
         public ConsistencyLevel ConsistencyLevel => _profile?.ConsistencyLevel ?? _defaultProfile?.ConsistencyLevel ?? _queryOptions.GetConsistencyLevel();
 
@@ -84,6 +109,8 @@ namespace Cassandra.ExecutionProfiles
         public ISpeculativeExecutionPolicy SpeculativeExecutionPolicy => _profile?.SpeculativeExecutionPolicy ?? _defaultProfile?.SpeculativeExecutionPolicy ?? _policies.SpeculativeExecutionPolicy;
 
         public IExtendedRetryPolicy RetryPolicy => _profile?.RetryPolicy ?? _defaultProfile?.RetryPolicy ?? _policies.ExtendedRetryPolicy;
+
+        public GraphOptions GraphOptions => _profile?.GraphOptions ?? _defaultProfile?.GraphOptions ?? _graphOptions;
 
         //// next settings don't exist in execution profiles
 

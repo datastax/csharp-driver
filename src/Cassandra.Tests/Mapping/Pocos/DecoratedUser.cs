@@ -18,7 +18,7 @@ using System;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Attributes;
 
-namespace  Cassandra.Tests.Mapping.Pocos
+namespace Cassandra.Tests.Mapping.Pocos
 {
     /// <summary>
     /// A user decorated with attributes indicating how it should be mapped.

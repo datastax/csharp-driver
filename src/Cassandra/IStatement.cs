@@ -125,6 +125,31 @@ namespace Cassandra
         bool? IsIdempotent { get; }
 
         /// <summary>
+        /// Returns the keyspace this query operates on.
+        /// <para>
+        /// Note that not all <see cref="Statement"/> implementations specify on which keyspace they operate on
+        /// so this method can return null. If null, it will operate on the default keyspace set during initialization (if it was set).
+        /// </para>
+        /// <para>
+        /// The keyspace returned is used as a hint for token-aware routing.
+        /// </para>
+        /// </summary>
+        /// <remarks>
+        /// Consider using a <see cref="ISession"/> connected to single keyspace using 
+        /// <see cref="ICluster.Connect(string)"/>.
+        /// </remarks>
+        string Keyspace { get; }
+
+        /// <summary>
+        /// Allows this statement to be executed as a different user/role than the one 
+        /// currently authenticated (a.k.a. proxy execution).
+        /// </summary>
+        /// <param name="userOrRole">The user or role name to act as when executing this statement.</param>
+        /// <returns>This statement</returns>
+        /// <remarks>This feature is only available in DSE 5.1+.</remarks>
+        IStatement ExecutingAs(string userOrRole);
+
+        /// <summary>
         /// Sets the paging behavior.
         /// When set to true (default), the <see cref="RowSet"/> returned when executing this <c>IStatement</c> will automatically fetch the following result pages.
         /// When false, the <see cref="RowSet"/> returned will only contain the rows contained in the result page and will not fetch additional pages.

@@ -13,20 +13,20 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-//
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
+using Cassandra.Mapping;
 using Cassandra.IntegrationTests.Linq.Structures;
 using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.SimulacronAPI.Models.Logs;
 using Cassandra.IntegrationTests.SimulacronAPI.PrimeBuilder;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
-using Cassandra.Mapping;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Tests.Mapping.Pocos;
 
 using NUnit.Framework;

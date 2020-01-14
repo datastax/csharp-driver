@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-namespace  Cassandra.IntegrationTests.Mapping.Structures
+namespace Cassandra.IntegrationTests.Mapping.Structures
 {
     public enum ContactMethod
     {

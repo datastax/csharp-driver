@@ -15,6 +15,7 @@
 //
 
 using System;
+using Cassandra.DataStax.Graph;
 
 namespace Cassandra.ExecutionProfiles
 {
@@ -26,7 +27,8 @@ namespace Cassandra.ExecutionProfiles
             int? readTimeoutMillis, 
             ILoadBalancingPolicy loadBalancingPolicy, 
             ISpeculativeExecutionPolicy speculativeExecutionPolicy, 
-            IExtendedRetryPolicy retryPolicy)
+            IExtendedRetryPolicy retryPolicy,
+            GraphOptions graphOptions)
         {
             Initialize(
                 consistencyLevel, 
@@ -34,7 +36,8 @@ namespace Cassandra.ExecutionProfiles
                 readTimeoutMillis, 
                 loadBalancingPolicy, 
                 speculativeExecutionPolicy, 
-                retryPolicy);
+                retryPolicy,
+                graphOptions);
         }
 
         internal ExecutionProfile(IExecutionProfile baseProfile, IExecutionProfile profile)
@@ -55,7 +58,8 @@ namespace Cassandra.ExecutionProfiles
                 profile.ReadTimeoutMillis ?? baseProfile.ReadTimeoutMillis, 
                 profile.LoadBalancingPolicy ?? baseProfile.LoadBalancingPolicy, 
                 profile.SpeculativeExecutionPolicy ?? baseProfile.SpeculativeExecutionPolicy, 
-                profile.RetryPolicy ?? baseProfile.RetryPolicy);
+                profile.RetryPolicy ?? baseProfile.RetryPolicy,
+                profile.GraphOptions ?? baseProfile.GraphOptions);
         }
 
         internal ExecutionProfile(IRequestOptions requestOptions)
@@ -71,7 +75,8 @@ namespace Cassandra.ExecutionProfiles
                 requestOptions.ReadTimeoutMillis, 
                 requestOptions.LoadBalancingPolicy, 
                 requestOptions.SpeculativeExecutionPolicy, 
-                requestOptions.RetryPolicy);
+                requestOptions.RetryPolicy,
+                requestOptions.GraphOptions);
         }
 
         public ConsistencyLevel? ConsistencyLevel { get; private set; }
@@ -86,13 +91,16 @@ namespace Cassandra.ExecutionProfiles
 
         public IExtendedRetryPolicy RetryPolicy { get; private set; }
 
+        public GraphOptions GraphOptions { get; private set; }
+
         private void Initialize(
             ConsistencyLevel? consistencyLevel,
             ConsistencyLevel? serialConsistencyLevel,
             int? readTimeoutMillis,
             ILoadBalancingPolicy loadBalancingPolicy,
             ISpeculativeExecutionPolicy speculativeExecutionPolicy,
-            IExtendedRetryPolicy retryPolicy)
+            IExtendedRetryPolicy retryPolicy,
+            GraphOptions graphOptions)
         {
             ConsistencyLevel = consistencyLevel;
             SerialConsistencyLevel = serialConsistencyLevel;
@@ -100,6 +108,7 @@ namespace Cassandra.ExecutionProfiles
             LoadBalancingPolicy = loadBalancingPolicy;
             SpeculativeExecutionPolicy = speculativeExecutionPolicy;
             RetryPolicy = retryPolicy;
+            GraphOptions = graphOptions;
         }
     }
 }

@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -22,6 +22,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Serialization;
 
 namespace Cassandra.IntegrationTests.Core
@@ -146,7 +147,7 @@ namespace Cassandra.IntegrationTests.Core
                 _session.Execute(string.Format("INSERT INTO {0}(k,i) VALUES({1},{{'{2}'}})", uniqueTableName, Key, setVal, ConsistencyLevel.Quorum));
                 Assert.Fail("Expected exception was not thrown!");
             }
-            catch (Cassandra.InvalidQueryException e)
+            catch (InvalidQueryException e)
             {
                 string expectedErrMsg = "The sum of all clustering columns is too long";
                 Assert.True(e.Message.Contains(expectedErrMsg), "Exception message {0} did not contain expected error message {1}.", e.Message, expectedErrMsg);
@@ -194,7 +195,7 @@ namespace Cassandra.IntegrationTests.Core
                 _session.Execute(string.Format("INSERT INTO {0}(k,i) VALUES({1},{{ '{2}' : '{3}' }})", uniqueTableName, Key, mapKey, mapVal), ConsistencyLevel.Quorum);
                 Assert.Fail("Expected exception was not thrown!");
             }
-            catch (Cassandra.InvalidQueryException e)
+            catch (InvalidQueryException e)
             {
                 string expectedErrMsg = "The sum of all clustering columns is too long";
                 Assert.True(e.Message.Contains(expectedErrMsg),
@@ -219,7 +220,7 @@ namespace Cassandra.IntegrationTests.Core
                 _session.Execute(string.Format("INSERT INTO {0}(k,i) VALUES({1},{{ '{2}' : '{3}' }})", uniqueTableName, Key, mapKey, mapVal), ConsistencyLevel.Quorum);
                 Assert.Fail("Expected exception was not thrown!");
             }
-            catch (Cassandra.InvalidQueryException e)
+            catch (InvalidQueryException e)
             {
                 string expectedErrMsg = "Map value is too long.";
                 Assert.True(e.Message.Contains(expectedErrMsg),

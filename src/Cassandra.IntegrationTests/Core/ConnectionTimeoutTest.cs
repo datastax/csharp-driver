@@ -14,12 +14,13 @@
 //   limitations under the License.
 //
 
-using ﻿Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 using System;
 using System.Diagnostics;
 using System.Linq.Expressions;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using System.Threading.Tasks;
+using Cassandra.IntegrationTests.TestBase;
 
 namespace Cassandra.IntegrationTests.Core
 {

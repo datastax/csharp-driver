@@ -55,7 +55,7 @@ builder.WithMetrics(provider, new DriverMetricsOptions()
 
 `DriverMetricsOptions.SetBucketPrefix` can be used to specify a custom prefix to be added to the bucket name of every metric. See the [previous section](#Structure) for information about his.
 
-The `provider` parameter must be an implementation of `IDriverMetricsProvider`. As was mentioned previouly, DataStax offers an [App.Metrics based implementation on a separate  extension nuget package].
+The `provider` parameter must be an implementation of `IDriverMetricsProvider`. As was mentioned previouly, DataStax offers an [App.Metrics based implementation on a separate extension nuget package].
 
 ## Exporting metrics
 
@@ -120,6 +120,6 @@ The instances returned by the `IDriverMetricsProvider` methods will be exposed b
 [App.Metrics]: https://github.com/AppMetrics/AppMetrics
 [Extension package]: app-metrics
 [App.Metrics provider]: app-metrics
-[App.Metrics based implementation on a separate  extension nuget package]: app-metrics
+[App.Metrics based implementation on a separate extension nuget package]: app-metrics
 [the manual section related to this provider]: app-metrics
 [provider's code]: https://github.com/datastax/csharp-driver/tree/master/src/Extensions/Cassandra.AppMetrics

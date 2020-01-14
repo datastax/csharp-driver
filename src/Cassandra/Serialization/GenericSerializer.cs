@@ -36,6 +36,7 @@ namespace Cassandra.Serialization
             { ColumnTypeCode.Date, TypeSerializer.PrimitiveLocalDateSerializer },
             { ColumnTypeCode.Decimal, TypeSerializer.PrimitiveDecimalSerializer },
             { ColumnTypeCode.Double, TypeSerializer.PrimitiveDoubleSerializer},
+            { ColumnTypeCode.Duration, TypeSerializer.PrimitiveDurationSerializer },
             { ColumnTypeCode.Float, TypeSerializer.PrimitiveFloatSerializer },
             { ColumnTypeCode.Inet, TypeSerializer.PrimitiveIpAddressSerializer },
             { ColumnTypeCode.Int, TypeSerializer.PrimitiveIntSerializer },

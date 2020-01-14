@@ -15,11 +15,13 @@
 //
 
 using System;
-
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using Cassandra.Mapping;
 using Cassandra.Tasks;
 using Cassandra.Tests.Mapping.Pocos;
-
+using Cassandra.Tests.Mapping.TestData;
 using Moq;
 
 using NUnit.Framework;

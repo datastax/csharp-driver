@@ -116,7 +116,7 @@ namespace Cassandra.Tests.Mapping
         [Test]
         public void GetFirstOrDefaultAsync_OneColumnFlattened_WithCql()
         {
-            const string valueExpected = "hello world, ol� utf chars!";
+            const string valueExpected = "hello world, ol? utf chars!";
             var rowset = TestDataHelper.GetSingleValueRowSet("name", valueExpected);
             var mappingClient = GetMappingClient(rowset);
             // Get random first created date and make sure it was one from our test data
@@ -132,7 +132,7 @@ namespace Cassandra.Tests.Mapping
         [Test]
         public void GetFirstOrDefault_OneColumnFlattened_WithCql()
         {
-            const string valueExpected = "hello world, ol� utf chars!";
+            const string valueExpected = "hello world, ol? utf chars!";
             var rowset = TestDataHelper.GetSingleValueRowSet("name", valueExpected);
             var mappingClient = GetMappingClient(rowset);
             // Get random first created date and make sure it was one from our test data

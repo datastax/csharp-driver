@@ -13,11 +13,15 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
+
 using System;
 using System.Numerics;
 
 namespace Cassandra.Serialization.Primitive
 {
+    /// <summary>
+    /// Deprecated: this class will be made internal in the next major version.
+    /// </summary>
     public class DecimalSerializer : TypeSerializer<decimal>
     {
         public override ColumnTypeCode CqlType

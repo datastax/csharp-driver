@@ -15,11 +15,13 @@
 //
 
 using System;
+using Cassandra.Mapping.Attributes;
 
 namespace Cassandra.Mapping
 {
     /// <summary>
-    /// Used to specify the table a POCO maps to.
+    /// Deprecated (use <see cref="TableAttribute"/>)
+    /// Used to specify the table a POCO maps to. Deprecated.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class)]
     public class TableNameAttribute : Attribute

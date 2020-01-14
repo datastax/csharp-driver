@@ -13,7 +13,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-//
 
 using System;
 using System.Linq;
@@ -34,7 +33,7 @@ namespace Cassandra.ProtocolEvents
         private readonly ActionBlock<EventQueue> _processQueueBlock;
         private readonly SlidingWindowExclusiveTimer _timer;
 
-        private volatile EventQueue _queue = new EventQueue();
+        private volatile EventQueue _queue = null;
 
         public ProtocolEventDebouncer(ITimerFactory timerFactory, TimeSpan delay, TimeSpan maxDelay)
         {
@@ -83,16 +82,28 @@ namespace Cassandra.ProtocolEvents
         }
 
         /// <inheritdoc />
-        public Task ScheduleEventAsync(ProtocolEvent ev, bool processNow)
+        public async Task ScheduleEventAsync(ProtocolEvent ev, bool processNow)
         {
-            return _enqueueBlock.SendAsync(new Tuple<TaskCompletionSource<bool>, ProtocolEvent, bool>(null, ev, processNow));
+            var sent = await _enqueueBlock
+                             .SendAsync(new Tuple<TaskCompletionSource<bool>, ProtocolEvent, bool>(null, ev, processNow))
+                             .ConfigureAwait(false);
+
+            if (!sent)
+            {
+                throw new DriverInternalError("Could not schedule event in the ProtocolEventDebouncer.");
+            }
         }
 
         /// <inheritdoc />
         public async Task HandleEventAsync(ProtocolEvent ev, bool processNow)
         {
             var callback = new TaskCompletionSource<bool>();
-            await _enqueueBlock.SendAsync(new Tuple<TaskCompletionSource<bool>, ProtocolEvent, bool>(callback, ev, processNow)).ConfigureAwait(false);
+            var sent = await _enqueueBlock.SendAsync(new Tuple<TaskCompletionSource<bool>, ProtocolEvent, bool>(callback, ev, processNow)).ConfigureAwait(false);
+            
+            if (!sent)
+            {
+                throw new DriverInternalError("Could not schedule event in the ProtocolEventDebouncer.");
+            }
 
             // continuewith very important because otherwise continuations run synchronously
             // https://stackoverflow.com/q/34658258/10896275
@@ -101,13 +112,16 @@ namespace Cassandra.ProtocolEvents
         }
 
         /// <inheritdoc />
-        public void Dispose()
+        public async Task ShutdownAsync()
         {
             _enqueueBlock.Complete();
-            _enqueueBlock.Completion.GetAwaiter().GetResult();
+            await _enqueueBlock.Completion.ConfigureAwait(false);
+
+            await _timer.SlideDelayAsync(true).ConfigureAwait(false);
             _timer.Dispose();
+
             _processQueueBlock.Complete();
-            _processQueueBlock.Completion.GetAwaiter().GetResult();
+            await _processQueueBlock.Completion.ConfigureAwait(false);
         }
 
         // for tests
@@ -175,13 +189,22 @@ namespace Cassandra.ProtocolEvents
             // not necessary to enqueue within the exclusive scheduler
             Task.Run(async () =>
             {
+                bool sent = false;
                 try
                 {
-                    await _processQueueBlock.SendAsync(queue).ConfigureAwait(false);
+                    sent = await _processQueueBlock.SendAsync(queue).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
                     ProtocolEventDebouncer.Logger.Error("EventDebouncer timer callback threw an exception.", ex);
+                }
+
+                if (!sent)
+                {
+                    foreach (var cb in queue.Callbacks)
+                    {
+                        cb?.TrySetException(new DriverInternalError("Could not process events in the ProtocolEventDebouncer."));
+                    }
                 }
             }).Forget();
         }

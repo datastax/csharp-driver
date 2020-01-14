@@ -17,12 +17,12 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Text;
 using Cassandra.Connections;
 using Cassandra.IntegrationTests.TestBase;
-using Cassandra.IntegrationTests.TestClusterManagement;
-using Cassandra.Observers;
 using Cassandra.ProtocolEvents;
 using NUnit.Framework;
+using Cassandra.IntegrationTests.TestClusterManagement;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -51,7 +51,7 @@ namespace Cassandra.IntegrationTests.Core
         public void Should_Use_Maximum_Protocol_Version_Provided()
         {
             var version = ProtocolVersion.V2;
-            if (CassandraVersion >= Version.Parse("3.0"))
+            if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("3.0"), Comparison.GreaterThanOrEqualsTo))
             {
                 //protocol 2 is not supported in Cassandra 3.0+
                 version = ProtocolVersion.V3;
@@ -62,7 +62,7 @@ namespace Cassandra.IntegrationTests.Core
             cc.Dispose();
         }
 
-        [Test, TestCassandraVersion(2, 2, TestBase.Comparison.LessThan)]
+        [Test, TestCassandraVersion(2, 2, Comparison.LessThan)]
         public void Should_Downgrade_The_Protocol_Version()
         {
             //Use a higher protocol version
@@ -72,14 +72,14 @@ namespace Cassandra.IntegrationTests.Core
             Assert.AreEqual(version - 1, cc.ProtocolVersion);
         }
 
-        [Test]
+        [Test, TestCassandraVersion(3, 0)]
         public void Should_Downgrade_The_Protocol_Version_With_Higher_Version_Than_Supported()
         {
-            // Use a non-existent higher protocol version
+            // Use a non-existent higher cassandra protocol version
             var version = (ProtocolVersion)0x0f;
             var cc = NewInstance(version);
             cc.InitAsync().Wait(InitTimeout);
-            Assert.AreEqual(GetProtocolVersion(), cc.ProtocolVersion);
+            Assert.AreEqual(ProtocolVersion.V4, cc.ProtocolVersion);
         }
 
         private ControlConnection NewInstance(

@@ -18,8 +18,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
@@ -37,7 +35,8 @@ namespace Cassandra.IntegrationTests
     {
         private static ITestCluster _reusableInstance;
         private readonly bool _reuse;
-        protected readonly List<Cluster> ClusterInstances = new List<Cluster>();
+        protected readonly List<ICluster> ClusterInstances = new List<ICluster>();
+
         /// <summary>
         /// Gets the amount of nodes in the test cluster
         /// </summary>
@@ -61,7 +60,7 @@ namespace Cassandra.IntegrationTests
         /// <summary>
         /// The shared Session instance of the fixture
         /// </summary>
-        protected ISession Session { get; private set; }
+        protected ISession Session { get; set; }
 
         /// <summary>
         /// It executes the queries provided on test fixture setup.
@@ -162,7 +161,7 @@ namespace Cassandra.IntegrationTests
         {
             if (Cluster != null)
             {
-                Cluster.Shutdown(1000);   
+                Cluster.Shutdown(1000);
             }
             //Shutdown the other instances created by helper methods
             foreach (var c in ClusterInstances)

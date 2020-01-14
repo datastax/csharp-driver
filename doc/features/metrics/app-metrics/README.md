@@ -1,4 +1,4 @@
-# DataStax Metrics Provider based on App.Metrics
+# App.Metrics Provider
 
 This documentation refers to our provider based on App.Metrics. The code examples shown here only apply if this provider is used.
 

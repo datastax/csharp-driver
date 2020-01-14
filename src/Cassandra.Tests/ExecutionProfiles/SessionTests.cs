@@ -13,7 +13,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-//
 
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -23,7 +22,8 @@ using Cassandra.ExecutionProfiles;
 using Cassandra.Requests;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
-
+using Cassandra.Tasks;
+using Cassandra.Tests.Connections;
 using Moq;
 
 using NUnit.Framework;
@@ -57,6 +57,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                 QueryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalSerial),
                 SocketOptions = new SocketOptions().SetReadTimeoutMillis(60000)
             }.Build();
+            Mock.Get(clusterMock).Setup(c => c.Configuration).Returns(config);
             Mock.Get(requestHandlerMock).Setup(r => r.SendAsync()).Returns(Task.FromResult(new RowSet()));
 
             var session = new Session(clusterMock, config, null, serializer, null);
@@ -102,6 +103,7 @@ namespace Cassandra.Tests.ExecutionProfiles
                 QueryOptions = new QueryOptions().SetConsistencyLevel(ConsistencyLevel.LocalSerial),
                 SocketOptions = new SocketOptions().SetReadTimeoutMillis(60000)
             }.Build();
+            Mock.Get(clusterMock).Setup(c => c.Configuration).Returns(config);
             Mock.Get(requestHandlerMock).Setup(r => r.SendAsync()).Returns(Task.FromResult(new RowSet()));
 
             var session = new Session(clusterMock, config, null, serializer, null);

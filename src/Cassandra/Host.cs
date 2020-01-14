@@ -28,7 +28,8 @@ namespace Cassandra
     {
         private static readonly Logger Logger = new Logger(typeof(Host));
         private long _isUpNow = 1;
-        private int _distance = (int)HostDistance.Ignored;
+        private int _distance = (int) HostDistance.Ignored;
+        private static readonly IReadOnlyCollection<string> WorkloadsDefault = new string[0];
 
         /// <summary>
         /// Event that gets raised when the host is set as DOWN (not available) by the driver, after being UP.
@@ -108,6 +109,28 @@ namespace Cassandra
         public Version CassandraVersion { get; private set; }
 
         /// <summary>
+        /// Gets the DSE Workloads the host is running.
+        /// <para>
+        ///   This is based on the "workload" or "workloads" columns in <c>system.local</c> and <c>system.peers</c>.
+        /// </para>
+        /// <para>
+        ///   Workload labels may vary depending on the DSE version in use; e.g. DSE 5.1 may report two distinct
+        ///   workloads: <c>Search</c> and <c>Analytics</c>, while DSE 5.0 would report a single
+        ///   <c>SearchAnalytics</c> workload instead. The driver simply returns the workload labels as reported by
+        ///   DSE, without any form of pre-processing.
+        /// </para>
+        /// <para>When the information is unavailable, this property returns an empty collection.</para>
+        /// </summary>
+        /// <remarks>Collection can be considered as immutable.</remarks>
+        public IReadOnlyCollection<string> Workloads { get; private set; }
+
+        /// <summary>
+        /// Gets the DSE version the server is running.
+        /// This property might be null when using Apache Cassandra or legacy DSE server versions.
+        /// </summary>
+        public Version DseVersion { get; private set; }
+        
+        /// <summary>
         /// Creates a new instance of <see cref="Host"/>.
         /// </summary>
         // ReSharper disable once UnusedParameter.Local : Part of the public API
@@ -118,6 +141,7 @@ namespace Cassandra
         internal Host(IPEndPoint address)
         {
             Address = address ?? throw new ArgumentNullException(nameof(address));
+            Workloads = WorkloadsDefault;
         }
 
         /// <summary>
@@ -182,6 +206,42 @@ namespace Cassandra
                 if (releaseVersion != null)
                 {
                     CassandraVersion = Version.Parse(releaseVersion.Split('-')[0]);
+                }
+            }
+
+            if (row.ContainsColumn("host_id"))
+            {
+                var nullableHostId = row.GetValue<Guid?>("host_id");
+                if (nullableHostId.HasValue)
+                {
+                    HostId = nullableHostId.Value;
+                }
+            }
+
+            SetDseInfo(row);
+        }
+
+        private void SetDseInfo(IRow row)
+        {
+            if (row.ContainsColumn("workloads"))
+            {
+                Workloads = row.GetValue<string[]>("workloads");
+            }
+            else if (row.ContainsColumn("workload") && row.GetValue<string>("workload") != null)
+            {
+                Workloads = new[] { row.GetValue<string>("workload") };
+            }
+            else
+            {
+                Workloads = WorkloadsDefault;
+            }
+
+            if (row.ContainsColumn("dse_version"))
+            {
+                var dseVersion = row.GetValue<string>("dse_version");
+                if (!string.IsNullOrEmpty(dseVersion))
+                {
+                    DseVersion = Version.Parse(dseVersion.Split('-')[0]);
                 }
             }
 

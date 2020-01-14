@@ -14,6 +14,9 @@
 //   limitations under the License.
 //
 
+using System.Collections.Generic;
+using System.Net;
+
 namespace Cassandra
 {
     internal class OutputWriteTimeout : OutputError
@@ -24,6 +27,7 @@ namespace Cassandra
         private string _writeType;
         private readonly bool _isFailure;
         private int _failures;
+        private IDictionary<IPAddress, int> _reasons;
 
         internal OutputWriteTimeout(bool isFailure)
         {
@@ -38,6 +42,11 @@ namespace Cassandra
             if (_isFailure)
             {
                 _failures = reader.ReadInt32();
+
+                if (reader.Serializer.ProtocolVersion.SupportsFailureReasons())
+                {
+                    _reasons = OutputReadTimeout.GetReasonsDictionary(reader, _failures);
+                }
             }
             _writeType = reader.ReadString();
         }
@@ -46,6 +55,11 @@ namespace Cassandra
         {
             if (_isFailure)
             {
+                if (_reasons != null)
+                {
+                    // The message in this protocol provided a full map with the reasons of the failures.
+                    return new WriteFailureException(_consistencyLevel, _received, _blockFor, _writeType, _reasons);
+                }
                 return new WriteFailureException(_consistencyLevel, _received, _blockFor, _writeType, _failures);
             }
             return new WriteTimeoutException(_consistencyLevel, _received, _blockFor, _writeType);

@@ -19,7 +19,7 @@ using System;
 namespace Cassandra
 {
     /// <summary>
-    /// DEPRECATED, use <see cref="Cassandra.Serialization.TypeSerializer{T}"/> instead.
+    /// DEPRECATED, use <see cref="Serialization.TypeSerializer{T}"/> instead.
     /// Represents a adapter to convert a Cassandra type to a CLR type.
     /// </summary>
     public interface ITypeAdapter

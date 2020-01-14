@@ -35,7 +35,7 @@ namespace Cassandra.IntegrationTests.TestBase
             var ret = session.Execute(query, consistency);
             if (expectedValues != null)
             {
-                valueComparator(ret, expectedValues);
+                QueryTools.valueComparator(ret, expectedValues);
             }
         }
 

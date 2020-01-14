@@ -14,7 +14,7 @@
 //   limitations under the License.
 //
 
-namespace  Cassandra.Tests.Mapping.Pocos
+namespace Cassandra.Tests.Mapping.Pocos
 {
     public enum UserType : int
     {

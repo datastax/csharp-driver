@@ -25,7 +25,7 @@ namespace Cassandra
     /// <para>Represents a prepared statement with the parameter values set, ready for execution.</para>
     /// A <see cref="BoundStatement"/> can be created from a <see cref="PreparedStatement"/> instance using the
     /// <c>Bind()</c> method and can be executed using a <see cref="ISession"/> instance.
-    /// <seealso cref="Cassandra.PreparedStatement"/>
+    /// <seealso cref="PreparedStatement"/>
     /// </summary>
     public class BoundStatement : Statement
     {
@@ -88,10 +88,8 @@ namespace Cassandra
         {
             _preparedStatement = statement;
             _routingKey = statement.RoutingKey;
-            if (statement.Metadata != null)
-            {
-                _keyspace = statement.Metadata.Keyspace;
-            }
+            _keyspace = statement.Keyspace ?? statement.Metadata?.Keyspace;
+
             SetConsistencyLevel(statement.ConsistencyLevel);
             if (statement.IsIdempotent != null)
             {
@@ -175,7 +173,8 @@ namespace Cassandra
         {
             // Use the default query options as the individual options of the query will be ignored
             var options = QueryProtocolOptions.CreateForBatchItem(this);
-            return new ExecuteRequest(protocolVersion, PreparedStatement.Id, PreparedStatement.Metadata, IsTracing, options);
+            return new ExecuteRequest(protocolVersion, PreparedStatement.Id, PreparedStatement.Metadata,
+                PreparedStatement.ResultMetadataId, IsTracing, options);
         }
 
         internal void CalculateRoutingKey(bool useNamedParameters, int[] routingIndexes, string[] routingNames, object[] valuesByPosition, object[] rawValues)

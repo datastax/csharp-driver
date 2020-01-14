@@ -14,6 +14,7 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Diagnostics;
 using System.Linq;
 
@@ -22,33 +23,41 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
     public class CcmCluster : ITestCluster
     {
         public string Name { get; set; }
+        public string Version { get; set; }
         public Builder Builder { get; set; }
         public Cluster Cluster { get; set; }
         public ISession Session { get; set; }
         public string InitialContactPoint { get; set; }
         public string ClusterIpPrefix { get; set; }
+        public string DsePath { get; set; }
         public string DefaultKeyspace { get; set; }
-        private readonly string _version;
+        private readonly ICcmProcessExecuter _executor;
         private CcmBridge _ccm;
 
-        public CcmCluster(string version, string name, string clusterIpPrefix, string defaultKeyspace)
+        public CcmCluster(string name, string clusterIpPrefix, string dsePath, ICcmProcessExecuter executor, string defaultKeyspace, string version)
         {
-            _version = version;
+            _executor = executor;
             Name = name;
             DefaultKeyspace = defaultKeyspace;
             ClusterIpPrefix = clusterIpPrefix;
+            DsePath = dsePath;
             InitialContactPoint = ClusterIpPrefix + "1";
+            Version = version;
         }
 
         public void Create(int nodeLength, TestClusterOptions options = null)
         {
-            if (options == null)
-            {
-                options = TestClusterOptions.Default;
-            }
-            _ccm = new CcmBridge(Name, ClusterIpPrefix);
-            _ccm.Create(_version, options.UseSsl);
+            options = options ?? TestClusterOptions.Default;
+            _ccm = new CcmBridge(Name, ClusterIpPrefix, DsePath, Version, _executor);
+            _ccm.Create(options.UseSsl);
             _ccm.Populate(nodeLength, options.Dc2NodeLength, options.UseVNodes);
+            _ccm.UpdateConfig(options.CassandraYaml);
+
+            if (TestClusterManager.IsDse)
+            {
+                _ccm.UpdateDseConfig(options.DseYaml);
+                _ccm.SetWorkloads(nodeLength, options.Workloads);
+            }
         }
 
         public void InitClient()
@@ -90,14 +99,19 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             _ccm.DecommissionNode(nodeId);
         }
 
+        public void DecommissionNodeForcefully(int nodeId)
+        {
+            _ccm.ExecuteCcm(string.Format("node{0} nodetool \"decommission -f\"", nodeId));
+        }
+
         public void PauseNode(int nodeId)
         {
-            CcmBridge.ExecuteCcm($"node{nodeId} pause");
+            _ccm.ExecuteCcm($"node{nodeId} pause");
         }
 
         public void ResumeNode(int nodeId)
         {
-            CcmBridge.ExecuteCcm($"node{nodeId} resume");
+            _ccm.ExecuteCcm($"node{nodeId} resume");
         }
 
         public void SwitchToThisCluster()
@@ -125,28 +139,38 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             _ccm.Start(nodeIdToStart, additionalArgs);
         }
 
-        public void BootstrapNode(int nodeIdToStart)
+        public void BootstrapNode(int nodeIdToStart, bool start = true)
         {
-            _ccm.BootstrapNode(nodeIdToStart);
+            _ccm.BootstrapNode(nodeIdToStart, start);
         }
 
-        public void BootstrapNode(int nodeIdToStart, string dataCenterName)
+        public void SetNodeWorkloads(int nodeId, string[] workloads)
         {
-            _ccm.BootstrapNode(nodeIdToStart, dataCenterName);
+            if (!TestClusterManager.IsDse)
+            {
+                throw new InvalidOperationException("Cant set workloads on an oss cluster.");
+            }
+
+            _ccm.SetNodeWorkloads(nodeId, workloads);
+        }
+
+        public void BootstrapNode(int nodeIdToStart, string dataCenterName, bool start = true)
+        {
+            _ccm.BootstrapNode(nodeIdToStart, dataCenterName, start);
         }
 
         public void UpdateConfig(params string[] yamlChanges)
         {
             if (yamlChanges == null) return;
             var joinedChanges = string.Join(" ", yamlChanges.Select(s => $"\"{s}\""));
-            CcmBridge.ExecuteCcm($"updateconf {joinedChanges}");
+            _ccm.ExecuteCcm($"updateconf {joinedChanges}");
         }
 
         public void UpdateConfig(int nodeId, params string[] yamlChanges)
         {
             if (yamlChanges == null) return;
             var joinedChanges = string.Join(" ", yamlChanges.Select(s => $"\"{s}\""));
-            CcmBridge.ExecuteCcm($"node{nodeId} updateconf {joinedChanges}");
+            _ccm.ExecuteCcm($"node{nodeId} updateconf {joinedChanges}");
         }
     }
 }

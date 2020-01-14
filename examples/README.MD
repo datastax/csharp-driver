@@ -1,6 +1,6 @@
 # C# Driver usage samples
 
-This folder contains examples on how to use some features of the C# Driver for [Apache Cassandra][cassandra].
+This folder contains examples on how to use some features of the C# Driver for [Apache Cassandra][cassandra] and DataStax Enterprise.
 
 You should also visit the [Documentation][doc-index] and [FAQ][faq].
 

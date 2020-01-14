@@ -2,13 +2,12 @@ version: "{branch}-{build}"
 skip_tags: true
 shallow_clone: true
 cache:
-  - C:\ProgramData\chocolatey\bin -> .\build\appveyor_install.ps1                                                                             
+  - C:\ProgramData\chocolatey\bin -> .\build\appveyor_install.ps1
   - C:\ProgramData\chocolatey\lib -> .\build\appveyor_install.ps1
   - C:\Users\appveyor\.ccm\repository -> .\build\appveyor_install.ps1
   - C:\Users\appveyor\deps -> .\build\appveyor_install.ps1
-image: Visual Studio 2017
+image: Visual Studio 2019
 environment:
-  appveyor_build_worker_cloud: gce
   NUNIT_PATH: nunit3-console
   matrix:
     - TARGET: net452

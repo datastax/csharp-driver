@@ -23,6 +23,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
     public interface ITestCluster
     {
         string Name { get; set; }
+        string Version { get; set; }
         Builder Builder { get; set; }
         Cluster Cluster { get; set; }
         ISession Session { get; set; }
@@ -89,20 +90,35 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// Bootstraps and adds a node to the cluster
         /// </summary>
         /// <param name="nodeIdToStart">The node ID to be added to the cluster</param>
-        void BootstrapNode(int nodeIdToStart);
+        /// <param name="start">If the node should be started</param>
+        void BootstrapNode(int nodeIdToStart, bool start = true);
+
+        /// <summary>
+        /// Set workload of a single node
+        /// </summary>
+        /// <param name="nodeId">The node ID to be added to the cluster</param>
+        /// <param name="workloads">The node workloads</param>
+        void SetNodeWorkloads(int nodeId, string[] workloads);
 
         /// <summary>
         /// Bootstraps and adds a node to the cluster
         /// </summary>
         /// <param name="nodeIdToStart"></param>
         /// <param name="dataCenterName"></param>
-        void BootstrapNode(int nodeIdToStart, string dataCenterName);
+        /// <param name="start">If the node should be started</param>
+        void BootstrapNode(int nodeIdToStart, string dataCenterName, bool start = true);
 
         /// <summary>
         /// Decommission the node associated with provided node ID
         /// </summary>
         /// <param name="nodeId">The node ID to be decommissioned</param>
         void DecommissionNode(int nodeId);
+
+        /// <summary>
+        /// Forcefully decommission the node associated with provided node ID
+        /// </summary>
+        /// <param name="nodeId">The node ID to be decommissioned</param>
+        void DecommissionNodeForcefully(int nodeId);
 
         /// <summary>
         /// Pause the node (SIGSTOP) associated with provided node ID
@@ -113,6 +129,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         /// Resumes the node (SIGCONT) associated with provided node ID
         /// </summary>
         void ResumeNode(int nodeId);
+
+        void SwitchToThisCluster();
     }
 
     public class TestClusterOptions : IEquatable<TestClusterOptions>
@@ -129,6 +147,16 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public string[] JvmArgs { get; set; }
 
+        /// <summary>
+        /// DSE yaml options
+        /// </summary>
+        public string[] DseYaml { get; set; }
+
+        /// <summary>
+        /// DSE Nodes workloads
+        /// </summary>
+        public string[] Workloads { get; set; }
+
         public override bool Equals(object obj)
         {
             return Equals(obj as TestClusterOptions);
@@ -141,7 +169,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                    UseSsl == other.UseSsl &&
                    CassandraYaml.OrderBy(i => i).SequenceEqual(other.CassandraYaml.OrderBy(i => i)) &&
                    Dc2NodeLength == other.Dc2NodeLength &&
-                   JvmArgs.OrderBy(i => i).SequenceEqual(other.JvmArgs.OrderBy(i => i));
+                   JvmArgs.OrderBy(i => i).SequenceEqual(other.JvmArgs.OrderBy(i => i)) &&
+                   DseYaml.OrderBy(i => i).SequenceEqual(other.DseYaml.OrderBy(i => i)) &&
+                   Workloads.OrderBy(i => i).SequenceEqual(other.Workloads.OrderBy(i => i));
         }
 
         public override int GetHashCode()
@@ -152,6 +182,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             hashCode = hashCode * -1521134295 + EqualityComparer<string[]>.Default.GetHashCode(CassandraYaml);
             hashCode = hashCode * -1521134295 + Dc2NodeLength.GetHashCode();
             hashCode = hashCode * -1521134295 + EqualityComparer<string[]>.Default.GetHashCode(JvmArgs);
+            hashCode = hashCode * -1521134295 + EqualityComparer<string[]>.Default.GetHashCode(DseYaml);
+            hashCode = hashCode * -1521134295 + EqualityComparer<string[]>.Default.GetHashCode(Workloads);
             return hashCode;
         }
     }

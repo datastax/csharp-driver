@@ -14,7 +14,6 @@
 //   limitations under the License.
 //
 
-using System;
 using Cassandra.IntegrationTests.TestBase;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
@@ -24,6 +23,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
         public string Nodes { get; set; }
 
         public string Version { get; set; }
+
+        public string DseVersion { get; set; }
 
         public string Name { get; set; }
 
@@ -36,21 +37,22 @@ namespace Cassandra.IntegrationTests.TestClusterManagement.Simulacron
         public SimulacronOptions()
         {
             Nodes = "1";
-            Version = TestClusterManager.CassandraVersionText;
+            Version = TestClusterManager.CassandraVersion.ToString();
+            DseVersion = TestClusterManager.IsDse ? TestClusterManager.DseVersion.ToString() : null;
             Name = TestUtils.GetTestClusterNameBasedOnRandomString();
             ActivityLog = true;
             NumberOfTokens = 1;
-            IsDse = false;
+            IsDse = TestClusterManager.IsDse;
         }
 
         public string GetCassandraVersion()
         {
-            return IsDse ? string.Empty : Version;
+            return Version;
         }
 
         public string GetDseVersion()
         {
-            return !IsDse ? string.Empty : Version;
+            return !IsDse || DseVersion == null ? string.Empty : DseVersion;
         }
     }
 }

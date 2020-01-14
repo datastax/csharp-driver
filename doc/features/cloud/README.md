@@ -1,4 +1,4 @@
-# Connecting to your DataStax Apollo database using a secure connection bundle
+# Connecting to DataStax Apollo
 
 ## Quickstart
 

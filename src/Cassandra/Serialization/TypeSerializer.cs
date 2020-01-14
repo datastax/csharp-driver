@@ -35,6 +35,7 @@ namespace Cassandra.Serialization
         public static readonly TypeSerializer<DateTime> PrimitiveDateTimeSerializer = new DateTimeSerializer();
         public static readonly TypeSerializer<decimal> PrimitiveDecimalSerializer = new DecimalSerializer();
         public static readonly TypeSerializer<double> PrimitiveDoubleSerializer = new DoubleSerializer();
+        public static readonly TypeSerializer<Duration> PrimitiveDurationSerializer = new DurationSerializer(true);
         public static readonly TypeSerializer<float> PrimitiveFloatSerializer = new FloatSerializer();
         public static readonly TypeSerializer<Guid> PrimitiveGuidSerializer = new GuidSerializer();
         public static readonly TypeSerializer<int> PrimitiveIntSerializer = new IntSerializer();

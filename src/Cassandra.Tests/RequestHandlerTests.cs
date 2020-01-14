@@ -28,6 +28,7 @@ using Moq;
 
 using NUnit.Framework;
 
+using PrepareFlags = Cassandra.Requests.InternalPrepareRequest.PrepareFlags;
 using QueryFlags = Cassandra.QueryProtocolOptions.QueryFlags;
 
 namespace Cassandra.Tests
@@ -37,35 +38,17 @@ namespace Cassandra.Tests
     {
         private static readonly ISerializer Serializer = new SerializerManager(ProtocolVersion.MaxSupported).GetCurrentSerializer();
 
-        private static Configuration GetConfig(QueryOptions queryOptions = null, Policies policies = null, PoolingOptions poolingOptions = null)
+        private static Configuration GetConfig(QueryOptions queryOptions = null, Cassandra.Policies policies = null, PoolingOptions poolingOptions = null)
         {
-            if (policies == null)
+            return new TestConfigurationBuilder
             {
-                policies = Policies.DefaultPolicies;
-            }
-
-            return new Configuration(
-                policies,
-                new ProtocolOptions(),
-                poolingOptions,
-                new SocketOptions(),
-                new ClientOptions(),
-                NoneAuthProvider.Instance,
-                null,
-                queryOptions ?? DefaultQueryOptions,
-                new DefaultAddressTranslator(),
-                Mock.Of<IStartupOptionsFactory>(),
-                new SessionFactoryBuilder(),
-                new Dictionary<string, IExecutionProfile>(),
-                new RequestOptionsMapper(),
-                null,
-                null,
-                null,
-                null,
-                null);
+                Policies = policies ?? new Cassandra.Policies(),
+                PoolingOptions = poolingOptions,
+                QueryOptions = queryOptions ?? DefaultQueryOptions
+            }.Build();
         }
 
-        private static IRequestOptions GetRequestOptions(QueryOptions queryOptions = null, Policies policies = null)
+        private static IRequestOptions GetRequestOptions(QueryOptions queryOptions = null, Cassandra.Policies policies = null)
         {
             return RequestHandlerTests.GetConfig(queryOptions, policies).DefaultRequestOptions;
         }
@@ -74,7 +57,7 @@ namespace Cassandra.Tests
 
         private static PreparedStatement GetPrepared(byte[] queryId = null)
         {
-            return new PreparedStatement(null, queryId, "DUMMY QUERY", null, Serializer);
+            return new PreparedStatement(null, queryId, new byte[16], "DUMMY QUERY", null, Serializer);
         }
 
         [Test]
@@ -195,7 +178,7 @@ namespace Cassandra.Tests
         public void RequestExecution_GetRetryDecision_Test()
         {
             var config = new Configuration();
-            var policy = Policies.DefaultRetryPolicy as IExtendedRetryPolicy;
+            var policy = Cassandra.Policies.DefaultRetryPolicy as IExtendedRetryPolicy;
             var statement = new SimpleStatement("SELECT WILL FAIL");
             //Using default retry policy the decision will always be to rethrow on read/write timeout
             var expected = RetryDecision.RetryDecisionType.Rethrow;
@@ -264,9 +247,10 @@ namespace Cassandra.Tests
         public void GetRequest_With_Timestamp_Generator_Empty_Value()
         {
             var statement = new SimpleStatement("QUERY");
-            var policies = new Policies(
-                Policies.DefaultLoadBalancingPolicy, Policies.DefaultReconnectionPolicy, Policies.DefaultRetryPolicy,
-                Policies.DefaultSpeculativeExecutionPolicy, new NoTimestampGenerator());
+            var policies = new Cassandra.Policies(
+                Cassandra.Policies.DefaultLoadBalancingPolicy, Cassandra.Policies.DefaultReconnectionPolicy,
+                Cassandra.Policies.DefaultRetryPolicy, Cassandra.Policies.DefaultSpeculativeExecutionPolicy,
+                new NoTimestampGenerator());
             var config = RequestHandlerTests.GetConfig(new QueryOptions(), policies, PoolingOptions.Create());
 
             var request = RequestHandler.GetRequest(statement, Serialization.SerializerManager.Default.GetCurrentSerializer(), config.DefaultRequestOptions);
@@ -295,11 +279,12 @@ namespace Cassandra.Tests
             var statement = new SimpleStatement("STATEMENT WITH TIMESTAMP");
             var expectedTimestamp = new DateTimeOffset(2010, 04, 29, 1, 2, 3, 4, TimeSpan.Zero).AddTicks(20);
             statement.SetTimestamp(expectedTimestamp);
-            var policies = new Policies(
-                Policies.DefaultLoadBalancingPolicy, Policies.DefaultReconnectionPolicy, Policies.DefaultRetryPolicy,
-                Policies.DefaultSpeculativeExecutionPolicy, new NoTimestampGenerator());
+            var policies = new Cassandra.Policies(
+                Cassandra.Policies.DefaultLoadBalancingPolicy, Cassandra.Policies.DefaultReconnectionPolicy,
+                Cassandra.Policies.DefaultRetryPolicy, Cassandra.Policies.DefaultSpeculativeExecutionPolicy,
+                new NoTimestampGenerator());
             var config = RequestHandlerTests.GetConfig(new QueryOptions(), policies, PoolingOptions.Create());
-
+            
             var request = RequestHandler.GetRequest(statement, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
@@ -311,8 +296,6 @@ namespace Cassandra.Tests
             CollectionAssert.AreEqual(queryBuffer, bodyBuffer.Take(queryBuffer.Length));
             // Skip the query and consistency (2)
             var offset = queryBuffer.Length + 2;
-            // The remaining length should be = flags (1) + result_page_size (4) + serial_consistency (2) + timestamp (8)
-            Assert.AreEqual(15, bodyBuffer.Length - offset);
             var flags = GetQueryFlags(bodyBuffer, ref offset);
             Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
             Assert.True(flags.HasFlag(QueryFlags.PageSize));
@@ -331,7 +314,7 @@ namespace Cassandra.Tests
                 batch.Add(new SimpleStatement("QUERY"));
             }
 
-            var config = RequestHandlerTests.GetConfig(new QueryOptions(), Policies.DefaultPolicies, PoolingOptions.Create());
+            var config = RequestHandlerTests.GetConfig(new QueryOptions(), Cassandra.Policies.DefaultPolicies, PoolingOptions.Create());
             var request = RequestHandler.GetRequest(batch, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
@@ -349,7 +332,7 @@ namespace Cassandra.Tests
             // To microsecond precision
             startDate = startDate.Subtract(TimeSpan.FromTicks(startDate.Ticks % 10));
 
-            var config = RequestHandlerTests.GetConfig(new QueryOptions(), Policies.DefaultPolicies, PoolingOptions.Create());
+            var config = RequestHandlerTests.GetConfig(new QueryOptions(), Cassandra.Policies.DefaultPolicies, PoolingOptions.Create());
             var request = RequestHandler.GetRequest(batch, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
@@ -380,9 +363,10 @@ namespace Cassandra.Tests
         {
             var batch = new BatchStatement();
             batch.Add(new SimpleStatement("QUERY"));
-            var policies = new Policies(
-                Policies.DefaultLoadBalancingPolicy, Policies.DefaultReconnectionPolicy, Policies.DefaultRetryPolicy,
-                Policies.DefaultSpeculativeExecutionPolicy, new NoTimestampGenerator());
+            var policies = new Cassandra.Policies(
+                Cassandra.Policies.DefaultLoadBalancingPolicy, Cassandra.Policies.DefaultReconnectionPolicy,
+                Cassandra.Policies.DefaultRetryPolicy, Cassandra.Policies.DefaultSpeculativeExecutionPolicy,
+                new NoTimestampGenerator());
 
             var config = RequestHandlerTests.GetConfig(new QueryOptions(), policies, PoolingOptions.Create());
             var request = RequestHandler.GetRequest(batch, Serializer, config.DefaultRequestOptions);
@@ -411,7 +395,7 @@ namespace Cassandra.Tests
             providedTimestamp = providedTimestamp.Subtract(TimeSpan.FromTicks(providedTimestamp.Ticks % 10));
             batch.SetTimestamp(providedTimestamp);
 
-            var config = RequestHandlerTests.GetConfig(new QueryOptions(), Policies.DefaultPolicies, PoolingOptions.Create());
+            var config = RequestHandlerTests.GetConfig(new QueryOptions(), Cassandra.Policies.DefaultPolicies, PoolingOptions.Create());
             var request = RequestHandler.GetRequest(batch, Serializer, config.DefaultRequestOptions);
             var bodyBuffer = GetBodyBuffer(request);
 
@@ -428,6 +412,56 @@ namespace Cassandra.Tests
             offset += 2;
             var timestamp = TypeSerializer.UnixStart.AddTicks(BeConverter.ToInt64(bodyBuffer, offset) * 10);
             Assert.AreEqual(providedTimestamp, timestamp);
+        }
+
+        [Test]
+        public void GetRequest_Batch_With_Provided_Keyspace()
+        {
+            const string keyspace = "test_keyspace";
+            var batch = new BatchStatement();
+            batch.Add(new SimpleStatement("QUERY")).SetKeyspace(keyspace);
+
+            var request = RequestHandler.GetRequest(batch, Serializer, new Configuration().DefaultRequestOptions);
+            var bodyBuffer = GetBodyBuffer(request);
+
+            // The batch request is composed by:
+            // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>][<keyspace>]
+            var offset = 1 + 2 + 1;
+            var queryLength = BeConverter.ToInt32(bodyBuffer, offset);
+            Assert.AreEqual(5, queryLength);
+            // skip query, n_params and consistency
+            offset += 4 + queryLength + 2 + 2;
+            var flags = GetQueryFlags(bodyBuffer, ref offset);
+            Assert.True(flags.HasFlag(QueryFlags.WithKeyspace));
+
+            // Skip serial consistency and timestamp
+            offset +=
+                (flags.HasFlag(QueryFlags.WithSerialConsistency) ? 2 : 0) +
+                (flags.HasFlag(QueryFlags.WithDefaultTimestamp) ? 8 : 0);
+
+            var keyspaceLength = BeConverter.ToInt16(bodyBuffer, offset);
+            offset += 2;
+            Assert.AreEqual(keyspace, Encoding.UTF8.GetString(bodyBuffer, offset, keyspaceLength));
+        }
+
+        [Test]
+        public void GetRequest_Batch_With_Provided_Keyspace_On_Older_Protocol_Versions_Should_Ignore()
+        {
+            var batch = new BatchStatement();
+            batch.Add(new SimpleStatement("QUERY")).SetKeyspace("test_keyspace");
+            var serializer = new SerializerManager(ProtocolVersion.V3).GetCurrentSerializer();
+            var request = RequestHandler.GetRequest(batch, serializer, new Configuration().DefaultRequestOptions);
+            var bodyBuffer = GetBodyBuffer(request, serializer);
+
+            // The batch request is composed by:
+            // <type><n><query_1>...<query_n><consistency><flags>[<serial_consistency>][<timestamp>][<keyspace>]
+            var offset = 1 + 2 + 1;
+            var queryLength = BeConverter.ToInt32(bodyBuffer, offset);
+            Assert.AreEqual(5, queryLength);
+            // skip query, n_params and consistency
+            offset += 4 + queryLength + 2 + 2;
+            var flags = GetQueryFlags(bodyBuffer, ref offset);
+            Assert.False(flags.HasFlag(QueryFlags.WithKeyspace));
         }
 
         [Test]
@@ -497,6 +531,11 @@ namespace Cassandra.Tests
             // <query_id><consistency><flags><result_page_size><paging_state><serial_consistency><timestamp>
             // Skip the queryid and consistency (2)
             var offset = 2 + ps.Id.Length + 2;
+            if (Serializer.ProtocolVersion.SupportsResultMetadataId())
+            {
+                // Short bytes: 2 + 16
+                offset += 18;
+            }
             var flags = GetQueryFlags(bodyBuffer, ref offset);
             Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
             Assert.True(flags.HasFlag(QueryFlags.PageSize));
@@ -522,6 +561,11 @@ namespace Cassandra.Tests
             // <query_id><consistency><flags><result_page_size><paging_state><serial_consistency><timestamp>
             // Skip the queryid and consistency (2)
             var offset = 2 + ps.Id.Length + 2;
+            if (Serializer.ProtocolVersion.SupportsResultMetadataId())
+            {
+                // Short bytes: 2 + 16
+                offset += 18;
+            }
             var flags = GetQueryFlags(bodyBuffer, ref offset);
             Assert.True(flags.HasFlag(QueryFlags.WithDefaultTimestamp));
             Assert.True(flags.HasFlag(QueryFlags.PageSize));
@@ -557,6 +601,47 @@ namespace Cassandra.Tests
         }
 
         [Test]
+        public void GetRequest_Query_Should_Use_Provided_Keyspace()
+        {
+            const string keyspace = "my_keyspace";
+            var statement = new SimpleStatement("QUERY").SetKeyspace(keyspace);
+            var request = RequestHandler.GetRequest(statement, Serializer, new Configuration().DefaultRequestOptions);
+            var bodyBuffer = GetBodyBuffer(request);
+
+            // The query request is composed by:
+            // <consistency><flags>[<n>[name_1]<value_1>...[name_n]<value_n>][<result_page_size>][<paging_state>]
+            //    [<serial_consistency>][<timestamp>][<keyspace>][continuous_paging_options]
+            // Skip the query and consistency (2)
+            var offset = 4 + statement.QueryString.Length + 2;
+            var flags = GetQueryFlags(bodyBuffer, ref offset);
+            offset +=
+                (flags.HasFlag(QueryFlags.WithDefaultTimestamp) ? 8 : 0) +
+                (flags.HasFlag(QueryFlags.PageSize) ? 4 : 0) +
+                (flags.HasFlag(QueryFlags.WithSerialConsistency) ? 2 : 0);
+
+            var keyspaceLength = BeConverter.ToInt16(bodyBuffer, offset);
+            offset += 2;
+            Assert.AreEqual(keyspace, Encoding.UTF8.GetString(bodyBuffer, offset, keyspaceLength));
+        }
+
+        [Test]
+        public void GetRequest_Query_With_Keyspace_On_Lower_Protocol_Version_Should_Ignore_Keyspace()
+        {
+            var statement = new SimpleStatement("QUERY").SetKeyspace("my_keyspace");
+            var serializer = new SerializerManager(ProtocolVersion.V3).GetCurrentSerializer();
+            var request = RequestHandler.GetRequest(statement, serializer, new Configuration().DefaultRequestOptions);
+            var bodyBuffer = GetBodyBuffer(request, serializer);
+
+            // The query request is composed by:
+            // <consistency><flags>[<n>[name_1]<value_1>...[name_n]<value_n>][<result_page_size>][<paging_state>]
+            //    [<serial_consistency>][<timestamp>][<keyspace>][continuous_paging_options]
+            // Skip the query and consistency (2)
+            var offset = 4 + statement.QueryString.Length + 2;
+            var flags = GetQueryFlags(bodyBuffer, ref offset);
+            Assert.False(flags.HasFlag(QueryFlags.WithKeyspace));
+        }
+
+        [Test]
         public void GetRequest_Query_Should_Use_Serial_Consistency_From_QueryOptions()
         {
             const ConsistencyLevel expectedSerialConsistencyLevel = ConsistencyLevel.LocalSerial;
@@ -579,6 +664,42 @@ namespace Cassandra.Tests
             // Skip result_page_size (4)
             offset += 4;
             Assert.That((ConsistencyLevel)BeConverter.ToInt16(bodyBuffer, offset), Is.EqualTo(expectedSerialConsistencyLevel));
+        }
+
+        [Test]
+        public void Prepare_With_Keyspace_Should_Send_Keyspace_And_Flag()
+        {
+            const string query = "QUERY1";
+            const string keyspace = "ks1";
+            var request = new InternalPrepareRequest(query, keyspace);
+
+            // The request is composed by: <query><flags>[<keyspace>]
+            var buffer = GetBodyBuffer(request);
+
+            var queryLength = BeConverter.ToInt32(buffer);
+            Assert.AreEqual(query.Length, queryLength);
+            var offset = 4 + queryLength;
+            var flags = (PrepareFlags)BeConverter.ToInt32(buffer, offset);
+            offset += 4;
+            Assert.True(flags.HasFlag(PrepareFlags.WithKeyspace));
+            var keyspaceLength = BeConverter.ToInt16(buffer, offset);
+            offset += 2;
+            Assert.AreEqual(keyspace.Length, keyspaceLength);
+            Assert.AreEqual(keyspace, Encoding.UTF8.GetString(buffer.Skip(offset).Take(keyspaceLength).ToArray()));
+        }
+
+        [Test]
+        public void Prepare_With_Keyspace_On_Lower_Protocol_Version_Should_Ignore_Keyspace()
+        {
+            const string query = "SELECT col1, col2 FROM table1";
+            var request = new InternalPrepareRequest(query, "my_keyspace");
+
+            // The request only contains the query
+            var buffer = GetBodyBuffer(request, new SerializerManager(ProtocolVersion.V2).GetCurrentSerializer());
+
+            var queryLength = BeConverter.ToInt32(buffer);
+            Assert.AreEqual(query.Length, queryLength);
+            Assert.AreEqual(4 + queryLength, buffer.Length);
         }
 
         private static byte[] GetBodyBuffer(IRequest request, ISerializer serializer = null)

@@ -18,7 +18,6 @@ using System;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
-
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
 using Cassandra.Metrics.Internal;

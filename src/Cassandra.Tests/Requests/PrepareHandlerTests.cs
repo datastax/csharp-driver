@@ -13,7 +13,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-//
 
 using System;
 using System.Collections.Concurrent;
@@ -24,7 +23,6 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Cassandra.Connections;
-using Cassandra.Observers;
 using Cassandra.Requests;
 using Cassandra.Responses;
 using Cassandra.Serialization;
@@ -53,7 +51,7 @@ namespace Cassandra.Tests.Requests
                             .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
-                    builder.Policies = new Policies(
+                    builder.Policies = new Cassandra.Policies(
                         lbpCluster, 
                         new ConstantReconnectionPolicy(5), 
                         new DefaultRetryPolicy(), 
@@ -118,7 +116,7 @@ namespace Cassandra.Tests.Requests
                             .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
-                    builder.Policies = new Policies(
+                    builder.Policies = new Cassandra.Policies(
                         lbpCluster, 
                         new ConstantReconnectionPolicy(5), 
                         new DefaultRetryPolicy(), 
@@ -184,7 +182,7 @@ namespace Cassandra.Tests.Requests
                             .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
-                    builder.Policies = new Policies(
+                    builder.Policies = new Cassandra.Policies(
                         lbpCluster, 
                         new ConstantReconnectionPolicy(5), 
                         new DefaultRetryPolicy(), 
@@ -251,7 +249,7 @@ namespace Cassandra.Tests.Requests
                             .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
-                    builder.Policies = new Policies(
+                    builder.Policies = new Cassandra.Policies(
                         lbpCluster, 
                         new ConstantReconnectionPolicy(5), 
                         new DefaultRetryPolicy(), 
@@ -317,7 +315,7 @@ namespace Cassandra.Tests.Requests
                             .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial);
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
-                    builder.Policies = new Policies(
+                    builder.Policies = new Cassandra.Policies(
                         lbpCluster, 
                         new ConstantReconnectionPolicy(5), 
                         new DefaultRetryPolicy(), 
@@ -384,7 +382,7 @@ namespace Cassandra.Tests.Requests
                             .SetPrepareOnAllHosts(false);
                     builder.SocketOptions =
                         new SocketOptions().SetReadTimeoutMillis(10);
-                    builder.Policies = new Policies(
+                    builder.Policies = new Cassandra.Policies(
                         lbpCluster, 
                         new ConstantReconnectionPolicy(5), 
                         new DefaultRetryPolicy(), 
@@ -449,7 +447,7 @@ namespace Cassandra.Tests.Requests
             var configBuilder = new TestConfigurationBuilder
             {
                 ConnectionFactory = factory,
-                Policies = new Policies(new RoundRobinPolicy(), new ConstantReconnectionPolicy(100), new DefaultRetryPolicy())
+                Policies = new Cassandra.Policies(new RoundRobinPolicy(), new ConstantReconnectionPolicy(100), new DefaultRetryPolicy())
             };
             configBuilderAct(configBuilder);
             var config = configBuilder.Build();

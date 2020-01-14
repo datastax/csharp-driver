@@ -225,8 +225,8 @@ namespace Cassandra.IntegrationTests.Core
                 Assert.Throws<OperationTimedOutException>(() => session.Execute("SELECT key FROM system.local"));
                 stopWatch.Stop();
                 //precision of the timer is not guaranteed
-                Assert.Greater(stopWatch.ElapsedMilliseconds, generalReadTimeout - 1000);
-                Assert.Less(stopWatch.ElapsedMilliseconds, generalReadTimeout + 1000);
+                Assert.Greater(stopWatch.ElapsedMilliseconds, generalReadTimeout - 4500);
+                Assert.Less(stopWatch.ElapsedMilliseconds, generalReadTimeout + 4500);
 
                 //Try with an specified timeout at Statement level
                 var stmt = new SimpleStatement("SELECT key FROM system.local")

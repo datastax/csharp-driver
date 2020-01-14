@@ -4,12 +4,12 @@ schedules:
     schedule: per_commit
     matrix:
       exclude:
-        # Only build with latest for mono and netstandard 2.0
-        - dotnet: ['mono', 'netcoreapp2.1']
-          cassandra: ['2.1', '2.2', '3.0']
-        # Only build with 2.1 and latest for netstandard 1.5
-        - dotnet: 'netcoreapp2.0'
-          cassandra: ['2.2', '3.0']
+      # net45(mono) and netstandard1.5 build 3.11 and dse-6.7 only
+        - dotnet: ['mono', 'netcoreapp2.0']
+          cassandra: ['2.1', '2.2', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8']
+      # netstandard2.0 build latest minors
+        - dotnet: 'netcoreapp2.1'
+          cassandra: ['3.0', 'dse-5.0', 'dse-6.0', 'dse-6.8']
   nightly:
     # nightly job for primary branches to run all configs.
     schedule: nightly
@@ -19,7 +19,6 @@ schedules:
   adhoc:
     # adhoc job for non-primary braches that doesn't have a schedule but may be used to run all configs.
     schedule: adhoc
-    enable_pull_requests: true
     branches:
       exclude: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
 os:
@@ -29,21 +28,48 @@ cassandra:
   - '2.2'
   - '3.0'
   - '3.11'
+  - 'dse-5.0'
+  - 'dse-5.1'
+  - 'dse-6.0'
+  - 'dse-6.7'
+  - 'dse-6.8'
 dotnet:
   - 'mono'
   - 'netcoreapp2.0'
   - 'netcoreapp2.1'
 build:
   - script: |
-      export CASS_VERSION_SNI='3.11'
+      export CASS_VERSION_SNI='dse-6.7'
       
       # Set the Java paths (for CCM)
       export JAVA_HOME=$CCM_JAVA_HOME
       export PATH=$JAVA_HOME/bin:$PATH
       export SIMULACRON_PATH=$HOME/simulacron.jar
 
+      if [[ $CASSANDRA_VERSION == dse-* ]] ;
+      then
+          export CCM_PATH=$HOME/ccm
+          export DSE_BRANCH=$CCM_BRANCH
+          export DSE_VERSION=$CCM_VERSION
+          export DSE_INITIAL_IPPREFIX="127.0.0."
+          export DSE_IN_REMOTE_SERVER="false"
+                
+          if [ $DSE_VERSION = '6.0' ]; then
+              echo "Setting DSE 6.0 install-dir"
+              export DSE_PATH=$CCM_INSTALL_DIR
+          fi
+          
+          echo $DSE_VERSION
+          echo $DSE_PATH
+          echo $DSE_INITIAL_IPPREFIX
+          echo $DSE_IN_REMOTE_SERVER
+          echo $DSE_INITIAL_IPPREFIX
+      fi
+
+      echo $CSHARP_VERSION
+
       # Define Cassandra runtime
-      echo "========== Setting Apache Cassandra Version =========="
+      echo "========== Setting Server Version =========="
       export CASSANDRA_VERSION_ORIGINAL=$CASSANDRA_VERSION
       export CASSANDRA_VERSION=$CCM_CASSANDRA_VERSION
 
@@ -62,8 +88,8 @@ build:
       echo $SNI_CERTIFICATE_PATH
       echo $SNI_CA_PATH
       
-      ls "${HOME}/proxy/"
- 
+      ls "${HOME}/proxy/" 
+
       # Download and uncompress saxon
       mkdir saxon
       curl -L -o saxon/saxon9he.jar http://central.maven.org/maven2/net/sf/saxon/Saxon-HE/9.8.0-12/Saxon-HE-9.8.0-12.jar

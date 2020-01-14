@@ -21,6 +21,7 @@ using System.Linq;
 using System.Numerics;
 
 using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Serialization;
 using Cassandra.Tests.Extensions.Serializers;
 
@@ -39,6 +40,10 @@ namespace Cassandra.IntegrationTests.Core
         private const string CustomTypeName = "org.apache.cassandra.db.marshal.DynamicCompositeType(" +
                                               "s=>org.apache.cassandra.db.marshal.UTF8Type," +
                                               "i=>org.apache.cassandra.db.marshal.Int32Type)";
+        
+        private const string CustomTypeName2 = "org.apache.cassandra.db.marshal.DynamicCompositeType(" +
+                                               "i=>org.apache.cassandra.db.marshal.Int32Type," +
+                                               "s=>org.apache.cassandra.db.marshal.UTF8Type)";
 
         protected override string[] SetupQueries
         {
@@ -194,10 +199,14 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void Should_Use_Custom_TypeSerializers()
         {
+            var typeSerializerName = TestClusterManager.CheckDseVersion(new Version(6, 8), Comparison.GreaterThanOrEqualsTo)
+                ? TypeSerializersTests.CustomTypeName2
+                : TypeSerializersTests.CustomTypeName;
+
             var builder = Cluster.Builder()
                                  .AddContactPoint(TestCluster.InitialContactPoint)
                                  .WithTypeSerializers(new TypeSerializerDefinitions()
-                                     .Define(new DummyCustomTypeSerializer(CustomTypeName)));
+                                     .Define(new DummyCustomTypeSerializer(typeSerializerName)));
             using (var cluster = builder.Build())
             {
                 var session = cluster.Connect(KeyspaceName);

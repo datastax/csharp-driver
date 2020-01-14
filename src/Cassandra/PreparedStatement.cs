@@ -35,6 +35,7 @@ namespace Cassandra
         private volatile RoutingKey _routingKey;
         private string[] _routingNames;
         private volatile int[] _routingIndexes;
+        private volatile byte[] _resultMetadataId;
 
         /// <summary>
         /// The cql query
@@ -103,6 +104,12 @@ namespace Cassandra
         /// </summary>
         public bool? IsIdempotent { get; private set; }
 
+        internal byte[] ResultMetadataId
+        {
+            get => _resultMetadataId;
+            set => _resultMetadataId = value;
+        }
+
         /// <summary>
         /// Initializes a new instance of the Cassandra.PreparedStatement class
         /// </summary>
@@ -111,10 +118,12 @@ namespace Cassandra
             //Default constructor for client test and mocking frameworks
         }
 
-        internal PreparedStatement(RowSetMetadata metadata, byte[] id, string cql, string keyspace, ISerializer serializer)
+        internal PreparedStatement(RowSetMetadata metadata, byte[] id, byte[] resultMetadataId, string cql,
+                                   string keyspace, ISerializer serializer)
         {
             Metadata = metadata;
             Id = id;
+            ResultMetadataId = resultMetadataId;
             Cql = cql;
             Keyspace = keyspace;
             _serializer = serializer;

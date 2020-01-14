@@ -24,7 +24,6 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using Cassandra.IntegrationTests.Core;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.Tests;
 using NUnit.Framework;
@@ -161,7 +160,7 @@ namespace Cassandra.IntegrationTests.TestBase
             DateTime futureDateTime = DateTime.Now.AddSeconds(maxSecondsToKeepTrying);
             while (DateTime.Now < futureDateTime)
             {
-                if (IsNodeReachable(IPAddress.Parse(nodeHost), nodePort))
+                if (TestUtils.IsNodeReachable(IPAddress.Parse(nodeHost), nodePort))
                 {
                     return;
                 }
@@ -228,7 +227,7 @@ namespace Cassandra.IntegrationTests.TestBase
                     Trace.TraceInformation("Exception caught while waiting for meta data: " + e.Message);
                 }
                 Trace.TraceWarning("Waiting for node host: " + nodeHost + " to be " + expectedFinalNodeState);
-                Thread.Sleep(DefaultSleepIterationMs);
+                Thread.Sleep(TestUtils.DefaultSleepIterationMs);
             }
             string errStr = "Node host should have been " + expectedFinalNodeState + " but was not after " + maxTry + " tries!";
             Trace.TraceError(errStr);
@@ -236,22 +235,22 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public static void WaitFor(string node, Cluster cluster, int maxTry)
         {
-            WaitFor(node, cluster, maxTry, false, false);
+            TestUtils.WaitFor(node, cluster, maxTry, false, false);
         }
 
         public static void WaitForDown(string node, Cluster cluster, int maxTry)
         {
-            WaitFor(node, cluster, maxTry, true, false);
+            TestUtils.WaitFor(node, cluster, maxTry, true, false);
         }
 
         public static void waitForDecommission(string node, Cluster cluster, int maxTry)
         {
-            WaitFor(node, cluster, maxTry, true, true);
+            TestUtils.WaitFor(node, cluster, maxTry, true, true);
         }
 
         public static void WaitForDownWithWait(String node, Cluster cluster, int waitTime)
         {
-            WaitFor(node, cluster, 90, true, false);
+            TestUtils.WaitFor(node, cluster, 90, true, false);
 
             // FIXME: Once stop() works, remove this line
             try
@@ -266,7 +265,7 @@ namespace Cassandra.IntegrationTests.TestBase
 
         private static void WaitFor(string node, Cluster cluster, int maxTry, bool waitForDead, bool waitForOut)
         {
-            WaitForMeta(node, cluster, maxTry, !waitForDead); 
+            TestUtils.WaitForMeta(node, cluster, maxTry, !waitForDead); 
         }
 
         /// <summary>
@@ -352,19 +351,19 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public static ProcessOutput ExecuteLocalCcm(string ccmArgs, string ccmConfigDir, int timeout = 300000, bool throwOnProcessError = false)
         {
-            ccmConfigDir = EscapePath(ccmConfigDir);
+            ccmConfigDir = TestUtils.EscapePath(ccmConfigDir);
             var args = ccmArgs + " --config-dir=" + ccmConfigDir;
             Trace.TraceInformation("Executing ccm: " + ccmArgs);
             var processName = "/usr/local/bin/ccm";
-            if (IsWin)
+            if (TestUtils.IsWin)
             {
                 processName = "cmd.exe";
                 args = "/c ccm " + args;
             }
-            var output = ExecuteProcess(processName, args, timeout);
+            var output = TestUtils.ExecuteProcess(processName, args, timeout);
             if (throwOnProcessError)
             {
-                ValidateOutput(output);
+                TestUtils.ValidateOutput(output);
             }
             return output;
         }
@@ -466,7 +465,7 @@ namespace Cassandra.IntegrationTests.TestBase
                         while (sw.ElapsedMilliseconds < 180000)
                         {
                             var logFileText =
-                                TryReadAllTextNoLock(Path.Combine(ccmConfigDir, clusterName, String.Format("node{0}\\logs\\system.log", x)));
+                                TestUtils.TryReadAllTextNoLock(Path.Combine(ccmConfigDir, clusterName, String.Format("node{0}\\logs\\system.log", x)));
                             if (Regex.IsMatch(logFileText, "listening for CQL clients", RegexOptions.Multiline))
                             {
                                 foundText = true;
@@ -531,11 +530,11 @@ namespace Cassandra.IntegrationTests.TestBase
         /// </summary>
         public static bool FileExists(string path)
         {
-            if (!_existsCache.ContainsKey(path))
+            if (!TestUtils._existsCache.ContainsKey(path))
             {
-                _existsCache[path] = File.Exists(path);
+                TestUtils._existsCache[path] = File.Exists(path);
             }
-            return _existsCache[path];
+            return TestUtils._existsCache[path];
         }
 
         /// <summary>
@@ -584,7 +583,7 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public static void CcmDecommissionNode(CcmClusterInfo info, int node)
         {
-            ExecuteLocalCcm(string.Format("node{0} decommission", node), info.ConfigDir);
+            TestUtils.ExecuteLocalCcm(string.Format("node{0} decommission", node), info.ConfigDir);
         }
 
         /// <summary>
@@ -643,7 +642,22 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public static void WaitForSchemaAgreement(CcmClusterInfo clusterInfo)
         {
-            WaitForSchemaAgreement(clusterInfo.Cluster);
+            TestUtils.WaitForSchemaAgreement(clusterInfo.Cluster);
+        }
+
+        public static void VerifyCurrentClusterWorkloads(string[] expectedWorkloads)
+        {
+            using (var cluster = Cluster.Builder()
+                .AddContactPoint(TestClusterManager.InitialContactPoint)
+                .Build())
+            {
+                cluster.Connect();
+                foreach (var host in cluster.Metadata.AllHosts())
+                {
+
+                    CollectionAssert.AreEquivalent(expectedWorkloads, host.Workloads);
+                }
+            }
         }
     }
 

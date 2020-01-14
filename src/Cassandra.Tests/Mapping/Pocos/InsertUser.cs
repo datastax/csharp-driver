@@ -19,7 +19,7 @@ using System.Collections.Generic;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Attributes;
 
-namespace  Cassandra.Tests.Mapping.Pocos
+namespace Cassandra.Tests.Mapping.Pocos
 {
     [Table("users")]
     public class InsertUser

@@ -25,7 +25,6 @@ using Cassandra.Responses;
 using Cassandra.Serialization;
 using Cassandra.SessionManagement;
 using Moq;
-
 using NUnit.Framework;
 
 namespace Cassandra.Tests

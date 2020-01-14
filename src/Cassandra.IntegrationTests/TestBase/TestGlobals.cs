@@ -15,9 +15,6 @@
 //
 
 using System;
-using System.Diagnostics;
-using System.Reflection;
-using System.Threading;
 using System.Threading.Tasks;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
@@ -30,17 +27,7 @@ namespace Cassandra.IntegrationTests.TestBase
         public const int DefaultCassandraPort = 9042;
         public const int DefaultMaxClusterCreateRetries = 2;
         public const string DefaultLocalIpPrefix = "127.0.0.";
-        public const string DefaultInitialContactPoint = DefaultLocalIpPrefix + "1";
-        public const int ClusterInitSleepMsPerIteration = 500;
-        public const int ClusterInitSleepMsMax = 60 * 1000;
-
-        private static TestClusterManager _clusterManager;
-        private static bool _clusterManagerIsInitializing;
-        private static bool _clusterManagerIsInitalized;
-
-        public string CassandraVersionStr => TestClusterManager.CassandraVersionText;
-
-        public Version CassandraVersion => TestClusterManager.CassandraVersion;
+        public const string DefaultInitialContactPoint = TestGlobals.DefaultLocalIpPrefix + "1";
 
         /// <summary>
         /// Determines if we are running on AppVeyor.
@@ -52,7 +39,12 @@ namespace Cassandra.IntegrationTests.TestBase
         /// </summary>
         public ProtocolVersion GetProtocolVersion()
         {
-            var cassandraVersion = CassandraVersion;
+            if (TestClusterManager.CheckDseVersion(Version.Parse("6.0"), Comparison.GreaterThanOrEqualsTo))
+            {
+                return ProtocolVersion.DseV2;
+            }
+
+            var cassandraVersion = TestClusterManager.CassandraVersion;
             var protocolVersion = ProtocolVersion.V1;
             if (cassandraVersion >= Version.Parse("2.2"))
             {
@@ -67,109 +59,6 @@ namespace Cassandra.IntegrationTests.TestBase
                 protocolVersion = ProtocolVersion.V2;
             }
             return protocolVersion;
-        }
-        
-        public bool UseCtool { get; set; }
-        
-        public string DefaultIpPrefix { get; set; }
-        
-        public bool UseLogger { get; set; }
-        
-        public string LogLevel { get; set; }
-        
-        public string SSHHost { get; set; }
-        
-        public int SSHPort { get; set; }
-        
-        public string SSHUser { get; set; }
-        
-        public string SSHPassword { get; set; }
-        
-        public bool UseCompression { get; set; }
-        
-        public bool NoUseBuffering { get; set; }
-
-        public TestClusterManager TestClusterManager
-        {
-            get
-            {
-                if (_clusterManagerIsInitalized)
-                    return _clusterManager;
-                else if (_clusterManagerIsInitializing)
-                {
-                    while (_clusterManagerIsInitializing)
-                    {
-                        int SleepMs = 1000;
-                        Trace.TraceInformation(
-                            $"Shared {_clusterManagerIsInitializing.GetType().Name} object is initializing. Sleeping {SleepMs} MS ... ");
-                        Thread.Sleep(SleepMs);
-                    }
-                }
-                else
-                {
-                    _clusterManagerIsInitializing = true;
-                    _clusterManager = new TestClusterManager();
-                    _clusterManagerIsInitializing = false;
-                    _clusterManagerIsInitalized = true;
-                }
-                return _clusterManager;
-            }
-        }
-
-        [SetUp]
-        public void IndividualTestSetup()
-        {
-            VerifyAppropriateCassVersion();
-        }
-
-        // If any test is designed for another C* version, mark it as ignored
-        private void VerifyAppropriateCassVersion()
-        {
-            var test = TestContext.CurrentContext.Test;
-            var typeName = TestContext.CurrentContext.Test.ClassName;
-            var type = Type.GetType(typeName);
-            if (type == null)
-            {
-                return;
-            }
-            var testName = test.Name;
-            if (testName.IndexOf('(') > 0)
-            {
-                //The test name could be a TestCase: NameOfTheTest(ParameterValue);
-                //Remove the parenthesis
-                testName = testName.Substring(0, testName.IndexOf('('));
-            }
-            var methodAttr = type.GetMethod(testName)
-                .GetCustomAttribute<TestCassandraVersion>(true);
-            var attr = type.GetTypeInfo().GetCustomAttribute<TestCassandraVersion>();
-            if (attr == null && methodAttr == null)
-            {
-                //It does not contain the attribute, move on.
-                return;
-            }
-            if (methodAttr != null)
-            {
-                attr = methodAttr;
-            }
-            var versionAttr = attr;
-            var executingVersion = CassandraVersion;
-            if (!VersionMatch(versionAttr, executingVersion))
-                Assert.Ignore(
-                    $"Test Ignored: Test suitable to be run against Cassandra {versionAttr.Major}.{versionAttr.Minor}.{versionAttr.Build} {(versionAttr.Comparison >= 0 ? "or above" : "or below")}");
-        }
-
-        public static bool VersionMatch(TestCassandraVersion versionAttr, Version executingVersion)
-        {
-            //Compare them as integers
-            var expectedVersion = versionAttr.Major * 100000000 + versionAttr.Minor * 10000 + versionAttr.Build;
-            var actualVersion = executingVersion.Major * 100000000 + executingVersion.Minor * 10000 + executingVersion.Build;
-            var comparison = (Comparison)actualVersion.CompareTo(expectedVersion);
-
-            if (comparison >= Comparison.Equal && versionAttr.Comparison == Comparison.GreaterThanOrEqualsTo)
-            {
-                return true;
-            }
-            return comparison == versionAttr.Comparison;
         }
 
         public static async Task Connect(Cluster cluster, bool asyncConnect, Action<ISession> action)
@@ -196,6 +85,5 @@ namespace Cassandra.IntegrationTests.TestBase
                 }
             }
         }
-
     }
 }

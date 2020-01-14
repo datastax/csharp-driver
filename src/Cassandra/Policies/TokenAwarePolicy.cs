@@ -93,15 +93,8 @@ namespace Cassandra
                 }
                 yield break;
             }
-            var keyspace = loggedKeyspace;
-            // Story: Keyspace property has been added at Statement abstract class level and not at interface level
-            // to avoid introducing a breaking change
-            var statement = query as Statement;
-            if (statement != null && statement.Keyspace != null)
-            {
-                keyspace = statement.Keyspace;
-            }
 
+            var keyspace = query.Keyspace ?? loggedKeyspace;
             var replicas = _cluster.GetReplicas(keyspace, routingKey.RawRoutingKey);
 
             var localReplicaSet = new HashSet<Host>();

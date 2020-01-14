@@ -71,13 +71,20 @@ namespace Cassandra
         /// </summary>
         public ColumnDesc ReturnType { get; internal set; }
 
+        /// <summary>
+        /// Indicates whether or not this aggregate is deterministic. This means that given a particular input,
+        /// the aggregate will always produce the same output.
+        /// </summary>
+        public bool Deterministic { get; internal set; }
+
         public AggregateMetadata()
         {
             
         }
 
         public AggregateMetadata(string name, string keyspaceName, string[] signature, ColumnDesc[] argumentTypes, 
-                                 string stateFunction, ColumnDesc stateType, string finalFunction, string initialCondition, ColumnDesc returnType)
+                                 string stateFunction, ColumnDesc stateType, string finalFunction,
+                                 string initialCondition, ColumnDesc returnType)
         {
             Name = name;
             KeyspaceName = keyspaceName;

@@ -44,6 +44,9 @@ namespace Cassandra.Data.Linq
 
         public QueryTrace QueryTrace { get; private set; }
 
+        /// <inheritdoc />
+        public override string Keyspace => null;
+
         internal Batch(ISession session, BatchType batchType)
         {
             _session = session;

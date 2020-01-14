@@ -35,6 +35,11 @@ namespace Cassandra
 
         public Guid? TraceId { get; private set; }
 
+        /// <summary>
+        /// Gets the new_metadata_id or null if not provided.
+        /// </summary>
+        internal byte[] NewResultMetadataId => _metadata.NewResultMetadataId;
+
         internal OutputRows(FrameReader reader, Guid? traceId)
         {
             _metadata = new RowSetMetadata(reader);

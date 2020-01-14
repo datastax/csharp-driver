@@ -13,7 +13,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,7 +20,6 @@ using System.Text;
 using Cassandra.Connections;
 using Cassandra.Data.Linq;
 using Cassandra.Mapping;
-using Cassandra.Observers;
 using Cassandra.Serialization;
 using Cassandra.Tests.Mapping.Pocos;
 using Moq;

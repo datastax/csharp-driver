@@ -1,4 +1,4 @@
-﻿//
+//
 //      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -81,7 +81,7 @@ namespace Cassandra.IntegrationTests
 
             return cluster;
         }
-
+        
         protected Task<ISession> CreateSessionAsync(string creds = "creds-v1.zip", Action<Builder> act = null)
         {
             return CreateCluster(creds, act).ConnectAsync();

@@ -32,6 +32,7 @@ namespace Cassandra.Requests
         private readonly ICollection<IQueryRequest> _requests;
         private readonly BatchType _type;
         private readonly long? _timestamp;
+        private readonly string _keyspace;
 
         internal ConsistencyLevel SerialConsistency { get; }
 
@@ -62,6 +63,12 @@ namespace Cassandra.Requests
             if (_timestamp != null)
             {
                 _batchFlags |= QueryProtocolOptions.QueryFlags.WithDefaultTimestamp;   
+            }
+
+            if (protocolVersion.SupportsKeyspaceInRequest() && statement.Keyspace != null)
+            {
+                _batchFlags |= QueryProtocolOptions.QueryFlags.WithKeyspace;
+                _keyspace = statement.Keyspace;
             }
         }
 
@@ -113,12 +120,25 @@ namespace Cassandra.Requests
             wb.WriteUInt16((ushort) Consistency);
             if (protocolVersion.SupportsTimestamp())
             {
-                wb.WriteByte((byte) _batchFlags);
+                if (protocolVersion.Uses4BytesQueryFlags())
+                {
+                    wb.WriteInt32((int) _batchFlags);
+                }
+                else
+                {
+                    wb.WriteByte((byte) _batchFlags);
+                }
+
                 wb.WriteUInt16((ushort) SerialConsistency);
 
                 if (_timestamp != null)
                 {
                     wb.WriteLong(_timestamp.Value);
+                }
+
+                if (_keyspace != null)
+                {
+                    wb.WriteString(_keyspace);
                 }
             }
             return wb.Close();

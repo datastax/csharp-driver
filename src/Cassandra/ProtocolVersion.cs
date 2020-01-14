@@ -21,7 +21,7 @@ namespace Cassandra
 {
     /// <summary>
     /// Specifies the different protocol versions and provides methods (via extension methods) to check whether a
-    /// feature is supported in an specific version.
+    /// feature is supported in an specific version
     /// </summary>
     public enum ProtocolVersion : byte
     {
@@ -51,11 +51,15 @@ namespace Cassandra
         V5 = 0x05,
 
         /// <summary>
+        /// DSE protocol v2. DSE 6.0+.
+        /// </summary>
+        DseV2 = 0x42,
+
+        /// <summary>
         /// The higher protocol version that is supported by this driver.
         /// <para>When acquiring the first connection, it will use this version to start protocol negotiation.</para>
         /// </summary>
-        MaxSupported = V4,
-
+        MaxSupported = DseV2,
         /// <summary>
         /// The lower protocol version that is supported by this driver.
         /// </summary>
@@ -65,6 +69,7 @@ namespace Cassandra
     internal static class ProtocolVersionExtensions
     {
         private static readonly Logger Logger = new Logger(typeof(ProtocolVersion));
+        private static readonly Version Version60 = new Version(6, 0);
         private static readonly Version Version30 = new Version(3, 0);
         private static readonly Version Version22 = new Version(2, 2);
         private static readonly Version Version21 = new Version(2, 1);
@@ -75,7 +80,7 @@ namespace Cassandra
         /// </summary>
         public static bool IsSupported(this ProtocolVersion version)
         {
-            return version >= ProtocolVersion.V1 && version <= ProtocolVersion.V4;
+            return version == ProtocolVersion.DseV2 || (version >= ProtocolVersion.V1 && version <= ProtocolVersion.V4);
         }
 
         /// <summary>
@@ -108,6 +113,14 @@ namespace Cassandra
 
             foreach (var host in hosts)
             {
+                if (host.DseVersion != null && host.DseVersion >= Version60)
+                {
+                    v3Requirement = true;
+                    maxVersion = Math.Min((byte)ProtocolVersion.DseV2, maxVersion);
+                    maxVersionWith3OrMore = maxVersion;
+                    continue;
+                }
+
                 var cassandraVersion = host.CassandraVersion;
                 if (cassandraVersion >= Version30)
                 {
@@ -193,6 +206,38 @@ namespace Cassandra
         public static bool SupportsBatch(this ProtocolVersion version)
         {
             return version >= ProtocolVersion.V2;
+        }
+
+        /// <summary>
+        /// Determines if the protocol supports result_metadata_id on PREPARED response and EXECUTE request.
+        /// </summary>
+        public static bool SupportsResultMetadataId(this ProtocolVersion version)
+        {
+            return version >= ProtocolVersion.V5;
+        }
+
+        /// <summary>
+        /// Determines if the protocol supports to send the Keyspace as part of the PREPARE, QUERY and BATCH.
+        /// </summary>
+        public static bool SupportsKeyspaceInRequest(this ProtocolVersion version)
+        {
+            return version >= ProtocolVersion.V5;
+        }
+
+        /// <summary>
+        /// Determines if the protocol supports sending driver information in the STARTUP request.
+        /// </summary>
+        public static bool SupportsDriverInfoInStartup(this ProtocolVersion version)
+        {
+            return version >= ProtocolVersion.V5;
+        }
+
+        /// <summary>
+        /// Determines if the protocol provides a map of reasons as part of read_failure and write_failure.
+        /// </summary>
+        public static bool SupportsFailureReasons(this ProtocolVersion version)
+        {
+            return version >= ProtocolVersion.V5;
         }
 
         /// <summary>

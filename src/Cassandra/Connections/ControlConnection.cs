@@ -724,6 +724,12 @@ namespace Cassandra.Connections
             return response;
         }
 
+        /// <inheritdoc />
+        public Task<Response> UnsafeSendQueryRequestAsync(string cqlQuery, QueryProtocolOptions queryProtocolOptions)
+        {
+            return _connection.Send(new QueryRequest(ProtocolVersion, cqlQuery, false, queryProtocolOptions));
+        }
+
         /// <summary>
         /// Validates that the result contains a RowSet and returns it.
         /// </summary>

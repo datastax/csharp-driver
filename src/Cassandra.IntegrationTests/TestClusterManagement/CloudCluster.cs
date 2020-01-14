@@ -1,4 +1,4 @@
-﻿//
+//
 //      Copyright (C) DataStax Inc.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -150,6 +150,21 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             throw new System.NotImplementedException();
         }
 
+        public void BootstrapNode(int nodeIdToStart, bool start = true)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetNodeWorkloads(int nodeId, string[] workloads)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void BootstrapNode(int nodeIdToStart, string dataCenterName, bool start = true)
+        {
+            throw new NotImplementedException();
+        }
+
         public void BootstrapNode(int nodeIdToStart)
         {
             throw new NotImplementedException();
@@ -159,10 +174,15 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         {
             throw new NotImplementedException();
         }
-        
+
         public void DecommissionNode(int nodeId)
         {
             throw new System.NotImplementedException();
+        }
+
+        public void DecommissionNodeForcefully(int nodeId)
+        {
+            throw new NotImplementedException();
         }
 
         public void PauseNode(int nodeId)
@@ -173,6 +193,11 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public void ResumeNode(int nodeId)
         {
             throw new System.NotImplementedException();
+        }
+
+        public void SwitchToThisCluster()
+        {
+            throw new NotImplementedException();
         }
 
         private static void ExecCcmCommand(string ccmCmd)

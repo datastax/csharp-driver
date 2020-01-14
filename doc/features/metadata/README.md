@@ -2,7 +2,7 @@
 
 You can retrieve the cluster topology and the schema metadata information using the C# driver.
 
-After establishing the first connection, the driver retrieves the cluster topology details and exposes these through methods on the `Metadata` class. The `Metadata` instance for a given cluster can be accessed through the `Cluster.Metadata` property.
+After establishing the first connection, the driver retrieves the cluster topology details and exposes these through methods on the `Metadata` class. The `Metadata` instance for a given cluster can be accessed through the `ICluster.Metadata` property.
 
 ## Metadata Synchronization
 
@@ -13,7 +13,7 @@ It's this Metadata synchronization process that computes the internal `TokenMap`
 By default, this feature is enabled but it can be disabled:
 
 ```csharp
-var cluster = 
+var cluster =
    Cluster.Builder()
           .AddContactPoint("127.0.0.1")
           .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(false))
@@ -87,10 +87,10 @@ The driver waits for schema agreement after executing a schema-altering query. T
       |                    |                  |
 ```
 
-The schema agreement wait is performed when a `SCHEMA_CHANGED` response is received when executing a request. The task returned by `Session.ExecuteAsync` and other similar methods in Mapper and LINQ components will only be complete after the schema agreement wait (or until the timeout specified with `Builder.WithMaxSchemaAgreementWaitSeconds`). The same applies to synchronous methods like `Session.Execute`, i.e. they will only return after the schema agreement wait. Note that when the schema agreement wait returns due to a timeout, no exception will be thrown but nodes won't be in agreement.
+The schema agreement wait is performed when a `SCHEMA_CHANGED` response is received when executing a request. The task returned by `ISession.ExecuteAsync` and other similar methods in Mapper and LINQ components will only be complete after the schema agreement wait (or until the timeout specified with `Builder.WithMaxSchemaAgreementWaitSeconds`). The same applies to synchronous methods like `ISession.Execute`, i.e. they will only return after the schema agreement wait. Note that when the schema agreement wait returns due to a timeout, no exception will be thrown but nodes won't be in agreement.
 
 The check is implemented by repeatedly querying system tables for the schema version reported by each node, until they all converge to the same value. If that doesn't happen within a given timeout, the driver will give up waiting.
-The default timeout is `10` seconds, it can be customized when creating the `Cluster` instance:
+The default timeout is `10` seconds, it can be customized when creating the `ICluster` instance:
 
 ```csharp
 var cluster = 

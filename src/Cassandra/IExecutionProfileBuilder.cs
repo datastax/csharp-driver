@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using Cassandra.DataStax.Graph;
+
 namespace Cassandra
 {
     /// <summary>
@@ -70,5 +72,11 @@ namespace Cassandra
         /// </summary>
         /// <returns>This builder.</returns>
         IExecutionProfileBuilder WithReadTimeoutMillis(int readTimeoutMillis);
+
+        /// <summary>
+        /// <para>Sets the DSE Graph options.</para>
+        /// <para>See <see cref="GraphOptions"/> for additional information on the settings within the <see cref="GraphOptions"/> class.</para>
+        /// </summary>
+        IExecutionProfileBuilder WithGraphOptions(GraphOptions graphOptions);
     }
 }

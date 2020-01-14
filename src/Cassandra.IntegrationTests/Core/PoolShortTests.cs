@@ -20,14 +20,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Cassandra.Connections;
+using Cassandra.SessionManagement;
 using Cassandra.IntegrationTests.Policies.Util;
 using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.TestBase;
-using NUnit.Framework;
 using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
-using Cassandra.SessionManagement;
+using NUnit.Framework;
 using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core

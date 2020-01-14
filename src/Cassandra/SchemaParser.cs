@@ -675,6 +675,10 @@ namespace Cassandra
                 options = new TableOptions { comment = tableMetadataRow.GetValue<string>("comment") };
             }
 
+            options.NodeSync = tableMetadataRow.GetColumn("nodesync") != null
+                ? tableMetadataRow.GetValue<IDictionary<string, string>>("nodesync")
+                : null;
+
             var columnTasks = columnsRs
                 .Select(async row =>
                 {
@@ -870,6 +874,8 @@ namespace Cassandra
                             StateFunction = row.GetValue<string>("state_func"),
                             FinalFunction = row.GetValue<string>("final_func"),
                             InitialCondition = row.GetValue<string>("initcond"),
+                            Deterministic = row.GetColumn("deterministic") != null &&
+                                            row.GetValue<bool>("deterministic"),
                             Signature = argumentTypes,
                             StateType = tasks[0].Result,
                             ReturnType = tasks[1].Result,
@@ -905,7 +911,8 @@ namespace Cassandra
                         {
                             throw ex.InnerException;
                         }
-                        return new FunctionMetadata
+
+                        var result = new FunctionMetadata
                         {
                             Name = row.GetValue<string>("function_name"),
                             KeyspaceName = row.GetValue<string>("keyspace_name"),
@@ -917,6 +924,16 @@ namespace Cassandra
                             ReturnType = tasks[0].Result,
                             ArgumentTypes = tasks.Skip(1).Select(t => t.Result).ToArray()
                         };
+
+                        if (row.GetColumn("deterministic") != null)
+                        {
+                            // DSE 6.0+
+                            result.Deterministic = row.GetValue<bool>("deterministic");
+                            result.Monotonic = row.GetValue<bool>("monotonic");
+                            result.MonotonicOn = row.GetValue<string[]>("monotonic_on");
+                        }
+
+                        return result;
                     });
                 });
         }

@@ -14,13 +14,14 @@
 //   limitations under the License.
 //
 
-using Cassandra.IntegrationTests.TestBase;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using Cassandra.IntegrationTests.SimulacronAPI;
+using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using Cassandra.IntegrationTests.TestClusterManagement.Simulacron;
 
 namespace Cassandra.IntegrationTests.Core
@@ -265,7 +266,7 @@ namespace Cassandra.IntegrationTests.Core
                     rows => rows.WithRow(Guid.NewGuid(), "value")));
 
             var rs = _session.Execute(new SimpleStatement(string.Format(TestUtils.SELECT_ALL_FORMAT, _table)).SetPageSize(1));
-            if (CassandraVersion.Major < 2)
+            if (TestClusterManager.CheckCassandraVersion(false, new Version(2, 0), Comparison.LessThan))
             {
                 //Paging should be ignored in 1.x
                 //But setting the page size should work

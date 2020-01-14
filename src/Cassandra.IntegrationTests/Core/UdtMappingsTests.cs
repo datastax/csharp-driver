@@ -14,12 +14,13 @@
 //   limitations under the License.
 //
 
-using Cassandra.IntegrationTests.TestBase;
+using Cassandra.IntegrationTests.TestClusterManagement;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Tests;
 
 namespace Cassandra.IntegrationTests.Core
@@ -34,7 +35,7 @@ namespace Cassandra.IntegrationTests.Core
 
         public override void OneTimeSetUp()
         {
-            if (CassandraVersion < Version.Parse("2.1.0"))
+            if (TestClusterManager.CheckCassandraVersion(false, Version.Parse("2.1.0"), Comparison.LessThan))
                 Assert.Ignore("Requires Cassandra version >= 2.1");
 
             base.OneTimeSetUp();

@@ -13,16 +13,13 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 //
-
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-
 using Cassandra.Mapping;
 using Cassandra.Tasks;
 using Cassandra.Tests.Mapping.Pocos;
 using Cassandra.Tests.Mapping.TestData;
-
 using Moq;
 
 using NUnit.Framework;

@@ -19,7 +19,6 @@ using System.Collections.Generic;
 using System.Net;
 using Cassandra.Connections;
 using Cassandra.ExecutionProfiles;
-using Cassandra.Observers;
 using Cassandra.ProtocolEvents;
 using Cassandra.Requests;
 using Cassandra.SessionManagement;
@@ -128,24 +127,13 @@ namespace Cassandra.Tests
                 .Returns<IPEndPoint>(e => e);
             const int portNumber = 9999;
             var metadata = new Metadata(new Configuration());
-            var config = new Configuration(Policies.DefaultPolicies,
-                 new ProtocolOptions(portNumber),
-                 null,
-                 new SocketOptions(),
-                 new ClientOptions(),
-                 NoneAuthProvider.Instance,
-                 null,
-                 new QueryOptions(),
-                 translatorMock.Object,
-                 Mock.Of<IStartupOptionsFactory>(),
-                 new SessionFactoryBuilder(),
-                 new Dictionary<string, IExecutionProfile>(),
-                 new RequestOptionsMapper(),
-                 null,
-                 null,
-                 null,
-                 null,
-                 null);
+            var config =
+                new TestConfigurationBuilder
+                {
+                    ProtocolOptions = new ProtocolOptions(portNumber),
+                    AddressTranslator = translatorMock.Object,
+                    StartupOptionsFactory = Mock.Of<IStartupOptionsFactory>()
+                }.Build();
             var cc = NewInstance(config, metadata);
             cc.Host = TestHelper.CreateHost("127.0.0.1");
             metadata.AddHost(cc.Host.Address);

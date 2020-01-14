@@ -14,11 +14,15 @@
 //   limitations under the License.
 //
 
+using System;
 using System.Collections.Generic;
+using System.Net;
+using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.ProtocolEvents;
 using Cassandra.Serialization;
 using Cassandra.Tasks;
+
 using Moq;
 
 namespace Cassandra.Tests.Connections
@@ -28,9 +32,38 @@ namespace Cassandra.Tests.Connections
         public IControlConnection Create(IProtocolEventDebouncer protocolEventDebouncer, ProtocolVersion initialProtocolVersion, Configuration config, Metadata metadata, IEnumerable<object> contactPoints)
         {
             var cc = Mock.Of<IControlConnection>();
-            Mock.Get(cc).Setup(c => c.InitAsync()).Returns(TaskHelper.Completed);
+            Mock.Get(cc).Setup(c => c.InitAsync()).Returns(Task.Run(() =>
+            {
+                foreach (var cp in contactPoints)
+                {
+                    if (cp is string cpStr && IPAddress.TryParse(cpStr, out var addr))
+                    {
+                        var host = metadata.AddHost(new IPEndPoint(addr, config.ProtocolOptions.Port));
+                        host.SetInfo(BuildRow());
+                        Mock.Get(cc).Setup(c => c.Host).Returns(host);
+                    }
+                    else if (cp is IPEndPoint endpt)
+                    {
+                        var host = metadata.AddHost(endpt);
+                        host.SetInfo(BuildRow());
+                        Mock.Get(cc).Setup(c => c.Host).Returns(host);
+                    }
+                }
+            }));
             Mock.Get(cc).Setup(c => c.Serializer).Returns(new SerializerManager(ProtocolVersion.V3));
             return cc;
+        }
+
+        private IRow BuildRow(Guid? hostId = null)
+        {
+            return new TestHelper.DictionaryBasedRow(new Dictionary<string, object>
+            {
+                { "host_id", hostId ?? Guid.NewGuid() },
+                { "data_center", "dc1"},
+                { "rack", "rack1" },
+                { "release_version", "3.11.1" },
+                { "tokens", new List<string> { "1" }}
+            });
         }
     }
 }

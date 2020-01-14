@@ -16,23 +16,21 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using Cassandra.DataStax.Graph;
 
 namespace Cassandra.ExecutionProfiles
 {
     /// <inheritdoc />
     internal class RequestOptionsMapper : IRequestOptionsMapper
     {
-        public RequestOptionsMapper()
-        {
-        }
-
         /// <inheritdoc />
         public IReadOnlyDictionary<string, IRequestOptions> BuildRequestOptionsDictionary(
             IReadOnlyDictionary<string, IExecutionProfile> executionProfiles,
             Policies policies,
             SocketOptions socketOptions,
             ClientOptions clientOptions,
-            QueryOptions queryOptions)
+            QueryOptions queryOptions,
+            GraphOptions graphOptions)
         {
             executionProfiles.TryGetValue(Configuration.DefaultExecutionProfileName, out var defaultProfile);
             var requestOptions =
@@ -40,11 +38,11 @@ namespace Cassandra.ExecutionProfiles
                     .Where(kvp => kvp.Key != Configuration.DefaultExecutionProfileName)
                     .ToDictionary<KeyValuePair<string, IExecutionProfile>, string, IRequestOptions>(
                         kvp => kvp.Key,
-                        kvp => new RequestOptions(kvp.Value, defaultProfile, policies, socketOptions, queryOptions, clientOptions));
+                        kvp => new RequestOptions(kvp.Value, defaultProfile, policies, socketOptions, queryOptions, clientOptions, graphOptions));
 
             requestOptions.Add(
                 Configuration.DefaultExecutionProfileName, 
-                new RequestOptions(null, defaultProfile, policies, socketOptions, queryOptions, clientOptions));
+                new RequestOptions(null, defaultProfile, policies, socketOptions, queryOptions, clientOptions, graphOptions));
             return requestOptions;
         }
     }

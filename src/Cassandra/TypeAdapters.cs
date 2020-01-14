@@ -17,7 +17,7 @@
 namespace Cassandra
 {
     /// <summary>
-    /// TypeAdapters are deprecated and will be removed in future versions. Use <see cref="Cassandra.Serialization.TypeSerializer{T}"/> instead.
+    /// TypeAdapters are deprecated and will be removed in future versions. Use <see cref="Serialization.TypeSerializer{T}"/> instead.
     /// <para>
     /// Backwards compatibility only.
     /// </para>

@@ -28,9 +28,11 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Core
 {
-    [TestFixture, Category("short"), Category("schema_tests")]
+    [TestFixture, Category("short")]
     public class SchemaAgreementSimulacronTests
     {
+        private SimulacronCluster _simulacronCluster;
+        private Cluster _cluster;
         private const int MaxSchemaAgreementWaitSeconds = 10;
 
         private const string LocalSchemaVersionQuery = "SELECT schema_version FROM system.local";
@@ -60,24 +62,31 @@ namespace Cassandra.IntegrationTests.Core
                               new SocketOptions()
                                   .SetReadTimeoutMillis(5000)
                                   .SetConnectTimeoutMillis(10000))
-                          .WithMaxSchemaAgreementWaitSeconds(MaxSchemaAgreementWaitSeconds)
+                          .WithMaxSchemaAgreementWaitSeconds(SchemaAgreementSimulacronTests.MaxSchemaAgreementWaitSeconds)
                           .Build();
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            _simulacronCluster?.Dispose();
+            _simulacronCluster = null;
+            _cluster?.Dispose();
+            _cluster = null;
         }
 
         [Test]
         public async Task Should_CheckSchemaAgreementReturnTrue_When_OneSchemaVersionIsReturnedByQueries()
         {
             var schemaVersion = Guid.NewGuid();
-            using (var simulacronCluster = SimulacronCluster.CreateNew(3))
-            {
-                simulacronCluster.Prime(LocalSchemaVersionQueryPrime(schemaVersion));
-                simulacronCluster.Prime(PeersSchemaVersionQueryPrime(Enumerable.Repeat(schemaVersion, 2)));
-                using (var cluster = BuildCluster(simulacronCluster))
-                {
-                    cluster.Connect();
-                    Assert.IsTrue(await cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false));
-                }
-            }
+            _simulacronCluster = await SimulacronCluster.CreateNewAsync(3).ConfigureAwait(false);
+
+            _simulacronCluster.Prime(SchemaAgreementSimulacronTests.LocalSchemaVersionQueryPrime(schemaVersion));
+            _simulacronCluster.Prime(SchemaAgreementSimulacronTests.PeersSchemaVersionQueryPrime(Enumerable.Repeat(schemaVersion, 2)));
+            _cluster = SchemaAgreementSimulacronTests.BuildCluster(_simulacronCluster);
+
+            _cluster.Connect();
+            Assert.IsTrue(await _cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false));
         }
 
         [Test]
@@ -85,16 +94,17 @@ namespace Cassandra.IntegrationTests.Core
         {
             var schemaVersion1 = Guid.NewGuid();
             var schemaVersion2 = Guid.NewGuid();
-            using (var simulacronCluster = SimulacronCluster.CreateNew(3))
-            {
-                simulacronCluster.Prime(LocalSchemaVersionQueryPrime(schemaVersion1));
-                simulacronCluster.Prime(PeersSchemaVersionQueryPrime(new[] { schemaVersion1, schemaVersion2 }));
-                using (var cluster = BuildCluster(simulacronCluster))
-                {
-                    cluster.Connect();
-                    Assert.IsFalse(await cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false));
-                }
-            }
+            _simulacronCluster = await SimulacronCluster.CreateNewAsync(3).ConfigureAwait(false);
+
+            await _simulacronCluster.PrimeAsync(
+                SchemaAgreementSimulacronTests.LocalSchemaVersionQueryPrime(schemaVersion1)).ConfigureAwait(false);
+            await _simulacronCluster.PrimeAsync(
+                SchemaAgreementSimulacronTests.PeersSchemaVersionQueryPrime(
+                    new[] { schemaVersion1, schemaVersion2 })).ConfigureAwait(false);
+            _cluster = SchemaAgreementSimulacronTests.BuildCluster(_simulacronCluster);
+
+            await _cluster.ConnectAsync().ConfigureAwait(false);
+            Assert.IsFalse(await _cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false));
         }
 
         [Test]
@@ -111,22 +121,23 @@ namespace Cassandra.IntegrationTests.Core
                     .ThenRowsSuccess(new[] { ("test", DataType.Ascii) }, rows => rows.WithRow("123"))
                     .BuildRequest();
 
-            using (var simulacronCluster = SimulacronCluster.CreateNew(3))
-            {
-                simulacronCluster.Prime(LocalSchemaVersionQueryPrime(schemaVersion1));
-                simulacronCluster.Prime(PeersSchemaVersionQueryPrime(new[] { schemaVersion1, schemaVersion2 }));
-                using (var cluster = BuildCluster(simulacronCluster))
-                {
-                    var session = cluster.Connect();
+            _simulacronCluster = await SimulacronCluster.CreateNewAsync(3).ConfigureAwait(false);
+            await _simulacronCluster
+                  .PrimeAsync(SchemaAgreementSimulacronTests.LocalSchemaVersionQueryPrime(schemaVersion1))
+                  .ConfigureAwait(false);
+            await _simulacronCluster
+                  .PrimeAsync(SchemaAgreementSimulacronTests.PeersSchemaVersionQueryPrime(
+                      new[] { schemaVersion1, schemaVersion2 }))
+                  .ConfigureAwait(false);
+            _cluster = SchemaAgreementSimulacronTests.BuildCluster(_simulacronCluster);
+            var session = await _cluster.ConnectAsync().ConfigureAwait(false);
 
-                    simulacronCluster.Prime(queryPrime);
-                    var cql = new SimpleStatement(selectStatement);
-                    var rowSet = await session.ExecuteAsync(cql).ConfigureAwait(false);
-                    Assert.AreEqual("123", rowSet.First().GetValue<string>("test"));
-                    Assert.IsTrue(rowSet.Info.IsSchemaInAgreement);
-                    Assert.IsFalse(await cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false));
-                }
-            }
+            await _simulacronCluster.PrimeAsync(queryPrime).ConfigureAwait(false);
+            var cql = new SimpleStatement(selectStatement);
+            var rowSet = await session.ExecuteAsync(cql).ConfigureAwait(false);
+            Assert.AreEqual("123", rowSet.First().GetValue<string>("test"));
+            Assert.IsTrue(rowSet.Info.IsSchemaInAgreement);
+            Assert.IsFalse(await _cluster.Metadata.CheckSchemaAgreementAsync().ConfigureAwait(false));
         }
     }
 }

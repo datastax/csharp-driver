@@ -16,7 +16,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading;
+using System.Text;
 using Cassandra.Requests;
 
 namespace Cassandra
@@ -26,11 +26,14 @@ namespace Cassandra
     /// </summary>
     public abstract class Statement : IStatement
     {
+        protected const string ProxyExecuteKey = "ProxyExecute";
         private ConsistencyLevel _serialConsistency = QueryProtocolOptions.Default.SerialConsistency;
         private object[] _values;
         private bool _autoPage = true;
         private volatile int _isIdempotent = int.MinValue;
         private volatile Host _host;
+        private string _authorizationId;
+        private IDictionary<string, byte[]> _outgoingPayload;
 
         public virtual object[] QueryValues
         {
@@ -75,7 +78,11 @@ namespace Cassandra
         }
 
         /// <inheritdoc />
-        public IDictionary<string, byte[]> OutgoingPayload { get; private set; }
+        public IDictionary<string, byte[]> OutgoingPayload
+        {
+            get { return _outgoingPayload; }
+            private set { RebuildOutgoingPayload(value); }
+        }
 
         /// <inheritdoc />
         public abstract RoutingKey RoutingKey { get; }
@@ -94,20 +101,7 @@ namespace Cassandra
             }
         }
 
-        /// <summary>
-        /// Returns the keyspace this query operates on.
-        /// <para>
-        /// Note that not all <see cref="Statement"/> implementations specify on which keyspace they operate on
-        /// so this method can return <c>null</c>.
-        /// </para>
-        /// <para>
-        /// The keyspace returned is used as a hint for token-aware routing.
-        /// </para>
-        /// </summary>
-        /// <remarks>
-        /// Consider using a <see cref="ISession"/> connected to single keyspace using 
-        /// <see cref="ICluster.Connect(string)"/>.
-        /// </remarks>
+        /// <inheritdoc />
         public virtual string Keyspace
         {
             get { return null; }
@@ -132,6 +126,34 @@ namespace Cassandra
         protected Statement(QueryProtocolOptions queryProtocolOptions)
         {
             //the unused parameter is maintained for backward compatibility
+        }
+
+        /// <inheritdoc />
+        public IStatement ExecutingAs(string userOrRole)
+        {
+            _authorizationId = userOrRole;
+            RebuildOutgoingPayload(_outgoingPayload);
+            return this;
+        }
+
+        private void RebuildOutgoingPayload(IDictionary<string, byte[]> payload)
+        {
+            if (_authorizationId == null)
+            {
+                _outgoingPayload = payload;
+                return;
+            }
+            IDictionary<string, byte[]> builder;
+            if (payload != null)
+            {
+                builder = new Dictionary<string, byte[]>(payload);
+            }
+            else
+            {
+                builder = new Dictionary<string, byte[]>(1);
+            }
+            builder[ProxyExecuteKey] = Encoding.UTF8.GetBytes(_authorizationId);
+            _outgoingPayload = builder;
         }
 
         /// <inheritdoc />

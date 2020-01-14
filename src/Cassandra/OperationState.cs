@@ -16,10 +16,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Cassandra.Connections;
 using Cassandra.Observers.Abstractions;
 using Cassandra.Requests;
@@ -46,7 +46,7 @@ namespace Cassandra
         private volatile bool _timeoutCallbackSet;
         private int _state = StateInit;
         private volatile HashedWheelTimer.ITimeout _timeout;
-        
+
         public IRequest Request { get; private set; }
 
         /// <summary>
@@ -145,7 +145,7 @@ namespace Cassandra
         }
 
         /// <summary>
-        /// Marks this operation as timed-out, callbacks with the exception 
+        /// Marks this operation as timed-out, callbacks with the exception
         /// and sets a handler when the response is received
         /// </summary>
         public bool MarkAsTimedOut(OperationTimedOutException ex, Action onReceive, long timestamp)

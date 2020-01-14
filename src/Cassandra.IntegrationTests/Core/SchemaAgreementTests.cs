@@ -43,7 +43,7 @@ namespace Cassandra.IntegrationTests.Core
                               .WithSocketOptions(new SocketOptions()
                                                  .SetReadTimeoutMillis(15000)
                                                  .SetConnectTimeoutMillis(60000))
-                              .WithMaxSchemaAgreementWaitSeconds(MaxSchemaAgreementWaitSeconds)
+                              .WithMaxSchemaAgreementWaitSeconds(SchemaAgreementTests.MaxSchemaAgreementWaitSeconds)
                               .Build();
             _session = (Session)_cluster.Connect();
             _session.CreateKeyspace(KeyspaceName, null, false);

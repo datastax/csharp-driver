@@ -14,8 +14,8 @@
 //   limitations under the License.
 //
 
-using System;
 using System.Net;
+
 using Cassandra.Connections;
 
 // ReSharper disable once CheckNamespace
