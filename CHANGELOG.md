@@ -1,5 +1,20 @@
 # ChangeLog - DataStax C# Driver
 
+## 3.13.0
+
+2020-01-15
+
+### Features
+
+*   [[CSHARP-791](https://datastax-oss.atlassian.net/browse/CSHARP-791)] - Unified Driver
+*   [[CSHARP-840](https://datastax-oss.atlassian.net/browse/CSHARP-840)] - Linq2Cql and Mapper should generate CQL statements in a deterministic way
+
+### Bug fixes
+
+*   [[CSHARP-837](https://datastax-oss.atlassian.net/browse/CSHARP-837)] - Serializer protocol version is changed after init, causing current active connections to fail
+*   [[CSHARP-835](https://datastax-oss.atlassian.net/browse/CSHARP-835)] - BatchStatement error message uses short.MaxValue instead of ushort.MaxValue
+*   [[CSHARP-832](https://datastax-oss.atlassian.net/browse/CSHARP-832)] - Some graph related classes depend on the current culture
+
 ## CassandraCSharpDriver.AppMetrics 1.0.1
 
 2019-11-11
