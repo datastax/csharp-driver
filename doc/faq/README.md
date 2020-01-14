@@ -1,5 +1,11 @@
 # FAQ
 
+## DataStax drivers unification
+
+As of the 3.13.0 release of the [DataStax C# Driver for Apache Cassandra®](https://docs.datastax.com/en/developer/csharp-driver/latest/), the DataStax Enterprise C# Driver functionality has been merged into this single, DataStax driver. Please refer to [the blog post](https://www.datastax.com/blog/2020/01/better-drivers-for-cassandra) for more information on this change.
+
+---
+
 ### Which versions of DSE does the driver support?
 
 The driver supports any [DataStax Enterprise][dse] version from 4.8+.
