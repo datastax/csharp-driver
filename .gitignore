@@ -49,3 +49,4 @@ src/packages/*/
 *.userprefs
 
 doc/api-docs/
+doc/DataStaxStyle/

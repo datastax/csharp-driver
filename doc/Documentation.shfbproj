@@ -149,6 +149,7 @@
     <MSHelp2SdkLinkType>Msdn</MSHelp2SdkLinkType>
     <IncludeStopWordList>True</IncludeStopWordList>
     <SaveComponentCacheCapacity>100</SaveComponentCacheCapacity>
+    <HeaderText>&amp;lt%3bnoscript&amp;gt%3b&amp;lt%3biframe src=&amp;quot%3bhttps://www.googletagmanager.com/ns.html%3fid=GTM-TWSQ28&amp;quot%3b height=&amp;quot%3b0&amp;quot%3b width=&amp;quot%3b0&amp;quot%3b style=&amp;quot%3bdisplay:none%3bvisibility:hidden&amp;quot%3b&amp;gt%3b&amp;lt%3b/iframe&amp;gt%3b&amp;lt%3b/noscript&amp;gt%3b</HeaderText>
   </PropertyGroup>
   <!-- There are no properties for these groups.  AnyCPU needs to appear in
        order for Visual Studio to perform the build.  The others are optional
