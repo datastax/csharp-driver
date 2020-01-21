@@ -26,7 +26,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Mapping.Tests
 {
-    [Category("short"), Category("realcluster")]
+    [Category("short"), Category("realcluster"), Category("testwindows")]
     public class First : SharedClusterTest
     {
         ISession _session;
