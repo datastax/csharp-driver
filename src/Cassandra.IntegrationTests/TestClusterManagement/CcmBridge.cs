@@ -111,6 +111,10 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 parameters.Add("--quiet-windows");
             }
+            if (CcmProcessExecuter is WslCcmProcessExecuter)
+            {
+                parameters.Add("--root");
+            }
             if (jvmArgs != null)
             {
                 foreach (var arg in jvmArgs)
@@ -171,7 +175,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
             if (CcmProcessExecuter is WslCcmProcessExecuter)
             {
-                runAsRoot = "-R";
+                runAsRoot = "--root";
             }
 
             ExecuteCcm(string.Format("node{0} start --wait-for-binary-proto {1} {2} {3}", n, additionalArgs, quietWindows, runAsRoot));
