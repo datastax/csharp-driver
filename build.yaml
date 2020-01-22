@@ -62,7 +62,7 @@ dotnet:
 build:
   - batch:
     script: |
-      powershell.exe -File '.\buildps.ps1'
+      powershell.exe -File .\buildps.ps1
       
       if errorlevel 1 (
          echo Failure Reason Given is %errorlevel%
