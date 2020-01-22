@@ -10,7 +10,7 @@ schedules:
       # netstandard2.0 build latest minors
         - dotnet: 'netcoreapp2.1'
           cassandra: ['3.0', 'dse-5.0', 'dse-6.0', 'dse-6.8']
-        - os: /^windows/
+        - os: 'wcs'
         - dotnet: 'net461'
   nightly:
     # nightly job for primary branches to run all configs.
@@ -21,7 +21,7 @@ schedules:
     matrix:
       exclude:
         - dotnet: 'net461'
-        - os: /^windows/
+        - os: 'wcs'
   adhoc:
     # adhoc job for non-primary braches that doesn't have a schedule but may be used to run all configs.
     schedule: adhoc
@@ -30,8 +30,8 @@ schedules:
     matrix:
       exclude:
         - dotnet: 'net461'
-        - os: /^windows/        
-  testwindows:
+        - os: 'wcs'        
+  win:
     # adhoc job for non-primary braches that doesn't have a schedule but may be used to run all configs.
     schedule: adhoc
     branches:
@@ -43,7 +43,7 @@ schedules:
         - cassandra: ['2.1', '2.2', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0']
 os:
   - ubuntu/bionic64/csharp-driver
-  - windows/win10pro/csharp-driver
+  - wcs
 cassandra:
   - '2.1'
   - '2.2'
