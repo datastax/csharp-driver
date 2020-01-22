@@ -61,8 +61,7 @@ dotnet:
 build:
   - type: batch
     only:
-      - os: /^windows/
-        dotnet: ['net461', 'netcoreapp2.0', 'netcoreapp2.1']
+      os: /^windows/
     commands: |
     
       powershell.exe -File '.\buildps.ps1'
@@ -73,8 +72,7 @@ build:
       )
   - type: shell
     only:
-      - os: /^(ubuntu|centos)/
-        dotnet: ['mono', 'netcoreapp2.0', 'netcoreapp2.1']
+      os: /^(ubuntu|centos)/
     script: |
       export CASS_VERSION_SNI='dse-6.7'
       
