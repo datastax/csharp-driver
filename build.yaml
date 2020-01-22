@@ -59,7 +59,7 @@ dotnet:
   - 'netcoreapp2.1'
   - 'net461'
 build:
-  - powershell:
+  - type: powershell
     only:
       - os: /^windows/
         dotnet: ['net461', 'netcoreapp2.0', 'netcoreapp2.1']
@@ -145,7 +145,7 @@ build:
       {
           exit -1
       }
-  - shell:
+  - type: shell
     only:
       - os: /^(ubuntu|centos)/
         dotnet: ['mono', 'netcoreapp2.0', 'netcoreapp2.1']
