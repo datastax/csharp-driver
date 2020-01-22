@@ -59,7 +59,7 @@ dotnet:
   - 'netcoreapp2.1'
   - 'net461'
 build:
-  - type: powershell
+  - batch:
     script: |
       powershell.exe -File '.\buildps.ps1'
       
