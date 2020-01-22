@@ -59,7 +59,7 @@ dotnet:
   - 'netcoreapp2.1'
   - 'net461'
 build:
-  - batch:
+  - type: powershell
     script: |
       powershell.exe -File '.\buildps.ps1'
       
@@ -68,8 +68,7 @@ build:
          exit /b %errorlevel%
       )
       
-  - shell:
-    script: |
+  - script: |
       export CASS_VERSION_SNI='dse-6.7'
       
       # Set the Java paths (for CCM)
