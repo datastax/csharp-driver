@@ -80,6 +80,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             var fileInfo = new FileInfo(sniPath);
             var args = string.Empty;
             var envVars = new Dictionary<string, string>();
+            var timeout = 300000;
             if (SniCertificateValidation && TestCloudClusterManager.CertFile != null)
             {
                 if (sniPath.EndsWith("run.ps1"))
@@ -99,6 +100,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
             if (sniPath.EndsWith(".ps1"))
             {
+                timeout = 600000;
                 var oldSniPath = sniPath;
                 sniPath = @"powershell";
                 args = "\"& '" + oldSniPath + "'" + args + "\"";
@@ -112,7 +114,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
             SniHomeDirectory = fileInfo.Directory.FullName;
 
-            ExecCommand(true, sniPath, args, envVars, fileInfo.Directory.FullName);
+            ExecCommand(true, sniPath, args, timeout, envVars, fileInfo.Directory.FullName);
         }
 
         public void StopForce(int nodeIdToStop)
@@ -214,10 +216,10 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
         }
 
-        private static ProcessOutput ExecCommand(bool throwOnProcessError, string executable, string args, IReadOnlyDictionary<string, string> envVars = null, string workDir = null)
+        private static ProcessOutput ExecCommand(bool throwOnProcessError, string executable, string args, int timeOut = 300000, IReadOnlyDictionary<string, string> envVars = null, string workDir = null)
         {
             Trace.TraceInformation($"{executable} {args}");
-            var output = CcmBridge.ExecuteProcess(executable, args, timeout: 300000, envVariables: envVars, workDir: workDir);
+            var output = CcmBridge.ExecuteProcess(executable, args, timeOut, envVariables: envVars, workDir: workDir);
 
             if (!throwOnProcessError)
             {

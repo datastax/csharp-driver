@@ -20,6 +20,8 @@ $env:PATH += ";$env:JAVA_HOME\bin"
 $env:SIMULACRON_PATH="$env:HOME\simulacron.jar"
 $env:CCM_USE_WSL = "true"
 
+ls $env:SIMULACRON_PATH
+
 if ( $Env:CASSANDRA_VERSION -Match "dse-*" )
 {
     $Env:DSE_BRANCH=$Env:CCM_BRANCH
