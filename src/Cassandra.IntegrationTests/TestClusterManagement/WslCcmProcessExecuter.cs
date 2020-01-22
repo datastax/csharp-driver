@@ -33,7 +33,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 throw new InvalidOperationException("Can only use WSL CCM process executor in windows.");
             }
-            var executable = "wsl";
+            var executable = "wsl.exe";
             args = $"bash --login -c 'nohup ccm {args}'";
             return executable;
         }
