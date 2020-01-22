@@ -115,16 +115,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                         {
                             output.OutputText.AppendLine(e.Data);
                         }
-                    };
-
-                    try
-                    {
-                        process.Start();
-                    }
-                    catch (Exception exception)
-                    {
-                        Trace.TraceInformation("Process start failure: " + exception.Message);
-                    }
+                    }; 
+                    
+                    process.Start();
 
                     process.BeginOutputReadLine();
                     process.BeginErrorReadLine();
