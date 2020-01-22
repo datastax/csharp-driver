@@ -63,7 +63,7 @@ build:
     only:
       - os: /^windows/
         dotnet: ['net461', 'netcoreapp2.0', 'netcoreapp2.1']
-    script: |
+    commands: |
     
       powershell.exe -File '.\buildps.ps1'
       
