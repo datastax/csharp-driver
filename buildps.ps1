@@ -11,10 +11,11 @@ $data | foreach {
     Set-Item "env:$v1" $v2
 }
 $env:CASS_VERSION_SNI='dse-6.7'
-      
+
 $env:PATH += ";$env:JAVA_HOME\bin"
 $env:SIMULACRON_PATH="$env:HOME\simulacron.jar"
-      
+$env:CCM_USE_WSL = "true"
+
 if ( $Env:CASSANDRA_VERSION -Match "dse-*" )
 {
     $Env:DSE_BRANCH=$Env:CCM_BRANCH
@@ -32,7 +33,6 @@ if ( $Env:CASSANDRA_VERSION -Match "dse-*" )
     echo $Env:DSE_PATH
     echo $Env:DSE_INITIAL_IPPREFIX
     echo $Env:DSE_IN_REMOTE_SERVER
-    echo $Env:DSE_INITIAL_IPPREFIX
 }
 
 echo $Env:CSHARP_VERSION

@@ -176,26 +176,33 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         {
             get
             {
-                if (_executor != null)
+                if (TestClusterManager._executor != null)
                 {
-                    return _executor;
+                    return TestClusterManager._executor;
                 }
-                var dseRemote = bool.Parse(Environment.GetEnvironmentVariable("DSE_IN_REMOTE_SERVER") ?? "false");
-                if (!dseRemote)
-                {
-                    _executor = LocalCcmProcessExecuter.Instance;
-                }
-                else
+
+                if (bool.Parse(Environment.GetEnvironmentVariable("DSE_IN_REMOTE_SERVER") ?? "false"))
                 {
                     var remoteDseServer = Environment.GetEnvironmentVariable("DSE_SERVER_IP") ?? "127.0.0.1";
                     var remoteDseServerUser = Environment.GetEnvironmentVariable("DSE_SERVER_USER") ?? "vagrant";
                     var remoteDseServerPassword = Environment.GetEnvironmentVariable("DSE_SERVER_PWD") ?? "vagrant";
                     var remoteDseServerPort = int.Parse(Environment.GetEnvironmentVariable("DSE_SERVER_PORT") ?? "2222");
                     var remoteDseServerUserPrivateKey = Environment.GetEnvironmentVariable("DSE_SERVER_PRIVATE_KEY");
-                    _executor = new RemoteCcmProcessExecuter(remoteDseServer, remoteDseServerUser, remoteDseServerPassword,
-                        remoteDseServerPort, remoteDseServerUserPrivateKey);
+                    TestClusterManager._executor = 
+                        new RemoteCcmProcessExecuter(
+                            remoteDseServer, remoteDseServerUser, remoteDseServerPassword, 
+                            remoteDseServerPort, remoteDseServerUserPrivateKey);
                 }
-                return _executor;
+                else if (bool.Parse(Environment.GetEnvironmentVariable("CCM_USE_WSL") ?? "false"))
+                {
+                    TestClusterManager._executor = WslCcmProcessExecuter.Instance;
+                }
+                else
+                {
+                    TestClusterManager._executor = LocalCcmProcessExecuter.Instance;
+                }
+
+                return TestClusterManager._executor;
             }
         }
 

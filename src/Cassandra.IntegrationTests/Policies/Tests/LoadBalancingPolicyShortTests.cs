@@ -28,7 +28,7 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Policies.Tests
 {
-    [TestFixture, Category("short"), Category("realcluster")]
+    [TestFixture, Category("short"), Category("realcluster"), Category("testwindows")]
     public class LoadBalancingPolicyShortTests : SharedClusterTest
     {
         public LoadBalancingPolicyShortTests() : base(3, false, true, new TestClusterOptions { UseVNodes = true })
