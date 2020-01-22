@@ -1,7 +1,11 @@
+
+$env:HOME='C:\Users\Admin'
+
+. $env:HOME\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1
+
 wsl bash --login -c "/mnt/c/Users/Admin/ccm_environment.sh $Env:CASSANDRA_VERSION"
 wsl bash --login -c "cp ~/environment.txt /mnt/c/Users/Admin"
       
-$env:HOME='C:\Users\Admin'
       
 $data = get-content "$Env:HOME\environment.txt"
 $data = $data -replace "`n","`r`n"
