@@ -61,13 +61,13 @@ dotnet:
 build:
   - batch:
     script: |
-    
       powershell.exe -File '.\buildps.ps1'
       
       if errorlevel 1 (
          echo Failure Reason Given is %errorlevel%
          exit /b %errorlevel%
       )
+      
   - shell:
     script: |
       export CASS_VERSION_SNI='dse-6.7'
