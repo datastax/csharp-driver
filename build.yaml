@@ -59,10 +59,8 @@ dotnet:
   - 'netcoreapp2.1'
   - 'net461'
 build:
-  - type: batch
-    only:
-      os: /^windows/
-    commands: |
+  - batch:
+    script: |
     
       powershell.exe -File '.\buildps.ps1'
       
@@ -70,9 +68,7 @@ build:
          echo Failure Reason Given is %errorlevel%
          exit /b %errorlevel%
       )
-  - type: shell
-    only:
-      os: /^(ubuntu|centos)/
+  - shell:
     script: |
       export CASS_VERSION_SNI='dse-6.7'
       
