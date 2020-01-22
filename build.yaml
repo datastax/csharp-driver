@@ -38,7 +38,7 @@ schedules:
       exclude: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
     matrix:
       exclude:
-        - os: /^(ubuntu|centos)/
+        - os: ["/^(ubuntu|centos).*/"]
         - dotnet: 'mono'
 os:
   - ubuntu/bionic64/csharp-driver
