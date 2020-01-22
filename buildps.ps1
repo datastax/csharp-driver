@@ -80,5 +80,5 @@ java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_xunit.xml tools/JUnitX
 #Fail the build if there was an error
 if ( $is_error -eq $True )
 {
-    exit -1
+    exit 1
 }
