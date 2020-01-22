@@ -163,11 +163,18 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public void Start(int n, string additionalArgs = null)
         {
             string quietWindows = null;
+            string runAsRoot = null;
             if (TestUtils.IsWin && CcmProcessExecuter is LocalCcmProcessExecuter)
             {
                 quietWindows = "--quiet-windows";
             }
-            ExecuteCcm(string.Format("node{0} start --wait-for-binary-proto {1} {2}", n, additionalArgs, quietWindows));
+
+            if (CcmProcessExecuter is WslCcmProcessExecuter)
+            {
+                runAsRoot = "-R";
+            }
+
+            ExecuteCcm(string.Format("node{0} start --wait-for-binary-proto {1} {2} {3}", n, additionalArgs, quietWindows, runAsRoot));
         }
 
         public void Stop(int n)
