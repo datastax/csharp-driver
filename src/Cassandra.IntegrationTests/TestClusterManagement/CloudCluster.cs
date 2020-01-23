@@ -103,7 +103,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 timeout = 12000000;
                 var oldSniPath = sniPath;
                 sniPath = @"powershell";
-                args = "\"& '" + oldSniPath + "'" + args + "\"";
+                args = "-executionpolicy unrestricted \"& '" + oldSniPath + "'" + args + "\"";
             }
             
             if (envVars.ContainsKey("REQUIRE_CLIENT_CERTIFICATE")) 

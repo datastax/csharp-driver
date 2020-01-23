@@ -73,14 +73,14 @@ Invoke-WebRequest -OutFile saxon/saxon9he.jar -Uri https://repo1.maven.org/maven
 dotnet restore src
 
 # Run the tests
-dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f $Env:DOTNET_VERSION -c Release --filter "TestCategory=testwindows" --logger "xunit;LogFilePath=../../TestResult_xunit.xml"
-      
-$is_error=$?
+dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f $Env:DOTNET_VERSION -c Release --filter "TestCategory=testwindows" --logger "xunit;LogFilePath=../../TestResult_xunit.xml" -- RunConfiguration.TargetPlatform=x64
+
+$testError=$LASTEXITCODE
       
 java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_xunit.xml tools/JUnitXml.xslt
       
 #Fail the build if there was an error
-if ( $is_error -eq $True )
+if ( $testError -ne 0 )
 {
     exit 1
 }
