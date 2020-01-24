@@ -217,7 +217,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
         }
 
-        private static ProcessOutput ExecCommand(bool throwOnProcessError, string executable, string args, int timeOut = 300000, IReadOnlyDictionary<string, string> envVars = null, string workDir = null)
+        private static ProcessOutput ExecCommand(bool throwOnProcessError, string executable, string args, int timeOut = 20*60*1000, IReadOnlyDictionary<string, string> envVars = null, string workDir = null)
         {
             Trace.TraceInformation($"{executable} {args}");
             var output = ExecuteProcess(executable, args, timeOut, envVariables: envVars, workDir: workDir);

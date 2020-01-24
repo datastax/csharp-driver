@@ -186,7 +186,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
             var policyTestTools = new PolicyTestTools();
 
             // Test
-            policyTestTools.CreateSchema(Session);
+            policyTestTools.CreateSchema(Session, 1, forceSchemaAgreement: true);
             policyTestTools.TableName = TestUtils.GetUniqueTableName();
             Session.Execute($"CREATE TABLE {policyTestTools.TableName} (k1 text, k2 int, i int, PRIMARY KEY ((k1, k2)))");
             Thread.Sleep(1000);
@@ -214,7 +214,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
             // Setup
             var policyTestTools = new PolicyTestTools { TableName = TestUtils.GetUniqueTableName() };
 
-            policyTestTools.CreateSchema(Session, 1);
+            policyTestTools.CreateSchema(Session, 1, forceSchemaAgreement: true);
             var traces = new List<QueryTrace>();
             for (var i = 1; i < 10; i++)
             {
@@ -236,7 +236,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
             // Setup
             var policyTestTools = new PolicyTestTools { TableName = TestUtils.GetUniqueTableName() };
 
-            policyTestTools.CreateSchema(Session, 1);
+            policyTestTools.CreateSchema(Session, 1, forceSchemaAgreement: true);
             var traces = new List<QueryTrace>();
             for (var i = 1; i < 10; i++)
             {
@@ -308,6 +308,9 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
             var ks = TestUtils.GetUniqueKeyspaceName().ToLower();
             const string createKeyspaceQuery = "CREATE KEYSPACE {0} WITH replication = {{ 'class' : '{1}', {2} }}";
             session.Execute(string.Format(createKeyspaceQuery, ks, "SimpleStrategy", "'replication_factor' : 3"));
+            TestHelper.RetryAssert(
+                () => Assert.IsTrue(session.Cluster.Metadata.CheckSchemaAgreementAsync().Result),
+                1000, 60);
             var table = new Table<Author>(session, MappingConfiguration.Global, "author", ks);
             table.CreateIfNotExists();
             RowSet rs = null;
