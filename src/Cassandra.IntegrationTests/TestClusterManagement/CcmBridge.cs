@@ -31,7 +31,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
     {
         public DirectoryInfo CcmDir { get; private set; }
         public const int DefaultCmdTimeout = 90 * 1000;
-        public const int StartCmdTimeout = 150 * 1000;
+        public const int StartCmdTimeout = 300 * 1000;
         public string Name { get; private set; }
         public string Version { get; private set; }
         public string IpPrefix { get; private set; }
