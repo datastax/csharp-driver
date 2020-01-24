@@ -73,7 +73,7 @@ Invoke-WebRequest -OutFile saxon/saxon9he.jar -Uri https://repo1.maven.org/maven
 dotnet restore src
 
 # Run the tests
-dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f $Env:DOTNET_VERSION -c Release --filter "TestCategory=testwindows" --logger "xunit;LogFilePath=../../TestResult_xunit.xml" -- RunConfiguration.TargetPlatform=x64
+dotnet test src/Cassandra.IntegrationTests/Cassandra.IntegrationTests.csproj -v n -f $Env:DOTNET_VERSION -c Release --filter "(TestCategory!=long)&(TestCategory!=memory)" --logger "xunit;LogFilePath=../../TestResult_xunit.xml" -- RunConfiguration.TargetPlatform=x64
 
 $testError=$LASTEXITCODE
       
