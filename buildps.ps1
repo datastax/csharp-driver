@@ -1,5 +1,6 @@
 
 $env:HOME='C:\Users\Admin'
+$env:HOME_WSL='/mnt/c/Users/Admin'
 
 . $env:HOME\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1
 
@@ -19,6 +20,7 @@ $env:CASS_VERSION_SNI='dse-6.7'
 $env:PATH += ";$env:JAVA_HOME\bin"
 $env:SIMULACRON_PATH="$env:HOME\simulacron.jar"
 $env:CCM_USE_WSL = "true"
+$env:CCM_SSL_PATH = "/root/ssl"
 
 ls $env:HOME
 
@@ -49,7 +51,7 @@ $Env:CASSANDRA_VERSION_ORIGINAL=$Env:CASSANDRA_VERSION
 $Env:CASSANDRA_VERSION=$Env:CCM_CASSANDRA_VERSION
 
 #echo "========== Copying ssl files to $HOME/ssl =========="
-#cp -r /home/jenkins/ccm/ssl $HOME/ssl
+wsl bash --login -c "cp -r $env:HOME_WSL/ccm/ssl `$HOME/ssl"
       
 if ( $Env:CASSANDRA_VERSION_ORIGINAL -Match $Env:CASS_VERSION_SNI )
 {      

@@ -55,10 +55,14 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             var sslParams = "";
             if (useSsl)
             {
-                var sslPath = Path.Combine(TestHelper.GetHomePath(), "ssl");
-                if (!File.Exists(Path.Combine(sslPath, "keystore.jks")))
+                var sslPath = Environment.GetEnvironmentVariable("CCM_SSL_PATH");
+                if (sslPath == null)
                 {
-                    throw new Exception(string.Format("In order to use SSL with CCM you must provide have the keystore.jks and cassandra.crt files located in your {0} folder", sslPath));
+                    sslPath = Path.Combine(TestHelper.GetHomePath(), "ssl");
+                    if (!File.Exists(Path.Combine(sslPath, "keystore.jks")))
+                    {
+                        throw new Exception(string.Format("In order to use SSL with CCM you must provide have the keystore.jks and cassandra.crt files located in your {0} folder", sslPath));
+                    }
                 }
                 sslParams = "--ssl " + sslPath;
             }
