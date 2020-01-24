@@ -37,5 +37,10 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             args = $"bash --login -c 'nohup ccm {args}'";
             return executable;
         }
+
+        protected override int GetDefaultTimeout()
+        {
+            return 5 * 60 * 1000;
+        }
     }
 }

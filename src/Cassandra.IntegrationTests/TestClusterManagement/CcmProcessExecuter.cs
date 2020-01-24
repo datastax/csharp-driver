@@ -23,16 +23,21 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 {
     public abstract class CcmProcessExecuter : ICcmProcessExecuter
     {
-        public virtual ProcessOutput ExecuteCcm(string args, int timeout = 90000, bool throwOnProcessError = true)
+        public virtual ProcessOutput ExecuteCcm(string args, bool throwOnProcessError = true)
         {
             var executable = GetExecutable(ref args);
             Trace.TraceInformation(executable + " " + args);
-            var output = ExecuteProcess(executable, args, timeout);
+            var output = ExecuteProcess(executable, args);
             if (throwOnProcessError)
             {
                 ValidateOutput(output);
             }
             return output;
+        }
+
+        protected virtual int GetDefaultTimeout()
+        {
+            return 90000;
         }
 
         protected abstract string GetExecutable(ref string args);

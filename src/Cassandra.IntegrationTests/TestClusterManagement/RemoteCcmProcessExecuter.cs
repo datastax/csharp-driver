@@ -40,7 +40,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         }
 
 
-        public override ProcessOutput ExecuteCcm(string args, int timeout = 90000, bool throwOnProcessError = true)
+        public override ProcessOutput ExecuteCcm(string args, bool throwOnProcessError = true)
         {
             var executable = GetExecutable(ref args);
             Trace.TraceInformation(executable + " " + args);

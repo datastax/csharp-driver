@@ -30,8 +30,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
     public class CcmBridge : IDisposable
     {
         public DirectoryInfo CcmDir { get; private set; }
-        public const int DefaultCmdTimeout = 90 * 1000;
-        public const int StartCmdTimeout = 300 * 1000;
         public string Name { get; private set; }
         public string Version { get; private set; }
         public string IpPrefix { get; private set; }
@@ -123,7 +121,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     parameters.Add(arg);
                 }
             }
-            ExecuteCcm(string.Join(" ", parameters), StartCmdTimeout);
+            ExecuteCcm(string.Join(" ", parameters));
         }
 
         public void Populate(int dc1NodeLength, int dc2NodeLength, bool useVNodes)
@@ -146,7 +144,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public void SwitchToThis()
         {
             string switchCmd = "switch " + Name;
-            ExecuteCcm(switchCmd, DefaultCmdTimeout, false);
+            ExecuteCcm(switchCmd, false);
         }
 
         public void List()
@@ -227,9 +225,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             ExecuteCcm(string.Format("node{0} decommission", n));
         }
 
-        public ProcessOutput ExecuteCcm(string args, int timeout = DefaultCmdTimeout, bool throwOnProcessError = true)
+        public ProcessOutput ExecuteCcm(string args, bool throwOnProcessError = true)
         {
-            return CcmProcessExecuter.ExecuteCcm(args, timeout, throwOnProcessError);
+            return CcmProcessExecuter.ExecuteCcm(args, throwOnProcessError);
         }
 
         public void UpdateConfig(params string[] configs)
@@ -289,112 +287,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 SetNodeWorkloads(nodeId, workloads);
             }
-        }
-
-        /// <summary>
-        /// Spawns a new process (platform independent)
-        /// </summary>
-        public static ProcessOutput ExecuteProcess(
-            string processName, 
-            string args, 
-            int timeout = DefaultCmdTimeout, 
-            IReadOnlyDictionary<string, string> envVariables = null, 
-            string workDir = null)
-        {
-            var output = new ProcessOutput();
-            using (var process = new Process())
-            {
-                process.StartInfo.FileName = processName;
-                process.StartInfo.Arguments = args;
-                process.StartInfo.RedirectStandardOutput = true;
-                process.StartInfo.RedirectStandardError = true;
-                //Hide the python window if possible
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.CreateNoWindow = true;
-#if !NETCORE
-                process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-#endif
-                
-                if (envVariables != null)
-                {
-                    foreach (var envVar in envVariables)
-                    {
-                        process.StartInfo.EnvironmentVariables[envVar.Key] = envVar.Value;
-                    }
-                }
-
-                if (workDir != null)
-                {
-                    process.StartInfo.WorkingDirectory = workDir;
-                }
-
-                using (var outputWaitHandle = new AutoResetEvent(false))
-                using (var errorWaitHandle = new AutoResetEvent(false))
-                {
-                    process.OutputDataReceived += (sender, e) =>
-                    {
-                        if (e.Data == null)
-                        {
-                            try
-                            {
-                                outputWaitHandle.Set();
-                            }
-                            catch
-                            {
-                                //probably is already disposed
-                            }
-                        }
-                        else
-                        {
-                            output.OutputText.AppendLine(e.Data);
-                        }
-                    };
-                    process.ErrorDataReceived += (sender, e) =>
-                    {
-                        if (e.Data == null)
-                        {
-                            try
-                            {
-                                errorWaitHandle.Set();
-                            }
-                            catch
-                            {
-                                //probably is already disposed
-                            }
-                        }
-                        else
-                        {
-                            output.OutputText.AppendLine(e.Data);
-                        }
-                    };
-                    
-                    try
-                    {
-                        process.Start();
-                    }
-                    catch (Exception exception)
-                    {
-                        Trace.TraceInformation("Process start failure: " + exception.Message);
-                    }
-
-                    process.BeginOutputReadLine();
-                    process.BeginErrorReadLine();
-
-                    if (process.WaitForExit(timeout) &&
-                        outputWaitHandle.WaitOne(timeout) &&
-                        errorWaitHandle.WaitOne(timeout))
-                    {
-                        // Process completed.
-                        output.ExitCode = process.ExitCode;
-                    }
-                    else
-                    {
-                        // Timed out.
-                        output.ExitCode = -1;
-                    }
-                }
-            }
-            return output;
         }
     }
 }

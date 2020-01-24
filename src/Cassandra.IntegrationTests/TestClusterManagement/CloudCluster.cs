@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Tests;
 
@@ -219,7 +220,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         private static ProcessOutput ExecCommand(bool throwOnProcessError, string executable, string args, int timeOut = 300000, IReadOnlyDictionary<string, string> envVars = null, string workDir = null)
         {
             Trace.TraceInformation($"{executable} {args}");
-            var output = CcmBridge.ExecuteProcess(executable, args, timeOut, envVariables: envVars, workDir: workDir);
+            var output = ExecuteProcess(executable, args, timeOut, envVariables: envVars, workDir: workDir);
 
             if (!throwOnProcessError)
             {
@@ -244,6 +245,112 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 ExecCommand(true, "bash", @"-c ""docker kill $(docker ps -a -q --filter ancestor=single_endpoint)""");
             }
+        }
+        
+        /// <summary>
+        /// Spawns a new process (platform independent)
+        /// </summary>
+        private static ProcessOutput ExecuteProcess(
+            string processName, 
+            string args, 
+            int timeout, 
+            IReadOnlyDictionary<string, string> envVariables = null, 
+            string workDir = null)
+        {
+            var output = new ProcessOutput();
+            using (var process = new Process())
+            {
+                process.StartInfo.FileName = processName;
+                process.StartInfo.Arguments = args;
+                process.StartInfo.RedirectStandardOutput = true;
+                process.StartInfo.RedirectStandardError = true;
+                //Hide the python window if possible
+                process.StartInfo.UseShellExecute = false;
+                process.StartInfo.CreateNoWindow = true;
+#if !NETCORE
+                process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+#endif
+                
+                if (envVariables != null)
+                {
+                    foreach (var envVar in envVariables)
+                    {
+                        process.StartInfo.EnvironmentVariables[envVar.Key] = envVar.Value;
+                    }
+                }
+
+                if (workDir != null)
+                {
+                    process.StartInfo.WorkingDirectory = workDir;
+                }
+
+                using (var outputWaitHandle = new AutoResetEvent(false))
+                using (var errorWaitHandle = new AutoResetEvent(false))
+                {
+                    process.OutputDataReceived += (sender, e) =>
+                    {
+                        if (e.Data == null)
+                        {
+                            try
+                            {
+                                outputWaitHandle.Set();
+                            }
+                            catch
+                            {
+                                //probably is already disposed
+                            }
+                        }
+                        else
+                        {
+                            output.OutputText.AppendLine(e.Data);
+                        }
+                    };
+                    process.ErrorDataReceived += (sender, e) =>
+                    {
+                        if (e.Data == null)
+                        {
+                            try
+                            {
+                                errorWaitHandle.Set();
+                            }
+                            catch
+                            {
+                                //probably is already disposed
+                            }
+                        }
+                        else
+                        {
+                            output.OutputText.AppendLine(e.Data);
+                        }
+                    };
+                    
+                    try
+                    {
+                        process.Start();
+                    }
+                    catch (Exception exception)
+                    {
+                        Trace.TraceInformation("Process start failure: " + exception.Message);
+                    }
+
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
+
+                    if (process.WaitForExit(timeout) &&
+                        outputWaitHandle.WaitOne(timeout) &&
+                        errorWaitHandle.WaitOne(timeout))
+                    {
+                        // Process completed.
+                        output.ExitCode = process.ExitCode;
+                    }
+                    else
+                    {
+                        // Timed out.
+                        output.ExitCode = -1;
+                    }
+                }
+            }
+            return output;
         }
     }
 }
