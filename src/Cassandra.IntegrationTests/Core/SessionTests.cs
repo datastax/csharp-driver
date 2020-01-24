@@ -76,7 +76,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             finally
             {
-                localCluster.Shutdown(1000);
+                localCluster.Shutdown();
             }
         }
 
@@ -94,7 +94,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             finally
             {
-                localCluster.Shutdown(1000);
+                localCluster.Shutdown();
             }
         }
 
@@ -110,7 +110,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             finally
             {
-                localCluster.Shutdown(1000);
+                localCluster.Shutdown();
             }
         }
 
@@ -124,7 +124,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             finally
             {
-                localCluster.Shutdown(1000);
+                localCluster.Shutdown();
             }
         }
 
@@ -148,7 +148,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             finally
             {
-                localCluster.Shutdown(1000);
+                localCluster.Shutdown();
             }
         }
 
@@ -172,7 +172,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             finally
             {
-                localCluster.Shutdown(1000);
+                localCluster.Shutdown();
             }
         }
 
@@ -200,7 +200,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             finally
             {
-                localCluster.Shutdown(1000);
+                localCluster.Shutdown();
             }
         }
 
@@ -249,10 +249,10 @@ namespace Cassandra.IntegrationTests.Core
             }
             finally
             {
-                localCluster1.Shutdown(1000);
+                localCluster1.Shutdown();
                 if (localCluster2 != null)
                 {
-                    localCluster2.Shutdown(1000);
+                    localCluster2.Shutdown();
                 }
             }
         }
@@ -483,7 +483,7 @@ namespace Cassandra.IntegrationTests.Core
             }
             finally
             {
-                localCluster.Shutdown(1000);
+                localCluster.Shutdown();
             }
         }
 

@@ -98,7 +98,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 try
                 {
-                    cluster.Shutdown(500);
+                    cluster.Shutdown();
                 }
                 catch (Exception ex)
                 {
