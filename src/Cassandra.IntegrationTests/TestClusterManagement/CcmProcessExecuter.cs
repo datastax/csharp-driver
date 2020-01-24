@@ -35,7 +35,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             return output;
         }
 
-        protected virtual int GetDefaultTimeout()
+        public virtual int GetDefaultTimeout()
         {
             return 90000;
         }

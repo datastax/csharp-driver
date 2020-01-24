@@ -21,5 +21,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
     public interface ICcmProcessExecuter
     {
         ProcessOutput ExecuteCcm(string args, bool throwOnProcessError = true);
+
+        int GetDefaultTimeout();
     }
 }

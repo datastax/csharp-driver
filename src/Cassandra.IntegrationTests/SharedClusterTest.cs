@@ -161,12 +161,12 @@ namespace Cassandra.IntegrationTests
         {
             if (Cluster != null)
             {
-                Cluster.Shutdown(1000);
+                Cluster.Shutdown(TestClusterManager.Executor.GetDefaultTimeout());
             }
             //Shutdown the other instances created by helper methods
             foreach (var c in ClusterInstances)
             {
-                c.Shutdown(1000);
+                c.Shutdown(TestClusterManager.Executor.GetDefaultTimeout());
             }
         }
 
