@@ -98,8 +98,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     output.ExitCode = -1;
                 }
 
-                output.OutputText = output.OutputText.Append(process.StandardOutput.ReadToEnd());
-                output.OutputText = output.OutputText.Append(Environment.NewLine + "STDERR:" + Environment.NewLine + process.StandardError.ReadToEnd());
+                output.SetOutput(process.StandardOutput.ReadToEnd() + 
+                                 Environment.NewLine + "STDERR:" + Environment.NewLine + process.StandardError.ReadToEnd());
             }
             return output;
         }
