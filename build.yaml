@@ -7,21 +7,21 @@ schedules:
     matrix:
       exclude:
       # on windows dont build mono, netcoreapp2.0, netcoreapp2.1
-        - os: ["/^win.*/"]
+        - os: 'win/cs'
           dotnet: ['mono', 'netcoreapp2.0', 'netcoreapp2.1']
       # on windows only target 3.11 with net452 and net461
-        - os: ["/^win.*/"]
+        - os: 'win/cs'
           dotnet: ['net452', 'net461']
           cassandra: ['2.1', '2.2', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8']
       # on linux dont build net452 and net461
-        - os: ["/^(ubuntu|centos).*/"]
+        - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['net452', 'net461']
       # on linux with netcoreapp2.1 target 3.11, dse-5.1 and dse-6.7
-        - os: ["/^(ubuntu|centos).*/"]
+        - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['netcoreapp2.1']
           cassandra: ['2.1', '2.2', '3.0', 'dse-5.0', 'dse-6.0', 'dse-6.8']
       # on linux with mono and netcoreapp2.0 target 3.11 and dse-6.7
-        - os: ["/^(ubuntu|centos).*/"]
+        - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['mono', 'netcoreapp2.0']
           cassandra: ['2.1', '2.2', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8']
   nightly:
@@ -31,11 +31,34 @@ schedules:
       slack: csharp-driver-dev-bots
     branches:
       # regex matches primary branch format (2.1, 3.x, 3.0.x, 3.1.x, master, etc).
-      include: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
+      #include: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
     matrix:
       exclude:
-        - dotnet: 'net461'
+      # on windows dont build mono
         - os: 'win/cs'
+          dotnet: ['mono']
+      # on windows target 3.11 and dse-6.7 with netcoreapp2.0 and netcoreapp2.
+        - os: 'win/cs'
+          dotnet: ['netcoreapp2.0', 'netcoreapp2.1']
+          cassandra: ['2.1', '2.2', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8']
+      # on windows target 2.1, 2.2, 3.11, dse-6.7 and dse-6.8 with net452
+        - os: 'win/cs'
+          dotnet: ['net452']
+          cassandra: ['3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0']
+      # on windows target 2.2, 3.11 and dse-6.7 with net461
+        - os: 'win/cs'
+          dotnet: ['net461']
+          cassandra: ['2.1', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8']
+      # on linux dont build net452 and net461
+        - os: 'ubuntu/bionic64/csharp-driver'
+          dotnet: ['net452', 'net461']
+      # on linux with netcoreapp2.1 target all
+        - os: 'ubuntu/bionic64/csharp-driver'
+          dotnet: ['netcoreapp2.1']
+      # on linux with mono and netcoreapp2.0 target 2.2, 3.11, dse-5.1 and dse-6.7
+        - os: 'ubuntu/bionic64/csharp-driver'
+          dotnet: ['mono', 'netcoreapp2.0']
+          cassandra: ['2.1', '3.0', 'dse-5.0', 'dse-6.0', 'dse-6.8']
   adhoc:
     # adhoc job for non-primary braches that doesn't have a schedule but may be used to run all configs.
     schedule: adhoc
@@ -45,8 +68,26 @@ schedules:
       exclude: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
     matrix:
       exclude:
-        - dotnet: 'net461'
-        - os: 'win/cs'        
+      # on windows dont build mono, netcoreapp2.0, netcoreapp2.1
+        - os: 'win/cs'
+          dotnet: ['mono', 'netcoreapp2.0', 'netcoreapp2.1']
+      # on linux dont build net452 and net461
+        - os: 'ubuntu/bionic64/csharp-driver'
+          dotnet: ['net452', 'net461']  
+  weekly:
+    schedule: 0 10 * * 7
+    notify:
+      slack: csharp-driver-dev-bots
+    branches:
+      #include: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
+    matrix:
+      exclude:
+      # on windows dont build mono, netcoreapp2.0, netcoreapp2.1
+        - os: 'win/cs'
+          dotnet: ['mono', 'netcoreapp2.0', 'netcoreapp2.1']
+      # on linux dont build net452 and net461
+        - os: 'ubuntu/bionic64/csharp-driver'
+          dotnet: ['net452', 'net461']
   win:
     # adhoc job for non-primary braches that doesn't have a schedule but may be used to run all configs.
     schedule: adhoc
@@ -56,7 +97,7 @@ schedules:
       exclude: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
     matrix:
       exclude:
-        - os: ["/^(ubuntu|centos).*/"]
+        - os: 'ubuntu/bionic64/csharp-driver'
         - dotnet: 'mono'
         - cassandra: ['2.1', '2.2', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0']
 os:
