@@ -121,9 +121,17 @@ namespace Cassandra.Tests
 
             var elapsed = (DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond) - timestamp;
 
-            var count = elapsed / logIntervalMs;
-            
-            Assert.That(Interlocked.Read(ref loggerHandler.WarningCount), Is.InRange(count + 1, count + 2));
+            if (elapsed > 3000)
+            {
+                Assert.Ignore("Generated numbers too slowly for this test to work.");
+            }
+            else
+            {
+                var count = elapsed / logIntervalMs;
+
+                Assert.That(Interlocked.Read(ref loggerHandler.WarningCount), Is.InRange(count + 1, count + 2));
+            }
+
         }
 
         private static void TimestampGeneratorLogAfterCooldownTest(ITimestampGenerator generator,
