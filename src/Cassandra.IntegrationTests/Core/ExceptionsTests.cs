@@ -237,7 +237,7 @@ namespace Cassandra.IntegrationTests.Core
             StringAssert.Contains(nameof(PreserveStackTraceTest), ex.StackTrace);
             StringAssert.Contains(nameof(ExceptionsTests), ex.StackTrace);
 #elif NETFRAMEWORK
-            StringAssert.Contains("at Cassandra.Session.Execute(", ex.StackTrace);
+            StringAssert.Contains("at Cassandra.Session.Execute", ex.StackTrace);
 #endif
         }
 
