@@ -82,63 +82,35 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     process.StartInfo.WorkingDirectory = workDir;
                 }
 
-                using (var outputWaitHandle = new AutoResetEvent(false))
-                using (var errorWaitHandle = new AutoResetEvent(false))
+                process.OutputDataReceived += (sender, e) =>
                 {
-                    process.OutputDataReceived += (sender, e) =>
+                    if (e.Data != null)
                     {
-                        if (e.Data == null)
-                        {
-                            try
-                            {
-                                outputWaitHandle.Set();
-                            }
-                            catch
-                            {
-                                //probably is already disposed
-                            }
-                        }
-                        else
-                        {
-                            output.OutputText.AppendLine(e.Data);
-                        }
-                    };
-                    process.ErrorDataReceived += (sender, e) =>
-                    {
-                        if (e.Data == null)
-                        {
-                            try
-                            {
-                                errorWaitHandle.Set();
-                            }
-                            catch
-                            {
-                                //probably is already disposed
-                            }
-                        }
-                        else
-                        {
-                            output.OutputText.AppendLine(e.Data);
-                        }
-                    }; 
-                    
-                    process.Start();
-
-                    process.BeginOutputReadLine();
-                    process.BeginErrorReadLine();
-
-                    if (process.WaitForExit(timeout) &&
-                        outputWaitHandle.WaitOne(timeout) &&
-                        errorWaitHandle.WaitOne(timeout))
-                    {
-                        // Process completed.
-                        output.ExitCode = process.ExitCode;
+                        output.OutputText.AppendLine(e.Data);
                     }
-                    else
+                };
+                process.ErrorDataReceived += (sender, e) =>
+                {
+                    if (e.Data != null)
                     {
-                        // Timed out.
-                        output.ExitCode = -1;
+                        output.OutputText.AppendLine(e.Data);
                     }
+                };
+
+                process.Start();
+
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+
+                if (process.WaitForExit(timeout))
+                {
+                    // Process completed.
+                    output.ExitCode = process.ExitCode;
+                }
+                else
+                {
+                    // Timed out.
+                    output.ExitCode = -1;
                 }
             }
             return output;
