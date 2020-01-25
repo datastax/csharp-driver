@@ -17,8 +17,10 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using Cassandra.IntegrationTests.SimulacronAPI;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
@@ -237,7 +239,7 @@ namespace Cassandra.IntegrationTests.Core
             StringAssert.Contains(nameof(PreserveStackTraceTest), ex.StackTrace);
             StringAssert.Contains(nameof(ExceptionsTests), ex.StackTrace);
 #elif NETFRAMEWORK
-            StringAssert.Contains("at Cassandra.Session.Execute", ex.StackTrace);
+            StringAssert.Contains("Cassandra.Session.Execute", ex.StackTrace);
 #endif
         }
 

@@ -414,7 +414,7 @@ namespace Cassandra.IntegrationTests.Core
                     $"listen_address: {_realCluster.Value.ClusterIpPrefix}4", 
                     $"rpc_address: {_realCluster.Value.ClusterIpPrefix}4");
 
-                _realCluster.Value.Start(3, "--skip-wait-other-notice");
+                _realCluster.Value.Start(3, "--skip-wait-other-notice", "127.0.0.4");
 
                 TestHelper.RetryAssert(
                     () =>

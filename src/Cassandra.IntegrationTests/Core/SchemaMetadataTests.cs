@@ -676,16 +676,28 @@ namespace Cassandra.IntegrationTests.Core
         {
             var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var _ = cluster.Connect();
-            var items = new[]
+            var items = new List<Tuple<string, Dictionary<string, string>>>
             {
                 Tuple.Create("tbl_nodesync_true", new Dictionary<string, string>
                 {
                     { "enabled", "true" },
                     { "deadline_target_sec", "86400" }
                 }),
-                Tuple.Create("tbl_nodesync_false", new Dictionary<string, string> { { "enabled", "false" } }),
-                Tuple.Create("tbl_default_options", (Dictionary<string, string>)null)
+                Tuple.Create("tbl_nodesync_false", new Dictionary<string, string> { { "enabled", "false" } })
             };
+
+            if (TestClusterManager.CheckDseVersion(new Version(6, 8), Comparison.GreaterThanOrEqualsTo))
+            {
+                items.Add(Tuple.Create("tbl_default_options", new Dictionary<string, string>
+                {
+                    { "enabled", "true" },
+                    { "incremental", "true" }
+                }));
+            }
+            else
+            {
+                items.Add(Tuple.Create("tbl_default_options", (Dictionary<string, string>)null));
+            }
 
             foreach (var tuple in items)
             {

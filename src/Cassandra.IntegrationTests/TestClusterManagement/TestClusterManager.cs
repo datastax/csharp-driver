@@ -112,18 +112,17 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public static string DseVersionString
         {
-            get { return Environment.GetEnvironmentVariable("DSE_VERSION") ?? "5.0.0"; }
+            get { return Environment.GetEnvironmentVariable("DSE_VERSION") ?? "6.7.7"; }
         }
 
         private static string CassandraVersionString
         {
-            get { return Environment.GetEnvironmentVariable("CASSANDRA_VERSION") ?? "3.11.0"; }
+            get { return Environment.GetEnvironmentVariable("CASSANDRA_VERSION") ?? "3.11.2"; }
         }
 
         public static bool IsDse
         {
-            get { return Environment.GetEnvironmentVariable("DSE_VERSION") != null 
-                         || Environment.GetEnvironmentVariable("CASSANDRA_VERSION") == null; }
+            get { return Environment.GetEnvironmentVariable("DSE_VERSION") != null; }
         }
         
         public static Version DseVersion
