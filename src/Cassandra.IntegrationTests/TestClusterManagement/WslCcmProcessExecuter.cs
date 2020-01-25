@@ -34,7 +34,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 throw new InvalidOperationException("Can only use WSL CCM process executor in windows.");
             }
             var executable = "wsl.exe";
-            args = $"bash --login -c 'nohup ccm {args}'";
+            args = $"bash --login -c 'nohup ccm {args} > ~/ccmnohup.out 2>&1'";
             return executable;
         }
 

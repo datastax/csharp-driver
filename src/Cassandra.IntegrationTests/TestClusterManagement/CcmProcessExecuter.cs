@@ -81,22 +81,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 {
                     process.StartInfo.WorkingDirectory = workDir;
                 }
-
-                process.OutputDataReceived += (sender, e) =>
-                {
-                    if (e.Data != null)
-                    {
-                        output.OutputText.AppendLine(e.Data);
-                    }
-                };
-                process.ErrorDataReceived += (sender, e) =>
-                {
-                    if (e.Data != null)
-                    {
-                        output.OutputText.AppendLine(e.Data);
-                    }
-                };
-
+                
                 process.Start();
 
                 process.BeginOutputReadLine();
@@ -112,6 +97,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     // Timed out.
                     output.ExitCode = -1;
                 }
+
+                output.OutputText.Append(process.StandardOutput.ReadToEnd());
+                output.OutputText.Append(Environment.NewLine + "STDERR:" + Environment.NewLine + process.StandardError.ReadToEnd());
             }
             return output;
         }
