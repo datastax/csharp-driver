@@ -177,7 +177,10 @@ namespace Cassandra.IntegrationTests
 
         protected virtual ICluster GetNewCluster(Action<Builder> build = null)
         {
-            var builder = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint);
+            var builder = 
+                Cluster.Builder()
+                       .AddContactPoint(TestCluster.InitialContactPoint)
+                       .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000));
             build?.Invoke(builder);
             var cluster = builder.Build();
             ClusterInstances.Add(cluster);
