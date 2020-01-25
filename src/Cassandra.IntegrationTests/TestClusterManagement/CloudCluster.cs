@@ -128,7 +128,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             ExecCcmCommand($"node{nodeIdToStop} stop");
         }
 
-        public void Start(int nodeIdToStart, string additionalArgs = null)
+        public void Start(int nodeIdToStart, string additionalArgs = null, string newIp = null)
         {
             ExecCcmCommand($"node{nodeIdToStart} start --root --wait-for-binary-proto {additionalArgs}");
         }

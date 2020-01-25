@@ -161,7 +161,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             }
         }
 
-        public void CheckNativePortOpen(int nodeId)
+        public void CheckNativePortOpen(string ip)
         {
             using (var ccmConnection = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
             {
@@ -171,7 +171,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     {
                         try
                         {
-                            ccmConnection.Connect(TestClusterManager.IpPrefix + nodeId, 9042);
+                            ccmConnection.Connect(ip, 9042);
                             return;
                         }
                         catch

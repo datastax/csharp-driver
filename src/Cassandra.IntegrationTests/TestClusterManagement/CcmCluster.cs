@@ -138,17 +138,17 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 foreach (var i in Enumerable.Range(1, _nodeLength))
                 {
-                    _ccm.CheckNativePortOpen(i);
+                    _ccm.CheckNativePortOpen(TestClusterManager.IpPrefix + i);
                 }
             }
         }
 
-        public void Start(int nodeIdToStart, string additionalArgs = null)
+        public void Start(int nodeIdToStart, string additionalArgs = null, string newIp = null)
         {
             _ccm.Start(nodeIdToStart, additionalArgs);
             if (_executor is WslCcmProcessExecuter)
             {
-                _ccm.CheckNativePortOpen(nodeIdToStart);
+                _ccm.CheckNativePortOpen(newIp ?? (TestClusterManager.IpPrefix + nodeIdToStart));
             }
         }
 
@@ -178,7 +178,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             _ccm.BootstrapNode(nodeIdToStart, dataCenterName, start);
             if (originalStart && _executor is WslCcmProcessExecuter)
             {
-                _ccm.CheckNativePortOpen(nodeIdToStart);
+                _ccm.CheckNativePortOpen(TestClusterManager.IpPrefix + nodeIdToStart);
             }
         }
 
