@@ -20,6 +20,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Linq;
+using System.Net.Sockets;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.Tests;
@@ -125,7 +126,63 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     parameters.Add(arg);
                 }
             }
-            ExecuteCcm(string.Join(" ", parameters));
+
+            if (CcmProcessExecuter is WslCcmProcessExecuter)
+            {
+                ExecuteCcm(string.Join(" ", parameters), false);
+            }
+            else
+            {
+                ExecuteCcm(string.Join(" ", parameters));
+            }
+        }
+
+        public void Start(int n, string additionalArgs = null)
+        {
+            string quietWindows = null;
+            string runAsRoot = null;
+            if (TestUtils.IsWin && CcmProcessExecuter is LocalCcmProcessExecuter)
+            {
+                quietWindows = "--quiet-windows";
+            }
+
+            if (CcmProcessExecuter is WslCcmProcessExecuter)
+            {
+                runAsRoot = "--root";
+            }
+
+            if (CcmProcessExecuter is WslCcmProcessExecuter)
+            {
+                ExecuteCcm(string.Format("node{0} start --wait-for-binary-proto {1} {2} {3}", n, additionalArgs, quietWindows, runAsRoot), false);
+            }
+            else
+            {
+                ExecuteCcm(string.Format("node{0} start --wait-for-binary-proto {1} {2} {3}", n, additionalArgs, quietWindows, runAsRoot));
+            }
+        }
+
+        public void CheckNativePortOpen(int nodeId)
+        {
+            using (var ccmConnection = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+            {
+                using (var cts = new CancellationTokenSource(5 * 60 * 1000))
+                {
+                    while (!cts.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            ccmConnection.Connect(TestClusterManager.IpPrefix + nodeId, 9042);
+                            return;
+                        }
+                        catch
+                        {
+                            Thread.Sleep(5000);
+                        }
+                    }
+                }
+            }
+
+            throw new TestInfrastructureException("Native Port check timed out.");
         }
 
         public void Populate(int dc1NodeLength, int dc2NodeLength, bool useVNodes)
@@ -164,23 +221,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public void StopForce()
         {
             ExecuteCcm("stop --not-gently");
-        }
-
-        public void Start(int n, string additionalArgs = null)
-        {
-            string quietWindows = null;
-            string runAsRoot = null;
-            if (TestUtils.IsWin && CcmProcessExecuter is LocalCcmProcessExecuter)
-            {
-                quietWindows = "--quiet-windows";
-            }
-
-            if (CcmProcessExecuter is WslCcmProcessExecuter)
-            {
-                runAsRoot = "--root";
-            }
-
-            ExecuteCcm(string.Format("node{0} start --wait-for-binary-proto {1} {2} {3}", n, additionalArgs, quietWindows, runAsRoot));
         }
 
         public void Stop(int n)

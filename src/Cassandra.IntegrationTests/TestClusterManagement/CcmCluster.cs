@@ -33,6 +33,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public string DefaultKeyspace { get; set; }
         private readonly ICcmProcessExecuter _executor;
         private CcmBridge _ccm;
+        private int _nodeLength;
 
         public CcmCluster(string name, string clusterIpPrefix, string dsePath, ICcmProcessExecuter executor, string defaultKeyspace, string version)
         {
@@ -47,6 +48,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void Create(int nodeLength, TestClusterOptions options = null)
         {
+            _nodeLength = nodeLength;
             options = options ?? TestClusterOptions.Default;
             _ccm = new CcmBridge(Name, ClusterIpPrefix, DsePath, Version, _executor);
             _ccm.Create(options.UseSsl);
@@ -132,11 +134,22 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public void Start(string[] jvmArgs = null)
         {
             _ccm.Start(jvmArgs);
+            if (_executor is WslCcmProcessExecuter)
+            {
+                foreach (var i in Enumerable.Range(1, _nodeLength))
+                {
+                    _ccm.CheckNativePortOpen(i);
+                }
+            }
         }
 
         public void Start(int nodeIdToStart, string additionalArgs = null)
         {
             _ccm.Start(nodeIdToStart, additionalArgs);
+            if (_executor is WslCcmProcessExecuter)
+            {
+                _ccm.CheckNativePortOpen(nodeIdToStart);
+            }
         }
 
         public void BootstrapNode(int nodeIdToStart, bool start = true)
@@ -156,7 +169,17 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void BootstrapNode(int nodeIdToStart, string dataCenterName, bool start = true)
         {
+            var originalStart = start;
+            if (_executor is WslCcmProcessExecuter)
+            {
+                start = false;
+            }
+
             _ccm.BootstrapNode(nodeIdToStart, dataCenterName, start);
+            if (originalStart && _executor is WslCcmProcessExecuter)
+            {
+                _ccm.CheckNativePortOpen(nodeIdToStart);
+            }
         }
 
         public void UpdateConfig(params string[] yamlChanges)

@@ -46,7 +46,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         {
             if (output.ExitCode != 0)
             {
-                throw new TestInfrastructureException(string.Format("Process exited in error {0}", output.ToString()));
+                throw new TestInfrastructureException("Process exited in error " + output.ToString());
             }
         }
 
@@ -83,9 +83,6 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 }
                 
                 process.Start();
-
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
 
                 if (process.WaitForExit(timeout))
                 {
