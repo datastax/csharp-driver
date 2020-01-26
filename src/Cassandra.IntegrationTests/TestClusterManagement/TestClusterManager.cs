@@ -231,29 +231,52 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             return Version6Dot7;
         }
 
-        /// <summary>
-        /// Creates a new test cluster
-        /// </summary>
-        public static ITestCluster CreateNew(int nodeLength = 1, TestClusterOptions options = null, bool startCluster = true)
+        private static ITestCluster CreateNewNoRetry(int nodeLength, TestClusterOptions options, bool startCluster)
         {
             TryRemove();
             options = options ?? new TestClusterOptions();
             var testCluster = new CcmCluster(
-                TestUtils.GetTestClusterNameBasedOnRandomString(), 
-                IpPrefix, 
-                DsePath, 
+                TestUtils.GetTestClusterNameBasedOnRandomString(),
+                IpPrefix,
+                DsePath,
                 Executor,
                 DefaultKeyspaceName,
                 IsDse ? DseVersionString : CassandraVersionString);
             testCluster.Create(nodeLength, options);
             if (startCluster)
             {
-                testCluster.Start(options.JvmArgs);   
+                testCluster.Start(options.JvmArgs);
             }
             LastInstance = testCluster;
             LastAmountOfNodes = nodeLength;
             LastOptions = options;
             return testCluster;
+        }
+
+        /// <summary>
+        /// Creates a new test cluster
+        /// </summary>
+        public static ITestCluster CreateNew(int nodeLength = 1, TestClusterOptions options = null, bool startCluster = true)
+        {
+            const int maxAttempts = 2;
+            var attemptsSoFar = 0;
+            while (true)
+            {
+                try
+                {
+                    return CreateNewNoRetry(nodeLength, options, startCluster);
+                }
+                catch (TestInfrastructureException ex)
+                {
+                    attemptsSoFar++;
+                    if (attemptsSoFar >= maxAttempts)
+                    {
+                        throw;
+                    }
+
+                    Trace.WriteLine("Exception during ccm create / start. Retrying." + Environment.NewLine + ex.ToString());
+                }
+            }
         }
 
         /// <summary>
