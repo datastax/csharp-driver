@@ -20,6 +20,7 @@ using System.Linq;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.DataStax.Auth
@@ -36,6 +37,26 @@ namespace Cassandra.IntegrationTests.DataStax.Auth
         private Lazy<ITestCluster> _testClusterForDseAuthTesting;
         private ICluster _cluster;
 
+        public static void RetryUntilClusterAuthHealthy(ITestCluster cluster)
+        {
+            using (var c = Cluster
+                                 .Builder()
+                                 .AddContactPoint(cluster.InitialContactPoint)
+                                 .WithAuthProvider(new PlainTextAuthProvider("wrong_username", "password"))
+                                 .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(22000).SetConnectTimeoutMillis(60000))
+                                 .Build())
+            {
+                TestHelper.RetryAssert(
+                    () =>
+                    {
+                        var ex = Assert.Throws<NoHostAvailableException>(() => c.Connect());
+                        Assert.IsInstanceOf<AuthenticationException>(ex.Errors.First().Value);
+                    },
+                    500,
+                    100);
+            }
+        }
+
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
@@ -45,6 +66,7 @@ namespace Cassandra.IntegrationTests.DataStax.Auth
                 var cluster = GetTestCcmClusterForAuthTests(false);
                 //Wait 10 seconds as auth table needs to be created
                 Thread.Sleep(10000);
+                RetryUntilClusterAuthHealthy(cluster);
                 return cluster;
             });
             _testClusterForDseAuthTesting = new Lazy<ITestCluster>(() =>
@@ -52,6 +74,7 @@ namespace Cassandra.IntegrationTests.DataStax.Auth
                 var cluster = GetTestCcmClusterForAuthTests(true);
                 //Wait 10 seconds as auth table needs to be created
                 Thread.Sleep(10000);
+                RetryUntilClusterAuthHealthy(cluster);
                 return cluster;
             });
         }
