@@ -49,7 +49,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void MappingSingleExplicitTest()
         {
-            var localSession = GetNewSession(KeyspaceName);
+            var localSession = GetNewTemporarySession(KeyspaceName);
             localSession.UserDefinedTypes.Define(
                 UdtMap.For<Phone>("phone")
                     .Map(v => v.Alias, "alias")
@@ -74,7 +74,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public async Task MappingSingleExplicitTestAsync()
         {
-            var localSession = GetNewSession(KeyspaceName);
+            var localSession = GetNewTemporarySession(KeyspaceName);
             await localSession.UserDefinedTypes.DefineAsync(
                 UdtMap.For<Phone>("phone")
                       .Map(v => v.Alias, "alias")
@@ -97,15 +97,15 @@ namespace Cassandra.IntegrationTests.Core
             const string cqlType1 = "CREATE TYPE phone2 (alias2 text, number2 text, country_code2 int, verified_at timestamp, phone_type text)";
             const string cqlTable1 = "CREATE TABLE users2 (id int PRIMARY KEY, main_phone frozen<phone2>)";
 
-            var cluster = GetNewCluster();
+            var cluster = GetNewTemporaryCluster();
             var newKeyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
             var session = cluster.Connect();
             session.CreateKeyspaceIfNotExists(newKeyspace);
             session.ChangeKeyspace(newKeyspace);
-            
+
             session.Execute(cqlType1);
             session.Execute(cqlTable1);
-            
+
             await session.UserDefinedTypes.DefineAsync(
                 UdtMap.For<Phone>("phone", KeyspaceName)
                       .Map(v => v.Alias, "alias")
@@ -137,7 +137,7 @@ namespace Cassandra.IntegrationTests.Core
             rs = session.Execute("SELECT * FROM users2 WHERE id = 1");
             row = rs.First();
             var value2 = row.GetValue<Phone2>("main_phone");
-            
+
             Assert.AreEqual(phone, value);
             Assert.AreEqual(phone2, value2);
         }
@@ -148,7 +148,7 @@ namespace Cassandra.IntegrationTests.Core
             const string cqlType1 = "CREATE TYPE phone2 (alias2 text, number2 text, country_code2 int, verified_at timestamp, phone_type text)";
             const string cqlTable1 = "CREATE TABLE users2 (id int PRIMARY KEY, main_phone frozen<phone2>)";
 
-            var cluster = GetNewCluster();
+            var cluster = GetNewTemporaryCluster();
             var newKeyspace = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
             var session = cluster.Connect();
             session.CreateKeyspaceIfNotExists(newKeyspace);
@@ -172,7 +172,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public async Task MappingSingleExplicitAsync_AsParameter()
         {
-            var localSession = GetNewSession(KeyspaceName);
+            var localSession = GetNewTemporarySession(KeyspaceName);
             await localSession.UserDefinedTypes.DefineAsync(
                 UdtMap.For<Phone>("phone")
                       .Map(v => v.Alias, "alias")
@@ -195,7 +195,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void MappingSingleExplicitNullsTest()
         {
-            var localSession = GetNewSession(KeyspaceName);
+            var localSession = GetNewTemporarySession(KeyspaceName);
             localSession.UserDefinedTypes.Define(
                 UdtMap.For<Phone>("phone")
                         .Map(v => v.Alias, "alias")
@@ -230,7 +230,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void MappingSingleImplicitTest()
         {
-            var localSession = GetNewSession(KeyspaceName);
+            var localSession = GetNewTemporarySession(KeyspaceName);
             localSession.UserDefinedTypes.Define(
                 UdtMap.For<Phone>()
                 );
@@ -248,7 +248,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void MappingNestedTypeTest()
         {
-            var localSession = GetNewSession(KeyspaceName);
+            var localSession = GetNewTemporarySession(KeyspaceName);
             localSession.UserDefinedTypes.Define(
                 UdtMap.For<Phone>(),
                 UdtMap.For<Contact>()
@@ -294,7 +294,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void MappingCaseSensitiveTest()
         {
-            var localSession = GetNewSession(KeyspaceName);
+            var localSession = GetNewTemporarySession(KeyspaceName);
             //Cassandra identifiers are lowercased by default
             localSession.UserDefinedTypes.Define(
                 UdtMap.For<Phone>("phone")
@@ -328,7 +328,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void MappingNotExistingFieldsTest()
         {
-            var localSession = GetNewSession(KeyspaceName);
+            var localSession = GetNewTemporarySession(KeyspaceName);
             Assert.Throws<InvalidTypeException>(() => localSession.UserDefinedTypes.Define(
                 //there is no field named like this
                 UdtMap.For<Phone>("phone").Map(v => v.Number, "Alias_X_WTF")
@@ -338,7 +338,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void MappingEncodingSingleTest()
     {
-            var localSession = GetNewSession(KeyspaceName);
+            var localSession = GetNewTemporarySession(KeyspaceName);
             localSession.UserDefinedTypes.Define(
                 UdtMap.For<Phone>("phone")
                     .Map(v => v.Alias, "alias")
@@ -373,7 +373,7 @@ namespace Cassandra.IntegrationTests.Core
         [Test]
         public void MappingEncodingNestedTest()
         {
-            var localSession = GetNewSession(KeyspaceName);
+            var localSession = GetNewTemporarySession(KeyspaceName);
             localSession.UserDefinedTypes.Define(
                 UdtMap.For<Phone>(),
                 UdtMap.For<Contact>()
@@ -414,7 +414,7 @@ namespace Cassandra.IntegrationTests.Core
             const string cqlTable = "CREATE TABLE temp_table (id int PRIMARY KEY, sample_udt frozen<temp_udt>, sample_udt_list list<frozen<temp_udt>>)";
             const string cqlInsert = "INSERT INTO temp_table (id, sample_udt, sample_udt_list) VALUES (1, {text_sample: 'one', date_sample: 1}, [{text_sample: 'first'}])";
 
-            var localSession = GetNewSession(KeyspaceName);
+            var localSession = GetNewTemporarySession(KeyspaceName);
             localSession.Execute(cqlType);
             localSession.Execute(cqlTable);
             localSession.Execute(cqlInsert);

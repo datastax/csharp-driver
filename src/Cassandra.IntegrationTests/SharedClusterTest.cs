@@ -168,14 +168,32 @@ namespace Cassandra.IntegrationTests
             {
                 c.Shutdown(TestClusterManager.Executor.GetDefaultTimeout());
             }
+            ClusterInstances.Clear();
         }
-
-        protected virtual ISession GetNewSession(string keyspace = null)
+        
+        protected ISession GetNewTemporarySession(string keyspace = null)
         {
-            return GetNewCluster().Connect(keyspace);
+            return GetNewTemporaryCluster().Connect(keyspace);
+        }
+        
+        [TearDown]
+        public virtual void TearDown()
+        {
+            foreach (var c in ClusterInstances)
+            {
+                try
+                {
+                    c.Dispose();
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
+            ClusterInstances.Clear();
         }
 
-        protected virtual ICluster GetNewCluster(Action<Builder> build = null)
+        protected virtual ICluster GetNewTemporaryCluster(Action<Builder> build = null)
         {
             var builder = 
                 Cluster.Builder()
