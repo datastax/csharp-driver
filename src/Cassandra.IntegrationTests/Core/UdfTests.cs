@@ -38,6 +38,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             var cluster = Cluster.Builder()
                                  .AddContactPoint(_testCluster.InitialContactPoint)
+                                 .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(60000))
                                  .WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync).SetRefreshSchemaDelayIncrement(1).SetMaxTotalRefreshSchemaDelay(5))
                                  .Build();
             _clusters.Add(cluster);
