@@ -190,6 +190,10 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
             policyTestTools.TableName = TestUtils.GetUniqueTableName();
             Session.Execute($"CREATE TABLE {policyTestTools.TableName} (k1 text, k2 int, i int, PRIMARY KEY ((k1, k2)))");
             Thread.Sleep(1000);
+            TestHelper.RetryAssert(() =>
+            {
+                Assert.True(Session.Cluster.Metadata.CheckSchemaAgreementAsync().Result);
+            }, 500, 150);
             var ps = Session.Prepare($"INSERT INTO {policyTestTools.TableName} (k1, k2, i) VALUES (?, ?, ?)");
             var traces = new List<QueryTrace>();
             for (var i = 0; i < 10; i++)

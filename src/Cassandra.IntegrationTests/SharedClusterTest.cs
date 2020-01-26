@@ -141,7 +141,7 @@ namespace Cassandra.IntegrationTests
         {
             Cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
                              .WithQueryTimeout(60000)
-                             .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000))
+                             .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000).SetReadTimeoutMillis(22000))
                              .Build();
             Session = (Session)Cluster.Connect();
             Session.CreateKeyspace(KeyspaceName, null, false);
@@ -180,7 +180,7 @@ namespace Cassandra.IntegrationTests
             var builder = 
                 Cluster.Builder()
                        .AddContactPoint(TestCluster.InitialContactPoint)
-                       .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000));
+                       .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000).SetReadTimeoutMillis(22000));
             build?.Invoke(builder);
             var cluster = builder.Build();
             ClusterInstances.Add(cluster);

@@ -17,6 +17,7 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using Cassandra.IntegrationTests.TestBase;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement
 {
@@ -59,6 +60,35 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 _ccm.UpdateDseConfig(options.DseYaml);
                 _ccm.SetWorkloads(nodeLength, options.Workloads);
+            }
+
+            if (TestClusterManager.Executor is WslCcmProcessExecuter)
+            {
+                _ccm.UpdateConfig(new []
+                {
+                    "read_request_timeout_in_ms: 20000",
+                    "counter_write_request_timeout_in_ms: 20000",
+                    "write_request_timeout_in_ms: 20000",
+                    "request_timeout_in_ms: 20000",
+                    "range_request_timeout_in_ms: 30000"
+                });
+                if (TestClusterManager.IsDse)
+                {
+                    if (TestClusterManager.CheckDseVersion(new Version(6, 7), Comparison.LessThan))
+                    {
+                        _ccm.UpdateConfig(new[]
+                        {
+                            "user_defined_function_fail_timeout: 20000"
+                        });
+                    }
+                    else
+                    {
+                        _ccm.UpdateConfig(new[]
+                        {
+                            "user_defined_function_fail_micros: 20000"
+                        });
+                    }
+                }
             }
         }
 
