@@ -45,7 +45,7 @@ namespace Cassandra.IntegrationTests.Core
 
             if (_realCluster.IsValueCreated)
             {
-                _realCluster.Value.ShutDown();
+                TestClusterManager.TryRemove();
                 _realCluster = new Lazy<ITestCluster>(
                     () => TestClusterManagement.TestClusterManager.CreateNew(2, new TestClusterOptions { UseVNodes = true}));
             }
@@ -297,6 +297,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = 
                  Cluster.Builder()
                         .AddContactPoint(testCluster.InitialContactPoint)
+                        .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(22000).SetConnectTimeoutMillis(60000))
                         .WithPoolingOptions(
                             new PoolingOptions()
                                 .SetCoreConnectionsPerHost(HostDistance.Local, 2)

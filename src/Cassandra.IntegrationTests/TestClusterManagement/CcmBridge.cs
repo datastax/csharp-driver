@@ -103,7 +103,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             return home;
         }
 
-        public void Start(string[] jvmArgs)
+        public ProcessOutput Start(string[] jvmArgs)
         {
             var parameters = new List<string>
             {
@@ -129,15 +129,15 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
             if (CcmProcessExecuter is WslCcmProcessExecuter)
             {
-                ExecuteCcm(string.Join(" ", parameters), false);
+                return ExecuteCcm(string.Join(" ", parameters), false);
             }
             else
             {
-                ExecuteCcm(string.Join(" ", parameters));
+                return ExecuteCcm(string.Join(" ", parameters));
             }
         }
 
-        public void Start(int n, string additionalArgs = null)
+        public ProcessOutput Start(int n, string additionalArgs = null)
         {
             string quietWindows = null;
             string runAsRoot = null;
@@ -153,15 +153,15 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
             if (CcmProcessExecuter is WslCcmProcessExecuter)
             {
-                ExecuteCcm(string.Format("node{0} start --wait-for-binary-proto {1} {2} {3}", n, additionalArgs, quietWindows, runAsRoot), false);
+                return ExecuteCcm(string.Format("node{0} start --wait-for-binary-proto {1} {2} {3}", n, additionalArgs, quietWindows, runAsRoot), false);
             }
             else
             {
-                ExecuteCcm(string.Format("node{0} start --wait-for-binary-proto {1} {2} {3}", n, additionalArgs, quietWindows, runAsRoot));
+                return ExecuteCcm(string.Format("node{0} start --wait-for-binary-proto {1} {2} {3}", n, additionalArgs, quietWindows, runAsRoot));
             }
         }
 
-        public void CheckNativePortOpen(string ip)
+        public void CheckNativePortOpen(ProcessOutput output, string ip)
         {
             using (var ccmConnection = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
             {
@@ -182,7 +182,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 }
             }
 
-            throw new TestInfrastructureException("Native Port check timed out.");
+            throw new TestInfrastructureException("Native Port check timed out. Output: " + Environment.NewLine + output.ToString());
         }
 
         public void Populate(int dc1NodeLength, int dc2NodeLength, bool useVNodes)
@@ -248,7 +248,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             BootstrapNode(n, null, start);
         }
 
-        public void BootstrapNode(int n, string dc, bool start = true)
+        public ProcessOutput BootstrapNode(int n, string dc, bool start = true)
         {
             var cmd = "add node{0} -i {1}{2} -j {3} -b -s {4}";
             if (TestClusterManager.IsDse)
@@ -256,12 +256,14 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 cmd += " --dse";
             }
 
-            ExecuteCcm(string.Format(cmd, n, IpPrefix, n, 7000 + 100 * n, dc != null ? "-d " + dc : null));
+            var output = ExecuteCcm(string.Format(cmd, n, IpPrefix, n, 7000 + 100 * n, dc != null ? "-d " + dc : null));
 
             if (start)
             {
-                Start(n);
+                return Start(n);
             }
+
+            return output;
         }
 
         public void DecommissionNode(int n)

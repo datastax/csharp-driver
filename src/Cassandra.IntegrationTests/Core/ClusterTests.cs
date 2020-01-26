@@ -41,7 +41,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             _testCluster?.Dispose();
             _testCluster = null;
-            _realCluster?.ShutDown();
+            TestClusterManager.TryRemove();
             _realCluster = null;
         }
 
@@ -158,6 +158,7 @@ namespace Cassandra.IntegrationTests.Core
         {
             _realCluster = TestClusterManager.CreateNew();
             using (var cluster = Cluster.Builder()
+                                        .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(22000).SetConnectTimeoutMillis(60000))
                                         .AddContactPoint(_realCluster.InitialContactPoint)
                                         .Build())
             {

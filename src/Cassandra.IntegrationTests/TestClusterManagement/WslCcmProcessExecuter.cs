@@ -40,7 +40,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public override int GetDefaultTimeout()
         {
-            return 10 * 60 * 1000;
+            return 20 * 60 * 1000;
         }
     }
 }

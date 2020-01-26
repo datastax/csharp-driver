@@ -133,7 +133,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void DecommissionNodeForcefully(int nodeId)
         {
-            _ccm.ExecuteCcm(string.Format("node{0} nodetool \"decommission -f\"", nodeId));
+            _ccm.ExecuteCcm(string.Format("node{0} nodetool \"decommission -f\"", nodeId), false);
         }
 
         public void PauseNode(int nodeId)
@@ -163,22 +163,22 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void Start(string[] jvmArgs = null)
         {
-            _ccm.Start(jvmArgs);
+            var output = _ccm.Start(jvmArgs);
             if (_executor is WslCcmProcessExecuter)
             {
                 foreach (var i in Enumerable.Range(1, _nodeLength))
                 {
-                    _ccm.CheckNativePortOpen(TestClusterManager.IpPrefix + i);
+                    _ccm.CheckNativePortOpen(output, TestClusterManager.IpPrefix + i);
                 }
             }
         }
 
         public void Start(int nodeIdToStart, string additionalArgs = null, string newIp = null)
         {
-            _ccm.Start(nodeIdToStart, additionalArgs);
+            var output = _ccm.Start(nodeIdToStart, additionalArgs);
             if (_executor is WslCcmProcessExecuter)
             {
-                _ccm.CheckNativePortOpen(newIp ?? (TestClusterManager.IpPrefix + nodeIdToStart));
+                _ccm.CheckNativePortOpen(output, newIp ?? (TestClusterManager.IpPrefix + nodeIdToStart));
             }
         }
 
@@ -205,10 +205,10 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 start = false;
             }
 
-            _ccm.BootstrapNode(nodeIdToStart, dataCenterName, start);
+            var output = _ccm.BootstrapNode(nodeIdToStart, dataCenterName, start);
             if (originalStart && _executor is WslCcmProcessExecuter)
             {
-                _ccm.CheckNativePortOpen(TestClusterManager.IpPrefix + nodeIdToStart);
+                _ccm.CheckNativePortOpen(output, TestClusterManager.IpPrefix + nodeIdToStart);
             }
         }
 
