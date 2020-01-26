@@ -68,7 +68,9 @@ namespace Cassandra.IntegrationTests
 
         protected ICluster CreateCluster(string creds = "creds-v1.zip", Action<Builder> act = null)
         {
-            var builder = Cassandra.Cluster.Builder();
+            var builder = Cassandra.Cluster.Builder()
+                                   .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(22000).SetConnectTimeoutMillis(60000))
+                                   .WithQueryTimeout(60000);
             act?.Invoke(builder);
             builder = builder
                 .WithCloudSecureConnectionBundle(
