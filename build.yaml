@@ -6,13 +6,8 @@ schedules:
       slack: csharp-driver-dev-bots
     matrix:
       exclude:
-      # on windows dont build mono, netcoreapp2.0, netcoreapp2.1
+      # dont build on windows (windows provisioning takes too long, run only on nightly and weekly schedules)
         - os: 'win/cs'
-          dotnet: ['mono', 'netcoreapp2.0', 'netcoreapp2.1']
-      # on windows only target 3.11 with net452 and net461
-        - os: 'win/cs'
-          dotnet: ['net452', 'net461']
-          cassandra: ['2.1', '2.2', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8']
       # on linux dont build net452 and net461
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['net452', 'net461']
@@ -31,7 +26,7 @@ schedules:
       slack: csharp-driver-dev-bots
     matrix:
       exclude:
-      # dont build on windows (dse takes too long on windows, runs only on nightly and weekly schedules)
+      # dont build on windows (DSE is very slow on WSL, run only on nightly and weekly schedules)
         - os: 'win/cs'
       # on linux dont build net452 and net461
         - os: 'ubuntu/bionic64/csharp-driver'
