@@ -128,7 +128,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
         [Test]
         public void Should_SupportOverridingAuthProvider()
         {
-            var cluster = CreateCluster(act: b => b.WithCredentials("user1", "12345678"));
+            var cluster = CreateTemporaryCluster(act: b => b.WithCredentials("user1", "12345678"));
             Assert.AreEqual(typeof(PlainTextAuthProvider), cluster.Configuration.AuthProvider.GetType());
             var provider = (PlainTextAuthProvider)cluster.Configuration.AuthProvider;
             Assert.AreEqual("user1", provider.Username);
@@ -137,7 +137,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
         [Test]
         public void Should_SupportLeavingAuthProviderUnset_When_ConfigJsonDoesNotHaveCredentials()
         {
-            var cluster = CreateCluster("creds-v1-wo-creds.zip");
+            var cluster = CreateTemporaryCluster("creds-v1-wo-creds.zip");
             Assert.AreEqual(typeof(NoneAuthProvider), cluster.Configuration.AuthProvider.GetType());
             Assert.IsNull(cluster.Configuration.AuthInfoProvider);
         }

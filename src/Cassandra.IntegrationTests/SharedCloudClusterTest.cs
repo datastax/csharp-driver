@@ -66,27 +66,31 @@ namespace Cassandra.IntegrationTests
             throw last;
         }
 
-        protected ICluster CreateCluster(string creds = "creds-v1.zip", Action<Builder> act = null)
+        private ICluster CreateCluster(string creds = "creds-v1.zip", Action<Builder> act = null)
         {
             var builder = Cassandra.Cluster.Builder()
                                    .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(22000).SetConnectTimeoutMillis(60000))
                                    .WithQueryTimeout(60000);
             act?.Invoke(builder);
             builder = builder
-                .WithCloudSecureConnectionBundle(
-                     Path.Combine(((CloudCluster) TestCluster).SniHomeDirectory, "certs", "bundles", creds))
-                 .WithPoolingOptions(
-                     new PoolingOptions().SetHeartBeatInterval(200))
-                 .WithReconnectionPolicy(new ConstantReconnectionPolicy(100));
-            var cluster = builder.Build();
-            ClusterInstances.Add(cluster);
+                      .WithCloudSecureConnectionBundle(
+                          Path.Combine(((CloudCluster)TestCluster).SniHomeDirectory, "certs", "bundles", creds))
+                      .WithPoolingOptions(
+                          new PoolingOptions().SetHeartBeatInterval(200))
+                      .WithReconnectionPolicy(new ConstantReconnectionPolicy(100));
+            return builder.Build();
+        }
 
+        protected ICluster CreateTemporaryCluster(string creds = "creds-v1.zip", Action<Builder> act = null)
+        {
+            var cluster = CreateCluster(creds, act);
+            ClusterInstances.Add(cluster);
             return cluster;
         }
         
         protected Task<ISession> CreateSessionAsync(string creds = "creds-v1.zip", Action<Builder> act = null)
         {
-            return CreateCluster(creds, act).ConnectAsync();
+            return CreateTemporaryCluster(creds, act).ConnectAsync();
         }
 
         protected override ITestCluster CreateNew(int nodeLength, TestClusterOptions options, bool startCluster)

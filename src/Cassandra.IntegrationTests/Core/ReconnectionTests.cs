@@ -354,7 +354,7 @@ namespace Cassandra.IntegrationTests.Core
                 TestHelper.RetryAssert(() =>
                 {
                     Assert.AreEqual(2, cluster.AllHosts().Count);
-                }, 1000, 60);
+                }, 1000, 180);
                 
                 // Assert that queries use both hosts again
                 set.Clear();
