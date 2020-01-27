@@ -168,7 +168,7 @@ namespace Cassandra.IntegrationTests.Core
 
             var localSession1 = (IInternalSession)localCluster1.Connect();
             var hosts1 = localCluster1.AllHosts().ToList();
-            Assert.AreEqual(2, hosts1.Count);
+            Assert.AreEqual(3, hosts1.Count);
             //Execute multiple times a query on the newly created keyspace
             for (var i = 0; i < 12; i++)
             {
@@ -188,7 +188,7 @@ namespace Cassandra.IntegrationTests.Core
             {
                 var localSession2 = (IInternalSession)localCluster2.Connect();
                 var hosts2 = localCluster2.AllHosts().ToList();
-                Assert.AreEqual(2, hosts2.Count);
+                Assert.AreEqual(3, hosts2.Count);
                 //Execute multiple times a query on the newly created keyspace
                 for (var i = 0; i < 6; i++)
                 {
@@ -392,12 +392,14 @@ namespace Cassandra.IntegrationTests.Core
                             localSession.Execute("SELECT * FROM local");
                             TestCluster.PauseNode(1);
                             TestCluster.PauseNode(2);
+                            TestCluster.PauseNode(3);
                             Assert.Throws<TimeoutException>(() => localSession.Execute("SELECT * FROM local"));
                         }
                         finally
                         {
                             TestCluster.ResumeNode(1);
                             TestCluster.ResumeNode(2);
+                            TestCluster.ResumeNode(3);
                         }
                     },
                     TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach);
