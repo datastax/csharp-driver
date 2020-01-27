@@ -32,7 +32,7 @@ namespace Cassandra.IntegrationTests.Core
     [Category("short"), Category("realcluster")]
     public class SessionTests : SharedClusterTest
     {
-        public SessionTests() : base(2, false)
+        public SessionTests() : base(3, false)
         {
         }
 
