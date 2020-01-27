@@ -358,12 +358,13 @@ namespace Cassandra.IntegrationTests.Core
                 
                 // Assert that queries use both hosts again
                 set.Clear();
-                foreach (var i in Enumerable.Range(1, 100))
+                var idx = 1;
+                TestHelper.RetryAssert(() =>
                 {
-                    var rs = session.Execute($"INSERT INTO test_table(id) VALUES ('{i}')");
+                    var rs = session.Execute($"INSERT INTO test_table(id) VALUES ('{idx++}')");
                     set.Add(rs.Info.QueriedHost);
-                }
-                Assert.AreEqual(2, set.Count);
+                    Assert.AreEqual(2, set.Count);
+                }, 10, 3000);
                 
                 pool2 = session.GetExistingPool(removedHost.Address);
                 Assert.IsNotNull(pool2);
