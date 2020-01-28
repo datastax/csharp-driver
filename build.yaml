@@ -92,7 +92,7 @@ build:
 
       # Download and uncompress saxon
       mkdir saxon
-      curl -L -o saxon/saxon9he.jar http://central.maven.org/maven2/net/sf/saxon/Saxon-HE/9.8.0-12/Saxon-HE-9.8.0-12.jar
+      curl -L -o saxon/saxon9he.jar https://repo1.maven.org/maven2/net/sf/saxon/Saxon-HE/9.8.0-12/Saxon-HE-9.8.0-12.jar
  
       if [ $DOTNET_VERSION = 'mono' ]; then      
           echo "========== Starting Mono Build =========="
