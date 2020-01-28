@@ -44,9 +44,9 @@ schedules:
     schedule: nightly
     notify:
       slack: csharp-driver-dev-bots
-    #branches:
+    branches:
       # regex matches primary branch format (2.1, 3.x, 3.0.x, 3.1.x, master, etc).
-      #include: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
+      include: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
     matrix:
       exclude:
         - os: 'win/cs'
@@ -66,9 +66,9 @@ schedules:
     schedule: nightly
     notify:
       slack: csharp-driver-dev-bots
-    #branches:
+    branches:
       # regex matches primary branch format (2.1, 3.x, 3.0.x, 3.1.x, master, etc).
-      #include: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
+      include: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
     matrix:
       exclude:
         - os: 'win/cs'
@@ -88,9 +88,9 @@ schedules:
     schedule: nightly
     notify:
       slack: csharp-driver-dev-bots
-    #branches:
+    branches:
       # regex matches primary branch format (2.1, 3.x, 3.0.x, 3.1.x, master, etc).
-      #include: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
+      include: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
     matrix:
       exclude:
         - os: 'ubuntu/bionic64/csharp-driver'
@@ -114,9 +114,9 @@ schedules:
     schedule: nightly
     notify:
       slack: csharp-driver-dev-bots
-    #branches:
+    branches:
       # regex matches primary branch format (2.1, 3.x, 3.0.x, 3.1.x, master, etc).
-      #include: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
+      include: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
     matrix:
       exclude:
         - os: 'ubuntu/bionic64/csharp-driver'
@@ -127,10 +127,10 @@ schedules:
         - os: 'win/cs'
           dotnet: ['netcoreapp2.0', 'netcoreapp2.1']
           cassandra: ['2.1', '2.2', '3.0', '3.11', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8']
-      # on windows target dse-6.7 and dse-6.8 with net452
+      # on windows target dse-5.1, dse-6.7 and dse-6.8 with net452
         - os: 'win/cs'
           dotnet: ['net452']
-          cassandra: ['2.1', '2.2', '3.0', '3.11', 'dse-5.0', 'dse-5.1', 'dse-6.0']
+          cassandra: ['2.1', '2.2', '3.0', '3.11', 'dse-5.0', 'dse-6.0']
       # on windows target dse-6.7 with net461
         - os: 'win/cs'
           dotnet: ['net461']
