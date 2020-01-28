@@ -213,9 +213,6 @@ namespace Cassandra
                         speculativeExecutionPolicies.Add(options.SpeculativeExecutionPolicy);
                     }
 
-                    loadBalancingPolicies.Add(Configuration.Policies.LoadBalancingPolicy);
-                    speculativeExecutionPolicies.Add(Configuration.Policies.SpeculativeExecutionPolicy);
-
                     foreach (var lbp in loadBalancingPolicies)
                     {
                         lbp.Initialize(this);
@@ -490,7 +487,6 @@ namespace Cassandra
                 speculativeExecutionPolicies.Add(options.SpeculativeExecutionPolicy);
             }
 
-            speculativeExecutionPolicies.Add(Configuration.Policies.SpeculativeExecutionPolicy);
             foreach (var sep in speculativeExecutionPolicies)
             {
                 sep.Dispose();
