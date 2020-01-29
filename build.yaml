@@ -6,10 +6,10 @@ schedules:
       exclude:
       # net45(mono) and netstandard1.5 build 3.11 and dse-6.7 only
         - dotnet: ['mono', 'netcoreapp2.0']
-          cassandra: ['2.1', '2.2', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8']
+          cassandra: ['2.1', '2.2', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8.0']
       # netstandard2.0 build latest minors
         - dotnet: 'netcoreapp2.1'
-          cassandra: ['3.0', 'dse-5.0', 'dse-6.0', 'dse-6.8']
+          cassandra: ['3.0', 'dse-5.0', 'dse-6.0', 'dse-6.8.0']
   nightly:
     # nightly job for primary branches to run all configs.
     schedule: nightly
@@ -32,7 +32,7 @@ cassandra:
   - 'dse-5.1'
   - 'dse-6.0'
   - 'dse-6.7'
-  - 'dse-6.8'
+  - 'dse-6.8.0'
 dotnet:
   - 'mono'
   - 'netcoreapp2.0'
