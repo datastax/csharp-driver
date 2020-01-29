@@ -245,9 +245,7 @@ namespace Cassandra
         /// </summary>
         private async Task Warmup()
         {
-            // Load balancing policy was initialized
-            var lbp = Configuration.DefaultRequestOptions.LoadBalancingPolicy;
-            var hosts = lbp.NewQueryPlan(Keyspace, null).Where(h => Cassandra.Cluster.RetrieveDistance(h, lbp) == HostDistance.Local).ToArray();
+            var hosts = _cluster.AllHosts().Where(h => _cluster.RetrieveAndSetDistance(h) == HostDistance.Local).ToArray();
             var tasks = new Task[hosts.Length];
             for (var i = 0; i < hosts.Length; i++)
             {

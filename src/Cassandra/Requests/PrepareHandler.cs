@@ -33,10 +33,12 @@ namespace Cassandra.Requests
         internal static readonly Logger Logger = new Logger(typeof(PrepareHandler));
 
         private readonly ISerializer _serializer;
+        private readonly IInternalCluster _cluster;
 
-        public PrepareHandler(ISerializer serializer)
+        public PrepareHandler(ISerializer serializer, IInternalCluster cluster)
         {
             _serializer = serializer;
+            _cluster = cluster;
         }
 
         public async Task<PreparedStatement> Prepare(
@@ -88,12 +90,12 @@ namespace Cassandra.Requests
                    ex is OverloadedException || ex is QueryExecutionException;
         }
 
-        private async Task<Tuple<Host, IConnection>> GetNextConnection(IInternalSession session, IEnumerator<Host> queryPlan, Dictionary<IPEndPoint, Exception> triedHosts)
+        private async Task<Tuple<Host, IConnection>> GetNextConnection(
+            IInternalSession session, IEnumerator<Host> queryPlan, Dictionary<IPEndPoint, Exception> triedHosts)
         {
             Host host;
             HostDistance distance;
-            var lbp = session.Cluster.Configuration.DefaultRequestOptions.LoadBalancingPolicy;
-            while ((host = GetNextHost(lbp, queryPlan, out distance)) != null)
+            while ((host = GetNextHost(queryPlan, out distance)) != null)
             {
                 var connection = await RequestHandler.GetConnectionFromHostAsync(host, distance, session, triedHosts).ConfigureAwait(false);
                 if (connection != null)
@@ -104,7 +106,7 @@ namespace Cassandra.Requests
             throw new NoHostAvailableException(triedHosts);
         }
 
-        private Host GetNextHost(ILoadBalancingPolicy lbp, IEnumerator<Host> queryPlan, out HostDistance distance)
+        private Host GetNextHost(IEnumerator<Host> queryPlan, out HostDistance distance)
         {
             distance = HostDistance.Ignored;
             while (queryPlan.MoveNext())
@@ -114,7 +116,7 @@ namespace Cassandra.Requests
                 {
                     continue;
                 }
-                distance = Cluster.RetrieveDistance(host, lbp);
+                distance = _cluster.RetrieveAndSetDistance(host);
                 if (distance == HostDistance.Ignored)
                 {
                     continue;

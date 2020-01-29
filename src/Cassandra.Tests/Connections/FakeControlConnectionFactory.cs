@@ -18,10 +18,11 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
+
 using Cassandra.Connections;
 using Cassandra.ProtocolEvents;
 using Cassandra.Serialization;
-using Cassandra.Tasks;
+using Cassandra.SessionManagement;
 
 using Moq;
 
@@ -29,7 +30,13 @@ namespace Cassandra.Tests.Connections
 {
     internal class FakeControlConnectionFactory : IControlConnectionFactory
     {
-        public IControlConnection Create(IProtocolEventDebouncer protocolEventDebouncer, ProtocolVersion initialProtocolVersion, Configuration config, Metadata metadata, IEnumerable<object> contactPoints)
+        public IControlConnection Create(
+            IInternalCluster cluster,
+            IProtocolEventDebouncer protocolEventDebouncer,
+            ProtocolVersion initialProtocolVersion,
+            Configuration config,
+            Metadata metadata,
+            IEnumerable<object> contactPoints)
         {
             var cc = Mock.Of<IControlConnection>();
             Mock.Get(cc).Setup(c => c.InitAsync()).Returns(Task.Run(() =>

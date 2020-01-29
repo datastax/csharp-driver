@@ -275,7 +275,7 @@ namespace Cassandra.Requests
         /// (see documentation of <see cref="ValidHost.New"/>)</returns>
         private bool TryValidateHost(Host host, out ValidHost validHost)
         {
-            var distance = Cluster.RetrieveDistance(host, RequestOptions.LoadBalancingPolicy);
+            var distance = _session.InternalCluster.RetrieveAndSetDistance(host);
             validHost = ValidHost.New(host, distance);
             return validHost != null;
         }

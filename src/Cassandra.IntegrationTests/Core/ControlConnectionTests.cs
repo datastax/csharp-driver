@@ -23,6 +23,8 @@ using Cassandra.IntegrationTests.TestBase;
 using Cassandra.ProtocolEvents;
 using NUnit.Framework;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.SessionManagement;
+using Moq;
 
 namespace Cassandra.IntegrationTests.Core
 {
@@ -93,7 +95,8 @@ namespace Cassandra.IntegrationTests.Core
                 metadata = new Metadata(config);
                 metadata.AddHost(new IPEndPoint(IPAddress.Parse(_testCluster.InitialContactPoint), ProtocolOptions.DefaultPort));
             }
-            var cc = new ControlConnection(GetEventDebouncer(config), version, config, metadata, new List<object> { _testCluster.InitialContactPoint });
+            var cc = new ControlConnection(
+                Mock.Of<IInternalCluster>(), GetEventDebouncer(config), version, config, metadata, new List<object> { _testCluster.InitialContactPoint });
             metadata.ControlConnection = cc;
             return cc;
         }

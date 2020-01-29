@@ -291,5 +291,10 @@ namespace Cassandra
                 DistanceChanged(previousDistance, distance);
             }
         }
+
+        internal HostDistance GetDistance()
+        {
+            return (HostDistance) Interlocked.CompareExchange(ref _distance, 0, 0);
+        }
     }
 }
