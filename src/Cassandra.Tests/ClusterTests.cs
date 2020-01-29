@@ -202,7 +202,7 @@ namespace Cassandra.Tests
 
             foreach (var h in cluster.AllHosts())
             {
-                Assert.AreEqual(expected[h.Address.Address.ToString()], h.GetDistance());
+                Assert.AreEqual(expected[h.Address.Address.ToString()], h.GetDistanceUnsafe());
             }
         }
 

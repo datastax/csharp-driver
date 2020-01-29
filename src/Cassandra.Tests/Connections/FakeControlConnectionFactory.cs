@@ -41,6 +41,8 @@ namespace Cassandra.Tests.Connections
             var cc = Mock.Of<IControlConnection>();
             Mock.Get(cc).Setup(c => c.InitAsync()).Returns(Task.Run(() =>
             {
+                var cps = new Dictionary<string, IEnumerable<IPEndPoint>>();
+
                 foreach (var cp in contactPoints)
                 {
                     if (cp is string cpStr && IPAddress.TryParse(cpStr, out var addr))
@@ -48,14 +50,17 @@ namespace Cassandra.Tests.Connections
                         var host = metadata.AddHost(new IPEndPoint(addr, config.ProtocolOptions.Port));
                         host.SetInfo(BuildRow());
                         Mock.Get(cc).Setup(c => c.Host).Returns(host);
+                        cps.Add(cpStr, new List<IPEndPoint> { host.Address });
                     }
                     else if (cp is IPEndPoint endpt)
                     {
                         var host = metadata.AddHost(endpt);
                         host.SetInfo(BuildRow());
                         Mock.Get(cc).Setup(c => c.Host).Returns(host);
+                        cps.Add(cp.ToString(), new List<IPEndPoint> { endpt });
                     }
                 }
+                metadata.SetResolvedContactPoints(cps);
             }));
             Mock.Get(cc).Setup(c => c.Serializer).Returns(new SerializerManager(ProtocolVersion.V3));
             return cc;

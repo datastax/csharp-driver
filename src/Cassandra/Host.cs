@@ -19,6 +19,8 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 
+using Cassandra.SessionManagement;
+
 namespace Cassandra
 {
     /// <summary>
@@ -28,7 +30,7 @@ namespace Cassandra
     {
         private static readonly Logger Logger = new Logger(typeof(Host));
         private long _isUpNow = 1;
-        private int _distance = (int) HostDistance.Ignored;
+        private int _distance = (int)HostDistance.Ignored;
         private static readonly IReadOnlyCollection<string> WorkloadsDefault = new string[0];
 
         /// <summary>
@@ -129,7 +131,7 @@ namespace Cassandra
         /// This property might be null when using Apache Cassandra or legacy DSE server versions.
         /// </summary>
         public Version DseVersion { get; private set; }
-        
+
         /// <summary>
         /// Creates a new instance of <see cref="Host"/>.
         /// </summary>
@@ -292,9 +294,13 @@ namespace Cassandra
             }
         }
 
-        internal HostDistance GetDistance()
+        /// <summary>
+        /// Testing purposes only. Use <see cref="IInternalCluster.RetrieveAndSetDistance"/> to retrieve distance in a safer way.
+        /// </summary>
+        /// <returns></returns>
+        internal HostDistance GetDistanceUnsafe()
         {
-            return (HostDistance) Interlocked.CompareExchange(ref _distance, 0, 0);
+            return (HostDistance)Interlocked.CompareExchange(ref _distance, 0, 0);
         }
     }
 }

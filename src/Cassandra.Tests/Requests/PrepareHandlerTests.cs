@@ -77,6 +77,7 @@ namespace Cassandra.Tests.Requests
             await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2], HostDistance.Local).Warmup().ConfigureAwait(false);
             var pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(2, pools.Count);
+            var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
             var request = new InternalPrepareRequest("TEST");
 
             await mockResult.PrepareHandler.Prepare(
@@ -89,7 +90,7 @@ namespace Cassandra.Tests.Requests
             pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(2, pools.Count);
             Assert.AreEqual(2, results.Length);
-            Assert.AreEqual(Interlocked.Read(ref lbpCluster.DistanceCount), 1);
+            Assert.AreEqual(distanceCount + 1, Interlocked.Read(ref lbpCluster.DistanceCount), 1);
             Assert.AreEqual(Interlocked.Read(ref lbpCluster.NewQueryPlanCount), 0);
             Assert.AreEqual(2, mockResult.ConnectionFactory.CreatedConnections.Count);
             Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[0].Address].Count);
@@ -143,6 +144,7 @@ namespace Cassandra.Tests.Requests
             await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2], HostDistance.Local).Warmup().ConfigureAwait(false);
             var pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(3, pools.Count);
+            var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
             var request = new InternalPrepareRequest("TEST");
 
             await mockResult.PrepareHandler.Prepare(
@@ -155,7 +157,7 @@ namespace Cassandra.Tests.Requests
             pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(3, pools.Count);
             Assert.AreEqual(2, results.Length);
-            Assert.AreEqual(Interlocked.Read(ref lbpCluster.DistanceCount), 1);
+            Assert.AreEqual(distanceCount + 1, Interlocked.Read(ref lbpCluster.DistanceCount), 1);
             Assert.AreEqual(Interlocked.Read(ref lbpCluster.NewQueryPlanCount), 0);
             Assert.AreEqual(2, mockResult.ConnectionFactory.CreatedConnections.Count);
             Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[0].Address].Count);
@@ -209,6 +211,8 @@ namespace Cassandra.Tests.Requests
             await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2], HostDistance.Local).Warmup().ConfigureAwait(false);
             var pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(3, pools.Count);
+            
+            var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
             var request = new InternalPrepareRequest("TEST");
 
             await mockResult.PrepareHandler.Prepare(
@@ -221,7 +225,7 @@ namespace Cassandra.Tests.Requests
             pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(3, pools.Count);
             Assert.AreEqual(3, results.Length);
-            Assert.AreEqual(Interlocked.Read(ref lbpCluster.DistanceCount), 1);
+            Assert.AreEqual(distanceCount + 1, Interlocked.Read(ref lbpCluster.DistanceCount), 1);
             Assert.AreEqual(Interlocked.Read(ref lbpCluster.NewQueryPlanCount), 0);
             Assert.AreEqual(3, mockResult.ConnectionFactory.CreatedConnections.Count);
             Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[0].Address].Count);
@@ -275,6 +279,7 @@ namespace Cassandra.Tests.Requests
             await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2], HostDistance.Local).Warmup().ConfigureAwait(false);
             var pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(2, pools.Count);
+            var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
             var request = new InternalPrepareRequest("TEST");
 
             await mockResult.PrepareHandler.Prepare(
@@ -287,7 +292,7 @@ namespace Cassandra.Tests.Requests
             pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(3, pools.Count);
             Assert.AreEqual(3, results.Length);
-            Assert.AreEqual(Interlocked.Read(ref lbpCluster.DistanceCount), 1);
+            Assert.AreEqual(distanceCount + 1, Interlocked.Read(ref lbpCluster.DistanceCount), 1);
             Assert.AreEqual(Interlocked.Read(ref lbpCluster.NewQueryPlanCount), 0);
             Assert.AreEqual(3, mockResult.ConnectionFactory.CreatedConnections.Count);
             Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[0].Address].Count);
@@ -341,6 +346,7 @@ namespace Cassandra.Tests.Requests
             await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2], HostDistance.Local).Warmup().ConfigureAwait(false);
             var pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(2, pools.Count);
+            var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
             var request = new InternalPrepareRequest("TEST");
 
             await mockResult.PrepareHandler.Prepare(
@@ -353,7 +359,7 @@ namespace Cassandra.Tests.Requests
             pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(3, pools.Count);
             Assert.AreEqual(3, results.Length);
-            Assert.AreEqual(Interlocked.Read(ref lbpCluster.DistanceCount), 1);
+            Assert.AreEqual(distanceCount + 1, Interlocked.Read(ref lbpCluster.DistanceCount), 1);
             Assert.AreEqual(Interlocked.Read(ref lbpCluster.NewQueryPlanCount), 0);
             Assert.AreEqual(3, mockResult.ConnectionFactory.CreatedConnections.Count);
             Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[0].Address].Count);
@@ -408,6 +414,7 @@ namespace Cassandra.Tests.Requests
             await mockResult.Session.GetOrCreateConnectionPool(queryPlan[2], HostDistance.Local).Warmup().ConfigureAwait(false);
             var pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(2, pools.Count);
+            var distanceCount = Interlocked.Read(ref lbpCluster.DistanceCount);
             var request = new InternalPrepareRequest("TEST");
 
             await mockResult.PrepareHandler.Prepare(
@@ -420,7 +427,7 @@ namespace Cassandra.Tests.Requests
             pools = mockResult.Session.GetPools().ToList();
             Assert.AreEqual(3, pools.Count);
             Assert.AreEqual(1, results.Length);
-            Assert.AreEqual(Interlocked.Read(ref lbpCluster.DistanceCount), 1);
+            Assert.AreEqual(distanceCount + 1, Interlocked.Read(ref lbpCluster.DistanceCount), 1);
             Assert.AreEqual(Interlocked.Read(ref lbpCluster.NewQueryPlanCount), 0);
             Assert.AreEqual(3, mockResult.ConnectionFactory.CreatedConnections.Count);
             Assert.LessOrEqual(1, mockResult.ConnectionFactory.CreatedConnections[queryPlan[0].Address].Count);
@@ -446,6 +453,7 @@ namespace Cassandra.Tests.Requests
             // create config
             var configBuilder = new TestConfigurationBuilder
             {
+                ControlConnectionFactory = new FakeControlConnectionFactory(),
                 ConnectionFactory = factory,
                 Policies = new Cassandra.Policies(new RoundRobinPolicy(), new ConstantReconnectionPolicy(100), new DefaultRetryPolicy())
             };
@@ -463,7 +471,8 @@ namespace Cassandra.Tests.Requests
 
             // create cluster
             var cluster = Cluster.BuildFrom(initializerMock, new List<string>());
-            config.Policies.LoadBalancingPolicy.Initialize(cluster);
+            cluster.Connect();
+            factory.CreatedConnections.Clear();
             
             // create session
             var session = new Session(cluster, config, null, SerializerManager.Default, null);
