@@ -95,7 +95,7 @@ namespace Cassandra.IntegrationTests.Metrics
         public void Should_RemoveNodeMetricsAndDisposeMetricsContext_When_HostIsRemoved()
         {
             _metricsRoot = new MetricsBuilder().Build();
-            var cluster = GetNewCluster(b => b.WithMetrics(_metricsRoot.CreateDriverMetricsProvider()));
+            var cluster = GetNewTemporaryCluster(b => b.WithMetrics(_metricsRoot.CreateDriverMetricsProvider()));
             var session = cluster.Connect();
             var metrics = session.GetMetrics();
             Assert.AreEqual(3, cluster.Metadata.Hosts.Count);
@@ -167,7 +167,7 @@ namespace Cassandra.IntegrationTests.Metrics
         public void Should_AllMetricsHaveValidValues_When_AllNodesAreUp()
         {
             _metricsRoot = new MetricsBuilder().Build();
-            var cluster = GetNewCluster(b =>
+            var cluster = GetNewTemporaryCluster(b =>
                 b.WithMetrics(
                     _metricsRoot.CreateDriverMetricsProvider(),
                     new DriverMetricsOptions()
@@ -216,7 +216,7 @@ namespace Cassandra.IntegrationTests.Metrics
         public void Should_DefaultMetricsHaveValidValuesAndTimersDisabled()
         {
             _metricsRoot = new MetricsBuilder().Build();
-            var cluster = GetNewCluster(b => b.WithMetrics(_metricsRoot.CreateDriverMetricsProvider()));
+            var cluster = GetNewTemporaryCluster(b => b.WithMetrics(_metricsRoot.CreateDriverMetricsProvider()));
             var session = cluster.Connect();
             Assert.AreEqual(24, NodeMetric.DefaultNodeMetrics.Count());
             Assert.IsTrue(NodeMetric.DefaultNodeMetrics.SequenceEqual(NodeMetric.DefaultNodeMetrics.Distinct()));
@@ -265,7 +265,7 @@ namespace Cassandra.IntegrationTests.Metrics
             TestCluster.Stop(2);
             try
             {
-                var cluster = GetNewCluster(b => b.WithMetrics(
+                var cluster = GetNewTemporaryCluster(b => b.WithMetrics(
                     _metricsRoot.CreateDriverMetricsProvider(),
                     new DriverMetricsOptions()
                         .SetEnabledSessionMetrics(SessionMetric.AllSessionMetrics)

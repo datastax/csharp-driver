@@ -43,6 +43,7 @@ namespace Cassandra.IntegrationTests.Core
             _testClusterForAuthTesting = GetTestCcmClusterForAuthTests();
             //Wait 10 seconds as auth table needs to be created
             Thread.Sleep(10000);
+            DataStax.Auth.SessionAuthenticationTests.RetryUntilClusterAuthHealthy(_testClusterForAuthTesting);
         }
 
         [OneTimeTearDown]

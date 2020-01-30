@@ -670,6 +670,8 @@ namespace Cassandra.IntegrationTests.TestBase
 
         public StringBuilder OutputText { get; set; }
 
+        private string Output { get; set; }
+
         public ProcessOutput()
         {
             OutputText = new StringBuilder();
@@ -680,7 +682,12 @@ namespace Cassandra.IntegrationTests.TestBase
         {
             return
                 "Exit Code: " + this.ExitCode + Environment.NewLine +
-                "Output Text: " + this.OutputText.ToString() + Environment.NewLine;
+                "Output Text: " + (this.Output ?? this.OutputText.ToString()) + Environment.NewLine;
+        }
+
+        public void SetOutput(string output)
+        {
+            Output = output;
         }
     }
 

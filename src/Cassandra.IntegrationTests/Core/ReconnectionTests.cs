@@ -45,7 +45,7 @@ namespace Cassandra.IntegrationTests.Core
 
             if (_realCluster.IsValueCreated)
             {
-                _realCluster.Value.ShutDown();
+                TestClusterManager.TryRemove();
                 _realCluster = new Lazy<ITestCluster>(
                     () => TestClusterManagement.TestClusterManager.CreateNew(2, new TestClusterOptions { UseVNodes = true}));
             }
@@ -297,6 +297,7 @@ namespace Cassandra.IntegrationTests.Core
             using (var cluster = 
                  Cluster.Builder()
                         .AddContactPoint(testCluster.InitialContactPoint)
+                        .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(22000).SetConnectTimeoutMillis(60000))
                         .WithPoolingOptions(
                             new PoolingOptions()
                                 .SetCoreConnectionsPerHost(HostDistance.Local, 2)
@@ -353,16 +354,17 @@ namespace Cassandra.IntegrationTests.Core
                 TestHelper.RetryAssert(() =>
                 {
                     Assert.AreEqual(2, cluster.AllHosts().Count);
-                }, 1000, 60);
+                }, 1000, 180);
                 
                 // Assert that queries use both hosts again
                 set.Clear();
-                foreach (var i in Enumerable.Range(1, 100))
+                var idx = 1;
+                TestHelper.RetryAssert(() =>
                 {
-                    var rs = session.Execute($"INSERT INTO test_table(id) VALUES ('{i}')");
+                    var rs = session.Execute($"INSERT INTO test_table(id) VALUES ('{idx++}')");
                     set.Add(rs.Info.QueriedHost);
-                }
-                Assert.AreEqual(2, set.Count);
+                    Assert.AreEqual(2, set.Count);
+                }, 10, 3000);
                 
                 pool2 = session.GetExistingPool(removedHost.Address);
                 Assert.IsNotNull(pool2);
@@ -414,7 +416,7 @@ namespace Cassandra.IntegrationTests.Core
                     $"listen_address: {_realCluster.Value.ClusterIpPrefix}4", 
                     $"rpc_address: {_realCluster.Value.ClusterIpPrefix}4");
 
-                _realCluster.Value.Start(3, "--skip-wait-other-notice");
+                _realCluster.Value.Start(3, "--skip-wait-other-notice", "127.0.0.4");
 
                 TestHelper.RetryAssert(
                     () =>
