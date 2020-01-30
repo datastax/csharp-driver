@@ -38,9 +38,10 @@ namespace Cassandra.Tests
         [Test]
         public void AtomicMonotonicTimestampGenerator_Next_Should_Return_Log_When_Drifting_Above_Threshold()
         {
+            var minLogInterval = 2500;
             var loggerHandler = new TestHelper.TestLoggerHandler();
-            var generator = new AtomicMonotonicTimestampGenerator(5, 2000, new Logger(loggerHandler));
-            TimestampGeneratorLogDriftingTest(generator, loggerHandler, 2000);
+            var generator = new AtomicMonotonicTimestampGenerator(5, minLogInterval, new Logger(loggerHandler));
+            TimestampGeneratorLogDriftingTest(generator, loggerHandler, minLogInterval);
         }
 
         [Test]
@@ -62,9 +63,10 @@ namespace Cassandra.Tests
         [Test, WinOnly(6, 2)]
         public void AtomicMonotonicWinApiTimestampGenerator_Next_Should_Log_When_Drifting_Above_Threshold()
         {
+            var minLogInterval = 2500;
             var loggerHandler = new TestHelper.TestLoggerHandler();
-            var generator = new AtomicMonotonicWinApiTimestampGenerator(5, 2000, new Logger(loggerHandler));
-            TimestampGeneratorLogDriftingTest(generator, loggerHandler, 2000);
+            var generator = new AtomicMonotonicWinApiTimestampGenerator(5, minLogInterval, new Logger(loggerHandler));
+            TimestampGeneratorLogDriftingTest(generator, loggerHandler, minLogInterval);
         }
 
         [Test, WinOnly(6, 2)]
@@ -109,17 +111,27 @@ namespace Cassandra.Tests
         private static void TimestampGeneratorLogDriftingTest(
             ITimestampGenerator generator, TestHelper.TestLoggerHandler loggerHandler, int logIntervalMs)
         {
-            // A little less than 3 * loginterval seconds
-            // It should generate a warning initially and then next 2 after 1 second each
-            var maxElapsed = TimeSpan.FromMilliseconds((logIntervalMs * 3) - (logIntervalMs / 4));
+            var timestamp = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
+            TestHelper.ParallelInvoke(
+                () =>
+                {
+                    generator.Next();
+                },
+                1000000);
 
-            var ct = new CancellationTokenSource(maxElapsed);
-            while (!ct.IsCancellationRequested)
+            var elapsed = (DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond) - timestamp;
+
+            if (elapsed > 3000)
             {
-                generator.Next();
+                Assert.Ignore("Generated numbers too slowly for this test to work.");
+            }
+            else
+            {
+                var count = elapsed / logIntervalMs;
+
+                Assert.That(Interlocked.Read(ref loggerHandler.WarningCount), Is.InRange(count + 1, count + 2));
             }
 
-            Assert.That(Interlocked.Read(ref loggerHandler.WarningCount), Is.EqualTo(3));
         }
 
         private static void TimestampGeneratorLogAfterCooldownTest(ITimestampGenerator generator,

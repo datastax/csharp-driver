@@ -38,7 +38,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
 {
     [SniEnabledOnly]
     [CloudSupported(Supported = true)]
-    [TestFixture, Category("short"), Category("cloud"), Category("realcluster")]
+    [TestFixture, Category("short"), Category("cloud"), Category("realcluster"), Category("testwindows")]
     public class CloudIntegrationTests : SharedCloudClusterTest
     {
         [Test]
@@ -128,7 +128,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
         [Test]
         public void Should_SupportOverridingAuthProvider()
         {
-            var cluster = CreateCluster(act: b => b.WithCredentials("user1", "12345678"));
+            var cluster = CreateTemporaryCluster(act: b => b.WithCredentials("user1", "12345678"));
             Assert.AreEqual(typeof(PlainTextAuthProvider), cluster.Configuration.AuthProvider.GetType());
             var provider = (PlainTextAuthProvider)cluster.Configuration.AuthProvider;
             Assert.AreEqual("user1", provider.Username);
@@ -137,7 +137,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
         [Test]
         public void Should_SupportLeavingAuthProviderUnset_When_ConfigJsonDoesNotHaveCredentials()
         {
-            var cluster = CreateCluster("creds-v1-wo-creds.zip");
+            var cluster = CreateTemporaryCluster("creds-v1-wo-creds.zip");
             Assert.AreEqual(typeof(NoneAuthProvider), cluster.Configuration.AuthProvider.GetType());
             Assert.IsNull(cluster.Configuration.AuthInfoProvider);
         }
@@ -186,10 +186,14 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
             var policyTestTools = new PolicyTestTools();
 
             // Test
-            policyTestTools.CreateSchema(Session);
+            policyTestTools.CreateSchema(Session, 1, forceSchemaAgreement: true);
             policyTestTools.TableName = TestUtils.GetUniqueTableName();
             Session.Execute($"CREATE TABLE {policyTestTools.TableName} (k1 text, k2 int, i int, PRIMARY KEY ((k1, k2)))");
             Thread.Sleep(1000);
+            TestHelper.RetryAssert(() =>
+            {
+                Assert.True(Session.Cluster.Metadata.CheckSchemaAgreementAsync().Result);
+            }, 500, 150);
             var ps = Session.Prepare($"INSERT INTO {policyTestTools.TableName} (k1, k2, i) VALUES (?, ?, ?)");
             var traces = new List<QueryTrace>();
             for (var i = 0; i < 10; i++)
@@ -214,7 +218,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
             // Setup
             var policyTestTools = new PolicyTestTools { TableName = TestUtils.GetUniqueTableName() };
 
-            policyTestTools.CreateSchema(Session, 1);
+            policyTestTools.CreateSchema(Session, 1, forceSchemaAgreement: true);
             var traces = new List<QueryTrace>();
             for (var i = 1; i < 10; i++)
             {
@@ -236,7 +240,7 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
             // Setup
             var policyTestTools = new PolicyTestTools { TableName = TestUtils.GetUniqueTableName() };
 
-            policyTestTools.CreateSchema(Session, 1);
+            policyTestTools.CreateSchema(Session, 1, forceSchemaAgreement: true);
             var traces = new List<QueryTrace>();
             for (var i = 1; i < 10; i++)
             {
@@ -308,6 +312,9 @@ namespace Cassandra.IntegrationTests.DataStax.Cloud
             var ks = TestUtils.GetUniqueKeyspaceName().ToLower();
             const string createKeyspaceQuery = "CREATE KEYSPACE {0} WITH replication = {{ 'class' : '{1}', {2} }}";
             session.Execute(string.Format(createKeyspaceQuery, ks, "SimpleStrategy", "'replication_factor' : 3"));
+            TestHelper.RetryAssert(
+                () => Assert.IsTrue(session.Cluster.Metadata.CheckSchemaAgreementAsync().Result),
+                1000, 60);
             var table = new Table<Author>(session, MappingConfiguration.Global, "author", ks);
             table.CreateIfNotExists();
             RowSet rs = null;

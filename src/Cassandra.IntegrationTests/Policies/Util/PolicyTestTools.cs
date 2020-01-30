@@ -22,6 +22,7 @@ using System.Text;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 using Cassandra.IntegrationTests.TestClusterManagement;
+using Cassandra.Tests;
 using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Policies.Util
@@ -49,7 +50,7 @@ namespace Cassandra.IntegrationTests.Policies.Util
             CreateSchema(session, 1);
         }
 
-        public void CreateSchema(ISession session, int replicationFactor, string keyspace = null)
+        public void CreateSchema(ISession session, int replicationFactor, string keyspace = null, bool forceSchemaAgreement = false)
         {
             try
             {
@@ -58,10 +59,29 @@ namespace Cassandra.IntegrationTests.Policies.Util
             catch (AlreadyExistsException)
             {
             }
-            TestUtils.WaitForSchemaAgreement(session.Cluster);
+
+            if (forceSchemaAgreement)
+            {
+                TestHelper.RetryAssert(
+                    () => Assert.IsTrue(session.Cluster.Metadata.CheckSchemaAgreementAsync().Result),
+                    1000, 60);
+            }
+            else
+            {
+                TestUtils.WaitForSchemaAgreement(session.Cluster);
+            }
             session.ChangeKeyspace(keyspace ?? DefaultKeyspace);
             session.Execute($"CREATE TABLE {TableName} (k int PRIMARY KEY, i int)");
-            TestUtils.WaitForSchemaAgreement(session.Cluster);
+            if (forceSchemaAgreement)
+            {
+                TestHelper.RetryAssert(
+                    () => Assert.IsTrue(session.Cluster.Metadata.CheckSchemaAgreementAsync().Result),
+                    1000, 60);
+            }
+            else
+            {
+                TestUtils.WaitForSchemaAgreement(session.Cluster);
+            }
         }
 
         public void CreateMultiDcSchema(ISession session, int dc1RF = 1, int dc2RF = 1)
