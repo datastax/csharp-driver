@@ -519,17 +519,23 @@ namespace Cassandra.Tests
             await pool.EnsureCreate().ConfigureAwait(false);
             Assert.Greater(pool.OpenConnections, 0);
             // Wait for the pool to be gaining size
-            await Task.Delay(delay).ConfigureAwait(false);
-            if (delay > 20)
+            TestHelper.RetryAssert(() =>
             {
                 Assert.Greater(pool.OpenConnections, 1);
-            }
+            },
+            20,
+            100);
             await Task.Run(() =>
             {
                 pool.Dispose();
             }).ConfigureAwait(false);
-            await Task.Delay(100).ConfigureAwait(false);
-            Assert.AreEqual(0, pool.OpenConnections);
+            
+            TestHelper.RetryAssert(() =>
+            {
+                Assert.AreEqual(0, pool.OpenConnections);
+            },
+            20,
+            100);
         }
 
         [Test]

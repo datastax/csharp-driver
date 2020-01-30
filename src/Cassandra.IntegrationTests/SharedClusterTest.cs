@@ -141,7 +141,7 @@ namespace Cassandra.IntegrationTests
         {
             Cluster = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint)
                              .WithQueryTimeout(60000)
-                             .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000))
+                             .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000).SetReadTimeoutMillis(22000))
                              .Build();
             Session = (Session)Cluster.Connect();
             Session.CreateKeyspace(KeyspaceName, null, false);
@@ -161,23 +161,44 @@ namespace Cassandra.IntegrationTests
         {
             if (Cluster != null)
             {
-                Cluster.Shutdown(1000);
+                Cluster.Shutdown(TestClusterManager.Executor.GetDefaultTimeout());
             }
             //Shutdown the other instances created by helper methods
             foreach (var c in ClusterInstances)
             {
-                c.Shutdown(1000);
+                c.Shutdown(TestClusterManager.Executor.GetDefaultTimeout());
             }
+            ClusterInstances.Clear();
+        }
+        
+        protected ISession GetNewTemporarySession(string keyspace = null)
+        {
+            return GetNewTemporaryCluster().Connect(keyspace);
+        }
+        
+        [TearDown]
+        public virtual void TearDown()
+        {
+            foreach (var c in ClusterInstances)
+            {
+                try
+                {
+                    c.Dispose();
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
+            ClusterInstances.Clear();
         }
 
-        protected virtual ISession GetNewSession(string keyspace = null)
+        protected virtual ICluster GetNewTemporaryCluster(Action<Builder> build = null)
         {
-            return GetNewCluster().Connect(keyspace);
-        }
-
-        protected virtual ICluster GetNewCluster(Action<Builder> build = null)
-        {
-            var builder = Cluster.Builder().AddContactPoint(TestCluster.InitialContactPoint);
+            var builder = 
+                Cluster.Builder()
+                       .AddContactPoint(TestCluster.InitialContactPoint)
+                       .WithSocketOptions(new SocketOptions().SetConnectTimeoutMillis(30000).SetReadTimeoutMillis(22000));
             build?.Invoke(builder);
             var cluster = builder.Build();
             ClusterInstances.Add(cluster);

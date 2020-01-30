@@ -38,13 +38,13 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public static ITestCluster CreateNew(bool enableCert)
         {
+            TestCloudClusterManager.Created = true;
             TryRemove();
             var testCluster = new CloudCluster(
                 TestUtils.GetTestClusterNameBasedOnRandomString(), 
                 VersionString,
                 enableCert);
             testCluster.Create(3, null);
-            TestCloudClusterManager.Created = true;
             return testCluster;
         }
 

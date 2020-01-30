@@ -29,11 +29,9 @@ namespace Cassandra.IntegrationTests.DataStax.Auth
     /// Test Cassandra Authentication.
     /// </summary>
     [TestFixture, Category("short")]
-    public class SessionAuthenticationTests : TestGlobals
+    public class SessionDseAuthenticationTests : TestGlobals
     {
-        // Test cluster objects to be shared by tests in this class only
-        private Lazy<ITestCluster> _testClusterForAuthTesting;
-
+        private Lazy<ITestCluster> _testClusterForDseAuthTesting;
         private ICluster _cluster;
 
         public static void RetryUntilClusterAuthHealthy(ITestCluster cluster)
@@ -60,9 +58,9 @@ namespace Cassandra.IntegrationTests.DataStax.Auth
         public void OneTimeSetUp()
         {
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
-            _testClusterForAuthTesting = new Lazy<ITestCluster>(() =>
+            _testClusterForDseAuthTesting = new Lazy<ITestCluster>(() =>
             {
-                var cluster = GetTestCcmClusterForAuthTests(false);
+                var cluster = GetTestCcmClusterForAuthTests();
                 //Wait 10 seconds as auth table needs to be created
                 Thread.Sleep(10000);
                 RetryUntilClusterAuthHealthy(cluster);
@@ -80,25 +78,28 @@ namespace Cassandra.IntegrationTests.DataStax.Auth
         [OneTimeTearDown]
         public void TestFixtureTearDown()
         {
-            if (_testClusterForAuthTesting.IsValueCreated)
+            if (_testClusterForDseAuthTesting.IsValueCreated)
             {
                 TestClusterManager.TryRemove();
             }
         }
 
-        private ITestCluster GetTestCcmClusterForAuthTests(bool dse)
+        private ITestCluster GetTestCcmClusterForAuthTests()
         {
-            var testCluster = TestClusterManager.CreateNew(1, null, false);
-            testCluster.UpdateConfig("authenticator: PasswordAuthenticator");
-            testCluster.Start(new[] { "-Dcassandra.superuser_setup_delay_ms=0" });
-            return testCluster;
+            return
+                TestClusterManager.CreateNew(1, new TestClusterOptions
+                {
+                    DseYaml = new[] { "authentication_options.default_scheme: internal", "authentication_options.enabled: true" },
+                    CassandraYaml = new[] { "authenticator: com.datastax.bdp.cassandra.auth.DseAuthenticator" },
+                    JvmArgs = new[] { "-Dcassandra.superuser_setup_delay_ms=0" }
+                });
         }
 
-        [Test]
-        public void StandardCreds_AuthSuccess()
+        [Test, TestDseVersion(5, 0)]
+        public void StandardCreds_DseAuth_AuthSuccess()
         {
             var builder = Cluster.Builder()
-                .AddContactPoint(_testClusterForAuthTesting.Value.InitialContactPoint)
+                .AddContactPoint(_testClusterForDseAuthTesting.Value.InitialContactPoint)
                 .WithCredentials("cassandra", "cassandra");
             _cluster = builder.Build();
 
@@ -107,30 +108,28 @@ namespace Cassandra.IntegrationTests.DataStax.Auth
             Assert.Greater(rs.Count(), 0);
         }
 
-        [Test]
-        public void StandardCreds_AuthFail()
+        [Test, TestDseVersion(5, 0)]
+        public void StandardCreds_DseAuth_AuthFail()
         {
             using (var cluster = Cluster
                 .Builder()
-                .AddContactPoint(_testClusterForAuthTesting.Value.InitialContactPoint)
+                .AddContactPoint(_testClusterForDseAuthTesting.Value.InitialContactPoint)
                 .WithCredentials("wrong_username", "password")
                 .Build())
             {
                 var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());
                 Assert.AreEqual(1, ex.Errors.Count);
-                Assert.IsTrue(TestClusterManager.CassandraVersion.CompareTo(Version.Parse("3.1")) > 0
-                    ? ex.Message.Contains("Provided username wrong_username and/or password are incorrect")
-                    : ex.Message.Contains("Username and/or password are incorrect"));
+                Assert.IsTrue(ex.Message.Contains("Failed to login. Please re-try."), ex.Message);
                 Assert.IsInstanceOf<AuthenticationException>(ex.Errors.First().Value);
             }
         }
 
-        [Test]
-        public void StandardCreds_AuthOmitted()
+        [Test, TestDseVersion(5, 0)]
+        public void StandardCreds_DseAuth_AuthOmitted()
         {
             using (var cluster = Cluster
                 .Builder()
-                .AddContactPoint(_testClusterForAuthTesting.Value.InitialContactPoint)
+                .AddContactPoint(_testClusterForDseAuthTesting.Value.InitialContactPoint)
                 .Build())
             {
                 var ex = Assert.Throws<NoHostAvailableException>(() => cluster.Connect());

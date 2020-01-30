@@ -17,6 +17,7 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using Cassandra.IntegrationTests.TestBase;
 
 namespace Cassandra.IntegrationTests.TestClusterManagement
 {
@@ -33,6 +34,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
         public string DefaultKeyspace { get; set; }
         private readonly ICcmProcessExecuter _executor;
         private CcmBridge _ccm;
+        private int _nodeLength;
 
         public CcmCluster(string name, string clusterIpPrefix, string dsePath, ICcmProcessExecuter executor, string defaultKeyspace, string version)
         {
@@ -47,6 +49,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void Create(int nodeLength, TestClusterOptions options = null)
         {
+            _nodeLength = nodeLength;
             options = options ?? TestClusterOptions.Default;
             _ccm = new CcmBridge(Name, ClusterIpPrefix, DsePath, Version, _executor);
             _ccm.Create(options.UseSsl);
@@ -57,6 +60,35 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
             {
                 _ccm.UpdateDseConfig(options.DseYaml);
                 _ccm.SetWorkloads(nodeLength, options.Workloads);
+            }
+
+            if (TestClusterManager.Executor is WslCcmProcessExecuter)
+            {
+                _ccm.UpdateConfig(new []
+                {
+                    "read_request_timeout_in_ms: 20000",
+                    "counter_write_request_timeout_in_ms: 20000",
+                    "write_request_timeout_in_ms: 20000",
+                    "request_timeout_in_ms: 20000",
+                    "range_request_timeout_in_ms: 30000"
+                });
+                if (TestClusterManager.IsDse)
+                {
+                    if (TestClusterManager.CheckDseVersion(new Version(6, 7), Comparison.LessThan))
+                    {
+                        _ccm.UpdateConfig(new[]
+                        {
+                            "user_defined_function_fail_timeout: 20000"
+                        });
+                    }
+                    else
+                    {
+                        _ccm.UpdateConfig(new[]
+                        {
+                            "user_defined_function_fail_micros: 20000"
+                        });
+                    }
+                }
             }
         }
 
@@ -101,7 +133,7 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void DecommissionNodeForcefully(int nodeId)
         {
-            _ccm.ExecuteCcm(string.Format("node{0} nodetool \"decommission -f\"", nodeId));
+            _ccm.ExecuteCcm(string.Format("node{0} nodetool \"decommission -f\"", nodeId), false);
         }
 
         public void PauseNode(int nodeId)
@@ -131,12 +163,23 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void Start(string[] jvmArgs = null)
         {
-            _ccm.Start(jvmArgs);
+            var output = _ccm.Start(jvmArgs);
+            if (_executor is WslCcmProcessExecuter)
+            {
+                foreach (var i in Enumerable.Range(1, _nodeLength))
+                {
+                    _ccm.CheckNativePortOpen(output, TestClusterManager.IpPrefix + i);
+                }
+            }
         }
 
-        public void Start(int nodeIdToStart, string additionalArgs = null)
+        public void Start(int nodeIdToStart, string additionalArgs = null, string newIp = null)
         {
-            _ccm.Start(nodeIdToStart, additionalArgs);
+            var output = _ccm.Start(nodeIdToStart, additionalArgs);
+            if (_executor is WslCcmProcessExecuter)
+            {
+                _ccm.CheckNativePortOpen(output, newIp ?? (TestClusterManager.IpPrefix + nodeIdToStart));
+            }
         }
 
         public void BootstrapNode(int nodeIdToStart, bool start = true)
@@ -156,7 +199,17 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
 
         public void BootstrapNode(int nodeIdToStart, string dataCenterName, bool start = true)
         {
-            _ccm.BootstrapNode(nodeIdToStart, dataCenterName, start);
+            var originalStart = start;
+            if (_executor is WslCcmProcessExecuter)
+            {
+                start = false;
+            }
+
+            var output = _ccm.BootstrapNode(nodeIdToStart, dataCenterName, start);
+            if (originalStart && _executor is WslCcmProcessExecuter)
+            {
+                _ccm.CheckNativePortOpen(output, TestClusterManager.IpPrefix + nodeIdToStart);
+            }
         }
 
         public void UpdateConfig(params string[] yamlChanges)
