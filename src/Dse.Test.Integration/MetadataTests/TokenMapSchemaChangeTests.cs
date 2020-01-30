@@ -35,7 +35,7 @@ namespace Dse.Test.Integration.MetadataTests
         {
             TestUtils.WaitForSchemaAgreement(Cluster);
             var keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
-            var newSession = GetNewSession();
+            var newSession = GetNewTemporarySession();
             var newCluster = newSession.Cluster;
             var oldTokenMap = newCluster.Metadata.TokenToReplicasMap;
             Assert.AreEqual(3, newCluster.Metadata.Hosts.Count);
@@ -67,7 +67,7 @@ namespace Dse.Test.Integration.MetadataTests
             Session.Execute(createKeyspaceCql);
             TestUtils.WaitForSchemaAgreement(Cluster);
 
-            var newSession = GetNewSession();
+            var newSession = GetNewTemporarySession();
             var newCluster = newSession.Cluster;
             var removeKeyspaceCql = $"DROP KEYSPACE {keyspaceName}";
             newSession.Execute(removeKeyspaceCql);
@@ -88,7 +88,7 @@ namespace Dse.Test.Integration.MetadataTests
             Session.Execute(createKeyspaceCql);
             TestUtils.WaitForSchemaAgreement(Cluster);
 
-            var newSession = GetNewSession(keyspaceName);
+            var newSession = GetNewTemporarySession(keyspaceName);
             var newCluster = newSession.Cluster;
             TestHelper.RetryAssert(() =>
             {

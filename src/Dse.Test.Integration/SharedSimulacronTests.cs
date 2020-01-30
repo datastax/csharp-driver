@@ -116,12 +116,12 @@ namespace Dse.Test.Integration
         {
             if (Cluster != null)
             {
-                Cluster.Shutdown(1000);   
+                Cluster.Shutdown(10000);   
             }
             //Shutdown the other instances created by helper methods
             foreach (var c in _clusterInstances)
             {
-                c.Shutdown(1000);
+                c.Shutdown(10000);
             }
 
             foreach (var c in _simulacronClusters)

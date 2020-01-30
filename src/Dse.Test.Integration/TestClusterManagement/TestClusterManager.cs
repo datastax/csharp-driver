@@ -45,29 +45,34 @@ namespace Dse.Test.Integration.TestClusterManagement
         {
             get
             {
-                var dseVersion = DseVersion;
-                if (dseVersion < Version4Dot7)
+                if (IsDse)
                 {
-                    // C* 2.0
-                    return Version2Dot0;
+                    var dseVersion = DseVersion;
+                    if (dseVersion < Version4Dot7)
+                    {
+                        // C* 2.0
+                        return Version2Dot0;
+                    }
+                    if (dseVersion < Version5Dot0)
+                    {
+                        // C* 2.1
+                        return Version2Dot1;
+                    }
+                    if (dseVersion < Version5Dot1)
+                    {
+                        // C* 3.0
+                        return Version3Dot0;
+                    }
+                    if (dseVersion < Version6Dot0)
+                    {
+                        // C* 3.11
+                        return Version3Dot11;
+                    }
+                    // C* 4.0
+                    return Version4Dot0;
                 }
-                if (dseVersion < Version5Dot0)
-                {
-                    // C* 2.1
-                    return Version2Dot1;
-                }
-                if (dseVersion < Version5Dot1)
-                {
-                    // C* 3.0
-                    return Version3Dot0;
-                }
-                if (dseVersion < Version6Dot0)
-                {
-                    // C* 3.11
-                    return Version3Dot11;
-                }
-                // C* 4.0
-                return Version4Dot0;
+
+                return new Version(TestClusterManager.CassandraVersionString);
             }
         }
 
@@ -94,12 +99,45 @@ namespace Dse.Test.Integration.TestClusterManagement
 
         public static string DseVersionString
         {
-            get { return Environment.GetEnvironmentVariable("DSE_VERSION") ?? "5.0.0"; }
+            get { return Environment.GetEnvironmentVariable("DSE_VERSION") ?? "6.7.7"; }
         }
 
+        private static string CassandraVersionString
+        {
+            get { return Environment.GetEnvironmentVariable("CASSANDRA_VERSION") ?? "3.11.2"; }
+        }
+
+        public static bool IsDse
+        {
+            get { return Environment.GetEnvironmentVariable("DSE_VERSION") != null; }
+        }
+        
         public static Version DseVersion
         {
             get { return new Version(DseVersionString); }
+        }
+        
+        public static bool CheckDseVersion(Version version, Comparison comparison)
+        {
+            if (!TestClusterManager.IsDse)
+            {
+                return false;
+            }
+
+            return TestDseVersion.VersionMatch(version, TestClusterManager.DseVersion, comparison);
+        }
+
+        public static bool CheckCassandraVersion(bool requiresOss, Version version, Comparison comparison)
+        {
+            if (requiresOss && TestClusterManager.IsDse)
+            {
+                return false;
+            }
+
+            var runningVersion = TestClusterManager.IsDse ? TestClusterManager.DseVersion : TestClusterManager.CassandraVersion;
+            var expectedVersion = TestClusterManager.IsDse ? TestClusterManager.GetDseVersion(version) : version;
+
+            return TestDseVersion.VersionMatch(expectedVersion, runningVersion, comparison);
         }
 
         /// <summary>
@@ -109,26 +147,33 @@ namespace Dse.Test.Integration.TestClusterManagement
         {
             get
             {
-                if (_executor != null)
+                if (TestClusterManager._executor != null)
                 {
-                    return _executor;
+                    return TestClusterManager._executor;
                 }
-                var dseRemote = bool.Parse(Environment.GetEnvironmentVariable("DSE_IN_REMOTE_SERVER") ?? "true");
-                if (!dseRemote)
-                {
-                    _executor = LocalCcmProcessExecuter.Instance;
-                }
-                else
+
+                if (bool.Parse(Environment.GetEnvironmentVariable("DSE_IN_REMOTE_SERVER") ?? "false"))
                 {
                     var remoteDseServer = Environment.GetEnvironmentVariable("DSE_SERVER_IP") ?? "127.0.0.1";
                     var remoteDseServerUser = Environment.GetEnvironmentVariable("DSE_SERVER_USER") ?? "vagrant";
                     var remoteDseServerPassword = Environment.GetEnvironmentVariable("DSE_SERVER_PWD") ?? "vagrant";
                     var remoteDseServerPort = int.Parse(Environment.GetEnvironmentVariable("DSE_SERVER_PORT") ?? "2222");
                     var remoteDseServerUserPrivateKey = Environment.GetEnvironmentVariable("DSE_SERVER_PRIVATE_KEY");
-                    _executor = new RemoteCcmProcessExecuter(remoteDseServer, remoteDseServerUser, remoteDseServerPassword,
-                        remoteDseServerPort, remoteDseServerUserPrivateKey);
+                    TestClusterManager._executor = 
+                        new RemoteCcmProcessExecuter(
+                            remoteDseServer, remoteDseServerUser, remoteDseServerPassword, 
+                            remoteDseServerPort, remoteDseServerUserPrivateKey);
                 }
-                return _executor;
+                else if (bool.Parse(Environment.GetEnvironmentVariable("CCM_USE_WSL") ?? "false"))
+                {
+                    TestClusterManager._executor = WslCcmProcessExecuter.Instance;
+                }
+                else
+                {
+                    TestClusterManager._executor = LocalCcmProcessExecuter.Instance;
+                }
+
+                return TestClusterManager._executor;
             }
         }
 
@@ -158,29 +203,52 @@ namespace Dse.Test.Integration.TestClusterManagement
             return Version6Dot0;
         }
 
-        /// <summary>
-        /// Creates a new test cluster
-        /// </summary>
-        public static ITestCluster CreateNew(int nodeLength = 1, TestClusterOptions options = null, bool startCluster = true)
+        private static ITestCluster CreateNewNoRetry(int nodeLength, TestClusterOptions options, bool startCluster)
         {
             TryRemove();
             options = options ?? new TestClusterOptions();
             var testCluster = new CcmCluster(
-                TestUtils.GetTestClusterNameBasedOnRandomString(), 
-                IpPrefix, 
-                DsePath, 
+                TestUtils.GetTestClusterNameBasedOnRandomString(),
+                IpPrefix,
+                DsePath,
                 Executor,
                 DefaultKeyspaceName,
                 DseVersionString);
             testCluster.Create(nodeLength, options);
             if (startCluster)
             {
-                testCluster.Start(options.JvmArgs);   
+                testCluster.Start(options.JvmArgs);
             }
             LastInstance = testCluster;
             LastAmountOfNodes = nodeLength;
             LastOptions = options;
             return testCluster;
+        }
+
+        /// <summary>
+        /// Creates a new test cluster
+        /// </summary>
+        public static ITestCluster CreateNew(int nodeLength = 1, TestClusterOptions options = null, bool startCluster = true)
+        {
+            const int maxAttempts = 2;
+            var attemptsSoFar = 0;
+            while (true)
+            {
+                try
+                {
+                    return CreateNewNoRetry(nodeLength, options, startCluster);
+                }
+                catch (TestInfrastructureException ex)
+                {
+                    attemptsSoFar++;
+                    if (attemptsSoFar >= maxAttempts)
+                    {
+                        throw;
+                    }
+
+                    Trace.WriteLine("Exception during ccm create / start. Retrying." + Environment.NewLine + ex.ToString());
+                }
+            }
         }
 
         /// <summary>

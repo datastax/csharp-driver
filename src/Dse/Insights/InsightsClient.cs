@@ -62,7 +62,8 @@ namespace Dse.Insights
             }
             catch (Exception ex)
             {
-                if (_errorCount >= InsightsClient.ErrorCountThresholdForLogging)
+                if (_cancellationTokenSource.IsCancellationRequested || 
+                    _errorCount >= InsightsClient.ErrorCountThresholdForLogging)
                 {
                     return false;
                 }
@@ -83,7 +84,8 @@ namespace Dse.Insights
             }
             catch (Exception ex)
             {
-                if (_errorCount >= InsightsClient.ErrorCountThresholdForLogging)
+                if (_cancellationTokenSource.IsCancellationRequested || 
+                    _errorCount >= InsightsClient.ErrorCountThresholdForLogging)
                 {
                     return false;
                 }
@@ -179,8 +181,10 @@ namespace Dse.Insights
                 null,
                 ConsistencyLevel.Any);
 
-            var response = await _cluster.Metadata.ControlConnection.UnsafeSendQueryRequestAsync(
-                InsightsClient.ReportInsightRpc, queryProtocolOptions).ConfigureAwait(false);
+            var response = await RunWithTokenAsync(() => 
+                _cluster.Metadata.ControlConnection.UnsafeSendQueryRequestAsync(
+                    InsightsClient.ReportInsightRpc, 
+                    queryProtocolOptions)).ConfigureAwait(false);
 
             if (response == null)
             {
@@ -196,6 +200,14 @@ namespace Dse.Insights
             {
                 throw new DriverInternalError("Expected ResultResponse of Kind \"Void\" but received: " + resultResponse.Kind);
             }
+        }
+
+        private Task<Response> RunWithTokenAsync(Func<Task<Response>> func)
+        {
+            var task = Task.Run(func, _cancellationTokenSource.Token);
+
+            // (A canceled task will raise an exception when awaited).
+            return task;
         }
     }
 }

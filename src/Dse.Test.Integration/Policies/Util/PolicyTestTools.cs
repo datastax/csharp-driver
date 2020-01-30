@@ -12,6 +12,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using Dse.Test.Integration.TestClusterManagement;
+using Dse.Test.Unit;
 using NUnit.Framework;
 
 namespace Dse.Test.Integration.Policies.Util
@@ -39,7 +40,7 @@ namespace Dse.Test.Integration.Policies.Util
             CreateSchema(session, 1);
         }
 
-        public void CreateSchema(ISession session, int replicationFactor, string keyspace = null)
+        public void CreateSchema(ISession session, int replicationFactor, string keyspace = null, bool forceSchemaAgreement = false)
         {
             try
             {
@@ -48,10 +49,29 @@ namespace Dse.Test.Integration.Policies.Util
             catch (AlreadyExistsException)
             {
             }
-            TestUtils.WaitForSchemaAgreement(session.Cluster);
+
+            if (forceSchemaAgreement)
+            {
+                TestHelper.RetryAssert(
+                    () => Assert.IsTrue(session.Cluster.Metadata.CheckSchemaAgreementAsync().Result),
+                    1000, 60);
+            }
+            else
+            {
+                TestUtils.WaitForSchemaAgreement(session.Cluster);
+            }
             session.ChangeKeyspace(keyspace ?? DefaultKeyspace);
             session.Execute($"CREATE TABLE {TableName} (k int PRIMARY KEY, i int)");
-            TestUtils.WaitForSchemaAgreement(session.Cluster);
+            if (forceSchemaAgreement)
+            {
+                TestHelper.RetryAssert(
+                    () => Assert.IsTrue(session.Cluster.Metadata.CheckSchemaAgreementAsync().Result),
+                    1000, 60);
+            }
+            else
+            {
+                TestUtils.WaitForSchemaAgreement(session.Cluster);
+            }
         }
 
         public void CreateMultiDcSchema(ISession session, int dc1RF = 1, int dc2RF = 1)

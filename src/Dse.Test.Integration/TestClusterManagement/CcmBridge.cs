@@ -11,6 +11,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Linq;
+using System.Net.Sockets;
 using System.Threading;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Unit;
@@ -21,8 +22,6 @@ namespace Dse.Test.Integration.TestClusterManagement
     public class CcmBridge : IDisposable
     {
         public DirectoryInfo CcmDir { get; private set; }
-        public const int DefaultCmdTimeout = 90 * 1000;
-        public const int StartCmdTimeout = 150 * 1000;
         public string Name { get; private set; }
         public string Version { get; private set; }
         public string IpPrefix { get; private set; }
@@ -48,10 +47,14 @@ namespace Dse.Test.Integration.TestClusterManagement
             var sslParams = "";
             if (useSsl)
             {
-                var sslPath = Path.Combine(TestHelper.GetHomePath(), "ssl");
-                if (!File.Exists(Path.Combine(sslPath, "keystore.jks")))
+                var sslPath = Environment.GetEnvironmentVariable("CCM_SSL_PATH");
+                if (sslPath == null)
                 {
-                    throw new Exception(string.Format("In order to use SSL with CCM you must provide have the keystore.jks and cassandra.crt files located in your {0} folder", sslPath));
+                    sslPath = Path.Combine(TestHelper.GetHomePath(), "ssl");
+                    if (!File.Exists(Path.Combine(sslPath, "keystore.jks")))
+                    {
+                        throw new Exception(string.Format("In order to use SSL with CCM you must provide have the keystore.jks and cassandra.crt files located in your {0} folder", sslPath));
+                    }
                 }
                 sslParams = "--ssl " + sslPath;
             }
@@ -83,7 +86,7 @@ namespace Dse.Test.Integration.TestClusterManagement
             return home;
         }
 
-        public void Start(string[] jvmArgs)
+        public ProcessOutput Start(string[] jvmArgs)
         {
             var parameters = new List<string>
             {
@@ -94,6 +97,10 @@ namespace Dse.Test.Integration.TestClusterManagement
             {
                 parameters.Add("--quiet-windows");
             }
+            if (CcmProcessExecuter is WslCcmProcessExecuter)
+            {
+                parameters.Add("--root");
+            }
             if (jvmArgs != null)
             {
                 foreach (var arg in jvmArgs)
@@ -102,7 +109,63 @@ namespace Dse.Test.Integration.TestClusterManagement
                     parameters.Add(arg);
                 }
             }
-            ExecuteCcm(string.Join(" ", parameters), StartCmdTimeout);
+
+            if (CcmProcessExecuter is WslCcmProcessExecuter)
+            {
+                return ExecuteCcm(string.Join(" ", parameters), false);
+            }
+            else
+            {
+                return ExecuteCcm(string.Join(" ", parameters));
+            }
+        }
+
+        public ProcessOutput Start(int n, string additionalArgs = null)
+        {
+            string quietWindows = null;
+            string runAsRoot = null;
+            if (TestUtils.IsWin && CcmProcessExecuter is LocalCcmProcessExecuter)
+            {
+                quietWindows = "--quiet-windows";
+            }
+
+            if (CcmProcessExecuter is WslCcmProcessExecuter)
+            {
+                runAsRoot = "--root";
+            }
+
+            if (CcmProcessExecuter is WslCcmProcessExecuter)
+            {
+                return ExecuteCcm(string.Format("node{0} start --wait-for-binary-proto {1} {2} {3}", n, additionalArgs, quietWindows, runAsRoot), false);
+            }
+            else
+            {
+                return ExecuteCcm(string.Format("node{0} start --wait-for-binary-proto {1} {2} {3}", n, additionalArgs, quietWindows, runAsRoot));
+            }
+        }
+
+        public void CheckNativePortOpen(ProcessOutput output, string ip)
+        {
+            using (var ccmConnection = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+            {
+                using (var cts = new CancellationTokenSource(5 * 60 * 1000))
+                {
+                    while (!cts.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            ccmConnection.Connect(ip, 9042);
+                            return;
+                        }
+                        catch
+                        {
+                            Thread.Sleep(5000);
+                        }
+                    }
+                }
+            }
+
+            throw new TestInfrastructureException("Native Port check timed out. Output: " + Environment.NewLine + output.ToString());
         }
 
         public void Populate(int dc1NodeLength, int dc2NodeLength, bool useVNodes)
@@ -125,7 +188,7 @@ namespace Dse.Test.Integration.TestClusterManagement
         public void SwitchToThis()
         {
             string switchCmd = "switch " + Name;
-            ExecuteCcm(switchCmd, DefaultCmdTimeout, false);
+            ExecuteCcm(switchCmd, false);
         }
 
         public void List()
@@ -141,16 +204,6 @@ namespace Dse.Test.Integration.TestClusterManagement
         public void StopForce()
         {
             ExecuteCcm("stop --not-gently");
-        }
-
-        public void Start(int n, string additionalArgs = null)
-        {
-            string quietWindows = null;
-            if (TestUtils.IsWin && CcmProcessExecuter is LocalCcmProcessExecuter)
-            {
-                quietWindows = "--quiet-windows";
-            }
-            ExecuteCcm(string.Format("node{0} start --wait-for-binary-proto {1} {2}", n, additionalArgs, quietWindows));
         }
 
         public void Stop(int n)
@@ -178,13 +231,22 @@ namespace Dse.Test.Integration.TestClusterManagement
             BootstrapNode(n, null, start);
         }
 
-        public void BootstrapNode(int n, string dc, bool start = true)
+        public ProcessOutput BootstrapNode(int n, string dc, bool start = true)
         {
-            ExecuteCcm(string.Format("add node{0} -i {1}{2} -j {3} -b -s {4} --dse", n, IpPrefix, n, 7000 + 100 * n, dc != null ? "-d " + dc : null));
+            var cmd = "add node{0} -i {1}{2} -j {3} -b -s {4}";
+            if (TestClusterManager.IsDse)
+            {
+                cmd += " --dse";
+            }
+
+            var output = ExecuteCcm(string.Format(cmd, n, IpPrefix, n, 7000 + 100 * n, dc != null ? "-d " + dc : null));
+
             if (start)
             {
-                Start(n);
+                return Start(n);
             }
+
+            return output;
         }
 
         public void DecommissionNode(int n)
@@ -192,9 +254,9 @@ namespace Dse.Test.Integration.TestClusterManagement
             ExecuteCcm(string.Format("node{0} decommission", n));
         }
 
-        public ProcessOutput ExecuteCcm(string args, int timeout = DefaultCmdTimeout, bool throwOnProcessError = true)
+        public ProcessOutput ExecuteCcm(string args, bool throwOnProcessError = true)
         {
-            return CcmProcessExecuter.ExecuteCcm(args, timeout, throwOnProcessError);
+            return CcmProcessExecuter.ExecuteCcm(args, throwOnProcessError);
         }
 
         public void UpdateConfig(params string[] configs)
@@ -239,112 +301,6 @@ namespace Dse.Test.Integration.TestClusterManagement
             {
                 SetNodeWorkloads(nodeId, workloads);
             }
-        }
-
-        /// <summary>
-        /// Spawns a new process (platform independent)
-        /// </summary>
-        public static ProcessOutput ExecuteProcess(
-            string processName, 
-            string args, 
-            int timeout = DefaultCmdTimeout, 
-            IReadOnlyDictionary<string, string> envVariables = null, 
-            string workDir = null)
-        {
-            var output = new ProcessOutput();
-            using (var process = new Process())
-            {
-                process.StartInfo.FileName = processName;
-                process.StartInfo.Arguments = args;
-                process.StartInfo.RedirectStandardOutput = true;
-                process.StartInfo.RedirectStandardError = true;
-                //Hide the python window if possible
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.CreateNoWindow = true;
-#if !NETCORE
-                process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-#endif
-                
-                if (envVariables != null)
-                {
-                    foreach (var envVar in envVariables)
-                    {
-                        process.StartInfo.EnvironmentVariables[envVar.Key] = envVar.Value;
-                    }
-                }
-
-                if (workDir != null)
-                {
-                    process.StartInfo.WorkingDirectory = workDir;
-                }
-
-                using (var outputWaitHandle = new AutoResetEvent(false))
-                using (var errorWaitHandle = new AutoResetEvent(false))
-                {
-                    process.OutputDataReceived += (sender, e) =>
-                    {
-                        if (e.Data == null)
-                        {
-                            try
-                            {
-                                outputWaitHandle.Set();
-                            }
-                            catch
-                            {
-                                //probably is already disposed
-                            }
-                        }
-                        else
-                        {
-                            output.OutputText.AppendLine(e.Data);
-                        }
-                    };
-                    process.ErrorDataReceived += (sender, e) =>
-                    {
-                        if (e.Data == null)
-                        {
-                            try
-                            {
-                                errorWaitHandle.Set();
-                            }
-                            catch
-                            {
-                                //probably is already disposed
-                            }
-                        }
-                        else
-                        {
-                            output.OutputText.AppendLine(e.Data);
-                        }
-                    };
-                    
-                    try
-                    {
-                        process.Start();
-                    }
-                    catch (Exception exception)
-                    {
-                        Trace.TraceInformation("Process start failure: " + exception.Message);
-                    }
-
-                    process.BeginOutputReadLine();
-                    process.BeginErrorReadLine();
-
-                    if (process.WaitForExit(timeout) &&
-                        outputWaitHandle.WaitOne(timeout) &&
-                        errorWaitHandle.WaitOne(timeout))
-                    {
-                        // Process completed.
-                        output.ExitCode = process.ExitCode;
-                    }
-                    else
-                    {
-                        // Timed out.
-                        output.ExitCode = -1;
-                    }
-                }
-            }
-            return output;
         }
     }
 }

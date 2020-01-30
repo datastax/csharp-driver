@@ -37,23 +37,23 @@ namespace Dse.Test.Unit.Insights
     [TestFixture]
     public class InsightsClientTests
     {
-        private TestTraceListener listener;
+        private TestTraceListener _listener;
 
         [TearDown]
         public void TearDown()
         {
-            if (listener != null)
+            if (_listener != null)
             {
-                Trace.Listeners.Remove(listener);
-                listener = null;
+                Trace.Listeners.Remove(_listener);
+                _listener = null;
             }
         }
 
         [Test]
         public void Should_LogFiveTimes_When_ThereAreMoreThanFiveErrorsOnStartupMessageSend()
         {
-            listener = new TestTraceListener();
-            Trace.Listeners.Add(listener);
+            _listener = new TestTraceListener();
+            Trace.Listeners.Add(_listener);
             Dse.Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
 
             var cluster = GetCluster(false);
@@ -76,8 +76,8 @@ namespace Dse.Test.Unit.Insights
                     30);
 
                 Trace.Flush();
-                Assert.AreEqual(5, listener.Queue.Count);
-                var messages = listener.Queue.ToArray();
+                Assert.AreEqual(5, _listener.Queue.Count, string.Join(" ; ", _listener.Queue.ToArray()));
+                var messages = _listener.Queue.ToArray();
                 Assert.AreEqual(messages.Count(m => m.Contains("Could not send insights startup event. Exception:")), 5);
             }
         }
@@ -85,8 +85,8 @@ namespace Dse.Test.Unit.Insights
         [Test]
         public void Should_ResetErrorCounterForLogging_When_ThereSendMessageIsSuccessful()
         {
-            listener = new TestTraceListener();
-            Trace.Listeners.Add(listener);
+            _listener = new TestTraceListener();
+            Trace.Listeners.Add(_listener);
             Dse.Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Verbose;
 
             var cluster = GetCluster(false);
@@ -116,8 +116,8 @@ namespace Dse.Test.Unit.Insights
                     30);
 
                 Trace.Flush();
-                Assert.AreEqual(8, listener.Queue.Count);
-                var messages = listener.Queue.ToArray();
+                Assert.AreEqual(8, _listener.Queue.Count, string.Join(" ; ", _listener.Queue.ToArray()));
+                var messages = _listener.Queue.ToArray();
                 Assert.AreEqual(messages.Count(m => m.Contains("Could not send insights startup event. Exception:")), 1);
                 Assert.AreEqual(messages.Count(m => m.Contains("Could not send insights status event. Exception:")), 7);
             }

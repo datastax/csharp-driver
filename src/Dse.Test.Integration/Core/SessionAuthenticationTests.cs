@@ -11,6 +11,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
+using Dse.Test.Integration.Auth;
 using Dse.Test.Integration.TestClusterManagement;
 using Dse.Test.Unit;
 using NUnit.Framework;
@@ -33,6 +34,7 @@ namespace Dse.Test.Integration.Core
             _testClusterForAuthTesting = GetTestCcmClusterForAuthTests();
             //Wait 10 seconds as auth table needs to be created
             Thread.Sleep(10000);
+            DseSessionAuthenticationTests.RetryUntilClusterAuthHealthy(_testClusterForAuthTesting);
         }
 
         [OneTimeTearDown]

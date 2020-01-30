@@ -13,16 +13,21 @@ namespace Dse.Test.Integration.TestClusterManagement
 {
     public abstract class CcmProcessExecuter : ICcmProcessExecuter
     {
-        public virtual ProcessOutput ExecuteCcm(string args, int timeout = 90000, bool throwOnProcessError = true)
+        public virtual ProcessOutput ExecuteCcm(string args, bool throwOnProcessError = true)
         {
             var executable = GetExecutable(ref args);
             Trace.TraceInformation(executable + " " + args);
-            var output = ExecuteProcess(executable, args, timeout);
+            var output = ExecuteProcess(executable, args);
             if (throwOnProcessError)
             {
                 ValidateOutput(output);
             }
             return output;
+        }
+
+        public virtual int GetDefaultTimeout()
+        {
+            return 90000;
         }
 
         protected abstract string GetExecutable(ref string args);
@@ -31,7 +36,7 @@ namespace Dse.Test.Integration.TestClusterManagement
         {
             if (output.ExitCode != 0)
             {
-                throw new TestInfrastructureException(string.Format("Process exited in error {0}", output.ToString()));
+                throw new TestInfrastructureException("Process exited in error " + output.ToString());
             }
         }
 
@@ -66,72 +71,22 @@ namespace Dse.Test.Integration.TestClusterManagement
                 {
                     process.StartInfo.WorkingDirectory = workDir;
                 }
+                
+                process.Start();
 
-                using (var outputWaitHandle = new AutoResetEvent(false))
-                using (var errorWaitHandle = new AutoResetEvent(false))
+                if (process.WaitForExit(timeout))
                 {
-                    process.OutputDataReceived += (sender, e) =>
-                    {
-                        if (e.Data == null)
-                        {
-                            try
-                            {
-                                outputWaitHandle.Set();
-                            }
-                            catch
-                            {
-                                //probably is already disposed
-                            }
-                        }
-                        else
-                        {
-                            output.OutputText.AppendLine(e.Data);
-                        }
-                    };
-                    process.ErrorDataReceived += (sender, e) =>
-                    {
-                        if (e.Data == null)
-                        {
-                            try
-                            {
-                                errorWaitHandle.Set();
-                            }
-                            catch
-                            {
-                                //probably is already disposed
-                            }
-                        }
-                        else
-                        {
-                            output.OutputText.AppendLine(e.Data);
-                        }
-                    };
-
-                    try
-                    {
-                        process.Start();
-                    }
-                    catch (Exception exception)
-                    {
-                        Trace.TraceInformation("Process start failure: " + exception.Message);
-                    }
-
-                    process.BeginOutputReadLine();
-                    process.BeginErrorReadLine();
-
-                    if (process.WaitForExit(timeout) &&
-                        outputWaitHandle.WaitOne(timeout) &&
-                        errorWaitHandle.WaitOne(timeout))
-                    {
-                        // Process completed.
-                        output.ExitCode = process.ExitCode;
-                    }
-                    else
-                    {
-                        // Timed out.
-                        output.ExitCode = -1;
-                    }
+                    // Process completed.
+                    output.ExitCode = process.ExitCode;
                 }
+                else
+                {
+                    // Timed out.
+                    output.ExitCode = -1;
+                }
+
+                output.SetOutput(process.StandardOutput.ReadToEnd() + 
+                                 Environment.NewLine + "STDERR:" + Environment.NewLine + process.StandardError.ReadToEnd());
             }
             return output;
         }

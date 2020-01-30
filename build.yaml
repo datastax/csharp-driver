@@ -1,61 +1,165 @@
 schedules:
-  commit:
+  commit-dse:
     # Run short suite on commit
     schedule: per_commit
+    notify:
+      slack: csharp-driver-dev-bots
     matrix:
-      exclude:      
-        # Only build with latest for mono and netstandard 1.5
-        - dotnet: ['mono', 'netcoreapp2.0']
-          cassandra: ['dse-4.8', 'dse-5.1', 'dse-6.0', 'dse-6.7']
-        # Only build with latest minor for each all majors for netstandard 2.0
-        - dotnet: 'netcoreapp2.1'
-          cassandra: ['dse-6.0']
-  nightly:
-    # Run full suite nightly on change for all primary branches if they have changes.
+      exclude:
+      # dont build on windows (DSE is very slow on WSL, run only on nightly and weekly schedules)
+        - os: 'win/cs'
+      # on linux dont build net452 and net461
+        - os: 'ubuntu/bionic64/csharp-driver'
+          dotnet: ['net452', 'net461']
+      # on linux with netcoreapp2.1 target dse-5.1 and dse-6.7
+        - os: 'ubuntu/bionic64/csharp-driver'
+          dotnet: ['netcoreapp2.1']
+          cassandra: ['dse-5.0', 'dse-6.0', 'dse-6.8']
+      # on linux with mono and netcoreapp2.0 target dse-6.7
+        - os: 'ubuntu/bionic64/csharp-driver'
+          dotnet: ['mono', 'netcoreapp2.0']
+          cassandra: ['dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8']
+  nightly-dse-ubuntu:
+    # nightly job for primary branches to run almost all configs on ubuntu.
     schedule: nightly
+    notify:
+      slack: csharp-driver-dev-bots
     branches:
-      # regex matches primary branch format (2.1, 3.x, 3.0.x, 3.1.x, dse, master, etc).
-      include: ["/((\\d+(\\.[\\dx]+)+)|dse|master)/"]
+      # regex matches primary branch format (2.1, 3.x, 3.0.x, 3.1.x, master, etc).
+      include: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
+    matrix:
+      exclude:
+        - os: 'win/cs'
+      # on linux dont build net452 and net461
+        - os: 'ubuntu/bionic64/csharp-driver'
+          dotnet: ['net452', 'net461']
+      # on linux with netcoreapp2.1 target all dse
+      # on linux with mono and netcoreapp2.0 target dse-5.1 and dse-6.7
+        - os: 'ubuntu/bionic64/csharp-driver'
+          dotnet: ['mono', 'netcoreapp2.0']
+          cassandra: ['dse-5.0', 'dse-6.0', 'dse-6.8']
+  nightly-dse-windows:
+    # nightly job for primary branches to run several configs on windows (windows builds are slow so it's less configs than the nightly ubuntu schedule).
+    schedule: nightly
+    notify:
+      slack: csharp-driver-dev-bots
+    branches:
+      # regex matches primary branch format (2.1, 3.x, 3.0.x, 3.1.x, master, etc).
+      include: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
+    matrix:
+      exclude:
+        - os: 'ubuntu/bionic64/csharp-driver'
+      # on windows dont build mono
+        - os: 'win/cs'
+          dotnet: ['mono']
+      # on windows target dse-6.7 and dse-5.1 with netcoreapp2.0 and netcoreapp2.
+        - os: 'win/cs'
+          dotnet: ['netcoreapp2.0', 'netcoreapp2.1']
+          cassandra: ['dse-5.0', 'dse-6.0', 'dse-6.8']
+      # on windows target dse-5.1, dse-6.7 and dse-6.8 with net452
+        - os: 'win/cs'
+          dotnet: ['net452']
+          cassandra: ['dse-5.0', 'dse-6.0']
+      # on windows target dse-6.7 and dse-5.0 with net461
+        - os: 'win/cs'
+          dotnet: ['net461']
+          cassandra: ['dse-5.1', 'dse-6.0', 'dse-6.8']
   adhoc:
-    # Adhoc job for non-primary braches that doesn't have a schedule but may be used to run all configs.
+    # adhoc job for non-primary braches that doesn't have the nightly and weekly schedules so this may be used to run same configs as the weekly schedule.
     schedule: adhoc
-    enable_pull_requests: true
+    notify:
+      slack: csharp-driver-dev-bots
     branches:
-      exclude: ["/((\\d+(\\.[\\dx]+)+)|dse|master)/"]
+      exclude: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
+    matrix:
+      exclude:
+      # on windows dont build mono
+        - os: 'win/cs'
+          dotnet: ['mono']
+      # on windows target dse-5.1 and dse-6.7 with netcoreapp2.1
+        - os: 'win/cs'
+          dotnet: ['netcoreapp2.1']
+          cassandra: ['dse-5.0', 'dse-6.0', 'dse-6.8']
+      # on windows target dse-5.0 and dse-6.7 with netcoreapp2.0
+        - os: 'win/cs'
+          dotnet: ['netcoreapp2.0']
+          cassandra: ['dse-5.1', 'dse-6.0', 'dse-6.8']
+      # on windows target all with net452
+      # on windows target dse-5.1 and dse-6.7 with net461
+        - os: 'win/cs'
+          dotnet: ['net461']
+          cassandra: ['dse-5.0', 'dse-6.0', 'dse-6.8']
+      # on linux dont build net452 and net461
+        - os: 'ubuntu/bionic64/csharp-driver'
+          dotnet: ['net452', 'net461']
+      # on linux target all
+  weekly:
+    schedule: 0 10 * * 7
+    notify:
+      slack: csharp-driver-dev-bots
+    branches:
+      include: ["/((\\d+(\\.[\\dx]+)+)|master)/"]
+    matrix:
+      exclude:
+      # on windows dont build mono
+        - os: 'win/cs'
+          dotnet: ['mono']
+      # on linux dont build net452 and net461
+        - os: 'ubuntu/bionic64/csharp-driver'
+          dotnet: ['net452', 'net461']
 os:
   - ubuntu/bionic64/csharp-driver
+  - win/cs
 cassandra:
-  - dse-4.8
-  - dse-5.1
-  - dse-6.0
-  - dse-6.7
-  - dse-6.8
+  - 'dse-5.0'
+  - 'dse-5.1'
+  - 'dse-6.0'
+  - 'dse-6.7'
+  - 'dse-6.8'
 dotnet:
   - 'mono'
   - 'netcoreapp2.0'
   - 'netcoreapp2.1'
+  - 'net461'
+  - 'net452'
 build:
+  - batch:
+    script: |
+      powershell.exe -File .\buildps.ps1
+      
+      if errorlevel 1 (
+         echo Failure Reason Given is %errorlevel%
+         exit /b %errorlevel%
+      )
+      
   - script: |
-      export CASS_VERSION_SNI='dse-6.8'
+      export CASS_VERSION_SNI='dse-6.7'
       
       # Set the Java paths (for CCM)
       export JAVA_HOME=$CCM_JAVA_HOME
       export PATH=$JAVA_HOME/bin:$PATH
       export SIMULACRON_PATH=$HOME/simulacron.jar
-      export CCM_PATH=$HOME/ccm
-      export DSE_INITIAL_IPPREFIX="127.0.0."
-      export DSE_BRANCH=$CCM_BRANCH
-      export DSE_VERSION=$CCM_VERSION
-      export DSE_IN_REMOTE_SERVER="false"
 
-      if [ $DSE_VERSION = '6.0' ]; then
-          echo "Setting DSE 6.0 install-dir"
-          export DSE_PATH=$CCM_INSTALL_DIR
+      if [[ $CASSANDRA_VERSION == dse-* ]] ;
+      then
+          export CCM_PATH=$HOME/ccm
+          export DSE_BRANCH=$CCM_BRANCH
+          export DSE_VERSION=$CCM_VERSION
+          export DSE_INITIAL_IPPREFIX="127.0.0."
+          export DSE_IN_REMOTE_SERVER="false"
+                
+          if [ $DSE_VERSION = '6.0' ]; then
+              echo "Setting DSE 6.0 install-dir"
+              export DSE_PATH=$CCM_INSTALL_DIR
+          fi
+          
+          echo $DSE_VERSION
+          echo $DSE_PATH
+          echo $DSE_INITIAL_IPPREFIX
+          echo $DSE_IN_REMOTE_SERVER
+          echo $DSE_INITIAL_IPPREFIX
       fi
-      
-      echo $DSE_VERSION
-      echo $DSE_PATH
-      echo $DSE_INITIAL_IPPREFIX
+
       echo $CSHARP_VERSION
 
       # Define Cassandra runtime
@@ -78,12 +182,11 @@ build:
       echo $SNI_CERTIFICATE_PATH
       echo $SNI_CA_PATH
       
-      ls "${HOME}/proxy/"
- 
+      ls "${HOME}/proxy/" 
 
       # Download and uncompress saxon
       mkdir saxon
-      curl -L -o saxon/saxon9he.jar http://central.maven.org/maven2/net/sf/saxon/Saxon-HE/9.8.0-12/Saxon-HE-9.8.0-12.jar
+      curl -L -o saxon/saxon9he.jar https://repo1.maven.org/maven2/net/sf/saxon/Saxon-HE/9.8.0-12/Saxon-HE-9.8.0-12.jar
  
       if [ $DOTNET_VERSION = 'mono' ]; then      
           echo "========== Starting Mono Build =========="
@@ -95,18 +198,16 @@ build:
           export -f nuget
 
           # Install the required packages
-          export EnableNuGetPackageRestore=true
-          msbuild /t:restore /v:m src/Dse.sln
           nuget install NUnit.Runners -Version 3.6.1 -OutputDirectory testrunner
 
           # Compile the driver and test code
+          msbuild /t:restore /v:m src/Dse.sln
           msbuild /p:Configuration=Release /v:m /p:DynamicConstants=LINUX src/Dse.sln
 
           # Run the tests
-          echo "==========RUNNING FULL SUITE OF TESTS=========="
           mono ./testrunner/NUnit.ConsoleRunner.3.6.1/tools/nunit3-console.exe src/Dse.Test.Integration/bin/Release/net452/Dse.Test.Integration.dll --where "cat != long && cat != memory" --labels=All --result:"TestResult_nunit.xml" || error=true
           java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_nunit.xml tools/nunit3-junit.xslt
-
+          
           #Fail the build if there was an error
           if [ $error ]
           then 
@@ -121,10 +222,9 @@ build:
           dotnet restore src
 
           # Run the tests
-          echo "==========RUNNING FULL SUITE OF TESTS=========="
-          dotnet test src/Dse.Test.Integration/Dse.Test.Integration.csproj -v n -f $DOTNET_VERSION -c Release --filter "(TestCategory!=long)&(TestCategory!=memory)" --logger "xunit;LogFilePath=../../TestResult_xunit.xml"  || error=true
+          dotnet test src/Dse.Test.Integration/Dse.Test.Integration.csproj -v n -f $DOTNET_VERSION -c Release --filter "(TestCategory!=long)&(TestCategory!=memory)" --logger "xunit;LogFilePath=../../TestResult_xunit.xml" || error=true
           java -jar saxon/saxon9he.jar -o:TestResult.xml TestResult_xunit.xml tools/JUnitXml.xslt
-
+          
           #Fail the build if there was an error
           if [ $error ]
           then 

@@ -18,13 +18,13 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Policies.Tests
 {
-    [TestFixture, Category("short"), Category("realcluster")]
+    [TestFixture, Category("short"), Category("realcluster"), Category("testwindows")]
     public class LoadBalancingPolicyShortTests : SharedClusterTest
     {
         public LoadBalancingPolicyShortTests() : base(3, false, true, new TestClusterOptions { UseVNodes = true })
         {
         }
-
+        
         /// <summary>
         /// Validate that two sessions connected to the same DC use separate Policy instances
         /// </summary>
@@ -57,7 +57,7 @@ namespace Dse.Test.Integration.Policies.Tests
 
             // Test
             var ks = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();
-            var session = GetNewSession();
+            var session = GetNewTemporarySession();
             policyTestTools.CreateSchema(session, 1, ks);
             var traces = new List<QueryTrace>();
             for (var i = -10; i < 10; i++)
@@ -88,7 +88,7 @@ namespace Dse.Test.Integration.Policies.Tests
         {
             // Setup
             var policyTestTools = new PolicyTestTools();
-            var cluster = GetNewCluster(b => b.WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())));
+            var cluster = GetNewTemporaryCluster(b => b.WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())));
 
             // Test
             var session = cluster.Connect();
@@ -125,7 +125,7 @@ namespace Dse.Test.Integration.Policies.Tests
         {
             // Setup
             PolicyTestTools policyTestTools = new PolicyTestTools();
-            var cluster = GetNewCluster(b => b.WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())));
+            var cluster = GetNewTemporaryCluster(b => b.WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())));
 
             // Test
             var session = cluster.Connect();
@@ -161,7 +161,7 @@ namespace Dse.Test.Integration.Policies.Tests
         {
             // Setup
             PolicyTestTools policyTestTools = new PolicyTestTools();
-            var cluster = GetNewCluster(b => b.WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())));
+            var cluster = GetNewTemporaryCluster(b => b.WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())));
 
             // Test
             var session = cluster.Connect();
@@ -200,7 +200,7 @@ namespace Dse.Test.Integration.Policies.Tests
         {
             // Setup
             PolicyTestTools policyTestTools = new PolicyTestTools();
-            var cluster = GetNewCluster(b => b.WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())));
+            var cluster = GetNewTemporaryCluster(b => b.WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())));
 
             // Test
             var session = cluster.Connect();
@@ -240,7 +240,7 @@ namespace Dse.Test.Integration.Policies.Tests
         {
             // Setup
             PolicyTestTools policyTestTools = new PolicyTestTools();
-            var cluster = GetNewCluster(b => b.WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())));
+            var cluster = GetNewTemporaryCluster(b => b.WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())));
 
             // Test
             var session = cluster.Connect();
@@ -276,7 +276,7 @@ namespace Dse.Test.Integration.Policies.Tests
         {
             // Setup
             PolicyTestTools policyTestTools = new PolicyTestTools();
-            var cluster = GetNewCluster(b => b.WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())));
+            var cluster = GetNewTemporaryCluster(b => b.WithLoadBalancingPolicy(new TokenAwarePolicy(new RoundRobinPolicy())));
 
             var session = cluster.Connect();
             var ks = TestUtils.GetUniqueKeyspaceName().ToLowerInvariant();

@@ -53,7 +53,7 @@ namespace Dse.Test.Integration.Core
         [TestCassandraVersion(2, 0)]
         public void TimeUuid_Collection_Insert_Get_Test()
         {
-            var session = GetNewSession(KeyspaceName);
+            var session = GetNewTemporarySession(KeyspaceName);
             session.Execute("CREATE TABLE tbl_timeuuid_collections (id int PRIMARY KEY, set_value set<timeuuid>, list_value list<timeuuid>)");
             const string selectQuery = "SELECT * FROM tbl_timeuuid_collections WHERE id = ?";
             const string insertQuery = "INSERT INTO tbl_timeuuid_collections (id, set_value, list_value) VALUES (?, ?, ?)";
@@ -73,7 +73,7 @@ namespace Dse.Test.Integration.Core
         public void Encode_Map_With_NullValue_Should_Throw()
         {
             var id = Guid.NewGuid();
-            var localSession = GetNewSession(KeyspaceName);
+            var localSession = GetNewTemporarySession(KeyspaceName);
             var insertQuery = localSession.Prepare(string.Format("INSERT INTO {0} (id, map_sample) VALUES (?, ?)",
                 AllTypesTableName));
 
@@ -86,7 +86,7 @@ namespace Dse.Test.Integration.Core
         public void Encode_List_With_NullValue_Should_Throw()
         {
             var id = Guid.NewGuid();
-            var localSession = GetNewSession(KeyspaceName);
+            var localSession = GetNewTemporarySession(KeyspaceName);
             var insertQuery = localSession.Prepare(string.Format("INSERT INTO {0} (id, list_sample) VALUES (?, ?)",
                 AllTypesTableName));
             var map = new List<string> { "fruit", null };

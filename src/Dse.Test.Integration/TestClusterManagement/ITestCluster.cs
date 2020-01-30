@@ -55,7 +55,7 @@ namespace Dse.Test.Integration.TestClusterManagement
         /// <summary>
         /// Start a specific node in the cluster
         /// </summary>
-        void Start(int nodeIdToStart, string additionalArgs = null);
+        void Start(int nodeIdToStart, string additionalArgs = null, string newIp = null);
 
         /// <summary>
         /// Starts the cluster

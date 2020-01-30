@@ -38,11 +38,19 @@ namespace Dse.Test.Unit
         private static readonly IPEndPoint Address = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1000);
         private static readonly Host Host1 = TestHelper.CreateHost("127.0.0.1");
         private static readonly HashedWheelTimer Timer = new HashedWheelTimer();
+        private Mock<HostConnectionPool> _mock;
 
         [OneTimeSetUp]
         public void OnTimeSetUp()
         {
             Diagnostics.CassandraTraceSwitch.Level = TraceLevel.Info;
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            _mock?.Object.Dispose();
+            _mock = null;
         }
 
         [OneTimeTearDown]
@@ -139,12 +147,12 @@ namespace Dse.Test.Unit
         [Test]
         public void MaybeCreateFirstConnection_Should_Yield_The_First_Connection_Opened()
         {
-            var mock = GetPoolMock();
+            _mock = GetPoolMock();
             var lastByte = 1;
             //use different addresses for same hosts to differentiate connections: for test only
             //different connections to same hosts should use the same address
-            mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() => TestHelper.DelayedTask(CreateConnection((byte)lastByte++), 200 - lastByte * 50));
-            var pool = mock.Object;
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() => TestHelper.DelayedTask(CreateConnection((byte)lastByte++), 200 - lastByte * 50));
+            var pool = _mock.Object;
             var creation = pool.EnsureCreate();
             creation.Wait();
             Assert.AreEqual(1, creation.Result.Length);
@@ -155,11 +163,11 @@ namespace Dse.Test.Unit
         [Test]
         public async Task EnsureCreate_Should_Yield_A_Connection_If_Any_Fails()
         {
-            var mock = GetPoolMock();
+            _mock = GetPoolMock();
             var counter = 0;
             //use different addresses for same hosts to differentiate connections: for test only
             //different connections to same hosts should use the same address
-            mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
             {
                 if (++counter == 2)
                 {
@@ -167,7 +175,7 @@ namespace Dse.Test.Unit
                 }
                 return TaskHelper.ToTask(CreateConnection());
             });
-            var pool = mock.Object;
+            var pool = _mock.Object;
             var connections = await pool.EnsureCreate().ConfigureAwait(false);
             Assert.AreEqual(connections.Length, 1);
         }
@@ -175,9 +183,9 @@ namespace Dse.Test.Unit
         [Test]
         public void EnsureCreate_Serial_Calls_Should_Yield_First()
         {
-            var mock = GetPoolMock();
+            _mock = GetPoolMock();
             var lastByte = 1;
-            mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
             {
                 var c = CreateConnection((byte)lastByte++);
                 if (lastByte == 2)
@@ -186,7 +194,7 @@ namespace Dse.Test.Unit
                 }
                 return TaskHelper.ToTask(c);
             });
-            var pool = mock.Object;
+            var pool = _mock.Object;
             var creationTasks = new Task<IConnection[]>[4];
             creationTasks[0] = pool.EnsureCreate();
             creationTasks[1] = pool.EnsureCreate();
@@ -204,10 +212,10 @@ namespace Dse.Test.Unit
         [Test]
         public void EnsureCreate_Parallel_Calls_Should_Yield_First()
         {
-            var mock = GetPoolMock();
+            _mock = GetPoolMock();
             var lastByte = 0;
-            mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() => TestHelper.DelayedTask(CreateConnection((byte)++lastByte), 100 + (lastByte > 1 ? 10000 : 0)));
-            var pool = mock.Object;
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() => TestHelper.DelayedTask(CreateConnection((byte)++lastByte), 100 + (lastByte > 1 ? 10000 : 0)));
+            var pool = _mock.Object;
             var creationTasks = new Task<IConnection[]>[10];
             var counter = -1;
             var initialCreate = pool.EnsureCreate();
@@ -230,14 +238,14 @@ namespace Dse.Test.Unit
         public void EnsureCreate_Parallel_Calls_Failing_Should_Only_Attempt_Creation_Once()
         {
             // Use a reconnection policy that never attempts
-            var mock = GetPoolMock(null, GetConfig(3, 3, new ConstantReconnectionPolicy(int.MaxValue)));
+            _mock = GetPoolMock(null, GetConfig(3, 3, new ConstantReconnectionPolicy(int.MaxValue)));
             var openConnectionAttempts = 0;
-            mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
             {
                 Interlocked.Increment(ref openConnectionAttempts);
                 return TaskHelper.FromException<IConnection>(new Exception("Test Exception"));
             });
-            var pool = mock.Object;
+            var pool = _mock.Object;
             const int times = 5;
             var creationTasks = new Task[times];
             var counter = -1;
@@ -267,13 +275,13 @@ namespace Dse.Test.Unit
         [Test]
         public void EnsureCreate_Fail_To_Open_All_Connections_Should_Fault_Task()
         {
-            var mock = GetPoolMock();
+            _mock = GetPoolMock();
             var testException = new Exception("Dummy exception");
-            mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() => TestHelper.DelayedTask<IConnection>(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() => TestHelper.DelayedTask<IConnection>(() =>
             {
                 throw testException;
             }));
-            var pool = mock.Object;
+            var pool = _mock.Object;
             var task = pool.EnsureCreate();
             var ex = Assert.Throws<Exception>(() => TaskHelper.WaitToComplete(task));
             Assert.AreEqual(testException, ex);
@@ -282,16 +290,16 @@ namespace Dse.Test.Unit
         [Test]
         public async Task OnHostUp_Recreates_Pool_In_The_Background()
         {
-            var mock = GetPoolMock(null, GetConfig(2, 2));
+            _mock = GetPoolMock(null, GetConfig(2, 2));
             var creationCounter = 0;
             var isCreating = 0;
-            mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
             {
                 Interlocked.Increment(ref creationCounter);
                 Interlocked.Exchange(ref isCreating, 1);
                 return TestHelper.DelayedTask(CreateConnection(), 30, () => Interlocked.Exchange(ref isCreating, 0));
             });
-            var pool = mock.Object;
+            var pool = _mock.Object;
             pool.SetDistance(HostDistance.Local);
             Assert.AreEqual(0, pool.OpenConnections);
             Assert.AreEqual(0, Volatile.Read(ref creationCounter));
@@ -306,14 +314,14 @@ namespace Dse.Test.Unit
         [Test]
         public void OnHostUp_Does_Not_Recreates_Pool_For_Ignored_Hosts()
         {
-            var mock = GetPoolMock(null, GetConfig(2, 2));
+            _mock = GetPoolMock(null, GetConfig(2, 2));
             var creationCounter = 0;
-            mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
             {
                 Interlocked.Increment(ref creationCounter);
                 return TaskHelper.ToTask(CreateConnection());
             });
-            var pool = mock.Object;
+            var pool = _mock.Object;
             pool.SetDistance(HostDistance.Ignored);
             Assert.AreEqual(0, pool.OpenConnections);
             Assert.AreEqual(0, Volatile.Read(ref creationCounter));
@@ -326,16 +334,16 @@ namespace Dse.Test.Unit
         [Test]
         public async Task EnsureCreate_After_Reconnection_Attempt_Waits_Existing()
         {
-            var mock = GetPoolMock(null, GetConfig(2, 2));
+            _mock = GetPoolMock(null, GetConfig(2, 2));
             var creationCounter = 0;
             var isCreating = 0;
-            mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
             {
                 Interlocked.Increment(ref creationCounter);
                 Interlocked.Exchange(ref isCreating, 1);
                 return TestHelper.DelayedTask(CreateConnection(), 300, () => Interlocked.Exchange(ref isCreating, 0));
             });
-            var pool = mock.Object;
+            var pool = _mock.Object;
             pool.SetDistance(HostDistance.Local);
             Assert.AreEqual(0, pool.OpenConnections);
             Thread.Sleep(100);
@@ -351,16 +359,16 @@ namespace Dse.Test.Unit
         [Test]
         public async Task EnsureCreate_Can_Handle_Multiple_Concurrent_Calls()
         {
-            var mock = GetPoolMock(null, GetConfig(3, 3));
+            _mock = GetPoolMock(null, GetConfig(3, 3));
             var creationCounter = 0;
             var isCreating = 0;
-            mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
             {
                 Interlocked.Increment(ref creationCounter);
                 Interlocked.Exchange(ref isCreating, 1);
                 return TestHelper.DelayedTask(CreateConnection(), 50, () => Interlocked.Exchange(ref isCreating, 0));
             });
-            var pool = mock.Object;
+            var pool = _mock.Object;
             pool.SetDistance(HostDistance.Local);
             Assert.AreEqual(0, pool.OpenConnections);
             var tasks = new Task[100];
@@ -447,14 +455,14 @@ namespace Dse.Test.Unit
         [Test]
         public void ScheduleReconnection_Should_Raise_AllConnectionClosed()
         {
-            var mock = GetPoolMock(null, GetConfig(1, 1, new ConstantReconnectionPolicy(100)));
+            _mock = GetPoolMock(null, GetConfig(1, 1, new ConstantReconnectionPolicy(100)));
             var openConnectionsAttempts = 0;
-            mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
             {
                 Interlocked.Increment(ref openConnectionsAttempts);
                 return TaskHelper.FromException<IConnection>(new Exception("Test Exception"));
             });
-            var pool = mock.Object;
+            var pool = _mock.Object;
             var eventRaised = 0;
             pool.AllConnectionClosed += (_, __) => Interlocked.Increment(ref eventRaised);
             pool.ScheduleReconnection();
@@ -470,14 +478,14 @@ namespace Dse.Test.Unit
         {
             var host = TestHelper.CreateHost("127.0.0.1");
             host.SetDown();
-            var mock = GetPoolMock(host, GetConfig(1, 1, new ConstantReconnectionPolicy(100)));
+            _mock = GetPoolMock(host, GetConfig(1, 1, new ConstantReconnectionPolicy(100)));
             var openConnectionsAttempts = 0;
-            mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
             {
                 Interlocked.Increment(ref openConnectionsAttempts);
                 return TaskHelper.FromException<IConnection>(new Exception("Test Exception"));
             });
-            var pool = mock.Object;
+            var pool = _mock.Object;
             var eventRaised = 0;
             pool.AllConnectionClosed += (_, __) => Interlocked.Increment(ref eventRaised);
             pool.ScheduleReconnection();
@@ -492,9 +500,9 @@ namespace Dse.Test.Unit
         [Test]
         public async Task CheckHealth_Removes_Connection()
         {
-            var mock = GetPoolMock();
-            mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() => TaskHelper.ToTask(GetConnectionMock(0, int.MaxValue)));
-            var pool = mock.Object;
+            _mock = GetPoolMock();
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() => TaskHelper.ToTask(GetConnectionMock(0, int.MaxValue)));
+            var pool = _mock.Object;
             pool.SetDistance(HostDistance.Local);
             Assert.AreEqual(0, pool.OpenConnections);
             await pool.EnsureCreate().ConfigureAwait(false);
@@ -509,39 +517,45 @@ namespace Dse.Test.Unit
         [Test, Repeat(10)]
         public async Task Pool_Increasing_Size_And_Closing_Should_Not_Leave_Connections_Open([Range(0, 29)] int delay)
         {
-            var mock = GetPoolMock(null, GetConfig(50, 50));
-            mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(async () =>
+            _mock = GetPoolMock(null, GetConfig(50, 50));
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(async () =>
             {
                 await Task.Yield();
                 var spinWait = new SpinWait();
                 spinWait.SpinOnce();
                 return await Task.Run(() => CreateConnection()).ConfigureAwait(false);
             });
-            var pool = mock.Object;
+            var pool = _mock.Object;
             Assert.AreEqual(0, pool.OpenConnections);
             pool.SetDistance(HostDistance.Local);
             await pool.EnsureCreate().ConfigureAwait(false);
             Assert.Greater(pool.OpenConnections, 0);
             // Wait for the pool to be gaining size
-            await Task.Delay(delay).ConfigureAwait(false);
-            if (delay > 20)
+            TestHelper.RetryAssert(() =>
             {
                 Assert.Greater(pool.OpenConnections, 1);
-            }
+            },
+            20,
+            100);
             await Task.Run(() =>
             {
                 pool.Dispose();
             }).ConfigureAwait(false);
-            await Task.Delay(100).ConfigureAwait(false);
-            Assert.AreEqual(0, pool.OpenConnections);
+            
+            TestHelper.RetryAssert(() =>
+            {
+                Assert.AreEqual(0, pool.OpenConnections);
+            },
+            20,
+            100);
         }
 
         [Test]
         public async Task Dispose_Should_Not_Raise_AllConnections_Closed()
         {
-            var mock = GetPoolMock(null, GetConfig(4, 4));
-            mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() => TaskHelper.ToTask(CreateConnection()));
-            var pool = mock.Object;
+            _mock = GetPoolMock(null, GetConfig(4, 4));
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() => TaskHelper.ToTask(CreateConnection()));
+            var pool = _mock.Object;
             Assert.AreEqual(0, pool.OpenConnections);
             pool.SetDistance(HostDistance.Local);
             var eventRaised = 0;
@@ -556,14 +570,14 @@ namespace Dse.Test.Unit
         [Test]
         public async Task Dispose_Should_Cancel_Reconnection_Attempts()
         {
-            var mock = GetPoolMock(null, GetConfig(4, 4, new ConstantReconnectionPolicy(200)));
+            _mock = GetPoolMock(null, GetConfig(4, 4, new ConstantReconnectionPolicy(200)));
             var openConnectionAttempts = 0;
-            mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
             {
                 Interlocked.Increment(ref openConnectionAttempts);
                 return TaskHelper.ToTask(CreateConnection());
             });
-            var pool = mock.Object;
+            var pool = _mock.Object;
             Assert.AreEqual(0, pool.OpenConnections);
             pool.SetDistance(HostDistance.Local);
             pool.ScheduleReconnection();
@@ -576,9 +590,9 @@ namespace Dse.Test.Unit
         [Test]
         public void Warmup_Should_Throw_When_The_First_Connection_Can_Not_Be_Opened()
         {
-            var mock = GetPoolMock(null, GetConfig(4, 4, new ConstantReconnectionPolicy(200)));
+            _mock = GetPoolMock(null, GetConfig(4, 4, new ConstantReconnectionPolicy(200)));
             var openConnectionAttempts = 0;
-            mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
             {
                 var index = Interlocked.Increment(ref openConnectionAttempts);
                 if (index == 1)
@@ -588,7 +602,7 @@ namespace Dse.Test.Unit
                 return TaskHelper.ToTask(CreateConnection());
             });
 
-            var pool = mock.Object;
+            var pool = _mock.Object;
             pool.SetDistance(HostDistance.Local);
             Assert.ThrowsAsync<SocketException>(async () => await pool.Warmup().ConfigureAwait(false));
             Assert.AreEqual(1, Volatile.Read(ref openConnectionAttempts));
@@ -597,9 +611,9 @@ namespace Dse.Test.Unit
         [Test]
         public void Warmup_Should_Succeed_When_The_Second_Connection_Can_Not_Be_Opened()
         {
-            var mock = GetPoolMock(null, GetConfig(4, 4, new ConstantReconnectionPolicy(200)));
+            _mock = GetPoolMock(null, GetConfig(4, 4, new ConstantReconnectionPolicy(200)));
             var openConnectionAttempts = 0;
-            mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
             {
                 var index = Interlocked.Increment(ref openConnectionAttempts);
                 if (index == 2)
@@ -609,7 +623,7 @@ namespace Dse.Test.Unit
                 return TaskHelper.ToTask(CreateConnection());
             });
 
-            var pool = mock.Object;
+            var pool = _mock.Object;
             pool.SetDistance(HostDistance.Local);
             Assert.DoesNotThrowAsync(async () => await pool.Warmup().ConfigureAwait(false));
             Assert.AreEqual(2, Volatile.Read(ref openConnectionAttempts));
@@ -618,15 +632,15 @@ namespace Dse.Test.Unit
         [Test]
         public void Warmup_Should_Succeed_When_All_Connections_Can_Be_Opened()
         {
-            var mock = GetPoolMock(null, GetConfig(4, 4, new ConstantReconnectionPolicy(200)));
+            _mock = GetPoolMock(null, GetConfig(4, 4, new ConstantReconnectionPolicy(200)));
             var openConnectionAttempts = 0;
-            mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
+            _mock.Setup(p => p.DoCreateAndOpen(It.IsAny<bool>())).Returns(() =>
             {
                 Interlocked.Increment(ref openConnectionAttempts);
                 return TaskHelper.ToTask(CreateConnection());
             });
 
-            var pool = mock.Object;
+            var pool = _mock.Object;
             pool.SetDistance(HostDistance.Local);
             Assert.DoesNotThrowAsync(async () => await pool.Warmup().ConfigureAwait(false));
             Assert.AreEqual(4, Volatile.Read(ref openConnectionAttempts));

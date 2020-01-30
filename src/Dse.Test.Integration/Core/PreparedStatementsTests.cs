@@ -36,7 +36,7 @@ namespace Dse.Test.Integration.Core
             Session.Execute(string.Format(TestUtils.CreateTableAllTypes, AllTypesTableName));
             CreateTable(_tableName);
         }
-
+        
         [Test]
         public void Bound_AllSingleTypesDifferentValues()
         {
@@ -650,7 +650,7 @@ namespace Dse.Test.Integration.Core
         [Test]
         public void Bound_Collections_List_Valids()
         {
-            var session = GetNewSession(KeyspaceName);
+            var session = GetNewTemporarySession(KeyspaceName);
             PreparedStatement psList = session.Prepare(String.Format("INSERT INTO {0} (id, list_sample) VALUES (?, ?)", AllTypesTableName));
 
             // Valid cases -- NOTE: Only types List and blob are valid
@@ -663,7 +663,7 @@ namespace Dse.Test.Integration.Core
         [Test]
         public void Bound_Collections_Map_Valid()
         {
-            var session = GetNewSession(KeyspaceName);
+            var session = GetNewTemporarySession(KeyspaceName);
             PreparedStatement psMap = session.Prepare(String.Format("INSERT INTO {0} (id, map_sample) VALUES (?, ?)", AllTypesTableName));
             AssertValid(session, psMap, new Dictionary<string, string> { { "one", "1" }, { "two", "2" } });
         }
@@ -671,7 +671,7 @@ namespace Dse.Test.Integration.Core
         [Test]
         public void Bound_ExtraParameter()
         {
-            var session = GetNewSession(KeyspaceName);
+            var session = GetNewTemporarySession(KeyspaceName);
             var ps = session.Prepare(String.Format("INSERT INTO {0} (id, list_sample, int_sample) VALUES (?, ?, ?)", AllTypesTableName));
             Assert.Throws(Is
                 .InstanceOf<ArgumentException>().Or

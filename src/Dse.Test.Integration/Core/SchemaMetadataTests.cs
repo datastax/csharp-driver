@@ -45,7 +45,7 @@ namespace Dse.Test.Integration.Core
         [Test, TestCase(true), TestCase(false)]
         public void KeyspacesMetadataAvailableAtStartup(bool metadataSync)
         {
-            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             // Basic status check
             Assert.Greater(cluster.Metadata.GetKeyspaces().Count, 0);
             Assert.NotNull(cluster.Metadata.GetKeyspace("system"));
@@ -65,7 +65,7 @@ namespace Dse.Test.Integration.Core
         [Test, TestCase(true), TestCase(false), TestCassandraVersion(2, 1)]
         public void UdtMetadataTest(bool metadataSync)
         {
-            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
             var keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
             session.CreateKeyspace(keyspaceName);
@@ -109,7 +109,7 @@ namespace Dse.Test.Integration.Core
         [Test, TestCase(true), TestCase(false)]
         public void Custom_MetadataTest(bool metadataSync)
         {
-            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
             var keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
             session.CreateKeyspace(keyspaceName);
@@ -159,7 +159,7 @@ namespace Dse.Test.Integration.Core
         [Test, TestCase(true), TestCase(false), TestCassandraVersion(2, 1)]
         public void Udt_Case_Sensitive_Metadata_Test(bool metadataSync)
         {
-            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
             var keyspaceName = TestUtils.GetUniqueKeyspaceName().ToLower();
             session.CreateKeyspace(keyspaceName);
@@ -187,7 +187,7 @@ namespace Dse.Test.Integration.Core
             var tableName = TestUtils.GetUniqueTableName().ToLower();
             var cqlTable1 = "CREATE TABLE " + tableName + " (id int PRIMARY KEY, phone frozen<tuple<uuid, text, int>>, achievements list<frozen<tuple<text,int>>>)";
 
-            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
 
             session.CreateKeyspaceIfNotExists(keyspaceName);
@@ -203,7 +203,7 @@ namespace Dse.Test.Integration.Core
         {
             var keyspaceName = TestUtils.GetUniqueKeyspaceName();
             var tableName1 = TestUtils.GetUniqueTableName().ToLower();
-            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
 
             var cql = "CREATE TABLE " + tableName1 + " ( " +
@@ -264,7 +264,7 @@ namespace Dse.Test.Integration.Core
         {
             var keyspaceName = TestUtils.GetUniqueKeyspaceName();
             var tableName = TestUtils.GetUniqueTableName().ToLower();
-            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
 
             var cql = "CREATE TABLE " + tableName + " (" +
@@ -307,7 +307,7 @@ namespace Dse.Test.Integration.Core
         {
             var keyspaceName = TestUtils.GetUniqueKeyspaceName();
             const string tableName = "products";
-            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
             session.CreateKeyspace(keyspaceName);
             session.ChangeKeyspace(keyspaceName);
@@ -349,7 +349,7 @@ namespace Dse.Test.Integration.Core
         {
             var keyspaceName = TestUtils.GetUniqueKeyspaceName();
             var tableName = TestUtils.GetUniqueTableName().ToLower();
-            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
             session.CreateKeyspaceIfNotExists(keyspaceName);
             session.ChangeKeyspace(keyspaceName);
@@ -400,7 +400,7 @@ namespace Dse.Test.Integration.Core
         [Test, TestCase(true), TestCase(false)]
         public void GetTableAsync_With_Keyspace_And_Table_Not_Found(bool metadataSync)
         {
-            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             cluster.Connect();
             var t = cluster.Metadata.GetTableAsync("ks_does_not_exist", "t1");
             var table = TaskHelper.WaitToComplete(t);
@@ -431,8 +431,8 @@ namespace Dse.Test.Integration.Core
                 "CREATE TABLE IF NOT EXISTS ks_view_meta3.scores (user TEXT, game TEXT, year INT, month INT, day INT, score INT, PRIMARY KEY (user, game, year, month, day))",
                 "CREATE MATERIALIZED VIEW IF NOT EXISTS ks_view_meta3.monthlyhigh AS SELECT user, game, year, month, score, day FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL AND day IS NOT NULL PRIMARY KEY ((game, year, month), score, user, day) WITH CLUSTERING ORDER BY (score DESC, user DESC, day DESC) AND compaction = { 'class' : 'SizeTieredCompactionStrategy' }"
             };
-            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
-            var cluster2 = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster2 = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
             var session2 = cluster2.Connect();
             foreach (var q in queries)
@@ -485,8 +485,8 @@ namespace Dse.Test.Integration.Core
                 "CREATE MATERIALIZED VIEW IF NOT EXISTS ks_view_meta4.dailyhigh AS SELECT user, game, year, month, day, score FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND day IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL PRIMARY KEY ((game, year, month, day), score, user) WITH CLUSTERING ORDER BY (score DESC, user DESC)",
                 "CREATE MATERIALIZED VIEW IF NOT EXISTS ks_view_meta4.alltimehigh AS SELECT * FROM scores WHERE game IS NOT NULL AND year IS NOT NULL AND month IS NOT NULL AND day IS NOT NULL AND score IS NOT NULL AND user IS NOT NULL PRIMARY KEY (game, score, year, month, day, user) WITH CLUSTERING ORDER BY (score DESC, year DESC, month DESC, day DESC, user DESC)"
             };
-            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
-            var cluster2 = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster2 = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
             var session2 = cluster2.Connect();
             foreach (var q in queries)
@@ -540,7 +540,7 @@ namespace Dse.Test.Integration.Core
         {
             var keyspaceName = TestUtils.GetUniqueKeyspaceName();
             var tableName = TestUtils.GetUniqueTableName().ToLower();
-            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
             session.CreateKeyspace(keyspaceName);
             session.ChangeKeyspace(keyspaceName);
@@ -591,7 +591,7 @@ namespace Dse.Test.Integration.Core
         {
             var keyspaceName = TestUtils.GetUniqueKeyspaceName();
             var tableName = TestUtils.GetUniqueTableName().ToLower();
-            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
             session.CreateKeyspace(keyspaceName);
             session.ChangeKeyspace(keyspaceName);
@@ -640,7 +640,7 @@ namespace Dse.Test.Integration.Core
             }
             var keyspaceName = TestUtils.GetUniqueKeyspaceName();
             var tableName = TestUtils.GetUniqueTableName().ToLower();
-            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var session = cluster.Connect();
             session.CreateKeyspace(keyspaceName);
             session.ChangeKeyspace(keyspaceName);
@@ -663,18 +663,30 @@ namespace Dse.Test.Integration.Core
         [TestDseVersion(6, 0)]
         public void Should_Retrieve_The_Nodesync_Information_Of_A_Table_Metadata(bool metadataSync)
         {
-            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var _ = cluster.Connect();
-            var items = new[]
+            var items = new List<Tuple<string, Dictionary<string, string>>>
             {
                 Tuple.Create("tbl_nodesync_true", new Dictionary<string, string>
                 {
                     { "enabled", "true" },
                     { "deadline_target_sec", "86400" }
                 }),
-                Tuple.Create("tbl_nodesync_false", new Dictionary<string, string> { { "enabled", "false" } }),
-                Tuple.Create("tbl_default_options", (Dictionary<string, string>)null)
+                Tuple.Create("tbl_nodesync_false", new Dictionary<string, string> { { "enabled", "false" } })
             };
+
+            if (TestClusterManager.CheckDseVersion(new Version(6, 8), Comparison.GreaterThanOrEqualsTo))
+            {
+                items.Add(Tuple.Create("tbl_default_options", new Dictionary<string, string>
+                {
+                    { "enabled", "true" },
+                    { "incremental", "true" }
+                }));
+            }
+            else
+            {
+                items.Add(Tuple.Create("tbl_default_options", (Dictionary<string, string>)null));
+            }
 
             foreach (var tuple in items)
             {
@@ -687,7 +699,7 @@ namespace Dse.Test.Integration.Core
         [TestDseVersion(6, 0)]
         public void Should_Retrieve_The_Nodesync_Information_Of_A_Materialized_View(bool metadataSync)
         {
-            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var _ = cluster.Connect();
 
             var mv = cluster.Metadata.GetMaterializedView(KeyspaceName, "view_nodesync");
@@ -701,7 +713,7 @@ namespace Dse.Test.Integration.Core
         [Test, TestCassandraVersion(2, 1), TestCase(true), TestCase(false)]
         public void CassandraVersion_Should_Be_Obtained_From_Host_Metadata(bool metadataSync)
         {
-            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var _ = cluster.Connect();
 
             foreach (var host in Cluster.AllHosts())
@@ -714,7 +726,7 @@ namespace Dse.Test.Integration.Core
         [Test, TestDseVersion(6, 7), TestCase(true), TestCase(false)]
         public void Virtual_Table_Metadata_Test(bool metadataSync)
         {
-            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var table = cluster.Metadata.GetTable("system_views", "sstable_tasks");
             Assert.NotNull(table);
             Assert.True(table.IsVirtual);
@@ -725,7 +737,7 @@ namespace Dse.Test.Integration.Core
         [Test, TestCase(true), TestCase(false), TestDseVersion(6, 7)]
         public void Virtual_Keyspaces_Are_Included(bool metadataSync)
         {
-            var cluster = GetNewCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
+            var cluster = GetNewTemporaryCluster(builder => builder.WithMetadataSyncOptions(new MetadataSyncOptions().SetMetadataSyncEnabled(metadataSync)));
             var defaultVirtualKeyspaces = new[] {"system_views", "system_virtual_schema"};
             CollectionAssert.IsSubsetOf(defaultVirtualKeyspaces, cluster.Metadata.GetKeyspaces());
 

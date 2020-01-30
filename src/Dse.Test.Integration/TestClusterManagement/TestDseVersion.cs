@@ -81,7 +81,7 @@ namespace Dse.Test.Integration.TestClusterManagement
             }
         }
 
-        private static bool VersionMatch(Version expectedVersion, Version executingVersion, Comparison comparison)
+        public static bool VersionMatch(Version expectedVersion, Version executingVersion, Comparison comparison)
         {
             //Compare them as integers
             //var expectedVersion = new Version(versionAttr.Major, versionAttr.Minor, versionAttr.Build);

@@ -114,7 +114,7 @@ namespace Dse.Test.Integration.Core
         [Test]
         public void SpeculativeExecution_Should_Not_Schedule_More_Than_Once_On_A_Healthy_Cluster()
         {
-            var policy = new LoggedSpeculativeExecutionPolicy();
+            var policy = new LoggedSpeculativeExecutionPolicy(5000);
             var session = GetSession(policy);
             var semaphore = new SemaphoreSlim(10);
             TestHelper.ParallelInvoke(() =>
@@ -128,7 +128,13 @@ namespace Dse.Test.Integration.Core
 
         private class LoggedSpeculativeExecutionPolicy : ISpeculativeExecutionPolicy
         {
+            private readonly long _firstDelay;
             private readonly ConcurrentDictionary<ISpeculativeExecutionPlan, int> _scheduledMore = new ConcurrentDictionary<ISpeculativeExecutionPlan, int>();
+
+            public LoggedSpeculativeExecutionPolicy(long firstFirstDelay = 500)
+            {
+                _firstDelay = firstFirstDelay;
+            }
 
             private void SetScheduledMore(ISpeculativeExecutionPlan plan, int executions)
             {
@@ -167,7 +173,7 @@ namespace Dse.Test.Integration.Core
                 {
                     if (_executions++ < 1)
                     {
-                        return 500L;
+                        return _policy._firstDelay;
                     }
                     _policy.SetScheduledMore(this, _executions);
                     return 0L;

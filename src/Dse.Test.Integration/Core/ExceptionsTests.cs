@@ -8,6 +8,7 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using Dse.Test.Integration.SimulacronAPI;
@@ -222,10 +223,12 @@ namespace Dse.Test.Integration.Core
         {
             _simulacronCluster.PrimeFluent(b => b.WhenQuery("SELECT WILL FAIL").ThenSyntaxError("syntax_error"));
             var ex = Assert.Throws<SyntaxError>(() => _session.Execute("SELECT WILL FAIL"));
-#if !NETCORE || DEBUG
+#if (!NETCORE || DEBUG) && !NETFRAMEWORK
             // On .NET Core using Release compilation, the stack trace is limited
             StringAssert.Contains(nameof(PreserveStackTraceTest), ex.StackTrace);
             StringAssert.Contains(nameof(ExceptionsTests), ex.StackTrace);
+#elif NETFRAMEWORK
+            StringAssert.Contains("Dse.Session.Execute", ex.StackTrace);
 #endif
         }
 
