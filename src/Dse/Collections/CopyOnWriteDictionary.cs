@@ -68,6 +68,11 @@ namespace Dse.Collections
 
         public bool ContainsKey(TKey key)
         {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
             return _map.ContainsKey(key);
         }
 
@@ -82,6 +87,11 @@ namespace Dse.Collections
         /// </returns>
         public TValue GetOrAdd(TKey key, TValue value)
         {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
             // optimistic scenario: return before lock
             if (_map.TryGetValue(key, out var outPutValue))
             {
@@ -95,9 +105,8 @@ namespace Dse.Collections
                 {
                     return existingValue;
                 }
-                var newMap = new Dictionary<TKey, TValue>(_map);
-                newMap.Add(key, value);
-                _map = newMap;
+
+                CloneMapAndAddUnsafe(key, value);
                 return value;
             }
         }
@@ -110,11 +119,14 @@ namespace Dse.Collections
         /// </remarks>
         public void Add(TKey key, TValue value)
         {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
             lock (_writeLock)
             {
-                var newMap = new Dictionary<TKey, TValue>(_map);
-                newMap[key] = value;
-                _map = newMap;
+                CloneMapAndAddUnsafe(key, value);
             }
         }
 
@@ -134,6 +146,11 @@ namespace Dse.Collections
         /// </summary>
         public bool Remove(TKey key)
         {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
             lock (_writeLock)
             {
                 if (!_map.ContainsKey(key))
@@ -141,9 +158,8 @@ namespace Dse.Collections
                     //Do not modify the underlying map
                     return false;
                 }
-                var newMap = new Dictionary<TKey, TValue>(_map);
-                _map = newMap;
-                return newMap.Remove(key);
+
+                return CloneMapAndRemoveUnsafe(key);
             }
         }
 
@@ -160,6 +176,11 @@ namespace Dse.Collections
         /// </summary>
         public bool TryRemove(TKey key, out TValue value)
         {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
             lock (_writeLock)
             {
                 if (!_map.TryGetValue(key, out value))
@@ -167,15 +188,23 @@ namespace Dse.Collections
                     //Do not modify the underlying map
                     return false;
                 }
-                var newMap = new Dictionary<TKey, TValue>(_map);
-                _map = newMap;
-                newMap.Remove(key);
-                return true;
+
+                return CloneMapAndRemoveUnsafe(key);
             }
         }
 
         public TValue GetOrAdd(TKey key, Func<TKey, TValue> valueFactory)
         {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
+            if (valueFactory == null)
+            {
+                throw new ArgumentNullException(nameof(valueFactory));
+            }
+
             // optimistic scenario: return before lock
             if (_map.TryGetValue(key, out var outputValue))
             {
@@ -189,23 +218,120 @@ namespace Dse.Collections
                 {
                     return existingValue;
                 }
-                var newMap = new Dictionary<TKey, TValue>(_map);
                 var value = valueFactory(key);
-                newMap.Add(key, value);
-                _map = newMap;
+                CloneMapAndAddUnsafe(key, value);
                 return value;
             }
         }
 
+        public TValue AddOrUpdate(
+            TKey key, Func<TKey, TValue> addValueFactory, Func<TKey, TValue, TValue> updateValueFactory)
+        {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
+            if (addValueFactory == null)
+            {
+                throw new ArgumentNullException(nameof(addValueFactory));
+            }
+
+            if (updateValueFactory == null)
+            {
+                throw new ArgumentNullException(nameof(updateValueFactory));
+            }
+
+            lock (_writeLock)
+            {
+                TValue newValue;
+                if (TryGetValue(key, out var existingValue))
+                {
+                    newValue = updateValueFactory(key, existingValue);
+                    CloneMapAndUpdateUnsafe(key, newValue);
+                    return newValue;
+                }
+
+                newValue = addValueFactory(key);
+                CloneMapAndAddUnsafe(key, newValue);
+                return newValue;
+            }
+        }
+
+        /// <inheritdoc />
+        public TValue CompareAndUpdate(
+            TKey key, Func<TKey, TValue, bool> compareFunc, Func<TKey, TValue, TValue> updateValueFactory)
+        {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+            
+            if (updateValueFactory == null)
+            {
+                throw new ArgumentNullException(nameof(updateValueFactory));
+            }
+
+            lock (_writeLock)
+            {
+                if (!TryGetValue(key, out var existingValue))
+                {
+                    throw new InvalidOperationException("Could not retrieve an item with that key.");
+                }
+
+                if (!compareFunc(key, existingValue))
+                {
+                    return existingValue;
+                }
+
+                var newValue = updateValueFactory(key, existingValue);
+                CloneMapAndUpdateUnsafe(key, newValue);
+                return newValue;
+            }
+        }
+
+        private void CloneMapAndAddUnsafe(TKey key, TValue value)
+        {
+            var newMap = new Dictionary<TKey, TValue>(_map)
+            {
+                { key, value }
+            };
+
+            _map = newMap;
+        }
+
+        private void CloneMapAndUpdateUnsafe(TKey key, TValue value)
+        {
+            var newMap = new Dictionary<TKey, TValue>(_map)
+            {
+                [key] = value
+            };
+
+            _map = newMap;
+        }
+        
+        private bool CloneMapAndRemoveUnsafe(TKey key)
+        {
+            var newMap = new Dictionary<TKey, TValue>(_map);
+            var success = newMap.Remove(key);
+            _map = newMap;
+            return success;
+        }
+
         public bool TryGetValue(TKey key, out TValue value)
         {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
             return _map.TryGetValue(key, out value);
         }
 
         public TValue this[TKey key]
         {
-            get { return _map[key]; }
-            set { Add(key, value); }
+            get => _map[key];
+            set => Add(key, value);
         }
     }
 }

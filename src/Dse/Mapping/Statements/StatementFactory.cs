@@ -6,10 +6,10 @@
 //
 
 using System;
-using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Dse.Collections;
 using Dse.Tasks;
 
 namespace Dse.Mapping.Statements
@@ -19,7 +19,7 @@ namespace Dse.Mapping.Statements
     /// </summary>
     internal class StatementFactory
     {
-        private readonly ConcurrentDictionary<CacheKey, Task<PreparedStatement>> _statementCache;
+        private readonly IThreadSafeDictionary<CacheKey, Task<PreparedStatement>> _statementCache;
         private static readonly Logger Logger = new Logger(typeof(StatementFactory));
         private int _statementCacheCount;
 
@@ -28,7 +28,7 @@ namespace Dse.Mapping.Statements
         public StatementFactory()
         {
             MaxPreparedStatementsThreshold = 500;
-            _statementCache = new ConcurrentDictionary<CacheKey, Task<PreparedStatement>>();
+            _statementCache = new CopyOnWriteDictionary<CacheKey, Task<PreparedStatement>>();
         }
 
         /// <summary>
@@ -39,7 +39,6 @@ namespace Dse.Mapping.Statements
         /// <param name="forceNoPrepare">When defined, it's used to override the CQL options behavior.</param>
         public async Task<Statement> GetStatementAsync(ISession session, Cql cql, bool? forceNoPrepare = null)
         {
-            var profile = cql.ExecutionProfile ?? Configuration.DefaultExecutionProfileName;
             var noPrepare = forceNoPrepare ?? cql.QueryOptions.NoPrepare;
             if (noPrepare)
             {
@@ -57,7 +56,9 @@ namespace Dse.Mapping.Statements
             var prepareTask = _statementCache.GetOrAdd(psCacheKey, _ =>
             {
                 wasPreviouslyCached = false;
-                return session.PrepareAsync(query);
+
+                // Use Task.Run to spend as little time as possible inside the collection lock
+                return Task.Run(() => session.PrepareAsync(query));
             });
 
             PreparedStatement ps;
@@ -69,11 +70,12 @@ namespace Dse.Mapping.Statements
             {
                 // The exception was caused from awaiting upon a Task that was previously cached
                 // It's possible that the schema or topology changed making this query preparation to succeed
-                // in a new attemp
-                prepareTask = session.PrepareAsync(query);
+                // in a new attempt
+                prepareTask = _statementCache.CompareAndUpdate(
+                    psCacheKey,
+                    (k, v) => object.ReferenceEquals(v, prepareTask), 
+                    (k, v) => Task.Run(() => session.PrepareAsync(query)));
                 ps = await prepareTask.ConfigureAwait(false);
-                // AddOrUpdate() returns a task which we already waited upon, its safe to call Forget()
-                _statementCache.AddOrUpdate(psCacheKey, prepareTask, (k, v) => prepareTask).Forget();
             }
 
             if (!wasPreviouslyCached)
@@ -152,7 +154,7 @@ namespace Dse.Mapping.Statements
             {
                 if (ReferenceEquals(null, obj)) return false;
                 if (ReferenceEquals(this, obj)) return true;
-                return obj.GetType() == GetType() && Equals((CacheKey) obj);
+                return obj.GetType() == GetType() && Equals((CacheKey)obj);
             }
 
             public override int GetHashCode()
