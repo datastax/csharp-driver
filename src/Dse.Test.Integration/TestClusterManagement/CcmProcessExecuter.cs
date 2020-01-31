@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text;
 using System.Threading;
 
 namespace Dse.Test.Integration.TestClusterManagement
@@ -85,6 +86,9 @@ namespace Dse.Test.Integration.TestClusterManagement
                     output.ExitCode = -1;
                 }
 
+                process.CancelOutputRead();
+                process.CancelErrorRead();
+                
                 output.SetOutput(process.StandardOutput.ReadToEnd() + 
                                  Environment.NewLine + "STDERR:" + Environment.NewLine + process.StandardError.ReadToEnd());
             }
