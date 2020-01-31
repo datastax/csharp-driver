@@ -31,7 +31,6 @@ using NUnit.Framework;
 
 namespace Cassandra.IntegrationTests.Linq.LinqMethods
 {
-    [Category("testwindows")]
     public class Counter : SimulacronTest
     {
         private void PrimeLinqCounterQuery(CounterEntityWithLinqAttributes counter)

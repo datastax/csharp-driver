@@ -14,6 +14,8 @@
 //   limitations under the License.
 //
 
+using System;
+
 namespace Cassandra
 {
     /// <summary>
@@ -211,6 +213,33 @@ namespace Cassandra
             _speculativeExecutionPolicy = speculativeExecutionPolicy ?? DefaultSpeculativeExecutionPolicy;
             _timestampGenerator = timestampGenerator ?? DefaultTimestampGenerator;
             _extendedRetryPolicy = _retryPolicy.Wrap(DefaultExtendedRetryPolicy);
+        }
+
+        private Policies(
+            ILoadBalancingPolicy loadBalancingPolicy,
+            IReconnectionPolicy reconnectionPolicy,
+            IRetryPolicy retryPolicy,
+            ISpeculativeExecutionPolicy speculativeExecutionPolicy,
+            ITimestampGenerator timestampGenerator,
+            IExtendedRetryPolicy extendedRetryPolicy)
+        {
+            _loadBalancingPolicy = loadBalancingPolicy ?? throw new ArgumentNullException(nameof(loadBalancingPolicy));
+            _reconnectionPolicy = reconnectionPolicy ?? throw new ArgumentNullException(nameof(reconnectionPolicy));
+            _retryPolicy = retryPolicy ?? throw new ArgumentNullException(nameof(retryPolicy));
+            _speculativeExecutionPolicy = speculativeExecutionPolicy ?? throw new ArgumentNullException(nameof(speculativeExecutionPolicy));
+            _timestampGenerator = timestampGenerator ?? throw new ArgumentNullException(nameof(timestampGenerator));
+            _extendedRetryPolicy = extendedRetryPolicy ?? throw new ArgumentNullException(nameof(extendedRetryPolicy));
+        }
+
+        internal Policies CloneWithExecutionProfilePolicies(IExecutionProfile defaultProfile)
+        {
+            return new Policies(
+                defaultProfile.LoadBalancingPolicy ?? _loadBalancingPolicy,
+                _reconnectionPolicy,
+                _retryPolicy,
+                defaultProfile.SpeculativeExecutionPolicy ?? _speculativeExecutionPolicy,
+                _timestampGenerator,
+                _extendedRetryPolicy);
         }
     }
 }
