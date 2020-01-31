@@ -16,6 +16,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text;
 using System.Threading;
 using Cassandra.IntegrationTests.TestBase;
 
@@ -95,6 +96,9 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                     output.ExitCode = -1;
                 }
 
+                process.CancelOutputRead();
+                process.CancelErrorRead();
+                
                 output.SetOutput(process.StandardOutput.ReadToEnd() + 
                                  Environment.NewLine + "STDERR:" + Environment.NewLine + process.StandardError.ReadToEnd());
             }
