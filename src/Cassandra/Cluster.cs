@@ -208,10 +208,7 @@ namespace Cassandra
                         loadBalancingPolicies.Add(options.LoadBalancingPolicy);
                         speculativeExecutionPolicies.Add(options.SpeculativeExecutionPolicy);
                     }
-
-                    loadBalancingPolicies.Add(Configuration.Policies.LoadBalancingPolicy);
-                    speculativeExecutionPolicies.Add(Configuration.Policies.SpeculativeExecutionPolicy);
-
+                    
                     _loadBalancingPolicies = loadBalancingPolicies.ToList();
 
                     // Only abort the async operations when at least twice the time for ConnectTimeout per host passed
@@ -504,7 +501,6 @@ namespace Cassandra
                 speculativeExecutionPolicies.Add(options.SpeculativeExecutionPolicy);
             }
 
-            speculativeExecutionPolicies.Add(Configuration.Policies.SpeculativeExecutionPolicy);
             foreach (var sep in speculativeExecutionPolicies)
             {
                 sep.Dispose();

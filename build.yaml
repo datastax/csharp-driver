@@ -14,11 +14,11 @@ schedules:
       # on linux with netcoreapp2.1 target 2.2 and 3.11
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['netcoreapp2.1']
-          cassandra: ['2.1', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8']
+          cassandra: ['2.1', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
       # on linux with mono and netcoreapp2.0 target 3.11
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['mono', 'netcoreapp2.0']
-          cassandra: ['2.1', '2.2', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8']
+          cassandra: ['2.1', '2.2', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
   commit-dse:
     # Run short suite on commit
     schedule: per_commit
@@ -34,11 +34,11 @@ schedules:
       # on linux with netcoreapp2.1 target dse-5.1 and dse-6.7
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['netcoreapp2.1']
-          cassandra: ['2.1', '2.2', '3.0', '3.11', 'dse-5.0', 'dse-6.0', 'dse-6.8']
+          cassandra: ['2.1', '2.2', '3.0', '3.11', 'dse-5.0', 'dse-6.0', 'dse-6.8.0']
       # on linux with mono and netcoreapp2.0 target dse-6.7
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['mono', 'netcoreapp2.0']
-          cassandra: ['2.1', '2.2', '3.0', '3.11', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8']
+          cassandra: ['2.1', '2.2', '3.0', '3.11', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8.0']
   nightly-oss-ubuntu:
     # nightly job for primary branches to run almost all configs on ubuntu.
     schedule: nightly
@@ -55,7 +55,7 @@ schedules:
           dotnet: ['net452', 'net461']
       # on linux dont build dse
         - os: 'ubuntu/bionic64/csharp-driver'
-          cassandra: ['dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8']
+          cassandra: ['dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
       # on linux with netcoreapp2.1 target all oss
       # on linux with mono and netcoreapp2.0 target 2.2 and 3.11
         - os: 'ubuntu/bionic64/csharp-driver'
@@ -82,7 +82,7 @@ schedules:
       # on linux with mono and netcoreapp2.0 target dse-5.1 and dse-6.7
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['mono', 'netcoreapp2.0']
-          cassandra: ['dse-5.0', 'dse-6.0', 'dse-6.8']
+          cassandra: ['dse-5.0', 'dse-6.0', 'dse-6.8.0']
   nightly-oss-windows:
     # nightly job for primary branches to run several configs on windows (windows builds are slow so it's less configs than the nightly ubuntu schedule).
     schedule: nightly
@@ -100,15 +100,15 @@ schedules:
       # on windows target 3.11 with netcoreapp2.0 and netcoreapp2.
         - os: 'win/cs'
           dotnet: ['netcoreapp2.0', 'netcoreapp2.1']
-          cassandra: ['2.1', '2.2', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8']
+          cassandra: ['2.1', '2.2', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
       # on windows target 2.1, 2.2 and 3.11
         - os: 'win/cs'
           dotnet: ['net452']
-          cassandra: ['3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8']
+          cassandra: ['3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
       # on windows target 2.2 and 3.11 with net461
         - os: 'win/cs'
           dotnet: ['net461']
-          cassandra: ['2.1', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8']
+          cassandra: ['2.1', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.7', 'dse-6.8.0']
   nightly-dse-windows:
     # nightly job for primary branches to run several configs on windows (windows builds are slow so it's less configs than the nightly ubuntu schedule).
     schedule: nightly
@@ -126,7 +126,7 @@ schedules:
       # on windows target dse-6.7 with netcoreapp2.0 and netcoreapp2.
         - os: 'win/cs'
           dotnet: ['netcoreapp2.0', 'netcoreapp2.1']
-          cassandra: ['2.1', '2.2', '3.0', '3.11', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8']
+          cassandra: ['2.1', '2.2', '3.0', '3.11', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8.0']
       # on windows target dse-5.1, dse-6.7 and dse-6.8 with net452
         - os: 'win/cs'
           dotnet: ['net452']
@@ -134,7 +134,7 @@ schedules:
       # on windows target dse-6.7 with net461
         - os: 'win/cs'
           dotnet: ['net461']
-          cassandra: ['2.1', '2.2', '3.0', '3.11', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8']
+          cassandra: ['2.1', '2.2', '3.0', '3.11', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8.0']
   adhoc:
     # adhoc job for non-primary braches that doesn't have the nightly and weekly schedules so this may be used to run same configs as the weekly schedule.
     schedule: adhoc
@@ -150,12 +150,12 @@ schedules:
       # on windows target 3.11 and dse-6.7 with netcoreapp2.0 and netcoreapp2.
         - os: 'win/cs'
           dotnet: ['netcoreapp2.0', 'netcoreapp2.1']
-          cassandra: ['2.1', '2.2', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8']
+          cassandra: ['2.1', '2.2', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8.0']
       # on windows target all with net452
       # on windows target 2.2, 3.11 and dse-6.7 with net461
         - os: 'win/cs'
           dotnet: ['net461']
-          cassandra: ['2.1', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8']
+          cassandra: ['2.1', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8.0']
       # on linux dont build net452 and net461
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['net452', 'net461']
@@ -174,12 +174,12 @@ schedules:
       # on windows target 3.11 and dse-6.7 with netcoreapp2.0 and netcoreapp2.
         - os: 'win/cs'
           dotnet: ['netcoreapp2.0', 'netcoreapp2.1']
-          cassandra: ['2.1', '2.2', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8']
+          cassandra: ['2.1', '2.2', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8.0']
       # on windows target all with net452
       # on windows target 2.2, 3.11 and dse-6.7 with net461
         - os: 'win/cs'
           dotnet: ['net461']
-          cassandra: ['2.1', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8']
+          cassandra: ['2.1', '3.0', 'dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8.0']
       # on linux dont build net452 and net461
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['net452', 'net461']
@@ -196,7 +196,7 @@ cassandra:
   - 'dse-5.1'
   - 'dse-6.0'
   - 'dse-6.7'
-  - 'dse-6.8'
+  - 'dse-6.8.0'
 dotnet:
   - 'mono'
   - 'netcoreapp2.0'

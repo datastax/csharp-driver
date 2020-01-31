@@ -175,12 +175,9 @@ namespace Cassandra
                 .DefineIfNotExists(new PointSerializer())
                 .DefineIfNotExists(new PolygonSerializer());
 
-            var policies = new Policies(
-                _loadBalancingPolicy,
-                _reconnectionPolicy,
-                _retryPolicy,
-                _speculativeExecutionPolicy,
-                _timestampGenerator);
+            var policies = GetPolicies();
+            var graphOptions = GetGraphOptions();
+            SetLegacySettingsFromDefaultProfile();
 
             var protocolOptions =
                 new ProtocolOptions(_port, _sslOptions)
@@ -208,7 +205,7 @@ namespace Cassandra
                 _driverMetricsProvider,
                 _metricsOptions,
                 _sessionName,
-                GraphOptions,
+                graphOptions,
                 ClusterId,
                 ApplicationVersion,
                 ApplicationName,
@@ -217,7 +214,98 @@ namespace Cassandra
 
             return config;
         }
-        
+
+        /// <summary>
+        /// Initialize legacy properties with values provided by the default profile.
+        /// Example: set SocketOptions.ReadTimeoutMillis from ExecutionProfile.ReadTimeoutMillis
+        /// </summary>
+        private void SetLegacySettingsFromDefaultProfile()
+        {
+            if (!_profiles.TryGetValue(Configuration.DefaultExecutionProfileName, out var profile))
+            {
+                return;
+            }
+
+            if (profile.ReadTimeoutMillis.HasValue)
+            {
+                _socketOptions.SetReadTimeoutMillis(profile.ReadTimeoutMillis.Value);
+            }
+                
+            if (profile.ConsistencyLevel.HasValue)
+            {
+                _queryOptions.SetConsistencyLevel(profile.ConsistencyLevel.Value);
+            }
+                
+            if (profile.SerialConsistencyLevel.HasValue)
+            {
+                _queryOptions.SetSerialConsistencyLevel(profile.SerialConsistencyLevel.Value);
+            }
+        }
+
+        private GraphOptions GetGraphOptions()
+        {
+            var graphOptions = GraphOptions;
+
+            if (_profiles.TryGetValue(Configuration.DefaultExecutionProfileName, out var profile))
+            {
+                graphOptions = profile.GraphOptions ?? graphOptions;
+            }
+
+            return graphOptions;
+        }
+
+        private Policies GetPolicies()
+        {
+            var lbp = _loadBalancingPolicy;
+            var sep = _speculativeExecutionPolicy;
+            var rep = _retryPolicy;
+
+            if (!_profiles.TryGetValue(Configuration.DefaultExecutionProfileName, out var profile))
+            {
+                return new Policies(
+                    lbp,
+                    _reconnectionPolicy,
+                    rep,
+                    sep,
+                    _timestampGenerator);
+            }
+
+            if (profile.LoadBalancingPolicy != null && _loadBalancingPolicy != null)
+            {
+                Builder.Logger.Warning(
+                    "A load balancing policy was provided through the Builder.WithLoadBalancingPolicy method " +
+                    "and another through the default execution profile. Policies provided through the default execution profile " +
+                    "take precedence over policies specified through the Builder methods.");
+            }
+                
+            if (profile.SpeculativeExecutionPolicy != null && _speculativeExecutionPolicy != null)
+            {
+                Builder.Logger.Warning(
+                    "A speculative execution policy was provided through the Builder.WithSpeculativeExecutionPolicy method " +
+                    "and another through the default execution profile. Policies provided through the default execution profile " +
+                    "take precedence over policies specified through the Builder methods.");
+            }
+                
+            if (profile.RetryPolicy != null && _retryPolicy != null)
+            {
+                Builder.Logger.Warning(
+                    "A retry policy was provided through the Builder.WithRetryPolicy method " +
+                    "and another through the default execution profile. Policies provided through the default execution profile " +
+                    "take precedence over policies specified through the Builder methods.");
+            }
+
+            lbp = profile.LoadBalancingPolicy ?? lbp;
+            sep = profile.SpeculativeExecutionPolicy ?? sep;
+            rep = profile.RetryPolicy ?? rep;
+
+            return new Policies(
+                lbp,
+                _reconnectionPolicy,
+                rep,
+                sep,
+                _timestampGenerator);
+        }
+
         /// <summary>
         /// <para>
         /// An optional configuration for providing a unique identifier for the created cluster instance.
