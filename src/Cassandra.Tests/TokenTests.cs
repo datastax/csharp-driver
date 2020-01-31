@@ -23,9 +23,10 @@ using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.MetadataHelpers;
 using Cassandra.ProtocolEvents;
+using Cassandra.SessionManagement;
 using Cassandra.Tests.Connections;
 using Cassandra.Tests.MetadataHelpers.TestHelpers;
-
+using Moq;
 using NUnit.Framework;
 
 namespace Cassandra.Tests
@@ -441,6 +442,7 @@ namespace Cassandra.Tests
             }.Build();
             var metadata = new Metadata(config, schemaParser) {Partitioner = "Murmur3Partitioner"};
             metadata.ControlConnection = new ControlConnection(
+                Mock.Of<IInternalCluster>(),
                 new ProtocolEventDebouncer(new TaskBasedTimerFactory(), TimeSpan.FromMilliseconds(20), TimeSpan.FromSeconds(100)), 
                 ProtocolVersion.V3, 
                 config, 

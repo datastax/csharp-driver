@@ -20,6 +20,7 @@ using System.Net;
 using System.Threading.Tasks;
 using Cassandra.Connections;
 using Cassandra.ProtocolEvents;
+using Cassandra.SessionManagement;
 using Cassandra.Tests.MetadataHelpers.TestHelpers;
 using Moq;
 using NUnit.Framework;
@@ -69,6 +70,7 @@ namespace Cassandra.Tests.Connections
                 ConnectionFactory = _connectionFactory
             }.Build();
             return new ControlConnection(
+                Mock.Of<IInternalCluster>(),
                 new ProtocolEventDebouncer(
                     new FakeTimerFactory(), TimeSpan.Zero, TimeSpan.Zero), 
                 ProtocolVersion.V3, 

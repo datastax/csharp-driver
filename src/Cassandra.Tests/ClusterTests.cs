@@ -19,6 +19,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
+using Cassandra.ExecutionProfiles;
+using Cassandra.Tests.Connections;
+using Moq;
 using NUnit.Framework;
 
 namespace Cassandra.Tests
@@ -83,6 +86,149 @@ namespace Cassandra.Tests
                 GC.Collect();
                 Assert.Less(GC.GetTotalMemory(true) / initialLength, 1.3M,
                     "Should not exceed a 20% (1.3) more than was previously allocated");
+            }
+        }
+
+        static object[] _hostDistanceTestData = new object[]
+        {
+            // Test Case 1
+            new object[]
+            {
+                // LBP data
+                new []
+                {
+                    new Dictionary<string, HostDistance>
+                    {
+                        { "127.0.0.1", HostDistance.Ignored },
+                        { "127.0.0.2", HostDistance.Local },
+                        { "127.0.0.3", HostDistance.Ignored }
+                    },
+
+                    new Dictionary<string, HostDistance>
+                    {
+                        { "127.0.0.1", HostDistance.Local },
+                        { "127.0.0.2", HostDistance.Local },
+                        { "127.0.0.3", HostDistance.Remote }
+                    },
+
+                    new Dictionary<string, HostDistance>
+                    {
+                        { "127.0.0.1", HostDistance.Remote },
+                        { "127.0.0.2", HostDistance.Ignored },
+                        { "127.0.0.3", HostDistance.Local }
+                    }
+                },
+
+                // Expected result
+                new Dictionary<string, HostDistance>
+                {
+                    { "127.0.0.1", HostDistance.Local },
+                    { "127.0.0.2", HostDistance.Local },
+                    { "127.0.0.3", HostDistance.Local }
+                }
+            },
+
+            // Test Case 2
+            new object[]
+            {
+                // LBP data
+                new []
+                {
+                    new Dictionary<string, HostDistance>
+                    {
+                        { "127.0.0.1", HostDistance.Ignored },
+                        { "127.0.0.2", HostDistance.Remote },
+                        { "127.0.0.3", HostDistance.Remote }
+                    },
+
+                    new Dictionary<string, HostDistance>
+                    {
+                        { "127.0.0.1", HostDistance.Ignored },
+                        { "127.0.0.2", HostDistance.Ignored },
+                        { "127.0.0.3", HostDistance.Remote }
+                    },
+
+                    new Dictionary<string, HostDistance>
+                    {
+                        { "127.0.0.1", HostDistance.Ignored },
+                        { "127.0.0.2", HostDistance.Ignored },
+                        { "127.0.0.3", HostDistance.Local }
+                    }
+                },
+                // Expected result
+                new Dictionary<string, HostDistance>
+                {
+                    { "127.0.0.1", HostDistance.Ignored },
+                    { "127.0.0.2", HostDistance.Remote },
+                    { "127.0.0.3", HostDistance.Local }
+                }
+            }
+        };
+
+        [Test, TestCaseSource(nameof(ClusterUnitTests._hostDistanceTestData))]
+        public void Should_OnlyDisposePoliciesOnce_When_NoProfileIsProvided(
+            Dictionary<string, HostDistance>[] lbpData, Dictionary<string, HostDistance> expected)
+        {
+            var lbps = lbpData.Select(lbp => new FakeHostDistanceLbp(lbp)).ToList();
+            var testConfig = new TestConfigurationBuilder()
+            {
+                ControlConnectionFactory = new FakeControlConnectionFactory(),
+                ConnectionFactory = new FakeConnectionFactory(),
+                Policies = new Cassandra.Policies(
+                    lbps[0], 
+                    new ConstantReconnectionPolicy(50), 
+                    new DefaultRetryPolicy(), 
+                    NoSpeculativeExecutionPolicy.Instance, 
+                    new AtomicMonotonicTimestampGenerator()),
+                ExecutionProfiles = lbps.Skip(1).Select(
+                    (lbp, idx) => new 
+                    { 
+                        idx, 
+                        a = new ExecutionProfile(null, null, null, lbp, null, null, null) 
+                            as IExecutionProfile
+                    }).ToDictionary(obj => obj.idx.ToString(), obj => obj.a)
+            }.Build();
+            var initializerMock = Mock.Of<IInitializer>();
+            Mock.Get(initializerMock)
+                .Setup(i => i.ContactPoints)
+                .Returns(lbpData.SelectMany(dict => dict.Keys).Distinct().Select(addr => new IPEndPoint(IPAddress.Parse(addr), 9042)).ToList);
+            Mock.Get(initializerMock)
+                .Setup(i => i.GetConfiguration())
+                .Returns(testConfig);
+            
+            var cluster = Cluster.BuildFrom(initializerMock, new List<string>(), testConfig);
+            cluster.Connect();
+            cluster.Dispose();
+
+            foreach (var h in cluster.AllHosts())
+            {
+                Assert.AreEqual(expected[h.Address.Address.ToString()], h.GetDistanceUnsafe());
+            }
+        }
+
+        internal class FakeHostDistanceLbp : ILoadBalancingPolicy
+        {
+            private readonly IDictionary<string, HostDistance> _distances;
+            private ICluster _cluster;
+
+            public FakeHostDistanceLbp(IDictionary<string, HostDistance> distances)
+            {
+                _distances = distances;
+            }
+
+            public void Initialize(ICluster cluster)
+            {
+                _cluster = cluster;
+            }
+
+            public HostDistance Distance(Host host)
+            {
+                return _distances[host.Address.Address.ToString()];
+            }
+
+            public IEnumerable<Host> NewQueryPlan(string keyspace, IStatement query)
+            {
+                return _cluster.AllHosts().OrderBy(h => Guid.NewGuid().GetHashCode()).Take(_distances.Count);
             }
         }
     }
