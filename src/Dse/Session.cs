@@ -234,7 +234,7 @@ namespace Dse
         {
             // Load balancing policy was initialized
             var lbp = Configuration.DefaultRequestOptions.LoadBalancingPolicy;
-            var hosts = lbp.NewQueryPlan(Keyspace, null).Where(h => lbp.Distance(h) == HostDistance.Local).ToArray();
+            var hosts = lbp.NewQueryPlan(Keyspace, null).Where(h => Dse.Cluster.RetrieveAndSetDistance(h, lbp) == HostDistance.Local).ToArray();
             var tasks = new Task[hosts.Length];
             for (var i = 0; i < hosts.Length; i++)
             {

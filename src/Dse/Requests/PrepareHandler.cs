@@ -114,7 +114,7 @@ namespace Dse.Requests
                 {
                     continue;
                 }
-                distance = Cluster.RetrieveDistance(host, lbp);
+                distance = Cluster.RetrieveAndSetDistance(host, lbp);
                 if (distance == HostDistance.Ignored)
                 {
                     continue;

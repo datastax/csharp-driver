@@ -309,6 +309,11 @@ namespace Dse
                         sep.Initialize(this);
                     }
 
+                    foreach (var h in AllHosts())
+                    {
+                        Cluster.RetrieveAndSetDistance(h, Configuration.DefaultRequestOptions.LoadBalancingPolicy);
+                    }
+
                     // Set metadata dependent options
                     SetMetadataDependentOptions();
                 }
@@ -511,7 +516,7 @@ namespace Dse
         /// Helper method to retrieve the distance from LoadBalancingPolicy and set it at Host level.
         /// Once ProfileManager is implemented, this logic will be part of it.
         /// </summary>
-        internal static HostDistance RetrieveDistance(Host host, ILoadBalancingPolicy lbp)
+        internal static HostDistance RetrieveAndSetDistance(Host host, ILoadBalancingPolicy lbp)
         {
             var distance = lbp.Distance(host);
             host.SetDistance(distance);

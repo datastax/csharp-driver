@@ -576,7 +576,7 @@ namespace Dse.Connections
                 ControlConnection._logger.Info("Received status change event for host {0} but it was not found", address);
                 return;
             }
-            var distance = Cluster.RetrieveDistance(host, _config.DefaultRequestOptions.LoadBalancingPolicy);
+            var distance = Cluster.RetrieveAndSetDistance(host, _config.DefaultRequestOptions.LoadBalancingPolicy);
             if (distance != HostDistance.Ignored)
             {
                 // We should not consider events for status changes
