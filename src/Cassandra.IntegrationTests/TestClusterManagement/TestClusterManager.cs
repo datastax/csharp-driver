@@ -227,8 +227,8 @@ namespace Cassandra.IntegrationTests.TestClusterManagement
                 // C* 3.11 => DSE 5.1
                 return Version5Dot1;
             }
-            // DSE 6.7
-            return Version6Dot7;
+            // DSE 6.0
+            return Version6Dot0;
         }
 
         private static ITestCluster CreateNewNoRetry(int nodeLength, TestClusterOptions options, bool startCluster)
