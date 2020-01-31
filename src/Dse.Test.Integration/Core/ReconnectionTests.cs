@@ -355,11 +355,14 @@ namespace Dse.Test.Integration.Core
                     var rs = session.Execute($"INSERT INTO test_table(id) VALUES ('{idx++}')");
                     set.Add(rs.Info.QueriedHost);
                     Assert.AreEqual(2, set.Count);
-                }, 10, 3000);
+                }, 500, 240);
                 
-                pool2 = session.GetExistingPool(removedHost.Address);
-                Assert.IsNotNull(pool2);
-                Assert.AreEqual(2, pool2.OpenConnections);
+                TestHelper.RetryAssert(() =>
+                {
+                    pool2 = session.GetExistingPool(removedHost.Address);
+                    Assert.IsNotNull(pool2);
+                    Assert.AreEqual(2, pool2.OpenConnections);
+                }, 500, 60);
             }
         }
 
@@ -418,7 +421,7 @@ namespace Dse.Test.Integration.Core
                             string.Join(";", session.Cluster.AllHosts().Select(h => h.Address.Address.ToString())));
                         Assert.AreNotSame(tokenMap, session.Cluster.Metadata.TokenToReplicasMap);
                     },
-                    100,
+                    500,
                     100);
                 
                 var newTokenMap = session.Cluster.Metadata.TokenToReplicasMap;
