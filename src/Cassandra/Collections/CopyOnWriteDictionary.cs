@@ -268,7 +268,8 @@ namespace Cassandra.Collections
         }
 
         /// <inheritdoc />
-        public TValue CompareAndUpdate(TKey key, TValue existing, Func<TKey, TValue, TValue> updateValueFactory)
+        public TValue CompareAndUpdate(
+            TKey key, Func<TKey, TValue, bool> compareFunc, Func<TKey, TValue, TValue> updateValueFactory)
         {
             if (key == null)
             {
@@ -287,7 +288,7 @@ namespace Cassandra.Collections
                     throw new InvalidOperationException("Could not retrieve an item with that key.");
                 }
 
-                if (!object.ReferenceEquals(existing, existingValue))
+                if (!compareFunc(key, existingValue))
                 {
                     return existingValue;
                 }

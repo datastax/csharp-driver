@@ -83,7 +83,7 @@ namespace Cassandra.Mapping.Statements
                 // in a new attempt
                 prepareTask = _statementCache.CompareAndUpdate(
                     psCacheKey,
-                    prepareTask, 
+                    (k, v) => object.ReferenceEquals(v, prepareTask), 
                     (k, v) => Task.Run(() => session.PrepareAsync(query)));
                 ps = await prepareTask.ConfigureAwait(false);
             }
