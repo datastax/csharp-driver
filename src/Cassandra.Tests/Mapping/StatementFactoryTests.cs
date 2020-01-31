@@ -14,8 +14,13 @@
 //   limitations under the License.
 // 
 
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Cassandra.Helpers;
 using Cassandra.Mapping;
 using Cassandra.Mapping.Statements;
 using Cassandra.Tasks;
@@ -30,26 +35,125 @@ namespace Cassandra.Tests.Mapping
         [Test]
         public async Task GetStatementAsync_Should_Prepare_Once_And_Cache()
         {
+            var createdPreparedStatementsBag = new ConcurrentBag<Task<PreparedStatement>>();
             var sessionMock = new Mock<ISession>(MockBehavior.Strict);
             sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
             sessionMock
                 .Setup(s => s.PrepareAsync(It.IsAny<string>()))
-                .Returns<string>(q => Task.FromResult(GetPrepared(q)));
+                .Returns<string>(q =>
+                {
+                    var task = Task.FromResult(GetPrepared(q));
+                    createdPreparedStatementsBag.Add(task);
+                    return task;
+                });
 
             var cql = Cql.New("Q");
             var sf = new StatementFactory();
+            var concurrentTasks = 1000;
 
-            var statement = await sf.GetStatementAsync(sessionMock.Object, cql).ConfigureAwait(false);
+            var semaphore = new SemaphoreSlim(0, concurrentTasks);
+            
+            var tasks = 
+                Enumerable.Range(0, concurrentTasks)
+                          .Select(_ => Task.Run(
+                              async () =>
+                              {
+                                  await semaphore.WaitAsync().ConfigureAwait(false);
+                                  return await sf.GetStatementAsync(sessionMock.Object, cql).ConfigureAwait(false);
+                              }))
+                          .ToArray();
 
-            Assert.IsInstanceOf<BoundStatement>(statement);
+            semaphore.Release(concurrentTasks);
 
-            var ps = ((BoundStatement) statement).PreparedStatement;
+            await Task.WhenAll(tasks).ConfigureAwait(false);
 
-            for (var i = 0; i < 10; i++)
+            var boundStatementsSet = new HashSet<BoundStatement>(
+                tasks.Select(t => (BoundStatement)t.Result), 
+                new ReferenceEqualityComparer<BoundStatement>());
+            
+            var preparedStatementsSet = new HashSet<PreparedStatement>(
+                tasks.Select(t => ((BoundStatement)t.Result).PreparedStatement), 
+                new ReferenceEqualityComparer<PreparedStatement>());
+            
+            var createdPreparedStatementsSet = new HashSet<PreparedStatement>(
+                createdPreparedStatementsBag.Select(t => t.Result), 
+                new ReferenceEqualityComparer<PreparedStatement>());
+
+            Assert.AreEqual(1, preparedStatementsSet.Count);
+            Assert.AreEqual(concurrentTasks, boundStatementsSet.Count);
+            Assert.AreEqual(1, createdPreparedStatementsSet.Count);
+        }
+        
+        [Test]
+        public async Task GetStatementAsync_Should_PrepareTwiceAndCache_When_FirstPrepareFails()
+        {
+            var createdPreparedStatementsBag = new ConcurrentBag<Task<PreparedStatement>>();
+            var sessionMock = new Mock<ISession>(MockBehavior.Strict);
+            var firstTime = 1;
+            var exceptionMessage = "Test exception in prepare.";
+            sessionMock.Setup(s => s.Keyspace).Returns<string>(null);
+            sessionMock
+                .Setup(s => s.PrepareAsync(It.IsAny<string>()))
+                .Returns<string>(q =>
+                {
+                    if (Interlocked.CompareExchange(ref firstTime, 0, 1) == 1)
+                    {
+                        PreparedStatement Func() => throw new Exception(exceptionMessage);
+                        return Task.Run((Func<PreparedStatement>) Func);
+                    }
+
+                    var task = Task.FromResult(GetPrepared(q));
+                    createdPreparedStatementsBag.Add(task);
+                    return task;
+                });
+
+            var cql = Cql.New("Q");
+            var sf = new StatementFactory();
+            var concurrentTasks = 1000;
+
+            var semaphore = new SemaphoreSlim(0, concurrentTasks);
+            
+            var tasks = 
+                Enumerable.Range(0, concurrentTasks)
+                          .Select(_ => Task.Run(
+                              async () =>
+                              {
+                                  await semaphore.WaitAsync().ConfigureAwait(false);
+                                  return await sf.GetStatementAsync(sessionMock.Object, cql).ConfigureAwait(false);
+                              }))
+                          .ToArray();
+
+            semaphore.Release(concurrentTasks);
+
+            try
             {
-                var bound = (BoundStatement) await sf.GetStatementAsync(sessionMock.Object, cql).ConfigureAwait(false);
-                Assert.AreSame(ps, bound.PreparedStatement);
+                await Task.WhenAll(tasks).ConfigureAwait(false);
             }
+            catch (Exception ex)
+            {
+                Assert.AreEqual(exceptionMessage, ex.Message);
+            }
+
+            Assert.AreEqual(1, tasks.Count(t => t.IsFaulted));
+            Assert.AreEqual(concurrentTasks - 1, tasks.Count(t => t.IsCompleted && !t.IsFaulted));
+
+            tasks = tasks.Where(t => !t.IsFaulted).ToArray();
+
+            var boundStatementsSet = new HashSet<BoundStatement>(
+                tasks.Select(t => (BoundStatement)t.Result), 
+                new ReferenceEqualityComparer<BoundStatement>());
+            
+            var preparedStatementsSet = new HashSet<PreparedStatement>(
+                tasks.Select(t => ((BoundStatement)t.Result).PreparedStatement), 
+                new ReferenceEqualityComparer<PreparedStatement>());
+            
+            var createdPreparedStatementsSet = new HashSet<PreparedStatement>(
+                createdPreparedStatementsBag.Select(t => t.Result), 
+                new ReferenceEqualityComparer<PreparedStatement>());
+
+            Assert.AreEqual(1, preparedStatementsSet.Count);
+            Assert.AreEqual(concurrentTasks - 1, boundStatementsSet.Count);
+            Assert.AreEqual(1, createdPreparedStatementsSet.Count);
         }
 
         [Test]

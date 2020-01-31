@@ -26,5 +26,19 @@ namespace Cassandra.Collections
         bool TryRemove(TKey key, out TValue value);
 
         TValue GetOrAdd(TKey key, Func<TKey, TValue> valueFactory);
+
+        TValue AddOrUpdate(
+            TKey key,
+            Func<TKey, TValue> addValueFactory,
+            Func<TKey, TValue, TValue> updateValueFactory);
+
+        /// <summary>
+        /// Calls <paramref name="updateValueFactory"/> and updates an existing key only if the value is the same.
+        /// Only Reference Equality is used.
+        /// </summary>
+        TValue CompareAndUpdate(
+            TKey key,
+            TValue existing,
+            Func<TKey, TValue, TValue> updateValueFactory);
     }
 }
