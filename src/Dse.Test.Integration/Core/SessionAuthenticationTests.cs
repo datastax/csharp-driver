@@ -26,6 +26,26 @@ namespace Dse.Test.Integration.Core
     {
         // Test cluster object to be shared by tests in this class only
         private ITestCluster _testClusterForAuthTesting;
+        
+        public static void RetryUntilClusterAuthHealthy(ITestCluster cluster)
+        {
+            using (var c = Cluster
+                           .Builder()
+                           .AddContactPoint(cluster.InitialContactPoint)
+                           .WithAuthProvider(new PlainTextAuthProvider("wrong_username", "password"))
+                           .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(22000).SetConnectTimeoutMillis(60000))
+                           .Build())
+            {
+                TestHelper.RetryAssert(
+                    () =>
+                    {
+                        var ex = Assert.Throws<NoHostAvailableException>(() => c.Connect());
+                        Assert.IsInstanceOf<AuthenticationException>(ex.Errors.First().Value);
+                    },
+                    500,
+                    300);
+            }
+        }
 
         [OneTimeSetUp]
         public void OneTimeSetUp()
@@ -34,7 +54,7 @@ namespace Dse.Test.Integration.Core
             _testClusterForAuthTesting = GetTestCcmClusterForAuthTests();
             //Wait 10 seconds as auth table needs to be created
             Thread.Sleep(10000);
-            DseSessionAuthenticationTests.RetryUntilClusterAuthHealthy(_testClusterForAuthTesting);
+            SessionAuthenticationTests.RetryUntilClusterAuthHealthy(_testClusterForAuthTesting);
         }
 
         [OneTimeTearDown]

@@ -86,9 +86,24 @@ namespace Dse.Test.Integration.TestClusterManagement
                     output.ExitCode = -1;
                 }
 
-                process.CancelOutputRead();
-                process.CancelErrorRead();
-                
+                try
+                {
+                    process.CancelOutputRead();
+                }
+                catch
+                {
+                    // ignored
+                }
+
+                try
+                {
+                    process.CancelErrorRead();
+                }
+                catch
+                {
+                    // ignored
+                }
+
                 output.SetOutput(process.StandardOutput.ReadToEnd() + 
                                  Environment.NewLine + "STDERR:" + Environment.NewLine + process.StandardError.ReadToEnd());
             }
