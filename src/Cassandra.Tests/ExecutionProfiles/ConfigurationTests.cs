@@ -516,5 +516,45 @@ namespace Cassandra.Tests.ExecutionProfiles
             Assert.AreSame(rp, profile.RetryPolicy);
             Assert.AreSame(go, profile.GraphOptions);
         }
+        
+        [Test]
+        public void Should_SetLegacyProperties_When_PoliciesAreProvidedByDefaultProfile()
+        {
+            var lbp1 = new RoundRobinPolicy();
+            var sep1 = new ConstantSpeculativeExecutionPolicy(1000, 1);
+            var lbp2 = new RoundRobinPolicy();
+            var sep2 = new ConstantSpeculativeExecutionPolicy(1000, 1);
+            var retryPolicy = new DefaultRetryPolicy();
+            var retryPolicy2 = new DefaultRetryPolicy();
+            var cluster =
+                Cluster.Builder()
+                       .AddContactPoint("127.0.0.1")
+                       .WithLoadBalancingPolicy(lbp1)
+                       .WithSpeculativeExecutionPolicy(sep1)
+                       .WithRetryPolicy(retryPolicy)
+                       .WithSocketOptions(new SocketOptions().SetReadTimeoutMillis(123))
+                       .WithQueryOptions(
+                           new QueryOptions()
+                               .SetConsistencyLevel(ConsistencyLevel.All)
+                               .SetSerialConsistencyLevel(ConsistencyLevel.LocalSerial))
+                       .WithExecutionProfiles(opt => opt
+                           .WithProfile("default", profile => 
+                               profile
+                                   .WithLoadBalancingPolicy(lbp2)
+                                   .WithSpeculativeExecutionPolicy(sep2)
+                                   .WithRetryPolicy(retryPolicy2)
+                                   .WithConsistencyLevel(ConsistencyLevel.Quorum)
+                                   .WithSerialConsistencyLevel(ConsistencyLevel.Serial)
+                                   .WithReadTimeoutMillis(4412)))
+                       .Build();
+
+            Assert.AreSame(retryPolicy2, cluster.Configuration.Policies.ExtendedRetryPolicy);
+            Assert.AreSame(retryPolicy2, cluster.Configuration.Policies.RetryPolicy);
+            Assert.AreSame(sep2, cluster.Configuration.Policies.SpeculativeExecutionPolicy);
+            Assert.AreSame(lbp2, cluster.Configuration.Policies.LoadBalancingPolicy);
+            Assert.AreEqual(4412, cluster.Configuration.SocketOptions.ReadTimeoutMillis);
+            Assert.AreEqual(ConsistencyLevel.Quorum, cluster.Configuration.QueryOptions.GetConsistencyLevel());
+            Assert.AreEqual(ConsistencyLevel.Serial, cluster.Configuration.QueryOptions.GetSerialConsistencyLevel());
+        }
     }
 }
