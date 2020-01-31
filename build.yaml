@@ -14,11 +14,11 @@ schedules:
       # on linux with netcoreapp2.1 target dse-5.1 and dse-6.7
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['netcoreapp2.1']
-          cassandra: ['dse-5.0', 'dse-6.0', 'dse-6.8']
+          cassandra: ['dse-5.0', 'dse-6.0', 'dse-6.8.0']
       # on linux with mono and netcoreapp2.0 target dse-6.7
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['mono', 'netcoreapp2.0']
-          cassandra: ['dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8']
+          cassandra: ['dse-5.0', 'dse-5.1', 'dse-6.0', 'dse-6.8.0']
   nightly-dse-ubuntu:
     # nightly job for primary branches to run almost all configs on ubuntu.
     schedule: nightly
@@ -37,7 +37,7 @@ schedules:
       # on linux with mono and netcoreapp2.0 target dse-5.1 and dse-6.7
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['mono', 'netcoreapp2.0']
-          cassandra: ['dse-5.0', 'dse-6.0', 'dse-6.8']
+          cassandra: ['dse-5.0', 'dse-6.0', 'dse-6.8.0']
   nightly-dse-windows:
     # nightly job for primary branches to run several configs on windows (windows builds are slow so it's less configs than the nightly ubuntu schedule).
     schedule: nightly
@@ -55,15 +55,15 @@ schedules:
       # on windows target dse-6.7 and dse-5.1 with netcoreapp2.0 and netcoreapp2.
         - os: 'win/cs'
           dotnet: ['netcoreapp2.0', 'netcoreapp2.1']
-          cassandra: ['dse-5.0', 'dse-6.0', 'dse-6.8']
-      # on windows target dse-5.1, dse-6.7 and dse-6.8 with net452
+          cassandra: ['dse-5.0', 'dse-6.0', 'dse-6.8.0']
+      # on windows target dse-5.1, dse-6.7 and dse-6.8.0 with net452
         - os: 'win/cs'
           dotnet: ['net452']
           cassandra: ['dse-5.0', 'dse-6.0']
       # on windows target dse-6.7 and dse-5.0 with net461
         - os: 'win/cs'
           dotnet: ['net461']
-          cassandra: ['dse-5.1', 'dse-6.0', 'dse-6.8']
+          cassandra: ['dse-5.1', 'dse-6.0', 'dse-6.8.0']
   adhoc:
     # adhoc job for non-primary braches that doesn't have the nightly and weekly schedules so this may be used to run same configs as the weekly schedule.
     schedule: adhoc
@@ -79,16 +79,16 @@ schedules:
       # on windows target dse-5.1 and dse-6.7 with netcoreapp2.1
         - os: 'win/cs'
           dotnet: ['netcoreapp2.1']
-          cassandra: ['dse-5.0', 'dse-6.0', 'dse-6.8']
+          cassandra: ['dse-5.0', 'dse-6.0', 'dse-6.8.0']
       # on windows target dse-5.0 and dse-6.7 with netcoreapp2.0
         - os: 'win/cs'
           dotnet: ['netcoreapp2.0']
-          cassandra: ['dse-5.1', 'dse-6.0', 'dse-6.8']
+          cassandra: ['dse-5.1', 'dse-6.0', 'dse-6.8.0']
       # on windows target all with net452
       # on windows target dse-5.1 and dse-6.7 with net461
         - os: 'win/cs'
           dotnet: ['net461']
-          cassandra: ['dse-5.0', 'dse-6.0', 'dse-6.8']
+          cassandra: ['dse-5.0', 'dse-6.0', 'dse-6.8.0']
       # on linux dont build net452 and net461
         - os: 'ubuntu/bionic64/csharp-driver'
           dotnet: ['net452', 'net461']
@@ -115,7 +115,7 @@ cassandra:
   - 'dse-5.1'
   - 'dse-6.0'
   - 'dse-6.7'
-  - 'dse-6.8'
+  - 'dse-6.8.0'
 dotnet:
   - 'mono'
   - 'netcoreapp2.0'

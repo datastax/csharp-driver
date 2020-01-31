@@ -59,7 +59,7 @@ namespace Dse
         private int _maxSchemaAgreementWaitSeconds = ProtocolOptions.DefaultMaxSchemaAgreementWaitSeconds;
         private IStartupOptionsFactory _startupOptionsFactory = new StartupOptionsFactory();
         private ISessionFactoryBuilder<IInternalCluster, IInternalSession> _sessionFactoryBuilder = new SessionFactoryBuilder();
-        private IReadOnlyDictionary<string, IExecutionProfile> _profiles = new Dictionary<string, IExecutionProfile>();
+        internal IReadOnlyDictionary<string, IExecutionProfile> _profiles = new Dictionary<string, IExecutionProfile>();
         private IRequestOptionsMapper _requestOptionsMapper = new RequestOptionsMapper();
         private MetadataSyncOptions _metadataSyncOptions;
         private IEndPointResolver _endPointResolver;
@@ -71,6 +71,8 @@ namespace Dse
         private bool _addedContactPoints;
         private bool _addedAuth;
         private bool _addedLbp;
+        private bool _addedRep;
+        private bool _addedSep;
 
         public Builder()
         {
@@ -134,13 +136,9 @@ namespace Dse
             {
                 ConfigureCloudCluster(_bundlePath);
             }
-
-            var policies = new Policies(
-                _loadBalancingPolicy,
-                _reconnectionPolicy,
-                _retryPolicy,
-                _speculativeExecutionPolicy,
-                _timestampGenerator);
+            
+            var policies = GetPolicies();
+            SetLegacySettingsFromDefaultProfile();
 
             var protocolOptions =
                 new ProtocolOptions(_port, _sslOptions)
@@ -178,6 +176,86 @@ namespace Dse
             }
 
             return config;
+        }
+        
+
+        /// <summary>
+        /// Initialize legacy properties with values provided by the default profile.
+        /// Example: set SocketOptions.ReadTimeoutMillis from ExecutionProfile.ReadTimeoutMillis
+        /// </summary>
+        private void SetLegacySettingsFromDefaultProfile()
+        {
+            if (!_profiles.TryGetValue(Configuration.DefaultExecutionProfileName, out var profile))
+            {
+                return;
+            }
+
+            if (profile.ReadTimeoutMillis.HasValue)
+            {
+                _socketOptions.SetReadTimeoutMillis(profile.ReadTimeoutMillis.Value);
+            }
+                
+            if (profile.ConsistencyLevel.HasValue)
+            {
+                _queryOptions.SetConsistencyLevel(profile.ConsistencyLevel.Value);
+            }
+                
+            if (profile.SerialConsistencyLevel.HasValue)
+            {
+                _queryOptions.SetSerialConsistencyLevel(profile.SerialConsistencyLevel.Value);
+            }
+        }
+
+        private Policies GetPolicies()
+        {
+            var lbp = _loadBalancingPolicy;
+            var sep = _speculativeExecutionPolicy;
+            var rep = _retryPolicy;
+
+            if (!_profiles.TryGetValue(Configuration.DefaultExecutionProfileName, out var profile))
+            {
+                return new Policies(
+                    lbp,
+                    _reconnectionPolicy,
+                    rep,
+                    sep,
+                    _timestampGenerator);
+            }
+
+            if (profile.LoadBalancingPolicy != null && _addedLbp)
+            {
+                Builder.Logger.Warning(
+                    "A load balancing policy was provided through the Builder.WithLoadBalancingPolicy method " +
+                    "and another through the default execution profile. Policies provided through the default execution profile " +
+                    "take precedence over policies specified through the Builder methods.");
+            }
+                
+            if (profile.SpeculativeExecutionPolicy != null && _addedSep)
+            {
+                Builder.Logger.Warning(
+                    "A speculative execution policy was provided through the Builder.WithSpeculativeExecutionPolicy method " +
+                    "and another through the default execution profile. Policies provided through the default execution profile " +
+                    "take precedence over policies specified through the Builder methods.");
+            }
+                
+            if (profile.RetryPolicy != null && _addedRep)
+            {
+                Builder.Logger.Warning(
+                    "A retry policy was provided through the Builder.WithRetryPolicy method " +
+                    "and another through the default execution profile. Policies provided through the default execution profile " +
+                    "take precedence over policies specified through the Builder methods.");
+            }
+
+            lbp = profile.LoadBalancingPolicy ?? lbp;
+            sep = profile.SpeculativeExecutionPolicy ?? sep;
+            rep = profile.RetryPolicy ?? rep;
+
+            return new Policies(
+                lbp,
+                _reconnectionPolicy,
+                rep,
+                sep,
+                _timestampGenerator);
         }
 
         /// <summary>
@@ -425,6 +503,7 @@ namespace Dse
         /// <returns>this Builder</returns>
         public Builder WithRetryPolicy(IRetryPolicy policy)
         {
+            _addedRep = true;
             _retryPolicy = policy;
             return this;
         }
@@ -439,6 +518,7 @@ namespace Dse
         /// <returns>this Builder</returns>
         public Builder WithSpeculativeExecutionPolicy(ISpeculativeExecutionPolicy policy)
         {
+            _addedSep = true;
             _speculativeExecutionPolicy = policy;
             return this;
         }

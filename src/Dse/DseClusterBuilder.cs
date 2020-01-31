@@ -833,7 +833,7 @@ namespace Dse
             var clusterId = ClusterId ?? Guid.NewGuid();
             var appVersion = ApplicationVersion ?? DseConfiguration.DefaultApplicationVersion;
             var appName = ApplicationName ?? DseConfiguration.FallbackApplicationName;
-            var graphOptions = GraphOptions ?? new GraphOptions();
+            var graphOptions = GetGraphOptions() ?? new GraphOptions();
 
             base.WithTypeSerializers(typeSerializerDefinitions);
             base.WithStartupOptionsFactory(new DseStartupOptionsFactory(clusterId, appVersion, appName));
@@ -853,6 +853,18 @@ namespace Dse
                 DseConfiguration.GetDefaultDseSessionFactoryBuilder(cassandraConfig.SessionFactoryBuilder));
 
             return new DseCluster(this, HostNames, config, _dseCoreClusterFactory);
+        }
+
+        private GraphOptions GetGraphOptions()
+        {
+            var graphOptions = GraphOptions;
+
+            if (_profiles.TryGetValue(Configuration.DefaultExecutionProfileName, out var profile))
+            {
+                graphOptions = profile.GraphOptions ?? graphOptions;
+            }
+
+            return graphOptions;
         }
     }
 }

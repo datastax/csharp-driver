@@ -87,8 +87,10 @@ namespace Dse.Test.Unit.ExecutionProfiles
             var cluster = Cluster.BuildFrom(initializerMock, new List<string>());
             cluster.Connect();
             
-            Assert.IsTrue(lbps.All(lbp => lbp.InitializeCount == 1));
-            Assert.IsTrue(seps.All(sep => sep.InitializeCount == 1));
+            Assert.IsTrue(lbps.Skip(1).All(lbp => lbp.InitializeCount == 1));
+            Assert.IsTrue(seps.Skip(1).All(sep => sep.InitializeCount == 1));
+            Assert.AreEqual(0, lbps[0].InitializeCount);
+            Assert.AreEqual(0, seps[0].InitializeCount);
         }
         
         [Test]
@@ -176,7 +178,8 @@ namespace Dse.Test.Unit.ExecutionProfiles
             cluster.Connect();
             cluster.Dispose();
 
-            Assert.IsTrue(seps.All(sep => sep.DisposeCount == 1));
+            Assert.IsTrue(seps.Skip(1).All(sep => sep.DisposeCount == 1));
+            Assert.AreEqual(0, seps[0].DisposeCount);
         }
         
         [Test]

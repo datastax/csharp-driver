@@ -18,7 +18,7 @@ using NUnit.Framework;
 
 namespace Dse.Test.Integration.Policies.Tests
 {
-    [TestFixture, Category("short"), Category("realcluster"), Category("testwindows")]
+    [TestFixture, Category("short"), Category("realcluster")]
     public class LoadBalancingPolicyShortTests : SharedClusterTest
     {
         public LoadBalancingPolicyShortTests() : base(3, false, true, new TestClusterOptions { UseVNodes = true })

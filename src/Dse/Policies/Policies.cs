@@ -5,6 +5,8 @@
 //  http://www.datastax.com/terms/datastax-dse-driver-license-terms
 //
 
+using System;
+
 namespace Dse
 {
     /// <summary>
@@ -14,33 +16,32 @@ namespace Dse
     {
         /// <summary>
         /// <para>
-        /// DEPRECATED: 
+        /// DEPRECATED: Use <see cref="NewDefaultLoadBalancingPolicy"/> instead. Providing the local datacenter will be mandatory
+        /// in the next major version of the driver.
         /// </para>
         /// <para>
         /// The default load balancing policy.
         /// </para>  
         /// <para> 
-        /// The default load balancing policy is <see cref="TokenAwarePolicy"/> with <see cref="DCAwareRoundRobinPolicy"/> as child policy.
+        /// The default load balancing policy is <see cref="DseLoadBalancingPolicy"/> as a wrapper around
+        /// <see cref="TokenAwarePolicy"/> with <see cref="DCAwareRoundRobinPolicy"/> as child policy.
         /// </para>
         /// </summary>
-        public static ILoadBalancingPolicy DefaultLoadBalancingPolicy
-        {
-            get
-            {
-                return new TokenAwarePolicy(new DCAwareRoundRobinPolicy());
-            }
-        }
+        public static ILoadBalancingPolicy DefaultLoadBalancingPolicy => 
+            new DseLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy()));
 
         /// <summary>
         /// Creates a new instance of the default load balancing policy with the provided local datacenter.
         /// This is equivalent to:
         /// <code>
-        /// new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc))
+        /// new DseLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc)))
         /// </code>
         /// </summary>
         public static ILoadBalancingPolicy NewDefaultLoadBalancingPolicy(string localDc)
         {
-            return new TokenAwarePolicy(new DCAwareRoundRobinPolicy(localDc));
+#pragma warning disable 618
+            return new DseLoadBalancingPolicy(localDc);
+#pragma warning restore 618
         }
 
         /// <summary>
@@ -203,6 +204,33 @@ namespace Dse
             _speculativeExecutionPolicy = speculativeExecutionPolicy ?? DefaultSpeculativeExecutionPolicy;
             _timestampGenerator = timestampGenerator ?? DefaultTimestampGenerator;
             _extendedRetryPolicy = _retryPolicy.Wrap(DefaultExtendedRetryPolicy);
+        }
+
+        private Policies(
+            ILoadBalancingPolicy loadBalancingPolicy,
+            IReconnectionPolicy reconnectionPolicy,
+            IRetryPolicy retryPolicy,
+            ISpeculativeExecutionPolicy speculativeExecutionPolicy,
+            ITimestampGenerator timestampGenerator,
+            IExtendedRetryPolicy extendedRetryPolicy)
+        {
+            _loadBalancingPolicy = loadBalancingPolicy ?? throw new ArgumentNullException(nameof(loadBalancingPolicy));
+            _reconnectionPolicy = reconnectionPolicy ?? throw new ArgumentNullException(nameof(reconnectionPolicy));
+            _retryPolicy = retryPolicy ?? throw new ArgumentNullException(nameof(retryPolicy));
+            _speculativeExecutionPolicy = speculativeExecutionPolicy ?? throw new ArgumentNullException(nameof(speculativeExecutionPolicy));
+            _timestampGenerator = timestampGenerator ?? throw new ArgumentNullException(nameof(timestampGenerator));
+            _extendedRetryPolicy = extendedRetryPolicy ?? throw new ArgumentNullException(nameof(extendedRetryPolicy));
+        }
+
+        internal Policies CloneWithExecutionProfilePolicies(IExecutionProfile defaultProfile)
+        {
+            return new Policies(
+                defaultProfile.LoadBalancingPolicy ?? _loadBalancingPolicy,
+                _reconnectionPolicy,
+                _retryPolicy,
+                defaultProfile.SpeculativeExecutionPolicy ?? _speculativeExecutionPolicy,
+                _timestampGenerator,
+                _extendedRetryPolicy);
         }
     }
 }
